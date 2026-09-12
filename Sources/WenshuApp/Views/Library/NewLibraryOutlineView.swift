@@ -365,20 +365,24 @@ struct NewLibraryOutlineView: View {
                     // sidebar width = wrong = not the Apple default).
                     Divider()
                 }
-                // v1.0.0-m1-shell boss 2026-09-11 OOB '左, 左中, 右三栏
-                // 的标题, 距顶加一个 apple 表达式间距, 18pt 左右
-                // 的, 找相似值': add 18 PT (= Apple HIG macOS 27
-                // Tahoe section header top inset) above the section
-                // header. Per the verbatim port discipline (= only
-                // do what the boss asked), this change ONLY adds the
-                // top inset (= 18 PT via the new semantic token
-                // `DesignTokens.chromePaddingSectionTop`); = the
-                // existing `.padding(.bottom, 4)` (= 4 PT below the
-                // Divider) is preserved because the boss previously
-                // asked for that exact value (= verbatim discipline
-                // = do not change previously-boss-asked values).
-                .padding(.top, DesignTokens.chromePaddingSectionTop)
-                .padding(.bottom, 4)
+                // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义
+                // padding 换 apple 表达式, 找近似值就可以': remove
+                // ALL custom numeric padding above/below the section
+                // header (= the previous `chromePaddingSectionTop` = 18
+                // PT and `chromePaddingSmall` = 4 PT). The sidebar List
+                // (= `.listStyle(.sidebar)` per NewLibraryOutlineView's
+                // outer modifier) manages section header spacing via
+                // Apple's built-in HIG sidebar convention (= no custom
+                // padding needed; = the canonical Pages / Numbers /
+                // Mail sidebar pattern). The Divider's `List(.sidebar)`
+                // context auto-spaces it from the previous Section.
+                //
+                // Per the verbatim port discipline (= only do what the
+                // boss asked), NO new padding values are introduced;
+                // = the visual change is: the section header now
+                // follows Apple's HIG default sidebar rhythm (= no
+                // boss-asked 18 PT or 4 PT overshoot; = the natural
+                // Apple List(.sidebar) section spacing).
             }
             .headerProminence(.increased)
             // v1.0.0-m1-shell boss 2026-09-10 OOB '在资料库和书架之间

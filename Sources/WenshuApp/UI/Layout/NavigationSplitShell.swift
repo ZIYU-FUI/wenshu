@@ -962,18 +962,21 @@ struct ShellDetailColumn: View {
                 }
                 Divider()
             }
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '左, 左中, 右三栏
-            // 的标题, 距顶加一个 apple 表达式间距, 18pt 左右
-            // 的, 找相似值': add 18 PT (= Apple HIG macOS 27
-            // Tahoe section header top inset) above the right
-            // column's section header (= the 4-page Picker
-            // selection title). Per the verbatim port discipline
-            // (= only do what the boss asked), the bottom 4 PT
-            // padding (= divider → tabs gap = the boss's previous
-            // '标题下方, 和 teb 栏之间, 少了 4pt' verbatim request)
-            // is preserved.
-            .padding(.top, DesignTokens.chromePaddingSectionTop)
-            .padding(.bottom, 4)
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义 padding
+            // 换 apple 表达式, 找近似值就可以': remove the custom
+            // top inset (= `chromePaddingSectionTop` = 18 PT) and the
+            // custom bottom inset (= 4 PT) on the right column's
+            // section header. The right column is the inspector
+            // detail column of a NavigationSplitView; = Apple HIG
+            // macOS 27 default inspector column rhythm places the
+            // section header at the natural SwiftUI default top
+            // margin (= NO custom padding required; = the canonical
+            // Pages / Numbers inspector pattern). Per the verbatim
+            // port discipline, the ZoneContentView wrapper's
+            // `.padding(.top, 4)` (= 4 PT gap below the Divider)
+            // is also removed in the same commit (= the boss's
+            // 'all custom padding' directive covers it).
+            //
             // v1.0.0-m1-shell boss 2026-09-11 OOB '标题下方, 和 teb 栏之
             // 间, 少了 4pt': per the boss's request, ADD 4 PT of
             // vertical breathing room between the section's
@@ -1001,12 +1004,20 @@ struct ShellDetailColumn: View {
             // what the boss asked), we add ONLY 4 PT here (= the
             // boss's exact ask); = other spacing in this column
             // stays unchanged.
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义 padding
+            // 换 apple 表达式, 找近似值就可以': remove the custom
+            // top inset (= 4 PT) on the ZoneContentView wrapper
+            // below. The wrapper sits below the section Divider in
+            // a vertical VStack; = Apple HIG macOS 27 default
+            // inspector rhythm places the per-page tab strip at
+            // the natural SwiftUI default spacing (= NO custom
+            // padding required; = the canonical Pages / Numbers
+            // inspector pattern).
             ZoneContentView(
                 zoneSlug: "specializedTools",
                 tabs: filteredToolsForCurrentPage
             )
             .frame(maxWidth: .infinity)
-            .padding(.top, 4)
         }
         .toolbar {
             // v1.0.0-m1-shell boss 2026-09-10 OOB '按钮的位置不对, 默认

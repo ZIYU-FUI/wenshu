@@ -154,7 +154,17 @@ struct ZoneContentView: View {
                 }
             )
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, DesignTokens.chromePaddingLarge)
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义 padding
+            // 换 apple 表达式, 找近似值就可以': remove the custom
+            // horizontal inset (= `chromePaddingLarge` = 8 PT) on
+            // the per-page tab strip. The tabs are inside a
+            // VStack in the inspector detail column; = Apple HIG
+            // macOS 27 default inspector rhythm places the
+            // segmented tab strip at the natural full-bleed
+            // horizontal width (= NO custom padding required; =
+            // the canonical Pages / Numbers inspector tab
+            // pattern; = tabs stretch from column edge to
+            // column edge).
             // v0.24 bossverificationfix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
             // so it inherits zone size (not forces zone to grow). Without this,
             // AnyView collapses to its intrinsic size and zone shrinks to ~0.

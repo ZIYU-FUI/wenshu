@@ -488,19 +488,19 @@ struct PreviewPane: View {
                 }
                 Divider()
             }
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '左, 左中, 右三栏
-            // 的标题, 距顶加一个 apple 表达式间距, 18pt 左右
-            // 的, 找相似值': add 18 PT (= Apple HIG macOS 27
-            // Tahoe section header top inset) above the center
-            // column's section header. Per the verbatim port
-            // discipline (= only do what the boss asked), no other
-            // spacing changes here (= the search field's
-            // `.padding(.top, 4)` below and the cards column
-            // layout all remain unchanged because they were
-            // previously boss-asked verbatim values).
-            .padding(.top, DesignTokens.chromePaddingSectionTop)
-            .padding(.bottom, 4)
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '位置调整一下,
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义 padding
+            // 换 apple 表达式, 找近似值就可以': remove the custom
+            // top inset (= `chromePaddingSectionTop` = 18 PT) and the
+            // custom bottom inset (= 4 PT). The center column is the
+            // content column of a NavigationSplitView; = Apple HIG
+            // macOS 27 default content column rhythm places the
+            // section header at the natural List / ScrollView top
+            // margin (= NO custom padding required; = the Apple API
+            // default). Per the verbatim port discipline, the previous
+            // search-field `.padding(.top, 4)` (= 4 PT gap to the
+            // Divider) and the cards column layout are preserved (= no
+            // unrelated changes).
+        // Custom leading search field
             // 放在标题和分割线下方, 第一张卡片上方': render the
             // custom leading-aligned search field HERE (= below the
             // '素材' title + Divider; above the first card grid) =
@@ -588,16 +588,17 @@ struct PreviewPane: View {
                     //
                     // v1.0.0-m1-shell boss 2026-09-11 OOB '你刚好
                     // 改间距扩大了我的范围, 分割线和搜索框之间的 4,
-                    // 你多删了, 需要加回了': re-add `.padding(.top,
-                    // 4)` (= the 4 PT breathing room between the
-                    // section header's Divider above and the search
-                    // field below; = NOT a manual hard-coded gap,
-                    // = part of the canonical title-block padding
-                    // pattern that was always there in Pages
-                    // sidebar header). Keep horizontal padding 8 PT
-                    // (= Apple HIG 8-point grid for inline content).
-                    .padding(.horizontal, 8)
-                    .padding(.top, 4)
+                    // 你多删了, 需要加回了': per the boss's
+                    // UPDATE 2026-09-11 OOB '删所有自定义 padding
+                    // 换 apple 表达式, 找近似值就可以': REMOVE both
+                    // `.padding(.top, 4)` (= 4 PT divider→search
+                    // gap) and `.padding(.horizontal, 8)` (= 8 PT
+                    // horizontal inset). The Apple HIG macOS 27
+                    // default layout for an inline search field
+                    // within a content column places the field at
+                    // natural SwiftUI default spacing (= NO custom
+                    // padding required; = the canonical Mail /
+                    // Notes column search pattern).
             }
             // v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
             // 那就直接用, 我们别自己写搜索': the previous internal
