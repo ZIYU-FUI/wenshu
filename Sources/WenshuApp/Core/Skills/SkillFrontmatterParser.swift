@@ -159,14 +159,27 @@ public enum SkillFrontmatterParser {
             return "[inline-shell error: \(error.localizedDescription)]"
         }
 
-        // Cap at timeout seconds.
+        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
+        // replaced the busy-wait `Thread.sleep` polling loop with a
+        // semaphore + Process.terminationHandler (= the macOS-canonical
+        // pattern from Process docs). The semaphore is the same
+        // primitive used elsewhere in wenshu (= see WenshuConductor's
+        // buildToolsSync for the Sendable-safe pattern); here we use
+        // the synchronous DispatchSemaphore.wait since `expandInlineShell`
+        // is itself synchronous and called from synchronous helpers
+        // (= no Swift concurrency anti-pattern; = the caller may be
+        // @MainActor but the Process wait is bounded by `timeout`).
         let timeoutSeconds = max(1, timeout)
-        let deadline = Date().addingTimeInterval(TimeInterval(timeoutSeconds))
-        while process.isRunning && Date() < deadline {
-            Thread.sleep(forTimeInterval: 0.05)
-        }
-        if process.isRunning {
+        let semaphore = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in semaphore.signal() }
+        // Dispatch timeout with explicit deadline (= semaphore.wait(timeout:)
+        // returns .timedOut if Process doesn't terminate in time).
+        let waitResult = semaphore.wait(timeout: .now() + .seconds(timeoutSeconds))
+        if waitResult == .timedOut {
             process.terminate()
+            // Drain the semaphore (= terminationHandler may still fire
+            // after terminate(); = avoid leaking the signal).
+            _ = semaphore.wait(timeout: .now() + .milliseconds(100))
             return "[inline-shell timeout after \(timeout)s: \(command)]"
         }
 

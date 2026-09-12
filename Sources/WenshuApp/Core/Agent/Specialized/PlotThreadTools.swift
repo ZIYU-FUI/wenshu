@@ -69,8 +69,23 @@ public actor PlotThreadTracker {
         let referenced = Set(values.compactMap(\.lastReferencedIn))
         let chapters = values.compactMap(\.introducedIn)
         let recent = Set(chapters.suffix(3))
+        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
+        // refactored the previous `filter { $0.lastReferencedIn == nil
+        // || !recent.contains($0.lastReferencedIn!) || ... }` (= the
+        // audit flagged the `lastReferencedIn!` force-unwrap as a
+        // "broken nil-guard"; the code was actually safe due to
+        // Swift's short-circuit `||`, but the smell hid the redundant
+        // clause (= !referenced.contains == always true after the
+        // first two clauses pass since `referenced` is built from the
+        // same values' lastReferencedIn)). The explicit if-let-let makes
+        // the safety contract obvious.
         return values.filter { $0.status == .open || $0.status == .developing }
-            .filter { $0.lastReferencedIn == nil || !recent.contains($0.lastReferencedIn!) || !referenced.contains($0.lastReferencedIn!) }
+            .filter { thread in
+                guard let lastRef = thread.lastReferencedIn else {
+                    return true  // never referenced = stale
+                }
+                return !recent.contains(lastRef)  // not in last 3 chapters = stale
+            }
     }
 
     public func recyclingMap(bookId: UUID) async throws -> [UUID: [UUID]] {

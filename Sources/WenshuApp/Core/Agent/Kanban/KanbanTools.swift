@@ -41,17 +41,46 @@ import Foundation
 /// KanbanStore that exposes the action dispatcher the chat surface uses.
 public actor KanbanTools {
     private let store: KanbanStore
-    private static nonisolated(unsafe) var sharedPlaceholder: KanbanStore?
+    // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
+    // replaced the previous `nonisolated(unsafe) var sharedPlaceholder`
+    // (= concurrent first-time constructions can race the cache write
+    // and produce two distinct fallback stores) with an NSLock-guarded
+    // static var (= thread-safe per the same pattern used in
+    // WenshuConductor.toolCache). NSLock gives us sync critical-section
+    // semantics without actor isolation overhead.
+    private static let sharedPlaceholderLock = NSLock()
+    // v0.71 P1 batch 8: Swift 6 strict concurrency requires the
+    // `nonisolated(unsafe)` marker on the static var (= NSLock
+    // ensures runtime safety; = the compiler doesn't model lock
+    // acquisition as a happens-before relationship).
+    nonisolated(unsafe) private static var sharedPlaceholder: KanbanStore?
 
     public init(store: KanbanStore? = nil) {
         // Tests can pass an explicit store; otherwise we lazily build one
         // (= throws on init so we cache a fallback to /tmp/kanban-test.db).
         if let store = store {
             self.store = store
-        } else if let cached = Self.sharedPlaceholder {
+            return
+        }
+        // Check cache under lock (= no concurrent races).
+        Self.sharedPlaceholderLock.lock()
+        if let cached = Self.sharedPlaceholder {
+            Self.sharedPlaceholderLock.unlock()
             self.store = cached
-        } else if let built = try? KanbanStore(path: "/tmp/wenshu-kanban-test-\(UUID().uuidString).db") {
+            return
+        }
+        Self.sharedPlaceholderLock.unlock()
+        // Build new placeholder outside lock (= building SQLite may block).
+        if let built = try? KanbanStore(path: "/tmp/wenshu-kanban-test-\(UUID().uuidString).db") {
+            Self.sharedPlaceholderLock.lock()
+            // Double-check: another thread may have populated while we were building.
+            if let cached = Self.sharedPlaceholder {
+                Self.sharedPlaceholderLock.unlock()
+                self.store = cached
+                return
+            }
             Self.sharedPlaceholder = built
+            Self.sharedPlaceholderLock.unlock()
             self.store = built
         } else {
             // Last resort: try without path (default App Support).
@@ -62,11 +91,25 @@ public actor KanbanTools {
     /// Fallback KanbanStore builder (= when both App Support and /tmp are unavailable).
     /// Should never happen in practice; tests inject explicit stores.
     private static func makeFallback() -> KanbanStore {
-        // The default init throws on first-call errors but the actor's
-        // "fatalError on init" is acceptable here — every test that uses
-        // KanbanTools without an explicit store gets a fresh fallback
-        // SQLite file under /tmp.
-        return try! KanbanStore(path: "/tmp/wenshu-kanban-fallback-\(UUID().uuidString).db")
+        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
+        // replaced `try! KanbanStore(...)` (= would crash on unwritable
+        // /tmp or SQLite open failure) with explicit do/catch + NSLog
+        // that returns a freshly-built empty store (= the actor
+        // requires a non-nil store so we can't return nil).
+        do {
+            return try KanbanStore(path: "/tmp/wenshu-kanban-fallback-\(UUID().uuidString).db")
+        } catch {
+            NSLog("[wenshu.kanban] makeFallback failed: %@", String(describing: error))
+            // Last-resort: try default init. If THIS also fails, log and
+            // preconditionFailure (= the same final behavior as the
+            // previous try! but at least we've logged the failure chain).
+            do {
+                return try KanbanStore()
+            } catch {
+                NSLog("[wenshu.kanban] final fallback also failed: %@", String(describing: error))
+                preconditionFailure("KanbanTools.makeFallback: cannot construct any KanbanStore")
+            }
+        }
     }
 
     // MARK: - Action enum (= hermes kanban_tools.py handle_* functions)

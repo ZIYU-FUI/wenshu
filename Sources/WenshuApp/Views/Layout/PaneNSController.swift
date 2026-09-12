@@ -168,6 +168,18 @@ final class PaneNSController: NSSplitViewController {
         // needed here.
     }
 
+    /// v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis HIGH):
+    /// remove the selector-based NotificationCenter observer added in
+    /// viewDidLoad (= HIGH leak: NotificationCenter retains `self`
+    /// forever if no `removeObserver` runs; = the pane controller
+    /// leaks on pane close). Apple HIG canonical lifecycle is
+    /// `addObserver` paired with explicit `removeObserver` in
+    /// `deinit` (= the controller is `final` so a single deinit
+    /// covers all instances).
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     /// v0.30 boss 2026-09-01 OOB (Step 1 = restore API default): do NOT
     /// set the divider style programmatically. Apple NSSplitView
     /// uses `.thick` by default (= the legacy divider visual). The
@@ -1053,7 +1065,17 @@ final class PaneNSController: NSSplitViewController {
                 }
             }
         }
-        walk(lowerItem.viewController as? NSSplitViewController ?? lowerItem.viewController as! NSSplitViewController)
+        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis HIGH):
+        // removed `as! NSSplitViewController` fallback (= the previous
+        // code force-cast a non-split view controller = hard crash).
+        // Now returns early if `lowerItem.viewController` is not a
+        // split view controller (= the walk function can only recurse
+        // into nested splits; = a flat lower item is a no-op for the
+        // collapse-detection logic below).
+        guard let lowerController = lowerItem.viewController as? NSSplitViewController else {
+            return
+        }
+        walk(lowerController)
         let totalHeight = self.splitView.bounds.height
         if lowerHasCollapseable && lowerCollapsed {
             self.splitView.setPosition(totalHeight, ofDividerAt: 0)

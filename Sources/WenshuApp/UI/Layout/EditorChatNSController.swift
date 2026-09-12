@@ -203,6 +203,18 @@ final class EditorChatNSController: NSSplitViewController {
         )
     }
 
+    /// v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis HIGH):
+    /// remove the selector-based NotificationCenter observer added in
+    /// viewDidLoad (= HIGH leak: NotificationCenter retains `self`
+    /// forever if no `removeObserver` runs; = the editor chat
+    /// controller leaks on pane close). Apple HIG canonical lifecycle
+    /// is `addObserver` paired with explicit `removeObserver` in
+    /// `deinit` (= the controller is `final` so a single deinit
+    /// covers all instances).
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     @objc private func handleChatToggleNotification() {
         toggleChatZone()
     }
