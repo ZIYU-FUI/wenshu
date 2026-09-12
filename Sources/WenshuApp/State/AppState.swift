@@ -239,7 +239,8 @@ final class AppState {
                 documentPath: $0.documentPath,
                 draft: $0.draft,
                 originalBody: $0.originalBody,
-                mode: $0.mode.rawValue
+                mode: $0.mode.rawValue,
+                title: $0.title
             )
         }
         if let data = try? JSONEncoder().encode(snapshot) {
@@ -262,7 +263,8 @@ final class AppState {
                 documentPath: p.documentPath,
                 draft: p.draft,
                 originalBody: p.originalBody,
-                mode: mode
+                mode: mode,
+                title: p.title
             )
         }
         if let activeIdStr = UserDefaults.standard.string(forKey: AppState.activeTabIdKey),
@@ -418,6 +420,11 @@ struct PersistedEditorTab: Codable {
     let draft: String
     let originalBody: String
     let mode: String  // EditorMode.rawValue (= "preview" / "edit")
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+    // persist the card title (= '赤壁之战' / '杜甫' etc.) so the
+    // tab strip shows the real name after relaunch (= instead of
+    // 'preview-sample').
+    let title: String?
 }
 
 // v0.34 B-24: per-tab editor state. Holds all data that was previously
@@ -438,6 +445,18 @@ final class EditorTab: Identifiable {
     var draft: String
     var originalBody: String
     var mode: EditorMode
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+    // when openCardInEditor opens a reference-library card (= no
+    // documentPath = no absolute path = the ticket 027-35 deferred
+    // path-resolution path), the tab strip used to render
+    // 'preview-sample' as a placeholder (= ugly = the user sees a
+    // non-meaningful name in the tab strip). Populate `title` at
+    // openCardInEditor time (= the entity / book-doc title =
+    // '赤壁之战' / '杜甫' / '什么是文枢' etc.) so tabDisplayTitle
+    // can show it instead of 'preview-sample'. When the real
+    // documentPath lands (ticket 027-35), the basename wins (= same
+    // precedence as the existing fallback chain).
+    var title: String?
 
     // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
     // card': capture the scope where this doc was opened
@@ -478,7 +497,14 @@ final class EditorTab: Identifiable {
         // rather than the live-styling editor). openCardInEditor passes
         // .edit explicitly too, but this default is the one the placeholder
         // tab + 027-35 document-load ticket use, so it must match.
-        mode: EditorMode = .edit
+        mode: EditorMode = .edit,
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+        // when documentPath is nil (= reference-library entity; =
+        // path resolution deferred to ticket 027-35), the tab strip
+        // displays `title` (= '赤壁之战' / '杜甫' etc.) instead of
+        // the 'preview-sample' placeholder. Default nil = no override
+        // (= the existing fallback chain shows 'preview-sample').
+        title: String? = nil
     ) {
         self.id = id
         self.documentPath = documentPath
@@ -486,6 +512,7 @@ final class EditorTab: Identifiable {
         self.originalBody = originalBody
         self.mode = mode
         self.sourceScope = nil
+        self.title = title
     }
 }
 

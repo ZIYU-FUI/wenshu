@@ -237,7 +237,11 @@ struct WorkspaceView: View {
             documentPath: path,
             draft: content,
             originalBody: content,
-            mode: .preview
+            mode: .preview,
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+            // pass title so tab strip shows the real card name
+            // instead of 'preview-sample'.
+            title: title.isEmpty ? nil : title
         )
         // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
         // card': capture the scope where this doc was opened
@@ -959,7 +963,10 @@ struct ZoneModuleView: View {
             documentPath: path,
             draft: content,
             originalBody: content,
-            mode: .preview
+            mode: .preview,
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+            // pass title so tab strip shows the real card name.
+            title: title.isEmpty ? nil : title
         )
         // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
         // card': capture sourceScope on ZoneModuleView's
@@ -1044,12 +1051,23 @@ struct EditorPlaceholder: View {
     /// v0.34 B-26: derive the display title for a tab (= file basename
     /// without the .md extension; = boss 9/3 OOB 'no .md extension either'). Placeholder tab = 'preview-sample' (= no .md extension,
     /// = no path = render the short placeholder name).
+    ///
+    /// v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+    /// when documentPath is nil (= reference-library entity = the
+    /// ticket 027-35 deferred path-resolution path = openCardInEditor
+    /// creates the tab without an absolute path), fall back to
+    /// `tab.title` (= the card's title = '赤壁之战' / '杜甫' etc.)
+    /// before the 'preview-sample' placeholder. Precedence:
+    ///   1. documentPath basename (= if real path exists, it wins)
+    ///   2. tab.title (= entity / book-doc title)
+    ///   3. 'preview-sample' (= legacy placeholder)
     private func tabDisplayTitle(tab: EditorTab) -> String {
         if let path = tab.documentPath, !path.isEmpty {
             let url = URL(fileURLWithPath: path)
             let basename = url.deletingPathExtension().lastPathComponent
-            return basename.isEmpty ? "preview-sample" : basename
+            if !basename.isEmpty { return basename }
         }
+        if let title = tab.title, !title.isEmpty { return title }
         return "preview-sample"
     }
 
@@ -1601,7 +1619,11 @@ struct EditorPlaceholder: View {
             documentPath: nil,
             draft: result.body,
             originalBody: result.body,
-            mode: .preview
+            mode: .preview,
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的
+            // bug': pass wiki-link target title so the tab strip
+            // shows the linked entity / chapter name.
+            title: result.title.isEmpty ? nil : result.title
         )
         appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id

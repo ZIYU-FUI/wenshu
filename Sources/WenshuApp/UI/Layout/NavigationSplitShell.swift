@@ -586,12 +586,21 @@ struct ShellMiddleColumn: View {
         // Open as new tab. mode = .edit per boss's '打开的文档是
         // 编辑状态' directive (= the WenshuMarkdownEditor editable
         // surface from the start; = no separate preview step).
+        //
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的
+        // bug': pass the entity / book-doc title (= '赤壁之战' etc.)
+        // so the tab strip shows the real name instead of the
+        // 'preview-sample' placeholder. The title fallback chain in
+        // EditorPlaceholder.tabDisplayTitle uses basename first
+        // (= still wins once documentPath lands), then `title`
+        // (= new), then 'preview-sample' (= old fallback).
         let newTab = EditorTab(
             id: UUID(),
             documentPath: path,
             draft: content,
             originalBody: content,
-            mode: .edit
+            mode: .edit,
+            title: title.isEmpty ? nil : title
         )
         newTab.sourceScope = scope
         envAppState.openTabs.append(newTab)

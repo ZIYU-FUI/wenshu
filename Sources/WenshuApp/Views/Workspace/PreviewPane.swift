@@ -1505,12 +1505,17 @@ private struct Card: View {
     /// without the .md extension; = boss 9/3 OOB '.md extension doesn't need to
     /// be shown either'). Placeholder card = 'preview-sample' (= no .md extension,
     /// = no path = render the short placeholder name).
+    ///
+    /// v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+    /// same precedence as EditorPlaceholder (= documentPath basename
+    /// → tab.title → 'preview-sample').
     private func tabDisplayTitle(tab: EditorTab) -> String {
         if let path = tab.documentPath, !path.isEmpty {
             let url = URL(fileURLWithPath: path)
             let basename = url.deletingPathExtension().lastPathComponent
-            return basename.isEmpty ? "preview-sample" : basename
+            if !basename.isEmpty { return basename }
         }
+        if let title = tab.title, !title.isEmpty { return title }
         return "preview-sample"
     }
 }
