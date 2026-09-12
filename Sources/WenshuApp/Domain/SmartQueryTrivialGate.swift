@@ -55,8 +55,7 @@ public struct SmartQueryTrivialGate: Sendable {
     /// `(?:retrieval\s+query|memory\s+query|query|question)\s*:\s*`
     /// Strips output prefix (= e.g. "Retrieval Query: " or "Question: ").
     /// Case-insensitive.
-    private static let outputPrefix = try! NSRegularExpression(
-        pattern: #"^(?:retrieval\s+query|memory\s+query|query|question)\s*:\s*"#,
+    private static let outputPrefix = NSRegularExpression.literal(#"^(?:retrieval\s+query|memory\s+query|query|question)\s*:\s*"#,
         options: [.caseInsensitive]
     )
 
@@ -65,8 +64,7 @@ public struct SmartQueryTrivialGate: Sendable {
     /// Whitelisted question-starter tokens (= hermes requires the candidate
     /// query to start with one of these, otherwise returns empty).
     /// Case-insensitive.
-    private static let questionStart = try! NSRegularExpression(
-        pattern: #"^(?:what|which|who|where|when|why|how|is|are|was|were|do|does|did|has|have|had|can|could|would|should|may|might)\b"#,
+    private static let questionStart = NSRegularExpression.literal(#"^(?:what|which|who|where|when|why|how|is|are|was|were|do|does|did|has|have|had|can|could|would|should|may|might)\b"#,
         options: [.caseInsensitive]
     )
 
@@ -75,8 +73,7 @@ public struct SmartQueryTrivialGate: Sendable {
     /// Required memory-grounding keywords (= hermes requires the candidate
     /// query to reference user-context tokens, otherwise returns empty).
     /// Case-insensitive.
-    private static let memoryGrounding = try! NSRegularExpression(
-        pattern: #"\b(?:user|their|they|them|previous|prior|past|history|preference|preferences|context|known|remembered|earlier)\b"#,
+    private static let memoryGrounding = NSRegularExpression.literal(#"\b(?:user|their|they|them|previous|prior|past|history|preference|preferences|context|known|remembered|earlier)\b"#,
         options: [.caseInsensitive]
     )
 
@@ -84,8 +81,7 @@ public struct SmartQueryTrivialGate: Sendable {
     ///  \banswer\s+(?:directly|instead|the\s+user|this)\b`
     /// Detects instruction-leak patterns (= user trying to inject
     /// "ignore previous instructions" into the query). Case-insensitive.
-    private static let instructionLeak = try! NSRegularExpression(
-        pattern: #"\b(?:ignore|obey|follow)\b|\binstructions?\b|\bsystem\s+prompt\b|\banswer\s+(?:directly|instead|the\s+user|this)\b"#,
+    private static let instructionLeak = NSRegularExpression.literal(#"\b(?:ignore|obey|follow)\b|\binstructions?\b|\bsystem\s+prompt\b|\banswer\s+(?:directly|instead|the\s+user|this)\b"#,
         options: [.caseInsensitive]
     )
 
@@ -93,8 +89,7 @@ public struct SmartQueryTrivialGate: Sendable {
     /// sentence-boundary punctuation followed by whitespace + a non-
     /// whitespace char, indicating multi-sentence candidates that should
     /// be rejected). Mirrors hermes L39.
-    private static let internalSentence = try! NSRegularExpression(
-        pattern: #"[.!?]\s+\S"#
+    private static let internalSentence = NSRegularExpression.literal(#"[.!?]\s+\S"#
     )
 
     // MARK: - Public surface

@@ -883,12 +883,22 @@ struct LayoutPreset: Codable, Equatable, Identifiable {
     /// §"Acceptance criteria" = 'each preset has a stable UUID per
     /// app install'). Generated once here and reused forever; this
     /// keeps UserDefaults round-trips stable across launches.
-    static let builtinDefaultID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
-    static let builtinFocusID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
-    static let builtinTerminalDeckID = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
-    static let builtinQuadID = UUID(uuidString: "00000000-0000-0000-0000-000000000004")!
+    /// v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+    /// replaced the previous `UUID(uuidString: "...")!` (= compile-
+    /// time-literal force-unwraps that read as crash vectors) with
+    /// the `UUID.literal("...")` helper (= a preconditionFailure
+    /// pattern; = the literal UUID strings are guaranteed-valid at
+    /// compile time so the failure path is unreachable).
+    static let builtinDefaultID = UUID.literal("00000000-0000-0000-0000-000000000001")
+    static let builtinFocusID = UUID.literal("00000000-0000-0000-0000-000000000002")
+    static let builtinTerminalDeckID = UUID.literal("00000000-0000-0000-0000-000000000003")
+    static let builtinQuadID = UUID.literal("00000000-0000-0000-0000-000000000004")
 
     static func builtinDefault(_ workspace: LayoutTreeState) -> LayoutPreset {
-        LayoutPreset(id: builtinDefaultID, name: "默认", workspace: workspace, isBuiltIn: true)
+        // v0.71 P1 batch 10: translated "默认" → "Default" (= AGENTS.md §11
+        // English-only rule; = the builtin preset name should be in
+        // English and the localized version comes from the i18n layer
+        // when shown to the user).
+        LayoutPreset(id: builtinDefaultID, name: "Default", workspace: workspace, isBuiltIn: true)
     }
 }

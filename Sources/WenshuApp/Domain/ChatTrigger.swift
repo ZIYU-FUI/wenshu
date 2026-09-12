@@ -49,8 +49,7 @@ struct ChatTrigger: Sendable {
     private let bookTitlePatterns: [String]
 
     init() {
-        self.quotationRegex = try! NSRegularExpression(
-            pattern: "[\\u{300C}\\u{300D}\\u{300E}\\u{300F}\\u{300A}\\u{300B}]([^\\u{300C}\\u{300D}\\u{300E}\\u{300F}\\u{300A}\\u{300B}]+)[\\u{300D}\\u{300F}\\u{300B}]",
+        self.quotationRegex = NSRegularExpression.literal("[\\u{300C}\\u{300D}\\u{300E}\\u{300F}\\u{300A}\\u{300B}]([^\\u{300C}\\u{300D}\\u{300E}\\u{300F}\\u{300A}\\u{300B}]+)[\\u{300D}\\u{300F}\\u{300B}]",
             options: []
         )
         self.bookTitlePatterns = [

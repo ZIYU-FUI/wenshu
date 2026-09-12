@@ -100,8 +100,7 @@ public enum SkillFrontmatterParser {
 
     // MARK: - Inline shell expansion (= hermes expand_inline_shell)
 
-    private static let inlineShellPattern = try! NSRegularExpression(
-        pattern: #"!`([^`\n]+)`"#,
+    private static let inlineShellPattern = NSRegularExpression.literal(#"!`([^`\n]+)`"#,
         options: []
     )
 

@@ -247,10 +247,25 @@ public enum AnthropicAdapter {
             if let s = input as? String {
                 inputStr = s
             } else if let d = input {
-                inputStr = String(data: try! JSONSerialization.data(
-                    withJSONObject: d,
-                    options: [.fragmentsAllowed]
-                ), encoding: .utf8) ?? "{}"
+                // v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+                // replaced `try! JSONSerialization.data(...)` (= audit's
+                // LOW smell; = would crash on non-JSON-representable value
+                // like NaN) with do/catch + NSLog + fallback to "{}".
+                // The audit's note "only reached when `input` is non-String/non-nil"
+                // suggests the previous crash was theoretical (= in practice,
+                // the JSON-encoded `d` is always representable); but the
+                // explicit fallback matches the "graceful degradation" pattern
+                // used elsewhere (= see WenshuConductor.buildToolsSync).
+                do {
+                    let data = try JSONSerialization.data(
+                        withJSONObject: d,
+                        options: [.fragmentsAllowed]
+                    )
+                    inputStr = String(data: data, encoding: .utf8) ?? "{}"
+                } catch {
+                    NSLog("[wenshu.anthropicAdapter] JSONSerialization.data failed for tool_use input: %@", String(describing: error))
+                    inputStr = "{}"
+                }
             } else {
                 inputStr = "{}"
             }

@@ -218,7 +218,17 @@ public actor WenshuVerifier {
         // (v0.23 ticket 010.005 fix — was 'wenshu.provider.slug' which never matched the
         // existing @AppStorage binding, so the override never took effect.)
         let userDefaultsSlug = UserDefaults.standard.string(forKey: "wenshu.llm.provider")
-        let effectiveSlug = userDefaultsSlug?.isEmpty == false ? userDefaultsSlug! : modelEnum.providerSlug
+        // v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+        // replaced `userDefaultsSlug?.isEmpty == false ? userDefaultsSlug! : ...`
+        // (= audit's LOW smell; = the `!` is logically safe given the
+        // predicate but reads as a hidden force-unwrap) with explicit
+        // if-let-let (= no force-unwrap; = same behavior).
+        let effectiveSlug: String
+        if let slug = userDefaultsSlug, !slug.isEmpty {
+            effectiveSlug = slug
+        } else {
+            effectiveSlug = modelEnum.providerSlug
+        }
         // 2. Look up provider.
         guard let provider = Provider.by(slug: effectiveSlug) else {
             throw WenshuLLMError.invalidBaseURL(url: "unknown provider slug: \(effectiveSlug)")

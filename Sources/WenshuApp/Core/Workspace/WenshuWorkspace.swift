@@ -392,7 +392,14 @@ public actor WenshuWorkspace {
                     rc = sqlite3_bind_null(stmt, idx)
                 default:
                     // Fallback: convert to string.
-                    rc = sqlite3_bind_text(stmt, idx, String(describing: param!), -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+                    // v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+                    // replaced `String(describing: param!)` (= audit's
+                    // LOW smell; = force-unwrap inside the `default:`
+                    // branch that's already proven non-nil by the
+                    // `case nil:` arm above) with `String(describing: param)`
+                    // (= the `default:` branch only executes when
+                    // `param` is non-nil, so no force-unwrap is needed).
+                    rc = sqlite3_bind_text(stmt, idx, String(describing: param), -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
                 }
                 if rc != SQLITE_OK {
                     throw WenshuWorkspaceError.execFailed(sql: sql, message: "bind failed at param \(i): \(lastErrorMessage(db: dbPtr))")

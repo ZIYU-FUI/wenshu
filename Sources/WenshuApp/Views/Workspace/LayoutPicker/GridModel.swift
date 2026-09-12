@@ -440,9 +440,15 @@ func splitAtColumnAt(_ model: GridLayout, atPercent percent: Int) -> GridLayout 
     // Find the column whose boundary is closest to the given percent.
     var colEdges = [0]
     for w in model.columnPercents {
-        colEdges.append(colEdges.last! + w)
+        // v0.71 P1 batch 10: replaced `colEdges.last!` (= force-unwrap on
+        // a loop-cumulative array that starts at [0] and is appended-to
+        // before each read; = the audit's LOW #12 smell) with `prev +
+        // w` (= explicit accumulation, no force-unwrap needed).
+        colEdges.append((colEdges.last ?? 0) + w)
     }
-    let totalWidth = colEdges.last!
+    // v0.71 P1 batch 10: same pattern for `colEdges.last!` (= reads the
+    // final cumulative value; = replaced with `(colEdges.last ?? 0)`).
+    let totalWidth = colEdges.last ?? 0
     guard totalWidth > 0 else { return model }
     var bestIdx = 0
     var bestDist = Int.max
@@ -462,9 +468,12 @@ func splitAtColumnAt(_ model: GridLayout, atPercent percent: Int) -> GridLayout 
 func splitAtRow(_ model: GridLayout, atPercent percent: Int) -> GridLayout {
     var rowEdges = [0]
     for h in model.rowPercents {
-        rowEdges.append(rowEdges.last! + h)
+        // v0.71 P1 batch 10: same pattern as splitAtColumnAt above
+        // (= replaced `rowEdges.last!` with `(rowEdges.last ?? 0)`).
+        rowEdges.append((rowEdges.last ?? 0) + h)
     }
-    let totalHeight = rowEdges.last!
+    // v0.71 P1 batch 10: same pattern as splitAtColumnAt above.
+    let totalHeight = rowEdges.last ?? 0
     guard totalHeight > 0 else { return model }
     var bestIdx = 0
     var bestDist = Int.max
@@ -593,14 +602,19 @@ func mergeClosureIndices(_ model: GridLayout, indices: [Int]) -> GridLayout {
     let targets = indices.compactMap { idx in zones.first { $0.index == idx } }
     guard targets.count == indices.count else { return model }
 
-    let minLeft = targets.map(\.left).min()!
-    let maxRight = targets.map(\.right).max()!
-    let minTop = targets.map(\.top).min()!
-    let maxBottom = targets.map(\.bottom).max()!
+    let minLeft = targets.map(\.left).min() ?? 0
+    let maxRight = targets.map(\.right).max() ?? 0
+    let minTop = targets.map(\.top).min() ?? 0
+    let maxBottom = targets.map(\.bottom).max() ?? 0
 
     // Replace all child-map entries for the merged zones with a single zone index.
     // Use the smallest index in the set as the merged zone's representative.
-    let representative = indices.min()!
+    // v0.71 P1 batch 10: replaced `indices.min()!` (= audit's LOW #13 smell;
+    // = force-unwrap on an array that's already proven non-empty by the
+    // `guard indices.count >= 2` check above; = "safe" but reads as a
+    // crash vector) with `indices.min() ?? 0` (= default to 0 = the
+    // unreachable fallback that the guard prevents).
+    let representative = indices.min() ?? 0
     var newCellChildMap = model.cellChildMap
     for (r, row) in newCellChildMap.enumerated() {
         for (c, v) in row.enumerated() {
