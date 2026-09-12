@@ -964,20 +964,39 @@ struct ShellDetailColumn: View {
             }
             .padding(.top, 4)
             .padding(.bottom, 4)
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '...teb 栏,
-            // 全宽, 自动适配右栏宽度': the tab strip below
-            // the divider must fill the inspector column's
-            // full width (= no inner margin eating into the
-            // tab strip; = the per-tool picker renders at
-            // full column width instead of as a centered
-            // pill). `.frame(maxWidth: .infinity)` on the
-            // ZoneContentView (= the inner tab strip) forces
-            // it to stretch to the column's full width.
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '标题下方, 和 teb 栏之
+            // 间, 少了 4pt': per the boss's request, ADD 4 PT of
+            // vertical breathing room between the section's
+            // Divider (= end of the title block) and the tab
+            // strip. The title block already has `.padding(.top,
+            // 4)` (= 4 PT gap between the title text and its own
+            // Divider) and `.padding(.bottom, 4)` (= 4 PT gap
+            // between the Divider and the next sibling). The boss
+            // wants the SAME 8 PT visual rhythm Apple HIG uses
+            // between the section header and the section content
+            // (= Pages / Numbers / Keynote inspector pattern;
+            // = the Divider sits 4 PT below the title; = the
+            // content below the Divider starts 8 PT below the
+            // Divider; = the total title→content gap is 12 PT,
+            // not 8 PT, matching the canonical Apple HIG inspector
+            // rhythm).
+            //
+            // Implementation: add `.padding(.top, 4)` to the
+            // ZoneContentView wrapper (= push the tab strip down
+            // 4 PT additional). Combined with the title block's
+            // existing `.padding(.bottom, 4)` (= 4 PT), the
+            // divider-to-tabs gap is now 8 PT (= boss's spec).
+            //
+            // Note: per the verbatim port discipline (= only do
+            // what the boss asked), we add ONLY 4 PT here (= the
+            // boss's exact ask); = other spacing in this column
+            // stays unchanged.
             ZoneContentView(
                 zoneSlug: "specializedTools",
                 tabs: filteredToolsForCurrentPage
             )
             .frame(maxWidth: .infinity)
+            .padding(.top, 4)
         }
         .toolbar {
             // v1.0.0-m1-shell boss 2026-09-10 OOB '按钮的位置不对, 默认
