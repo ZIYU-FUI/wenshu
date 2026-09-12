@@ -7,12 +7,12 @@ before build) to refresh after a dependency change.
 
 Total upstreams: **8**.
 
-## bring-shrubbery/lucide-swift
+## ajaxjiang96/lucide-swift
 
-- **URL**: https://github.com/bring-shrubbery/lucide-swift.git
-- **Version**: 1.25.0
-- **License**: MIT
-- **Reason**: 图标集合 (Apple SF Symbol 替代品; 跨平台)
+- **URL**: https://github.com/ajaxjiang96/lucide-swift.git
+- **Version**: 0.3.0
+- **License**: Unknown
+- **Reason**: Wenshu SPM dependency.
 
 ## swiftlang/swift-markdown
 

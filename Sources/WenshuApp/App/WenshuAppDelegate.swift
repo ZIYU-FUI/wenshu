@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import Lucide
+import LucideSwift
 
 /// AppDelegate: WenshuCore runtime + macOS app init
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {

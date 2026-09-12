@@ -52,7 +52,7 @@
 //   std uses system disclosure indicator)
 
 import SwiftUI
-import Lucide
+import LucideSwift
 
 /// Identifies a single sidebar item for List(selection:) binding.
 /// v0.30: composite enum (= book OR reference category) because
@@ -1800,11 +1800,11 @@ private struct NewBookSheet: View {
     }
 
     /// v0.30 boss 8/31 OOB: full Lucide icon library (=
-    /// LucideIcon.allCases from lucide-swift enum, ~1500 icons).
+    /// LucideIconName.allCases from lucide-swift enum, ~1500 icons).
     /// No guessing about which icon names exist; the user scrolls
     /// through every real Lucide icon and picks one.
     private var allLucideIcons: [String] {
-        LucideIcon.allCases.map(\.rawValue)
+        LucideIconName.allCases.map(\.rawValue)
     }
 
     var body: some View {
@@ -1967,7 +1967,7 @@ private struct NewShelfSheet: View {
     }
 
     /// v0.30 boss 8/31 OOB: render the ENTIRE Lucide icon library
-    /// (= LucideIcon.allCases, an enum provided by lucide-swift that's
+    /// (= LucideIconName.allCases, an enum provided by lucide-swift that's
     /// auto-generated from lucide-static@1.25.0 = ~1500 icons at
     /// v0.30). No curated preset list = no guessing about which
     /// icons exist. The user scrolls through every real Lucide
@@ -1978,7 +1978,7 @@ private struct NewShelfSheet: View {
         // rawValues (= the kebab-case icon name). `allCases.map(\.rawValue)`
         // gives us the complete icon name list at runtime (= no
         // hardcoded list, no manual sync when lucide-swift upgrades).
-        LucideIcon.allCases.map(\.rawValue)
+        LucideIconName.allCases.map(\.rawValue)
     }
 
     var body: some View {

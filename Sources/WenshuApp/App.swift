@@ -15,7 +15,7 @@
 
 import SwiftUI
 import AppKit
-import Lucide
+import LucideSwift
 
 // MARK: - v0.25.1 (= ticket 019 icon button Apple HIG hit area) — Apple recommended approach
 /// Per Apple SwiftUI docs (developer.apple.com/documentation/swiftui/buttonstyle

@@ -15,7 +15,7 @@
 //
 
 import SwiftUI
-import Lucide
+import LucideSwift
 
 /// One chat message: three roles (user / Wenshu / system); Wenshu's internal multi-agent dispatch does not surface as ChatMessage (it goes through the Kanban board)
 public struct ChatMessage: Equatable, Identifiable, Sendable {
@@ -1000,13 +1000,10 @@ public struct ChatView: View {
                 Button {
                     showingImageImporter = true
                 } label: {
-                    if let lucide = Lucide("paperclip") {
-                        lucide
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
-                    } else {
-                        LucideIconSystemFallback("paperclip", size: 18)
-                    }
+                    LucideIcon(name: "paperclip")
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
+                        .foregroundStyle(.secondary)
                 }
                 // v0.61 boss 2026-09-10 OOB 'the attach button and the
                 // send button should match styles': they are both in the
@@ -1216,30 +1213,18 @@ public struct ChatView: View {
                         // pattern with SF Symbol fallback (= Layer
                         // 3 fallback) preserves behavior if
                         // 'send' Lucide is missing.
-                        if let lucide = Lucide("send") {
-                            lucide
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)  // v0.28 followup Boss UX round 18: shrink to 18 PT (= matches macOS HIG secondary button glyph size = 13-16 PT, but slightly larger to read clearly inside the bordered Liquid Glass capsule)
-                                // v0.55: pulse the glyph while a reply is
-                                // streaming, so the button itself carries
-                                // the busy state instead of needing a
-                                // separate spinner next to it.
-                                .opacity(vm.isSending ? 0.5 : 1)
-                                .scaleEffect(vm.isSending ? 0.92 : 1)
-                                .animation(
-                                    vm.isSending
-                                        ? .easeInOut(duration: 0.7).repeatForever(autoreverses: true)
-                                        : .default,
-                                    value: vm.isSending
-                                )
-                        } else {
-                            // v0.27 boss 8/27 OOB: replace SF Symbol 'paperplane.fill'
-                            // with the closest Lucide equivalent = 'send'.
-                            // Lucide 'send' exists (= paper-plane in 24x24 viewBox);
-                            // LucideIcon.fromSystemSymbol helper handles the lookup
-                            // + fallback chain.
-                            LucideIconSystemFallback("paperplane.fill", size: 18)
-                        }
+                        LucideIcon(name: "send")
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)  // v0.28 followup Boss UX round 18: shrink to 18 PT
+                            // v0.55: pulse the glyph while a reply is streaming
+                            .opacity(vm.isSending ? 0.5 : 1)
+                            .scaleEffect(vm.isSending ? 0.92 : 1)
+                            .animation(
+                                vm.isSending
+                                    ? .easeInOut(duration: 0.7).repeatForever(autoreverses: true)
+                                    : .default,
+                                value: vm.isSending
+                            )
                     }
                 }
                 // v0.28 followup Boss UX round 18 (Boss 2026-08-29 OOB
@@ -1288,13 +1273,10 @@ public struct ChatView: View {
                     // used for visual consistency with the rest of the
                     // chat input row (= Lucide-first per project
                     // v0.27 boss OOB).
-                    if let lucide = Lucide("target") {
-                        lucide
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
-                    } else {
-                        LucideIconSystemFallback("target", size: 18)
-                    }
+                    LucideIcon(name: "target")
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
@@ -1469,9 +1451,9 @@ struct ChatMessageView: View {
                 if position.hasTail && !isOutgoing {
                     switch message.source {
                     case .user:
-                        Lucide(.userRound).aspectRatio(contentMode: .fit)
+                        LucideIcon(.userRound).aspectRatio(contentMode: .fit)
                     case .wenshu:
-                        Lucide(.botMessageSquare).aspectRatio(contentMode: .fit)
+                        LucideIcon(.botMessageSquare).aspectRatio(contentMode: .fit)
                     case .system:
                         LucideIconSystemFallback(sourceIcon, size: 24)
                     }

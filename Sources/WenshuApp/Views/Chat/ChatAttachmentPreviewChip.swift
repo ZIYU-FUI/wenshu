@@ -1,5 +1,5 @@
 import SwiftUI
-import Lucide
+import LucideSwift
 
 /// CHATIMG-001 (2026-09-07): the small attachment preview chip that
 /// sits above the chat input HStack when an image is pending
@@ -33,13 +33,10 @@ struct ChatAttachmentPreviewChip: View {
             Button {
                 onClear()
             } label: {
-                if let lucide = Lucide("x") {
-                    lucide
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 14, height: 14)
-                } else {
-                    LucideIconSystemFallback("xmark.circle.fill", size: 14)
-                }
+                LucideIcon(name: "x")
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 14, height: 14)
+                    .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("chat.input.attach.clear"))

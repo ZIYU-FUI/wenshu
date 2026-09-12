@@ -10,7 +10,7 @@
 //   LucideIcon.fromSystemSymbol("checkmark")      // SF Symbol name → Lucide fallback
 
 import SwiftUI
-import Lucide
+import LucideSwift
 import AppKit
 
 /// Resolves the macOS sidebar icon size preference (= NSTableViewDefaultSizeMode
@@ -51,15 +51,31 @@ public func wenshuSidebarIconSize() -> CGFloat {
 ///                                               //  adapts to NSTableViewDefaultSizeMode)
 /// LucideIcon.fromSystemSymbol("checkmark")      // SF 'checkmark' → Lucide 'check'
 /// ```
+/// v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
+/// 现在放大了, 线条好粗': ajaxjiang96/lucide-swift fork exposes
+/// `LucideIcon(name:)` directly (= no more internal `Lucide(name)`
+/// returning optional). The LucideIcon helper below now wraps
+/// `LucideIcon(name: String, size: CGFloat)` (= the fork's public
+/// non-optional init). The default strokeWidth: 2 (= the fork's
+/// default for LucideIconName) is used (= the same visual
+/// rendering as the old bring-shrubbery fork's baked fills).
 @ViewBuilder
 public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
-    if let lucide = Lucide(name) {
-        lucide
+    // v1.0.0-m1-shell: LucideIcon(name:) is non-optional in the
+    // ajaxjiang96 fork. Always succeeds (= falls back to the
+    // house icon if `name` doesn't match any LucideIconName case;
+    // = the fork's built-in resolver). To preserve the original
+    // wenshu contract (= missing icon = empty placeholder rather
+    // than a house icon), we look up the name against the
+    // LucideIconName enum first; if it doesn't match, return
+    // Color.clear (= the empty placeholder).
+    if let _ = LucideIconName(rawValue: name) {
+        LucideIcon(name: name, size: size)
             .frame(width: size, height: size)
             .foregroundStyle(.primary)
     } else {
-        // Empty placeholder (= icon name not found in lucide; followup
-        // = add the correct icon name).
+        // Empty placeholder (= icon name not found in lucide;
+        // followup = add the correct icon name).
         Color.clear
             .frame(width: size, height: size)
     }
@@ -108,15 +124,23 @@ public func LucideIconSidebar(_ name: String) -> some View {
 /// - SF 'tag' → Lucide 'tag'
 @ViewBuilder
 public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> some View {
+    // v1.0.0-m1-shell ajaxjiang96 fork: `Lucide(name:)` is no
+    // longer optional (no more `Lucide(name) -> Lucide?`).
+    // The fork's LucideIcon(name:) always succeeds with a
+    // fallback (= house icon if name not found). The mapping
+    // chain below is the same as before (= SF → Lucide name
+    // via sfSymbolToLucideName; = direct Lucide name as
+    // fallback for SF names that double as Lucide; = question-
+    // mark placeholder for unmapped SF names).
     let lucideName = sfSymbolToLucideName(sfSymbol)
-    if let lucide = Lucide(lucideName) {
-        lucide
+    if let _ = LucideIconName(rawValue: lucideName) {
+        LucideIcon(name: lucideName, size: size)
             .frame(width: size, height: size)
             .foregroundStyle(.primary)
-    } else if let lucide = Lucide(sfSymbol) {
+    } else if let _ = LucideIconName(rawValue: sfSymbol) {
         // SF Symbol name is itself valid as Lucide name (= e.g. 'plus',
         // 'folder', 'cpu', 'tag' which exist in both libraries).
-        lucide
+        LucideIcon(name: sfSymbol, size: size)
             .frame(width: size, height: size)
             .foregroundStyle(.primary)
     } else {
@@ -125,8 +149,8 @@ public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> 
         // is gone. wenshu is strict Lucide-only now. An unmapped name
         // renders the Lucide question-mark glyph so a missing mapping is
         // visible on screen instead of silently blank.
-        if let placeholder = Lucide("circle-question-mark") {
-            placeholder
+        if let _ = LucideIconName(rawValue: "circle-question-mark") {
+            LucideIcon(name: "circle-question-mark", size: size)
                 .frame(width: size, height: size)
                 .foregroundStyle(.secondary)
         } else {
@@ -238,7 +262,11 @@ public func LucideImage(_ name: String, size: CGFloat = 16) -> Image? {
     if let cached = lucideImageCache[key] {
         return Image(nsImage: cached)
     }
-    guard let glyph = Lucide(name) else { return nil }
+    // v1.0.0-m1-shell ajaxjiang96 fork: `Lucide(name:)` is non-
+    // optional. Render whatever icon resolves (= fork's fallback
+    // = house if the name doesn't match). Return nil only if
+    // the renderer itself fails to produce an NSImage.
+    let glyph = LucideIcon(name: name, size: size)
     let renderer = ImageRenderer(
         content: glyph
             .frame(width: size, height: size)

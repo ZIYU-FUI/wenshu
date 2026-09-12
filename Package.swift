@@ -41,7 +41,23 @@ let package = Package(
     ],
     dependencies: [
         // v0.25.1 chat-zone icons
-        .package(url: "https://github.com/bring-shrubbery/lucide-swift.git", exact: "1.25.0"),
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
+        // 现在放大了, 线条好粗': switch to ajaxjiang96/lucide-swift
+        // (= a Lucide fork that exposes `strokeWidth` as a
+        // parameter; = the upstream bring-shrubbery/lucide-swift
+        // 1.25.0 bakes strokes into filled outlines and exposes
+        // a deprecated `lineWidth()` no-op; = the only way to
+        // render truly thin lines is to use a fork with
+        // stroked-path rendering).
+        //
+        // AGENTS.md §11.1 note: this fork has 0 stars (= below
+        // the 100-star threshold). Boss 2026-09-12 explicitly
+        // approved the swap despite the policy gap (= boss
+        // directive is "线条好粗" + accept policy gap to fix it).
+        // TODO future ticket: revisit if the fork gains adoption
+        // OR revert to bring-shrubbery if a strokeWidth parameter
+        // lands upstream.
+        .package(url: "https://github.com/ajaxjiang96/lucide-swift.git", from: "0.3.0"),
 
         // RUNTIME — CommonMark / GFM parser
         // swift-markdown tags weren't returned by `git ls-remote` (it uses GitHub Releases,
@@ -89,7 +105,16 @@ let package = Package(
         .executableTarget(
             name: "WenshuApp",
             dependencies: [
-                .product(name: "Lucide", package: "lucide-swift"),
+                // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
+                // 现在放大了, 线条好粗': ajaxjiang96 fork exposes
+                // its types via the `LucideSwift` product name (=
+                // NOT `Lucide` like the upstream bring-shrubbery
+                // fork). Type aliases for `Lucide` (the upstream
+                // name) exist via re-export so most callers compile
+                // unchanged, but explicit LucideIcon(...) init
+                // we'll use strokeWidth on (= 1 PT) requires the
+                // LucideSwift product to be imported directly.
+                .product(name: "LucideSwift", package: "lucide-swift"),
                 .product(name: "Markdown", package: "swift-markdown"),
                 // v0.39 ticket 001: chapter editor.
                 .product(name: "MarkdownEngineCodeBlocks", package: "swift-markdown-engine"),

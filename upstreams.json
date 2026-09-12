@@ -5,11 +5,11 @@
   "count": 8,
   "upstreams": [
     {
-      "name": "bring-shrubbery/lucide-swift",
-      "url": "https://github.com/bring-shrubbery/lucide-swift.git",
-      "version": "1.25.0",
-      "license": "MIT",
-      "reason": "图标集合 (Apple SF Symbol 替代品; 跨平台)"
+      "name": "ajaxjiang96/lucide-swift",
+      "url": "https://github.com/ajaxjiang96/lucide-swift.git",
+      "version": "0.3.0",
+      "license": "Unknown",
+      "reason": "Wenshu SPM dependency."
     },
     {
       "name": "swiftlang/swift-markdown",

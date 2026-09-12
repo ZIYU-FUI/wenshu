@@ -28,7 +28,7 @@
 //
 
 import SwiftUI
-import Lucide
+import LucideSwift
 
 // MARK: - Icon size presets
 
@@ -86,14 +86,20 @@ enum IconColor {
     case control         // Color.primary
 }
 
-extension Lucide {
+// v1.0.0-m1-shell ajaxjiang96 fork: the upstream `Lucide`
+// (View-returning shape wrapper) was removed. The fork's
+// equivalent is `LucideIcon` (= a struct View with the same
+// SwiftUI surface). Migrate the existing extension to extend
+// `LucideIcon` (= the new type the iconStyle modifier is called
+// on).
+extension LucideIcon {
     /// STYLES-002 (2026-09-07): apply a canonical icon style (= size
     /// + color in one call). Replaces scattered `.frame(width:N,
     /// height:N).foregroundStyle(...)` chains.
     ///
     /// Usage:
     /// ```swift
-    /// Lucide("library").iconStyle(.chrome)
+    /// LucideIcon(name: "library").iconStyle(.chrome)
     /// // = 14 PT icon in .secondary color (= chrome top bar identity)
     /// ```
     @ViewBuilder
@@ -137,7 +143,7 @@ enum IconStyle {
     case card
 }
 
-extension Lucide {
+extension LucideIcon {
     /// STYLES-002 (2026-09-07): apply a combined icon style (= size
     /// + color + optional border, = the canonical preset for each
     /// common use case). Replaces one-off size + color combinations.

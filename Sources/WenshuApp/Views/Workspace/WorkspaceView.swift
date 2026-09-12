@@ -11,7 +11,7 @@
 // pane rendering lives in PaneNSController.swift.
 
 import SwiftUI
-import Lucide
+import LucideSwift
 import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
 
 /// WorkspaceView — the customizable-layout root (= the Xcode-paradigm

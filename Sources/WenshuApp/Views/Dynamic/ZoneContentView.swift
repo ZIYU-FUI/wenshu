@@ -22,7 +22,7 @@
 //
 
 import SwiftUI
-import Lucide
+import LucideSwift
 
 /// Generic tab content view: 1-layer pattern with multiple internal tabs.
 /// Used by the 4 "general" zones (projectSidebar / projectPreview / editor / specializedTools).
