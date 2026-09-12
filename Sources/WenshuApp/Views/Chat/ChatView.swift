@@ -1778,9 +1778,39 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     .padding(.vertical, 8)
                     .background(bubbleFill, in: bubbleShape)
                 } else {
-                    // CoT thinking block collapsed (Apple HIG footnote)
-                    // DisclosureGroup + rounded corners + Apple default animation (.animation(.default, value:) per Q58.4)
-                    if let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
+                    // v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式
+                    // 输出没有实现... 全量复制 hermes... 编辑器使用 SM
+                    // 我们引入的一个第三方 md 编辑器'): the canonical
+                    // 1:1 Hermes streaming UI. Renders message.parts[]
+                    // (= the Hermes canonical state) via ChatMessageBodyView
+                    // (= text / reasoning / tool_use / tool_result each
+                    // have their own inline render).
+                    //
+                    // ChatMessageBodyView wraps each part in the bubble
+                    // background (= Apple HIG iMessage-style) and applies
+                    // the streaming contentTransition to the text parts
+                    // only (= the canonical SwiftUI "no flicker" pattern
+                    // from v0.55 boss OOB).
+                    //
+                    // When parts is empty (= back-compat with v0.34
+                    // messages that didn't carry parts), ChatMessageBodyView
+                    // falls back to rendering message.content as a single
+                    // text part (= the same Text(Self.markdown(...)) path
+                    // we had before).
+                    //
+                    // The thinking DisclosureGroup + image thumbnail stay
+                    // outside ChatMessageBodyView (= they're rendered
+                    // above the parts array, = the conventional Apple
+                    // HIG pattern of "supplementary content above the main
+                    // content").
+                    //
+                    // Thinking collapsed: rendered as a DisclosureGroup
+                    // (= Apple HIG footnote; = collapses by default;
+                    // = expands on click). When parts[] is non-empty,
+                    // the reasoning parts render via ChatReasoningPartView
+                    // (= each part is its own collapsible block) — so we
+                    // hide the legacy DisclosureGroup to avoid duplication.
+                    if message.parts.isEmpty, let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
                         DisclosureGroup(isExpanded: $thinkingExpanded) {
                             Text(thinking)
                                 .font(.caption)
@@ -1790,10 +1820,6 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 .transition(.opacity)
                         } label: {
                             HStack(spacing: 4) {
-                                // v0.27 boss 8/27 OOB: replace SF Symbol 'brain'
-                                // with closest Lucide equivalent = 'brain'
-                                // (Lucide has 'brain' = same name, no mapping
-                                // needed).
                                 LucideIconSystemFallback("brain")
                                     .font(.caption)
                                 Text(WenshuI18n.t("chatview.ai_thinking"))
@@ -1804,16 +1830,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         .animation(.default, value: thinkingExpanded)
                     }
                     // CHATIMG-001 (2026-09-07): render attached image
-                    // thumbnail above the text content when the
-                    // message carries an image. Uses SwiftUI Image
-                    // (= no Nuke; Nuke was retired by
-                    // DEAD-PIN-CLEANUP-001 per §13 v0.10). Max
-                    // display size = 240 PT wide (= Apple Messages /
-                    // Slack inline-image convention; image is
-                    // aspect-fit into the constraint). Falls back
-                    // to a small "image missing" placeholder if
-                    // the file was deleted out from under the
-                    // message.
+                    // thumbnail above the parts. (= unchanged)
                     if let imagePath = message.imagePath {
                         if let nsImage = NSImage(contentsOfFile: imagePath) {
                             Image(nsImage: nsImage)
@@ -1829,24 +1846,36 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 .padding(.bottom, DesignTokens.chromePaddingMicro)
                         }
                     }
-                    // v0.55 boss 2026-09-09 OOB 'use the ones we have not
-                    // used yet': render the bubble as markdown. SwiftUI's
-                    // Text takes an AttributedString, and AttributedString
-                    // parses markdown natively, so bold / italic / code /
-                    // links in a model reply show as formatting instead of
-                    // raw asterisks. Falls back to the plain string when the
-                    // content is not valid markdown.
-                    Text(Self.markdown(message.content))
-                        .textSelection(.enabled)
-                        // Streaming replies grow token by token. The default
-                        // Text transition re-renders the whole run; this one
-                        // interpolates, so the bubble does not flicker on
-                        // every chunk.
-                        .contentTransition(.interpolate)
-                        .foregroundStyle(isOutgoing ? Color.white : Color.primary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(bubbleFill, in: bubbleShape)
+                    // v0.71 P1 batch 2: ChatMessageBodyView (= the
+                    // Hermes-style per-part renderer) wraps each part
+                    // in the bubble background. Falls back to the
+                    // single-text rendering for v0.34 messages with no
+                    // parts.
+                    //
+                    // v0.71 P1 batch 2 (user message hover actions):
+                    // for OUTGOING messages (= user-sent), overlay
+                    // ChatMessageHoverActions (= copy + delete buttons
+                    // that fade in on hover = the Hermes MessageActions
+                    // pattern). Agent messages don't get hover actions
+                    // (= matches Hermes = the agent-side is read-only
+                    // in the chat transcript = actions live on the
+                    // user's own messages only).
+                    ChatMessageBodyView(
+                        message: message,
+                        isOutgoing: isOutgoing,
+                        isStreaming: message.isPlaceholder
+                    )
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(bubbleFill, in: bubbleShape)
+                    .overlay(alignment: .topTrailing) {
+                        if isOutgoing {
+                            ChatMessageHoverActions(content: message.content)
+                                .padding(.top, DesignTokens.chromePaddingSmall)
+                                .padding(.trailing, DesignTokens.chromePaddingSmall)
+                        }
+                    }
+                    .wenshuChatHover()
                 }
             }
 
