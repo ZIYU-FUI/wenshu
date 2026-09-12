@@ -1000,7 +1000,12 @@ public struct ChatView: View {
                 Button {
                     showingImageImporter = true
                 } label: {
-                    LucideIcon(name: "paperclip")
+                    LucideIcon(
+                        name: "paperclip",
+                        size: DesignTokens.tabIconSize,
+                        strokeWidth: 1,
+                        absoluteStrokeWidth: true
+                    )
                         .aspectRatio(contentMode: .fit)
                         .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
                         .foregroundStyle(.secondary)
@@ -1213,7 +1218,12 @@ public struct ChatView: View {
                         // pattern with SF Symbol fallback (= Layer
                         // 3 fallback) preserves behavior if
                         // 'send' Lucide is missing.
-                        LucideIcon(name: "send")
+                        LucideIcon(
+                            name: "send",
+                            size: DesignTokens.tabIconSize,
+                            strokeWidth: 1,
+                            absoluteStrokeWidth: true
+                        )
                             .aspectRatio(contentMode: .fit)
                             .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)  // v0.28 followup Boss UX round 18: shrink to 18 PT
                             // v0.55: pulse the glyph while a reply is streaming
@@ -1273,7 +1283,12 @@ public struct ChatView: View {
                     // used for visual consistency with the rest of the
                     // chat input row (= Lucide-first per project
                     // v0.27 boss OOB).
-                    LucideIcon(name: "target")
+                    LucideIcon(
+                        name: "target",
+                        size: DesignTokens.tabIconSize,
+                        strokeWidth: 1,
+                        absoluteStrokeWidth: true
+                    )
                         .aspectRatio(contentMode: .fit)
                         .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
                         .foregroundStyle(.secondary)
@@ -1451,9 +1466,17 @@ struct ChatMessageView: View {
                 if position.hasTail && !isOutgoing {
                     switch message.source {
                     case .user:
-                        LucideIcon(.userRound).aspectRatio(contentMode: .fit)
+                        LucideIcon(
+                            .userRound,
+                            strokeWidth: 1,
+                            absoluteStrokeWidth: true
+                        ).aspectRatio(contentMode: .fit)
                     case .wenshu:
-                        LucideIcon(.botMessageSquare).aspectRatio(contentMode: .fit)
+                        LucideIcon(
+                            .botMessageSquare,
+                            strokeWidth: 1,
+                            absoluteStrokeWidth: true
+                        ).aspectRatio(contentMode: .fit)
                     case .system:
                         LucideIconSystemFallback(sourceIcon, size: 24)
                     }

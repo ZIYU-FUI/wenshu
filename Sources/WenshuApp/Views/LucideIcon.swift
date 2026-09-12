@@ -69,8 +69,18 @@ public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
     // than a house icon), we look up the name against the
     // LucideIconName enum first; if it doesn't match, return
     // Color.clear (= the empty placeholder).
+    //
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
+    // 现在放大了, 线条好粗': render with strokeWidth: 1 (= 1 PT
+    // hairline = the thinnest Apple HIG macOS 27 icon weight; =
+    // matches the empty-state icons rendered by LucideThinIcon).
     if let _ = LucideIconName(rawValue: name) {
-        LucideIcon(name: name, size: size)
+        LucideIcon(
+            name: name,
+            size: size,
+            strokeWidth: 1,
+            absoluteStrokeWidth: true
+        )
             .frame(width: size, height: size)
             .foregroundStyle(.primary)
     } else {
@@ -88,7 +98,17 @@ public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
 /// fixed while SF Symbols auto-resize, breaking visual harmony.
 @ViewBuilder
 public func LucideIconSidebar(_ name: String) -> some View {
-    LucideIcon(name, size: wenshuSidebarIconSize())
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
+    // 现在放大了, 线条好粗': strokeWidth: 1 + absoluteStrokeWidth: true
+    // (= 1 PT hairline at every size = the same Apple HIG
+    // inspector-tab visual weight regardless of the user's
+    // "Sidebar icon size" preference).
+    LucideIcon(
+        name: name,
+        size: wenshuSidebarIconSize(),
+        strokeWidth: 1,
+        absoluteStrokeWidth: true
+    )
 }
 
 /// Icon helper that takes an SF Symbol name (= legacy / boss shorthand)
@@ -124,23 +144,37 @@ public func LucideIconSidebar(_ name: String) -> some View {
 /// - SF 'tag' → Lucide 'tag'
 @ViewBuilder
 public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> some View {
-    // v1.0.0-m1-shell ajaxjiang96 fork: `Lucide(name:)` is no
-    // longer optional (no more `Lucide(name) -> Lucide?`).
-    // The fork's LucideIcon(name:) always succeeds with a
-    // fallback (= house icon if name not found). The mapping
-    // chain below is the same as before (= SF → Lucide name
-    // via sfSymbolToLucideName; = direct Lucide name as
-    // fallback for SF names that double as Lucide; = question-
-    // mark placeholder for unmapped SF names).
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
+    // 现在放大了, 线条好粗': render with strokeWidth: 1 (= 1 PT
+    // hairline = the thinnest Apple HIG macOS 27 icon weight; =
+    // matches the empty-state icons rendered by LucideThinIcon).
+    //
+    // The mapping chain below is the same as before (= SF → Lucide
+    // name via sfSymbolToLucideName; = direct Lucide name as
+    // fallback for SF names that double as Lucide; = question-mark
+    // placeholder for unmapped SF names). All three rendering paths
+    // now use strokeWidth: 1 + absoluteStrokeWidth: true (= 1 PT
+    // hairline regardless of size = same visual weight across the
+    // app).
     let lucideName = sfSymbolToLucideName(sfSymbol)
     if let _ = LucideIconName(rawValue: lucideName) {
-        LucideIcon(name: lucideName, size: size)
+        LucideIcon(
+            name: lucideName,
+            size: size,
+            strokeWidth: 1,
+            absoluteStrokeWidth: true
+        )
             .frame(width: size, height: size)
             .foregroundStyle(.primary)
     } else if let _ = LucideIconName(rawValue: sfSymbol) {
         // SF Symbol name is itself valid as Lucide name (= e.g. 'plus',
         // 'folder', 'cpu', 'tag' which exist in both libraries).
-        LucideIcon(name: sfSymbol, size: size)
+        LucideIcon(
+            name: sfSymbol,
+            size: size,
+            strokeWidth: 1,
+            absoluteStrokeWidth: true
+        )
             .frame(width: size, height: size)
             .foregroundStyle(.primary)
     } else {
@@ -150,7 +184,12 @@ public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> 
         // renders the Lucide question-mark glyph so a missing mapping is
         // visible on screen instead of silently blank.
         if let _ = LucideIconName(rawValue: "circle-question-mark") {
-            LucideIcon(name: "circle-question-mark", size: size)
+            LucideIcon(
+                name: "circle-question-mark",
+                size: size,
+                strokeWidth: 1,
+                absoluteStrokeWidth: true
+            )
                 .frame(width: size, height: size)
                 .foregroundStyle(.secondary)
         } else {
@@ -262,11 +301,29 @@ public func LucideImage(_ name: String, size: CGFloat = 16) -> Image? {
     if let cached = lucideImageCache[key] {
         return Image(nsImage: cached)
     }
-    // v1.0.0-m1-shell ajaxjiang96 fork: `Lucide(name:)` is non-
-    // optional. Render whatever icon resolves (= fork's fallback
-    // = house if the name doesn't match). Return nil only if
-    // the renderer itself fails to produce an NSImage.
-    let glyph = LucideIcon(name: name, size: size)
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
+    // 现在放大了, 线条好粗': render with strokeWidth: 1 (= 1 PT
+    // hairline = the thinnest Apple HIG macOS 27 icon weight; =
+    // matches the empty-state icons rendered by LucideThinIcon
+    // so the rasterized toolbar items (= segmented picker pages,
+    // kanban/todo buttons) and the vector icons share the same
+    // visual weight across the app).
+    //
+    // absoluteStrokeWidth: true (= constant 1 PT regardless of
+    // size; = a 16 PT toolbar item and a 76 PT empty-state icon
+    // both use the same 1 PT stroke; = Apple's macOS 27 inspector
+    // visual rhythm).
+    //
+    // ajaxjiang96 fork: `LucideIcon(name:)` is non-optional. Render
+    // whatever icon resolves (= fork's fallback = house if the
+    // name doesn't match). Return nil only if the renderer itself
+    // fails to produce an NSImage.
+    let glyph = LucideIcon(
+        name: name,
+        size: size,
+        strokeWidth: 1,
+        absoluteStrokeWidth: true
+    )
     let renderer = ImageRenderer(
         content: glyph
             .frame(width: size, height: size)

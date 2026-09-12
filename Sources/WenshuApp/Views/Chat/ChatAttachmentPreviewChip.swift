@@ -33,7 +33,12 @@ struct ChatAttachmentPreviewChip: View {
             Button {
                 onClear()
             } label: {
-                LucideIcon(name: "x")
+                LucideIcon(
+                    name: "x",
+                    size: 14,
+                    strokeWidth: 1,
+                    absoluteStrokeWidth: true
+                )
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 14, height: 14)
                     .foregroundStyle(.secondary)
