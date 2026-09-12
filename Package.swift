@@ -149,13 +149,32 @@ let package = Package(
             name: "WenshuAppTests",
             dependencies: [
                 "WenshuApp",
-                .product(name: "ViewInspector", package: "ViewInspector"),
+                .product(name: "ViewInspector", package: "viewinspector"),
                 // batch 1 issue 05: visual regression test support for ticket 028-011
                 // (= drag-lost regression suite). Pairs with ViewInspector: structure
                 // assertions vs pixel snapshots. README warns NOT to add to runtime target.
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
-            path: "Tests/WenshuAppTests"
+            path: "Tests/WenshuAppTests",
+            // v0.71 P1 batch 3: expose Localizable.strings to the
+            // test target's Bundle.module (= the I18nParityTests
+            // suite needs Bundle.module.url(forResource: "Localizable",
+            // withExtension: "strings") to verify en ↔ zh-Hans parity
+            // + source-code coverage). Without this, Bundle.module
+            // doesn't exist (= SPM only generates it when the target
+            // has resources). Symlink the WenshuApp Resources dir
+            // (= Localizable.strings is the only file the i18n tests
+            // actually read; = no need to process .lproj via SPM's
+            // localization pipeline = .copy preserves the .lproj
+            // directory structure).
+            resources: [
+                // Localizable.strings lives in each .lproj (= the
+                // canonical Apple localization layout; = Swift's
+                // NSLocalizedString looks it up via the user's
+                // preferred language + the .lproj directory).
+                .copy("Resources/en.lproj"),
+                .copy("Resources/zh-Hans.lproj"),
+            ]
         )
     ]
 )

@@ -40,50 +40,95 @@ struct I18nParityTests {
         return keys
     }
 
+    /// Load a Localizable.strings catalog and return its raw content
+    /// (= either decoded text or a serialized "key = value;\n..." blob
+    /// for binary plist).
+    ///
+    /// Supports:
+    /// - UTF-16 LE BOM (FF FE) — Apple canonical for .app bundles
+    /// - UTF-16 BE BOM (FE FF) — Apple canonical for cross-platform .app bundles
+    /// - UTF-8 (no BOM) — fallback for legacy / source .strings files
+    /// - Binary plist v0 (`bplist00`) — Xcode compiled .strings files
+    ///   (= what `swift build` produces when a `Resources/en.lproj`
+    ///   directory is copied to the test bundle; = SPM's CpResource
+    ///   step compiles text .strings into bplist just like Xcode).
     private static func loadCatalog(_ name: String, ext: String) -> String? {
-        // v0.40 boss real-device test 2026-09-07: .strings files
-        // are now UTF-16 LE BOM encoded (= Apple canonical format
-        // for NSLocalizedString). The test helper reads with .utf16
-        // (= covers both UTF-16 LE BOM / UTF-16 BE BOM). We detect
-        // the BOM by reading raw bytes first; if no BOM is present,
-        // the file may still be UTF-8 (legacy fallback for tests
-        // running against un-converted files).
+        // v0.71 P1 batch 3: the test bundle (= Bundle.module) stores
+        // Localizable.strings inside an .lproj subdirectory (= the
+        // canonical Apple localization layout; = SPM copies each
+        // .lproj as a subfolder under the bundle's Resources/).
+        // Bundle.url(forResource:withExtension:) does NOT search
+        // inside .lproj subdirectories (= it only looks at the
+        // flat Resources/ dir); = so we enumerate the bundle
+        // directory and walk each .lproj subfolder explicitly.
         //
-        // Search the test bundle first (= SPM testTarget uses Bundle.module).
-        // Fall back to Bundle.main (= WenshuApp target at runtime).
-        if let url = Bundle.module.url(forResource: name, withExtension: ext) {
-            if let data = try? Data(contentsOf: url) {
-                if let s = decodeStringsFile(data) { return s }
+        // SPM `.copy("Resources/en.lproj")` copies the lproj directory
+        // INSIDE the test bundle. Bundle.module.bundlePath already
+        // points to the bundle root (= `Wenshu_WenshuAppTests.bundle`).
+        // The .lproj subdirectories live at
+        // `<bundle>/Contents/Resources/<lproj>/` (= the canonical
+        // Apple bundle layout).
+        let lprojCandidates = ["en.lproj", "zh-Hans.lproj"]
+        for bundle in [Bundle.module, Bundle.main] {
+            let bundleURL = URL(fileURLWithPath: bundle.bundlePath)
+            for lproj in lprojCandidates {
+                let candidate = bundleURL
+                    .appendingPathComponent("Contents/Resources")
+                    .appendingPathComponent(lproj)
+                    .appendingPathComponent("\(name).\(ext)")
+                if let s = readStringsFile(at: candidate) {
+                    return s
+                }
             }
-        }
-        if let url = Bundle.main.url(forResource: name, withExtension: ext) {
-            if let data = try? Data(contentsOf: url) {
-                if let s = decodeStringsFile(data) { return s }
+            // Flat path fallback (= no .lproj).
+            if let url = bundle.url(forResource: name, withExtension: ext),
+               let s = readStringsFile(at: url) {
+                return s
             }
         }
         return nil
     }
 
-    /// Decode a .strings file blob. Supports:
-    /// - UTF-16 LE BOM (FF FE) — Apple canonical for .app bundles
-    /// - UTF-16 BE BOM (FE FF) — Apple canonical for cross-platform .app bundles
-    /// - UTF-8 (no BOM) — fallback for legacy / source .strings files
-    private static func decodeStringsFile(_ data: Data) -> String? {
-        // Strip BOM and decode as UTF-16 if present
-        if data.count >= 2 {
-            let b0 = data[0], b1 = data[1]
-            if b0 == 0xFF && b1 == 0xFE {
-                return String(data: data.dropFirst(2), encoding: .utf16LittleEndian)
-            }
-            if b0 == 0xFE && b1 == 0xFF {
-                return String(data: data.dropFirst(2), encoding: .utf16BigEndian)
-            }
+    /// Read a single Localizable.strings file from the given URL.
+    /// Supports UTF-16 BOM, UTF-8, and binary plist formats. The
+    /// binary plist format is the compiled form (= what Xcode +
+    /// SPM produce when `.copy("Resources/en.lproj")` is used; =
+    /// the SPM build step runs `plutil -convert binary1` on .strings
+    /// files as part of CpResource).
+    private static func readStringsFile(at url: URL) -> String? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        // Binary plist (= `bplist00` magic). Parse via PropertyListSerialization
+        // and serialize back as the text-format `key = value;` syntax the
+        // existing keys(in:) parser understands.
+        if data.count >= 8,
+           data[0] == 0x62, data[1] == 0x70, data[2] == 0x6C, data[3] == 0x69,
+           data[4] == 0x73, data[5] == 0x74, data[6] == 0x30, data[7] == 0x30 {
+            var format: PropertyListSerialization.PropertyListFormat = .binary
+            guard let plist = try? PropertyListSerialization.propertyList(
+                from: data, options: [], format: &format
+            ) as? [String: String] else { return nil }
+            return plist.map { key, value in
+                // Escape special chars (= `"` and `\` in the value;
+                // = canonical .strings format requires this).
+                let escaped = value
+                    .replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "\"", with: "\\\"")
+                return "\"\(key)\" = \"\(escaped)\";"
+            }.joined(separator: "\n")
         }
-        // No BOM: try UTF-8 first (= source-of-truth format)
+        // UTF-16 LE BOM (FF FE).
+        if data.count >= 2, data[0] == 0xFF, data[1] == 0xFE {
+            return String(data: data.dropFirst(2), encoding: .utf16LittleEndian)
+        }
+        // UTF-16 BE BOM (FE FF).
+        if data.count >= 2, data[0] == 0xFE, data[1] == 0xFF {
+            return String(data: data.dropFirst(2), encoding: .utf16BigEndian)
+        }
+        // UTF-8 fallback (= source-of-truth format).
         if let s = String(data: data, encoding: .utf8) {
             return s
         }
-        // Last resort: try UTF-16 without BOM
+        // Last resort: UTF-16 without BOM.
         if let s = String(data: data, encoding: .utf16) {
             return s
         }
