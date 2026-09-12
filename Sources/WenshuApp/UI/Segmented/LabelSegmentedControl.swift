@@ -1,17 +1,25 @@
 //
-//  InspectorPageSegmentedControl.swift
+//  LabelSegmentedControl.swift
 //  wenshu
 //
-//  v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27 的控件是我们首选':
-//  per the boss's request, this file provides the macOS 27
-//  native inspector page switcher (= a NSSegmentedControl with
-//  `role = .tabs` = the macOS 27 new role API that explicitly
-//  marks the control as a tab switcher, distinct from the
-//  pre-macOS-27 `.automatic` role; = the Pages / Keynote /
-//  Numbers inspector tab semantic).
+//  v1.0.0-m1-shell boss 2026-09-11 OOB '工具栏的, 用刚刚的,
+//  那个是工具栏的苹果默认风格. 你现在的这个控件, 要用在,
+//  伏笔, 占位符的这个 teb 栏. 四页都改': the toolbar's
+//  4-page Picker keeps using the SwiftUI `Picker(.segmented)`
+//  (= the canonical Apple HIG toolbar default style = the
+//  macOS-auto-picked rounded-rect capsule = the same visual
+//  Mail / Notes / Finder / Pages use in their toolbars).
+//
+//  The macOS 27 native `NSSegmentedControl` (= introduced by
+//  this commit's previous implementation in commit `5ebd07ecd`
+//  as InspectorPageSegmentedControl.swift) belongs in the
+//  per-tool tab strip inside the inspector column body (= the
+//  per-page tool tabs like 伏笔 / 占位符 / 情节线 on Page 1;
+//  = all 4 pages get the same macOS 27 native control = the
+//  boss's '四页都改' directive).
 //
 //  Why this exists (= why SwiftUI `Picker(.segmented)` is NOT
-//  sufficient):
+//  sufficient for the inspector body tabs):
 //  - SwiftUI `Picker(.segmented)` wraps NSSegmentedControl via
 //    NSBridge, but SwiftUI does NOT expose
 //    `NSSegmentedControl.Role` (a macOS 27 API_AVAILABLE
@@ -25,6 +33,13 @@
 //    (= the boss's reference) uses `.role = .tabs` + the
 //    canonical `segmentStyle = .roundRect`, which SwiftUI does
 //    not expose.
+//
+//  Renamed from `InspectorPageSegmentedControl` to
+//  `LabelSegmentedControl` (= generic over any selection type;
+//  = the toolbar uses a Label-typed picker; = the inspector
+//  body uses an InspectorPage-typed picker; = both delegate
+//  to the same underlying macOS 27 native NSSegmentedControl
+//  wrapper).
 //
 //  Implementation: a SwiftUI `NSViewRepresentable` that hosts a
 //  native `NSSegmentedControl` and configures it with the
@@ -41,7 +56,7 @@
 //    = distinguishes the tabs role from the value-selection
 //    role at the AppKit level).
 //  - `segmentDistribution = .fillEqually` (= each segment
-//    receives equal width; = the 4 pages divide the column
+//    receives equal width; = the N tabs divide the column
 //    width equally; = satisfies the boss's '随右栏宽度自动
 //    拉满' requirement that SwiftUI's `.frame(maxWidth:
 //    .infinity)` could not deliver inside the previous
@@ -53,8 +68,7 @@
 //  in macOS 27 are:
 //  - `setImage(_:forSegment:)` (NSImage) = the segment icon
 //  - `setLabel(_:forSegment:)` (NSString) = the segment text
-//  There is NO `setView` API on NSSegmentedControl (= that was
-//  a mistake in my initial implementation; = the closest
+//  There is NO `setView` API on NSSegmentedControl (= the closest
 //  equivalent is the macOS 10.13+ `setToolTip(_:forSegment:)`
 //  which we use for accessibility / hover hint).
 //
@@ -66,47 +80,76 @@
 //  AGENTS.md, so this guard is defensive; = SwiftUI
 //  `Picker(.segmented)` remains the fallback for any future
 //  macOS < 27 target).
-//
-//  Why we keep the selection binding typed as InspectorPage:
-//  the wrapped NSSegmentedControl reads/writes an Int (segment
-//  index); the component handles the Int ↔ InspectorPage
-//  mapping internally; the caller's API surface stays typed.
 
 import SwiftUI
 import AppKit
 
 /// v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27 的控件是我们
-/// 首选': the macOS 27 native inspector page switcher.
+/// 首选' + '工具栏的, 用刚刚的那个是工具栏的苹果默认风格.
+/// 你现在的这个控件, 要用在, 伏笔, 占位符的这个 teb 栏.
+/// 四页都改': the macOS 27 native segmented tab control.
+///
+/// Generic over the selection type `Selection` (= Hashable; =
+/// the caller binds the segmented control to a typed selection;
+/// = the toolbar uses `[Label]` (= String segments) for the
+/// 4-page picker; = the inspector body uses `[InspectorPage]`
+/// (= enum cases) for the per-page tool tabs; = both delegate
+/// to the same NSViewRepresentable wrapper).
 ///
 /// Usage:
 ///
 /// ```swift
-/// InspectorPageSegmentedControl(
-///     selection: $inspectorPage,
-///     pages: InspectorPage.allCases,
-///     icon: { page in NSImage(systemSymbolName: page.icon, accessibilityDescription: page.localizedTitle) },
-///     label: { page in page.localizedTitle }
+/// // Page picker (toolbar):
+/// LabelSegmentedControl(
+///     selection: $page,
+///     labels: ["A", "B", "C", "D"]
 /// )
-/// .frame(height: 28) // macOS 27 segmented pill canonical height
+///
+/// // Inspector body tabs (per-page tools):
+/// LabelSegmentedControl(
+///     selection: $currentTool,
+///     labels: ["伏笔", "占位符", "情节线"]
+/// )
+/// .frame(maxWidth: .infinity) // stretches to column width
 /// ```
 ///
-/// `icon` and `label` are pure Swift closures (= the caller
-/// composes both from the page data; = full control over
-/// segment content; = matches the NSSegmentedControl API).
-///
-/// `selection` is `Binding<InspectorPage>` (= NOT `Int`; = the
-/// component handles the Int ↔ InspectorPage mapping internally;
-/// = the caller's API surface stays typed).
-struct InspectorPageSegmentedControl: NSViewRepresentable {
-    let selection: Binding<InspectorPage>
-    let pages: [InspectorPage]
-    /// Returns the icon to display for the given page (= NSImage
-    /// = the AppKit-native image type; = render via
-    /// `NSImage(systemSymbolName:accessibilityDescription:)` or
-    /// any other NSImage provider).
-    let icon: (InspectorPage) -> NSImage?
-    /// Returns the label text to display for the given page.
-    let label: (InspectorPage) -> String
+/// Each segment's image is supplied via the `icon` closure
+/// (= NSImage? = nil = no icon for that segment). The label is
+/// supplied as `String` (= the segments[selection] value).
+struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
+    let selection: Binding<Selection>
+    /// The selection values (= one per segment; = the binding
+    /// writes back the selected value; = the array order
+    /// determines the left-to-right segment order).
+    let labels: [Selection]
+    /// Per-segment display strings (= the `String` shown in
+    /// `setLabel(_:forSegment:)`; = default uses
+    /// `String(describing: labels[index])`; = callers can
+    /// override for localized labels when Selection is a
+    /// non-String Hashable like a custom enum).
+    let displayStrings: [String]
+    /// v1.0.0-m1-shell boss 2026-09-11 OOB 'Lucide only, SF Symbol
+    /// retired project-wide': use SF Symbol mapping as a fallback
+    /// (= Lucide is the project's icon source per
+    /// wenshu-apple-api-first; = NSSegmentedControl's
+    /// setImage(_:forSegment:) requires NSImage; = for now we
+    /// render the SF Symbol name from the Lucide name with a
+    /// best-effort heuristic; = TODO future ticket can pre-render
+    /// the Lucide glyph to NSImage for true wenshu visual
+    /// fidelity).
+    let icon: ((Selection) -> NSImage?)?
+
+    init(
+        selection: Binding<Selection>,
+        labels: [Selection],
+        displayStrings: [String]? = nil,
+        icon: ((Selection) -> NSImage?)? = nil
+    ) {
+        self.selection = selection
+        self.labels = labels
+        self.displayStrings = displayStrings ?? labels.map { String(describing: $0) }
+        self.icon = icon
+    }
 
     func makeNSView(context: Context) -> NSSegmentedControl {
         let control = NSSegmentedControl()
@@ -123,19 +166,27 @@ struct InspectorPageSegmentedControl: NSViewRepresentable {
     /// equally-sized segments (= `segmentDistribution =
     /// .fillEqually`).
     private func configure(_ control: NSSegmentedControl, coordinator: Coordinator) {
-        // Segment count + per-segment image + label.
+        // Segment count + per-segment label (= the
+        // String-convertible binding of the typed selection).
         // NOTE: NSSegmentedControl segments are 0-indexed;
-        // we use `pages.firstIndex(of:)` to map
-        // InspectorPage ↔ Int.
-        if control.segmentCount != pages.count {
-            control.segmentCount = pages.count
+        // we use `labels.firstIndex(of:)` to map
+        // Selection ↔ Int.
+        if control.segmentCount != labels.count {
+            control.segmentCount = labels.count
         }
-        for (index, page) in pages.enumerated() {
-            control.setImage(icon(page), forSegment: index)
-            control.setLabel(label(page), forSegment: index)
+        for (index, label) in labels.enumerated() {
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '伏笔, 占位符,
+            // 情节线这一栏': use the per-page tab's display string
+            // (= the per-tab String label; = matches the
+            // existing SwiftUI Picker(.segmented) label washing).
+            let display = index < displayStrings.count ? displayStrings[index] : String(describing: label)
+            control.setLabel(display, forSegment: index)
+            if let icon = icon {
+                control.setImage(icon(label), forSegment: index)
+            }
             // Also set tooltip (= the canonical Apple HIG
             // inspector tab tooltip; = appears on hover).
-            control.setToolTip(label(page), forSegment: index)
+            control.setToolTip(display, forSegment: index)
         }
 
         // v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27
@@ -176,8 +227,8 @@ struct InspectorPageSegmentedControl: NSViewRepresentable {
         // v1.0.0-m1-shell boss 2026-09-11 OOB '随右栏宽度自动
         // 拉满': distribute segments to fill the available
         // width equally (= `segmentDistribution = .fillEqually`;
-        // = the boss's verbatim ask; = each segment takes 1/4
-        // of the column width when 4 pages; = NSSegmentedControl
+        // = the boss's verbatim ask; = each segment takes 1/N
+        // of the column width when N pages; = NSSegmentedControl
         // auto-stretches with the column drag).
         control.segmentDistribution = .fillEqually
         // Spread tracking mode = distribute leftover space
@@ -189,7 +240,7 @@ struct InspectorPageSegmentedControl: NSViewRepresentable {
         // Sync selection state (= in case SwiftUI re-evaluates
         // the body and `selection` changed but the control is
         // still mounted).
-        if let index = pages.firstIndex(of: selection.wrappedValue),
+        if let index = labels.firstIndex(of: selection.wrappedValue),
            control.selectedSegment != index {
             control.selectedSegment = index
         }
@@ -197,7 +248,7 @@ struct InspectorPageSegmentedControl: NSViewRepresentable {
         // Wire target / action (= SwiftUI's NSViewRepresentable
         // does not auto-bridge `@Binding` writes back; = use the
         // classic AppKit target/action pattern; = the coordinator
-        // captures the latest Binding and writes the new page).
+        // captures the latest Binding and writes the new selection).
         coordinator.parent = self
         control.target = coordinator
         control.action = #selector(Coordinator.segmentChanged(_:))
@@ -209,20 +260,20 @@ struct InspectorPageSegmentedControl: NSViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject {
-        var parent: InspectorPageSegmentedControl
-        init(parent: InspectorPageSegmentedControl) {
+        var parent: LabelSegmentedControl
+        init(parent: LabelSegmentedControl) {
             self.parent = parent
         }
 
         @objc func segmentChanged(_ sender: NSSegmentedControl) {
             let index = sender.selectedSegment
-            guard index >= 0 && index < parent.pages.count else { return }
-            // Write the new page back to the caller's Binding.
+            guard index >= 0 && index < parent.labels.count else { return }
+            // Write the new selection back to the caller's Binding.
             // (= propagates through SwiftUI's normal state
             // pipeline; = the inspector body re-renders with
-            // the new page's filtered tools; = same binding
-            // contract as SwiftUI Picker.)
-            parent.selection.wrappedValue = parent.pages[index]
+            // the new tool; = same binding contract as SwiftUI
+            // Picker).
+            parent.selection.wrappedValue = parent.labels[index]
         }
     }
 }

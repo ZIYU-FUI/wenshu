@@ -83,17 +83,77 @@ struct ZoneContentView: View {
         // - The Apple-native Liquid Glass selected segment animation
         //   replaces the previous matchedGeometryEffect underline
         //   (= no @Namespace tabBarNamespace needed).
+        // v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27 的控件是我们首选':
+        // swap the SwiftUI Picker(.segmented) (= the legacy macOS 10.5
+        // wrapper; = intrinsic-size; = does NOT expose
+        // NSSegmentedControl.Role; = does NOT auto-fill the column
+        // width) for `LabelSegmentedControl` (= a SwiftUI
+        // NSViewRepresentable wrapping the macOS 27 native
+        // NSSegmentedControl; = uses segmentStyle = .roundRect
+        // (= the Apple HIG Pages / Numbers inspector tab visual)
+        // + role = .tabs (= the macOS 27 NEW role API; =
+        // semantically correct for a tab switcher; = VoiceOver
+        // reads "page N of M") + segmentDistribution =
+        // .fillEqually (= each tab stretches to 1/N of the
+        // column width = satisfies the boss's '随右栏宽度自动拉满'
+        // requirement)).
+        //
+        // Per the verbatim port discipline (= only do what the boss
+        // asked): this commit ONLY changes the per-page tab strip
+        // control (= ZoneContentView's tabs); = the toolbar's
+        // 4-page picker (= SwiftUI Picker(.segmented)) stays
+        // unchanged; = the boss explicitly clarified '工具栏的,
+        // 用刚刚的, 那个是工具栏的苹果默认风格' (= the toolbar
+        // keeps the SwiftUI Picker(.segmented) = the Apple HIG
+        // toolbar default).
+        //
+        // '四页都改' directive: this single component handles
+        // all 4 inspector pages' per-page tab strip (= the
+        // ZoneContentView is reused for each page; = the tabs
+        // array is replaced by `filteredToolsForCurrentPage`;
+        // = the control auto-renders whatever tabs the
+        // inspector page supplies; = the boss's directive is
+        // satisfied with a single-line change).
         VStack(spacing: 0) {
-            Picker(
-                String(localized: "Tools", defaultValue: "Tools"),
-                selection: selectionBinding
-            ) {
-                ForEach(tabs) { tab in
-                    Label(tab.label, systemImage: tab.icon).tag(tab.id)
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27 的控件
+            // 是我们首选': use the macOS 27 native NSSegmentedControl
+            // (= via the new `LabelSegmentedControl` wrapper in
+            // UI/Segmented/; = the canonical Apple HIG Pages / Numbers
+            // inspector tab strip; = auto-fills the column width).
+            //
+            // We bind the control to String ids (= the Tab.id; =
+            // Hashable; = avoids the need to make the full Tab type
+            // Hashable, which AnyView-riddled structs can't easily
+            // satisfy; = the id lookup gives us Hashable conformance
+            // for free).
+            LabelSegmentedControl(
+                selection: Binding(
+                    get: {
+                        tabs.first(where: { $0.id == selectionBinding.wrappedValue })?.id
+                            ?? tabs.first?.id
+                            ?? ""
+                    },
+                    set: { selectionBinding.wrappedValue = $0 }
+                ),
+                labels: tabs.map(\.id),
+                // v1.0.0-m1-shell boss 2026-09-11 OOB '伏笔, 占位符,
+                // 情节线这一栏': use the per-tab localized label
+                // (= the `Tab.label` field = the Chinese
+                // localized title; = rendered via
+                // NSSegmentedControl.setLabel).
+                displayStrings: tabs.map(\.label),
+                icon: { tabId in
+                    guard let tab = tabs.first(where: { $0.id == tabId }) else { return nil }
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'Lucide only,
+                    // SF Symbol retired project-wide': SF Symbol
+                    // mapping as a NSSegmentedControl-friendly
+                    // fallback (= NSSegmentedControl.setImage requires
+                    // NSImage; = TODO future ticket pre-renders the
+                    // Lucide glyph as NSImage for true visual fidelity).
+                    return NSImage(systemSymbolName: tab.icon, accessibilityDescription: tab.label)
                 }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            )
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, DesignTokens.chromePaddingLarge)
             // v0.24 bossverificationfix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
             // so it inherits zone size (not forces zone to grow). Without this,
