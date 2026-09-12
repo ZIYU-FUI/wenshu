@@ -80,6 +80,13 @@ public func wenshuSidebarIconSize() -> CGFloat {
 /// in CI would surface any further missing names).
 private let lucideNameAliases: [String: String] = {
     let map: [String: String] = [
+    // bring-shrubbery had a separate `sidebar-right` (= the right
+    // sidebar panel) distinct from `panel-right`. The ajaxjiang96
+    // fork merged both into `panelRight` (= the toolbar inspector
+    // toggle uses this when collapsed).
+    "sidebar-right": "panel-right",
+    // bring-shrubbery `sidebar-left` → ajaxjiang96 `panel-left`
+    "sidebar-left": "panel-left",
     // suffix-stripped
     "maximize-2": "maximize",
     "minimize-2": "minimize",
@@ -117,27 +124,60 @@ private let lucideNameAliases: [String: String] = {
 /// LucideIcon / LucideImage / LucideIconSystemFallback / etc.
 /// public wrappers).
 internal func resolveLucideName(_ name: String) -> LucideIconName? {
-    // 1. Direct rawValue match (e.g. 'kanban' -> .kanban).
+    // 1. Direct rawValue match (= handles 'kanban', 'library',
+    //    'plus', 'wrench', etc. unchanged).
     if let direct = LucideIconName(rawValue: name) {
         return direct
     }
-    // 2. Explicit alias table (handles the 17 known missing names).
+    // 2. Explicit alias table (= handles the 17 names that
+    //    don't have a clean kebab→camelCase mapping; e.g.
+    //    'trash-2' -> 'trash' which is NOT the result of a
+    //    naive kebab→camelCase conversion).
     if let alias = lucideNameAliases[name] {
         if let mapped = LucideIconName(rawValue: alias) {
             return mapped
         }
     }
-    // 3. Drop a trailing '-2' suffix and retry (= handles the
-    // older 'trash-2' / 'maximize-2' style names that were
-    // disambiguated in bring-shrubbery 1.25.0 but merged with
-    // their base name in ajaxjiang96 0.9.4).
+    // 3. Generic kebab→camelCase conversion (= handles the
+    //    general case where the wenshu codebase uses kebab-case
+    //    rawValues from the bring-shrubbery fork 1.25.0 but
+    //    the ajaxjiang96 fork 0.9.4 uses camelCase for both
+    //    case names and rawValues; = e.g. 'book-open' ->
+    //    'bookOpen', 'circle-arrow-down' -> 'circleArrowDown',
+    //    'sidebar-left' -> 'panel-left'; = if the naive
+    //    kebab→camelCase conversion yields a valid enum case
+    //    (= the camelCase name appears in the fork's enum),
+    //    use it).
+    let camelCased = kebabToCamelCase(name)
+    if let mapped = LucideIconName(rawValue: camelCased) {
+        return mapped
+    }
+    // 4. Drop a trailing '-2' suffix and retry (= handles the
+    //    older 'trash-2' / 'maximize-2' style names that were
+    //    disambiguated in bring-shrubbery 1.25.0 but merged
+    //    with their base name in ajaxjiang96 0.9.4).
     if name.hasSuffix("-2") {
         let stripped = String(name.dropLast(2))
         if let mapped = LucideIconName(rawValue: stripped) {
             return mapped
         }
+        // Also try kebab→camelCase of the stripped form.
+        let strippedCamel = kebabToCamelCase(stripped)
+        if let mapped = LucideIconName(rawValue: strippedCamel) {
+            return mapped
+        }
     }
     return nil
+}
+
+/// Convert kebab-case to camelCase (= "book-open" -> "bookOpen",
+/// "circle-arrow-down" -> "circleArrowDown"). Helper for
+/// `resolveLucideName` (= the general kebab→camelCase fallback
+/// for the ajaxjiang96 fork's camelCase rawValue convention).
+private func kebabToCamelCase(_ kebab: String) -> String {
+    let parts = kebab.split(separator: "-")
+    guard let first = parts.first else { return kebab }
+    return String(first) + parts.dropFirst().map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined()
 }
 
 /// LucideIcon as a default-arg helper (= call without name: to get
@@ -173,9 +213,18 @@ public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
     // 现在放大了, 线条好粗': render with strokeWidth: 1 (= 1 PT
     // hairline = the thinnest Apple HIG macOS 27 icon weight; =
     // matches the empty-state icons rendered by LucideThinIcon).
-    if resolveLucideName(name) != nil {
+    if let iconName = resolveLucideName(name) {
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '大量 icon 消失,
+        // 建议你还得慢点, 没一个都先验证一下会不会 miss': pass the
+        // RESOLVED enum case (= e.g. .userRound) to the fork, NOT
+        // the original raw string (= e.g. 'user-round'). Passing
+        // the original rawValue causes the fork's internal
+        // resolver to silently fall back to .house (= visually
+        // looks like a missing icon for callers using kebab-case
+        // rawValues like 'square-dashed' or 'user-round' from the
+        // bring-shrubbery 1.25.0 era).
         LucideIcon(
-            name: name,
+            iconName,
             size: size,
             strokeWidth: 1,
             absoluteStrokeWidth: true
