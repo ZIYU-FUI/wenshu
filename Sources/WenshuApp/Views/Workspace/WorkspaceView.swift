@@ -1057,18 +1057,13 @@ struct EditorPlaceholder: View {
     /// ticket 027-35 deferred path-resolution path = openCardInEditor
     /// creates the tab without an absolute path), fall back to
     /// `tab.title` (= the card's title = '赤壁之战' / '杜甫' etc.)
-    /// before the 'preview-sample' placeholder. Precedence:
+    /// before the 'preview-sample' placeholder. Precedence (= single
+    /// source of truth in EditorTab.displayTitle):
     ///   1. documentPath basename (= if real path exists, it wins)
     ///   2. tab.title (= entity / book-doc title)
     ///   3. 'preview-sample' (= legacy placeholder)
     private func tabDisplayTitle(tab: EditorTab) -> String {
-        if let path = tab.documentPath, !path.isEmpty {
-            let url = URL(fileURLWithPath: path)
-            let basename = url.deletingPathExtension().lastPathComponent
-            if !basename.isEmpty { return basename }
-        }
-        if let title = tab.title, !title.isEmpty { return title }
-        return "preview-sample"
+        EditorTab.displayTitle(tab)
     }
 
     @Environment(AppState.self) private var appState

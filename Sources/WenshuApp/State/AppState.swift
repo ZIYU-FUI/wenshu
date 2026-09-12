@@ -514,6 +514,37 @@ final class EditorTab: Identifiable {
         self.sourceScope = nil
         self.title = title
     }
+
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+    // the canonical display title for a tab (= the value shown in
+    // the tab strip). The fallback chain (= duplicate in
+    // WorkspaceView.tabDisplayTitle + PreviewPane.tabDisplayTitle
+    // before this refactor) MUST stay in one place to prevent
+    // drift (= the previous duplication risked two views showing
+    // different titles for the same tab).
+    //
+    // Precedence:
+    //   1. documentPath basename (= the real file wins; = strips
+    //      the .md extension). If the path is set and the
+    //      basename is non-empty, use it.
+    //   2. tab.title (= the entity / book-doc title = '赤壁之战'
+    //      / '杜甫' / '什么是文枢' etc.). For reference-library
+    //      cards without a real documentPath (= ticket 027-35
+    //      deferred path resolution), this is the only source of
+    //      a meaningful name.
+    //   3. 'preview-sample' (= the legacy placeholder; = only
+    //      reached when neither documentPath nor title is set;
+    //      = the ticket 027-35 path-resolution will narrow this
+    //      fallback to the empty / placeholder tabs).
+    static func displayTitle(_ tab: EditorTab) -> String {
+        if let path = tab.documentPath, !path.isEmpty {
+            let url = URL(fileURLWithPath: path)
+            let basename = url.deletingPathExtension().lastPathComponent
+            if !basename.isEmpty { return basename }
+        }
+        if let title = tab.title, !title.isEmpty { return title }
+        return "preview-sample"
+    }
 }
 
 // v0.34 B-24: top-level enum (= EditorTab is a top-level class; = can't

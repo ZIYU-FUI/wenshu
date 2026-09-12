@@ -1508,14 +1508,9 @@ private struct Card: View {
     ///
     /// v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
     /// same precedence as EditorPlaceholder (= documentPath basename
-    /// → tab.title → 'preview-sample').
+    /// → tab.title → 'preview-sample'; = single source of truth in
+    /// EditorTab.displayTitle).
     private func tabDisplayTitle(tab: EditorTab) -> String {
-        if let path = tab.documentPath, !path.isEmpty {
-            let url = URL(fileURLWithPath: path)
-            let basename = url.deletingPathExtension().lastPathComponent
-            if !basename.isEmpty { return basename }
-        }
-        if let title = tab.title, !title.isEmpty { return title }
-        return "preview-sample"
+        EditorTab.displayTitle(tab)
     }
 }
