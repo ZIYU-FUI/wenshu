@@ -90,11 +90,26 @@ struct LucideThinIcon: View {
         // color: nil (= inherits from .foregroundStyle on the
         // caller's view; = consistent with Apple's standard
         // tinted-icon pattern).
-        LucideIcon(
-            name: iconName,
-            size: size,
-            strokeWidth: 1,
-            absoluteStrokeWidth: true
-        )
+        //
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '排查所有 icon 位置, 统一替换':
+        // route through `resolveLucideName` so the empty-state
+        // icons (= git-fork, square-dashed, shield-check, etc.)
+        // all resolve to the right enum case (= the fork's
+        // LucideIcon(name:) accepts the rawValue as fallback,
+        // but the alias table catches the 17 names that exist
+        // only as camelCase enum cases in the fork).
+        if let iconName = resolveLucideName(iconName) {
+            LucideIcon(
+                iconName,
+                size: size,
+                strokeWidth: 1,
+                absoluteStrokeWidth: true
+            )
+        } else {
+            // Fallback = empty Color.clear (preserves the column
+            // vertical rhythm even when the icon name doesn't
+            // resolve; = the boss's '找不到不显示' contract).
+            Color.clear.frame(width: size, height: size)
+        }
     }
 }

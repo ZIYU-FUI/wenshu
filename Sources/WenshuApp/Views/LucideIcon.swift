@@ -59,22 +59,121 @@ public func wenshuSidebarIconSize() -> CGFloat {
 /// non-optional init). The default strokeWidth: 2 (= the fork's
 /// default for LucideIconName) is used (= the same visual
 /// rendering as the old bring-shrubbery fork's baked fills).
+/// v1.0.0-m1-shell boss 2026-09-12 OOB '排查所有 icon 位置, 统一替换'
+/// (= a few of the Lucide icon names that wenshu was using under
+/// the bring-shrubbery/lucide-swift 1.25.0 fork don't exist as
+/// LucideIconName cases in the ajaxjiang96/lucide-swift 0.9.4 fork;
+///
+/// e.g. 'book-plus' (bring-shrubbery) is exposed as '.bookPlus' in
+/// the fork (= camelCase enum case). Without an alias, the wenshu
+/// wrapper's `LucideIconName(rawValue: name)` check returns nil
+/// for these names and the wrapper renders an empty Color.clear
+/// placeholder (= no visible icon at the callsite).
+///
+/// The alias table below catches the 17 known affected kebab-case
+/// names and maps them to the corresponding fork enum case. Order
+/// matters: more specific (suffix-stripped) matches first (= 'trash-2'
+/// = '.trash', not '.trash2').
+///
+/// To extend: append `(kebabName, enumCase)` to the table and
+/// rebuild (= a `print("\(kebabName) -> not in fork enum")` log
+/// in CI would surface any further missing names).
+private let lucideNameAliases: [String: String] = {
+    let map: [String: String] = [
+    // suffix-stripped
+    "maximize-2": "maximize",
+    "minimize-2": "minimize",
+    "undo-2": "undo",
+    "trash-2": "trash",
+    // kebab -> camelCase
+    "book-plus": "bookPlus",
+    "circle-arrow-down": "circleArrowDown",
+    "circle-check": "circleCheck",
+    "circle-dot": "circleDot",
+    "circle-plus": "circlePlus",
+    "circle-x": "circleX",
+    "file-plus": "filePlus",
+    "list-checks": "listChecks",
+    "refresh-cw": "refreshCw",
+    "search-check": "searchCheck",
+    "square-arrow-right": "squareArrowRight",
+    "triangle-alert": "triangleAlert",
+    "wand-sparkles": "wandSparkles",
+    ]
+    return map
+}()
+
+/// v1.0.0-m1-shell boss 2026-09-12 OOB '排查所有 icon 位置, 统一替换':
+/// resolve a Lucide icon name (= kebab-case string) to the
+/// ajaxjiang96 fork's LucideIconName case. Falls back to
+/// stripping the trailing '-2' (a common older pattern in
+/// bring-shrubbery; e.g. 'trash-2' -> 'trash') then to the
+/// direct LucideIconName(rawValue:) lookup (= the strict
+/// path for names that have no alias and no fork match).
+///
+/// Exposed as `internal` (= not public) so LucideThinIcon and
+/// other internal wrappers can call it; = NOT part of the
+/// stable wenshu public API (= callers should go through the
+/// LucideIcon / LucideImage / LucideIconSystemFallback / etc.
+/// public wrappers).
+internal func resolveLucideName(_ name: String) -> LucideIconName? {
+    // 1. Direct rawValue match (e.g. 'kanban' -> .kanban).
+    if let direct = LucideIconName(rawValue: name) {
+        return direct
+    }
+    // 2. Explicit alias table (handles the 17 known missing names).
+    if let alias = lucideNameAliases[name] {
+        if let mapped = LucideIconName(rawValue: alias) {
+            return mapped
+        }
+    }
+    // 3. Drop a trailing '-2' suffix and retry (= handles the
+    // older 'trash-2' / 'maximize-2' style names that were
+    // disambiguated in bring-shrubbery 1.25.0 but merged with
+    // their base name in ajaxjiang96 0.9.4).
+    if name.hasSuffix("-2") {
+        let stripped = String(name.dropLast(2))
+        if let mapped = LucideIconName(rawValue: stripped) {
+            return mapped
+        }
+    }
+    return nil
+}
+
+/// LucideIcon as a default-arg helper (= call without name: to get
+/// the fork's default fork name = 'activity' = an animated chevron).
+@ViewBuilder
+private func resolveLucideIconView(_ name: String, size: CGFloat) -> some View {
+    if let iconName = resolveLucideName(name) {
+        LucideIcon(
+            iconName,
+            size: size,
+            strokeWidth: 1,
+            absoluteStrokeWidth: true
+        )
+    } else {
+        // Empty placeholder (= icon name not found in lucide;
+        // followup = add the correct icon name).
+        Color.clear.frame(width: size, height: size)
+    }
+}
+
 @ViewBuilder
 public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
-    // v1.0.0-m1-shell: LucideIcon(name:) is non-optional in the
-    // ajaxjiang96 fork. Always succeeds (= falls back to the
-    // house icon if `name` doesn't match any LucideIconName case;
-    // = the fork's built-in resolver). To preserve the original
-    // wenshu contract (= missing icon = empty placeholder rather
-    // than a house icon), we look up the name against the
-    // LucideIconName enum first; if it doesn't match, return
-    // Color.clear (= the empty placeholder).
+    // v1.0.0-m1-shell ajaxjiang96 fork: `LucideIcon(name:)` is
+    // non-optional. Always succeeds (= falls back to the house
+    // icon if `name` doesn't match any LucideIconName case; = the
+    // fork's built-in resolver). To preserve the original wenshu
+    // contract (= missing icon = empty placeholder rather than a
+    // house icon), we use `resolveLucideName` (= the kebab-case to
+    // camelCase alias table + the '-2' suffix stripper + the strict
+    // rawValue match). If everything fails, return Color.clear.
     //
     // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
     // 现在放大了, 线条好粗': render with strokeWidth: 1 (= 1 PT
     // hairline = the thinnest Apple HIG macOS 27 icon weight; =
     // matches the empty-state icons rendered by LucideThinIcon).
-    if let _ = LucideIconName(rawValue: name) {
+    if resolveLucideName(name) != nil {
         LucideIcon(
             name: name,
             size: size,
@@ -84,8 +183,6 @@ public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
             .frame(width: size, height: size)
             .foregroundStyle(.primary)
     } else {
-        // Empty placeholder (= icon name not found in lucide;
-        // followup = add the correct icon name).
         Color.clear
             .frame(width: size, height: size)
     }
@@ -103,12 +200,21 @@ public func LucideIconSidebar(_ name: String) -> some View {
     // (= 1 PT hairline at every size = the same Apple HIG
     // inspector-tab visual weight regardless of the user's
     // "Sidebar icon size" preference).
-    LucideIcon(
-        name: name,
-        size: wenshuSidebarIconSize(),
-        strokeWidth: 1,
-        absoluteStrokeWidth: true
-    )
+    //
+    // v1.0.0-m1-shell boss 2026-09-12 OOB '排查所有 icon 位置, 统一替换':
+    // route through `resolveLucideName` so callers using
+    // 'trash-2' (= bring-shrubbery rawValue) hit the
+    // ajaxjiang96 enum case `trash`.
+    if let iconName = resolveLucideName(name) {
+        LucideIcon(
+            iconName,
+            size: wenshuSidebarIconSize(),
+            strokeWidth: 1,
+            absoluteStrokeWidth: true
+        )
+    } else {
+        Color.clear.frame(width: wenshuSidebarIconSize(), height: wenshuSidebarIconSize())
+    }
 }
 
 /// Icon helper that takes an SF Symbol name (= legacy / boss shorthand)
@@ -157,20 +263,20 @@ public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> 
     // hairline regardless of size = same visual weight across the
     // app).
     let lucideName = sfSymbolToLucideName(sfSymbol)
-    if let _ = LucideIconName(rawValue: lucideName) {
+    if let iconName = resolveLucideName(lucideName) {
         LucideIcon(
-            name: lucideName,
+            iconName,
             size: size,
             strokeWidth: 1,
             absoluteStrokeWidth: true
         )
             .frame(width: size, height: size)
             .foregroundStyle(.primary)
-    } else if let _ = LucideIconName(rawValue: sfSymbol) {
+    } else if let iconName = resolveLucideName(sfSymbol) {
         // SF Symbol name is itself valid as Lucide name (= e.g. 'plus',
         // 'folder', 'cpu', 'tag' which exist in both libraries).
         LucideIcon(
-            name: sfSymbol,
+            iconName,
             size: size,
             strokeWidth: 1,
             absoluteStrokeWidth: true
@@ -183,9 +289,9 @@ public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> 
         // is gone. wenshu is strict Lucide-only now. An unmapped name
         // renders the Lucide question-mark glyph so a missing mapping is
         // visible on screen instead of silently blank.
-        if let _ = LucideIconName(rawValue: "circle-question-mark") {
+        if let iconName = resolveLucideName("circle-question-mark") {
             LucideIcon(
-                name: "circle-question-mark",
+                iconName,
                 size: size,
                 strokeWidth: 1,
                 absoluteStrokeWidth: true
@@ -318,8 +424,17 @@ public func LucideImage(_ name: String, size: CGFloat = 16) -> Image? {
     // whatever icon resolves (= fork's fallback = house if the
     // name doesn't match). Return nil only if the renderer itself
     // fails to produce an NSImage.
+    //
+    // v1.0.0-m1-shell boss 2026-09-12 OOB '排查所有 icon 位置, 统一替换':
+    // route through `resolveLucideName` (= the kebab-case to
+    // camelCase alias table) so callers using names like
+    // 'circle-x' (= bring-shrubbery rawValue) hit the
+    // ajaxjiang96 enum case `circleX`. Without this, the fork's
+    // LucideIcon(name:) call would fall back to the house icon
+    // (= wrong visual = boss's complaint).
+    guard let iconName = resolveLucideName(name) else { return nil }
     let glyph = LucideIcon(
-        name: name,
+        iconName,
         size: size,
         strokeWidth: 1,
         absoluteStrokeWidth: true
