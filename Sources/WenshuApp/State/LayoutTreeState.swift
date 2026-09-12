@@ -509,12 +509,20 @@ func movePanes(
         return movePane(root, paneId: ids[0], target: target)
     }
     let lead = ids[0]
-    var working: LayoutNode? = root
+    // v0.71 P1 batch 11: replaced the previous `working!` (= audit's
+    // LOW smell; = force-unwrap inside a loop that may exit early on
+    // removePane failure) with explicit `guard let pending` (= the
+    // loop-local name is `pending` to avoid shadowing the outer
+    // `current` var; = pending is the in-loop current value before
+    // removePane, then re-assigned to the outer current).
+    var current: LayoutNode? = root
     for id in ids {
-        guard let next = removePane(working!, paneId: id) else { return root }
-        working = next
+        guard let pending = current else { return root }
+        guard let nextPending = removePane(pending, paneId: id) else { return root }
+        current = nextPending
     }
-    guard var working else { return root }
+    // Rebind to `working` (= the rest of the function uses this name).
+    guard var working = current else { return root }
     guard findGroup(working, groupId: target.groupId) != nil else { return root }
     guard var next = insertAtGroup(working, targetGroupId: target.groupId, paneId: lead, pos: target.pos, before: target.before) else {
         return root
