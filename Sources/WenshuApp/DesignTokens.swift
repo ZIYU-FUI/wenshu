@@ -336,6 +336,20 @@ public enum DesignTokens {
     /// Replaces `.frame(width: DesignTokens.bulletSizeSmall, height: DesignTokens.bulletSizeSmall)` in 1 site.
     public static let bulletSizeSmall: CGFloat = 14
 
+    /// Empty-state icon size (= 76 PT, 2× the default ContentUnavailableView
+    /// 38 PT). v1.0.0-m1-shell boss 2026-09-12 OOB '顺手把空态的 ICON
+    /// 放大一倍' (='double the empty-state icon size'). Replaces the
+    /// raw `.frame(width: 76, height: 76)` in EmptyStateView.swift.
+    /// Single source of truth for ALL empty-state icon sizes (= no
+    /// other callers at v0.71 = single owner).
+    public static let emptyStateIconSize: CGFloat = 76
+
+    /// Empty-state icon→title gap (= 22 PT, Apple HIG standard
+    /// ContentUnavailableView sample measured value). v1.0.0-m1-shell
+    /// EmptyStateView.swift uses this for the icon→title vertical
+    /// spacing. Single source of truth (= single owner at v0.71).
+    public static let chromePaddingEmptyStateGap: CGFloat = 22
+
     /// Sub-agent icon button size (= 22 PT, Apple HIG compact icon
     /// button standard). Replaces `.frame(width: DesignTokens.iconButtonSmall, height: DesignTokens.iconButtonSmall)`.
     public static let iconButtonSmall: CGFloat = 22

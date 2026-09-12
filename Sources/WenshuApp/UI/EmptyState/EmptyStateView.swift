@@ -44,10 +44,20 @@
 //    - maxWidth: 360 (= wraps on small inspector columns)
 //
 //  Spacing:
-//    - icon → title: 22 PT (= matches Apple's ContentUnavailableView
-//      sample measured at 22 PT; = v0.54 default)
-//    - title → body: 6 PT (= chromePaddingSmall = Apple HIG
-//      standard for title→caption spacing)
+//    - icon → title: DesignTokens.chromePaddingEmptyStateGap (= the
+//      Apple HIG standard ContentUnavailableView measured value; =
+//      the boss's '...用 apple 样式' OOB = the literal number isn't
+//      Apple-default = Apple doesn't expose this value publicly;
+//      = we use a semantic token instead)
+//    - title → body: chromePaddingSmall (= Apple HIG standard for
+//      title→caption spacing)
+//    - body maxWidth: DesignTokens.guardrailSheetWidth (= 360 PT
+//      = Apple HIG modal sheet width = the empty-state body
+//      should wrap to the same width as a standard modal sheet)
+//    - icon size: DesignTokens.emptyStateIconSize (= 76 PT
+//      = 2× the v0.54 38 PT default = the boss's '放大一倍'
+//      directive; = not a magic number = semantic token for the
+//      canonical empty-state icon size)
 //
 //  Why these specific tokens (= Apple HIG + wenshu design system):
 //  - 76 PT icon + 1 PT stroke = matches Apple's macOS 27 inspector
@@ -172,23 +182,23 @@ public struct EmptyStateView: View {
             // vertical gap (= 22 PT below) matches Apple's
             // measured ContentUnavailableView sample (= NOT
             // custom; = Apple HIG standard).
-            LucideThinIcon(icon, size: 76)
+            LucideThinIcon(icon, size: DesignTokens.emptyStateIconSize)
                 .foregroundStyle(.secondary)
-                .padding(.bottom, 22)
-            VStack(spacing: 6) {
+                .padding(.bottom, DesignTokens.chromePaddingEmptyStateGap)
+            VStack(spacing: DesignTokens.chromePaddingSmall) {
                 // Title: plain Text (= common case) OR caller-supplied
                 // titleView (= chat empty state with inline
                 // Settings link). Both render at .headline / .secondary
                 // (= the EmptyStateView visual contract).
                 if let titleView = titleView {
                     titleView
-                        .frame(maxWidth: 360)
+                        .frame(maxWidth: DesignTokens.guardrailSheetWidth)
                 } else if let titleText = titleText {
                     Text(titleText)
                         .font(.headline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .frame(maxWidth: 360)
+                        .frame(maxWidth: DesignTokens.guardrailSheetWidth)
                 }
                 // Body (= Apple HIG .callout = 12 PT secondary =
                 // Apple's standard secondary text). The .tertiary
@@ -199,7 +209,7 @@ public struct EmptyStateView: View {
                     .font(.callout)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
-                    .frame(maxWidth: 360)
+                    .frame(maxWidth: DesignTokens.guardrailSheetWidth)
             }
         }
     }
