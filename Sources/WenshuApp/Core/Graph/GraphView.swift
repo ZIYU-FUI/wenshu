@@ -1,5 +1,5 @@
 //
-//  GraphView.swift · Wenshu · v0.19 ticket 14 (Obsidian replica, 前端做但不接入核心项目)
+// GraphView.swift · Wenshu · v0.19 ticket 14 (Obsidian replica,)
 //
 
 import Foundation
@@ -15,7 +15,7 @@ public final class GraphViewModel {
 
     public init() {}
 
-    /// 从 link + documentIndex 构建图 + 布局
+    /// link + documentIndex build + layout
     public func update(links: [Link], documentIndex: DocumentIndexing) async {
         self.isLoading = true
         self.error = nil
@@ -32,8 +32,8 @@ public final class GraphViewModel {
     }
 }
 
-/// GraphView: SwiftUI View, 显示图 placeholder
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// GraphView: SwiftUI View, show placeholder
+/// LayoutShellView, standalone wait macOS
 public struct GraphView: View {
     @State private var viewModel: GraphViewModel
 
@@ -43,12 +43,12 @@ public struct GraphView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("关系图")
+            Text(WenshuI18n.t("auto.graphview.l46.h27522022"))
                 .font(.headline)
-            Text("节点数: \(viewModel.graph.nodes.count)")
-            Text("边数: \(viewModel.graph.edges.count)")
+            Text(WenshuI18n.t("graphview.nodes_count"))
+            Text(WenshuI18n.t("graphview.edges_count"))
             if let error = viewModel.error {
-                Text("错误: \(error)")
+                Text(WenshuI18n.t("auto.graphview.l51.h33390865"))
                     .foregroundStyle(.red)
             }
         }

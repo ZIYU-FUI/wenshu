@@ -92,68 +92,34 @@ struct CharacterRelationshipsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             if activeBookId == nil {
                 emptyState
             } else {
                 contentBody
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(DesignTokens.chromePaddingMedium)
         .task(id: activeBookId) {
             await reload()
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("users", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Character Relationships")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch status {
-        case .idle:
-            return "Track how the characters in the active book relate to each other."
-        case .loading:
-            return "Loading…"
-        case .loaded:
-            let count = relationships.count
-            let issueCount = inconsistencies.count
-            if issueCount > 0 {
-                return "\(count) relationship\(count == 1 ? "" : "s"), \(issueCount) inconsistency\(issueCount == 1 ? "" : "ies")"
-            }
-            return "\(count) relationship\(count == 1 ? "" : "s")"
-        case .failed(let reason):
-            return "Failed: \(reason)"
-        }
-    }
-
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("No book selected")
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text("Pick a book from the sidebar to start tracking character relationships.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "users",
+            title: WenshuI18n.t("b5.characterrelationshipsview.l148.h14968122"),
+            body: WenshuI18n.t("b5.characterrelationshipsview.l151.h23755386")
+        )
     }
+
 
     // MARK: - Body
 
@@ -167,7 +133,7 @@ struct CharacterRelationshipsView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color(nsColor: .systemRed))
+                    .foregroundStyle(Color.red)
             }
         }
     }
@@ -176,11 +142,11 @@ struct CharacterRelationshipsView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Add relationship")
+            Text(WenshuI18n.t("b5.characterrelationshipsview.l179.h77944637"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if characters.count < 2 {
-                Text("Define at least 2 characters in the Characters pane to add a relationship.")
+                Text(WenshuI18n.t("b5.characterrelationshipsview.l183.h86534805"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -189,7 +155,7 @@ struct CharacterRelationshipsView: View {
                     get: { draftFromId ?? characters.first?.id ?? UUID() },
                     set: { draftFromId = $0 }
                 )) {
-                    Text("(choose)").tag(UUID())
+                    Text(WenshuI18n.t("b5.characterrelationshipsview.l192.h15212550")).tag(UUID())
                     ForEach(characters) { c in
                         Text(c.name).tag(c.id)
                     }
@@ -205,7 +171,7 @@ struct CharacterRelationshipsView: View {
                     get: { draftToId ?? characters.dropFirst().first?.id ?? UUID() },
                     set: { draftToId = $0 }
                 )) {
-                    Text("(choose)").tag(UUID())
+                    Text(WenshuI18n.t("b5.characterrelationshipsview.l208.h39347010")).tag(UUID())
                     ForEach(characters) { c in
                         Text(c.name).tag(c.id)
                     }
@@ -227,13 +193,13 @@ struct CharacterRelationshipsView: View {
                 Button {
                     Task { await addRelationship() }
                 } label: {
-                    Label("Add", systemImage: "plus")
+                    Label { Text(WenshuI18n.t("b5.characterrelationshipsview.l230.h80913925")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help("Add a typed edge between the two selected characters.")
+                .help(WenshuI18n.t("b5.characterrelationshipsview.l234.h8880758"))
             }
-            TextField("Optional 1-sentence context", text: $draftDescription, axis: .horizontal)
+            TextField(WenshuI18n.t("b5.characterrelationshipsview.l236.h75459793"), text: $draftDescription, axis: .horizontal)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
                 .disabled(characters.count < 2)
@@ -250,11 +216,11 @@ struct CharacterRelationshipsView: View {
 
     private var listSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Relationships (\(relationships.count))")
+            Text(WenshuI18n.t("b5.characterrelationshipsview.l253.h68099009"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if relationships.isEmpty {
-                Text("(none yet — add the first one above)")
+                Text(WenshuI18n.t("b5.characterrelationshipsview.l257.h87596331"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -275,7 +241,7 @@ struct CharacterRelationshipsView: View {
         HStack(alignment: .top, spacing: 8) {
             LucideIconSystemFallback(row.kind.lucideIcon, size: 16)
                 .foregroundStyle(.tint)
-                .frame(width: 18)
+                .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(characterName(for: row.fromCharacterId))
@@ -289,16 +255,13 @@ struct CharacterRelationshipsView: View {
                     Text(row.kind.displayName)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1)
-                        .background(
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(.quaternary)
-                        )
+                        .padding(.horizontal, DesignTokens.chromePaddingSmall)
+                        .padding(.vertical, DesignTokens.chromePaddingPico)
+                        
                     if row.isMutual {
-                        Text("mutual")
+                        Text(WenshuI18n.t("b5.characterrelationshipsview.l299.h17838183"))
                             .font(.caption2)
-                            .foregroundStyle(Color(nsColor: .systemBlue))
+                            .foregroundStyle(Color.blue)
                     }
                 }
                 if !row.description.isEmpty {
@@ -316,26 +279,23 @@ struct CharacterRelationshipsView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Remove this relationship.")
+            .help(WenshuI18n.t("b5.characterrelationshipsview.l319.h19379525"))
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary.opacity(0.5))
-        )
+        
     }
 
     // MARK: - Inconsistencies
 
     private var inconsistenciesSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Inconsistencies (\(inconsistencies.count))")
+            Text(WenshuI18n.t("b5.characterrelationshipsview.l334.h68375167"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if inconsistencies.isEmpty {
-                Text("(none — every pair has a consistent kind)")
+                Text(WenshuI18n.t("b5.characterrelationshipsview.l338.h51048722"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -343,14 +303,14 @@ struct CharacterRelationshipsView: View {
                 ForEach(Array(inconsistencies.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: 6) {
                         LucideIconSystemFallback("alert-triangle", size: 14)
-                            .foregroundStyle(Color(nsColor: .systemOrange))
-                            .frame(width: 18)
+                            .foregroundStyle(Color.orange)
+                            .frame(width: DesignTokens.tabIconSize)
                         Text(issue.message)
                             .font(.caption)
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, DesignTokens.chromePaddingNano)
                 }
             }
         }

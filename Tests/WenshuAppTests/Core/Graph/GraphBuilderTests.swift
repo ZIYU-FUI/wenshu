@@ -89,11 +89,11 @@ struct GraphBuilderTests {
         let layout = GraphBuilder.layout(graph, iterations: 100)
         let a = layout.nodes.first { $0.id == "a" }!
         let b = layout.nodes.first { $0.id == "b" }!
-        // 坐标应在画布范围内 [0, 1000]
+        // [0, 1000]
         #expect(a.x >= 0 && a.x <= 1000)
         #expect(b.x >= 0 && b.x <= 1000)
-        // 经过 100 次迭代, 坐标应改变 (不再是初始随机)
-        // 这里只检查坐标有效
+        // 100, changechange (yes)
+        //
         _ = (a.x, b.x)
     }
 

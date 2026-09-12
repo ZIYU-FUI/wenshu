@@ -104,16 +104,14 @@ public struct TodoListView: View {
             }
             inputRow
             if let err = loadError {
-                Text("(加载失败: \(err))")
+                Text(WenshuI18n.t("auto.todolistview.l107.h41709117"))
                     .font(.caption)
                     .foregroundStyle(.red)
             }
             content
         }
-        .padding(8)
+        .padding(DesignTokens.chromePaddingVertical)
         // v0.24 boss acceptance fix: flexible sizing (zone size controlled by splitter, not view).
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        // B-09 + B-13: re-load when the active book OR scope changes.
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
         .onChange(of: scope) { _, _ in reloadFromDisk() }
@@ -132,7 +130,7 @@ public struct TodoListView: View {
     /// B-13: scope picker drives the JSON file the view reads from.
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("待办")
+            Text(WenshuI18n.t("auto.todolistview.l135.h30358113"))
                 .font(.headline)
             Picker("scope", selection: $scope) {
                 ForEach(bookStore.availableScopes(bookId: bookStore.selectedBookId)) { s in
@@ -141,9 +139,9 @@ public struct TodoListView: View {
             }
             .pickerStyle(.menu)
             .fixedSize()
-            .help("切换待办数据范围 (= 全书 / 8 标准子目录 / 资料库)")
+            .help(WenshuI18n.t("auto2.todolistview.l144.h43082120"))
             Spacer()
-            Text("\(items.count) 项 · \(jsonHint)")
+            Text(WenshuI18n.t("todolist.count_jsonhint"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -177,7 +175,7 @@ public struct TodoListView: View {
     private var inputRow: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                TextField("新待办标题…", text: $newItemTitle)
+                TextField(WenshuI18n.t("auto2.todolistview.l180.h66445661"), text: $newItemTitle)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addItem() }
                 Picker("优先级", selection: $newItemPriority) {
@@ -188,7 +186,7 @@ public struct TodoListView: View {
                 .pickerStyle(.menu)
                 .fixedSize()
                 Button(action: addItem) {
-                    Label("添加待办", systemImage: "plus")
+                    Label { Text(WenshuI18n.t("auto2.todolistview.l191.h76640765")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)
@@ -199,7 +197,7 @@ public struct TodoListView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else if newItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text("输入标题后才能新建")
+                Text(WenshuI18n.t("auto.todolistview.l202.h74652246"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -211,9 +209,9 @@ public struct TodoListView: View {
     private var scopeUnavailableHint: String {
         switch scope {
         case .referenceLibrary:
-            return "资料库未找到 (= workspace 未 bootstrap)"
+            return WenshuI18n.t("error.reference_library_not_bootstrapped")
         case .book, .folder:
-            return "未选书 — 在左侧书架里选一本书, 待办才会加载"
+            return WenshuI18n.t("todo.unselected_book")
         }
     }
 
@@ -247,43 +245,43 @@ public struct TodoListView: View {
     private var llmActivityBanner: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Image(systemName: "sparkles")
+                LucideIcon("sparkles", size: 16)
                     .font(.caption)
                     .foregroundStyle(.tint)
-                Text("LLM 待办活动")
+                Text(WenshuI18n.t("auto.todolistview.l253.h37022798"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button(action: { recentEvents.removeAll() }) {
-                    Image(systemName: "xmark.circle.fill")
+                    LucideIcon("circle-x", size: 16)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.borderless)
-                .help("清除活动横幅")
+                .help(WenshuI18n.t("auto2.todolistview.l263.h94469033"))
             }
             ForEach(Array(recentEvents.prefix(5).enumerated()), id: \.offset) { (_, item) in
                 HStack(spacing: 6) {
-                    Image(systemName: iconName(for: item.status))
+                    LucideIcon(iconName(for: item.status), size: 16)
                         .font(.caption2)
                         .foregroundStyle(color(for: item.status))
-                    Text("\(verb(for: item.status)) · \(item.title)")
+                    Text(WenshuI18n.t("b5.todolistview.l270.h83263085"))
                         .font(.caption)
                         .lineLimit(1)
                         .truncationMode(.tail)
                     Spacer()
                 }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
+                .padding(.horizontal, DesignTokens.chromePaddingSmall)
+                .padding(.vertical, DesignTokens.chromePaddingNano)
                 .background(Color.secondary.opacity(0.08), in: Capsule())
             }
             if recentEvents.count > 5 {
-                Text("…还有 \(recentEvents.count - 5) 条更早的活动")
+                Text(WenshuI18n.t("todolist.more_earlier_events"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(6)
+        .padding(DesignTokens.chromePaddingSmall)
         .background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
     }
 
@@ -293,10 +291,12 @@ public struct TodoListView: View {
     /// `TodoRow.statusToggle` for visual consistency.
     private func iconName(for status: TodoStatus) -> String {
         switch status {
+        // v0.46 boss OOB 'SF Symbol dropped, use Lucide': names are
+        // Lucide, resolved through LucideIcon at the call site.
         case .pending: return "circle"
-        case .inProgress: return "circle.inset.filled"
-        case .completed: return "checkmark.circle.fill"
-        case .cancelled: return "xmark.circle"
+        case .inProgress: return "circle-dot"
+        case .completed: return "circle-check"
+        case .cancelled: return "circle-x"
         }
     }
 
@@ -330,7 +330,7 @@ public struct TodoListView: View {
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else if items.isEmpty {
-            Text("(暂无待办 — 在上面输入框新建第一条)")
+            Text(WenshuI18n.t("todo.empty_state"))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else {
@@ -354,7 +354,7 @@ public struct TodoListView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
             if subset.isEmpty {
-                Text("(空)")
+                Text(WenshuI18n.t("auto.todolistview.l357.h8034177"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else {
@@ -563,22 +563,22 @@ private struct TodoRow: View {
             Spacer()
             priorityChip
             Menu {
-                Button("开始") { onSetStatus(.inProgress) }
+                Button(WenshuI18n.t("auto2.todolistview.l566.h96905135")) { onSetStatus(.inProgress) }
                     .disabled(item.status == .inProgress)
-                Button("完成") { onSetStatus(.completed) }
+                Button(WenshuI18n.t("auto2.todolistview.l568.h11194739")) { onSetStatus(.completed) }
                     .disabled(item.status == .completed)
-                Button("取消") { onSetStatus(.cancelled) }
+                Button(WenshuI18n.t("auto2.todolistview.l570.h27285299")) { onSetStatus(.cancelled) }
                     .disabled(item.status == .cancelled)
                 Divider()
-                Button("删除", role: .destructive) { onDelete() }
+                Button(WenshuI18n.t("auto2.todolistview.l573.h2266275"), role: .destructive) { onDelete() }
             } label: {
-                Image(systemName: "ellipsis.circle")
+                LucideIcon("ellipsis", size: 16)
                     .font(.caption)
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DesignTokens.chromePaddingNano)
     }
 
     /// B-13: due-date display — shows the date in red when overdue
@@ -590,20 +590,20 @@ private struct TodoRow: View {
                 && item.status != .completed
                 && item.status != .cancelled
             HStack(spacing: 4) {
-                Image(systemName: "calendar")
+                LucideIcon("calendar", size: 16)
                     .font(.caption2)
                 Text(Self.dueDateFormatter.string(from: due))
                     .font(.caption)
                     .foregroundStyle(isOverdue ? Color.red : Color.secondary)
                 if isOverdue {
-                    Text("已过期")
+                    Text(WenshuI18n.t("todolist.overdue"))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.red)
                 }
             }
             .help(isOverdue ? "已过期 — 请尽快处理" : "截止日")
         } else {
-            Text("(无截止)")
+            Text(WenshuI18n.t("todolist.no_due_date"))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -623,27 +623,27 @@ private struct TodoRow: View {
         switch item.status {
         case .pending:
             Button(action: { onSetStatus(.inProgress) }) {
-                Image(systemName: "circle")
+                LucideIcon("circle", size: 16)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("开始")
+            .help(WenshuI18n.t("auto2.todolistview.l630.h96905135"))
         case .inProgress:
             Button(action: { onSetStatus(.completed) }) {
-                Image(systemName: "circle.inset.filled")
+                LucideIcon("circle-dot", size: 16)
                     .foregroundStyle(.tint)
             }
             .buttonStyle(.borderless)
-            .help("完成")
+            .help(WenshuI18n.t("auto2.todolistview.l637.h11194739"))
         case .completed:
             Button(action: { onSetStatus(.pending) }) {
-                Image(systemName: "checkmark.circle.fill")
+                LucideIcon("circle-check", size: 16)
                     .foregroundStyle(.green)
             }
             .buttonStyle(.borderless)
-            .help("重开")
+            .help(WenshuI18n.t("todolist.reopen"))
         case .cancelled:
-            Image(systemName: "xmark.circle")
+            LucideIcon("circle-x", size: 16)
                 .foregroundStyle(.tertiary)
         }
     }
@@ -656,10 +656,10 @@ private struct TodoRow: View {
         return Text(text)
             .font(.caption2.weight(.semibold))
             .foregroundStyle(fg)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
+            .padding(.horizontal, DesignTokens.chromePaddingSmall)
+            .padding(.vertical, DesignTokens.chromePaddingNano)
             .background(bg, in: Capsule())
-            .help("优先级: \(text)")
+            .help(WenshuI18n.t("todolist.priority_label"))
     }
 
     private func chipStyle(for priority: TodoPriority) -> (String, Color, Color) {

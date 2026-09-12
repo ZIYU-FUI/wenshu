@@ -1,7 +1,7 @@
 //
 //  MultiAgentDispatchTests.swift · Wenshu · v0.23 ticket 004 (multi-agent dispatch tests)
 //
-//  Boss 2026-08-23 拍: verify multi-agent dispatch works.
+// Boss 2026-08-23: verify multi-agent dispatch works.
 //
 
 import Foundation

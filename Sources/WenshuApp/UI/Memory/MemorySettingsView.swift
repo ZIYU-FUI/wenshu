@@ -1,30 +1,36 @@
 //
 //  MemorySettingsView.swift · Wenshu · v0.35 ticket 009
-//
-//  Settings pane for memory subsystem (= spec §6.4 🟥 must-UI).
-//  Renders: scope config (per-book vs library-public) + retention settings
-//  + memory entries list (= thin facade over MemoryAdapter).
+//  + SETTINGS-PERSISTENCE-001 (2026-09-05).
 //
 
 import SwiftUI
 
-// File-scope constant (= Apple HIG small-chip corner radius standard).
 private let smallChipCornerRadius: CGFloat = 3
-
-// File-scope constant (= Apple HIG subtle surface tint = 0.05 alpha).
 private let subtleSurfaceAlpha: CGFloat = 0.05
 
 
 public struct MemorySettingsView: View {
-    @State public var scope: MemoryScope = .perBook
-    @State public var retentionDays: Int = 90
-    @State public var isMemoryEnabled: Bool = true
+    @AppStorage(MemoryAdapter.DefaultsKey.enabled)
+    public var isMemoryEnabled: Bool = true
+
+    @AppStorage(MemoryAdapter.DefaultsKey.scope)
+    public var scopeRaw: String = MemoryScope.perBook.rawValue
+
+    @AppStorage(MemoryAdapter.DefaultsKey.retentionDays)
+    public var retentionDays: Int = 90
+
     @State public var recentEntries: [MemoryAdapter.MemoryEntry] = []
+    @State public var isLoadingEntries: Bool = false
+    @State public var lastPurgeCount: Int = 0
 
     public init() {}
 
+    public var scope: MemoryScope {
+        MemoryScope(rawValue: scopeRaw) ?? .perBook
+    }
+
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             Text(WenshuI18n.t("settings.memory.title"))
                 .font(.headline)
             Text(WenshuI18n.t("settings.memory.subtitle"))
@@ -33,19 +39,16 @@ public struct MemorySettingsView: View {
 
             Divider()
 
-            // Enable toggle
             Toggle(WenshuI18n.t("settings.memory.enable"), isOn: $isMemoryEnabled)
                 .toggleStyle(.switch)
 
-            // Scope selector
-            Picker(WenshuI18n.t("settings.memory.scope"), selection: $scope) {
-                Text(WenshuI18n.t("settings.memory.scope.perBook")).tag(MemoryScope.perBook)
-                Text(WenshuI18n.t("settings.memory.scope.libraryPublic")).tag(MemoryScope.libraryPublic)
+            Picker(WenshuI18n.t("settings.memory.scope"), selection: $scopeRaw) {
+                Text(WenshuI18n.t("settings.memory.scope.perBook")).tag(MemoryScope.perBook.rawValue)
+                Text(WenshuI18n.t("settings.memory.scope.libraryPublic")).tag(MemoryScope.libraryPublic.rawValue)
             }
             .pickerStyle(.segmented)
             .disabled(!isMemoryEnabled)
 
-            // Retention slider
             HStack {
                 Text(WenshuI18n.t("settings.memory.retention"))
                     .frame(width: DesignTokens.settingsRowLabelWidth, alignment: .leading)
@@ -58,12 +61,31 @@ public struct MemorySettingsView: View {
                     .monospacedDigit()
                     .frame(width: DesignTokens.settingsRowLabelWidth, alignment: .trailing)
             }
+            .onChange(of: retentionDays) { _, newValue in
+                Task {
+                    let deleted = await MemoryAdapter().setRetentionDays(newValue)
+                    await MainActor.run { self.lastPurgeCount = deleted }
+                    await reloadEntries()
+                }
+            }
+
+            if lastPurgeCount > 0 {
+                Text(WenshuI18n.tf("settings.memory.purge.count", lastPurgeCount))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
 
             Divider()
 
-            // Recent memory entries list
-            Text(WenshuI18n.tf("settings.memory.recent", recentEntries.count))
-                .font(.subheadline)
+            HStack {
+                Text(WenshuI18n.tf("settings.memory.recent", recentEntries.count))
+                    .font(.subheadline)
+                Spacer()
+                if isLoadingEntries {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
 
             if recentEntries.isEmpty {
                 Text(WenshuI18n.t("settings.memory.recent.empty"))
@@ -72,17 +94,33 @@ public struct MemorySettingsView: View {
                     .padding(.vertical, DesignTokens.chromePaddingSmall)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
                         ForEach(recentEntries) { entry in
                             MemoryEntryRow(entry: entry, compact: false)
                         }
                     }
                 }
-                .frame(maxHeight: 200)
+                .frame(maxHeight: DesignTokens.settingsListMaxHeight)
             }
         }
-        .padding(12)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .padding(DesignTokens.chromePaddingMedium)
+        // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
+        // chrome tier background tint (= .windowBackgroundColor
+        // = #1E = creates a visible lighter strip = boss wants
+        // gone per the 'go up another layer and remove the background' cleanup). Settings
+        // panel now matches the surrounding Settings content.
+        .task {
+            await reloadEntries()
+        }
+    }
+
+    private func reloadEntries() async {
+        await MainActor.run { self.isLoadingEntries = true }
+        let entries = await MemoryAdapter().recentEntries(limit: 20)
+        await MainActor.run {
+            self.recentEntries = entries
+            self.isLoadingEntries = false
+        }
     }
 }
 

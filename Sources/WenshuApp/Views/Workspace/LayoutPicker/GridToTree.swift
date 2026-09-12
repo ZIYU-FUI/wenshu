@@ -1,4 +1,4 @@
-// GridToTree.swift · Wenshu (文枢) · v0.28 ticket 028-008
+// GridToTree.swift · Wenshu () · v0.28 ticket 028-008
 //
 // Grid → tree bridge. A FancyZones grid whose zones can be
 // produced by recursive guillotine cuts (= every FancyZones
@@ -175,8 +175,19 @@ private func assignZones(zones: [GridZone], panes: [PlacedPane]) -> [Int: [PaneI
         let spec = specs[role] ?? mainSpec
         var best: ZoneGeo? = nil
         for (_, g) in remaining {
-            if spec.accept(g) && (best == nil || spec.score(g) > spec.score(best!)) {
-                best = g
+            // v0.71 P1 batch 10: replaced `best!` (= audit's LOW #14 smell;
+            // = force-unwrap inside a short-circuit `||` predicate; =
+            // the `best == nil || ...` clause makes it safe in practice,
+            // but reads as a crash vector) with explicit if-let-let
+            // (= no force-unwrap; = same runtime behavior).
+            if spec.accept(g) {
+                if let current = best {
+                    if spec.score(g) > spec.score(current) {
+                        best = g
+                    }
+                } else {
+                    best = g
+                }
             }
         }
         if let chosen = best {

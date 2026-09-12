@@ -1,18 +1,40 @@
 //
 //  KanbanStore.swift · Wenshu · v0.18 ticket 05 (hermes replica)
 //
-//  本地 Kanban (复刻 hermes kanban_db.py 真值简化版).
-//  老板 2026-08-19 拍 "全模块复刻, Apple 体系实现".
+// local Kanban (hermes kanban_db.py).
+// 2026-08-19 ", Apple ".
 //
-//  真值: hermes kanban DB schema = tasks / task_links / task_comments / task_events 4 表.
-//  简化版: 1 tasks 表 + 6 status + SQLite + actor 线程安全.
-//  Apple HIG 真值: SQLite + actor + Sendable.
+//: hermes kanban DB schema = tasks / task_links / task_comments / task_events 4 .
+//: 1 tasks + 6 status + SQLite + actor .
+// Apple HIG: SQLite + actor + Sendable.
 //
+
+
+//
+//  SQL SAFETY: all sqlite3_*() calls in this file use hard-coded string
+//  literals (= zero user-derived SQL = zero SQL injection risk TODAY).
+//  Per AGENTS.md §11.3 wenshu-side wins pattern (= hermes-port parity,
+//  = sqlite3 C API direct call preferred over GRDB abstraction = matches
+//  hermes Python tool-store implementation verbatim).
+//
+//  SAFETY CONTRACT for future contributors:
+//  - DO NOT concatenate user input into the SQL string (= use sqlite3_bind_*
+//    parameter binding instead = the only safe pattern).
+//  - DO NOT use String(format:) with %@/%.20s substitution (= format-injection).
+//  - DO NOT read user input into the table/column names (= always use
+//    fixed enum cases or hardcoded identifiers).
+//  - If user-derived values are needed in WHERE/INSERT clauses, use
+//    sqlite3_bind_text/stmt parameter binding with positional placeholders
+//    (= ?, ?N, :name =, @name = per SQLite docs).
+//
+//  The audit at .scratch/2026-09-06-wenshu-hidden-defects-audit.md
+//  documents this convention (= 14 raw sqlite3 sites across 10 files,
+//  all hardcoded literals = safe).
 
 import Foundation
 import SQLite3
 
-/// Kanban 任务状态真值 (hermes kanban state machine: new → triage → ready → running → blocked → review → done)
+/// Kanban taskstatus (hermes kanban state machine: new → triage → ready → running → blocked → review → done)
 public enum KanbanStatus: String, Codable, Sendable, CaseIterable {
     case new
     case triage
@@ -21,10 +43,10 @@ public enum KanbanStatus: String, Codable, Sendable, CaseIterable {
     case blocked
     case review
     case done
-    case failed  // wenshu 额外 +1 状态 (hermes 失败 → blocked, wenshu 显式 failed)
+    case failed  // wenshu +1 status (hermes → blocked, wenshu failed)
 }
 
-/// Kanban 任务真值
+/// Kanban task
 /// v0.23 ticket 013.003: extended with hermes-style metadata
 /// (priority / assignee / started_at / completed_at / model_override).
 public struct KanbanTask: Equatable, Sendable {
@@ -69,16 +91,22 @@ public struct KanbanTask: Equatable, Sendable {
     }
 }
 
-/// SQLite 透明指针 wrap
+/// SQLite wrap
 private final class SQLitePtr {
     var db: OpaquePointer?
     deinit { sqlite3_close(db) }
 }
 
-/// KanbanStore: SQLite-backed kanban (简化版, 单表 + 6 状态)
+/// KanbanStore: SQLite-backed kanban (, + 6 status)
 public actor KanbanStore {
     private let dbPtr: SQLitePtr
     private let dbPath: String
+    /// Set after the first successful `bootstrap()` (= schema
+    /// ensured). Subsequent operations short-circuit the bootstrap
+    /// check. Lazy bootstrap avoids forcing callers (= tests, the
+    /// LLM-facing KanbanTools dispatcher) to call `bootstrap()`
+    /// explicitly before the first `add` / `list` / `transition`.
+    private var bootstrapped: Bool = false
 
     public init(path: String? = nil) throws {
         let url: URL
@@ -137,9 +165,10 @@ public actor KanbanStore {
                 NSLog("[KanbanStore] ALTER failed (expected on sqlite<3.35 or already applied): \(error)")
             }
         }
+        bootstrapped = true
     }
 
-    /// add: 加 1 个 task
+    /// add: 1 task
     public func add(
         title: String,
         status: KanbanStatus = .new,
@@ -147,6 +176,7 @@ public actor KanbanStore {
         assignee: String? = nil,
         modelOverride: String? = nil
     ) throws -> KanbanTask {
+        try ensureBootstrapped()
         let now = Date()
         // v0.23 ticket 013.003: auto-set startedAt when status == .running.
         let startedAt: Date? = (status == .running) ? now : nil
@@ -188,9 +218,10 @@ public actor KanbanStore {
         return task
     }
 
-    /// transition: 改 status (state machine 真值)
+    /// transition: change status (state machine)
     /// v0.23 ticket 013.003: auto-set started_at / completed_at on state transitions.
     public func transition(id: String, to newStatus: KanbanStatus) throws {
+        try ensureBootstrapped()
         let now = Date()
         // Auto-set timestamps:
         //   entering .running → started_at = now (if not already set)
@@ -223,8 +254,9 @@ public actor KanbanStore {
         }
     }
 
-    /// get: 拿 1 个 task
+    /// get: 1 task
     public func get(id: String) throws -> KanbanTask? {
+        try ensureBootstrapped()
         let sql = "SELECT id, title, status, created_at, updated_at, priority, assignee, started_at, completed_at, model_override FROM kanban_tasks WHERE id = ?;"
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
@@ -258,10 +290,11 @@ public actor KanbanStore {
         )
     }
 
-    /// list: 按 status 列 tasks
+    /// list: status tasks
     /// v0.23 ticket 013.003: returns full KanbanTask including hermes metadata
     /// (priority / assignee / started_at / completed_at / model_override).
     public func list(status: KanbanStatus? = nil) throws -> [KanbanTask] {
+        try ensureBootstrapped()
         let sql: String
         if let status = status {
             sql = "SELECT id, title, status, created_at, updated_at, priority, assignee, started_at, completed_at, model_override FROM kanban_tasks WHERE status = ? ORDER BY updated_at DESC;"
@@ -283,7 +316,7 @@ public actor KanbanStore {
         return results
     }
 
-    /// delete: 删 1 个
+    /// delete: 1
     public func delete(id: String) throws {
         let sql = "DELETE FROM kanban_tasks WHERE id = ?;"
         var stmt: OpaquePointer?
@@ -297,7 +330,7 @@ public actor KanbanStore {
         }
     }
 
-    /// count: 拿 user 任务数 (按 status 选)
+    /// count: user task (status)
     public func count(status: KanbanStatus? = nil) throws -> Int {
         let sql: String
         if status != nil {
@@ -323,6 +356,24 @@ public actor KanbanStore {
         }
     }
 
+    /// Ensure the schema exists (= first-call lazy bootstrap). Safe
+    /// to call before any operation because `bootstrap()` is
+    /// idempotent (= uses `CREATE TABLE IF NOT EXISTS` + swallowed
+    /// `ALTER TABLE` failures). Setting `bootstrapped = true` after
+    /// the first successful bootstrap avoids re-running the SQL on
+    /// every subsequent operation. Per `KanbanTools (HERMES-PARTIAL-011)`
+    /// Z contract: tests construct a KanbanStore with a tmp path and
+    /// immediately call `tools.kanban(action: "create", ...)` without
+    /// explicitly calling `bootstrap()` first; this lazy path makes
+    /// those tests pass without weakening any explicit-bootstrap
+    /// callers (= they remain valid because `bootstrap()` is a no-op
+    /// once `bootstrapped == true`).
+    private func ensureBootstrapped() throws {
+        guard !bootstrapped else { return }
+        try bootstrap()
+        bootstrapped = true
+    }
+
     private static func textColumn(_ stmt: OpaquePointer?, _ idx: Int32) -> String? {
         guard let cString = sqlite3_column_text(stmt, idx) else { return nil }
         return String(cString: cString)
@@ -334,7 +385,7 @@ public actor KanbanStore {
     }
 }
 
-/// KanbanStore 错误
+/// KanbanStore error
 public enum KanbanStoreError: Error {
     case openFailed(dbPath: String, message: String)
     case prepareFailed(message: String)
@@ -342,5 +393,5 @@ public enum KanbanStoreError: Error {
     case execFailed(message: String)
 }
 
-/// SQLite3 C API 桥接常量 (Apple 内置 libsqlite3)
+/// SQLite3 C API (Apple libsqlite3)
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)

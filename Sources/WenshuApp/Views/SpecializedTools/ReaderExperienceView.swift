@@ -75,7 +75,6 @@ struct ReaderExperienceView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             pickerRow
             inputSection
             Divider()
@@ -86,40 +85,9 @@ struct ReaderExperienceView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(DesignTokens.chromePaddingMedium)
         .task {
             ensureAnalyzer()
-        }
-    }
-
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("sparkles", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Reader Experience")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch status {
-        case .idle:
-            return "Paste a finished chapter and pick an analyzer to inspect reader-experience signals."
-        case .running:
-            return "Running \(selectedKind.displayName) analyzer…"
-        case .failed(let reason):
-            return "Failed: \(reason)"
         }
     }
 
@@ -127,7 +95,7 @@ struct ReaderExperienceView: View {
 
     private var pickerRow: some View {
         HStack(spacing: 8) {
-            Text("Analyzer")
+            Text(WenshuI18n.t("b5.readerexperienceview.l130.h50931159"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Picker("", selection: $selectedKind) {
@@ -152,40 +120,37 @@ struct ReaderExperienceView: View {
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text("Chapter text")
+                Text(WenshuI18n.t("b5.readerexperienceview.l155.h15975486"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
-                Text("\(chapterText.count) chars")
+                Text(WenshuI18n.t("b5.readerexperienceview.l159.h48868028"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
             TextEditor(text: $chapterText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
-                .padding(6)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(.quaternary)
-                )
+                .padding(DesignTokens.chromePaddingSmall)
+                
             HStack(spacing: 8) {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label("Analyze", systemImage: "play")
+                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l175.h61672688")) } icon: { LucideIcon("play", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
-                .help("Run the selected analyzer against the chapter text above.")
+                .help(WenshuI18n.t("b5.readerexperienceview.l179.h93248900"))
                 Button {
                     chapterText = ""
                     report = nil
                     status = .idle
                 } label: {
-                    Label("Clear", systemImage: "x")
+                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l185.h22504814")) } icon: { LucideIcon("x", size: 16) }
                 }
                 .buttonStyle(.bordered)
-                .help("Clear the input text and the last report.")
+                .help(WenshuI18n.t("b5.readerexperienceview.l188.h90304051"))
                 Spacer(minLength: 0)
             }
         }
@@ -194,16 +159,21 @@ struct ReaderExperienceView: View {
     // MARK: - Result
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("No report yet")
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text("Paste a chapter, pick an analyzer, and tap Analyze. The 5 reader-experience analyzers (= tension / pacing / foreshadowing / cliffhanger / payoff) all run locally and return deterministic reports.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "sparkles",
+            title: WenshuI18n.t("b5.readerexperienceview.l198.h54334339"),
+            body: WenshuI18n.t("b5.readerexperienceview.l201.h81086064")
+        )
     }
+
 
     private func resultSection(for report: ReaderExperienceReport) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -229,26 +199,23 @@ struct ReaderExperienceView: View {
                 suggestionsSection(report.suggestions)
             }
         }
-        .padding(10)
+        .padding(DesignTokens.chromePaddingPickerItem)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(.quaternary)
-        )
+        
     }
 
     private func scoreBadge(_ score: Double) -> some View {
         let pct = Int((score * 100.0).rounded())
         let color: Color = {
-            if score >= 0.7 { return Color(nsColor: .systemGreen).opacity(0.22) }
-            if score >= 0.4 { return Color(nsColor: .systemOrange).opacity(0.22) }
-            return Color(nsColor: .systemGray).opacity(0.22)
+            if score >= 0.7 { return Color.green.opacity(0.22) }
+            if score >= 0.4 { return Color.orange.opacity(0.22) }
+            return Color.gray.opacity(0.22)
         }()
-        return Text("score \(pct)%")
+        return Text(WenshuI18n.t("b5.readerexperienceview.l247.h50530381"))
             .font(.caption2)
             .foregroundStyle(.primary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
+            .padding(.horizontal, DesignTokens.chromePaddingSmall)
+            .padding(.vertical, DesignTokens.chromePaddingPico)
             .background(
                 RoundedRectangle(cornerRadius: 3)
                     .fill(color)
@@ -257,7 +224,7 @@ struct ReaderExperienceView: View {
 
     private func highlightsSection(_ highlights: [ReaderExperienceHighlight]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Highlights (\(highlights.count))")
+            Text(WenshuI18n.t("b5.readerexperienceview.l260.h48696486"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
@@ -266,13 +233,10 @@ struct ReaderExperienceView: View {
                         Text(h.label)
                             .font(.caption2)
                             .foregroundStyle(.tint)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                            )
-                        Text("\u{201C}\(h.text)\u{201D}")
+                            .padding(.horizontal, DesignTokens.chromePaddingMicro)
+                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            
+                        Text(WenshuI18n.t("b5.readerexperienceview.l275.h51340592"))
                             .font(.caption)
                             .foregroundStyle(.primary)
                             .lineLimit(2)
@@ -285,13 +249,13 @@ struct ReaderExperienceView: View {
 
     private func suggestionsSection(_ suggestions: [ReaderExperienceSuggestion]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Suggestions")
+            Text(WenshuI18n.t("b5.readerexperienceview.l288.h40277958"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { _, s in
                     HStack(alignment: .top, spacing: 6) {
-                        Text("\u{2022}")
+                        Text(WenshuI18n.t("b5.readerexperienceview.l294.h54608200"))
                             .font(.caption)
                             .foregroundStyle(.tint)
                         Text(s.text)

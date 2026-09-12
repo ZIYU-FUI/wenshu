@@ -1,5 +1,5 @@
 //
-//  SearchPanel.swift · Wenshu · v0.19 ticket 17 (Obsidian replica, 前端做但不接入核心项目)
+// SearchPanel.swift · Wenshu · v0.19 ticket 17 (Obsidian replica,)
 //
 
 import Foundation
@@ -20,7 +20,7 @@ public final class SearchViewModel {
         self.search = search
     }
 
-    /// 设置 query (debounce 留给 View 层)
+    /// Settings query (debounce View)
     public func setQuery(_ q: String) {
         self.query = q
     }
@@ -47,8 +47,8 @@ public final class SearchViewModel {
     }
 }
 
-/// SearchPanel: SwiftUI View, 全文搜索结果列表
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// SearchPanel: SwiftUI View, searchlist
+/// LayoutShellView, standalone wait macOS
 public struct SearchPanel: View {
     @State private var viewModel: SearchViewModel
     @State private var queryText: String = ""
@@ -59,21 +59,21 @@ public struct SearchPanel: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("搜索")
+            Text(WenshuI18n.t("auto.searchpanel.l62.h62708978"))
                 .font(.headline)
-            TextField("搜索…", text: $queryText)
+            TextField(WenshuI18n.t("auto2.searchpanel.l64.h3828451"), text: $queryText)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit {
                     viewModel.setQuery(queryText)
                     Task { await viewModel.runSearch() }
                 }
             if viewModel.isLoading {
-                Text("搜索中…")
+                Text(WenshuI18n.t("auto.searchpanel.l71.h47979456"))
             } else if let error = viewModel.error {
-                Text("错误: \(error)")
+                Text(WenshuI18n.t("auto.searchpanel.l73.h62446243"))
                     .foregroundStyle(.red)
             } else {
-                Text("结果数: \(viewModel.results.count)")
+                Text(WenshuI18n.t("auto.searchpanel.l76.h29196047"))
                 ForEach(viewModel.results, id: \.docId) { result in
                     VStack(alignment: .leading) {
                         Text(result.docId).font(.caption.bold())

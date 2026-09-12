@@ -1,14 +1,14 @@
 // DocumentTests.swift · Wenshu (Wenshu) · v0.03.0 (document module)
 //
-// v53 (= 老板 8/15 17:48 '在第二栏里, 显示书的所有章节, 设定, 资料库, 这
-// 里的文档需要分类'): the second column of the layout becomes a card
+// v53 (= 8/15 17:48 ', show,,,
+// need'): the second column of the layout becomes a card
 // grid (= FCP Browser filmstrip pattern) of MD documents grouped by
 // category. Each card displays the document's title + an auto-
 // extracted summary (= the first ~100 chars of the MD body), so the
 // user can browse their work without opening every file.
 //
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
-// 东西'. The shape of Document is locked by these tests. If Document's
+// Owner 8/15 15:55: 'needok,, refactor
+// '. The shape of Document is locked by these tests. If Document's
 // fields, identity, or Codable strategy change, these tests fail and
 // force the architectural decision to surface.
 

@@ -1,4 +1,4 @@
-// DragRegressionTests.swift · Wenshu (文枢) · v0.28 ticket 028-011
+// DragRegressionTests.swift · Wenshu () · v0.28 ticket 028-011
 //
 // Drag-lost regression test suite (per boss 2026-08-27 OOB: 'wenshu's
 // previous frontend-framework drag implementations kept losing
@@ -38,8 +38,8 @@ final class DragRegressionTests: XCTestCase {
     /// element (= builtinDefault) is the legacy 6-zone shape, which
     /// doesn't have a 2-pane inspector group, so we use
     /// makeBuiltinWorkspace directly).
-    private func makeBuiltinWorkspace() -> WorkspaceState {
-        WorkspaceStore.makeBuiltinWorkspace()
+    private func makeBuiltinWorkspace() -> LayoutTreeState {
+        LayoutTreeStore.makeBuiltinWorkspace()
     }
 
     /// Recursively collect all split IDs in the tree (= order-
@@ -142,7 +142,7 @@ final class DragRegressionTests: XCTestCase {
         encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(workspace)
         let decoder = JSONDecoder()
-        let restored = try decoder.decode(WorkspaceState.self, from: data)
+        let restored = try decoder.decode(LayoutTreeState.self, from: data)
 
         // Weights must round-trip exactly AND must have changed
         // (= the drag must have taken effect).
@@ -313,7 +313,7 @@ final class DragRegressionTests: XCTestCase {
         encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(workspace)
         let decoder = JSONDecoder()
-        let restored = try decoder.decode(WorkspaceState.self, from: data)
+        let restored = try decoder.decode(LayoutTreeState.self, from: data)
 
         XCTAssertEqual(
             snapshotRootWeights(restored.root),
@@ -375,7 +375,7 @@ final class DragRegressionTests: XCTestCase {
 
     func testSuiteRunsQuickly() throws {
         // Run all 7 scenarios in sequence and verify total time
-        // is < 30 seconds (= boss refined过的速度观感).
+        // is < 30 seconds (= boss refined).
         let start = Date()
         try testSplitterDragPersistsAcrossRelaunch()
         try testDragTabBetweenPanesJoinsAsTab()

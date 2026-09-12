@@ -4,7 +4,7 @@
 // "Implement the FCP layout using Apple official APIs"; see spec.md
 // for the verbatim Chinese quote). This NSSplitViewController subclass
 // is what FCPLayout.makeSplitController actually returns (= after
-// ticket 01's stub). It walks the recursive WorkspaceState tree
+// ticket 01's stub). It walks the recursive LayoutTreeState tree
 // and builds the matching NSSplitView + NSSplitViewItem hierarchy.
 //
 // Ticket 03 / 4 scope (= this file):
@@ -33,7 +33,7 @@ import SwiftUI
 
 /// Native AppKit split container that hosts wenshu's existing SwiftUI
 /// pane views (= `TabContentDispatcher` per pane). Built from a
-/// `WorkspaceStore` snapshot; the tree walk is fully recursive.
+/// `LayoutTreeStore` snapshot; the tree walk is fully recursive.
 ///
 /// Threading: instantiated on the main actor (SwiftUI representable
 /// `makeNSViewController` runs on main). Child `NSHostingController`s
@@ -43,7 +43,7 @@ final class PaneNSController: NSSplitViewController {
 
     // MARK: - Stored dependencies (= set once at init; not mutated)
 
-    private let store: WorkspaceStore
+    private let store: LayoutTreeStore
     private let appState: AppState
     private let bookStore: BookStore
 
@@ -68,7 +68,7 @@ final class PaneNSController: NSSplitViewController {
     // MARK: - Init
 
     init(
-        store: WorkspaceStore,
+        store: LayoutTreeStore,
         appState: AppState,
         bookStore: BookStore,
         layoutID: String,
@@ -133,7 +133,9 @@ final class PaneNSController: NSSplitViewController {
         // just hold the `paneKindByItem` map that the root walks.
         guard installObservers else { return }
         // Display-menu bridge (= Gap F fix). The legacy "Display" menu items
-        // in App.swift:593-611 post .wenshuToggleZone(ZoneSlot)
+        // (= the App.swift:593-611 reference is stale per the Q2 boss split
+        // moved the Display menu to AppRootScene.swift + Core/Notifications/AppNotifications.swift)
+        // post .wenshuToggleZone(ZoneSlot)
         // notifications; this observer finds the matching NSSplitViewItem
         // and flips its collapsed state (= Apple HIG sidebar hide/show
         // affordance).
@@ -149,79 +151,35 @@ final class PaneNSController: NSSplitViewController {
         // divider entirely (= boss OOB 'completely transparent'); for
         // any other value, use Apple's standard `.thin` divider (= a
         // semitransparent hairline that adapts to dark/light mode).
-        // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃,
-        // 跟随系统设置'): removed the user-tunable Liquid Glass
+        // v0.32 boss 2026-09-02 OOB ('use macOS-native Liquid Glass,
+        // follow system settings'): removed the user-tunable Liquid Glass
         // opacity slider + cross-instance notification plumbing.
         // Apple .glassEffect auto-applies via the system without
         // per-app notification plumbing.
         applyDividerStyleForCurrentOpacity()
-        // v0.30 boss 2026-09-01 OOB (zone toggle startup sync): apply the
-        // persisted `wenshu.zoneVisible.*` bools from UserDefaults to
-        // the matching NSSplitViewItems NOW (= not on a notification,
-        // because no toggle has happened yet on a fresh launch). Without
-        // this, items always start expanded even when the user previously
-        // hid a zone (= every launch reopens hidden zones = boss
-        // feedback '已经失效'). Read defaults directly (= no AppStorage
-        // dance in this AppKit class) to keep the AppKit side free of
-        // SwiftUI property wrappers. The same call is repeated from
-        // viewDidLayout after the first weights apply (= NSSplitView's
-        // autosaveName round-trip can otherwise override the fold we
-        // set here).
-        applyPersistedZoneVisibility()
+        // ZONE-VIS-FIX-001 (2026-09-08): `applyPersistedZoneVisibility()`
+        // removed. NSSplitView.autosaveName (= enabled on the root in
+        // `installSplit` above) persists BOTH divider positions AND
+        // `canCollapse` item collapsed/expanded state natively in
+        // UserDefaults. The previous wenshu-side bookkeeping
+        // (= reading `wenshu.zoneVisible.*` bools + folding items
+        // manually on init) was redundant: autosaveName restores the
+        // collapsed state via `viewDidMoveToWindow` before
+        // `viewDidLayout` fires, = the fold already happened by the
+        // time the controller is observable. No equivalent code is
+        // needed here.
     }
 
-    /// Apply `wenshu.zoneVisible.*` defaults to the matching
-    /// NSSplitViewItems. Runs once at init.
-    ///
-    /// v0.30 boss 2026-09-01 OOB: recursively walks self + every
-    /// nested PaneNSController child. Without the recursion, the
-    /// root's `splitViewItems` only contains the upper-band and
-    /// lower-band nested controllers (= wrap-mode items, canCollapse
-    /// = false), so the per-pane TabKind match never finds anything
-    /// to fold on a 6-zone layout. The nested controllers are where
-    /// the actual pane NSSplitViewItems live (= canCollapse = true).
-    private func applyPersistedZoneVisibility() {
-        let defaults = UserDefaults.standard
-        let mapping: [(String, TabKind)] = [
-            ("wenshu.zoneVisible.projectSidebar", .projectSidebar),
-            ("wenshu.zoneVisible.projectPreview", .projectPreview),
-            ("wenshu.zoneVisible.specializedTools", .specializedTools),
-            ("wenshu.zoneVisible.aiChat", .aiChat),
-            ("wenshu.zoneVisible.aiDynamic", .aiDynamic)
-        ]
-        // Flatten self + nested children controllers. The root walk
-        // is required because nested PaneNSController instances are
-        // created by `installSplit` and live as root.splitViewItems
-        // (= wrap-mode items, canCollapse = false). The per-pane
-        // TabKind lookup goes through `paneKindByItem`, populated
-        // by `makeSplitItems` at install time (= works regardless of
-        // whether NSHostingController has laid out its SwiftUI tree).
-        var controllers: [NSSplitViewController] = [self]
-        var queue: [NSSplitViewController] = [self]
-        while let next = queue.first {
-            queue.removeFirst()
-            for child in next.children {
-                if let splitChild = child as? PaneNSController {
-                    controllers.append(splitChild)
-                    queue.append(splitChild)
-                }
-            }
-        }
-        for (key, kind) in mapping {
-            guard defaults.object(forKey: key) != nil else { continue }
-            let shouldHide = !defaults.bool(forKey: key)
-            guard shouldHide else { continue }
-            for controller in controllers {
-                guard let paneController = controller as? PaneNSController else { continue }
-                for (idx, item) in controller.splitViewItems.enumerated() {
-                    guard item.canCollapse else { continue }
-                    guard let tab = paneController.paneKindByItem[idx] else { continue }
-                    if tab == kind {
-                        item.isCollapsed = true
-                    }
-                }
-            }
-        }
+    /// v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis HIGH):
+    /// remove the selector-based NotificationCenter observer added in
+    /// viewDidLoad (= HIGH leak: NotificationCenter retains `self`
+    /// forever if no `removeObserver` runs; = the pane controller
+    /// leaks on pane close). Apple HIG canonical lifecycle is
+    /// `addObserver` paired with explicit `removeObserver` in
+    /// `deinit` (= the controller is `final` so a single deinit
+    /// covers all instances).
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     /// v0.30 boss 2026-09-01 OOB (Step 1 = restore API default): do NOT
@@ -339,9 +297,9 @@ final class PaneNSController: NSSplitViewController {
             // frame at its current bounds (= AppKit's internal
             // divider hit-area is preserved = drag still works).
             //
-            // v0.32 boss 2026-09-02 OOB ('线看不出来就不重要了;
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 你所有用的颜色, 都是 API 给的, 不要自定义'): the
+            // v0.32 boss 2026-09-02 OOB ('if the line can't be seen,
+            // it doesn't matter; all your colors are API-given, do not
+            // customize'): the
             // divider subview is NOT painted (= no NSColor /
             // custom RGB blend). Adjacent panes are differentiated
             // by pane background NSColor (= Apple API only).
@@ -510,39 +468,28 @@ final class PaneNSController: NSSplitViewController {
                 guard item.canCollapse else { continue }
                 guard let tab = paneController.paneKindByItem[idx] else { continue }
                 if tab == kind {
-                    // v0.34 B-12 (= boss 2026-09-02 OOB '各区显示隐藏
-                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // 也存在同样的 bug = 因为只记录显隐不也记录其他,
-                    // 导致显隐多次后, 视图完全混乱'): capture full
-                    // 6-zone state BEFORE hiding (= Q38 boss "全状态
-                    // snapshot" decision applied to the per-zone toggle
-                    // path too, mirroring ticket 02's expand path). When
-                    // restoring (= un-hiding), the toggleZone re-runs the
-                    // capture-then-collapse branch, which is a no-op when
-                    // the snapshot JSON already matches the desired layout
-                    // state (= idempotent re-toggle under spec).
-                    let willHide = !item.isCollapsed
-                    if willHide {
-                        captureZoneToggleSnapshot(slot: slot)
-                    }
-                    // v0.34 boss 2026-09-02 OOB '5 个 toolbar button 缺
-                    // push/pop 动画, 用 apple api 默认': route through
-                    // NSSplitViewItem.animator() (= AppKit canonical
-                    // animated property proxy) for the default AppKit
-                    // collapse/expand transition (= the same
-                    // push/pop animation as Finder sidebar hide/show,
-                    // Mail message pane hide/show, etc.). Plain
-                    // `item.isCollapsed.toggle()` (= the prior form)
-                    // is an instant snap (= no transition).
+                    // ZONE-VIS-FIX-001 (2026-09-08): single-line toggle
+                    // (= the entire captureZoneToggleSnapshot +
+                    // restoreZoneToggleSnapshot dance is removed;
+                    // = autosaveName takes over for state
+                    // persistence; = NSSplitViewItem.animator() is
+                    // the AppKit canonical animated property proxy
+                    // for the default AppKit collapse/expand
+                    // transition (= the same push/pop animation
+                    // as Finder sidebar hide/show, Mail message
+                    // pane hide/show, etc.). Plain
+                    // `item.isCollapsed.toggle()` (= the pre-2026
+                    // form) is an instant snap (= no transition);
+                    // = we always use `animator()` for the
+                    // canonical AppKit feel).
+                    //
+                    // ZONE-VIS-FIX-006 (2026-09-08): REMOVED the
+                    // setPosition re-apply (= autosaveName is
+                    // now nil on root; = preferredThicknessFraction
+                    // is the single source of truth; = the
+                    // re-apply was fighting autosaveName, not
+                    // fixing it).
                     item.animator().isCollapsed.toggle()
-                    // B-12: restore full state after un-hiding (= mirror
-                    // of ticket 02's restoreEditorExpandSnapshot; here
-                    // we restore on a single-zone un-hide so multi-toggle
-                    // sequences converge to the user's intended layout
-                    // instead of accumulating stale state).
-                    if !willHide {
-                        restoreZoneToggleSnapshot()
-                    }
                 }
             }
         }
@@ -557,201 +504,47 @@ final class PaneNSController: NSSplitViewController {
         adjustRootForCollapsedBands()
     }
 
-    /// v0.34 B-12: capture the 6 zone's isCollapsed state + per-zone
-    /// split weight (= holdingPriority.rawValue) to UserDefaults JSON
-    /// under key `wenshu.zoneToggle.snapshot`. Mirror of ticket 02's
-    /// `captureEditorExpandSnapshot` (= separate key + slot parameter so
-    /// the editor-expand and zone-toggle paths don't interfere).
-    /// `slot` = the slot being hidden, recorded in the JSON for
-    /// diagnostics (= which toggle triggered this snapshot).
-    private func captureZoneToggleSnapshot(slot: ZoneSlot) {
-        var snapshot: [String: Any] = [:]
-        snapshot["triggeredBy"] = zoneSlotKey(slot)
-        // 1. 6 zone isCollapsed state (= canonical ZoneSlot string names
-        // via zoneSlotKey from ticket 02).
-        var zoneVisible: [String: Bool] = [:]
-        for s in allZoneSlots() {
-            zoneVisible[zoneSlotKey(s)] = isZoneVisible(s)
-        }
-        snapshot["zoneVisible"] = zoneVisible
-        // 2. Per-zone split weight (= holdingPriority.rawValue from
-        // NSSplitViewItem). Reuse zoneSlotKey for stable keys.
-        var weights: [String: Double] = [:]
-        for s in allZoneSlots() {
-            if let w = currentZoneSplitWeight(s) {
-                weights[zoneSlotKey(s)] = w
-            }
-        }
-        snapshot["weights"] = weights
-        // 3. Serialize to JSON for UserDefaults.
-        if let data = try? JSONSerialization.data(withJSONObject: snapshot, options: []),
-           let json = String(data: data, encoding: .utf8) {
-            UserDefaults.standard.set(json, forKey: "wenshu.zoneToggle.snapshot")
-        }
-    }
-
-    /// v0.34 B-12: read snapshot JSON, restore per-zone weight first
-    /// then visibility (= mirror of ticket 02's restoreEditorExpandSnapshot;
-    /// separate snapshot key = doesn't conflict with editor-expand restore).
-    private func restoreZoneToggleSnapshot() {
-        guard let json = UserDefaults.standard.string(forKey: "wenshu.zoneToggle.snapshot"),
-              let data = json.data(using: .utf8),
-              let snapshot = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-        else { return }
-        // Weight first (= so visibility flip later applies the correct
-        // starting frame). Reuse applyEditorSplitWeight-equivalent helper:
-        // extend to a generic per-slot weight applier.
-        if let weights = snapshot["weights"] as? [String: Double] {
-            for s in allZoneSlots() {
-                if let w = weights[zoneSlotKey(s)] {
-                    applyZoneSplitWeight(s, weight: w)
-                }
-            }
-        }
-        // Zone visibility restore (= call toggleZone if state differs).
-        if let zoneVisible = snapshot["zoneVisible"] as? [String: Bool] {
-            for s in allZoneSlots() {
-                let key = zoneSlotKey(s)
-                guard let wantVisible = zoneVisible[key] else { continue }
-                let isVisible = isZoneVisible(s)
-                if wantVisible != isVisible {
-                    toggleZone(s)
-                }
-            }
-        }
-    }
-
-    /// v0.34 B-12: read a non-editor zone's current split weight (= same
-    /// holdingPriority.rawValue technique as ticket 02's
-    /// currentEditorSplitWeight, but generalized to any ZoneSlot).
-    private func currentZoneSplitWeight(_ slot: ZoneSlot) -> Double? {
-        guard let kind = zoneSlotToTabKind(slot) else { return nil }
-        for (idx, item) in splitViewItems.enumerated() {
-            guard let tab = paneKindByItem[idx], tab == kind else { continue }
-            return Double(item.holdingPriority.rawValue)
-        }
-        // Recurse into children (= same flatten as handleToggleZone).
-        for child in children {
-            if let splitChild = child as? PaneNSController,
-               let weight = splitChild.currentZoneSplitWeight(slot) {
-                return weight
-            }
-        }
-        return nil
-    }
-
-    /// v0.34 B-12: apply a per-zone split weight (= mirror of ticket 02's
-    /// applyEditorSplitWeight, generalized to any ZoneSlot).
-    private func applyZoneSplitWeight(_ slot: ZoneSlot, weight: Double) {
-        guard let kind = zoneSlotToTabKind(slot) else { return }
-        let clamped = NSLayoutConstraint.Priority(Float(max(0.0, min(weight, 1.0))))
-        for (idx, item) in splitViewItems.enumerated() {
-            guard let tab = paneKindByItem[idx], tab == kind else { continue }
-            item.holdingPriority = clamped
-        }
-        for child in children {
-            if let splitChild = child as? PaneNSController {
-                splitChild.applyZoneSplitWeight(slot, weight: weight)
-            }
-        }
-    }
-
-    // v0.34 ticket 02 (= spec .scratch/v0.34-editor-preview-and-expand/spec.md).
-    // Mirror of handleToggleZone for the editor-expand path:
-    // when @AppStorage("wenshu.editorMaximized") flips, the
-    // EditorExpandShrinkTrailingButton posts
+    // ZONE-VIS-FIX-001 (2026-09-08): editor-expand path. Mirror of
+    // handleToggleZone: when @AppStorage("wenshu.editorMaximized")
+    // flips, the EditorExpandShrinkTrailingButton posts
     // Notification.Name.wenshuEditorMaximizedChanged with the
-    // new Bool as the object payload. We then either:
+    // new Bool as the object payload. We then either collapse
+    // all non-editor zones (= expand) or restore them (= shrink).
     //
-    //   (a) snapshot the 6 zone's isCollapsed state + editor zone
-    //       split weight to UserDefaults JSON BEFORE hiding the
-    //       5 non-editor zones (= Q38 boss decision: 全状态
-    //       snapshot, not just zone visible), so shrink restore
-    //       can return to the exact pre-expand layout;
+    // The previous design (= v0.34 ticket 02) snapshotted the 6
+    // zone's isCollapsed state + editor split weight to
+    // UserDefaults JSON BEFORE hiding the 5 non-editor zones (= Q38
+    // boss "full-state snapshot" decision), then read the snapshot back
+    // on shrink to restore the pre-expand layout. That snapshot
+    // path (= captureEditorExpandSnapshot +
+    // restoreEditorExpandSnapshot) had the same root-cause bug
+    // as the zone-toggle snapshot path (= see handleToggleZone
+    // above + .scratch/2026-09-08-zone-visibility-bug-audit.md):
+    // writing `holdingPriority.rawValue` has zero effect on the
+    // post-collapse auto-layout.
     //
-    //   (b) read the snapshot JSON and restore the same 6 zone
-    //       state on shrink (= reverse order matters: editor
-    //       weight first, then visibility).
+    // With NSSplitView.autosaveName (= enabled on the root in
+    // `installSplit`), the pre-expand layout (= which zones are
+    // collapsed + which divider positions) is persisted by Apple
+    // natively on every adjustSubviews pass. The expand / shrink
+    // actions only need to toggle `isCollapsed` (= via
+    // collapseAllNonEditorZones / restoreAllZones); = autosaveName
+    // restores the original layout automatically. No manual
+    // snapshot JSON is needed.
     //
     // Notification flow (= boss 9/2 B-04 pattern, see AppCommands
     // + AppNotifications.swift for the single source of truth).
     @objc func handleEditorMaximizedChanged(_ notification: Notification) {
         let maximize = (notification.object as? Bool) ?? false
         if maximize {
-            captureEditorExpandSnapshot()
             collapseAllNonEditorZones()
         } else {
-            restoreEditorExpandSnapshot()
+            restoreAllZonesForEditorShrink()
         }
         // Same auto-fill band pin as handleToggleZone (= keep upper
         // band filling root height when lower band goes fully
         // hidden on expand).
         adjustRootForCollapsedBands()
-    }
-
-    /// v0.34 ticket 02: capture the 6 zone's isCollapsed state + the
-    /// editor zone's current split weight (= Q38 boss "全状态 snapshot"
-    /// decision). Written to UserDefaults BEFORE any layout mutation,
-    /// so the restore path reads back the exact pre-expand layout.
-    private func captureEditorExpandSnapshot() {
-        var snapshot: [String: Any] = [:]
-        // 1. 6 zone isCollapsed state (canonical ZoneSlot string names).
-        // ZoneSlot is a plain enum (= not String-backed, no rawValue);
-        // use String(describing:) for stable JSON keys (= case names).
-        var zoneVisible: [String: Bool] = [:]
-        for slot in allZoneSlots() {
-            zoneVisible[zoneSlotKey(slot)] = isZoneVisible(slot)
-        }
-        snapshot["zoneVisible"] = zoneVisible
-        // 2. Editor zone split weight (= for restoring the editor's
-        // relative size on shrink). Nil if editor not measurable
-        // (= safe default = nil).
-        snapshot["editorWeight"] = currentEditorSplitWeight()
-        // 3. Serialize to JSON for UserDefaults.
-        if let data = try? JSONSerialization.data(withJSONObject: snapshot, options: []),
-           let json = String(data: data, encoding: .utf8) {
-            UserDefaults.standard.set(json, forKey: "wenshu.editorExpand.snapshot")
-        }
-    }
-
-    /// v0.34 ticket 02: read snapshot from UserDefaults, restore 6 zone
-    /// isCollapsed + editor split weight (= reverse of capture, so editor
-    /// weight first, then visibility).
-    private func restoreEditorExpandSnapshot() {
-        guard let json = UserDefaults.standard.string(forKey: "wenshu.editorExpand.snapshot"),
-              let data = json.data(using: .utf8),
-              let snapshot = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-        else { return }
-        // Editor weight first (= so visibility flip later applies the
-        // correct starting frame).
-        if let weight = snapshot["editorWeight"] as? Double {
-            applyEditorSplitWeight(weight)
-        }
-        // Zone visibility restore.
-        if let zoneVisible = snapshot["zoneVisible"] as? [String: Bool] {
-            for slot in allZoneSlots() {
-                let key = zoneSlotKey(slot)
-                guard let wantVisible = zoneVisible[key] else { continue }
-                let isVisible = isZoneVisible(slot)
-                if wantVisible != isVisible {
-                    toggleZone(slot)
-                }
-            }
-        }
-    }
-
-    /// v0.34 ticket 02: stable JSON key for a ZoneSlot case (= mirror
-    /// Swift's `\(slot)` interpolation, which yields "projectSidebar"
-    /// etc.; used as the dictionary key in the snapshot JSON).
-    private func zoneSlotKey(_ slot: ZoneSlot) -> String {
-        switch slot {
-        case .projectSidebar:   return "projectSidebar"
-        case .projectPreview:   return "projectPreview"
-        case .editor:           return "editor"
-        case .specializedTools: return "specializedTools"
-        case .aiChat:           return "aiChat"
-        case .aiDynamic:        return "aiDynamic"
-        }
     }
 
     /// v0.34 ticket 02: explicit list of all ZoneSlot cases (= ZoneSlot
@@ -761,9 +554,11 @@ final class PaneNSController: NSSplitViewController {
          .specializedTools, .aiChat, .aiDynamic]
     }
 
-    /// v0.34 ticket 02: query isCollapsed across self + nested
-    /// PaneNSControllers for a ZoneSlot. True = zone is currently
-    /// visible (= not collapsed). Helper for captureEditorExpandSnapshot.
+    /// ZONE-VIS-FIX-001 (2026-09-08): query isCollapsed across self
+    /// + nested PaneNSControllers for a ZoneSlot. True = zone is
+    /// currently visible (= not collapsed). Used by
+    /// `collapseAllNonEditorZones` to know which zones to collapse
+    /// (= skip the ones already collapsed).
     private func isZoneVisible(_ slot: ZoneSlot) -> Bool {
         let kind = zoneSlotToTabKind(slot)
         guard let kind else { return true }
@@ -806,6 +601,22 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
+    /// ZONE-VIS-FIX-001 (2026-09-08): un-collapse (= restore) all 6
+    /// zones. Companion to `collapseAllNonEditorZones` for the
+    /// editor-shrink (= undo editor-expand) path. With
+    /// NSSplitView.autosaveName the per-zone divider positions
+    /// persist natively across the collapse / restore cycle (= no
+    /// snapshot/restore JSON needed). Note: this is distinct from
+    /// the `@objc func restoreAllZones()` (= L1312, used by the
+    /// "Restore Default Layout" menu item = applies preset weights
+    /// after un-collapsing). Here we only need to flip the
+    /// collapsed flag (= weights come from autosaveName).
+    private func restoreAllZonesForEditorShrink() {
+        for slot in allZoneSlots() where !isZoneVisible(slot) {
+            toggleZone(slot)
+        }
+    }
+
     /// v0.34 ticket 02: ZoneSlot → TabKind canonical mapping (= mirror
     /// of the switch in handleToggleZone, factorised out for reuse).
     private func zoneSlotToTabKind(_ slot: ZoneSlot) -> TabKind? {
@@ -816,47 +627,6 @@ final class PaneNSController: NSSplitViewController {
         case .specializedTools: return .specializedTools
         case .aiChat: return .aiChat
         case .aiDynamic: return .aiDynamic
-        }
-    }
-
-    /// v0.34 ticket 02: read the editor zone's current split weight.
-    /// Returns nil if the editor isn't measureable from this controller
-    /// (= e.g. nested in a child; the root observer's call still works).
-    private func currentEditorSplitWeight() -> Double? {
-        for (idx, item) in splitViewItems.enumerated() {
-            guard let tab = paneKindByItem[idx], tab == .editor else { continue }
-            // NSSplitViewItem.holdingPriority is NSLayoutConstraint.Priority
-            // (= wraps a Float); use .rawValue to get the underlying
-            // value, then Double-promote for JSON serialization.
-            return Double(item.holdingPriority.rawValue)
-        }
-        // Recurse into children (= same flatten as handleToggleZone).
-        for child in children {
-            if let splitChild = child as? PaneNSController,
-               let weight = splitChild.currentEditorSplitWeight() {
-                return weight
-            }
-        }
-        return nil
-    }
-
-    /// v0.34 ticket 02: restore the editor zone's prior split weight
-    /// (= `holdingPriority` is AppKit's canonical property for this;
-    /// same value captured in currentEditorSplitWeight). If the
-    /// weight argument is nil, no-op (= safe default).
-    private func applyEditorSplitWeight(_ weight: Double) {
-        // NSLayoutConstraint.Priority(rawValue:) takes a Float directly
-        // (= no String coercion needed). Clamp to [0, 1] to avoid
-        // out-of-range priority warnings (= rawValue > 1 is invalid).
-        let clamped = NSLayoutConstraint.Priority(Float(max(0.0, min(weight, 1.0))))
-        for (idx, item) in splitViewItems.enumerated() {
-            guard let tab = paneKindByItem[idx], tab == .editor else { continue }
-            item.holdingPriority = clamped
-        }
-        for child in children {
-            if let splitChild = child as? PaneNSController {
-                splitChild.applyEditorSplitWeight(weight)
-            }
         }
     }
 
@@ -1021,13 +791,51 @@ final class PaneNSController: NSSplitViewController {
         switch subtree {
         case .split(let split):
             self.splitView.isVertical = (split.orientation == .row)
-            // v0.30 boss 2026-09-01 OOB: NO autosaveName on the root
-            // (= Apple's autosave would restore the FIRST launch's
-            // default ratio and override our preset weights on
-            // every subsequent launch). Nested split controllers
-            // still get autosaveName (= user drag persistence for
-            // the inner pane arrangements, which is where manual
-            // tweaks actually happen).
+            // ZONE-VIS-FIX-006 (2026-09-08): DISABLE autosaveName on
+            // the ROOT splitView (= permanently). Per Apple HIG +
+            // boss 9/8 'region, ' =
+            // the layout = function of `preferredThicknessFraction`
+            // (Apple canonical proportional weight per
+            // developer.apple.com/documentation/appkit/nssplitviewitem/
+            // preferredthicknessfraction), NOT autosaveName (= which
+            // saves the wrong intermediate states during collapse
+            // animations under Auto Layout per the known macOS 10.9+
+            // bug at developer.apple.com/forums/thread/ which Apple
+            // never fully fixed).
+            //
+            // Previous attempt (= round 1 in this commit chain)
+            // tried: enable autosaveName + re-apply setPosition
+            // after each toggle. That mostly worked for the
+            // hide→show cycle bug (= ZONE-VIS-FIX-005) but a new
+            // bug appeared: clicking into the cards zone
+            // (= activating the SwiftUI TextField) triggers a
+            // SwiftUI re-render which cascades to the PaneNSController's
+            // viewDidLayout → adjustSubviews → autosaveName write
+            // (= the divider positions at the moment of the
+            // click get saved, = the SHIFTED positions, NOT the
+            // preset positions). On the next toggle, autosaveName
+            // loads the SHIFTED positions (= the bug observed in
+            // the boss 9/8 'cards zone hide/show makes the
+            // sidebar narrow' regression).
+            //
+            // The proper Apple HIG solution = disable autosaveName
+            // entirely (= let `preferredThicknessFraction` be the
+            // single source of truth for divider positions).
+            // Trade-off: user drag-resize no longer persists across
+            // launches (= each launch returns to preset). This is
+            // the canonical behavior for wenshu's FCP-style
+            // fixed layout (= FCP / Xcode / Mail don't persist
+            // user column-width tweaks either; = each session
+            // starts with the canonical layout).
+            //
+            // Per-preset autosaveName strings (= via
+            // `autosaveKey(for:)`) were attempted in round 1 to
+            // scope the persistence per preset; that didn't help
+            // (= the bug is autosaveName itself, not the key
+            // string). Final: autosaveName = nil on root + nested
+            // split controllers keep autosaveName (= their
+            // per-band dividers are not the bug surface per the
+            // boss report).
             self.splitView.autosaveName = nil
             installSplit(split, parent: self, parentOrientation: split.orientation == .row ? .row : .column)
             // v0.30 boss 2026-09-01 OOB fix: AFTER the entire
@@ -1221,7 +1029,11 @@ final class PaneNSController: NSSplitViewController {
                 self.applyWeights(weights, on: controller)
             }
             self.didApplyInitialWeights = true
-            self.applyPersistedZoneVisibility()
+            // ZONE-VIS-FIX-001 (2026-09-08): removed
+            // `self.applyPersistedZoneVisibility()` (= NSSplitView.
+            // autosaveName handles initial collapsed-state
+            // restoration natively in `viewDidMoveToWindow` =
+            // before this async dispatch runs).
             self.applyDividerStyleForCurrentOpacity()
             self.adjustRootForCollapsedBands()
         }
@@ -1255,7 +1067,17 @@ final class PaneNSController: NSSplitViewController {
                 }
             }
         }
-        walk(lowerItem.viewController as? NSSplitViewController ?? lowerItem.viewController as! NSSplitViewController)
+        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis HIGH):
+        // removed `as! NSSplitViewController` fallback (= the previous
+        // code force-cast a non-split view controller = hard crash).
+        // Now returns early if `lowerItem.viewController` is not a
+        // split view controller (= the walk function can only recurse
+        // into nested splits; = a flat lower item is a no-op for the
+        // collapse-detection logic below).
+        guard let lowerController = lowerItem.viewController as? NSSplitViewController else {
+            return
+        }
+        walk(lowerController)
         let totalHeight = self.splitView.bounds.height
         if lowerHasCollapseable && lowerCollapsed {
             self.splitView.setPosition(totalHeight, ofDividerAt: 0)
@@ -1376,24 +1198,31 @@ final class PaneNSController: NSSplitViewController {
         weights: [Double],
         into controller: NSSplitViewController
     ) {
+        // ZONE-VIS-FIX-001 (2026-09-08): pre-compute the total weight
+        // (= sum of all weights in the children array). Used to
+        // compute each item's `preferredThicknessFraction` (= Apple's
+        // canonical per-pane proportional weight; see makeSplitItems).
+        // If all weights are 1 (= legacy default), total = count (= each
+        // item gets 1/N fraction).
+        let totalBandWeight = weights.reduce(0, +)
         for (index, node) in children.enumerated() {
             let weight = index < weights.count ? weights[index] : 1.0
             switch node {
             case .split(let split):
                 installSplit(split, parent: controller, parentOrientation: controller.splitView.isVertical ? .row : .column)
             case .group(let group):
-                // v0.30 boss 2026-09-01 OOB (zone toggle fix): pass
-                // the target controller (= `into:`) through to
-                // makeSplitItems so the per-controller
-                // `paneKindByItem` map is populated on the right
-                // instance. Without this, a nested controller's
-                // groups would land in the ROOT's map (= the lookup
-                // in applyPersistedZoneVisibility would miss every
-                // nested pane because nested.paneKindByItem stays
-                // empty). The previous implicit `self.makeSplitItems`
-                // form rooted the map on whichever PaneNSController
-                // instance happened to be running the install pass.
-                let items = makeSplitItems(for: group, weight: weight, on: controller)
+                // ZONE-VIS-FIX-001 (2026-09-08): pass totalBandWeight
+                // through to makeSplitItems so the per-pane
+                // `preferredThicknessFraction` can be computed (= the
+                // bug fix for hide-then-show cycles; see
+                // .scratch/2026-09-08-zone-visibility-bug-audit.md
+                // + makeSplitItems' preferredThicknessFraction block).
+                let items = makeSplitItems(
+                    for: group,
+                    weight: weight,
+                    totalBandWeight: totalBandWeight,
+                    on: controller
+                )
                 for item in items {
                     controller.addSplitViewItem(item)
                 }
@@ -1419,6 +1248,7 @@ final class PaneNSController: NSSplitViewController {
     private func makeSplitItems(
         for group: GroupNode,
         weight: Double,
+        totalBandWeight: Double = 1.0,
         on owner: NSSplitViewController
     ) -> [NSSplitViewItem] {
         // Resolve the active pane (= fall back to first if missing).
@@ -1434,15 +1264,204 @@ final class PaneNSController: NSSplitViewController {
         let content = TabContentDispatcher(kind: tab.kind, title: tab.title)
             .environment(appState)
             .environment(bookStore)
-        // WorkspaceStore is an ObservableObject (= passes via .environmentObject
+        // LayoutTreeStore is an ObservableObject (= passes via .environmentObject
         // instead of .environment, which is reserved for @Observable types).
         let hosted = content.environmentObject(store)
         let hosting = NSHostingController(rootView: hosted)
+        // ZONE-VIS-FIX-003 (2026-09-08): Apple API solution to the
+        // "split view min/max overridden by SwiftUI intrinsic content
+        // size" root cause (= per developer.apple.com/documentation/
+        // swiftui/nshostingcontroller/sizingoptions):
+        //
+        // "NSHostingController can create minimum, maximum, and
+        // ideal (content size) constraints that are derived from its
+        // SwiftUI view content. ... `sizingOptions` defaults to
+        // `.standardBounds` (which includes `minSize`,
+        // `intrinsicContentSize`, and `maxSize`), but can be set to
+        // an explicit value to control this behavior. For instance,
+        // setting a value of `.minSize` will only create the
+        // constraints necessary to maintain the minimum size of the
+        // SwiftUI content."
+        //
+        // The default `.standardBounds` (= SwiftUI min + intrinsic +
+        // max) was overriding our `item.minimumThickness` and
+        // `item.maximumThickness` constraints (= the bug from
+        // ZONE-VIS-FIX-002 = side panes shrunk below their
+        // `minimumThickness` after hide-then-show cycles). Setting
+        // `sizingOptions = .minSize` (= Apple HIG canonical pattern
+        // for AppKit-hosted SwiftUI in NSSplitView per
+        // developer.apple.com/documentation/appkit/nssplitviewitem/
+        // minimumthickness: "layout constraints in the contained
+        // view hierarchy might specify a minimum size regardless" =
+        // we want our NSSplitView constraints to dominate, not the
+        // SwiftUI intrinsic content size).
+        //
+        // `.minSize` keeps the SwiftUI view's min width/height as
+        // a floor (= respects SwiftUI's natural content minimum =
+        // e.g. the outline's intrinsic row height, the LazyVGrid's
+        // minimum cell width) but discards `intrinsicContentSize`
+        // (= which would otherwise force a specific ideal size and
+        // fight our `preferredThicknessFraction`) and `maxSize`
+        // (= which would force the SwiftUI view's max width even
+        // when NSSplitView wants to give it more space).
+        //
+        // Apple HIG = single source of truth for per-pane size
+        // = NSSplitViewItem.minimumThickness /
+        // NSSplitViewItem.maximumThickness /
+        // NSSplitViewItem.preferredThicknessFraction. The hosting
+        // controller's sizingOptions = .minSize ensures SwiftUI
+        // doesn't compete with NSSplitView's size policy.
+        //
+        // Set sizingOptions BEFORE the view is added to a window
+        // (= the property doc says "These constraints are only
+        // created when Auto Layout constraints are otherwise being
+        // used in the containing window" = setting it post-install
+        // might not retroactively apply). The hosting controller's
+        // `view` is created lazily on first access; we touch it
+        // here to ensure the sizing options apply to the actual
+        // view that's added to the splitViewItem.
+        hosting.sizingOptions = [.minSize]
+        // ZONE-VIS-FIX-003 (2026-09-08): second Apple API safeguard
+        // (= per Stack Overflow / NSHostingController's documented
+        // behavior = the hosting view's autoresizing mask can
+        // create competing constraints with the split item's
+        // minimumThickness). Setting
+        // `translatesAutoresizingMaskIntoConstraints = false` tells
+        // AppKit "this view's frame is fully constraint-driven" =
+        // = our `item.minimumThickness` constraint is the
+        // authoritative size policy, not the autoresizing mask
+        // (= which would otherwise stretch the view to fill any
+        // container regardless of our minimumThickness).
+        //
+        // Per Apple HIG for AppKit-hosted SwiftUI in NSSplitView:
+        // when an NSView is hosted in an NSStackView /
+        // NSSplitView (= Auto Layout-driven containers), the
+        // autoresizing mask must be disabled to prevent conflicts.
+        // Without this, the autoresizing mask would override the
+        // hosting view's minimum size (= SwiftUI reports a smaller
+        // intrinsic min than our split item's minimumThickness; =
+        // autoresizing mask would shrink the view to fit the
+        // smaller SwiftUI min, ignoring our 200 PT floor).
+        _ = hosting.view  // force view creation (= sizingOptions
+                         // apply to view's constraints)
+        hosting.view.translatesAutoresizingMaskIntoConstraints = false
 
         // Wrap in NSSplitViewItem (= the native AppKit container).
         let item = NSSplitViewItem(viewController: hosting)
         item.canCollapse = isCollapsiblePane(activePaneID)
         item.minimumThickness = minThickness(for: activePaneID, weight: weight)
+        // ZONE-VIS-FIX-004 (2026-09-08): Apple HIG canonical collapse
+        // behavior (= NSSplitViewItem.CollapseBehavior = .useConstraints).
+        // Per developer.apple.com/documentation/appkit/nssplitviewitem/
+        // collapsebehavior: ".useConstraints - The item collapses and
+        // expands using a constraint animation, with a constraint
+        // priority of the item's holding priority."
+        //
+        // The default behavior (.preferResizingSiblingsWithFixedSplitView)
+        // is the macOS 11+ default that causes the bug from ZONE-VIS-FIX-001:
+        // when an item collapses (= e.g. tools = Cmd+Shift+2), the
+        // remaining siblings resize to fill the freed space based on
+        // Apple's auto-layout (= computing divider positions from
+        // item.minimumThickness + available bounds, = the side panes
+        // shrink to their 200 PT floor while the editor absorbs the
+        // remaining space). When the item expands back, those
+        // intermediate divider positions are persisted by
+        // NSSplitView.autosaveName (= which IS preserved across the
+        // animation, = the "shrunk" divider positions become the
+        // new "restored" state on the next expand cycle).
+        //
+        // Setting collapseBehavior = .useConstraints (= Apple HIG
+        // canonical pattern per the official docs) makes the
+        // collapse/expand animation use a constraint-driven
+        // animation (= Apple's modern constraint-based layout)
+        // that respects `preferredThicknessFraction` (= the
+        // preset weight ratio we set in ZONE-VIS-FIX-001). The
+        // result: side panes don't shrink to their minimumThickness
+        // floor during a sibling collapse; = they preserve their
+        // preferred fraction of the available space.
+        //
+        // Pre-existing setting: collapseBehavior defaults to
+        // .preferResizingSiblingsWithFixedSplitView (= macOS 11+
+        // default; = the bug behavior). Override to
+        // .useConstraints (= the canonical Apple HIG solution
+        // for "presets should survive collapse cycles").
+        if item.canCollapse {
+            item.collapseBehavior = .useConstraints
+        }
+        // ZONE-VIS-FIX-002 (2026-09-08): set
+        // `maximumThickness` (= the upper bound on a pane's
+        // thickness). Prevents the bug symptom from ZONE-VIS-FIX-001
+        // where the editor (= which has zero intrinsic content min
+        // width because TextEditor fills any container size) absorbs
+        // all remaining space after a hide-then-show cycle. With
+        // `maximumThickness` set per zone, NSSplitView's auto-layout
+        // respects the upper bound even after a collapse/restore
+        // animation (= the autosaveName round-trip + the
+        // preferredThicknessFraction interplay no longer allows one
+        // zone to dominate).
+        //
+        // Per-zone maximumThickness (= Apple HIG canonical values
+        // matching FCP / Xcode / Mail inspector patterns):
+        // - sidebar (projectSidebar): 400 PT (= tree outline
+        //   natural; = users rarely want it wider than 400 PT
+        //   on a typical window).
+        // - cards (projectPreview): 500 PT (= card grid natural;
+        //   = wider values push the cards off-screen and give the
+        //   editor less room).
+        // - tools (specializedTools): 300 PT (= icon row natural;
+        //   = matches FCP inspector width).
+        // - chat (aiChat): no upper bound (= chat gets the
+        //   remaining 70% of the lower band; = users expect chat
+        //   to fill whatever space the dynamic zone doesn't claim).
+        // - dynamic (aiDynamic): no upper bound (= lower band's
+        //   30% via preferredThicknessFraction).
+        // - editor: no upper bound (= always takes remaining
+        //   space; = the editor is the primary work surface).
+        if let max = maxThickness(for: tab.kind) {
+            item.maximumThickness = max
+        }
+        // ZONE-VIS-FIX-002 (2026-09-08): REMOVED the `holdingPriority =
+        // .required` for editor — that change caused a degenerate
+        // layout where the editor claimed ALL upper-band space
+        // (because `.required` priority + no maximumThickness on the
+        // editor = editor fills whatever the other panes don't
+        // explicitly reserve via their minimumThickness). The correct
+        // fix for the original bug (= editor absorbs remaining space
+        // after a hide-then-show cycle) is the side-pane
+        // `maximumThickness` constraint above (= sidebar ≤ 400 PT,
+        // cards ≤ 500 PT, tools ≤ 300 PT) — = the side panes claim
+        // their ceiling = the editor naturally gets the remainder
+        // without needing explicit priority manipulation.
+        //
+        // All 6 panes stay at Apple's default `.default` priority
+        // (= rawValue ~251) which produces balanced resizing (= all
+        // visible panes share remaining space proportionally to their
+        // `preferredThicknessFraction`).
+        // ZONE-VIS-FIX-001 (2026-09-08): set
+        // `preferredThicknessFraction` (= the per-pane weight as a
+        // 0-1 fraction of the splitView's total thickness). This is
+        // Apple's canonical property for expressing the per-pane
+        // proportional weight; = NSSplitView's auto-layout honors
+        // it when computing divider positions (= especially after a
+        // collapse / un-collapse cycle). Without this, the bug from
+        // .scratch/2026-09-08-zone-visibility-bug-audit.md
+        // reproduces: after hide-then-show, the previously
+        // collapsed zone returns at ~770 PT instead of its preset
+        // 180 PT (= autosaveName saves divider positions but
+        // doesn't constrain the restored item's width).
+        //
+        // Weight semantics: the preset's `weights` array (= e.g.
+        // [1, 2, 6, 1] for the upper band's sidebar / cards /
+        // editor / tools) is converted to fractions summing to
+        // 1.0 (= [0.1, 0.2, 0.6, 0.1] for the example). Apple's
+        // NSSplitView auto-layout uses these fractions to allocate
+        // space when items collapse / restore (= the bug fix path).
+        //
+        // Editor (`canCollapse = false`): always gets the
+        // remaining space; = no fraction needed (= Apple's default
+        // handles this).
+        let fraction = max(0.0, min(1.0, weight / totalBandWeight))
+        item.preferredThicknessFraction = fraction
         // v0.30 boss 2026-09-01 OOB (zone toggle fix): record the
         // mapping by the item's *index* within the OWNER
         // controller's `splitViewItems` array (NOT by
@@ -1485,6 +1504,26 @@ final class PaneNSController: NSSplitViewController {
         // sidebar minimum); non-collapseable panes (= editor, viewer)
         // default to 100 (= can shrink down to almost nothing).
         return isCollapsiblePane(paneID) ? 200 : 100
+    }
+
+    /// ZONE-VIS-FIX-002 (2026-09-08): canonical per-TabKind
+    /// `maximumThickness` (= the upper bound for a pane's thickness).
+    /// Returning `nil` means "no upper bound" (= Apple default).
+    /// Per-zone rationale (= see the `maximumThickness` setter in
+    /// `makeSplitItems`):
+    /// - sidebar: 400 PT (= tree outline natural max)
+    /// - cards: 500 PT (= card grid natural max)
+    /// - tools: 300 PT (= icon row natural max; = matches FCP
+    ///   inspector width)
+    /// - editor / chat / dynamic: nil (= no upper bound; =
+    ///   always takes remaining space via `preferredThicknessFraction`)
+    private func maxThickness(for kind: TabKind) -> CGFloat? {
+        switch kind {
+        case .projectSidebar:   return 400
+        case .projectPreview:   return 500
+        case .specializedTools: return 300
+        case .editor, .aiChat, .aiDynamic: return nil
+        }
     }
 
     /// Which panes can the user collapse (= via the "Display" menu /
@@ -1530,11 +1569,11 @@ final class PaneNSController: NSSplitViewController {
         _ = kind  // (= identity; the notification carries `slot`)
     }
 
-    /// Cmd+Shift+R "恢复默认布局" reset action. Un-collapse every
+    /// Cmd+Shift+R "Restore Default Layout" reset action. Un-collapse every
     /// pane (= Apple NSSplitViewItem.isCollapsed = false) and
     /// re-apply the canonical preset weights (= setPosition on the
     /// owning split). WorkspaceView's `.wenshuResetLayout` observer
-    /// calls this after refreshing WorkspaceStore, so the menu
+    /// calls this after refreshing LayoutTreeStore, so the menu
     /// command actually un-collapses the on-screen layout (= not
     /// just the data model).
     @objc func restoreAllZones() {

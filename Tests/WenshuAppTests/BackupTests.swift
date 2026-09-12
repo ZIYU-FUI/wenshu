@@ -1,7 +1,7 @@
 //
 //  BackupTests.swift · Wenshu · v0.18 ticket 26 (backup)
 //
-//  单元测试 BackupTools. cwd 下临时源目录 + 临时备份目录.
+// test BackupTools. cwd directory + backupdirectory.
 //
 
 import Testing
@@ -31,7 +31,7 @@ struct BackupTests {
         let meta = try tools.backup(sourceDir: source.path, backupDir: backupDest.path)
         #expect(meta.sourcePath == source.path)
         #expect(meta.size > 0)
-        // 验证备份存在 + 内容一致
+        // verifybackup +
         let archived = meta.archivePath
         #expect(FileManager.default.fileExists(atPath: archived))
         let copied = try String(contentsOf: URL(fileURLWithPath: archived).appendingPathComponent("file1.txt"), encoding: .utf8)

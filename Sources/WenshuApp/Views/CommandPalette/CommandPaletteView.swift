@@ -120,9 +120,9 @@ public struct CommandPaletteView: View {
             // text-field render; no custom frame / border / Liquid Glass
             // paint = boss 2026-09-02 OOB 'let Apple defaults through').
             HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
+                LucideIcon("search", size: 16)
                     .foregroundStyle(.secondary)
-                TextField("Type a command or skill name…", text: Binding(
+                TextField(WenshuI18n.t("b5.commandpaletteview.l125.h99176598"), text: Binding(
                     get: { model.query },
                     set: { newValue in
                         Task { await model.filter(by: newValue) }
@@ -140,14 +140,14 @@ public struct CommandPaletteView: View {
                     Button {
                         Task { await model.filter(by: "") }
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
+                        LucideIcon("circle-x", size: 16)
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DesignTokens.chromePaddingLarge)
+            .padding(.vertical, DesignTokens.chromePaddingMedium)
 
             Divider()
 
@@ -170,18 +170,18 @@ public struct CommandPaletteView: View {
 
             // Footer (= item count + shortcut hint).
             HStack {
-                Text("\(model.items.count) items")
+                Text(WenshuI18n.t("b5.commandpaletteview.l173.h62846186"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("⌘K to toggle · ↵ to invoke · esc to close")
+                Text(WenshuI18n.t("b5.commandpaletteview.l177.h59099234"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, DesignTokens.chromePaddingLarge)
+            .padding(.vertical, DesignTokens.chromePaddingVertical)
         }
-        .frame(width: 600, height: 400)
+        .frame(width: DesignTokens.settingIOsheetSize.width, height: DesignTokens.settingIOsheetSize.height)
         // POLISH-LIQUIDGLASS-004: ⌘K palette sheet root uses Apple
         // .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass
         // material; same shape as the prior POLISH-LIQUIDGLASS-001/002/003
@@ -225,9 +225,9 @@ private struct CommandPaletteRow: View {
             // "chat" / "custom"). SF Symbol fallback is acceptable here
             // because this is a debug/internal UX surface (= not the
             // user-facing app chrome).
-            Image(systemName: categorySymbol)
+            LucideIcon(categorySymbol, size: 16)
                 .foregroundStyle(categoryColor)
-                .frame(width: 16, height: 16)
+                .frame(width: DesignTokens.iconStandardSize, height: DesignTokens.iconStandardSize)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.body)
@@ -242,32 +242,33 @@ private struct CommandPaletteRow: View {
                 Text(hint)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, DesignTokens.chromePaddingSmall)
+                    .padding(.vertical, DesignTokens.chromePaddingNano)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color(nsColor: .controlBackgroundColor))
+                            .fill(.regularMaterial)
                     )
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, DesignTokens.chromePaddingLarge)
+        .padding(.vertical, DesignTokens.chromePaddingVertical)
         .background(
             isSelected ?
-                RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .selectedContentBackgroundColor).opacity(0.6)) :
+                RoundedRectangle(cornerRadius: 6).fill(.selection.opacity(0.6)) :
                 nil
         )
-        .padding(.horizontal, 4)
+        .padding(.horizontal, DesignTokens.chromePaddingMicro)
     }
 
     private var categorySymbol: String {
         switch item.category {
-        case "skill": return "wand.and.stars"
-        case "navigate": return "arrow.right.circle"
+        // v0.46 boss OOB 'SF Symbol dropped, use Lucide'.
+        case "skill": return "wand-sparkles"
+        case "navigate": return "circle-arrow-right"
         case "command": return "terminal"
-        case "chat": return "bubble.left"
-        case "custom": return "puzzlepiece"
-        default: return "questionmark.circle"
+        case "chat": return "message-square"
+        case "custom": return "puzzle"
+        default: return "circle-question-mark"
         }
     }
 

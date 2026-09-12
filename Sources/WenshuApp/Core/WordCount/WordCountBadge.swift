@@ -1,5 +1,5 @@
 //
-//  WordCountBadge.swift · Wenshu · v0.19 ticket 20 (Obsidian replica, 前端做但不接入核心项目)
+// WordCountBadge.swift · Wenshu · v0.19 ticket 20 (Obsidian replica,)
 //
 
 import Foundation
@@ -13,14 +13,14 @@ public final class WordCountViewModel {
 
     public init() {}
 
-    /// 统计 content 字数
+    /// content
     public func update(content: String) {
         self.count = WordCounter.count(content)
     }
 }
 
-/// WordCountBadge: SwiftUI View, 显示字数 badge placeholder
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// WordCountBadge: SwiftUI View, show badge placeholder
+/// LayoutShellView, standalone wait macOS
 public struct WordCountBadge: View {
     @State private var viewModel: WordCountViewModel
 
@@ -30,19 +30,19 @@ public struct WordCountBadge: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("字数")
+            Text(WenshuI18n.t("auto.wordcountbadge.l33.h32876713"))
                 .font(.headline)
             HStack {
-                Text("总字符: \(viewModel.count.characters)")
-                Text("去空: \(viewModel.count.charactersNoSpaces)")
+                Text(WenshuI18n.t("auto.wordcountbadge.l36.h53222430"))
+                Text(WenshuI18n.t("auto.wordcountbadge.l37.h17621913"))
             }
             HStack {
-                Text("中文字: \(viewModel.count.chineseChars)")
-                Text("英文词: \(viewModel.count.words)")
+                Text(WenshuI18n.t("auto.wordcountbadge.l40.h86545847"))
+                Text(WenshuI18n.t("auto.wordcountbadge.l41.h72922873"))
             }
             HStack {
-                Text("句: \(viewModel.count.sentences)")
-                Text("段: \(viewModel.count.paragraphs)")
+                Text(WenshuI18n.t("auto.wordcountbadge.l44.h87324247"))
+                Text(WenshuI18n.t("auto.wordcountbadge.l45.h78399135"))
             }
         }
         .padding()
@@ -50,7 +50,7 @@ public struct WordCountBadge: View {
 }
 
 /// WordCountInlineLabel: tiny inline text for toolbar (v0.22 ticket o09).
-/// Reads a WordCountViewModel and renders "1.2k 字" or "0 字" compact text.
+/// Reads a WordCountViewModel and renders "1.2k " or "0 " compact text.
 /// Use case: Z-TITLE toolbar always-visible word count badge (Apple HIG compact label).
 public struct WordCountInlineLabel: View {
     @Bindable var viewModel: WordCountViewModel

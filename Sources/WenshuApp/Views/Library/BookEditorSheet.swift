@@ -2,14 +2,14 @@
 //
 // The 'New Book' / 'Rename Book' modal.
 //
-// v52 (= 老板 8/15 17:32 '书名, 篇幅选择, 创意点, 然后新建') adds the
+// v52 (= 8/15 17:32 ',,, ') adds the
 // New Book Creation Wizard. Three fields:
-//   - 书名 (title)            required, TextField, autofocus
-//   - 篇幅 (length)           Picker (.segmented), default .medium
-//   - 创意点（选填）(idea)     optional, TextField (.axis = .vertical)
+// - (title) required, TextField, autofocus
+// - (length) Picker (.segmented), default .medium
+// - （）(idea) optional, TextField (.axis = .vertical)
 //
-// All three fields live in a single modal (= owner拍 '先实现最简新建书
-// 的逻辑'). Not a multi-step NavigationStack wizard (= overkill for three
+// All three fields live in a single modal (= owner '
+// '). Not a multi-step NavigationStack wizard (= overkill for three
 // fields; the Apple HIG Picker for length gives a quick visual pick
 // without leaving the modal).
 //
@@ -21,7 +21,7 @@
 //   - Picker (.segmented)      length (= 3 options, segmented is the
 //                               HIG-recommended style when there are
 //                               < 5 options)
-//   - Form.footer              the "选填" hint (= Apple HIG: use a footer
+// - Form.footer the "" hint (= Apple HIG: use a footer
 //                               rather than placeholder text for
 //                               optional fields)
 //
@@ -96,9 +96,9 @@ struct BookEditorSheet: View {
     var body: some View {
         Form {
             Section {
-                TextField("书名", text: $title)
+                TextField(WenshuI18n.t("auto2.bookeditorsheet.l99.h94921264"), text: $title)
                     .onSubmit(commit)
-                TextField("作者（可选）", text: $author)
+                TextField(WenshuI18n.t("auto2.bookeditorsheet.l101.h15789783"), text: $author)
                     .onSubmit(commit)
             } header: {
                 Text(titleText)
@@ -119,9 +119,9 @@ struct BookEditorSheet: View {
                     }
                     .pickerStyle(.segmented)
                 } header: {
-                    Text("篇幅")
+                    Text(WenshuI18n.t("book_editor.length"))
                 } footer: {
-                    Text("选中后可在书内逐章调整。")
+                    Text(WenshuI18n.t("auto.bookeditorsheet.l124.h18390452"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -133,9 +133,9 @@ struct BookEditorSheet: View {
                     )
                     .lineLimit(2...6)
                 } header: {
-                    Text("创意点（选填）")
+                    Text(WenshuI18n.t("book_editor.premise_label"))
                 } footer: {
-                    Text("一句话写你的故事方向；以后会用作 AI 写作助手的上下文。")
+                    Text(WenshuI18n.t("book_editor.premise_caption"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -157,10 +157,10 @@ struct BookEditorSheet: View {
         .background { Color.clear.glassEffect(.regular) }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("取消") { dismiss() }
+                Button(WenshuI18n.t("auto2.bookeditorsheet.l160.h80176953")) { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存", action: commit)
+                Button(WenshuI18n.t("auto2.bookeditorsheet.l163.h48925685"), action: commit)
                     .keyboardShortcut(.defaultAction)
                     .disabled(!canCommit)
             }

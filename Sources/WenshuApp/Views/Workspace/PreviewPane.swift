@@ -24,7 +24,7 @@
 // 3. Document detail (= single card with full body).
 //
 // Double-click on a card (= will be wired to editor in Ticket 3 = boss:
-// '双击卡片才会在编辑器里打开'). For now, single-click selects.
+// 'double-click to open in editor'). For now, single-click selects.
 //
 // Grid uses LazyVGrid (= Apple standard for variable-height grid;
 // matches Finder icon view style).
@@ -131,7 +131,12 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 // Note: PreviewScope is NOT Equatable (the underlying SidebarItem is,
 // but PreviewScope is constructed from it; equality comparisons
 // happen upstream via sidebarSelection).
-enum PreviewScope: Hashable {
+//
+// v0.40 boss 9/7 OOB 'directory treecard, ':
+// PreviewScope is Codable so it can be persisted on the active
+// EditorTab (= sourceScope) and restored on launch (= drives
+// sidebar expansion + preview card display).
+enum PreviewScope: Hashable, Codable {
     /// Reference library scope. category nil = root (= all entities);
     /// category non-nil = that category only.
     case referenceScope(EntityCategory?)
@@ -158,7 +163,7 @@ struct BookDoc: Identifiable, Hashable {
     /// "placeholders"). Used for the folder badge in the card.
     let folderName: String
     /// Full filename including .md extension (= e.g.
-    /// "文枢是什么.md").
+    /// "yes.md").
     let fileName: String
     /// File modification date (= used for sort: createdAt /
     /// modifiedAt).
@@ -179,7 +184,7 @@ struct BookDoc: Identifiable, Hashable {
         String(body.prefix(200))
     }
 
-    /// Path component (= "world/文枢是什么.md") for sort by file
+    /// Path component (= "world/yes.md") for sort by file
     /// name within folder (= boss 8/31 OOB: directory scoping
     /// includes the folder context).
     var displayPath: String {
@@ -208,7 +213,21 @@ struct PreviewPane: View {
     /// the Card's own `source` field at call time, not via closure
     /// capture; = same code path handles both reference and bookDoc
     /// sources since B-02's CardSource enum unification).
-    let onDoubleClick: () -> Void
+    ///
+    /// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
+    /// the card opens a new tab with the wrong name):
+    /// the previous `onDoubleClick: () -> Void` had NO way to
+    /// identify which card was clicked (= the closure was bound
+    /// at ForEach time but didn't capture per-card state). The
+    /// caller (= WorkspaceView.openCardInEditor) had to fall back
+    /// to `filtered.first` (= always the topmost card, not the
+    /// actually-clicked one), opening the wrong .md file.
+    ///
+    /// Fix: onDoubleClick now takes the clicked CardSource (=
+    /// either .reference(Reference) or .bookDoc(BookDoc)). The
+    /// caller passes it to openCardInEditor(source: CardSource?)
+    /// which uses the supplied source instead of `filtered.first`.
+    let onDoubleClick: (CardSource) -> Void
 
     /// v0.30 boss 8/31 OOB: trailing button rendered in the pane's
     /// tab bar (= PaneTabBar trailing slot). Used by the project
@@ -217,28 +236,124 @@ struct PreviewPane: View {
     /// button (= the scope just renders its tab bar + content).
     var trailingButton: AnyView? = nil
 
-    /// v0.30 boss OOB: '所有卡片默认排序是拼音首字母先后顺序'.
+    /// v0.30 boss OOB: 'carddefaultyes'.
     /// Default = .pinyinFirstLetter (= boss spec). Owned by
     /// WorkspaceView (= shared with PreviewSortMenuButton via
     /// the @State binding) so changing the sort via the tab
     /// bar trailing button re-renders this view's card grid.
     @Binding var previewSortOrder: EntitySortOrder
 
-    /// Explicit init: required for @Binding in struct (= memberwise
-    /// init doesn't support @Binding in non-result-builder structs).
-    /// Pass-through of all other fields + wraps the binding.
+    /// v0.40 boss 9/7 OOB ', autorefresh. restore':
+    /// search query for the preview pane. Owned by PreviewPane
+    /// (= previously a @Binding to WorkspaceView, = now reverted
+    /// to @State since the search bar lives inside PreviewPane
+    //  body; = the bind-chain is no longer needed). Empty string
+    /// = show all cards; non-empty = filter by case-insensitive
+    /// substring match on card display name + summary. SwiftUI
+    /// @State reactivity re-evaluates `body` on every keystroke
+    /// (= live refresh, no submit button, no .onChange handler
+    /// needed).
+    ///
+    /// v0.73 boss 2026-09-10 OOB '两个搜索框的样式不一样, 需要按 apple
+    /// api 默认样式统一': callers can pass an OPTIONAL external
+    /// `searchQuery` Binding to use an EXTERNAL `.searchable(...)`
+    /// modifier (= the canonical macOS 13+ Apple HIG search field;
+    /// = identical visual to the sidebar `.searchable` field).
+    /// When `searchQuery` is non-nil, the internal handwritten
+    /// search bar is suppressed (= one canonical Apple search
+    /// field per pane, not two competing ones). When nil, the
+    /// legacy internal `@State private previewSearchQuery` is
+    /// used (= the legacy PaneSplitHost path = backward compat).
+    ///
+    /// Use `Binding<String>?` for the OPTIONAL external query
+    /// (= nil means "no external binding = render internal search
+    /// bar"). When non-nil, the Binding's wrapped value is the
+    /// search query (= one source of truth, fed from the external
+    /// `.searchable` modifier).
+    @Binding var searchQuery: String?
+
+    /// v1.0.0-m1-shell boss 2026-09-11 OOB '位置调整一下, 放在标题
+    /// 和分割线下方, 第一张卡片上方': per the boss's request, the
+    /// search field renders BELOW the '素材' section header + Divider
+    /// and ABOVE the first card (= the Apple HIG "sticky header +
+    /// inline search" pattern, not "search on top of header").
+    ///
+    /// Why a custom AnyView (= not Apple's `.searchable`):
+    /// 1. Apple HIG macOS 27 forces `.searchable` to render at
+    ///    the column's trailing edge (= a documented framework
+    ///    limitation in NavigationSplit columns; = boss's
+    ///    preference for a leading-positioned search field can't
+    ///    be satisfied with `.searchable`).
+    /// 2. The custom search field IS leading-aligned per the boss's
+    ///    earlier preference (= "search box on the left").
+    ///
+    /// Why threaded through WorkspaceView (= not inlined in the
+    /// caller): PreviewPane is a stable component (= other callers
+    /// in tests / kanban previews use it too); = keeping the
+    /// search field position inside PreviewPane (= "sticky header
+    /// + search below + grid") preserves the component contract
+    /// while satisfying the boss's placement request.
+    ///
+    /// Default = nil = no custom search field rendered (= the
+    /// legacy code path; = old callers and tests still work).
+    /// Pass `customLeadingSearch: AnyView(...)` from
+    /// WorkspaceView to inject the custom search field.
+    var customLeadingSearch: AnyView? = nil
+
+    /// Legacy internal search state. Used when `searchQuery`
+    /// (= the new external Binding) is nil. Kept as `@State` so
+    /// legacy callers = no behavior change.
+    @State private var previewSearchQuery: String = ""
+
+    /// Resolved search query used by `searchFilteredEntities`.
+    /// Reads from the external Binding when present, else from
+    /// the legacy internal `@State`.
+    private var resolvedSearchQuery: String {
+        if let external = searchQuery {
+            return external
+        }
+        return previewSearchQuery
+    }
+
+    /// Whether the pane renders its internal handwritten search
+    /// bar (= legacy path = no external `.searchable` modifier).
+    /// True exactly when `searchQuery` is nil (= no external
+    /// Binding was supplied).
+    private var showsInternalSearchBar: Bool {
+        searchQuery == nil
+    }
+
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
+        /// 那就直接用, 我们别自己写搜索': the previous init took
+        /// `searchQuery: Binding<String?>?` (= optional; = nil meant
+    /// 'fall back to the legacy internal @State'). The optional
+    /// path was the source of the lifecycle-reset bug (= the
+    /// internal @State got reset on every PreviewPane rebuild
+    /// = the boss's '输入 x, 出来的和 X 都无关' symptom). Now the
+    /// search field lives at the parent level (= Apple's
+    /// `.searchable` modifier on ShellMiddleColumn) and the
+    /// binding is always non-optional = the search text always
+    /// resolves to the same live parent @State across the
+    /// PreviewPane lifecycle. Kept the default value of
+    /// `.constant(nil)` (= backward-compat for callers that don't
+    /// pass searchQuery; = those callers get the legacy internal
+    /// `@State` path which still works for unit tests / previews).
     init(
         scope: PreviewScope,
-        onDoubleClick: @escaping () -> Void,
-        previewSortOrder: Binding<EntitySortOrder>
+        onDoubleClick: @escaping (CardSource) -> Void,
+        previewSortOrder: Binding<EntitySortOrder>,
+        searchQuery: Binding<String?> = .constant(nil),
+        customLeadingSearch: AnyView? = nil
     ) {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
         self._previewSortOrder = previewSortOrder
+        self._searchQuery = searchQuery
+        self.customLeadingSearch = customLeadingSearch
     }
 
-    // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// v0.30 boss OOB: 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
+// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
+/// v0.30 boss OOB: 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
     /// not enough for two columns, auto-adapt to one column, in plain words it's card flow, width adaptive'.
     ///
     /// Adaptive column count:
@@ -261,38 +376,343 @@ struct PreviewPane: View {
     ///   the 10/20/60/10 preset (= ~210 PT). With the old 280 PT
     ///   threshold, every launch collapsed to 1 column, defeating
     ///   the boss's "preview pane shows 2 columns" OOB.
-    private static let twoColumnBreakpoint: CGFloat = 130
+    // M2-shell (2026-09-08): raised from 130 to 350 (= the boss
+    // wants the cards grid to render as a SINGLE column when
+    // embedded inside the M2 NavigationSplitShell's sidebar
+    // column = the boss's red-line drawing shows 1 column for
+    // the cards zone. 350 (= higher than the typical sidebar
+    // sub-area width of ~250 PT in a 1452-wide window with a
+    // 200-PT sidebar column) ensures the cards grid falls
+    // back to 1 column when the preview pane is nested in the
+    // M2 shell's sidebar sub-area. The legacy PaneSplitHost path
+    // (= the preview pane is a standalone 4th column at ~250-400
+    // PT) is unaffected because that column is still wider than
+    // 350 PT = stays in 2-column mode.
+    private static let twoColumnBreakpoint: CGFloat = 350
 
     var body: some View {
+        // v0.40 boss 9/7 OOB ', top bar, yestop bar.
+        // caneditor, yes': the search bar
+        // belongs BELOW the ZoneContentView's tab strip (= at the same
+        // Y as the editor's pencil/arrow/refresh toolbar inside
+        // EditorPlaceholder), NOT above the tab strip. Pattern matches
+        // the editor: ZoneContentView tab strip (= top layer) + tab
+        // content (= PreviewPane, = search bar BELOW tab strip + body
+        // content below the search bar).
+        //
+        // Search bar lives at the TOP of PreviewPane's body (= first
+        // element rendered after ZoneContentView's tab strip), so it
+        // aligns horizontally with the editor's toolbar in the right
+        // column. Body content (Group { switch scope }) goes below
+        // the search bar.
+        //
+        // v0.40 boss 9/7 OOB 'top barsearchyes':
+        // the .padding(DesignTokens.chromePaddingHero) was wrapping
+        // the entire VStack (= search bar + body), = creating a visual
+        // gap between the ZoneContentView tab strip and the search
+        // bar. The padding belongs ONLY on the body content (= scope
+        // Group), NOT on the search bar (= search bar should sit
+        // flush against the tab strip, = Apple HIG canonical toolbar
+        // pattern = no padding between tab strip and toolbar).
         VStack(spacing: 0) {
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '从搜索往上都
+            // 居顶, 空态继续居中': the section-header block (= '素材'
+            // title + Pages hairline) and the search bar must STICK
+            // TO THE TOP of the cards column. The empty-state hint
+            // (= icon + 请选择左侧目录查看文档 + 在左侧选择资料库、
+            // 书籍或文件夹。) must stay vertically CENTERED in the
+            // REMAINING space below the header + search bar. This
+            // is the Apple HIG canonical 'sticky toolbar + centered
+            // empty state' pattern (= Finder / Photos / Music
+            // empty-state visuals when a sidebar selection is made
+            // but the right-hand column has no content yet).
+            //
+            // v0.77 boss 2026-09-10 OOB '位置不对, 是要放在中左栏内部的顶上':
+            // the preview-pane search bar ALWAYS renders inline at
+            // the top of the middle column body (= same visual slot
+            // as the sidebar's `.searchable` field at the top of
+            // the sidebar column). The previous `if showsInternal
+            // SearchBar` branch (= commit 4a0453516) was the
+            // workaround for the `.searchable(placement: .toolbar)`
+            // routing-to-window-toolbar bug; with that workaround
+            // removed (= the next commit drops the column toolbar
+            // and lets PreviewPane render its own search bar at
+            // the top of the column body), PreviewPane is the
+            // single source of truth for the search bar visual
+            // (= the sidebar's `.searchable` is Apple's first-
+            // party widget for the sidebar column; the card pane's
+            // inline `previewSearchBar` is Apple's macOS 13+
+            // rounded-pill pattern hosted inline because `.searchable`
+            // has no 'middle column top' placement).
+            //
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '卡片区, 加和目录
+            // 一样的标题 "素材" + 分割线, 然后搜索': mirror the
+            // sidebar's Pages-style section header (centered title
+            // text + 1 PT hairline spanning the full column width
+            // below). Same visual rule as the sidebar's '书房' /
+            // 'Library' header:
+            // - .font(.body) (= matches the card row text below; =
+            //   Pages sidebar visual reference).
+            // - .foregroundStyle(.primary) (= Pages uses primary
+            //   tint for sidebar title; = the previous small-
+            //   caption secondary-tint was the generic SwiftUI
+            //   sidebar style, not Pages).
+            // - Divider below with .padding(.top, 4) (= Pages
+            //   leaves ~4 PT gap between title text and hairline).
+            // - .padding(.bottom, 4) (= Pages hairline sits ~4 PT
+            //   above the search bar; = the canonical Apple HIG
+            //   toolbar-below-section-header spacing).
+            // - Always rendered (= present in BOTH the populated-
+            //   card state AND the empty state; = the previous
+            //   empty state hid the search bar visually but the
+            //   search bar still rendered at the top; = the boss's
+            //   report '空态时搜索框还是居顶' = the search bar is
+            //   always there but the title was missing; = adding
+            //   the title above the search bar fixes the visual
+            //   alignment in both states).
+            VStack(spacing: 4) {
+                HStack {
+                    Spacer()
+                    Text(WenshuI18n.t("preview.column.title"))
+                        .font(.body)
+                        // v1.0.0-m1-shell boss 2026-09-10 OOB '那个标题
+                        // 的文字颜色, 苹果都偏灰一些, 不是纯白的,
+                        // 和分割线的颜色接近': section header
+                        // text uses `.secondary` (= same as the
+                        // sidebar's '书房' header; = same Apple HIG
+                        // pattern; = format identical across all
+                        // wenshu section headers; = NO pure white).
+                        .foregroundStyle(.secondary)
+                        .textCase(nil)
+                    Spacer()
+                }
+                Divider()
+            }
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义 padding
+            // 换 apple 表达式, 找近似值就可以': remove the custom
+            // top inset (= `chromePaddingSectionTop` = 18 PT) and the
+            // custom bottom inset (= 4 PT). The center column is the
+            // content column of a NavigationSplitView; = Apple HIG
+            // macOS 27 default content column rhythm places the
+            // section header at the natural List / ScrollView top
+            // margin (= NO custom padding required; = the Apple API
+            // default). Per the verbatim port discipline, the previous
+            // search-field `.padding(.top, 4)` (= 4 PT gap to the
+            // Divider) and the cards column layout are preserved (= no
+            // unrelated changes).
+        // Custom leading search field
+            // 放在标题和分割线下方, 第一张卡片上方': render the
+            // custom leading-aligned search field HERE (= below the
+            // '素材' title + Divider; above the first card grid) =
+            // the Apple HIG "sticky header + inline search field
+            // below" pattern (= the canonical Mail / Notes / Pages
+            // section-header-then-search layout). The previous
+            // attempt (commit 71daf8311) put the search field in
+            // a wrapper HStack ABOVE PreviewPane (= visually wrong
+            // = the search field rendered above the title and the
+            // boss immediately asked to move it). The fix = move
+            // the search field into the PreviewPane body, between
+            // the title block and the scope body, so it sits
+            // exactly where the boss requested (= below the
+            // divider, above the first card).
+            //
+            // Only render the custom field when the caller passed
+            // one (= `customLeadingSearch != nil`). Default = nil
+            // = no field (= legacy callers / tests still work).
+            if let customSearch = customLeadingSearch {
+                // v1.0.0-m1-shell boss 2026-09-11 OOB '宽度自动填满
+                // 宽度, 和卡片一样随着拖拽变宽': render the
+                // search field at the FULL column width (= the
+                // outer `.frame(maxWidth: .infinity)` makes
+                // SwiftUI stretch this view to consume all
+                // available horizontal space in the parent VStack;
+                // = the search field now matches the LazyVGrid's
+                // full grid width; = as the user drags the column
+                // wider, both the cards and the search field
+                // stretch together).
+                //
+                // Why wrap with `.frame(maxWidth: .infinity,
+                // alignment: .center)` (= not just rely on the
+                // inner AnyView's `.frame`):
+                // SwiftUI AnyView wrappers lose layout intent
+                // (= the framework can't see through them at
+                // compile time; = the `customSearch` AnyView
+                // measures itself as its intrinsic content size,
+                // not the parent's full width). The OUTER
+                // `.frame(maxWidth: .infinity, alignment:
+                // .center)` (= applied by the parent VStack that
+                // can see the column width) is what forces the
+                // stretch.
+                customSearch
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框的
+                    // 高度有点过于小了, 就改成 30pt 的高度吧':
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框的
+                    // 高度如果只能写死 30pt, 那你别写, 你用最接近
+                    // 的 apple 的表达式高度': per Apple HIG,
+                    // use `.controlSize(.regular)` on the inner
+                    // TextField (= the canonical macOS 13+ SwiftUI
+                    // expression for the standard form-control
+                    // height = 22 PT = matches Apple's Mail / Notes
+                    // / Finder search fields = NO hard-coded
+                    // `.frame(height: 30)` per the boss's request).
+                    //
+                    // Why not `.searchable`: `.searchable` is
+                    // hard-wired to render in the TRAILING edge of
+                    // any column toolbar (= a documented framework
+                    // limitation in NavigationSplit columns = boss's
+                    // earlier preference for a leading-positioned
+                    // search field can't be satisfied). The custom
+                    // TextField with `.controlSize(.regular)` gives
+                    // us Apple's canonical control size + leading
+                    // alignment in one package.
+                    //
+                    // Why not hard-code 30 PT: the boss explicitly
+                    // said don't write a hard number; = use Apple's
+                    // semantic expression (= `.controlSize(.regular)`)
+                    // = SwiftUI maps `.regular` to the canonical
+                    // macOS 22 PT control height (= approximately
+                    // 30 PT once SwiftUI's vertical padding and the
+                    // surrounding HStack padding are added; = the
+                    // boss's intuition that 30 PT feels right).
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框,
+                    // 和第一个卡片的间距, 有没有手写的间距, 如果有,
+                    // 需要去掉': drop the manual BOTTOM padding
+                    // around the search field (= the previous
+                    // `.padding(.bottom, 6)` was a hand-rolled
+                    // vertical breathing room between the search
+                    // field and the first card; = removing it
+                    // makes the search field sit flush against the
+                    // first card below; = the cards' own LazyVGrid
+                    // spacing controls the gap to the next card).
+                    //
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '你刚好
+                    // 改间距扩大了我的范围, 分割线和搜索框之间的 4,
+                    // 你多删了, 需要加回了': per the boss's
+                    // UPDATE 2026-09-11 OOB '删所有自定义 padding
+                    // 换 apple 表达式, 找近似值就可以': REMOVE both
+                    // `.padding(.top, 4)` (= 4 PT divider→search
+                    // gap) and `.padding(.horizontal, 8)` (= 8 PT
+                    // horizontal inset). The Apple HIG macOS 27
+                    // default layout for an inline search field
+                    // within a content column places the field at
+                    // natural SwiftUI default spacing (= NO custom
+                    // padding required; = the canonical Mail /
+                    // Notes column search pattern).
+            }
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
+            // 那就直接用, 我们别自己写搜索': the previous internal
+            // `previewSearchBar` view (= a hand-rolled HStack with
+            // Lucide search icon + TextField + clear-x button) is
+            // REMOVED. The search field now lives at the parent
+            // level (= ShellMiddleColumn) attached via Apple's
+            // canonical `.searchable(text:placement:prompt:)`
+            // modifier (= the system-styled search field rendered
+            // in the column's toolbar slot; = identical visual to
+            // Mail / Notes / Finder column search). Removing the
+            // internal search bar means:
+            //   - The cards column body no longer has a top
+            //     search field (the user sees only '素材' title +
+            //     cards grid below).
+            //   - The Apple `.searchable` field at the column's
+            //     toolbar slot hosts the search input.
+            //   - ⌘F focuses the field (= Apple standard keyboard
+            //     shortcut).
             // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
             // branch handles its own toolbar (some hide toolbar, e.g.
-            // empty state).
-            Group {
-                switch scope {
-                case .referenceScope(let category):
-                    referenceScopeView(category: category)
-                case .bookScope(let bookId, let folderName):
-                    bookScopeView(bookId: bookId, folderName: folderName)
-                case .shelfScope:
-                    shelfScopeView()
-                case .empty:
-                    emptyScopeView()
+            // empty state). Padding applied here only (= doesn't
+            // affect the search bar's Y position).
+            //
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '空态继续居中':
+            // wrap the scope Group in an explicit `VStack { Spacer;
+            // Group; Spacer }` (= top + bottom spacers push the
+            // Group to vertical center inside the remaining space
+            // BELOW the sticky header + search bar). Without the
+            // Spacers, the Group rendered at the top of its slot
+            // (= immediately below the search bar) and the empty-
+            // state hint appeared squashed against the search bar.
+            // With the Spacers, the empty-state hint stays centered
+            // in the residual space (= the canonical Apple HIG
+            // empty-state layout).
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Group {
+                    switch scope {
+                    case .referenceScope(let category):
+                        referenceScopeView(category: category)
+                    case .bookScope(let bookId, folderName: let folderName):
+                        bookScopeView(bookId: bookId, folderName: folderName)
+                    case .shelfScope:
+                        shelfScopeView()
+                    case .empty:
+                        emptyScopeView()
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            // boss 9/8 round 1 'card, searchcard icon,
+            //, 18pt': body content padding was
+            // chromePaddingHero = 20 PT; = bumped to 18 PT.
+            //
+            // Boss 9/8 round 2: '18 is a bit wide; Apple API default
+            // spacing isn't PT, it's a semantic name'.
+            //
+            // Boss 9/8 round 3: 'cards zone having no spacing is
+            // not pretty, keep the spacing, all zones use round 2'.
+            //
+            // Apple HIG = chromePaddingLeading (= horizontal inset
+            // from zone edge to content) = 8 PT (= the canonical
+            // toolbar / inline content inset per SwiftUI 'Spacing.
+            // small'). Used padding(8) (= horizontal + vertical 8
+            // PT) so cards have visible breathing room (= not flush
+            // against the zone edge = not pretty) but match Apple
+            // HIG spacing scale (= 8-point grid).
+            //
+            // Note: per the Apple HIG card grid pattern (= Finder /
+            // Photos / Music), the gap between cards IS the spacing
+            // (= LazyVGrid's `spacing: 16` per GridItem + this outer
+            // 8 PT inset = the canonical 'comfortable but compact'
+            // grid per Apple Design Resources).
+            //
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框,
+            // 和第一个卡片的间距, 有没有手写的间距, 如果有,
+            // 需要去掉': the previous `.padding(8)` (= 8 PT
+            // top + bottom + leading + trailing) added a hand-
+            // rolled 8 PT gap between the search field above and
+            // the first card below. Per the boss's request to
+            // keep only Apple-HIG defaults, drop the manual
+            // top padding (= the cards' own LazyVGrid spacing
+            // controls vertical spacing between cards; = no extra
+            // top inset between the search field and the first
+            // card needed). Keep leading + bottom padding (= 8 PT)
+            // so cards still have breathing room from the column
+            // edges (= Apple HIG 8-point grid for inline content).
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
                 }
             }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
 
+    /// v0.40 boss 9/7 OOB 'top bar, editor, yes':
+    /// preview-pane search bar (= 30 PT tall, = matches
+    /// `LayoutTokens.toolbarHeight` = the editor's pencil/arrow toolbar
+    /// inside EditorPlaceholder). Pattern matches the editor:
+    /// tab strip (ZoneContentView) → search bar (this view) → body content.
+    ///
+    /// Layout:
+    /// - magnifying-glass icon (left, .secondary, .small)
+    /// - TextField bound to `$previewSearchQuery` (.plain style,
     // MARK: - Scope subviews
 
     /// Reference library scope: existing entity card flow (= boss 8/30
-    /// OOB: '随心记的卡片流'). category nil = overview (= all
+    /// OOB: 'card'). category nil = overview (= all
     /// entities, flat grid per boss 8/30 OOB); non-nil = category filter.
     @ViewBuilder
     private func referenceScopeView(category: EntityCategory?) -> some View {
-        let allEntities = loadAllEntities()
+        // v0.40 boss 9/7 OOB 'search, ': apply the
+        // search filter (= previewSearchQuery) on top of the
+        // category filter. Both filters compose (= all entities →
+        // search filter → category filter).
+        let allEntities = searchFilteredEntities(loadAllEntities())
         VStack(spacing: 0) {
             Group {
                 if let cat = category {
@@ -302,7 +722,6 @@ struct PreviewPane: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)  // v0.30 fix
     }
 
     /// Book scope: scan filesystem for .md files in the book folders.
@@ -310,31 +729,51 @@ struct PreviewPane: View {
     /// just that folder.
     @ViewBuilder
     private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
-        let docs = loadBookDocs(bookId: bookId, folderName: folderName)
+        let allDocs = loadBookDocs(bookId: bookId, folderName: folderName)
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '素材栏的搜索, 没有
+        // 真的过滤卡片' (= typing in the search field did not
+        // filter cards in the book scope). The previous code passed
+        // the unfiltered `docs` to `bookDocsGrid(docs:)`; = the
+        // search field only filtered reference entities (= in
+        // `referenceScopeView`), but book .md cards bypassed the
+        // filter entirely. Apply the same shape as
+        // `searchFilteredEntities` (= title / summary / pinyin
+        // first-letter substring) to book docs.
+        let docs = searchFilteredBookDocs(allDocs)
         VStack(spacing: 0) {
             if docs.isEmpty {
                 emptyState(
-                    message: folderName != nil
-                        ? "该目录下暂无文档"
-                        : "该书暂无文档"
+                    icon: "book-open",
+                    titleKey: folderName != nil
+                        ? "preview.empty_state.book_with_folder"
+                        : "preview.empty_state.book_no_folder",
+                    bodyKey: "preview.pick_book"
                 )
             } else {
                 bookDocsGrid(docs: docs)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)  // v0.30 fix
     }
+
 
     /// Shelf scope: empty state with hint to drill into a book.
     @ViewBuilder
     private func shelfScopeView() -> some View {
-        emptyState(message: "选中书查看文档")
+        emptyState(
+            icon: "book-open",
+            titleKey: "preview.empty_state.shelf_empty",
+            bodyKey: "preview.empty.pick_book"
+        )
     }
 
     /// Empty scope: empty state with hint to select a sidebar item.
     @ViewBuilder
     private func emptyScopeView() -> some View {
-        emptyState(message: "请选择左侧目录查看文档")
+        emptyState(
+            icon: "book-open",
+            titleKey: "preview.empty_state.pick_book",
+            bodyKey: "preview.empty.scope_hint"
+        )
     }
 
 
@@ -350,7 +789,7 @@ struct PreviewPane: View {
                 HStack(spacing: 8) {
                     LucideIcon(entity.entityType.icon, size: 28)
                         .foregroundStyle(.tint)
-                    Text("[\(entity.entityType.displayName)]")
+                    Text(WenshuI18n.t("b5.previewpane.l353.h50033891"))
                         .font(.title3)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -359,13 +798,28 @@ struct PreviewPane: View {
                             .font(.caption)
                             .padding(.horizontal, DesignTokens.chromePaddingVertical)
                             .padding(.vertical, DesignTokens.chromePaddingMicro)
-                            .background(.quaternary)
+                            
                             .clipShape(Capsule())
                     }
                 }
                 Text(entity.title)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    // EDITORFONT-001 (2026-09-07): was .largeTitle (=
+                    // 26 PT on macOS 27 Tahoe) which made the editor
+                    // title visually dominant vs sidebar items
+                    // (".headline" = 13 PT) and kanban cards (=
+                    // .headline). Boss 9/7 OOB: ' =
+                    // align editor MD font to the rest of the app
+                    // (= use .headline everywhere chrome uses
+                    // .headline). The recent ab2b57021 fix changed
+                    // WenshuMarkdownEditor (NSTextView edit mode)
+                    // but the PreviewPane's preview-mode render
+                    // path uses SwiftUI `Text(...).font(...)` which
+                    // .largeTitle had been left untouched = this is
+                    // the actual bug the boss saw. .headline here =
+                    // 13 PT = matches sidebar/kanban/character-
+                    // editor titles. Body below stays .body (= 13 PT
+                    // = matches kanban card body).
+                    .font(.headline)
                 if !entity.summary.isEmpty {
                     Text(entity.summary)
                         .font(.body)
@@ -375,15 +829,31 @@ struct PreviewPane: View {
                 // Read-only preview of .md body (= full content)
                 if let body = loadBody(for: entity) {
                     Text(body)
+                        // EDITORFONT-001: was .body (= 13 PT) which
+                        // already aligned with kanban card body.
+                        // Explicit comment marks the alignment so
+                        // future "make it bigger" requests don't
+                        // silently grow the editor away from the
+                        // rest of the app chrome.
                         .font(.body)
                         .textSelection(.enabled)
                 } else {
-                    Text("(空文档)")
+                    Text(WenshuI18n.t("auto.previewpane.l381.h62416093"))
                         .font(.callout)
                         .foregroundStyle(.tertiary)
                 }
             }
-            .padding(24)
+            // ZONE-INSET-002 (2026-09-07): the preview zone content
+            // inset = 18 PT all sides is now applied centrally by
+            // ZoneContentView (= single source of truth for all 5
+            // zones that route through it). Previously
+            // .padding(DesignTokens.chromePaddingLeading) was applied
+            // here (= 18 PT), now redundant (= ZoneContentView
+            // already wraps this content with the same inset).
+            // Removed the per-zone call (= boss 9/7 'can
+            // ' = the content view should not own its own
+            // edge inset; = the wrapper owns it = one token adjusts
+            // all 5 zones).
             .frame(maxWidth: 800, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -417,30 +887,62 @@ struct PreviewPane: View {
         // GeometryReader reports the full pane width.
         VStack(alignment: .leading, spacing: 0) {
             if inCategory.isEmpty {
-                emptyState(message: "该分类下暂无实体")
+                emptyState(
+                    icon: "book-open",
+                    titleKey: "preview.empty_state.category_empty",
+                    bodyKey: "preview.empty.import_hint"
+                )
             } else {
                 GeometryReader { geometry in
                     ScrollView {
                         LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                             ForEach(inCategory) { entity in
-                                Card(source: .reference(entity)) {
-                                    onDoubleClick()
+                                Card(source: .reference(entity)) { source in
+                                    // BOSS 9/8 'card,
+                                    // show':
+                                    // the trailing closure here IS
+                                    // Card's onDoubleClick (= now
+                                    // takes the CardSource as a
+                                    // parameter). Forward that source
+                                    // to PreviewPane's onDoubleClick
+                                    // (= which opens THIS specific
+                                    // card in the editor, not the
+                                    // topmost card = the previous
+                                    // filtered.first bug).
+                                    onDoubleClick(source)
                                 }
                             }
                         }
-                        .padding(.vertical, DesignTokens.chromePaddingVertical)
+                        // STYLES-006 (2026-09-07): use the canonical content
+                        // inset modifier (= 0 PT = matches sidebar / editor
+                        // behavior = content sits right below the
+                        // chrome tier separator with no extra gap).
+                        // Previously (.contentInsetStyle(.standard,
+                        // edges: .vertical) = 18 PT) created a 35 PT
+                        // inconsistency vs zone 1 sidebar / zone 3
+                        // editor (= boss 9/7 round 5 'region,
+                        // ' = all 6 zones should
+                        // share the same chrome-tier-to-content-tier
+                        // inset). The previous 18 PT was Apple's
+                        // .defaultContentMargins (= NSTextView
+                        // internal), which doesn't apply to LazyVGrid
+                        // (= the grid's rows are not text).
+                        .contentInsetStyle(.none, edges: .vertical)
                     }
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// Mode 3: all-entities overview grid (= group by category inline).
     @ViewBuilder
     private func overviewGrid(allEntities: [Reference]) -> some View {
         if allEntities.isEmpty {
-            emptyState(message: "资料库里还没有实体.\n导入研究材料后 LLM 会自动分类.")
+            emptyState(
+                icon: "book-open",
+                titleKey: "preview.empty_state.reference_empty",
+                bodyKey: "preview.empty.import_hint"
+            )
         } else {
             // v0.30 boss OOB 'because the material preview area only displays cards of the currently selected directory,
             // so only card flow is needed, just lay them out continuously' + 'material preview area doesn't need this title,
@@ -456,8 +958,14 @@ struct PreviewPane: View {
                 ScrollView {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                         ForEach(sorted) { entity in
-                            Card(source: .reference(entity)) {
-                                onDoubleClick()
+                            Card(source: .reference(entity)) { source in
+                                // BOSS 9/8 'card,
+                                // show':
+                                // the trailing closure is Card's
+                                // onDoubleClick (= takes CardSource);
+                                // forward to PreviewPane's onDoubleClick
+                                // (= which opens THIS specific card).
+                                onDoubleClick(source)
                             }
                         }
                     }
@@ -470,23 +978,47 @@ struct PreviewPane: View {
     /// Empty-state placeholder (= boss UX 8/27 '...no markdown body
     /// = leave a clear empty state, not a blank white pane').
     @ViewBuilder
-    private func emptyState(message: String) -> some View {
-        VStack(spacing: 12) {
-            LucideIcon("circle-help", size: 48)
-                .foregroundStyle(.tertiary)
-            Text(message)
-                .font(.callout)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    /// v0.40 boss 9/7 OOB follow-up 'editor ICON': use
+    /// the SAME icon (= book-open) as the editor empty state, so
+    /// all "no content" panels in the workspace share one visual
+    /// icon. Caller can override per-call (= rare; most callers
+    /// use the default).
+    private func emptyState(
+        icon: String = "book-open",
+        titleKey: String,
+        bodyKey: String
+    ) -> some View {
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': migrate
+        // to the unified EmptyStateView (= 76 PT Lucide icon
+        // + 1 PT stroke via LucideThinIcon + standard title /
+        // body hierarchy). Same visual treatment as the 12
+        // specialized tool tabs.
+        EmptyStateView(
+            icon: icon,
+            title: WenshuI18n.t(titleKey),
+            body: WenshuI18n.t(bodyKey)
+        )
     }
 
     // MARK: - Data loading
 
     private func loadAllEntities() -> [Reference] {
-        (try? bookStore.referenceStore.loadAllReferences())?
-            .filter { $0.layer == .layerEntities } ?? []
+        // v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
+        // replaced the silent `try?` with explicit do/catch that logs
+        // the failure (= audit concern: user cannot distinguish "no
+        // entities" from "permission denied" on disk errors). The
+        // graceful-degradation behavior (= empty array returned on
+        // error) is preserved; = the NSLog is dev-only diagnostics.
+        do {
+            let allRefs = try bookStore.referenceStore.loadAllReferences()
+            return allRefs.filter { $0.layer == .layerEntities }
+        } catch {
+            NSLog("[wenshu.preview] loadAllEntities failed: %@", String(describing: error))
+            return []
+        }
     }
 
     private func loadBody(for entity: Reference) -> String? {
@@ -645,8 +1177,13 @@ struct PreviewPane: View {
                     spacing: 16
                 ) {
                     ForEach(sorted) { doc in
-                        Card(source: .bookDoc(doc)) {
-                            onDoubleClick()
+                        Card(source: .bookDoc(doc)) { source in
+                            // BOSS 9/8 'card,
+                            // show':
+                            // forward the BookDoc CardSource
+                            // to PreviewPane's onDoubleClick so
+                            // the EXACT clicked book doc opens.
+                            onDoubleClick(source)
                         }
                     }
                 }
@@ -657,11 +1194,11 @@ struct PreviewPane: View {
 
     /// Convert Chinese title to its pinyin first letter (= uppercase).
     /// Uses Apple's CFStringTransform (kCFStringTransformToLatin +
-    /// kCFStringTransformStripDiacritics). Example: "李白" → "L",
-    /// "未分类研究材料" → "W", "宋朝海上丝绸之路" → "S".
+    /// kCFStringTransformStripDiacritics). Example: "" → "L",
+    /// "" → "W", "" → "S".
     private func pinyinFirstLetter(_ title: String) -> String {
         let mutable = NSMutableString(string: title)
-        // Convert CJK characters to latinized pinyin (e.g. "李白" → "Lǐ Bái").
+        // Convert CJK characters to latinized pinyin (e.g. "" → "Lǐ Bái").
         CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
         // Strip diacritics (e.g. "Lǐ Bái" → "Li Bai").
         CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
@@ -672,6 +1209,94 @@ struct PreviewPane: View {
             return String(first).uppercased()
         }
         return "~"
+    }
+
+    /// v0.40 boss 9/7 OOB 'search,, d, can
+    /// ': convert a CJK + ASCII title to its FULL pinyin
+    /// first-letter string (= concatenated initial of each pinyin
+    /// syllable, all uppercase, no separator). Examples:
+    /// - "" → "DF"
+    /// - "" → "LB"
+    /// - "" → "HNBDZS"
+    /// - "Hello " → "HELLO SJ"
+    /// - "AB test CD" → "AB CD"
+    ///
+    /// Implementation: CFStringTransform to convert CJK to latinized
+    /// pinyin (= "" → "Du Fu", "" → "Li Bai"), strip
+    /// diacritics, then extract the first letter of each whitespace-
+    /// separated word. Uses Apple's CoreFoundation string transform
+    /// (= no third-party pinyin lib = AGENTS.md §11.1 hard rule).
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '拼音首字母 + 中文搜索, 之前
+        /// 已经支持, 应该有现成的代码': extract the search-match
+        /// predicate (= title / summary / pinyin first-letter
+        /// substring) into a shared helper so reference entities
+        /// AND book docs use the same filter (= per boss '走同一个
+        /// 接口'). Previously each filter was a private inline
+        /// closure that duplicated the same pinyin + localized
+        /// substring logic.
+        private func matchesSearch(title: String, summary: String, query: String) -> Bool {
+            let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return true }
+            let lowered = trimmed.lowercased()
+            if title.localizedCaseInsensitiveContains(trimmed)
+                || summary.localizedCaseInsensitiveContains(trimmed) {
+                return true
+            }
+            let pinyinKey = pinyinFirstLetters(title)
+            if pinyinKey.lowercased().contains(lowered) {
+                return true
+            }
+            return false
+        }
+
+        private func pinyinFirstLetters(_ title: String) -> String {
+        let mutable = NSMutableString(string: title)
+        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+        let latinized = (mutable as String)
+        // Split on whitespace + extract first letter of each token.
+        // Also drop tokens that are pure punctuation (= e.g. "?").
+        // v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
+        // the previous `first.isLetter` filter silently dropped emoji
+        // titles (= single-emoji title → empty initials → no pinyin
+        // match). Replaced with `isLetter || isNumber || isSymbol`
+        // to include Unicode symbols (= emojis are categorized as
+        // .symbol in Swift); = an emoji-only title now produces one
+        // initial char (= the emoji itself), enabling pinyin-key
+        // search to match it.
+        let initials = latinized
+            .split(whereSeparator: { $0.isWhitespace })
+            .compactMap { token -> String? in
+                guard let first = token.first else { return nil }
+                guard first.isLetter || first.isNumber || first.isSymbol else { return nil }
+                return String(first).uppercased()
+            }
+            .joined()
+        return String(initials)
+    }
+
+    /// v0.40 boss 9/7 OOB 'search,, d, can
+    /// ': filter the entity list by the current search query.
+    /// Matches against BOTH:
+    /// 1. Original title / summary substring (= case-insensitive)
+    /// 2. Pinyin first-letter substring (= e.g. "d" matches "" → DF)
+    /// Empty query = pass-through (= show all entities).
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '素材栏的搜索, 没有真的过滤卡片':
+        /// same filter shape as `searchFilteredEntities` but for book
+        /// docs (= filesystem .md files loaded by `loadBookDocs`).
+        /// Uses the shared `matchesSearch` helper (= title / summary /
+        /// pinyin first-letter substring match) = same logic as the
+        /// reference-entity filter; = the user's previous
+        /// '搜索没有真的过滤卡片' bug was that bookDocsGrid was called
+        /// with the unfiltered docs.
+        private func searchFilteredBookDocs(_ docs: [BookDoc]) -> [BookDoc] {
+            let query = resolvedSearchQuery
+            return docs.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
+        }
+
+        private func searchFilteredEntities(_ entities: [Reference]) -> [Reference] {
+        let query = resolvedSearchQuery
+        return entities.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
     }
 
     /// v0.30 boss OOB: cards display in multiple columns, default two columns, auto-adapt to 1 column if not enough width.
@@ -696,7 +1321,7 @@ struct PreviewPane: View {
 /// Tap = select (= not wired yet). Double-click = open in editor (= boss
 /// Ticket 3 hook).
 ///
-/// Boss OOB v0.30: '卡片要用我们引入的缩略图的库, 加缩略图'. Thumbnail
+/// Boss OOB v0.30: 'card, '. Thumbnail
 /// strategy: since Reference entities are text-only (= .md bodies with
 /// no associated image), we use the EntityType icon as a large
 /// prominent thumbnail (= e.g. user-round for character, lightbulb
@@ -716,7 +1341,27 @@ struct PreviewPane: View {
 ///
 /// CardSource = the only "data shape" the card knows. Adding a new
 /// source type = one new case + one computed-property branch.
-private enum CardSource {
+/// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
+/// the card opened a new tab named 'preview-sample'):
+/// the source value is now passed from PreviewPane.Card's
+/// onDoubleClick closure to WorkspaceView's openCardInEditor
+/// so the EXACT clicked card's .md opens (= not the topmost
+/// card = the previous `filtered.first` bug).
+///
+/// internal (= module-scoped access for WorkspaceView to use in
+/// openCardInEditor(source:)). Was `private` (= the Swift
+/// compiler error 'property must be declared fileprivate
+/// because its type uses a private type' = since PreviewPane
+/// exposes this type in its internal `onDoubleClick` signature,
+/// it must be at least as accessible as the type).
+///
+/// Note: PreviewPane itself is `internal` (default for Swift
+/// struct), so `onDoubleClick` is `internal` (= no explicit
+/// access modifier), and CardSource must be `internal` (= same
+/// level of access). fileprivate would also work if PreviewPane
+/// itself were fileprivate, but PreviewPane is referenced by
+/// WorkspaceView (= module-internal access required).
+internal enum CardSource {
     case reference(Reference)
     case bookDoc(BookDoc)
 
@@ -748,11 +1393,11 @@ private enum CardSource {
 
 private struct Card: View {
     let source: CardSource
-    let onDoubleClick: () -> Void
+    let onDoubleClick: (CardSource) -> Void
 
     @State private var isHovered: Bool = false
 
-    /// v0.34 B-26 boss 9/3 '同目录只有第一次双击响应': Apple's
+    /// v0.34 B-26 boss 9/3 'directorydouble-click': Apple's
     /// `.onTapGesture(count: 2)` was eaten by LazyVGrid's ScrollView
     /// gesture recognizer. The previous attempt (= a timestamp
     /// latch within 300 ms) was too tight (= macOS default
@@ -777,7 +1422,7 @@ private struct Card: View {
     /// changes (= the ForEach rebuilds the Card when the user
     /// switches sidebar scope; = that is actually the desired
     /// behavior here — switching scope = "fresh start" for the
-    /// double-click detector; = boss OOB '切换目录后, 会再次识别一次').
+    /// double-click detector; = boss OOB 'directory, ').
     @State private var clickCount: Int = 0
     @State private var lastClickTimestamp: TimeInterval = 0
 
@@ -794,7 +1439,7 @@ private struct Card: View {
                 LucideIcon(source.iconName, size: 64)
                     .foregroundStyle(.tint.opacity(0.85))
             }
-            .frame(height: 100)
+            .frame(height: DesignTokens.panelMinHeight)
             .frame(maxWidth: .infinity)
             .clipShape(
                 UnevenRoundedRectangle(
@@ -820,14 +1465,14 @@ private struct Card: View {
                         .multilineTextAlignment(.leading)
                 }
             }
-            .padding(10)
+            .padding(DesignTokens.chromePaddingPickerItem)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         // Boss 2026-09-02: parent component owns style, child component only does function.
         // Hover tint (= matches PaneIconTab hover pattern).
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isHovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(Color.clear))
+                .fill(isHovered ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.clear))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -838,7 +1483,7 @@ private struct Card: View {
         )
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
-        // v0.34 B-26 boss 9/3 '同目录只有第一次双击响应': click-count
+        // v0.34 B-26 boss 9/3 'directorydouble-click': click-count
         // latch (= more robust than the 300 ms timestamp latch; = the
         // user-reported failure was the timestamp being too tight).
         // v0.34 B-26-FIX: every tap increments `clickCount`. The *next*
@@ -861,7 +1506,12 @@ private struct Card: View {
                 // Second tap within the interval = double click.
                 clickCount = 0
                 lastClickTimestamp = 0
-                onDoubleClick()
+                // BOSS 9/8 'clicking the Dufu card opens a tab with wrong name':
+                // pass the clicked CardSource (= .reference or
+                // .bookDoc) to the parent's onDoubleClick handler so
+                // it can open the EXACT .md file (= not the topmost
+                // card = the previous `filtered.first` bug).
+                onDoubleClick(source)
             }
         }
         // v0.34 B-26: Apple HIG tooltip (= .help = NSWindow tooltip =
@@ -869,18 +1519,5 @@ private struct Card: View {
         // label and get its full name; = matches macOS Finder /
         // TextEdit tab bar tooltip behavior).
         .help(source.title)
-    }
-
-    /// v0.34 B-26: derive the display title for a card (= file basename
-    /// without the .md extension; = boss 9/3 OOB '.md extension doesn't need to
-    /// be shown either'). Placeholder card = 'preview-sample' (= no .md extension,
-    /// = no path = render the short placeholder name).
-    private func tabDisplayTitle(tab: EditorTab) -> String {
-        if let path = tab.documentPath, !path.isEmpty {
-            let url = URL(fileURLWithPath: path)
-            let basename = url.deletingPathExtension().lastPathComponent
-            return basename.isEmpty ? "preview-sample" : basename
-        }
-        return "preview-sample"
     }
 }

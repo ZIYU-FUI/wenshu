@@ -17,9 +17,13 @@
 // - Sources/WenshuApp/Core/Provider/ProviderProfileExt.swift (this file,
 //   ~300 LOC) = optional extension to the existing Provider struct that
 //   carries the hermes-side declarative fields. Pure data; no behavior.
-// - Sources/WenshuApp/Core/Provider/ModelMetadata.swift (~120 LOC) =
-//   per-model metadata struct (= hermes model_metadata.py ports the
+// - Sources/WenshuApp/Core/Agent/Connector/ModelMetadata.swift (~330 LOC)
+//   = per-model metadata struct (= hermes model_metadata.py ports the
 //   subset relevant to wenshu's v1 minimax-cn-only deployment).
+//   Note: actual path is Core/Agent/Connector/, not Core/Provider/
+//   (= v0.28 spec header described a planned-but-never-created
+//   Provider/ModelMetadata.swift; the real file is in the Connector
+//   namespace = hermes-port placement per §11.3).
 // - Tests/WenshuAppTests/Core/Provider/ProviderProfileExtTests.swift
 //   (~80 LOC, 10 tests covering the extension surface).
 //

@@ -65,6 +65,26 @@ public struct TurnContext: Sendable, Equatable {
         self.builtAt = builtAt
         self.resetCounters = resetCounters
     }
+
+    /// Manual `Equatable` implementation (= ticket 001 Z contract test
+    /// `TurnContext: Equatable`): two contexts with the same content
+    /// fields are equal, regardless of their `builtAt` timestamp (= a
+    /// wall-clock captured at construction that always differs between
+    /// two freshly-constructed instances = nanoseconds apart). Tests
+    /// assert that two contexts with identical task + user + history
+    /// are equal for diffing purposes; the creation time is
+    /// observability metadata, not identity. Mirrors the manual
+    /// `Equatable` pattern on `DisplayStateMachine` and `ContextBreakdown`.
+    public static func == (lhs: TurnContext, rhs: TurnContext) -> Bool {
+        return lhs.taskId == rhs.taskId
+            && lhs.userMessage == rhs.userMessage
+            && lhs.systemMessage == rhs.systemMessage
+            && lhs.conversationHistory == rhs.conversationHistory
+            && lhs.model == rhs.model
+            && lhs.maxTokens == rhs.maxTokens
+            && lhs.attemptNumber == rhs.attemptNumber
+            && lhs.resetCounters == rhs.resetCounters
+    }
 }
 
 /// Per-turn setup driver. Performs the once-per-turn side effects

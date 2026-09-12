@@ -83,49 +83,18 @@ struct LongFormGuardrailsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             if activeBookId == nil {
                 emptyState
             } else {
                 contentBody
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(DesignTokens.chromePaddingMedium)
         .task(id: activeBookId) {
             await reload()
         }
         .sheet(isPresented: $showAddSheet) {
             addSheet
-        }
-    }
-
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("shield-check", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Long-Form Guardrails")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch loadingState {
-        case .idle:        return "Loading…"
-        case .loading:     return "Loading guardrails…"
-        case .loaded:      return "\(guardrails.count) guardrails (= \(autoDerivedCount) auto / \(userCount) user)"
-        case .failed(let reason):
-            return "Failed: \(reason)"
         }
     }
 
@@ -140,16 +109,21 @@ struct LongFormGuardrailsView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("No book selected")
-                .font(.title3)
-                .foregroundStyle(.primary)
-            Text("Open a book to manage its long-form guardrails. The 6 auto-derived guardrails (= constraint / continuity / self-proof / persona / character-arc / world-consistency) will be created on first open.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "shield-check",
+            title: WenshuI18n.t("b5.longformguardrailsview.l144.h89220000"),
+            body: WenshuI18n.t("b5.longformguardrailsview.l147.h53334640")
+        )
     }
+
 
     // MARK: - Content body
 
@@ -172,18 +146,18 @@ struct LongFormGuardrailsView: View {
             Button {
                 Task { await autoDerive() }
             } label: {
-                Label("Auto-derive", systemImage: "wand.and.stars")
+                Label { Text(WenshuI18n.t("b5.longformguardrailsview.l175.h64020782")) } icon: { LucideIcon("wand-sparkles", size: 16) }
             }
             .buttonStyle(.bordered)
-            .help("Replace the guardrail set with the 6 auto-derived rows (= constraint / continuity / self-proof / persona / character-arc / world-consistency).")
+            .help(WenshuI18n.t("b5.longformguardrailsview.l178.h38811731"))
 
             Button {
                 showAddSheet = true
             } label: {
-                Label(WenshuI18n.t("button.add"), systemImage: "plus")
+                Label { Text(WenshuI18n.t("button.add")) } icon: { LucideIcon("plus", size: 16) }
             }
             .buttonStyle(.borderedProminent)
-            .help("Add a user-authored guardrail row.")
+            .help(WenshuI18n.t("b5.longformguardrailsview.l186.h97888008"))
 
             Spacer(minLength: 0)
         }
@@ -195,7 +169,7 @@ struct LongFormGuardrailsView: View {
                 guardrailRow(row)
             }
             if guardrails.isEmpty {
-                Text("No guardrails yet. Tap Auto-derive to seed the 6 defaults, or Add to create a custom row.")
+                Text(WenshuI18n.t("b5.longformguardrailsview.l198.h9169095"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -213,15 +187,12 @@ struct LongFormGuardrailsView: View {
                         .font(.callout)
                         .foregroundStyle(.primary)
                     if row.isAutoDerived {
-                        Text("auto")
+                        Text(WenshuI18n.t("b5.longformguardrailsview.l216.h73542843"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                            )
+                            .padding(.horizontal, DesignTokens.chromePaddingMicro)
+                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            
                     }
                 }
                 Text(row.description)
@@ -238,23 +209,20 @@ struct LongFormGuardrailsView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Remove this guardrail.")
+            .help(WenshuI18n.t("b5.longformguardrailsview.l241.h76114491"))
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary)
-        )
+        
     }
 
     private func enforcementBadge(_ level: LongFormGuardrailEnforcement) -> some View {
         Text(level.rawValue)
             .font(.caption2)
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
+            .padding(.horizontal, DesignTokens.chromePaddingSmall)
+            .padding(.vertical, DesignTokens.chromePaddingPico)
             .background(
                 RoundedRectangle(cornerRadius: 3)
                     .fill(badgeColor(for: level))
@@ -263,9 +231,9 @@ struct LongFormGuardrailsView: View {
 
     private func badgeColor(for level: LongFormGuardrailEnforcement) -> Color {
         switch level {
-        case .strict: return Color(nsColor: .systemRed).opacity(0.18)
-        case .warn:   return Color(nsColor: .systemOrange).opacity(0.18)
-        case .off:    return Color(nsColor: .systemGray).opacity(0.18)
+        case .strict: return Color.red.opacity(0.18)
+        case .warn:   return Color.orange.opacity(0.18)
+        case .off:    return Color.gray.opacity(0.18)
         }
     }
 
@@ -274,7 +242,7 @@ struct LongFormGuardrailsView: View {
     private var checkSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text("Run check")
+                Text(WenshuI18n.t("b5.longformguardrailsview.l277.h87864753"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
@@ -283,20 +251,17 @@ struct LongFormGuardrailsView: View {
             TextEditor(text: $checkText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 120)
-                .padding(6)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(.quaternary)
-                )
+                .padding(DesignTokens.chromePaddingSmall)
+                
             HStack(spacing: 8) {
                 Button {
                     Task { await runCheck() }
                 } label: {
-                    Label("Run check", systemImage: "play")
+                    Label { Text(WenshuI18n.t("b5.longformguardrailsview.l295.h18206542")) } icon: { LucideIcon("play", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(checkText.isEmpty || guardrails.isEmpty)
-                .help("Evaluate the text above against all active guardrails.")
+                .help(WenshuI18n.t("b5.longformguardrailsview.l299.h65143897"))
                 Spacer(minLength: 0)
             }
         }
@@ -308,20 +273,20 @@ struct LongFormGuardrailsView: View {
             case .idle:
                 EmptyView()
             case .running:
-                Text("Running…")
+                Text(WenshuI18n.t("b5.longformguardrailsview.l311.h19133696"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             case .done(let count, let hasCritical):
                 Text(hasCritical ? "\(count) violations (= critical)" : "\(count) violations")
                     .font(.caption)
-                    .foregroundStyle(hasCritical ? Color(nsColor: .systemRed) : .secondary)
+                    .foregroundStyle(hasCritical ? Color.red : .secondary)
             }
         }
     }
 
     private var violationsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Violations")
+            Text(WenshuI18n.t("b5.longformguardrailsview.l324.h5287930"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ForEach(Array(lastViolations.enumerated()), id: \.offset) { _, v in
@@ -334,19 +299,16 @@ struct LongFormGuardrailsView: View {
                         .foregroundStyle(.primary)
                     Spacer(minLength: 0)
                     if let line = v.lineNumber {
-                        Text("L\(line)")
+                        Text(WenshuI18n.t("b5.longformguardrailsview.l337.h13219410"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
                 }
             }
         }
-        .padding(8)
+        .padding(DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary)
-        )
+        
     }
 
     private func severityGlyph(_ s: LongFormGuardrailViolation.Severity) -> String {
@@ -359,8 +321,8 @@ struct LongFormGuardrailsView: View {
 
     private func severityColor(_ s: LongFormGuardrailViolation.Severity) -> Color {
         switch s {
-        case .critical: return Color(nsColor: .systemRed)
-        case .warning:  return Color(nsColor: .systemOrange)
+        case .critical: return Color.red
+        case .warning:  return Color.orange
         case .info:     return .secondary
         }
     }
@@ -368,36 +330,43 @@ struct LongFormGuardrailsView: View {
     // MARK: - Add sheet
 
     private var addSheet: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Add guardrail")
-                .font(.title3)
-                .foregroundStyle(.primary)
-            Form {
-                Picker("Kind", selection: $draftKind) {
-                    ForEach(LongFormGuardrailKind.allCases, id: \.self) { kind in
-                        Text(kind.displayName).tag(kind)
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                Form {
+                    Picker("Kind", selection: $draftKind) {
+                        ForEach(LongFormGuardrailKind.allCases, id: \.self) { kind in
+                            Text(kind.displayName).tag(kind)
+                        }
                     }
-                }
-                Picker("Enforcement", selection: $draftEnforcement) {
-                    ForEach(LongFormGuardrailEnforcement.allCases, id: \.self) { level in
-                        Text(level.rawValue).tag(level)
+                    Picker("Enforcement", selection: $draftEnforcement) {
+                        ForEach(LongFormGuardrailEnforcement.allCases, id: \.self) { level in
+                            Text(level.rawValue).tag(level)
+                        }
                     }
+                    TextField(WenshuI18n.t("b5.longformguardrailsview.l384.h26664612"), text: $draftName)
+                    TextField(WenshuI18n.t("b5.longformguardrailsview.l385.h2063"), text: $draftDescription, axis: .vertical)
+                        .lineLimit(3...6)
                 }
-                TextField("Name", text: $draftName)
-                TextField("Description", text: $draftDescription, axis: .vertical)
-                    .lineLimit(3...6)
             }
-            HStack {
-                Spacer(minLength: 0)
-                Button("Cancel") { showAddSheet = false }
-                    .buttonStyle(.bordered)
-                Button("Save") { Task { await saveDraft() } }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(draftName.trimmingCharacters(in: .whitespaces).isEmpty)
+            .padding(DesignTokens.chromePaddingLarge)
+            .frame(width: DesignTokens.guardrailSheetWidth)
+            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // .toolbar (= Apple HIG standard for sheet title bar +
+            // action buttons). The inline Text(\"Add guardrail\") +
+            // Cancel/Save buttons were removed; the title moves to
+            // .navigationTitle and Cancel/Save move to .toolbar
+            // (= Apple canonical pattern for sheet chrome).
+            .navigationTitle(WenshuI18n.t("guardrail.add.title"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(WenshuI18n.t("b5.longformguardrailsview.l400.h71046230")) { showAddSheet = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(WenshuI18n.t("b5.longformguardrailsview.l403.h11223252")) { Task { await saveDraft() } }
+                        .disabled(draftName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
             }
         }
-        .padding(16)
-        .frame(width: 360)
         // POLISH-LIQUIDGLASS-004: Add-guardrail modal sheet root uses
         // Apple .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass;
         // same shape as POLISH-LIQUIDGLASS-001/002/003 that glassed

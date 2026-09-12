@@ -1,12 +1,12 @@
 //
-//  ChatViewModelDefaultModelTests.swift · Wenshu · v0.24 boss验收
+// ChatViewModelDefaultModelTests.swift · Wenshu · v0.24 bossverification
 //
-//  Boss 2026-08-24 反馈: 没配任何 key 时, 左下 model picker 不应默认显示
-//  'MiniMax M3', 应显示 '无模型可用' placeholder.
+// Boss 2026-08-24: key, model picker defaultshow
+// 'MiniMax M3', show ' placeholder.
 //
 //  Boss commit c83a131b2 fixed App.swift line 219 (SettingView.llmModel default),
 //  line 1278 (ChatZoneView.currentModel default), line 1346 (model menu text
-//  "无模型可用" when currentModel empty), line 1358 (fallback section skip
+// "" when currentModel empty), line 1358 (fallback section skip
 //  if empty). But ChatView.swift line 72 (ChatViewModel.currentModel default)
 //  and line 149 (send() fallback) were claimed but not actually fixed
 //  (commit message has doc drift).
@@ -14,7 +14,7 @@
 //  These tests verify the EXPECTED behavior across all 4 locations:
 //  - App.swift SettingView.llmModel = "" (default)
 //  - App.swift ChatZoneView.currentModel = "" (default)
-//  - App.swift ChatZoneView Menu Text shows "无模型可用" when empty
+// - App.swift ChatZoneView Menu Text shows "" when empty
 //  - ChatView.swift ChatViewModel.currentModel = "" (default) — NOT YET FIXED
 //  - ChatView.swift ChatViewModel.send() fallback = "" (default) — NOT YET FIXED
 //
@@ -37,7 +37,7 @@ struct ChatViewModelDefaultModelTests {
 
     // MARK: - App.swift (boss's v0.24 fix — verified)
 
-    @Test("App.swift SettingView.llmModel default = '' when no UserDefaults")
+    @Test("SettingView.swift llmModel default = '' when no UserDefaults")
     func testAppSettingViewDefault() async {
         clearModelDefaults()
         // @AppStorage default is read at runtime — we can't easily construct a
@@ -46,33 +46,35 @@ struct ChatViewModelDefaultModelTests {
         let saved = UserDefaults.standard.string(forKey: "wenshu.llm.model")
         #expect(saved == nil, "UserDefaults 'wenshu.llm.model' should be unset (clean test)")
 
-        // The fix is at App.swift:222: @AppStorage default = "" (not WenshuLLMModel.m3.rawValue)
-        // Source code verification (file:line check):
-        let appSwiftURL = URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/App.swift")
-        let appSwift = try? String(contentsOf: appSwiftURL, encoding: .utf8)
-        #expect(appSwift != nil, "App.swift must be readable")
-        // v0.24 boss验收fix line: 222 in App.swift has @AppStorage("wenshu.llm.model") default = "" (NOT WenshuLLMModel.m3.rawValue).
-        let hasEmptyDefault = appSwift!.contains("@AppStorage(\"wenshu.llm.model\") private var llmModel: String = \"\"")
-        #expect(hasEmptyDefault, "App.swift SettingView.llmModel default must be '' (v0.24 boss fix)")
+        // The fix is at SettingView.swift: @AppStorage default = "" (not WenshuLLMModel.m3.rawValue)
+        // v0.40 apple-001 phase 3 ticket 5: this property moved from App.swift to SettingView.swift.
+        let settingViewURL = URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Settings/SettingView.swift")
+        let settingView = try? String(contentsOf: settingViewURL, encoding: .utf8)
+        #expect(settingView != nil, "SettingView.swift must be readable")
+        // v0.24 bossverificationfix line: SettingView.swift has @AppStorage("wenshu.llm.model") default = "" (NOT WenshuLLMModel.m3.rawValue).
+        let hasEmptyDefault = settingView!.contains("@AppStorage(\"wenshu.llm.model\") private var llmModel: String = \"\"")
+        #expect(hasEmptyDefault, "SettingView.swift llmModel default must be '' (v0.24 boss fix)")
     }
 
-    @Test("App.swift ChatZoneView.currentModel default = '' when no UserDefaults")
+    @Test("ChatZoneView.swift currentModel default = '' when no UserDefaults")
     func testAppChatZoneDefault() async {
         clearModelDefaults()
-        let appSwift = try? String(contentsOf: URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/App.swift"), encoding: .utf8)
-        #expect(appSwift != nil)
+        let chatZoneView = try? String(contentsOf: URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Chat/ChatZoneView.swift"), encoding: .utf8)
+        #expect(chatZoneView != nil)
         // v0.24 boss fix: line 1281: @AppStorage default = "" (NOT WenshuLLMModel.m3.rawValue).
-        let hasEmptyDefault = appSwift!.contains("@AppStorage(\"wenshu.llm.model\") private var currentModel: String = \"\"")
-        #expect(hasEmptyDefault, "App.swift ChatZoneView.currentModel default must be '' (v0.24 boss fix)")
+        // v0.40 apple-001 phase 3 ticket 4b: this property moved from App.swift to ChatZoneView.swift.
+        let hasEmptyDefault = chatZoneView!.contains("@AppStorage(\"wenshu.llm.model\") private var currentModel: String = \"\"")
+        #expect(hasEmptyDefault, "ChatZoneView.swift currentModel default must be '' (v0.24 boss fix)")
     }
 
-    @Test("App.swift model menu text shows '无模型可用' when currentModel empty")
+    @Test("ChatZoneView.swift model menu text shows '无模型可用' when currentModel empty")
     func testAppMenuTextPlaceholder() async {
-        let appSwift = try? String(contentsOf: URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/App.swift"), encoding: .utf8)
-        #expect(appSwift != nil)
-        // v0.24 boss fix: line 1349: 'Text(currentModel.isEmpty ? "无模型可用" : ...)'.
-        let hasPlaceholder = appSwift!.contains("currentModel.isEmpty ? \"无模型可用\"")
-        #expect(hasPlaceholder, "App.swift model menu must show '无模型可用' when empty (v0.24 boss fix)")
+        let chatZoneView = try? String(contentsOf: URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Chat/ChatZoneView.swift"), encoding: .utf8)
+        #expect(chatZoneView != nil)
+        // v0.24 boss fix: line 1349: 'Text(currentModel.isEmpty ? "": ...)'.
+        // v0.40 apple-001 phase 3 ticket 4b: this Text moved from App.swift to ChatZoneView.swift.
+        let hasPlaceholder = chatZoneView!.contains("currentModel.isEmpty ? \"无模型可用\"")
+        #expect(hasPlaceholder, "ChatZoneView.swift model menu must show '无模型可用' when empty (v0.24 boss fix)")
     }
 
     // MARK: - ChatView.swift (boss's commit message claims — NOT YET FIXED)

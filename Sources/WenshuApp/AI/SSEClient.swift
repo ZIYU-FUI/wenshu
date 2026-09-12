@@ -1,6 +1,6 @@
-// SSEClient.swift · Wenshu (文枢) · v0.34
+// SSEClient.swift · Wenshu () · v0.34
 //
-// v0.34 boss 2026-09-02 OOB '其他工程上的机制我不太懂, 你看着定':
+// v0.34 boss 2026-09-02 OOB 'engineering, ':
 // Server-Sent Events (SSE) client for streaming LLM responses
 // (= port of Card-master `src/ai/infrastructure/responses-api-client.ts`
 // SSE parsing logic).

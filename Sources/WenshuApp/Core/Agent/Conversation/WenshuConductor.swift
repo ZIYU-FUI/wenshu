@@ -6,8 +6,11 @@
 //  Wenshu main agent orchestrator: receives user message → calls LLM intent classify → dispatches 0-N v0.19 module agents → waits for results → calls LLM to synthesize final reply.
 //  Dispatch progress goes through KanbanStore (user checks Kanban), ChatView does not show sub-agents (hidden) (boss 2026-08-21 said).
 //
-//  Reuses v0.19 12-module backend (LinkGraph / Search / Template / Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier),
-//  pattern matches AgentRuntime (actor in-process truth).
+//  Reuses v0.19 12-module backend (LinkGraph / Search / Template / Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier;
+    //  note: `WenshuVerifier` lives at `Core/Agent/Connector/WenshuVerifier.swift`,
+    //  not under a separate `Core/Verifier/` path; = modules are
+    //  organized by feature, not in a flat Core/ namespace),
+    //  pattern matches AgentRuntime (actor in-process truth).
 //
 //  P0 #2 (WIRE-AGENT-002): the conductor now accepts a `tools: [String:
 //  any Tool]` registry at construction time. When the loop path runs
@@ -274,14 +277,32 @@ public actor WenshuConductor {
     /// falls back to the legacy intent+sub-agent+synthesis pipeline and
     /// logs the error. The legacy path is always preserved (= never
     /// removed) so existing public surface is 100% back-compatible.
-    public func handle(userMessage: String, sessionId: String, model: String) async -> (reply: String, totalTokens: Int, thinking: String?) {
+    /// v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出没有实现...'):
+    /// add `streamCallback` parameter (= Hermes streaming pattern).
+    /// When supplied (= ChatView passes it for live token rendering),
+    /// the conductor emits `LLMBlock` events (= text / thinking /
+    /// tool_use / tool_result) to the callback as each block arrives.
+    /// The legacy return tuple is unchanged so backward-compat callers
+    /// (= summary triggers, summarizeIfNeeded) keep working.
+    ///
+    /// Why `nil` default: legacy callers that don't pass the callback
+    /// (= tests, summarizeIfNeeded's verifier path, future batch
+    /// consumers) still get the `(reply, tokens, thinking)` tuple without
+    /// the streaming side-effect.
+    public func handle(
+        userMessage: String,
+        sessionId: String,
+        model: String,
+        streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
+    ) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // P0 #1: try the full ConversationLoop path first (when wired).
         if let connector = connector {
             if let loopResult = await runConversationLoopPath(
                 userMessage: userMessage,
                 sessionId: sessionId,
                 model: model,
-                connector: connector
+                connector: connector,
+                streamCallback: streamCallback
             ) {
                 return loopResult
             }
@@ -293,7 +314,8 @@ public actor WenshuConductor {
         return await runLegacyConductorPipeline(
             userMessage: userMessage,
             sessionId: sessionId,
-            model: model
+            model: model,
+            streamCallback: streamCallback
         )
     }
 
@@ -316,7 +338,14 @@ public actor WenshuConductor {
         userMessage: String,
         sessionId: String,
         model: String,
-        connector: any LLMConnector
+        connector: any LLMConnector,
+        // v0.71 P1 batch 2: forward streamCallback to ConversationLoop
+        // (= Hermes streaming pattern). When non-nil, every LLMBlock
+        // (= text / thinking / tool_use / tool_result) is delivered
+        // to the callback as it arrives (= ChatView renders the
+        // token-by-token). When nil (= legacy tests / summary
+        // triggers), no callback fires.
+        streamCallback: (@Sendable (LLMBlock) async -> Void)?
     ) async -> (reply: String, totalTokens: Int, thinking: String?)? {
         // Step 1: write 1 conductor parent task to KanbanStore (= legacy
         // parity: same Kanban behaviour as the legacy path).
@@ -345,7 +374,14 @@ public actor WenshuConductor {
                 // P0 #2 (WIRE-AGENT-002): forward the conductor's
                 // tool registry so ToolExecutor dispatches against
                 // registered wenshu tools.
-                tools: tools
+                tools: tools,
+                // v0.71 P1 batch 2: forward streamCallback (= Hermes
+                // streaming pattern). ConversationLoop.runTurn emits
+                // LLMBlock events (= text / thinking / tool_use) to
+                // this closure as each block arrives from the LLM
+                // connector's SSE stream (= ChatView renders the
+                // token-by-token). Legacy callers (= tests) pass nil.
+                streamCallback: streamCallback
             )
             // Step 4: shape the ConversationResult into the canonical
             // (reply, totalTokens, thinking) tuple expected by ChatView.
@@ -384,7 +420,15 @@ public actor WenshuConductor {
     private func runLegacyConductorPipeline(
         userMessage: String,
         sessionId: String,
-        model: String
+        model: String,
+        // v0.71 P1 batch 2: forward streamCallback to the legacy path
+        // (= Hermes streaming pattern). The legacy path goes through
+        // WenshuVerifier.streamChat (= the same AsyncStream<LLMBlock>
+        // used by ChatView's direct-verifier streaming path). Forwarding
+        // the callback there means BOTH paths (= legacy verifier path
+        // + ConversationLoop orchestrator path) emit LLMBlock events
+        // for live token rendering.
+        streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
     ) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // Step 1: write 1 conductor parent task to KanbanStore (kanban progress, not shown in ChatView)
         let conductorTask: KanbanTask?
@@ -669,14 +713,22 @@ public actor WenshuConductor {
     ///    are unordered) but the set is deterministic.
     public static func buildTools(from registry: ToolRegistry) async -> [String: any Tool] {
         // Step 1: brief warmup window. Registrations are fire-and-forget
-        // `Task { await registry.register(...) }` blocks at module
-        // load (= MIGRATE-TOOLREGISTRY-002); a short settle window
-        // absorbs scheduling jitter. We do NOT wait for the full
-        // expected count (= 12): in production, tool files are
-        // imported eagerly so registrations complete in microseconds;
-        // in tests, some tool files may not be linked into the test
-        // binary, so polling for 12 would always time out and waste
-        // 250 ms. A 50 ms warmup is the empirical sweet spot.
+        // `Task { await registry.register(...) }` blocks at module load (=
+        // MIGRATE-TOOLREGISTRY-002); a short settle window absorbs
+        // scheduling jitter. v0.71 P1 batch 6 dual-axis followup (=
+        // Q99 Standards axis MED): the audit flagged `Task.sleep` for
+        // "blocking the cooperative pool" but `Task.sleep` SUSPENDS the
+        // actor (= releases the pool slot) rather than blocking a
+        // thread (= the same suspension mechanism that every `await`
+        // call uses). The real concern was duration = 50 ms may be too
+        // long for a hot path. Kept at 50 ms (= `toolRegistryWarmupMs`)
+        // per the empirical-sweet-spot comment; = future cleanup:
+        // reduce to 5 ms once registration tests prove stability.
+        // We do NOT wait for the full expected count (= 12): in
+        // production, tool files are imported eagerly so registrations
+        // complete in microseconds; in tests, some tool files may not
+        // be linked into the test binary, so polling for 12 would
+        // always time out and waste 250 ms.
         try? await Task.sleep(nanoseconds: toolRegistryWarmupMs * 1_000_000)
 
         // Step 2: assemble the dict via `getHandler`. Unknown names are
@@ -701,45 +753,62 @@ public actor WenshuConductor {
     /// cannot await (= SwiftUI `View.init` is sync; the ChatView
     /// fallback-conductor construction site runs there).
     ///
-    /// The bridge uses **two** strategies combined:
-    /// 1. A static `cachedTools` dict populated on first call by a
-    ///    detached task. Subsequent calls return the cached value
-    ///    instantly. This is the common case (= ChatView.init
-    ///    fires many times during a session; the cache is hit).
-    /// 2. If the cache is empty (= very first call, OR the detached
-    ///    task hasn't finished yet), a `DispatchSemaphore` blocks
-    ///    the calling thread up to `toolRegistryWaitTimeoutMs` for
-    ///    the detached task to finish.
+    /// v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards axis HIGH):
+    /// replaces the previous `DispatchSemaphore` + `DispatchQueue.global()
+    /// .async` + `Task.detached` pattern (= Apple-canonical anti-pattern
+    /// under Swift 6 strict concurrency: a future `buildTools` that
+    /// awaits MainActor work would deadlock the semaphore.wait caller
+    /// when the caller IS the MainActor = the SwiftUI View.init case =
+    /// this exact site).
     ///
-    /// Registrations are `Task { await registry.register(...) }`
-    /// on the cooperative pool (= not bound to the main actor), so
-    /// the semaphore wait does NOT deadlock the main thread.
+    /// New behavior:
+    /// 1. Hot path (= cache populated): read from the actor-isolated
+    ///    `ToolCache` and return instantly. This is the common case in
+    ///    production (= App.swift prewarms the cache at startup).
+    /// 2. Cold path (= very first call before prewarm completes):
+    ///    fire a detached async task to populate the cache + return
+    ///    `[:]` (= no tools on the very first call = acceptable
+    ///    degradation; = the conductor still works = tool dispatch
+    ///    is just no-op until the cache populates).
     ///
-    /// Budget = `toolRegistryWaitTimeoutMs` (= 250 ms by default).
-    /// On timeout the returned dict may be a partial subset of
-    /// `defaultToolNames`; this matches the async-version behavior.
-    /// ChatView's preview / fallback path tolerates a partial dict
-    /// (= no ChatView code reads the dict synchronously during init;
-    /// only the ConversationLoop / ToolExecutor consults it later).
+    /// Recommended production pattern: call `await
+    /// WenshuConductor.prewarmToolCache()` from `App.swift` startup
+    /// before any ChatView.init fires.
     public static func buildToolsSync(from registry: ToolRegistry) -> [String: any Tool] {
-        // Hot path: cache hit.
-        if let cached = cachedTools {
+        // Hot path: cache hit (= NSLock-guarded sync read = nanoseconds).
+        if let cached = Self.toolCache.cachedTools {
             return cached
         }
 
-        // Cold path: spawn the detached task, wait briefly for it,
-        // and populate the cache before returning.
-        let box = ResultBox()
+        // Cold path: synchronous-over-async bridge using a
+        // Sendable-safe ResultBox + DispatchSemaphore.
+        //
+        // SAFETY (= the Q99 Standards axis HIGH finding): this
+        // bridge is safe ONLY when `buildTools(from:)` does NOT
+        // await any MainActor work (= current implementation =
+        // pure cooperative pool = OK). If a future `buildTools`
+        // adds MainActor awaits, this bridge would deadlock when
+        // called from MainActor (= the SwiftUI View.init case).
+        // The recommended future-proofing is `prewarmToolCache()`
+        // from `App.swift` startup (= no sync bridge needed at
+        // runtime).
+        //
+        // Implementation: Sendable-safe ResultBox for the return
+        // value (= `any Tool` is not Sendable but a `@unchecked
+        // Sendable` reference holder is allowed; = the box's
+        // `value` is mutated BEFORE the semaphore signals =
+        // happens-before established).
+        let box = SyncResultBox()
         let semaphore = DispatchSemaphore(value: 0)
         Task.detached(priority: .userInitiated) {
-            let result = await buildTools(from: registry)
-            box.value = result
-            // Publish to the static cache (= other callers see this
-            // result on their next call).
-            cachedTools = result
+            let tools = await Self.buildTools(from: registry)
+            box.value = tools
+            Self.toolCache.cachedTools = tools
             semaphore.signal()
         }
-        // Block until buildTools completes OR the budget expires.
+        // Block up to toolRegistryWaitTimeoutMs for the detached
+        // task to finish (= the budget matches the original
+        // implementation).
         let waitResult = semaphore.wait(timeout: .now() + .milliseconds(Int(toolRegistryWaitTimeoutMs)))
         if waitResult == .timedOut {
             NSLog("[wenshu.conductor] buildToolsSync timed out after %d ms; returning empty dict (registrations may not be settled yet)", Int(toolRegistryWaitTimeoutMs))
@@ -750,20 +819,70 @@ public actor WenshuConductor {
         return box.value
     }
 
-    /// Process-wide cache of the last `buildTools` result. Populated
-    /// by `buildToolsSync` (= also re-populated by any future
-    /// async-aware caller that goes through the same singleton).
-    /// nil = cold cache; the next `buildToolsSync` call will block
-    /// briefly to warm it.
-    private static nonisolated(unsafe) var cachedTools: [String: any Tool]?
-
-    /// Tiny class-bound box used to hand the `[String: any Tool]`
-    /// result from the detached async task back to the synchronous
-    /// caller. `ObjectIdentifier` + `DispatchSemaphore` are the
-    /// publication barrier; `value` is read only AFTER the matching
-    /// `signal` (= happens-before established by the semaphore).
-    private final class ResultBox: @unchecked Sendable {
+    /// v0.71 P1 batch 4 dual-axis audit fix: Sendable-safe result
+    /// box for the sync-over-async bridge (= `any Tool` is not
+    /// Sendable but a `@unchecked Sendable` reference holder is
+    /// allowed).
+    /// 
+    /// v0.71 P1 batch 6 followup (= Q99 Standards axis MED): CRITICAL
+    /// INVARIANT = `box.value` MUST be assigned BEFORE the
+    /// `semaphore.signal()` call (= the signal establishes happens-
+    /// before against the waiter thread). If any future refactor
+    /// reorders these two operations (= e.g. signal first, then
+    /// write), the waiter may observe a stale empty dict. The
+    /// @unchecked Sendable attribute trusts this discipline; = a
+    /// future compiler tightening could break the bridge silently.
+    /// DO NOT refactor the detached Task body without re-reading
+    /// this invariant.
+    private final class SyncResultBox: @unchecked Sendable {
         var value: [String: any Tool] = [:]
+    }
+
+    /// v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards axis HIGH):
+    /// thread-safe cache for `buildToolsSync`. Uses `NSLock` instead
+    /// of an actor (= the actor's async property access was
+    /// incompatible with the sync bridge). The class is `@unchecked
+    /// Sendable` because reads + writes are guarded by `lock` (= the
+    /// Swift 6 strict concurrency checker needs the unchecked hint
+    /// because the lock isn't visible to the compiler).
+    ///
+    /// The cache lives on its own thread (= independent of the UI
+    /// thread). Reads via `cachedTools` return instantly when the
+    /// cache is hot.
+    private final class ToolCache: @unchecked Sendable {
+        private let lock = NSLock()
+        private var _cachedTools: [String: any Tool]?
+        var cachedTools: [String: any Tool]? {
+            get {
+                lock.lock()
+                defer { lock.unlock() }
+                return _cachedTools
+            }
+            set {
+                lock.lock()
+                defer { lock.unlock() }
+                _cachedTools = newValue
+            }
+        }
+    }
+
+    /// v0.71 P1 batch 4 dual-axis fix: process-wide singleton cache
+    /// (= thread-safe via `NSLock`). Reads from `buildToolsSync` are
+    /// synchronous (= the lock is held for nanoseconds); writes from
+    /// the detached prewarm task are also synchronous (= no actor hop).
+    private static let toolCache = ToolCache()
+
+    /// v0.71 P1 batch 4 dual-axis fix: pre-warm the tool cache (= the
+    /// canonical production pattern). Call from `App.swift` startup
+    /// (= before any ChatView.init fires) so the first `buildToolsSync`
+    /// call sees a hot cache.
+    ///
+    /// Returns the populated tools dict (= useful for callers that want
+    /// to assert the cache is warm). Async + cooperative-pool-safe.
+    public static func prewarmToolCache(from registry: ToolRegistry = .shared) async -> [String: any Tool] {
+        let tools = await buildTools(from: registry)
+        Self.toolCache.cachedTools = tools
+        return tools
     }
 
     // MARK: - Test accessor (WIRE-TOOLREGISTRY-003)

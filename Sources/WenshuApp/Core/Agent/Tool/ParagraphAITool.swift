@@ -157,7 +157,7 @@ public struct ParagraphAITool: Tool, Sendable {
     private func stubFrame(text: String, action: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let body = trimmed.isEmpty ? "(no input)" : trimmed
-        return "[ParagraphAI stub — action=\(action)] \(body) [expanded]"
+        return "[ParagraphAI stub — \(action)] \(body) [expanded]\n\n(Real paragraph-AI transformation lands in v0.41+. The output above is a placeholder; user may edit directly.)"
     }
 }
 

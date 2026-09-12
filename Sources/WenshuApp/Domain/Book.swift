@@ -6,13 +6,13 @@
 // the EDITOR module.
 //
 // v52: adds `length` (BookLength enum) + `idea` (optional String) for
-// the New Book Creation Wizard (= 老板 8/15 17:32 '书名, 篇幅选择, 创
-// 意点'). Both fields have defaults + Codable back-compat (= v0.02.x
+// the New Book Creation Wizard (= 8/15 17:32 ',,
+// '). Both fields have defaults + Codable back-compat (= v0.02.x
 // book.json files without these keys still decode).
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
-// 东西'. The shape of Book is locked by `Tests/WenshuAppTests/Domain/
+// Owner 8/15 15:55: 'needok,, refactor
+// '. The shape of Book is locked by `Tests/WenshuAppTests/Domain/
 // BookTests.swift`. Adding any required field forces the architectural
 // decision to surface (= not just an incidental change in some file).
 //
@@ -31,11 +31,11 @@
 import Foundation
 
 /// Book length = the scope the user commits to when creating a new
-/// book. v52 introduced this (= 老板 8/15 17:32 '篇幅选择'). Drives
+/// book. v52 introduced this (= 8/15 17:32 '). Drives
 /// later chapter management (= v0.03.0 chapter list reads the length
 /// to suggest word-count targets + chapter split heuristics). Three
 /// cases, allCases-ordered (= Picker in the wizard renders in this
-/// order: 短篇 / 中篇 / 长篇).
+/// order: / in progress /).
 enum BookLength: String, CaseIterable, Codable, Sendable {
     case short
     case medium
@@ -43,7 +43,7 @@ enum BookLength: String, CaseIterable, Codable, Sendable {
 
     /// Chinese display name for the wizard Picker. Apple HIG Picker
     /// labels are short, single-line (= the system spec example uses
-    /// 'Short / Medium / Long' verbatim; we match the wenshu 中文
+    /// 'Short / Medium / Long' verbatim; we match the wenshu in progress
     /// design vocabulary).
     var displayName: String {
         switch self {
@@ -74,7 +74,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     /// exist for Codable back-compat with v0.02.x book.json files).
     var length: BookLength
     /// v52: the user's one-line story idea. Optional (= the wizard
-    /// presents it as '可选' / optional). nil = not provided.
+    /// presents it as ' / optional). nil = not provided.
     var idea: String?
     let createdAt: Date
     var updatedAt: Date

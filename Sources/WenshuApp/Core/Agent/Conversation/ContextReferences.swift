@@ -215,8 +215,7 @@ public enum ContextReferencesBuilder {
 ///   @url:https://example.com/doc
 public enum ContextReferenceParser {
     /// Pattern matches @<kind>:<value> where value is a non-whitespace run.
-    private static let pattern = try! NSRegularExpression(
-        pattern: #"@(file|folder|git|url):(\S+)"#,
+    private static let pattern = NSRegularExpression.literal(#"@(file|folder|git|url):(\S+)"#,
         options: []
     )
 

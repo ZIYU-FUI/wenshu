@@ -1,8 +1,8 @@
-// EntityIngestion.swift · Wenshu (文枢) · v0.27 (FCP library replica)
+// EntityIngestion.swift · Wenshu () · v0.27 (FCP library replica)
 //
 // Writes IngestionRequests (= entities from ChatTrigger) into the
 // reference library's entities layer (= LLM Wiki entities; per boss
-// 8/26 '用户只关注实体').
+// 8/26 'user').
 //
 // v0.27 MVP writes a minimal Reference per IngestionRequest with:
 // - title = IngestionRequest.surfaceForm (= entity name)

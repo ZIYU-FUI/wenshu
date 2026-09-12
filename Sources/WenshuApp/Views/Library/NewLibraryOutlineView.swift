@@ -52,7 +52,7 @@
 //   std uses system disclosure indicator)
 
 import SwiftUI
-import Lucide
+import LucideSwift
 
 /// Identifies a single sidebar item for List(selection:) binding.
 /// v0.30: composite enum (= book OR reference category) because
@@ -118,21 +118,45 @@ enum SidebarItem: Hashable, Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try c.decode(Kind.self, forKey: .kind)
+        // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+        // replaced the previous `UUID(uuidString: s) ?? UUID()` silent
+        // swap (= the audit called this a data-corruption symptom that
+        // invisibly re-points a restored sidebar selection to a
+        // non-existent book) with explicit `try UUID(uuidString: s)`.
+        // A malformed UUID string now propagates a `DecodingError`
+        // (= visible to the caller) instead of silently substituting a
+        // fresh UUID (= restores correct semantics: corrupt
+        // persistence = crash on read, not silent data loss).
         switch kind {
         case .book:
             let s = try c.decode(String.self, forKey: .book)
-            self = .book(UUID(uuidString: s) ?? UUID())
+            self = .book(try Self.parseUUID(s))
         case .shelf:
             let s = try c.decode(String.self, forKey: .shelf)
-            self = .shelf(UUID(uuidString: s) ?? UUID())
+            self = .shelf(try Self.parseUUID(s))
         case .folder:
             let s = try c.decode(String.self, forKey: .book)
             let f = try c.decode(String.self, forKey: .folder)
-            self = .folder(bookId: UUID(uuidString: s) ?? UUID(), folderName: f)
+            self = .folder(bookId: try Self.parseUUID(s), folderName: f)
         case .referenceCategory:
             let d = try c.decode(String.self, forKey: .referenceCategory)
             self = .referenceCategory(d)
         }
+    }
+
+    /// v0.71 P1 batch 6: parse a UUID string and surface malformed input
+    /// (= replaces the previous `UUID(uuidString:) ?? UUID()` silent swap).
+    /// Throws `DecodingError.dataCorrupted` if the string is not a valid
+    /// UUID (= visible to the caller = caller can decide to drop the
+    /// corrupt entry vs silently re-point to a random fresh UUID).
+    private static func parseUUID(_ s: String) throws -> UUID {
+        if let uuid = UUID(uuidString: s) {
+            return uuid
+        }
+        throw DecodingError.dataCorrupted(.init(
+            codingPath: [],
+            debugDescription: "SidebarItem: invalid UUID string '\(s)'"
+        ))
     }
 }
 
@@ -204,7 +228,14 @@ struct NewLibraryOutlineView: View {
     // immediately on book tap). Keys = book.id, value = isExpanded.
     @State private var bookDisclosureStates: [UUID: Bool] = [:]
     // v0.34 boss 2026-09-02 OOB: reference-library DisclosureGroup expansion state.
-    @State private var referenceLibraryDisclosureExpanded: Bool = false
+    // v1.0.0-m1-shell boss 2026-09-10 OOB '之前想实现资料库默认展开,
+    // 好像是已经实现过, 这次修目录树的写法, 消失了': default to
+    // `true` (= reference library expanded by default on launch).
+    // Boss said the previous implementation had it expand by
+    // default and the refactor removed it. Restoring the default
+    // to true (= the user sees 世界 / 角色 / 章节大纲 / etc. on
+    // first launch without having to click the chevron).
+    @State private var referenceLibraryDisclosureExpanded: Bool = true
 
     // v0.34 boss 2026-09-02 OOB 'sidebar + preview should share one unified
     // persistence interface': ONE AppStorage key, ONE Codable struct, ONE onAppear + ONE onChange.
@@ -217,7 +248,14 @@ struct NewLibraryOutlineView: View {
     //
     // Single source of truth: SidebarState = shelf/book/library expansion
     // + sidebar selection. Write/read ONE key in AppStorage.
-    @AppStorage("wenshu.sidebarState") private var persistedSidebarState: String = ""
+    //
+    // v0.40 apple-001 HIG absent batch: migrated wenshu.sidebarState
+    // from @AppStorage to @SceneStorage (= Apple HIG macOS 14+ per-window
+    // sidebar state restoration). Each window can have a different
+    // sidebar expansion/selection state (= useful for multi-window
+    // workflows where the user has different library views open).
+    @SceneStorage("wenshu.sidebarState") private var persistedSidebarState: String = ""
+
     var body: some View {
         // v0.30: 100% Apple HIG standard sidebar.
         //
@@ -268,8 +306,160 @@ struct NewLibraryOutlineView: View {
             // expands so Worldview / Characters / Chapter Outline / Novel Body / Novel Drafts
             // are visible without an extra tap (= boss OOB #3 'child
             // folders should be visible immediately on book select').
-            ForEach(shelves) { shelf in
-                shelfRow(shelf)
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+            // Apple API': the previous manual `Divider().padding(
+            // .vertical, 4)` was a non-Apple pattern (= Finder / Mail
+            // / Notes never use a manual Divider between sidebar
+            // groups; = the hairline spacing is built into the
+            // SwiftUI Section primitive). Switch to an Apple HIG
+            // canonical `Section { } header: { ... }` divider:
+            // - The Section header (= '书架' label) auto-applies
+            //   the canonical Apple sidebar section title style
+            //   (small caption, secondary tint, = the same visual
+            //   as Notes / Finder section headers).
+            // - List(.sidebar) auto-inserts the right hairline +
+            //   padding between adjacent Sections (= no manual
+            //   Divider / padding / .frame needed).
+            // - Apple HIG: sections with `header:` labels + the
+            //   auto-inserted hairline is THE canonical pattern for
+            //   sidebar groupings (= Finder 'Favorites / Locations'
+            //   layout, Mailbox sidebar groupings, Notes folders
+            //   sidebar).
+            Section {
+                ForEach(shelves) { shelf in
+                    shelfRow(shelf)
+                }
+            } header: {
+                // v1.0.0-m1-shell boss 2026-09-10 OOB 'section title
+                // 书房 像 pages 那样处理' (Pages sidebar pattern:
+                // centered title text + a single 1 PT hairline
+                // spanning the full sidebar width below the text).
+                // The text uses `.font(.body)` (= Pages-equivalent
+                // size; = SwiftUI's default sidebar text; =
+                // matches the row text below), `.foregroundStyle(
+                // .primary)` (= Pages uses primary tint for the
+                // sidebar title; = secondary tint is too dim per
+                // Pages's sidebar visual reference). The Divider
+                // below is `.padding(.top, 4)` (= Pages leaves ~4 PT
+                // gap between the title text and the hairline) and
+                // `.padding(.horizontal, 0)` (= Pages's hairline
+                // spans the FULL sidebar width with no inset; = the
+                // canonical Apple pattern; = the previous List's
+                // built-in section padding would have inset the
+                // hairline ~16 PT from the left edge, = wrong per
+                // Pages visual reference).
+                // v1.0.0-m1-shell boss 2026-09-10 OOB '那个标题的文字
+                // 颜色, 苹果都偏灰一些, 不是纯白的, 和分割线的
+                // 颜色接近': section header text uses
+                // `.foregroundStyle(.secondary)` (= the Apple
+                // system secondary label color; = ~60% opacity; =
+                // light mode = mid-gray; = dark mode = mid-gray;
+                // = matches the visual weight of the system
+                // separator color; = the Pages / Finder / Mail
+                // sidebar section header color; = Apple HIG
+                // 'Color: Use secondary text colors for less
+                // important or de-emphasized text, such as
+                // labels and section headers.' = NO pure white
+                // = NO pure black = the boss's '不是纯白的'
+                // requirement).
+                VStack(spacing: 4) {
+                    HStack {
+                        Spacer()
+                        Text(WenshuI18n.t("sidebar.section.shelves.title"))
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .textCase(nil)
+                        Spacer()
+                    }
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB '现在是各区,
+                    // 左右边距都是多少, 是苹果表达示吧':
+                    // = the dividers use the SwiftUI List's default
+                    // horizontal inset (= the system-defined row
+                    // separator padding; = Apple API's built-in
+                    // standard List horizontal padding on both sides;
+                    // = no custom modifier; = all 3 dividers use the
+                    // SAME no-modifier default = the boss's
+                    // '用同样的修饰符' instruction; = the dividers
+                    // appear shorter than the sidebar with a
+                    // standard right padding = the boss's '都不边长,
+                    // 右边都留一个标准间距' = the canonical Apple
+                    // HIG List row separator pattern; = DO NOT
+                    // add `.frame(maxWidth: .infinity)` because that
+                    // would force the divider to span the full
+                    // sidebar width = wrong = not the Apple default).
+                    Divider()
+                }
+                // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义
+                // padding 换 apple 表达式, 找近似值就可以': remove
+                // ALL custom numeric padding above/below the section
+                // header (= the previous `chromePaddingSectionTop` = 18
+                // PT and `chromePaddingSmall` = 4 PT). The sidebar List
+                // (= `.listStyle(.sidebar)` per NewLibraryOutlineView's
+                // outer modifier) manages section header spacing via
+                // Apple's built-in HIG sidebar convention (= no custom
+                // padding needed; = the canonical Pages / Numbers /
+                // Mail sidebar pattern). The Divider's `List(.sidebar)`
+                // context auto-spaces it from the previous Section.
+                //
+                // Per the verbatim port discipline (= only do what the
+                // boss asked), NO new padding values are introduced;
+                // = the visual change is: the section header now
+                // follows Apple's HIG default sidebar rhythm (= no
+                // boss-asked 18 PT or 4 PT overshoot; = the natural
+                // Apple List(.sidebar) section spacing).
+            }
+            // v1.0.0-m1-shell boss 2026-09-12 OOB '目录栏, 测试书架,
+            // 分割线, 资料库. 这几个控件之间有没有我们手动加的
+            // 间距, 如果有改回默认': remove `.headerProminence(.increased)`
+            // (= a non-Apple-default SwiftUI List modifier that
+            // artificially inflates the vertical space above and
+            // below the section header; = adds ~16-22 PT extra
+            // padding between 测试书架 (= last row of the shelves
+            // Section) and 资料库 (= first row of the reference
+            // library Section); = the boss's '58 PT gap' complaint;
+            // = SwiftUI's default `.standard` header prominence
+            // (= no modifier needed) is the Apple HIG canonical
+            // sidebar rhythm between grouped rows). The Divider
+            // between sections stays bare (= Apple default
+            // horizontal inset; = no padding added).
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '在资料库和书架之间
+            // 加一条分割线, 但除了分割线自带的间隔, 不另加间隔':
+            // add a single `Divider()` BETWEEN the shelves Section
+            // and the reference library Section (= visually separates
+            // the user-managed shelves group from the built-in
+            // reference library group; = matches the typical macOS
+            // sidebar pattern of grouping 'user content' vs. 'system
+            // / built-in content' with a single hairline).
+            //
+            // No additional padding (= boss's '除了分割线自带的
+            // 间隔, 不另加间隔'): the SwiftUI List auto-applies
+            // standard vertical spacing between Sections (= the
+            // 1 PT hairline + List's intrinsic inter-Section gap;
+            // = the Apple HIG canonical sidebar pattern; = no
+            // .padding modifiers added here = the visual gap
+            // = exactly the Divider's intrinsic height = the
+            // hairline floats naturally between the two Section
+            // groups without extra chrome).
+            //
+            // Implementation: SwiftUI's List only accepts Section
+            // or ForEach as direct children (= a bare Divider()
+            // is not allowed). To draw a single hairline between
+            // the two Sections, we wrap the Divider in a Section
+            // (= it becomes the section's only row = the hairline
+            // spans the full List width = visual match to a `Divider()`).
+            // The Section has an empty header (= no extra header
+            // text or padding = the hairline sits at the natural
+            // inter-Section gap).
+            Section {
+                // v1.0.0-m1-shell boss 2026-09-10 OOB '现在是各区,
+                // 左右边距都是多少, 是苹果表达示吧':
+                // = bare `Divider()` (= NO custom modifier; =
+                // the SwiftUI List's default row separator
+                // padding is applied; = all 3 dividers use the
+                // same no-modifier default; = matches the Apple
+                // HIG List row separator pattern = standard
+                // horizontal inset on both sides).
+                Divider()
             }
             // Reference library (= library's default shelf per boss 8/26
             // OOB; user CANNOT delete or rename). Treated as a single
@@ -307,7 +497,32 @@ struct NewLibraryOutlineView: View {
                             LucideIconSidebar(category.icon)
                         }
                         .badge(entitiesCount(in: category))
-                        .tag(SidebarItem.referenceCategory(category.directoryName))
+                        // v1.0.0-m1-shell boss 2026-09-10 OOB '资料库的目录选择, 和
+                        // 素材区的卡片对不齐, 没有过滤': the previous code used
+                        // `category.directoryName` (= rawValue.lowercased(), e.g.
+                        // 'b' for Philosophy) as the SidebarItem tag. The entity
+                        // JSON stores the category as the UPPERCASE rawValue
+                        // (e.g. 'B' for Philosophy = see
+                        // /Users/anbaiqiang/Documents/anbaiqiang.ws/reference-library/
+                        // entities/entities.json `"category": "B"`). The case
+                        // mismatch broke `EntityCategory(rawValue: dirName)` lookup
+                        // (= returned nil → previewScope fell back to
+                        // `.referenceScope(nil)` → the cards column showed every
+                        // entity unfiltered).
+                        //
+                        // Fix: tag with `category.rawValue` (= the uppercase enum
+                        // rawValue, e.g. 'B' for Philosophy) so the sidebar tag
+                        // matches the entity JSON's stored category. The onChange
+                        // handler below also resolves the dirName via rawValue
+                        // lookup (= EntityCategory(rawValue: dirName)) for
+                        // consistency.
+                        //
+                        // Why `rawValue` (not `directoryName`): rawValue IS the
+                        // canonical enum identifier (= EntityCategory(rawValue:) is
+                        // the only safe construction). directoryName is the
+                        // filesystem-side label (= rawValue.lowercased()) and only
+                        // matches the directory layout, not the entity records.
+                        .tag(SidebarItem.referenceCategory(category.rawValue))
                     }
                 } label: {
                     // v0.30 boss 8/31 OOB: hover tint scope = whole row
@@ -326,7 +541,7 @@ struct NewLibraryOutlineView: View {
                     // automatic alignment with the other shelves'
                     // counts).
                     Label {
-                        Text("资料库")
+                        Text(WenshuI18n.t("auto.newlibraryoutlineview.l335.h35976706"))
                     } icon: {
                         LucideIconSidebar("square-library")
                     }
@@ -359,77 +574,54 @@ struct NewLibraryOutlineView: View {
             // No primary action (= double-click = open in editor
             // for books in a future ticket; for now, just no-op).
         }
-        // v0.30 boss 8/31 OOB: right-click on EMPTY area of sidebar
-        // (= the gap below the last row, before the next Section).
-        // .contextMenu(forSelectionType:) only fires on row hits;
-        // for empty-area right-click we use a plain .contextMenu on
-        // the List (= macOS 14+ behavior: shows when the user right-
-        // clicks anywhere inside the List, regardless of row hit).
-        // Apple HIG: empty-area context menu = top-level actions
-        // (= Create New Shelf is the canonical "I'm in the sidebar, I want
-        // to add something" action).
+        // v0.76 boss 2026-09-10 OOB '在红框处写新建按钮': attach
+        // a '新建书架' button to the sidebar bottom via
+        // `.safeAreaInset(edge: .bottom)` (= Apple's canonical API
+        // for a fixed accessory attached to the bottom of a
+        // sidebar List). The previous commit-history recorded a
+        // similar pattern for sidebar cards (commit 108778611)
+        // but that was reverted when the cards card moved to the
+        // middle column. This safeAreaInset is the canonical
+        // sidebar bottom accessory (= Mail's 'New Folder' button,
+        // Notes' 'New Folder' button, Finder's bottom status row
+        // — all use the same .safeAreaInset primitive per
+        // developer.apple.com/documentation/swiftui/view/
+        // safeareainset(edge:spacing:content:)).
+        //
+        // The button reuses the existing `showNewShelfSheet` state
+        // (= same .sheet bound at line 571 that the global
+        // '.wenshuNewShelfRequested' notification also flips).
+        // Tapping the button = same UX as the menu / keyboard
+        // shortcut: open the NewShelfSheet (= name + icon picker).
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            sidebarBottomNewButton
+        }
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '右键空区域 -> 新建书架/书
+        // 没生效'. macOS 26 Tahoe's `.contextMenu(forSelectionType:)`
+        // does NOT route empty-area right-clicks through its builder
+        // closure (= the closure is selection-typed; = empty selection
+        // = no invocation). The empty-area menu MUST be a plain
+        // `.contextMenu { ... }` attached directly to the List (= macOS
+        // 14+ behavior: bare .contextMenu on a List shows on any
+        // right-click anywhere inside, including empty rows; =
+        // .contextMenu(forSelectionType:) shows on selected-row
+        // hits only). Both menus coexist (= macOS dispatches by hit-
+        // target): selected row -> selection menu; empty area ->
+        // this menu.
         .contextMenu {
-            Button("新建书架…") {
-                showNewShelfSheet = true
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l378.h6629531")) {
+                appState.newShelfRequestCount += 1
             }
-            Button("新建书…") {
-                showNewBookSheet = true
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l381.h1694446")) {
+                appState.newBookRequestCount += 1
             }
         }
-        // v0.30 boss 8/31 OOB ('Sidebar background does not follow Liquid Glass transparency adjustments / previously implemented,
-        // changed the directory tree and bumped it, fix'):
-        // Apple HIG .sidebar listStyle draws its own opaque background
-        // (= macOS 26 Tahoe canonical sidebar material), which covers
-        // the RegionContentBackground applied at ZonePerRegionChrome.
-        // .scrollContentBackground(.hidden) makes the list itself
-        // transparent so the parent's RegionContentBackground shows
-        // through (= follows the liquid-glass opacity slider in Settings).
-        .scrollContentBackground(.hidden)
-        // POLISH-LIQUIDGLASS-002 (Boss 2026-09-05 OOB 'OK continue', AGENTS.md
-        // §11 macOS 27 Liquid Glass polish sweep): apply Apple canonical
-        // .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass) to
-        // NewLibraryOutlineView (= the canonical sidebar = leftmost
-        // pane of the 6-zone workspace). This extends the same
-        // treatment already applied to RegionTabBar in
-        // POLISH-LIQUIDGLASS-001 (= commit 950e46423).
-        //
-        // Why this site:
-        // - .listStyle(.sidebar) draws its own opaque background
-        //   (= macOS 27 canonical sidebar material), so a plain
-        //   .background call would be hidden. The boss 8/31 OOB
-        //   fix above (= .scrollContentBackground(.hidden)) already
-        //   makes the List transparent so the parent's
-        //   RegionContentBackground shows through. Now we replace
-        //   that opaque .controlBackgroundColor fill with the
-        //   canonical Apple Liquid Glass material.
-        // - The exact same .background { Color.clear.glassEffect
-        //   (.regular) } shape was used in POLISH-LIQUIDGLASS-001
-        //   on RegionTabBar (= identical visual depth to the top
-        //   bar; sidebar + top bar now share one Liquid Glass
-        //   material = FCP-style unified chrome).
-        // - .glassEffect(.regular) is a View modifier (= instance
-        //   member), not a ShapeStyle value, so .background
-        //   (.glassEffect(.regular)) does NOT compile. The
-        //   .background { Color.clear.glassEffect(.regular) } form
-        //   (= Color.clear provides the size; .glassEffect applies
-        //   the canonical Liquid Glass material) is the only shape
-        //   that compiles on macOS 27 (= same constraint
-        //   documented in 950e46423).
-        //
-        // Boss 2026-09-02 hard rule re-applied (per
-        // POLISH-LIQUIDGLASS-001 commit message): NO custom
-        // Color.white.opacity border, NO custom .shadow(.black
-        // .opacity(...)) overlay. Every visual element must come
-        // from an Apple API; Apple does not paint dividers /
-        // shadows where they don't read, wenshu shouldn't either.
-        // .glassEffect(.regular) is the single Apple-provided
-        // Liquid Glass primitive = it already includes the
-        // semitransparent blur, the hairline border (= 1 PT Apple
-        // .separator at the edges per Apple HIG), and the
-        // depth shadow (= .05 black, native rendering).
-        .background {
-            Color.clear.glassEffect(.regular)
-        }
+        // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
+        // removed .scrollContentBackground(.hidden) and the
+        // .background { Color.clear } no-op. .listStyle(.sidebar)
+        // already paints the macOS 27 canonical sidebar material;
+        // hiding it was a Monterey-era workaround for the 6-zone
+        // chrome that no longer exists in the 3-column shell.
         .onAppear {
             reload()
             // v0.30 boss 8/31 OOB 'directory tree selection state does not persist':
@@ -502,7 +694,12 @@ struct NewLibraryOutlineView: View {
             case .referenceCategory(let dirName):
                 if dirName == "__root__" {
                     selectedEntityCategory = nil
-                } else if let cat = EntityCategory.allCases.first(where: { $0.directoryName == dirName }) {
+                // v1.0.0-m1-shell boss 2026-09-10 OOB: see the comment block at the
+                // sidebar tag line above. dirName is now the
+                // EntityCategory.rawValue (e.g. 'B' for Philosophy),
+                // not directoryName (e.g. 'b'). Lookup uses rawValue
+                // for consistency.
+                } else if let cat = EntityCategory.allCases.first(where: { $0.rawValue == dirName }) {
                     selectedEntityCategory = cat
                     selectedEntity = nil
                 }
@@ -548,10 +745,25 @@ struct NewLibraryOutlineView: View {
                 appState.sidebarSelection = .referenceCategory(cat.directoryName)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .wenshuNewBookRequested)) { _ in
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+        // Apple API': the previous `.onReceive(NotificationCenter.
+        // default.publisher(for: .wenshuNewBookRequested))` (and
+        // its .wenshuNewShelfRequested + .wenshuChoiceRequested
+        // siblings) was a NotificationCenter anti-pattern (= cross-
+        // component writes via fire-and-forget notifications =
+        // fragile data flow). Switch to `@Observable` AppState
+        // shared state: any caller (= toolbar Menu in
+        // AppRootScene, sidebar trailing-slot buttons, sidebar
+        // bottom accessory) increments
+        // appState.newBookRequestCount += 1; the sidebar body
+        // observes via `.onChange(of: appState.newBookRequestCount)`
+        // and flips its local `showNewBookSheet`. Same pattern for
+        // the other 2 request counters (= newShelfRequestCount +
+        // choiceRequestCount).
+        .onChange(of: appState.newBookRequestCount) { _, _ in
             showNewBookSheet = true
         }
-        .onReceive(NotificationCenter.default.publisher(for: .wenshuNewShelfRequested)) { _ in
+        .onChange(of: appState.newShelfRequestCount) { _, _ in
             showNewShelfSheet = true
         }
         // v0.30 boss 8/31 OOB #2 ('context menu does not restore'):
@@ -560,7 +772,7 @@ struct NewLibraryOutlineView: View {
         // hierarchy) toggles its own showNewChoiceSheet @State and
         // presents NewChoiceSheet. The trailing-slot instance cannot
         // host .sheet itself (= AnyView wrapper).
-        .onReceive(NotificationCenter.default.publisher(for: .wenshuChoiceRequested)) { _ in
+        .onChange(of: appState.choiceRequestCount) { _, _ in
             showNewChoiceSheet = true
         }
         .sheet(isPresented: $showNewBookSheet) {
@@ -665,10 +877,10 @@ struct NewLibraryOutlineView: View {
             ),
             presenting: pendingDelete
         ) { target in
-            Button("取消", role: .cancel) {
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l674.h92868892"), role: .cancel) {
                 pendingDelete = nil
             }
-            Button("删除", role: .destructive) {
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l677.h8189648"), role: .destructive) {
                 do {
                     switch target.kind {
                     case .shelf:
@@ -689,9 +901,9 @@ struct NewLibraryOutlineView: View {
             let childCount = pendingDeleteChildCount(target: target)
             if childCount > 0 {
                 let childKindLabel = target.kind == .shelf ? "书" : "文档"
-                Text("将永久删除 \(target.itemName) 以及其中的 \(childCount) 个\(childKindLabel)。此操作不可撤销。")
+                Text(WenshuI18n.t("auto2.newlibraryoutlineview.l698.h35313610"))
             } else {
-                Text("将永久删除 \(target.itemName)。此操作不可撤销。")
+                Text(WenshuI18n.t("auto2.newlibraryoutlineview.l700.h42077726"))
             }
         }
     }
@@ -734,46 +946,50 @@ struct NewLibraryOutlineView: View {
                 LucideIconSidebar(shelf.displayIcon)
             }
             .badge(books.count > 0 ? books.count : 0)            // v0.30 boss 8/31 OOB: right-click context menu on shelf
-            // row. Apple HIG canonical contextMenu pattern. Two
-            // actions: Rename (= renames the shelf in place) +
-            // Delete (= marks shelf for deletion, triggers .alert for
-            // confirmation). The default 'Start Here' shelf is NOT
-            // blocked here (= it has the same context menu as
-            // user-created shelves; the 'Reference Library cannot be deleted' rule
-            // only applies to the reference library Section, which
-            // is a different element).
-            .contextMenu {
-                Button("重命名…") {
-                    renaming = RenamingTarget(
-                        kind: .shelf,
-                        itemId: shelf.id,
-                        originalName: shelf.name,
-                        shelfId: nil
-                    )
-                }
-                Divider()
-                Button("删除…", role: .destructive) {
-                    pendingDelete = PendingDelete(
-                        kind: .shelf,
-                        itemId: shelf.id,
-                        itemName: shelf.name
-                    )
-                }
-            }
-            // v0.30 boss 8/31 OOB 'also, double-click directory tree expand/collapse
-            // interaction': double-click on the shelf label toggles the
-            // DisclosureGroup (= standard macOS Finder pattern).
-            // Single click selects the shelf (= sets sidebarSelection
-            // to .shelf(id) for preview pane scope); double click
-            // toggles expand/collapse. The double-click gesture is
-            // recognized only after the second tap arrives within
-            // the macOS standard double-click interval (~500ms);
-            // single taps are unaffected.
-            .onTapGesture(count: 2) {
-                shelfDisclosureStates[shelf.id, default: false].toggle()
-            }
-        }
-    }
+                           // row. Apple HIG canonical contextMenu pattern. Two
+                           // actions: Rename (= renames the shelf in place) +
+                           // Delete (= marks shelf for deletion, triggers .alert for
+                           // confirmation). The default 'Start Here' shelf is NOT
+                           // blocked here (= it has the same context menu as
+                           // user-created shelves; the 'Reference Library cannot be deleted' rule
+                           // only applies to the reference library Section, which
+                           // is a different element).
+                           .contextMenu {
+                               Button(WenshuI18n.t("auto2.newlibraryoutlineview.l752.h31835725")) {
+                                   renaming = RenamingTarget(
+                                       kind: .shelf,
+                                       itemId: shelf.id,
+                                       originalName: shelf.name,
+                                       shelfId: nil
+                                   )
+                               }
+                               Divider()
+                               Button(WenshuI18n.t("auto2.newlibraryoutlineview.l761.h28387294"), role: .destructive) {
+                                   pendingDelete = PendingDelete(
+                                       kind: .shelf,
+                                       itemId: shelf.id,
+                                       itemName: shelf.name
+                                   )
+                               }
+                           }
+                           // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法,
+                           // 不符合 Apple API': the previous `.onTapGesture(
+                           // count: 2) { shelfDisclosureStates.toggle() }` was
+                           // removed. Apple SwiftUI's DisclosureGroup handles
+                           // expand/collapse natively via the system disclosure
+                           // chevron (tap on the chevron toggles expansion, =
+                           // macOS Finder's standard pattern). The manual
+                           // `onTapGesture(count: 2)` raced with the system
+                           // gesture (= double-clicking the row label could
+                           // collapse the shelf while also propagating to
+                           // List(selection:) which set sidebarSelection = .
+                           // shelf(id) = flaky selection behavior). Apple's HIG
+                           // for NavigationSplitView sidebars: the disclosure
+                           // chevron is the SINGLE canonical expand/collapse
+                           // affordance; do NOT add custom double-click
+                           // handlers.
+                   }
+               }
 
     /// v0.30: Apple std book row + nested DisclosureGroup of folders.
     /// Per Apple HIG "show no more than two levels of hierarchy in a
@@ -846,32 +1062,46 @@ struct NewLibraryOutlineView: View {
                     // path used by the .tag modifier, but the Button
                     // form is more reliable for nested rows inside
                     // a DisclosureGroup).
-                    Button {
-                        appState.sidebarSelection = .folder(
-                            bookId: book.id,
-                            folderName: folder.name
-                        )
-                    } label: {
-                        // v0.30 boss 8/31 OOB: hover tint scope = whole
-                        // label (= icon + text + badge), matches
-                        // selection tint range.
-                        Label {
-                            Text(folder.displayName)
-                        } icon: {
-                            LucideIconSidebar(folder.icon)
-                                .foregroundStyle(.primary)
-                        }
-                        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                        .padding(.vertical, DesignTokens.chromePaddingMicro)
-                        .badge(bookStore.folderDocumentCount(
-                            bookId: book.id,
-                            folderDirectoryName: folder.name
-                        ))
+                    //
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法,
+                    // 不符合 Apple API': the previous code BOTH wrapped
+                    // the row in a `Button { appState.sidebarSelection
+                    // = .folder(...) }` AND attached a `.tag(
+                    // SidebarItem.folder(...))` to the label. Apple
+                    // HIG specifies ONE selection-routing path per
+                    // row (= either a Button that owns the selection
+                    // OR a List(selection:) tag that the List owns,
+                    // = NOT both). Two concurrent writers = a race
+                    // condition where the user's click sometimes
+                    // sets the selection via the Button's closure
+                    // BEFORE List(selection:) re-renders the tag,
+                    // and sometimes the List's tag routing wins
+                    // (= flaky selection behavior on folder rows).
+                    // Remove the Button wrapper and rely on List(
+                    // selection:) + .tag only (= the Apple HIG
+                    // canonical path for row selection in a sidebar
+                    // List).
+                    //
+                    // v1.0.0-m1-shell: also removed the manual
+                    // `.padding(.horizontal, DesignTokens.chrome
+                    // PaddingSmall).padding(.vertical, DesignTokens.
+                    // chromePaddingMicro)` (= hand-tuned sidebar row
+                    // padding). Apple HIG sidebar row padding is
+                    // auto-applied by List(.sidebar) (= the manual
+                    // padding pushed the row visual outside the
+                    // system's sidebar hit area = hover tint and
+                    // selection highlight could miss the row's
+                    // bottom / top edges).
+                    Label {
+                        Text(folder.displayName)
+                    } icon: {
+                        LucideIconSidebar(folder.icon)
+                            .foregroundStyle(.primary)
                     }
-                    .buttonStyle(.plain)
-                    .contentShape(Rectangle())
-                    // v0.30 boss 8/31 OOB: folder row tag (= enables
-                    // List(selection:) routing for this row).
+                    .badge(bookStore.folderDocumentCount(
+                        bookId: book.id,
+                        folderDirectoryName: folder.name
+                    ))
                     .tag(SidebarItem.folder(bookId: book.id, folderName: folder.name))
                 }
             } label: {
@@ -890,16 +1120,12 @@ struct NewLibraryOutlineView: View {
                     bookId: book.id,
                     folderDirectoryName: $1.name
                 )})
-                .tag(SidebarItem.book(book.id))                // v0.30 boss 8/31 OOB '顺手做一下, 双击目录树展开合上
-                // interaction': double-click on the book label toggles the
-                // folder DisclosureGroup (= level 3 expand/collapse).
-                // Single click selects the book (= sets
-                // sidebarSelection to .book(id) for preview pane scope
-                // + auto-expands folders per existing logic); double
-                // click toggles expansion. Finder standard pattern.
-                .onTapGesture(count: 2) {
-                    bookDisclosureStates[book.id, default: false].toggle()
-                }
+                .tag(SidebarItem.book(book.id))                // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法,
+                // 不符合 Apple API': removed `.onTapGesture(count: 2)`
+                // for the same reason as the shelf row (= Apple's
+                // DisclosureGroup chevron is the single canonical
+                // expand/collapse affordance; = adding custom
+                // double-click handlers races with the system gesture).
                 // v0.30 boss 8/31 OOB: right-click context menu on book
                 // row. Apple HIG canonical pattern. The Help book in
                 // the default 'Start Here' shelf still gets the
@@ -907,7 +1133,7 @@ struct NewLibraryOutlineView: View {
                 // want; the Reference Library rule is for the reference
                 // library Section, not for the default help book).
                 .contextMenu {
-                    Button("重命名…") {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l916.h31835725")) {
                         renaming = RenamingTarget(
                             kind: .book,
                             itemId: book.id,
@@ -916,7 +1142,7 @@ struct NewLibraryOutlineView: View {
                         )
                     }
                     Divider()
-                    Button("删除…", role: .destructive) {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l925.h28387294"), role: .destructive) {
                         pendingDelete = PendingDelete(
                             kind: .book,
                             itemId: book.id,
@@ -968,8 +1194,24 @@ struct NewLibraryOutlineView: View {
     /// v0.30: Apple std list of categories with ≥1 entity, sorted A→Z.
     /// (= Same logic as v0.29 computeUsedCategories; renamed to match
     /// Apple HIG sidebar convention of "sidebar only shows used items".)
+    
+    /// v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
+    /// wraps the silent `try?` on loadAllReferences with explicit
+    /// error logging (= audit concern: user cannot distinguish "no
+    /// entities" from "permission denied" on disk errors). The
+    /// graceful-degradation behavior (= empty array returned on
+    /// error) is preserved; = the NSLog is dev-only diagnostics.
+    private func safeLoadAllReferences() -> [Reference] {
+        do {
+            return try bookStore.referenceStore.loadAllReferences()
+        } catch {
+            NSLog("[wenshu.sidebar] loadAllReferences failed: %@", String(describing: error))
+            return []
+        }
+    }
+
     private func usedCategories() -> [EntityCategory] {
-        let allRefs = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+        let allRefs = safeLoadAllReferences()
         let entityRefs = allRefs.filter { $0.layer == .layerEntities }
         let used = Set(entityRefs.compactMap { $0.category })
         return EntityCategory.allCases.filter { used.contains($0) }
@@ -977,7 +1219,7 @@ struct NewLibraryOutlineView: View {
 
     /// v0.30: count of entities in this category.
     private func entitiesCount(in category: EntityCategory) -> Int {
-        let allRefs = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+        let allRefs = safeLoadAllReferences()
         return allRefs.filter { $0.layer == .layerEntities && $0.category == category }.count
     }
 
@@ -1038,15 +1280,21 @@ struct NewLibraryOutlineView: View {
         // TAB': added @State isHover + .onHover + .background
         // tint to both buttons (= matches PaneIconTab's hover tint
         // pattern = Color.accentColor.opacity(0.12) on hover).
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+        // Apple API': switch the poster from NotificationCenter.post
+        // (= fire-and-forget, = fragile data flow, = no observed
+        // binding on receiver) to the @Observable AppState counter
+        // (= the sidebar body's `.onChange(of: appState.
+        // choiceRequestCount)` is the canonical SwiftUI binding).
         HStack(spacing: 0) {
-            // New plain Button (= tap posts .wenshuChoiceRequested
-            // notification; consumed by the sidebar body listener
-            // which presents NewChoiceSheet).
+            // New plain Button (= tap increments
+            // appState.choiceRequestCount; consumed by the sidebar
+            // body listener which presents NewChoiceSheet).
             NewButtonWithHover(
                 iconName: "square-plus",
                 help: "New"
             ) {
-                NotificationCenter.default.post(name: .wenshuChoiceRequested, object: nil)
+                appState.choiceRequestCount += 1
             }
             // Import plain Button (= tap directly fires .wenshuImportRequested
             // notification; consumed by the main app toolbar listener =
@@ -1113,10 +1361,29 @@ struct NewLibraryOutlineView: View {
     /// - Multi-select: only delete (= batch delete shelves / books)
     @ViewBuilder
     private func contextMenuForSelection(_ items: Set<SidebarItem>) -> some View {
-        // Multi-select = batch delete. Single select = per-item
-        // actions.
-        if items.count > 1 {
-            Button("删除所选 \(items.count) 项", role: .destructive) {
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '右键空区域 -> 新建书架/书
+        // 没生效'. macOS 26 Tahoe's `.contextMenu(forSelectionType:)`
+        // does NOT invoke this closure when the right-click hits
+        // an empty area of the List (= the closure is selection-
+        // typed; = empty selection = no builder invocation = the
+        // menu does not appear). This is an Apple-platform
+        // limitation. The empty-area right-click goes through a
+        // separate `.contextMenu { ... }` attached directly on the
+        // List (= macOS 14+ behavior; = bare .contextMenu shows
+        // anywhere inside the List, including empty area; =
+        // .contextMenu(forSelectionType:) shows on selected-row
+        // hits). The two menus do not conflict (= macOS dispatches
+        // by hit-target).
+        if items.isEmpty {
+            // macOS 26 does not route empty-area hits through this
+            // closure. The empty-area actions are attached via a
+            // plain `.contextMenu { ... }` on the List itself
+            // (= see the bare .contextMenu modifier further below).
+            EmptyView()
+        } else if items.count > 1 {
+            // Multi-select = batch delete. Single select = per-item
+            // actions.
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1125.h95494717"), role: .destructive) {
                 for item in items {
                     handleContextMenuDelete(item)
                 }
@@ -1124,13 +1391,13 @@ struct NewLibraryOutlineView: View {
         } else if let first = items.first {
             switch first {
             case .shelf(let id):
-                Button("新建书…") {
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1133.h1694446")) {
                     appState.sidebarSelection = .shelf(id)
                     showNewBookSheet = true
                 }
                 Divider()
                 if let shelf = shelves.first(where: { $0.id == id }) {
-                    Button("重命名…") {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1139.h31835725")) {
                         renaming = RenamingTarget(
                             kind: .shelf,
                             itemId: id,
@@ -1140,7 +1407,7 @@ struct NewLibraryOutlineView: View {
                     }
                 }
                 Divider()
-                Button("删除…", role: .destructive) {
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1149.h28387294"), role: .destructive) {
                     if let shelf = shelves.first(where: { $0.id == id }) {
                         pendingDelete = PendingDelete(
                             kind: .shelf,
@@ -1151,7 +1418,7 @@ struct NewLibraryOutlineView: View {
                 }
             case .book(let id):
                 if let book = books.first(where: { $0.id == id }) {
-                    Button("重命名…") {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1160.h31835725")) {
                         renaming = RenamingTarget(
                             kind: .book,
                             itemId: id,
@@ -1161,7 +1428,7 @@ struct NewLibraryOutlineView: View {
                     }
                 }
                 Divider()
-                Button("删除…", role: .destructive) {
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1170.h28387294"), role: .destructive) {
                     if let book = books.first(where: { $0.id == id }) {
                         pendingDelete = PendingDelete(
                             kind: .book,
@@ -1465,6 +1732,56 @@ struct NewLibraryOutlineView: View {
         }
         return result
     }
+
+    /// v0.76 boss 2026-09-10 OOB '我们有一个中间的弹窗, 点新建,
+    /// 会让用户选是建书还是书架, 按钮就写新建, 然后接那个弹窗':
+    /// sidebar bottom accessory button (= single '新建' button,
+    /// posts .wenshuChoiceRequested = the existing global
+    /// notification bound at line 546 that flips
+    /// `showNewChoiceSheet` and presents NewChoiceSheet =
+    /// the modal sheet with '建书 / 建书架' choice).
+    ///
+    /// Style: per Apple HIG = a sidebar bottom accessory is a
+    /// full-width row at the column's bottom safe area. The button
+    /// itself uses Apple's `.borderless` button style with a
+    /// plus icon (= Lucide 'plus' = same icon the column's
+    /// internal 'New Book' / 'New Shelf' rows use; = the
+    /// canonical Finder / Notes 'sidebar action button' visual).
+    ///
+    /// Padding: 8 PT horizontal (= matches the sidebar's row
+    /// internal padding), 8 PT vertical (= the safeAreaInset's
+    /// own separator hairline above the button = the Apple HIG
+    /// 'accessory separator' = Mail / Notes / Finder pattern).
+    private var sidebarBottomNewButton: some View {
+        // Divider above the button = the Apple HIG 'accessory
+        // separator' (= a 1 PT hairline tinted with .separator,
+        // same primitive as the between-section Divider added
+        // earlier in this view).
+        VStack(spacing: 0) {
+            Divider()
+            Button {
+                // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法,
+                // 不符合 Apple API': switch from NotificationCenter
+                // .post to the @Observable AppState counter (= the
+                // Apple HIG cross-component binding = `.onChange(of:
+                // appState.choiceRequestCount)` on the sidebar body).
+                appState.choiceRequestCount += 1
+            } label: {
+                HStack(spacing: 6) {
+                    LucideIcon("plus", size: 14)
+                        .foregroundStyle(.secondary)
+                    Text("新建")
+                        .font(.callout)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 8)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(WenshuI18n.t("sidebar.new_button.help"))
+        }
+    }
 }
 
 /// v0.30 boss 8/31 OOB: dedicated error case for attempting to
@@ -1536,26 +1853,19 @@ private struct NewBookSheet: View {
     }
 
     /// v0.30 boss 8/31 OOB: full Lucide icon library (=
-    /// LucideIcon.allCases from lucide-swift enum, ~1500 icons).
+    /// LucideIconName.allCases from lucide-swift enum, ~1500 icons).
     /// No guessing about which icon names exist; the user scrolls
     /// through every real Lucide icon and picks one.
     private var allLucideIcons: [String] {
-        LucideIcon.allCases.map(\.rawValue)
+        LucideIconName.allCases.map(\.rawValue)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("新建书")
-                    .font(.headline)
-                Spacer()
-            }
-            .padding()
-            Divider()
+        NavigationStack {
             Form {
-                TextField("书名", text: $title)
+                TextField(WenshuI18n.t("auto2.newlibraryoutlineview.l1555.h13591586"), text: $title)
                     .textFieldStyle(.roundedBorder)
-                TextField("作者", text: $author)
+                TextField(WenshuI18n.t("auto2.newlibraryoutlineview.l1557.h62884489"), text: $author)
                     .textFieldStyle(.roundedBorder)
                 // v0.30 boss 8/31 OOB: shelf picker (= user can
                 // choose which shelf this book goes into). Default
@@ -1576,12 +1886,12 @@ private struct NewBookSheet: View {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(.tint.opacity(0.15))
-                                .frame(width: 56, height: 56)
+                                .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
                             LucideIcon(selectedIcon, size: 32)
                                 .foregroundStyle(Color.accentColor)
                         }
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("已选 ICON")
+                            Text(WenshuI18n.t("auto.newlibraryoutlineview.l1583.h18380292"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(selectedIcon)
@@ -1603,7 +1913,7 @@ private struct NewBookSheet: View {
                                             .fill(selectedIcon == iconName
                                                   ? AnyShapeStyle(.tint.opacity(0.25))
                                                   : AnyShapeStyle(Color.clear))
-                                            .frame(width: 40, height: 40)
+                                            .frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)
                                         LucideIcon(iconName, size: 24)
                                             .foregroundStyle(selectedIcon == iconName
                                                              ? Color.accentColor
@@ -1624,30 +1934,37 @@ private struct NewBookSheet: View {
                         .padding(.horizontal, DesignTokens.chromePaddingMicro)
                         .padding(.vertical, DesignTokens.chromePaddingVertical)
                     }
-                    .frame(height: 320)
+                    .frame(height: DesignTokens.popoverMaxHeight)
                 } header: {
-                    Text("ICON (必选)")
+                    Text(WenshuI18n.t("library.new_book.icon_required"))
                 }
             }
             .formStyle(.grouped)
-            Divider()
-            HStack {
-                Button("取消", role: .cancel) { dismiss() }
-                Spacer()
-                Button("保存") {
-                    let book = Book(
-                        title: title,
-                        author: author,
-                        icon: selectedIcon,
-                        shelfId: shelfId
-                    )
-                    onSave(book)
-                    dismiss()
+            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // .toolbar (= Apple HIG standard for sheet chrome). The
+            // inline HStack { Text + Divider } header + footer buttons
+            // were removed; the title moves to .navigationTitle and
+            // Cancel/Save move to .toolbar.
+            .navigationTitle(WenshuI18n.t("library.new_book.title"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1640.h92868892")) { dismiss() }
                 }
-                .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .keyboardShortcut(.defaultAction)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1643.h37960739")) {
+                        let book = Book(
+                            title: title,
+                            author: author,
+                            icon: selectedIcon,
+                            shelfId: shelfId
+                        )
+                        onSave(book)
+                        dismiss()
+                    }
+                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .keyboardShortcut(.defaultAction)
+                }
             }
-            .padding()
         }
         .frame(minWidth: 480, idealWidth: 540, minHeight: 720, idealHeight: 800)
     }
@@ -1703,7 +2020,7 @@ private struct NewShelfSheet: View {
     }
 
     /// v0.30 boss 8/31 OOB: render the ENTIRE Lucide icon library
-    /// (= LucideIcon.allCases, an enum provided by lucide-swift that's
+    /// (= LucideIconName.allCases, an enum provided by lucide-swift that's
     /// auto-generated from lucide-static@1.25.0 = ~1500 icons at
     /// v0.30). No curated preset list = no guessing about which
     /// icons exist. The user scrolls through every real Lucide
@@ -1714,21 +2031,14 @@ private struct NewShelfSheet: View {
         // rawValues (= the kebab-case icon name). `allCases.map(\.rawValue)`
         // gives us the complete icon name list at runtime (= no
         // hardcoded list, no manual sync when lucide-swift upgrades).
-        LucideIcon.allCases.map(\.rawValue)
+        LucideIconName.allCases.map(\.rawValue)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("新建书架")
-                    .font(.headline)
-                Spacer()
-            }
-            .padding()
-            Divider()
+        NavigationStack {
             Form {
                 Section {
-                    TextField("书架名 (例如 长篇网文)", text: $name)
+                    TextField(WenshuI18n.t("auto2.newlibraryoutlineview.l1730.h19340064"), text: $name)
                         .textFieldStyle(.roundedBorder)
                     // v0.30 boss 8/31 OOB: inline error label under the
                     // name field. Shows when the name is a duplicate
@@ -1744,7 +2054,7 @@ private struct NewShelfSheet: View {
                         .padding(.top, DesignTokens.chromePaddingMicro)
                     }
                 } header: {
-                    Text("名称")
+                    Text(WenshuI18n.t("auto.newlibraryoutlineview.l1746.h58346771"))
                 }
                 Section {
                     // Icon preview (= shows the selected icon at
@@ -1753,12 +2063,12 @@ private struct NewShelfSheet: View {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(.tint.opacity(0.15))
-                                .frame(width: 56, height: 56)
+                                .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
                             LucideIcon(selectedIcon, size: 32)
                                 .foregroundStyle(Color.accentColor)
                         }
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("已选 ICON")
+                            Text(WenshuI18n.t("auto.newlibraryoutlineview.l1760.h18380292"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(selectedIcon)
@@ -1787,7 +2097,7 @@ private struct NewShelfSheet: View {
                                             .fill(selectedIcon == iconName
                                                   ? AnyShapeStyle(.tint.opacity(0.25))
                                                   : AnyShapeStyle(Color.clear))
-                                            .frame(width: 40, height: 40)
+                                            .frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)
                                         LucideIcon(iconName, size: 24)
                                             .foregroundStyle(selectedIcon == iconName
                                                              ? Color.accentColor
@@ -1808,24 +2118,28 @@ private struct NewShelfSheet: View {
                         .padding(.horizontal, DesignTokens.chromePaddingMicro)
                         .padding(.vertical, DesignTokens.chromePaddingVertical)
                     }
-                    .frame(height: 320)
+                    .frame(height: DesignTokens.popoverMaxHeight)
                 } header: {
-                    Text("ICON (必选)")
+                    Text(WenshuI18n.t("library.new_shelf.icon_required"))
                 }
             }
             .formStyle(.grouped)
-            Divider()
-            HStack {
-                Button("取消", role: .cancel) { dismiss() }
-                Spacer()
-                Button("保存") {
-                    onSave(name, selectedIcon)
-                    dismiss()
+            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // .toolbar (= Apple HIG standard for sheet chrome).
+            .navigationTitle(WenshuI18n.t("library.new_shelf.title"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1821.h92868892")) { dismiss() }
                 }
-                .disabled(!isNameValid)
-                .keyboardShortcut(.defaultAction)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1824.h37960739")) {
+                        onSave(name, selectedIcon)
+                        dismiss()
+                    }
+                    .disabled(!isNameValid)
+                    .keyboardShortcut(.defaultAction)
+                }
             }
-            .padding()
         }
         .frame(minWidth: 480, idealWidth: 540, minHeight: 480, idealHeight: 560)
     }
@@ -1841,39 +2155,44 @@ struct NewChoiceSheet: View {
     let onNewShelf: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("新建").font(.headline)
-                Spacer()
-                Button("取消") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-            }
-            HStack(spacing: 12) {
-                Button {
-                    onNewBook()
-                } label: {
-                    VStack(spacing: 8) {
-                        LucideIcon("book-plus", size: 32)
-                        Text("新建书").font(.body)
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    Button {
+                        onNewBook()
+                    } label: {
+                        VStack(spacing: 8) {
+                            LucideIcon("book-plus", size: 32)
+                            Text(WenshuI18n.t("auto.newlibraryoutlineview.l1855.h10335406")).font(.body)
+                        }
+                        .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
                     }
-                    .frame(width: 110, height: 80)
-                }
-                .buttonStyle(.bordered)
+                    .buttonStyle(.bordered)
 
-                Button {
-                    onNewShelf()
-                } label: {
-                    VStack(spacing: 8) {
-                        LucideIcon("library", size: 32)
-                        Text("新建书架").font(.body)
+                    Button {
+                        onNewShelf()
+                    } label: {
+                        VStack(spacing: 8) {
+                            LucideIcon("library", size: 32)
+                            Text(WenshuI18n.t("auto.newlibraryoutlineview.l1866.h64741338")).font(.body)
+                        }
+                        .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
                     }
-                    .frame(width: 110, height: 80)
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(.bordered)
+                Spacer()
             }
-            Spacer()
+            .padding(DesignTokens.chromePaddingHero)
+            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // .toolbar (= Apple HIG standard for sheet chrome).
+            .navigationTitle(WenshuI18n.t("library.new_choice.title"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1880.h92868892")) { dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                }
+            }
         }
-        .padding(20)
         .frame(minWidth: 280, idealWidth: 320, minHeight: 180, idealHeight: 200)
     }
 }
@@ -1927,7 +2246,7 @@ private struct RenamingTarget: Identifiable {
 /// supplied closure. Same duplicate-check logic as NewShelfSheet
 /// (= passes existingNames to the validator).
 private struct RenameItemSheet: View {
-    let title: String  // = "重命名书架" or "重命名书"
+    let title: String  // = "rename" or "rename"
     let originalName: String
     let existingNames: [String]
     let onSave: (String) -> Void
@@ -1977,7 +2296,7 @@ private struct RenameItemSheet: View {
             .padding()
             Divider()
             Form {
-                TextField("名称", text: $name)
+                TextField(WenshuI18n.t("auto2.newlibraryoutlineview.l1988.h24669799"), text: $name)
                     .textFieldStyle(.roundedBorder)
                 if let nameError = nameError {
                     HStack(spacing: 6) {
@@ -1993,9 +2312,9 @@ private struct RenameItemSheet: View {
             .formStyle(.grouped)
             Divider()
             HStack {
-                Button("取消", role: .cancel) { dismiss() }
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l2004.h92868892"), role: .cancel) { dismiss() }
                 Spacer()
-                Button("保存") {
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l2006.h37960739")) {
                     onSave(name.trimmingCharacters(in: .whitespacesAndNewlines))
                     dismiss()
                 }
@@ -2018,29 +2337,32 @@ private struct NewButtonWithHover: View {
     let help: String
     let action: () -> Void
 
-    @State private var isHover: Bool = false
-
     var body: some View {
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+        // Apple API': the previous hand-rolled hover pattern
+        // (= `@State isHover` + `.onHover` + manual `.background(
+        // RoundedRectangle.fill(.tertiary vs .clear))`) was a non-
+        // Apple pattern (= Finder / Mail / Notes sidebar icon
+        // buttons do NOT use a manual background fill; = they use
+        // the system `.buttonStyle(.borderless)` which auto-applies
+        // the canonical macOS 27 hover tint + Liquid Glass material
+        // = identical to the system toolbar's icon button hover).
+        //
+        // Apple HIG: `.buttonStyle(.borderless)` is THE canonical
+        // sidebar / toolbar icon button style on macOS 14+. It
+        // (= renders the icon, = auto-paints the hover tint on
+        // pointer-over, = auto-paints the press tint on click, =
+        // auto-applies the Liquid Glass material backdrop on macOS
+        // 27). No manual state, no manual background, no manual tint.
+        //
+        // Removed: @State isHover, .onHover, manual
+        // RoundedRectangle fill, .help (kept — that's user-facing
+        // tooltip = good UX), .padding(.frame) (auto-applied by
+        // borderless button style).
         Button(action: action) {
             LucideIcon(iconName, size: 18)
-                .frame(width: 28, height: 28)
-                .contentShape(Rectangle())
-                .foregroundStyle(Color.secondary)
         }
-        .buttonStyle(.plain)
-        // v0.30 boss 8/31 OOB 'the ICON buttons in the red box also implement hover effect, same as
-        // TAB': matches PaneIconTab hover pattern (= .onHover
-        // + manual .background tint = Color.accentColor.opacity(0.12)
-        // on hover, clipped to RoundedRectangle(4)).
-        .onHover { hovering in
-            isHover = hovering
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(isHover
-                    ? AnyShapeStyle(.quaternary)
-                    : AnyShapeStyle(Color.clear))
-        )
+        .buttonStyle(.borderless)
         .help(help)
     }
 }

@@ -201,7 +201,10 @@ public actor WenshuVerifier {
     /// resolveCredentials: read provider slug from UserDefaults + key from Keychain.
     /// Called on every send() invocation — no caching (Settings page may change key mid-session).
     /// Strategy:
-    ///   1. UserDefaults "wenshu.llm.provider" override (matches @AppStorage in App.swift line 221)
+    ///   1. UserDefaults "wenshu.llm.provider" override (matches @AppStorage in
+    ///      SettingView.swift line 45; = App.swift was split per the Q2 boss
+    ///      split = Settings moved to SettingView.swift in the Views/Settings/
+    ///      folder; the previous "App.swift line 221" reference is stale).
     ///      (if set, use it; else default to model.providerSlug)
     ///   2. Look up provider in ProviderCatalog
     ///   3. Load key from AppleKeychain for that provider slug
@@ -209,11 +212,23 @@ public actor WenshuVerifier {
     public nonisolated func resolveCredentials(model overrideModel: WenshuLLMModel? = nil) throws -> ResolvedCredentials {
         let modelEnum = overrideModel ?? WenshuLLMModel(rawValue: model) ?? .m3
         // 1. Provider slug: UserDefaults override (if any), else model.providerSlug.
-        // NOTE: key name 'wenshu.llm.provider' matches @AppStorage in App.swift line 221.
+        // NOTE: key name 'wenshu.llm.provider' matches @AppStorage in
+        // SettingView.swift line 45 (= App.swift line 221 reference is
+        // stale per the Q2 boss split).
         // (v0.23 ticket 010.005 fix — was 'wenshu.provider.slug' which never matched the
         // existing @AppStorage binding, so the override never took effect.)
         let userDefaultsSlug = UserDefaults.standard.string(forKey: "wenshu.llm.provider")
-        let effectiveSlug = userDefaultsSlug?.isEmpty == false ? userDefaultsSlug! : modelEnum.providerSlug
+        // v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+        // replaced `userDefaultsSlug?.isEmpty == false ? userDefaultsSlug! : ...`
+        // (= audit's LOW smell; = the `!` is logically safe given the
+        // predicate but reads as a hidden force-unwrap) with explicit
+        // if-let-let (= no force-unwrap; = same behavior).
+        let effectiveSlug: String
+        if let slug = userDefaultsSlug, !slug.isEmpty {
+            effectiveSlug = slug
+        } else {
+            effectiveSlug = modelEnum.providerSlug
+        }
         // 2. Look up provider.
         guard let provider = Provider.by(slug: effectiveSlug) else {
             throw WenshuLLMError.invalidBaseURL(url: "unknown provider slug: \(effectiveSlug)")

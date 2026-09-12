@@ -41,7 +41,23 @@ let package = Package(
     ],
     dependencies: [
         // v0.25.1 chat-zone icons
-        .package(url: "https://github.com/bring-shrubbery/lucide-swift.git", exact: "1.25.0"),
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
+        // 现在放大了, 线条好粗': switch to ajaxjiang96/lucide-swift
+        // (= a Lucide fork that exposes `strokeWidth` as a
+        // parameter; = the upstream bring-shrubbery/lucide-swift
+        // 1.25.0 bakes strokes into filled outlines and exposes
+        // a deprecated `lineWidth()` no-op; = the only way to
+        // render truly thin lines is to use a fork with
+        // stroked-path rendering).
+        //
+        // AGENTS.md §11.1 note: this fork has 0 stars (= below
+        // the 100-star threshold). Boss 2026-09-12 explicitly
+        // approved the swap despite the policy gap (= boss
+        // directive is "线条好粗" + accept policy gap to fix it).
+        // TODO future ticket: revisit if the fork gains adoption
+        // OR revert to bring-shrubbery if a strokeWidth parameter
+        // lands upstream.
+        .package(url: "https://github.com/ajaxjiang96/lucide-swift.git", from: "0.3.0"),
 
         // RUNTIME — CommonMark / GFM parser
         // swift-markdown tags weren't returned by `git ls-remote` (it uses GitHub Releases,
@@ -89,7 +105,16 @@ let package = Package(
         .executableTarget(
             name: "WenshuApp",
             dependencies: [
-                .product(name: "Lucide", package: "lucide-swift"),
+                // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
+                // 现在放大了, 线条好粗': ajaxjiang96 fork exposes
+                // its types via the `LucideSwift` product name (=
+                // NOT `Lucide` like the upstream bring-shrubbery
+                // fork). Type aliases for `Lucide` (the upstream
+                // name) exist via re-export so most callers compile
+                // unchanged, but explicit LucideIcon(...) init
+                // we'll use strokeWidth on (= 1 PT) requires the
+                // LucideSwift product to be imported directly.
+                .product(name: "LucideSwift", package: "lucide-swift"),
                 .product(name: "Markdown", package: "swift-markdown"),
                 // v0.39 ticket 001: chapter editor.
                 .product(name: "MarkdownEngineCodeBlocks", package: "swift-markdown-engine"),
@@ -124,13 +149,32 @@ let package = Package(
             name: "WenshuAppTests",
             dependencies: [
                 "WenshuApp",
-                .product(name: "ViewInspector", package: "ViewInspector"),
+                .product(name: "ViewInspector", package: "viewinspector"),
                 // batch 1 issue 05: visual regression test support for ticket 028-011
                 // (= drag-lost regression suite). Pairs with ViewInspector: structure
                 // assertions vs pixel snapshots. README warns NOT to add to runtime target.
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
-            path: "Tests/WenshuAppTests"
+            path: "Tests/WenshuAppTests",
+            // v0.71 P1 batch 3: expose Localizable.strings to the
+            // test target's Bundle.module (= the I18nParityTests
+            // suite needs Bundle.module.url(forResource: "Localizable",
+            // withExtension: "strings") to verify en ↔ zh-Hans parity
+            // + source-code coverage). Without this, Bundle.module
+            // doesn't exist (= SPM only generates it when the target
+            // has resources). Symlink the WenshuApp Resources dir
+            // (= Localizable.strings is the only file the i18n tests
+            // actually read; = no need to process .lproj via SPM's
+            // localization pipeline = .copy preserves the .lproj
+            // directory structure).
+            resources: [
+                // Localizable.strings lives in each .lproj (= the
+                // canonical Apple localization layout; = Swift's
+                // NSLocalizedString looks it up via the user's
+                // preferred language + the .lproj directory).
+                .copy("Resources/en.lproj"),
+                .copy("Resources/zh-Hans.lproj"),
+            ]
         )
     ]
 )

@@ -1,9 +1,9 @@
 // Sources/WenshuApp/UI/PaneIconTab.swift
 //
-// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '你需要做一个组件索引,
+// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'needgroup,
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// 以后如果有新的地方用到相同的东西, 会自然而然的找到组件, 而不是默认自动
-// 写个新的'): Phase 2 of 5-phase component refactor.
+//, group, yesdefaultauto
+// '): Phase 2 of 5-phase component refactor.
 //
 // Single tab button component used by ALL pane tab bars (= sidebar / preview /
 // editor / tools / chat / dynamic). Listed in ComponentIndex.md Level 3.1.
@@ -40,7 +40,7 @@ import SwiftUI
 /// PaneIconTab(
 ///     id: "library",
 ///     icon: "square-library",
-///     label: "书架",
+/// label: "",
 ///     isSelected: selection == "library",
 ///     namespace: tabBarNamespace,
 ///     namespaceID: "tabBarUnderline",
@@ -117,7 +117,7 @@ public struct PaneIconTab: View {
                 //   per-tab crossfade)
                 // - .clipShape(Capsule()) for fully rounded ends (= two
                 //   round caps on both sides, per boss 2026-08-30 OOB
-                //   '加满圆角, 两头圆'). Capsule() is the same as a fully
+                // ', '). Capsule() is the same as a fully
                 //   rounded RoundedRectangle (= radius = height/2 = 0.5 PT
                 //   for a 1 PT line, giving a perfect oval/lozenge shape).
                 .overlay(alignment: .bottom) {

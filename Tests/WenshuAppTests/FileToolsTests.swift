@@ -1,7 +1,7 @@
 //
 //  FileToolsTests.swift · Wenshu · v0.18 ticket 07 (file tools)
 //
-//  单元测试 FileTools. cwd 下临时文件, 测试后清理.
+// test FileTools. cwd file, testclean.
 //
 
 import Testing

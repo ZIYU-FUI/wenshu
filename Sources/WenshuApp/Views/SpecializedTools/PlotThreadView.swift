@@ -11,32 +11,43 @@ struct PlotThreadView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Plot Threads").font(.headline)
+            Text(WenshuI18n.t("b5.plotthreadview.l14.h19187540")).font(.headline)
             if let bookId = bookStore.selectedBookId {
                 HStack {
-                    TextField("Thread title", text: $title)
-                    Button("Add") { add(bookId: bookId) }.disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                    TextField(WenshuI18n.t("b5.plotthreadview.l17.h33003032"), text: $title)
+                    Button(WenshuI18n.t("b5.plotthreadview.l18.h79272146")) { add(bookId: bookId) }.disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                TextField("Setup description", text: $details)
+                TextField(WenshuI18n.t("b5.plotthreadview.l20.h12597265"), text: $details)
                 List {
-                    Section("Threads") {
+                    Section(WenshuI18n.t("b5.plotthreadview.l22.h14379348")) {
                         ForEach(threads) { thread in
                             HStack {
                                 VStack(alignment: .leading) { Text(thread.title); Text(thread.status.rawValue).font(.caption).foregroundStyle(.secondary) }
                                 Spacer()
-                                Button(role: .destructive) { remove(thread.id) } label: { Image(systemName: "trash") }.buttonStyle(.borderless)
+                                Button(role: .destructive) { remove(thread.id) } label: { LucideIcon("trash-2", size: 16) }.buttonStyle(.borderless)
                             }
                         }
                     }
-                    Section("Stale threads") {
+                    Section(WenshuI18n.t("b5.plotthreadview.l31.h89394691")) {
                         ForEach(threads.filter { $0.status == .open || $0.status == .developing }) { thread in
-                            Label(thread.title, systemImage: "exclamationmark.triangle")
+                            Label { Text(thread.title) } icon: { LucideIcon("triangle-alert", size: 16) }
                         }
                     }
                 }
-            } else { Text("No book selected").foregroundStyle(.secondary) }
+            } else {
+                // v1.0.0-m1-shell boss 2026-09-12 OOB '统一所有空态的样式':
+                // use the unified EmptyStateView (= 76 PT Lucide icon
+                // + 1 PT stroke via LucideThinIcon + standard
+                // title/body hierarchy). Same visual treatment as the
+                // other 11 tabs.
+                EmptyStateView(
+                    icon: "git-branch",
+                    title: WenshuI18n.t("b5.plotthreadview.l37.h49866041"),
+                    body: WenshuI18n.t("b5.plotthreadview.l17.h33003032")
+                )
+            }
             if let errorText { Text(errorText).foregroundStyle(.red).font(.caption) }
-        }.padding(12).task(id: bookStore.selectedBookId) { await reload() }
+        }.padding(DesignTokens.chromePaddingMedium).task(id: bookStore.selectedBookId) { await reload() }
     }
 
     private func reload() async {

@@ -1,7 +1,7 @@
 // LibraryStoringContractTests.swift · Wenshu (Wenshu) · v0.02.0
 //
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
-// 东西'. These tests describe the BEHAVIORAL CONTRACT that every
+// Owner 8/15 15:55: 'needok,, refactor
+// '. These tests describe the BEHAVIORAL CONTRACT that every
 // LibraryStoring implementation must satisfy:
 //   - FileSystemLibraryStore (v0.02.0)
 //   - MetadataQueryLibraryStore (v0.03.0)
@@ -288,7 +288,7 @@ struct LibraryStoringContractTests {
 
     // MARK: - Document ops (v0.03.0, = document module end-to-end)
     //
-    // v53 (= 老板 8/15 17:48 '3 类, 卡片显示文档的中心思想'). The
+    // v53 (= 8/15 17:48 '3, cardshowin progress'). The
     // library has grown document operations: loadDocuments /
     // loadDocumentContent / saveDocument / deleteDocument. These
     // match the new BookCategory + Document domain types added in

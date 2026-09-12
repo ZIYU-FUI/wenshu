@@ -42,6 +42,28 @@
 //  Spec source: HERMES-SUBSYSTEM-3 retry brief, 2026-09-04 boss OOB.
 //
 
+
+//
+//  SQL SAFETY: all sqlite3_*() calls in this file use hard-coded string
+//  literals (= zero user-derived SQL = zero SQL injection risk TODAY).
+//  Per AGENTS.md §11.3 wenshu-side wins pattern (= hermes-port parity,
+//  = sqlite3 C API direct call preferred over GRDB abstraction = matches
+//  hermes Python tool-store implementation verbatim).
+//
+//  SAFETY CONTRACT for future contributors:
+//  - DO NOT concatenate user input into the SQL string (= use sqlite3_bind_*
+//    parameter binding instead = the only safe pattern).
+//  - DO NOT use String(format:) with %@/%.20s substitution (= format-injection).
+//  - DO NOT read user input into the table/column names (= always use
+//    fixed enum cases or hardcoded identifiers).
+//  - If user-derived values are needed in WHERE/INSERT clauses, use
+//    sqlite3_bind_text/stmt parameter binding with positional placeholders
+//    (= ?, ?N, :name =, @name = per SQLite docs).
+//
+//  The audit at .scratch/2026-09-06-wenshu-hidden-defects-audit.md
+//  documents this convention (= 14 raw sqlite3 sites across 10 files,
+//  all hardcoded literals = safe).
+
 import Foundation
 import SQLite3
 
@@ -52,7 +74,7 @@ private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.sel
 // MARK: - Domain models (= 1:1 mirror of hermes kanban_db.Task + Comment + Event + Attachment)
 
 /// Hermes kanban task (= 1:1 mirror of hermes kanban_db.Task dataclass).
-/// boss 2026-09-04 OOB "要 1:1" → status enum is the canonical hermes set.
+/// boss 2026-09-04 OOB " 1:1" → status enum is the canonical hermes set.
 public struct HermesKanbanTask: Sendable, Codable, Equatable, Identifiable {
     public let id: UUID
     public var boardId: String
@@ -223,7 +245,7 @@ public enum HermesKanbanError: Error, Sendable, Equatable {
 
 // MARK: - SQLite3 pointer wrapper (= opaque handle with thread-safe init)
 
-/// SQLite 透明指针 wrap (= identical pattern to KanbanStore.swift SQLitePtr).
+/// SQLite wrap (= identical pattern to KanbanStore.swift SQLitePtr).
 private final class HermesKanbanSQLitePtr {
     var db: OpaquePointer?
     deinit { sqlite3_close(db) }

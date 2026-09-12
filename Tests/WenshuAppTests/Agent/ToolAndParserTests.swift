@@ -4,9 +4,9 @@
 //  Tests for Tool protocol + ToolInputParser + ReadFileTool + WriteFileTool
 //  (= v0.35 ticket 001 sub-step 5/6/7 + 002/003 followups).
 //
-//  Per 老板 cadence 2026-09-03 '继续推进移植' (= 长期 auto-pilot mode
-//  per '一直跑移植就行' + '不用问我了') + 'PO 全链路方法论执行,
-//  不要跳步骤' + '1 RULE 1 commit'.
+// Per cadence 2026-09-03 'resume' (= auto-pilot mode
+// per 'ok' + ') + 'PO execute,
+// don't' + '1 RULE 1 commit'.
 //
 //  Safe scope (= NOT v0.34 in-flight) = Tool + ToolInputParser + ReadFileTool
 //  + WriteFileTool are v0.35 ticket 001 (= my work).
@@ -134,7 +134,7 @@ struct ToolAndParserDeepTests {
     // MARK: - ReadFileTool end-to-end
 
     @Test("ReadFileTool: read + write + read cycle via filesystem")
-    func readWriteCycle() throws {
+    func readWriteCycle() async throws {
         let tempPath = FileManager.default.temporaryDirectory
             .appendingPathComponent("tool-cycle-\(UUID().uuidString).md")
             .path
@@ -160,6 +160,10 @@ struct ToolAndParserDeepTests {
         let writeContent = try ToolInputParser.requireString(writeDict, "content")
         #expect(writePath == newPath)
         #expect(writeContent == "written content")
+
+        // Actually invoke the WriteFileTool so the file lands on disk
+        // (= the production contract under test).
+        _ = try await writeTool.execute(input: writeInput)
 
         // Verify file was actually written
         #expect(FileManager.default.fileExists(atPath: newPath))

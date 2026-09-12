@@ -112,68 +112,34 @@ struct CharacterLifecycleView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             if activeBookId == nil {
                 emptyState
             } else {
                 contentBody
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(DesignTokens.chromePaddingMedium)
         .task(id: activeBookId) {
             await reload()
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("clock", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Character Lifecycle")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch status {
-        case .idle:
-            return "Track the lifecycle of every character across the chapters of the active book."
-        case .loading:
-            return "Loading…"
-        case .loaded:
-            let count = events.count
-            let issueCount = contradictions.count
-            if issueCount > 0 {
-                return "\(count) event\(count == 1 ? "" : "s"), \(issueCount) contradiction\(issueCount == 1 ? "" : "s")"
-            }
-            return "\(count) event\(count == 1 ? "" : "s")"
-        case .failed(let reason):
-            return "Failed: \(reason)"
-        }
-    }
-
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("No book selected")
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text("Pick a book from the sidebar to start tracking character lifecycle events.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "clock",
+            title: WenshuI18n.t("b5.characterlifecycleview.l168.h1439622"),
+            body: WenshuI18n.t("b5.characterlifecycleview.l171.h40676736")
+        )
     }
+
 
     // MARK: - Body
 
@@ -188,7 +154,7 @@ struct CharacterLifecycleView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color(nsColor: .systemRed))
+                    .foregroundStyle(Color.red)
             }
         }
     }
@@ -197,11 +163,11 @@ struct CharacterLifecycleView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Add lifecycle event")
+            Text(WenshuI18n.t("b5.characterlifecycleview.l200.h38389147"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if characters.isEmpty {
-                Text("Define at least 1 character in the Characters pane to add a lifecycle event.")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l204.h79350323"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -210,7 +176,7 @@ struct CharacterLifecycleView: View {
                     get: { draftCharacterId ?? characters.first?.id ?? UUID() },
                     set: { draftCharacterId = $0 }
                 )) {
-                    Text("(choose)").tag(UUID())
+                    Text(WenshuI18n.t("b5.characterlifecycleview.l213.h31260689")).tag(UUID())
                     ForEach(characters) { c in
                         Text(c.name).tag(c.id)
                     }
@@ -232,21 +198,21 @@ struct CharacterLifecycleView: View {
                 Button {
                     Task { await addEvent() }
                 } label: {
-                    Label("Add", systemImage: "plus")
+                    Label { Text(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help("Add a lifecycle event for the selected character and stage.")
+                .help(WenshuI18n.t("b5.characterlifecycleview.l239.h26593030"))
             }
             HStack(spacing: 8) {
-                TextField("Chapter UUID (optional)", text: $draftChapterUUIDText, axis: .horizontal)
+                TextField(WenshuI18n.t("b5.characterlifecycleview.l242.h58864975"), text: $draftChapterUUIDText, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help("Optional chapter UUID to anchor the event. Leave empty for a pre-chapter backstory entry.")
-                TextField("Excerpt", text: $draftExcerpt, axis: .horizontal)
+                    .help(WenshuI18n.t("b5.characterlifecycleview.l245.h27116037"))
+                TextField(WenshuI18n.t("b5.characterlifecycleview.l246.h53203368"), text: $draftExcerpt, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help("Short quote from the chapter where this event was observed.")
+                    .help(WenshuI18n.t("b5.characterlifecycleview.l249.h31682361"))
             }
         }
     }
@@ -260,11 +226,11 @@ struct CharacterLifecycleView: View {
 
     private var listSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Events (\(events.count))")
+            Text(WenshuI18n.t("b5.characterlifecycleview.l263.h29792914"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if events.isEmpty {
-                Text("(none yet — add the first one above)")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l267.h43318691"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -285,7 +251,7 @@ struct CharacterLifecycleView: View {
         HStack(alignment: .top, spacing: 8) {
             LucideIconSystemFallback(event.stage.lucideIcon, size: 16)
                 .foregroundStyle(.tint)
-                .frame(width: 18)
+                .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(characterName(for: event.characterId))
@@ -294,14 +260,11 @@ struct CharacterLifecycleView: View {
                     Text(event.stage.displayName)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1)
-                        .background(
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(.quaternary)
-                        )
+                        .padding(.horizontal, DesignTokens.chromePaddingSmall)
+                        .padding(.vertical, DesignTokens.chromePaddingPico)
+                        
                     if let cid = event.chapterId {
-                        Text("ch. \(cid.uuidString.prefix(8))")
+                        Text(WenshuI18n.t("b5.characterlifecycleview.l304.h73934719"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -321,26 +284,23 @@ struct CharacterLifecycleView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Remove this lifecycle event.")
+            .help(WenshuI18n.t("b5.characterlifecycleview.l324.h5673239"))
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary.opacity(0.5))
-        )
+        
     }
 
     // MARK: - Timeline
 
     private var timelineSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Timeline")
+            Text(WenshuI18n.t("b5.characterlifecycleview.l339.h16422962"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if characters.isEmpty {
-                Text("(define a character to see their timeline)")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l343.h47112699"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -350,7 +310,7 @@ struct CharacterLifecycleView: View {
                         get: { selectedCharacterId ?? characters.first?.id ?? UUID() },
                         set: { selectedCharacterId = $0 }
                     )) {
-                        Text("(choose)").tag(UUID())
+                        Text(WenshuI18n.t("b5.characterlifecycleview.l353.h58360186")).tag(UUID())
                         ForEach(characters) { c in
                             Text(c.name).tag(c.id)
                         }
@@ -363,7 +323,7 @@ struct CharacterLifecycleView: View {
                     Spacer(minLength: 0)
                 }
                 if timelineRows.isEmpty {
-                    Text("(no events for this character yet)")
+                    Text(WenshuI18n.t("b5.characterlifecycleview.l366.h98560518"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -385,12 +345,12 @@ struct CharacterLifecycleView: View {
         HStack(alignment: .top, spacing: 6) {
             LucideIconSystemFallback(event.stage.lucideIcon, size: 12)
                 .foregroundStyle(.tint)
-                .frame(width: 16)
+                .frame(width: DesignTokens.iconStandardSize)
             Text(event.stage.displayName)
                 .font(.caption)
                 .foregroundStyle(.primary)
             if let cid = event.chapterId {
-                Text("· ch. \(cid.uuidString.prefix(8))")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l393.h77015228"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -402,11 +362,11 @@ struct CharacterLifecycleView: View {
 
     private var contradictionsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Contradictions (\(contradictions.count))")
+            Text(WenshuI18n.t("b5.characterlifecycleview.l405.h20963905"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if contradictions.isEmpty {
-                Text("(none — every character's terminal stage is honored)")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l409.h10185050"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -414,8 +374,8 @@ struct CharacterLifecycleView: View {
                 ForEach(Array(contradictions.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: 6) {
                         LucideIconSystemFallback("alert-triangle", size: 14)
-                            .foregroundStyle(Color(nsColor: .systemOrange))
-                            .frame(width: 18)
+                            .foregroundStyle(Color.orange)
+                            .frame(width: DesignTokens.tabIconSize)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(characterName(for: issue.characterId))
                                 .font(.caption)
@@ -426,7 +386,7 @@ struct CharacterLifecycleView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, DesignTokens.chromePaddingNano)
                 }
             }
         }

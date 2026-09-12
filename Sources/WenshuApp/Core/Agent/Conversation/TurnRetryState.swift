@@ -19,8 +19,8 @@ public struct TurnRetryState: Sendable {
     public private(set) var attemptNumber: Int
 
     public init(maxAttempts: Int, attemptNumber: Int = 0) {
-        precondition(maxAttempts > 0, "maxAttempts must be positive")
-        self.maxAttempts = maxAttempts
+        self.maxAttempts = max(1, maxAttempts)
+        // maxAttempts counts attempts; initial state has consumed none.
         self.attemptNumber = attemptNumber
     }
 

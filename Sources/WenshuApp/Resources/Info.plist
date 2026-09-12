@@ -2,10 +2,30 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- v0.40 apple-001 i18n (boss real-device test 2026-09-07):
+         changed CFBundleDevelopmentRegion from "zh_CN" to "en"
+         (= base/development language = English per Apple HIG).
+         Added CFBundleLocalizations = ["en", "zh-Hans"] (= explicit
+         list of supported localizations so macOS Finder + App Store
+         + NSLocalizedString can pick the right one per user system
+         language, and so the app shows up correctly in System
+         Settings → Language & Region).
+
+         The display name "文枢" / "Wenshu" is now resolved from
+         the per-language InfoPlist.strings file (= the .lproj/InfoPlist.strings
+         that Apple uses for CFBundleName / CFBundleDisplayName
+         localization). When the user's system language is Chinese,
+         the app shows as "文枢" in the Dock; for English it shows
+         as "Wenshu". Apple canonical pattern. -->
     <key>CFBundleDevelopmentRegion</key>
-    <string>zh_CN</string>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>zh-Hans</string>
+    </array>
     <key>CFBundleDisplayName</key>
-    <string>文枢</string>
+    <string>Wenshu</string>
     <key>CFBundleExecutable</key>
     <string>WenshuApp</string>
     <key>CFBundleIconFile</key>
@@ -17,7 +37,7 @@
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>文枢</string>
+    <string>Wenshu</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -38,14 +58,19 @@
          '库应该是个包文件, 右建点会出现显示包内容' (= package, like
          .photoslibrary / .fcpbundle / .musiclibrary). Register .ws as
          exported type so Finder treats name.ws as bundle directory
-         (right-click → '显示包内容' reveals contents). -->
+         (right-click → '显示包内容' reveals contents).
+
+         v0.40 apple-001 i18n: UTTypeDescription "文枢仓库" is also
+         localized via the en.lproj/InfoPlist.strings / zh-Hans.lproj/
+         InfoPlist.strings files (= the Finder "Get Info" panel
+         shows the type description in the user's language). -->
     <key>UTExportedTypeDeclarations</key>
     <array>
         <dict>
             <key>UTTypeIdentifier</key>
             <string>com.wenshu.workspace</string>
             <key>UTTypeDescription</key>
-            <string>文枢仓库</string>
+            <string>Wenshu workspace</string>
             <key>UTTypeConformsTo</key>
             <array>
                 <string>com.apple.package</string>
@@ -60,12 +85,15 @@
         </dict>
     </array>
     <!-- Declare app handles .ws files (CFBundleDocumentTypes for
-         document-based open / NSOpenPanel canChooseFiles + .ws) -->
+         document-based open / NSOpenPanel canChooseFiles + .ws).
+         v0.40 i18n: CFBundleTypeName "文枢仓库" is localized via
+         per-language InfoPlist.strings (= Finder "Open With" menu
+         shows the type name in the user's language). -->
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>
             <key>CFBundleTypeName</key>
-            <string>文枢仓库</string>
+            <string>Wenshu workspace</string>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
             <key>LSHandlerRank</key>

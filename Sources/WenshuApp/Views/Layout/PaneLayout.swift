@@ -34,7 +34,7 @@ import Foundation
 /// Each preset declares a `PaneLayout` struct that knows how to construct
 /// its native `NSSplitViewController` (= and child NSSplitViewItems) from
 /// the workspace's existing `PaneNode` list (= no schema change to
-/// WorkspaceState; the existing preset tree stays the source of truth).
+/// LayoutTreeState; the existing preset tree stays the source of truth).
 ///
 /// One preset = one struct, one file. Adding a new preset = new struct
 /// implementing this protocol (= per boss "each layout is custom-developed"; see spec.md rationale).
@@ -53,7 +53,7 @@ protocol PaneLayout {
     /// (= e.g. FCP: upper row 4 + lower row 2; Xcode: 1 + 1 with editor
     /// dominant).
     ///
-    /// `store` = `WorkspaceStore` (read-only here; no writes from this
+    /// `store` = `LayoutTreeStore` (read-only here; no writes from this
     /// method). Used to resolve `PaneNode.frame` (= minWidth / ideal /
     /// flex) into NSSplitViewItem constraints.
     ///
@@ -63,7 +63,7 @@ protocol PaneLayout {
     @MainActor
     func makeSplitController(
         panes: [PaneNode],
-        store: WorkspaceStore,
+        store: LayoutTreeStore,
         appState: AppState,
         bookStore: BookStore
     ) -> NSSplitViewController
@@ -81,7 +81,7 @@ protocol PaneLayout {
 //
 // This struct's `makeSplitController` is a stub returning an empty
 // NSSplitViewController. The real implementation (= recursive
-// WorkspaceState tree walk + NSSplitViewItem construction + autosaveName)
+// LayoutTreeState tree walk + NSSplitViewItem construction + autosaveName)
 // lands in ticket 03. This ticket establishes the protocol + struct +
 // file location so subsequent tickets have a home.
 struct FCPLayout: PaneLayout {
@@ -90,7 +90,7 @@ struct FCPLayout: PaneLayout {
     @MainActor
     func makeSplitController(
         panes: [PaneNode],
-        store: WorkspaceStore,
+        store: LayoutTreeStore,
         appState: AppState,
         bookStore: BookStore
     ) -> NSSplitViewController {

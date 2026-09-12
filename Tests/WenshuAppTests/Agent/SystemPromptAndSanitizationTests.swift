@@ -3,9 +3,9 @@
 //
 //  Tests for SystemPrompt + MessageSanitization (= v0.35 ticket 002/001).
 //
-//  Per 老板 cadence 2026-09-03 '继续推进移植' (= 长期 auto-pilot mode
-//  per '一直跑移植就行' + '不用问我了') + 'PO 全链路方法论执行,
-//  不要跳步骤' + '1 RULE 1 commit'.
+// Per cadence 2026-09-03 'resume' (= auto-pilot mode
+// per 'ok' + ') + 'PO execute,
+// don't' + '1 RULE 1 commit'.
 //
 //  Safe scope (= NOT v0.34 in-flight) = SystemPrompt + MessageSanitization
 //  are v0.35 ticket 002/001 (= my work).
@@ -68,9 +68,14 @@ struct SystemPromptDeepTests {
     func buildStableTierMultiLine() {
         let prompt = SystemPrompt.build(ephemeralHint: "x")
         #expect(prompt.contains("\n"))
-        // No Date()/clock data should appear
+        // No Date()/clock data should appear (= check for actual
+        // date/time tokens, NOT the substring "time" which would
+        // falsely match the word "runtime" that legitimately
+        // appears in the stable tier prompt template).
         #expect(!prompt.contains("Date"))
-        #expect(!prompt.contains("time"))
+        #expect(!prompt.contains("Time"))
+        #expect(!prompt.contains("2026-"))
+        #expect(!prompt.contains("2025-"))
     }
 }
 

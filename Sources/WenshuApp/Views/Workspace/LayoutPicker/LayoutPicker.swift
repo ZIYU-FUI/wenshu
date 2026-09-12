@@ -1,10 +1,10 @@
-// LayoutPicker.swift · Wenshu (文枢) · v0.28 ticket 028-007
+// LayoutPicker.swift · Wenshu () · v0.28 ticket 028-007
 //
 // Inner picker UI (= hermes `layout-picker.tsx:111-203` port). Shows
 // the 4 builtin preset cards in a 4-column grid (= or however many
 // the active preset list contains, including user-saved presets).
-// Below the grid is a "+ 新建网格布局" dashed button and a
-// "将当前排列保存为模板" reveal-to-input button at the bottom.
+// Below the grid is a "+ gridlayout" dashed button and a
+// "save" reveal-to-input button at the bottom.
 // Active preset card has an accent border + active background
 // fill. Custom (non-built-in) preset cards show a delete (×)
 // button on hover; built-in presets have no delete button.
@@ -20,7 +20,7 @@ import SwiftUI
 /// `LayoutEditBar`, `PresetCard`, `PresetThumbnail`, and
 /// `SaveCurrentLayoutButton`.
 struct LayoutPicker: View {
-    @ObservedObject var store: WorkspaceStore
+    @ObservedObject var store: LayoutTreeStore
     /// The currently-active preset's ID (= for the accent-border
     /// highlighting per spec §"Acceptance criteria" #10).
     let currentPresetID: UUID?
@@ -29,7 +29,7 @@ struct LayoutPicker: View {
     /// current-as-preset input reveal so the picker can stay pure).
     var onSelectPreset: (LayoutPreset) -> Void
 
-    /// Local state for the "+ 新建网格布局" button (= the future
+    /// Local state for the "+ gridlayout" button (= the future
     /// ticket 028-008 will wire this into the ZoneEditor).
     @State private var showingNewGridHint: Bool = false
 
@@ -78,7 +78,7 @@ struct LayoutPicker: View {
             if !customPresets.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("自定义")
+                        Text(WenshuI18n.t("auto.layoutpicker.l81.h19454638"))
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -102,14 +102,14 @@ struct LayoutPicker: View {
                 }
             }
 
-            // "+ 新建网格布局" button (= v0.28 ticket 028-008c
+            // "+ gridlayout" button (= v0.28 ticket 028-008c
             // integration: opens the ZoneEditor sheet on tap).
             Button(action: {
                 showingZoneEditor = true
             }) {
                 HStack(spacing: 6) {
                     LucideIconSystemFallback("plus", size: 12)
-                    Text("新建网格布局")
+                    Text(WenshuI18n.t("auto.layoutpicker.l112.h61862158"))
                         .font(.caption)
                 }
                 .frame(maxWidth: .infinity)
@@ -141,15 +141,12 @@ struct LayoutPicker: View {
                 }) {
                     HStack(spacing: 6) {
                         LucideIconSystemFallback("square.and.arrow.down", size: 12)
-                        Text("将当前排列保存为模板")
+                        Text(WenshuI18n.t("auto.layoutpicker.l144.h96188612"))
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, DesignTokens.chromePaddingVertical)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(.quaternary)
-                    )
+                    
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, DesignTokens.chromePaddingMedium)
@@ -173,15 +170,15 @@ struct LayoutPicker: View {
             ),
             presenting: pendingDeletePreset
         ) { preset in
-            Button("删除", role: .destructive) {
+            Button(WenshuI18n.t("auto2.layoutpicker.l176.h93153796"), role: .destructive) {
                 store.deletePreset(preset)
                 pendingDeletePreset = nil
             }
-            Button("取消", role: .cancel) {
+            Button(WenshuI18n.t("auto2.layoutpicker.l180.h50847315"), role: .cancel) {
                 pendingDeletePreset = nil
             }
         } message: { preset in
-            Text("删除后无法撤销。模板 \"\(preset.name)\" 会从所有设备上移除。")
+            Text(WenshuI18n.t("layout.preset.delete_confirm_message_prefix") + preset.name + WenshuI18n.t("layout.preset.delete_confirm_message_suffix"))
         }
     }
 
@@ -189,16 +186,16 @@ struct LayoutPicker: View {
     private var saveCurrentLayoutInput: some View {
         VStack(spacing: 6) {
             HStack(spacing: 6) {
-                TextField("模板名称", text: $newPresetName)
+                TextField(WenshuI18n.t("auto2.layoutpicker.l192.h42077297"), text: $newPresetName)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: .infinity)
                     .onSubmit { commitSave() }
-                Button("保存") {
+                Button(WenshuI18n.t("auto2.layoutpicker.l196.h34447881")) {
                     commitSave()
                 }
                 .disabled(newPresetName.trimmingCharacters(in: .whitespaces).isEmpty)
                 .buttonStyle(.borderedProminent)
-                Button("取消") {
+                Button(WenshuI18n.t("auto2.layoutpicker.l201.h50847315")) {
                     withAnimation {
                         showingSaveInput = false
                         newPresetName = ""
@@ -207,7 +204,7 @@ struct LayoutPicker: View {
                 .buttonStyle(.borderless)
             }
             .padding(.horizontal, DesignTokens.chromePaddingMedium)
-            Text("保存后会出现在上面的预设网格中")
+            Text(WenshuI18n.t("auto.layoutpicker.l210.h18923044"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, DesignTokens.chromePaddingMedium)

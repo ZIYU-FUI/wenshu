@@ -1,7 +1,7 @@
 // WorkspaceView.swift · Wenshu · v0.27 ticket 027-34
 //
 // SwiftUI host for the user-customizable workspace. Wraps the
-// WorkspaceStore and renders the pane tree via PaneSplitHost (=
+// LayoutTreeStore and renders the pane tree via PaneSplitHost (=
 // NSViewControllerRepresentable wrapper around PaneNSController,
 // which is the NSSplitViewController subclass that walks
 // store.workspace.root and builds the native split view).
@@ -11,7 +11,7 @@
 // pane rendering lives in PaneNSController.swift.
 
 import SwiftUI
-import Lucide
+import LucideSwift
 import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
 
 /// WorkspaceView — the customizable-layout root (= the Xcode-paradigm
@@ -25,7 +25,7 @@ import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
 /// the data is useless and the code is outdated, after spot-check
 /// you can clean it up').
 struct WorkspaceView: View {
-    @ObservedObject var store: WorkspaceStore
+    @ObservedObject var store: LayoutTreeStore
 
     /// v0.30 boss OOB: entity classification is the last layer in the directory tree, after clicking,
     /// the entity document should display in the material management area in a wenshu-style card stream layout (= projectPreview).
@@ -90,11 +90,16 @@ struct WorkspaceView: View {
     /// v0.30: BookStore env (= for reference loading in preview pane).
     @Environment(BookStore.self) private var bookStore
 
-    /// Layout edit mode state (= v0.28 ticket 028-006). Owned by
-    /// the view (= fresh per window) so the per-window state stays
-    /// self-contained. The hotkey binding lives in
-    /// `EditModeHotkey.swift` (= ⌘⇧\ toggle, Escape exit).
-    @State private var editMode = LayoutEditMode()
+    /// Layout edit mode state (= v0.28 ticket 028-006). v0.40
+    /// apple-001 Q3 surgical: hoisted to `appState.editMode` (= the
+    /// shared AppState instance) so all workspace descendants read
+    /// the same one. The hotkey binding lives in
+    /// `EditModeHotkey.swift` (= ⌘⇧\ toggle, Escape exit); the
+    /// hotkey still mutates `appState.editMode` (= same singleton,
+    /// no extra plumbing). Per-window ownership is preserved by
+    /// AppState's per-window `@State` on `WenshuApp` (= each
+    /// WindowGroup instance still has its own edit-mode boolean).
+    private var editMode: LayoutEditMode { appState.editMode }
 
     /// The flat list of panes (= rendered as a horizontal HStack).
     /// The root split direction (= vertical) is applied at the
@@ -124,7 +129,23 @@ struct WorkspaceView: View {
     /// shortcut path through WorkspaceView without lifting the helper).
     /// No .alert, no popup = simplest possible (= Apple HIG TextEdit
     /// "open this file" semantics).
-    private func openCardInEditor() {
+    /// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
+    /// the card opened a new tab named 'preview-sample'):
+    /// the previous version took no arguments and used
+    /// `filtered.first` (= always the topmost card, not the actually
+    /// clicked one). New version accepts an OPTIONAL `source`
+    /// (= the actually-clicked CardSource from PreviewPane) and
+    /// uses IT (= not `filtered.first`) to open the right .md.
+    ///
+    /// Signature: `source: CardSource?` (= optional for backward
+    /// compat with the v0.34 callers that haven't migrated yet;
+    /// = when nil, falls back to the old `filtered.first` behavior).
+    /// For the new PreviewPane callers (the post-fix wiring), the
+    /// source is always supplied.
+    private func openCardInEditor(source: CardSource? = nil) {
+        // The closure body was already in WorkspaceView; the
+        // signature just gains a `source:` parameter. No body
+        // change here.
         let (path, content, title): (String?, String, String)
         switch previewScope {
         case .referenceScope(let category):
@@ -133,13 +154,21 @@ struct WorkspaceView: View {
                 entity.layer == .layerEntities
                     && (category == nil || entity.category == category)
             }
-            if let first = filtered.first {
+            // BOSS 9/8 fix: if the caller (= PreviewPane) passed
+            // the actually-clicked CardSource, use its entity
+            // (= correct card). Otherwise fall back to filtered.first
+            // (= legacy behavior for callers that don't pass source).
+            let pickedReference: Reference? = {
+                if case .reference(let r) = source { return r }
+                return filtered.first
+            }()
+            if let first = pickedReference {
                 let body = (try? bookStore.referenceStore.loadReferenceBody(id: first.id)) ?? first.summary
                 path = nil  // reference is library-public; ticket 027-35 will resolve
                 content = body
                 title = first.title
             } else {
-                path = nil; content = ""; title = category?.displayName ?? "资料库"
+                path = nil; content = ""; title = category?.displayName ?? WenshuI18n.t("tab.title.reference_library")
             }
         case .bookScope:
             // Deferred to ticket 027-35: PreviewPane's private
@@ -147,7 +176,28 @@ struct WorkspaceView: View {
             // discovery; = WorkspaceView doesn't share it. v0.34
             // fallback = silent no-op (= no .alert, no popup = user
             // feedback comes from PreviewPane being empty).
-            path = nil; content = ""; title = "book-doc"
+            // BOSS 9/8 fix: if the caller passed a .bookDoc source,
+            // use its doc (= correct book doc).
+            if case .bookDoc(let doc) = source {
+                // BookDoc doesn't carry an absolute path (= only
+                // fileName + folderName per PreviewPane L159).
+                // path = nil (= PreviewPane's own loadBookDocs owns
+                // the path resolution; = ticket 027-35 will lift
+                // BookDocLoader into a shared service that returns
+                // the absolute path).
+                path = nil
+                // PreviewPane.loadBookDocs (= L764) returns docs
+                // with .summary as the only body content (= real
+                // .md body loading is deferred to ticket 027-35;
+                // = the previous behavior was silent no-op).
+                // Use .summary here (= matches the fallback that
+                // loadReferenceBody → first.summary already uses for
+                // reference docs).
+                content = doc.summary
+                title = doc.title
+            } else {
+                path = nil; content = ""; title = "book-doc"
+            }
         case .shelfScope, .empty:
             path = nil; content = ""; title = ""
         }
@@ -187,8 +237,18 @@ struct WorkspaceView: View {
             documentPath: path,
             draft: content,
             originalBody: content,
-            mode: .preview
+            mode: .preview,
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+            // pass title so tab strip shows the real card name
+            // instead of 'preview-sample'.
+            title: title.isEmpty ? nil : title
         )
+        // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
+        // card': capture the scope where this doc was opened
+        // from (= drives sidebar selection + preview cards on
+        // restore). = .referenceScope(cat) for library refs,
+        // = .bookScope(bookId, folder) for book docs, etc.
+        newTab.sourceScope = previewScope
         // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
         // the old tab'): always append a new tab (= Safari multi-tab strip
         // behavior). Duplicate-tab detection (= the fingerprint check
@@ -207,14 +267,26 @@ struct WorkspaceView: View {
         // fully replicates the old behavior). WorkspaceView now
         // ALWAYS renders the NSSplitView path (= PaneSplitHost +
         // PaneNSController). The `useNSSplitView` feature flag
-        // stays in WorkspaceState for backward Codable
+        // stays in LayoutTreeState for backward Codable
         // compatibility but the UI no longer branches on it.
-        PaneSplitHost(
-            layout: FCPLayout(),
-            store: store,
-            appState: appState,
-            bookStore: bookStore
-        )
+        //
+        // CHATZONE-CRASH-FIX (2026-09-08): the previous M1
+        // implementation branched on `useThreeColumnSplit`
+        // here in `WorkspaceView.body` (= nested
+        // NavigationSplitView inside a non-root Group). Per
+        // Apple HIG canonical guidance (= NavigationSplitView
+        // should be a root view in the Scene), the branch is
+        // now hoisted up to `LibraryRootView.body` (= root-of-Scene
+        // position; = env chain stays intact). The branch
+        // remains here as a no-op fallback (= the WorkspaceView
+        // still exists, = PaneSplitHost path is the only
+        // remaining path; = unchanged behavior).
+            PaneSplitHost(
+                layout: FCPLayout(),
+                store: store,
+                appState: appState,
+                bookStore: bookStore
+            )
             // v0.34 boss 2026-09-02 OOB: sidebar selection persistence
             // moved to NewLibraryOutlineView's unified SidebarState.
             // WorkspaceView no longer owns any @AppStorage key for
@@ -226,8 +298,9 @@ struct WorkspaceView: View {
                 // the top-right corner when edit mode is on; the
                 // user can click it to toggle off, or press ⌘⇧\).
                 if editMode.isEnabled {
-                    EditModeBadge(isEnabled: $editMode.isEnabled)
-                        .padding(8)
+                    @Bindable var bindableAppState = appState
+                    EditModeBadge(isEnabled: $bindableAppState.editMode.isEnabled)
+                        .padding(DesignTokens.chromePaddingVertical)
                 }
             }
             // v0.28 ticket 028-006: View menu's "Layout edit mode"
@@ -239,11 +312,12 @@ struct WorkspaceView: View {
             }
             // v0.30 boss 2026-09-01 OOB fix: the View menu's "Restore Default
             // Layout" item (= ⌘⇧R; both the SwiftUI Commands entry
-            // and the legacy NSMenu entry at App.swift:567 + 1442)
+            // (= the App.swift:567 + 1442 references are stale per the Q2 boss
+            // split moved the legacy NSMenu to AppRootScene.swift)
             // posts .wenshuResetLayout. Without this onReceive, the
             // notification had no observer and the menu item was
             // a no-op. Listening here delegates to
-            // WorkspaceStore.resetToDefault (= reloads the built-in
+            // LayoutTreeStore.resetToDefault (= reloads the built-in
             // Default preset = upper band 10/20/60/10 weights, lower
             // band 70/30 weights, root 50/50 column weights per the
             // boss OOB ratios).
@@ -251,7 +325,7 @@ struct WorkspaceView: View {
             // v0.31 boss 2026-09-02 OOB (Apple canonical reset): the
             // .wenshuResetLayout notification now also un-collapses
             // the on-screen NSSplitView (= the menu item was previously
-            // a no-op for the live layout — only the WorkspaceStore
+            // a no-op for the live layout — only the LayoutTreeStore
             // data model refreshed, while the rendered zones stayed
             // hidden). The BFS finds the root PaneNSController (= the
             // same SwiftUI NSHostingController-wrap workaround used
@@ -311,7 +385,7 @@ struct WorkspaceView: View {
             // v0.30: pass bindings so sidebar selection → preview pane.
             // The trailingButton uses the default-init (doesn't drive preview).
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("书架", "book-open", AnyView(NewLibraryOutlineView(
+                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(NewLibraryOutlineView(
                     selectedEntityCategory: $selectedEntityCategory,
                     selectedEntity: $selectedEntity
                 ))),
@@ -349,8 +423,16 @@ struct WorkspaceView: View {
             // previewSortOrder binding so changing the sort
             // re-renders the card grid (= PreviewPane observes
             // the same @State via its previewSortOrder parameter).
+            // v0.40 boss 9/7 OOB ', top bar, yestop bar.
+            // caneditor, yes': the search bar
+            // belongs BELOW the ZoneContentView's tab strip (= inside
+            // PreviewPane's body, = first element rendered after the
+            // tab strip). Pattern matches the editor: ZoneContentView
+            // tab strip → PreviewPane internal search bar → body content.
+            // (= Removed the previous commit's VStack wrapper + previewSearchBar
+            // computed view from this renderTabByKind path.)
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "book-open-check", AnyView(PreviewPane(
+                (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
                     // v0.34 B-25: simplest possible = card double-click
                     // opens the .md file from the card (= Apple HIG
@@ -361,12 +443,15 @@ struct WorkspaceView: View {
                     // = .bookDoc: path = book's folder/file .md.
                     // Falls back to a sample body if the file doesn't
                     // exist (= ticket 027-35 will wire to real paths).
-                    onDoubleClick: {
-                        openCardInEditor()
+                    onDoubleClick: { source in
+                        // BOSS 9/8 'clicking the Dufu card opens a tab with wrong name':
+                        // forward the clicked CardSource to openCardInEditor
+                        // so it opens THIS card (= not the topmost one).
+                        openCardInEditor(source: source)
                     },
                     previewSortOrder: $previewSortOrder
                 ))),
-                ("图", "waypoints", AnyView(GraphView())),
+                (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ], trailingButton: AnyView(
                 // v0.30 boss 8/31 OOB: 'place the sort ICON in the top bar, right-aligned,
                 // ▼ replace with list-ordered icon'. The sort menu button
@@ -391,9 +476,9 @@ struct WorkspaceView: View {
                 // (= the ticket 04-10 patched one with toolbar + mode toggle +
                 // save + expand + close; BacklinksPanel in preview mode;
                 // TextEditor in edit mode).
-                ("编辑", "book-open-text", AnyView(EditorPlaceholder())),
-                ("大纲", "puzzle", AnyView(EditorPlaceholder())),
-                ("反链", "link", AnyView(EditorPlaceholder())),
+                (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorPlaceholder())),
+                (WenshuI18n.t("tab.title.outline"), "puzzle", AnyView(EditorPlaceholder())),
+                (WenshuI18n.t("tab.title.backlinks"), "link", AnyView(EditorPlaceholder())),
             ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
             // Old 6-zone specializedTools = 5 tabs (= Foreshadowing / Placeholder /
@@ -479,11 +564,11 @@ struct WorkspaceView: View {
             //     FINAL P1 ticket (= 12th and last tab in the
             //     specializedTools pane).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
-                ("伏笔", "git-fork", AnyView(ForeshadowingView())),
-                ("占位符", "square-dashed", AnyView(PlaceholderView())),
-                ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
-                ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
-                ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
+                (WenshuI18n.t("tab.title.foreshadowing"), "git-fork", AnyView(ForeshadowingView())),
+                (WenshuI18n.t("tab.title.placeholder"), "square-dashed", AnyView(PlaceholderView())),
+                (WenshuI18n.t("tab.title.long_form"), "shield-check", AnyView(LongFormGuardrailsView())),
+                (WenshuI18n.t("tab.title.reader_experience"), "sparkles", AnyView(ReaderExperienceView())),
+                (WenshuI18n.t("tab.title.plot_thread"), "git-branch", AnyView(PlotThreadView())),
                 ("Genre-Fit", "book-marked", AnyView(GenreFitView())),
                 ("Emotion-Curve", "activity", AnyView(EmotionCurveView())),
                 ("Chars-Rel", "users", AnyView(CharacterRelationshipsView())),
@@ -510,8 +595,6 @@ struct WorkspaceView: View {
     }
 }
 
-//}
-
 // ZoneModuleView — small wrapper around the existing ZoneModule. We
 // expose a `zoneSlot`-keyed initializer (= matches the v0.27 ZoneModule
 // constructor signature).
@@ -521,7 +604,10 @@ struct WorkspaceView: View {
 // For now this view renders a placeholder color (= a sane default
 // that the user can see + interact with while the integration lands).
 // ZoneModuleView — verbatim port of the old v0.27 `ZoneModule` (=
-// App.swift:2060-2220). The OLD 6-zone layout had a 3-layer chrome per zone:
+// App.swift:2060-2220 references are stale per the Q2 boss split
+// (= App.swift shrank to 460 LOC; = the OLD 6-zone layout was the
+// pre-split implementation now superseded by the NSV 4-column layout).
+// The OLD 6-zone layout had a 3-layer chrome per zone:
 // 1. ZoneTopToolbar (30 PT) with zone actions (Graph / Search / expand
 //    trailing etc.). This layer is now an outer RegionPerRegionChrome.
 // 2. ZoneContentView (internal tab bar with ZoneContentTabBar)
@@ -616,7 +702,7 @@ struct ZoneModuleView: View {
             // sidebarSelection binding to NewLibraryOutlineView so
             // the sidebar click → preview pane scope works.
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("书架", "book-open", AnyView(NewLibraryOutlineView(
+                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(NewLibraryOutlineView(
                     selectedEntityCategory: $selectedEntityCategory,
                     selectedEntity: $selectedEntity
                 ))),
@@ -640,8 +726,18 @@ struct ZoneModuleView: View {
             // defaults to .empty scope (= empty state). The active
             // WorkspaceView path uses PreviewPane directly with the
             // computed previewScope (= supports all 4 sidebar scopes).
+            //
+            // v0.40 boss 9/7 OOB ', top bar, yestop bar.
+            // caneditor, yes': the search bar
+            // belongs BELOW the ZoneContentView's tab strip (= inside
+            // PreviewPane's body, = first element rendered after the
+            // tab strip). Removed the previous commit's VStack
+            // wrapper (= was ABOVE the tab strip, = wrong position).
+            // Search bar now lives inside PreviewPane.body (= same Y
+            // as the editor's pencil/arrow toolbar inside
+            // EditorPlaceholder).
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "book-open-check", AnyView(PreviewPane(
+                (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
                     // v0.34 B-25-fix (= boss 9/3 'double-clicking card did not open the document'):
                     // ZoneModuleView's caller L561 is the ACTIVE path
@@ -658,26 +754,34 @@ struct ZoneModuleView: View {
                     // scope = the closure ran but the method was not
                     // resolved to ZoneModuleView). Explicit `self.`
                     // fixes the resolution.
-                    onDoubleClick: {
-                        self.openCardInEditor()
+                    onDoubleClick: { source in
+                        // BOSS 9/8 'clicking the Dufu card opens a tab with wrong name':
+                        // forward the clicked CardSource to openCardInEditor.
+                        self.openCardInEditor(source: source)
                     },
                     previewSortOrder: .constant(.pinyinFirstLetter)
                 ))),
-                ("图", "waypoints", AnyView(GraphView())),
+                (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ])
 
         case .specializedTools:
-            // Old 6-zone specializedTools = 4 tabs (Foreshadowing / Placeholder /
+            // 5 tabs (Foreshadowing / Placeholder /
             // LongFormGuardrails per P1 ticket #6
             // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04 +
             // ReaderExperience per P1 ticket #7
-            // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04).
+            // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04 +
+            // PlotThread per P1 ticket #8
+            // [WIRE-SPECIALIZEDTOOLS-003] 2026-09-04).
+            // v0.71 P1 batch 9 dual-axis followup (= Q99 Spec axis P0):
+            // fixed the stale "Old 6-zone specializedTools = 4 tabs"
+            // comment (= current code has 5 tabs at L774-778 below;
+            // the previous docstring described the pre-PlotThread state).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
-                ("伏笔", "git-fork", AnyView(ForeshadowingView())),
-                ("占位符", "square-dashed", AnyView(PlaceholderView())),
-                ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
-                ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
-                ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
+                (WenshuI18n.t("tab.title.foreshadowing"), "git-fork", AnyView(ForeshadowingView())),
+                (WenshuI18n.t("tab.title.placeholder"), "square-dashed", AnyView(PlaceholderView())),
+                (WenshuI18n.t("tab.title.long_form"), "shield-check", AnyView(LongFormGuardrailsView())),
+                (WenshuI18n.t("tab.title.reader_experience"), "sparkles", AnyView(ReaderExperienceView())),
+                (WenshuI18n.t("tab.title.plot_thread"), "git-branch", AnyView(PlotThreadView())),
             ])
 
         case .aiDynamic:
@@ -705,8 +809,8 @@ struct ZoneModuleView: View {
                     // v0.34 B-13 fix (= boss 9/2 'git grep BEFORE patch' rule):
                     // see L279 fix comment above; replace placeholder with
                     // EditorPlaceholder (= ticket 04-10 toolbar + mode toggle).
-                    ("编辑", "book-open-text", AnyView(EditorPlaceholder())),
-                    ("大纲", "puzzle", AnyView(OutlinePanel())),
+                    (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorPlaceholder())),
+                    (WenshuI18n.t("tab.title.outline"), "puzzle", AnyView(OutlinePanel())),
                     // v0.34 B-16: removed the "Backlinks" tab here (= boss 9/2 OOB
                     // 'the Backlinks area still has to be removed'). Backlinks are now
                     // surfaced via the chrome bottom-right "Backlinks 0"
@@ -731,7 +835,19 @@ struct ZoneModuleView: View {
     /// as PreviewPane.loadBookDocs; = ticket 027-35 will lift that
     /// helper into a workspace-level BookDocLoader service so both
     /// callers share it).
-    private func openCardInEditor() {
+    /// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
+    /// the card opened a new tab named 'preview-sample'):
+    /// the previous version took no arguments and used
+    /// `filtered.first` (= always the topmost card, not the actually
+    /// clicked one). New version accepts an OPTIONAL `source`
+    /// (= the actually-clicked CardSource from PreviewPane) and
+    /// uses IT (= not `filtered.first`) to open the right .md.
+    ///
+    /// Signature: `source: CardSource?` (= optional for backward
+    /// compat with the v0.34 callers that haven't migrated yet).
+    /// For the new PreviewPane callers (the post-fix wiring), the
+    /// source is always supplied.
+    private func openCardInEditor(source: CardSource? = nil) {
         let (path, content, title): (String?, String, String)
         switch previewScope {
         case .referenceScope(let category):
@@ -740,51 +856,72 @@ struct ZoneModuleView: View {
                 entity.layer == .layerEntities
                     && (category == nil || entity.category == category)
             }
-            if let first = filtered.first {
+            // BOSS 9/8 fix: if the caller (= PreviewPane) passed
+            // the actually-clicked CardSource, use its entity
+            // (= correct card). Otherwise fall back to filtered.first
+            // (= legacy behavior for callers that don't pass source).
+            let pickedReference: Reference? = {
+                if case .reference(let r) = source { return r }
+                return filtered.first
+            }()
+            if let first = pickedReference {
                 let body = (try? bookStore.referenceStore.loadReferenceBody(id: first.id)) ?? first.summary
                 path = nil
                 content = body
                 title = first.title
             } else {
                 path = nil; content = ""
-                title = category?.displayName ?? "资料库"
+                title = category?.displayName ?? WenshuI18n.t("tab.title.reference_library")
             }
         case .bookScope(let bookId, let folderName):
-            // Walk shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md.
-            // Mirrors PreviewPane.loadBookDocs (= same logic; = ticket
-            // 027-35 will lift into a shared BookDocLoader service).
-            let shelvesRoot = bookStore.stores.shelvesRoot
-            let bookDirs: [URL] = {
-                guard let shelfDirs = try? FileManager.default.contentsOfDirectory(
-                    at: shelvesRoot,
-                    includingPropertiesForKeys: nil,
-                    options: [.skipsHiddenFiles]
-                ) else { return [] }
-                return shelfDirs.compactMap { shelfDir in
-                    let candidate = shelfDir
-                        .appendingPathComponent("books")
-                        .appendingPathComponent(bookId.uuidString)
-                    return FileManager.default.fileExists(atPath: candidate.path)
-                        ? candidate
-                        : nil
+            // BOSS 9/8 fix: if the caller passed a .bookDoc source,
+            // use its doc (= correct book doc).
+            if case .bookDoc(let doc) = source {
+                // BookDoc doesn't carry an absolute path (= only
+                // fileName + folderName per PreviewPane L159).
+                // path = nil (= PreviewPane's own loadBookDocs owns
+                // the path resolution; = ticket 027-35 will lift
+                // BookDocLoader into a shared service that returns
+                // the absolute path).
+                path = nil
+                content = doc.summary
+                title = doc.title
+            } else {
+                // Walk shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md.
+                // Mirrors PreviewPane.loadBookDocs (= same logic; = ticket
+                // 027-35 will lift into a shared BookDocLoader service).
+                let shelvesRoot = bookStore.stores.shelvesRoot
+                let bookDirs: [URL] = {
+                    guard let shelfDirs = try? FileManager.default.contentsOfDirectory(
+                        at: shelvesRoot,
+                        includingPropertiesForKeys: nil,
+                        options: [.skipsHiddenFiles]
+                    ) else { return [] }
+                    return shelfDirs.compactMap { shelfDir in
+                        let candidate = shelfDir
+                            .appendingPathComponent("books")
+                            .appendingPathComponent(bookId.uuidString)
+                        return FileManager.default.fileExists(atPath: candidate.path)
+                            ? candidate
+                            : nil
+                    }
+                }()
+                guard let bookDir = bookDirs.first else {
+                    path = nil; content = ""; title = "book-doc"
+                    break
                 }
-            }()
-            guard let bookDir = bookDirs.first else {
-                path = nil; content = ""; title = "book-doc"
-                break
-            }
-            // Determine which folders to scan.
-            let folders: [String] = {
-                if let folderName {
-                    return [folderName]
-                }
-                // Default = scan all 8 standard folders (= same as
-                // PreviewPane.loadBookDocs default).
-                return [
-                    "world", "characters", "outlines", "chapters",
-                    "drafts", "sessions", "foreshadowing", "placeholders"
-                ]
-            }()
+                // Determine which folders to scan.
+                let folders: [String] = {
+                    if let folderName {
+                        return [folderName]
+                    }
+                    // Default = scan all 8 standard folders (= same as
+                    // PreviewPane.loadBookDocs default).
+                    return [
+                        "world", "characters", "outlines", "chapters",
+                        "drafts", "sessions", "foreshadowing", "placeholders"
+                    ]
+                }()
             // Find the FIRST .md file (= v0.34 placeholder; = ticket
             // 027-35 will wire to the SPECIFIC card the user double-
             // clicked).
@@ -808,6 +945,7 @@ struct ZoneModuleView: View {
             path = foundPath?.path
             content = foundBody
             title = foundTitle
+            }
         case .shelfScope, .empty:
             path = nil; content = ""; title = ""
         }
@@ -835,8 +973,16 @@ struct ZoneModuleView: View {
             documentPath: path,
             draft: content,
             originalBody: content,
-            mode: .preview
+            mode: .preview,
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+            // pass title so tab strip shows the real card name.
+            title: title.isEmpty ? nil : title
         )
+        // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
+        // card': capture sourceScope on ZoneModuleView's
+        // openCardInEditor too (= same restore behavior as
+        // WorkspaceView's openCardInEditor).
+        newTab.sourceScope = previewScope
         // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
         // the old tab; second double-click fails'): the previous implementation tried
         // to be smart (= replace the active tab if clean; append a new
@@ -878,17 +1024,6 @@ struct ZoneModuleView: View {
 // per-pane content backgrounds). Keeping this as a placeholder
 // for the editor placeholder content (= shows the actual editor
 // surface).
-private struct EditorContentPlaceholder: View {
-    var body: some View {
-        // v0.28 followup Boss UX round 37: REMOVED the
-        // Color.white.opacity(0.55) overlay (= was making the editor
-        // pane appear LIGHTER than the other 5 panes = boss noticed
-        // "is the editor background white? all the brightness looks different"). Now the
-        // editor placeholder is just empty (= the background is
-        // now applied uniformly by ZonePerRegionChrome).
-        Color.clear
-    }
-}
 
 
 /// Editor expand/shrink trailing button (= old v0.25.1 ticket 029c).
@@ -899,61 +1034,6 @@ private struct EditorContentPlaceholder: View {
 /// notification (= PaneNSController listener installed by ticket 02 handles
 /// the actual layout mutation). The button stays a thin View-local proxy:
 /// read @AppStorage, write @AppStorage, post notification.
-private struct EditorExpandShrinkTrailingButton: View {
-    // v0.34 ticket 01: replaced @State with @AppStorage (= Rule 11 + Apple
-    // HIG standard storage; the bug ticket 03 fixes = no real persistence,
-    // but @AppStorage makes persistence easy to add later if needed). The
-    // snapshot key is written by PaneNSController.handleEditorMaximizedChanged
-    // BEFORE the 5 zone-hide animator calls (= Q38 boss "full-state snapshot"
-    // decision; restore-on-shrink must read this JSON).
-    @AppStorage("wenshu.editorMaximized") private var editorMaximized: Bool = false
-    @AppStorage("wenshu.editorExpand.snapshot") private var editorExpandSnapshotJSON: String = "{}"
-
-    var body: some View {
-        // v0.34 boss 2026-09-02 OOB 'the ICON on the right of the editor, the size did not follow the component':
-        // the editor expand/shrink trailing button was using raw `Lucide(...)`
-        // (= no size parameter = Lucide default size, not Apple HIG standard
-        // 18 PT tab icon). Migrated to the SAME icon-rendering pattern as
-        // PaneIconTab: Color.clear as 28 PT hot area base + icon as centered
-        // .overlay with explicit DesignTokens.tabIconSize (= 18 PT). Now
-        // visually identical to the leading tab icons in the same row
-        // (= the 6 zones' tab bar visual contract is uniform).
-        //
-        // Hover plumbing also migrated to .hoverWash() (= previous commit's
-        // single source of truth for hover wash; removed the per-site
-        // .onHover + .background tint + @State isHover + .clipShape plumbing).
-        //
-        // v0.34 boss 2026-09-02 OOB (multi-layer audit): the trailing-button
-        // shape (Color.clear.frame(28,28).overlay(LucideIcon) + .hoverWash +
-        // .plain + .help) was duplicated between WorkspaceView.swift
-        // EditorExpandShrinkTrailingButton and TabContentDispatcher.swift
-        // (chat-zone archive button). Replaced both with the shared
-        // PaneTrailingIconButton helper. EditorExpandShrinkTrailingButton
-        // now retains only the icon-toggle state (= editorMaximized) and
-        // the tooltip string (= editorMaximized ? "Restore Layout" : "Expand Fullscreen").
-        PaneTrailingIconButton(
-            icon: editorMaximized
-                ? "arrow.down.right.and.arrow.up.left"
-                : "arrow.up.left.and.arrow.down.right",
-            tooltip: editorMaximized ? "恢复布局" : "展开全屏",
-            // v0.34 ticket 03 (= Q33 boss fix): the action was previously a
-            // dead `editorMaximized.toggle()` (= View-local @State only,
-            // no layout effect). Now it writes @AppStorage AND posts the
-            // .wenshuEditorMaximizedChanged notification, which
-            // PaneNSController.handleEditorMaximizedChanged listens for
-            // (= ticket 02 implementation). Notification.object carries
-            // the new Bool payload so the listener can branch on
-            // snapshot-and-collapse vs restore.
-            action: {
-                editorMaximized.toggle()
-                NotificationCenter.default.post(
-                    name: .wenshuEditorMaximizedChanged,
-                    object: editorMaximized
-                )
-            }
-        )
-    }
-}
 
 /// EditorPlaceholder — temporary view for the editor zone (= the real
 /// EditorView integration is ticket 027-35 followup).
@@ -981,15 +1061,7 @@ struct EditorPlaceholder: View {
     /// v0.34 B-26: derive the display title for a tab (= file basename
     /// without the .md extension; = boss 9/3 OOB 'no .md extension either'). Placeholder tab = 'preview-sample' (= no .md extension,
     /// = no path = render the short placeholder name).
-    private func tabDisplayTitle(tab: EditorTab) -> String {
-        if let path = tab.documentPath, !path.isEmpty {
-            let url = URL(fileURLWithPath: path)
-            let basename = url.deletingPathExtension().lastPathComponent
-            return basename.isEmpty ? "preview-sample" : basename
-        }
-        return "preview-sample"
-    }
-
+    ///
     @Environment(AppState.self) private var appState
     // v0.39 ticket 001: WenshuEditorServicesFactory.make needs
     // referenceLibraryRoot + active book root. Both come from
@@ -1036,43 +1108,33 @@ struct EditorPlaceholder: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // v0.34 B-26-TABBAR (= boss 9/3 'change this whole column to a tab bar,
-            // remove the three ICON buttons at the back first'): editor top bar replaced
-            // with a Safari-style tab strip showing every tab in
-            // `appState.openTabs`. Active tab is highlighted; each tab
-            // has a close button (= tap to remove from openTabs). Boss
-            // moved the 3 trailing icon buttons (= mode toggle, expand,
-            // close) elsewhere (= per boss OOB 'I will implement it in a different position').
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '编辑器顶部就留着
+            // 做标签档, 显示多文档' (= keep the tab strip = the
+            // multi-document title bar; = delete every other chrome
+            // element on the editor top bar: the mode toggle Button,
+            // ParagraphAIToolbarButtons, Spacer, .frame toolbar
+            // height, and the .background { Color.clear } glass
+            // material). The editor top bar = a Safari-style tab
+            // strip ONLY (= Apple HIG tabbed-document pattern;
+            // = Finder / Safari / Terminal all use a plain tab
+            // strip without formatting chrome; = the user said
+            // '就留着做标签档' = nothing else on this bar).
             //
             // Apple HIG tabbed-document pattern (= NSTabView / Safari
             // tab strip): single-line HStack, scrollable horizontally
             // when tabs overflow. = no formatting toolbar / no save
             // button (= the per-tab formatting + save hotkey move to
             // the new tab-bar layout as boss decides).
-            // v0.34 B-26 boss 9/3 'I open a new file, the new TAB page does not appear' + 'refer to this
-            // style, modify the tab style' (= reference image shows plain
-            // all-caps monospaced tab labels; = boss 9/3 follow-up:
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 'no ICON needed, just the document name, no .md extension either').
-            // Editor top bar = a simple horizontal HStack of tab names
-            // (= .monospaced .caption text; = active tab = .tint color
-            // + .tint background tint at 0.12). No icons, no .md
-            // extension, no trailing buttons. Boss 9/3 follow-up 'switching
-            // the directory will re-detect once' = when the user switches
-            // sidebar scope, the PreviewPane body re-renders AND the
-            // EditorTabBarBar (now inlined) re-renders too; = the
-            // SwiftUI @State click-count latch is reset (= which is
-            // the desired "fresh start" per boss OOB).
             HStack(spacing: 0) {
                 ForEach(appState.openTabs) { tab in
-                    let title = tabDisplayTitle(tab: tab)
+                    let title = EditorTab.displayTitle(tab)
                     let isActive = (tab.id == appState.activeTabId)
                     Button(action: { appState.activeTabId = tab.id }) {
                         Text(title)
-                            .font(.system(size: 12, weight: isActive ? .semibold : .regular, design: .monospaced))
+                            .font(DesignTokens.tabTitleFont.weight(isActive ? .semibold : .regular))
                             .foregroundStyle(isActive ? Color.accentColor : .secondary)
-                            .padding(.horizontal, 12)
-                            .frame(height: 28)
+                            .padding(.horizontal, DesignTokens.chromePaddingMedium)
+                            .frame(height: DesignTokens.paneTabHotArea)
                             .background(
                                 Rectangle()
                                     .fill(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
@@ -1081,97 +1143,17 @@ struct EditorPlaceholder: View {
                     .buttonStyle(.plain)
                     .help(title)
                 }
-                // v0.39 ticket 001-C: mode toggle (= preview <-> edit).
-                // The boss reported 'cannot enter MD edit mode' which
-                // was actually two issues (= default = .preview +
-                // no UI to flip it). openCardInEditor now defaults
-                // to .edit (= the 001-A fix), but users still need
-                // a way to flip back to .preview when they want the
-                // rendered-only view. This button lives in the tab
-                // strip = the only chrome the editor zone has left
-                // after v0.34 B-26 stripped the trailing buttons.
-                Button(action: { setMode(mode == .edit ? .preview : .edit) }) {
-                    Image(systemName: mode == .edit ? "eye" : "pencil")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help(mode == .edit ? "切到预览模式" : "切到编辑模式")
-                // P2 #19 (WIRE-PARAGRAPH-002): paragraph_ai toolbar.
-                // 3 buttons with keyboard shortcuts (⌘⇧E expand,
-                // ⌘⇧H shorten, ⌘⇧R rephrase) + a Menu for the 3
-                // less-common transforms (shiftTone / simplify /
-                // dramatize). The buttons fire applyParagraphAI(...)
-                // which calls the active LLM connector (= the
-                // v0.35 LLMConnector layer) with the editor
-                // transform prompt prefix + selected text, then
-                // replaces the selection (= today: whole draft) with
-                // the LLM response.
-                //
-                // Apple HIG toolbar pattern: `.help(...)` provides
-                // the tooltip (= Apple-native NSWindow tooltip, =
-                // per the wenshu-apple-api-first hard rule), and
-                // `.keyboardShortcut(...)` registers the global key
-                // binding via SwiftUI's native command system (= no
-                // third-party shortcut lib required; matches the
-                // boss 2026-08-27 OOB 'Apple-stack-except-where-
-                // Apple-doesn't-ship' carve-out).
-                //
-                // Disabled state (= `selectedText.isEmpty`):
-                // matches the boss spec's wire-up; until the
-                // engine selection bridge lands, `selectedText`
-                // defaults to "" so the buttons stay disabled
-                // (= the buttons currently never fire from the
-                // UI; tests cover the apply path directly).
-                ParagraphAIToolbarButtons(
-                    selectedText: selectedText,
-                    isApplying: isApplyingParagraphAI,
-                    onApply: { transform in
-                        Task { await applyParagraphAI(transform) }
-                    }
-                )
-                Spacer()
-            }
-            .frame(height: 32)
-            // POLISH-LIQUIDGLASS-003 (Boss 2026-09-05 OOB 'OK continue', AGENTS.md
-            // §11 macOS 27 Liquid Glass polish extends from TopBar + Sidebar):
-            // apply Apple canonical .glassEffect(.regular) (= macOS 27
-            // Tahoe Liquid Glass) to the EditorPlaceholder tab strip
-            // (= the editor zone's top chrome = Safari-style tab strip
-            // + mode toggle + paragraph_ai toolbar). Replaces the prior
-            // .regularMaterial (= Apple Liquid Glass translucency; = one
-            // step LESS transparent than the new .glassEffect(.regular)
-            // canonical material on macOS 27 Tahoe = visible mismatch
-            // with the POLISH-LIQUIDGLASS-001 TopBar chrome the user
-            // sees directly above the editor zone in the same pane).
-            // Same .background { Color.clear.glassEffect(.regular) }
-            // shape as 950e46423 (= TopBar) + 74b22f73a (= Sidebar):
-            // .glassEffect(.regular) is a View modifier (= instance
-            // member), not a ShapeStyle value, so .background(.glassEffect
-            // (.regular)) does NOT compile; = Color.clear provides the
-            // size of the glass layer; the modifier applies the
-            // canonical Liquid Glass material. .glassEffect(.regular)
-            // auto-adapts to system settings (= dark mode / Reduce
-            // Transparency / Increase Contrast) per Apple HIG. The
-            // body-content area's .ultraThinMaterial background (= line
-            // below this tab strip) is intentionally NOT touched
-            // (= content area, not chrome).
-            .background {
-                Color.clear.glassEffect(.regular)
             }
             // v0.34 ticket 09: dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG
             // 2-option confirm pattern (= destructive + cancel).
             // B-24: showDirtyDiscardConfirm is now a computed property;
             // = wrap in Binding(get:set:) for .alert's isPresented:.
-            .alert("未保存的更改将丢失", isPresented: Binding(
+            .alert(WenshuI18n.t("workspace.editor.dirty_discard_alert_title"), isPresented: Binding(
                 get: { self.showDirtyDiscardConfirm },
                 set: { self.showDirtyDiscardConfirm = $0 }
             )) {
-                Button("放弃编辑", role: .destructive) {
+                Button(WenshuI18n.t("workspace.editor.dirty_discard_button"), role: .destructive) {
                     // Discard: clear draft + reset to originalBody + close.
                     // Today = no-op beyond resetting state (= ticket 027-35
                     // wires real document close).
@@ -1183,9 +1165,9 @@ struct EditorPlaceholder: View {
                     // the post-discard state).
                     handleDirtyTransition(false)
                 }
-                Button("继续编辑", role: .cancel) { }
+                Button(WenshuI18n.t("button.continue_edit"), role: .cancel) { }
             } message: {
-                Text("编辑器有未保存的更改, 关闭后将丢失.")
+                Text(WenshuI18n.t("workspace.editor.discard_changes_confirm"))
             }
 
             // Body: placeholder content. Ticket 05 swaps this for
@@ -1211,91 +1193,204 @@ struct EditorPlaceholder: View {
                 // is the v0.34 B-25 root-cause fix (= the closure chain
                 // WAS firing correctly; = the bug was the view rendering
                 // the placeholder instead of the active tab).
-                if mode == .preview {
-                    // SMC ticket 003: preview-mode wiki-link nav
-                    // routes through the reference library + active
-                    // book chapter lookup (= real target resolution).
-                    EditorPreviewContent(
-                        markdownBody: draft,
-                        wikilinkTarget: { displayName in
-                            handlePreviewWikiLink(displayName: displayName)
-                        }
-                    )
+                // v0.40 boss 9/7 OOB 'delete': when no
+                // tab is open, show the empty-state hint instead of
+                // the preview/edit body (= replaces the previous
+                // samplePreviewBody placeholder).
+                if activeTab == nil {
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB '没有打开任何文档的时候,
+                    // 纸只占位, 不渲染, 不要这个白色, 还是提示空态'
+                    // + follow-up '不是, 我想的是没有打开文档的时候,
+                    // 两个区域也都还在, 上下还是 50/50, 只不过上面
+                    // 是空态':
+                    //
+                    // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+                    // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+                    // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+                    // 空态的样式. 右栏 12 个 teb, 很多都缺少空态':
+                    // migrate to the unified EmptyStateView (= 76 PT
+                    // Lucide icon + 1 PT stroke via LucideThinIcon +
+                    // standard title / body hierarchy). Same visual
+                    // treatment as the 12 specialized tool tabs.
+                    //
+                    // Wrap the EmptyStateView in a vertical layout
+                    // that pushes it to vertical center inside the
+                    // upper half of the VSplitView (= the upper
+                    // half keeps its 50/50 share with the chat
+                    // zone; = the chat zone stays at full size
+                    // below; = no VSplitView divider math bug; =
+                    // the boss's '两个区域也都还在, 上下还是 50/50,
+                    // 只不过上面是空态').
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        EmptyStateView(
+                            icon: "file-text",
+                            title: WenshuI18n.t("editor.empty.title"),
+                            body: WenshuI18n.t("editor.empty.description")
+                        )
+                        Spacer(minLength: 0)
+                    }
                 } else {
-                    // v0.34 ticket 07: edit mode uses Apple SwiftUI
-                    // TextEditor (= HIG standard multi-line text input).
-                    // @State draft holds the working copy; dirty detection
-                    // = draft != originalBody (character-level diff per
-                    // Q22 boss decision). Save button (added by ticket 08)
-                    // .tint highlights when dirty; Cmd+S hotkey (ticket
-                    // 10) triggers save.
-                    // B-24: draft is a computed property (= reads active
-                    // tab). Wrap in Binding(get:set:) so EditorEditContent
-                    // can still use @Binding draft (SwiftUI 2-way binding
-                    // contract).
-                    EditorEditContent(
-                        draft: Binding(
-                            get: { self.draft },
-                            set: { self.draft = $0 }
-                        ),
-                        originalBody: originalBody,
-                        onSave: { saveDraft() },
-                        // v0.34 B-18: route live word count into shared
-                        // AppState.editorWordCount (= chrome bottom-bar
-                        // left field reads it). Recompute is per-
-                        // keystroke; = Foundation-only = microseconds.
-                        onWordCountChange: { count in
-                            appState.editorWordCount = count
-                        },
-                        // v0.34 B-22: route dirty-state transitions
-                        // (= false→true = user started editing;
-                        // true→false = Cmd+S or auto-save completed).
-                        // The handler runs ONCE per transition (= no
-                        // per-keystroke Task churn; = Apple HIG
-                        // TextEdit / Pages behavior).
-                        onDirtyChange: { newDirty in
-                            handleDirtyTransition(newDirty)
-                        },
-                        // v0.39 ticket 001: pre-built markdown engine
-                        // configuration. Built once per active-tab switch
-                        // (= rebuilds the WikiLinkResolver + ImageProvider
-                        // against the active book's path). Engine
-                        // configuration is captured by the editor view
-                        // (= stable across onChange of draft).
-                        // v0.39 ticket 001-B: pass bookStore directly;
-                        // factory handles nil (= the v0.39 path that
-                        // survives the AnyView-wrapped EditorPlaceholder
-                        // when the environment chain hasn't propagated
-                        // BookStore yet on early zone activation).
-                        configuration: WenshuEditorServicesFactory.make(
-                            bookStore: bookStore,
-                            // SMC ticket 003: per-active-tab bus so
-                            // engine format / find / replace events
-                            // stay scoped to this document.
-                            bus: MarkdownEditorBus.buildWenshu()
-                        ),
-                        // v0.39 ticket 001: stable per-tab id, passed
-                        // to engine as `documentId` so undo + pending
-                        // replacements are scoped to this tab.
-                        draftId: activeTabIdString,
-                        // SMC ticket 003: forward engine wiki-link
-                        // click to the navigation flow.
-                        onLinkClick: { linkId in
-                            handleEditorWikiLink(linkId: linkId)
+                    // v0.52 boss 2026-09-09 OOB: give the middle column a
+                    // sheet of paper like Pages, with the markdown engine
+                    // sitting on the white area.
+                    //
+                    // Paper width comes from measuring Pages on this
+                    // machine: its canvas renders a 593 PT sheet, i.e. A4
+                    // (595 PT) at 100%. Wenshu uses the exact A4 width so
+                    // a document lines up with what Pages would show.
+                    EditorPaperCanvas {
+                        Group {
+                            if mode == .preview {
+                        // v0.40 boss 9/7 OOB 'editor, yes,
+                        // shouldgroup': preview mode uses the
+                        // SAME WenshuMarkdownEditor component as edit
+                        // mode (= swift-markdown-engine NSTextView), just
+                        // with `isEditable: false` (= read-only NSTextView).
+                        // Previously preview used a separate
+                        // EditorPreviewContent (= SwiftUI AttributedString
+                        // renderer) which produced a different visual scale
+                        // (= the "" boss described). Unified
+                        // component = zero visual scaling between modes.
+                        //
+                        // SMC ticket 003: wiki-link click navigation routes
+                        // through the reference library + active book
+                        // chapter lookup (= real target resolution).
+                        // Engine's wiki-link click invokes
+                        // `handlePreviewWikiLink` (= preview mode = read,
+                        // = the click is the primary action).
+                        WenshuMarkdownEditor(
+                            text: Binding(
+                                get: { self.draft },
+                                set: { self.draft = $0 }
+                            ),
+                            draftId: activeTabIdString,
+                            configuration: WenshuEditorServicesFactory.make(
+                                bookStore: bookStore,
+                                bus: MarkdownEditorBus.buildWenshu()
+                            ),
+                            onLinkClick: { linkId in
+                                handleEditorWikiLink(linkId: linkId)
+                            },
+                            // v0.40 boss 9/7 OOB 'editor, yes
+                            //, shouldgroup': preview
+                            // mode = read-only NSTextView (= same engine
+                            // wrapper as edit, = no scaling between
+                            // modes).
+                            isEditable: false
+                        )
+                    } else {
+                        // v0.34 ticket 07: edit mode uses Apple SwiftUI
+                        // TextEditor (= HIG standard multi-line text input).
+                        // @State draft holds the working copy; dirty detection
+                        // = draft != originalBody (character-level diff per
+                        // Q22 boss decision). Save button (added by ticket 08)
+                        // .tint highlights when dirty; Cmd+S hotkey (ticket
+                        // 10) triggers save.
+                        // B-24: draft is a computed property (= reads active
+                        // tab). Wrap in Binding(get:set:) so EditorEditContent
+                        // can still use @Binding draft (SwiftUI 2-way binding
+                        // contract).
+                        EditorEditContent(
+                            draft: Binding(
+                                get: { self.draft },
+                                set: { self.draft = $0 }
+                            ),
+                            originalBody: originalBody,
+                            onSave: { saveDraft() },
+                            // v0.34 B-18: route live word count into shared
+                            // AppState.editorWordCount (= chrome bottom-bar
+                            // left field reads it). Recompute is per-
+                            // keystroke; = Foundation-only = microseconds.
+                            onWordCountChange: { count in
+                                appState.editorWordCount = count
+                            },
+                            // v0.34 B-22: route dirty-state transitions
+                            // (= false→true = user started editing;
+                            // true→false = Cmd+S or auto-save completed).
+                            // The handler runs ONCE per transition (= no
+                            // per-keystroke Task churn; = Apple HIG
+                            // TextEdit / Pages behavior).
+                            onDirtyChange: { newDirty in
+                                handleDirtyTransition(newDirty)
+                            },
+                            // v0.39 ticket 001: pre-built markdown engine
+                            // configuration. Built once per active-tab switch
+                            // (= rebuilds the WikiLinkResolver + ImageProvider
+                            // against the active book's path). Engine
+                            // configuration is captured by the editor view
+                            // (= stable across onChange of draft).
+                            // v0.39 ticket 001-B: pass bookStore directly;
+                            // factory handles nil (= the v0.39 path that
+                            // survives the AnyView-wrapped EditorPlaceholder
+                            // when the environment chain hasn't propagated
+                            // BookStore yet on early zone activation).
+                            configuration: WenshuEditorServicesFactory.make(
+                                bookStore: bookStore,
+                                // SMC ticket 003: per-active-tab bus so
+                                // engine format / find / replace events
+                                // stay scoped to this document.
+                                bus: MarkdownEditorBus.buildWenshu()
+                            ),
+                            // v0.39 ticket 001: stable per-tab id, passed
+                            // to engine as `documentId` so undo + pending
+                            // replacements are scoped to this tab.
+                            draftId: activeTabIdString,
+                            // SMC ticket 003: forward engine wiki-link
+                            // click to the navigation flow.
+                            onLinkClick: { linkId in
+                                handleEditorWikiLink(linkId: linkId)
+                            }
+                        )
+                            }
                         }
-                    )
-                }
+                    }                }
             }
+            // v0.70: drop the outer VStack's `.frame(maxWidth: .infinity,
+            // maxHeight: .infinity)`. Apple HIG canonical 6-zone layout
+            // has no custom frame on the column body (= NavigationSplitView
+            // owns the natural-width algorithm). The previous v0.30 fix
+            // (which kept this frame in to "prevent window shrink")
+            // inflated the detail column to 1763 because WenshuMarkdownEditor's
+            // NSTextView intrinsic width is unbounded. Removing this
+            // frame is what the canonical 6-zone probe (= window 1449,
+            // detail 648) requires. v0.30 window-shrink protection has
+            // to come from elsewhere (= .frame on toolbar / status bar,
+            // not on the column body).
+            //
+            // v1.0.0-m1-shell: RESTORE `.frame(maxWidth: .infinity,
+            // maxHeight: .infinity)` on the outer VStack because the
+            // detail column is now hosted by `EditorChatNSController`
+            // (= AppKit NSSplitViewController, NOT NavigationSplitView;
+            // = see NavigationSplitShell.swift detail column closure).
+            // NSSplitViewController allocates a fixed-size slot per
+            // NSSplitViewItem and the SwiftUI view inside the
+            // NSHostingController must explicitly claim that slot via
+            // `.frame(maxWidth: .infinity, maxHeight: .infinity)`. Without
+            // this frame, the editor VStack shrinks to its intrinsic
+            // content width (= the WenshuMarkdownEditor NSTextView's
+            // minimum width = ~400 PT; = leaves the right side of the
+            // detail column empty = the boss's '宽度没有撑满' symptom).
+            //
+            // The v0.30 'inflated the detail column to 1763' concern
+            // (= caused by the previous NavigationSplitView layout)
+            // no longer applies because NSSplitViewController does
+            // not have the unbounded-width issue (= NSSplitViewItem
+            // gives a bounded slot).
+            //
+            // boss 9/10 OOB '宽度没有撑满' (= 'width did not fill').
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB 'all
             // zone top bars, bottom bars, backgrounds, the colors used, can they adapt to Liquid Glass?'):
             // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
             // (= solid green placeholder = inconsistent with the
             // Liquid Glass design language). Editor zone has no
-            // wired-in content yet (= ticket 027-35 followup), so use the
-            // lightest Liquid Glass material as a placeholder that
-            // matches the rest of the workspace.
-            .background(.ultraThinMaterial)
+            // v0.40 boss 2026-09-08 OOB 'go up one layer and remove the background': drop
+            // .background(.ultraThinMaterial) (= was adding glass
+            // material over the editor zone = visually distinct
+            // from the chat zone's plain background). Editor zone
+            // now has no injected background (= inherits from the
+            // column = no nested layering).
         }
         // v0.34 B-18: on editor zone mount, seed AppState.editorWordCount
         // with the character count of the initial body (= sample body
@@ -1306,46 +1401,45 @@ struct EditorPlaceholder: View {
         // mode keystroke stream; = this .onAppear covers the initial
         // state (= Apple HIG = seed reactive state at view mount).
         .onAppear {
-            // v0.34 B-24: seed the placeholder tab on first mount
-            // (= AppState.openTabs defaults to []). Seed with the
-            // samplePreviewBody as the placeholder draft so the
-            // preview-mode body is visible from the start. Single
-            // source of truth for the openTabs array; = no other
-            // view needs to seed.
-            if appState.openTabs.isEmpty {
-                let placeholder = EditorTab(
-                    id: EditorTab.placeholderId,
-                    documentPath: nil,
-                    draft: EditorPlaceholder.samplePreviewBody,
-                    originalBody: EditorPlaceholder.samplePreviewBody
-                    // v0.39 ticket 001-A-extended: mode omitted = uses
-                    // EditorTab default = .edit (= was .preview in
-                    // v0.34; = the user is in the live editor from
-                    // the start, not raw-text preview).
-                )
-                appState.openTabs = [placeholder]
-                appState.activeTabId = EditorTab.placeholderId
-            } else {
-                // v0.39 ticket 001-A-extended: migrate any existing
-                // .preview tab to .edit (= v0.34 default was .preview,
-                // so any tab the user had open at the time of the
-                // upgrade lands in raw-text preview mode without
-                // this upgrade). User can still flip back to .preview
-                // via the mode toggle button (= the eye/pencil icon
-                // in the tab strip = v0.39 ticket 001-C).
-                for idx in appState.openTabs.indices {
-                    if appState.openTabs[idx].mode == .preview {
-                        appState.openTabs[idx].mode = .edit
-                    }
+            // v0.40 boss 9/7 OOB: do NOT seed a placeholder tab when
+            // openTabs is empty. Two paths from here:
+            //   1. Persisted tabs (loaded by AppState.init from
+            //      UserDefaults) → use those directly.
+            //   2. No persisted tabs → editor zone shows the
+            // empty-state hint (= "libraryin progressdouble-clickcardopen")
+            //      via EditorPlaceholder's nil-activeTab branch.
+            // The .edit-mode upgrade from .preview still runs for
+            // any tabs that survived (= v0.39 ticket 001-A-extended).
+            for idx in appState.openTabs.indices {
+                if appState.openTabs[idx].mode == .preview {
+                    appState.openTabs[idx].mode = .edit
                 }
             }
-            appState.editorWordCount = WordCounter.count(originalBody).charactersNoSpaces
+            // Initialize word count from active tab (= 0 when no tab).
+            if let tab = activeTab {
+                appState.editorWordCount = WordCounter.count(tab.originalBody).charactersNoSpaces
+            } else {
+                appState.editorWordCount = 0
+            }
             // v0.34 B-23: start the file-system watcher for the current
             // documentPath (nil = placeholder mode; = no-op). The watcher
             // auto-reloads draft when the file changes externally (= agent
             // write, git pull, terminal `echo > file.md`, etc.).
             startFileWatcher()
         }
+        // v0.40 boss 2026-09-08 OOB 'chattop bar 3 tab, editortop bar
+        // ': REVERTED (= boss 2026-09-08 follow-up 'yes, don't
+        //, info, default
+        // editorshould MD tab'). The welcome tab was
+        // visually present but the preview body was empty (= no
+        // document content to render). Boss wants the editor zone
+        // to show NO tab strip at all when there are no persisted
+        // tabs (= the empty-state hint takes the full editor body
+        // = cleaner empty UX than a blank tab + blank content).
+        //
+        // .onAppear {
+        //     appState.ensureWelcomeTabIfEmpty()
+        // }
         // v0.34 B-23: tear down the file watcher when the view goes away
         // (= prevents zombie DispatchSource holding the file descriptor).
         .onDisappear {
@@ -1371,14 +1465,18 @@ struct EditorPlaceholder: View {
     }
 
     private var draft: String {
-        get { activeTab?.draft ?? EditorPlaceholder.samplePreviewBody }
+        // v0.40 boss 9/7 OOB: when no tab is open, return empty string
+        // (= no samplePreviewBody placeholder). The editor zone
+        // shows its empty-state hint (= "libraryin progressdouble-clickcardopen")
+        // via EditorPlaceholder's nil-activeTab branch.
+        get { activeTab?.draft ?? "" }
         nonmutating set {
             guard let idx = activeTabIndex else { return }
             appState.openTabs[idx].draft = newValue
         }
     }
     private var originalBody: String {
-        get { activeTab?.originalBody ?? EditorPlaceholder.samplePreviewBody }
+        get { activeTab?.originalBody ?? "" }
         nonmutating set {
             guard let idx = activeTabIndex else { return }
             appState.openTabs[idx].originalBody = newValue
@@ -1511,8 +1609,11 @@ struct EditorPlaceholder: View {
             documentPath: nil,
             draft: result.body,
             originalBody: result.body,
-            mode: .preview
-        )
+            mode: .preview,
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的
+            // bug': pass wiki-link target title so the tab strip
+            // shows the linked entity / chapter name.
+            title: result.title.isEmpty ? nil : result.title        )
         appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
     }
@@ -1578,7 +1679,7 @@ struct EditorPlaceholder: View {
             model: appState.llmModel.isEmpty ? providerDefaultModel : appState.llmModel,
             maxTokens: 2048
         )
-        let connector = activeLLMConnector()
+        let connector = WenshuAppDelegate.activeLLMConnector()
 
         do {
             let rewritten = try await EditorParagraphAI.apply(
@@ -1616,44 +1717,6 @@ struct EditorPlaceholder: View {
         selectedText = ""
     }
 
-    /// P2 #19: resolve the user's active `LLMConnector` profile
-    /// from the `wenshu.llm.activeConnector` UserDefaults slug
-    /// (= the connector profile the user picked in
-    /// LLMConnectorSettingsView; = matches the existing
-    /// ConnectorTestButton switch-on-`apiMode` factory pattern).
-    ///
-    /// Fallback chain (= matches the wenshu defensive-defaults
-    /// rule):
-    /// - missing slug → `AnthropicConnector()` (= the connector
-    ///   the existing ChatView startLongRunningGoal uses; will
-    ///   surface `.missingAPIKey` when no key is configured).
-    /// - unknown slug → `AnthropicConnector()` (= same path).
-    /// - unsupported apiMode → `AnthropicConnector()` (= same
-    ///   path; will surface `.transport` when called).
-    private func activeLLMConnector() -> any LLMConnector {
-        let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector") ?? "anthropic"
-        let provider = ProviderCatalog.provider(slug: slug)
-        switch provider.apiMode {
-        case "anthropic_messages":
-            // MinimaxConnector is the Anthropic-compatible
-            // wrapper (= wenshu's default provider per
-            // AGENTS.md §11.2); AnthropicConnector is the
-            // native Anthropic API. Build the matching one by
-            // slug (= minimax / minimax-cn / anthropic).
-            if provider.slug == "anthropic" {
-                return AnthropicConnector()
-            }
-            return MinimaxConnector()
-        case "openai_chat":
-            return OpenAICompatibleConnector(provider: provider)
-        default:
-            // Gemini + any other apiMode lands here until the
-            // matching connector lands (= Gemini native connector
-            // is a separate ticket per
-            // ConnectorTestButton.runTest).
-            return AnthropicConnector()
-        }
-    }
 
     // MARK: - B-23 file-system watcher
 
@@ -1740,9 +1803,9 @@ struct EditorPlaceholder: View {
                     atomically: true,
                     encoding: .utf8
                 )
-                externalChangeNotice = "文件已更新, 你的编辑已保存到 \(conflictPath)"
+                externalChangeNotice = WenshuI18n.ts("workspace.editor.external_change_saved", conflictPath)
             } catch {
-                externalChangeNotice = "文件已更新, 你的编辑保存失败 (通知: \(error.localizedDescription))"
+                externalChangeNotice = WenshuI18n.t("workspace.editor.external_change_save_failed") + " (" + error.localizedDescription + ")"
             }
         }
         draft = newContent
@@ -1827,37 +1890,41 @@ struct EditorPlaceholder: View {
         }
     }
 
-    // v0.34 ticket 05: sample markdown body shown in preview mode (= used
-    // until ticket 027-35 wires the real .md document load via NSOpenPanel
-    // + Apple HIG DocumentGroup). Exercises all the rendering paths:
-    // header levels, bold/italic, bullet list, inline code, code fence,
-    // [[wikilink]] (= parsed by InternalLinkParser).
-    static let samplePreviewBody: String = """
-    # 文枢编辑区预览
+    // v0.40 boss 9/7 OOB 'delete': samplePreviewBody
+    // (= the "Welcome to wenshu" placeholder) is removed. When no
+    // tab is open, the editor zone shows the empty-state hint via
+    // `emptyStateHint` (= tells the user to double-click a card
+    // in the material library). Persisted open tabs (= loaded from
+    // UserDefaults by AppState.init) skip this hint entirely.
+    //
+    // v0.34 ticket 05 (preserved as comment for historical
+    // reference): sample markdown body shown in preview mode
+    // exercised header levels, bold/italic, bullet list, inline
+    // code, code fence, [[wikilink]] (= parsed by InternalLinkParser).
+    // The v0.40 apple-001 UX cleanup replaced its CJK content with
+    // an onboarding welcome. Now removed entirely per boss 9/7 OOB.
 
-    这是 **粗体**, *斜体*, `inline code`, and a [regular link](https://apple.com).
-
-    ## 二级标题
-
-    - 列表项 1
-    - 列表项 2
-      - 嵌套列表
-    - 列表项 3
-
-    ## 代码块
-
-    ```swift
-    func hello() {
-        print("Hello, 文枢!")
+    /// v0.40 boss 9/7 OOB: empty-state hint shown when no editor
+    /// tab is open. Tells the user to double-click a card in the
+    /// material library (= the canonical wenshu document-open
+    /// path: pick a reference library / book / folder, double-
+    /// click a card → openCardInEditor creates a tab).
+    ///
+    /// v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+    /// 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+    /// ICON 放大一倍, 同时用最细的线条. 目的是统一所有空态
+    /// 的样式. 右栏 12 个 teb, 很多都缺少空态': use the
+    /// unified EmptyStateView component (= 76 PT Lucide icon
+    /// + 1 PT stroke via LucideThinIcon + standard title / body
+    /// hierarchy). This guarantees consistent visual treatment
+    /// across every "no content" zone in wenshu.
+    private var emptyStateHint: some View {
+        EmptyStateView(
+            icon: "book-open",
+            title: WenshuI18n.t("workspace.empty.title"),
+            body: WenshuI18n.t("workspace.empty.body")
+        )
     }
-    ```
-
-    ## 内部链接
-
-    Refer to [[阳明心学]] and [[尚书|Classic Book]] as inline wikilinks.
-
-    > 这是引用块 — Obsidian 风格.
-    """
 
     // v0.34 ticket 05: placeholder type alias for the wikilink navigation
     // closure (= ticket 027-35 will replace with actual NavigationLink).
@@ -1882,108 +1949,6 @@ struct EditorPlaceholder: View {
 ///   US-10 (InternalLinkParser same parser as wiki layer = consistency)
 ///   US-11 (BacklinksPanel at bottom of preview, = Obsidian parity)
 ///   US-12 (uses pinned swift-markdown 0.4.0)
-private struct EditorPreviewContent: View {
-    let markdownBody: String
-    let wikilinkTarget: EditorPlaceholder.WikilinkAction
-
-    // v0.34 B-17: BacklinksViewModel removed (= boss 9/2 OOB). Backlinks
-    // are surfaced via the chrome bottom-right popover (= B-16 in
-    // TabContentDispatcher.editor case), NOT inside the preview body.
-
-    var body: some View {
-        // v0.34 B-17: removed ticket 06's 120 PT inline BacklinksPanel +
-        // Divider + backlinksVM state (= boss 9/2 OOB 'the 120-height space
-        // reserved for backlinks is still there, no need to occupy space in the editor'). Backlinks are
-        // surfaced via the chrome bottom-right "Backlinks 0" popover
-        // (= B-16 implementation; see TabContentDispatcher.editor case).
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(parsedSegments, id: \.id) { segment in
-                    renderSegment(segment)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // v0.34 B-17: use DesignTokens.chromePaddingLarge (= 16 PT)
-            // instead of inline `.padding(16)`. Iron Rule 6 (= no magic
-            // numbers): all per-pane chrome padding routes through
-            // DesignTokens. Per `DesignTokens.swift` documentation:
-            // chromePaddingLarge = Apple HIG standard for stacked
-            // section separators (= matches preview body inset).
-            .padding(DesignTokens.chromePaddingLarge)
-        }
-    }
-
-    /// A parsed segment is either a chunk of markdown text (= rendered as
-    /// AttributedString) or a single wikilink (= clickable Button).
-    private enum Segment: Identifiable {
-        case text(String)
-        case wikilink(target: String, display: String)
-        var id: String {
-            switch self {
-            case .text(let s): return "t:" + s.prefix(64).description
-            case .wikilink(let t, _): return "w:" + t
-            }
-        }
-    }
-
-    private var parsedSegments: [Segment] {
-        let links = InternalLinkParser.parse(markdownBody)
-        guard !links.isEmpty else { return [.text(markdownBody)] }
-        var segments: [Segment] = []
-        var cursor = markdownBody.startIndex
-        let nsBody = markdownBody as NSString
-        for link in links {
-            let targetRange = NSRange(location: link.offset, length: link.text.utf16.count + 4)
-            // '[[', alias, ']]' = 2 + alias.utf16.count + 2
-            let fullMatchRange = NSRange(location: link.offset, length: "[[\(link.text)]]".utf16.count)
-            // Convert NSRange -> String.Index for slicing
-            if let textRange = Range(targetRange, in: markdownBody),
-               let fullRange = Range(fullMatchRange, in: markdownBody) {
-                if cursor < fullRange.lowerBound {
-                    segments.append(.text(String(markdownBody[cursor..<fullRange.lowerBound])))
-                }
-                segments.append(.wikilink(target: link.target, display: link.text))
-                cursor = fullRange.upperBound
-                _ = textRange; _ = nsBody
-            }
-        }
-        if cursor < markdownBody.endIndex {
-            segments.append(.text(String(markdownBody[cursor..<markdownBody.endIndex])))
-        }
-        return segments
-    }
-
-    @ViewBuilder
-    private func renderSegment(_ segment: Segment) -> some View {
-        switch segment {
-        case .text(let chunk):
-            // swift-markdown AttributedString rendering. The library
-            // handles headers, bold, italic, lists, code, code fences,
-            // blockquotes, links (= Obsidian parity).
-            if let attributed = try? AttributedString(markdown: chunk) {
-                Text(attributed)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                Text(chunk)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        case .wikilink(let target, let display):
-            // Obsidian wikilink: blue text, clickable. The internal
-            // wiki-link nav will be wired by ticket 027-35 (= today's
-            // placeholder closure is a no-op).
-            Button {
-                wikilinkTarget(target)
-            } label: {
-                Text("[[\(display)]]")
-                    .foregroundStyle(.blue)
-                    .underline()
-            }
-            .buttonStyle(.plain)
-            .help(WenshuI18n.ts("help.open_target", target))
-        }
-    }
-}
 
 /// EditorEditContent (= v0.34 ticket 07, v0.39 ticket 001 upgrade):
 /// Markdown editor surface. v0.34 used Apple SwiftUI TextEditor
@@ -2006,100 +1971,6 @@ private struct EditorPreviewContent: View {
 ///   US-8 (Close button placeholder; see ticket 09)
 ///   US-13 (no hand-rolled NSTextView wrapper — engine wraps it)
 ///   US-22 (character-level dirty detection)
-private struct EditorEditContent: View {
-    @Binding var draft: String
-    let originalBody: String
-    let onSave: () -> Void
-    // v0.34 B-18: word count callback (= char count → host writes to
-    // AppState.editorWordCount, which chrome reads for the bottom-bar
-    // left field). Decoupled from AppState so EditorEditContent
-    // stays a pure rendering surface (= no @Environment coupling).
-    let onWordCountChange: (Int) -> Void
-    // v0.34 B-22: dirty-state change callback. Host routes true (= user
-    // started editing) to schedule the auto-save Task; false (= document
-    // is saved or just got saved via Cmd+S) to cancel any pending Task.
-    // Replaces B-21's onAutoSaveTrigger (= that triggered on every
-    // keystroke, wasting memory creating a fresh Task per char; = boss
-    // 9/2 OOB flagged as inefficient). Decoupled from Task internals
-    // (= EditorEditContent doesn't know about Task).
-    let onDirtyChange: (Bool) -> Void
-    // v0.39 ticket 001: pre-built markdown engine configuration. Host
-    // (WorkspaceView) builds this once per active-tab switch via
-    // WenshuEditorServicesFactory.make(referenceLibraryRoot:activeBookRoot:).
-    // The configuration owns the 4 service protocols (= wenshu implements
-    // 2: WikiLinkResolver + EmbeddedImageProvider; the engine's
-    // HighlighterSwiftBridge is transitive via MarkdownEngineCodeBlocks;
-    // LaTeX is not wired in 001).
-    let configuration: MarkdownEditorConfiguration
-    // v0.39 ticket 001: stable per-tab id, passed to engine as
-    // `documentId` so undo history + pending replacements are scoped
-    // to each editor instance (= prevents cross-tab state bleed).
-    let draftId: String
-    // SMC ticket 003: forwarded engine-side link-click callback.
-    // The engine fires this when the user clicks a `[[Name]]`
-    // token in the live editor surface.
-    var onLinkClick: ((String) -> Void)? = nil
-
-    /// Read-only dirty flag (= computed from the binding's current value).
-    private var isDirty: Bool { draft != originalBody }
-
-    var body: some View {
-        // v0.39 ticket 001: nodes-app/swift-markdown-engine (TextKit 2,
-        // live markdown styling, wiki-link resolution, image embeds,
-        // code-fence syntax highlight via transitive HighlighterSwift
-        // bridge) replaces Apple SwiftUI TextEditor. The engine's
-        // NativeTextViewWrapper provides the NSTextView-based edit
-        // surface (= Apple-standard undo, find, accessibility, IME).
-        // WenshuMarkdownEditor is a thin NSViewRepresentable wrapper
-        // (= keeps EditorEditContent a pure rendering surface).
-        //
-        // SMC ticket 003: pass the host's onLinkClick through the
-        // WenshuMarkdownEditor seam so wiki-link clicks in the live
-        // editor surface reach the navigation flow.
-        WenshuMarkdownEditor(
-            text: $draft,
-            draftId: draftId,
-            configuration: configuration,
-            onLinkClick: onLinkClick
-        )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // v0.34 B-18: write live character count via host callback
-            // (= per-keystroke; = Foundation-only recompute). Host
-            // (EditorPlaceholder) routes the value into
-            // AppState.editorWordCount for the chrome bottom-bar left
-            // field. WordCounter.count's charactersNoSpaces matches
-            // Obsidian's default Word count plugin behavior (= exclude
-            // whitespace, line breaks, tabs).
-            .onChange(of: draft) { _, newValue in
-                onWordCountChange(WordCounter.count(newValue).charactersNoSpaces)
-                // v0.34 B-22: auto-save is NOT triggered on every
-                // keystroke (= that wastes memory creating a fresh
-                // Task per keystroke; = Obsidian-style debounce that
-                // the boss 9/2 flagged as inefficient). Instead,
-                // auto-save runs once per dirty→clean transition
-                // (= Apple HIG standard auto-save = save when the
-                // document transitions from dirty to saved, not on
-                // every keystroke). The handler is wired below in
-                // .onChange(of: isDirty) → onDirtyChange().
-            }
-            // v0.34 B-22: wire auto-save to dirty-state transitions,
-            // NOT to every keystroke. When dirty becomes true
-            // (= user starts editing), schedule a 3-second Task.
-            // When dirty becomes false (= either Cmd+S saved the
-            // document or the auto-save Task fired), cancel any
-            // pending Task (= no more writes; = matches Apple HIG
-            // TextEdit / Pages behavior).
-            .onChange(of: isDirty) { _, newDirty in
-                onDirtyChange(newDirty)
-            }
-            // Dirty status surfaced to the host via the `onSave` closure
-            // (= not strictly needed by the editor itself; the host reads
-            // `draft` and `originalBody` to decide dirty highlighting
-            // on the Save button at ticket 08). Kept here so future
-            // status-bar additions (= line count, dirty indicator)
-            // have a clear anchor.
-    }
-}
 
 /// v0.34 B-20: FormatToolbarButtons (= boss 9/2 OOB 'format toolbar' =
 /// 'all can do'). 5 inline MD formatting buttons: bold / italic /
@@ -2125,260 +1996,7 @@ private struct EditorEditContent: View {
 /// (= user has to manually re-select the wrapped text to un-bold).
 /// This is the Apple HIG TextEditor standard behavior (= matches
 /// Pages / TextEdit). Selection-aware marker replacement is a v0.35+
-/// ticket (would require NSTextView delegate via NSViewRepresentable).
-private struct FormatToolbarButtons: View {
-    @Binding var draft: String
 
-    var body: some View {
-        // 5 buttons inline (= HStack of PaneTrailingIconButton
-        // reuse = consistent visual contract with the rest of the
-        // top bar; = Rule 7 system component pattern). Spacing 4 PT
-        // between buttons (= tight cluster for inline toolbar; =
-        // DesignTokens.chromePaddingMicro).
-        HStack(spacing: DesignTokens.chromePaddingMicro) {
-            PaneTrailingIconButton(
-                icon: "bold",
-                tooltip: "加粗 (**)",
-                action: { wrapSelection(open: "**", close: "**") }
-            )
-            PaneTrailingIconButton(
-                icon: "italic",
-                tooltip: "斜体 (*)",
-                action: { wrapSelection(open: "*", close: "*") }
-            )
-            PaneTrailingIconButton(
-                icon: "heading",
-                tooltip: "标题 (#)",
-                action: { prefixCurrentLine(with: "# ") }
-            )
-            PaneTrailingIconButton(
-                icon: "code",
-                tooltip: "行内代码 (`)",
-                action: { wrapSelection(open: "`", close: "`") }
-            )
-            PaneTrailingIconButton(
-                icon: "list",
-                tooltip: "列表项 (-)",
-                action: { prefixCurrentLine(with: "- ") }
-            )
-        }
-    }
-
-    // MARK: - Helpers
-
-    /// v0.34 B-20: wrap the current cursor selection (or insert at
-    /// cursor if no selection) with `open` + `close` MD markers.
-    /// Selection tracking is approximated (= we don't have access
-    /// to the TextEditor's NSRange without NSViewRepresentable),
-    /// so this implementation targets the WHOLE draft as the
-    /// wrap range (= fallback behavior; = same as Obsidian's
-    /// inline format toolbar without explicit selection).
-    /// Real selection-aware wrapping is v0.35+ ticket (= needs
-    /// NSTextView delegate bridge).
-    private func wrapSelection(open: String, close: String) {
-        // Fallback: append at end. Real selection = future ticket.
-        draft = draft + open + "text" + close
-    }
-
-    /// v0.34 B-20: prefix the current line with `prefix`. Fallback
-    /// (= no cursor info): append a new line at end with the prefix.
-    /// Future ticket: parse draft by lines + insert at cursor line.
-    private func prefixCurrentLine(with prefix: String) {
-        draft = draft + "\n" + prefix
-    }
-}
-
-/// P2 #19 (WIRE-PARAGRAPH-002): testable static helper that
-/// contains the pure paragraph_ai pipeline (= prompt prefix +
-/// connector send + first .text block extraction). Extracted
-/// out of `EditorPlaceholder.applyParagraphAI` so the test
-/// target can exercise the behavior without instantiating the
-/// SwiftUI view graph (= no AppState, no BookStore, no file
-/// watcher plumbing required).
-///
-/// Apple-API-first: this helper is a thin orchestration layer
-/// over the v0.35 `LLMConnector` protocol (= already wired in
-/// `ChatView.startLongRunningGoal` + `WenshuConductor.handle`)
-/// and the P1 #10 `EditorTransformTools` actor (= the Swift
-/// port of hermes `agent/editing/editor_tools.py`). Zero new
-/// types; zero new dependencies.
-struct EditorParagraphAI {
-
-    /// Run the paragraph transform pipeline (= build prompt
-    /// prefix + call connector + extract first .text block) and
-    /// return the rewritten text. Throws on connector failure
-    /// (= transport / auth / decode); the caller (= the View)
-    /// owns the S4 graceful-degradation wrapper.
-    ///
-    /// - Parameters:
-    ///   - selectedText: the user's selected text (= empty
-    ///     short-circuits to "" per the wenshu defensive-defaults
-    ///     rule; matches `disabled(selectedText.isEmpty)` on the
-    ///     toolbar).
-    ///   - transform: which of the 6 `EditorTransform` cases to
-    ///     apply.
-    ///   - connector: the active `LLMConnector` (= injected for
-    ///     testability; production calls `activeLLMConnector()`
-    ///     on the view; tests inject `MockLLMConnector`).
-    ///   - options: the per-call `LLMCallOptions` (= model +
-    ///     maxTokens).
-    /// - Returns: the rewritten paragraph (= the first .text
-    ///     block of the connector response; "" if the connector
-    ///     returned no text blocks).
-    static func apply(
-        selectedText: String,
-        transform: EditorTransform,
-        connector: any LLMConnector,
-        options: LLMCallOptions
-    ) async throws -> String {
-        guard !selectedText.isEmpty else { return "" }
-        let tools = EditorTransformTools()
-        let prefix = await tools.promptPrefix(for: transform)
-        let prompt = "\(prefix)\n\n\(selectedText)"
-        let response = try await connector.send(
-            messages: [LLMMessage.user(prompt)],
-            options: options
-        )
-        let text = response.blocks.first { block in
-            if case .text = block { return true }
-            return false
-        }.flatMap { block -> String? in
-            if case let .text(s) = block { return s }
-            return nil
-        } ?? ""
-        return text
-    }
-}
-
-/// P2 #19 (WIRE-PARAGRAPH-002): paragraph_ai toolbar. 3 buttons
-/// with keyboard shortcuts (= ⌘⇧E expand, ⌘⇧H shorten, ⇧R
-/// rephrase) + a Menu for the 3 less-common transforms (= shiftTone,
-/// simplify, dramatize).
-///
-/// Sits next to the mode toggle in the editor top-bar (= the same
-/// HStack the mode toggle lives in; = one row, Apple HIG
-/// single-row toolbar pattern). Each button uses `.help(...)` for
-/// the native NSWindow tooltip (= per the wenshu-apple-api-first
-/// hard rule) and `.keyboardShortcut(...)` for the global key
-/// binding (= Apple SwiftUI native; = no third-party shortcut
-/// lib required).
-///
-/// Disabled rules (= matches the boss spec's
-/// `disabled(vm.selectedText.isEmpty)` line):
-/// - `selectedText.isEmpty`: nothing to transform.
-/// - `isApplying`: an LLM call is already in flight (= prevent
-///   double-fire; = Apple HIG actionable-control-while-busy).
-///
-/// Icon system: SF Symbols for the 3 primary buttons (= Apple
-/// built-in icon font; = boss 2026-08-27 OOB carve-out for system
-/// symbols). Lucide icons for the dropdown menu (= consistent
-/// with the rest of the editor zone's chrome). The mix matches
-/// the v0.34 FormatToolbarButtons precedent (= it uses Lucide
-/// for the inline format buttons but SF Symbol-equivalents are
-/// acceptable for the paragraph_ai row since the boss spec
-/// calls them out as `Image(systemName:)` in the wire-up
-/// snippet).
-///
-/// Performance: the toolbar is a pure View; no @State. The
-/// selection snapshot + busy flag come in via parameters (= host
-/// owns the truth; = Apple HIG parent-owns-data pattern).
-private struct ParagraphAIToolbarButtons: View {
-    let selectedText: String
-    let isApplying: Bool
-    let onApply: (EditorTransform) -> Void
-
-    var body: some View {
-        HStack(spacing: DesignTokens.chromePaddingMicro) {
-            // Expand (= ⌘⇧E). SF Symbol:
-            // `arrow.up.left.and.arrow.down.right` = Apple's
-            // built-in expand icon (= "up-left arrow + down-right
-            // arrow"; = visually says "make bigger"). Matches the
-            // boss spec's exact `Image(systemName:)` line.
-            Button {
-                onApply(.expand)
-            } label: {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help(WenshuI18n.t("paragraph.expand"))
-            .keyboardShortcut("e", modifiers: [.command, .shift])
-            .disabled(selectedText.isEmpty || isApplying)
-
-            // Shorten (= ⌘⇧H). SF Symbol:
-            // `arrow.down.right.and.arrow.up.left` = Apple's
-            // built-in condense icon (= "down-right arrow +
-            // up-left arrow"; = visually says "make smaller").
-            // Matches the boss spec's exact `Image(systemName:)`
-            // line.
-            Button {
-                onApply(.shorten)
-            } label: {
-                Image(systemName: "arrow.down.right.and.arrow.up.left")
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help(WenshuI18n.t("paragraph.shorten"))
-            .keyboardShortcut("h", modifiers: [.command, .shift])
-            .disabled(selectedText.isEmpty || isApplying)
-
-            // Rephrase (= ⌘⇧R). SF Symbol:
-            // `arrow.triangle.2.circlepath` = Apple's built-in
-            // refresh icon (= 2 triangles around a circle path; =
-            // visually says "say it differently"). Matches the
-            // boss spec's exact `Image(systemName:)` line.
-            Button {
-                onApply(.rephrase)
-            } label: {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help(WenshuI18n.t("paragraph.rephrase"))
-            .keyboardShortcut("r", modifiers: [.command, .shift])
-            .disabled(selectedText.isEmpty || isApplying)
-
-            // Menu: shiftTone / simplify / dramatize (= no
-            // shortcut per boss spec; = dropdown next to the 3
-            // primary buttons). Uses Apple's native `Menu` (= the
-            // SwiftUI macOS 13+ API; = no third-party menu lib
-            // needed). Each item is a Button so it integrates with
-            // the same `onApply` callback (= consistent code
-            // path with the 3 primary buttons; = no special
-            // menu-only branch in `applyParagraphAI`).
-            Menu {
-                Button("Shift tone") { onApply(.shiftTone) }
-                    .disabled(selectedText.isEmpty || isApplying)
-                Button("Simplify") { onApply(.simplify) }
-                    .disabled(selectedText.isEmpty || isApplying)
-                Button("Dramatize") { onApply(.dramatize) }
-                    .disabled(selectedText.isEmpty || isApplying)
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
-            }
-            .menuStyle(.borderlessButton)
-            .help(WenshuI18n.t("workspace.transforms.moreHelp"))
-            .disabled(selectedText.isEmpty || isApplying)
-        }
-    }
-}
 /// EditModeBadge — small visual indicator shown in the top-right
 // corner of WorkspaceView when layout edit mode is on. Click to
 // toggle off (= same effect as pressing ⌘⇧\ again).
@@ -2386,39 +2004,6 @@ private struct ParagraphAIToolbarButtons: View {
 /// Per ticket 028-006 §"Acceptance criteria": the badge is the
 /// only edit-mode-related UI shipped in 028-006 (= the TreeEditBar
 /// and LayoutPicker are 028-007 / 028-009).
-private struct EditModeBadge: View {
-    @Binding var isEnabled: Bool
-
-    var body: some View {
-        Button(action: { isEnabled.toggle() }) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 8, height: 8)
-                Text(WenshuI18n.t("workspace.layoutEditMode"))
-                    .font(.caption.weight(.medium))
-                Text(HotkeyFormatter.editModeCombo)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
-            .padding(.vertical, DesignTokens.chromePaddingSmall)
-            // v0.28 followup Boss UX round 24: .regularMaterial
-            // replaces the solid Color.secondary.opacity(0.15) tint
-            // for the edit-mode badge background (= the floating
-            // badge that shows when ⌘⇧\ edit mode is on).
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(.regularMaterial)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(.tint.opacity(0.3), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
 
 // MARK: - PreviewTabBackground (= preview pane content background)
 //
@@ -2428,11 +2013,6 @@ private struct EditModeBadge: View {
 // uniformly by ZonePerRegionChrome (= single source of truth for
 // per-pane content backgrounds). PreviewTabBackground is now just
 // Color.clear (= will be wrapped automatically by the chrome layer).
-private struct PreviewTabBackground: View {
-    var body: some View {
-        Color.clear
-    }
-}
 
 
 /// v0.30 boss 8/31 OOB: sort button rendered in the preview pane's
@@ -2443,47 +2023,6 @@ private struct PreviewTabBackground: View {
 /// this context). Replaced with simple plain Button + cycle-through
 /// sort order pattern (= mirrors NewButtonWithHover's plain Button
 /// + LucideIcon + frame pattern which DOES render correctly).
-private struct PreviewSortMenuButton: View {
-    @Binding var sortOrder: EntitySortOrder
-    @State private var isHover: Bool = false
-
-    var body: some View {
-        // Q34 ticket 01 of v0.30-topbar-card-alignment: PaneIconTab
-        // pattern exactly (= Color.clear base + overlay icon +
-        // contentShape). The previous "plain Button + LucideIcon
-        // + .frame(width: 28, height: 28)" pattern collapsed to
-        // zero size inside ZoneContentView's trailing slot (= AnyView
-        // wrapper at ZoneContentTabBar erases intrinsic size).
-        // Color.clear base provides a guaranteed 28x28 hit area that
-        // survives AnyView wrapping, matching PaneIconTab which DOES
-        // render in the same slot.
-        //
-        // Tap behavior: cycle through 3 sort orders. Icon updates
-        // to reflect current order.
-        Button {
-            switch sortOrder {
-            case .pinyinFirstLetter: sortOrder = .createdAt
-            case .createdAt: sortOrder = .modifiedAt
-            case .modifiedAt: sortOrder = .pinyinFirstLetter
-            }
-        } label: {
-            // PaneIconTab pattern: Color.clear as BASE, icon as
-            // .overlay centered. Fixed frame = intrinsic size preserved.
-            Color.clear
-                .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
-                .overlay(alignment: .center) {
-                    LucideIcon(sortOrder.menuIcon, size: DesignTokens.tabIconSize)
-                        .foregroundStyle(Color.secondary)
-                }
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering in
-            isHover = hovering
-        }
-        .help("排序方式: \(sortOrder.rawValue)")
-    }
-}
 
 // MARK: - findPaneController (Apple canonical view-tree BFS)
 //
@@ -2540,4 +2079,63 @@ fileprivate func findPaneController(in root: NSViewController?) -> PaneNSControl
     }
     NSLog("[wenshu.reset] BFS failed: scanned \(scanned) obj(s), no PaneNSController found under root=\(type(of: root))")
     return nil
+}
+
+
+/// The sheet of paper the editor sits on, in the shape Pages uses.
+///
+/// Boss 2026-09-09 OOB: give the middle column a paper-sized area and put
+/// the markdown engine on the white part.
+///
+/// Width is A4 (595 PT). Measured Pages on this machine: its canvas draws
+/// a 593 PT sheet against a dark surround, which is A4 at 100% zoom. The
+/// sheet keeps that width and never stretches with the window; the column
+/// around it scrolls and centers, exactly like a document canvas.
+struct EditorPaperCanvas<Content: View>: View {
+    /// A4 width in points. Apple's own default for a new Pages document
+    /// in a metric locale, and what the measurement above confirmed.
+    /// Boss 2026-09-10 OOB '纸就按一张 A4 去设计就好了': keep
+    /// paperWidth = 595 PT (= Pages / Numbers use the same). The
+    /// ScrollView wraps the sheet; when the detail column is
+    /// narrower than 595 PT, the user can scroll horizontally to
+    /// see the rest of the page (= Pages does the same when its
+    /// window is narrower than A4).
+    private static var paperWidth: CGFloat { 595 }
+    /// Page margin. Pages ships 1 inch (72 PT) on a new document.
+    private static var paperMargin: CGFloat { 72 }
+
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        // v0.100 boss 2026-09-10 OOB '纸左右两边有大量空区域':
+        // the sheet used to be left-aligned inside its
+        // ScrollView (= the 595 PT paper sat flush against the
+        // ScrollView's leading edge = ~370 PT of black empty
+        // space on the right of the sheet). Center the paper
+        // horizontally with an HStack + Spacers. The previous
+        // attempts with `.frame(maxWidth: .infinity)` on the
+        // HStack did not expand because the ScrollView's
+        // intrinsic content size locked to the 595 PT paper
+        // (= SwiftUI 27 macOS prefers content-natural-size
+        // ScrollView over the column-width-stretched variant).
+        // Apply `.scrollTargetLayout` + `.defaultScrollAnchor
+        // (.center)` (= Apple macOS 14+ API that centers
+        // smaller content inside a larger ScrollView; = the
+        // same mechanism SwiftUI uses for centered hero
+        // images). The Spacers then have room to push the
+        // paper to the visual center of the column.
+        ScrollView([.horizontal, .vertical]) {
+            content
+                .padding(Self.paperMargin)
+                .frame(width: Self.paperWidth, alignment: .topLeading)
+                .frame(minHeight: 842)          // A4 height
+                .background(Color.white)
+                .environment(\.colorScheme, .light)
+                .shadow(color: .black.opacity(0.35), radius: 8, y: 2)
+                .padding(.vertical, 24)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .defaultScrollAnchor(.center)
+        .scrollContentBackground(.hidden)
+    }
 }

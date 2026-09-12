@@ -1,15 +1,15 @@
 //
 //  SkillRegistry.swift · Wenshu · v0.18 ticket 02 (hermes replica)
 //
-//  本地 Skills 加载机制 (替代 hermes skills_hub 云 + GitHub).
-//  老板 2026-08-19 拍 "底层依赖复刻" — 不依赖 hermes skills_hub, wenshu 自己有 skill registry.
+// local Skills load (hermes skills_hub + GitHub).
+// 2026-08-19 "" — hermes skills_hub, wenshu skill registry.
 //
-//  接口对齐 hermes 真值 (skills_hub.py 35 do_* 函数简化版):
-//  - list() → [Skill]: 扫 Sources/WenshuCore/Skills/<name>/SKILL.md
-//  - load(name) → Skill?: 拿 SKILL.md 内容 + parse frontmatter
-//  - invoke(name, input) → String: 调 skill (简化版只读 frontmatter + body, 不实现 35 do_* 完整 hub)
+// hermes (skills_hub.py 35 do_*):
+// - list() → [Skill]: Sources/WenshuCore/Skills/<name>/SKILL.md
+// - load(name) → Skill?: SKILL.md + parse frontmatter
+// - invoke(name, input) → String: skill (read only frontmatter + body, 35 do_* hub)
 //
-//  SKILL.md 真值格式 (frontmatter + body):
+// SKILL.md format (frontmatter + body):
 //  ---
 //  name: skill-name
 //  description: ...
@@ -20,7 +20,7 @@
 
 import Foundation
 
-/// Skill frontmatter 真值 (YAML 简化版: 跟 SKILL.md 文件一致)
+/// Skill frontmatter (YAML: SKILL.md file)
 public struct SkillFrontmatter: Equatable, Sendable {
     public let name: String
     public let description: String
@@ -31,7 +31,7 @@ public struct SkillFrontmatter: Equatable, Sendable {
     }
 }
 
-/// Skill: name + frontmatter + body + files (linked_files 真值)
+/// Skill: name + frontmatter + body + files (linked_files)
 public struct Skill: Equatable, Sendable {
     public let name: String
     public let path: URL
@@ -48,16 +48,16 @@ public struct Skill: Equatable, Sendable {
     }
 }
 
-/// SkillRegistry: 扫 + 解析本地 SKILL.md 文件
+/// SkillRegistry: + local SKILL.md file
 public actor SkillRegistry {
-    /// skill 根目录 (默认 wenshu 项目内 Sources/WenshuCore/Skills/, 可 override 测试用临时目录)
+    /// skill directory (default wenshu Sources/WenshuCore/Skills/, override testdirectory)
     private let rootDir: URL
 
     public init(rootDir: URL? = nil) {
         if let rootDir = rootDir {
             self.rootDir = rootDir
         } else {
-            // 默认 wenshu 项目内 Skills 目录. 优先用 WENSHU_ROOT env (测试可移植), fallback cwd/Sources/WenshuCore/Skills
+            // default wenshu Skills directory. WENSHU_ROOT env (test), fallback cwd/Sources/WenshuCore/Skills
             let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             let defaultPath = cwd.appendingPathComponent("Sources/WenshuCore/Skills", isDirectory: true)
             if let envRoot = ProcessInfo.processInfo.environment["WENSHU_ROOT"] {
@@ -68,7 +68,7 @@ public actor SkillRegistry {
         }
     }
 
-    /// list: 扫 rootDir 下所有 SKILL.md, return skill names
+    /// list: rootDir SKILL.md, return skill names
     public func list() throws -> [String] {
         guard FileManager.default.fileExists(atPath: rootDir.path) else { return [] }
         let contents = try FileManager.default.contentsOfDirectory(at: rootDir, includingPropertiesForKeys: [.isDirectoryKey])
@@ -81,7 +81,7 @@ public actor SkillRegistry {
         }.sorted()
     }
 
-    /// load: 拿 1 个 skill, parse frontmatter + body
+    /// load: 1 skill, parse frontmatter + body
     public func load(name: String) throws -> Skill? {
         let skillDir = rootDir.appendingPathComponent(name, isDirectory: true)
         let skillFile = skillDir.appendingPathComponent("SKILL.md")
@@ -92,7 +92,7 @@ public actor SkillRegistry {
         return Skill(name: name, path: skillFile, frontmatter: frontmatter, body: body, linkedFiles: linked)
     }
 
-    /// invoke: 简化版 invoke (只返回 frontmatter + body, 不实现 35 do_* 完整 hub)
+    /// invoke: invoke (frontmatter + body, 35 do_* hub)
     public func invoke(name: String, input: String = "") throws -> String {
         guard let skill = try load(name: name) else {
             throw SkillRegistryError.notFound(name: name)
@@ -107,11 +107,11 @@ public actor SkillRegistry {
         """
     }
 
-    /// 解析 YAML frontmatter (简化版: 只拿 name + description, 不依赖 Yams 第三方)
+    /// YAML frontmatter (: name + description, Yams)
     private func parseFrontmatter(_ raw: String) -> (SkillFrontmatter, String) {
         let lines = raw.components(separatedBy: "\n")
         guard let firstLine = lines.first, firstLine.hasPrefix("---") else {
-            // 没 frontmatter, 用 fallback
+            // frontmatter, fallback
             return (SkillFrontmatter(name: "unknown", description: ""), raw)
         }
         var inFrontmatter = true
@@ -133,10 +133,10 @@ public actor SkillRegistry {
         }
         if !foundEnd {
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 没找到结束 ---, 整个文件是 body
+            // ---, fileyes body
             return (SkillFrontmatter(name: "unknown", description: ""), raw)
         }
-        // 解析 frontmatter 简化版 (key: value)
+        // frontmatter (key: value)
         var name = "unknown"
         var description = ""
         for line in frontmatterLines {
@@ -151,7 +151,7 @@ public actor SkillRegistry {
         return (SkillFrontmatter(name: name, description: description), body)
     }
 
-    /// 列 skill 目录下的 linked files (references/ templates/ scripts/)
+    /// skill directory linked files (references/ templates/ scripts/)
     private func listLinkedFiles(skillDir: URL) -> [URL] {
         let linkedSubdirs = ["references", "templates", "scripts", "assets"]
         var results: [URL] = []
@@ -167,7 +167,7 @@ public actor SkillRegistry {
     }
 }
 
-/// SkillRegistry 错误
+/// SkillRegistry error
 public enum SkillRegistryError: Error {
     case notFound(name: String)
 }

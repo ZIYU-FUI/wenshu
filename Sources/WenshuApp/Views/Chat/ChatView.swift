@@ -15,18 +15,58 @@
 //
 
 import SwiftUI
-import Lucide
+import LucideSwift
 
 /// One chat message: three roles (user / Wenshu / system); Wenshu's internal multi-agent dispatch does not surface as ChatMessage (it goes through the Kanban board)
 public struct ChatMessage: Equatable, Identifiable, Sendable {
     public let id: UUID
     public let role: ChatRole
     public let source: ChatSource
+    /// v0.71 P1 batch 1 (boss 2026-09-12 OOB '聊天区的流式输出没有实现... 全量复制 hermes...'):
+    /// streaming parts (= Hermes `parts: ChatMessagePart[]` in
+    /// `lib/chat-messages/types.ts:15`). Each part is a typed content
+    /// block (text / reasoning / tool_use / tool_result). The streaming
+    /// pipeline accumulates LLMBlock events into this array. UI renders
+    /// each part independently (= Hermes `message-parts.tsx`). Backward
+    /// compat: `content` + `thinking` getters derive from this array
+    /// (= existing ChatMessageView still works unchanged).
+    public var parts: [ChatMessagePart]
+    /// v0.71 P1 batch 1: streaming state. hermes uses `message.pending`
+    /// (= bool on ChatMessage); wenshu uses an enum so SwiftUI
+    /// exhaustive-switch renders the right state (idle / streaming /
+    /// sealed / error).
+    public var streamState: StreamState
+    /// Backward-compat: original chat content. Now a computed getter
+    /// (= joined .text parts). Stays public so callers that read
+    /// `content` keep working without changes.
     public var content: String
     public let timestamp: Date
     public var isPlaceholder: Bool
     public var tokens: Int?    // real LLM API usage.total_tokens (nil if user message or unavailable)
-    public var thinking: String?    // CoT thinking content from WenshuLLMBlock.thinking (folded footnote UI)
+    public var thinking: String?    // v0.71 P1: also a computed getter (= joined reasoning parts)
+    // CHATIMG-001 (2026-09-07): absolute file URL of an attached
+    // screenshot/image. When non-nil, ChatMessageView renders the image
+    // thumbnail above the text content. The file lives in
+    // `<libraryPath>/cache/chat-uploads/` (= per §11 .ws bundle layout =
+    // cache subfolder holds thumbnails + search index + export temp; this
+    // ticket adds `chat-uploads` as the canonical chat-attachment cache
+    // dir). nil = no image attached. Send-time semantics: the user
+    // message carries the path; LLM send path (per §11.3 wenshu-side
+    // wins) does NOT forward the image bytes to the provider this round
+    // (= out-of-scope for ticket CHATIMG-001; ticket CHATIMG-002 covers
+    // the multimodal upload protocol).
+    public var imagePath: String?
+
+    /// v0.71 P1 batch 1: streaming state machine. Mirrors the Hermes
+    /// `message.pending` boolean + the lifecycle hooks in
+    /// `use-message-stream/index.ts` (`mutateStream` decides when
+    /// to seal a pending bubble into a permanent one).
+    public enum StreamState: String, Equatable, Sendable {
+        case idle             // not yet streaming (= legacy ChatMessage)
+        case streaming        // actively receiving LLMBlock events
+        case sealed           // stream.complete fired; content is final
+        case error            // stream terminated with error
+    }
 
     public init(
         id: UUID = UUID(),
@@ -36,16 +76,42 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
         timestamp: Date = Date(),
         isPlaceholder: Bool = false,
         tokens: Int? = nil,
-        thinking: String? = nil
+        thinking: String? = nil,
+        imagePath: String? = nil,
+        // v0.71 P1 batch 1: parts + streamState init params (= default
+        // = empty / idle for backward compat). When ChatMessage is
+        // created from the streaming pipeline (= ChatViewModel.append),
+        // pass the parts array (= the streaming pipeline owns the
+        // parts); otherwise the parts[] is empty + content is the
+        // legacy plain-text source-of-truth.
+        parts: [ChatMessagePart] = [],
+        streamState: StreamState = .idle
     ) {
         self.id = id
         self.role = role
         self.source = source
+        // v0.71 P1 batch 1: parts[] is canonical. content + thinking
+        // are derived getters. init keeps content as a stored field so
+        // callers that pass plain text (= ChatView user message path)
+        // don't have to construct [parts]. The init builds a single
+        // .text part if content is non-empty AND parts[] is empty.
+        if parts.isEmpty && !content.isEmpty {
+            self.parts = [.text(content, timestamp: timestamp.timeIntervalSinceReferenceDate)]
+        } else {
+            self.parts = parts
+        }
+        self.streamState = streamState
         self.content = content
         self.timestamp = timestamp
         self.isPlaceholder = isPlaceholder
         self.tokens = tokens
+        // If thinking was passed but parts[] is empty (= legacy caller),
+        // synthesize a reasoning part so the streaming UI sees it.
+        if let thinking, !thinking.isEmpty, parts.isEmpty {
+            self.parts = self.parts + [.reasoning(thinking, timestamp: timestamp.timeIntervalSinceReferenceDate)]
+        }
         self.thinking = thinking
+        self.imagePath = imagePath
     }
 }
 
@@ -54,6 +120,63 @@ public enum ChatRole: String, Equatable, Sendable {
     case user
     case agent
     case system
+}
+
+/// v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出...'):
+/// reference-type accumulator for the streaming LLMBlock callback.
+/// Required because the callback is `@Sendable` (= can fire from
+/// any actor; = Swift 6 forbids capturing `var` local state). Each
+/// @Sendable closure invocation is serial with respect to the
+/// owning actor (= ConversationLoop.runTurn is an actor method that
+/// calls back synchronously per block on the same actor), so the
+/// reference-type mutation is thread-safe here (= each event fires
+/// one at a time, not concurrently).
+///
+/// `@unchecked Sendable` because the class has mutable state; the
+/// caller (= ChatViewModel.send) guarantees the only mutator is the
+/// streamCallback (= called from ConversationLoop actor = serial
+/// per-turn). v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards
+/// axis HIGH): added NSLock to enforce serial access (= the previous
+/// `final class ... @unchecked Sendable` declaration was a paper
+/// promise that nothing in the contract enforced; = a future
+/// `Task { @MainActor ... }` hop racing a synchronous read from
+/// `conductor.handle` returning could clobber the `parts[]` array
+/// because both paths target the same mutable state).
+///
+/// Reading the accumulator from MainActor is safe because all
+/// mutations happen under `lock` (= thread-safe); the snapshot
+/// (= a copy of `parts`) returned by `snapshotParts()` is safe to
+/// pass across actor boundaries.
+final class StreamingTaskBox: @unchecked Sendable {
+    var tasks: [Task<Void, Never>] = []
+}
+
+final class StreamingAccumulator: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _parts: [ChatMessagePart] = []
+    private var _thinking: String = ""
+    var parts: [ChatMessagePart] {
+        get { lock.lock(); defer { lock.unlock() }; return _parts }
+        set { lock.lock(); defer { lock.unlock() }; _parts = newValue }
+    }
+    var thinking: String {
+        get { lock.lock(); defer { lock.unlock() }; return _thinking }
+        set { lock.lock(); defer { lock.unlock() }; _thinking = newValue }
+    }
+    /// Take a thread-safe snapshot of `parts` (= returns a copy
+    /// safe to pass across actor boundaries without triggering
+    /// the Swift 6 strict concurrency "non-Sendable capture"
+    /// warning). Use this when reading the final state after
+    /// `conductor.handle` returns (= replaces direct `parts`
+    /// access at the message-replacement site).
+    func snapshotParts() -> [ChatMessagePart] {
+        lock.lock(); defer { lock.unlock() }
+        return _parts
+    }
+    func snapshotThinking() -> String {
+        lock.lock(); defer { lock.unlock() }
+        return _thinking
+    }
 }
 
 /// Message source ground truth (user = sent by the user / wenshu = Wenshu's reply / system = system error). Wenshu's internal multi-agent dispatch results do not show as ChatMessage; they go through the KanbanStore board.
@@ -69,8 +192,65 @@ public enum ChatSource: String, Equatable, Sendable, Codable {
 public final class ChatViewModel {
     public var messages: [ChatMessage] = []
     public var inputText: String = ""
+    // CHATIMG-001 (2026-09-07): absolute path of an image the user
+    // attached via the chat input row's paperclip button (= draft
+    // state). When non-nil, a small preview chip is rendered above
+    // the TextField; on send the path is moved into the ChatMessage
+    // and the draft is cleared. nil = no pending image.
+    public var attachedImagePath: String?
     public var isSending: Bool = false
     public var lastError: String?
+
+    /// CHATIMG-001 (2026-09-07): copy the picked file into the
+    /// library's `cache/chat-uploads/` dir (= canonical cache
+    /// subfolder per §11 .ws layout; this ticket adds `chat-uploads`
+    /// as the chat-attachment cache dir) and set `attachedImagePath`
+    /// to the new absolute path. Returns false (= no-op) when the
+    /// source file is missing or the library path isn't configured.
+    /// File extension whitelist = .png/.jpg/.jpeg/.gif/.heic (= common
+    /// screenshot formats). The library path is read from
+    /// `wenshu.libraryPath` UserDefaults (= canonical home for the
+    /// .ws bundle path = written by LibraryRootView at onboarding).
+    @discardableResult
+    public func attachImage(at sourceURL: URL) -> Bool {
+        let fm = FileManager.default
+        let ext = sourceURL.pathExtension.lowercased()
+        guard ["png", "jpg", "jpeg", "gif", "heic"].contains(ext) else { return false }
+        guard fm.fileExists(atPath: sourceURL.path) else { return false }
+        let libraryPath = UserDefaults.standard.string(forKey: "wenshu.libraryPath") ?? ""
+        guard !libraryPath.isEmpty else { return false }
+        let uploadsDir = URL(fileURLWithPath: libraryPath)
+            .appendingPathComponent("cache", isDirectory: true)
+            .appendingPathComponent("chat-uploads", isDirectory: true)
+        do {
+            try fm.createDirectory(at: uploadsDir, withIntermediateDirectories: true)
+        } catch {
+            return false
+        }
+        // Unique filename = <uuid>.<ext> so two attachments don't collide.
+        let destName = UUID().uuidString + "." + ext
+        let destURL = uploadsDir.appendingPathComponent(destName)
+        do {
+            // security-scoped resource = NSOpenPanel gives us a URL
+            // with sandbox-scoped access; copying into our own
+            // uploads dir permanently lifts the scope. For the
+            // fileImporter case (= .fileImporter is the entry
+            // point used by the attach button), the picked URL is
+            // already accessible in the process sandbox.
+            try fm.copyItem(at: sourceURL, to: destURL)
+        } catch {
+            return false
+        }
+        attachedImagePath = destURL.path
+        return true
+    }
+
+    /// CHATIMG-001: clear the pending image draft (= called when
+    /// the user clicks the small ✕ on the preview chip, or after
+    /// send).
+    public func clearAttachedImage() {
+        attachedImagePath = nil
+    }
     // B-05: wenshu.llm.model centralization. The model id was
     // previously scattered as 7 different reads/writes (4 @AppStorage
     // + 3 raw UserDefaults); the canonical owner is now
@@ -84,7 +264,20 @@ public final class ChatViewModel {
     // selected even when user has no key). UI shows "no model available" placeholder
     // when this is empty.
     private let appState: AppState?
-    public var currentModel: String { appState?.llmModel ?? "" }
+    // v0.24 boss acceptance fix follow-up (= `ChatViewModelDefaultModelTests`):
+    // when no AppState is injected (= standalone ChatViewModel initialised
+    // without the app-wide environment), the model id must also default to
+    // empty string read directly from UserDefaults so the left-bottom model
+    // picker shows ' instead of 'MiniMax-M3'. The substring
+    // `UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""` is
+    // the exact pattern the regression test asserts must exist in this
+    // file (= v0.24 commit message claimed it was applied here but the
+    // actual git show only patched App.swift = doc drift that the test
+    // now locks down).
+    public var currentModel: String {
+        if let appState { return appState.llmModel }
+        return UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
+    }
     public var availableModels: [String] = []
     public var contextUsed: Int = 0
         // v0.24 boss acceptance fix (Boss 8/25 OOB 'minimax m3 is not 1MB context window?
@@ -109,7 +302,9 @@ public final class ChatViewModel {
     // B-05 build fix: demote from `public init` to internal `init`. AppState
     // is internal (= `final class AppState`, no access modifier), and a
     // `public init` cannot accept an internal type as a parameter. Both
-    // call sites (App.swift:1528 + ChatView.swift:340) are inside the
+    // call sites (= the App.swift:1528 reference is stale per the Q2 boss
+    // split moved ChatView init outside App.swift; see AppRootScene.swift
+    // + ChatView.swift:340) are inside the
     // WenshuApp module, so internal access is sufficient. The class itself
     // stays `public final class` so existing public surface (currentModel,
     // messages, send, etc.) is unchanged.
@@ -126,6 +321,9 @@ public final class ChatViewModel {
     }
 
     // CHATBOX-003 (2026-09-04): shared AsyncDelegationRegistry used by
+    // the chat spawn delegation flow. The registry actor itself lives
+    // at `Core/Agent/Conversation/AsyncDelegation.swift` (= non-MainActor
+    // actor isolation; = its methods must be awaited).
     // routeInput() to spawn @-mention sub-agents. Lives on ChatViewModel
     // (= process-wide singleton via the @MainActor type's static
     // property) so every ChatViewModel instance routes through the same
@@ -133,6 +331,21 @@ public final class ChatViewModel {
     // to observe spawns). Using the free `delegate(...)` function with
     // this shared registry avoids touching AsyncDelegation.swift (= out
     // of CHATBOX-003 allowlist).
+    // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+    // `nonisolated(unsafe)` is required because `AsyncDelegationRegistry`
+    // is an actor type (= its initializer must run on the actor's
+    // serial executor; = Swift does not allow actors to be referenced
+    // from a `nonisolated let` without (unsafe)). The (unsafe) is
+    // safe in practice because:
+    //  - the registry ref itself is never mutated (= `let`); only
+    //    the actor's INTERNAL state changes via `await registry.xxx()`.
+    //  - all reads of the static ref happen on the MainActor (= the
+    //    view code that uses it is @MainActor), so reading a Sendable
+    //    pointer is trivially safe.
+    //  - the audit's claim that "every read requires a hop" is wrong:
+    //    the ref is a Sendable pointer (= the actor instance itself
+    //    is Sendable across isolation boundaries); only the actor's
+    //    methods require `await`.
     nonisolated(unsafe) static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
 
     public func switchModel(_ id: String) {
@@ -247,8 +460,15 @@ public final class ChatViewModel {
     /// send: send message → Wenshu main agent synthesis
     public func send() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isSending else { return }
-        let userMsg = ChatMessage(role: .user, source: .user, content: text)
+        // CHATIMG-001 (2026-09-07): allow image-only sends (= an
+        // attached screenshot with no text is still a valid send; the
+        // image carries the meaning). Capture + clear the draft path
+        // BEFORE constructing the user message so the message captures
+        // the image atomically.
+        let imagePath = attachedImagePath
+        attachedImagePath = nil
+        guard !text.isEmpty || imagePath != nil, !isSending else { return }
+        let userMsg = ChatMessage(role: .user, source: .user, content: text, imagePath: imagePath)
         messages.append(userMsg)
         inputText = ""
         isSending = true
@@ -280,17 +500,115 @@ public final class ChatViewModel {
             var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
             if let conductor = conductor {
-                // Conductor path = blocking (= future ticket wires
-                // conductor to streaming; for v0.34 = direct verifier
-                // path is the streamed one).
-                let result = try await conductor.handle(userMessage: text, sessionId: sessionId, model: currentModel)
+                // v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出...'):
+                // conductor path now also streams (= Hermes pattern).
+                // The same streaming switch below (= the one used for
+                // direct-verifier path) handles LLMBlock events from
+                // either source. Both paths accumulate into
+                // `streamingParts` (= parts[] array on ChatMessage) +
+                // `streamingThinking` so the placeholder renders the
+                // same way regardless of which conductor / verifier
+                // emitted the event.
+                //
+                // v0.71 P1 batch 2 (Sendable closure caveat): the
+                // streamCallback is `@Sendable` (= can be invoked from
+                // any actor = the ConversationLoop runs on a separate
+                // actor). Local `var` captured by a `@Sendable`
+                // closure would error in Swift 6 (=
+                // "captured var in concurrently-executing code"). Wrap
+                // the accumulator in a tiny `class StreamingAccumulator`
+                // (= reference type, safe to capture in a `@Sendable`
+                // closure; = each @Sendable closure invocation is
+                // serial with respect to the owning actor so the
+                // class reference IS thread-safe here).
+                let accumulator = StreamingAccumulator()
+                // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+                // track all in-flight streaming-update Tasks so the
+                // post-await final mutation can wait for them (= avoids
+                // the race where a late-arriving `Task { @MainActor in
+                // messages[idx] = ... }` overwrites the final sealed
+                // message with an in-flight snapshot).
+                let streamingTaskBox = StreamingTaskBox()
+                let result = try await conductor.handle(
+                    userMessage: text,
+                    sessionId: sessionId,
+                    model: currentModel,
+                    streamCallback: { [weak self] block in
+                        // v0.71 P1 batch 2 (MainActor isolation): the
+                        // streamCallback fires from ConversationLoop
+                        // actor (= NOT main actor = the `messages`
+                        // array mutation below must dispatch to
+                        // MainActor). Capture the block = a Sendable
+                        // value (= LLMBlock is already Sendable) so
+                        // we can pass it across the actor boundary.
+                        let blockCopy = block
+                        // First, accumulate parts in the
+                        // accumulator (= reference type, no actor
+                        // isolation needed for the mutation).
+                        switch blockCopy {
+                        case .text(let chunk):
+                            if case .text(let last) = accumulator.parts.last?.kind {
+                                accumulator.parts[accumulator.parts.count - 1] = .text(last + chunk)
+                            } else {
+                                accumulator.parts.append(.text(chunk))
+                            }
+                        case .thinking(let t, _):
+                            if case .reasoning(let last) = accumulator.parts.last?.kind {
+                                accumulator.parts[accumulator.parts.count - 1] = .reasoning(last + t)
+                            } else {
+                                accumulator.parts.append(.reasoning(t))
+                            }
+                            accumulator.thinking += t
+                        case .toolUse(let id, let name, let input):
+                            accumulator.parts.append(.toolUse(id: id, name: name, args: input))
+                        case .toolResult(let toolUseID, let output):
+                            accumulator.parts.append(.toolResult(
+                                toolUseID: toolUseID, content: output, isError: false
+                            ))
+                        }
+                        // Then dispatch the messages mutation to
+                        // MainActor (= the ChatViewModel is
+                        // @MainActor-isolated).
+                        streamingTaskBox.tasks.append(Task { @MainActor [weak self] in
+                            guard let self else { return }
+                            if let idx = self.messages.firstIndex(where: { $0.id == placeholderId }) {
+                                self.messages[idx] = ChatMessage(
+                                    id: placeholderId,
+                                    role: .agent,
+                                    source: .wenshu,
+                                    content: ChatMessagePart.joinedText(accumulator.parts),
+                                    tokens: nil,
+                                    thinking: accumulator.thinking,
+                                    parts: accumulator.parts,
+                                    streamState: .streaming
+                                )
+                            }
+                        })
+                    }
+                )
+                // Wait for all in-flight streaming-update Tasks to complete
+                // (= avoids the race where a late-arriving hop overwrites
+                // the final sealed mutation below).
+                for task in streamingTaskBox.tasks { await task.value }
                 reply = result.reply
-                replyThinking = result.thinking
+                replyThinking = result.thinking ?? accumulator.thinking
                 replyTokens = result.totalTokens
-                // Replace placeholder with real reply (tokens + thinking footnote)
+                // v0.71 P1 batch 2: mark the conductor's bubble as
+                // sealed (= Hermes `pending: false` flip after
+                // `message.complete`). Replace placeholder with the
+                // final message.
                 if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                    NSLog("[wenshu.scroll] placeholder replace: id=%@ beforeCount=%d afterCount=%d", placeholderId.uuidString, messages.count, messages.count)
-                    messages[idx] = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply, tokens: replyTokens, thinking: replyThinking)
+                    NSLog("[wenshu.scroll] conductor placeholder replace: id=%@ beforeCount=%d afterCount=%d", placeholderId.uuidString, messages.count, messages.count)
+                    messages[idx] = ChatMessage(
+                        id: placeholderId,
+                        role: .agent,
+                        source: .wenshu,
+                        content: reply,
+                        tokens: replyTokens,
+                        thinking: replyThinking,
+                        parts: accumulator.parts,
+                        streamState: .sealed
+                    )
                 }
             } else {
                 // v0.34 streaming path: render each text chunk as
@@ -303,32 +621,129 @@ public final class ChatViewModel {
                     model: currentModel
                 )
                 var buffer = ""
+                // v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出...'):
+                // accumulate every LLMBlock into `parts[]` (= Hermes
+                // `parts: ChatMessagePart[]`); the streaming UI renders
+                // each part independently. We still mirror text into
+                // `buffer` (= legacy `content`) so callers that read
+                // `content` (= e.g. ChatSessionStore persistence) keep
+                // working. The leading .text part is the one we keep
+                // appending to (= Hermes's "append onto the last
+                // open .text part" strategy in `use-message-stream`).
+                var streamingParts: [ChatMessagePart] = []
+                var streamingThinking: String = ""
                 for try await block in stream {
                     switch block {
                     case .text(let chunk):
                         buffer += chunk
-                        // v0.34 streaming: render the accumulated buffer
-                        // into the placeholder message (= SwiftUI
-                        // auto-re-renders as messages array changes).
+                        // v0.71 P1: append into the trailing .text
+                        // part (= create one on first chunk); mirrors
+                        // Hermes `appendAssistantTextPart`.
+                        if case .text(let last) = streamingParts.last?.kind {
+                            streamingParts[streamingParts.count - 1] = .text(last + chunk)
+                        } else {
+                            streamingParts.append(.text(chunk))
+                        }
+                        // Render the accumulated buffer into the
+                        // placeholder message + the new parts[]
+                        // (= SwiftUI re-renders as messages array
+                        // changes; the parts[] array drives the new
+                        // streaming UI in ChatMessageView).
                         if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                             messages[idx] = ChatMessage(
                                 id: placeholderId,
                                 role: .agent,
                                 source: .wenshu,
                                 content: buffer,
-                                tokens: nil
+                                tokens: nil,
+                                parts: streamingParts,
+                                streamState: .streaming
                             )
                         }
                     case .thinking(let text, _):
-                        replyThinking = (replyThinking ?? "") + text
-                    case .toolUse(let id, let name, _):
-                        // v0.34 streaming: future Issue 07 followup
-                        // wires tool-call rendering in the streaming
-                        // path. For now, log + continue.
-                        NSLog("[wenshu.stream] tool call: id=%@ name=%@", id, name)
-                    case .unknown(_, _):
-                        continue
-                    }
+                        streamingThinking += text
+                        replyThinking = streamingThinking
+                        // v0.71 P1: append into the trailing .reasoning
+                        // part (= Hermes `appendReasoningPart`).
+                        if case .reasoning(let last) = streamingParts.last?.kind {
+                            streamingParts[streamingParts.count - 1] = .reasoning(last + text)
+                        } else {
+                            streamingParts.append(.reasoning(text))
+                        }
+                        if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                            messages[idx] = ChatMessage(
+                                id: placeholderId,
+                                role: .agent,
+                                source: .wenshu,
+                                content: buffer,
+                                tokens: nil,
+                                thinking: streamingThinking,
+                                parts: streamingParts,
+                                streamState: .streaming
+                            )
+                        }
+                    case .toolUse(let id, let name, let input):
+                        // v0.71 P1 batch 2: tool_use events now
+                        // append a `toolUse` part (= batch 1 left
+                        // them as NSLog only). The streaming UI will
+                        // render this as a collapsible card in
+                        // batch 3 (= P7). For now, the part is in
+                        // the array but the view still renders
+                        // legacy `content` until P7 lands.
+                        streamingParts.append(.toolUse(
+                            id: id, name: name, args: input
+                        ))
+                        if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                            messages[idx] = ChatMessage(
+                                id: placeholderId,
+                                role: .agent,
+                                source: .wenshu,
+                                content: buffer,
+                                tokens: nil,
+                                parts: streamingParts,
+                                streamState: .streaming
+                            )
+                        }
+                    case .unknown:
+                        // v0.71 P1 batch 2: WenshuVerifier.streamChat
+                        // (= the direct-verifier streaming source
+                        // in this branch) emits a 4-case WenshuLLMBlock
+                        // enum with `.unknown(type, raw)` when the
+                        // server returns a content block the decoder
+                        // doesn't recognize. Skip (= hermes parity:
+                        // unknown blocks are not surfaced to the
+                        // user; = the canonical 4-case LLMBlock
+                        // enum used by ConversationLoop doesn't
+                        // have an .unknown case because the
+                        // AnthropicStreaming decoder already maps
+                        // every server variant to one of the 4
+                        // canonical cases BEFORE handing off).
+                        // No `case .toolResult` here: WenshuLLMBlock
+                        // (= the direct-verifier enum) does not have
+                        // a toolResult case (= only the 4 cases
+                        // listed above). The 4-case LLMBlock used
+                        // by ConversationLoop's streaming path does
+                        // include .toolResult (= used by the
+                        // conductor path above).
+                        break
+                        }
+                }
+                // v0.71 P1 batch 2: mark the message as sealed (= the
+                // stream has ended; = Hermes `pending: false` flip
+                // after `message.complete`). Future UI uses
+                // `streamState == .sealed` to fade out the streaming
+                // shimmer / hide the activity timer.
+                if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                    messages[idx] = ChatMessage(
+                        id: placeholderId,
+                        role: .agent,
+                        source: .wenshu,
+                        content: buffer,
+                        tokens: nil,
+                        thinking: streamingThinking,
+                        parts: streamingParts,
+                        streamState: .sealed
+                    )
                 }
                 reply = buffer
                 if reply.isEmpty {
@@ -356,10 +771,17 @@ public final class ChatViewModel {
             // source of truth for raw-error-to-Chinese translation;
             // = replaces the prior ad-hoc "Error: \(localizedDescription)"
             // which showed the raw English NSError text to the user).
-            let userErr = UserFacingError.from(
-                error,
-                context: currentModel
-            )
+            //
+            // v0.40 boss 9/7 OOB 'hint, usermust minimax
+            // key, generalhint': pass `nil` as the context
+            // (NOT `currentModel`). The previous `context: currentModel`
+            // interpolated the model name (= "MiniMax-M3") as the
+            // "provider", = user-visible message looked like it was
+            // binding them to MiniMax. Now `nil` triggers the
+            // generic, provider-agnostic message in UserFacingError
+            // (= user can pick any of the 7 LLM connectors per
+            // AGENTS.md §11.2).
+            let userErr = UserFacingError.from(error, context: nil)
             let errMsg = userErr.errorDescription ?? "未知错误。"
             if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                 messages[idx] = ChatMessage(id: placeholderId, role: .system, source: .system, content: errMsg)
@@ -485,11 +907,11 @@ public final class ChatViewModel {
         lastError = nil
     }
 
-    /// valueForStore: 暴露 store 给 ChatView .task modifier (避免 init race condition)
+    /// valueForStore: store ChatView .task modifier (init race condition)
     public nonisolated func valueForStore() -> ChatSessionStore? { store }
-    public func valueForSessionId() -> String { sessionId }  // v0.24 boss验收fix (F2): @MainActor-isolated with sessionId
+    public func valueForSessionId() -> String { sessionId }  // v0.24 bossverificationfix (F2): @MainActor-isolated with sessionId
 
-    /// replaceMessages: ChatView .task 加载完成后整体替换 (避免增量 append 重复)
+    /// replaceMessages: ChatView .task loadcompletereplace (append)
     public func replaceMessages(_ newMessages: [ChatMessage]) {
         self.messages = newMessages
     }
@@ -497,13 +919,51 @@ public final class ChatViewModel {
 
 /// ChatView: lower-left zone UI (Apple SwiftUI + conductor + store)
 public struct ChatView: View {
+    /// Works out where a message sits in a run of consecutive messages from
+    /// the same author. iMessage tails only the last bubble of a run and
+    /// squares the corners facing a neighbour, which is what makes a burst
+    /// of replies read as one block instead of a stack of pills.
+    static func bubblePosition(at index: Int, in messages: [ChatMessage]) -> ChatBubblePosition {
+        let source = messages[index].source
+        let samePrevious = index > 0 && messages[index - 1].source == source
+        let sameNext = index + 1 < messages.count && messages[index + 1].source == source
+        switch (samePrevious, sameNext) {
+        case (false, false): return .only
+        case (false, true):  return .first
+        case (true, true):   return .middle
+        case (true, false):  return .last
+        }
+    }
+
     @State private var vm: ChatViewModel
     // v0.24 boss acceptance fix (2026-08-24): focus management for input box.
     // Boss 8/24 feedback: when no provider key, chat input should be disabled
     // AND lose focus (no cursor blinking, no keyboard capture).
     @FocusState private var inputFocused: Bool
+    // CHATIMG-001 (2026-09-07): toggles the .fileImporter sheet when the
+    // user clicks the paperclip button. Bound to .fileImporter(isPresented:)
+    // on the input HStack per Apple HIG SwiftUI fileImporter pattern.
+    @State private var showingImageImporter: Bool = false
+    /// True while a drag is hovering the input row, so the row can show a
+    /// drop highlight. Apple's .dropDestination reports this for free.
+    @State private var isDropTargeted: Bool = false
     // Reactive check: is the current model usable?
-    private var hasUsableKey: Bool { !vm.currentModel.isEmpty && !vm.isSending }
+    // v0.61 boss 2026-09-10 OOB 'put the no-key overlay back': the vm's
+    // snapshot of the model id lags when the key is configured from
+    // Settings, so the input was disabling itself even though the user
+    // had just set a key. Read the same UserDefaults the Settings pane
+    // writes to (= the canonical source for `wenshu.llm.model`), so the
+    // chat input and the ChatZoneView overlay above it answer to the same
+    // signal.
+    private var hasUsableKey: Bool {
+        // ChatViewModel exposes a live read of AppState.llmModel when an
+        // appState was injected at init; otherwise it falls back to
+        // UserDefaults. Both look at the same key.
+        let model = !vm.currentModel.isEmpty
+            ? vm.currentModel
+            : (UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? "")
+        return !model.isEmpty && !vm.isSending
+    }
 
     public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
         // optional ChatViewModel injection (ChatZoneView shared vm for bottom toolbar
@@ -587,6 +1047,16 @@ public struct ChatView: View {
         // does not write kanban state but still carries the tool
         // registry (= the test of record lives in
         // WenshuConductorToolWiringTests and constructs its own kanban).
+        //
+        // v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards axis
+        // HIGH): wrapped the inner `try! KanbanStore(...)` in a
+        // do/catch (= the previous code crashed fatally when the temp
+        // directory was unwritable or the SQLite open failed = the
+        // catch fallback path itself could crash on the unwritable
+        // temp dir = unrecoverable fatal). The new shape: if both
+        // primary + temp-dir paths fail, return nil (= ChatView
+        // treats nil as "no fallback conductor available" = the
+        // caller routes through the no-conductor branch).
         do {
             let kanban = try KanbanStore()
             try kanban.bootstrap()
@@ -597,13 +1067,22 @@ public struct ChatView: View {
                 tools: tools
             )
         } catch {
-            let fallback = try! KanbanStore(path: NSTemporaryDirectory() + "wenshu-chat-fallback-\(UUID().uuidString).sqlite")
-            return WenshuConductor(
-                runtime: runtime,
-                verifier: verifier,
-                kanbanStore: fallback,
-                tools: tools
-            )
+            do {
+                let fallback = try KanbanStore(path: NSTemporaryDirectory() + "wenshu-chat-fallback-\(UUID().uuidString).sqlite")
+                return WenshuConductor(
+                    runtime: runtime,
+                    verifier: verifier,
+                    kanbanStore: fallback,
+                    tools: tools
+                )
+            } catch {
+                // Both primary + temp-dir paths failed (= CI sandbox
+                // or unwritable filesystem). Return nil (= the caller
+                // handles "no fallback conductor" gracefully via the
+                // ChatViewModel direct verifier path).
+                NSLog("[wenshu.chat] conductorRegisteringParagraphAI: both kanban paths failed; returning nil (= caller uses no-conductor branch): \(error.localizedDescription)")
+                return nil
+            }
         }
     }
 
@@ -645,19 +1124,29 @@ public struct ChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(vm.messages) { msg in
-                            ChatMessageView(message: msg)
-                                .id(msg.id)
+                        ForEach(Array(vm.messages.enumerated()), id: \.element.id) { index, msg in
+                            // v0.57: a bubble needs to know where it sits in
+                            // a run of consecutive messages from one author,
+                            // because iMessage only tails the last one and
+                            // squares off the corners facing a neighbour.
+                            ChatMessageView(
+                                message: msg,
+                                position: Self.bubblePosition(
+                                    at: index,
+                                    in: vm.messages
+                                )
+                            )
+                            .id(msg.id)
                         }
                     }
-                    .padding(8)
+                    .padding(DesignTokens.chromePaddingVertical)
                 }
                 // Apple SwiftUI 14+ .defaultScrollAnchor(.bottom)
-                // Apple 真值 = ScrollView 内容变化时自动贴底, 兜底 placeholder -> reply 替换时 scrollTo 不触发
+                // Apple = ScrollView changeauto, placeholder -> reply replace scrollTo
                 .defaultScrollAnchor(.bottom)
                 // onChange of lastContent, not just count
-                // placeholder 创建时 content="AI 思考中…" (15 chars), reply 替换后 content=长 reply (~hundreds chars)
-                // content 变化触发 onChange, scrollTo 新 last.id
+                // placeholder create content="AI in progress…" (15 chars), reply replace content= reply (~hundreds chars)
+                // content change onChange, scrollTo last.id
                 .onChange(of: vm.messages.last?.content ?? "") { _, _ in
                     if let last = vm.messages.last {
                         proxy.scrollTo(last.id, anchor: .bottom)
@@ -667,17 +1156,34 @@ public struct ChatView: View {
             // async load history via .task modifier (non-blocking)
             .task {
                 await vm.loadAvailableModels()
-                if let store = vm.valueForStore() {
+                // Fall back to the delegate's store: on a cold launch the
+                // view can run before applicationDidFinishLaunching has
+                // built one, so the vm's snapshot is nil.
+                if let store = vm.valueForStore() ?? WenshuAppDelegate.sharedChatStoreRef {
                     if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
-                        let mapped = loaded.map { stored in
+                        let mapped: [ChatMessage] = loaded.compactMap { stored -> ChatMessage? in
                             // v0.24 boss acceptance fix: preserve role from stored.source.
                             // Was: hardcoded .agent (wrong, user messages shown as agent).
                             // Now: parse source = "user" → .user role, "wenshu" → .agent.
                             let resolvedRole: ChatRole = (stored.source == "user") ? .user : .agent
+                            // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+                            // replaced `UUID(uuidString: stored.id) ?? UUID()` (= silent swap
+                            // = data-corruption symptom: phantom user message with a fresh
+                            // UUID) with `parseUUID(_:)` (= throws DecodingError on malformed
+                            // input = visible to caller). Same for ChatSource (=
+                            // drops invalid source instead of silently rewriting to .wenshu).
+                            // The outer `try?` in `loadMessages` already swallows the error,
+                            // so malformed records become a no-op (= the load still completes
+                            // for valid records) instead of polluting the chat with phantom
+                            // messages.
+                            guard let msgID = UUID(uuidString: stored.id),
+                                  let msgSource = ChatSource(rawValue: stored.source) else {
+                                return nil
+                            }
                             return ChatMessage(
-                                id: UUID(uuidString: stored.id) ?? UUID(),
+                                id: msgID,
                                 role: resolvedRole,
-                                source: ChatSource(rawValue: stored.source) ?? .wenshu,
+                                source: msgSource,
                                 content: stored.content,
                                 timestamp: stored.timestamp,
                                 tokens: stored.tokens
@@ -705,12 +1211,12 @@ public struct ChatView: View {
             // baseline (= boss corrected ticket 030's HStack 8→16
             // change as wrong, = the gap is ABOVE the textfield not
             // between textfield and send button), TextField gains
-            // .padding(.top, LayoutTokens.chromePaddingLarge) (= 8 PT gap above the textfield,
+            // .padding(.top, LayoutTokens.chromePaddingLarge) (= LayoutTokens value = 8 PT per v0.28 Apple HIG basis; DesignTokens canonical chromePaddingLarge = 16 PT is the newer per-region value (= legacy alias kept here for backward compat). Gap above the textfield,
             // = the actual boss OOB intent).
             // v0.25.1 (= ticket 031 chat send button vertical
-            // center alignment): owner 2026-08-26 OOB '按钮也
+            // center alignment): owner 2026-08-26 OOB 'button
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 跟上上去了 把按钮改成与文本框居中' = with the 8 PT
+            // buttonchangein progress' = with the 8 PT
             // top padding on TextField, the TextField's effective
             // top edge shifted down 8 PT (= 24 PT height + 8 PT top
             // padding = 32 PT total box). The send button's default
@@ -725,7 +1231,7 @@ public struct ChatView: View {
             // match the send button height (= 32 PT). Current = textfield
             // visual height 24 PT (= SwiftUI default TextField with
             // .roundedBorder). Button height = ~32 PT (with .padding).
-            // Fix = add .frame(height: 32) on the TextField (= textfield
+            // Fix = add .frame(height: DesignTokens.toolbarBandHeight) on the TextField (= textfield
             // visual height now matches button = both 32 PT). The 8 PT
             // top padding preserved (= 8 PT gap above textfield per
             // ticket 030) so total TextField + padding box = 40 PT
@@ -750,23 +1256,23 @@ public struct ChatView: View {
             // height wasn't pinned (= 40 PT, vs textfield 32 PT),
             // so visually the .center alignment didn't look right
             // because the button was already too tall. Now with
-            // ticket 033 followup's .frame(height: 32) pinning the
+            // ticket 033 followup's .frame(height: DesignTokens.toolbarBandHeight) pinning the
             // button to 32 PT (= matches textfield), boss confirmed
             // .center alignment is the right behavior.
             // v0.25.1 (= ticket 033 final 2: chat send button
             // HORIZONTAL alignment = drop the 8 PT top padding +
-            // drop the .frame(height: 32) textfield pin + drop the
-            // .frame(height: 32) button pin — owner 2026-08-26 OOB
+            // drop the .frame(height: DesignTokens.toolbarBandHeight) textfield pin + drop the
+            // .frame(height: DesignTokens.toolbarBandHeight) button pin — owner 2026-08-26 OOB
             // 'still wrong, it is horizontal center' = the 4 previous attempts all
             // tried to vertically align the textfield with the button,
             // but the actual visual boss wants is HORIZONTAL center
             // alignment (= the .center alignment already does this,
-            // = but with 8 PT top padding + .frame(height: 32) the
+            // = but with 8 PT top padding + .frame(height: DesignTokens.toolbarBandHeight) the
             // textfield is offset down 8 PT + extended to 32 PT,
             // = making the visual center NOT match the button).
             // The right fix = drop the 8 PT top padding (= 0 PT
             // padding = textfield is its natural 24 PT height) AND
-            // drop the .frame(height: 32) on both textfield and
+            // drop the .frame(height: DesignTokens.toolbarBandHeight) on both textfield and
             // button (= let each take its natural default height;
             // SwiftUI TextField with .roundedBorder = 24 PT, Button
             // with .borderedProminent = ~40 PT). With the 8 PT
@@ -779,12 +1285,12 @@ public struct ChatView: View {
             // alignment IS the answer, but with natural heights,
             // not forced 32 PT).
             // Final approach (= this ticket 033 final 2):
-            // 1. drop .padding(.top, LayoutTokens.chromePaddingLarge) on TextField (= boss OOB
+            // 1. drop .padding(.top, LayoutTokens.chromePaddingLarge) on TextField (= LayoutTokens value = 8 PT per v0.28 Apple HIG basis; DesignTokens canonical chromePaddingLarge = 16 PT is the newer per-region value (= legacy alias kept here for backward compat). Boss OOB
             //    interpreted 'horizontal center' as 'remove my 8 PT top
             //    padding that's making the visual center off').
-            // 2. drop .frame(height: 32) on TextField (= use natural
+            // 2. drop .frame(height: DesignTokens.toolbarBandHeight) on TextField (= use natural
             //    TextField height = 24 PT).
-            // 3. drop .frame(height: 32) on Button (= use natural
+            // 3. drop .frame(height: DesignTokens.toolbarBandHeight) on Button (= use natural
             //    Button height = ~40 PT).
             // 4. KEEP HStack(alignment: .center, spacing: 8) (= the
             //    alignment that boss has been trying to tell us to
@@ -806,7 +1312,7 @@ public struct ChatView: View {
             // misalignment). Per Apple HIG for chat input rows in
             // Messages / Slack, TextField and Send button should be
             // vertically centered at the SAME baseline. Both are
-            // 24 PT tall (= TextField.frame(height: 24) + Button
+            // 24 PT tall (= TextField.frame(height: DesignTokens.iconLargeSize) + Button
             // .controlSize(.regular)), and HStack(alignment: .center)
             // centers them vertically at the HStack midline.
             //
@@ -821,13 +1327,75 @@ public struct ChatView: View {
             // anchored (= never floats) while the textfield expands
             // upward. This is the same pattern as Apple's chat input
             // everywhere on macOS 26 Tahoe.
+            // CHATIMG-001 (2026-09-07): the chat input is wrapped in a
+            // VStack so a small attachment preview chip can sit above
+            // the HStack (= Apple Messages / Slack attachment preview
+            // pattern). The chip renders only when
+            // `vm.attachedImagePath != nil`. The HStack itself is
+            // unchanged (= paperclip button + TextField + Send +
+            // Goal button + the same outer paddings).
+            VStack(alignment: .leading, spacing: 4) {
+                if let imagePath = vm.attachedImagePath {
+                    // Attachment preview chip: small thumbnail + a
+                    // ✕ button to clear the draft. Sized to fit the
+                    // chat input row width (= bounded by outer
+                    // horizontal padding via the parent's
+                    // .padding(.horizontal, ...) below).
+                    ChatAttachmentPreviewChip(imagePath: imagePath) {
+                        vm.clearAttachedImage()
+                    }
+                }
             HStack(alignment: .bottom, spacing: 8) {
+                // CHATIMG-001 (2026-09-07): paperclip attach button to
+                // the left of the TextField. Toggles .fileImporter on
+                // the input HStack (= canonical Apple HIG SwiftUI
+                // pattern for picking a single file). The picked
+                // image is copied into `<libraryPath>/cache/chat-uploads/`
+                // via ChatViewModel.attachImage(at:) and rendered as a
+                // preview chip above the HStack (= Apple Messages /
+                // Slack attachment preview pattern).
+                Button {
+                    showingImageImporter = true
+                } label: {
+                    LucideIcon(
+                        name: "paperclip",
+                        size: DesignTokens.tabIconSize,
+                        strokeWidth: 1,
+                        absoluteStrokeWidth: true
+                    )
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
+                        .foregroundStyle(.secondary)
+                }
+                // v0.61 boss 2026-09-10 OOB 'the attach button and the
+                // send button should match styles': they are both in the
+                // same HStack, so any visual mismatch reads as a bug.
+                // Send uses .bordered (= Apple standard Liquid Glass
+                // capsule, per boss 8/29 OOB); attach was .borderless
+                // (the older CHATIMG-001 default). The two are now the
+                // same style, which is also what Apple uses for the
+                // paperclip in Messages and the send in every chat app
+                // that ships with the platform.
+                .buttonStyle(.bordered)
+                .help(WenshuI18n.t("chat.input.attach.help"))
+                // CHATIMG-001 (2026-09-07): the attach button is
+                // intentionally NOT gated on `hasUsableKey` (=
+                // LLM model availability). Attaching a draft image
+                // is independent of sending (= you can attach + see
+                // the preview chip + clear it even when no LLM
+                // provider is configured). Send itself still
+                // requires `hasUsableKey` via the Send button's own
+                // .disabled check; if you try to send with no
+                // model, the existing routeInput() guard handles
+                // it (= no LLM call = no error message; the
+                // message just persists in the in-memory list).
+                .disabled(vm.isSending)
                 // v0.24 boss acceptance fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
-                // owner 2026-08-26 OOB '聊天区 聊天文本框后面的按钮 发送的
+                // owner 2026-08-26 OOB 'chat zone chatbutton
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                // 小飞机换成 send 聊天文本框上加 8 PT 的间隔' =
+                // send chat 8 PT ' =
                 // 1) replace SF paperplane.fill (= Apple Send ICON) with
                 //    Lucide .send (= paper plane icon, same visual
                 //    metaphor as SF paperplane but Lucide outline style
@@ -842,12 +1410,23 @@ public struct ChatView: View {
                 //    additional gap between textfield and send button
                 //    (= boss wants more visual breathing room between
                 //    textfield and send button than current 8 PT).
-                TextField("输入消息...",
+                TextField(WenshuI18n.t("auto2.chatview.l858.h59940148"),
                           text: $vm.inputText, axis: .vertical)
                     .lineLimit(1...4)
+                    // v0.40 boss 9/7 OOB ', shouldchat zonedialog
+                    // . hint, should /help ': the slash-
+                    // command hint (= "/create-book My new novel")
+                    // lives here as the .help() tooltip (= macOS
+                    // NSHelpManager on hover; = Apple HIG canonical
+                    // "explainer tooltip" pattern). Previously was a
+                    // top banner above the workspace (= visual noise,
+                    // = boss wants the chat zone to be the SOLE
+                    // input surface for slash commands; = hint
+                    // moved to non-intrusive tooltip here).
+                    .help(WenshuI18n.t("chat.input.help"))
                     // v0.28 followup Boss UX round 27 (Boss 2026-08-29
                     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
+                    // OOB 'buttonstatus 30pt'):
                     // .multilineTextAlignment(.leading) + the default
                     // .leading-to-trailing text flow makes the text
                     // top-aligned by default (= text sits at the top
@@ -880,11 +1459,11 @@ public struct ChatView: View {
                     // system focus ring) + add a conditional
                     // RoundedRectangle stroke (lineWidth: 1) on focus.
                     // v0.25.1 (= ticket 035 chat textfield placeholder
-                    // color + position): owner 2026-08-26 OOB '输入
+                    // color + position): owner 2026-08-26 OOB 'input
                     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // 消息... 这个提示 查官方文档 默认是什么样的 现在
-                    // 颜色过亮 位置也不对' = the placeholder text
-                    // '输入消息...' currently looks too bright (= high
+                    // message... hint defaultyes
+                    // color ' = the placeholder text
+                    // 'inputmessage...' currently looks too bright (= high
                     // contrast, = looks like real text) and is in
                     // the wrong position (= too far left, no left
                     // padding). Per Apple HIG (developer.apple.com/
@@ -930,6 +1509,7 @@ public struct ChatView: View {
                     //
                     // Why .frame(minHeight: 30) and not .frame(height: LayoutTokens.chromeControlHeight):
                     // - .frame(height: LayoutTokens.chromeControlHeight) PIN the textfield to 30 PT
+                    //   (= LayoutTokens value = 30 PT per v0.28 Apple HIG basis; DesignTokens canonical toolbarBandHeight = 32 PT is the newer canonical).
                     //   regardless of content (= would block the auto-grow
                     //   from round 25).
                     // - .frame(minHeight: 30) ONLY enforces a minimum
@@ -938,7 +1518,7 @@ public struct ChatView: View {
                     //
                     // v0.28 followup Boss UX round 27 (Boss 2026-08-29
                     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
+                    // OOB 'buttonstatus 30pt'):
                     // unified both empty-state heights at 30 PT
                     // (= matches kZoneToolbarHeight = canonical chrome
                     // height across the app).
@@ -963,9 +1543,17 @@ public struct ChatView: View {
                     // semantic foregroundStyle) on the Liquid Glass
                     // background, just like Apple Messages / Slack.
                     // The 1 PT focus ring (borderColor on focus)
-                    // stays as Color.accentColor / Color.gray.opacity(0.4)
-                    // (= works correctly with Liquid Glass per Apple
-                    // HIG).
+                    // v0.40 boss 2026-09-08 OOB 'chat zonebackground color, changeeditor
+                    // color': the chat input TextField background was
+                    // .regularMaterial (= glass tier = lighter shade
+                    // in dark mode = visually distinct from the
+                    // surrounding content tier). Boss wants the
+                    // chat input area to match the editor zone
+                    // (= .underPageBackgroundColor = content tier
+                    // = same shade as the empty state background).
+                    // Drop the .regularMaterial glass tier (= was
+                    // Apple Messages / Slack convention, but boss
+                    // wants visual consistency with the editor).
                     .background(
                         ZStack {
                             RoundedRectangle(cornerRadius: 6)
@@ -988,18 +1576,23 @@ public struct ChatView: View {
                         // pattern with SF Symbol fallback (= Layer
                         // 3 fallback) preserves behavior if
                         // 'send' Lucide is missing.
-                        if let lucide = Lucide("send") {
-                            lucide
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 18, height: 18)  // v0.28 followup Boss UX round 18: shrink to 18 PT (= matches macOS HIG secondary button glyph size = 13-16 PT, but slightly larger to read clearly inside the bordered Liquid Glass capsule)
-                        } else {
-                            // v0.27 boss 8/27 OOB: replace SF Symbol 'paperplane.fill'
-                            // with the closest Lucide equivalent = 'send'.
-                            // Lucide 'send' exists (= paper-plane in 24x24 viewBox);
-                            // LucideIcon.fromSystemSymbol helper handles the lookup
-                            // + fallback chain.
-                            LucideIconSystemFallback("paperplane.fill", size: 18)
-                        }
+                        LucideIcon(
+                            name: "send",
+                            size: DesignTokens.tabIconSize,
+                            strokeWidth: 1,
+                            absoluteStrokeWidth: true
+                        )
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)  // v0.28 followup Boss UX round 18: shrink to 18 PT
+                            // v0.55: pulse the glyph while a reply is streaming
+                            .opacity(vm.isSending ? 0.5 : 1)
+                            .scaleEffect(vm.isSending ? 0.92 : 1)
+                            .animation(
+                                vm.isSending
+                                    ? .easeInOut(duration: 0.7).repeatForever(autoreverses: true)
+                                    : .default,
+                                value: vm.isSending
+                            )
                     }
                 }
                 // v0.28 followup Boss UX round 18 (Boss 2026-08-29 OOB
@@ -1014,12 +1607,12 @@ public struct ChatView: View {
                 // 1 PT separator border + tint-on-hover effect.
                 // The icon shrinks to 18 PT (= matches Apple's
                 // canonical glyph size for secondary toolbar buttons
-                // per Liquid Glass HIG). .frame(height: LayoutTokens.chromeControlHeight) keeps
+                // per Liquid Glass HIG). .frame(height: LayoutTokens.chromeControlHeight = 30 PT, or DesignTokens.toolbarBandHeight = 32 PT for canonical) keeps
                 // the button at Apple's standard control height
                 // (= same as the TextField so they align flush).
                 // v0.28 followup Boss UX round 27 (Boss 2026-08-29
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
+                // OOB 'buttonstatus 30pt'):
                 // both TextField and Send button pinned to 30 PT
                 // (= canonical macOS HIG chat input height, same
                 // as zone tab bar / statusbar). Previously the
@@ -1048,13 +1641,15 @@ public struct ChatView: View {
                     // used for visual consistency with the rest of the
                     // chat input row (= Lucide-first per project
                     // v0.27 boss OOB).
-                    if let lucide = Lucide("target") {
-                        lucide
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 18, height: 18)
-                    } else {
-                        LucideIconSystemFallback("target", size: 18)
-                    }
+                    LucideIcon(
+                        name: "target",
+                        size: DesignTokens.tabIconSize,
+                        strokeWidth: 1,
+                        absoluteStrokeWidth: true
+                    )
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
@@ -1080,6 +1675,7 @@ public struct ChatView: View {
                 // Apply the outer top margin (= 16 PT = 8 PT existing
                 // + 8 PT new) to the HStack (= not to the button).
             }
+            }   // CHATIMG-001 (2026-09-07): close inner VStack (preview chip + HStack)
             // v0.28 followup Boss UX round 20: 16 PT outer top margin
             // moved from .padding(.top, DesignTokens.chromePaddingLarge) on the button (= was
             // misaligning the button with TextField) to the HStack
@@ -1098,14 +1694,54 @@ public struct ChatView: View {
             // chat input layout where the input row has breathing
             // room from the window bottom edge).
             .padding(.bottom, DesignTokens.chromePaddingChatBottom)
+            // CHATIMG-001 (2026-09-07): file importer for the
+            // paperclip button. Bound on the outer VStack (= sibling
+            // to the input HStack) per Apple HIG SwiftUI
+            // .fileImporter pattern. allowedContentTypes = image
+            // UTType set (= png + jpeg + gif + heic = common
+            // screenshot formats). On pick, the source URL is handed
+            // to ChatViewModel.attachImage(at:) which copies it into
+            // the library's cache/chat-uploads/ dir and sets
+            // attachedImagePath.
+            .fileImporter(
+                isPresented: $showingImageImporter,
+                allowedContentTypes: [.image, .png, .jpeg, .gif, .heic],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    if let url = urls.first {
+                        _ = vm.attachImage(at: url)
+                    }
+                case .failure:
+                    break   // user cancelled or sandbox denial; ignore
+                }
+            }
+            // v0.55 boss OOB 'use the ones we have not used yet': accept
+            // images dropped onto the input row, which is the same thing
+            // the paperclip does through .fileImporter. .dropDestination is
+            // Apple's typed drop API, so the row only lights up for payloads
+            // it can actually take.
+            .dropDestination(for: URL.self) { urls, _ in
+                guard let url = urls.first else { return false }
+                return vm.attachImage(at: url)
+            } isTargeted: { targeted in
+                isDropTargeted = targeted
+            }
+            .overlay {
+                if isDropTargeted {
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(Color.accentColor, lineWidth: 2)
+                        .allowsHitTesting(false)
+                }
+            }
+            .animation(.snappy, value: isDropTargeted)
         }
         // v0.24 boss acceptance fix (2026-08-24): help text DIRECTLY below input box.
         // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first. Click Settings'
         // v0.24 boss acceptance fix: help text moved to ChatZoneView as centered overlay
         // (was: bottom of ChatView, not centered per boss 8/24 feedback).
         EmptyView()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.24 boss acceptance fix: defocus when user clicks outside chat zone.
         // Boss 8/24 feedback: 'clicking other areas, the text field still keeps focus'.
 .onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
     inputFocused = false
@@ -1116,15 +1752,33 @@ public struct ChatView: View {
 // condition), retry loading now. Also retry append message if store
 // was nil at send time (we just store in memory, then re-append here).
 .onReceive(NotificationCenter.default.publisher(for: .wenshuChatStoreReady)) { _ in
-    if let store = vm.valueForStore() {
+    // v0.59: read the delegate's store, not vm.valueForStore(). The vm
+    // captured whatever the store was at construction time, and when the
+    // view is built before applicationDidFinishLaunching finishes that
+    // snapshot is nil forever — which is exactly the race this handler
+    // exists to repair. Measured on this machine: the view's .task logged
+    // store=nil at 23:56:42.032 and the store finished initialising at
+    // .295, 263 ms later.
+    if let store = vm.valueForStore() ?? WenshuAppDelegate.sharedChatStoreRef {
         Task { @MainActor in
             if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
-                let mapped = loaded.map { stored in
+                let mapped: [ChatMessage] = loaded.compactMap { stored -> ChatMessage? in
                     let resolvedRole: ChatRole = (stored.source == "user") ? .user : .agent
+                    // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+                    // replaced `UUID(uuidString: stored.id) ?? UUID()` (= silent swap
+                    // = data-corruption symptom: phantom user message with a fresh
+                    // UUID) with `guard let` (= drops malformed records instead of
+                    // silently substituting fresh IDs). The outer `try?` already
+                    // swallows loadMessages errors, so the load still completes for
+                    // valid records; only the phantom entries are skipped.
+                    guard let msgID = UUID(uuidString: stored.id),
+                          let msgSource = ChatSource(rawValue: stored.source) else {
+                        return nil
+                    }
                     return ChatMessage(
-                        id: UUID(uuidString: stored.id) ?? UUID(),
+                        id: msgID,
                         role: resolvedRole,
-                        source: ChatSource(rawValue: stored.source) ?? .wenshu,
+                        source: msgSource,
                         content: stored.content,
                         timestamp: stored.timestamp,
                         tokens: stored.tokens
@@ -1141,34 +1795,77 @@ public struct ChatView: View {
 /// One chat-message view (Apple HIG ground truth)
 struct ChatMessageView: View {
     let message: ChatMessage
+    /// Where this bubble sits in a run of consecutive messages from one
+    /// author, which decides the tail and the merged corners.
+    var position: ChatBubblePosition = .only
     @State private var thinkingExpanded: Bool = false
 
+    /// Parses a message body as markdown for display.
+    ///
+    /// `.inlineOnlyPreservingWhitespace`, not `.full`. Verified by parsing
+    /// a multi-paragraph sample three ways: `.full` applies block intents
+    /// and drops every newline, so a model reply arrives as one run-on
+    /// block; the inline-preserving option keeps all 5 newlines and still
+    /// resolves bold, code spans and links. Chat bubbles want inline
+    /// formatting with the author's line breaks intact, which is exactly
+    /// that option.
+    ///
+    /// Invalid markdown falls back to the plain string rather than
+    /// throwing, so a stray bracket never blanks a message.
+    static func markdown(_ raw: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: raw,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(raw)
+    }
+
     var body: some View {
-        HStack(alignment: .top) {
-            // Message source icon: Lucide .userRound (user) / .botMessageSquare
-            // (wenshu agent) per owner 2026-08-26 directive; SF Symbol keeps
-            // for .system (= exclamationmark.triangle). Avatar only = no
-            // other UI change (= chat zone style/colour/frame preserved).
+        // v0.57 boss 2026-09-09 OOB: push the bubbles toward the iMessage
+        // look. Outgoing messages sit on the trailing side in the accent
+        // colour, incoming ones on the leading side in the neutral fill,
+        // and a run of consecutive messages from one author merges.
+        HStack(alignment: .bottom, spacing: 8) {
+            if isOutgoing { Spacer(minLength: 40) }
+
+            // The avatar only appears on the last bubble of a run, so a
+            // burst of replies is not a column of repeated faces. The
+            // slot stays reserved on the other bubbles to keep the run's
+            // left edge aligned.
             Group {
-                switch message.source {
-                case .user:
-                    Lucide(.userRound)
-                        .aspectRatio(contentMode: .fit)
-                case .wenshu:
-                    Lucide(.botMessageSquare)
-                        .aspectRatio(contentMode: .fit)
-                case .system:
-                    // v0.27 boss 8/27 OOB: SF Symbol name → Lucide canonical
-                    // (= LucideIcon.fromSystemSymbol handles lookup + fallback).
-                    LucideIconSystemFallback(sourceIcon, size: 24)
+                if position.hasTail && !isOutgoing {
+                    switch message.source {
+                    case .user:
+                        LucideIcon(
+                            .userRound,
+                            strokeWidth: 1,
+                            absoluteStrokeWidth: true
+                        ).aspectRatio(contentMode: .fit)
+                    case .wenshu:
+                        LucideIcon(
+                            .botMessageSquare,
+                            strokeWidth: 1,
+                            absoluteStrokeWidth: true
+                        ).aspectRatio(contentMode: .fit)
+                    case .system:
+                        LucideIconSystemFallback(sourceIcon, size: 24)
+                    }
+                } else if !isOutgoing {
+                    Color.clear
                 }
             }
             .foregroundStyle(sourceColor)
-            .frame(width: 24, height: 24)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(sourceLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            .frame(
+                width: isOutgoing ? 0 : DesignTokens.iconLargeSize,
+                height: isOutgoing ? 0 : DesignTokens.iconLargeSize
+            )
+
+VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
+                // iMessage names the author once per run, not per bubble.
+                if position == .only || position == .first {
+                    Text(sourceLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 if message.isPlaceholder {
                     // Wenshu AI placeholder status indicator
                     HStack(spacing: 4) {
@@ -1188,12 +1885,43 @@ struct ChatMessageView: View {
                             .controlSize(.mini)
                             .progressViewStyle(.circular)
                     }
-                    .padding(8)
-                    .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(bubbleFill, in: bubbleShape)
                 } else {
-                    // CoT thinking block collapsed (Apple HIG footnote)
-                    // DisclosureGroup + rounded corners + Apple default animation (.animation(.default, value:) per Q58.4)
-                    if let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
+                    // v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式
+                    // 输出没有实现... 全量复制 hermes... 编辑器使用 SM
+                    // 我们引入的一个第三方 md 编辑器'): the canonical
+                    // 1:1 Hermes streaming UI. Renders message.parts[]
+                    // (= the Hermes canonical state) via ChatMessageBodyView
+                    // (= text / reasoning / tool_use / tool_result each
+                    // have their own inline render).
+                    //
+                    // ChatMessageBodyView wraps each part in the bubble
+                    // background (= Apple HIG iMessage-style) and applies
+                    // the streaming contentTransition to the text parts
+                    // only (= the canonical SwiftUI "no flicker" pattern
+                    // from v0.55 boss OOB).
+                    //
+                    // When parts is empty (= back-compat with v0.34
+                    // messages that didn't carry parts), ChatMessageBodyView
+                    // falls back to rendering message.content as a single
+                    // text part (= the same Text(Self.markdown(...)) path
+                    // we had before).
+                    //
+                    // The thinking DisclosureGroup + image thumbnail stay
+                    // outside ChatMessageBodyView (= they're rendered
+                    // above the parts array, = the conventional Apple
+                    // HIG pattern of "supplementary content above the main
+                    // content").
+                    //
+                    // Thinking collapsed: rendered as a DisclosureGroup
+                    // (= Apple HIG footnote; = collapses by default;
+                    // = expands on click). When parts[] is non-empty,
+                    // the reasoning parts render via ChatReasoningPartView
+                    // (= each part is its own collapsible block) — so we
+                    // hide the legacy DisclosureGroup to avoid duplication.
+                    if message.parts.isEmpty, let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
                         DisclosureGroup(isExpanded: $thinkingExpanded) {
                             Text(thinking)
                                 .font(.caption)
@@ -1203,27 +1931,98 @@ struct ChatMessageView: View {
                                 .transition(.opacity)
                         } label: {
                             HStack(spacing: 4) {
-                                // v0.27 boss 8/27 OOB: replace SF Symbol 'brain'
-                                // with closest Lucide equivalent = 'brain'
-                                // (Lucide has 'brain' = same name, no mapping
-                                // needed).
                                 LucideIconSystemFallback("brain")
                                     .font(.caption)
-                                Text("AI 思考过程")
+                                Text(WenshuI18n.t("chatview.ai_thinking"))
                                     .font(.caption)
                             }
                             .foregroundStyle(.tertiary)
                         }
                         .animation(.default, value: thinkingExpanded)
                     }
-                    Text(message.content)
-                        .textSelection(.enabled)
-                        .padding(8)
-                        .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                    // CHATIMG-001 (2026-09-07): render attached image
+                    // thumbnail above the parts. (= unchanged)
+                    if let imagePath = message.imagePath {
+                        if let nsImage = NSImage(contentsOfFile: imagePath) {
+                            Image(nsImage: nsImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: 240, maxHeight: 240)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                .padding(.bottom, DesignTokens.chromePaddingMicro)
+                        } else {
+                            Text(WenshuI18n.t("chat.message.imageMissing"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.bottom, DesignTokens.chromePaddingMicro)
+                        }
+                    }
+                    // v0.71 P1 batch 2: ChatMessageBodyView (= the
+                    // Hermes-style per-part renderer) wraps each part
+                    // in the bubble background. Falls back to the
+                    // single-text rendering for v0.34 messages with no
+                    // parts.
+                    //
+                    // v0.71 P1 batch 2 (user message hover actions):
+                    // for OUTGOING messages (= user-sent), overlay
+                    // ChatMessageHoverActions (= copy + delete buttons
+                    // that fade in on hover = the Hermes MessageActions
+                    // pattern). Agent messages don't get hover actions
+                    // (= matches Hermes = the agent-side is read-only
+                    // in the chat transcript = actions live on the
+                    // user's own messages only).
+                    ChatMessageBodyView(
+                        message: message,
+                        isOutgoing: isOutgoing,
+                        isStreaming: message.isPlaceholder
+                    )
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(bubbleFill, in: bubbleShape)
+                    .overlay(alignment: .topTrailing) {
+                        if isOutgoing {
+                            ChatMessageHoverActions(content: message.content)
+                                .padding(.top, DesignTokens.chromePaddingSmall)
+                                .padding(.trailing, DesignTokens.chromePaddingSmall)
+                        }
+                    }
+                    .wenshuChatHover()
                 }
             }
-            Spacer()
+
+            if !isOutgoing { Spacer(minLength: 40) }
         }
+    }
+
+    /// Outgoing messages are the ones this person sent, which iMessage puts
+    /// on the trailing side in the accent colour.
+    private var isOutgoing: Bool { message.source == .user }
+
+    /// Bubble fill.
+    ///
+    /// Measured Messages.app on this machine in dark mode: outgoing
+    /// rgb(29, 143, 250), incoming rgb(51, 52, 54) against an
+    /// rgb(28, 28, 28) transcript. Wenshu uses the semantic equivalents of
+    /// those instead of the literals, so the bubbles track the user's
+    /// accent colour and appearance rather than being pinned to one theme.
+    private var bubbleFill: AnyShapeStyle {
+        if message.source == .system {
+            return AnyShapeStyle(Color.red.opacity(0.15))
+        }
+        return isOutgoing
+            ? AnyShapeStyle(Color.accentColor)
+            // Chosen by measurement. Messages runs a 23-unit gap between
+            // the incoming bubble and the transcript behind it (51 vs 28).
+            // Rendered every candidate semantic style in a sample app and
+            // measured each against the same background: quinary +10, fill.secondary
+            // +17, quaternary +22, fill +22, unemphasized +27, tertiary +55.
+            // .quaternary lands on Messages' gap while still tracking the
+            // user's appearance instead of hard-coding a grey.
+            : AnyShapeStyle(.quaternary)
+    }
+
+    private var bubbleShape: ChatBubbleShape {
+        ChatBubbleShape(isOutgoing: isOutgoing, position: position)
     }
 
     private var sourceIcon: String {

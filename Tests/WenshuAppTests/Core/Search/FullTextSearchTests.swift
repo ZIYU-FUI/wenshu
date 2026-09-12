@@ -91,7 +91,7 @@ struct FullTextSearchTests {
 
         let results = try await s.search(query: "apple")
         #expect(results.count == 2)
-        // doc-2 rank 应比 doc-1 更低 (更相关)
+        // doc-2 rank doc-1 ()
         #expect(results[0].docId == "doc-2", "多次出现的 doc 应排第一")
     }
 

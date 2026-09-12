@@ -40,16 +40,97 @@ struct I18nParityTests {
         return keys
     }
 
+    /// Load a Localizable.strings catalog and return its raw content
+    /// (= either decoded text or a serialized "key = value;\n..." blob
+    /// for binary plist).
+    ///
+    /// Supports:
+    /// - UTF-16 LE BOM (FF FE) — Apple canonical for .app bundles
+    /// - UTF-16 BE BOM (FE FF) — Apple canonical for cross-platform .app bundles
+    /// - UTF-8 (no BOM) — fallback for legacy / source .strings files
+    /// - Binary plist v0 (`bplist00`) — Xcode compiled .strings files
+    ///   (= what `swift build` produces when a `Resources/en.lproj`
+    ///   directory is copied to the test bundle; = SPM's CpResource
+    ///   step compiles text .strings into bplist just like Xcode).
     private static func loadCatalog(_ name: String, ext: String) -> String? {
-        // Search the test bundle first (= SPM testTarget uses Bundle.module).
-        // Fall back to Bundle.main (= WenshuApp target at runtime).
-        if let url = Bundle.module.url(forResource: name, withExtension: ext),
-           let data = try? String(contentsOf: url, encoding: .utf8) {
-            return data
+        // v0.71 P1 batch 3: the test bundle (= Bundle.module) stores
+        // Localizable.strings inside an .lproj subdirectory (= the
+        // canonical Apple localization layout; = SPM copies each
+        // .lproj as a subfolder under the bundle's Resources/).
+        // Bundle.url(forResource:withExtension:) does NOT search
+        // inside .lproj subdirectories (= it only looks at the
+        // flat Resources/ dir); = so we enumerate the bundle
+        // directory and walk each .lproj subfolder explicitly.
+        //
+        // SPM `.copy("Resources/en.lproj")` copies the lproj directory
+        // INSIDE the test bundle. Bundle.module.bundlePath already
+        // points to the bundle root (= `Wenshu_WenshuAppTests.bundle`).
+        // The .lproj subdirectories live at
+        // `<bundle>/Contents/Resources/<lproj>/` (= the canonical
+        // Apple bundle layout).
+        let lprojCandidates = ["en.lproj", "zh-Hans.lproj"]
+        for bundle in [Bundle.module, Bundle.main] {
+            let bundleURL = URL(fileURLWithPath: bundle.bundlePath)
+            for lproj in lprojCandidates {
+                let candidate = bundleURL
+                    .appendingPathComponent("Contents/Resources")
+                    .appendingPathComponent(lproj)
+                    .appendingPathComponent("\(name).\(ext)")
+                if let s = readStringsFile(at: candidate) {
+                    return s
+                }
+            }
+            // Flat path fallback (= no .lproj).
+            if let url = bundle.url(forResource: name, withExtension: ext),
+               let s = readStringsFile(at: url) {
+                return s
+            }
         }
-        if let url = Bundle.main.url(forResource: name, withExtension: ext),
-           let data = try? String(contentsOf: url, encoding: .utf8) {
-            return data
+        return nil
+    }
+
+    /// Read a single Localizable.strings file from the given URL.
+    /// Supports UTF-16 BOM, UTF-8, and binary plist formats. The
+    /// binary plist format is the compiled form (= what Xcode +
+    /// SPM produce when `.copy("Resources/en.lproj")` is used; =
+    /// the SPM build step runs `plutil -convert binary1` on .strings
+    /// files as part of CpResource).
+    private static func readStringsFile(at url: URL) -> String? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        // Binary plist (= `bplist00` magic). Parse via PropertyListSerialization
+        // and serialize back as the text-format `key = value;` syntax the
+        // existing keys(in:) parser understands.
+        if data.count >= 8,
+           data[0] == 0x62, data[1] == 0x70, data[2] == 0x6C, data[3] == 0x69,
+           data[4] == 0x73, data[5] == 0x74, data[6] == 0x30, data[7] == 0x30 {
+            var format: PropertyListSerialization.PropertyListFormat = .binary
+            guard let plist = try? PropertyListSerialization.propertyList(
+                from: data, options: [], format: &format
+            ) as? [String: String] else { return nil }
+            return plist.map { key, value in
+                // Escape special chars (= `"` and `\` in the value;
+                // = canonical .strings format requires this).
+                let escaped = value
+                    .replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "\"", with: "\\\"")
+                return "\"\(key)\" = \"\(escaped)\";"
+            }.joined(separator: "\n")
+        }
+        // UTF-16 LE BOM (FF FE).
+        if data.count >= 2, data[0] == 0xFF, data[1] == 0xFE {
+            return String(data: data.dropFirst(2), encoding: .utf16LittleEndian)
+        }
+        // UTF-16 BE BOM (FE FF).
+        if data.count >= 2, data[0] == 0xFE, data[1] == 0xFF {
+            return String(data: data.dropFirst(2), encoding: .utf16BigEndian)
+        }
+        // UTF-8 fallback (= source-of-truth format).
+        if let s = String(data: data, encoding: .utf8) {
+            return s
+        }
+        // Last resort: UTF-16 without BOM.
+        if let s = String(data: data, encoding: .utf16) {
+            return s
         }
         return nil
     }
@@ -102,5 +183,76 @@ struct I18nParityTests {
         ] {
             #expect(keys.contains(required), "en catalog missing key: \(required)")
         }
+    }
+
+    /// I18N-CODECOVERAGE-001 (2026-09-07): every WenshuI18n.t("...")
+    /// call in source must resolve to a catalog entry (= catch code that
+    /// uses a key never added to the en/zh catalogs). The existing
+    /// parity tests check en vs zh consistency but do NOT check that
+    /// code references are covered (= the gap that let CHATIMG-001
+    /// ship with 3 missing keys: chat.input.attach.help,
+    /// chat.input.attach.clear, chat.message.imageMissing).
+    ///
+    /// Walk the source tree, regex-extract every WenshuI18n.t("...") /
+    /// WenshuI18n.tf(...) / WenshuI18n.ts(...) literal, deduplicate, and
+    /// assert each is in the en catalog (= ground truth because all
+    /// other languages inherit from en). Skip keys prefixed with "auto."
+    /// (= generated-i18n placeholder keys produced by the i18n scanner
+    /// during build; these are added to catalogs in the same build that
+    /// creates the source reference and are out-of-scope for this test).
+    @Test("source-code WenshuI18n.t() calls all resolve to en catalog")
+    func sourceCallsResolveInCatalog() throws {
+        let en = try #require(Self.loadCatalog("Localizable", ext: "strings"))
+        let catalogKeys = Self.keys(in: en)
+        let sourceKeys = Self.scanSourceForI18nKeys()
+        let missing = sourceKeys
+            .subtracting(catalogKeys)
+            .filter { !$0.hasPrefix("auto.") }
+            .sorted()
+        #expect(missing.isEmpty,
+                "Code uses WenshuI18n keys not in en catalog: \(missing.joined(separator: ", "))")
+    }
+
+    /// Walk Sources/WenshuApp/ and extract every literal key passed to
+    /// WenshuI18n.t / .tf / .ts. Patterns matched:
+    /// - `WenshuI18n.t("...")`
+    /// - `WenshuI18n.tf("...", ...)` (= format variant)
+    /// - `WenshuI18n.ts("...", ...)` (= string-substitution variant)
+    /// Returns a deduplicated set of key strings.
+    private static func scanSourceForI18nKeys() -> Set<String> {
+        var keys: Set<String> = []
+        let fm = FileManager.default
+        // Source root = Package.swift's directory (= wenshu project root).
+        // Resolve from this test file's bundle path: walk up to find
+        // Sources/WenshuApp. For SPM testTarget, the test source lives
+        // at Tests/WenshuAppTests/ (= two levels above Sources/WenshuApp).
+        let thisFile = URL(fileURLWithPath: #filePath)
+        let projectRoot = thisFile
+            .deletingLastPathComponent() // Tests/WenshuAppTests
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // wenshu project root
+        let sourceRoot = projectRoot.appendingPathComponent("Sources/WenshuApp")
+        guard let enumerator = fm.enumerator(
+            at: sourceRoot,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            Issue.record("could not enumerate source root at \(sourceRoot.path)")
+            return keys
+        }
+        let pattern = try! NSRegularExpression(
+            pattern: #"WenshuI18n\.(?:t|tf|ts)\(\s*"([^"]+)"\s*[,)]"#,
+            options: []
+        )
+        for case let url as URL in enumerator {
+            guard url.pathExtension == "swift" else { continue }
+            guard let source = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            let range = NSRange(source.startIndex..<source.endIndex, in: source)
+            for match in pattern.matches(in: source, options: [], range: range) {
+                guard let keyRange = Range(match.range(at: 1), in: source) else { continue }
+                keys.insert(String(source[keyRange]))
+            }
+        }
+        return keys
     }
 }

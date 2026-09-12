@@ -5,7 +5,7 @@
 // Book / Chapter land in v0.02.1.
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆东西'.
+// Owner 8/15 15:55: 'needok,, refactor'.
 // The shape of Bookshelf is locked by `Tests/WenshuAppTests/Domain/
 // BookshelfTests.swift` — any future change to required fields, id type,
 // or Codable strategy must surface there first (= not silently in some

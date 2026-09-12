@@ -169,7 +169,17 @@ public enum AnthropicStreamingWireupFactory {
         // AnthropicStreamingRequest helper was scoped to ticket 004
         // sub-step 2+3 = uncommitted AnthropicStreaming.swift. Inlining
         // here keeps the wire-up self-contained per sub-step 4 scope.)
-        var url = URL(string: "\(credentials.baseURL)/v1/messages")!
+        // v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+        // replaced `URL(string: \"...\")!` (= audit's LOW smell; =
+        // force-unwrap on a runtime-built string) with explicit
+        // `guard let` + preconditionFailure (= the baseURL is
+        // provider-configured, so a malformed URL is a precondition
+        // violation = either the provider config is corrupt or the
+        // URL builder has a bug).
+        guard let baseURL = URL(string: "\(credentials.baseURL)/v1/messages") else {
+            preconditionFailure("AnthropicStreamingWireup: invalid URL built from credentials.baseURL=\(credentials.baseURL)")
+        }
+        var url = baseURL
         if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
             components.queryItems = (components.queryItems ?? []) + [
                 URLQueryItem(name: "stream", value: "true")
@@ -186,9 +196,14 @@ public enum AnthropicStreamingWireupFactory {
             "model": model,
             "max_tokens": maxTokens,
             "stream": true,
+            // system is an ARRAY of content blocks (= one block per the
+            // v0.35 contract). The Anthropic API expects [[{type, text}]]
+            // so the test decodes as [[String: Any]]. The pre-fix
+            // expression was a Swift dictionary literal (= `[key: value]`)
+            // masquerading as an array because of the surrounding bracket,
+            // so JSONSerialization serialized a single dict, not an array.
             "system": [
-                "type": "text",
-                "text": systemPrompt ?? ""
+                ["type": "text", "text": systemPrompt ?? ""]
             ],
             "messages": messages.map { llmMessage -> [String: Any] in
                 [

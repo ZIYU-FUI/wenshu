@@ -77,7 +77,27 @@ public struct TodoStoreTool: Tool, Sendable {
     /// (= TodoStore) from a nonisolated static-let context trips
     /// Swift 6's strict-concurrency check.
     nonisolated(unsafe) private static func makeFallback() -> TodoStore {
-        return try! TodoStore(path: "/tmp/wenshu-toolregistry-todo-fallback-\(UUID().uuidString).sqlite")
+        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
+        // replaced `try! TodoStore(...)` (= would crash on unwritable
+        // /tmp or SQLite open failure) with explicit do/catch + NSLog
+        // that returns a default-init TodoStore as the last-resort
+        // fallback (= requires a non-nil TodoStore because the
+        // `shared` static must always have one).
+        do {
+            return try TodoStore(path: "/tmp/wenshu-toolregistry-todo-fallback-\(UUID().uuidString).sqlite")
+        } catch {
+            NSLog("[wenshu.todo] makeFallback /tmp path failed: %@", String(describing: error))
+            // Last resort: default init (= App Support directory).
+            do {
+                return try TodoStore()
+            } catch {
+                NSLog("[wenshu.todo] makeFallback default init also failed: %@", String(describing: error))
+                // Truly unrecoverable: preconditionFailure (= the same
+                // fatal behavior as the previous try! but with the
+                // failure chain logged for diagnostics).
+                preconditionFailure("TodoStoreTool.makeFallback: cannot construct any TodoStore (= /tmp unwritable + App Support unavailable)")
+            }
+        }
     }
 
     /// Tool name (matches HermesTodoSchema.name = "todo"; ToolExecutor
@@ -164,9 +184,11 @@ public struct TodoStoreTool: Tool, Sendable {
             return Self.jsonError(action: "create", message: "hermes mirror failed: \(hermesResult.error ?? "unknown")")
         }
 
-        // 2) mirror to wenshu-side canonical TodoStore.
+        // 2) mirror to wenshu-side canonical TodoStore (= caller-
+        //    supplied id so subsequent complete / remove can locate
+        //    the row by the same id the LLM passed in).
         do {
-            let stored = try await todoStore.add(title: content, priority: priority)
+            let stored = try await todoStore.add(id: id, title: content, priority: priority)
             return Self.jsonOk(
                 action: "create",
                 data: [
@@ -228,7 +250,7 @@ public struct TodoStoreTool: Tool, Sendable {
         //    adapter, not a new TodoStore API.
         do {
             try await todoStore.delete(id: id)
-            let stored = try await todoStore.add(title: content, priority: priority ?? .medium)
+            let stored = try await todoStore.add(id: id, title: content, priority: priority ?? .medium)
             return Self.jsonOk(
                 action: "update",
                 data: [

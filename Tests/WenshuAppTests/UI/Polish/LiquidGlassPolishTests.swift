@@ -1,4 +1,4 @@
-// LiquidGlassPolishTests.swift · Wenshu (文枢) · POLISH-LIQUIDGLASS-006
+// LiquidGlassPolishTests.swift · Wenshu () · POLISH-LIQUIDGLASS-006
 //
 // FINAL ticket of the macOS 27 Liquid Glass polish series (= 5 prior
 // source commits + 1 verify commit). These 2 tests assert:

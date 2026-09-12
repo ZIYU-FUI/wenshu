@@ -1,42 +1,116 @@
 //
-//  ChatHelpTextOverlay.swift · Wenshu · v0.24 boss验收
+// ChatHelpTextOverlay.swift · Wenshu · v0.24 bossverification
 //
-//  Boss 2026-08-24 反馈: 帮助文字应放在聊天视图的上下左右正居中 (was: bottom-right).
+// Boss 2026-08-24: chatviewin progress (was: bottom-right).
 //
-//  Pattern: ZStack + .frame(maxWidth: .infinity, maxHeight: .infinity)
-//  overlay in ChatZoneView body so help text floats centered over the chat zone.
+//  Pattern: ZStack +
 //
 
 import SwiftUI
 
-/// ChatHelpTextOverlay: 帮助文字 (centered, large) shown when no API key configured.
-/// Tapping '设置' jumps to Settings → 提供方 API tab.
+/// ChatHelpTextOverlay: (centered, large) shown when no API key configured.
+/// Tapping 'Settings' jumps to Settings → API tab.
 public struct ChatHelpTextOverlay: View {
     let onSettingsTap: () -> Void
 
     public var body: some View {
-        // v0.24 boss验收fix: explicit center alignment (horizontal + vertical)
-        // so help text floats in chat zone's geometric center.
-        VStack(spacing: 8) {
-            Text("请先在")
-                .foregroundStyle(.secondary)
-            HStack(spacing: 4) {
-                Button(action: onSettingsTap) {
-                    Text("设置")
-                        .foregroundStyle(Color.accentColor)
-                        .underline()
-                }
-                .buttonStyle(.plain)
-                Text("中设置好大模型提供方")
-                    .foregroundStyle(.secondary)
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '聊天区的空态提示没有背景,
+        // 加一个和聊天区同样大小的遮挡, 用 apple api, 找遮罩相关
+        // 的 api'. The previous ChatHelpTextOverlay rendered as a
+        // pure-text hint (= icon + 2-line title + 1-line body)
+        // without any background fill, so the underlying chat
+        // messages (= '老板测试消息: 持久化验证' / '文枢回复:
+        // 收到消息' / 'migration test: tokens column works' / 4
+        // '在?' buttons) bled through the hint and made it hard to
+        // read.
+        //
+        // Apple HIG pattern for an empty-state overlay inside a
+        // content area (= Mail's 'No conversations selected' /
+        // Notes' 'No notes' / Music's 'No music in library'):
+        // the empty state COVERS the content area with a SOLID
+        // (= non-transparent) background so the content underneath
+        // is fully occluded. The background is the same as the
+        // content area's own material (= here: chat panel's
+        // `.regularMaterial`).
+        //
+        // Apple API options surveyed:
+        // 1. .background(.regularMaterial) → 半透明 material（下方
+        //    内容模糊可见；不适合空态，需要完全遮挡）
+        // 2. .background(Color(NSColor.windowBackgroundColor))
+        //    → 实色（Apple HIG 推荐 for empty state）
+        // 3. .background(Color(NSColor.controlBackgroundColor))
+        //    → 控件背景色（适合内嵌 view 不适合大区域）
+        // 4. .containerBackground(.background, for: .window)
+        //    → window 级（不适合 per-zone overlay）
+        //
+        // Final pick: #2 `Color(NSColor.windowBackgroundColor)` in a
+        // ZStack background layer (= 实色填充 + 与 chat panel 底色
+        // 一致 = 完全遮挡下方消息 + 与 Apple 系统 chat panel 视觉
+        // 一致 = Apple HIG canonical empty-state pattern).
+        //
+        // Frame: `.frame(maxWidth: .infinity, maxHeight: .infinity)`
+        // on the ZStack = overlay 撑满整个 chat zone (= same slot
+        // as the chat messages) = the empty state is a fullscreen-
+        // for-this-zone message, not a tiny floating bubble (=
+        // Apple HIG canonical for empty states inside scrollable
+        // content).
+        //
+        // Layer order: the Color is the FIRST child of ZStack (= it
+        // paints on the bottom layer) and the VStack content is
+        // stacked on top (= the hint icon + text render in front
+        // of the background fill).
+        //
+        // Center: wrap the icon + title + body VStack in `Spacer +
+        // content + Spacer` (= top + bottom Spacers push the
+        // content to vertical center inside the chat zone).
+        ZStack {
+            Color(NSColor.windowBackgroundColor)
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+                // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+                // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+                // 空态的样式. 右栏 12 个 teb, 很多都缺少空态':
+                // migrate to the unified EmptyStateView component
+                // (= 76 PT Lucide icon + 1 PT stroke via
+                // LucideThinIcon + standard title / body hierarchy).
+                // Same visual treatment as the 12 specialized tool
+                // tabs + the editor empty state + PreviewPane.
+                //
+                // The chat empty state has a SPECIAL CASE: the title
+                // contains an inline 'Settings' Button as part of
+                // the sentence (= Apple Mail / Notes convention for
+                // empty-state hints that include a settings CTA inside
+                // the title sentence; = NOT a separate Button below).
+                // To preserve this, EmptyStateView exposes a second
+                // init that accepts a caller-supplied titleView (= the
+                // HStack { Text + Button + Text } below).
+                //
+                // Inner spacing values (= 22 PT icon→title gap, 4 PT
+                // title→body gap) are matched to Apple's measured
+                // ContentUnavailableView sample.
+                EmptyStateView(
+                    icon: "message-square",
+                    titleView:
+                        HStack(spacing: 0) {
+                            Text(WenshuI18n.t("chathelp.please_first_goto") + " ")
+                                .foregroundStyle(.secondary)
+                            Button(action: onSettingsTap) {
+                                Text(WenshuI18n.t("auto.chathelptextoverlay.l25.h61781343"))
+                                    .foregroundStyle(Color.accentColor)
+                                    .underline()
+                            }
+                            .buttonStyle(.plain)
+                            Text(" " + WenshuI18n.t("auto.chathelptextoverlay.l30.h53427819"))
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(.headline)
+                        .multilineTextAlignment(.center),
+                    body: WenshuI18n.t("auto.chathelptextoverlay.l33.h88773098")
+                )
+                Spacer(minLength: 0)
             }
-            Text("然后再开始与文枢对话")
-                .foregroundStyle(.secondary)
-                .font(.caption)
         }
-        .font(.body)
-        .multilineTextAlignment(.center)
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

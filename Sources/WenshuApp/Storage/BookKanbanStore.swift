@@ -1,11 +1,11 @@
-// BookKanbanStore.swift · Wenshu (文枢) · v0.26 (FCP library replica) + B-13
+// BookKanbanStore.swift · Wenshu () · v0.26 (FCP library replica) + B-13
 //
 // Per-(book × scope) kanban JSON store (= spec v5 ticket 026 + B-13 scope
 // unification). Replaces v0.25.x app-level KanbanStore (SQLite) with a
 // per-book JSON file (books/<book-id>/kanban.json).
 //
-// Per boss 2026-08-26 OOB: '看板 ... 没有现成数据要迁移' (= kanban
-//功能没实装, 没有现成数据要迁移). v0.26 starts with empty per-book
+// Per boss 2026-08-26 OOB: 'kanban ... ' (= kanban
+//,). v0.26 starts with empty per-book
 // JSON files (per LibraryBootstrapper).
 //
 // B-13 (= boss 2026-09-04 OOB): scope picker lets the user target one of

@@ -1,7 +1,7 @@
 //
 //  WenshuWorkspace.swift · Wenshu · v0.23 ticket 014.001
 //
-//  Boss 2026-08-23 拍: '我想先落地, 类似 FCP 的库文件'.
+// Boss 2026-08-23: ', FCP file'.
 //
 //  Single-file workspace (FCP .fcpbundle parity) — one SQLite file
 //  contains all wenshu state (chat / kanban / memory / skills / provider
@@ -9,6 +9,28 @@
 //
 //  File location: ~/Library/Application Support/wenshu/workspace.ws
 //
+
+
+//
+//  SQL SAFETY: all sqlite3_*() calls in this file use hard-coded string
+//  literals (= zero user-derived SQL = zero SQL injection risk TODAY).
+//  Per AGENTS.md §11.3 wenshu-side wins pattern (= hermes-port parity,
+//  = sqlite3 C API direct call preferred over GRDB abstraction = matches
+//  hermes Python tool-store implementation verbatim).
+//
+//  SAFETY CONTRACT for future contributors:
+//  - DO NOT concatenate user input into the SQL string (= use sqlite3_bind_*
+//    parameter binding instead = the only safe pattern).
+//  - DO NOT use String(format:) with %@/%.20s substitution (= format-injection).
+//  - DO NOT read user input into the table/column names (= always use
+//    fixed enum cases or hardcoded identifiers).
+//  - If user-derived values are needed in WHERE/INSERT clauses, use
+//    sqlite3_bind_text/stmt parameter binding with positional placeholders
+//    (= ?, ?N, :name =, @name = per SQLite docs).
+//
+//  The audit at .scratch/2026-09-06-wenshu-hidden-defects-audit.md
+//  documents this convention (= 14 raw sqlite3 sites across 10 files,
+//  all hardcoded literals = safe).
 
 import Foundation
 import SQLite3
@@ -370,7 +392,14 @@ public actor WenshuWorkspace {
                     rc = sqlite3_bind_null(stmt, idx)
                 default:
                     // Fallback: convert to string.
-                    rc = sqlite3_bind_text(stmt, idx, String(describing: param!), -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+                    // v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+                    // replaced `String(describing: param!)` (= audit's
+                    // LOW smell; = force-unwrap inside the `default:`
+                    // branch that's already proven non-nil by the
+                    // `case nil:` arm above) with `String(describing: param)`
+                    // (= the `default:` branch only executes when
+                    // `param` is non-nil, so no force-unwrap is needed).
+                    rc = sqlite3_bind_text(stmt, idx, String(describing: param), -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
                 }
                 if rc != SQLITE_OK {
                     throw WenshuWorkspaceError.execFailed(sql: sql, message: "bind failed at param \(i): \(lastErrorMessage(db: dbPtr))")

@@ -1,16 +1,16 @@
 //
-//  SubAgentProgressView.swift · Wenshu · v0.23 ticket 005 (sub-agent progress 明盒)
+// SubAgentProgressView.swift · Wenshu · v0.23 ticket 005 (sub-agent progress)
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//  Boss 2026-08-23 拍: '看板放在聊天动态区, 虽然让用户知道工作进度的明盒'.
+// Boss 2026-08-23: 'kanbanchat, userworkprogress'.
 //  Reads from KanbanStore, renders running / done sub-agent tasks in aiDynamic zone.
 //
 
 import SwiftUI
 
-/// Sub-agent progress view: 明盒 (transparent open box) showing all sub-agent tasks.
+/// Sub-agent progress view: (transparent open box) showing all sub-agent tasks.
 /// Reads KanbanStore (actor) and renders task list with status, title, duration.
-/// Per boss 8/23 拍: '让用户知道工作进度的明盒'.
+/// Per boss 8/23: 'userworkprogress'.
 public struct SubAgentProgressView: View {
     @State private var store: KanbanStore?
     @State private var tasks: [KanbanTask] = []
@@ -21,10 +21,10 @@ public struct SubAgentProgressView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("子代理进度")
+                Text(WenshuI18n.t("subagent.progress_title"))
                     .font(.headline)
                 Spacer()
-                Text("\(runningCount) 进行中 · \(doneCount) 已完成")
+                Text(WenshuI18n.t("auto2.subagentprogressview.l27.h17103990"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -32,11 +32,11 @@ public struct SubAgentProgressView: View {
             Divider()
 
             if store == nil {
-                Text("(loading KanbanStore...)")
+                Text(WenshuI18n.t("b5.subagentprogressview.l35.h27766576"))
                     .font(.body)
                     .foregroundStyle(.tertiary)
             } else if tasks.isEmpty {
-                Text("(暂无子代理任务 — 与文枢对话以触发)")
+                Text(WenshuI18n.t("subagent.empty_state"))
                     .font(.body)
                     .foregroundStyle(.tertiary)
             } else {
@@ -52,11 +52,11 @@ public struct SubAgentProgressView: View {
             Spacer()
 
             HStack {
-                Text("从 KanbanStore (actor) 实时更新 — 每 2 秒自动刷新 + 手动刷新按钮")
+                Text(WenshuI18n.t("subagent.live_update_hint"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Spacer()
-                Button("刷新") {
+                Button(WenshuI18n.t("auto2.subagentprogressview.l59.h26216387")) {
                     refreshTrigger += 1
                 }
                 .buttonStyle(.bordered)
@@ -64,10 +64,9 @@ public struct SubAgentProgressView: View {
             }
         }
         .padding()
-        // v0.24 boss验收fix (2026-08-24): removed fixed minWidth/minHeight.
+        // v0.24 bossverificationfix (2026-08-24): removed fixed minWidth/minHeight.
         // Tab content must follow zone size, not force zone to be 480x320.
-        // Boss 8/24 feedback: 'tab 视图不改变区域大小, 自动适配区域大小'.
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        // Boss 8/24 feedback: 'tab viewchangechangeregionsize, autoregionsize'.
         .task {
             if store == nil {
                 store = try? KanbanStore()
@@ -118,14 +117,13 @@ private struct TaskRowView: View {
             }
             Spacer()
         }
-        .padding(8)
+        .padding(DesignTokens.chromePaddingVertical)
         // v0.28 followup Boss UX round 24: .regularMaterial replaces
-        // DesignColor.zoneSurface (= solid Color(nsColor: .controlBackgroundColor)
-        // = NOT Liquid Glass). The sub-agent progress card now uses
-        // the standard Liquid Glass card pattern (= matches macOS
-        // notification cards / activity cards).
-        .background(.regularMaterial)
-        .cornerRadius(6)
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .regularMaterial (= Liquid Glass sub-agent card);
+        // now uses Color.clear (= no background).
+        .background(Color.clear)
+        .cornerRadius(DesignTokens.surfaceCornerRadiusProgressCard)
     }
 
     @ViewBuilder

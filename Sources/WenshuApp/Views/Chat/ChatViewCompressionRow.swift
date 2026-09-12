@@ -43,7 +43,7 @@ public struct ChatViewCompressionRow: View {
                         .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
                         .padding(.vertical, DesignTokens.chromePaddingMicro)
                         .background(
-                            Color(nsColor: .controlBackgroundColor),
+                            .regularMaterial,
                             in: Capsule()
                         )
                 } else {
@@ -59,7 +59,7 @@ public struct ChatViewCompressionRow: View {
                 Button {
                     Task { await manualCompress() }
                 } label: {
-                    Label("Compress", systemImage: "arrow.down.circle")
+                    Label { Text(WenshuI18n.t("b5.chatviewcompressionrow.l62.h10389252")) } icon: { LucideIcon("circle-arrow-down", size: 16) }
                         .labelStyle(.titleAndIcon)
                 }
                 .buttonStyle(.borderless)
@@ -67,14 +67,16 @@ public struct ChatViewCompressionRow: View {
             }
             .padding(.horizontal, DesignTokens.chromePaddingMedium)
             .padding(.vertical, DesignTokens.chromePaddingSmall)
-            .background(Color(nsColor: .windowBackgroundColor))
+            // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
+            // chrome tier background tint (= .windowBackgroundColor
+            // = boss wants gone per the 'go up another layer and remove the background' cleanup).
         }
     }
 
     /// Trigger manual compression (lives here, not in extension; reads
     /// vm.messages directly + writes compressionSummary to @State).
     ///
-    /// 真实修改 path (= ticket 003 sub-step 5 acceptance criteria):
+    /// modify path (= ticket 003 sub-step 5 acceptance criteria):
     /// 1. map vm.messages -> [LLMMessage]
     /// 2. cc.manualTrigger returns compressed [LLMMessage]
     /// 3. map [LLMMessage] -> [ChatMessage] preserving id + timestamp

@@ -1,7 +1,7 @@
 //
 //  AvailableModelsDiscoveryTests.swift · Wenshu · v0.23 ticket 011.003
 //
-//  Boss 2026-08-23 拍: 我配了三个厂家的 key, 模型切换应分组展示可用模型合集.
+// Boss 2026-08-23: key, group.
 //  Tests verify the discovery logic + Provider invariants.
 //
 
@@ -52,7 +52,7 @@ struct AvailableModelsDiscoveryTests {
 
     @Test("Provider.defaultModels non-empty for at least 5 providers")
     func testProviderDefaultModelsNonEmpty() {
-        // boss 8/23 拍: providers should ship with curated models
+        // boss 8/23: providers should ship with curated models
         // (so users see models even before Settings page config).
         let nonEmpty = Provider.all.filter { !$0.defaultModels.isEmpty }
         #expect(nonEmpty.count >= 5)

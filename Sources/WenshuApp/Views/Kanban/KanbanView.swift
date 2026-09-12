@@ -5,19 +5,19 @@
 //  JSON file (= BookKanbanStore). Switches the data source when the
 //  active book OR the active scope changes (= bookStore.selectedBookId
 //  + the local `@State scope`, both read via @Environment per v0.30 boss
-//  8/31 OOB '各区域之间的联动' = option A = global @Observable store).
+// 8/31 OOB 'region' = option A = global @Observable store).
 //
 //  Layout (Boss B-09 acceptance):
-//    - Top bar: 看板 title + scope picker + "+ 新建" button.
+// - Top bar: kanban title + scope picker + "+ " button.
 //    - Input row: text field + return-to-add (per Apple HIG inline-create).
 //    - Body: per-status columns (new / ready / running / blocked /
-//      review / done) + a "+ 新建到 X" affordance per column
+// review / done) + a "+ X" affordance per column
 //      (= cursor-on-column context menu not in scope for v0.40;
 //      default add = .new).
 //    - Each ticket card: title + status badge + delete button.
 //    - Empty state when no book selected / no tickets.
 //
-//  B-13 (= boss 2026-09-04 OOB "这两个看板都有同一个问题"): the scope
+// B-13 (= boss 2026-09-04 OOB "kanbanissue"): the scope
 //  picker (= .menu Picker over the 8 standard sub-folders + book root
 //  + reference library) drives which JSON file the view reads from /
 //  writes to. Scope is a view filter, not a data-layer change.
@@ -29,13 +29,13 @@
 //
 //  Apple HIG: small icon button + .bordered / .borderedProminent
 //  button styles per macOS 26 Tahoe guidance. No sheet (per
-//  v0.24 boss 8/24 OOB 'dynamic zone 应该是 tab 模式, 不是 sheet').
+// v0.24 boss 8/24 OOB 'dynamic zone shouldyes tab, yes sheet').
 //
 
 import SwiftUI
 
 /// Per-(book × scope) kanban board view. Mounted by `DynamicZoneView`
-/// in the `aiDynamic` zone (= tab "看板"). Reads from `BookKanbanStore`
+/// in the `aiDynamic` zone (= tab "kanban"). Reads from `BookKanbanStore`
 /// (= scope-aware kanban JSON: `kanban.json` / `kanban-<folder>.json`
 /// / `library-kanban.json`).
 public struct KanbanView: View {
@@ -66,32 +66,36 @@ public struct KanbanView: View {
             header
             inputRow
             if let err = loadError {
-                Text("(加载失败: \(err))")
+                Text(WenshuI18n.t("auto.kanbanview.l69.h78022707"))
                     .font(.caption)
                     .foregroundStyle(.red)
             }
             content
         }
-        .padding(8)
-        // v0.24 boss验收fix: flexible size (was: 480x320 min forcing zone to grow).
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        // B-09: re-load when the active book changes (= boss spec:
-        // "切书=切数据源" per ticket 026 v0.26).
+        .padding(DesignTokens.chromePaddingVertical)
+        // v0.24 bossverificationfix: flexible size (was: 480x320 min forcing zone to grow).
+        // "=" per ticket 026 v0.26).
         // B-13: re-load when the active scope changes (= user picked a
         // different sub-folder / reference library from the picker).
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
         .onChange(of: scope) { _, _ in reloadFromDisk() }
+        // v0.40 apple-001 HIG absent batch: .refreshable (= Apple
+        // HIG pull-to-refresh standard). On macOS this becomes a
+        // refresh button in the toolbar (= Cmd-R equivalent). The
+        // reloadFromDisk() action re-reads the kanban.json from disk,
+        // = useful when the user edits the JSON file externally.
+        .refreshable { reloadFromDisk() }
     }
 
     // MARK: - Subviews
 
-    /// Header: 看板 title + scope picker + ticket count + json hint.
+    /// Header: kanban title + scope picker + ticket count + json hint.
     /// B-13: the scope picker is a `.menu` Picker (= compact for the
     /// DynamicZone width; boss cadence is `.menu` for narrow zone).
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("看板")
+            Text(WenshuI18n.t("auto.kanbanview.l100.h57246144"))
                 .font(.headline)
             Picker("scope", selection: $scope) {
                 ForEach(bookStore.availableScopes(bookId: bookStore.selectedBookId)) { s in
@@ -100,9 +104,9 @@ public struct KanbanView: View {
             }
             .pickerStyle(.menu)
             .fixedSize()
-            .help("切换看板数据范围 (= 全书 / 8 标准子目录 / 资料库)")
+            .help(WenshuI18n.t("auto2.kanbanview.l109.h72695635"))
             Spacer()
-            Text("\(tickets.count) 票 · \(jsonHint)")
+            Text(WenshuI18n.t("auto.kanbanview.l111.h22166662"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -133,11 +137,11 @@ public struct KanbanView: View {
     private var inputRow: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                TextField("新看板标题…", text: $newTicketTitle)
+                TextField(WenshuI18n.t("auto2.kanbanview.l142.h68849992"), text: $newTicketTitle)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addTicket() }
                 Button(action: addTicket) {
-                    Label("新建", systemImage: "plus")
+                    Label { Text(WenshuI18n.t("auto2.kanbanview.l146.h37112406")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)
@@ -148,7 +152,7 @@ public struct KanbanView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else if newTicketTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text("输入标题后才能新建")
+                Text(WenshuI18n.t("auto.kanbanview.l157.h65127890"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -160,9 +164,9 @@ public struct KanbanView: View {
     private var scopeUnavailableHint: String {
         switch scope {
         case .referenceLibrary:
-            return "资料库未找到 (= workspace 未 bootstrap)"
+            return WenshuI18n.t("error.reference_library_not_bootstrapped")
         case .book, .folder:
-            return "未选书 — 在左侧书架里选一本书, 看板才会加载"
+            return WenshuI18n.t("kanban.unselected_book")
         }
     }
 
@@ -191,7 +195,7 @@ public struct KanbanView: View {
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else if tickets.isEmpty {
-            Text("(暂无看板 — 在上面输入框新建第一条)")
+            Text(WenshuI18n.t("kanban.empty_state"))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else {
@@ -213,7 +217,7 @@ public struct KanbanView: View {
                         )
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, DesignTokens.chromePaddingMicro)
             }
         }
     }
@@ -327,17 +331,17 @@ private struct KanbanColumn: View {
             HStack(spacing: 4) {
                 Text(label(for: status))
                     .font(.subheadline.weight(.semibold))
-                Text("(\(tickets.count))")
+                Text(WenshuI18n.t("b5.kanbanview.l336.h21576137"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, DesignTokens.chromePaddingMicro)
             Divider()
             if tickets.isEmpty {
-                Text("(空)")
+                Text(WenshuI18n.t("auto.kanbanview.l343.h97636928"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, DesignTokens.chromePaddingMicro)
             } else {
                 ScrollView(.vertical, showsIndicators: true) {
                     LazyVStack(alignment: .leading, spacing: 6) {
@@ -353,8 +357,8 @@ private struct KanbanColumn: View {
                 .frame(maxHeight: 360)
             }
         }
-        .padding(8)
-        .frame(width: 200)
+        .padding(DesignTokens.chromePaddingVertical)
+        .frame(width: DesignTokens.sidebarNarrowWidth)
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: 6))
         .overlay(
             RoundedRectangle(cornerRadius: 6)
@@ -399,22 +403,22 @@ private struct KanbanCard: View {
                 } label: {
                     Text(label(for: ticket.status))
                         .font(.caption)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, DesignTokens.chromePaddingSmall)
+                        .padding(.vertical, DesignTokens.chromePaddingNano)
                         .background(.tint.opacity(0.18), in: Capsule())
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 Spacer()
                 Button(action: onDelete) {
-                    Image(systemName: "trash")
+                    LucideIcon("trash-2", size: 16)
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
             }
         }
-        .padding(8)
+        .padding(DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.background, in: RoundedRectangle(cornerRadius: 4))
         .overlay(

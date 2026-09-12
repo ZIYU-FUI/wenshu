@@ -1,4 +1,4 @@
-// LayoutEditMode.swift · Wenshu (文枢) · v0.28 ticket 028-006
+// LayoutEditMode.swift · Wenshu () · v0.28 ticket 028-006
 //
 // Layout edit mode singleton (= hermes `$layoutEditMode` atom port).
 //
@@ -37,7 +37,7 @@ final class LayoutEditMode {
     /// via drag gestures; false = static).
     var isEnabled: Bool
 
-    /// UserDefaults key (= mirrors WorkspaceStore's pattern of
+    /// UserDefaults key (= mirrors LayoutTreeStore's pattern of
     /// centralizing keys for grep-ability).
     private static let editModeKey = "wenshu.workspace.editMode"
 

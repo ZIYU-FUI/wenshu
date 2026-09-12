@@ -1,4 +1,4 @@
-// ZoneEditor.swift · Wenshu (文枢) · v0.28 ticket 028-008
+// ZoneEditor.swift · Wenshu () · v0.28 ticket 028-008
 //
 // SwiftUI full-screen grid editor (= hermes
 // `zone-editor.tsx` port). User clicks on a column boundary to
@@ -6,7 +6,7 @@
 // MVP: not implemented per the spec §"v0.28 MVP scope"). Drag
 // across zones rubber-band selects (MVP: not implemented).
 // Save converts the grid to a guillotine tree and registers it
-// as a user preset via WorkspaceStore.saveAsPreset(name:).
+// as a user preset via LayoutTreeStore.saveAsPreset(name:).
 //
 // Per ticket 028-008 §"Acceptance criteria" #3: this is the
 // `ZoneEditor.swift` file referenced in the spec. MVP scope
@@ -16,9 +16,9 @@
 import SwiftUI
 
 /// ZoneEditor — the full-screen grid editor sheet (= presented
-/// from LayoutPicker when the user clicks "+ 新建网格布局").
+/// from LayoutPicker when the user clicks "+ gridlayout").
 struct ZoneEditor: View {
-    @ObservedObject var store: WorkspaceStore
+    @ObservedObject var store: LayoutTreeStore
     @Environment(\.dismiss) private var dismiss
 
     /// The four template types (= per spec §"Acceptance criteria"
@@ -49,7 +49,7 @@ struct ZoneEditor: View {
     // Track the event modifiers flag (= SHIFT held during click for AC#8 SHIFT-flip).
     @State private var eventModifiers: EventModifiers = []
 
-    init(store: WorkspaceStore) {
+    init(store: LayoutTreeStore) {
         self.store = store
         // Initialize with the default template + zone count.
         _model = State(initialValue: initColumns(3))
@@ -69,8 +69,7 @@ struct ZoneEditor: View {
             Divider()
             // Grid canvas (= translucent numbered zones).
             gridCanvas
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(20)
+                .padding(DesignTokens.chromePaddingHero)
         }
         .frame(minWidth: 720, minHeight: 540)
         // POLISH-LIQUIDGLASS-004: ZoneEditor modal sheet root uses
@@ -89,6 +88,11 @@ struct ZoneEditor: View {
             dismiss()
             return .handled
         }
+        // v0.40 apple-001 HIG absent batch: .navigationTitle (= Apple
+        // HIG standard for window title). ZoneEditor is a sheet, so
+        // the title appears in the sheet's title bar (= automatically
+        // provided by the sheet chrome).
+        .navigationTitle(WenshuI18n.t("layout.zone_editor.title"))
     }
 
     /// Toolbar.
@@ -104,7 +108,7 @@ struct ZoneEditor: View {
                 model = buildModel(template: newValue, count: zoneCount)
             }
             Stepper("Zones: \(zoneCount)", value: $zoneCount, in: 1...8)
-                .frame(width: 140)
+                .frame(width: DesignTokens.zoneEditorWidth)
                 .onChange(of: zoneCount) { _, newValue in
                     model = buildModel(template: template, count: newValue)
                 }
@@ -128,7 +132,7 @@ struct ZoneEditor: View {
                   ? "Save this grid as a new preset"
                   : "This grid can't be expressed as a guillotine tree (= non-guillotine = pinwheel arrangement)")
         }
-        .padding(12)
+        .padding(DesignTokens.chromePaddingMedium)
     }
 
     /// Grid canvas (= translucent numbered zones + rubber-band overlay +
@@ -137,7 +141,7 @@ struct ZoneEditor: View {
         GeometryReader { geo in
             ZStack {
                 // Background.
-                Rectangle().fill(.quaternary)
+                Rectangle().fill(.clear)
                 // Zones.
                 ForEach(modelToZones(model) ?? []) { zone in
                     zoneView(for: zone, in: geo.size)
@@ -205,7 +209,7 @@ struct ZoneEditor: View {
         let rect = rubberBandRect(start: start, end: end)
         Rectangle()
             .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 1, dash: [4]))
-            .background(.quaternary)
+            
             .frame(width: rect.width, height: rect.height)
             .position(x: rect.midX, y: rect.midY)
     }
@@ -316,7 +320,7 @@ struct ZoneEditor: View {
         let frame = zoneRect(zone: zone, in: size)
         ZStack {
             Rectangle().fill(.tint.opacity(0.15))
-            Text("\(zone.index + 1)")
+            Text(WenshuI18n.t("b5.zoneeditor.l324.h54488057"))
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(Color.accentColor)
         }
@@ -364,7 +368,7 @@ struct ZoneEditor: View {
                     Button(action: { splitAtColumn(i) }) {
                         LucideIconSystemFallback("plus", size: 14)
                             .foregroundStyle(.white)
-                            .frame(width: 22, height: 22)
+                            .frame(width: DesignTokens.iconButtonSmall, height: DesignTokens.iconButtonSmall)
                             .background(Circle().fill(Color.accentColor))
                     }
                     .buttonStyle(.plain)
@@ -414,7 +418,7 @@ struct ZoneEditor: View {
         let preset = LayoutPreset(
             id: UUID(),
             name: "Custom \(store.presets.filter { !$0.isBuiltIn }.count + 1)",
-            workspace: WorkspaceState(
+            workspace: LayoutTreeState(
                 root: tree,
                 panes: [],
                 tabs: [],

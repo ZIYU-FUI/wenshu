@@ -1,8 +1,8 @@
-// Phase1to5IntegrationTests.swift · Wenshu (文枢) · v0.28 followup TKT-028-018
+// Phase1to5IntegrationTests.swift · Wenshu () · v0.28 followup TKT-028-018
 //
 // Integration tests for the full Phase 1-5 stack (= contribution
 // registry + visibility + chrome + panes + sash + applyTree deep-clone).
-// Boss 2026-08-29 OOB '完整复刻 hermes app, 用户体验第一'.
+// Boss 2026-08-29 OOB ' hermes app, user'.
 
 import XCTest
 @testable import WenshuApp
@@ -69,17 +69,17 @@ final class Phase1to5IntegrationTests: XCTestCase {
             weights: [2.0, 3.0]
         )
 
-        // 2. Apply it via WorkspaceStore.loadPreset (= equivalent
+        // 2. Apply it via LayoutTreeStore.loadPreset (= equivalent
         // to the legacy applyTree deep-clone path removed in v0.30).
         // Reuse the built-in default's panes + tabs so the
         // resulting workspace is internally consistent.
-        let store = WorkspaceStore(userDefaults: UserDefaults(suiteName: "test-\(UUID())")!)
+        let store = LayoutTreeStore(userDefaults: UserDefaults(suiteName: "test-\(UUID())")!)
         let builtinDefault = store.presets.first { $0.isBuiltIn && $0.name == "默认" }!
         let presetID = UUID()
         let preset = LayoutPreset(
             id: presetID,
             name: "test-applyTree",
-            workspace: WorkspaceState(
+            workspace: LayoutTreeState(
                 root: customLayout,
                 panes: builtinDefault.workspace.panes,
                 tabs: builtinDefault.workspace.tabs,

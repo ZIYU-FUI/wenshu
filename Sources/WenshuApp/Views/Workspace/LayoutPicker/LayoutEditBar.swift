@@ -1,4 +1,4 @@
-// LayoutEditBar.swift · Wenshu (文枢) · v0.28 ticket 028-007
+// LayoutEditBar.swift · Wenshu () · v0.28 ticket 028-007
 //
 // Floating TreeEditBar that appears when layout edit mode is on
 // (= hermes `edit-bar.tsx:25-108` port). Hosts the LayoutPicker
@@ -17,17 +17,17 @@
 import SwiftUI
 
 /// LayoutEditBar — the floating palette container. Shows the
-/// LayoutPicker inside (= 4 builtin preset cards + a "+ 新建网格布局"
+/// LayoutPicker inside (= 4 builtin preset cards + a "+ gridlayout"
 /// dashed button + a save-current-as-preset button at the bottom).
 ///
 /// Per ticket 028-007 §"Acceptance criteria": the bar is 26rem wide,
-/// centered, has a draggable header, and shows the "重置" (ghost)
-/// + "完成" (outline) buttons in the header.
+/// centered, has a draggable header, and shows the "reset" (ghost)
+/// + "complete" (outline) buttons in the header.
 ///
 /// Position state is per-session @State (= hermes `lastPalettePos`
 /// pattern); first show resets to center.
 struct LayoutEditBar: View {
-    @ObservedObject var store: WorkspaceStore
+    @ObservedObject var store: LayoutTreeStore
     @Bindable var editMode: LayoutEditMode
 
     /// Palette position (= per-session @State). Persists within a
@@ -54,18 +54,16 @@ struct LayoutEditBar: View {
             )
         }
         .frame(width: 26 * 16)  // 26rem (= 26 * 16 PT in macOS 1x)
-        // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
+        // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '
         // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液态玻璃吗'):
-        // LayoutEditBar floating palette background = .regularMaterial
-        // (= macOS standard Liquid Glass translucent capsule =
-        // matches Apple's canonical floating palette look in Mail /
-        // Pages / Xcode). Previously used
-        // Color(NSColor.windowBackgroundColor).opacity(0.95) (= solid
-        // 95% opaque color = NOT translucent = wrong for Liquid Glass).
+        // regiontop bar, bottom bar, background, color, canLiquid Glass'):
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .regularMaterial (= the Liquid Glass translucent
+        // capsule); now uses Color.clear (= no background =
+        // shows the underlying zone chrome).
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(.regularMaterial)
+                .fill(Color.clear)
         )
         .overlay(
             // v0.28 followup Boss UX round 19: 1 PT Apple .separator stroke
@@ -109,10 +107,10 @@ struct LayoutEditBar: View {
     private var header: some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("布局")
+                Text(WenshuI18n.t("auto.layouteditbar.l112.h90106758"))
                     .font(.body.weight(.semibold))
                 HStack(spacing: 4) {
-                    Text("选择一个布局，或在区域之间拖动面板")
+                    Text(WenshuI18n.t("layout_edit_bar.empty_hint"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Text(HotkeyFormatter.editModeCombo)
@@ -120,37 +118,37 @@ struct LayoutEditBar: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, DesignTokens.chromePaddingMicro)
                         .padding(.vertical, DesignTokens.chromePaddingHotkeyVertical)
-                        // v0.32 boss 2026-09-02 OOB ('全走 apple api
-                        // 默认'): use bare Apple Material catalog
+                        // v0.32 boss 2026-09-02 OOB (' apple api
+                        // default'): use bare Apple Material catalog
                         // directly (= the canonical SwiftUI .thin
                         // Material from the Material enum). The
                         // previous RegionHoverWashStyle wrapper
                         // added an extra type with no semantic value.
                         .background(
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(.thinMaterial)
+                                .fill(Color.clear)
                         )
                 }
             }
             Spacer()
-            Button("重置") {
+            Button(WenshuI18n.t("auto2.layouteditbar.l136.h66133888")) {
                 store.resetToDefault()
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
-            Button("完成") {
+            Button(WenshuI18n.t("auto2.layouteditbar.l141.h65113621")) {
                 editMode.set(false)
             }
             .buttonStyle(.bordered)
         }
         .padding(.horizontal, DesignTokens.chromePaddingMedium)
         .padding(.vertical, DesignTokens.chromePaddingVertical)
-        // v0.28 followup Boss UX round 24: .regularMaterial replaces
-        // Color.secondary.opacity(0.08) (= solid tinted) for the
-        // header drag handle background.
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .regularMaterial (= Liquid Glass background); now uses
+        // Color.clear (= no background).
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(.regularMaterial)
+                .fill(Color.clear)
         )
         // The header is the drag handle; the rest of the palette
         // (= LayoutPicker) is non-draggable.

@@ -1,9 +1,9 @@
 //
-//  CanvasView.swift · Wenshu · v0.19 ticket 13 (Obsidian replica, 前端做但不接入核心项目)
-//  老板 2026-08-19 evening 拍 '前端要做但先不接入核心项目'.
+// CanvasView.swift · Wenshu · v0.19 ticket 13 (Obsidian replica,)
+// 2026-08-19 evening '.
 //
-//  Standalone SwiftUI View + ViewModel, 不接 LayoutShellView, 等老板验 macOS.
-//  现阶段只做 ViewModel 数据通路 + View placeholder (跟 ticket 12 BacklinksPanel 同范式).
+// Standalone SwiftUI View + ViewModel, LayoutShellView, wait macOS.
+// ViewModel + View placeholder (ticket 12 BacklinksPanel).
 //
 
 import Foundation
@@ -19,7 +19,7 @@ public final class CanvasViewModel {
 
     public init() {}
 
-    /// 从 .canvas 文件路径加载
+    /// .canvas filepathload
     public func load(path: String) async {
         self.isLoading = true
         self.error = nil
@@ -35,7 +35,7 @@ public final class CanvasViewModel {
         }
     }
 
-    /// 从字符串加载 (test 用)
+    /// load (test)
     public func loadFromString(_ content: String) {
         self.error = nil
         do {
@@ -47,8 +47,8 @@ public final class CanvasViewModel {
     }
 }
 
-/// CanvasView: SwiftUI View, 显示 .canvas 文件 (node + edge placeholder)
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// CanvasView: SwiftUI View, show .canvas file (node + edge placeholder)
+/// LayoutShellView, standalone wait macOS
 public struct CanvasView: View {
     @State private var viewModel: CanvasViewModel
 
@@ -58,18 +58,18 @@ public struct CanvasView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("画布")
+            Text(WenshuI18n.t("auto.canvasview.l61.h64266395"))
                 .font(.headline)
             if viewModel.isLoading {
-                Text("加载中…")
+                Text(WenshuI18n.t("auto.canvasview.l64.h85778528"))
             } else if let error = viewModel.error {
-                Text("错误: \(error)")
+                Text(WenshuI18n.t("auto.canvasview.l66.h21332939"))
                     .foregroundStyle(.red)
             } else {
-                Text("节点数: \(viewModel.document.nodes.count)")
-                Text("边数: \(viewModel.document.edges.count)")
+                Text(WenshuI18n.t("canvasview.nodes_count"))
+                Text(WenshuI18n.t("canvasview.edges_count"))
                 ForEach(viewModel.document.nodes) { node in
-                    Text("[\(node.id)] \(node.type.rawValue) @ (\(Int(node.x)),\(Int(node.y)))")
+                    Text(WenshuI18n.t("b5.canvasview.l72.h45596183"))
                         .font(.caption2)
                 }
             }

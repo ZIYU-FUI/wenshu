@@ -1,25 +1,14 @@
 //
 //  SkillsSettingsView.swift · Wenshu · v0.35 ticket 010
-//
-//  Settings pane for skill subsystem (= spec §6.4 🟥 must-UI).
-//  Renders: installed skills list with enable/disable toggles + install
-//  new skill UI (deferred to v0.35.1).
+//  + SETTINGS-PERSISTENCE-002 (2026-09-05).
 //
 
 import SwiftUI
 
-// File-scope constant (= Apple HIG small-chip corner radius standard).
 private let smallChipCornerRadius: CGFloat = 3
-
-// File-scope constant (= Apple HIG subtle surface tint = 0.05 alpha).
 private let subtleSurfaceAlpha: CGFloat = 0.05
 
 public struct SkillsSettingsView: View {
-    // v0.38 ticket A3 fix: skills is a passive input from the parent loader
-    // (= SkillsSettingsLoader). Holding it as @State seeded via init() would
-    // freeze the initial array and ignore later parent updates. Plain `let`
-    // re-injects on every parent body re-render, so SkillAdapter.listSkills()
-    // results flow through. The parent loader still owns the @State array.
     public let skills: [SkillAdapter.Skill]
     @State public var slashCommandBuffer: String = ""
 
@@ -28,7 +17,7 @@ public struct SkillsSettingsView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             Text(WenshuI18n.t("settings.skills.title"))
                 .font(.headline)
             Text(WenshuI18n.t("settings.skills.subtitle"))
@@ -37,7 +26,6 @@ public struct SkillsSettingsView: View {
 
             Divider()
 
-            // Skill command tester
             HStack {
                 Text(WenshuI18n.t("settings.skills.tryCommand"))
                     .font(.caption)
@@ -53,7 +41,6 @@ public struct SkillsSettingsView: View {
 
             Divider()
 
-            // Installed skills list
             Text(WenshuI18n.tf("settings.skills.installed", skills.count))
                 .font(.subheadline)
 
@@ -64,17 +51,19 @@ public struct SkillsSettingsView: View {
                     .padding(.vertical, DesignTokens.chromePaddingSmall)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
                         ForEach(skills) { skill in
                             SkillRow(skill: skill)
                         }
                     }
                 }
-                .frame(maxHeight: 200)
+                .frame(maxHeight: DesignTokens.settingsListMaxHeight)
             }
         }
-        .padding(12)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .padding(DesignTokens.chromePaddingMedium)
+        // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
+        // chrome tier background tint (= .windowBackgroundColor
+        // = boss wants gone per the 'go up another layer and remove the background' cleanup).
     }
 }
 
@@ -84,13 +73,13 @@ public struct SkillRow: View {
 
     public init(skill: SkillAdapter.Skill) {
         self.skill = skill
-        self._isEnabled = State(initialValue: skill.enabled)
+        self._isEnabled = State(initialValue: SkillAdapter().currentEnabled(name: skill.name))
     }
 
     public var body: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("/\\(skill.name)")
+                Text(WenshuI18n.t("b5.skillssettingsview.l80.h81170225"))
                     .font(.system(.caption, design: .monospaced))
                 Text(skill.description)
                     .font(.caption)
@@ -100,8 +89,11 @@ public struct SkillRow: View {
             Toggle("", isOn: $isEnabled)
                 .toggleStyle(.switch)
                 .labelsHidden()
+                .onChange(of: isEnabled) { _, newValue in
+                    SkillAdapter.shared.setEnabled(name: skill.name, enabled: newValue)
+                }
         }
-        .padding(6)
+        .padding(DesignTokens.chromePaddingSmall)
         .background(Color.secondary.opacity(subtleSurfaceAlpha), in: RoundedRectangle(cornerRadius: smallChipCornerRadius))
     }
 }

@@ -1,9 +1,9 @@
 // Sources/WenshuApp/UI/PaneTabBar.swift
 //
-// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '你需要做一个组件索引,
+// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'needgroup,
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// 以后如果有新的地方用到相同的东西, 会自然而然的找到组件, 而不是默认自动
-// 写个新的'): Phase 3 of 5-phase component refactor.
+//, group, yesdefaultauto
+// '): Phase 3 of 5-phase component refactor.
 //
 // Generic wrapper for a list of PaneIconTab + optional trailing buttons.
 // Listed in ComponentIndex.md Level 3.2.
@@ -28,7 +28,7 @@ import SwiftUI
 /// - ForEach of PaneIconTab (= Apple HIG 28×28 hot area + Lucide icon +
 ///   matchedGeometry selected-state underline)
 /// - Optional trailing buttons (= e.g. editor's expand/shrink button,
-///   or library's 新建 / 入驻 menu buttons) at the rightmost edge
+/// or library's / menu buttons) at the rightmost edge
 /// - matchedGeometryEffect namespace for slide animation
 ///
 /// Example (single tab + trailing button, like chat zone):
@@ -38,7 +38,7 @@ import SwiftUI
 ///
 /// PaneTabBar(
 ///     items: [
-///         PaneTabItem(id: "chat", icon: "bot", label: "对话"),
+/// PaneTabItem(id: "chat", icon: "bot", label: "dialog"),
 ///     ],
 ///     selection: $selection,
 ///     namespace: tabBarNamespace,
@@ -52,8 +52,8 @@ import SwiftUI
 /// ```swift
 /// PaneTabBar(
 ///     items: [
-///         PaneTabItem(id: "library", icon: "square-library", label: "书架"),
-///         PaneTabItem(id: "preview", icon: "book-open-text", label: "预览"),
+/// PaneTabItem(id: "library", icon: "square-library", label: ""),
+/// PaneTabItem(id: "preview", icon: "book-open-text", label: ""),
 ///     ],
 ///     selection: $selection,
 ///     namespace: tabBarNamespace
@@ -127,22 +127,25 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
     }
 
     public var body: some View {
-        RegionTabBar {
-            HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                ForEach(items) { item in
-                    PaneIconTab(
-                        id: item[keyPath: idKeyPath],
-                        icon: item[keyPath: iconKeyPath],
-                        label: item[keyPath: labelKeyPath],
-                        isSelected: item[keyPath: idKeyPath] == selection,
-                        namespace: namespace,
-                        namespaceID: namespaceID,
-                        onTap: { selection = item[keyPath: idKeyPath] }
-                    )
-                }
-                // Trailing buttons: pushed to the right edge via Spacer
-                // (= independent of how many tabs the pane has = always
-                // sits at the rightmost position). Apple HIG canonical
+        // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
+        // RegionTabBar wrapper (= per Plan A = the tab bar = PaneTabBar
+        // = is the direct content = no chrome wrapper above). The
+        // PaneTabBar IS the chrome (= Apple-style flat tab bar).
+        HStack(spacing: DesignTokens.chromePaddingClusterGap) {
+            ForEach(items) { item in
+                PaneIconTab(
+                    id: item[keyPath: idKeyPath],
+                    icon: item[keyPath: iconKeyPath],
+                    label: item[keyPath: labelKeyPath],
+                    isSelected: item[keyPath: idKeyPath] == selection,
+                    namespace: namespace,
+                    namespaceID: namespaceID,
+                    onTap: { selection = item[keyPath: idKeyPath] }
+                )
+            }
+            // Trailing buttons: pushed to the right edge via Spacer
+            // (= independent of how many tabs the pane has = always
+            // sits at the rightmost position). Apple HIG canonical
                 // toolbar pattern (toolbars.action buttons at trailing edge).
                 // v0.30 ponytail fix v2: remove `Trailing.self == EmptyView.self`
                 // check (= always render trailing). Previous code skipped
@@ -158,8 +161,7 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
                 // pass nil).
                 Spacer(minLength: 0)
                 trailing()
-            }
-            // v0.34 boss 2026-09-02 OOB '父组件需要定一下, 左右间距对称':
+            // v0.34 boss 2026-09-02 OOB 'groupneed, ':
             // the PaneTabBar chrome parent controls the symmetric outer
             // inset. Previously (.padding(.leading, chromePaddingLeading)
             // only) the inner HStack was left-aligned with 18 PT left
@@ -167,17 +169,20 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
             // the 6 zones). Apple HIG canonical toolbar = symmetric
             // outer edge inset (Photos / Music / Mail tab bar use the
             // same leading + trailing value). Now both sides use
-            // chromePaddingLeading (= 18 PT) = Apple HIG symmetric.
+            // chromePaddingLeading (= 8 PT = Apple HIG canonical
+            // 'Spacing.small' for inline toolbar items per boss 9/8
+            // 'Apple API default spacing isn't PT, it's a semantic
+            // name' = the semantic name is '.small' = 8 PT) =
+            // Apple HIG symmetric.
             .padding(.horizontal, DesignTokens.chromePaddingLeading)
             // ponytail fix: the inner HStack had only intrinsic width
             // (= sum of children), so the Spacer(minLength: 0) before
             // trailing() had zero extra space to consume = trailing
             // collapsed to sit immediately after the last tab. Adding
             // .frame(maxWidth: .infinity) forces the inner HStack to
-            // fill the outer RegionTabBar's full width (= RegionTabBar
-            // already has .frame(maxWidth: .infinity) on its outer
-            // HStack), giving the Spacer real horizontal space to
-            // expand into = trailing button pushed to the right edge.
+            // fill the pane's full width (= gives the Spacer real
+            // horizontal space to expand into = trailing button pushed
+            // to the right edge).
             .frame(maxWidth: .infinity)
         }
         .animation(.default, value: selection)

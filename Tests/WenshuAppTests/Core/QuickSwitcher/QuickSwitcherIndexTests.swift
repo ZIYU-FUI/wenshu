@@ -33,14 +33,14 @@ struct QuickSwitcherIndexTests {
 
     @Test("fuzzy 缩写匹配 (e.g. 'ldy' → '林黛玉' 不行)")
     func fuzzyAbbrev() {
-        // 'ldy' 字符序在 '林黛玉' 里都存在 (l/d/y vs 林/黛/玉), 但 'l' 不在
+        // 'ldy' ' (l/d/y vs //), 'l'
         #expect(QuickSwitcherIndex.fuzzyScore(query: "ldy", text: "林黛玉") == nil)
     }
 
     @Test("fuzzy 大小写不敏感")
     func fuzzyCaseInsensitive() {
-        #expect(QuickSwitcherIndex.fuzzyScore(query: "LINDAI", text: "林黛玉") == nil)  // 中文无大小写
-        #expect(QuickSwitcherIndex.fuzzyScore(query: "Chapter 1", text: "chapter 1") == 1000)  // 英文大小写不敏感
+        #expect(QuickSwitcherIndex.fuzzyScore(query: "LINDAI", text: "林黛玉") == nil)  // in progresssize
+        #expect(QuickSwitcherIndex.fuzzyScore(query: "Chapter 1", text: "chapter 1") == 1000)  // size
     }
 
     @Test("search 空 query 返回空")
@@ -71,9 +71,9 @@ struct QuickSwitcherIndexTests {
     @Test("search 包含匹配 + 完全匹配混合")
     func searchMixed() {
         let items = [
-            SwitcherItem(id: "1", title: "Chapter One"),     // 完全匹配
-            SwitcherItem(id: "2", title: "My Chapter"),     // 包含匹配
-            SwitcherItem(id: "3", title: "Random Note"),     // 不匹配
+            SwitcherItem(id: "1", title: "Chapter One"),     //
+            SwitcherItem(id: "2", title: "My Chapter"),     //
+            SwitcherItem(id: "3", title: "Random Note"),     //
         ]
         let results = QuickSwitcherIndex.search(query: "Chapter", in: items)
         #expect(results.count == 2)

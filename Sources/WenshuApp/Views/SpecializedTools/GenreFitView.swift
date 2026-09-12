@@ -77,7 +77,6 @@ struct GenreFitView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             pickerRow
             inputSection
             Divider()
@@ -88,40 +87,9 @@ struct GenreFitView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(DesignTokens.chromePaddingMedium)
         .task {
             ensureAnalyzer()
-        }
-    }
-
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("book-marked", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Genre Fit")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch status {
-        case .idle:
-            return "Paste a finished chapter and pick a genre to score how well it fits the conventions."
-        case .running:
-            return "Scoring \(selectedGenre.displayName)…"
-        case .failed(let reason):
-            return "Failed: \(reason)"
         }
     }
 
@@ -129,7 +97,7 @@ struct GenreFitView: View {
 
     private var pickerRow: some View {
         HStack(spacing: 8) {
-            Text("Genre")
+            Text(WenshuI18n.t("b5.genrefitview.l132.h73166390"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Picker("", selection: $selectedGenre) {
@@ -154,40 +122,37 @@ struct GenreFitView: View {
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text("Chapter text")
+                Text(WenshuI18n.t("b5.genrefitview.l157.h55071280"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
-                Text("\(chapterText.count) chars")
+                Text(WenshuI18n.t("b5.genrefitview.l161.h19367178"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
             TextEditor(text: $chapterText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
-                .padding(6)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(.quaternary)
-                )
+                .padding(DesignTokens.chromePaddingSmall)
+                
             HStack(spacing: 8) {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label(WenshuI18n.t("button.analyze"), systemImage: "play")
+                    Label { Text(WenshuI18n.t("button.analyze")) } icon: { LucideIcon("play", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
-                .help("Score the chapter against \(selectedGenre.displayName) conventions.")
+                .help(WenshuI18n.t("b5.genrefitview.l181.h2218881"))
                 Button {
                     chapterText = ""
                     report = nil
                     status = .idle
                 } label: {
-                    Label(WenshuI18n.t("button.clear"), systemImage: "x")
+                    Label { Text(WenshuI18n.t("button.clear")) } icon: { LucideIcon("x", size: 16) }
                 }
                 .buttonStyle(.bordered)
-                .help("Clear the input text and the last report.")
+                .help(WenshuI18n.t("b5.genrefitview.l190.h26662967"))
                 Spacer(minLength: 0)
             }
         }
@@ -196,16 +161,21 @@ struct GenreFitView: View {
     // MARK: - Result
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("No report yet")
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text("Paste a chapter, pick a genre, and tap Analyze. The genre-fit analyzer evaluates the draft against the genre's required beats + expected vocabulary + forbidden patterns, and returns a 0–100 score with matched / missing / forbidden lists.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "book-marked",
+            title: WenshuI18n.t("b5.genrefitview.l200.h95444806"),
+            body: WenshuI18n.t("b5.genrefitview.l203.h79122074")
+        )
     }
+
 
     private func resultSection(for report: GenreFitReport) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -221,43 +191,40 @@ struct GenreFitView: View {
             HStack(alignment: .top, spacing: 12) {
                 column(title: "Matched beats (\(report.matchedBeats.count))",
                        items: report.matchedBeats,
-                       tint: Color(nsColor: .systemGreen))
+                       tint: Color.green)
                 column(title: "Missing beats (\(report.missingBeats.count))",
                        items: report.missingBeats,
-                       tint: Color(nsColor: .systemOrange))
+                       tint: Color.orange)
             }
             HStack(alignment: .top, spacing: 12) {
                 column(title: "Expected vocab used (\(report.expectedVocabUsed.count))",
                        items: report.expectedVocabUsed,
-                       tint: Color(nsColor: .systemBlue))
+                       tint: Color.blue)
                 column(title: "Expected vocab missing (\(report.expectedVocabMissing.count))",
                        items: report.expectedVocabMissing,
-                       tint: Color(nsColor: .systemGray))
+                       tint: Color.gray)
             }
             column(title: "Forbidden hits (\(report.forbiddenHits.count))",
                    items: report.forbiddenHits,
-                   tint: Color(nsColor: .systemRed))
+                   tint: Color.red)
         }
-        .padding(10)
+        .padding(DesignTokens.chromePaddingPickerItem)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(.quaternary)
-        )
+        
     }
 
     private func scoreBadge(_ score: Double) -> some View {
         let pct = Int(score.rounded())
         let color: Color = {
-            if score >= 70 { return Color(nsColor: .systemGreen).opacity(0.22) }
-            if score >= 40 { return Color(nsColor: .systemOrange).opacity(0.22) }
-            return Color(nsColor: .systemRed).opacity(0.22)
+            if score >= 70 { return Color.green.opacity(0.22) }
+            if score >= 40 { return Color.orange.opacity(0.22) }
+            return Color.red.opacity(0.22)
         }()
-        return Text("score \(pct)/100")
+        return Text(WenshuI18n.t("b5.genrefitview.l256.h78050164"))
             .font(.caption2)
             .foregroundStyle(.primary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
+            .padding(.horizontal, DesignTokens.chromePaddingSmall)
+            .padding(.vertical, DesignTokens.chromePaddingPico)
             .background(
                 RoundedRectangle(cornerRadius: 3)
                     .fill(color)
@@ -271,7 +238,7 @@ struct GenreFitView: View {
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
                 if items.isEmpty {
-                    Text("(none)")
+                    Text(WenshuI18n.t("b5.genrefitview.l274.h53280066"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 } else {
@@ -279,8 +246,8 @@ struct GenreFitView: View {
                         HStack(alignment: .top, spacing: 6) {
                             Circle()
                                 .fill(tint)
-                                .frame(width: 6, height: 6)
-                                .padding(.top, 5)
+                                .frame(width: DesignTokens.bulletSizeTiny, height: DesignTokens.bulletSizeTiny)
+                                .padding(.top, DesignTokens.chromePaddingXS)
                             Text(item)
                                 .font(.caption)
                                 .foregroundStyle(.primary)

@@ -138,11 +138,34 @@ public actor ContextEngine {
         // tmp path instead. Each ContextEngine call gets its own
         // handle (= no cross-test contamination); the file is cleaned
         // by the OS once the process exits.
-        // SQLite's tmp-file path is supported across every platform
-        // wenshu ships on, so we force-try here (= a sane precondition;
-        // any failure indicates the build itself is broken).
+        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
+        // replaced `try! MemoryStore(...)` (= would crash the agent
+        // session on /tmp unwritable or SQLite open failure) with
+        // explicit do/catch + fallback chain. Last-resort is the
+        // SQLite `:memory:` DSN (= always supported; = no disk side
+        // effects). The chain is: /tmp tmpfile → default-init
+        // MemoryStore → :memory: DSN → preconditionFailure (= the
+        // same fatal as the previous try! but with logging).
         let path = "/tmp/wenshu-contextengine-\(UUID().uuidString).sqlite"
-        let store = try! MemoryStore(path: path)
+        let store: MemoryStore
+        do {
+            store = try MemoryStore(path: path)
+        } catch {
+            NSLog("[wenshu.contextEngine] makeDefaultMemoryManager /tmp path failed: %@", String(describing: error))
+            do {
+                store = try MemoryStore()
+            } catch {
+                NSLog("[wenshu.contextEngine] makeDefaultMemoryManager default init also failed: %@", String(describing: error))
+                // Last resort: try `:memory:` DSN via path (= always
+                // supported per SQLite docs; = no disk side effect).
+                do {
+                    store = try MemoryStore(path: ":memory:")
+                } catch {
+                    NSLog("[wenshu.contextEngine] makeDefaultMemoryManager :memory: also failed (= SQLite runtime broken): %@", String(describing: error))
+                    preconditionFailure("ContextEngine.makeDefaultMemoryManager: cannot construct any MemoryStore (= /tmp unwritable + default init failed + :memory: failed = SQLite runtime is broken)")
+                }
+            }
+        }
         try? await store.bootstrap()
         return MemoryManager(store: store)
     }

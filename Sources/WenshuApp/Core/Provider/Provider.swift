@@ -129,7 +129,7 @@ public struct Provider: Identifiable, Hashable, Sendable {
         defaultBaseURL: "https://api.anthropic.com",
         apiMode: "anthropic_messages",
         authHeader: .xApiKey,
-        defaultModels: ["claude-opus-4-20250514", "claude-sonnet-4-20250514"]
+        defaultModels: ["claude-opus-4-20250514", "claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022"]
     )
 
     public static let custom = Provider(

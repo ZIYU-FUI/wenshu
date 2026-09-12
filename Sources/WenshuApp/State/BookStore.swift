@@ -1,9 +1,9 @@
-// BookStore.swift · Wenshu (文枢) · v0.26 (FCP library replica) + B-13 scope unification
+// BookStore.swift · Wenshu () · v0.26 (FCP library replica) + B-13 scope unification
 //
-// Single BookStore @Observable singleton (= boss 8/26 OOB "反面 apple 标
+// Single BookStore @Observable singleton (= boss 8/26 OOB " apple
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// 准实现是对的, 符合苹果的标准" + "用最少的代码, 符合苹果的标准, 实现
-// 最好"). Holds the per-book in-memory state (= the 10 standard entries
+// yescorrect, " + ",,
+// ok"). Holds the per-book in-memory state (= the 10 standard entries
 // per book + per-book JSON data: kanban + todo + the 8 folder indexes).
 //
 // Switching books triggers BookStore.reload(bookId:) which reads the
@@ -56,10 +56,10 @@ final class BookStore: @unchecked Sendable {
     /// save on change).
     var shelves: [Bookshelf] = []
 
-    /// B-07 015.019 (boss 2026-09-04 OOB '往后推进'): reactive
+    /// B-07 015.019 (boss 2026-09-04 OOB '): reactive
     /// flat list of every book across every shelf (= mirrors the
     /// result of `sidebarLoadAllBooks()`). Views that need a
-    /// live book count (= projectSidebar bottom status "书: N")
+    /// live book count (= projectSidebar bottom status ": N")
     /// bind to `books.count` instead of running an inline
     /// `FileManager.contentsOfDirectory` scan at render time.
     /// Sorted by `createdAt` ascending (= matches the order the
@@ -130,7 +130,7 @@ final class BookStore: @unchecked Sendable {
         currentBook = nil
     }
 
-    /// v0.30 boss OOB '为什么角色, 世界观, 后面没有显示数字': count .md
+    /// v0.30 boss OOB ',, show': count .md
     /// files directly by folder directory name. Doesn't require
     /// BookCategory (= which only has 3 cases = chapter/setting/research;
     /// the 5 user-facing folders use custom directory names like
@@ -373,11 +373,11 @@ extension BookStore {
 //
 // Boss 2026-09-04 OOB:
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//   - "这两个看板都有同一个问题, 只识别书的目录, 书的子目录, 按说也是书的
-//     目录, 不支持" — the old `bookDirectory(bookId:)` only resolved the
+// - "kanbanissue, directory, directory, yes
+// directory, " — the old `bookDirectory(bookId:)` only resolved the
 //     book root. The 8 standard sub-folders (= `chapters/` etc.) and the
 //     `reference-library/` root are now valid scope targets too.
-//   - "资料库也不支持" — the reference library (= `reference-library/`
+// - "" — the reference library (= `reference-library/`
 //     at the workspace root) is added as `TaskScope.referenceLibrary`
 //     (= its own kanban / todo JSON files at the library root).
 //
@@ -451,7 +451,7 @@ public enum TaskScope: Hashable, Identifiable, Sendable {
     }
 
     /// All 8 standard sub-folder scopes (= the entries the picker
-    /// shows between "全书" and "资料库" when a book is active).
+    /// shows between "" and "" when a book is active).
     public static func folderScopes() -> [TaskScope] {
         StandardBookFolder.allCases.map { .folder($0) }
     }

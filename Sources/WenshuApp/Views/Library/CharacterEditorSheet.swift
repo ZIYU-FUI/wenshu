@@ -1,7 +1,7 @@
-// CharacterEditorSheet.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// CharacterEditorSheet.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Editor sheet for a single character. Per boss 2026-08-26 OOB
-// '人物设定' = each character has name + role + narrative arc +
+// ' = each character has name + role + narrative arc +
 // summary. Color-coded by role (Apple HIG semantic color convention,
 // mirrors FCP Role's color pattern).
 //
@@ -49,13 +49,13 @@ struct CharacterEditorSheet: View {
             .padding()
             Divider()
             Form {
-                Section("基本信息") {
-                    TextField("姓名", text: $name)
+                Section(WenshuI18n.t("auto2.charactereditorsheet.l52.h28107626")) {
+                    TextField(WenshuI18n.t("character_editor.name_field"), text: $name)
                         .textFieldStyle(.roundedBorder)
                     HStack {
-                        TextField("年龄 (可选)", text: $ageText)
+                        TextField(WenshuI18n.t("auto2.charactereditorsheet.l56.h53671324"), text: $ageText)
                             .textFieldStyle(.roundedBorder)
-                            .frame(width: 120)
+                            .frame(width: DesignTokens.formColumnWidth)
                         Picker("角色定位", selection: $role) {
                             ForEach(CharacterRole.allCases, id: \.self) { r in
                                 Label(r.displayName, systemImage: r.icon)
@@ -65,13 +65,13 @@ struct CharacterEditorSheet: View {
                         .pickerStyle(.menu)
                     }
                 }
-                Section("叙事弧 (主角从 a 状态经过 b 事件最终 c 状态)") {
-                    TextField("叙事弧 (可选)", text: $arc, axis: .vertical)
+                Section(WenshuI18n.t("auto2.charactereditorsheet.l68.h34370280")) {
+                    TextField(WenshuI18n.t("auto2.charactereditorsheet.l69.h8473413"), text: $arc, axis: .vertical)
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
                 }
-                Section("摘要 (一行的中心思想)") {
-                    TextField("摘要", text: $summary, axis: .vertical)
+                Section(WenshuI18n.t("auto2.charactereditorsheet.l73.h486167")) {
+                    TextField(WenshuI18n.t("character_editor.summary_field"), text: $summary, axis: .vertical)
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
                 }
@@ -79,9 +79,9 @@ struct CharacterEditorSheet: View {
             .formStyle(.grouped)
             Divider()
             HStack {
-                Button("取消", role: .cancel) { onCancel() }
+                Button(WenshuI18n.t("auto2.charactereditorsheet.l82.h78730154"), role: .cancel) { onCancel() }
                 Spacer()
-                Button("保存") { save() }
+                Button(WenshuI18n.t("auto2.charactereditorsheet.l84.h77095521")) { save() }
                     .buttonStyle(.borderedProminent)
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .keyboardShortcut(.defaultAction)

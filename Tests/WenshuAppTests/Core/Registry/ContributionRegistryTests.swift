@@ -1,7 +1,7 @@
-// ContributionRegistryTests.swift · Wenshu (文枢) · v0.28 followup TKT-028-013
+// ContributionRegistryTests.swift · Wenshu () · v0.28 followup TKT-028-013
 //
 // Tests for the contribution registry pattern (= hermes pane-shell
-// verbatim port). Boss 2026-08-29 OOB '完整复刻 hermes app'.
+// verbatim port). Boss 2026-08-29 OOB ' hermes app'.
 
 import XCTest
 import SwiftUI

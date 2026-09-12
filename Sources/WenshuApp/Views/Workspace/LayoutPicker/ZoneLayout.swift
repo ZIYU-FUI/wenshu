@@ -1,12 +1,12 @@
 //
-//  ZoneLayout.swift · Wenshu (文枢) · B-07 ticket 028-003
+// ZoneLayout.swift · Wenshu () · B-07 ticket 028-003
 //
 //  Single source of truth for which `TabKind` (= which functional
 //  module / pane) ships into which `ZoneSlot` (= which of the six
 //  zones in wenshu's default 6-zone layout).
 //
 //  Replaces the implicit, hard-coded mapping that lived inside
-//  `WorkspaceStore.builtinDefaultPreset()` (= the FCP-Browser /
+//  `LayoutTreeStore.builtinDefaultPreset()` (= the FCP-Browser /
 //  6-zone preset shipped in v0.30) with an explicit, testable
 //  data structure. Future 028-005 followup will have the preset
 //  read `PaneZoneLayout.default.mapping` instead of re-stating the

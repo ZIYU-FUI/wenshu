@@ -1,4 +1,4 @@
-// FileSystemReferenceStore.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// FileSystemReferenceStore.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Reference-library storage layer (= ticket 006 of the FCP library
 // replica spec).
@@ -163,14 +163,35 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
         do {
             let data = try Data(contentsOf: indexURL)
-            // v0.29 boss 2026-08-30 OOB: support ISO8601 string dates
-            // (= how Reference is serialized in entities.json). Swift's
-            // default decoder uses Double (= Unix timestamp) which fails
-            // for ISO8601. Set .iso8601 strategy so we accept both.
+            // Support BOTH date encodings on read (= writeIndex uses
+            // the default JSONEncoder which serializes Date as a Double
+            // Unix timestamp; some legacy seed scripts / external tools
+            // write ISO8601 strings). The default `.iso8601` strategy
+            // only accepts ISO8601 strings — it would silently fail
+            // (= swallowed by the catch below → [] returned) for files
+            // written by writeIndex, breaking the save→load roundtrip.
+            // The closure below tries ISO8601 first, falls back to a
+            // Unix timestamp Double.
             let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
+            let isoFormatter = ISO8601DateFormatter()
+            isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let isoFormatterNoFractional = ISO8601DateFormatter()
+            isoFormatterNoFractional.formatOptions = [.withInternetDateTime]
+            decoder.dateDecodingStrategy = .custom { dec in
+                let container = try dec.singleValueContainer()
+                if let double = try? container.decode(Double.self) {
+                    return Date(timeIntervalSince1970: double)
+                }
+                let raw = try container.decode(String.self)
+                if let d = isoFormatter.date(from: raw) { return d }
+                if let d = isoFormatterNoFractional.date(from: raw) { return d }
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Date string '\(raw)' is neither ISO8601 nor numeric"
+                )
+            }
             let references = try decoder.decode([Reference].self, from: data)
-            // v0.30 boss 8/31 OOB: normalize nil category to .z (= 其它)
+            // v0.30 boss 8/31 OOB: normalize nil category to .z (=)
             // so unclassified references always show up in the sidebar
             // under the catch-all category. The on-disk file remains
             // unchanged (= category field still serialized as null);
@@ -286,22 +307,22 @@ struct FileSystemReferenceStore: ReferenceStoring {
     /// v0.29 boss 2026-08-30 OOB: when saving an entity (= layer == .layerEntities)
     /// with a category, ensure the category subdirectory exists. The category
     /// folder is created LAZILY (= only when the first entity in that category
-    /// is saved). This is the "增量" rule (= boss: '分类文件夹随着内容
+    /// is saved). This is the "" rule (= boss: 'folder
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 逐渐增加, 而不是一下子铺满').
+    ///, yes').
     ///
     /// v0.30 boss 8/31 OOB: when category is nil (= unclassified entity
     /// OR raw material that the user hasn't tagged), route to the
-    /// `.z` (= 其它) catch-all category instead of falling back to
-    /// the flat layer dir. Boss reported '资料库下级目录缺一个其它
-    /// 分类' — entities with nil category were invisible in the
+    /// `.z` (=) catch-all category instead of falling back to
+    /// the flat layer dir. Boss reported 'directory
+    /// ' — entities with nil category were invisible in the
     /// sidebar but still counted (= hidden count).
     private func ensureEntityCategoryDirectoryExists(
         category: EntityCategory?,
         layer: ReferenceLayer
     ) throws {
         guard layer == .layerEntities else { return }
-        // v0.30 boss 8/31 OOB: nil category now routes to .z (= 其它)
+        // v0.30 boss 8/31 OOB: nil category now routes to .z (=)
         // so unclassified entities have a visible sidebar bucket.
         let effectiveCategory = category ?? .z
         let categoryDir = referenceLibraryRoot
@@ -319,6 +340,27 @@ struct FileSystemReferenceStore: ReferenceStoring {
             try FileManager.default.removeItem(at: url)
         }
         try FileManager.default.moveItem(at: tmpURL, to: url)
+        // Force the kernel to flush both the file's data and its parent
+        // directory's directory-entry update to stable storage before
+        // we return. Without this, a subsequent `fileExists` / open /
+        // `Data(contentsOf:)` from a sibling call (= e.g. the immediate
+        // `loadReferences(layer:)` right after `saveReference` calls
+        // `writeIndex`) can race against the kernel's deferred-write
+        // pipeline and see stale state (= file not yet visible, or
+        // contents empty) on macOS. fsync on the file + the parent
+        // directory's fd closes the race for callers that depend on
+        // causal write-then-read ordering.
+        let fd = open(url.path, O_RDONLY)
+        if fd >= 0 {
+            fsync(fd)
+            close(fd)
+        }
+        let parentDir = url.deletingLastPathComponent().path
+        let parentFd = open(parentDir, O_RDONLY)
+        if parentFd >= 0 {
+            fsync(parentFd)
+            close(parentFd)
+        }
     }
 
     private func writeIndex(_ references: [Reference], for layer: ReferenceLayer) throws {

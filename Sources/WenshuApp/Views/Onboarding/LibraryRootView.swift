@@ -18,7 +18,7 @@
 //  LibraryRootView behavior:
 //  1. If 'wenshu.libraryPath' NOT set → show LibraryOnboardingView (NSOpenPanel)
 //  2. If 'wenshu.libraryPath' set → show LayoutShellView (main app)
-//  3. User can change library via Settings → '更换仓库' button (future)
+// 3. User can change library via Settings → ' button (future)
 //
 //  Wenshu repository folder structure (planned for ticket 5):
 //  - repository root/             = the repository (selected location)
@@ -46,7 +46,19 @@ import UniformTypeIdentifiers
 ///   drive) → onboarding (re-pick)
 /// - else (= path set + path exists) → main app LayoutShellView
 public struct LibraryRootView: View {
+    // v0.44 M8.1: LibraryRootView now owns the library + appearance
+    // bindings (= were previously held by the now-removed
+    // SettingsEnvironmentCapturer wrapper). The root view
+    // receives them as constructor parameters from the App's
+    // WindowGroup (= single source of truth = AppRootScene).
+    let library: WenshuLibrary
+    let appearanceMode: AppearanceMode
     @AppStorage("wenshu.libraryPath") private var libraryPath: String = ""
+
+    init(library: WenshuLibrary, appearanceMode: AppearanceMode) {
+        self.library = library
+        self.appearanceMode = appearanceMode
+    }
 
     private var shouldShowOnboarding: Bool {
         // v0.24 boss acceptance fix (Boss 8/24 OOB): trigger condition strict.
@@ -58,14 +70,14 @@ public struct LibraryRootView: View {
         // Trigger = libraryPath empty OR path doesn't end with '.ws' OR
         // .ws directory doesn't exist on disk.
         //
-        // v0.24 boss验收fix #2 (Boss 8/24 OOB follow-up): 之前 trigger only
-        // checked path existence, too lax. Boss 之前 saved '/Users/anbaiqiang/Documents'
+        // v0.24 bossverificationfix #2 (Boss 8/24 OOB follow-up): trigger only
+        // checked path existence, too lax. Boss saved '/Users/anbaiqiang/Documents'
         // (= parent folder, not anbaiqiang.ws file) → existed on disk → trigger
-        // passed → main UI shown, even though no .ws file 实际 created.
+        // passed → main UI shown, even though no .ws file created.
         // v0.26 amendment: .ws is a DIRECTORY (not file); require path ends
         // with '.ws' AND directory exists AND Info.plist is readable.
         if libraryPath.isEmpty { return true }
-        // v0.24 boss验收fix: must end with .ws extension
+        // v0.24 bossverificationfix: must end with .ws extension
         if !libraryPath.hasSuffix(".ws") { return true }
         // Directory must exist (v0.26: .ws is a directory, not a file)
         var isDir: ObjCBool = false
@@ -78,231 +90,136 @@ public struct LibraryRootView: View {
         return false
     }
 
-    public var body: some View {
-        Group {
-            if shouldShowOnboarding {
-                LibraryOnboardingView(onLibraryPicked: { url in
-                    libraryPath = url.path
-                })
-            } else {
-                // v0.27 wiring: run the LibraryLifecycleHook at layout entry.
-                // - LibraryMigrator.migrateIfNeeded (= v0.x → v0.26)
-                // - LibraryBootstrapper.ensureValidStructure (= self-heal)
-                // - Construct LibraryStores + BookStore (= single @Observable)
-                // - Inject BookStore via .environment for LayoutShellView + child views
-                WiredShell(libraryPath: libraryPath)
-                    // P2 #20 (WIRE-LIBRARIAN-001): one-line hint telling
-                    // the user they can ask the chat to create / rename /
-                    // delete books via the slash command. Rendered as a
-                    // thin top banner above the WiredShell content so
-                    // the hint is visible immediately after the library
-                    // is opened (= before the user opens the chat zone).
-                    .safeAreaInset(edge: .top) {
-                        ChatBookManagerHint()
-                    }
-            }
-        }
-    }
-}
-
-/// P2 #20 (WIRE-LIBRARIAN-001): one-line hint surfaced above the
-/// WiredShell layout that tells the user the chat surface can
-/// create / rename / delete books via a slash command. Apple HIG
-/// "single-purpose banner" pattern (= thin, non-modal, dismissable
-/// by scrolling). Lives in `LibraryRootView.swift` (= the only
-/// file the WIRE-LIBRARIAN-001 ticket allows touching) so the
-/// hint is visible the moment the library is opened, without
-/// requiring the user to navigate to the chat zone first.
-private struct ChatBookManagerHint: View {
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "wand.and.stars")
-                .font(.caption)
-            Text("Tell the chat to create a book: e.g. ")
-                .font(.caption)
-            Text("/create-book My new novel")
-                .font(.caption.monospaced())
-                .foregroundStyle(.tint)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.thinMaterial)
-        .overlay(alignment: .bottom) {
-            Divider()
-        }
-    }
-}
-
-/// v0.27 wiring wrapper (= isolated to keep LibraryRootView's body
-/// simple). Constructs the BookStore via LibraryLifecycleHook and
-/// provides it via @Environment.
-private struct WiredShell: View {
-    let libraryPath: String
+    // v0.47 boss 2026-09-09 OOB 'fix the layer count to Apple canonical':
+    // the state below was owned by the WiredShell wrapper struct, which
+    // sat between LibraryRootView and NavigationSplitShell. That wrapper
+    // is gone; its state and its launch task live here now, so the view
+    // hierarchy is WindowGroup -> LibraryRootView -> NavigationSplitView
+    // -> column body = the Apple canonical 4 layers.
+    @Environment(AppState.self) private var appState
     @State private var bookStore: BookStore?
-    // v0.27 ticket 027-34 (= boss 8/27 grill D1 'Xcode paradigm +
-    // user-customizable layout'): feature flag toggles between the
-    // legacy LayoutShellView and the new WorkspaceView (= wraps the
-    // WorkspaceStore).
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    // v0.30 boss 8/30 OOB: '我看截图, 你把库管理顶栏右边的新建和导入按钮
-    // 改掉了' = trailing 新建/导入 buttons were MISSING in LayoutShellView
-    // path's screenshots because LayoutShellView uses ZoneModule (=
-    // no ZoneContentView trailingButton slot). Flipping default to
-    // true = WorkspaceView path (= has ZoneContentView trailingButton
-    // wiring per App.swift:2626 + v0.27 commit bca226704) = trailing
-    // buttons render correctly.
-    // v0.30 boss 8/31 OOB: removed the legacy useWorkspace toggle
-    // (= no Settings/View writes to the AppStorage flag, so it was
-    // always-true dead code). WorkspaceStore is constructed once
-    // per WiredShell lifetime; its UserDefaults round-trip preserves
-    // state across launches.
-    @State private var workspaceStore: WorkspaceStore? = nil
-    // v0.28 followup Boss UX round 4: zone visibility flags (= for the
-    // macOS native toolbar zone toggle buttons). Mirrors LayoutShellView's
-    // @AppStorage declarations (= same UserDefaults keys so state is
-    // shared across paths).
-    // B-05: `wenshu.zoneVisible.*` are now owned by WorkspaceStore
-    // (single source of truth). The 5 @AppStorage declarations below
-    // were dead (= the hand-rolled toolbar block that toggled them
-    // was removed by the v0.34 toolbar flatten). The actual
-    // hide/show is driven by `.wenshuToggleZone` notifications read
-    // by `PaneNSController.applyPersistedZoneVisibility()` at startup
-    // (= reads UserDefaults directly, no SwiftUI property wrapper
-    // dance on the AppKit side) and `WorkspaceStore.resetToDefault()`
-    // clears them on '恢复默认布局'.
-    //
-    // v0.28 followup Boss UX round 4: model name (= for the model picker
-    // icon in the macOS native toolbar). Mirrors SettingsEnvironmentCapturer's
-    // modelName definition (= same UserDefaults key "wenshu.llm.model").
-    // B-05: `wenshu.llm.model` now has a single owner =
-    // AppState.llmModel. The dead `modelName` @AppStorage declaration
-    // (= removed by the v0.34 toolbar flatten) is dropped. The model
-    // picker reads `appState.llmModel` directly via
-    // `@Environment(AppState.self)`.
+    @State private var commandPaletteModel = CommandPaletteModel()
+    @State private var commandPaletteVisible: Bool = false
+    @State private var editMode = LayoutEditMode()
+    @Environment(\.openSettings) private var openSettings
 
-    var body: some View {
-        Group {
-            if let bookStore = bookStore {
-                // WorkspaceView path (= v0.28 followup).
-                // WorkspaceStore is constructed once per
-                // WiredShell lifetime (= a new instance per
-                // window); its UserDefaults round-trip preserves
-                // state across launches.
-                if workspaceStore == nil {
-                    // Defer to a single task so we don't mutate
-                    // @State during view update.
-                    Color.clear
-                        .task { workspaceStore = WorkspaceStore() }
-                } else if let workspaceStore = workspaceStore {
-                    WorkspaceView(store: workspaceStore)
-                        .environment(bookStore)
-                }
-            } else {
-                ProgressView("正在启动文枢…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    public var body: some View {
+        // No Group wrapper: a @ViewBuilder computed property is inlined
+        // by the result builder, so `content` costs zero view layers,
+        // while `Group { ... }` is a real View in the hierarchy.
+        content
+            .environment(library)
+            .preferredColorScheme(appearanceMode.colorScheme)
+            // v0.74 boss 2026-09-10 OOB '这个库文件名也不需要显示':
+            // drop the `.navigationSubtitle(libraryPath.lastPathComponent)`.
+            // It was originally added (= ticket 008, commit a0e9b509d) to
+            // match Apple's Pages / Numbers 'document basename in the
+            // window subtitle' pattern, but per the boss's most recent
+            // visual iteration the column-top subtitle (= 'anbaiqiang.ws'
+            // in the screenshot) is noise on a single-library app (= the
+            // user knows which library they opened = the .ws picker is
+            // onboarding-only = no per-document title bar is needed).
+            // Per Apple HIG Inventory 2026-09-06 the API is still
+            // available for future use (= .navigationSubtitle remains
+            // imported at the call site below via SwiftUI re-export;
+            // = we just don't call it from this root view anymore).
+            // v0.81 boss 2026-09-10 OOB 'inspector toggle button':
+            // REMOVED. Per boss 2026-09-10 OOB 'Apple Pages/Numbers/
+            // Keynote 不隐藏右栏' + 'Apple 没给右栏默认折叠按钮',
+            // inspector is permanently visible (= no toggle, no
+            // hide affordance). NavigationSplitShell wires
+            // `.inspector(isPresented: .constant(true))`; this
+            // toolbar toggle was the wrong abstraction (= it tried
+            // to expose a feature Apple does not expose in office
+            // apps). The toolbar now hosts only wenshu's own
+            // chrome (= no NSV-default buttons added).
+            .task(id: libraryPath) { await runLaunch() }
+            .sheet(isPresented: $commandPaletteVisible) {
+                CommandPaletteView(model: commandPaletteModel)
+                    .navigationTitle(WenshuI18n.t("command_palette.title"))
             }
-        }
-// v0.28 followup Boss UX round 13 (Boss 2026-08-29 OOB '没有
-        // 分组, 分好组'): Use ToolbarItemGroup(= segmented Liquid
-        // Glass capsule per group, the canonical macOS 26 Tahoe
-        // pattern). Each group = 1 visually-grouped capsule with a
-        // gap between groups (= matches Apple Pages / Xcode / Finder
-        // toolbar style exactly). 3 groups:
-        // - Group 1: 5 zone toggles (sidebar/preview/tools/chat/dynamic)
-        // - Group 2: model picker (= separate capsule after the zone-toggle group)
-        // - Group 3: export (= rightmost, third capsule)
-        // v0.30 boss 2026-09-01 OOB (zone toggle fix): the 5 toolbar
-        // zone-toggle buttons below were toggling only the @AppStorage
-        // booleans (= button tint flipped but the NSSplitView layout
-        // never reacted, because nothing read those keys). The actual
-        // hide/show is driven by `.wenshuToggleZone` notifications
-        // (= PaneNSController.swift:390 handleToggleZone matches the
-        // NSSplitViewItem by TabKind and flips `isCollapsed`).
-                // v0.34 boss 2026-09-02 OOB '用 apple api 的都用 api' (= zero-
-                // config iron rule #9): the wenshu topbar's hand-rolled `.toolbar
-                // { ToolbarItemGroup(placement: .primaryAction) { Button... } }`
-                // block (= 5 zone-toggle Buttons + model + export, each emitting
-                // NotificationCenter.post + keyboard shortcut) DUPLICATED the
-                // canonical macOS menu entries (= App.swift:489-535
-                // CommandGroup(after: .sidebar) — 5 zone-toggle Button + reset
-                // + edit-mode, same ⌘⇧1/2/3/4/R/\ shortcuts).
-                //
-                // Apple HIG canonical: 1 surface per action. The menu bar
-                // (= with ⌘⇧ shortcuts) IS the canonical topbar. Every macOS
-                // app since Finder puts zone controls in the menu bar, NOT in a
-                // custom in-window toolbar. The hand-rolled wenshu toolbar block
-                // was the second source of truth (= 5 Button labels + icons
-                // duplicated what .commands already provides).
-                //
-                // = deleted the hand-rolled toolbar block entirely (= single
-                // source of truth = App.swift .commands). Apple canonical menu
-                // bar + SwiftUI native .toolbar (empty) = correct.
-                //
-                // The 5 @AppStorage('wenshu.zoneVisible.*') Bool + modelName
-                // (above) were dead too (= previously only .toggle()'d by the
-                // deleted toolbar block, no other reader). Kept for now
-                // (WorkspaceView reads them at cold-launch for persistence
-                // restoration; see App.swift:498-513 comment for the canonical
-                // single-source-of-truth wiring).
-                //
-                // B-05 update: the 'Kept for now' clause above is now
-                // resolved (= the dead declarations were removed
-                // entirely). Persistence for `wenshu.zoneVisible.*` is
-                // owned by WorkspaceStore (single source of truth,
-                // reset in `WorkspaceStore.resetToDefault()`) and
-                // applied on startup by
-                // `PaneNSController.applyPersistedZoneVisibility()`.
-                // The `wenshu.llm.model` value is owned by
-                // `AppState.llmModel` (= the canonical @Observable
-                // owner, see AppState.swift for the full rationale).
-                //
-                // NOTE: v0.28 followup Boss UX round 11 attempted to remove
-                // the Liquid Glass capsule by passing .toolbarBackground(.clear,
-                // for: .windowToolbar). Boss round 12 overruled that (= decided
-                // to fully adopt Liquid Glass per Apple design language). The
-        // default Liquid Glass background now renders behind the
-        // toolbar items (= canonical macOS 26 Tahoe look matching
-        // Pages / Xcode / Mail / Finder).
+            .onReceive(NotificationCenter.default.publisher(for: .wenshuShowCommandPalette)) { _ in
+                commandPaletteVisible = true
+                commandPaletteModel.show()
+            }
+            .layoutEditHotkey(editMode)
+            .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
+                editMode.toggle()
+            }
+            .onAppear {
+                WenshuAppDelegate.openSettings = openSettings
+            }
+    }
 
-        // NOTE: v0.28 followup Boss UX round 11 attempted to remove
-        // the Liquid Glass capsule by passing .toolbarBackground(.clear,
-        // for: .windowToolbar). Boss round 12 overruled that (= decided
-        // to fully adopt Liquid Glass per Apple design language). The
-        // default Liquid Glass background now renders behind the
-        // toolbar items (= canonical macOS 26 Tahoe look matching
-        // Pages / Xcode / Mail / Finder).
-        .task {
-            await runLaunch()
+    @ViewBuilder
+    private var content: some View {
+        if shouldShowOnboarding {
+            LibraryOnboardingView(onLibraryPicked: { url in
+                libraryPath = url.path
+            })
+        } else if let bookStore {
+            // NavigationSplitShell is the NavigationSplitView. Nothing
+            // wraps it: it is the direct child of the root view, which is
+            // what Apple's NavigationSplitView documentation asks for
+            // ("typically use it as the root view in a Scene").
+            NavigationSplitShell(appState: appState, bookStore: bookStore)
+        } else {
+            // BookStore is built asynchronously by LibraryLifecycleHook.
+            // Column bodies read it as a non-optional @Environment value,
+            // so the shell cannot render before it exists.
+            ProgressView()
         }
     }
 
     @MainActor
     private func runLaunch() async {
+        guard !shouldShowOnboarding, bookStore == nil else { return }
         let wsRoot = URL(fileURLWithPath: libraryPath)
         let hook = LibraryLifecycleHook(wsRoot: wsRoot)
         do {
             let result = try hook.runLaunch()
             self.bookStore = result.makeBookStore()
-            // B-07 015.019 (boss 2026-09-04 OOB '往后推进'):
-            // populate the reactive `books` mirror at launch so
-            // `bookStore.books.count` (= the sidebar bottom-status
-            // "书: N" source) is correct on the first render.
+            // Populate the reactive `books` mirror at launch so
+            // bookStore.books.count is correct on the first render.
             self.bookStore?.reloadAllBooks()
         } catch {
-            // v0.27 MVP: log + show alert would be ideal; for now,
-            // fall back to a layout shell without the BookStore so the
-            // user sees the app rather than a blank screen.
-            #if DEBUG
-            print("LibraryLifecycleHook failed: \(error)")
-            #endif
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'UI 不加载, 一直菊花':
+            // the previous `#if DEBUG print` was suppressed in
+            // release builds (= the boss is running a release .app
+            // bundle). NSLog works in both DEBUG and RELEASE so the
+            // user can see the actual lifecycle error from
+            // Console.app (= the standard macOS log viewer; = the
+            // same path the previous `[wenshu.library]` and
+            // `[wenshu.chatStore]` NSLog lines use for diagnostics).
+            // Without this, a silent failure here (= e.g. a missing
+            // shelves root, or a thrown error inside
+            // LibraryBootstrapper.ensureValidStructure) would
+            // leave bookStore = nil forever and the window stuck
+            // on the loading spinner (= exactly what boss saw).
+            NSLog("[wenshu.library.lifecycle] runLaunch failed: %@", String(describing: error))
         }
     }
 }
 
+/// v0.40 boss 9/7 OOB ', shouldchat zonedialog.
+/// hint, should /help ': ChatBookManagerHint deleted (= top
+/// banner removed in the same commit). The slash-command hint
+/// moves to the .help() modifier on the chat TextField (= macOS
+/// NSHelpManager tooltip on hover; = Apple HIG canonical
+/// "explainer tooltip" pattern, = non-intrusive but always
+/// available on demand).
+
+// v0.47 boss 2026-09-09 OOB 'fix the layer count to Apple canonical':
+// the WiredShell wrapper struct is deleted. It existed only to own the
+// BookStore construction and the command-palette / edit-mode state, and
+// it added a whole view layer between the root view and the
+// NavigationSplitView. All of it moved onto LibraryRootView above.
 
 
-/// v0.24 boss验收fix: NSImage load helper (for PNG not in .xcassets).
+
+
+
+/// v0.24 bossverificationfix: NSImage load helper (for PNG not in .xcassets).
 /// Searches multiple paths in .app bundle for wenshu-original-fanbai.png.
 private func loadWenshuLogo() -> NSImage? {
     // Build process: Package.swift copies AppIcon.icon/ → Wenshu.app/Contents/Resources/AppIcon.icon/
@@ -325,36 +242,43 @@ private func loadWenshuLogo() -> NSImage? {
 }
 
 /// LibraryOnboardingView: First-launch .ws file picker (NSOpenPanel).
-/// Shows welcome + '选择 .ws 库' button. User must select or create a
+/// Shows welcome + ' .ws ' button. User must select or create a
 /// .ws file location (FCP-style event library UX).
 public struct LibraryOnboardingView: View {
     let onLibraryPicked: (URL) -> Void
+
+    /// Apple HIG Inventory 2026-09-06 listed `.fileImporter` as a
+    /// missing API (0 hits). Per boss 2026-09-10 'add HIG APIs that
+    /// are currently absent', replace the legacy NSOpenPanel call
+    /// below with SwiftUI's `.fileImporter` modifier (= Apple-
+    /// standard sheet UX; macOS 14+).
+    @State private var isImporterPresented: Bool = false
 
     public var body: some View {
         VStack(spacing: 24) {
             Spacer()
 
-// v0.24 boss验收fix (Boss 8/24 OOB): 红框 (books.vertical) 替换成文枢 LOGO.
-// Boss 拍 '我是说这个文件' (= use wenshu-original-fanbai.png directly).
-// .colorInvert() converts 灰-blue ink to white text. .resizable +
+// v0.24 bossverificationfix (Boss 8/24 OOB): (books.vertical) replace LOGO.
+// Boss 'yesfile' (= use wenshu-original-fanbai.png directly).
+// .colorInvert() converts -blue ink to white text. .resizable +
 // .aspectRatio keeps aspect ratio.
 //
 // Why NSImage(contentsOf:) not Image("wenshu-original-fanbai"):
 //   Package.swift copies entire AppIcon.icon/ folder to .app bundle, but
 //   SwiftUI Image("name") only finds images in .xcassets or main bundle
 //   root, NOT in subdirectories. So Image("wenshu-original-fanbai")
-//   returns empty (= "没有内容" = no icon visible). Use NSImage(contentsOf:)
+// returns empty (= "" = no icon visible). Use NSImage(contentsOf:)
 //   to load PNG from absolute path inside .app bundle.
 Group {
     if let nsImage = loadWenshuLogo() {
-        // v0.24 boss验收fix (Boss 8/24 OOB): '不是白色字' = show the
+        // v0.24 bossverificationfix (Boss 8/24 OOB): 'yes' = show the
         // PNG as-is (gray-blue calligraphic ink), don't .colorInvert.
         // .colorMultiply(.white) makes the ink truly white
         // (consistent across light/dark mode).
         Image(nsImage: nsImage)
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .frame(width: 192, height: 192)
+            .frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)
     } else {
         // Fallback: Lucide canonical if PNG load fails (boss 2026-09-02: SF Symbol fully replaced)
         LucideIconSystemFallback("text.book.closed", size: 96)
@@ -363,12 +287,12 @@ Group {
 }
 
             VStack(spacing: 12) {
-                Text("欢迎使用文枢")
+                Text(WenshuI18n.t("auto.libraryrootview.l366.h45346224"))
                     .font(.title.weight(.semibold))
-                Text("请指定文枢仓库的位置")
+                Text(WenshuI18n.t("onboarding.library.choose_location"))
                     .font(.title2)
                     .foregroundStyle(.secondary)
-                Text("文枢会把你的书架、聊天记录、看板、任务、资产都保存在这个仓库里。")
+                Text(WenshuI18n.t("onboarding.library.welcome_blurb"))
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -377,53 +301,84 @@ Group {
             }
 
             VStack(spacing: 12) {
-                // v0.24 boss验收fix (Boss 8/24 反馈: '文字不要带有我们的决策'):
-                // - 2 buttons = 新建 / 打开 (标准 macOS 范式, not 决策描述)
-                // - 文案 不用 '库' / '.ws' / 'Final Cut Pro' (boss 拍 不要带决策)
-                // - boss 拍 '让客户指定一个文枢仓库' → primary text = '新建文枢仓库'
+                // v0.24 bossverificationfix (Boss 8/24: 'don't'):
+                // - 2 buttons = / open (macOS, not)
+                // - ' / '.ws' / 'Final Cut Pro' (boss don't)
+                // - boss ' → primary text = '
                 Button {
                     showSavePanel()
                 } label: {
-                    Label("新建文枢仓库", systemImage: "doc.badge.plus")
-                        .frame(width: 240, height: 32)
+                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l387.h40947105")) } icon: { LucideIcon("file-plus", size: 16) }
+                        .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
 
                 Button {
-                    showOpenPanel()
+                    isImporterPresented = true
                 } label: {
-                    Label("打开已有文枢仓库", systemImage: "folder")
-                        .frame(width: 240, height: 32)
+                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l396.h53178210")) } icon: { LucideIcon("folder", size: 16) }
+                        .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
 
-                Text("新建 = 创建新仓库, 打开 = 选择已有仓库")
+                Text(WenshuI18n.t("onboarding.library.new_vs_open"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
 
             Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.28 followup Boss UX round 21: .background(.regularMaterial)
-        // (= Liquid Glass) for the onboarding empty state — matches
-        // all other chrome.
-        .background(.regularMaterial)
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '初始大小, 很小':
+        // the onboarding body has no explicit outer frame, so
+        // `.windowResizability(.contentSize)` (= applied at the
+        // Scene root in AppRootScene) shrinks the window to the
+        // VStack's intrinsic content size (= roughly the cover
+        // thumbnail + a few buttons = ~360 PT wide x ~500 PT tall
+        // in default layout = the small launcher-sized window
+        // boss observed 9/10). Force a canonical onboarding
+        // window size = 640 x 720 PT (= Apple HIG installer sheet
+        // canonical; = big enough to show the logo + 2-line title +
+        // body + 2 buttons + hint at full readability, = small
+        // enough to not feel like a modal blocking the user's
+        // workspace). The user's macOS still lets them resize
+        // from this canonical size (= .contentSize keeps the
+        // window resizable; = the .frame(minWidth:idealWidth:
+        // maxHeight:) is just a starting size, not a hard cap).
+        .frame(minWidth: 640, idealWidth: 640, maxWidth: 800, minHeight: 720, idealHeight: 720, maxHeight: 900)
+        .background(Color.clear)
+        // Apple HIG Inventory 2026-09-06: .fileImporter was 0 hits.
+        // Apple-standard sheet for selecting an existing .ws directory.
+        // UTType 'com.wenshu.workspace' (= the exported UTI from
+        // Info.plist) is the allowed content type; macOS auto-filters
+        // Finder to .ws packages in the picker.
+        .fileImporter(
+            isPresented: $isImporterPresented,
+            allowedContentTypes: [UTType("com.wenshu.workspace") ?? .folder]
+        ) { result in
+            switch result {
+            case .success(let url):
+                onLibraryPicked(url)
+            case .failure:
+                // User cancelled (= no action). Apple-standard UX:
+                // cancel silently closes the sheet.
+                break
+            }
+        }
     }
 
     /// showOpenPanel: NSOpenPanel for selecting existing .ws directory.
     /// v0.26 amendment: .ws is now a DIRECTORY (= macOS-style package;
     /// LibraryRootView.swift:296-309 creates Info.plist inside it).
-    /// Boss 8/24 OOB original: .ws file is the 仓库 format.
+    /// Boss 8/24 OOB original: .ws file is the format.
     /// Boss 8/26 OOB clarification: .ws is the package directory containing
     /// shelves/ + reference-library/ + cache/ + Info.plist + chat.sqlite.
     private func showOpenPanel() {
         let panel = NSOpenPanel()
-        panel.title = "打开已有文枢仓库"
-        panel.message = "选择一个现有的文枢仓库目录"
-        panel.prompt = "打开"
+        panel.title = WenshuI18n.t("auto2.libraryrootview.l424.h53178210")
+        panel.message = WenshuI18n.t("auto2.libraryrootview.l425.h5152056")
+        panel.prompt = WenshuI18n.t("auto2.libraryrootview.l426.h19738884")
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
@@ -463,25 +418,25 @@ Group {
     /// 'library-public / cross-book shared' model). The NSSavePanel still
     /// takes a "filename" but createWenshuWorkspace creates a directory
     /// at that name (no .ws file inside).
-    /// Boss 8/24 OOB 拍: '.ws 默认的文件名, 取用户电脑的用户名.
-    /// 我的电脑应该是 anbaiqiang. 所以建出来的文件应该叫 anbaiqiang.ws'
+    /// Boss 8/24 OOB: '.ws defaultfilename, useruser.
+    /// shouldyes anbaiqiang. fileshould anbaiqiang.ws'
     /// = default name = NSUserName() (Apple API for current Mac username).
     /// Apple HIG 'create new package' pattern (NSSavePanel with default name).
     private func showSavePanel() {
         let panel = NSSavePanel()
-        panel.title = "新建文枢仓库"
-        panel.message = "选择一个位置保存你的文枢仓库"
-        panel.prompt = "创建"
-        // v0.24 boss验收fix (Boss 8/24 OOB): default filename = NSUserName() + ".ws"
+        panel.title = WenshuI18n.t("auto2.libraryrootview.l472.h40947105")
+        panel.message = WenshuI18n.t("auto2.libraryrootview.l473.h20911334")
+        panel.prompt = WenshuI18n.t("auto2.libraryrootview.l474.h92696757")
+        // v0.24 bossverificationfix (Boss 8/24 OOB): default filename = NSUserName() + ".ws"
         // NSUserName() = current Mac username (Apple API, returns "anbaiqiang"
-        // on 老板's machine). Boss 拍 '我的电脑应该是 anbaiqiang'.
+        // on 's machine). Boss 'shouldyes anbaiqiang'.
         let username = NSUserName()
         panel.nameFieldStringValue = "\(username).ws"
         panel.nameFieldLabel = "仓库名"
         panel.showsTagField = false
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
-        // Boss 拍 '不用说库用件叫 .ws' (no .ws in user-facing text) but the
+        // Boss ' .ws' (no .ws in user-facing text) but the
         // .ws package IS .ws (technical package format, like .photoslibrary
         // or .fcpbundle). Show extension so user sees what they're creating.
         if #available(macOS 11.0, *) {
@@ -489,7 +444,7 @@ Group {
             panel.allowedContentTypes = []
         }
 
-        // v0.24 boss验收fix (Boss 8/24 OOB '点了创建, 不成功'): NSSavePanel
+        // v0.24 bossverificationfix (Boss 8/24 OOB 'create, '): NSSavePanel
         // returns URL on OK but does NOT actually create the directory.
         // For .ws registered as com.apple.package (= Finder bundle),
         // caller must create the package directory. Call createWenshuWorkspace
@@ -515,7 +470,7 @@ extension LibraryOnboardingView {
     /// createWenshuWorkspace: explicitly create the package directory at url
     /// (NSSavePanel may not create the directory if Info.plist registration
     /// isn't fully loaded by Finder). Also create initial subdirs for
-    /// 文枢 仓库 (= shelves/ books/ chat.sqlite kanban.sqlite todo.sqlite).
+    /// (= shelves/ books/ chat.sqlite kanban.sqlite todo.sqlite).
     static func createWenshuWorkspace(at url: URL) {
         let fm = FileManager.default
         // 1. Create root package directory if not exists
@@ -546,11 +501,11 @@ extension LibraryOnboardingView {
                 try? data.write(to: infoPlistURL)
             }
         }
-        // v0.24 boss验收fix (Boss 8/24 OOB '这个文件没有自己的图标, 可以用文枢的 LOGO 不'):
+        // v0.24 bossverificationfix (Boss 8/24 OOB 'fileicon, can LOGO '):
         // Set the wenshu LOGO PNG as the Finder icon for the .ws package.
         // Apple HIG: NSWorkspace.shared.setIcon(_:forFile:options:) writes
         // icon into the file's resource fork / icon services metadata.
-        // v0.24 boss验收fix (Boss 8/24 OOB '换一个吧, 用 SF 里的实心的书吧, 先用着, 回头再设计'):
+        // v0.24 bossverificationfix (Boss 8/24 OOB ', SF,, '):
         // Use SF Symbol fill book icon (= book.fill) instead of wenshu LOGO PNG.
         // Per Apple HIG: SF Symbol fill variant for package icon.
         // Render SF Symbol to NSImage at 1024x1024, then setIcon.
@@ -568,7 +523,7 @@ extension LibraryOnboardingView {
         NSLog("[wenshu.library] created package: %@", url.path)
     }
 
-    /// v0.24 boss验收fix: render an SF Symbol to NSImage at given size.
+    /// v0.24 bossverificationfix: render an SF Symbol to NSImage at given size.
     /// Used for setting Finder icons on .ws packages (per Boss 8/24 OOB).
     /// Apple HIG: SF Symbol fill variant for package icons.
     static func renderSFSymbol(_ name: String, size: CGFloat) -> NSImage? {
@@ -581,7 +536,7 @@ extension LibraryOnboardingView {
         return image
     }
 
-    /// v0.24 boss验收fix: load the wenshu LOGO PNG for use as Finder icon.
+    /// v0.24 bossverificationfix: load the wenshu LOGO PNG for use as Finder icon.
     /// Searches multiple paths in priority order (Bundle.main → absolute path).
     static func loadWenshuLogoForIcon() -> NSImage? {
         let paths = [

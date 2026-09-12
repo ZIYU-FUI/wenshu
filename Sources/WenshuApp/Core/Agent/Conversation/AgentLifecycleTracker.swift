@@ -14,14 +14,16 @@
 //   default identity setup + sub-agent permission defaults)
 //
 // Target (= wenshu Swift):
-// - Sources/WenshuApp/Core/Agent/AgentLifecycleTracker.swift (this
+// - Sources/WenshuApp/Core/Agent/Conversation/AgentLifecycleTracker.swift (this
 //   file, ~250 LOC) = per-sub-agent lifecycle tracker (= spawn,
 //   heartbeat, complete, fail, cancel). Provides the onResult /
 //   onError callback surface that hermes subagent_lifecycle.py
 //   exposes but wenshu's AsyncDelegation does not.
-// - Sources/WenshuApp/Core/Agent/AgentInitDefaults.swift (~100 LOC)
-//   = per-profile defaults extracted at spawn time (= boss OOB
-//   "工程的事你自己决定" -> MVP defaults aligned with hermes).
+// - AgentInitDefaults = per-profile defaults extracted at spawn time
+//   (= boss OOB "engineering" -> MVP defaults aligned with hermes);
+//   defined LOCALLY in this same file (= no separate
+//   Core/Agent/AgentInitDefaults.swift; = the previous v0.28
+//   spec header described a planned-but-never-created file).
 // - Tests/WenshuAppTests/Core/Agent/AgentLifecycleTrackerTests.swift
 //   (~120 LOC, ~10 tests).
 //
@@ -332,6 +334,13 @@ public struct bootstrapStatus: Sendable, Equatable {
 /// Bootstrap step hooks (= hermes init_agent body side effects; the
 /// caller wires the side effects through closures so the bootstrap driver
 /// itself stays free of import cycles with the agent runtime).
+///
+/// Distinguishing semantics (= loadStatus, not throw/no-throw):
+/// - Hook returns normally (= does not throw)  → step marked loaded.
+/// - Hook throws `BootstrapStepSkipped`        → step left unloaded,
+///   NOT recorded in failedSteps (= "no-op" sentinel; default + .noop).
+/// - Hook throws any other error               → step left unloaded AND
+///   appended to failedSteps as "step: <error>".
 public struct BootstrapHooks: Sendable {
     public var loadConfig: @Sendable () throws -> Void
     public var resolveCredentials: @Sendable () throws -> Void
@@ -341,12 +350,12 @@ public struct BootstrapHooks: Sendable {
     public var composeSystemPrompt: @Sendable () throws -> Void
 
     public init(
-        loadConfig: @escaping @Sendable () throws -> Void = {},
-        resolveCredentials: @escaping @Sendable () throws -> Void = {},
-        loadSkillRegistry: @escaping @Sendable () throws -> Void = {},
-        loadMemory: @escaping @Sendable () throws -> Void = {},
-        loadContextEngine: @escaping @Sendable () throws -> Void = {},
-        composeSystemPrompt: @escaping @Sendable () throws -> Void = {}
+        loadConfig: @escaping @Sendable () throws -> Void = BootstrapHooks._skipped,
+        resolveCredentials: @escaping @Sendable () throws -> Void = BootstrapHooks._skipped,
+        loadSkillRegistry: @escaping @Sendable () throws -> Void = BootstrapHooks._skipped,
+        loadMemory: @escaping @Sendable () throws -> Void = BootstrapHooks._skipped,
+        loadContextEngine: @escaping @Sendable () throws -> Void = BootstrapHooks._skipped,
+        composeSystemPrompt: @escaping @Sendable () throws -> Void = BootstrapHooks._skipped
     ) {
         self.loadConfig = loadConfig
         self.resolveCredentials = resolveCredentials
@@ -356,7 +365,15 @@ public struct BootstrapHooks: Sendable {
         self.composeSystemPrompt = composeSystemPrompt
     }
 
-    /// Default no-op hooks (= for tests).
+    /// Sentinel no-op closure that throws `BootstrapStepSkipped` so the
+    /// bootstrapper can tell it apart from "the hook did real work and
+    /// succeeded" (= plain `{}` literal which returns normally).
+    public static let _skipped: @Sendable () throws -> Void = {
+        throw BootstrapStepSkipped()
+    }
+
+    /// Default no-op hooks (= for tests; mark every step as "skipped, not
+    /// loaded, not failed").
     public static let noop = BootstrapHooks()
 
     /// Successful hooks (= mark each step as completed; for tests).
@@ -369,6 +386,12 @@ public struct BootstrapHooks: Sendable {
         composeSystemPrompt: {}
     )
 }
+
+/// Sentinel error thrown by the default no-op bootstrap hooks. The
+/// bootstrapper recognises this error type and treats the corresponding
+/// step as "skipped silently" (= step unloaded, but NOT recorded in
+/// failedSteps). Any other thrown error is treated as a real failure.
+public struct BootstrapStepSkipped: Error, Sendable, Equatable {}
 
 /// Bootstrap driver. Runs the 6-step init_agent surface (= hermes
 /// agent_init.py bootstrap = load config + credentials + skill registry +
@@ -390,6 +413,13 @@ public actor AgentBootstrapper {
     /// Run the bootstrap. Each step is independent; a failure in one
     /// step does not abort the others (= hermes pattern: collect
     /// failed_steps rather than raising).
+    ///
+    /// Step outcome rules (= in order):
+    /// - Hook returns normally                → step marked loaded.
+    /// - Hook throws `BootstrapStepSkipped`   → step left unloaded, NOT
+    ///   recorded in failedSteps (= "skipped silently").
+    /// - Hook throws any other error          → step left unloaded AND
+    ///   appended to failedSteps as "<step>: <error>".
     public func bootstrap() async -> bootstrapStatus {
         var status = bootstrapStatus()
         var failed: [String] = []
@@ -406,6 +436,8 @@ public actor AgentBootstrapper {
                 systemPromptComposed: status.systemPromptComposed,
                 failedSteps: status.failedSteps
             )
+        } catch is BootstrapStepSkipped {
+            // silent skip → leave status.configLoaded == false, no failed entry
         } catch {
             failed.append("load_config: \(error)")
         }
@@ -422,6 +454,8 @@ public actor AgentBootstrapper {
                 systemPromptComposed: status.systemPromptComposed,
                 failedSteps: status.failedSteps
             )
+        } catch is BootstrapStepSkipped {
+            // silent skip
         } catch {
             failed.append("resolve_credentials: \(error)")
         }
@@ -438,6 +472,8 @@ public actor AgentBootstrapper {
                 systemPromptComposed: status.systemPromptComposed,
                 failedSteps: status.failedSteps
             )
+        } catch is BootstrapStepSkipped {
+            // silent skip
         } catch {
             failed.append("load_skill_registry: \(error)")
         }
@@ -454,6 +490,8 @@ public actor AgentBootstrapper {
                 systemPromptComposed: status.systemPromptComposed,
                 failedSteps: status.failedSteps
             )
+        } catch is BootstrapStepSkipped {
+            // silent skip
         } catch {
             failed.append("load_memory: \(error)")
         }
@@ -470,6 +508,8 @@ public actor AgentBootstrapper {
                 systemPromptComposed: status.systemPromptComposed,
                 failedSteps: status.failedSteps
             )
+        } catch is BootstrapStepSkipped {
+            // silent skip
         } catch {
             failed.append("load_context_engine: \(error)")
         }
@@ -486,6 +526,8 @@ public actor AgentBootstrapper {
                 systemPromptComposed: true,
                 failedSteps: status.failedSteps
             )
+        } catch is BootstrapStepSkipped {
+            // silent skip
         } catch {
             failed.append("compose_system_prompt: \(error)")
         }

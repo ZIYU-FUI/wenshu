@@ -7,6 +7,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("MemoryRetrievalPanel (ticket 009)")
+@MainActor
 struct MemoryRetrievalPanelTests {
 
     @Test("MemoryRetrievalPanel renders without crashing (smoke test)")

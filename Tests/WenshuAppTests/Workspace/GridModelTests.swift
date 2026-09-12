@@ -2,7 +2,7 @@
 //
 // Validation tests for the v0.28 followup AC#8 + AC#9 + AC#10 + AC#11
 // (= 4 features that were cut from the original 028-008b MVP scope per
-// boss 8/28 OOB "工程的事你自己决定"). Now landing as v0.28 followups.
+// boss 8/28 OOB "engineering"). Now landing as v0.28 followups.
 //
 // AC#8 = click-to-split + SHIFT-flip (= vertical default, horizontal with SHIFT)
 // AC#9 = rubber-band drag select

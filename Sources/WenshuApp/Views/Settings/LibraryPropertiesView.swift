@@ -1,7 +1,7 @@
-// LibraryPropertiesView.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// LibraryPropertiesView.swift · Wenshu () · v0.26 (FCP library replica)
 //
-// FCP-style "Library Properties" panel (= boss 8/26 Q1=c, "用户体
-// 验最完整"). Modal sheet triggered from Settings menu (= 库属性...).
+// FCP-style "Library Properties" panel (= boss 8/26 Q1=c, "user
+// "). Modal sheet triggered from Settings menu (= ...).
 // Shows the .ws library's current state + management actions.
 //
 // v0.26 boss 8/26 OOB (per spec v5 ticket 014):
@@ -45,14 +45,14 @@ struct LibraryPropertiesView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("库属性")
+                Text(WenshuI18n.t("auto.librarypropertiesview.l48.h38942540"))
                     .font(.headline)
                 Spacer()
             }
             .padding()
             Divider()
             Form {
-                Section("基本信息") {
+                Section(WenshuI18n.t("auto2.librarypropertiesview.l55.h84342329")) {
                     LabeledContent("当前路径") {
                         Text(libraryPath)
                             .font(.callout)
@@ -65,35 +65,35 @@ struct LibraryPropertiesView: View {
                                 .font(.callout.monospacedDigit())
                         }
                         Spacer()
-                        Button("刷新") {
+                        Button(WenshuI18n.t("auto2.librarypropertiesview.l68.h7832952")) {
                             refreshDiskUsage()
                         }
                         .controlSize(.small)
                     }
                     LabeledContent("Schema 版本") {
-                        Text("v\(schemaVersion)")
+                        Text(WenshuI18n.t("b5.librarypropertiesview.l74.h42028628"))
                             .font(.callout.monospacedDigit())
                     }
                 }
-                Section("操作") {
+                Section(WenshuI18n.t("auto2.librarypropertiesview.l78.h53311866")) {
                     Button {
                         onRevealInFinder()
                     } label: {
-                        Label("在 Finder 中显示", systemImage: "folder")
+                        Label { Text(WenshuI18n.t("auto2.librarypropertiesview.l82.h54714643")) } icon: { LucideIcon("folder", size: 16) }
                     }
                     Button {
                         onMoveWarehouse()
                     } label: {
-                        Label("移动仓库到...", systemImage: "arrow.right.square")
+                        Label { Text(WenshuI18n.t("auto2.librarypropertiesview.l87.h35464092")) } icon: { LucideIcon("square-arrow-right", size: 16) }
                     }
                     Button(role: .destructive) {
                         showResetConfirmation = true
                     } label: {
-                        Label("重置库", systemImage: "arrow.uturn.backward")
+                        Label { Text(WenshuI18n.t("auto2.librarypropertiesview.l92.h43224553")) } icon: { LucideIcon("undo-2", size: 16) }
                     }
                 }
                 Section {
-                    Text("如需在其他位置打开本库，请直接在 Finder 中移动整个 .ws 文件夹。")
+                    Text(WenshuI18n.t("library.properties.move_hint"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -102,7 +102,7 @@ struct LibraryPropertiesView: View {
             Divider()
             HStack {
                 Spacer()
-                Button("关闭") { onClose() }
+                Button(WenshuI18n.t("auto2.librarypropertiesview.l105.h50336293")) { onClose() }
                     .keyboardShortcut(.defaultAction)
             }
             .padding()
@@ -114,12 +114,12 @@ struct LibraryPropertiesView: View {
             isPresented: $showResetConfirmation,
             titleVisibility: .visible
         ) {
-            Button("重置 (清空设置，下次启动重新选库)", role: .destructive) {
+            Button(WenshuI18n.t("auto2.librarypropertiesview.l117.h15214969"), role: .destructive) {
                 onResetLibrary()
             }
-            Button("取消", role: .cancel) {}
+            Button(WenshuI18n.t("auto2.librarypropertiesview.l120.h99009187"), role: .cancel) {}
         } message: {
-            Text("重置不会删除 .ws 目录中的数据。\n仅清空 wenshu.libraryPath 设置，下次启动会回到 onboarding。")
+            Text(WenshuI18n.t("auto2.librarypropertiesview.l122.h75912153"))
         }
     }
 

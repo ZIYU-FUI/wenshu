@@ -41,7 +41,7 @@ public struct PaneSizeSnapshot: Equatable, Codable, Sendable {
 // MARK: - PaneVisibilityStore
 
 /// Owns the 3 visibility mechanisms + pane size overrides + per-item
-/// statusbar visibility. Lives next to WorkspaceStore (= same persistence
+/// statusbar visibility. Lives next to LayoutTreeStore (= same persistence
 /// rules, same schema version, same save() cadence) but is additive:
 /// does not touch any existing Wenshu 5-zone AppStorage flags.
 @MainActor

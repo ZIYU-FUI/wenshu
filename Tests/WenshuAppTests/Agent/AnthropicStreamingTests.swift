@@ -4,8 +4,8 @@
 //  Tests for Anthropic streaming decoder, including v0.37 thinking_delta
 //  support added in Batch 2.2 sub-step 1.
 //
-//  Per 老板 cadence 2026-09-03 '继续移植' + 'PO 全链路方法论执行,
-//  不要跳步骤' + '翻译这个事做完一起验视觉和前端流程' + '1 RULE 1 commit'.
+// Per cadence 2026-09-03 'resume' + 'PO execute,
+// don't' + 'when done, verify visual and frontend flow together' + '1 RULE 1 commit'.
 //
 
 import Testing

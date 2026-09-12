@@ -82,7 +82,6 @@ struct EmotionCurveView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             pickerRow
             inputSection
             Divider()
@@ -93,40 +92,9 @@ struct EmotionCurveView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(DesignTokens.chromePaddingMedium)
         .task {
             ensureAnalyzer()
-        }
-    }
-
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("activity", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Emotion Curve")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch status {
-        case .idle:
-            return "Paste a finished chapter and split it into windows to chart the emotional valence over time."
-        case .running:
-            return "Analyzing \(windowCount) windows…"
-        case .failed(let reason):
-            return "Failed: \(reason)"
         }
     }
 
@@ -134,20 +102,20 @@ struct EmotionCurveView: View {
 
     private var pickerRow: some View {
         HStack(spacing: 8) {
-            Text("Windows")
+            Text(WenshuI18n.t("b5.emotioncurveview.l137.h23463773"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Stepper(
                 value: $windowCount,
                 in: 1...32
             ) {
-                Text("\(windowCount)")
+                Text(WenshuI18n.t("b5.emotioncurveview.l144.h9449225"))
                     .font(.callout.monospacedDigit())
                     .frame(minWidth: 28, alignment: .trailing)
             }
-            .help("Number of windows to split the chapter into (1–32).")
+            .help(WenshuI18n.t("b5.emotioncurveview.l148.h87664998"))
             Spacer(minLength: 0)
-            Text("\(windowCount) windows × ~\(estimatedWindowChars) chars each")
+            Text(WenshuI18n.t("b5.emotioncurveview.l150.h38155704"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -164,40 +132,37 @@ struct EmotionCurveView: View {
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text("Chapter text")
+                Text(WenshuI18n.t("b5.emotioncurveview.l167.h48770099"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
-                Text("\(chapterText.count) chars")
+                Text(WenshuI18n.t("b5.emotioncurveview.l171.h283252"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
             TextEditor(text: $chapterText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
-                .padding(6)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(.quaternary)
-                )
+                .padding(DesignTokens.chromePaddingSmall)
+                
             HStack(spacing: 8) {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label("Analyze", systemImage: "play")
+                    Label { Text(WenshuI18n.t("b5.emotioncurveview.l187.h73202981")) } icon: { LucideIcon("play", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
-                .help("Score the chapter across \(windowCount) windows and chart the emotion curve.")
+                .help(WenshuI18n.t("b5.emotioncurveview.l191.h43420055"))
                 Button {
                     chapterText = ""
                     report = nil
                     status = .idle
                 } label: {
-                    Label("Clear", systemImage: "x")
+                    Label { Text(WenshuI18n.t("b5.emotioncurveview.l197.h82618035")) } icon: { LucideIcon("x", size: 16) }
                 }
                 .buttonStyle(.bordered)
-                .help("Clear the input text and the last report.")
+                .help(WenshuI18n.t("b5.emotioncurveview.l200.h12079331"))
                 Spacer(minLength: 0)
             }
         }
@@ -206,26 +171,28 @@ struct EmotionCurveView: View {
     // MARK: - Result
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("No report yet")
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text("Paste a chapter, pick a window count, and tap Analyze. The emotion-curve analyzer splits the chapter into equal windows, scores each via a small sentiment lexicon, and returns a curve with overall score, volatility, flat-spot indices, and pacing-lift suggestions.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "activity",
+            title: WenshuI18n.t("b5.emotioncurveview.l210.h68237505"),
+            body: WenshuI18n.t("b5.emotioncurveview.l213.h26939185")
+        )
     }
+
 
     private func resultSection(for report: EmotionCurveReport) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             curveChart(for: report)
-                .frame(height: 140)
-                .padding(8)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(.quaternary)
-                )
+                .frame(height: DesignTokens.zoneEditorWidth)
+                .padding(DesignTokens.chromePaddingVertical)
+                
             HStack(spacing: 10) {
                 metricBadge(title: "Overall", value: String(format: "%+.2f", report.overallScore))
                 metricBadge(title: "Volatility", value: String(format: "%.2f", report.volatility))
@@ -235,21 +202,18 @@ struct EmotionCurveView: View {
             HStack(alignment: .top, spacing: 12) {
                 indexColumn(title: "Flat spots",
                             items: report.flatSpots.map { String($0) },
-                            tint: Color(nsColor: .systemGray))
+                            tint: Color.gray)
                 indexColumn(title: "Suggested lifts",
                             items: report.suggestedLifts.map { String($0) },
-                            tint: Color(nsColor: .systemBlue))
+                            tint: Color.blue)
             }
             Text(report.pacingHint)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(.quaternary.opacity(0.4))
-        )
+        .padding(DesignTokens.chromePaddingPickerItem)
+        
     }
 
     private func metricBadge(title: String, value: String) -> some View {
@@ -261,13 +225,10 @@ struct EmotionCurveView: View {
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.primary)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, DesignTokens.chromePaddingVertical)
+        .padding(.vertical, DesignTokens.chromePaddingMicro)
         .frame(minWidth: 64, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary)
-        )
+        
     }
 
     private func indexColumn(title: String, items: [String], tint: Color) -> some View {
@@ -277,7 +238,7 @@ struct EmotionCurveView: View {
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
                 if items.isEmpty {
-                    Text("(none)")
+                    Text(WenshuI18n.t("b5.emotioncurveview.l280.h69702322"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 } else {
@@ -285,8 +246,8 @@ struct EmotionCurveView: View {
                         HStack(alignment: .top, spacing: 6) {
                             Circle()
                                 .fill(tint)
-                                .frame(width: 6, height: 6)
-                                .padding(.top, 5)
+                                .frame(width: DesignTokens.bulletSizeTiny, height: DesignTokens.bulletSizeTiny)
+                                .padding(.top, DesignTokens.chromePaddingXS)
                             Text(item)
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.primary)
@@ -419,7 +380,7 @@ struct EmotionCurveView: View {
             let dotRect = CGRect(x: x - 3, y: markerY - 3, width: 6, height: 6)
             context.stroke(
                 Path(ellipseIn: dotRect),
-                with: .color(Color(nsColor: .systemGray)),
+                with: .color(Color.gray),
                 lineWidth: 1
             )
         }
@@ -436,29 +397,29 @@ struct EmotionCurveView: View {
             triangle.closeSubpath()
             context.fill(
                 triangle,
-                with: .color(Color(nsColor: .systemBlue))
+                with: .color(Color.blue)
             )
         }
 
         // 10) Y-axis labels (= +1 / 0 / -1).
         let labelShading = GraphicsContext.Shading.color(Color(nsColor: .secondaryLabelColor))
         context.draw(
-            Text("+1").font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l446.h6941667")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: 10, y: topY)
         )
         context.draw(
-            Text("0").font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l450.h82202228")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: 10, y: baselineY)
         )
         context.draw(
-            Text("-1").font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l454.h50895112")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: 10, y: bottomY)
         )
 
         // 11) Legend (= flat dot + lift triangle), bottom row.
         let legendY = chartRect.maxY + 14
         context.draw(
-            Text("○ flat   ▲ lift").font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l461.h66795892")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: chartRect.maxX, y: legendY)
         )
     }

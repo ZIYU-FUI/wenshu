@@ -256,7 +256,34 @@ private final class HandlerBoxIdentity: Sendable {}
 public actor ToolRegistry {
 
     /// Module-level singleton (= hermes `registry = ToolRegistry()`).
-    public static let shared = ToolRegistry()
+    /// Access also starts the production tool bootstraps. Swift static
+    /// properties are lazy, so merely linking the tool files does not
+    /// execute their registration initializers.
+    public nonisolated static var shared: ToolRegistry {
+        let registry = sharedStorage
+        _ = ProductionToolRegistryBootstrap.start
+        return registry
+    }
+
+    private nonisolated static let sharedStorage = ToolRegistry()
+
+    /// Touch every production registration point exactly once.
+    private enum ProductionToolRegistryBootstrap {
+        static let start: Void = {
+            _ = ParagraphAITool._registryBootstrap
+            _ = ReadFileTool._registryBootstrap
+            _ = WriteFileTool._registryBootstrap
+            _ = AVMediaTools._registryBootstrap
+            _ = BookManagerTool._registryBootstrap
+            _ = FileTools._registryBootstrap
+            _ = KanbanStoreTool._registryBootstrap
+            _ = ProcessTools._registryBootstrap
+            _ = TodoStoreTool._registryBootstrap
+            _ = HermesTodoTool._registryBootstrap
+            _ = VisionTools._registryBootstrap
+            _ = WebTools._registryBootstrap
+        }()
+    }
 
     // MARK: - State
 

@@ -27,11 +27,11 @@ public enum ToolExecutorError: Error, LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .toolNotFound(let n):
-            return "Tool '\\(n)' not found in registry."
+            return String(format: "Tool '%@' not found in registry.", n)
         case .toolFailed(let n, let u):
-            return "Tool '\\(n)' failed: \\(u)"
+            return String(format: "Tool '%@' failed: %@", n, u)
         case .invalidInput(let n, let r):
-            return "Tool '\\(n)' rejected input: \\(r)"
+            return String(format: "Tool '%@' rejected input: %@", n, r)
         }
     }
 }

@@ -7,6 +7,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("MemorySettingsView (ticket 009)")
+@MainActor
 struct MemorySettingsViewTests {
 
     @Test("MemorySettingsView renders without crashing (smoke test)")

@@ -1,14 +1,36 @@
 //
-//  LinkIndex.swift · Wenshu · v0.19 ticket 12 (Obsidian replica, 后端先做)
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入'.
+// LinkIndex.swift · Wenshu · v0.19 ticket 12 (Obsidian replica, do first)
+// 2026-08-19 evening Obsidian A + ', '.
 //
-//  本地 SQLite 双向链接索引 (Internal Link [[name]] + Backlinks 反向链接).
-//  跟 v0.18 ticket 01 MemoryStore 同样的 actor + SQLitePtr wrap + bootstrap() + createSchema() 范式.
-//  接口对齐 Obsidian Backlinks plugin 真值: add / remove / searchForward / searchBackward.
+// local SQLite link (Internal Link [[name]] + Backlinks link).
+// v0.18 ticket 01 MemoryStore actor + SQLitePtr wrap + bootstrap() + createSchema() .
+// Obsidian Backlinks plugin: add / remove / searchForward / searchBackward.
 //
-//  SQLite 真值: Apple Foundation 内置 SQLite3, schema = source_doc_id / target_ref / target_doc_id / line / offset / created_at
-//  跟 SilverBullet page ref `[[name]]` 同语法, 跟 Obsidian / SilverBullet 双向兼容.
+// SQLite: Apple Foundation SQLite3, schema = source_doc_id / target_ref / target_doc_id / line / offset / created_at
+// SilverBullet page ref `[[name]]`, Obsidian / SilverBullet .
 //
+
+
+//
+//  SQL SAFETY: all sqlite3_*() calls in this file use hard-coded string
+//  literals (= zero user-derived SQL = zero SQL injection risk TODAY).
+//  Per AGENTS.md §11.3 wenshu-side wins pattern (= hermes-port parity,
+//  = sqlite3 C API direct call preferred over GRDB abstraction = matches
+//  hermes Python tool-store implementation verbatim).
+//
+//  SAFETY CONTRACT for future contributors:
+//  - DO NOT concatenate user input into the SQL string (= use sqlite3_bind_*
+//    parameter binding instead = the only safe pattern).
+//  - DO NOT use String(format:) with %@/%.20s substitution (= format-injection).
+//  - DO NOT read user input into the table/column names (= always use
+//    fixed enum cases or hardcoded identifiers).
+//  - If user-derived values are needed in WHERE/INSERT clauses, use
+//    sqlite3_bind_text/stmt parameter binding with positional placeholders
+//    (= ?, ?N, :name =, @name = per SQLite docs).
+//
+//  The audit at .scratch/2026-09-06-wenshu-hidden-defects-audit.md
+//  documents this convention (= 14 raw sqlite3 sites across 10 files,
+//  all hardcoded literals = safe).
 
 import Foundation
 import SQLite3

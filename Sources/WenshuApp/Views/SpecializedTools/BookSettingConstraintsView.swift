@@ -97,68 +97,34 @@ struct BookSettingConstraintsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             if activeBookId == nil {
                 emptyState
             } else {
                 contentBody
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(DesignTokens.chromePaddingMedium)
         .task(id: activeBookId) {
             await reload()
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("book-lock", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Book Setting Constraints")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch status {
-        case .idle:
-            return "Hard worldbuilding rules: hard / soft / preference severities across 4 scopes."
-        case .loading:
-            return "Loading…"
-        case .loaded:
-            let count = constraints.count
-            let hardCount = constraints.filter { $0.severity == .hard }.count
-            if hardCount > 0 {
-                return "\(count) constraint\(count == 1 ? "" : "s") (\(hardCount) hard)"
-            }
-            return "\(count) constraint\(count == 1 ? "" : "s")"
-        case .failed(let reason):
-            return "Failed: \(reason)"
-        }
-    }
-
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("No book selected")
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text("Pick a book from the sidebar to start tracking setting constraints.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "book-lock",
+            title: WenshuI18n.t("b5.booksettingconstraintsview.l153.h29425451"),
+            body: WenshuI18n.t("b5.booksettingconstraintsview.l156.h45808897")
+        )
     }
+
 
     // MARK: - Body
 
@@ -173,7 +139,7 @@ struct BookSettingConstraintsView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color(nsColor: .systemRed))
+                    .foregroundStyle(Color.red)
             }
         }
     }
@@ -182,13 +148,13 @@ struct BookSettingConstraintsView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Add constraint")
+            Text(WenshuI18n.t("b5.booksettingconstraintsview.l185.h87583031"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            TextField("Title (e.g. Magic requires eye contact)", text: $draftTitle, axis: .horizontal)
+            TextField(WenshuI18n.t("b5.booksettingconstraintsview.l188.h10634385"), text: $draftTitle, axis: .horizontal)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help("Short, human-readable title for the constraint. Whitespace is trimmed.")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l191.h24829594"))
             TextField(
                 "Description (2-3 sentences)",
                 text: $draftDescription,
@@ -197,7 +163,7 @@ struct BookSettingConstraintsView: View {
             .textFieldStyle(.roundedBorder)
             .font(.caption)
             .lineLimit(2...4)
-            .help("Short description of the rule.")
+            .help(WenshuI18n.t("b5.booksettingconstraintsview.l200.h58963992"))
             HStack(spacing: 8) {
                 Picker("Severity", selection: $draftSeverity) {
                     ForEach(ConstraintSeverity.allCases) { severity in
@@ -206,7 +172,7 @@ struct BookSettingConstraintsView: View {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .help("Severity: hard (cannot be violated), soft (advisory), preference (style target).")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l209.h3955671"))
                 Picker("Scope", selection: $draftScope) {
                     ForEach(ConstraintScope.allCases) { scope in
                         Label(scope.displayName, systemImage: scope.lucideIcon).tag(scope)
@@ -214,7 +180,7 @@ struct BookSettingConstraintsView: View {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .help("Scope: world / character / plot / style.")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l217.h78462056"))
                 TextField(
                     draftScope.supportsAppliesTo ? "Applies-to UUID (character or plot)" : "Applies-to (not used)",
                     text: $draftAppliesToText
@@ -222,16 +188,16 @@ struct BookSettingConstraintsView: View {
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
                 .disabled(!draftScope.supportsAppliesTo)
-                .help("Optional UUID of the character or plot this rule applies to.")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l225.h9125068"))
                 Spacer(minLength: 0)
                 Button {
                     Task { await addConstraint() }
                 } label: {
-                    Label("Add", systemImage: "plus")
+                    Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l230.h25158042")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help("Add a new setting constraint with the supplied fields.")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l234.h50733767"))
             }
             TextField(
                 "Forbidden patterns (comma-separated, e.g. cast from behind, came back from the dead)",
@@ -240,7 +206,7 @@ struct BookSettingConstraintsView: View {
             )
             .textFieldStyle(.roundedBorder)
             .font(.caption)
-            .help("Comma-separated phrases or regex patterns that violate this constraint. Trimmed at save time.")
+            .help(WenshuI18n.t("b5.booksettingconstraintsview.l243.h5804737"))
         }
     }
 
@@ -252,11 +218,11 @@ struct BookSettingConstraintsView: View {
 
     private var listSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Constraints (\(constraints.count))")
+            Text(WenshuI18n.t("b5.booksettingconstraintsview.l255.h54115638"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if constraints.isEmpty {
-                Text("(none yet — add the first one above)")
+                Text(WenshuI18n.t("b5.booksettingconstraintsview.l259.h46205528"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -277,8 +243,8 @@ struct BookSettingConstraintsView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
                 LucideIconSystemFallback(constraint.severity.lucideIcon, size: 16)
-                    .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(.tint))
-                    .frame(width: 18)
+                    .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
+                    .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(constraint.title)
@@ -287,23 +253,20 @@ struct BookSettingConstraintsView: View {
                         Text(constraint.severity.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                            )
+                            .padding(.horizontal, DesignTokens.chromePaddingSmall)
+                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            
                         Text(constraint.scope.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
+                            .padding(.horizontal, DesignTokens.chromePaddingSmall)
+                            .padding(.vertical, DesignTokens.chromePaddingPico)
                             .background(
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(.tint.opacity(0.15))
                             )
                         if let appliesTo = constraint.appliesToId {
-                            Text("→ \(appliesTo.uuidString.prefix(8))")
+                            Text(WenshuI18n.t("b5.booksettingconstraintsview.l306.h56657996"))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
@@ -321,11 +284,11 @@ struct BookSettingConstraintsView: View {
                                     Text(pattern)
                                         .font(.caption2)
                                         .foregroundStyle(.primary)
-                                        .padding(.horizontal, 5)
-                                        .padding(.vertical, 1)
+                                        .padding(.horizontal, DesignTokens.chromePaddingXS)
+                                        .padding(.vertical, DesignTokens.chromePaddingPico)
                                         .background(
                                             RoundedRectangle(cornerRadius: 3)
-                                                .fill(Color(nsColor: .systemRed).opacity(0.15))
+                                                .fill(Color.red.opacity(0.15))
                                         )
                                 }
                             }
@@ -340,54 +303,48 @@ struct BookSettingConstraintsView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
-                .help("Remove this constraint.")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l343.h49822929"))
             }
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary.opacity(0.5))
-        )
+        
     }
 
     // MARK: - Check section
 
     private var checkSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Check chapter against constraints")
+            Text(WenshuI18n.t("b5.booksettingconstraintsview.l359.h58742514"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(alignment: .top, spacing: 8) {
                 TextEditor(text: $chapterText)
                     .font(.caption)
                     .frame(minHeight: 100, maxHeight: 160)
-                    .padding(4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(.quaternary.opacity(0.3))
-                    )
-                    .help("Paste the chapter draft text. The checker scans every line for the forbidden patterns of every active constraint.")
+                    .padding(DesignTokens.chromePaddingMicro)
+                    
+                    .help(WenshuI18n.t("b5.booksettingconstraintsview.l371.h65632517"))
                 VStack(alignment: .leading, spacing: 6) {
                     Button {
                         Task { await runCheck() }
                     } label: {
-                        Label("Check", systemImage: "search-check")
+                        Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l376.h23587784")) } icon: { LucideIcon("search-check", size: 16) }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || constraints.isEmpty)
-                    .help("Scan the chapter text against every constraint's forbidden patterns.")
+                    .help(WenshuI18n.t("b5.booksettingconstraintsview.l380.h7773239"))
                     if hasChecked {
                         Text("\(violations.count) violation\(violations.count == 1 ? "" : "s")")
                             .font(.caption)
-                            .foregroundStyle(violations.isEmpty ? Color(nsColor: .systemGreen) : Color(nsColor: .systemOrange))
+                            .foregroundStyle(violations.isEmpty ? Color.green : Color.orange)
                     }
                 }
             }
             if hasChecked {
                 if violations.isEmpty {
-                    Text("(no violations — chapter text is clean)")
+                    Text(WenshuI18n.t("b5.booksettingconstraintsview.l390.h74566260"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -406,18 +363,18 @@ struct BookSettingConstraintsView: View {
                 violation.severity == .hard ? "alert-octagon" : "alert-triangle",
                 size: 14
             )
-            .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(Color(nsColor: .systemOrange)))
-            .frame(width: 18)
+            .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(Color.orange))
+            .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
                     Text(violation.title)
                         .font(.caption)
                         .foregroundStyle(.primary)
-                    Text("· \(violation.severity.displayName)")
+                    Text(WenshuI18n.t("b5.booksettingconstraintsview.l416.h60886424"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     if let line = violation.lineNumber {
-                        Text("· line \(line)")
+                        Text(WenshuI18n.t("b5.booksettingconstraintsview.l420.h37146244"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -432,7 +389,7 @@ struct BookSettingConstraintsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DesignTokens.chromePaddingNano)
     }
 
     // MARK: - Helpers

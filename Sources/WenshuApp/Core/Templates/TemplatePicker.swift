@@ -1,5 +1,5 @@
 //
-//  TemplatePicker.swift · Wenshu · v0.19 ticket 15 (Obsidian replica, 前端做但不接入核心项目)
+// TemplatePicker.swift · Wenshu · v0.19 ticket 15 (Obsidian replica,)
 //
 
 import Foundation
@@ -33,8 +33,8 @@ public final class TemplateViewModel {
     }
 }
 
-/// TemplatePicker: SwiftUI View, 显示模板 + 渲染结果 placeholder
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// TemplatePicker: SwiftUI View, show + placeholder
+/// LayoutShellView, standalone wait macOS
 public struct TemplatePicker: View {
     @State private var viewModel: TemplateViewModel
 
@@ -44,12 +44,12 @@ public struct TemplatePicker: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("模板")
+            Text(WenshuI18n.t("auto.templatepicker.l47.h75489066"))
                 .font(.headline)
-            Text("模板字符数: \(viewModel.template.count)")
-            Text("渲染字符数: \(viewModel.rendered.count)")
+            Text(WenshuI18n.t("auto.templatepicker.l49.h95489952"))
+            Text(WenshuI18n.t("templatepicker.rendered_count"))
             if let error = viewModel.error {
-                Text("错误: \(error)")
+                Text(WenshuI18n.t("auto.templatepicker.l52.h3674797"))
                     .foregroundStyle(.red)
             }
             ScrollView {

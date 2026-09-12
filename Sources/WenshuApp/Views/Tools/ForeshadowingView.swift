@@ -1,8 +1,8 @@
 // Sources/WenshuApp/Views/Tools/ForeshadowingView.swift
 //
-// v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个 teb, 用占位
-// 替换第二个 teb. 现在的画布功能以后实现': tools pane tab 1 is now
-// 伏笔 (= Foreshadowing) instead of 画布 (= Canvas).
+// v0.29 boss 2026-08-30 OOB 'replace, Foreshadowingreplace teb,
+// replace teb. ': tools pane tab 1 is now
+// Foreshadowing (= Foreshadowing) instead of (= Canvas).
 //
 // v0.39 P2 ticket #17 (WIRE-SPECIALIZEDTOOLS-011, 2026-09-04):
 // this view is now wired to the ForeshadowingTracker actor (=
@@ -47,11 +47,11 @@
 
 import SwiftUI
 
-/// Tools pane tab 1: 伏笔 (= Foreshadowing) per v0.29 boss OOB.
+/// Tools pane tab 1: Foreshadowing (= Foreshadowing) per v0.29 boss OOB.
 ///
 /// **Use this** for the first tab of the specializedTools pane.
 /// Replaces the old CanvasView (= which moved to a future ticket
-/// per the v0.29 boss OOB '现在的画布功能以后实现').
+/// per the v0.29 boss OOB ').
 ///
 /// State: backed by the `ForeshadowingTracker` actor (= per-book
 /// JSON sidecar at `books/<bookId>/foreshadowings.json`).
@@ -93,65 +93,34 @@ public struct ForeshadowingView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             if activeBookId == nil {
                 emptyState
             } else {
                 contentBody
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(DesignTokens.chromePaddingMedium)
         .task(id: activeBookId) {
             await reload()
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("git-fork", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Foreshadowing")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch loadingState {
-        case .idle:
-            return "Cross-chapter foreshadowing tracker."
-        case .loading:
-            return "Loading…"
-        case .loaded:
-            let rowCount = rows.count
-            let staleCount = staleRows.count
-            return "\(rowCount) foreshadowing\(rowCount == 1 ? "" : "s"), \(staleCount) stale"
-        case .failed(let reason):
-            return "Failed: \(reason)"
-        }
-    }
-
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("No book selected")
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text("Pick a book from the sidebar to start tracking foreshadowings.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "git-fork",
+            title: WenshuI18n.t("b5.foreshadowingview.l146.h86404455"),
+            body: WenshuI18n.t("b5.foreshadowingview.l149.h44610307")
+        )
     }
+
 
     // MARK: - Body
 
@@ -167,7 +136,7 @@ public struct ForeshadowingView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color(nsColor: .systemRed))
+                    .foregroundStyle(Color.red)
             }
         }
     }
@@ -176,7 +145,7 @@ public struct ForeshadowingView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Add foreshadowing")
+            Text(WenshuI18n.t("b5.foreshadowingview.l179.h19059379"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: 8) {
@@ -187,7 +156,7 @@ public struct ForeshadowingView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help("Short, human-readable label for the foreshadowing.")
+                .help(WenshuI18n.t("b5.foreshadowingview.l190.h31850809"))
                 Picker("Status", selection: $draftStatus) {
                     ForEach(ForeshadowingStatus.allCases) { status in
                         Label(status.displayName, systemImage: status.lucideIcon)
@@ -200,11 +169,11 @@ public struct ForeshadowingView: View {
                 Button {
                     Task { await addForeshadowing() }
                 } label: {
-                    Label("Add", systemImage: "plus")
+                    Label { Text(WenshuI18n.t("b5.foreshadowingview.l203.h64306591")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help("Add a new foreshadowing row.")
+                .help(WenshuI18n.t("b5.foreshadowingview.l207.h87864084"))
             }
             HStack(spacing: 8) {
                 TextField(
@@ -214,7 +183,7 @@ public struct ForeshadowingView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help("UUID of the chapter where the setup beat appears. Leave empty if undecided.")
+                .help(WenshuI18n.t("b5.foreshadowingview.l217.h94119468"))
                 Spacer(minLength: 0)
             }
             TextField(
@@ -225,7 +194,7 @@ public struct ForeshadowingView: View {
             .textFieldStyle(.roundedBorder)
             .font(.caption)
             .lineLimit(1...3)
-            .help("Short excerpt of the setup beat. Trimmed at save time.")
+            .help(WenshuI18n.t("b5.foreshadowingview.l228.h83042863"))
         }
     }
 
@@ -237,7 +206,7 @@ public struct ForeshadowingView: View {
 
     private var filterRow: some View {
         HStack(spacing: 8) {
-            Text("Filter by status")
+            Text(WenshuI18n.t("b5.foreshadowingview.l240.h16934779"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Picker("Status", selection: Binding(
@@ -251,7 +220,7 @@ public struct ForeshadowingView: View {
                     }
                 }
             )) {
-                Text("All statuses").tag(ForeshadowingStatus.allCases.first ?? .open)
+                Text(WenshuI18n.t("b5.foreshadowingview.l254.h37202691")).tag(ForeshadowingStatus.allCases.first ?? .open)
                 ForEach(ForeshadowingStatus.allCases) { status in
                     Label(status.displayName, systemImage: status.lucideIcon).tag(status)
                 }
@@ -269,11 +238,11 @@ public struct ForeshadowingView: View {
 
     private var rowsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Foreshadowings (\(rows.count))")
+            Text(WenshuI18n.t("b5.foreshadowingview.l272.h81392132"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if rows.isEmpty {
-                Text("(none yet — add the first one above)")
+                Text(WenshuI18n.t("b5.foreshadowingview.l276.h48032637"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -295,7 +264,7 @@ public struct ForeshadowingView: View {
             HStack(alignment: .top, spacing: 8) {
                 LucideIconSystemFallback(row.status.lucideIcon, size: 16)
                     .foregroundStyle(.tint)
-                    .frame(width: 18)
+                    .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(row.title)
@@ -304,12 +273,13 @@ public struct ForeshadowingView: View {
                         Text(row.status.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                            )
+                            .padding(.horizontal, DesignTokens.chromePaddingSmall)
+                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            // v0.44 M8.2: removed .background(RoundedRectangle.fill(.quaternary))
+                            // (= macOS 12 chrome tier; = macOS 27
+                            // Tahoe has no 4-tier hierarchy). Now
+                            // the status text is just a styled text
+                            // with no opaque background layer.
                     }
                     if !row.setupExcerpt.isEmpty {
                         Text(row.setupExcerpt)
@@ -319,12 +289,12 @@ public struct ForeshadowingView: View {
                     }
                     HStack(spacing: 6) {
                         if let setupId = row.setupChapterId {
-                            Text("Setup: \(setupId.uuidString.prefix(8))…")
+                            Text(WenshuI18n.t("b5.foreshadowingview.l322.h55995378"))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
                         if let payoffId = row.payoffChapterId {
-                            Text("Payoff: \(payoffId.uuidString.prefix(8))…")
+                            Text(WenshuI18n.t("b5.foreshadowingview.l327.h71979732"))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
@@ -338,16 +308,19 @@ public struct ForeshadowingView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
-                .help("Remove this foreshadowing.")
+                .help(WenshuI18n.t("b5.foreshadowingview.l341.h68314578"))
             }
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary.opacity(0.5))
-        )
+        // v0.44 M8.2: removed .background(RoundedRectangle.fill(.quaternary.opacity(0.5)))
+        // (= v0.44 boss 2026-09-09 OOB 'macOS 27 = 1 glass surface
+        // + content underneath, no 4-tier color hierarchy' = the
+        // row's .quaternary background was a macOS 12 Monterey
+        // chrome tier; = macOS 27 Tahoe supersedes it with 1
+        // glass + content). Now the row floats on the column's
+        // liquid glass without an opaque quaternary layer.
     }
 
     // MARK: - Stale section
@@ -356,14 +329,14 @@ public struct ForeshadowingView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 LucideIconSystemFallback("alert-triangle", size: 14)
-                    .foregroundStyle(Color(nsColor: .systemOrange))
-                Text("Stale foreshadowings (\(staleRows.count))")
+                    .foregroundStyle(Color.orange)
+                Text(WenshuI18n.t("b5.foreshadowingview.l360.h31137580"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
             }
             if staleRows.isEmpty {
-                Text("(none — every in-flight foreshadowing has a recent createdAt)")
+                Text(WenshuI18n.t("b5.foreshadowingview.l366.h57955114"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -384,7 +357,7 @@ public struct ForeshadowingView: View {
         HStack(spacing: 6) {
             LucideIconSystemFallback(row.status.lucideIcon, size: 12)
                 .foregroundStyle(.secondary)
-                .frame(width: 16)
+                .frame(width: DesignTokens.iconStandardSize)
             Text(row.title)
                 .font(.caption)
                 .foregroundStyle(.primary)
@@ -393,8 +366,8 @@ public struct ForeshadowingView: View {
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 2)
-        .padding(.horizontal, 4)
+        .padding(.vertical, DesignTokens.chromePaddingNano)
+        .padding(.horizontal, DesignTokens.chromePaddingMicro)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 

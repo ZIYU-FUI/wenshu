@@ -1,4 +1,4 @@
-// DropAffordanceTests.swift · Wenshu (文枢) · v0.28 followup TKT-028-021
+// DropAffordanceTests.swift · Wenshu () · v0.28 followup TKT-028-021
 //
 // Tests for drop affordance + drag visuals. Boss 2026-08-29 OOB.
 

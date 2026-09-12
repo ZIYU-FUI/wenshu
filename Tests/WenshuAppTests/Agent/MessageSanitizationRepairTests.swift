@@ -118,7 +118,7 @@ struct MessageSanitizationRepairTests {
 
     @Test("stripNonASCII replaces non-ASCII characters with '?'")
     func testStripNonASCII() {
-        let s = "hello \u{4E2D}\u{6587} world"  // 中文
+        let s = "hello \u{4E2D}\u{6587} world"  // in progress
         let stripped = MessageSanitization.stripNonASCII(s)
         #expect(stripped == "hello ?? world")
     }

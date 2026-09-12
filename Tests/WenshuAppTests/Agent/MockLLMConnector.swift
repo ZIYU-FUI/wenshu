@@ -3,8 +3,8 @@
 //
 //  Shared mock LLMConnector for unit tests with scripted tool_use support.
 //
-//  v0.37 enhancement (= per 老板 cadence '继续移植' + 'PO 全链路方法论执行,
-//  不要跳步骤' + '翻译这个事做完一起验视觉和前端流程' + '1 RULE 1 commit'):
+// v0.37 enhancement (= per cadence 'resume' + 'PO execute,
+// don't' + 'when done, verify visual and frontend flow together' + '1 RULE 1 commit'):
 //  MockLLMConnector now supports scripted responses that emit tool_use
 //  blocks. The v0.36 version only echoed text. The v0.37 version supports:
 //
@@ -75,7 +75,19 @@ public actor MockLLMConnector: LLMConnector {
             return response
         }
 
-        // Fallback: echo the last user message
+        // If a non-default response was configured, return it verbatim
+        // (no echo prefix). The default is "ok" (= the echo sentinel).
+        if responseText != "ok" {
+            return LLMResponse(
+                id: "mock-\(UUID().uuidString)",
+                model: options.model,
+                blocks: [.text(responseText)],
+                stopReason: .endTurn,
+                usage: LLMUsage(inputTokens: 5, outputTokens: 5)
+            )
+        }
+
+        // Fallback: echo the last user message (= "ok" default).
         let echo: String
         if case let last = messages.last, let block = last?.blocks.first {
             if case .text(let s) = block {
@@ -87,8 +99,13 @@ public actor MockLLMConnector: LLMConnector {
             echo = responseText
         }
 
+        // Default echo path uses the stable id "mock" (= the
+        // connectorID bare id) so tests asserting
+        // `result.response.id == "mock"` on the default constructor
+        // see a deterministic value. Scripted + non-default-response
+        // paths keep their "mock-<UUID>" uniqueness.
         return LLMResponse(
-            id: "mock-\(UUID().uuidString)",
+            id: "mock",
             model: options.model,
             blocks: [.text(echo)],
             stopReason: .endTurn,

@@ -1,14 +1,14 @@
-// LAYOUT-APPKIT-INVENTORY.md · 文枢 (Wenshu) · v0.02.0 LT-01-fix9
+// LAYOUT-APPKIT-INVENTORY.md · (Wenshu) · v0.02.0 LT-01-fix9
 //
-// 老板 8/7 on-machine 拍 "all native, don't hand-write what we don't have to".
+// 8/7 on-machine "all native, don't hand-write what we don't have to".
 // CC must run a 30-minute macOS AppKit investigation, evaluating 15 layout-related native APIs:
 //   - applicable → recommend which hand-written SwiftUI view to replace
 //   - not applicable → mark "stick with SwiftUI"
 //
-// Investigation scope: 文枢 v0.02.0 layout shell = 1 main window + 5 zones (top-left / top-middle / top-right /
+// Investigation scope: v0.02.0 layout shell = 1 main window + 5 zones (top-left / top-middle / top-right /
 // bottom-left / bottom-right) + 4 draggable splitters + collapsed state + macOS menu bar + title bar.
 //
-// Evaluation criteria for each API: does it solve the 3 symptoms 老板 found during 8/7 on-machine verification?
+// Evaluation criteria for each API: does it solve the 3 symptoms found during 8/7 on-machine verification?
 //   (1) thick splitter line (hand-written SwiftUI 6px rect)
 //   (2) drag flicker + un-smooth (hand-written DragGesture re-renders on every fire)
 //   (3) cursor doesn't change (hand-written PanelSplitter didn't set NSCursor)

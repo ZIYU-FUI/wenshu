@@ -1,7 +1,7 @@
 // WenshuLibraryBookTests.swift · Wenshu (Wenshu) · v0.02.1 (book module)
 //
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
-// 东西'. WenshuLibrary grows by 4 book operations and 2 selection
+// Owner 8/15 15:55: 'needok,, refactor
+// '. WenshuLibrary grows by 4 book operations and 2 selection
 // extensions (= no breaking changes to the v0.02.0 API).
 
 import Testing

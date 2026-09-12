@@ -1,18 +1,40 @@
 //
 //  TodoStore.swift · Wenshu · v0.18 ticket 06 (hermes replica)
 //
-//  本地 Todo (复刻 hermes todo 真值简化版).
-//  老板 2026-08-19 拍 "全模块复刻, Apple 体系实现" + "不符合文枢定位的可以复刻".
+// local Todo (hermes todo).
+// 2026-08-19 ", Apple " + "can".
 //
-//  wenshu 定位 = SwiftUI 桌面写作 app. TodoStore = wenshu 项目内任务调度 (比 KanbanStore 轻量).
-//  真值: hermes todo / goals 真值 (4 状态 + priority + due).
-//  简化版: 1 todos 表 + 4 status + SQLite + actor.
+// wenshu = SwiftUI app. TodoStore = wenshu task (KanbanStore).
+//: hermes todo / goals (4 status + priority + due).
+//: 1 todos + 4 status + SQLite + actor.
 //
+
+
+//
+//  SQL SAFETY: all sqlite3_*() calls in this file use hard-coded string
+//  literals (= zero user-derived SQL = zero SQL injection risk TODAY).
+//  Per AGENTS.md §11.3 wenshu-side wins pattern (= hermes-port parity,
+//  = sqlite3 C API direct call preferred over GRDB abstraction = matches
+//  hermes Python tool-store implementation verbatim).
+//
+//  SAFETY CONTRACT for future contributors:
+//  - DO NOT concatenate user input into the SQL string (= use sqlite3_bind_*
+//    parameter binding instead = the only safe pattern).
+//  - DO NOT use String(format:) with %@/%.20s substitution (= format-injection).
+//  - DO NOT read user input into the table/column names (= always use
+//    fixed enum cases or hardcoded identifiers).
+//  - If user-derived values are needed in WHERE/INSERT clauses, use
+//    sqlite3_bind_text/stmt parameter binding with positional placeholders
+//    (= ?, ?N, :name =, @name = per SQLite docs).
+//
+//  The audit at .scratch/2026-09-06-wenshu-hidden-defects-audit.md
+//  documents this convention (= 14 raw sqlite3 sites across 10 files,
+//  all hardcoded literals = safe).
 
 import Foundation
 import SQLite3
 
-/// Todo 状态真值
+/// Todo status
 public enum TodoStatus: String, Codable, Sendable, CaseIterable {
     case pending
     case inProgress = "in_progress"
@@ -20,7 +42,7 @@ public enum TodoStatus: String, Codable, Sendable, CaseIterable {
     case cancelled
 }
 
-/// Todo 优先级真值
+/// Todo
 public enum TodoPriority: Int, Codable, Sendable, CaseIterable {
     case low = 0
     case medium = 1
@@ -28,7 +50,7 @@ public enum TodoPriority: Int, Codable, Sendable, CaseIterable {
     case urgent = 3
 }
 
-/// Todo 真值
+/// Todo
 public struct TodoItem: Equatable, Sendable {
     public let id: String
     public var title: String
@@ -49,7 +71,7 @@ public struct TodoItem: Equatable, Sendable {
     }
 }
 
-/// SQLite 透明指针 wrap
+/// SQLite wrap
 private final class SQLitePtr {
     var db: OpaquePointer?
     deinit { sqlite3_close(db) }
@@ -105,8 +127,16 @@ public actor TodoStore {
     }
 
     public func add(title: String, priority: TodoPriority = .medium, dueDate: Date? = nil) throws -> TodoItem {
+        return try add(id: UUID().uuidString, title: title, priority: priority, dueDate: dueDate)
+    }
+
+    /// Insert a todo with a caller-supplied id (= bridges to caller-
+    /// managed identifiers such as the `todo` tool's `id` field).
+    /// Collisions throw `TodoStoreError.execFailed` (= the underlying
+    /// SQLite step failure); callers should pick a fresh id on retry.
+    public func add(id: String, title: String, priority: TodoPriority = .medium, dueDate: Date? = nil) throws -> TodoItem {
         let now = Date()
-        let todo = TodoItem(id: UUID().uuidString, title: title, status: .pending, priority: priority, dueDate: dueDate, createdAt: now, updatedAt: now)
+        let todo = TodoItem(id: id, title: title, status: .pending, priority: priority, dueDate: dueDate, createdAt: now, updatedAt: now)
         let sql = "INSERT INTO todos (id, title, status, priority, due_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?);"
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {

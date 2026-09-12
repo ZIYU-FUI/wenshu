@@ -1,4 +1,4 @@
-// SmartQueryView.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// SmartQueryView.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Saved-search UI (= FCP Library Smart Collection analogue).
 // v0.26 ships a static placeholder UI (= list + add/edit/delete);
@@ -28,13 +28,13 @@ struct SmartQueryView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("智能查询")
+                Text(WenshuI18n.t("smartquery.tab_label"))
                     .font(.headline)
                 Spacer()
                 Button {
                     showCreateSheet = true
                 } label: {
-                    Label("新建", systemImage: "plus")
+                    Label { Text(WenshuI18n.t("auto2.smartqueryview.l37.h49599855")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .controlSize(.small)
             }
@@ -63,14 +63,14 @@ struct SmartQueryView: View {
                 VStack(alignment: .leading) {
                     Text(query.name)
                         .font(.headline)
-                    Text("v0.27+ 启用")
+                    Text(WenshuI18n.t("auto.smartqueryview.l66.h44879479"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
             }
             .contextMenu {
-                Button("删除", role: .destructive) {
+                Button(WenshuI18n.t("auto2.smartqueryview.l73.h22475030"), role: .destructive) {
                     delete(query)
                 }
             }
@@ -83,48 +83,44 @@ struct SmartQueryView: View {
             // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
             LucideIconSystemFallback("magnifyingglass.circle", size: 48)
                 .foregroundStyle(.tertiary)
-            Text("还没有智能查询")
+            Text(WenshuI18n.t("auto.smartqueryview.l86.h89952862"))
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            Text("v0.27+ 将启用搜索功能")
+            Text(WenshuI18n.t("auto.smartqueryview.l89.h6572603"))
                 .font(.callout)
                 .foregroundStyle(.tertiary)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
     private var createSheet: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("新建智能查询")
-                    .font(.headline)
-                Spacer()
-            }
-            .padding()
-            Divider()
+        NavigationStack {
             Form {
-                Section("名称") {
-                    TextField("查询名称", text: $newQueryName)
+                Section(WenshuI18n.t("auto2.smartqueryview.l100.h38153477")) {
+                    TextField(WenshuI18n.t("auto2.smartqueryview.l101.h43731610"), text: $newQueryName)
                         .textFieldStyle(.roundedBorder)
                 }
                 Section {
-                    Text("v0.27+ 将提供查询结构定义 (实体类型 + 名称匹配 + 关联过滤)。\nv0.26 阶段智能查询为占位功能。")
+                    Text(WenshuI18n.t("auto2.smartqueryview.l105.h81062794"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
             }
             .formStyle(.grouped)
-            Divider()
-            HStack {
-                Button("取消", role: .cancel) { showCreateSheet = false }
-                Spacer()
-                Button("保存") { create() }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(newQueryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .keyboardShortcut(.defaultAction)
+            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // .toolbar (= Apple HIG standard for sheet chrome). The
+            // inline HStack { Text + Divider } header was removed.
+            .navigationTitle(WenshuI18n.t("smart_query.create.title"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(WenshuI18n.t("auto2.smartqueryview.l117.h19213351")) { showCreateSheet = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(WenshuI18n.t("auto2.smartqueryview.l120.h24989358")) { create() }
+                        .disabled(newQueryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .keyboardShortcut(.defaultAction)
+                }
             }
-            .padding()
         }
         .frame(minWidth: 360, idealWidth: 420, minHeight: 280, idealHeight: 340)
         // POLISH-LIQUIDGLASS-004: New Smart Query modal sheet root

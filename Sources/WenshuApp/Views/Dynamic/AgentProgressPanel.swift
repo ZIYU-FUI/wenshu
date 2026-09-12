@@ -99,30 +99,29 @@ public struct AgentProgressPanel: View {
                     .fontWeight(.medium)
                     .lineLimit(1)
                 Spacer()
-                Text("\(entry.stepNumber)/\(entry.totalSteps)")
+                Text(WenshuI18n.t("b5.agentprogresspanel.l102.h88801664"))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.tertiary)
             }
             if let eta = entry.etaSeconds {
-                Text("ETA: \(eta)s")
+                Text(WenshuI18n.t("b5.agentprogresspanel.l107.h24593933"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        // Liquid Glass: thinMaterial matches DynamicZoneView's pane
-        // chrome (= SubAgentProgressView's task rows use the same
-        // pattern). The card is a thin strip pinned to the top of
-        // the zone, below the tab bar.
-        .background(.thinMaterial)
+        .padding(.horizontal, DesignTokens.chromePaddingMedium)
+        .padding(.vertical, DesignTokens.chromePaddingVertical)
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .thinMaterial (= Liquid Glass agent progress strip);
+        // now uses Color.clear (= no background).
+        .background(Color.clear)
         .overlay(
             // Subtle accent border on the leading edge so the user
             // can tell at a glance which step is active (Apple HIG
             // status indicator pattern).
             Rectangle()
                 .fill(Color.accentColor)
-                .frame(width: 3),
+                .frame(width: DesignTokens.surfaceActiveBorderWidth),
             alignment: .leading
         )
     }

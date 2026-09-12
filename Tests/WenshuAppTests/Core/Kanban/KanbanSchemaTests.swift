@@ -1,7 +1,7 @@
 //
 //  KanbanSchemaTests.swift · Wenshu · v0.23 ticket 013.004 (hermes gap 3)
 //
-//  Boss 2026-08-23 拍: hermes kanban metadata parity.
+// Boss 2026-08-23: hermes kanban metadata parity.
 //
 
 import Foundation

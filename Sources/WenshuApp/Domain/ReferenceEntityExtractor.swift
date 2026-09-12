@@ -42,25 +42,21 @@ public struct ReferenceEntityExtractor: Sendable {
     /// Hermes regex: `\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b`
     /// Note: anchored on Latin script only. CJK entity extraction (= Chinese person / place names)
     /// remains handled by ChatTrigger.detectQuotedNames (= existing CN-quote detection).
-    private static let capitalized = try! NSRegularExpression(
-        pattern: #"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b"#
+    private static let capitalized = NSRegularExpression.literal(#"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b"#
     )
 
     /// `"([^"]+)"` — double-quoted terms.
-    private static let doubleQuote = try! NSRegularExpression(
-        pattern: #""([^"]+)""#
+    private static let doubleQuote = NSRegularExpression.literal(#""([^"]+)""#
     )
 
     /// `'([^']+)'` — single-quoted terms.
-    private static let singleQuote = try! NSRegularExpression(
-        pattern: #"'([^']+)'"#
+    private static let singleQuote = NSRegularExpression.literal(#"'([^']+)'"#
     )
 
     /// AKA pattern (hermes verbatim):
     ///   `(\w+(?:\s+\w+)*)\s+(?:aka|also known as)\s+(\w+(?:\s+\w+)*)`
     /// case-insensitive.
-    private static let aka = try! NSRegularExpression(
-        pattern: #"(\w+(?:\s+\w+)*)\s+(?:aka|also known as)\s+(\w+(?:\s+\w+)*)"#,
+    private static let aka = NSRegularExpression.literal(#"(\w+(?:\s+\w+)*)\s+(?:aka|also known as)\s+(\w+(?:\s+\w+)*)"#,
         options: [.caseInsensitive]
     )
 
