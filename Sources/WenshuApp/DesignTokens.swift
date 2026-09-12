@@ -83,6 +83,18 @@ public enum DesignTokens {
     /// chromePaddingMedium (5) + chromePaddingLarge (6) (= inconsistent).
     public static let chromePaddingVertical: CGFloat = 8
 
+    /// v1.0.0-m1-shell boss 2026-09-11 OOB '左, 左中, 右三栏
+    /// 的标题, 距顶加一个 apple 表达式间距, 18pt 左右
+    /// 的, 找相似值': top padding from column edge to first
+    /// section header text. Apple HIG macOS 27 Tahoe inspector /
+    /// sidebar / content column pattern uses 18 PT (= the
+    /// 'standard content margin' for sectional chrome elements;
+    /// = same value as the horizontal `chromePaddingLeading`
+    /// Apple HIG 'padding-from-edge-to-content' convention; =
+    /// semantic name chosen for readability when applied as
+    /// `.padding(.top, DesignTokens.chromePaddingSectionTop)`).
+    public static let chromePaddingSectionTop: CGFloat = 18
+
     /// Per-pane chrome micro padding (= 4 PT). Used for tight inset inside
     /// chrome chrome (= icon-picker cells, tab handles, divider label gaps).
     /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingMicro)`.

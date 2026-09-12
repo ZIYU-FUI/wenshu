@@ -962,7 +962,17 @@ struct ShellDetailColumn: View {
                 }
                 Divider()
             }
-            .padding(.top, 4)
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '左, 左中, 右三栏
+            // 的标题, 距顶加一个 apple 表达式间距, 18pt 左右
+            // 的, 找相似值': add 18 PT (= Apple HIG macOS 27
+            // Tahoe section header top inset) above the right
+            // column's section header (= the 4-page Picker
+            // selection title). Per the verbatim port discipline
+            // (= only do what the boss asked), the bottom 4 PT
+            // padding (= divider → tabs gap = the boss's previous
+            // '标题下方, 和 teb 栏之间, 少了 4pt' verbatim request)
+            // is preserved.
+            .padding(.top, DesignTokens.chromePaddingSectionTop)
             .padding(.bottom, 4)
             // v1.0.0-m1-shell boss 2026-09-11 OOB '标题下方, 和 teb 栏之
             // 间, 少了 4pt': per the boss's request, ADD 4 PT of

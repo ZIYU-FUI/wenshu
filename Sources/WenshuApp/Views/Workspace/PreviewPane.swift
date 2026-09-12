@@ -488,7 +488,17 @@ struct PreviewPane: View {
                 }
                 Divider()
             }
-            .padding(.top, 4)
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '左, 左中, 右三栏
+            // 的标题, 距顶加一个 apple 表达式间距, 18pt 左右
+            // 的, 找相似值': add 18 PT (= Apple HIG macOS 27
+            // Tahoe section header top inset) above the center
+            // column's section header. Per the verbatim port
+            // discipline (= only do what the boss asked), no other
+            // spacing changes here (= the search field's
+            // `.padding(.top, 4)` below and the cards column
+            // layout all remain unchanged because they were
+            // previously boss-asked verbatim values).
+            .padding(.top, DesignTokens.chromePaddingSectionTop)
             .padding(.bottom, 4)
             // v1.0.0-m1-shell boss 2026-09-11 OOB '位置调整一下,
             // 放在标题和分割线下方, 第一张卡片上方': render the

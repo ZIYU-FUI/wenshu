@@ -365,7 +365,19 @@ struct NewLibraryOutlineView: View {
                     // sidebar width = wrong = not the Apple default).
                     Divider()
                 }
-                .padding(.top, 4)
+                // v1.0.0-m1-shell boss 2026-09-11 OOB '左, 左中, 右三栏
+                // 的标题, 距顶加一个 apple 表达式间距, 18pt 左右
+                // 的, 找相似值': add 18 PT (= Apple HIG macOS 27
+                // Tahoe section header top inset) above the section
+                // header. Per the verbatim port discipline (= only
+                // do what the boss asked), this change ONLY adds the
+                // top inset (= 18 PT via the new semantic token
+                // `DesignTokens.chromePaddingSectionTop`); = the
+                // existing `.padding(.bottom, 4)` (= 4 PT below the
+                // Divider) is preserved because the boss previously
+                // asked for that exact value (= verbatim discipline
+                // = do not change previously-boss-asked values).
+                .padding(.top, DesignTokens.chromePaddingSectionTop)
                 .padding(.bottom, 4)
             }
             .headerProminence(.increased)
