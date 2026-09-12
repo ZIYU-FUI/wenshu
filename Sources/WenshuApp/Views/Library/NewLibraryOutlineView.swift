@@ -384,7 +384,20 @@ struct NewLibraryOutlineView: View {
                 // boss-asked 18 PT or 4 PT overshoot; = the natural
                 // Apple List(.sidebar) section spacing).
             }
-            .headerProminence(.increased)
+            // v1.0.0-m1-shell boss 2026-09-12 OOB '目录栏, 测试书架,
+            // 分割线, 资料库. 这几个控件之间有没有我们手动加的
+            // 间距, 如果有改回默认': remove `.headerProminence(.increased)`
+            // (= a non-Apple-default SwiftUI List modifier that
+            // artificially inflates the vertical space above and
+            // below the section header; = adds ~16-22 PT extra
+            // padding between 测试书架 (= last row of the shelves
+            // Section) and 资料库 (= first row of the reference
+            // library Section); = the boss's '58 PT gap' complaint;
+            // = SwiftUI's default `.standard` header prominence
+            // (= no modifier needed) is the Apple HIG canonical
+            // sidebar rhythm between grouped rows). The Divider
+            // between sections stays bare (= Apple default
+            // horizontal inset; = no padding added).
             // v1.0.0-m1-shell boss 2026-09-10 OOB '在资料库和书架之间
             // 加一条分割线, 但除了分割线自带的间隔, 不另加间隔':
             // add a single `Divider()` BETWEEN the shelves Section
