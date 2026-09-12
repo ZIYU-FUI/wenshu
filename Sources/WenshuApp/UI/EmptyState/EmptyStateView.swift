@@ -98,17 +98,59 @@ import SwiftUI
 ///   = Apple HIG standard)
 /// - Centered horizontally inside the caller's frame (= the
 ///   SwiftUI VStack auto-centers its children)
+///
+/// Two init flavors:
+///
+/// 1. Plain text title (= the common case):
+///    `EmptyStateView(icon: ..., title: "...", body: "...")`
+///
+/// 2. Custom title view (= for chat empty state where the title
+///    contains an inline "Settings" Button as part of the
+///    sentence; = Apple Mail / Notes convention):
+///    `EmptyStateView(icon: ..., titleView: { HStack { Text; Button; Text } }, body: "...")`
+///
+/// Both flavors render the same icon + body style; only the title
+/// rendering differs (= plain Text vs. caller-supplied View).
 public struct EmptyStateView: View {
     let icon: String
-    let title: String
+    let titleText: String?
     let detail: String
+    /// Caller-supplied custom title view (= AnyView so the two
+    /// init flavors can store different concrete types in the
+    /// same property). nil when the plain-text title init was used.
+    let titleView: AnyView?
 
+    /// Plain-text title init (= the common case).
     public init(icon: String, title: String, body: String) {
         self.icon = icon
-        self.title = title
+        self.titleText = title
         self.detail = body  // stored property renamed to avoid
                             // collision with SwiftUI's `body`
                             // (= the View protocol's `var body`).
+        self.titleView = nil
+    }
+
+    /// Custom-title-view init (= for chat empty state where the
+    /// title contains an inline link / Button as part of the
+    /// sentence).
+    ///
+    /// Parameters:
+    /// - icon: Lucide icon name (kebab-case)
+    /// - titleView: caller-supplied title view (= rendered in
+    ///   place of the plain Text title; = should use
+    ///   `.foregroundStyle(.secondary)` + `.font(.headline)`
+    ///   to match the EmptyStateView visual contract)
+    /// - body: plain-text body (= always plain Text; = no
+    ///   custom view needed for the body in current callers)
+    public init<V: View>(
+        icon: String,
+        titleView: V,
+        body: String
+    ) {
+        self.icon = icon
+        self.titleText = nil
+        self.detail = body
+        self.titleView = AnyView(titleView)
     }
 
     public var body: some View {
@@ -134,13 +176,20 @@ public struct EmptyStateView: View {
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 22)
             VStack(spacing: 6) {
-                // Title (= Apple HIG .headline semibold = 13 PT
-                // semibold = Apple's standard secondary headline).
-                // The .secondary tone (= NOT .primary) keeps the
-                // hint feeling like a suggestion, NOT an error.
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
+                // Title: plain Text (= common case) OR caller-supplied
+                // titleView (= chat empty state with inline
+                // Settings link). Both render at .headline / .secondary
+                // (= the EmptyStateView visual contract).
+                if let titleView = titleView {
+                    titleView
+                        .frame(maxWidth: 360)
+                } else if let titleText = titleText {
+                    Text(titleText)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 360)
+                }
                 // Body (= Apple HIG .callout = 12 PT secondary =
                 // Apple's standard secondary text). The .tertiary
                 // tone + center alignment signals "this is
@@ -150,8 +199,8 @@ public struct EmptyStateView: View {
                     .font(.callout)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
+                    .frame(maxWidth: 360)
             }
-            .frame(maxWidth: 360)
         }
     }
 }

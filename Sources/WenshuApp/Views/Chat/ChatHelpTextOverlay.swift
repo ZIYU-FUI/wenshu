@@ -67,48 +67,31 @@ public struct ChatHelpTextOverlay: View {
             Color(NSColor.windowBackgroundColor)
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                // v0.54: 38 PT + 22 PT gap, matching EmptyStateHint and the
-                // measurement taken off Apple's own ContentUnavailableView.
-                // This overlay is a hand-rolled twin of EmptyStateHint, so it
-                // has to move with it or the chat panel keeps a toolbar-sized
-                // icon while every other empty state grew.
+                // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+                // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+                // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+                // 空态的样式. 右栏 12 个 teb, 很多都缺少空态':
+                // migrate to the unified EmptyStateView component
+                // (= 76 PT Lucide icon + 1 PT stroke via
+                // LucideThinIcon + standard title / body hierarchy).
+                // Same visual treatment as the 12 specialized tool
+                // tabs + the editor empty state + PreviewPane.
                 //
-                // v0.40 boss 2026-09-08 OOB 'chat zone hint, editor
-                // card zone': the chat empty state must use the SAME
-                // EmptyStateHint pattern (= icon + title + body) as
-                // the editor zone and the card zone.
+                // The chat empty state has a SPECIAL CASE: the title
+                // contains an inline 'Settings' Button as part of
+                // the sentence (= Apple Mail / Notes convention for
+                // empty-state hints that include a settings CTA inside
+                // the title sentence; = NOT a separate Button below).
+                // To preserve this, EmptyStateView exposes a second
+                // init that accepts a caller-supplied titleView (= the
+                // HStack { Text + Button + Text } below).
                 //
-                // v0.40 boss 2026-09-08 follow-up 'missing characters in the
-                // title': the title must be the FULL sentence with the
-                // inline 'Settings' link (= the link is inside the
-                // title sentence, not a separate Button below).
-                //
-                // Implementation: HStack(spacing: 0) with 3 Text
-                // views (= plain + clickable + plain). The middle
-                // 'Settings' is wrapped in a Button with .plain
-                // style for tap = onSettingsTap.
-                //
-                // v0.40 boss 2026-09-08 follow-up: the title → body
-                // spacing must match the editor zone empty state (=
-                // EmptyStateHint's inner VStack spacing =
-                // DesignTokens.chromePaddingSmall = 4 PT). Restructure
-                // = outer VStack spacing 0 (icon → title block) +
-                // inner VStack(spacing: chromePaddingSmall) for
-                // title → body (= matches EmptyStateHint exactly).
-                VStack(spacing: 0) {
-                    LucideIcon("message-square", size: 38)
-                        .foregroundStyle(.secondary)
-                        .padding(.bottom, 22)
-                    // Title block (= inner VStack with tight 4 PT
-                    // spacing between title + body = matches
-                    // EmptyStateHint's inner VStack(spacing:
-                    // chromePaddingSmall) = Apple HIG canonical
-                    // title-body separation).
-                    VStack(spacing: DesignTokens.chromePaddingSmall) {
-                        // Title (= inline link pattern = Apple's
-                        // Mail.app / Notes.app convention for
-                        // empty-state hints that include a
-                        // "settings" CTA inside the title sentence).
+                // Inner spacing values (= 22 PT icon→title gap, 4 PT
+                // title→body gap) are matched to Apple's measured
+                // ContentUnavailableView sample.
+                EmptyStateView(
+                    icon: "message-square",
+                    titleView:
                         HStack(spacing: 0) {
                             Text(WenshuI18n.t("chathelp.please_first_goto") + " ")
                                 .foregroundStyle(.secondary)
@@ -122,17 +105,9 @@ public struct ChatHelpTextOverlay: View {
                                 .foregroundStyle(.secondary)
                         }
                         .font(.headline)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 360)
-                        // Body (= Apple HIG .callout = 12 PT tertiary).
-                        Text(WenshuI18n.t("auto.chathelptextoverlay.l33.h88773098"))
-                            .font(.callout)
-                            .foregroundStyle(.tertiary)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: 360)
-                    }
-                    .frame(maxWidth: 360)
-                }
+                        .multilineTextAlignment(.center),
+                    body: WenshuI18n.t("auto.chathelptextoverlay.l33.h88773098")
+                )
                 Spacer(minLength: 0)
             }
         }

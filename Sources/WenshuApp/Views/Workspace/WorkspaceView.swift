@@ -1195,14 +1195,16 @@ struct EditorPlaceholder: View {
                     // 两个区域也都还在, 上下还是 50/50, 只不过上面
                     // 是空态':
                     //
-                    // Use wenshu's own EmptyStateHint (= the same
-                    // 38 PT icon + title + body style used by the
-                    // cards / book / reference empty states; =
-                    // unified visual across all of wenshu's
-                    // empty states; = matches the boss's '空态样式
-                    // 和文枢现在用的样式不同' fix).
+                    // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+                    // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+                    // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+                    // 空态的样式. 右栏 12 个 teb, 很多都缺少空态':
+                    // migrate to the unified EmptyStateView (= 76 PT
+                    // Lucide icon + 1 PT stroke via LucideThinIcon +
+                    // standard title / body hierarchy). Same visual
+                    // treatment as the 12 specialized tool tabs.
                     //
-                    // Wrap the EmptyStateHint in a vertical layout
+                    // Wrap the EmptyStateView in a vertical layout
                     // that pushes it to vertical center inside the
                     // upper half of the VSplitView (= the upper
                     // half keeps its 50/50 share with the chat
@@ -1212,7 +1214,7 @@ struct EditorPlaceholder: View {
                     // 只不过上面是空态').
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
-                        EmptyStateHint(
+                        EmptyStateView(
                             icon: "file-text",
                             title: WenshuI18n.t("editor.empty.title"),
                             body: WenshuI18n.t("editor.empty.description")
@@ -1897,14 +1899,16 @@ struct EditorPlaceholder: View {
     /// path: pick a reference library / book / folder, double-
     /// click a card → openCardInEditor creates a tab).
     ///
-    /// v0.40 boss 9/7 OOB follow-up 'hint': use the
-    /// shared EmptyStateHint component (= same icon + title +
-    /// body layout as Foreshadowing + PreviewPane empty states).
-    /// This guarantees consistent visual treatment (= 24 PT
-    /// icon, 15 PT semibold title, 13 PT body) across all
-    /// "no content" zones in the workspace.
+    /// v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+    /// 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+    /// ICON 放大一倍, 同时用最细的线条. 目的是统一所有空态
+    /// 的样式. 右栏 12 个 teb, 很多都缺少空态': use the
+    /// unified EmptyStateView component (= 76 PT Lucide icon
+    /// + 1 PT stroke via LucideThinIcon + standard title / body
+    /// hierarchy). This guarantees consistent visual treatment
+    /// across every "no content" zone in wenshu.
     private var emptyStateHint: some View {
-        EmptyStateHint(
+        EmptyStateView(
             icon: "book-open",
             title: WenshuI18n.t("workspace.empty.title"),
             body: WenshuI18n.t("workspace.empty.body")

@@ -988,7 +988,15 @@ struct PreviewPane: View {
         titleKey: String,
         bodyKey: String
     ) -> some View {
-        EmptyStateHint(
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': migrate
+        // to the unified EmptyStateView (= 76 PT Lucide icon
+        // + 1 PT stroke via LucideThinIcon + standard title /
+        // body hierarchy). Same visual treatment as the 12
+        // specialized tool tabs.
+        EmptyStateView(
             icon: icon,
             title: WenshuI18n.t(titleKey),
             body: WenshuI18n.t(bodyKey)
