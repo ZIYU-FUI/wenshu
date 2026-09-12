@@ -114,9 +114,12 @@ enum LayoutEvents: String, CaseIterable {
 //
 // Existing callers reference these notifications as
 // `.wenshuToggleZone` (= the legacy static lets on Notification.Name
-// defined in App.swift L40-69). To preserve all 17 call sites without
-// renaming them, expose static accessors on each enum case that map
-// to the legacy `Notification.Name.wenshuXxx` keys.
+// defined IN THIS FILE (= AppNotifications.swift) at L127+, NOT in
+// App.swift L40-69; = the App.swift L47 extension was reduced to a
+// placeholder after the definitions moved here). To preserve all
+// 17 call sites without renaming them, expose static accessors on
+// each enum case that map to the legacy `Notification.Name.wenshuXxx`
+// keys.
 //
 // New code SHOULD reference the enum case directly (= cleaner intent)
 // but the legacy path remains functional for the migration window.

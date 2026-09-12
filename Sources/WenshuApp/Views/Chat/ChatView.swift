@@ -302,7 +302,9 @@ public final class ChatViewModel {
     // B-05 build fix: demote from `public init` to internal `init`. AppState
     // is internal (= `final class AppState`, no access modifier), and a
     // `public init` cannot accept an internal type as a parameter. Both
-    // call sites (App.swift:1528 + ChatView.swift:340) are inside the
+    // call sites (= the App.swift:1528 reference is stale per the Q2 boss
+    // split moved ChatView init outside App.swift; see AppRootScene.swift
+    // + ChatView.swift:340) are inside the
     // WenshuApp module, so internal access is sufficient. The class itself
     // stays `public final class` so existing public surface (currentModel,
     // messages, send, etc.) is unchanged.

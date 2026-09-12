@@ -312,7 +312,8 @@ struct WorkspaceView: View {
             }
             // v0.30 boss 2026-09-01 OOB fix: the View menu's "Restore Default
             // Layout" item (= ⌘⇧R; both the SwiftUI Commands entry
-            // and the legacy NSMenu entry at App.swift:567 + 1442)
+            // (= the App.swift:567 + 1442 references are stale per the Q2 boss
+            // split moved the legacy NSMenu to AppRootScene.swift)
             // posts .wenshuResetLayout. Without this onReceive, the
             // notification had no observer and the menu item was
             // a no-op. Listening here delegates to
@@ -603,7 +604,10 @@ struct WorkspaceView: View {
 // For now this view renders a placeholder color (= a sane default
 // that the user can see + interact with while the integration lands).
 // ZoneModuleView — verbatim port of the old v0.27 `ZoneModule` (=
-// App.swift:2060-2220). The OLD 6-zone layout had a 3-layer chrome per zone:
+// App.swift:2060-2220 references are stale per the Q2 boss split
+// (= App.swift shrank to 460 LOC; = the OLD 6-zone layout was the
+// pre-split implementation now superseded by the NSV 4-column layout).
+// The OLD 6-zone layout had a 3-layer chrome per zone:
 // 1. ZoneTopToolbar (30 PT) with zone actions (Graph / Search / expand
 //    trailing etc.). This layer is now an outer RegionPerRegionChrome.
 // 2. ZoneContentView (internal tab bar with ZoneContentTabBar)
@@ -761,11 +765,17 @@ struct ZoneModuleView: View {
             ])
 
         case .specializedTools:
-            // Old 6-zone specializedTools = 4 tabs (Foreshadowing / Placeholder /
+            // 5 tabs (Foreshadowing / Placeholder /
             // LongFormGuardrails per P1 ticket #6
             // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04 +
             // ReaderExperience per P1 ticket #7
-            // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04).
+            // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04 +
+            // PlotThread per P1 ticket #8
+            // [WIRE-SPECIALIZEDTOOLS-003] 2026-09-04).
+            // v0.71 P1 batch 9 dual-axis followup (= Q99 Spec axis P0):
+            // fixed the stale "Old 6-zone specializedTools = 4 tabs"
+            // comment (= current code has 5 tabs at L774-778 below;
+            // the previous docstring described the pre-PlotThread state).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 (WenshuI18n.t("tab.title.foreshadowing"), "git-fork", AnyView(ForeshadowingView())),
                 (WenshuI18n.t("tab.title.placeholder"), "square-dashed", AnyView(PlaceholderView())),

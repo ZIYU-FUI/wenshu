@@ -1,9 +1,10 @@
-// Sources/WenshuApp/UI/DesignTokens.swift
+// Sources/WenshuApp/DesignTokens.swift
 //
-// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'needgroup,
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//, group, yesdefaultauto
-// '): Phase 1 of 5-phase component refactor.
+// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'need group
+// (= canonical dimensions for the unified Wenshu per-region chrome; =
+// matches Apple HIG 30 PT toolbar standard, Apple Pages / Mail / Xcode
+// toolbar layout)':
+// Phase 1 of 5-phase component refactor.
 //
 // Single source of truth for all chrome dimensions, paddings, font sizes,
 // dividers, tab metrics (= extracted from LayoutTokens + 16 files of

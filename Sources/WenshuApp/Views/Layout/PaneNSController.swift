@@ -133,7 +133,9 @@ final class PaneNSController: NSSplitViewController {
         // just hold the `paneKindByItem` map that the root walks.
         guard installObservers else { return }
         // Display-menu bridge (= Gap F fix). The legacy "Display" menu items
-        // in App.swift:593-611 post .wenshuToggleZone(ZoneSlot)
+        // (= the App.swift:593-611 reference is stale per the Q2 boss split
+        // moved the Display menu to AppRootScene.swift + Core/Notifications/AppNotifications.swift)
+        // post .wenshuToggleZone(ZoneSlot)
         // notifications; this observer finds the matching NSSplitViewItem
         // and flips its collapsed state (= Apple HIG sidebar hide/show
         // affordance).

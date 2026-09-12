@@ -14,14 +14,16 @@
 //   default identity setup + sub-agent permission defaults)
 //
 // Target (= wenshu Swift):
-// - Sources/WenshuApp/Core/Agent/AgentLifecycleTracker.swift (this
+// - Sources/WenshuApp/Core/Agent/Conversation/AgentLifecycleTracker.swift (this
 //   file, ~250 LOC) = per-sub-agent lifecycle tracker (= spawn,
 //   heartbeat, complete, fail, cancel). Provides the onResult /
 //   onError callback surface that hermes subagent_lifecycle.py
 //   exposes but wenshu's AsyncDelegation does not.
-// - Sources/WenshuApp/Core/Agent/AgentInitDefaults.swift (~100 LOC)
-//   = per-profile defaults extracted at spawn time (= boss OOB
-// "engineering" -> MVP defaults aligned with hermes).
+// - AgentInitDefaults = per-profile defaults extracted at spawn time
+//   (= boss OOB "engineering" -> MVP defaults aligned with hermes);
+//   defined LOCALLY in this same file (= no separate
+//   Core/Agent/AgentInitDefaults.swift; = the previous v0.28
+//   spec header described a planned-but-never-created file).
 // - Tests/WenshuAppTests/Core/Agent/AgentLifecycleTrackerTests.swift
 //   (~120 LOC, ~10 tests).
 //

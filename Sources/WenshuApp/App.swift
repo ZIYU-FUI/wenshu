@@ -23,9 +23,12 @@ import LucideSwift
 /// the canonical way to extend a plain-style button's hit area (= Apple
 /// "How do I make icon buttons easier to click on macOS?") is to implement
 /// `IconButtonStyle` REMOVED in v0.34 Apple-API-first #3.
-/// Was a pass-through `makeBody { configuration.label }` (= no-op),
-/// single call site (App.swift:1820) inside the Button label closure
-/// while App.swift:1839 applied `.buttonStyle(.plain)` on the outer Button.
+/// Was a pass-through `makeBody { configuration.label }` (= no-op);
+/// the previous call site + outer Button style (formerly App.swift
+/// L1820 + L1839 before the Q2 boss split moved those features out
+/// of App.swift) is now superseded by the canonical Apple
+/// `.buttonStyle(.plain)` + `Color.clear.frame(28,28).contentShape(...)`
+/// pattern (= Apple HIG hot-area convention).
 /// SwiftUI button-style precedence = outer-wins, so the inner style was
 /// always superseded. Use Apple `.buttonStyle(.plain)` directly with
 /// `Color.clear.frame(28,28).contentShape(Rectangle())` inside the label
