@@ -1052,20 +1052,6 @@ struct EditorPlaceholder: View {
     /// without the .md extension; = boss 9/3 OOB 'no .md extension either'). Placeholder tab = 'preview-sample' (= no .md extension,
     /// = no path = render the short placeholder name).
     ///
-    /// v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
-    /// when documentPath is nil (= reference-library entity = the
-    /// ticket 027-35 deferred path-resolution path = openCardInEditor
-    /// creates the tab without an absolute path), fall back to
-    /// `tab.title` (= the card's title = '赤壁之战' / '杜甫' etc.)
-    /// before the 'preview-sample' placeholder. Precedence (= single
-    /// source of truth in EditorTab.displayTitle):
-    ///   1. documentPath basename (= if real path exists, it wins)
-    ///   2. tab.title (= entity / book-doc title)
-    ///   3. 'preview-sample' (= legacy placeholder)
-    private func tabDisplayTitle(tab: EditorTab) -> String {
-        EditorTab.displayTitle(tab)
-    }
-
     @Environment(AppState.self) private var appState
     // v0.39 ticket 001: WenshuEditorServicesFactory.make needs
     // referenceLibraryRoot + active book root. Both come from
@@ -1131,7 +1117,7 @@ struct EditorPlaceholder: View {
             // the new tab-bar layout as boss decides).
             HStack(spacing: 0) {
                 ForEach(appState.openTabs) { tab in
-                    let title = tabDisplayTitle(tab: tab)
+                    let title = EditorTab.displayTitle(tab)
                     let isActive = (tab.id == appState.activeTabId)
                     Button(action: { appState.activeTabId = tab.id }) {
                         Text(title)

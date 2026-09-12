@@ -135,13 +135,44 @@ public enum ChatRole: String, Equatable, Sendable {
 /// `@unchecked Sendable` because the class has mutable state; the
 /// caller (= ChatViewModel.send) guarantees the only mutator is the
 /// streamCallback (= called from ConversationLoop actor = serial
-/// per-turn). Reading the accumulator from MainActor is safe because
-/// the read happens AFTER the conductor's await returns (= the
-/// stream has already ended or the next block has been delivered;
-/// = no concurrent mutation).
+/// per-turn). v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards
+/// axis HIGH): added NSLock to enforce serial access (= the previous
+/// `final class ... @unchecked Sendable` declaration was a paper
+/// promise that nothing in the contract enforced; = a future
+/// `Task { @MainActor ... }` hop racing a synchronous read from
+/// `conductor.handle` returning could clobber the `parts[]` array
+/// because both paths target the same mutable state).
+///
+/// Reading the accumulator from MainActor is safe because all
+/// mutations happen under `lock` (= thread-safe); the snapshot
+/// (= a copy of `parts`) returned by `snapshotParts()` is safe to
+/// pass across actor boundaries.
 final class StreamingAccumulator: @unchecked Sendable {
-    var parts: [ChatMessagePart] = []
-    var thinking: String = ""
+    private let lock = NSLock()
+    private var _parts: [ChatMessagePart] = []
+    private var _thinking: String = ""
+    var parts: [ChatMessagePart] {
+        get { lock.lock(); defer { lock.unlock() }; return _parts }
+        set { lock.lock(); defer { lock.unlock() }; _parts = newValue }
+    }
+    var thinking: String {
+        get { lock.lock(); defer { lock.unlock() }; return _thinking }
+        set { lock.lock(); defer { lock.unlock() }; _thinking = newValue }
+    }
+    /// Take a thread-safe snapshot of `parts` (= returns a copy
+    /// safe to pass across actor boundaries without triggering
+    /// the Swift 6 strict concurrency "non-Sendable capture"
+    /// warning). Use this when reading the final state after
+    /// `conductor.handle` returns (= replaces direct `parts`
+    /// access at the message-replacement site).
+    func snapshotParts() -> [ChatMessagePart] {
+        lock.lock(); defer { lock.unlock() }
+        return _parts
+    }
+    func snapshotThinking() -> String {
+        lock.lock(); defer { lock.unlock() }
+        return _thinking
+    }
 }
 
 /// Message source ground truth (user = sent by the user / wenshu = Wenshu's reply / system = system error). Wenshu's internal multi-agent dispatch results do not show as ChatMessage; they go through the KanbanStore board.
@@ -981,6 +1012,16 @@ public struct ChatView: View {
         // does not write kanban state but still carries the tool
         // registry (= the test of record lives in
         // WenshuConductorToolWiringTests and constructs its own kanban).
+        //
+        // v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards axis
+        // HIGH): wrapped the inner `try! KanbanStore(...)` in a
+        // do/catch (= the previous code crashed fatally when the temp
+        // directory was unwritable or the SQLite open failed = the
+        // catch fallback path itself could crash on the unwritable
+        // temp dir = unrecoverable fatal). The new shape: if both
+        // primary + temp-dir paths fail, return nil (= ChatView
+        // treats nil as "no fallback conductor available" = the
+        // caller routes through the no-conductor branch).
         do {
             let kanban = try KanbanStore()
             try kanban.bootstrap()
@@ -991,13 +1032,22 @@ public struct ChatView: View {
                 tools: tools
             )
         } catch {
-            let fallback = try! KanbanStore(path: NSTemporaryDirectory() + "wenshu-chat-fallback-\(UUID().uuidString).sqlite")
-            return WenshuConductor(
-                runtime: runtime,
-                verifier: verifier,
-                kanbanStore: fallback,
-                tools: tools
-            )
+            do {
+                let fallback = try KanbanStore(path: NSTemporaryDirectory() + "wenshu-chat-fallback-\(UUID().uuidString).sqlite")
+                return WenshuConductor(
+                    runtime: runtime,
+                    verifier: verifier,
+                    kanbanStore: fallback,
+                    tools: tools
+                )
+            } catch {
+                // Both primary + temp-dir paths failed (= CI sandbox
+                // or unwritable filesystem). Return nil (= the caller
+                // handles "no fallback conductor" gracefully via the
+                // ChatViewModel direct verifier path).
+                NSLog("[wenshu.chat] conductorRegisteringParagraphAI: both kanban paths failed; returning nil (= caller uses no-conductor branch): \(error.localizedDescription)")
+                return nil
+            }
         }
     }
 

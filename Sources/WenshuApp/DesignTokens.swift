@@ -427,4 +427,30 @@ public enum DesignTokens {
     /// Sidebar width (= 200 PT, Apple HIG narrow sidebar standard).
     /// Replaces `.frame(width: DesignTokens.sidebarNarrowWidth)`.
     public static let sidebarNarrowWidth: CGFloat = 200
+
+    // MARK: - v0.71 P1 batch 4: full-project dual-axis audit
+    //
+    // (= boss 2026-09-12 OOB '做一个全项目的双轴' = apply the dual-axis
+    // chrome dimension system across the whole project; = extract every
+    // hardcoded magic number to DesignTokens so the X-axis + Y-axis
+    // chrome dimensions are centrally controlled).
+    //
+    // The "dual axis" = horizontal chrome (X) + vertical chrome (Y):
+    //   • X-axis: divider/border widths + horizontal paddings
+    //   • Y-axis: vertical paddings + section gaps + spacing
+
+    /// Hairline border (= 0.5 PT, Apple HIG canonical hairline
+    /// divider used by NavigationSplitView column separators +
+    /// Kanban card borders + EmotionCurve dashed lines + PreviewPane
+    /// subsection dividers; = the standard "soft" separator weight).
+    /// Replaces inline `.stroke(..., lineWidth: 0.5)` calls.
+    public static let chromeBorderHairline: CGFloat = 0.5
+
+    /// Standard border (= 1 PT, Apple HIG default border weight
+    /// used by ChatView bubble separators + tool-use cards + specialized
+    /// tools sidebar + tab strips + edit mode badges + layout picker
+    /// cards; = the standard "neutral" border weight).
+    /// Replaces inline `.strokeBorder(..., lineWidth: 1)` calls.
+    public static let chromeBorderStandard: CGFloat = 1
+
 }

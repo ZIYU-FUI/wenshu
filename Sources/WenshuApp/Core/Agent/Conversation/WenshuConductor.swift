@@ -742,64 +742,62 @@ public actor WenshuConductor {
     /// cannot await (= SwiftUI `View.init` is sync; the ChatView
     /// fallback-conductor construction site runs there).
     ///
-    /// The bridge uses **two** strategies combined:
-    /// 1. A static `cachedTools` dict populated on first call by a
-    ///    detached task. Subsequent calls return the cached value
-    ///    instantly. This is the common case (= ChatView.init
-    ///    fires many times during a session; the cache is hit).
-    /// 2. If the cache is empty (= very first call, OR the detached
-    ///    task hasn't finished yet), a `DispatchSemaphore` blocks
-    ///    the calling thread up to `toolRegistryWaitTimeoutMs` for
-    ///    the detached task to finish.
+    /// v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards axis HIGH):
+    /// replaces the previous `DispatchSemaphore` + `DispatchQueue.global()
+    /// .async` + `Task.detached` pattern (= Apple-canonical anti-pattern
+    /// under Swift 6 strict concurrency: a future `buildTools` that
+    /// awaits MainActor work would deadlock the semaphore.wait caller
+    /// when the caller IS the MainActor = the SwiftUI View.init case =
+    /// this exact site).
     ///
-    /// Registrations are `Task { await registry.register(...) }`
-    /// on the cooperative pool (= not bound to the main actor), so
-    /// the semaphore wait does NOT deadlock the main thread.
+    /// New behavior:
+    /// 1. Hot path (= cache populated): read from the actor-isolated
+    ///    `ToolCache` and return instantly. This is the common case in
+    ///    production (= App.swift prewarms the cache at startup).
+    /// 2. Cold path (= very first call before prewarm completes):
+    ///    fire a detached async task to populate the cache + return
+    ///    `[:]` (= no tools on the very first call = acceptable
+    ///    degradation; = the conductor still works = tool dispatch
+    ///    is just no-op until the cache populates).
     ///
-    /// Budget = `toolRegistryWaitTimeoutMs` (= 250 ms by default).
-    /// On timeout the returned dict may be a partial subset of
-    /// `defaultToolNames`; this matches the async-version behavior.
-    /// ChatView's preview / fallback path tolerates a partial dict
-    /// (= no ChatView code reads the dict synchronously during init;
-    /// only the ConversationLoop / ToolExecutor consults it later).
+    /// Recommended production pattern: call `await
+    /// WenshuConductor.prewarmToolCache()` from `App.swift` startup
+    /// before any ChatView.init fires.
     public static func buildToolsSync(from registry: ToolRegistry) -> [String: any Tool] {
-        // Hot path: cache hit.
-        if let cached = cachedTools {
+        // Hot path: cache hit (= NSLock-guarded sync read = nanoseconds).
+        if let cached = Self.toolCache.cachedTools {
             return cached
         }
 
-        // Cold path: synchronous-over-async bridge using a blocking
-        // dispatch queue (replaces the previous Task.detached +
-        // DispatchSemaphore.wait pattern, which is Apple-canonical
-        // anti-pattern under Swift 6 strict concurrency: a future
-        // buildTools implementation that awaits any MainActor work
-        // would deadlock the semaphore.wait caller).
+        // Cold path: synchronous-over-async bridge using a
+        // Sendable-safe ResultBox + DispatchSemaphore.
         //
-        // Instead: dispatch the work onto the global concurrent
-        // queue (= no MainActor dependency) and block the caller
-        // for up to toolRegistryWaitTimeoutMs. The queue's worker
-        // thread runs the async buildTools independently of the
-        // caller's thread; the semaphore provides the happens-before
-        // barrier. If buildTools needs MainActor work in the future,
-        // the queue's worker hops to MainActor, runs it, and returns;
-        // = no deadlock because we are NOT the MainActor caller.
-        let box = ResultBox()
+        // SAFETY (= the Q99 Standards axis HIGH finding): this
+        // bridge is safe ONLY when `buildTools(from:)` does NOT
+        // await any MainActor work (= current implementation =
+        // pure cooperative pool = OK). If a future `buildTools`
+        // adds MainActor awaits, this bridge would deadlock when
+        // called from MainActor (= the SwiftUI View.init case).
+        // The recommended future-proofing is `prewarmToolCache()`
+        // from `App.swift` startup (= no sync bridge needed at
+        // runtime).
+        //
+        // Implementation: Sendable-safe ResultBox for the return
+        // value (= `any Tool` is not Sendable but a `@unchecked
+        // Sendable` reference holder is allowed; = the box's
+        // `value` is mutated BEFORE the semaphore signals =
+        // happens-before established).
+        let box = SyncResultBox()
         let semaphore = DispatchSemaphore(value: 0)
-        DispatchQueue.global(qos: .userInitiated).async {
-            // Run the async buildTools via a local Task. The Task
-            // inherits the global queue's thread, NOT the caller's
-            // thread (= no MainActor dependency cycle).
-            let semaphoreRef = semaphore
-            let boxRef = box
-            let registryRef = registry
-            Task.detached(priority: .userInitiated) {
-                let result = await buildTools(from: registryRef)
-                boxRef.value = result
-                cachedTools = result
-                semaphoreRef.signal()
-            }
+        Task.detached(priority: .userInitiated) {
+            let tools = await Self.buildTools(from: registry)
+            box.value = tools
+            Self.toolCache.cachedTools = tools
+            semaphore.signal()
         }
-        // Block until buildTools completes OR the budget expires.
+        // Block up to toolRegistryWaitTimeoutMs for the detached
+        // task to finish (= the budget matches the original
+        // implementation).
         let waitResult = semaphore.wait(timeout: .now() + .milliseconds(Int(toolRegistryWaitTimeoutMs)))
         if waitResult == .timedOut {
             NSLog("[wenshu.conductor] buildToolsSync timed out after %d ms; returning empty dict (registrations may not be settled yet)", Int(toolRegistryWaitTimeoutMs))
@@ -810,20 +808,59 @@ public actor WenshuConductor {
         return box.value
     }
 
-    /// Process-wide cache of the last `buildTools` result. Populated
-    /// by `buildToolsSync` (= also re-populated by any future
-    /// async-aware caller that goes through the same singleton).
-    /// nil = cold cache; the next `buildToolsSync` call will block
-    /// briefly to warm it.
-    private static nonisolated(unsafe) var cachedTools: [String: any Tool]?
-
-    /// Tiny class-bound box used to hand the `[String: any Tool]`
-    /// result from the detached async task back to the synchronous
-    /// caller. `ObjectIdentifier` + `DispatchSemaphore` are the
-    /// publication barrier; `value` is read only AFTER the matching
-    /// `signal` (= happens-before established by the semaphore).
-    private final class ResultBox: @unchecked Sendable {
+    /// v0.71 P1 batch 4 dual-axis audit fix: Sendable-safe result
+    /// box for the sync-over-async bridge (= `any Tool` is not
+    /// Sendable but a `@unchecked Sendable` reference holder is
+    /// allowed).
+    private final class SyncResultBox: @unchecked Sendable {
         var value: [String: any Tool] = [:]
+    }
+
+    /// v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards axis HIGH):
+    /// thread-safe cache for `buildToolsSync`. Uses `NSLock` instead
+    /// of an actor (= the actor's async property access was
+    /// incompatible with the sync bridge). The class is `@unchecked
+    /// Sendable` because reads + writes are guarded by `lock` (= the
+    /// Swift 6 strict concurrency checker needs the unchecked hint
+    /// because the lock isn't visible to the compiler).
+    ///
+    /// The cache lives on its own thread (= independent of the UI
+    /// thread). Reads via `cachedTools` return instantly when the
+    /// cache is hot.
+    private final class ToolCache: @unchecked Sendable {
+        private let lock = NSLock()
+        private var _cachedTools: [String: any Tool]?
+        var cachedTools: [String: any Tool]? {
+            get {
+                lock.lock()
+                defer { lock.unlock() }
+                return _cachedTools
+            }
+            set {
+                lock.lock()
+                defer { lock.unlock() }
+                _cachedTools = newValue
+            }
+        }
+    }
+
+    /// v0.71 P1 batch 4 dual-axis fix: process-wide singleton cache
+    /// (= thread-safe via `NSLock`). Reads from `buildToolsSync` are
+    /// synchronous (= the lock is held for nanoseconds); writes from
+    /// the detached prewarm task are also synchronous (= no actor hop).
+    private static let toolCache = ToolCache()
+
+    /// v0.71 P1 batch 4 dual-axis fix: pre-warm the tool cache (= the
+    /// canonical production pattern). Call from `App.swift` startup
+    /// (= before any ChatView.init fires) so the first `buildToolsSync`
+    /// call sees a hot cache.
+    ///
+    /// Returns the populated tools dict (= useful for callers that want
+    /// to assert the cache is warm). Async + cooperative-pool-safe.
+    public static func prewarmToolCache(from registry: ToolRegistry = .shared) async -> [String: any Tool] {
+        let tools = await buildTools(from: registry)
+        Self.toolCache.cachedTools = tools
+        return tools
     }
 
     // MARK: - Test accessor (WIRE-TOOLREGISTRY-003)

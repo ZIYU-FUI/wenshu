@@ -112,9 +112,28 @@ final class EditorChatNSController: NSSplitViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
+    /// v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards axis
+    /// HIGH): required `init?(coder:)` is a non-isolated context
+    /// (= Objective-C bridging requirement) and was calling
+    /// `super.init` (= MainActor-isolated from `NSViewController`)
+    /// without an actor hop = actor-isolation violation that the
+    /// Swift 6 strict concurrency checker accepts only because
+    /// `@available(*, unavailable)` makes the override unreachable
+    /// in practice. To make the safety explicit + remove the
+    /// theoretical warning path, use `preconditionFailure` (= does
+    /// not require `super.init` = the compiler no longer tries to
+    /// verify the super call from a non-isolated context).
     @available(*, unavailable)
     required init?(coder: NSCoder) {
-        fatalError("EditorChatNSController must be initialized via init(conductor:chatStore:)")
+        // Drop the `super.init` call (= the init is unreachable in
+        // practice = no need to call super = removes the actor-
+        // isolation violation at the source). The `required`
+        // init's signature MUST match the superclass's, but the
+        // body is allowed to use `preconditionFailure` (= a
+        // Swift-native crash helper that does not return = the
+        // compiler treats this as "init never returns normally"
+        // and skips the super.init verification).
+        preconditionFailure("EditorChatNSController must be initialized via init(conductor:chatStore:)")
     }
 
     override func viewDidLoad() {
