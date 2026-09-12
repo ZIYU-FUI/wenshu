@@ -1194,8 +1194,24 @@ struct NewLibraryOutlineView: View {
     /// v0.30: Apple std list of categories with ≥1 entity, sorted A→Z.
     /// (= Same logic as v0.29 computeUsedCategories; renamed to match
     /// Apple HIG sidebar convention of "sidebar only shows used items".)
+    
+    /// v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
+    /// wraps the silent `try?` on loadAllReferences with explicit
+    /// error logging (= audit concern: user cannot distinguish "no
+    /// entities" from "permission denied" on disk errors). The
+    /// graceful-degradation behavior (= empty array returned on
+    /// error) is preserved; = the NSLog is dev-only diagnostics.
+    private func safeLoadAllReferences() -> [Reference] {
+        do {
+            return try bookStore.referenceStore.loadAllReferences()
+        } catch {
+            NSLog("[wenshu.sidebar] loadAllReferences failed: %@", String(describing: error))
+            return []
+        }
+    }
+
     private func usedCategories() -> [EntityCategory] {
-        let allRefs = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+        let allRefs = safeLoadAllReferences()
         let entityRefs = allRefs.filter { $0.layer == .layerEntities }
         let used = Set(entityRefs.compactMap { $0.category })
         return EntityCategory.allCases.filter { used.contains($0) }
@@ -1203,7 +1219,7 @@ struct NewLibraryOutlineView: View {
 
     /// v0.30: count of entities in this category.
     private func entitiesCount(in category: EntityCategory) -> Int {
-        let allRefs = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+        let allRefs = safeLoadAllReferences()
         return allRefs.filter { $0.layer == .layerEntities && $0.category == category }.count
     }
 

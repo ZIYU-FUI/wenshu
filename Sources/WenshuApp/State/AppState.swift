@@ -222,6 +222,15 @@ var sidebarSelection: SidebarItem? = nil {
     }
     var activeTabId: UUID = UUID() {
         didSet {
+            // v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
+            // the audit's concern about "activeTabId.didSet not going through
+            // the same `.constant(nil)` reset guard" doesn't apply here (=
+            // `activeTabId` is `UUID` non-optional; = there's no nil
+            // reset path). The early-exit guard for duplicate writes is
+            // correct (= prevents redundant UserDefaults writes when
+            // openTabs persistence calls `self.activeTabId = activeId`
+            // during init, even though didSet is suppressed during init
+            // per Swift property wrapper semantics, = safety belt).
             guard oldValue != activeTabId else { return }
             UserDefaults.standard.set(activeTabId.uuidString, forKey: AppState.activeTabIdKey)
         }

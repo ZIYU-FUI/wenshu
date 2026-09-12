@@ -1006,8 +1006,19 @@ struct PreviewPane: View {
     // MARK: - Data loading
 
     private func loadAllEntities() -> [Reference] {
-        (try? bookStore.referenceStore.loadAllReferences())?
-            .filter { $0.layer == .layerEntities } ?? []
+        // v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
+        // replaced the silent `try?` with explicit do/catch that logs
+        // the failure (= audit concern: user cannot distinguish "no
+        // entities" from "permission denied" on disk errors). The
+        // graceful-degradation behavior (= empty array returned on
+        // error) is preserved; = the NSLog is dev-only diagnostics.
+        do {
+            let allRefs = try bookStore.referenceStore.loadAllReferences()
+            return allRefs.filter { $0.layer == .layerEntities }
+        } catch {
+            NSLog("[wenshu.preview] loadAllEntities failed: %@", String(describing: error))
+            return []
+        }
     }
 
     private func loadBody(for entity: Reference) -> String? {
@@ -1245,10 +1256,19 @@ struct PreviewPane: View {
         let latinized = (mutable as String)
         // Split on whitespace + extract first letter of each token.
         // Also drop tokens that are pure punctuation (= e.g. "?").
+        // v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
+        // the previous `first.isLetter` filter silently dropped emoji
+        // titles (= single-emoji title → empty initials → no pinyin
+        // match). Replaced with `isLetter || isNumber || isSymbol`
+        // to include Unicode symbols (= emojis are categorized as
+        // .symbol in Swift); = an emoji-only title now produces one
+        // initial char (= the emoji itself), enabling pinyin-key
+        // search to match it.
         let initials = latinized
             .split(whereSeparator: { $0.isWhitespace })
             .compactMap { token -> String? in
-                guard let first = token.first, first.isLetter else { return nil }
+                guard let first = token.first else { return nil }
+                guard first.isLetter || first.isNumber || first.isSymbol else { return nil }
                 return String(first).uppercased()
             }
             .joined()

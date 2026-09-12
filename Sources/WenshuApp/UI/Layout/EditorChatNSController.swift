@@ -212,7 +212,15 @@ final class EditorChatNSController: NSSplitViewController {
     /// / expand animates per NSSplitView's standard animation.
     /// This is the canonical Apple HIG Keynote speaker-notes API.
     func toggleChatZone() {
-        guard let item = chatItem else { return }
+        // v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
+        // added NSLog when chatItem is nil (= was a silent no-op before;
+        // = the menu can fire before viewDidLoad runs in a cold launch
+        // race; = logging makes the misfire visible for diagnostics
+        // without changing the no-op behavior).
+        guard let item = chatItem else {
+            NSLog("[wenshu.editorChat] toggleChatZone called before viewDidLoad set chatItem (cold-launch race); ignoring")
+            return
+        }
         item.animator().isCollapsed.toggle()
     }
 
