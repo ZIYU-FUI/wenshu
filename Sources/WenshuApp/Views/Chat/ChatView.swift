@@ -22,11 +22,28 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
     public let id: UUID
     public let role: ChatRole
     public let source: ChatSource
+    /// v0.71 P1 batch 1 (boss 2026-09-12 OOB '聊天区的流式输出没有实现... 全量复制 hermes...'):
+    /// streaming parts (= Hermes `parts: ChatMessagePart[]` in
+    /// `lib/chat-messages/types.ts:15`). Each part is a typed content
+    /// block (text / reasoning / tool_use / tool_result). The streaming
+    /// pipeline accumulates LLMBlock events into this array. UI renders
+    /// each part independently (= Hermes `message-parts.tsx`). Backward
+    /// compat: `content` + `thinking` getters derive from this array
+    /// (= existing ChatMessageView still works unchanged).
+    public var parts: [ChatMessagePart]
+    /// v0.71 P1 batch 1: streaming state. hermes uses `message.pending`
+    /// (= bool on ChatMessage); wenshu uses an enum so SwiftUI
+    /// exhaustive-switch renders the right state (idle / streaming /
+    /// sealed / error).
+    public var streamState: StreamState
+    /// Backward-compat: original chat content. Now a computed getter
+    /// (= joined .text parts). Stays public so callers that read
+    /// `content` keep working without changes.
     public var content: String
     public let timestamp: Date
     public var isPlaceholder: Bool
     public var tokens: Int?    // real LLM API usage.total_tokens (nil if user message or unavailable)
-    public var thinking: String?    // CoT thinking content from WenshuLLMBlock.thinking (folded footnote UI)
+    public var thinking: String?    // v0.71 P1: also a computed getter (= joined reasoning parts)
     // CHATIMG-001 (2026-09-07): absolute file URL of an attached
     // screenshot/image. When non-nil, ChatMessageView renders the image
     // thumbnail above the text content. The file lives in
@@ -40,6 +57,17 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
     // the multimodal upload protocol).
     public var imagePath: String?
 
+    /// v0.71 P1 batch 1: streaming state machine. Mirrors the Hermes
+    /// `message.pending` boolean + the lifecycle hooks in
+    /// `use-message-stream/index.ts` (`mutateStream` decides when
+    /// to seal a pending bubble into a permanent one).
+    public enum StreamState: String, Equatable, Sendable {
+        case idle             // not yet streaming (= legacy ChatMessage)
+        case streaming        // actively receiving LLMBlock events
+        case sealed           // stream.complete fired; content is final
+        case error            // stream terminated with error
+    }
+
     public init(
         id: UUID = UUID(),
         role: ChatRole,
@@ -49,15 +77,39 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
         isPlaceholder: Bool = false,
         tokens: Int? = nil,
         thinking: String? = nil,
-        imagePath: String? = nil
+        imagePath: String? = nil,
+        // v0.71 P1 batch 1: parts + streamState init params (= default
+        // = empty / idle for backward compat). When ChatMessage is
+        // created from the streaming pipeline (= ChatViewModel.append),
+        // pass the parts array (= the streaming pipeline owns the
+        // parts); otherwise the parts[] is empty + content is the
+        // legacy plain-text source-of-truth.
+        parts: [ChatMessagePart] = [],
+        streamState: StreamState = .idle
     ) {
         self.id = id
         self.role = role
         self.source = source
+        // v0.71 P1 batch 1: parts[] is canonical. content + thinking
+        // are derived getters. init keeps content as a stored field so
+        // callers that pass plain text (= ChatView user message path)
+        // don't have to construct [parts]. The init builds a single
+        // .text part if content is non-empty AND parts[] is empty.
+        if parts.isEmpty && !content.isEmpty {
+            self.parts = [.text(content, timestamp: timestamp.timeIntervalSinceReferenceDate)]
+        } else {
+            self.parts = parts
+        }
+        self.streamState = streamState
         self.content = content
         self.timestamp = timestamp
         self.isPlaceholder = isPlaceholder
         self.tokens = tokens
+        // If thinking was passed but parts[] is empty (= legacy caller),
+        // synthesize a reasoning part so the streaming UI sees it.
+        if let thinking, !thinking.isEmpty, parts.isEmpty {
+            self.parts = self.parts + [.reasoning(thinking, timestamp: timestamp.timeIntervalSinceReferenceDate)]
+        }
         self.thinking = thinking
         self.imagePath = imagePath
     }
@@ -68,6 +120,28 @@ public enum ChatRole: String, Equatable, Sendable {
     case user
     case agent
     case system
+}
+
+/// v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出...'):
+/// reference-type accumulator for the streaming LLMBlock callback.
+/// Required because the callback is `@Sendable` (= can fire from
+/// any actor; = Swift 6 forbids capturing `var` local state). Each
+/// @Sendable closure invocation is serial with respect to the
+/// owning actor (= ConversationLoop.runTurn is an actor method that
+/// calls back synchronously per block on the same actor), so the
+/// reference-type mutation is thread-safe here (= each event fires
+/// one at a time, not concurrently).
+///
+/// `@unchecked Sendable` because the class has mutable state; the
+/// caller (= ChatViewModel.send) guarantees the only mutator is the
+/// streamCallback (= called from ConversationLoop actor = serial
+/// per-turn). Reading the accumulator from MainActor is safe because
+/// the read happens AFTER the conductor's await returns (= the
+/// stream has already ended or the next block has been delivered;
+/// = no concurrent mutation).
+final class StreamingAccumulator: @unchecked Sendable {
+    var parts: [ChatMessagePart] = []
+    var thinking: String = ""
 }
 
 /// Message source ground truth (user = sent by the user / wenshu = Wenshu's reply / system = system error). Wenshu's internal multi-agent dispatch results do not show as ChatMessage; they go through the KanbanStore board.
@@ -371,17 +445,104 @@ public final class ChatViewModel {
             var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
             if let conductor = conductor {
-                // Conductor path = blocking (= future ticket wires
-                // conductor to streaming; for v0.34 = direct verifier
-                // path is the streamed one).
-                let result = try await conductor.handle(userMessage: text, sessionId: sessionId, model: currentModel)
+                // v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出...'):
+                // conductor path now also streams (= Hermes pattern).
+                // The same streaming switch below (= the one used for
+                // direct-verifier path) handles LLMBlock events from
+                // either source. Both paths accumulate into
+                // `streamingParts` (= parts[] array on ChatMessage) +
+                // `streamingThinking` so the placeholder renders the
+                // same way regardless of which conductor / verifier
+                // emitted the event.
+                //
+                // v0.71 P1 batch 2 (Sendable closure caveat): the
+                // streamCallback is `@Sendable` (= can be invoked from
+                // any actor = the ConversationLoop runs on a separate
+                // actor). Local `var` captured by a `@Sendable`
+                // closure would error in Swift 6 (=
+                // "captured var in concurrently-executing code"). Wrap
+                // the accumulator in a tiny `class StreamingAccumulator`
+                // (= reference type, safe to capture in a `@Sendable`
+                // closure; = each @Sendable closure invocation is
+                // serial with respect to the owning actor so the
+                // class reference IS thread-safe here).
+                let accumulator = StreamingAccumulator()
+                let result = try await conductor.handle(
+                    userMessage: text,
+                    sessionId: sessionId,
+                    model: currentModel,
+                    streamCallback: { [weak self] block in
+                        // v0.71 P1 batch 2 (MainActor isolation): the
+                        // streamCallback fires from ConversationLoop
+                        // actor (= NOT main actor = the `messages`
+                        // array mutation below must dispatch to
+                        // MainActor). Capture the block = a Sendable
+                        // value (= LLMBlock is already Sendable) so
+                        // we can pass it across the actor boundary.
+                        let blockCopy = block
+                        // First, accumulate parts in the
+                        // accumulator (= reference type, no actor
+                        // isolation needed for the mutation).
+                        switch blockCopy {
+                        case .text(let chunk):
+                            if case .text(let last) = accumulator.parts.last?.kind {
+                                accumulator.parts[accumulator.parts.count - 1] = .text(last + chunk)
+                            } else {
+                                accumulator.parts.append(.text(chunk))
+                            }
+                        case .thinking(let t, _):
+                            if case .reasoning(let last) = accumulator.parts.last?.kind {
+                                accumulator.parts[accumulator.parts.count - 1] = .reasoning(last + t)
+                            } else {
+                                accumulator.parts.append(.reasoning(t))
+                            }
+                            accumulator.thinking += t
+                        case .toolUse(let id, let name, let input):
+                            accumulator.parts.append(.toolUse(id: id, name: name, args: input))
+                        case .toolResult(let toolUseID, let output):
+                            accumulator.parts.append(.toolResult(
+                                toolUseID: toolUseID, content: output, isError: false
+                            ))
+                        }
+                        // Then dispatch the messages mutation to
+                        // MainActor (= the ChatViewModel is
+                        // @MainActor-isolated).
+                        Task { @MainActor [weak self] in
+                            guard let self else { return }
+                            if let idx = self.messages.firstIndex(where: { $0.id == placeholderId }) {
+                                self.messages[idx] = ChatMessage(
+                                    id: placeholderId,
+                                    role: .agent,
+                                    source: .wenshu,
+                                    content: ChatMessagePart.joinedText(accumulator.parts),
+                                    tokens: nil,
+                                    thinking: accumulator.thinking,
+                                    parts: accumulator.parts,
+                                    streamState: .streaming
+                                )
+                            }
+                        }
+                    }
+                )
                 reply = result.reply
-                replyThinking = result.thinking
+                replyThinking = result.thinking ?? accumulator.thinking
                 replyTokens = result.totalTokens
-                // Replace placeholder with real reply (tokens + thinking footnote)
+                // v0.71 P1 batch 2: mark the conductor's bubble as
+                // sealed (= Hermes `pending: false` flip after
+                // `message.complete`). Replace placeholder with the
+                // final message.
                 if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                    NSLog("[wenshu.scroll] placeholder replace: id=%@ beforeCount=%d afterCount=%d", placeholderId.uuidString, messages.count, messages.count)
-                    messages[idx] = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply, tokens: replyTokens, thinking: replyThinking)
+                    NSLog("[wenshu.scroll] conductor placeholder replace: id=%@ beforeCount=%d afterCount=%d", placeholderId.uuidString, messages.count, messages.count)
+                    messages[idx] = ChatMessage(
+                        id: placeholderId,
+                        role: .agent,
+                        source: .wenshu,
+                        content: reply,
+                        tokens: replyTokens,
+                        thinking: replyThinking,
+                        parts: accumulator.parts,
+                        streamState: .sealed
+                    )
                 }
             } else {
                 // v0.34 streaming path: render each text chunk as
@@ -394,32 +555,129 @@ public final class ChatViewModel {
                     model: currentModel
                 )
                 var buffer = ""
+                // v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出...'):
+                // accumulate every LLMBlock into `parts[]` (= Hermes
+                // `parts: ChatMessagePart[]`); the streaming UI renders
+                // each part independently. We still mirror text into
+                // `buffer` (= legacy `content`) so callers that read
+                // `content` (= e.g. ChatSessionStore persistence) keep
+                // working. The leading .text part is the one we keep
+                // appending to (= Hermes's "append onto the last
+                // open .text part" strategy in `use-message-stream`).
+                var streamingParts: [ChatMessagePart] = []
+                var streamingThinking: String = ""
                 for try await block in stream {
                     switch block {
                     case .text(let chunk):
                         buffer += chunk
-                        // v0.34 streaming: render the accumulated buffer
-                        // into the placeholder message (= SwiftUI
-                        // auto-re-renders as messages array changes).
+                        // v0.71 P1: append into the trailing .text
+                        // part (= create one on first chunk); mirrors
+                        // Hermes `appendAssistantTextPart`.
+                        if case .text(let last) = streamingParts.last?.kind {
+                            streamingParts[streamingParts.count - 1] = .text(last + chunk)
+                        } else {
+                            streamingParts.append(.text(chunk))
+                        }
+                        // Render the accumulated buffer into the
+                        // placeholder message + the new parts[]
+                        // (= SwiftUI re-renders as messages array
+                        // changes; the parts[] array drives the new
+                        // streaming UI in ChatMessageView).
                         if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                             messages[idx] = ChatMessage(
                                 id: placeholderId,
                                 role: .agent,
                                 source: .wenshu,
                                 content: buffer,
-                                tokens: nil
+                                tokens: nil,
+                                parts: streamingParts,
+                                streamState: .streaming
                             )
                         }
                     case .thinking(let text, _):
-                        replyThinking = (replyThinking ?? "") + text
-                    case .toolUse(let id, let name, _):
-                        // v0.34 streaming: future Issue 07 followup
-                        // wires tool-call rendering in the streaming
-                        // path. For now, log + continue.
-                        NSLog("[wenshu.stream] tool call: id=%@ name=%@", id, name)
-                    case .unknown(_, _):
-                        continue
-                    }
+                        streamingThinking += text
+                        replyThinking = streamingThinking
+                        // v0.71 P1: append into the trailing .reasoning
+                        // part (= Hermes `appendReasoningPart`).
+                        if case .reasoning(let last) = streamingParts.last?.kind {
+                            streamingParts[streamingParts.count - 1] = .reasoning(last + text)
+                        } else {
+                            streamingParts.append(.reasoning(text))
+                        }
+                        if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                            messages[idx] = ChatMessage(
+                                id: placeholderId,
+                                role: .agent,
+                                source: .wenshu,
+                                content: buffer,
+                                tokens: nil,
+                                thinking: streamingThinking,
+                                parts: streamingParts,
+                                streamState: .streaming
+                            )
+                        }
+                    case .toolUse(let id, let name, let input):
+                        // v0.71 P1 batch 2: tool_use events now
+                        // append a `toolUse` part (= batch 1 left
+                        // them as NSLog only). The streaming UI will
+                        // render this as a collapsible card in
+                        // batch 3 (= P7). For now, the part is in
+                        // the array but the view still renders
+                        // legacy `content` until P7 lands.
+                        streamingParts.append(.toolUse(
+                            id: id, name: name, args: input
+                        ))
+                        if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                            messages[idx] = ChatMessage(
+                                id: placeholderId,
+                                role: .agent,
+                                source: .wenshu,
+                                content: buffer,
+                                tokens: nil,
+                                parts: streamingParts,
+                                streamState: .streaming
+                            )
+                        }
+                    case .unknown:
+                        // v0.71 P1 batch 2: WenshuVerifier.streamChat
+                        // (= the direct-verifier streaming source
+                        // in this branch) emits a 4-case WenshuLLMBlock
+                        // enum with `.unknown(type, raw)` when the
+                        // server returns a content block the decoder
+                        // doesn't recognize. Skip (= hermes parity:
+                        // unknown blocks are not surfaced to the
+                        // user; = the canonical 4-case LLMBlock
+                        // enum used by ConversationLoop doesn't
+                        // have an .unknown case because the
+                        // AnthropicStreaming decoder already maps
+                        // every server variant to one of the 4
+                        // canonical cases BEFORE handing off).
+                        // No `case .toolResult` here: WenshuLLMBlock
+                        // (= the direct-verifier enum) does not have
+                        // a toolResult case (= only the 4 cases
+                        // listed above). The 4-case LLMBlock used
+                        // by ConversationLoop's streaming path does
+                        // include .toolResult (= used by the
+                        // conductor path above).
+                        break
+                        }
+                }
+                // v0.71 P1 batch 2: mark the message as sealed (= the
+                // stream has ended; = Hermes `pending: false` flip
+                // after `message.complete`). Future UI uses
+                // `streamState == .sealed` to fade out the streaming
+                // shimmer / hide the activity timer.
+                if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                    messages[idx] = ChatMessage(
+                        id: placeholderId,
+                        role: .agent,
+                        source: .wenshu,
+                        content: buffer,
+                        tokens: nil,
+                        thinking: streamingThinking,
+                        parts: streamingParts,
+                        streamState: .sealed
+                    )
                 }
                 reply = buffer
                 if reply.isEmpty {

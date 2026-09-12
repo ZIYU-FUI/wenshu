@@ -274,14 +274,32 @@ public actor WenshuConductor {
     /// falls back to the legacy intent+sub-agent+synthesis pipeline and
     /// logs the error. The legacy path is always preserved (= never
     /// removed) so existing public surface is 100% back-compatible.
-    public func handle(userMessage: String, sessionId: String, model: String) async -> (reply: String, totalTokens: Int, thinking: String?) {
+    /// v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出没有实现...'):
+    /// add `streamCallback` parameter (= Hermes streaming pattern).
+    /// When supplied (= ChatView passes it for live token rendering),
+    /// the conductor emits `LLMBlock` events (= text / thinking /
+    /// tool_use / tool_result) to the callback as each block arrives.
+    /// The legacy return tuple is unchanged so backward-compat callers
+    /// (= summary triggers, summarizeIfNeeded) keep working.
+    ///
+    /// Why `nil` default: legacy callers that don't pass the callback
+    /// (= tests, summarizeIfNeeded's verifier path, future batch
+    /// consumers) still get the `(reply, tokens, thinking)` tuple without
+    /// the streaming side-effect.
+    public func handle(
+        userMessage: String,
+        sessionId: String,
+        model: String,
+        streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
+    ) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // P0 #1: try the full ConversationLoop path first (when wired).
         if let connector = connector {
             if let loopResult = await runConversationLoopPath(
                 userMessage: userMessage,
                 sessionId: sessionId,
                 model: model,
-                connector: connector
+                connector: connector,
+                streamCallback: streamCallback
             ) {
                 return loopResult
             }
@@ -293,7 +311,8 @@ public actor WenshuConductor {
         return await runLegacyConductorPipeline(
             userMessage: userMessage,
             sessionId: sessionId,
-            model: model
+            model: model,
+            streamCallback: streamCallback
         )
     }
 
@@ -316,7 +335,14 @@ public actor WenshuConductor {
         userMessage: String,
         sessionId: String,
         model: String,
-        connector: any LLMConnector
+        connector: any LLMConnector,
+        // v0.71 P1 batch 2: forward streamCallback to ConversationLoop
+        // (= Hermes streaming pattern). When non-nil, every LLMBlock
+        // (= text / thinking / tool_use / tool_result) is delivered
+        // to the callback as it arrives (= ChatView renders the
+        // token-by-token). When nil (= legacy tests / summary
+        // triggers), no callback fires.
+        streamCallback: (@Sendable (LLMBlock) async -> Void)?
     ) async -> (reply: String, totalTokens: Int, thinking: String?)? {
         // Step 1: write 1 conductor parent task to KanbanStore (= legacy
         // parity: same Kanban behaviour as the legacy path).
@@ -345,7 +371,14 @@ public actor WenshuConductor {
                 // P0 #2 (WIRE-AGENT-002): forward the conductor's
                 // tool registry so ToolExecutor dispatches against
                 // registered wenshu tools.
-                tools: tools
+                tools: tools,
+                // v0.71 P1 batch 2: forward streamCallback (= Hermes
+                // streaming pattern). ConversationLoop.runTurn emits
+                // LLMBlock events (= text / thinking / tool_use) to
+                // this closure as each block arrives from the LLM
+                // connector's SSE stream (= ChatView renders the
+                // token-by-token). Legacy callers (= tests) pass nil.
+                streamCallback: streamCallback
             )
             // Step 4: shape the ConversationResult into the canonical
             // (reply, totalTokens, thinking) tuple expected by ChatView.
@@ -384,7 +417,15 @@ public actor WenshuConductor {
     private func runLegacyConductorPipeline(
         userMessage: String,
         sessionId: String,
-        model: String
+        model: String,
+        // v0.71 P1 batch 2: forward streamCallback to the legacy path
+        // (= Hermes streaming pattern). The legacy path goes through
+        // WenshuVerifier.streamChat (= the same AsyncStream<LLMBlock>
+        // used by ChatView's direct-verifier streaming path). Forwarding
+        // the callback there means BOTH paths (= legacy verifier path
+        // + ConversationLoop orchestrator path) emit LLMBlock events
+        // for live token rendering.
+        streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
     ) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // Step 1: write 1 conductor parent task to KanbanStore (kanban progress, not shown in ChatView)
         let conductorTask: KanbanTask?
