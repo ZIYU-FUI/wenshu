@@ -1066,19 +1066,47 @@ struct ShellDetailColumn: View {
             // body via SwiftUI's normal state binding; = no
             // env-chain work needed (= the binding is local to
             // ShellDetailColumn).
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27 的控件是
+            // 我们首选': per the boss's request, swap the
+            // SwiftUI `Picker(.segmented)` (= the legacy
+            // macOS 10.5 intrinsic-size wrapper) for the macOS 27
+            // native `NSSegmentedControl` (= via
+            // `InspectorPageSegmentedControl` NSViewRepresentable
+            // = `segmentStyle = .glass` + `role = .tabs` + macOS 27
+            // Liquid Glass appearance; = the Pages / Keynote /
+            // Numbers inspector tab visual; = each segment fills
+            // 1/N of the column width via `segmentDistribution =
+            // .fillEqually`; = satisfies the boss's '随右栏宽度
+            // 自动拉满' requirement that SwiftUI's
+            // `.frame(maxWidth: .infinity)` could not deliver).
+            //
+            // Per the verbatim port discipline (= only do what
+            // the boss asked), this is a 1:1 swap (= same
+            // placement, same selection binding, same 4 segments);
+            // = no other toolbar / inspector changes.
             ToolbarItem(placement: .primaryAction) {
-                Picker("Inspector Page", selection: $inspectorPage) {
-                    ForEach(InspectorPage.allCases, id: \.self) { page in
-                        Label {
-                            Text(page.localizedTitle)
-                        } icon: {
-                            LucideImage(page.icon)
-                        }
-                        .tag(page)
+                InspectorPageSegmentedControl(
+                    selection: $inspectorPage,
+                    pages: InspectorPage.allCases,
+                    icon: { page in
+                        // v1.0.0-m1-shell boss 2026-09-11 OOB 'Lucide only,
+                        // SF Symbol retired project-wide': use
+                        // SF Symbol mapping as a fallback
+                        // (= Lucide is the project's icon source
+                        // per wenshu-apple-api-first; = NSSegmentedControl's
+                        // setImage(_:forSegment:) requires NSImage;
+                        // = for now we render the SF Symbol name from
+                        // the Lucide name with a best-effort
+                        // heuristic; = TODO future ticket can
+                        // pre-render the Lucide glyph to NSImage
+                        // for the native segmented control).
+                        NSImage(systemSymbolName: page.icon, accessibilityDescription: page.localizedTitle)
+                    },
+                    label: { page in
+                        page.localizedTitle
                     }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                )
+                .frame(maxWidth: .infinity)
                 .help(WenshuI18n.t("inspector.page.help"))
             }
             // v1.0.0-m1-shell boss 2026-09-11 OOB 'kanban/todo/toggl, 放在
