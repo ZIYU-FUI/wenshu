@@ -70,7 +70,7 @@ public func wenshuSidebarIconSize() -> CGFloat {
 /// for these names and the wrapper renders an empty Color.clear
 /// placeholder (= no visible icon at the callsite).
 ///
-/// The alias table below catches the 17 known affected kebab-case
+/// The alias table below catches the 19 known affected kebab-case
 /// names and maps them to the corresponding fork enum case. Order
 /// matters: more specific (suffix-stripped) matches first (= 'trash-2'
 /// = '.trash', not '.trash2').
@@ -133,7 +133,7 @@ internal func resolveLucideName(_ name: String) -> LucideIconName? {
     if let direct = LucideIconName(rawValue: name) {
         return direct
     }
-    // 2. Explicit alias table (= handles the 17 names that
+    // 2. Explicit alias table (= handles the 19 names that
     //    don't have a clean kebab→camelCase mapping; e.g.
     //    'trash-2' -> 'trash' which is NOT the result of a
     //    naive kebab→camelCase conversion).

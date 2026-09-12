@@ -1162,7 +1162,7 @@ public struct ChatView: View {
             // baseline (= boss corrected ticket 030's HStack 8→16
             // change as wrong, = the gap is ABOVE the textfield not
             // between textfield and send button), TextField gains
-            // .padding(.top, LayoutTokens.chromePaddingLarge) (= 8 PT gap above the textfield,
+            // .padding(.top, LayoutTokens.chromePaddingLarge) (= LayoutTokens value = 8 PT per v0.28 Apple HIG basis; DesignTokens canonical chromePaddingLarge = 16 PT is the newer per-region value (= legacy alias kept here for backward compat). Gap above the textfield,
             // = the actual boss OOB intent).
             // v0.25.1 (= ticket 031 chat send button vertical
             // center alignment): owner 2026-08-26 OOB 'button
@@ -1236,7 +1236,7 @@ public struct ChatView: View {
             // alignment IS the answer, but with natural heights,
             // not forced 32 PT).
             // Final approach (= this ticket 033 final 2):
-            // 1. drop .padding(.top, LayoutTokens.chromePaddingLarge) on TextField (= boss OOB
+            // 1. drop .padding(.top, LayoutTokens.chromePaddingLarge) on TextField (= LayoutTokens value = 8 PT per v0.28 Apple HIG basis; DesignTokens canonical chromePaddingLarge = 16 PT is the newer per-region value (= legacy alias kept here for backward compat). Boss OOB
             //    interpreted 'horizontal center' as 'remove my 8 PT top
             //    padding that's making the visual center off').
             // 2. drop .frame(height: DesignTokens.toolbarBandHeight) on TextField (= use natural
@@ -1460,6 +1460,7 @@ public struct ChatView: View {
                     //
                     // Why .frame(minHeight: 30) and not .frame(height: LayoutTokens.chromeControlHeight):
                     // - .frame(height: LayoutTokens.chromeControlHeight) PIN the textfield to 30 PT
+                    //   (= LayoutTokens value = 30 PT per v0.28 Apple HIG basis; DesignTokens canonical toolbarBandHeight = 32 PT is the newer canonical).
                     //   regardless of content (= would block the auto-grow
                     //   from round 25).
                     // - .frame(minHeight: 30) ONLY enforces a minimum
@@ -1557,7 +1558,7 @@ public struct ChatView: View {
                 // 1 PT separator border + tint-on-hover effect.
                 // The icon shrinks to 18 PT (= matches Apple's
                 // canonical glyph size for secondary toolbar buttons
-                // per Liquid Glass HIG). .frame(height: LayoutTokens.chromeControlHeight) keeps
+                // per Liquid Glass HIG). .frame(height: LayoutTokens.chromeControlHeight = 30 PT, or DesignTokens.toolbarBandHeight = 32 PT for canonical) keeps
                 // the button at Apple's standard control height
                 // (= same as the TextField so they align flush).
                 // v0.28 followup Boss UX round 27 (Boss 2026-08-29

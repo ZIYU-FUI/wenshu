@@ -96,7 +96,7 @@ struct LucideThinIcon: View {
         // icons (= git-fork, square-dashed, shield-check, etc.)
         // all resolve to the right enum case (= the fork's
         // LucideIcon(name:) accepts the rawValue as fallback,
-        // but the alias table catches the 17 names that exist
+        // but the alias table catches the 19 names that exist
         // only as camelCase enum cases in the fork).
         if let iconName = resolveLucideName(iconName) {
             LucideIcon(

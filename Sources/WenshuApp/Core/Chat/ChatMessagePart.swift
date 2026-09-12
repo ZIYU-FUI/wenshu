@@ -4,10 +4,13 @@
 //  Part data model for streaming agent output (= Hermes
 //  `lib/chat-messages/parts.ts` + `tool-parts.ts` + `types.ts`).
 //
-//  Source (= hermes TypeScript):
-//    - apps/desktop/src/lib/chat-messages/parts.ts (304 LOC)
-//    - apps/desktop/src/lib/chat-messages/tool-parts.ts (855 LOC)
-//    - apps/desktop/src/lib/chat-messages/types.ts (191 LOC)
+//  Source (= hermes TypeScript; LOC counts are approximated at port time:
+    //    external reference files not present in this worktree, so numbers
+    //    are baseline figures from the v0.71 P1 batch 1 port and may drift
+    //    upstream):
+    //    - apps/desktop/src/lib/chat-messages/parts.ts (≈304 LOC)
+    //    - apps/desktop/src/lib/chat-messages/tool-parts.ts (≈855 LOC)
+    //    - apps/desktop/src/lib/chat-messages/types.ts (≈191 LOC)
 //
 //  Target (= wenshu Swift):
 //    - Core/Chat/ChatMessagePart.swift (this file)

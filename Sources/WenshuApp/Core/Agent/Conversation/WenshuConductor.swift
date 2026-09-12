@@ -6,8 +6,11 @@
 //  Wenshu main agent orchestrator: receives user message → calls LLM intent classify → dispatches 0-N v0.19 module agents → waits for results → calls LLM to synthesize final reply.
 //  Dispatch progress goes through KanbanStore (user checks Kanban), ChatView does not show sub-agents (hidden) (boss 2026-08-21 said).
 //
-//  Reuses v0.19 12-module backend (LinkGraph / Search / Template / Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier),
-//  pattern matches AgentRuntime (actor in-process truth).
+//  Reuses v0.19 12-module backend (LinkGraph / Search / Template / Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier;
+    //  note: `WenshuVerifier` lives at `Core/Agent/Connector/WenshuVerifier.swift`,
+    //  not under a separate `Core/Verifier/` path; = modules are
+    //  organized by feature, not in a flat Core/ namespace),
+    //  pattern matches AgentRuntime (actor in-process truth).
 //
 //  P0 #2 (WIRE-AGENT-002): the conductor now accepts a `tools: [String:
 //  any Tool]` registry at construction time. When the loop path runs

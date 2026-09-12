@@ -74,9 +74,10 @@ final class AppState {
     /// (= JSON shape via Codable; = set by didSet = write back on
     /// every change; = read by AppState.init() at launch).
     ///
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB '看这部分的持久化, 目录
-    /// 我选的是帮助世界观, 卡片显示是什么是文枢. 你现在重启一下. 我
-    /// 看一下. 应该会消失': the comment here previously claimed
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'look at this persistence,
+    /// I picked the directory I selected as Help > World, what the card
+    /// displays is wenshu. Now restart. Let me see. It should disappear':
+    /// the comment here previously claimed
     /// 'Persisted to wenshu.sidebarSelection' but the actual write
     /// / read code was missing (= only `useThreeColumnSplit`,
     /// `llmModel`, and `openTabs` had real persistence in init +
@@ -113,8 +114,8 @@ final class AppState {
     /// UserDefaults key for sidebar selection persistence (= JSON).
     static let sidebarSelectionKey = "wenshu.sidebarSelection"
 
-    // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 三个办公软件全是
-    // 这个逻辑' (= 'Keynote / Pages / Numbers all use the same
+    // v1.0.0-m1-shell boss 2026-09-10 OOB 'Keynote + Pages + Numbers
+    // all three office apps use this logic' (= 'Keynote / Pages / Numbers all use the same
     // inspector toggle logic'): the user can drag the right-column
     // divider to close the inspector, and clicking the right
     // content toggle in the top-right toolbar reopens the inspector
@@ -132,16 +133,17 @@ final class AppState {
     // "presenter notes" / inspector reopen action; = per WWDC23).
     var inspectorVisible: Bool = true
 
-    // v1.0.0-m1-shell boss 2026-09-10 OOB 'NSV 默认, 聊天区这个区域
-    // 是可以显隐的, 但功能在菜单栏里, 没有专门的按钮, 我现在需要
-    // 让这个区可以实现显隐, 先有菜单栏, 以后是否有按钮, 再研究':
+    // v1.0.0-m1-shell boss 2026-09-10 OOB 'NSV default, the chat
+    // zone area can be shown/hidden but the function is in the menu bar,
+    // no dedicated button. I need to make this area toggleable now,
+    // menu bar first, whether to add a button later is TBD':
     // the chat zone (= the bottom half of the detail column =
     // hosted by an `NSSplitViewItem` inside
     // `EditorChatNSController`) has a Show/Hide toggle that lives
     // in the macOS menu bar (= Apple HIG canonical pattern for
     // View > Show/Hide {Pane Name} menu items; = NO toolbar
-    // button today; = matches the boss's '先有菜单栏, 以后是否
-    // 有按钮, 再研究' directive).
+    // button today; = matches the boss's 'menu bar first, whether to
+    // add a button later is TBD' directive).
     //
     // When `chatVisible = true`, the chat zone NSSplitViewItem is
     // visible (= editor + chat zone = 50/50 detail column).
@@ -150,7 +152,7 @@ final class AppState {
     // matches Keynote's 'presenter notes' Show/Hide behavior).
     var chatVisible: Bool = true
 
-    // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+    // v1.0.0-m1-shell boss 2026-09-10 OOB 'the sidebar tree syntax does not match
     // Apple API': 3 sheet-request triggers moved from
     // NotificationCenter (.wenshuNewBookRequested /
     // .wenshuNewShelfRequested / .wenshuChoiceRequested) into
@@ -171,7 +173,7 @@ final class AppState {
     var newShelfRequestCount: Int = 0
     var choiceRequestCount: Int = 0
 
-    // v1.0.0-m1-shell boss 2026-09-10 OOB '全局搜索': promote
+    // v1.0.0-m1-shell boss 2026-09-10 OOB 'global search': promote
     // the search text to AppState (= a single source of truth
     // shared across all `.searchable` modifiers attached to
     // different column views). Per Apple SwiftUI docs, multiple
@@ -387,9 +389,10 @@ final class AppState {
         // assignment (= triggers didSet → persistOpenTabs = write
         // back the same data; = harmless redundant write).
         restoreOpenTabs()
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '看这部分的持久化,
-        // 目录我选的是帮助世界观, 卡片显示是什么是文枢. 你现在重启
-        // 一下. 我看一下. 应该会消失': restore the sidebar
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'look at this persistence,
+        // I picked the directory I selected as Help > World, what the card
+        // displays is wenshu. Now restart. Let me see. It should disappear':
+        // restore the sidebar
         // selection from UserDefaults (= JSON-encoded via Codable;
         // = same pattern as openTabs). Without this read, the
         // sidebar selection resets to nil on every launch (= the
@@ -420,8 +423,8 @@ struct PersistedEditorTab: Codable {
     let draft: String
     let originalBody: String
     let mode: String  // EditorMode.rawValue (= "preview" / "edit")
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
-    // persist the card title (= '赤壁之战' / '杜甫' etc.) so the
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
+    // persist the card title (= 'Red Cliffs' / 'Du Fu' etc.) so the
     // tab strip shows the real name after relaunch (= instead of
     // 'preview-sample').
     let title: String?
@@ -445,14 +448,14 @@ final class EditorTab: Identifiable {
     var draft: String
     var originalBody: String
     var mode: EditorMode
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
     // when openCardInEditor opens a reference-library card (= no
     // documentPath = no absolute path = the ticket 027-35 deferred
     // path-resolution path), the tab strip used to render
     // 'preview-sample' as a placeholder (= ugly = the user sees a
     // non-meaningful name in the tab strip). Populate `title` at
     // openCardInEditor time (= the entity / book-doc title =
-    // '赤壁之战' / '杜甫' / '什么是文枢' etc.) so tabDisplayTitle
+    // 'Red Cliffs' / 'Du Fu' / 'What is Wenshu' etc.) so tabDisplayTitle
     // can show it instead of 'preview-sample'. When the real
     // documentPath lands (ticket 027-35), the basename wins (= same
     // precedence as the existing fallback chain).
@@ -498,10 +501,10 @@ final class EditorTab: Identifiable {
         // .edit explicitly too, but this default is the one the placeholder
         // tab + 027-35 document-load ticket use, so it must match.
         mode: EditorMode = .edit,
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
         // when documentPath is nil (= reference-library entity; =
         // path resolution deferred to ticket 027-35), the tab strip
-        // displays `title` (= '赤壁之战' / '杜甫' etc.) instead of
+        // displays `title` (= 'Red Cliffs' / 'Du Fu' etc.) instead of
         // the 'preview-sample' placeholder. Default nil = no override
         // (= the existing fallback chain shows 'preview-sample').
         title: String? = nil
@@ -515,20 +518,19 @@ final class EditorTab: Identifiable {
         self.title = title
     }
 
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
     // the canonical display title for a tab (= the value shown in
-    // the tab strip). The fallback chain (= duplicate in
-    // WorkspaceView.tabDisplayTitle + PreviewPane.tabDisplayTitle
-    // before this refactor) MUST stay in one place to prevent
-    // drift (= the previous duplication risked two views showing
-    // different titles for the same tab).
+    // the tab strip). Single source of truth = `EditorTab.displayTitle`
+    // (= v0.71 P1 batch 4 dual-axis fix removed the duplicate
+    // wrappers in WorkspaceView + PreviewPane; this comment was
+    // updated to reflect the now-eliminated drift risk).
     //
     // Precedence:
     //   1. documentPath basename (= the real file wins; = strips
     //      the .md extension). If the path is set and the
     //      basename is non-empty, use it.
-    //   2. tab.title (= the entity / book-doc title = '赤壁之战'
-    //      / '杜甫' / '什么是文枢' etc.). For reference-library
+    //   2. tab.title (= the entity / book-doc title = 'Red Cliffs'
+    //      / 'Du Fu' / 'What is Wenshu' etc.). For reference-library
     //      cards without a real documentPath (= ticket 027-35
     //      deferred path resolution), this is the only source of
     //      a meaningful name.
@@ -565,8 +567,8 @@ enum EditorMode: String, CaseIterable, Identifiable {
     }
     var tooltip: String {
         switch self {
-        case .preview: return "预览模式"
-        case .edit:    return "编辑模式"
+        case .preview: return "Preview Mode"
+        case .edit:    return "Edit Mode"
         }
     }
 }

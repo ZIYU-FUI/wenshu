@@ -475,7 +475,10 @@ struct ShellMiddleColumn: View {
     /// PreviewScope. The case-mismatch bug (sidebar wrote lowercase
     /// directoryName 'b' but entities JSON stored uppercase
     /// rawValue 'B') was fixed at the sidebar tag + onChange lookup
-    /// sites (= see NewLibraryOutlineView.swift line ~371 and ~543);
+    /// sites (= see NewLibraryOutlineView.swift line ~501 for the
+    /// `.tag(SidebarItem.referenceCategory(category.rawValue))`
+    /// site + line ~721 for the `appState.sidebarSelection =
+    /// .referenceCategory(cat.directoryName)` write site);
     /// by the time `previewScope()` reads `appState.sidebarSelection`,
     /// the dirName is already the uppercase rawValue, so
     /// `EntityCategory(rawValue: dirName)` succeeds (= .b for

@@ -2,10 +2,10 @@
 //  EmptyStateView.swift
 //  wenshu
 //
-//  v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是一个组件,
-//  你能抽象一个 UI 组件吗? 顺手把空态的 ICON 放大一倍, 同时用
-//  最细的线条. 目的是统一所有空态的样式. 右栏 12 个 teb, 很
-//  多都缺少空态':
+//  v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state
+//  is not a single component; can you abstract a UI component?
+//  Also 2x the icon size and use the thinnest stroke.
+//  The right column has 12 tabs and most lack empty states':
 //
 //  Unified empty-state component (= single source of truth for
 //  every "no content" zone in the wenshu workspace). All 12
@@ -23,12 +23,13 @@
 //  Icon (= LucideThinIcon):
 //    - Lucide icon name (= kebab-case; = the canonical Lucide
 //      library name; = NOT a SwiftUI SF Symbol name)
-//    - size: 76 PT (= 2× the v0.54 38 PT; = the boss's '放大一倍'
+//    - size: 76 PT (= 2x the v0.54 38 PT; = the boss's '2x size'
 //      directive)
 //    - stroke: 1 PT (= the thinnest SwiftUI Shape stroke; = the
-//      boss's '最细的线条' directive; = rendered via the new
-//      `LucideThinIcon` wrapper which uses `makePath(in:) +
-//      .stroke(lineWidth: 1, lineCap: .round, lineJoin: .round)`)
+    //      boss's 'thinnest stroke' directive; = rendered via the new
+    //      `LucideThinIcon` wrapper which delegates to
+    //      `LucideIcon(name, size:, strokeWidth: 1, absoluteStrokeWidth: true)`
+    //      from `UI/Icon/LucideThinIcon.swift`)
 //    - color: .secondary (= adapts to dark/light mode; =
 //      Apple's 2-step hierarchy for empty-state icons)
 //
@@ -46,7 +47,7 @@
 //  Spacing:
 //    - icon → title: DesignTokens.chromePaddingEmptyStateGap (= the
 //      Apple HIG standard ContentUnavailableView measured value; =
-//      the boss's '...用 apple 样式' OOB = the literal number isn't
+//      the boss's '...use Apple styles' OOB = the literal number isn't
 //      Apple-default = Apple doesn't expose this value publicly;
 //      = we use a semantic token instead)
 //    - title → body: chromePaddingSmall (= Apple HIG standard for
@@ -55,7 +56,7 @@
 //      = Apple HIG modal sheet width = the empty-state body
 //      should wrap to the same width as a standard modal sheet)
 //    - icon size: DesignTokens.emptyStateIconSize (= 76 PT
-//      = 2× the v0.54 38 PT default = the boss's '放大一倍'
+//      = 2x the v0.54 38 PT default = the boss's '2x size'
 //      directive; = not a magic number = semantic token for the
 //      canonical empty-state icon size)
 //
@@ -73,7 +74,7 @@
 
 import SwiftUI
 
-/// v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是一个组件':
+/// v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state is not a single component':
 /// unified empty-state component for ALL "no content" zones in
 /// the wenshu workspace (= 12 specialized tool tabs + editor
 /// zone + PreviewPane + future zones). Caller provides the icon
@@ -165,9 +166,9 @@ public struct EmptyStateView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // v1.0.0-m1-shell boss 2026-09-12 OOB 'ICON 放大一倍'
+            // v1.0.0-m1-shell boss 2026-09-12 OOB '2x icon size'
             // (= 2× the v0.54 38 PT default = 76 PT)
-            // + '用最细的线条' (= 1 PT stroke via LucideThinIcon).
+            // + 'use thinnest stroke' (= 1 PT stroke via LucideThinIcon).
             //
             // The LucideThinIcon wrapper (= separate file in
             // UI/Icon/) renders the Lucide icon as a 1 PT
@@ -177,7 +178,7 @@ public struct EmptyStateView: View {
             //
             // Apple's empty states use a much bigger icon
             // (= measured 38 PT on a real ContentUnavailableView
-            // sample; = v0.54 default). The boss's '放大一倍'
+            // sample; = v0.54 default). The boss's '2x size'
             // directive = 2× the 38 PT default = 76 PT. The
             // vertical gap (= 22 PT below) matches Apple's
             // measured ContentUnavailableView sample (= NOT
