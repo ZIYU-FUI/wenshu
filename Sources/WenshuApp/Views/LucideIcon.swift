@@ -83,10 +83,14 @@ private let lucideNameAliases: [String: String] = {
     // bring-shrubbery had a separate `sidebar-right` (= the right
     // sidebar panel) distinct from `panel-right`. The ajaxjiang96
     // fork merged both into `panelRight` (= the toolbar inspector
-    // toggle uses this when collapsed).
-    "sidebar-right": "panel-right",
-    // bring-shrubbery `sidebar-left` → ajaxjiang96 `panel-left`
-    "sidebar-left": "panel-left",
+    // toggle uses this when collapsed). The fork's enum rawValue
+    // is camelCase (= the case declaration is `case panelRight`,
+    // NOT `case panel-right`); = the alias MUST be the camelCase
+    // rawValue.
+    "sidebar-right": "panelRight",
+    // bring-shrubbery `sidebar-left` → ajaxjiang96 `panelLeft` (= the
+    // camelCase rawValue of the fork's `case panelLeft`).
+    "sidebar-left": "panelLeft",
     // suffix-stripped
     "maximize-2": "maximize",
     "minimize-2": "minimize",
