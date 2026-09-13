@@ -292,8 +292,13 @@ Dependency graph (= must be done in this order):
         BUT HermesTodoTool + 6 Specialized tools + WSMigrationPerStore
         still reference TodoStore; = future cleanup ticket 7).
 
-  Phase-5 Ticket 4 (ContextEngine MemoryStore → WSMemoryProvider)
-    └─> unlocks: MemoryStore.swift deletion
+  ✓ Phase-5 Ticket 4 (ContextEngine MemoryStore → WSMemoryProvider)
+    = commits bc8b83fe4 (= 4.1: MemoryManager.store optional + SwiftData bridge)
+    + 43a7abaeb (= 4.2: ContextEngine.makeDefaultMemoryManager drops sqlite chain)
+    └─> ContextEngine.swift no longer imports/instantiates MemoryStore.
+    └─> MemoryStore.swift NOT yet deletable: production callers remain
+        (= WenshuAppDelegate + WSMigrationPerStore migration code +
+        WenshuConductor + MemoryProvider #warning; = future ticket 8).
 
   Phase-5 Ticket 5 (BacklinkResolver + FullTextSearch LinkIndex → WSLinkRepository)
     └─> unlocks: LinkIndex.swift deletion
@@ -339,4 +344,8 @@ Ticket 3 (= 1 commit, landed):
   - ce80c6492: TodoListView drops TodoStore subscription (= -191 lines;
     = llmActivityBanner + 3 helper funcs + 2 subscribe helpers + 3 @State).
 
-Next: Ticket 4 (ContextEngine MemoryStore → WSMemoryProvider).
+Ticket 4 sub-tasks (= 2 commits, all landed):
+  - bc8b83fe4 (= 4.1): MemoryManager.store optional + SwiftData bridge helpers.
+  - 43a7abaeb (= 4.2): ContextEngine drops sqlite chain (= 38 lines deleted).
+
+Next: Ticket 5 (BacklinkResolver + FullTextSearch LinkIndex → WSLinkRepository).

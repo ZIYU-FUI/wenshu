@@ -32,9 +32,9 @@
 
 import Foundation
 
-// v0.72 SwiftData migration: ContextEngine still uses MemoryStore actor.
-// Deferred (= actor boundary refactor = separate ticket).
-#warning("wenshu.context-engine: MemoryStore actor is deprecated; = migrate to WSMemoryProvider in future ticket")
+// v0.72 SwiftData migration: ContextEngine migrated to WSMemoryRepository.shared.
+// Phase 5 ticket 4 (= `makeDefaultMemoryManager` returns MemoryManager() with
+// no args = uses WSMemoryRepository.shared by default per ticket 4.1 design).
 
 public actor ContextEngine {
 
@@ -133,45 +133,20 @@ public actor ContextEngine {
     /// Default MemoryManager used by ContextEngine when no explicit
     /// manager is injected. Created on first use so unit tests can
     /// construct a ContextEngine without touching the user-visible
-    /// library store. Ticket 009 ships the default path (= per-book
-    /// Character/World retrieval still pending per the original TODO scope).
+    /// library store.
+    ///
+    /// Phase 5 ticket 4: the previous 38-line sqlite fallback chain
+    /// (= /tmp tmpfile → default-init MemoryStore → :memory: DSN
+    /// → preconditionFailure) was deleted. The MemoryManager default
+    /// initializer now reads from WSMemoryRepository.shared (= the
+    /// @MainActor SwiftData wrapper for the `WSMemory` @Model class).
+    /// This removes the last production MemoryStore instantiation
+    /// (= MemoryStore.swift deletion is gated on phase 3 deferred
+    /// MemoryProvider + WenshuConductor migration = future ticket 8).
     private static func makeDefaultMemoryManager() async -> MemoryManager {
-        // Per-instance temp-file backing. SQLite's ":memory:" DSN is
-        // mangled by URL(fileURLWithPath:) into a workspace-local
-        // filename (= undesired side effect on disk), so we use a
-        // tmp path instead. Each ContextEngine call gets its own
-        // handle (= no cross-test contamination); the file is cleaned
-        // by the OS once the process exits.
-        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
-        // replaced `try! MemoryStore(...)` (= would crash the agent
-        // session on /tmp unwritable or SQLite open failure) with
-        // explicit do/catch + fallback chain. Last-resort is the
-        // SQLite `:memory:` DSN (= always supported; = no disk side
-        // effects). The chain is: /tmp tmpfile → default-init
-        // MemoryStore → :memory: DSN → preconditionFailure (= the
-        // same fatal as the previous try! but with logging).
-        let path = "/tmp/wenshu-contextengine-\(UUID().uuidString).sqlite"
-        let store: MemoryStore
-        do {
-            store = try MemoryStore(path: path)
-        } catch {
-            NSLog("[wenshu.contextEngine] makeDefaultMemoryManager /tmp path failed: %@", String(describing: error))
-            do {
-                store = try MemoryStore()
-            } catch {
-                NSLog("[wenshu.contextEngine] makeDefaultMemoryManager default init also failed: %@", String(describing: error))
-                // Last resort: try `:memory:` DSN via path (= always
-                // supported per SQLite docs; = no disk side effect).
-                do {
-                    store = try MemoryStore(path: ":memory:")
-                } catch {
-                    NSLog("[wenshu.contextEngine] makeDefaultMemoryManager :memory: also failed (= SQLite runtime broken): %@", String(describing: error))
-                    preconditionFailure("ContextEngine.makeDefaultMemoryManager: cannot construct any MemoryStore (= /tmp unwritable + default init failed + :memory: failed = SQLite runtime is broken)")
-                }
-            }
-        }
-        try? await store.bootstrap()
-        return MemoryManager(store: store)
+        // Empty MemoryManager (= no args = default = nil store = uses
+        // WSMemoryRepository.shared per ticket 4.1's optional store design).
+        return MemoryManager()
     }
 
     /// Aggregate context for one conversation turn
