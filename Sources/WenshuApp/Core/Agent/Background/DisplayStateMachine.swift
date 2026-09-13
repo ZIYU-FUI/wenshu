@@ -2,7 +2,7 @@
 //  DisplayStateMachine.swift · Wenshu · v0.36 ticket 016 sub-step 2
 //
 //  Finite state machine for background task display (= spec §3.1 L227-231
-//  Background/ sub-directory, file 1 of 4).
+//  Background/ sub-directory, file 5 of 5).
 //
 //  Each background task (= indexing, search, sync, etc.) runs through a
 //  predictable state machine: idle -> running -> success | error | cancelled.

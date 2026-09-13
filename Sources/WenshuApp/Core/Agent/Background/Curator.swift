@@ -2,7 +2,7 @@
 //  Curator.swift · Wenshu · v0.36 ticket 016 sub-step 4
 //
 //  Background entity curator (= spec §3.1 L227-231 Background/
-//  sub-directory, file 3 of 4).
+//  sub-directory, file 3 of 5).
 //
 //  Periodically reviews reference-library entities to:
 //  1. Detect duplicates (= near-identical entities)
