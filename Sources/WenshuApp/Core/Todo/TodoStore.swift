@@ -341,5 +341,5 @@ public enum TodoStoreError: Error {
     case execFailed(message: String)
 }
 
-private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+// v0.72 Q99 LOW fix: SQLITE_TRANSIENT now imported from Persistence/SQLiteConstants.swift (= consolidated from 6 duplicate private consts).
 private let SQLITE_NULL = 5

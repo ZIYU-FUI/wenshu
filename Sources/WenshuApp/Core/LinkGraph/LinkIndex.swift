@@ -90,7 +90,7 @@ private enum SQLiteErmsg {
 }
 
 /// SQLite transient destructor (per-file private, same pitfall as v0.18 MemoryStore — actor across files must define independently)
-private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+// v0.72 Q99 LOW fix: SQLITE_TRANSIENT now imported from Persistence/SQLiteConstants.swift (= consolidated from 6 duplicate private consts).
 
 /// LinkIndex: SQLite-backed bidirectional link index, thread-safe actor, API aligned with Obsidian Backlinks plugin
 public actor LinkIndex {
