@@ -21,9 +21,9 @@
 //    bookmarks.db → WSBookmark    (id + doc_id OR book_id + title + position)
 //    kanban.db → WSKanbanTask     (id + title + status + priority + assignee + ...)
 //    links.db → WSLink            (id = source_doc_id:line + ...)
-//    books.json → WSBook + WSBookShelf + WSChapter + WSCharacter + WSWorld + ...
-//    provider_keys.json → WSProviderKey (encrypted BLOB)
-//    preferences.json → WSPreference
+//    books table (WenshuWorkspace.swift) → WSBook + WSBookShelf + WSChapter + WSCharacter + WSWorld + ...
+//    provider_keys table (WenshuWorkspace.swift) → WSProviderKey (encrypted BLOB metadata index)
+//    preferences table (WenshuWorkspace.swift) → WSPreference (= replaces deprecated UserDefaults path; = per-key K/V for cross-cutting workspace prefs)
 
 import Foundation
 import SQLite3

@@ -19,7 +19,7 @@ public final class WSTodo {
     var title: String
     /// Status string (= matches hermes TodoStatus enum values)
     var status: String
-    /// 0 = highest priority (= matches HermesTodoTool convention; = was not in old schema = migration adds it)
+    /// 0 = highest priority (= matches HermesTodoTool convention; = old schema did not have a priority field; = migration adds it; = init default is 5 to match the old TodoStore behavior where most tasks are medium-priority).
     var priority: Int
     var dueDate: Date?
     var createdAt: Date
