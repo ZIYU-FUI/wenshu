@@ -52,17 +52,19 @@ struct MemoryAdapterDeepTests {
     }
 
     @Test("MemoryAdapter.retrieve: returns empty list for unknown message")
+    @MainActor
     func retrieveEmpty() async {
         let adapter = MemoryAdapter()
-        let results = await adapter.retrieve(forUserMessage: "totally unknown query xyz123")
+        let results = adapter.retrieve(forUserMessage: "totally unknown query xyz123")
         // Default behavior: returns empty (= no memory subsystem wired yet)
         #expect(results.isEmpty)
     }
 
     @Test("MemoryAdapter.write: stores entry")
+    @MainActor
     func writeEntry() async {
         let adapter = MemoryAdapter()
-        await adapter.write(
+        adapter.write(
             snippet: "User prefers dark mode",
             source: "/preferences.md"
         )

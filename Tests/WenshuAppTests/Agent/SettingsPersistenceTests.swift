@@ -29,6 +29,7 @@ struct SettingsPersistenceTests {
     }
 
     @Test("MemoryAdapter: defaults to enabled when no key is set")
+    @MainActor
     func testMemoryAdapterDefaultsEnabled() async {
         let defaults = makeSuite()
         let adapter = MemoryAdapter(defaults: defaults)
@@ -37,6 +38,7 @@ struct SettingsPersistenceTests {
     }
 
     @Test("MemoryAdapter: setEnabled flips the persisted value")
+    @MainActor
     func testMemoryAdapterSetEnabled() async {
         let defaults = makeSuite()
         let adapter = MemoryAdapter(defaults: defaults)
@@ -49,6 +51,7 @@ struct SettingsPersistenceTests {
     }
 
     @Test("MemoryAdapter: scope defaults to perBook when no key is set")
+    @MainActor
     func testMemoryAdapterDefaultScope() async {
         let defaults = makeSuite()
         let adapter = MemoryAdapter(defaults: defaults)
@@ -57,6 +60,7 @@ struct SettingsPersistenceTests {
     }
 
     @Test("MemoryAdapter: setScope persists the raw value")
+    @MainActor
     func testMemoryAdapterSetScope() async {
         let defaults = makeSuite()
         let adapter = MemoryAdapter(defaults: defaults)
@@ -69,6 +73,7 @@ struct SettingsPersistenceTests {
     }
 
     @Test("MemoryAdapter: retentionDays defaults to 90 when no key is set")
+    @MainActor
     func testMemoryAdapterDefaultRetention() async {
         let defaults = makeSuite()
         let adapter = MemoryAdapter(defaults: defaults)
@@ -77,6 +82,7 @@ struct SettingsPersistenceTests {
     }
 
     @Test("MemoryAdapter: retentionDays clamps to the UI range 7..365")
+    @MainActor
     func testMemoryAdapterRetentionClamps() async {
         let defaults = makeSuite()
         let adapter = MemoryAdapter(defaults: defaults)
@@ -90,38 +96,42 @@ struct SettingsPersistenceTests {
     }
 
     @Test("MemoryAdapter: setRetentionDays calls purgeOlderThan (zero rows on empty store)")
+    @MainActor
     func testMemoryAdapterPurgeOnRetentionChange() async {
         let defaults = makeSuite()
         let adapter = MemoryAdapter(defaults: defaults)
-        let deleted = await adapter.setRetentionDays(30)
+        let deleted = adapter.setRetentionDays(30)
         #expect(deleted == 0)
-        let days = await adapter.retentionDays
+        let days = adapter.retentionDays
         #expect(days == 30)
     }
 
     @Test("MemoryAdapter: recentEntries returns empty on a fresh suite")
+    @MainActor
     func testMemoryAdapterRecentEmpty() async {
         let defaults = makeSuite()
         let adapter = MemoryAdapter(defaults: defaults)
-        let entries = await adapter.recentEntries(limit: 5)
+        let entries = adapter.recentEntries(limit: 5)
         #expect(entries.isEmpty)
     }
 
     @Test("MemoryAdapter: retrieve returns empty when disabled")
+    @MainActor
     func testMemoryAdapterRetrieveDisabled() async {
         let defaults = makeSuite()
         let adapter = MemoryAdapter(defaults: defaults)
-        await adapter.setEnabled(false)
-        let entries = await adapter.retrieve(forUserMessage: "test")
+        adapter.setEnabled(false)
+        let entries = adapter.retrieve(forUserMessage: "test")
         #expect(entries.isEmpty)
     }
 
     @Test("MemoryAdapter: write is a no-op when disabled (silent gate)")
+    @MainActor
     func testMemoryAdapterWriteDisabled() async {
         let defaults = makeSuite()
         let adapter = MemoryAdapter(defaults: defaults)
-        await adapter.setEnabled(false)
-        await adapter.write(snippet: "ignore me", source: "/x.md")
+        adapter.setEnabled(false)
+        adapter.write(snippet: "ignore me", source: "/x.md")
     }
 
     // MARK: - MemoryStore listRecent / purgeOlderThan

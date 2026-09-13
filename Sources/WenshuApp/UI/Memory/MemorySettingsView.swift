@@ -63,7 +63,7 @@ public struct MemorySettingsView: View {
             }
             .onChange(of: retentionDays) { _, newValue in
                 Task {
-                    let deleted = await MemoryAdapter().setRetentionDays(newValue)
+                    let deleted = MemoryAdapter().setRetentionDays(newValue)
                     await MainActor.run { self.lastPurgeCount = deleted }
                     await reloadEntries()
                 }
@@ -116,7 +116,7 @@ public struct MemorySettingsView: View {
 
     private func reloadEntries() async {
         await MainActor.run { self.isLoadingEntries = true }
-        let entries = await MemoryAdapter().recentEntries(limit: 20)
+        let entries = MemoryAdapter().recentEntries(limit: 20)
         await MainActor.run {
             self.recentEntries = entries
             self.isLoadingEntries = false

@@ -340,6 +340,7 @@ struct HermesPortGoldenParityTests {
     }
 
     @Test("memory_manager.prefetch_relevant: top-K retrieval")
+    @MainActor
     func testMemoryManagerPrefetch() throws {
         let golden = try loadGolden(module: "memory_manager", function: "prefetch_relevant", inputHash: "4e5cc7199254")
         guard let output = golden["output"] as? [String: Any] else {

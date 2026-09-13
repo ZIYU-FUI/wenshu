@@ -1,11 +1,33 @@
 //
-//  MemoryAdapter.swift · Wenshu · v0.35 ticket 009
-//  + SETTINGS-PERSISTENCE-001 (2026-09-05).
+//  MemoryAdapter.swift · Wenshu · v0.72 SwiftData migration Phase 3
 //
+//  Migration commit 34 of 42: MemoryAdapter → @MainActor + WSMemoryRepository.
+//  Per AGENTS.md §11.4.
+//
+//  Was `public actor MemoryAdapter` (= each call site did
+//  `await MemoryAdapter().method(...)`). Now `public final class` @MainActor
+//  that delegates to WSMemoryRepository.shared (= synchronous calls;
+//  matches SwiftUI view conventions).
+//
+//  Public surface (= preserved 1:1):
+//    - struct MemoryEntry: id + source + snippet + relevanceScore
+//    - enum DefaultsKey: enabled / scope / retentionDays (= UserDefaults keys)
+//    - var isEnabled: Bool
+//    - var scope: MemoryScope
+//    - var retentionDays: Int
+//    - func setEnabled(_:) (was public func setEnabled(_:) inside actor)
+//    - func setScope(_:)
+//    - func setRetentionDays(_:) -> Int  (now synchronous)
+//    - func recentEntries(limit:) -> [MemoryEntry]  (now synchronous)
+//    - func retrieve(forUserMessage:bookId:) -> [MemoryEntry]  (synchronous stub)
+//    - func write(snippet:source:bookId:)  (synchronous stub)
+//
+//  init() preserved as a no-op (= backward compat for `MemoryAdapter()`).
 
 import Foundation
 
-public actor MemoryAdapter {
+@MainActor
+public final class MemoryAdapter {
     public struct MemoryEntry: Sendable, Equatable, Identifiable {
         public let id: String
         public let source: String
@@ -18,6 +40,12 @@ public actor MemoryAdapter {
         public static let enabled = "wenshu.memory.enabled"
         public static let scope = "wenshu.memory.scope"
         public static let retentionDays = "wenshu.memory.retentionDays"
+    }
+
+    public enum MemoryScope: String, CaseIterable, Sendable {
+        case perBook
+        case global
+        case libraryPublic
     }
 
     private let defaults: UserDefaults
@@ -53,17 +81,14 @@ public actor MemoryAdapter {
         defaults.set(scope.rawValue, forKey: DefaultsKey.scope)
     }
 
-    public func setRetentionDays(_ days: Int) async -> Int {
+    public func setRetentionDays(_ days: Int) -> Int {
         let clamped = min(max(days, 7), 365)
         defaults.set(clamped, forKey: DefaultsKey.retentionDays)
-        let store = await Self.makeStoreOrNil()
-        guard let store = store else { return 0 }
-        return (try? await store.purgeOlderThan(userId: defaultUserId, retentionDays: clamped)) ?? 0
+        return (try? WSMemoryRepository.shared.purgeOlderThan(userId: defaultUserId, retentionDays: clamped)) ?? 0
     }
 
-    public func recentEntries(limit: Int = 20) async -> [MemoryEntry] {
-        guard let store = await Self.makeStoreOrNil() else { return [] }
-        let rows = (try? await store.listRecent(userId: defaultUserId, limit: limit)) ?? []
+    public func recentEntries(limit: Int = 20) -> [MemoryEntry] {
+        let rows = (try? WSMemoryRepository.shared.listRecent(userId: defaultUserId, limit: limit)) ?? []
         return rows.map { row in
             MemoryEntry(
                 id: row.memoryId,
@@ -74,27 +99,17 @@ public actor MemoryAdapter {
         }
     }
 
-    public func retrieve(forUserMessage userMessage: String, bookId: String? = nil) async -> [MemoryEntry] {
+    public func retrieve(forUserMessage userMessage: String, bookId: String? = nil) -> [MemoryEntry] {
         _ = bookId
         _ = userMessage
         guard isEnabled else { return [] }
         return []
     }
 
-    public func write(snippet: String, source: String, bookId: String? = nil) async {
+    public func write(snippet: String, source: String, bookId: String? = nil) {
         _ = bookId
         _ = snippet
         _ = source
         guard isEnabled else { return }
-    }
-
-    private static func makeStoreOrNil() async -> MemoryStore? {
-        do {
-            let store = try MemoryStore()
-            try? await store.bootstrap()
-            return store
-        } catch {
-            return nil
-        }
     }
 }
