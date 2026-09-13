@@ -1,7 +1,7 @@
 //
 //  Persistence/WSSession.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Updated in commit 13 to add @Relationship to WSSummary.
+//  Updated in commit 14 to add @Relationship to WSSubAgentRun.
 
 import Foundation
 import SwiftData
@@ -14,13 +14,14 @@ final class WSSession {
     var updatedAt: Date
     var archivedAt: Date?
 
-    /// 1↔N WSChatMessage via inverse = child.session
     @Relationship(deleteRule: .cascade, inverse: \WSChatMessage.session)
     var messages: [WSChatMessage] = []
 
-    /// 1↔1 WSSummary via inverse = WSSummary.session
     @Relationship(deleteRule: .cascade, inverse: \WSSummary.session)
     var summary: WSSummary?
+
+    @Relationship(deleteRule: .cascade, inverse: \WSSubAgentRun.session)
+    var subAgentRuns: [WSSubAgentRun] = []
 
     init(sessionID: String, title: String? = nil) {
         self.sessionID = sessionID
