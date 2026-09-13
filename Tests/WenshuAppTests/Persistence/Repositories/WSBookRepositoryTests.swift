@@ -110,4 +110,53 @@ struct WSBookRepositoryTests {
         // shelfID nullify is async (= deleteRule .nullify applies at next fetch)
         // — not asserting here (= behavior depends on SwiftData implementation)
     }
+
+    // MARK: - Chapter tests
+
+    @Test("createChapter + listChapters round-trip; ordered by position")
+    @MainActor
+    func chapterCRUD() throws {
+        let repo = try makeRepository()
+        let book = try repo.createBook(title: "Test Book")
+        _ = try repo.createChapter(bookID: book.id, title: "Chapter 1", position: 0)
+        _ = try repo.createChapter(bookID: book.id, title: "Chapter 2", position: 1)
+        let chapters = try repo.listChapters(bookID: book.id)
+        #expect(chapters.count == 2)
+        #expect(chapters[0].title == "Chapter 1")
+        #expect(chapters[1].title == "Chapter 2")
+    }
+
+    @Test("updateChapterWordCount sets wordCount + updatedAt")
+    @MainActor
+    func updateChapterWordCount() throws {
+        let repo = try makeRepository()
+        let book = try repo.createBook(title: "x")
+        let chapter = try repo.createChapter(bookID: book.id, title: "c", position: 0)
+        try repo.updateChapterWordCount(id: chapter.id, wordCount: 1234)
+        let chapters = try repo.listChapters(bookID: book.id)
+        #expect(chapters[0].wordCount == 1234)
+    }
+
+    @Test("setChapterStatus updates status")
+    @MainActor
+    func setChapterStatus() throws {
+        let repo = try makeRepository()
+        let book = try repo.createBook(title: "x")
+        let chapter = try repo.createChapter(bookID: book.id, title: "c", position: 0)
+        try repo.setChapterStatus(id: chapter.id, status: "in_review")
+        let chapters = try repo.listChapters(bookID: book.id)
+        #expect(chapters[0].status == "in_review")
+    }
+
+    @Test("deleteChapter removes chapter (= cascade deletes outline nodes)")
+    @MainActor
+    func deleteChapter() throws {
+        let repo = try makeRepository()
+        let book = try repo.createBook(title: "x")
+        let chapter = try repo.createChapter(bookID: book.id, title: "c", position: 0)
+        try repo.deleteChapter(id: chapter.id)
+        let chapters = try repo.listChapters(bookID: book.id)
+        #expect(chapters.isEmpty)
+    }
+
 }

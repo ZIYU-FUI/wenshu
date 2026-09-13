@@ -139,6 +139,58 @@ public final class WSBookRepository {
         context.delete(book)
         try context.save()
     }
+
+    // MARK: - Chapters
+
+    public func listChapters(bookID: String) throws -> [WSChapter] {
+        let descriptor = FetchDescriptor<WSChapter>(
+            predicate: #Predicate { $0.bookID == bookID },
+            sortBy: [SortDescriptor(\.position)]
+        )
+        return try context.fetch(descriptor)
+    }
+
+    @discardableResult
+    public func createChapter(bookID: String, title: String, position: Int, status: String = "draft") throws -> WSChapter {
+        let chapter = WSChapter(id: UUID().uuidString, bookID: bookID, title: title, position: position, status: status)
+        context.insert(chapter)
+        try context.save()
+        return chapter
+    }
+
+    public func updateChapterWordCount(id: String, wordCount: Int) throws {
+        let descriptor = FetchDescriptor<WSChapter>(
+            predicate: #Predicate { $0.id == id }
+        )
+        guard let chapter = try context.fetch(descriptor).first else {
+            throw WSBookRepositoryError.notFound
+        }
+        chapter.wordCount = wordCount
+        chapter.updatedAt = Date()
+        try context.save()
+    }
+
+    public func setChapterStatus(id: String, status: String) throws {
+        let descriptor = FetchDescriptor<WSChapter>(
+            predicate: #Predicate { $0.id == id }
+        )
+        guard let chapter = try context.fetch(descriptor).first else {
+            throw WSBookRepositoryError.notFound
+        }
+        chapter.status = status
+        chapter.updatedAt = Date()
+        try context.save()
+    }
+
+    public func deleteChapter(id: String) throws {
+        let descriptor = FetchDescriptor<WSChapter>(
+            predicate: #Predicate { $0.id == id }
+        )
+        if let chapter = try context.fetch(descriptor).first {
+            context.delete(chapter)
+            try context.save()
+        }
+    }
 }
 
 public enum WSBookRepositoryError: Error {
