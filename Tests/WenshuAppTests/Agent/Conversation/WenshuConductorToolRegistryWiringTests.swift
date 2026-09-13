@@ -22,11 +22,24 @@ import Testing
 @testable import WenshuApp
 
 @Suite("WenshuConductor ↔ ToolRegistry wiring (WIRE-TOOLREGISTRY-003)")
+@MainActor
 struct WenshuConductorToolRegistryWiringTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
 
     // MARK: - Test 1: buildTools returns all 12 registered tools
 
     @Test("buildTools returns one handler per default name registered on the registry")
+    @MainActor
     func testBuildTools_returnsAll12RegisteredTools() async {
         let registry = ToolRegistry()
         // Register every name in `WenshuConductor.defaultToolNames` so
@@ -58,6 +71,7 @@ struct WenshuConductorToolRegistryWiringTests {
     // MARK: - Test 2: buildTools excludes unknown names
 
     @Test("buildTools silently drops names that are not registered on the registry")
+    @MainActor
     func testBuildTools_excludesUnknownNames() async {
         let registry = ToolRegistry()
 
@@ -93,6 +107,7 @@ struct WenshuConductorToolRegistryWiringTests {
     // MARK: - Test 3: buildTools dict is usable for execution
 
     @Test("buildTools returns a dict that can be executed via the ToolExecutor (= round-trip)")
+    @MainActor
     func testBuildTools_returnsDictUsableForExecution() async {
         let registry = ToolRegistry()
         // Register under a name that IS in `WenshuConductor.defaultToolNames`
@@ -206,6 +221,7 @@ struct WenshuConductorToolRegistryWiringTests {
     // MARK: - Test 5: ToolRegistry tool list is consistent across calls
 
     @Test("buildTools returns the same set on repeated calls (= deterministic)")
+    @MainActor
     func testToolRegistryToolList_isConsistentAcrossCalls() async {
         let registry = ToolRegistry()
         // Register a stable subset of 5 names.
@@ -260,12 +276,10 @@ struct WenshuConductorToolRegistryWiringTests {
     /// to wrap). Used by test 4 as the "source conductor" passed into
     /// the wiring site.
     private func makeMinimalConductor() async throws -> WenshuConductor {
-        let kanban = try KanbanStore(path: NSTemporaryDirectory() + "wenshu-wiring-min-\(UUID().uuidString.prefix(6)).sqlite")
-        try await kanban.bootstrap()
-        return WenshuConductor(
+        let kanban = try Self.makeKanbanRepository()
+                return WenshuConductor(
             runtime: AgentRuntime(),
-            verifier: WenshuVerifier(),
-            kanbanStore: kanban
+            verifier: WenshuVerifier()
         )
     }
 }

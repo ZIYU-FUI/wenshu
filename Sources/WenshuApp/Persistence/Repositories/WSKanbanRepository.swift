@@ -39,6 +39,7 @@ public final class WSKanbanRepository {
         modelOverride: String? = nil
     ) throws -> KanbanTask {
         let id = UUID().uuidString
+        let now = Date()
         let model = WSKanbanTask(
             id: id,
             title: title,
@@ -47,6 +48,14 @@ public final class WSKanbanRepository {
             assignee: assignee,
             modelOverride: modelOverride
         )
+        // Lifecycle hooks (Phase 5 ticket 6 parity with legacy KanbanStore actor:
+        // startedAt auto-set when status = .running at add time, completedAt
+        // auto-set when status = .done or .failed at add time).
+        if status == .running {
+            model.startedAt = now
+        } else if status == .done || status == .failed {
+            model.completedAt = now
+        }
         context.insert(model)
         try context.save()
         return KanbanTask(
@@ -57,6 +66,8 @@ public final class WSKanbanRepository {
             updatedAt: model.updatedAt,
             priority: priority,
             assignee: assignee,
+            startedAt: model.startedAt,
+            completedAt: model.completedAt,
             modelOverride: modelOverride
         )
     }

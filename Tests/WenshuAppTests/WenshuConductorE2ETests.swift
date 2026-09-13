@@ -22,15 +22,26 @@ import Testing
 
 @Suite("WenshuConductor E2E (主 agent 派单, 全流程)")
 struct WenshuConductorE2ETests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
 
     /// Pipeline test: handle() with no API key → graceful degradation end-to-end.
     /// Verifies state writes (Kanban + ChatSessionStore) even when LLM calls fail.
     @Test("e2e pipeline: handle → graceful degradation → state writes")
+    @MainActor
     func testE2EGracefulDegradation() async throws {
         // Set up all stores (real SQLite, tmp paths)
-        let kanban = try KanbanStore(path: tmpPath("e2e-kanban"))
-        try await kanban.bootstrap()
-        let session = try ChatSessionStore(path: tmpPath("e2e-session"))
+        let kanban = try Self.makeKanbanRepository()
+                let session = try ChatSessionStore(path: tmpPath("e2e-session"))
         try await session.bootstrap()
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier()  // no API key → all LLM calls fail
@@ -38,7 +49,6 @@ struct WenshuConductorE2ETests {
         let conductor = WenshuConductor(
             runtime: runtime,
             verifier: verifier,
-            kanbanStore: kanban,
             sessionStore: session
         )
 
@@ -67,6 +77,7 @@ struct WenshuConductorE2ETests {
     /// Pipeline test: ChatSessionStore sub_agent_runs schema is created on bootstrap.
     /// Verifies the table is queryable (separate from full e2e above for granular check).
     @Test("e2e pipeline: ChatSessionStore sub_agent_runs table ready for persistence")
+    @MainActor
     func testE2ESubAgentRunsTableReady() async throws {
         let session = try ChatSessionStore(path: tmpPath("e2e-subrun-table"))
         try await session.bootstrap()
@@ -90,6 +101,7 @@ struct WenshuConductorE2ETests {
     /// Pipeline test: SubAgentIdentity system prompts are all present and distinct.
     /// Verifies the 5 agents can be dispatched (i.e. their prompts exist for handle() to use).
     @Test("e2e pipeline: 5 sub-agent identities ready for handle() dispatch")
+    @MainActor
     func testE2ESubAgentIdentitiesReady() {
         // This is the gating check: if any sub-agent's identity is missing,
         // handle() cannot dispatch them in real LLM mode.
@@ -105,6 +117,7 @@ struct WenshuConductorE2ETests {
 
     /// Pipeline test: WenshuConductorIdentity main agent identity ready.
     @Test("e2e pipeline: 主 agent (文枢) identity ready for handle() injection")
+    @MainActor
     func testE2EMainAgentIdentityReady() {
         let prompt = WenshuConductorIdentity.systemPrompt
         let caps = WenshuConductorIdentity.capabilitiesList
@@ -118,6 +131,7 @@ struct WenshuConductorE2ETests {
     // MARK: - v0.23 ticket 009: single-key contract (boss 8/23)
 
     @Test("v0.23 ticket 009: WenshuVerifier.singleKeyContractNote exists (docs contract)")
+    @MainActor
     func testSingleKeyContractNoteExists() {
         let note = WenshuVerifier.singleKeyContractNote
         #expect(!note.isEmpty)
@@ -127,6 +141,7 @@ struct WenshuConductorE2ETests {
     }
 
     @Test("v0.23 ticket 009: WenshuVerifier stores exactly 1 apiKey (no per-agent key)")
+    @MainActor
     func testSingleVerifierApiKey() throws {
         let verifier = WenshuVerifier()
         // Even when not configured (no Keychain key in sandbox), the verifier
@@ -139,6 +154,7 @@ struct WenshuConductorE2ETests {
     }
 
     @Test("v0.23 ticket 009: SubAgentIdentity exposes no API key field")
+    @MainActor
     func testSubAgentsHaveNoKey() {
         // Sub-agent identity is just system prompts + tool lists + display names.
         // No key, no config — boss 8/23: userchange sub-agent config.

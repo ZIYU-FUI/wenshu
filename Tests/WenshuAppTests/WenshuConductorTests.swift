@@ -8,14 +8,25 @@ import Foundation
 
 @Suite("WenshuConductor (文枢调度器)")
 struct WenshuConductorTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
 
     @Test("handle 派子 agent 到 KanbanStore + 合成回复 (S4 graceful degradation 不抛)")
+    @MainActor
     func testHandle() async throws {
-        let kanban = try KanbanStore(path: tmpPath("conductor"))
-        try await kanban.bootstrap()
-        let runtime = AgentRuntime()
+        let kanban = try Self.makeKanbanRepository()
+                let runtime = AgentRuntime()
         let verifier = WenshuVerifier()  // key, LLM, verify graceful degradation (S4)
-        let conductor = WenshuConductor(runtime: runtime, verifier: verifier, kanbanStore: kanban)
+        let conductor = WenshuConductor(runtime: runtime, verifier: verifier)
 
         // S4 graceful degradation: handle (LLM fail), fallback reply (yes throw)
         // v0.21 ticket 34: handle (reply, totalTokens) tuple
@@ -28,6 +39,7 @@ struct WenshuConductorTests {
     }
 
     @Test("parseAgentList 解析 LLM 输出 JSON array 各种格式 (容错)")
+    @MainActor
     func testParseAgentList() {
         // access actor private func not ok, change WenshuConductor.handle parseAgentList ok (ticket 04 follow-up)
         //: simpletest actor private method, testchange #expect(true) = known limitation (Q15 actor isolation)

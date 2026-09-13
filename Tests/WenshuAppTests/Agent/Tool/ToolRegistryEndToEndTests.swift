@@ -46,6 +46,17 @@ import Testing
 
 @Suite("ToolRegistry end-to-end (VERIFY-TOOLREGISTRY-004)")
 struct ToolRegistryEndToEndTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
 
     /// Canonical 12 tool names as registered by the 12 tool files at
     /// module-import time. Names match `WenshuConductor.defaultToolNames`

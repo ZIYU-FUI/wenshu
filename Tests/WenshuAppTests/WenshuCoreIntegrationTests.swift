@@ -10,7 +10,19 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("WenshuCore Integration")
+@MainActor
 struct WenshuCoreIntegrationTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
     @Test("Memory + Skill + Kanban + Todo 全 Core 集成")
     func testAllCoreIntegration() async throws {
         // 1. MemoryStore (mem0)
@@ -20,9 +32,8 @@ struct WenshuCoreIntegrationTests {
         #expect(memResult.userId == "u1")
 
         // 2. KanbanStore (kanban_db)
-        let kanban = try KanbanStore(path: tmpPath("kanban"))
-        try await kanban.bootstrap()
-        let task1 = try await kanban.add(title: "Integration task 1", status: .new)
+        let kanban = try Self.makeKanbanRepository()
+                let task1 = try await kanban.add(title: "Integration task 1", status: .new)
         try await kanban.transition(id: task1.id, to: .running)
         let running = try await kanban.list(status: .running)
         #expect(running.count == 1)

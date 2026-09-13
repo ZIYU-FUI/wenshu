@@ -1040,13 +1040,12 @@ public struct ChatView: View {
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier()
         let tools = WenshuConductor.buildToolsSync(from: ToolRegistry.shared)
+        // Phase 5 ticket 6: KanbanStore removed from conductor entirely.
+        // Conductor reads/writes kanban via WSKanbanRepository.shared
+        // (= @MainActor SwiftData wrapper). No kanbanStore param needed.
         return WenshuConductor(
             runtime: runtime,
             verifier: verifier,
-            // kanbanStore: nil → all 6 kanban callsites in the conductor
-            // become no-ops. Production path still has kanban state via
-            // WenshuAppDelegate L222 (= production App-supplied conductor).
-            kanbanStore: nil,
             tools: tools
         )
     }

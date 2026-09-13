@@ -35,10 +35,9 @@ import Foundation
 public actor WenshuConductor {
     private let runtime: AgentRuntime
     private let verifier: WenshuVerifier
-    /// KanbanStore reference for tracking conductor/sub-agent progress.
-    /// Optional (= peer-conductor fallback path can omit it; = ticket 2).
-    /// When nil, kanban progress writes are no-ops (= callsites use `?.add`).
-    private let kanbanStore: KanbanStore?
+    /// Chat session persistence (= raw sqlite3 in legacy = SwiftData via WSChatRepository
+    /// after Phase 5 ticket 1; = the actor still holds an optional reference for
+    /// backward-compat callers during the migration window).
     private let sessionStore: ChatSessionStore?
     /// Long-term memory persistence for agent. Optional — bootstrap failure degrades gracefully (memory disabled).
     /// Bootstrap is lazy on first `handle()` call (Swift actors cannot await in init).
@@ -84,7 +83,6 @@ public actor WenshuConductor {
     public init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
-        kanbanStore: KanbanStore? = nil,
         sessionStore: ChatSessionStore? = nil,
         memoryStore: MemoryStore? = nil,
         skillRegistry: SkillRegistry? = nil,
@@ -105,7 +103,6 @@ public actor WenshuConductor {
         self.init(
             runtime: runtime,
             verifier: verifier,
-            kanbanStore: kanbanStore,
             sessionStore: sessionStore,
             memoryStore: memoryStore,
             skillRegistry: skillRegistry,
@@ -138,7 +135,6 @@ public actor WenshuConductor {
     public init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
-        kanbanStore: KanbanStore? = nil,
         sessionStore: ChatSessionStore? = nil,
         memoryStore: MemoryStore? = nil,
         skillRegistry: SkillRegistry? = nil,
@@ -148,7 +144,6 @@ public actor WenshuConductor {
     ) {
         self.runtime = runtime
         self.verifier = verifier
-        self.kanbanStore = kanbanStore
         self.sessionStore = sessionStore
         self.memoryStore = memoryStore
         self.skillRegistry = skillRegistry
@@ -360,11 +355,16 @@ public actor WenshuConductor {
     ) async -> (reply: String, totalTokens: Int, thinking: String?)? {
         // Step 1: write 1 conductor parent task to KanbanStore (= legacy
         // parity: same Kanban behaviour as the legacy path).
-        if let task = try? await kanbanStore?.add(title: "conductor: \(userMessage.prefix(50))", status: .running) {
+        let added = await MainActor.run { () -> KanbanTask? in
+            try? WSKanbanRepository.shared.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
+        }
+        if let task = added {
             // Mark done after the loop attempt (= best-effort; matches
             // the legacy code path exactly).
-            Task { [kanbanStore] in
-                _ = try? await kanbanStore?.transition(id: task.id, to: .done)
+            Task {
+                await MainActor.run {
+                    _ = try? WSKanbanRepository.shared.transition(id: task.id, to: .done)
+                }
             }
         }
 
@@ -444,7 +444,9 @@ public actor WenshuConductor {
         // Step 1: write 1 conductor parent task to KanbanStore (kanban progress, not shown in ChatView)
         let conductorTask: KanbanTask?
         do {
-            conductorTask = try await kanbanStore?.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
+            conductorTask = await MainActor.run {
+                try? WSKanbanRepository.shared.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
+            }
         } catch {
             conductorTask = nil
         }
@@ -497,7 +499,9 @@ public actor WenshuConductor {
             // Build tasks (add to KanbanStore first, before TaskGroup, so all parallel tasks see the same state)
             var tasks: [(name: String, kanbanTaskId: String?)] = []
             for agentName in selectedAgents {
-                let kTask = try? await kanbanStore?.add(title: "\(agentName): \(userMessage.prefix(30))", status: .running)
+                let kTask = await MainActor.run {
+                    try? WSKanbanRepository.shared.add(title: "\(agentName): \(userMessage.prefix(30))", status: .running)
+                }
                 tasks.append((name: agentName, kanbanTaskId: kTask?.id))
             }
             // Run sub-agents in parallel
@@ -543,7 +547,9 @@ public actor WenshuConductor {
             // Mark kanban tasks done (after collection)
             for (name, kanbanId) in tasks where !isCancelled {
                 if let id = kanbanId {
-                    _ = try? await kanbanStore?.transition(id: id, to: .done)
+                    await MainActor.run {
+                        _ = try? WSKanbanRepository.shared.transition(id: id, to: .done)
+                    }
                 }
             }
             // v0.23 ticket 006: write 1-line sub-agent run summary to ChatSessionStore
@@ -622,7 +628,9 @@ public actor WenshuConductor {
         if let conductorTask = conductorTask {
             // v0.23 audit #014 fix: don't write kanban state if cancelled.
             if !Task.isCancelled {
-                _ = try? await kanbanStore?.transition(id: conductorTask.id, to: .done)
+                await MainActor.run {
+                    _ = try? WSKanbanRepository.shared.transition(id: conductorTask.id, to: .done)
+                }
             }
         }
 

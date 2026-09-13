@@ -27,11 +27,24 @@ import Testing
 @testable import WenshuApp
 
 @Suite("WenshuConductor → ToolExecutor wiring (P0 #2 / WIRE-AGENT-002)")
+@MainActor
 struct WenshuConductorToolWiringTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
 
     // MARK: - Test 1: tools dict reaches ConversationLoop.runTurn
 
     @Test("handle forwards the registered tools dictionary to ConversationLoop.runTurn")
+    @MainActor
     func testConductor_toolsPassedToLoop() async throws {
         // Capturing connector records both the LLMCallOptions and the
         // message list it received on each call. The first call's
@@ -83,6 +96,7 @@ struct WenshuConductorToolWiringTests {
     // MARK: - Test 2: tool dispatch invokes ParagraphAITool
 
     @Test("handle dispatches tool_use blocks to ParagraphAITool when registered")
+    @MainActor
     func testConductor_toolDispatch_invokesParagraphAI() async throws {
         let connector = RecordingMockConnector(
             scriptedResponses: [
@@ -131,6 +145,7 @@ struct WenshuConductorToolWiringTests {
     // MARK: - Test 3: tool output bubbles back into the final reply
 
     @Test("handle surfaces tool output in the final assistant reply (= LLM is re-invoked with tool results)")
+    @MainActor
     func testConductor_toolDispatch_resultsBackInFinalResponse() async throws {
         // The mock returns a toolUse block on the first call. The
         // ConversationLoop runs the ToolExecutor (= ParagraphAITool
@@ -183,6 +198,7 @@ struct WenshuConductorToolWiringTests {
     // MARK: - Test 4: multiple tools all registered
 
     @Test("registering multiple tools makes all of them available for dispatch (= tool registry is the single source)")
+    @MainActor
     func testConductor_multipleTools_allRegistered() async throws {
         // Each probe increments its own counter. The mock emits a
         // tool_use for one tool per call; across three turns we cover
@@ -268,13 +284,12 @@ struct WenshuConductorToolWiringTests {
         connector: any LLMConnector,
         tools: [String: any Tool]
     ) async throws -> WenshuConductor {
-        let kanban = try KanbanStore(path: tmpPath("tools-\(UUID().uuidString.prefix(6))"))
-        try await kanban.bootstrap()
-        return WenshuConductor(
+        let kanban = try Self.makeKanbanRepository()
+
+                return WenshuConductor(
             runtime: AgentRuntime(),
             verifier: WenshuVerifier(),
-            kanbanStore: kanban,
-            connector: connector,
+                        connector: connector,
             tools: tools
         )
     }

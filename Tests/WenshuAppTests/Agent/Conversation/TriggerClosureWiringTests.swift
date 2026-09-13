@@ -23,8 +23,20 @@ import Testing
 
 @Suite("HERMES-AGENT-SMC-READYNESS — production trigger wiring")
 struct TriggerClosureWiringTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
 
     @Test("CommandPaletteRegistrySeeder populates the 35 hub commands from SkillAdapter.hubCommands")
+    @MainActor
     func testCommandPaletteRegistrySeeder_populates35HubCommands() async {
         await CommandPaletteRegistrySeeder.seed()
         let all = await CommandPaletteRegistry.shared.allItems()
@@ -39,6 +51,7 @@ struct TriggerClosureWiringTests {
     }
 
     @Test("CommandPaletteRegistrySeeder populates one palette entry per sub-agent slug")
+    @MainActor
     func testCommandPaletteRegistrySeeder_populates5SubAgents() async {
         await CommandPaletteRegistrySeeder.seed()
         let all = await CommandPaletteRegistry.shared.allItems()
@@ -52,6 +65,7 @@ struct TriggerClosureWiringTests {
     }
 
     @Test("CommandPaletteRegistrySeeder populates one palette entry per zone toggle")
+    @MainActor
     func testCommandPaletteRegistrySeeder_populatesZoneToggles() async {
         await CommandPaletteRegistrySeeder.seed()
         let all = await CommandPaletteRegistry.shared.allItems()
@@ -63,6 +77,7 @@ struct TriggerClosureWiringTests {
     }
 
     @Test("CommandPaletteRegistrySeeder populates one palette entry per Settings section")
+    @MainActor
     func testCommandPaletteRegistrySeeder_populatesSettingsSections() async {
         await CommandPaletteRegistrySeeder.seed()
         let all = await CommandPaletteRegistry.shared.allItems()
@@ -74,6 +89,7 @@ struct TriggerClosureWiringTests {
     }
 
     @Test("SkillKeywordRegistryBootstrap registers the 35 hub commands as keyword targets")
+    @MainActor
     func testSkillKeywordBootstrap_registersKeywordsFromHubCommands() async {
         await SkillKeywordRegistryBootstrap.seed()
         for cmd in SkillAdapter.hubCommands {
@@ -86,6 +102,7 @@ struct TriggerClosureWiringTests {
     }
 
     @Test("SkillKeywordRegistryBootstrap enables natural-language match for hub-command aliases")
+    @MainActor
     func testSkillKeywordBootstrap_naturalLanguageAliasMatch() async {
         await SkillKeywordRegistryBootstrap.seed()
         let match = await SkillKeywordMatcher.shared.match(input: "please review the chapter for style consistency")
@@ -94,6 +111,7 @@ struct TriggerClosureWiringTests {
     }
 
     @Test("production WenshuConductor builds tools from ToolRegistry.shared (not an empty dict)")
+    @MainActor
     func testProductionConductor_toolsDictIncludesToolRegistryEntries() async throws {
         let registry = ToolRegistry.shared
         // HERMES-AGENT-SMC-READYNESS v0.41 fix: trigger the production
@@ -135,6 +153,7 @@ struct TriggerClosureWiringTests {
     }
 
     @Test("WenshuAppDelegate.activeLLMConnector returns a usable connector for any slug (= ConversationLoop.runTurn reachable)")
+    @MainActor
     func testActiveLLMConnector_fallsBackToAnthropicForUnknownSlug() async {
         let priorValue = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
         defer {
@@ -162,6 +181,7 @@ struct TriggerClosureWiringTests {
     }
 
     @Test("CommandPaletteRegistrySeeder dynamic-zone entry dispatches .navigateTo('kanban')")
+    @MainActor
     func testPaletteNavigateSurface_mapsKanbanDestination() async {
         await CommandPaletteRegistrySeeder.seed()
         let all = await CommandPaletteRegistry.shared.allItems()

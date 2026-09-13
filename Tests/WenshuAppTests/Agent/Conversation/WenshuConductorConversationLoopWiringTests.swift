@@ -36,10 +36,22 @@ import Testing
 
 @Suite("WenshuConductor → ConversationLoop wiring (P0 #1 / WIRE-AGENT-001)")
 struct WenshuConductorConversationLoopWiringTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
 
     // MARK: - Test 1: routes to ConversationLoop
 
     @Test("handle routes through ConversationLoop.runTurn when a connector is injected")
+    @MainActor
     func testConductor_routesToConversationLoop() async throws {
         // Scripted response so the mock returns the canned text verbatim
         // (= not the default echo mode that prefixes "echo: ").
@@ -53,14 +65,12 @@ struct WenshuConductorConversationLoopWiringTests {
             )
         ]
         let connector = MockLLMConnector(scriptedResponses: scripts)
-        let kanban = try KanbanStore(path: tmpPath("route"))
-        try await kanban.bootstrap()
-        let verifier = WenshuVerifier()
+        let kanban = try Self.makeKanbanRepository()
+                let verifier = WenshuVerifier()
         let conductor = WenshuConductor(
             runtime: AgentRuntime(),
             verifier: verifier,
-            kanbanStore: kanban,
-            connector: connector
+                        connector: connector
         )
 
         let result = await conductor.handle(
@@ -84,6 +94,7 @@ struct WenshuConductorConversationLoopWiringTests {
     // MARK: - Test 2: tool dispatch survives
 
     @Test("handle preserves tool dispatch (tool_use → executor → re-invoke LLM → final reply)")
+    @MainActor
     func testConductor_preservesToolDispatch() async throws {
         // Two canned responses: first emits tool_use, second returns the
         // final text after the tool result is appended (= hermes
@@ -105,13 +116,11 @@ struct WenshuConductorConversationLoopWiringTests {
             )
         ]
         let connector = MockLLMConnector(scriptedResponses: scripts)
-        let kanban = try KanbanStore(path: tmpPath("tools"))
-        try await kanban.bootstrap()
-        let conductor = WenshuConductor(
+        let kanban = try Self.makeKanbanRepository()
+                let conductor = WenshuConductor(
             runtime: AgentRuntime(),
             verifier: WenshuVerifier(),
-            kanbanStore: kanban,
-            connector: connector
+                        connector: connector
         )
 
         let result = await conductor.handle(
@@ -131,6 +140,7 @@ struct WenshuConductorConversationLoopWiringTests {
     // MARK: - Test 3: compression survives
 
     @Test("handle preserves ConversationCompression wiring (= long history → compression exercised → reply still arrives)")
+    @MainActor
     func testConductor_preservesCompression() async throws {
         // ConversationCompression is a concrete actor (= Swift forbids
         // subclassing actors), so we cannot instrument it directly.
@@ -182,13 +192,11 @@ struct WenshuConductorConversationLoopWiringTests {
 
         // Also verify the Conductor path still works end-to-end with the
         // compression wired (= no regression in handle()).
-        let kanban = try KanbanStore(path: tmpPath("compression"))
-        try await kanban.bootstrap()
-        let conductor = WenshuConductor(
+        let kanban = try Self.makeKanbanRepository()
+                let conductor = WenshuConductor(
             runtime: AgentRuntime(),
             verifier: WenshuVerifier(),
-            kanbanStore: kanban,
-            connector: connector
+                        connector: connector
         )
         let conductorResult = await conductor.handle(
             userMessage: "conductor path",
@@ -201,15 +209,14 @@ struct WenshuConductorConversationLoopWiringTests {
     // MARK: - Test 4: fallback when loop errors
 
     @Test("handle falls back to legacy pipeline when ConversationLoop throws (= S4 graceful degradation)")
+    @MainActor
     func testConductor_handlesFallbackWhenLoopErrors() async throws {
         let connector = ThrowingMockConnector()
-        let kanban = try KanbanStore(path: tmpPath("fallback"))
-        try await kanban.bootstrap()
-        let conductor = WenshuConductor(
+        let kanban = try Self.makeKanbanRepository()
+                let conductor = WenshuConductor(
             runtime: AgentRuntime(),
             verifier: WenshuVerifier(),
-            kanbanStore: kanban,
-            connector: connector
+                        connector: connector
         )
 
         // No API key → legacy pipeline's LLM calls fail → S4 fallback
