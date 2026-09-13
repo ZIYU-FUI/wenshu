@@ -12,7 +12,6 @@ import SwiftUI
 /// Reads KanbanStore (actor) and renders task list with status, title, duration.
 /// Per boss 8/23: 'userworkprogress'.
 public struct SubAgentProgressView: View {
-    @State private var store: KanbanStore?
     @State private var tasks: [KanbanTask] = []
     @State private var refreshTrigger: Int = 0
 
@@ -31,11 +30,7 @@ public struct SubAgentProgressView: View {
 
             Divider()
 
-            if store == nil {
-                Text(WenshuI18n.t("b5.subagentprogressview.l35.h27766576"))
-                    .font(.body)
-                    .foregroundStyle(.tertiary)
-            } else if tasks.isEmpty {
+            if tasks.isEmpty {
                 Text(WenshuI18n.t("subagent.empty_state"))
                     .font(.body)
                     .foregroundStyle(.tertiary)
@@ -67,11 +62,6 @@ public struct SubAgentProgressView: View {
         // v0.24 bossverificationfix (2026-08-24): removed fixed minWidth/minHeight.
         // Tab content must follow zone size, not force zone to be 480x320.
         // Boss 8/24 feedback: 'tab viewchangechangeregionsize, autoregionsize'.
-        .task {
-            if store == nil {
-                store = try? KanbanStore()
-            }
-        }
         .task(id: refreshTrigger) {
             // Live update via EventBus (= AsyncStream; v0.71 cleanup batch 2 apple-miss fix).
             // SubAgentProgressView subscribes to kanban events; refresh on each event.
@@ -83,8 +73,7 @@ public struct SubAgentProgressView: View {
     }
 
     private func refreshTasks() {
-        guard let store = store else { return }
-        tasks = (try? store.list()) ?? []
+        tasks = (try? WSKanbanRepository.shared.list()) ?? []
     }
 
     private var runningCount: Int {
