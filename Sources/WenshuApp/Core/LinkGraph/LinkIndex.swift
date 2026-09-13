@@ -34,6 +34,15 @@
 
 import Foundation
 import SQLite3
+#warning("wenshu.sqlite3-deprecation: raw sqlite3 store; use SwiftData WSMemory/etc. instead")
+
+// DEPRECATED: This file uses raw sqlite3. Per AGENTS.md §11.4
+// SwiftData migration, raw sqlite3 stores are being phased out.
+// New code should use the equivalent SwiftData @Model classes
+// (= WSMemory / WSChatMessage / WSTodo / etc.) via
+// WSMemoryRepository.shared / WSChatRepository.shared / etc.
+// (= Sources/WenshuApp/Persistence/Repositories/<filename>Repository.swift).
+// This file will be deleted in v0.73 once all callers migrate.
 
 /// 1 link = 1 row, schema = source_doc_id / target_ref / target_doc_id / line / offset / created_at
 /// - source_doc_id: current document ID (= WenshuLibrary Book.id)
