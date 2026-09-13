@@ -1,7 +1,7 @@
 //
 //  Core/Memory/WSMemoryManager.swift · Wenshu · v0.72 SwiftData migration Phase 3 deferred
 //
-//  Migration commit 44 of 50: WSMemoryManager.
+//  Migration commit 44 of 42: WSMemoryManager.
 //  Per AGENTS.md §11.4.
 //
 //  SwiftData-backed alternative to MemoryManager. Same public surface
