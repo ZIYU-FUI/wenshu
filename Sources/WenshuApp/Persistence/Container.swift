@@ -1,8 +1,11 @@
 //
 //  Persistence/Container.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 21 of 22 @Model classes: ModelContainer setup (= the
-//  last @Model-class commit; = subsequent commits are Repositories / Container).
+//  Migration commit 21 of 21 @Model classes: ModelContainer setup (= the
+//  last @Model-class commit in phase 1; = subsequent commits are Repositories /
+//  Container / Phase 4 migration runner). Schema actually contains 23 entity
+//  types per ContainerTests.swift:28 assertion (= 21 @Model classes + 2
+//  SwiftData-implicit join tables).
 //  Per AGENTS.md §11.4 SwiftData migration roadmap.
 //
 //  This is the FINAL commit of Phase 1. It defines the ModelContainer
