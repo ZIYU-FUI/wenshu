@@ -38,7 +38,10 @@ public final class WSForeshadowing {
     /// FK to recall chapter (= where resolved; = nil if still open)
     var recallChapterID: String?
     var recallLineNumber: Int?
-    /// Status: "open" / "recalled" / "abandoned"
+    /// Status values:
+///   - "open"      (= default; = set via init; = transition tested)
+///   - "recalled"   (= set via WSForeshadowing.recallForeshadowing())
+///   - "abandoned"  (= no method sets this currently; = reserved for future ticket)
     var status: String
     /// Type: "character" / "plot" / "world" / "object"
     var foreshadowType: String
