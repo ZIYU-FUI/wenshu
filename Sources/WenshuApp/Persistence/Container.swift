@@ -32,9 +32,9 @@ import SwiftData
 
 /// Singleton ModelContainer (= held by AppState).
 /// Initialization is lazy (= defer until first access).
-enum WSPersistenceContainer {
+public enum WSPersistenceContainer {
     /// Schema listing all 20 @Model classes (= generated below)
-    static let schema = Schema([
+    public static let schema = Schema([
         // Tier 1: leaf entities (= no relationships)
         WSManifest.self,
         WSMemory.self,
@@ -66,7 +66,7 @@ enum WSPersistenceContainer {
     /// The shared ModelContainer (= lazily initialized on first access).
     /// Uses the application's Application Support directory (=
     /// macOS-recommended location for app data; = backed up via Time Machine).
-    static let shared: ModelContainer = {
+    public static let shared: ModelContainer = {
         let config = ModelConfiguration(
             "WenshuStore",
             schema: schema,
@@ -94,7 +94,7 @@ enum WSPersistenceContainer {
     /// Test-only in-memory container (= never touches disk).
     /// Used by PersistenceTests suites.
     @MainActor
-    static func makeInMemoryContainer() throws -> ModelContainer {
+    public static func makeInMemoryContainer() throws -> ModelContainer {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: [config])
     }
