@@ -468,6 +468,11 @@ public struct HermesTodoTool: Tool, Sendable {
     /// still constructs dedicated instances via the existing
     /// `init(store:)` initializer (= e.g. ChatView pre-populates
     /// the conductor with a per-session instance).
+    // v0.72 Q99 MED note: `nonisolated(unsafe)` escape hatch required because
+    // HermesTodoStore is `@unchecked Sendable` (= DispatchQueue-protected; = the
+    // header comment documents the unsafe escape). Future ticket (= actor
+    // boundary refactor) will replace HermesTodoStore with a proper @MainActor
+    // singleton (= eliminates the `unsafe` marker).
     public nonisolated(unsafe) static let shared: HermesTodoTool = HermesTodoTool(store: HermesTodoStore())
 
     private let store: HermesTodoStore

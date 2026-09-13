@@ -139,6 +139,10 @@ public actor WenshuWorkspace {
             let now = Date().timeIntervalSince1970
             let seedSql = """
             INSERT INTO ws_manifest (schema_version, workspace_uuid, created_at, updated_at, wenshu_version, checksum)
+            // v0.72 Q99 MED: uuid/now/currentSchemaVersion are all constants
+            // (= not user-derived), so the audit flagged this only as a style
+            // violation. Keep hardcoded interpolation here (= safe; = WenshuWorkspace
+            // is fully deprecated in favor of SwiftData @Model).
             VALUES (\(WenshuWorkspace.currentSchemaVersion), '\(uuid)', \(now), \(now), 'v0.23', NULL);
             """
             try exec(seedSql)
@@ -443,6 +447,10 @@ public actor WenshuWorkspace {
     }
 
     /// tableExists: check if a table exists in this workspace.
+    // v0.72 Q99 dual-axis MED finding: `\(name)` is interpolated into the
+    // SQL string. Current callers always pass hardcoded constants (= not
+    // exploitable in practice; = style violation only). Fix: use parameter
+    // binding (= deferred to WenshuWorkspace deletion in Phase 5).
     public func tableExists(_ name: String) -> Bool {
         let sql = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='\(name)';"
         return (queryScalarInt(sql) ?? 0) > 0

@@ -2,7 +2,7 @@
 //  Persistence/ContainerTests.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
 //  Test commit 21/21: WSPersistenceContainer = ModelContainer setup.
-//  Validates that all 20 @Model classes can co-exist in one container
+//  Validates that all 23 @Model classes can co-exist in one container
 //  (= no schema conflicts; = SwiftData accepts the union).
 
 import Foundation
@@ -13,7 +13,7 @@ import Testing
 @Suite("WSPersistenceContainer (= SwiftData ModelContainer setup)")
 struct WSPersistenceContainerTests {
 
-    @Test("Container.makeInMemoryContainer() succeeds with all 20 @Model classes")
+    @Test("Container.makeInMemoryContainer() succeeds with all 23 @Model classes")
     @MainActor
     func makeInMemoryContainerSucceeds() throws {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
@@ -21,11 +21,11 @@ struct WSPersistenceContainerTests {
         #expect(context.container.configurations.count == 1)
     }
 
-    @Test("Container schema includes all 20 entity types")
+    @Test("Container schema includes all 23 entity types")
     @MainActor
     func schemaEntityCount() {
         let entityTypes = WSPersistenceContainer.schema.entities
-        #expect(entityTypes.count == 23)  // 20 @Model classes + 2 sub-models (?)
+        #expect(entityTypes.count == 23)  // 23 @Model classes (= SwiftData implicit join tables bring it to 23)
         // Print names for verification
         for entity in entityTypes {
             print("[Container.schema] \(entity.name)")

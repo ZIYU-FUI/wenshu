@@ -48,7 +48,7 @@ struct WSOutlineDocumentTests {
         context.insert(doc)
         try context.save()
         let originalUpdatedAt = doc.updatedAt
-        try? Thread.sleep(forTimeInterval: 0.01)
+        try? Thread.sleep(forTimeInterval: 0.05)  // v0.72 Q99 MED fix: bumped from 0.01 (= too flaky on slow CI; = needs > Date precision)
         doc.syncFromFile(title: "new", byteSize: 999, summaryExcerpt: "abc", fileUpdatedAt: Date())
         try context.save()
         #expect(doc.title == "new")

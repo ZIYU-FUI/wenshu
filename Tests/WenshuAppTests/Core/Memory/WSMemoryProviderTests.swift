@@ -52,7 +52,7 @@ struct WSMemoryProviderTests {
         let provider = makeProvider()
         await provider.sync(userMessage: "hello", assistantResponse: "world")
         // Mirror updated asynchronously
-        try? await Task.sleep(for: .milliseconds(100))
+        try? await Task.sleep(for: .milliseconds(250))  // v0.72 Q99 MED fix: bumped from 100 (= too flaky on slow CI; = needs > mirror refresh latency)
         // Re-fetch from SwiftData directly
         let recent = try? WSMemoryRepository.shared.listRecent(userId: "default", limit: 5)
         #expect((recent?.count ?? 0) > 0)

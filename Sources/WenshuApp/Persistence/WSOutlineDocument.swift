@@ -2,8 +2,9 @@
 //  Persistence/WSOutlineDocument.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
 //  Migration commit 18 of 21 @Model classes: WSOutlineDocument.
-//  Mirrors Document struct from Domain/Document.swift (= per-book outline
-//  document; = a .md file in the book's outline/ folder).
+//  New SwiftData @Model class (= no pre-v0.72 sqlite source — outline
+//  documents were filesystem-only before; = Domain/Document.swift was
+//  the in-memory struct; = this is the first persistence layer).
 //
 //  Old storage: filesystem-only (.ws/shelves/<shelf-id>/books/<book-id>/outline/*.md)
 //  New storage: SwiftData @Model index (= filesystem remains source of truth;

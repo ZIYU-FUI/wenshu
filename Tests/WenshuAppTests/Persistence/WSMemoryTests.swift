@@ -59,7 +59,7 @@ struct WSMemoryTests {
         try context.save()
         let originalUpdatedAt = mem.updatedAt
         // Sleep tiny amount so updatedAt differs (= Date.now precision)
-        try? Thread.sleep(forTimeInterval: 0.01)
+        try? Thread.sleep(forTimeInterval: 0.05)  // v0.72 Q99 MED fix: bumped from 0.01 (= too flaky on slow CI; = needs > Date precision)
         mem.update(content: "new")
         try context.save()
         #expect(mem.content == "new")

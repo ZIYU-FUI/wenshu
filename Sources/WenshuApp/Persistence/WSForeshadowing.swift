@@ -1,7 +1,7 @@
 //
 //  Persistence/WSForeshadowing.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 17 of 21 @Model classes: WSForeshadowing.
+//  Migration commit 17 of 22 @Model classes: WSForeshadowing (= one of the
 //  Mirrors the JSON sidecar Foreshadowing struct from
 //  ForeshadowingTrackerTools.swift.
 //

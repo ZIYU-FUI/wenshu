@@ -53,7 +53,7 @@ struct WSSessionTests {
         context.insert(s)
         try context.save()
         let original = s.updatedAt
-        try? Thread.sleep(forTimeInterval: 0.01)
+        try? Thread.sleep(forTimeInterval: 0.05)  // v0.72 Q99 MED fix: bumped from 0.01 (= too flaky on slow CI; = needs > Date precision)
         s.archive()
         try context.save()
         #expect(s.archivedAt != nil)

@@ -18,6 +18,12 @@ import SwiftData
 
 /// One-stop entry point holding all 9 Repositories.
 /// Apps inject this via SwiftUI .environment(\.repositoryContainer).
+///
+/// NOTE: 9 of the 23 SwiftData @Model classes have a Repository (= the 9 listed below).
+/// The remaining 14 (@Model classes for sub-types like WSAttachment, WSForeshadowing,
+/// WSPlaceholder, WSOutlineNode, WSOutlineDocument, etc.) are accessed directly via
+/// WSPersistenceContainer.shared (= no repository layer needed; = they're either
+/// transient view data or simple CRUD wrappers).
 @MainActor
 @Observable
 public final class WSRepositoryContainer {

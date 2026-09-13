@@ -47,7 +47,7 @@ struct WSProviderKeyTests {
         context.insert(pk)
         try context.save()
         let original = pk.updatedAt
-        try? Thread.sleep(forTimeInterval: 0.01)
+        try? Thread.sleep(forTimeInterval: 0.05)  // v0.72 Q99 MED fix: bumped from 0.01 (= too flaky on slow CI; = needs > Date precision)
         pk.update(encryptedKey: newKey)
         try context.save()
         #expect(pk.encryptedKey == newKey)

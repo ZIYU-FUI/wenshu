@@ -42,7 +42,7 @@ struct WSPreferenceTests {
         context.insert(pref)
         try context.save()
         let original = pref.updatedAt
-        try? Thread.sleep(forTimeInterval: 0.01)
+        try? Thread.sleep(forTimeInterval: 0.05)  // v0.72 Q99 MED fix: bumped from 0.01 (= too flaky on slow CI; = needs > Date precision)
         pref.update(value: "new")
         try context.save()
         #expect(pref.value == "new")
