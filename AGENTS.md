@@ -228,7 +228,7 @@ Migration plan (= 6 phases, ~42 commits, 3-4 weeks):
 ## Spec doc
 Full spec at /tmp/wenshu-swiftdata-migration-spec.md (= 6.7 KB).
 
-# §12 Cross-role expression hard constraint
+## §11.4.1 Phase 3 progress (= 2026-09-13)Phase 3 (= switch call sites from old Actors to new Repositories) is**partially complete**:  - OK commit 33: Repository singletons + WSRepositoryContainer (= foundation)  - OK commit 34: MemoryAdapter → WSMemoryRepository  - OK commit 35: SubAgentProgressView → WSKanbanRepository  - PAUSED deferred: ContextEngine / HermesTodoTool / TodoStoreTool /    KanbanTools / ConnectorCredentials / WenshuVerifier / WenshuConductor /    KanbanView / TodoListView / ChatView kanban usage (= 12 commits)DEFERRED WORK RATIONALE:  - Agent code (ContextEngine, HermesTodoTool, KanbanTools, etc.) uses    actor-isolated types + MemoryManager wrapper + reactive subscription    patterns that do not translate 1:1 to @MainActor + WSMemoryRepository.  - Refactoring these requires actor boundary redesign (= multi-week    effort) and is a separate ticket.  - View code that uses BookXxxStore (JSON file persistence — e.g.    KanbanView uses BookKanbanStore) is out of SQLite migration scope.Branches:  - `wt/swiftdata/phase1-2026-09-13` (= current worktree; = 35 commits    pushed to origin; = phase 1+2+partial phase 3)  - Phase 3 follow-up tickets should branch from main (= after this    PR merges) and rebase as needed.# §12 Cross-role expression hard constraint
 
 - Sole address for 老板 = 老板. Every dialog / doc / commit message / comment / prompt uses 老板.
 - No earlier honorific forms allowed.
@@ -255,3 +255,29 @@ Full spec at /tmp/wenshu-swiftdata-migration-spec.md (= 6.7 KB).
 
 *AGENTS.md v0.09.0 · 2026-09-03 pocock single agent · v0.37 ship packet (= hermes core translation complete + 11 port tickets + 7-connector BYOK + visual verify packet + 22 smoke tests + 175+ tests) + ADR-0013 v0.37 scope decisions + CHANGELOG.md v0.37 + Batch 1.1 test target cleanup (35 → 0 errors) + iron rule 6 compliance throughout (= no magic numbers in view code) · English-only · project root = /Volumes/ANAN/Engineering/wenshu/*
 *AGENTS.md v0.10.0 · 2026-09-05 pocock single agent · v0.38 + v0.39 + v0.40 ship packets (= 167 commits across 13 stages 2026-09-04 → 2026-09-05 per retrospective at .scratch/2026-09-05-today-retrospective.md: ToolRegistry 1:1 port (= hermes tools/registry.py) + 12-tool migration + 5-surface Liquid Glass polish on macOS 27 + 5 specialized tools ports + 5 specialized tools wire-ups + HermesTodoStore deadlock fix + 22 smoke tests + 11-rule iron-rules sweep + 33-file B-03 historical CJK comment cleanup + verify-frontend.sh 14-item script + dead-pin cleanup of 10 zero-consumer third-party libs) + ADR-0008/0009/0013 retrospective ratifications + wenshu-side wins pattern for 5 hermes-overlap pairs per §11.3 + CHANGELOG.md v0.38 + INV-PUSH-1..7 + INV-BATCH-1..3 sequences + I18N-INLINE-001 (= 5 strings to Localizable.strings) · English-only · project root = /Volumes/ANAN/Engineering/wenshu/*
+## §11.4.1 Phase 3 progress (= 2026-09-13)
+
+Phase 3 (= switch call sites from old Actors to new Repositories) is
+**partially complete**:
+
+  - ✓ commit 33: Repository singletons + WSRepositoryContainer (= foundation)
+  - ✓ commit 34: MemoryAdapter → WSMemoryRepository
+  - ✓ commit 35: SubAgentProgressView → WSKanbanRepository
+  - ⏸ deferred: ContextEngine / HermesTodoTool / TodoStoreTool /
+    KanbanTools / ConnectorCredentials / WenshuVerifier / WenshuConductor /
+    KanbanView / TodoListView / ChatView kanban usage (= 12 commits)
+
+DEFERRED WORK RATIONALE:
+  - Agent code (ContextEngine, HermesTodoTool, KanbanTools, etc.) uses
+    actor-isolated types + MemoryManager wrapper + reactive subscription
+    patterns that don't translate 1:1 to @MainActor + WSMemoryRepository.
+  - Refactoring these requires actor boundary redesign (= multi-week
+    effort) and is a separate ticket.
+  - View code that uses BookXxxStore (JSON file persistence — e.g.
+    KanbanView uses BookKanbanStore) is out of SQLite migration scope.
+
+Branches:
+  - `wt/swiftdata/phase1-2026-09-13` (= current worktree; = 35 commits
+    pushed to origin; = phase 1+2+partial phase 3)
+  - Phase 3 follow-up tickets should branch from main (= after this
+    PR merges) and rebase as needed.
