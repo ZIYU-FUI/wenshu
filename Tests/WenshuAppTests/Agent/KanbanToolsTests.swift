@@ -16,13 +16,24 @@ import Foundation
 
 @Suite("KanbanTools (HERMES-PARTIAL-011)")
 struct KanbanToolsTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
 
     // MARK: - Test 1: Create + show
 
     @Test("create + show round-trip preserves the task")
     @MainActor
     func testCreateAndShow() async throws {
-        let store = try KanbanStore(path: "/tmp/wenshu-test-\(UUID().uuidString).db")
+        let store = try Self.makeKanbanRepository()
         let tools = KanbanTools(store: WSKanbanRepository.shared)
         let createResult = await tools.kanban(
             action: "create",
@@ -46,7 +57,7 @@ struct KanbanToolsTests {
     @Test("list returns the created task")
     @MainActor
     func testListFilters() async throws {
-        let store = try KanbanStore(path: "/tmp/wenshu-test-\(UUID().uuidString).db")
+        let store = try Self.makeKanbanRepository()
         let tools = KanbanTools(store: WSKanbanRepository.shared)
         _ = await tools.kanban(
             action: "create",
@@ -62,7 +73,7 @@ struct KanbanToolsTests {
     @Test("complete transitions the task to .done")
     @MainActor
     func testCompleteTransition() async throws {
-        let store = try KanbanStore(path: "/tmp/wenshu-test-\(UUID().uuidString).db")
+        let store = try Self.makeKanbanRepository()
         let tools = KanbanTools(store: WSKanbanRepository.shared)
         let createResult = await tools.kanban(
             action: "create",
@@ -87,7 +98,7 @@ struct KanbanToolsTests {
     @Test("block then unblock cycles status")
     @MainActor
     func testBlockUnblock() async throws {
-        let store = try KanbanStore(path: "/tmp/wenshu-test-\(UUID().uuidString).db")
+        let store = try Self.makeKanbanRepository()
         let tools = KanbanTools(store: WSKanbanRepository.shared)
         let createResult = await tools.kanban(
             action: "create",
@@ -111,7 +122,7 @@ struct KanbanToolsTests {
     @Test("unknown kanban action returns failure")
     @MainActor
     func testUnknownAction() async throws {
-        let store = try KanbanStore(path: "/tmp/wenshu-test-\(UUID().uuidString).db")
+        let store = try Self.makeKanbanRepository()
         let tools = KanbanTools(store: WSKanbanRepository.shared)
         let result = await tools.kanban(action: "delete")
         #expect(result.success == false)

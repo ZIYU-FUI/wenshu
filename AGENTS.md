@@ -280,9 +280,15 @@ Dependency graph (= must be done in this order):
         (= WenshuAppDelegate L222 + KanbanStoreTool.swift L87 + WenshuConductor
         storage layer = 5 kanbanStore.add/transition callsites; = future ticket 6).
 
-  Future Ticket 6 (= KanbanStoreTool + WenshuConductor storage layer migration)
-    = WSKanbanRepository.shared replacement
-    └─> unlocks: KanbanStore.swift deletion
+  ✓ Phase-5 Ticket 6 (KanbanStoreTool + WenshuConductor storage layer →
+    WSKanbanRepository.shared)
+    = 1 commit (= KanbanStore.swift deleted + KanbanDomain.swift extracted
+    + WenshuConductor migrated + WenshuAppDelegate migrated + ChatView
+    peer-conductor arg dropped + WSKanbanRepository.add lifecycle hooks
+    + 14 test files migrated to per-test in-memory SwiftData container).
+    └─> KanbanStore.swift DELETED (= Core/Kanban/).
+    └─> KanbanStatus + KanbanTask domain types preserved in
+    Core/Kanban/KanbanDomain.swift (= the canonical public API surface).
 
   ✓ Phase-5 Ticket 3 (TodoListView TodoStore subscription dropped)
     = commit ce80c6492 (= TodoListView.swift -191 lines / 1 file)
@@ -357,4 +363,4 @@ Ticket 5 (= 1 commit, landed):
     (= also fixes WSLink.id composite key to include targetRef so that
     multiple [[name]] links on the same line don't collide).
 
-Next: phase 5 deletion step (= ticket 6/7/8 future cleanup + final git rm).
+Next: phase 5 deletion step (= tickets 7/8/9 future cleanup + final git rm).

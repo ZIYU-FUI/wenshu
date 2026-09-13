@@ -38,6 +38,17 @@ import Testing
 
 @Suite("KanbanStoreTool adapter (P0 #5 / WIRE-AGENT-005)")
 struct KanbanStoreToolTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
 
     // MARK: - Helpers
 
@@ -45,26 +56,29 @@ struct KanbanStoreToolTests {
     /// gets isolation; no cleanup race because we use a unique UUID
     /// per call and the OS reclaims tmp files on reboot).
     /// Async because KanbanStore.bootstrap() is actor-isolated.
-    private static func makeKanbanStore() async throws -> KanbanStore {
-        let path = NSTemporaryDirectory() + "wenshu-kanban-store-tool-\(UUID().uuidString).db"
-        let store = try KanbanStore(path: path)
-        try await store.bootstrap()
-        return store
+    /// Build a fresh WSKanbanRepository backed by an in-memory SwiftData
+    /// container. Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanStore() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
     }
 
     /// Build a fresh KanbanStoreTool wrapping a fresh KanbanTools
     /// (= the canonical adapter wiring: KanbanStoreTool ->
-    /// KanbanTools -> KanbanStore).
-    private static func makeTool(store: KanbanStore) -> KanbanStoreTool {
-        let tools = MainActor.assumeIsolated { KanbanTools(store: WSKanbanRepository.shared) }
+    /// KanbanTools -> WSKanbanRepository).
+    @MainActor
+    private static func makeTool(store: WSKanbanRepository) -> KanbanStoreTool {
+        let tools = KanbanTools(store: store)
         return KanbanStoreTool(kanbanTools: tools)
     }
 
     // MARK: - Test 1: create persists to KanbanView (KanbanStore)
 
     @Test("kanban_create persists the new task to KanbanStore (= KanbanView reads from here)")
+    @MainActor
     func testKanbanStoreTool_create_persistsToKanbanView() async throws {
-        let store = try await Self.makeKanbanStore()
+        let store = try Self.makeKanbanStore()
         let tool = Self.makeTool(store: store)
 
         let input = #"{"action":"create","title":"Draft chapter 1","body":"outline: foo","priority":7}"#
@@ -92,7 +106,7 @@ struct KanbanStoreToolTests {
     @Test("kanban_list returns the canonical KanbanStore items as JSON")
     @MainActor
     func testKanbanStoreTool_list_returnsCurrentKanbanItems() async throws {
-        let store = try await Self.makeKanbanStore()
+        let store = try Self.makeKanbanStore()
         let tool = Self.makeTool(store: store)
 
         // Pre-seed KanbanStore with 2 items (= bypasses the adapter
@@ -114,8 +128,9 @@ struct KanbanStoreToolTests {
     // MARK: - Test 3: claim sets assignee (wenshu-side equivalent of hermes claim)
 
     @Test("kanban_create with assignee writes assignee to KanbanStore (= wenshu-side 'claim' surface)")
+    @MainActor
     func testKanbanStoreTool_claim_setsClaimedBy() async throws {
-        let store = try await Self.makeKanbanStore()
+        let store = try Self.makeKanbanStore()
         let tool = Self.makeTool(store: store)
 
         // 1) create with an assignee (= simulates the LLM claiming a
@@ -147,7 +162,7 @@ struct KanbanStoreToolTests {
     @Test("kanban_complete transitions the KanbanStore row to status=done")
     @MainActor
     func testKanbanStoreTool_complete_marksDone() async throws {
-        let store = try await Self.makeKanbanStore()
+        let store = try Self.makeKanbanStore()
         let tool = Self.makeTool(store: store)
 
         // 1) create a task
@@ -180,7 +195,7 @@ struct KanbanStoreToolTests {
     /// adapter output, e.g. tests against a stripped-down tool).
     private static func taskIDFromJSONEnvelope(
         _ output: String,
-        fallbackStore: KanbanStore
+        fallbackStore: WSKanbanRepository
     ) async throws -> String {
         if let data = output.data(using: .utf8),
            let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

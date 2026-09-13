@@ -83,6 +83,17 @@ private actor NotificationCollector {
 
 @Suite("Integration plan end-to-end (= all 22 wire-up tickets exercised together)")
 struct IntegrationPlanEndToEndTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
 
     // MARK: - Shared helpers
 
@@ -159,10 +170,10 @@ struct IntegrationPlanEndToEndTests {
 
     /// Build an isolated KanbanStore rooted in /tmp. Mirrors the
     /// makeTodoStore helper.
-    private static func makeKanbanStore() async throws -> KanbanStore {
-        let store = try KanbanStore(path: "/tmp/wenshu-p5-23-kanban-\(UUID().uuidString).db")
-        try await store.bootstrap()
-        return store
+    @MainActor
+    private static func makeKanbanStore() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
     }
 
     /// Build an isolated MemoryStore rooted in /tmp.
@@ -192,7 +203,7 @@ struct IntegrationPlanEndToEndTests {
         // Memory) used by the wire-up tools; isolated in /tmp.
         let todoStore = try await Self.makeTodoStore()
         print("[setup] built todoStore")
-        let kanbanStore = try await Self.makeKanbanStore()
+        let kanbanStore = try await Self.makeKanbanRepository()
         print("[setup] built kanbanStore")
         _ = try await Self.makeMemoryStore()  // only used as smoke probe (= no LLM path)
         print("[setup] built memoryStore")

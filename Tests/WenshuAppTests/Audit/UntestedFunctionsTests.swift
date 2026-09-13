@@ -18,6 +18,17 @@ import Testing
 @Suite("Audit: previously untested functions (boss 8/23 双轴 code-review)")
 struct UntestedFunctionsTests {
 
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
+
+
     // MARK: - AgentProtocol.getAgentCard
 
     @Test("AgentProtocol.getAgentCard returns the agent's card (immutable)")
@@ -53,15 +64,13 @@ struct UntestedFunctionsTests {
     // exist and gracefully handle unavailable registries.
 
     @Test("WenshuConductor.availableSkills returns [] when skill registry is nil")
+    @MainActor
     func testAvailableSkillsEmpty() async throws {
         let runtime = AgentRuntime()  // actor — needs no args
         let verifier = WenshuVerifier(baseURL: "test://", apiKey: nil, model: .m3)
-        let kanban = try await KanbanStore(path: NSTemporaryDirectory() + "audit-\(UUID().uuidString).db")
-        try await kanban.bootstrap()
         let conductor = await WenshuConductor(
             runtime: runtime,
             verifier: verifier,
-            kanbanStore: kanban
             // sessionStore / memoryStore / skillRegistry = nil
         )
         let skills = await conductor.availableSkills()
@@ -69,15 +78,13 @@ struct UntestedFunctionsTests {
     }
 
     @Test("WenshuConductor.invokeSkill returns empty string when registry is nil")
+    @MainActor
     func testInvokeSkillEmpty() async throws {
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier(baseURL: "test://", apiKey: nil, model: .m3)
-        let kanban = try await KanbanStore(path: NSTemporaryDirectory() + "audit-\(UUID().uuidString).db")
-        try await kanban.bootstrap()
         let conductor = await WenshuConductor(
             runtime: runtime,
             verifier: verifier,
-            kanbanStore: kanban
         )
         let result = await conductor.invokeSkill(name: "non-existent", input: "")
         #expect(result.isEmpty)
@@ -86,15 +93,13 @@ struct UntestedFunctionsTests {
     // MARK: - WenshuConductor.addMemory + searchMemory
 
     @Test("WenshuConductor.searchMemory returns [] when memory store is nil")
+    @MainActor
     func testSearchMemoryEmpty() async throws {
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier(baseURL: "test://", apiKey: nil, model: .m3)
-        let kanban = try await KanbanStore(path: NSTemporaryDirectory() + "audit-\(UUID().uuidString).db")
-        try await kanban.bootstrap()
         let conductor = await WenshuConductor(
             runtime: runtime,
             verifier: verifier,
-            kanbanStore: kanban
             // memoryStore = nil
         )
         let memories = await conductor.searchMemory(query: "test")
@@ -102,15 +107,13 @@ struct UntestedFunctionsTests {
     }
 
     @Test("WenshuConductor.addMemory silently no-ops when memory store is nil")
+    @MainActor
     func testAddMemoryNoOp() async throws {
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier(baseURL: "test://", apiKey: nil, model: .m3)
-        let kanban = try await KanbanStore(path: NSTemporaryDirectory() + "audit-\(UUID().uuidString).db")
-        try await kanban.bootstrap()
         let conductor = await WenshuConductor(
             runtime: runtime,
             verifier: verifier,
-            kanbanStore: kanban
         )
         await conductor.addMemory(content: "test content")
         let memories = await conductor.searchMemory(query: "test content")
@@ -120,6 +123,7 @@ struct UntestedFunctionsTests {
     // MARK: - FileTools.pathHasBlockedSymlink (gap 2 fix function)
 
     @Test("FileTools.pathHasBlockedSymlink: regular path returns false")
+    @MainActor
     func testSymlinkRegularPath() {
         let tools = FileTools()
         let result = tools.pathHasBlockedSymlink("/tmp/regular_file")

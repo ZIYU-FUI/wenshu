@@ -98,7 +98,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         set { _sharedChatStoreRef = newValue }
     }  // code-review H1: unsafe var let nil
 
-    static let sharedkanbanStore: KanbanStore? = nil  //, applicationDidFinishLaunching
+
 
     // v0.21 ticket 01 (redo #7): "show" → "restoredefaultlayout" NSMenu action (Q28: NSMenu in progress 6, SwiftUI commands)
     @MainActor @objc func resetLayout(_ sender: Any?) {
@@ -210,22 +210,14 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         if chatStore != nil {
             NotificationCenter.default.post(name: .wenshuChatStoreReady, object: nil)
         }
-        let kanbanStore: KanbanStore?
-        do {
-            let store = try KanbanStore()
-            try store.bootstrap()
-            kanbanStore = store
-        } catch {
-            kanbanStore = nil
-        }
-        if let kanbanStore = kanbanStore {
-            Self.sharedConductor = WenshuConductor(
-                runtime: Self.sharedRuntime,
-                verifier: Self.sharedVerifier,
-                kanbanStore: kanbanStore,
-                sessionStore: chatStore
-            )
-        }
+        // Phase 5 ticket 6: KanbanStore removed; conductor reads/writes kanban
+        // via WSKanbanRepository.shared (= @MainActor SwiftData wrapper).
+        // No per-actor sqlite3 KanbanStore bootstrap needed.
+        Self.sharedConductor = WenshuConductor(
+            runtime: Self.sharedRuntime,
+            verifier: Self.sharedVerifier,
+            sessionStore: chatStore
+        )
         // v0.21 ticket 06: NSApp.mainMenu applicationWillFinishLaunching (=, SwiftUI)
         // v0.20 ticket 01: startregister wenshu agent (zone chat UI)
         let card = AgentCard(

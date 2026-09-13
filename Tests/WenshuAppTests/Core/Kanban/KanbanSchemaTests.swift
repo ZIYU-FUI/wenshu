@@ -9,25 +9,40 @@ import Testing
 @testable import WenshuApp
 
 @Suite("KanbanSchema (hermes metadata parity)")
+@MainActor
 struct KanbanSchemaTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    @MainActor
+    private static func makeKanbanRepository() throws -> WSKanbanRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
+    }
 
-    private func tmpPath(_ tag: String) -> String {
-        NSTemporaryDirectory() + "wenshu-kanban-\(tag)-\(UUID().uuidString).sqlite"
+
+
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    private func makeStore(_ tag: String) throws -> WSKanbanRepository {
+        _ = tag  // tag preserved for future per-test tracing
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSKanbanRepository(container: container)
     }
 
     @Test("bootstrap creates kanban_tasks with all 10 columns (v0.23 ticket 013.003)")
     func testBootstrapSchema() async throws {
-        let store = try KanbanStore(path: tmpPath("bootstrap"))
-        try await store.bootstrap()
-        let tasks = try await store.list()
+        let store = try makeStore("test")
+                let tasks = try await store.list()
         #expect(tasks.isEmpty)
     }
 
     @Test("add task with priority + assignee + modelOverride round-trips")
     func testAddWithMetadata() async throws {
-        let store = try KanbanStore(path: tmpPath("add-meta"))
-        try await store.bootstrap()
-        let task = try await store.add(
+        let store = try makeStore("test")
+                let task = try await store.add(
             title: "writer: 续写捕快",
             status: .running,
             priority: 8,
@@ -52,9 +67,8 @@ struct KanbanSchemaTests {
 
     @Test("add task with default status (.new) does NOT auto-set startedAt")
     func testAddNewStatusNoStartedAt() async throws {
-        let store = try KanbanStore(path: tmpPath("new-no-started"))
-        try await store.bootstrap()
-        let task = try await store.add(title: "backlog item", status: .new)
+        let store = try makeStore("test")
+                let task = try await store.add(title: "backlog item", status: .new)
         #expect(task.startedAt == nil)
         #expect(task.completedAt == nil)
         #expect(task.assignee == nil)
@@ -63,9 +77,8 @@ struct KanbanSchemaTests {
 
     @Test("transition to .running auto-sets startedAt")
     func testTransitionRunningAutoSetsStarted() async throws {
-        let store = try KanbanStore(path: tmpPath("trans-running"))
-        try await store.bootstrap()
-        let task = try await store.add(title: "task", status: .new)
+        let store = try makeStore("test")
+                let task = try await store.add(title: "task", status: .new)
         try await store.transition(id: task.id, to: .running)
         let loaded = try await store.get(id: task.id)
         #expect(loaded?.startedAt != nil)
@@ -74,9 +87,8 @@ struct KanbanSchemaTests {
 
     @Test("transition to .done auto-sets completedAt")
     func testTransitionDoneAutoSetsCompleted() async throws {
-        let store = try KanbanStore(path: tmpPath("trans-done"))
-        try await store.bootstrap()
-        let task = try await store.add(title: "task", status: .running)
+        let store = try makeStore("test")
+                let task = try await store.add(title: "task", status: .running)
         try await store.transition(id: task.id, to: .done)
         let loaded = try await store.get(id: task.id)
         #expect(loaded?.startedAt != nil)
@@ -86,9 +98,8 @@ struct KanbanSchemaTests {
 
     @Test("transition preserves startedAt (COALESCE — only set on first .running)")
     func testTransitionStartedAtPreserved() async throws {
-        let store = try KanbanStore(path: tmpPath("started-preserved"))
-        try await store.bootstrap()
-        let task = try await store.add(title: "task", status: .new)
+        let store = try makeStore("test")
+                let task = try await store.add(title: "task", status: .new)
         try await store.transition(id: task.id, to: .running)
         let firstStart = try await store.get(id: task.id)
         #expect(firstStart?.startedAt != nil)
@@ -102,9 +113,8 @@ struct KanbanSchemaTests {
 
     @Test("transition to .failed auto-sets completedAt (v0.23 task 013.003)")
     func testTransitionFailedAutoSetsCompleted() async throws {
-        let store = try KanbanStore(path: tmpPath("trans-failed"))
-        try await store.bootstrap()
-        let task = try await store.add(title: "task", status: .running)
+        let store = try makeStore("test")
+                let task = try await store.add(title: "task", status: .running)
         try await store.transition(id: task.id, to: .failed)
         let loaded = try await store.get(id: task.id)
         #expect(loaded?.completedAt != nil)
