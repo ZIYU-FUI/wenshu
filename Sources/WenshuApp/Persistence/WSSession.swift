@@ -1,14 +1,7 @@
 //
 //  Persistence/WSSession.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 12 of 21 @Model classes: WSSession adds
-//  @Relationship to WSChatMessage.
-//
-//  This commit defines the parent-side @Relationship (with inverse
-//  keyPath pointing to WSChatMessage.session). The child's `session`
-//  property is a plain Optional (= not @Relationship) — SwiftData
-//  accepts this pattern: parent declares @Relationship with inverse,
-//  child declares a matching optional property.
+//  Updated in commit 13 to add @Relationship to WSSummary.
 
 import Foundation
 import SwiftData
@@ -24,6 +17,10 @@ final class WSSession {
     /// 1↔N WSChatMessage via inverse = child.session
     @Relationship(deleteRule: .cascade, inverse: \WSChatMessage.session)
     var messages: [WSChatMessage] = []
+
+    /// 1↔1 WSSummary via inverse = WSSummary.session
+    @Relationship(deleteRule: .cascade, inverse: \WSSummary.session)
+    var summary: WSSummary?
 
     init(sessionID: String, title: String? = nil) {
         self.sessionID = sessionID
