@@ -69,7 +69,7 @@ import SQLite3
 
 // MARK: - SQLITE_TRANSIENT (Apple bundled libsqlite3 bridge, same as KanbanStore.swift)
 
-private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+// v0.72 Q99 LOW fix: SQLITE_TRANSIENT now imported from Persistence/SQLiteConstants.swift
 
 // MARK: - Domain models (= 1:1 mirror of hermes kanban_db.Task + Comment + Event + Attachment)
 

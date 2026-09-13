@@ -67,7 +67,7 @@ private enum SQLiteErmsg {
     }
 }
 
-private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+// v0.72 Q99 LOW fix: SQLITE_TRANSIENT now imported from Persistence/SQLiteConstants.swift
 
 /// FullTextSearch: SQLite FTS5, actor
 public actor FullTextSearch {
