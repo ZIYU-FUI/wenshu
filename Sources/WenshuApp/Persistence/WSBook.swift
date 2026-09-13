@@ -37,6 +37,10 @@ final class WSBook {
     /// Inverse relationship target (= declared on WSBookShelf.books)
     var shelf: WSBookShelf?
 
+    /// 1↔N WSWorld (= per-book world-building entries)
+    @Relationship(deleteRule: .cascade, inverse: \WSWorld.book)
+    var worlds: [WSWorld] = []
+
     /// 1↔N WSCharacter (= per-book fictional people)
     @Relationship(deleteRule: .cascade, inverse: \WSCharacter.book)
     var characters: [WSCharacter] = []
