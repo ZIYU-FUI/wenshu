@@ -36,7 +36,7 @@ import Foundation
 import SQLite3
 
 // v0.72 SwiftData migration: this is the legacy "mega-store" (= 13 tables).
-// SwiftData replaces it via 22 individual @Model classes (= WSPersistenceContainer).
+// SwiftData replaces it via 23 individual @Model classes (= WSPersistenceContainer).
 // Migration is staged: phase 5 commit 42 deletes this file once all callers
 // (= WenshuConductor + 7 agent tools) are migrated off it.
 #warning("wenshu.WenshuWorkspace: legacy mega-store; = delete after WenshuConductor + agent tools migrate")

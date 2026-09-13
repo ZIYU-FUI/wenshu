@@ -787,6 +787,13 @@ public actor WenshuConductor {
         // Cold path: synchronous-over-async bridge using a
         // Sendable-safe ResultBox + DispatchSemaphore.
         //
+        // v0.72 Q99 dual-axis HIGH fix: DispatchSemaphore.wait() blocks
+        // the caller thread (= up to toolRegistryWaitTimeoutMs). This is
+        // a documented Swift 6 strict-concurrency risk (= the bridge is
+        // safe ONLY when buildTools(from:) does NOT await @MainActor work;
+        // = current implementation = pure cooperative pool = OK).
+        // Future ticket: convert to async/await with Task group + timeout.
+        //
         // SAFETY (= the Q99 Standards axis HIGH finding): this
         // bridge is safe ONLY when `buildTools(from:)` does NOT
         // await any MainActor work (= current implementation =

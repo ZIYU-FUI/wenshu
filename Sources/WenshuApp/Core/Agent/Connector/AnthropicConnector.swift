@@ -4,8 +4,8 @@
 //  Anthropic native connector (= ticket 004 sub-step 1).
 //  P0 connector profile, full wire format support per AGENTS.md §11.2.
 //
-//  Anthropic Messages API native features (vs MinimaxConnector which is
-//  the Anthropic-compatible thin wrapper):
+//  Anthropic Messages API native features (vs OpenAICompatibleConnector which
+//  is the Anthropic-compatible thin wrapper for OpenAI-format providers):
 //    - Cache control markers (4 breakpoints, see PromptCaching.swift)
 //    - Thinking blocks (extended thinking + signatures)
 //    - Tool use round-trip (= tool_use + tool_result blocks)

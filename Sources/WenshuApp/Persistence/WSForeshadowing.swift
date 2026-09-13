@@ -5,8 +5,13 @@
 //  Mirrors the JSON sidecar Foreshadowing struct from
 //  ForeshadowingTrackerTools.swift.
 //
-//  Old storage: ForeshadowingSidecar JSON file (= per book; = .ws sidecar file)
-//  New storage: SwiftData @Model (= per foreshadowing entry)
+//  Old storage: in-memory `Foreshadowing` struct (= managed by
+//  `ForeshadowingTrackerTools.swift`; = ephemeral during agent session;
+//  = NOT persisted to disk pre-v0.72 — the `ForeshadowingSidecar`
+//  Codable wrapper in the same file is the data shape but no on-disk
+//  per-book JSON was ever written).
+//  New storage: SwiftData @Model (= per foreshadowing entry; = first
+//  persistence layer for foreshadowing metadata in wenshu)
 //
 //  Setup-recall pattern: each foreshadowing has a "setup" chapter (where
 //  it's introduced) and a "recall" chapter (where it's resolved).
