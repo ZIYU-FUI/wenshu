@@ -186,7 +186,7 @@ Current state (= deviation from §11.4 spec):
   chat_messages / chat_summaries / sub_agent_runs / kanban_tasks /
   bookmarks / memory_entries (= risk of divergence with the 9 separate stores)
 - CONTEXT.md L36 says "NOT used = ... SQLite" but wenshu IS 10 sqlite3 files
-- CLAUDE.md L61 + L182 says "use CoreData" (= outdated; should now say SwiftData)
+- CLAUDE.md = updated to "use SwiftData" (= migration complete; = commit 88471839a)
 - AGENTS.md §11.1 keeps GRDB.swift approved (= for FTS5 only)
 
 Migration plan (= 6 phases, ~42 commits, 3-4 weeks):
@@ -197,9 +197,14 @@ Migration plan (= 6 phases, ~42 commits, 3-4 weeks):
   out of 21) while the schema array contains 23 .self entries. See Container.swift
   header for the authoritative mapping.
 
-## Phase 1: Define @Model classes (= 5 commits)
-- Sources/WenshuApp/Persistence/Models.swift = 21 @Model classes
+## Phase 1: Define @Model classes (= 21 commits, 23 @Model classes)
+- 23 separate WS*.swift files under Sources/WenshuApp/Persistence/ (= one
+  per @Model class; = NOT consolidated into a single Models.swift; =
+  per-file commits were chosen for easier review + blame per AGENTS.md
+  §11.1 pre-v0.72 convention)
 - Sources/WenshuApp/Persistence/Container.swift = ModelContainer setup
+  (= the 21st commit; = introduced Container but no new @Model class;
+  = the schema array lists all 23 explicit @Model classes)
 - Mirror existing 20+ tables with explicit relationships
 - Single container (= no more "10 stores in 10 files" pattern)
 

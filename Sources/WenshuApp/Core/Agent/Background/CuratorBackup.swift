@@ -1,5 +1,9 @@
 //
-//  CuratorBackup.swift · Wenshu · HERMES-INTERNAL-005 (2026-09-04)
+//  CuratorBackup.swift · Wenshu · HERMES-INTERNAL-005 (2026-09-04) + v0.72 Q99 pass 6 fix
+//
+//  Background/ sub-directory, file 4 of 5.
+//  (= file numbering = 1: BackgroundCreditsTracker, 2: BackgroundReview,
+//  3: Curator, 4: CuratorBackup, 5: DisplayStateMachine)
 //
 //  1:1 port of hermes curator_backup.py (= hermes-internal module #5,
 //  boss 2026-09-04 OOB 'A'). Thin adapter over wenshu's Curator.swift
