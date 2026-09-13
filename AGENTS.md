@@ -172,6 +172,62 @@ mapping (= all 43 hermes modules with their wenshu Swift counterpart) lives in t
 manifest, NOT here, to keep this section (= project-level baseline principle)
 stable while the per-module work-tree evolves.
 
+# §11.4 SwiftData migration roadmap (= boss 2026-09-13 OOB '全链路 Apple-recommended')
+
+Boss 2026-09-13 OOB: "我们的数据库换成了苹果推荐的" — Apple 2026 official
+recommendation per developer.apple.com/documentation/swiftdata:
+SwiftData = Core Data successor on iOS 17+/macOS 14+; = Apple-native
+persistence with built-in migration framework (.versionedSchema),
+type-safe queries (ModelContext.fetch), zero external dependencies.
+
+Current state (= deviation from §11.4 spec):
+- 10 raw sqlite3 stores, 20+ tables, hand-rolled migration
+- WenshuWorkspace.swift = mega-store with 13 tables + duplicate
+  chat_messages / chat_summaries / sub_agent_runs / kanban_tasks /
+  bookmarks / memory_entries (= risk of divergence with the 9 separate stores)
+- CONTEXT.md L36 says "NOT used = ... SQLite" but wenshu IS 10 sqlite3 files
+- CLAUDE.md L61 + L182 says "use CoreData" (= outdated; should now say SwiftData)
+- AGENTS.md §11.1 keeps GRDB.swift approved (= for FTS5 only)
+
+Migration plan (= 6 phases, ~42 commits, 3-4 weeks):
+
+## Phase 1: Define @Model classes (= 5 commits)
+- Sources/WenshuApp/Persistence/Models.swift = 21 @Model classes
+- Sources/WenshuApp/Persistence/Container.swift = ModelContainer setup
+- Mirror existing 20+ tables with explicit relationships
+- Single container (= no more "10 stores in 10 files" pattern)
+
+## Phase 2: Repositories (= 12 commits)
+- 9 Repository classes (= replace 10 Actor APIs)
+- WSMemoryRepository / WSChatRepository / WSTodoRepository /
+  WSBookmarkRepository / WSKanbanRepository / WSLinkRepository /
+  WSBookRepository / WSProviderKeyRepository / WSPreferenceRepository
+- Public API stays Actor-isolated (= callers don't need to change)
+
+## Phase 3: Update call sites (= 15 commits)
+- 30+ files using old Actor APIs (= ToolRegistry / ViewModels / Views)
+- Mechanical grep-friendly refactor
+- @Observable @Model properties replace manual @Published
+
+## Phase 4: One-time data migration (= 3 commits)
+- Read all rows from existing sqlite3_* DBs
+- Insert equivalent @Model instances into new ModelContainer
+- Mark migration complete (= WSManifest.migratedFromRawSqliteAt)
+- Old sqlite3 DBs kept as backup until next major version
+
+## Phase 5: Delete old raw sqlite3 stores (= 5 commits)
+- Remove 10 store files
+- Remove WenshuWorkspace.swift mega-store
+- Update Package.swift (= drop raw sqlite3 imports if no longer used)
+
+## Phase 6: Doc updates (= 2 commits)
+- CLAUDE.md: replace "use CoreData" with "use SwiftData"
+- AGENTS.md §11.4: this section (boss-approved spec)
+- CONTEXT.md: replace "NOT used = SQLite" with "SQLite is the pre-v0.72 legacy"
+
+## Spec doc
+Full spec at /tmp/wenshu-swiftdata-migration-spec.md (= 6.7 KB).
+
 # §12 Cross-role expression hard constraint
 
 - Sole address for 老板 = 老板. Every dialog / doc / commit message / comment / prompt uses 老板.
