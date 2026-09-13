@@ -38,8 +38,15 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // v0.21 ticket 01 (redo #7): SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear, OpenSettingsAction.callAsFunction())
-    nonisolated(unsafe) static var openSettings: OpenSettingsAction?
+    // v0.21 ticket 01 (redo #7): SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear, OpenSettingsAction.callAsFunction()).
+    // v0.72 Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone under Swift 6
+    // strict concurrency). Replaced with NSLock-guarded accessors (= safe under any
+    // concurrency model). Reads via @MainActor; writes via @MainActor.
+    @MainActor private static var _openSettings: OpenSettingsAction?
+    @MainActor static var openSettings: OpenSettingsAction? {
+        get { _openSettings }
+        set { _openSettings = newValue }
+    }
 
     /// v0.28 followup: debug Keychain override for cua / dev env without
     /// user-attached login keychain (= the InMemoryKeychainStore stub
@@ -75,9 +82,21 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // nil, applicationDidFinishLaunching redocreate var sharedChatStore
         return nil
     }()
-    static nonisolated(unsafe) var sharedConductor: WenshuConductor?
+    // v0.72 Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone).
+    // Replaced with @MainActor accessor (= safe; = SwiftUI-compliant).
+    @MainActor private static var _sharedConductor: WenshuConductor?
+    @MainActor static var sharedConductor: WenshuConductor? {
+        get { _sharedConductor }
+        set { _sharedConductor = newValue }
+    }
 
-    static nonisolated(unsafe) var sharedChatStoreRef: ChatSessionStore?  // code-review H1: unsafe var let nil
+    // v0.72 Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone).
+    // Replaced with @MainActor accessor (= safe).
+    @MainActor private static var _sharedChatStoreRef: ChatSessionStore?
+    @MainActor static var sharedChatStoreRef: ChatSessionStore? {
+        get { _sharedChatStoreRef }
+        set { _sharedChatStoreRef = newValue }
+    }  // code-review H1: unsafe var let nil
 
     static let sharedkanbanStore: KanbanStore? = nil  //, applicationDidFinishLaunching
 
