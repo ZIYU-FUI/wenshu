@@ -960,18 +960,6 @@ struct ShellDetailColumn: View {
     // independent document windows).
     @Environment(\.openWindow) private var openWindow
 
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB: localized label for
-    /// each InspectorContent case (= used in the toolbar Picker
-    /// labels via LucideLabel(text:); = the i18n keys are stable
-    /// and round-trip through Localizable.strings so the picker
-    /// displays the right text in each language).
-    private func textualLabel(for content: InspectorContent) -> String {
-        switch content {
-        case .tools:
-            return WenshuI18n.t("inspector.tab.tools")
-        }
-    }
-
     /// v1.0.0-m1-shell boss 2026-09-11 OOB '拆成两个页': each
     /// InspectorPage (= .authoring / .craft) renders 1+
     /// specialized tools. Tools are selected via a 2nd segmented

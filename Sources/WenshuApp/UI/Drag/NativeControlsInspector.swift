@@ -79,28 +79,6 @@ private func nativeOverlayWidth(of window: NSWindow) -> CGFloat {
 
 // MARK: - Drag strip (= width of strip from window left to first tool)
 
-/// Compute the width of the drag strip from the window's left edge to
-/// where the first titlebar tool should sit (= matches Hermes
-/// `titlebarControlsPosition(windowButtonPosition, isFullscreen)`).
-@MainActor
-public func windowDragStripWidth(
-    for window: NSWindow?,
-    firstToolOffset: CGFloat = 74
-) -> CGFloat {
-    guard let rect = inspectNativeControls(for: window, viewportWidth: 0) else {
-        // No controls (= fullscreen) → drag strip is the entire
-        // titlebar. Tools should sit at the left edge (= Apple HIG
-        // canonical 12 PT symmetric cluster edge inset; canonical
-        // value, not a project token, per boss 2026-09-02 OOB
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // ' api default,, ').
-        return 12
-    }
-    // Drag strip = width of controls rect (= the entire traffic-light band).
-    // User can drag the window by hovering over this strip.
-    return rect.width
-}
-
 // MARK: - WorkspaceGeometryPublisher (= publishes main pane edges)
 
 /// SwiftUI View modifier that publishes the current workspace geometry
