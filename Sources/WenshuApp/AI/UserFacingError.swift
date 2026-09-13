@@ -2,8 +2,8 @@
 //
 // v0.34 boss 2026-09-02 OOB 'the rest of the engineering mechanisms,
 // I do not really understand them, you decide':
-// Centralized user-facing error translation (= port of Card-master
-// `src/ai/domain/assistant-presentation.ts` `assistantUserFacingError`).
+
+
 //
 // `UserFacingError` is the single source of truth for mapping raw
 // wenshu errors to Chinese user-facing text. Callers use either:
@@ -18,7 +18,7 @@
 // automatically via `.localizedDescription`).
 //
 // Coverage (= 12 cases = boss-picked paths from the
-// assistant-presentation.ts pattern):
+
 // 1. networkFailure
 // 2. apiKeyMissing
 // 3. apiKeyInvalid
