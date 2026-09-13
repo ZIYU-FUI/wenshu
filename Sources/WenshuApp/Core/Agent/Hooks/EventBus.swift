@@ -86,3 +86,43 @@ private extension Mirror {
         children.first.map { String(describing: $0.label ?? "") } ?? String(describing: self).split(separator: "(").first.map(String.init) ?? ""
     }
 }
+
+// MARK: - Async stream API
+
+public extension EventBus {
+    /// Async stream of all events matching the given categories.
+    /// Use `.kanban` for kanban events, `.subAgent` for sub-agent lifecycle, etc.
+    /// `nonisolated` because the AsyncStream construction itself is non-actor (= the
+    /// handler registration is dispatched into the actor via Task).
+    nonisolated func events(categories: Set<String>) -> AsyncStream<AgentEvent> {
+        AsyncStream { continuation in
+            let handler = StreamHandler(categories: categories, continuation: continuation)
+            Task { await self.register(handler) }
+            continuation.onTermination = { _ in
+                Task { await self.unregister(handler.handlerName) }
+            }
+        }
+    }
+
+    /// Async stream of all events (= no category filter).
+    nonisolated func allEvents() -> AsyncStream<AgentEvent> {
+        events(categories: [])  // empty filter set means "accept everything"
+    }
+
+    /// Stream-backed handler (= forwards events to an AsyncStream continuation).
+    private final class StreamHandler: AgentEventHandler, @unchecked Sendable {
+        let handlerName: String
+        let eventFilter: Set<EventFilter>
+        private let continuation: AsyncStream<AgentEvent>.Continuation
+
+        init(categories: Set<String>, continuation: AsyncStream<AgentEvent>.Continuation) {
+            self.handlerName = "stream-\(UUID().uuidString)"
+            self.eventFilter = Set(categories.map { EventFilter(category: $0) })
+            self.continuation = continuation
+        }
+
+        func handle(_ event: AgentEvent) async {
+            continuation.yield(event)
+        }
+    }
+}

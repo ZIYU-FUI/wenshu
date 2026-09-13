@@ -216,9 +216,6 @@ public struct LibraryRootView: View {
 // NavigationSplitView. All of it moved onto LibraryRootView above.
 
 
-
-
-
 /// v0.24 bossverificationfix: NSImage load helper (for PNG not in .xcassets).
 /// Searches multiple paths in .app bundle for wenshu-original-fanbai.png.
 private func loadWenshuLogo() -> NSImage? {
@@ -364,51 +361,6 @@ Group {
                 // User cancelled (= no action). Apple-standard UX:
                 // cancel silently closes the sheet.
                 break
-            }
-        }
-    }
-
-    /// showOpenPanel: NSOpenPanel for selecting existing .ws directory.
-    /// v0.26 amendment: .ws is now a DIRECTORY (= macOS-style package;
-    /// LibraryRootView.swift:296-309 creates Info.plist inside it).
-    /// Boss 8/24 OOB original: .ws file is the format.
-    /// Boss 8/26 OOB clarification: .ws is the package directory containing
-    /// shelves/ + reference-library/ + cache/ + Info.plist + chat.sqlite.
-    private func showOpenPanel() {
-        let panel = NSOpenPanel()
-        panel.title = WenshuI18n.t("auto2.libraryrootview.l424.h53178210")
-        panel.message = WenshuI18n.t("auto2.libraryrootview.l425.h5152056")
-        panel.prompt = WenshuI18n.t("auto2.libraryrootview.l426.h19738884")
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.canCreateDirectories = false
-        panel.showsHiddenFiles = false
-        if #available(macOS 11.0, *) {
-            // v0.30 boss 2026-09-01 OOB (UTI filter): was `[]` (= default
-            // filter hid .ws package directories on macOS 27 Tahoe).
-            // Now explicitly allow the exported UTI from
-            // Info.plist's UTExportedTypeDeclarations (= surfaces
-            // .ws packages with the wenshu bundle icon).
-            if let wsType = UTType("com.wenshu.workspace") {
-                panel.allowedContentTypes = [wsType]
-            } else {
-                // Fallback: no filter (= shows everything, user can
-                // navigate manually). Better than default which hides
-                // the .ws packages.
-                panel.allowedContentTypes = []
-            }
-        }
-
-        if let window = NSApp.mainWindow {
-            panel.beginSheetModal(for: window) { response in
-                if response == .OK, let url = panel.url {
-                    onLibraryPicked(url)
-                }
-            }
-        } else {
-            if panel.runModal() == .OK, let url = panel.url {
-                onLibraryPicked(url)
             }
         }
     }

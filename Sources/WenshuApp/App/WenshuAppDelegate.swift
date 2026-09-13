@@ -39,7 +39,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    
     // v0.21 ticket 01 (redo #7): SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear, OpenSettingsAction.callAsFunction())
     nonisolated(unsafe) static var openSettings: OpenSettingsAction?
 
@@ -89,41 +88,11 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
-
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         // v0.28 followup: force-evaluate sharedKeychainBackend so the
         // debug override takes effect before any Keychain access.
         _ = Self.sharedKeychainBackend
-        // v0.30 boss 8/31 followup (= Spec C2 fix): install a receiver
-        // for .wenshuImportRequested (= fired by the zone-header
-        // button). Previously the button was producer-only; this
-        // commit adds the matching listener that opens an NSOpenPanel
-        // for the user to select an external .ws file or research
-        // material to import into the library.
-        NotificationCenter.default.addObserver(
-            forName: .wenshuImportRequested,
-            object: nil,
-            queue: .main
-        ) { _ in
-            let panel = NSOpenPanel()
-            // v0.40 apple-001 i18n sweep (boss real-device test 2026-09-07):
-            // NSOpenPanel title + message are user-visible strings
-            // (= they appear in the open dialog title bar + body).
-            // Per Apple HIG, all user-visible strings must go through
-            // the platform's i18n framework (NSLocalizedString /
-            // .stringsdict) so the dialog auto-localizes per system
-            // language. Hard-coded Chinese strings lock the dialog
-            // to Chinese forever (= breaks users on non-zh-Hans systems).
-            panel.title = WenshuI18n.t("openpanel.import.title")
-            panel.message = WenshuI18n.t("openpanel.import.message")
-            panel.allowsMultipleSelection = true
-            panel.canChooseFiles = true
-            panel.canChooseDirectories = false
-            if panel.runModal() == .OK {
-                NSLog("[wenshu.import] user selected \(panel.urls.count) file(s)")
-            }
-        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

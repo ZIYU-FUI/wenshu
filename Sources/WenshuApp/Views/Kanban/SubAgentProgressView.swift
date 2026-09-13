@@ -73,17 +73,11 @@ public struct SubAgentProgressView: View {
             }
         }
         .task(id: refreshTrigger) {
-            // Auto-refresh every 2s (Apple HIG live update pattern).
-            // v0.23 audit #014 fix: check cancellation between refresh
-            // + sleep (boss 8/23 risk-averse: don't leak refresh cycles
-            // on view dismiss).
-            while !Task.isCancelled {
+            // Live update via EventBus (= AsyncStream; v0.71 cleanup batch 2 apple-miss fix).
+            // SubAgentProgressView subscribes to kanban events; refresh on each event.
+            // Manual Button trigger still works (= increments refreshTrigger = re-runs this .task).
+            for await _ in EventBus.shared.events(categories: ["kanban"]) {
                 refreshTasks()
-                do {
-                    try await Task.sleep(nanoseconds: 2_000_000_000)
-                } catch {
-                    return  // cancelled mid-sleep
-                }
             }
         }
     }

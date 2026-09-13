@@ -69,16 +69,10 @@ public struct AgentProgressPanel: View {
             }
         }
         .task(id: refreshTrigger) {
-            // Poll the shared tracker every 1s. Cancelled on view
-            // dismissal (= no leaked refresh cycles per v0.23 audit
-            // #014 SubAgentProgressView pattern).
-            while !Task.isCancelled {
+            // Live update via EventBus AsyncStream (= v0.71 cleanup batch 2 apple-miss fix).
+            // AgentProgressPanel subscribes to subAgent + goal events; refreshes on each.
+            for await _ in EventBus.shared.events(categories: ["subAgent", "goal"]) {
                 currentEntry = await tracker.currentLatestRunning()
-                do {
-                    try await Task.sleep(nanoseconds: 1_000_000_000)
-                } catch {
-                    return  // cancelled mid-sleep
-                }
             }
         }
     }
