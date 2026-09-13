@@ -13,7 +13,7 @@
 //  (= separate file for clarity; = each store gets its own commit).
 //
 //  Public API:
-//    - migratesIfNeeded() async throws  (= entry point; = safe to call repeatedly)
+//    - migrateIfNeeded() async throws  (= entry point; = safe to call repeatedly)
 //    - migrationStatus() -> MigrationStatus (= inspectable; = UI can show progress)
 //
 //  Marker (= stored in SwiftData):

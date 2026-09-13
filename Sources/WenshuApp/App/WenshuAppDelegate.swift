@@ -40,7 +40,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     // v0.21 ticket 01 (redo #7): SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear, OpenSettingsAction.callAsFunction()).
     // v0.72 Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone under Swift 6
-    // strict concurrency). Replaced with NSLock-guarded accessors (= safe under any
+    // strict concurrency). Replaced with @MainActor accessors (= Swift 6 strict concurrency; = NSLock not needed) (= safe under any
     // concurrency model). Reads via @MainActor; writes via @MainActor.
     @MainActor private static var _openSettings: OpenSettingsAction?
     @MainActor static var openSettings: OpenSettingsAction? {
