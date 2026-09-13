@@ -389,7 +389,7 @@ public actor WenshuWorkspace {
                 let rc: Int32
                 switch param {
                 case let s as String:
-                    rc = sqlite3_bind_text(stmt, idx, s, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+                    rc = sqlite3_bind_text(stmt, idx, s, -1, SQLITE_TRANSIENT)
                 case let d as Double:
                     rc = sqlite3_bind_double(stmt, idx, d)
                 case let i as Int:
@@ -409,7 +409,7 @@ public actor WenshuWorkspace {
                     // `case nil:` arm above) with `String(describing: param)`
                     // (= the `default:` branch only executes when
                     // `param` is non-nil, so no force-unwrap is needed).
-                    rc = sqlite3_bind_text(stmt, idx, String(describing: param), -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+                    rc = sqlite3_bind_text(stmt, idx, String(describing: param), -1, SQLITE_TRANSIENT)
                 }
                 if rc != SQLITE_OK {
                     throw WenshuWorkspaceError.execFailed(sql: sql, message: "bind failed at param \(i): \(lastErrorMessage(db: dbPtr))")

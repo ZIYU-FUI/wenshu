@@ -1,13 +1,25 @@
 //
 //  Persistence/Repositories/WSBookRepository.swift · Wenshu · v0.72 SwiftData migration Phase 2
 //
-//  Migration commit 28 of 42: WSBookRepository (= book + shelf CRUD).
+//  Migration commits 28-30 of 42: WSBookRepository (= complete API; =
+//  shelves + books + chapters + outline + characters + worlds +
+//  foreshadowing + placeholders + outlineDocuments = 9 entity groups
+//  / 41+ public methods).
+//
+//  Migration breakdown:
+//    - Commit 28 (= shelves + books CRUD; = the original scope of this file)
+//    - Commit 29 (= chapters CRUD; = added because the old BookStore actor
+//      didn't have chapter support)
+//    - Commit 30 (= outline + character + world + foreshadowing +
+//      placeholder + outlineDocument CRUD; = the largest single commit
+//      in phase 2)
+//
 //  Per AGENTS.md §11.4.
 //
 //  Thin wrapper for BookStore (= filesystem-based; = SwiftData is
 //  metadata index, = filesystem remains canonical source of truth).
 //
-//  Scope of this commit (= book + shelf CRUD):
+//  Public surface (= preserved 1:1 from old Actor):
 //    Shelves:
 //      - listShelves() -> [WSBookShelf]
 //      - getShelf(id:) -> WSBookShelf?
