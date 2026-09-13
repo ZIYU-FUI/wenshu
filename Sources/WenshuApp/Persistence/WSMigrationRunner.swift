@@ -1,7 +1,8 @@
 //
 //  Persistence/WSMigrationRunner.swift · Wenshu · v0.72 SwiftData migration Phase 4
 //
-//  Migration commit 38 of 42: WSMigrationRunner scaffolding.
+//  Migration commit 38 of 42: WSMigrationRunner scaffolding (= WSMigrationPerStore.swift
+//  landed immediately after as commit 39; = both share the phase 4 spec).
 //  Per AGENTS.md §11.4 + .scratch/2026-09-13-swiftdata-migration-spec.md.
 //
 //  One-time data migration from raw sqlite3 stores to SwiftData @Model.
