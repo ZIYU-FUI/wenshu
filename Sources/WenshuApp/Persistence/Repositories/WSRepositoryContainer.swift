@@ -37,7 +37,7 @@ public final class WSRepositoryContainer {
     public let providerKey: WSProviderKeyRepository
     public let preference: WSPreferenceRepository
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
+    public init(container: ModelContainer = WSPersistenceContainer.current) {
         self.memory = WSMemoryRepository(container: container)
         self.chat = WSChatRepository(container: container)
         self.todo = WSTodoRepository(container: container)
