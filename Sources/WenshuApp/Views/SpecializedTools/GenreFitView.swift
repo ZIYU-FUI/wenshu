@@ -76,7 +76,7 @@ struct GenreFitView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             pickerRow
             inputSection
             Divider()
@@ -96,7 +96,7 @@ struct GenreFitView: View {
     // MARK: - Picker
 
     private var pickerRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.chromePaddingVertical) {
             Text(WenshuI18n.t("b5.genrefitview.l132.h73166390"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -120,8 +120,8 @@ struct GenreFitView: View {
     // MARK: - Input
 
     private var inputSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+            HStack(spacing: DesignTokens.chromePaddingSmall) {
                 Text(WenshuI18n.t("b5.genrefitview.l157.h55071280"))
                     .font(.callout)
                     .foregroundStyle(.primary)
@@ -135,7 +135,7 @@ struct GenreFitView: View {
                 .frame(minHeight: 80, maxHeight: 140)
                 .padding(DesignTokens.chromePaddingSmall)
                 
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
@@ -178,8 +178,8 @@ struct GenreFitView: View {
 
 
     private func resultSection(for report: GenreFitReport) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 LucideIconSystemFallback(report.genre.lucideIcon, size: 16)
                     .foregroundStyle(.tint)
                 Text(report.genre.displayName)
@@ -188,7 +188,7 @@ struct GenreFitView: View {
                 Spacer(minLength: 0)
                 scoreBadge(report.score)
             }
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: DesignTokens.chromePaddingMedium) {
                 column(title: "Matched beats (\(report.matchedBeats.count))",
                        items: report.matchedBeats,
                        tint: Color.green)
@@ -196,7 +196,7 @@ struct GenreFitView: View {
                        items: report.missingBeats,
                        tint: Color.orange)
             }
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: DesignTokens.chromePaddingMedium) {
                 column(title: "Expected vocab used (\(report.expectedVocabUsed.count))",
                        items: report.expectedVocabUsed,
                        tint: Color.blue)
@@ -232,18 +232,18 @@ struct GenreFitView: View {
     }
 
     private func column(title: String, items: [String], tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                 if items.isEmpty {
                     Text(WenshuI18n.t("b5.genrefitview.l274.h53280066"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 } else {
                     ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                        HStack(alignment: .top, spacing: 6) {
+                        HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
                             Circle()
                                 .fill(tint)
                                 .frame(width: DesignTokens.bulletSizeTiny, height: DesignTokens.bulletSizeTiny)

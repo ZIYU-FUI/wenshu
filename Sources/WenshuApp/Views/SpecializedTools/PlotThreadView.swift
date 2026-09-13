@@ -10,7 +10,7 @@ struct PlotThreadView: View {
     @State private var errorText: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             Text(WenshuI18n.t("b5.plotthreadview.l14.h19187540")).font(.headline)
             if let bookId = bookStore.selectedBookId {
                 HStack {

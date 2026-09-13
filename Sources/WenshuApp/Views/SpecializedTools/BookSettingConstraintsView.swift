@@ -96,7 +96,7 @@ struct BookSettingConstraintsView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             if activeBookId == nil {
                 emptyState
             } else {
@@ -129,7 +129,7 @@ struct BookSettingConstraintsView: View {
     // MARK: - Body
 
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             addRow
             Divider()
             listSection
@@ -147,7 +147,7 @@ struct BookSettingConstraintsView: View {
     // MARK: - Add row
 
     private var addRow: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
             Text(WenshuI18n.t("b5.booksettingconstraintsview.l185.h87583031"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -164,7 +164,7 @@ struct BookSettingConstraintsView: View {
             .font(.caption)
             .lineLimit(2...4)
             .help(WenshuI18n.t("b5.booksettingconstraintsview.l200.h58963992"))
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Picker("Severity", selection: $draftSeverity) {
                     ForEach(ConstraintSeverity.allCases) { severity in
                         Label(severity.displayName, systemImage: severity.lucideIcon).tag(severity)
@@ -217,7 +217,7 @@ struct BookSettingConstraintsView: View {
     // MARK: - List
 
     private var listSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.booksettingconstraintsview.l255.h54115638"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -228,7 +228,7 @@ struct BookSettingConstraintsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 6) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
                         ForEach(constraints) { constraint in
                             constraintRow(constraint)
                         }
@@ -240,13 +240,13 @@ struct BookSettingConstraintsView: View {
     }
 
     private func constraintRow(_ constraint: BookSettingConstraint) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .top, spacing: 8) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+            HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
                 LucideIconSystemFallback(constraint.severity.lucideIcon, size: 16)
                     .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: DesignTokens.chromePaddingSmall) {
                         Text(constraint.title)
                             .font(.callout)
                             .foregroundStyle(.primary)
@@ -279,7 +279,7 @@ struct BookSettingConstraintsView: View {
                     }
                     if !constraint.forbiddenPatterns.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 4) {
+                            HStack(spacing: DesignTokens.chromePaddingMicro) {
                                 ForEach(constraint.forbiddenPatterns, id: \.self) { pattern in
                                     Text(pattern)
                                         .font(.caption2)
@@ -315,18 +315,18 @@ struct BookSettingConstraintsView: View {
     // MARK: - Check section
 
     private var checkSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
             Text(WenshuI18n.t("b5.booksettingconstraintsview.l359.h58742514"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
                 TextEditor(text: $chapterText)
                     .font(.caption)
                     .frame(minHeight: 100, maxHeight: 160)
                     .padding(DesignTokens.chromePaddingMicro)
                     
                     .help(WenshuI18n.t("b5.booksettingconstraintsview.l371.h65632517"))
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
                     Button {
                         Task { await runCheck() }
                     } label: {
@@ -358,7 +358,7 @@ struct BookSettingConstraintsView: View {
     }
 
     private func violationRow(_ violation: ConstraintViolation) -> some View {
-        HStack(alignment: .top, spacing: 6) {
+        HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
             LucideIconSystemFallback(
                 violation.severity == .hard ? "alert-octagon" : "alert-triangle",
                 size: 14
@@ -366,7 +366,7 @@ struct BookSettingConstraintsView: View {
             .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(Color.orange))
             .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 4) {
+                HStack(spacing: DesignTokens.chromePaddingMicro) {
                     Text(violation.title)
                         .font(.caption)
                         .foregroundStyle(.primary)

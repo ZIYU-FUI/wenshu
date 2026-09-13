@@ -74,7 +74,7 @@ struct ReaderExperienceView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             pickerRow
             inputSection
             Divider()
@@ -94,7 +94,7 @@ struct ReaderExperienceView: View {
     // MARK: - Picker
 
     private var pickerRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.chromePaddingVertical) {
             Text(WenshuI18n.t("b5.readerexperienceview.l130.h50931159"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -118,8 +118,8 @@ struct ReaderExperienceView: View {
     // MARK: - Input
 
     private var inputSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+            HStack(spacing: DesignTokens.chromePaddingSmall) {
                 Text(WenshuI18n.t("b5.readerexperienceview.l155.h15975486"))
                     .font(.callout)
                     .foregroundStyle(.primary)
@@ -133,7 +133,7 @@ struct ReaderExperienceView: View {
                 .frame(minHeight: 80, maxHeight: 140)
                 .padding(DesignTokens.chromePaddingSmall)
                 
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
@@ -176,8 +176,8 @@ struct ReaderExperienceView: View {
 
 
     private func resultSection(for report: ReaderExperienceReport) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 LucideIconSystemFallback(report.kind.lucideIcon, size: 16)
                     .foregroundStyle(.tint)
                 Text(report.kind.displayName)
@@ -223,13 +223,13 @@ struct ReaderExperienceView: View {
     }
 
     private func highlightsSection(_ highlights: [ReaderExperienceHighlight]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.readerexperienceview.l260.h48696486"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                 ForEach(Array(highlights.enumerated()), id: \.offset) { _, h in
-                    HStack(alignment: .top, spacing: 6) {
+                    HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
                         Text(h.label)
                             .font(.caption2)
                             .foregroundStyle(.tint)
@@ -248,13 +248,13 @@ struct ReaderExperienceView: View {
     }
 
     private func suggestionsSection(_ suggestions: [ReaderExperienceSuggestion]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.readerexperienceview.l288.h40277958"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { _, s in
-                    HStack(alignment: .top, spacing: 6) {
+                    HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
                         Text(WenshuI18n.t("b5.readerexperienceview.l294.h54608200"))
                             .font(.caption)
                             .foregroundStyle(.tint)

@@ -91,7 +91,7 @@ struct CharacterRelationshipsView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             if activeBookId == nil {
                 emptyState
             } else {
@@ -124,7 +124,7 @@ struct CharacterRelationshipsView: View {
     // MARK: - Body
 
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             addRow
             Divider()
             listSection
@@ -141,7 +141,7 @@ struct CharacterRelationshipsView: View {
     // MARK: - Add row
 
     private var addRow: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
             Text(WenshuI18n.t("b5.characterrelationshipsview.l179.h77944637"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -150,7 +150,7 @@ struct CharacterRelationshipsView: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Picker("From", selection: Binding(
                     get: { draftFromId ?? characters.first?.id ?? UUID() },
                     set: { draftFromId = $0 }
@@ -215,7 +215,7 @@ struct CharacterRelationshipsView: View {
     // MARK: - List
 
     private var listSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.characterrelationshipsview.l253.h68099009"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -226,7 +226,7 @@ struct CharacterRelationshipsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 6) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
                         ForEach(relationships) { row in
                             relationshipRow(row)
                         }
@@ -238,12 +238,12 @@ struct CharacterRelationshipsView: View {
     }
 
     private func relationshipRow(_ row: CharacterRelationship) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
             LucideIconSystemFallback(row.kind.lucideIcon, size: 16)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+                HStack(spacing: DesignTokens.chromePaddingSmall) {
                     Text(characterName(for: row.fromCharacterId))
                         .font(.callout)
                         .foregroundStyle(.primary)
@@ -290,7 +290,7 @@ struct CharacterRelationshipsView: View {
     // MARK: - Inconsistencies
 
     private var inconsistenciesSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.characterrelationshipsview.l334.h68375167"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -301,7 +301,7 @@ struct CharacterRelationshipsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ForEach(Array(inconsistencies.enumerated()), id: \.offset) { _, issue in
-                    HStack(alignment: .top, spacing: 6) {
+                    HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
                         LucideIconSystemFallback("alert-triangle", size: 14)
                             .foregroundStyle(Color.orange)
                             .frame(width: DesignTokens.tabIconSize)

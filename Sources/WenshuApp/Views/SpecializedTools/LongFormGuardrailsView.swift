@@ -82,7 +82,7 @@ struct LongFormGuardrailsView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             if activeBookId == nil {
                 emptyState
             } else {
@@ -128,7 +128,7 @@ struct LongFormGuardrailsView: View {
     // MARK: - Content body
 
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             actionRow
             guardrailList
             Divider()
@@ -142,7 +142,7 @@ struct LongFormGuardrailsView: View {
     }
 
     private var actionRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.chromePaddingVertical) {
             Button {
                 Task { await autoDerive() }
             } label: {
@@ -164,7 +164,7 @@ struct LongFormGuardrailsView: View {
     }
 
     private var guardrailList: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: DesignTokens.chromePaddingSmall) {
             ForEach(guardrails) { row in
                 guardrailRow(row)
             }
@@ -182,7 +182,7 @@ struct LongFormGuardrailsView: View {
             LucideIconSystemFallback(row.kind.lucideIcon, size: 16)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+                HStack(spacing: DesignTokens.chromePaddingSmall) {
                     Text(row.name)
                         .font(.callout)
                         .foregroundStyle(.primary)
@@ -240,8 +240,8 @@ struct LongFormGuardrailsView: View {
     // MARK: - Check section
 
     private var checkSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+            HStack(spacing: DesignTokens.chromePaddingSmall) {
                 Text(WenshuI18n.t("b5.longformguardrailsview.l277.h87864753"))
                     .font(.callout)
                     .foregroundStyle(.primary)
@@ -253,7 +253,7 @@ struct LongFormGuardrailsView: View {
                 .frame(minHeight: 80, maxHeight: 120)
                 .padding(DesignTokens.chromePaddingSmall)
                 
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Button {
                     Task { await runCheck() }
                 } label: {
@@ -285,12 +285,12 @@ struct LongFormGuardrailsView: View {
     }
 
     private var violationsSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.longformguardrailsview.l324.h5287930"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ForEach(Array(lastViolations.enumerated()), id: \.offset) { _, v in
-                HStack(alignment: .top, spacing: 6) {
+                HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
                     Text(severityGlyph(v.severity))
                         .font(.caption)
                         .foregroundStyle(severityColor(v.severity))
@@ -331,7 +331,7 @@ struct LongFormGuardrailsView: View {
 
     private var addSheet: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
                 Form {
                     Picker("Kind", selection: $draftKind) {
                         ForEach(LongFormGuardrailKind.allCases, id: \.self) { kind in

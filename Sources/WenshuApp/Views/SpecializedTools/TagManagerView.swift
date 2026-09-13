@@ -108,7 +108,7 @@ struct TagManagerView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             if activeBookId == nil {
                 emptyState
             } else {
@@ -141,7 +141,7 @@ struct TagManagerView: View {
     // MARK: - Body
 
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             addTagRow
             Divider()
             tagsListSection
@@ -164,11 +164,11 @@ struct TagManagerView: View {
     // MARK: - Add-tag row
 
     private var addTagRow: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
             Text(WenshuI18n.t("b5.tagmanagerview.l199.h92873556"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 TextField(WenshuI18n.t("b5.tagmanagerview.l203.h87808991"), text: $draftLabel, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
@@ -201,7 +201,7 @@ struct TagManagerView: View {
     // MARK: - Tags list
 
     private var tagsListSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.tagmanagerview.l236.h12934415"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -212,7 +212,7 @@ struct TagManagerView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 6) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
                         ForEach(tags) { tag in
                             tagRow(tag)
                         }
@@ -224,12 +224,12 @@ struct TagManagerView: View {
     }
 
     private func tagRow(_ tag: Tag) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
             LucideIconSystemFallback(tag.category.lucideIcon, size: 16)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+                HStack(spacing: DesignTokens.chromePaddingSmall) {
                     Text(tag.label)
                         .font(.callout)
                         .foregroundStyle(.primary)
@@ -266,7 +266,7 @@ struct TagManagerView: View {
     // MARK: - Apply row
 
     private var applyRow: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
             Text(WenshuI18n.t("b5.tagmanagerview.l307.h96892915"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -275,7 +275,7 @@ struct TagManagerView: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Picker("Tag", selection: Binding(
                     get: { draftApplyTagId ?? tags.first?.id ?? UUID() },
                     set: { draftApplyTagId = $0 }
@@ -327,7 +327,7 @@ struct TagManagerView: View {
     // MARK: - Applications
 
     private var applicationsSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.tagmanagerview.l368.h75731289"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -338,7 +338,7 @@ struct TagManagerView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 4) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                         ForEach(applications) { application in
                             applicationRow(application)
                         }
@@ -350,12 +350,12 @@ struct TagManagerView: View {
     }
 
     private func applicationRow(_ application: TagApplication) -> some View {
-        HStack(alignment: .top, spacing: 6) {
+        HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
             LucideIconSystemFallback(application.target.lucideIcon, size: 14)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 6) {
+                HStack(spacing: DesignTokens.chromePaddingSmall) {
                     Text(tagLabel(for: application.tagId))
                         .font(.caption)
                         .foregroundStyle(.primary)
@@ -386,7 +386,7 @@ struct TagManagerView: View {
     // MARK: - Tag cloud
 
     private var cloudSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.tagmanagerview.l430.h82273461"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -397,7 +397,7 @@ struct TagManagerView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 4) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                         ForEach(cloud) { entry in
                             cloudRow(entry)
                         }
@@ -409,7 +409,7 @@ struct TagManagerView: View {
     }
 
     private func cloudRow(_ entry: TagCloudEntry) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: DesignTokens.chromePaddingSmall) {
             LucideIconSystemFallback(entry.tag.category.lucideIcon, size: 12)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.iconStandardSize)
@@ -430,7 +430,7 @@ struct TagManagerView: View {
     // MARK: - Filter
 
     private var filterSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
             Text(WenshuI18n.t("b5.tagmanagerview.l477.h41034022"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -439,7 +439,7 @@ struct TagManagerView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else {
-                HStack(spacing: 8) {
+                HStack(spacing: DesignTokens.chromePaddingVertical) {
                     Picker("Tag", selection: Binding(
                         get: { draftFilterTagId ?? tags.first?.id ?? UUID() },
                         set: { draftFilterTagId = $0 }
@@ -477,7 +477,7 @@ struct TagManagerView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(Array(filterMatches.enumerated()), id: \.offset) { _, id in
-                            HStack(spacing: 6) {
+                            HStack(spacing: DesignTokens.chromePaddingSmall) {
                                 LucideIconSystemFallback(draftFilterTarget.lucideIcon, size: 12)
                                     .foregroundStyle(.tint)
                                     .frame(width: DesignTokens.iconStandardSize)

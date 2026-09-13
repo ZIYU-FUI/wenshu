@@ -81,7 +81,7 @@ struct EmotionCurveView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             pickerRow
             inputSection
             Divider()
@@ -101,7 +101,7 @@ struct EmotionCurveView: View {
     // MARK: - Picker
 
     private var pickerRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.chromePaddingVertical) {
             Text(WenshuI18n.t("b5.emotioncurveview.l137.h23463773"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -123,8 +123,8 @@ struct EmotionCurveView: View {
     // MARK: - Input
 
     private var inputSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+            HStack(spacing: DesignTokens.chromePaddingSmall) {
                 Text(WenshuI18n.t("b5.emotioncurveview.l167.h48770099"))
                     .font(.callout)
                     .foregroundStyle(.primary)
@@ -138,7 +138,7 @@ struct EmotionCurveView: View {
                 .frame(minHeight: 80, maxHeight: 140)
                 .padding(DesignTokens.chromePaddingSmall)
                 
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
@@ -192,7 +192,7 @@ struct EmotionCurveView: View {
                 metricBadge(title: "Flat spots", value: "\(report.flatSpots.count)")
                 metricBadge(title: "Lifts", value: "\(report.suggestedLifts.count)")
             }
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: DesignTokens.chromePaddingMedium) {
                 indexColumn(title: "Flat spots",
                             items: report.flatSpots.map { String($0) },
                             tint: Color.gray)
@@ -225,18 +225,18 @@ struct EmotionCurveView: View {
     }
 
     private func indexColumn(title: String, items: [String], tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                 if items.isEmpty {
                     Text(WenshuI18n.t("b5.emotioncurveview.l280.h69702322"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 } else {
                     ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                        HStack(alignment: .top, spacing: 6) {
+                        HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
                             Circle()
                                 .fill(tint)
                                 .frame(width: DesignTokens.bulletSizeTiny, height: DesignTokens.bulletSizeTiny)

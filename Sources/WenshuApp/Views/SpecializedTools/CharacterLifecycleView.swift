@@ -111,7 +111,7 @@ struct CharacterLifecycleView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             if activeBookId == nil {
                 emptyState
             } else {
@@ -144,7 +144,7 @@ struct CharacterLifecycleView: View {
     // MARK: - Body
 
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             addRow
             Divider()
             listSection
@@ -162,7 +162,7 @@ struct CharacterLifecycleView: View {
     // MARK: - Add row
 
     private var addRow: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
             Text(WenshuI18n.t("b5.characterlifecycleview.l200.h38389147"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -171,7 +171,7 @@ struct CharacterLifecycleView: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Picker(WenshuI18n.t("picker.character"), selection: Binding(
                     get: { draftCharacterId ?? characters.first?.id ?? UUID() },
                     set: { draftCharacterId = $0 }
@@ -204,7 +204,7 @@ struct CharacterLifecycleView: View {
                 .disabled(!canAdd)
                 .help(WenshuI18n.t("b5.characterlifecycleview.l239.h26593030"))
             }
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.chromePaddingVertical) {
                 TextField(WenshuI18n.t("b5.characterlifecycleview.l242.h58864975"), text: $draftChapterUUIDText, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
@@ -225,7 +225,7 @@ struct CharacterLifecycleView: View {
     // MARK: - List
 
     private var listSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.characterlifecycleview.l263.h29792914"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -236,7 +236,7 @@ struct CharacterLifecycleView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 6) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
                         ForEach(events) { event in
                             eventRow(event)
                         }
@@ -248,12 +248,12 @@ struct CharacterLifecycleView: View {
     }
 
     private func eventRow(_ event: LifecycleEvent) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
             LucideIconSystemFallback(event.stage.lucideIcon, size: 16)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+                HStack(spacing: DesignTokens.chromePaddingSmall) {
                     Text(characterName(for: event.characterId))
                         .font(.callout)
                         .foregroundStyle(.primary)
@@ -295,7 +295,7 @@ struct CharacterLifecycleView: View {
     // MARK: - Timeline
 
     private var timelineSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.characterlifecycleview.l339.h16422962"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -305,7 +305,7 @@ struct CharacterLifecycleView: View {
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                HStack(spacing: 8) {
+                HStack(spacing: DesignTokens.chromePaddingVertical) {
                     Picker("Character", selection: Binding(
                         get: { selectedCharacterId ?? characters.first?.id ?? UUID() },
                         set: { selectedCharacterId = $0 }
@@ -329,7 +329,7 @@ struct CharacterLifecycleView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 4) {
+                        LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                             ForEach(timelineRows) { event in
                                 timelineRow(event)
                             }
@@ -342,7 +342,7 @@ struct CharacterLifecycleView: View {
     }
 
     private func timelineRow(_ event: LifecycleEvent) -> some View {
-        HStack(alignment: .top, spacing: 6) {
+        HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
             LucideIconSystemFallback(event.stage.lucideIcon, size: 12)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.iconStandardSize)
@@ -361,7 +361,7 @@ struct CharacterLifecycleView: View {
     // MARK: - Contradictions
 
     private var contradictionsSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(WenshuI18n.t("b5.characterlifecycleview.l405.h20963905"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -372,7 +372,7 @@ struct CharacterLifecycleView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ForEach(Array(contradictions.enumerated()), id: \.offset) { _, issue in
-                    HStack(alignment: .top, spacing: 6) {
+                    HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
                         LucideIconSystemFallback("alert-triangle", size: 14)
                             .foregroundStyle(Color.orange)
                             .frame(width: DesignTokens.tabIconSize)
