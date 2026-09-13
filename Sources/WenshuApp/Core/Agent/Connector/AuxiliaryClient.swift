@@ -112,21 +112,6 @@ public actor SSECoalescer {
 
     /// Pending count (= for diagnostics).
     public func pendingCount() -> Int { pending.count }
-
-    /// Apply the coalesce-window timeout: any pending event older than
-    /// coalesceWindow is flushed even if the stream is still open
-    /// (= avoids infinite buffering when a model emits a slow trickle).
-    public func flushStale() -> [SSECoalescedEvent] {
-        let now = Date()
-        var flushed: [SSECoalescedEvent] = []
-        for (key, ev) in pending {
-            if now.timeIntervalSince(ev.lastTimestamp) > coalesceWindow {
-                flushed.append(ev)
-                pending.removeValue(forKey: key)
-            }
-        }
-        return flushed
-    }
 }
 
 /// Per-task model config (= hermes _get_auxiliary_task_config + the
@@ -222,12 +207,6 @@ public enum AuxiliaryTaskRegistry {
         }
     }
 
-    /// Resolve the effective timeout (= hermes _effective_aux_timeout).
-    public static func effectiveTimeout(task: String, override: Double? = nil) -> Double {
-        let cfg = config(for: task)
-        return override ?? cfg.timeoutSeconds
-    }
-
     /// Resolve the extra body (= hermes _get_task_extra_body).
     public static func extraBody(task: String) -> [String: String] {
         return config(for: task).extraBody
@@ -264,21 +243,6 @@ public enum AuxiliaryProviderNormalization {
         if url.contains("localhost") || url.contains("127.0.0.1") { return false }
         if url.contains("ollama") { return false }
         return true
-    }
-
-    /// Apply user default headers (= hermes _apply_user_default_headers
-    /// L511-549: merges user-supplied default headers with provider-required
-    /// ones; user wins on conflict).
-    public static func applyUserDefaultHeaders(
-        provider: String,
-        providerRequired: [String: String],
-        userSupplied: [String: String]?
-    ) -> [String: String] {
-        var merged = providerRequired
-        if let user = userSupplied {
-            for (k, v) in user { merged[k] = v }
-        }
-        return merged
     }
 
     /// Build call kwargs (= hermes _build_call_kwargs L6177-6279: normalizes
@@ -326,36 +290,5 @@ public actor AuxiliaryClient {
 
     public init(coalescer: SSECoalescer = SSECoalescer()) {
         self.coalescer = coalescer
-    }
-
-    /// Push an SSE event through the coalescer (= hermes _coalesce_sse_buffer
-    /// push). Returns any events that should be flushed now (= prior
-    /// pending events with a different eventType, or events whose
-    /// coalesce window has elapsed).
-    public func pushSSE(_ event: SSECoalescedEvent) async -> [SSECoalescedEvent] {
-        return await coalescer.push(event)
-    }
-
-    /// Drain the coalescer (= call when the stream ends).
-    public func drainSSE() async -> [SSECoalescedEvent] {
-        return await coalescer.take()
-    }
-
-    /// Resolve the config for a task (= hermes _get_auxiliary_task_config).
-    public func resolveConfig(for task: String) -> AuxiliaryTaskConfig {
-        let cfg = AuxiliaryTaskRegistry.config(for: task)
-        lastTaskConfig[task] = cfg
-        return cfg
-    }
-
-    /// Cache hit: return the last config we resolved for a task (= avoids
-    /// re-reading the per-task defaults table on every call).
-    public func cachedConfig(for task: String) -> AuxiliaryTaskConfig? {
-        return lastTaskConfig[task]
-    }
-
-    /// Clear the config cache (= call on credential refresh).
-    public func clearConfigCache() {
-        lastTaskConfig.removeAll()
     }
 }

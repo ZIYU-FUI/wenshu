@@ -16,7 +16,6 @@
 // Swift `@Observable` + Swift Concurrency model.
 
 import Foundation
-import Observation
 import SwiftUI
 
 /// The provenance tag for a contribution. `'core'` (= app's own UI)
@@ -75,10 +74,7 @@ public struct Contribution: Identifiable, Sendable {
 
 public enum ContributionArea {
     public static let panes = "panes"
-    public static let titlebarLeft = "titlebar.left"
-    public static let titlebarRight = "titlebar.right"
     public static let statusbarLeft = "statusbar.left"
-    public static let statusbarRight = "statusbar.right"
     public static let layouts = "layouts"
     public static let commands = "commands"
     public static let keybinds = "keybinds"

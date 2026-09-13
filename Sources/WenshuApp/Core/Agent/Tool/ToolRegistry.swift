@@ -412,18 +412,6 @@ public actor ToolRegistry {
         return result
     }
 
-    /// Same as `getDefinitions` but wrapped in the OpenAI function-call
-    /// envelope `{"type": "function", "function": {...}}` (= hermes
-    /// L567).
-    public func getDefinitionsWrapped(toolNames: Set<String>) -> [[String: Any]] {
-        getDefinitions(toolNames: toolNames).map { schema in
-            [
-                "type": "function",
-                "function": schema.toJSON()
-            ]
-        }
-    }
-
     // MARK: - Dispatch (= hermes `dispatch()` query helpers)
 
     /// Return the registered `Tool` handler for the given name, or nil.
@@ -448,56 +436,11 @@ public actor ToolRegistry {
         _tools.keys.sorted()
     }
 
-    /// Sorted unique toolset names (= hermes
-    /// `get_registered_toolset_names()`).
-    public func getRegisteredToolsetNames() -> [String] {
-        Array(Set(_tools.values.map { $0.toolset })).sorted()
-    }
-
-    /// Sorted tool names for a given toolset (= hermes
-    /// `get_tool_names_for_toolset()`).
-    public func getToolNamesForToolset(toolset: String) -> [String] {
-        _tools.values
-            .filter { $0.toolset == toolset }
-            .map { $0.name }
-            .sorted()
-    }
-
-    /// Toolset name for a given tool (= hermes `get_toolset_for_tool()`).
-    public func getToolsetForTool(name: String) -> String? {
-        _tools[name]?.toolset
-    }
-
     /// Emoji for a given tool, or `default` if unset (= hermes
     /// `get_emoji()`).
     public func getEmoji(name: String, default defaultEmoji: String = "⚡") -> String {
         guard let entry = _tools[name] else { return defaultEmoji }
         return entry.emoji.isEmpty ? defaultEmoji : entry.emoji
-    }
-
-    /// `tool_name -> toolset` map for every registered tool (= hermes
-    /// `get_tool_to_toolset_map()`).
-    public func getToolToToolsetMap() -> [String: String] {
-        var result: [String: String] = [:]
-        for (name, entry) in _tools {
-            result[name] = entry.toolset
-        }
-        return result
-    }
-
-    /// Per-tool max result size, or `default` if unset (= hermes
-    /// `get_max_result_size()`).
-    public func getMaxResultSize(name: String, default defaultSize: Int? = nil) -> Int? {
-        if let entry = _tools[name], let size = entry.maxResultSizeChars {
-            return size
-        }
-        return defaultSize
-    }
-
-    /// Snapshot of all registered entries (= hermes
-    /// `_snapshot_entries()`).
-    public func snapshotEntries() -> [ToolEntry] {
-        Array(_tools.values)
     }
 
     // MARK: - Mutation helpers (= hermes `clear()` + generation counter)
