@@ -300,8 +300,12 @@ Dependency graph (= must be done in this order):
         (= WenshuAppDelegate + WSMigrationPerStore migration code +
         WenshuConductor + MemoryProvider #warning; = future ticket 8).
 
-  Phase-5 Ticket 5 (BacklinkResolver + FullTextSearch LinkIndex → WSLinkRepository)
-    └─> unlocks: LinkIndex.swift deletion
+  ✓ Phase-5 Ticket 5 (BacklinkResolver + FullTextSearch LinkIndex → WSLinkRepository)
+    = commit 6d573f0e6 (= BacklinkResolver.swift + WSLink.id fix + BacklinkResolverTests.swift)
+    └─> BacklinkResolver is the only production caller of LinkIndex.
+    └─> LinkIndex.swift NOT yet deletable: test-only callers remain
+        (= LinkIndexTests uses LinkIndex directly; = future ticket 9
+        migrates those tests + deletes LinkIndex.swift).
 
   + bonus: WenshuWorkspaceMigrator + WenshuWorkspaceMigratorTests (= not
     part of phase 5 prerequisites; = WenshuWorkspace is gated on phase 4
@@ -348,4 +352,9 @@ Ticket 4 sub-tasks (= 2 commits, all landed):
   - bc8b83fe4 (= 4.1): MemoryManager.store optional + SwiftData bridge helpers.
   - 43a7abaeb (= 4.2): ContextEngine drops sqlite chain (= 38 lines deleted).
 
-Next: Ticket 5 (BacklinkResolver + FullTextSearch LinkIndex → WSLinkRepository).
+Ticket 5 (= 1 commit, landed):
+  - 6d573f0e6: BacklinkResolver uses WSLinkRepository.shared.
+    (= also fixes WSLink.id composite key to include targetRef so that
+    multiple [[name]] links on the same line don't collide).
+
+Next: phase 5 deletion step (= ticket 6/7/8 future cleanup + final git rm).
