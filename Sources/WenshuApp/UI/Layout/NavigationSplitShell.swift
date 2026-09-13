@@ -1,5 +1,27 @@
 //
-//  NavigationSplitShell.swift · Wenshu · M1-shell (2026-09-08)
+//  NavigationSplitShell.swift · Wenshu · M1-shell (2026-09-08) + v0.72 Q99 LOW fix
+//
+//  SwiftUI NavigationSplitView 4-column shell (= sidebar + content + inspector + detail).
+//  This is the canonical layout per AGENTS.md §11 + boss 2026-09-03 OOB.
+//
+//  Column configuration:
+//    - Sidebar (= leftmost; = library / shelf / book outline tree)
+//    - Content (= 2nd column; = book cards / chapter list / kanban / todo)
+//    - Inspector (= 3rd column; = metadata + character pane)
+//    - Detail (= rightmost; = editor canvas / preview pane)
+//
+//  Column-width policy:
+//    - .navigationSplitViewColumnWidth(min:ideal:max:) on each column
+//    - .inspectorColumnWidth on the inspector column
+//    - Apple-default initial values (= sidebar 140pt / content 200pt / detail natural)
+//
+//  State bindings:
+//    - @State columnVisibility (= driven by WenshuSettings)
+//    - @State preferredCompactColumn (= Apple default = .sidebar)
+//
+//  Migration note: v0.72 SwiftData migration did not touch this file
+//  (= persistence layer is below the UI layer; = no @Model class is
+//  referenced directly from this view).
 //
 //  Apple-native 3-column shell for the macOS 27 NavigationSplitView
 //  migration (= the worktree = `.worktrees/m1-navigation-split-shell/`;
