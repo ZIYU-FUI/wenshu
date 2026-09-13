@@ -58,11 +58,13 @@ public actor AnthropicConnector: LLMConnector {
             : messages
 
         // Build request body via shared helper (= TICKET-HERMES-GAP-002).
+        // v0.71 cleanup batch 4: pass reasoningEffort from user setting.
         let body = try RequestHelpers.buildAnthropicRequest(
             model: options.model,
             messages: cachedMessages,
             maxTokens: options.maxTokens,
-            systemPrompt: options.systemPrompt
+            systemPrompt: options.systemPrompt,
+            reasoningEffort: options.reasoningEffort
         )
 
         var request = URLRequest(url: url)

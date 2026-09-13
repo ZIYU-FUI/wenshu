@@ -275,11 +275,16 @@ public actor ConversationLoop {
         // the active connector profile; per-call override not yet wired in
         // sub-step 3, lands in ticket 002 cache layer)
         let defaultModel = defaultModelForConnector()
+        // v0.71 cleanup batch 4: read user-selected reasoning effort from
+        // UserDefaults (= set by SettingView picker; = "low"/"medium"/"high"/
+        // "xhigh"/"max"). nil = connector uses provider default.
+        let reasoningEffort = UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")
         let options = LLMCallOptions(
             model: defaultModel,
             maxTokens: 4096,
             systemPrompt: effectiveSystemPrompt,
-            temperature: nil
+            temperature: nil,
+            reasoningEffort: reasoningEffort
         )
 
         // Send to LLMConnector (= one round-trip)
@@ -468,6 +473,7 @@ public actor ConversationLoop {
                         label: "Calling LLM (after tools)",
                         etaSeconds: 4
                     )
+                    let reasoningEffort = UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")
                     let options = LLMCallOptions(
                         model: defaultModelForConnector(),
                         maxTokens: 4096,
@@ -475,7 +481,8 @@ public actor ConversationLoop {
                             override: systemMessage,
                             persistent: systemPrompt
                         ),
-                        temperature: nil
+                        temperature: nil,
+                        reasoningEffort: reasoningEffort
                     )
                     let nextResponse = try await connector.send(
                         messages: result.messages,

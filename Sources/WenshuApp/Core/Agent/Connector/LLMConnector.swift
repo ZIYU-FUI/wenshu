@@ -60,17 +60,24 @@ public struct LLMCallOptions: Sendable {
     public let maxTokens: Int
     public let systemPrompt: String?
     public let temperature: Double?
+    /// Reasoning effort level from `wenshu.llm.reasoningEffort` (= user setting).
+    /// Values: "low" / "medium" / "high" / "xhigh" / "max". nil = connector uses provider default.
+    /// v0.71 cleanup batch 4: wired from SettingView picker through to connector adapters
+    /// (= Anthropic thinking budget_tokens, OpenAI reasoning_effort, Gemini thinkingBudget).
+    public let reasoningEffort: String?
 
     public init(
             model: String,
             maxTokens: Int = 1024,
             systemPrompt: String? = nil,
-            temperature: Double? = nil
+            temperature: Double? = nil,
+            reasoningEffort: String? = nil
         ) {
         self.model = model
         self.maxTokens = maxTokens
         self.systemPrompt = systemPrompt
         self.temperature = temperature
+        self.reasoningEffort = reasoningEffort
     }
 }
 

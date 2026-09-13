@@ -74,7 +74,11 @@ public enum RequestHelpers {
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
-        systemPrompt: String?
+        systemPrompt: String?,
+        /// v0.71 cleanup batch 4: reasoning effort from user setting.
+        /// Maps to Anthropic `thinking.budget_tokens` (= low=1024, medium=8192, high=16384, max=32768).
+        /// nil = no thinking block (= connector default).
+        reasoningEffort: String? = nil
     ) throws -> Data {
         var body: [String: Any] = [
             "model": model,
@@ -85,6 +89,23 @@ public enum RequestHelpers {
                 "type": "text",
                 "text": sys,
                 "cache_control": ["type": "ephemeral"]
+            ]
+        }
+        // v0.71 cleanup batch 4: wire reasoningEffort → Anthropic thinking block.
+        // Apple canonical effort → budget_tokens mapping (= per Anthropic docs).
+        // xhigh maps to max (= 32768 = the highest allowed budget).
+        if let effort = reasoningEffort, !effort.isEmpty {
+            let budgetTokens: Int
+            switch effort {
+            case "low": budgetTokens = 1024
+            case "medium": budgetTokens = 8192
+            case "high": budgetTokens = 16384
+            case "xhigh", "max": budgetTokens = 32768
+            default: budgetTokens = 8192
+            }
+            body["thinking"] = [
+                "type": "enabled",
+                "budget_tokens": budgetTokens
             ]
         }
         body["messages"] = messages.map { msg -> [String: Any] in
@@ -285,9 +306,13 @@ public enum RequestHelpers {
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
-        systemPrompt: String?
+        systemPrompt: String?,
+        /// v0.71 cleanup batch 4: reasoning effort from user setting.
+        /// Maps to OpenAI `reasoning_effort` param (= "low"/"medium"/"high"/"xhigh"/"max").
+        /// nil = omit param (= connector default).
+        reasoningEffort: String? = nil
     ) throws -> Data {
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": model,
             "max_tokens": maxTokens,
             "messages": buildOpenAIMessages(
@@ -295,6 +320,18 @@ public enum RequestHelpers {
                 userMessages: messages
             )
         ]
+        // v0.71 cleanup batch 4: wire reasoningEffort → OpenAI reasoning_effort param.
+        // Apple canonical mapping (= per OpenAI docs for gpt-5 reasoning models).
+        // "xhigh" maps to "high" (= OpenAI's max supported value).
+        if let effort = reasoningEffort, !effort.isEmpty {
+            let mapped: String
+            switch effort {
+            case "xhigh", "max": mapped = "high"
+            case "low", "medium", "high": mapped = effort
+            default: mapped = "medium"
+            }
+            body["reasoning_effort"] = mapped
+        }
         return try JSONSerialization.data(withJSONObject: body)
     }
 
@@ -382,7 +419,12 @@ public enum RequestHelpers {
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
-        systemPrompt: String?
+        systemPrompt: String?,
+        /// v0.71 cleanup batch 4: reasoning effort from user setting.
+        /// Maps to Gemini `generationConfig.thinkingConfig.thinkingBudget`.
+        /// Apple canonical mapping: low=1024, medium=8192, high=16384, max=32768.
+        /// nil = omit thinkingConfig (= Gemini default).
+        reasoningEffort: String? = nil
     ) throws -> Data {
         var contents: [[String: Any]] = []
         for msg in messages {
@@ -406,6 +448,27 @@ public enum RequestHelpers {
         }
         if maxTokens > 0 {
             body["generationConfig"] = ["maxOutputTokens": maxTokens]
+        }
+        // v0.71 cleanup batch 4: wire reasoningEffort → Gemini thinkingBudget.
+        // Per Google docs (ai.google.dev/gemini-api/docs/thinking):
+        // generationConfig.thinkingConfig = {thinkingBudget: N, includeThoughts: false}.
+        // nil = omit thinkingConfig (= Gemini default = no thinking).
+        if let effort = reasoningEffort, !effort.isEmpty {
+            let budgetTokens: Int
+            switch effort {
+            case "low": budgetTokens = 1024
+            case "medium": budgetTokens = 8192
+            case "high": budgetTokens = 16384
+            case "xhigh", "max": budgetTokens = 32768
+            default: budgetTokens = 8192
+            }
+            // Merge into generationConfig (= if maxOutputTokens already set, extend)
+            var genConfig = body["generationConfig"] as? [String: Any] ?? [:]
+            genConfig["thinkingConfig"] = [
+                "thinkingBudget": budgetTokens,
+                "includeThoughts": false
+            ]
+            body["generationConfig"] = genConfig
         }
         // `model` is wired into the URL by the connector, NOT the body
         // (= Gemini `generateContent` endpoint takes model in path).
