@@ -108,4 +108,100 @@ public enum WSPersistenceContainer {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: [config])
     }
+
+    /// Active warehouse container (= set by AppDelegate at launch time).
+    /// nil = use `shared` (= Application Support path; = current default behavior).
+    ///
+    /// Phase 5 ticket 1 sub-task 1b.1 (= warehouse container lifecycle).
+    /// Backward compatible: callers that use WSPersistenceContainer.shared
+    /// directly are unaffected. Callers that switch to `current` (= the
+    /// new resolver) automatically pick up the warehouse path when set.
+    @MainActor
+    public private(set) static var activeWarehouseContainer: ModelContainer?
+
+    /// Activate the warehouse container (= call once at app launch from
+    /// WenshuAppDelegate.applicationDidFinishLaunching). Setting this
+    /// makes `current` return the warehouse container instead of `shared`.
+    ///
+    /// If the warehouse container can't be created (= e.g. disk full,
+    /// permissions denied, corrupted store), we keep `activeWarehouseContainer = nil`
+    /// (= silently fall back to `shared`). Caller (= WenshuAppDelegate) is
+    /// responsible for logging the failure.
+    @MainActor
+    public static func activateWarehouseContainer(_ container: ModelContainer?) {
+        activeWarehouseContainer = container
+    }
+
+    /// Current ModelContainer (= the warehouse container if activated,
+    /// else `shared`). Use this in new code (= e.g. Repository singletons).
+    ///
+    /// Migration path: existing callers using `WSPersistenceContainer.shared`
+    /// stay on Application Support. New callers (= ticket 1b.2+) use `current`.
+    /// Once ticket 1 deletion step removes ChatSessionStore + KanbanStore,
+    /// all chat/kanban data lives in the warehouse container (= boss 8/25 OOB).
+    @MainActor
+    public static var current: ModelContainer {
+        activeWarehouseContainer ?? shared
+    }
+
+    /// Make a file-backed container at a custom URL (= warehouse path for
+    /// boss 8/25 OOB "chat.sqlite must live in .ws warehouse" rule).
+    ///
+    /// Phase 5 ticket 1 sub-task 1a (= SwiftData warehouse path support).
+    /// Replaces the per-file SQLite Actor pattern (= ChatSessionStore, KanbanStore)
+    /// where each file opens its own sqlite3 handle at a custom path.
+    ///
+    /// Parameters:
+    ///   - url: file URL for the SwiftData store (= the parent directory
+    ///     must exist; = the file itself will be created by SwiftData).
+    ///   - name: optional store name (= default = derived from the URL's
+    ///     lastPathComponent per Apple SDK convention).
+    ///   - readOnly: if true, opens the store in read-only mode (= future ticket).
+    ///
+    /// Throws if SwiftData cannot create the container (= e.g. disk full,
+    /// permissions denied, corrupted store).
+    @MainActor
+    public static func makeContainer(
+        at url: URL,
+        name: String? = nil,
+        readOnly: Bool = false
+    ) throws -> ModelContainer {
+        // Apple SwiftData SDK 27 init signature (= verified via swiftinterface):
+        //   init(_ name: String? = nil, schema: Schema? = nil, url: URL,
+        //        allowsSave: Bool = true, cloudKitDatabase: CloudKitDatabase = .automatic)
+        // Note: NO `groupContainer:` or `isStoredInMemoryOnly:` params on the url: init.
+        let config = ModelConfiguration(
+            name,
+            schema: schema,
+            url: url,
+            allowsSave: !readOnly,
+            cloudKitDatabase: .none
+        )
+        return try ModelContainer(for: schema, configurations: [config])
+    }
+
+    /// Factory: pick the right container for the current warehouse state.
+    ///
+    /// Logic:
+    ///   1. If warehouse URL provided (= from UserDefaults "wenshu.libraryPath"),
+    ///      try to make a container at that URL (= boss 8/25 OOB rule).
+    ///   2. If that fails OR no warehouse URL, fall back to Application Support
+    ///      (= current `shared` behavior).
+    ///   3. If both fail, fall back to in-memory (= tests survive).
+    ///
+    /// Caller is responsible for catching + logging the warehouse failure
+    /// (= so user sees a non-fatal warning instead of silent fallback).
+    @MainActor
+    public static func makeContainerForWarehouse(_ warehouseURL: URL?) throws -> ModelContainer {
+        if let warehouseURL {
+            let storeURL = warehouseURL.appendingPathComponent("WenshuStore.store")
+            do {
+                return try makeContainer(at: storeURL)
+            } catch {
+                NSLog("[WSPersistenceContainer] warehouse container failed (\(error)). Falling back to Application Support.")
+                // Fall through to default `shared`
+            }
+        }
+        return shared
+    }
 }

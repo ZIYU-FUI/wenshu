@@ -268,7 +268,7 @@ unlocks one sqlite store file for deletion.
 
 Dependency graph (= must be done in this order):
 
-  Phase-5 Ticket 1 (WenshuAppDelegate migration)
+  ✓ Phase-5 Ticket 1 (WenshuAppDelegate migration) — commits bc05c4092, e7bb9ee5b, d3644f869, 1174bc59d
     └─> unlocks: ChatSessionStore.swift deletion
                 KanbanStore.swift deletion (= also needs Ticket 2)
 
@@ -302,5 +302,20 @@ Each ticket MUST:
   4. NOT touch unrelated code (= scope = 1 ticket = 1 caller file).
 
 Branch:
-  - `wt/migration-phase5-tickets-2026-09-13` (= current worktree;
-    = sequential ticket work; = rebases onto main as each ticket lands).
+  - `wt/migration-phase5-tickets-2026-09-13` (= historical;
+    = AGENTS.md roadmap landing).
+  - `wt/phase5-ticket-1-2026-09-13` (= current ticket 1 worktree;
+    = rebases onto main as each ticket lands).
+
+Ticket 1 sub-tasks (= 4 commits, all landed):
+  - 1a (= commit bc05c4092): WSPersistenceContainer.makeContainer(at:) +
+    makeContainerForWarehouse(_:) — SwiftData URL support.
+  - 1b.1 (= commit e7bb9ee5b): WSPersistenceContainer.activateWarehouseContainer +
+    current getter — warehouse container lifecycle.
+  - 1b.2 (= commit d3644f869): WSRepositoryContainer.init default
+    WSPersistenceContainer.shared → current.
+  - 1b.3 (= commit 1174bc59d): WenshuAppDelegate calls
+    makeContainerForWarehouse + activateWarehouseContainer at launch.
+
+Next: Ticket 2 (ChatView KanbanStore fallback → WSKanbanRepository)
+to unlock KanbanStore deletion.

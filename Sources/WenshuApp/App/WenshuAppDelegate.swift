@@ -155,6 +155,36 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             // Place chat.sqlite inside it.
             (path as NSString).appendingPathComponent("chat.sqlite")
         }
+
+        // Phase 5 ticket 1 sub-task 1b.3: activate the warehouse ModelContainer.
+        //
+        // When the warehouse URL is set (= UserDefaults "wenshu.libraryPath"),
+        // makeContainerForWarehouse tries to build a SwiftData ModelContainer
+        // inside that warehouse directory (= boss 8/25 OOB "chat data must live
+        // in .ws warehouse" rule).
+        //
+        // On success: all Repository.shared singletons (= WSChatRepository,
+        // WSKanbanRepository, etc.) will read from the warehouse container.
+        //
+        // On failure: activateWarehouseContainer(nil) keeps the default
+        // Application Support path (= silent fallback; = logged for diagnosis).
+        //
+        // This runs BEFORE ChatSessionStore init (= so SwiftData repositories
+        // are ready before any view reads from them). It does NOT replace
+        // ChatSessionStore or KanbanStore yet (= those files stay alive until
+        // tickets 1+2 deletion step removes them).
+        let warehouseURL = warehousePath.map { URL(fileURLWithPath: $0) }
+        do {
+            let warehouseContainer = try WSPersistenceContainer.makeContainerForWarehouse(warehouseURL)
+            WSPersistenceContainer.activateWarehouseContainer(warehouseContainer)
+            NSLog("[wenshu.persistence] warehouse container activated: %@",
+                  warehouseURL?.path ?? "<none>")
+        } catch {
+            NSLog("[wenshu.persistence] warehouse container activation FAILED: %@",
+                  String(describing: error))
+            WSPersistenceContainer.activateWarehouseContainer(nil)
+        }
+
         // v0.24 bossverificationfix (Boss 8/25 OOB Spec axis GAP): one-time migration
         // from legacy chat.sqlite to warehouse (preserves chat history when
         // user first picks a .ws warehouse in onboarding).
