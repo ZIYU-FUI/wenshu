@@ -37,7 +37,7 @@ final class WSMemoryMirror: @unchecked Sendable {
     }
 }
 
-final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
+public final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     let slug: String
     var isEnabled: Bool
@@ -49,7 +49,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
     private var lastPrefetch: String = ""
     private let prefetchQueue = DispatchQueue(label: "com.wenshu.WSMemoryProvider.prefetch")
 
-    init(slug: String = "swiftdata-memory", isEnabled: Bool = true) {
+    public init(slug: String = "swiftdata-memory", isEnabled: Bool = true) {
         self.slug = slug
         self.isEnabled = isEnabled
 
@@ -131,6 +131,12 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
         let entries = mirror.current()
         if entries.isEmpty { return nil }
         return "Memory context (\(entries.count) entries): " + entries.map { String($0.content.prefix(80)) }.joined(separator: " | ")
+    }
+
+    /// Sync read of the mirror (= all current entries).
+    /// Safe from any actor (= uses DispatchQueue under the hood).
+    func mirrorSnapshot() -> [Memory] {
+        mirror.current()
     }
 
     /// Reset in-memory state (= for tests).
