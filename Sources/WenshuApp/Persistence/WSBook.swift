@@ -37,6 +37,14 @@ final class WSBook {
     /// Inverse relationship target (= declared on WSBookShelf.books)
     var shelf: WSBookShelf?
 
+    /// 1↔N WSForeshadowing (= tracked foreshadowing events)
+    @Relationship(deleteRule: .cascade, inverse: \WSForeshadowing.book)
+    var foreshadowings: [WSForeshadowing] = []
+
+    /// 1↔N WSPlaceholder (= TODO / FIXME markers in draft)
+    @Relationship(deleteRule: .cascade, inverse: \WSPlaceholder.book)
+    var placeholders: [WSPlaceholder] = []
+
     init(id: String, title: String, idea: String? = nil, length: Int? = nil, shelfID: String? = nil) {
         self.id = id
         self.title = title
