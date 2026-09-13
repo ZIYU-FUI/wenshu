@@ -1,3 +1,19 @@
+//
+//  PlotThreadView.swift · Wenshu · v0.72 SwiftData migration Phase 5
+//
+//  Specialized tools pane view (= 1 of 12 tabs; = EmotionCurveView
+//  + IdeaLibraryView + BookSettingConstraintsView + CharacterLifecycleView
+//  + CharacterRelationshipsView + ForeshadowingTrackerView + PlaceholderScannerView
+//  + LongFormGuardrailsView + ReaderExperienceView + TagManagerView + PlotThreadView
+//  + GenreFitView = 12 tabs total).
+//
+//  Renders the plot-thread tracker (= shows running/recalled/abandoned
+//  WSForeshadowing entries grouped by chapter).
+//
+//  Persistence: reads via WSForeshadowingRepository (= SwiftData-backed;
+//  = future ticket will introduce a dedicated PlotThreadRepository).
+//
+
 import SwiftUI
 
 @MainActor

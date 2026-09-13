@@ -2,7 +2,7 @@
 //  BackgroundCreditsTracker.swift · Wenshu · v0.36 ticket 016 sub-step 1
 //
 //  Tracks AI agent credit / token consumption (= spec §3.1 L227-231
-//  Background/ sub-directory, file 4 of 4 = CreditsTracker).
+//  Background/ sub-directory, file 1 of 4 = CreditsTracker (= the credits tracker; = file 4 of the Background/ directory)).
 //
 //  Per ADR-0011 + §11 hard rule: pure Swift actor, no LLM calls, no
 //  filesystem I/O at runtime. Periodic persistence to UserDefaults via

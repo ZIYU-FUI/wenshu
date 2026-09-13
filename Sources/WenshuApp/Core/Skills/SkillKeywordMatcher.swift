@@ -1,3 +1,20 @@
+//
+//  SkillKeywordMatcher.swift · Wenshu · v0.72 SwiftData migration Phase 5
+//
+//  Keyword-based skill matching (= fallback for when semantic embeddings
+//  are unavailable; = scores a skill's description against a user query
+//  using token overlap + weighted synonyms).
+//
+//  Scoring tiers (= 3 tiers, ordered):
+//   1. EXACT (= token appears in both query and skill description)
+//   2. SYNONYM (= token is a known synonym pair)
+//   3. STEM (= token shares a common prefix with a description token)
+//
+//  Returned score is a Double in [0.0, 1.0] (= 0.0 = no match; = 1.0 = exact).
+//
+//  Persistence: in-memory (= per-call match function; = no SwiftData storage).
+//
+
 import Foundation
 
 public struct SkillKeyword: Sendable, Codable, Equatable, Hashable {
