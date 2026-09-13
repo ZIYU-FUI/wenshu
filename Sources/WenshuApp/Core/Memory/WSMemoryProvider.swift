@@ -1,7 +1,7 @@
 //
 //  Core/Memory/WSMemoryProvider.swift · Wenshu · v0.72 SwiftData migration Phase 3 deferred
 //
-//  Migration commit 43 of 42: WSMemoryProvider (= SwiftData-backed MemoryProvider).
+//  Migration commit 43 of 50: WSMemoryProvider (= SwiftData-backed MemoryProvider).
 //  Per AGENTS.md §11.4.
 //
 //  New MemoryProvider implementation that conforms to the existing
