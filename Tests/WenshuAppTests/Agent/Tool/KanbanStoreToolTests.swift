@@ -56,7 +56,7 @@ struct KanbanStoreToolTests {
     /// (= the canonical adapter wiring: KanbanStoreTool ->
     /// KanbanTools -> KanbanStore).
     private static func makeTool(store: KanbanStore) -> KanbanStoreTool {
-        let tools = KanbanTools(store: store)
+        let tools = MainActor.assumeIsolated { KanbanTools(store: WSKanbanRepository.shared) }
         return KanbanStoreTool(kanbanTools: tools)
     }
 
@@ -90,6 +90,7 @@ struct KanbanStoreToolTests {
     // MARK: - Test 2: list returns current Kanban items
 
     @Test("kanban_list returns the canonical KanbanStore items as JSON")
+    @MainActor
     func testKanbanStoreTool_list_returnsCurrentKanbanItems() async throws {
         let store = try await Self.makeKanbanStore()
         let tool = Self.makeTool(store: store)
@@ -144,6 +145,7 @@ struct KanbanStoreToolTests {
     // MARK: - Test 4: complete marks task done
 
     @Test("kanban_complete transitions the KanbanStore row to status=done")
+    @MainActor
     func testKanbanStoreTool_complete_marksDone() async throws {
         let store = try await Self.makeKanbanStore()
         let tool = Self.makeTool(store: store)

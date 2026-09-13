@@ -70,6 +70,7 @@ struct HermesTodoStoreConcurrencyTests {
     // MARK: - Test 1: concurrent writes stay consistent
 
     @Test("100 concurrent writes to different keys all land in the store")
+    @MainActor
     func testConcurrentWrites_remainConsistent() throws {
         let store = HermesTodoStore()
 
@@ -121,6 +122,7 @@ struct HermesTodoStoreConcurrencyTests {
     // MARK: - Test 2: concurrent reads see the same value
 
     @Test("100 concurrent reads from the same key all return the same value")
+    @MainActor
     func testConcurrentReads_returnsSameValue() throws {
         let store = HermesTodoStore()
         // Seed with one item.
@@ -168,6 +170,7 @@ struct HermesTodoStoreConcurrencyTests {
     // MARK: - Test 3: read+write loop never deadlocks
 
     @Test("1000 read+write iterations complete well under 5 seconds")
+    @MainActor
     func testReadWrite_neverDeadlocks() throws {
         let store = HermesTodoStore()
         // Seed with one item so reads have something to read.
@@ -219,11 +222,12 @@ struct HermesTodoStoreConcurrencyTests {
     // MARK: - Test 4: TodoStoreTool.execute() does not hang
 
     @Test("TodoStoreTool.execute() returns in under 5 seconds (regression for the deadlock reported in VERIFY-INTEGRATION-001)")
+    @MainActor
     func testTodoStoreTool_execute_doesNotHang() async throws {
         let todoStore = try await Self.makeTodoStore()
         let hermesStore = HermesTodoStore()
         let hermesTool = HermesTodoTool(store: hermesStore)
-        let tool = TodoStoreTool(hermesTodo: hermesTool, todoStore: todoStore)
+        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
 
         // Race two flows: a create + a list. If the previous NSLock
         // recursion is reintroduced, one of these will hang.

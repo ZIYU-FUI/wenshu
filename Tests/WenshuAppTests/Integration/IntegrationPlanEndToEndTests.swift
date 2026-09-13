@@ -175,6 +175,7 @@ struct IntegrationPlanEndToEndTests {
     // MARK: - Master integration test
 
     @Test("Full integration walkthrough (= every shipped wire-up ticket fires at least once)")
+    @MainActor
     func testFullIntegrationWalkthrough() async throws {
         // ===== SETUP: build LibraryStores + canonical stores =====
         print("[setup] starting")
@@ -306,7 +307,7 @@ struct IntegrationPlanEndToEndTests {
         // (mirror) + TodoStore.add (canonical).
         let todoTool = TodoStoreTool(
             hermesTodo: HermesTodoTool(store: hermesTodoStore),
-            todoStore: todoStore
+            todoRepository: WSTodoRepository.shared
         )
         let directTodoItem = HermesTodoItem(
             id: "p5-23-task",
@@ -329,7 +330,7 @@ struct IntegrationPlanEndToEndTests {
         // Constructs KanbanStoreTool(KanbanTools) and executes an
         // "add" tool_use block (= mirrors the KanbanStoreTool
         // .execute dispatch surface).
-        let kanbanTools = KanbanTools(store: kanbanStore)
+        let kanbanTools = KanbanTools(store: WSKanbanRepository.shared)
         let kanbanTool = KanbanStoreTool(kanbanTools: kanbanTools)
         let kanbanAddJSON = #"{"action":"add","title":"p5-23 smoke task","status":"new"}"#
         let kanbanAddResult = try await kanbanTool.execute(input: kanbanAddJSON)

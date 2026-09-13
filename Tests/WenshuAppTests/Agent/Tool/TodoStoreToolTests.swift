@@ -53,13 +53,14 @@ struct TodoStoreToolTests {
     // MARK: - Test 1: create persists to TodoStore
 
     @Test("todo_create persists the new item to TodoStore")
+    @MainActor
     func testTodoStoreTool_create_persistsToTodoStore() async throws {
         print("[TEST] step 1: makeTodoStore")
         let todoStore = try await Self.makeTodoStore()
         print("[TEST] step 2: makeHermesTool")
         let (hermesTool, hermesStore) = Self.makeHermesTool()
         print("[TEST] step 3: TodoStoreTool.init")
-        let tool = TodoStoreTool(hermesTodo: hermesTool, todoStore: todoStore)
+        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
 
         // Sanity check: TodoStore actor works in isolation.
         print("[TEST] step 4: precheck list")
@@ -96,10 +97,11 @@ struct TodoStoreToolTests {
     // MARK: - Test 2: list returns TodoStore items
 
     @Test("todo_list returns the canonical TodoStore items as JSON")
+    @MainActor
     func testTodoStoreTool_list_returnsTodoStoreItems() async throws {
         let todoStore = try await Self.makeTodoStore()
         let (hermesTool, _) = Self.makeHermesTool()
-        let tool = TodoStoreTool(hermesTodo: hermesTool, todoStore: todoStore)
+        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
 
         // Pre-seed TodoStore with 2 items (= bypasses the adapter so
         // this test isolates the list path).
@@ -119,10 +121,11 @@ struct TodoStoreToolTests {
     // MARK: - Test 3: complete marks item done
 
     @Test("todo_complete updates the TodoStore row to status=completed")
+    @MainActor
     func testTodoStoreTool_complete_marksItemDone() async throws {
         let todoStore = try await Self.makeTodoStore()
         let (hermesTool, hermesStore) = Self.makeHermesTool()
-        let tool = TodoStoreTool(hermesTodo: hermesTool, todoStore: todoStore)
+        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
 
         // 1) create an item
         let createInput = #"{"action":"create","id":"task-2","content":"Write outline"}"#
@@ -148,10 +151,11 @@ struct TodoStoreToolTests {
     // MARK: - Test 4: remove deletes item
 
     @Test("todo_remove deletes the TodoStore row")
+    @MainActor
     func testTodoStoreTool_remove_deletesItem() async throws {
         let todoStore = try await Self.makeTodoStore()
         let (hermesTool, hermesStore) = Self.makeHermesTool()
-        let tool = TodoStoreTool(hermesTodo: hermesTool, todoStore: todoStore)
+        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
 
         // 1) create
         _ = try await tool.execute(input: #"{"action":"create","id":"task-3","content":"Throwaway task"}"#)
