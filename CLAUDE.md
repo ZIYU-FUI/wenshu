@@ -13,11 +13,11 @@
 **Project baseline** (2026-08-06 老板 拍板, updated 2026-09-03):
 
 - 老板 拍板 "self-built Swift/SwiftUI desktop app + self-built lightweight AI kernel + BYOK 7-connector LLM layer (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn). 老板 configures key and uses."
-- **Stack** = Swift / SwiftUI single-process app + CoreData single-file `.ws` + Swift Concurrency actor serialization + LLM connector layer (7 profiles, BYOK, provider-agnostic, see AGENTS.md §11.2).
+- **Stack** = Swift / SwiftUI single-process app + SwiftData single-file `.ws` + Swift Concurrency actor serialization + LLM connector layer (7 profiles, BYOK, provider-agnostic, see AGENTS.md §11.2).
 - **Do NOT reuse** = any external AI platform / any AI platform process / any AI platform CLI / any monorepo / legacy wenshu monorepo fork / legacy plugin route.
 - **Core user** = person with long-form novel idea but no writing experience (ordinary user).
 - **v1 LLM connector layer** = 7 profiles, user BYOK, no default recommendation (see AGENTS.md §11.2 for the 7 profiles).
-- **`.ws` single file** = CoreData + attachments, locally self-managed.
+- **`.ws` single file** = SwiftData + attachments, locally self-managed.
 - **Platform** = macOS-only (单 platform per 老板 8/18 拍; iPad / iPhone single Swift/SwiftUI code is structurally supported but not yet target).
 - **Version format** = three digits (Hermes style). Middle digit = phase, third digit = hotfix.
 
@@ -35,11 +35,11 @@
 |-------|------|---------|------------------|
 | Language | Swift | 6.4+ | Apple native. SwiftUI 6 covers all 3 platforms. |
 | Desktop | SwiftUI | macOS 14+ (`.macOS(.v27)` single platform per 老板 8/18 拍) | Same code, 3-platform struct, macOS-first target. |
-| Data store | CoreData | Apple framework | Cross-Apple, single-file, actor-friendly. |
+| Data store | SwiftData | Apple framework (= Apple-recommended; = replaced CoreData in v0.72 per AGENTS.md §11.4) | Cross-Apple, single-file, actor-friendly. |
 | Concurrency | Swift Concurrency | Swift 5.5+ | actor serialization + Task async + AsyncSequence streaming. |
 | LLM connector layer | 7 profiles (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn) | BYOK, provider-agnostic | Per AGENTS.md §11.2. minimax cn is one of 7 connectors (Anthropic-compatible). |
 | Streaming | URLSession + self-built SSE parser | — | byte-level accumulation, event type classification. |
-| Project format | `.ws` | CoreData store + attachments | Local single-file, cross-device copy. |
+| Project format | `.ws` | SwiftData store + attachments | Local single-file, cross-device copy. |
 | LLM key store | macOS Keychain | Apple framework | Never in file, log, or commit. |
 | Multi-device sync | Self cloud (iCloudID / OneDrive / Git / USB) | — | 文枢 does not participate. 文枢 does not sense. |
 | Payment | Apple Developer Program | Individual $99 / year | Paid only on App Store release. |
@@ -47,7 +47,7 @@
 
 **Used** (landed):
 
-- Swift / SwiftUI / CoreData / Swift Concurrency.
+- Swift / SwiftUI / SwiftData (= Apple-recommended) / Swift Concurrency.
 - 7 LLM connector profiles (BYOK, see AGENTS.md §11.2); minimax cn is the boss v0 test default.
 - `.ws` single file as project data.
 - macOS Keychain for LLM keys.
@@ -58,7 +58,7 @@
 - Any LLM provider framework (direct connect to LLM providers via wenshu connector layer — no LangChain / SwiftAI / Vercel AI SDK).
 - Any cloud service / account / cross-device sync service.
 - Any monorepo / npm / Python / Rust / Tauri / Vue.
-- Any direct SQLite (use CoreData, no SQLite layer).
+- Any direct SQLite (use SwiftData, Apple-recommended persistence on macOS 14+; = no raw SQLite layer in new code).
 - Any user-installer script / any hermes self-bootstrap chain.
 - Any iCloud sync integration (老板 self cloud).
 - Any iOS / iPadOS / Catalyst adapter (dead code = delete).
@@ -99,7 +99,7 @@ wenshu/                                                ← project root (v0.00.0
 |--------|------|----------------|------|
 | MainActor chat layer | `Sources/WenshuApp/` | User chat always responsive, stage gate, board render, `@` syntax parse | WenshuCore, WenshuUI |
 | Background tasks | `Sources/WenshuCore/LLM/` + `/Search/` | LLM call, chapter summary, research, revision candidate, style distill | WenshuCore, LLM connector layer |
-| Store actor | `Sources/WenshuCore/Store/` | CoreData write serialization, transaction, version mgmt | CoreData |
+| Store actor | `Sources/WenshuApp/Persistence/Repositories/` | SwiftData @Model repositories + ModelContainer, transaction, version mgmt | SwiftData |
 | LLM connector layer | `Sources/WenshuCore/LLM/` | 7 connector profiles (BYOK, see AGENTS.md §11.2), SSE streaming, key mgmt | Connector APIs |
 | Stage gate | `Sources/WenshuCore/Stage/` | Idea / setting / outline / body stage switch, maturity judge | WenshuCore |
 | Marker system | `Sources/WenshuCore/Marker/` | `※` todo / foreshadow / info-point / fact-check | WenshuCore |
@@ -118,7 +118,7 @@ wenshu/                                                ← project root (v0.00.0
 
 | Internal interface | Path | Use |
 |--------------------|------|-----|
-| `WenshuStore` actor | `Sources/WenshuCore/Store/` | CoreData write serialization. Only cross-module write entry. |
+| `WSPersistenceContainer` | `Sources/WenshuApp/Persistence/Container.swift` | SwiftData ModelContainer. Single ModelContainer per app (= 23 @Model classes). |
 | `LLMConnector` protocol | `Sources/WenshuCore/LLM/LLMConnector.swift` | Abstract LLM call. 7 connector profiles conform (Anthropic native / OpenAI native / OpenAI-compatible / Gemini native). See AGENTS.md §11.2. |
 | `ContextAssembler` | `Sources/WenshuCore/Search/ContextAssembler.swift` | Long-term memory → LLM minimal context. |
 | `StageGate` | `Sources/WenshuCore/Stage/StageGate.swift` | Stage gate main controller. |
@@ -174,12 +174,12 @@ swift run swiftlint
 
 > **Most important section. pocock reads first when taking on a task.**
 
-文枢 = Swift / SwiftUI self-built desktop app + CoreData + 7-connector LLM layer (BYOK, see AGENTS.md §11.2). **Forbidden**:
+文枢 = Swift / SwiftUI self-built desktop app + SwiftData + 7-connector LLM layer (BYOK, see AGENTS.md §11.2). **Forbidden**:
 
 - Introduce any external AI platform dependency.
 - Introduce any LLM framework (LangChain / SwiftAI / Vercel AI SDK / OpenAI Swift Client etc.).
 - Introduce any monorepo / npm / Python / Rust / Tauri / Vue.
-- Direct connect SQLite (use CoreData, no SQLite layer).
+- Direct connect SQLite (use SwiftData, Apple-recommended persistence on macOS 14+; = no raw SQLite layer in new code).
 - Any user-installer script / any hermes self-bootstrap chain.
 - Any iCloud sync integration (老板 self cloud).
 - Change LICENSE text.
@@ -226,8 +226,8 @@ swift run swiftlint
 
 - `Sources/WenshuApp/App.swift` — SwiftUI App entry.
 - `Sources/WenshuApp/MainView.swift` — main view.
-- `Sources/WenshuCore/Model/*.swift` — CoreData entity (schema change requires 老板 拍).
-- `Sources/WenshuCore/Store/WenshuStoreActor.swift` — CoreData write serialization.
+- `Sources/WenshuApp/Persistence/WS*.swift` — SwiftData @Model classes (schema change requires 老板 拍).
+- `Sources/WenshuApp/Persistence/Container.swift` — SwiftData ModelContainer setup (= 23 @Model classes, single container per app).
 - `Sources/WenshuCore/LLM/LLMConnector.swift` — LLM connector protocol (7 profiles conform).
 - `Sources/WenshuCore/LLM/SSEParser.swift` — SSE streaming parser (by event type).
 - `Sources/WenshuCore/Stage/StageGate.swift` — stage gate.

@@ -33,7 +33,9 @@
 - **Storage** = `.ws` directory (= NSOpenPanel-selected, single instance, locked to `UserDefaults.wenshu.libraryPath`) = `Info.plist + chat.sqlite + Icon + shelves/ (user Bookshelves) + reference-library/ (system-managed default shelf; user CANNOT delete or rename) + cache/`. Per-book structure = `shelves/<shelf-uuid>/books/<book-uuid>/` with 8 standard folders (world/ characters/ outlines/ chapters/ drafts/ sessions/ foreshadowing/ placeholders/) + 8 JSON sidecars + 2 per-book JSON data files (kanban.json, todo.json). See `AGENTS.md` §11 for the canonical spec.
 - **Build** = SwiftPM, `.macOS(.v27)` single platform, `Package.swift` as single entry.
 - **LSP / LLM** = no external AI platform calls in any code file.
-- **NOT used** = UIKit, Tauri, Rust, SQLite, Vue 3, sparse-clone, novel-platform / novel-craft / Hermes-Slate-Desk legacy V0.5.x protocol.
+- **NOT used** = UIKit, Tauri, Rust, raw SQLite (replaced by SwiftData in v0.72 per AGENTS.md §11.4), Vue 3, sparse-clone, novel-platform / novel-craft / Hermes-Slate-Desk legacy V0.5.x protocol.
+
+  - **Pre-v0.72 legacy** = raw sqlite3 (MemoryStore / ChatSessionStore / TodoStore / BookmarkStore / KanbanStore / LinkIndex + WenshuWorkspace mega-store). Deprecated in v0.72 (= file-header comments + #warning directives per AGENTS.md §11.4); = deletion pending phase 3 deferred caller migrations.
 - **NOT used** = iOS / iPadOS / Catalyst adapter (dead code per 老板 8/18 拍).
 
 ## Domain words

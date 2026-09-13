@@ -26,6 +26,15 @@
 
 import Foundation
 import SQLite3
+#warning("wenshu.sqlite3-deprecation: raw sqlite3 store; use SwiftData WSMemory/etc. instead")
+
+// DEPRECATED: This file uses raw sqlite3. Per AGENTS.md §11.4
+// SwiftData migration, raw sqlite3 stores are being phased out.
+// New code should use the equivalent SwiftData @Model classes
+// (= WSMemory / WSChatMessage / WSTodo / etc.) via
+// WSMemoryRepository.shared / WSChatRepository.shared / etc.
+// (= Sources/WenshuApp/Persistence/Repositories/<filename>Repository.swift).
+// This file will be deleted in v0.73 once all callers migrate.
 
 /// ChatSessionStore: SQLite-backed chat message persistence. 1 session_id = 1 ongoing conversation (boss 2026-08-21 said "the user only ever sees one conversation"). Schema = 2 tables: chat_messages + chat_summaries. Pattern matches TodoStore / MemoryStore / KanbanStore (actor + SQLite).
 public actor ChatSessionStore {
