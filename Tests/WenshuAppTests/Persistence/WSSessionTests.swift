@@ -11,12 +11,12 @@ struct WSSessionTests {
 
     @MainActor
     private func makeContainer() throws -> ModelContainer {
-        let schema = Schema([WSSession.self])
+        let schema = Schema([WSSession.self, WSChatMessage.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: config)
     }
 
-    @Test("WSSession init sets sessionID + title; archivedAt = nil by default")
+    @Test("WSSession init sets sessionID + title; archivedAt = nil; messages = []")
     @MainActor
     func initSetsFields() throws {
         let container = try makeContainer()
@@ -30,6 +30,7 @@ struct WSSessionTests {
         #expect(fetched[0].sessionID == "sess-001")
         #expect(fetched[0].title == "main chat")
         #expect(fetched[0].archivedAt == nil)
+        #expect(fetched[0].messages.isEmpty)
     }
 
     @Test("WSSession init without title (= nil title OK)")

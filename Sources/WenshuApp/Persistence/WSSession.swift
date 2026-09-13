@@ -1,25 +1,14 @@
 //
 //  Persistence/WSSession.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 10 of 21 @Model classes: WSSession.
-//  Mirrors `chat_sessions` table from ChatSessionStore.swift (= v0.18 ticket 04
-//  local chat history; = hermes chat_history_table.py 1:1 port).
+//  Migration commit 12 of 21 @Model classes: WSSession adds
+//  @Relationship to WSChatMessage.
 //
-//  WSSession is a chat session grouping (= a chat has 1+ sessions).
-//
-//  IMPORTANT: This commit defines WSSession WITHOUT @Relationship children.
-//  The children (WSChatMessage, WSSummary, WSSubAgentRun) land in subsequent
-//  commits and will add their inverse @Relationship at that time (= SwiftData
-//  requires both sides to compile together, so we land them in pairs):
-//
-//    commit 10: WSSession (this file)
-//    commit 11: WSChatMessage (1↔N messages) + inverse back to WSSession
-//    commit 12: WSSummary (1↔1 summary) + inverse
-//    commit 13: WSSubAgentRun (1↔N subAgentRuns) + inverse
-//
-//  Until then, foreign keys are stored as optional strings (= sessionID).
-//  This pattern matches the old sqlite3 schema (= it was already string-FK
-//  not enforced).
+//  This commit defines the parent-side @Relationship (with inverse
+//  keyPath pointing to WSChatMessage.session). The child's `session`
+//  property is a plain Optional (= not @Relationship) — SwiftData
+//  accepts this pattern: parent declares @Relationship with inverse,
+//  child declares a matching optional property.
 
 import Foundation
 import SwiftData
@@ -27,11 +16,14 @@ import SwiftData
 @Model
 final class WSSession {
     @Attribute(.unique) var sessionID: String
-    /// "default" for the main session; otherwise hermes-generated UUID string
     var title: String?
     var createdAt: Date
     var updatedAt: Date
     var archivedAt: Date?
+
+    /// 1↔N WSChatMessage via inverse = child.session
+    @Relationship(deleteRule: .cascade, inverse: \WSChatMessage.session)
+    var messages: [WSChatMessage] = []
 
     init(sessionID: String, title: String? = nil) {
         self.sessionID = sessionID

@@ -11,7 +11,7 @@ struct WSChatMessageTests {
 
     @MainActor
     private func makeContainer() throws -> ModelContainer {
-        let schema = Schema([WSChatMessage.self])
+        let schema = Schema([WSChatMessage.self, WSSession.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: config)
     }
@@ -55,15 +55,27 @@ struct WSChatMessageTests {
         }
     }
 
-    @Test("WSChatMessage sessionID FK is a plain string (= matches old sqlite3)")
+    @Test("WSChatMessage 1↔N relationship to WSSession (= bidirectional)")
     @MainActor
-    func sessionIDIsStringFK() throws {
+    func relationshipToSession() throws {
         let container = try makeContainer()
         let context = ModelContext(container)
-        let msg = WSChatMessage(id: "m-fk", sessionID: "any-session-id", role: "user", content: "x", position: 0)
-        context.insert(msg)
+        let session = WSSession(sessionID: "sess-rel", title: "rel test")
+        context.insert(session)
+        let msg1 = WSChatMessage(id: "m1", sessionID: session.sessionID, role: "user", content: "1", position: 0)
+        let msg2 = WSChatMessage(id: "m2", sessionID: session.sessionID, role: "assistant", content: "2", position: 1)
+        context.insert(msg1)
+        context.insert(msg2)
+        msg1.session = session
+        msg2.session = session
         try context.save()
-        #expect(msg.sessionID == "any-session-id")
+
+        // Forward: child.session points to parent
+        #expect(msg1.session?.sessionID == "sess-rel")
+        // Inverse: parent.messages contains both children
+        #expect(session.messages.count == 2)
+        let ids = Set(session.messages.map { $0.id })
+        #expect(ids == Set(["m1", "m2"]))
     }
 
     @Test("WSChatMessage id uniqueness enforced")

@@ -1,13 +1,15 @@
 //
 //  Persistence/WSChatMessage.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 11 of 21 @Model classes: WSChatMessage.
-//  Mirrors `chat_messages` table from ChatSessionStore.swift.
+//  Migration commit 12 of 21 @Model classes: WSChatMessage adds the
+//  child-side `session` property (= plain Optional, NOT @Relationship;
+//  = the parent WSSession declares @Relationship(inverse:) referring
+//  back to this property).
 //
-//  Note: No @Relationship to WSSession in this commit (= SwiftData
-//  circular reference prevention; = a follow-up commit will add the
-//  @Relationship once both sides have compatible keyPath declarations).
-//  For now, the FK is `sessionID: String` (= matches old sqlite3).
+//  This pattern (= one-sided @Relationship with keyPath inverse) avoids
+//  the SwiftData circular reference issue (= both files compile because
+//  the keyPath is resolved at macro expansion time, but no second
+//  @Relationship attribute is needed here).
 
 import Foundation
 import SwiftData
@@ -15,7 +17,7 @@ import SwiftData
 @Model
 final class WSChatMessage {
     @Attribute(.unique) var id: String
-    /// FK to WSSession.sessionID (= string FK, = matches old sqlite3)
+    /// FK to WSSession.sessionID (= string FK, = legacy)
     var sessionID: String
     var role: String
     var status: String
@@ -27,6 +29,9 @@ final class WSChatMessage {
     var position: Int
     var createdAt: Date
     var updatedAt: Date
+
+    /// Inverse relationship target (= declared on WSSession via @Relationship(inverse:))
+    var session: WSSession?
 
     init(id: String, sessionID: String, role: String, content: String, position: Int, status: String = "ok") {
         self.id = id
