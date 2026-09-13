@@ -352,33 +352,6 @@ struct ZoneEditor: View {
             }
         }
     }
-
-    /// Split buttons overlay (= + buttons on column boundaries
-    /// between zones). Clicking a + button inserts a vertical
-    /// split at that column.
-    @ViewBuilder
-    private func splitButtonsOverlay(in size: CGSize) -> some View {
-        let colEdges = prefixSum(model.columnPercents)
-        ZStack {
-            ForEach(0..<(colEdges.count - 1), id: \.self) { i in
-                if i > 0 {
-                    // + button at the boundary between column i-1
-                    // and column i (= at colEdges[i] in the
-                    // 0..MULTIPLIER coordinate space).
-                    Button(action: { splitAtColumn(i) }) {
-                        LucideIconSystemFallback("plus", size: 14)
-                            .foregroundStyle(.white)
-                            .frame(width: DesignTokens.iconButtonSmall, height: DesignTokens.iconButtonSmall)
-                            .background(Circle().fill(Color.accentColor))
-                    }
-                    .buttonStyle(.plain)
-                    .position(x: CGFloat(colEdges[i]) / CGFloat(MULTIPLIER) * size.width,
-                               y: size.height / 2)
-                }
-            }
-        }
-    }
-
     /// Compute the screen frame for a zone (= converting the
     /// 0..MULTIPLIER coordinate space to the canvas size).
     private func zoneRect(zone: GridZone, in size: CGSize) -> CGRect {

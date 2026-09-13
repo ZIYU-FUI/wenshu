@@ -31,8 +31,6 @@ public enum SyncResult: Sendable, Equatable {
 public actor MemoryManager {
     private let store: MemoryStore
     private let maxCharBudget: Int  // hermes default = 2200
-    private let externalPrefetchTimeout: TimeInterval = 8.0  // hermes default
-
     public init(store: MemoryStore, maxCharBudget: Int = 2200) {
         self.store = store
         self.maxCharBudget = maxCharBudget

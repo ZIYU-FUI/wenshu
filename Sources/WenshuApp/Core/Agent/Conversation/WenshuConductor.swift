@@ -46,7 +46,6 @@ public actor WenshuConductor {
     /// Tools are stateless structs, no bootstrap needed.
     /// See .scratch/2026-08-22-frontend-integration/issues/h10-tools-frontend.md.
     private let fileTools: FileTools = FileTools()
-    private let processTools: ProcessTools = ProcessTools()
     private let webTools: WebTools = WebTools()
     private let visionTools: VisionTools = VisionTools()
     /// h14: AVMediaTools — agent toolkit dispatch + chat UI read-aloud button.

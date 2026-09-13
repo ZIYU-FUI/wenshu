@@ -356,15 +356,4 @@ private struct ZoneContentTabBar: View {
             }
         )
     }
-
-    /// v0.28 followup Boss UX round A (Phase 2 of refactor): this helper
-    /// is no longer needed because PaneTabBar uses PaneIconTab internally
-    /// (= which uses LucideIconSystemFallback directly). Kept as a no-op
-    /// stub for backward compatibility with any external callers (= will
-    /// be deleted in a follow-up commit after search confirms no
-    /// remaining callers).
-    @ViewBuilder
-    private func zoneContentTabBarIcon(_ systemName: String) -> some View {
-        LucideIconSystemFallback(systemName)
-    }
 }

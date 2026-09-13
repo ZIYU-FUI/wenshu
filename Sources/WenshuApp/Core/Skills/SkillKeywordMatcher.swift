@@ -112,7 +112,4 @@ public actor SkillKeywordMatcher {
         }
         return best?.keyword
     }
-    public func matchByFileType(_ filePath: String) -> SkillKeyword? {
-        keywords.values.filter { keyword in keyword.fileTypeTriggers.contains { filePath.lowercased().hasSuffix($0.lowercased()) } }.sorted { $0.priority < $1.priority }.first
-    }
 }

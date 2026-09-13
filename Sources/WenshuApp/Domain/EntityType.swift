@@ -88,25 +88,6 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
         case .other: return "其他"
         }
     }
-
-    /// Ultra-compact 1-char abbreviation (= only for very tight UIs
-    /// like the projectPreview card header chip where space is critical).
-    /// Boss OOB prefers shortName (full 2-4 char Chinese name); this
-    /// 1-char variant is kept for future use but NOT the default.
-    public var ultraShortName: String {
-        switch self {
-        case .character: return "人"
-        case .location: return "地"
-        case .event: return "事"
-        case .concept: return "念"
-        case .artifact: return "物"
-        case .organization: return "组"
-        case .era: return "代"
-        case .work: return "作"
-        case .other: return "?"
-        }
-    }
-
     /// Lucide icon name (= for sidebar tree display).
     public var icon: String {
         switch self {

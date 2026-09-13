@@ -123,24 +123,6 @@ public actor BackgroundReview {
         pending.removeValue(forKey: proposalID)
         trimDecidedHistory()
     }
-
-    /// Expire old pending proposals (= called periodically).
-    public func expireOldProposals() -> Int {
-        let now = Date()
-        let cutoff = now.addingTimeInterval(-maxPendingAge)
-        var expired = 0
-        for (id, var proposal) in pending {
-            if proposal.submittedAt < cutoff {
-                proposal.status = .expired
-                proposal.decidedAt = now
-                decided.append(proposal)
-                pending.removeValue(forKey: id)
-                expired += 1
-            }
-        }
-        return expired
-    }
-
     /// Trim decided history to maxDecidedHistory (= prevents unbounded growth).
     private func trimDecidedHistory() {
         if decided.count > maxDecidedHistory {

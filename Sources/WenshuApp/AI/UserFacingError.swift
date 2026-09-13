@@ -132,20 +132,6 @@ public enum UserFacingError: Error, LocalizedError {
             return "未知错误，请稍后重试或重启应用。"
         }
     }
-
-    /// Convenience severity hint (= for callers that want to color
-    /// an error banner red vs orange vs gray). Apple HIG banner
-    /// semantics per Issue 05.
-    public var severityHint: String {
-        switch self {
-        case .networkFailure, .timeout: return "warning"
-        case .apiKeyMissing, .apiKeyInvalid, .rateLimited,
-             .outputTooLong, .modelRefusal, .contextTooLong,
-             .fileWriteFailure, .databaseError: return "critical"
-        case .invalidUserInput, .unknown: return "info"
-        }
-    }
-
     /// Map any `Error` to a `UserFacingError` (= best-effort
     /// translation). Falls back to `.unknown` (= catch-all).
     ///

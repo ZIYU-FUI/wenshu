@@ -183,16 +183,6 @@ public actor ConversationLoop {
     public func now() async -> Date {
         await runtime.now()
     }
-
-    /// Expose the underlying `RuntimeHelpers` for callers that need direct
-    /// access to verbose/debug emission or credential resolution. TICKET-
-    /// HERMES-GAP-003 makes the runtime a first-class collaboration
-    /// surface (= callers compose `runtime.vprint(_:)` rather than
-    /// reinventing their own verbose flag).
-    public func currentRuntime() -> RuntimeHelpers {
-        runtime
-    }
-
     /// Run a complete conversation turn (= hermes run_conversation L523-L546).
     ///
     /// 9-param signature mirrors hermes exactly. All params default to nil

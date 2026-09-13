@@ -250,65 +250,6 @@ struct SettingView: View {
         }
         .formStyle(.grouped)
     }
-
-    private var providerTab: some View {
-        // Hermes: SearchField + List providers with status icon + "paste X " hint
-        Form {
-            Section {
-                ForEach(Provider.all) { p in
-                    HStack {
-                        // v0.27 boss 8/27 OOB: SF 'key' / 'key.fill' → Lucide 'key'.
-                        LucideIconSystemFallback(providersWithKeys.contains(p.slug) ? "key.fill" : "key", size: 16)
-                            .foregroundStyle(providersWithKeys.contains(p.slug) ? .green : .secondary)
-                            .frame(width: DesignTokens.iconStandardSize)
-                        Text(p.name)
-                            .font(.body)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        if providersWithKeys.contains(p.slug) {
-                            Text(WenshuI18n.t("settings.provider.key_status_label"))
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        } else if p.requiresOAuth {
-                            Text(WenshuI18n.t("settings.provider.paste_key_label"))
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        } else if p.slug == "custom" {
-                            Text(WenshuI18n.t("settings.provider.paste_key_label"))
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        } else {
-                            Text(WenshuI18n.ts("settings.provider.paste_provider_key_label", p.name))
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        if p.slug == providerSlug {
-                            // v0.27 boss 8/27 OOB: SF 'checkmark' → Lucide 'check'.
-                            LucideIconSystemFallback("checkmark")
-                                .foregroundStyle(.blue)
-                                .font(.caption)
-                        }
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        selectProvider(p)
-                        if !providersWithKeys.contains(p.slug) && !p.requiresOAuth && p.slug != "custom" {
-                            selectedTab = .providerApi
-                            apiExpandedProviders.insert(p.slug)
-                            apiDraftKey = ""
-                            apiError = nil
-                        }
-                    }
-                }
-            } header: {
-                Text(WenshuI18n.t("settings.provider.custom_endpoint_label"))
-            } footer: {
-                Text(WenshuI18n.t("settings.provider.custom_endpoint_caption"))
-                    .font(.caption)
-            }
-        }
-        .formStyle(.grouped)
-    }
-
     private var providerApiTab: some View {
         Form {
             Section {

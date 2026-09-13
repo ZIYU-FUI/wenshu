@@ -90,14 +90,6 @@ public enum ModelDisplay {
         guard let data = try? JSONEncoder().encode(dict) else { return }
         UserDefaults.standard.set(data, forKey: overrideKey)
     }
-
-    /// Clear single ID override (revert to default table).
-    public static func clearBossOverride(_ id: String) {
-        guard var dict = currentOverrides() else { return }
-        dict.removeValue(forKey: id)
-        writeBossOverride(dict)
-    }
-
     /// Read all current boss overrides.
     public static func currentOverrides() -> [String: String]? {
         guard let data = UserDefaults.standard.data(forKey: overrideKey),

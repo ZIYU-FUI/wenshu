@@ -52,7 +52,6 @@ public actor EventBus {
     public init() {}
     public func register(_ handler: any AgentEventHandler) { handlers[handler.handlerName] = handler }
     public func unregister(_ name: String) { handlers.removeValue(forKey: name) }
-    public func registeredHandlers() -> [String] { handlers.keys.sorted() }
     public func publish(_ event: AgentEvent) async {
         let filter = Self.filter(for: event)
         let selected = handlers.values.filter { handler in

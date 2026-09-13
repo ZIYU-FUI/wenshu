@@ -149,16 +149,6 @@ public actor BackgroundCreditsTracker {
         history.removeAll()
         sessionStart = Date()
     }
-
-    /// Reset monthly counter (= user-triggered; clears persisted data).
-    public func resetMonthly() {
-        UserDefaults.standard.set(0, forKey: monthlyKey)
-        UserDefaults.standard.set(
-            ISO8601DateFormatter().string(from: Date()),
-            forKey: monthlyResetKey
-        )
-    }
-
     /// All recorded history (= for diagnostics + UI).
     public var allHistory: [CreditConsumption] {
         return history

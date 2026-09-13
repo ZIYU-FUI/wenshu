@@ -129,9 +129,4 @@ public struct HiddenPane: ViewModifier {
 }
 
 extension View {
-    /// Mark this view as a kept-alive hidden pane (= `visibility: hidden`
-    /// equivalent: layout box preserved, content hidden).
-    public func hiddenPane(_ hidden: Bool) -> some View {
-        modifier(HiddenPane(hidden: hidden))
-    }
 }

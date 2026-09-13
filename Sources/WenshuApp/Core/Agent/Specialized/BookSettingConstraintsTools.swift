@@ -93,17 +93,6 @@ public enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identif
         case .preference:  return "feather"
         }
     }
-
-    /// Whether violations of this severity should block
-    /// shipping the chapter (= = hard only; soft + preference
-    /// are advisory).
-    public var blocksPublish: Bool {
-        switch self {
-        case .hard:        return true
-        case .soft:        return false
-        case .preference:  return false
-        }
-    }
 }
 
 // MARK: - ConstraintScope enum

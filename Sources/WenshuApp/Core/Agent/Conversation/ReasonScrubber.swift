@@ -33,8 +33,6 @@ public enum ReasonScrubber {
     ]
 
     private static let openTags: [String] = openTagNames.map { "<\($0)>" }
-    private static let closeTags: [String] = openTagNames.map { "</\($0)>" }
-
     // MARK: - Public API
 
     /// Strip every reasoning/thinking block from the input. Returns the

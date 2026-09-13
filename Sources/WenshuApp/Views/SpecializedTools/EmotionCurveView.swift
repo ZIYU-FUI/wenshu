@@ -120,13 +120,6 @@ struct EmotionCurveView: View {
                 .foregroundStyle(.secondary)
         }
     }
-
-    private var estimatedWindowChars: Int {
-        let total = chapterText.count
-        guard windowCount > 0 else { return 0 }
-        return total / windowCount
-    }
-
     // MARK: - Input
 
     private var inputSection: some View {

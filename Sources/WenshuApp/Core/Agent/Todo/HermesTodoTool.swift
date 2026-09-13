@@ -701,9 +701,3 @@ public struct HermesTodoSessionStore: Sendable {
         try FileManager.default.moveItem(at: tmpURL, to: jsonURL)
     }
 }
-
-// MARK: - check_todo_requirements (= mirrors Python `check_todo_requirements`)
-
-/// Todo tool has no external requirements -- always available.
-/// (= mirrors Python `check_todo_requirements`.)
-public func hermesCheckTodoRequirements() -> Bool { true }

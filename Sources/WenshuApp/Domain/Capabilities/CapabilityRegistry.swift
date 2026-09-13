@@ -157,22 +157,3 @@ public struct CrossRefInjectCapability: Capability {
         .empty
     }
 }
-
-/// v0.34: default registry (= registers the 4 chat-side
-/// capabilities at app launch). Per Q34 single-subject rule, this
-/// commit only ADDS the registry; it does NOT wire the existing
-/// `ChatTrigger` / `SmartQueryParser` / `EntityIngestion` /
-/// `CrossRefInject` to the registry (= those wirings are future
-/// tickets = open-for-extension per the registry pattern).
-public func makeDefaultCapabilityRegistry() -> CapabilityRegistry {
-    let registry = CapabilityRegistry()
-    // Synchronous registration via Task (= the actor's `register`
-    // is async; we hop once at app launch).
-    Task { @Sendable in
-        await registry.register(ChatTriggerCapability())
-        await registry.register(SmartQueryCapability())
-        await registry.register(EntityIngestionCapability())
-        await registry.register(CrossRefInjectCapability())
-    }
-    return registry
-}
