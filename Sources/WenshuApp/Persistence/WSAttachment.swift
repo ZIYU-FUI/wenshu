@@ -1,0 +1,50 @@
+//
+//  Persistence/WSAttachment.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//
+//  Migration commit 9 of 21 @Model classes: WSAttachment.
+//  Mirrors `attachments` table from WenshuWorkspace.swift.
+//
+//  Polymorphic design (= old schema used `parent_table` + `parent_id`):
+//  parentKind (discriminator) + parentID (FK to that kind's table).
+//  Allowed parentKind values (= matches old WenshuWorkspace usage):
+//    - "chat_message"
+//    - "kanban_task"
+//    - "book"
+//    - "outline"
+//
+//  Storage strategy:
+//    - data: Data?         = inline blob (thumbnails, <1MB files)
+//    - externalPath: String? = filesystem path (large files, = wenshu's
+//      cache/ directory). Inline + external are mutually exclusive (= one
+//      is set, the other is nil).
+
+import Foundation
+import SwiftData
+
+@Model
+final class WSAttachment {
+    @Attribute(.unique) var id: String
+    var parentKind: String
+    var parentID: String
+    var filename: String
+    var mimeType: String
+    var sizeBytes: Int
+    var data: Data?
+    var externalPath: String?
+    var createdAt: Date
+
+    init(id: String, parentKind: String, parentID: String, filename: String, mimeType: String, sizeBytes: Int) {
+        self.id = id
+        self.parentKind = parentKind
+        self.parentID = parentID
+        self.filename = filename
+        self.mimeType = mimeType
+        self.sizeBytes = sizeBytes
+        self.createdAt = Date()
+    }
+
+    /// Storage invariant: exactly one of data / externalPath is set.
+    var hasValidStorage: Bool {
+        (data != nil) != (externalPath != nil)
+    }
+}
