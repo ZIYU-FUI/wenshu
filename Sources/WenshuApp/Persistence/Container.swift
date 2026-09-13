@@ -108,4 +108,65 @@ public enum WSPersistenceContainer {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: [config])
     }
+
+    /// Make a file-backed container at a custom URL (= warehouse path for
+    /// boss 8/25 OOB "chat.sqlite must live in .ws warehouse" rule).
+    ///
+    /// Phase 5 ticket 1 sub-task 1a (= SwiftData warehouse path support).
+    /// Replaces the per-file SQLite Actor pattern (= ChatSessionStore, KanbanStore)
+    /// where each file opens its own sqlite3 handle at a custom path.
+    ///
+    /// Parameters:
+    ///   - url: file URL for the SwiftData store (= the parent directory
+    ///     must exist; = the file itself will be created by SwiftData).
+    ///   - name: optional store name (= default = derived from the URL's
+    ///     lastPathComponent per Apple SDK convention).
+    ///   - readOnly: if true, opens the store in read-only mode (= future ticket).
+    ///
+    /// Throws if SwiftData cannot create the container (= e.g. disk full,
+    /// permissions denied, corrupted store).
+    @MainActor
+    public static func makeContainer(
+        at url: URL,
+        name: String? = nil,
+        readOnly: Bool = false
+    ) throws -> ModelContainer {
+        // Apple SwiftData SDK 27 init signature (= verified via swiftinterface):
+        //   init(_ name: String? = nil, schema: Schema? = nil, url: URL,
+        //        allowsSave: Bool = true, cloudKitDatabase: CloudKitDatabase = .automatic)
+        // Note: NO `groupContainer:` or `isStoredInMemoryOnly:` params on the url: init.
+        let config = ModelConfiguration(
+            name,
+            schema: schema,
+            url: url,
+            allowsSave: !readOnly,
+            cloudKitDatabase: .none
+        )
+        return try ModelContainer(for: schema, configurations: [config])
+    }
+
+    /// Factory: pick the right container for the current warehouse state.
+    ///
+    /// Logic:
+    ///   1. If warehouse URL provided (= from UserDefaults "wenshu.libraryPath"),
+    ///      try to make a container at that URL (= boss 8/25 OOB rule).
+    ///   2. If that fails OR no warehouse URL, fall back to Application Support
+    ///      (= current `shared` behavior).
+    ///   3. If both fail, fall back to in-memory (= tests survive).
+    ///
+    /// Caller is responsible for catching + logging the warehouse failure
+    /// (= so user sees a non-fatal warning instead of silent fallback).
+    @MainActor
+    public static func makeContainerForWarehouse(_ warehouseURL: URL?) throws -> ModelContainer {
+        if let warehouseURL {
+            let storeURL = warehouseURL.appendingPathComponent("WenshuStore.store")
+            do {
+                return try makeContainer(at: storeURL)
+            } catch {
+                NSLog("[WSPersistenceContainer] warehouse container failed (\(error)). Falling back to Application Support.")
+                // Fall through to default `shared`
+            }
+        }
+        return shared
+    }
 }
