@@ -2,7 +2,7 @@
 //  BackgroundReview.swift · Wenshu · v0.36 ticket 016 sub-step 3
 //
 //  Background review workflow (= spec §3.1 L227-231 Background/
-//  sub-directory, file 2 of 4).
+//  sub-directory, file 2 of 5).
 //
 //  When a background task proposes changes (= entity creation, file
 //  edits, etc.), the user reviews the diff and approves or rejects.

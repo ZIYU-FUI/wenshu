@@ -803,6 +803,7 @@ public actor WenshuConductor {
         // The recommended future-proofing is `prewarmToolCache()`
         // from `App.swift` startup (= no sync bridge needed at
         // runtime).
+        #warning("v0.72 Q99 dual-axis re-audit pass 3: DispatchSemaphore bridge blocks caller thread up to toolRegistryWaitTimeoutMs. Future ticket should convert buildTools to async/await (= eliminates the MainActor-deadlock risk).")
         //
         // Implementation: Sendable-safe ResultBox for the return
         // value (= `any Tool` is not Sendable but a `@unchecked
