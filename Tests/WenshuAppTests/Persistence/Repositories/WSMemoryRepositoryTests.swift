@@ -62,7 +62,7 @@ struct WSMemoryRepositoryTests {
     func update() throws {
         let repo = try makeRepository()
         let added = try repo.add(userId: "u", content: "old")
-        try? Thread.sleep(forTimeInterval: 0.01)
+        try? Thread.sleep(forTimeInterval: 0.05)  // v0.72 Q99 MED fix: bumped from 0.01 (= too flaky on slow CI; = needs > Date precision)
         try repo.update(memoryId: added.memoryId, content: "new")
         let fetched = try repo.get(memoryId: added.memoryId)
         #expect(fetched?.content == "new")

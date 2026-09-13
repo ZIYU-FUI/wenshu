@@ -45,7 +45,7 @@ struct WSTodoTests {
         context.insert(todo)
         try context.save()
         let original = todo.updatedAt
-        try? Thread.sleep(forTimeInterval: 0.01)
+        try? Thread.sleep(forTimeInterval: 0.05)  // v0.72 Q99 MED fix: bumped from 0.01 (= too flaky on slow CI; = needs > Date precision)
         todo.updateStatus("in_progress")
         try context.save()
         #expect(todo.status == "in_progress")
