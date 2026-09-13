@@ -33,7 +33,7 @@ import SwiftData
 /// Singleton ModelContainer (= held by AppState).
 /// Initialization is lazy (= defer until first access).
 public enum WSPersistenceContainer {
-    /// Schema listing all 20 @Model classes (= generated below)
+    /// Schema listing all 23 @Model classes (= generated below)
     public static let schema = Schema([
         // Tier 1: leaf entities (= no relationships)
         WSManifest.self,
@@ -78,16 +78,17 @@ public enum WSPersistenceContainer {
         do {
             return try ModelContainer(for: schema, configurations: [config])
         } catch {
-            // Last-resort fallback (= store in /tmp so app at least launches;
-            // the user can reset and re-onboard via Library Properties).
+            // Last-resort fallback (= in-memory only; = no disk side effects).
+            // App still launches; = user can reset and re-onboard via Library Properties.
             NSLog("[WSPersistenceContainer] FATAL: cannot create ModelContainer (\(error)). Falling back to in-memory.")
-            let fallbackConfig = ModelConfiguration(
-                "WenshuStoreFallback",
-                schema: schema,
-                isStoredInMemoryOnly: true
-            )
-            // swiftlint:disable:next force_try
-            return try! ModelContainer(for: schema, configurations: [fallbackConfig])
+            // Use makeInMemoryContainer (= uses non-throwing throw semantics; = recoverable).
+            // If THIS also fails (= truly impossible per Apple docs for in-memory stores),
+            // = SwiftData runtime is broken; = fatal exit is acceptable (= nothing we can do).
+            do {
+                return try makeInMemoryContainer()
+            } catch {
+                fatalError("SwiftData runtime is broken: \(error). Wenshu cannot continue.")
+            }
         }
     }()
 
