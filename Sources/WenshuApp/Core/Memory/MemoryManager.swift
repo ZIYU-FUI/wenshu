@@ -37,7 +37,7 @@ public actor MemoryManager {
     /// deletion is gated on every other caller migrating (= future ticket).
     private let store: MemoryStore?
     private let maxCharBudget: Int  // hermes default = 2200
-    public init(store: MemoryStore, maxCharBudget: Int = 2200) {
+    public init(store: MemoryStore? = nil, maxCharBudget: Int = 2200) {
         self.store = store
         self.maxCharBudget = maxCharBudget
     }
