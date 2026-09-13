@@ -1,7 +1,7 @@
 //
 //  Persistence/WSSummary.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 13 of 21 @Model classes: WSSummary.
+//  Phase 1 commit 13/21: WSSummary.
 //  Mirrors `chat_summaries` table from ChatSessionStore.swift.
 //
 //  1↔1 to WSSession (= each session has 0 or 1 summary; = the summary

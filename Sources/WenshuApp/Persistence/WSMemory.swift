@@ -1,7 +1,7 @@
 //
 //  Persistence/WSMemory.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 2 of 21 @Model classes: WSMemory.
+//  Phase 1 commit 2/21: WSMemory.
 //  Per AGENTS.md §11.4 + .scratch/2026-09-13-swiftdata-migration-spec.md.
 //
 //  WSMemory mirrors the `memories` table from MemoryStore.swift:

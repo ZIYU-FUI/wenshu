@@ -1,7 +1,7 @@
 //
 //  Persistence/WSCharacter.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 19 of 21 @Model classes: WSCharacter.
+//  Phase 1 commit 19/21: WSCharacter.
 //  Mirrors Character struct from Domain/Character.swift (= per-book
 //  fictional person; = JSON sidecar per book; = .md file per char).
 //

@@ -1,7 +1,7 @@
 //
 //  Persistence/WSChatMessage.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 12 of 21 @Model classes: WSChatMessage adds the
+//  Phase 1 commit 12/21: WSChatMessage adds the
 //  child-side `session` property (= plain Optional, NOT @Relationship;
 //  = the parent WSSession declares @Relationship(inverse:) referring
 //  back to this property).

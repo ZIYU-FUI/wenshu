@@ -1,7 +1,7 @@
 //
 //  Persistence/WSPreference.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 7 of 21 @Model classes: WSPreference.
+//  Phase 1 commit 7/21: WSPreference.
 //  Note: the `preferences` table in WenshuWorkspace.swift was a late
 //  add (= most preferences live in UserDefaults via @AppStorage).
 //  WSPreference provides the SwiftData K/V store for the few prefs

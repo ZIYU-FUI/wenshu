@@ -1,7 +1,7 @@
 //
 //  Persistence/WSLink.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 5 of 21 @Model classes: WSLink.
+//  Phase 1 commit 5/21: WSLink.
 //  Mirrors `links` table from LinkIndex.swift (= v0.19 ticket 12 Internal Link).
 //
 //  Note: old schema had INTEGER PRIMARY KEY AUTOINCREMENT. SwiftData

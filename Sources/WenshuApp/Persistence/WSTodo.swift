@@ -1,7 +1,7 @@
 //
 //  Persistence/WSTodo.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 3 of 21 @Model classes: WSTodo.
+//  Phase 1 commit 3/21: WSTodo.
 //  Mirrors `todos` table from TodoStore.swift (= v0.18 ticket 06 local Todo).
 //
 //  Status values (hermes-port parity per todo.py):

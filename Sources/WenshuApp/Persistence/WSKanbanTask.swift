@@ -1,7 +1,7 @@
 //
 //  Persistence/WSKanbanTask.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 19 of 21 @Model classes: WSKanbanTask.
+//  Phase 1 commit 19/21: WSKanbanTask.
 //  Mirrors KanbanTask struct from Core/Kanban/KanbanStore.swift +
 //  kanban_tasks table from WenshuWorkspace.swift (= v0.23 ticket 013.003).
 //

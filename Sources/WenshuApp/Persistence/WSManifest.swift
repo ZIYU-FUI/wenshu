@@ -1,7 +1,7 @@
 //
 //  Persistence/WSManifest.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 1 of 21 @Model classes: WSManifest (singleton, no relationships).
+//  Phase 1 commit 1/21: WSManifest (singleton, no relationships).
 //  Per AGENTS.md §11.4 + .scratch/2026-09-13-swiftdata-migration-spec.md.
 //
 //  WSManifest mirrors the old `ws_manifest` table from WenshuWorkspace.swift:

@@ -1,7 +1,7 @@
 //
 //  Persistence/WSSubAgentRun.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 14 of 21 @Model classes: WSSubAgentRun.
+//  Phase 1 commit 14/21: WSSubAgentRun.
 //  Mirrors `sub_agent_runs` table from ChatSessionStore.swift.
 //
 //  1↔N to WSSession (= a chat session can spawn 0+ sub-agent runs;

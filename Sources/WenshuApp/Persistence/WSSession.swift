@@ -1,7 +1,8 @@
 //
 //  Persistence/WSSession.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Updated in commit 14 to add @Relationship to WSSubAgentRun.
+//  Phase 1 commit 10/21: WSSession.
+//  Updated in phase 1 commit 14 to add @Relationship to WSSubAgentRun.
 
 import Foundation
 import SwiftData
