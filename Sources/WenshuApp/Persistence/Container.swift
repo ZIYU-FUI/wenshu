@@ -81,13 +81,15 @@ public enum WSPersistenceContainer {
             // Last-resort fallback (= in-memory only; = no disk side effects).
             // App still launches; = user can reset and re-onboard via Library Properties.
             NSLog("[WSPersistenceContainer] FATAL: cannot create ModelContainer (\(error)). Falling back to in-memory.")
-            // Use makeInMemoryContainer (= uses non-throwing throw semantics; = recoverable).
-            // If THIS also fails (= truly impossible per Apple docs for in-memory stores),
-            // = SwiftData runtime is broken; = fatal exit is acceptable (= nothing we can do).
-            do {
-                return try makeInMemoryContainer()
-            } catch {
-                fatalError("SwiftData runtime is broken: \(error). Wenshu cannot continue.")
+            // shared is called eagerly at module-load time (= non-MainActor context).
+            // makeInMemoryContainer is @MainActor (= tests only); = use MainActor.assumeIsolated
+            // (= safe here because shared is only accessed after @main init).
+            return MainActor.assumeIsolated {
+                do {
+                    return try makeInMemoryContainer()
+                } catch {
+                    fatalError("SwiftData runtime is broken: \(error). Wenshu cannot continue.")
+                }
             }
         }
     }()
