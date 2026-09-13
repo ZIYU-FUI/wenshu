@@ -112,6 +112,18 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // add NSLog for chat store init + bootstrap errors (silent catch
         // makes debugging hard), and post .wenshuChatStoreReady notification
         // so ChatView can retry load when store becomes available.
+        // v0.72 SwiftData migration: trigger one-time sqlite3 → SwiftData migration
+        // (idempotent; = skipped if WSManifest.migratedFromRawSqliteAt is set).
+        // Runs BEFORE the legacy ChatSessionStore init (= so any chat data
+        // that needs migrating is in SwiftData by the time ChatView reads).
+        Task { @MainActor in
+            do {
+                try await WSMigrationRunner.migrateIfNeeded()
+            } catch {
+                NSLog("[wenshu.migration] FAILED: %@", String(describing: error))
+            }
+        }
+
         // v0.24 bossverificationfix (Boss 8/25 OOB 'yes .ws file'):
         // ChatSessionStore location = wenshu warehouse (anbaiqiang.ws/) if set,
         // else fall back to legacy ~/Library/Application Support/wenshu/chat.sqlite.
