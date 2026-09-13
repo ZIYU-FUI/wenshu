@@ -1028,62 +1028,27 @@ public struct ChatView: View {
         // direct verifier path (= non-conductor branch in send()) does
         // not consult a tool registry, so this is a no-op for preview.
         guard let conductor = conductor else { return nil }
-        // Build a peer conductor with the tool registry populated from
-        // ToolRegistry.shared. We reuse the public init (= same surface
-        // App.swift uses); the collaborator triple (runtime / verifier
-        // / kanbanStore) is reconstructed (= standalone preview path;
-        // production uses App-supplied collaborators through the
-        // canonical ChatZoneView shared-vm path which does not go
-        // through here).
+        // Phase 5 ticket 2.2: peer conductor no longer instantiates a
+        // KanbanStore (= the sqlite3 fallback path is dropped; = ticket
+        // 2's goal is to remove all in-tree KanbanStore callers so the
+        // file can be deleted once ticket 6 migrates the production
+        // WenshuConductor storage layer). kanbanStore: nil = the
+        // conductor's 6 kanban method callsites become no-ops.
+        //
+        // Tool registry still populated (= preview keeps the 12-tool
+        // coverage; = production behavior unchanged).
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier()
-        // WIRE-TOOLREGISTRY-003: pull the 12-tool registry from
-        // ToolRegistry.shared (= single source of truth). `buildTools`
-        // polls internally up to `toolRegistryWaitTimeoutMs` for the
-        // module-load `Task { await register(...) }` blocks to settle.
         let tools = WenshuConductor.buildToolsSync(from: ToolRegistry.shared)
-        // KanbanStore construction may fail (= disk-permission issues in
-        // preview / CI); fall back to an in-process stub conductor that
-        // does not write kanban state but still carries the tool
-        // registry (= the test of record lives in
-        // WenshuConductorToolWiringTests and constructs its own kanban).
-        //
-        // v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards axis
-        // HIGH): wrapped the inner `try! KanbanStore(...)` in a
-        // do/catch (= the previous code crashed fatally when the temp
-        // directory was unwritable or the SQLite open failed = the
-        // catch fallback path itself could crash on the unwritable
-        // temp dir = unrecoverable fatal). The new shape: if both
-        // primary + temp-dir paths fail, return nil (= ChatView
-        // treats nil as "no fallback conductor available" = the
-        // caller routes through the no-conductor branch).
-        do {
-            let kanban = try KanbanStore()
-            try kanban.bootstrap()
-            return WenshuConductor(
-                runtime: runtime,
-                verifier: verifier,
-                kanbanStore: kanban,
-                tools: tools
-            )
-        } catch {
-            do {
-                let fallback = try KanbanStore(path: NSTemporaryDirectory() + "wenshu-chat-fallback-\(UUID().uuidString).sqlite")
-                return WenshuConductor(
-                    runtime: runtime,
-                    verifier: verifier,
-                    kanbanStore: fallback,
-                    tools: tools
-                )
-            } catch {
-                // Both primary + temp-dir paths failed (= CI sandbox
-                // or unwritable filesystem). Return nil (= the caller
-                // handles "no fallback conductor" gracefully via the
-                // ChatViewModel direct verifier path).
-                NSLog("[wenshu.chat] conductorRegisteringParagraphAI: both kanban paths failed; returning nil (= caller uses no-conductor branch): \(error.localizedDescription)")
-                return nil
-            }
-        }
+        return WenshuConductor(
+            runtime: runtime,
+            verifier: verifier,
+            // kanbanStore: nil → all 6 kanban callsites in the conductor
+            // become no-ops. Production path still has kanban state via
+            // WenshuAppDelegate L222 (= production App-supplied conductor).
+            kanbanStore: nil,
+            tools: tools
+        )
     }
 
     /// P2 #20 (WIRE-LIBRARIAN-001): build the BookStore instance that
