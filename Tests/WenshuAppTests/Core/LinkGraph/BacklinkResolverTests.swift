@@ -32,18 +32,21 @@ struct BacklinkResolverTests {
         private func lookupName(forDocId docId: String) -> String? { idToName[docId] }
     }
 
-    private func makeTempSetup() async throws -> (LinkIndex, BacklinkResolver, MockDocumentIndex) {
-        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".db")
-        let index = try LinkIndex(path: tmp.path)
-        try await index.bootstrap()
+    @MainActor
+    private func makeTempSetup() async throws -> (BacklinkResolver, MockDocumentIndex) {
+        // Per-test in-memory SwiftData container (= tests don't share state via
+        // WSPersistenceContainer.shared). Each WSLinkRepository is its own
+        // MainActor-isolated object with its own ModelContext.
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        let repository = WSLinkRepository(container: container)
         let docIndex = MockDocumentIndex()
-        let resolver = BacklinkResolver(index: index, documentIndex: docIndex)
-        return (index, resolver, docIndex)
+        let resolver = BacklinkResolver(repository: repository, documentIndex: docIndex)
+        return (resolver, docIndex)
     }
 
     @Test("resolve 解析 markdown + 入库")
     func resolveContent() async throws {
-        let (_, resolver, docIndex) = try await makeTempSetup()
+        let (resolver, docIndex) = try await makeTempSetup()
         await docIndex.setMapping(name: "林黛玉", docId: "doc-LD")
 
         try await resolver.resolve(
@@ -57,7 +60,7 @@ struct BacklinkResolverTests {
 
     @Test("resolve 清空旧链接再入库 (重写场景)")
     func resolveOverwrite() async throws {
-        let (_, resolver, docIndex) = try await makeTempSetup()
+        let (resolver, docIndex) = try await makeTempSetup()
         await docIndex.setMapping(name: "林黛玉", docId: "doc-LD")
 
         try await resolver.resolve(content: "[[林黛玉]] 旧版", sourceDocId: "doc-A")
@@ -70,7 +73,7 @@ struct BacklinkResolverTests {
 
     @Test("backlinks 按 docId 查 (resolved)")
     func backlinksByDocId() async throws {
-        let (_, resolver, docIndex) = try await makeTempSetup()
+        let (resolver, docIndex) = try await makeTempSetup()
         await docIndex.setMapping(name: "林黛玉", docId: "doc-LD")
 
         try await resolver.resolve(content: "[[林黛玉]]", sourceDocId: "doc-A")
@@ -82,7 +85,7 @@ struct BacklinkResolverTests {
 
     @Test("backlinks 按 name 查 (unresolved)")
     func backlinksByName() async throws {
-        let (_, resolver, _) = try await makeTempSetup()
+        let (resolver, _) = try await makeTempSetup()
 
         try await resolver.resolve(content: "[[林黛玉]]", sourceDocId: "doc-A")
         try await resolver.resolve(content: "[[林黛玉]]", sourceDocId: "doc-B")
@@ -93,7 +96,7 @@ struct BacklinkResolverTests {
 
     @Test("[[未存在的 name]] 入库 targetDocId 为 NULL")
     func unresolvedLink() async throws {
-        let (_, resolver, _) = try await makeTempSetup()
+        let (resolver, _) = try await makeTempSetup()
 
         try await resolver.resolve(content: "[[未来角色]]", sourceDocId: "doc-A")
 
@@ -104,7 +107,7 @@ struct BacklinkResolverTests {
 
     @Test("空内容 resolve 不报错")
     func resolveEmpty() async throws {
-        let (_, resolver, _) = try await makeTempSetup()
+        let (resolver, _) = try await makeTempSetup()
 
         try await resolver.resolve(content: "", sourceDocId: "doc-A")
 
@@ -114,7 +117,7 @@ struct BacklinkResolverTests {
 
     @Test("中英文混合链接")
     func mixedLanguage() async throws {
-        let (_, resolver, docIndex) = try await makeTempSetup()
+        let (resolver, docIndex) = try await makeTempSetup()
         await docIndex.setMapping(name: "Chapter 1", docId: "doc-en")
 
         try await resolver.resolve(

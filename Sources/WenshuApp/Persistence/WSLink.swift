@@ -25,7 +25,16 @@ public final class WSLink {
     var createdAt: Date
 
     init(sourceDocID: String, targetRef: String, targetDocID: String? = nil, line: Int, offset: Int) {
-        self.id = "\(sourceDocID):\(line)"
+        // Phase 5 ticket 5: include `targetRef` in composite id (= restores
+        // the original LinkIndex compound primary key shape "sourceDocId,
+        // targetRef, line"). The previous "sourceDocId:line" id collided
+        // when multiple [[name]] links live on the same line (= the
+        // BacklinkResolverTests resolve test inserts 2 such links).
+        // Discovered when ticket 5 migrated BacklinkResolver + tests
+        // onto WSLinkRepository (= the old LinkIndex actor hid this
+        // collision behind a manual dedupe; = WSLinkRepository relies on
+        // SwiftData's @Attribute(.unique) enforcement).
+        self.id = "\(sourceDocID):\(line):\(targetRef)"
         self.sourceDocID = sourceDocID
         self.targetRef = targetRef
         self.targetDocID = targetDocID

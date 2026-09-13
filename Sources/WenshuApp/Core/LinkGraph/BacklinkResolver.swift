@@ -22,44 +22,66 @@ public protocol DocumentIndexing: Sendable {
     func name(forDocId docId: String) async -> String?
 }
 
-/// BacklinkResolver: async-coordinates Markdown parse + LinkIndex insert
+/// BacklinkResolver: async-coordinates Markdown parse + WSLinkRepository insert
 public actor BacklinkResolver {
-    private let index: LinkIndex
+    /// SwiftData-backed link repository (= phase 3 WSLinkRepository).
+    /// Default = .shared (= production path); tests inject an in-memory
+    /// instance to avoid clobbering shared WSPersistenceContainer.
+    private let repository: WSLinkRepository
     private let documentIndex: DocumentIndexing
 
-    public init(index: LinkIndex, documentIndex: DocumentIndexing) {
-        self.index = index
+    public init(repository: WSLinkRepository, documentIndex: DocumentIndexing) {
+        self.repository = repository
         self.documentIndex = documentIndex
+    }
+
+    /// Default factory: returns a BacklinkResolver backed by
+    /// WSLinkRepository.shared (= @MainActor static init).
+    /// Production callers (= none currently exist) use this; tests
+    /// inject a per-test WSLinkRepository with in-memory ModelContainer.
+    @MainActor
+    public static func defaultInstance(documentIndex: DocumentIndexing) -> BacklinkResolver {
+        BacklinkResolver(repository: .shared, documentIndex: documentIndex)
     }
 
     /// Parse markdown content, clear old links for sourceDocId, batch insert new links
     public func resolve(content: String, sourceDocId: String) async throws {
         let parsed = InternalLinkParser.parse(content)
+        let repository = self.repository
         // Clear old links (when document is rewritten)
-        try await index.removeAll(sourceDocId: sourceDocId)
+        try await MainActor.run {
+            try repository.removeAll(sourceDocId: sourceDocId)
+        }
         // Batch insert
         for link in parsed {
             let targetDocId = await documentIndex.docId(forName: link.target)
-            try await index.add(
-                Link(
-                    sourceDocId: sourceDocId,
-                    targetRef: link.target,
-                    targetDocId: targetDocId,
-                    line: link.line,
-                    offset: link.offset
+            try await MainActor.run {
+                try repository.add(
+                    Link(
+                        sourceDocId: sourceDocId,
+                        targetRef: link.target,
+                        targetDocId: targetDocId,
+                        line: link.line,
+                        offset: link.offset
+                    )
                 )
-            )
+            }
         }
     }
 
     /// Reverse query: given docId, return all backlinks (source link list referencing it)
     public func backlinks(forDocId docId: String) async throws -> [Link] {
+        let repository = self.repository
         // 1) First reverse-search by docId (target already resolved links)
-        let resolved = try await index.searchBackward(targetDocId: docId)
+        let resolved = try await MainActor.run {
+            try repository.searchBackward(targetDocId: docId)
+        }
         // 2) Then reverse-search by doc display name (target unresolved links, e.g. [[name]] whose doc was renamed)
         let name = await documentIndex.name(forDocId: docId) ?? ""
         if !name.isEmpty {
-            let unresolved = try await index.searchBackward(targetRef: name)
+            let unresolved = try await MainActor.run {
+                try repository.searchBackward(targetRef: name)
+            }
             // Merge + deduplicate (Apple HIG: Set semantics)
             let combined = resolved + unresolved.filter { u in !resolved.contains(where: { $0.sourceDocId == u.sourceDocId && $0.offset == u.offset }) }
             return combined.sorted { $0.createdAt > $1.createdAt }
@@ -69,11 +91,17 @@ public actor BacklinkResolver {
 
     /// Reverse query: given display name (filename), return all backlinks
     public func backlinks(forName name: String) async throws -> [Link] {
-        try await index.searchBackward(targetRef: name)
+        let repository = self.repository
+        return try await MainActor.run {
+            try repository.searchBackward(targetRef: name)
+        }
     }
 
     /// Forward query: given sourceDocId, return all targets it references (Outgoing links)
     public func forwardLinks(forDocId docId: String) async throws -> [Link] {
-        try await index.searchForward(sourceDocId: docId)
+        let repository = self.repository
+        return try await MainActor.run {
+            try repository.searchForward(sourceDocId: docId)
+        }
     }
 }
