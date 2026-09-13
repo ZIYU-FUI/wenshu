@@ -132,18 +132,6 @@ public actor ToolDispatchHookChain {
 /// without implementing both." (= Swift has no default method
 /// implementations on protocols; this is the wenshu-side equivalent
 /// of hermes' `_noop_hook`.)
-public struct NoopToolDispatchHook: ToolDispatchHook {
-    public let name: String
-    public init(name: String) { self.name = name }
-
-    public func preDispatch(toolName: String, input: [String: String]) async throws {
-        _ = toolName; _ = input
-    }
-
-    public func postDispatch(toolName: String, input: [String: String], output: String) async throws {
-        _ = toolName; _ = input; _ = output
-    }
-}
 
 // MARK: - Input parsing helper
 

@@ -22,7 +22,6 @@ public enum RetryUtils {
     /// Per-attempt jitter source. Exposed so tests can inject a deterministic
     /// generator; default = `SystemRandomNumberGenerator` (thread-safe, no
     /// shared state, safe under Swift 6 strict concurrency).
-    public typealias JitterGenerator = SystemRandomNumberGenerator
 
     /// Compute the backoff delay for a given 0-indexed attempt.
     /// Returns the seconds to sleep before retry attempt `attempt + 1`.

@@ -9,11 +9,6 @@
 import Foundation
 
 /// Base view type (Obsidian Bases §view-types)
-public enum BaseViewType: String, Codable, Sendable {
-    case table
-    case card
-    case kanban
-}
 
 /// Base formula property (Obsidian Bases §formulas)
 public struct BaseFormula: Codable, Equatable, Sendable {

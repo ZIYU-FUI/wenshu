@@ -29,11 +29,8 @@
 // pipeline) which is the actual consumer of plugin-extensible
 // reference resolution.
 //
-// replaces the existing `CrossRefInject.swift` (= per Q124
-// atomic-coupling: 1 commit = 1 atomic change). The old type stays
-// available as `LegacyCrossRefInject` (= internal alias) for the
-// remaining v0.27 callers during the migration window (= removed
-// when the feature ticket that consumes this v2 lands).
+// replaces the v0.27 `CrossRefInject.swift` (= removed in cleanup batch 1;
+// = FrontmatterParser + ChapterFrontmatter brought inline to keep v2 self-contained).
 //
 // Per AGENTS.md Section 8 pollution-defense hex-encoding rule:
 // this file does NOT contain the 12-token forbidden vocab literal;
@@ -183,8 +180,85 @@ struct CrossRefInject_v2: Sendable {
     }
 }
 
-/// Backward-compatibility alias for the v0.27 type (= same surface as
-/// `CrossRefInject` from `.scratch/2026-08-26-fcp-library-replica/`).
-/// Internal to the M5-14 migration window (= removed when the feature
-/// ticket that consumes CrossRefInject_v2 fully replaces v0.27 callers).
-typealias LegacyCrossRefInject = CrossRefInject
+// MARK: - Frontmatter (= minimal YAML-style frontmatter for chapter .md files)
+
+/// Minimal frontmatter schema for chapter .md files (= the frontmatter
+/// that holds cross-references + chapter metadata). v0.27 MVP uses
+/// a simple `key: value\n` format (= Apple HIG canonical markdown
+/// frontmatter pattern).
+struct ChapterFrontmatter: Sendable {
+    var title: String?
+    var referenceRefIds: [UUID]?
+    var updatedAt: Date?
+}
+
+/// Frontmatter parser (= Apple HIG pattern: split on `---\n` markers,
+/// decode key: value lines, return frontmatter + body).
+struct FrontmatterParser: Sendable {
+    /// Parse a markdown string into frontmatter + body.
+    static func parse(_ source: String) -> (frontmatter: ChapterFrontmatter, body: String) {
+        // Match leading `---\n...\n---\n` (= Apple HIG canonical frontmatter delimiter).
+        guard source.hasPrefix("---\n") else {
+            return (ChapterFrontmatter(), source)
+        }
+        let afterPrefix = source.dropFirst("---\n".count)
+        guard let endRange = afterPrefix.range(of: "\n---\n") else {
+            return (ChapterFrontmatter(), source)
+        }
+        let fmBlock = String(afterPrefix[..<endRange.lowerBound])
+        let body = String(afterPrefix[endRange.upperBound...])
+        let fm = parseFrontmatter(fmBlock)
+        return (fm, body)
+    }
+
+    /// Serialize frontmatter + body back into a markdown string.
+    static func serialize(frontmatter: ChapterFrontmatter, body: String) -> String {
+        var lines: [String] = ["---"]
+        if let title = frontmatter.title, !title.isEmpty {
+            lines.append("title: \(title)")
+        }
+        if let refIds = frontmatter.referenceRefIds, !refIds.isEmpty {
+            let formatted = refIds.map(\.uuidString).joined(separator: ", ")
+            lines.append("referenceRefIds: [\(formatted)]")
+        }
+        if let updatedAt = frontmatter.updatedAt {
+            let formatter = ISO8601DateFormatter()
+            lines.append("updatedAt: \(formatter.string(from: updatedAt))")
+        }
+        lines.append("---")
+        // Body is concatenated verbatim; preserve original leading
+        // newline structure (= Apple HIG canonical frontmatter = body
+        // separated by exactly one blank line).
+        return lines.joined(separator: "\n") + "\n" + body
+    }
+
+    private static func parseFrontmatter(_ block: String) -> ChapterFrontmatter {
+        var fm = ChapterFrontmatter()
+        for line in block.split(separator: "\n", omittingEmptySubsequences: false) {
+            let parts = line.split(separator: ":", maxSplits: 1).map(String.init)
+            guard parts.count == 2 else { continue }
+            let key = parts[0].trimmingCharacters(in: .whitespaces)
+            let value = parts[1].trimmingCharacters(in: .whitespaces)
+            switch key {
+            case "title":
+                fm.title = value
+            case "referenceRefIds":
+                fm.referenceRefIds = parseRefIds(value)
+            case "updatedAt":
+                let formatter = ISO8601DateFormatter()
+                fm.updatedAt = formatter.date(from: value)
+            default:
+                break
+            }
+        }
+        return fm
+    }
+
+    private static func parseRefIds(_ value: String) -> [UUID] {
+        // Accept '[uuid, uuid]' or 'uuid, uuid'.
+        let stripped = value
+            .trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+        return stripped.split(separator: ",")
+            .compactMap { UUID(uuidString: $0.trimmingCharacters(in: .whitespaces)) }
+    }
+}

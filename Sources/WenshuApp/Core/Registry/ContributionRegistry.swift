@@ -252,9 +252,6 @@ public struct UseContributions {
 /// SwiftUI `View` extension that re-renders when the registry's area
 /// mutates. Usage:
 ///   `let panes = useContributions(.panes)`
-public struct UseContributionsHandle {
-    let wrapper: UseContributions
-}
 
 @MainActor
 public func useContributions(_ area: String, in registry: ContributionRegistry) -> [Contribution] {

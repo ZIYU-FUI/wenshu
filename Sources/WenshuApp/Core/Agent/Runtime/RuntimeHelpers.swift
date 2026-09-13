@@ -108,16 +108,6 @@ public struct RuntimeState: Sendable, Equatable {
 /// fails to produce a credential. Distinct from a `nil` return (= which means
 /// "the chain resolved cleanly but no credential exists for this provider
 /// in any backend"); thrown errors mean the chain itself errored.
-public enum RuntimeCredentialError: Error, LocalizedError, Equatable {
-    case noBackendAvailable(providerSlug: String)
-
-    public var errorDescription: String? {
-        switch self {
-        case .noBackendAvailable(let slug):
-            return "Runtime credential resolution failed: no backend available for provider '\(slug)'"
-        }
-    }
-}
 
 /// Runtime helper actor — owns the runtime state dict for one agent session.
 ///

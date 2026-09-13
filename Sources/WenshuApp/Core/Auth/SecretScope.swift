@@ -144,14 +144,3 @@ public actor SecretScope {
 /// Errors thrown by `SecretScope` / sources. Distinct from
 /// `ProviderKeychainError` so callers can pattern-match on the scope
 /// layer without coupling to keychain internals.
-public enum SecretScopeError: Error, LocalizedError, Sendable {
-    /// A source threw while reading; the underlying error is preserved.
-    case sourceFailed(sourceName: String, underlying: String)
-
-    public var errorDescription: String? {
-        switch self {
-        case .sourceFailed(let sourceName, let underlying):
-            return "SecretSource \(sourceName) failed: \(underlying)"
-        }
-    }
-}

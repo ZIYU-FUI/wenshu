@@ -14,19 +14,6 @@ import AVFoundation
 #endif
 
 /// TTS (hermes tts)
-public struct TTSResult: Equatable, Sendable {
-    public let text: String
-    public let voice: String
-    public let rate: Float
-    public let duration: TimeInterval
-
-    public init(text: String, voice: String, rate: Float, duration: TimeInterval) {
-        self.text = text
-        self.voice = voice
-        self.rate = rate
-        self.duration = duration
-    }
-}
 
 /// AVMediaTools: local AV media (AVSpeechSynthesizer)
 public struct AVMediaTools: Tool, Sendable {

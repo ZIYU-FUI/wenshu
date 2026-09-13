@@ -173,16 +173,6 @@ public enum TargetTone: String, Sendable, Codable, CaseIterable, Identifiable {
 /// mirrors the convention used by the other specialized tools
 /// actors (= one LocalizedError per failure mode; = no
 /// `fatalError` paths).
-public enum EditorTransformToolsError: Error, LocalizedError, Sendable, Equatable {
-    case unknownTransform(String)
-
-    public var errorDescription: String? {
-        switch self {
-        case .unknownTransform(let raw):
-            return "EditorTransformTools: unsupported transform raw value `\(raw)`."
-        }
-    }
-}
 
 // MARK: - Actor
 
