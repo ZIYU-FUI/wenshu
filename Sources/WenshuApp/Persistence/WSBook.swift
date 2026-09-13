@@ -37,6 +37,10 @@ final class WSBook {
     /// Inverse relationship target (= declared on WSBookShelf.books)
     var shelf: WSBookShelf?
 
+    /// 1↔N WSOutlineDocument (= per-book outline .md files; = metadata index)
+    @Relationship(deleteRule: .cascade, inverse: \WSOutlineDocument.book)
+    var outlineDocuments: [WSOutlineDocument] = []
+
     /// 1↔N WSForeshadowing (= tracked foreshadowing events)
     @Relationship(deleteRule: .cascade, inverse: \WSForeshadowing.book)
     var foreshadowings: [WSForeshadowing] = []
