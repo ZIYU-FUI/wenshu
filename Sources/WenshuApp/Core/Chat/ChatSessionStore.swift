@@ -483,7 +483,7 @@ public actor ChatSessionStore {
         defer { sqlite3_finalize(stmt) }
         // SQLITE_TRANSIENT = SQLite makes a copy of the string (= safe
         // across the call boundary).
-        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        // SQLITE_TRANSIENT imported from Persistence/SQLiteConstants.swift
         sqlite3_bind_text(stmt, 1, sessionId, -1, SQLITE_TRANSIENT)
         sqlite3_bind_text(stmt, 2, summary, -1, SQLITE_TRANSIENT)
         sqlite3_bind_text(stmt, 3, lastMessageId, -1, SQLITE_TRANSIENT)
@@ -504,7 +504,7 @@ public actor ChatSessionStore {
             throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(db))
         }
         defer { sqlite3_finalize(stmt) }
-        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        // SQLITE_TRANSIENT imported from Persistence/SQLiteConstants.swift
         sqlite3_bind_text(stmt, 1, sessionId, -1, SQLITE_TRANSIENT)
         // SQLite stores Date as Double (= Unix timestamp via TimeInterval).
         let timestampValue = beforeTimestamp.timeIntervalSince1970

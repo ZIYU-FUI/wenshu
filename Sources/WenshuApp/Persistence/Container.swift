@@ -1,18 +1,19 @@
 //
 //  Persistence/Container.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 21 of 21 @Model classes: ModelContainer setup.
+//  Migration commit 21 of 22 @Model classes: ModelContainer setup (= the
+//  last @Model-class commit; = subsequent commits are Repositories / Container).
 //  Per AGENTS.md §11.4 SwiftData migration roadmap.
 //
 //  This is the FINAL commit of Phase 1. It defines the ModelContainer
-//  (= single store) that aggregates all 20 @Model classes.
+//  (= single store) that aggregates all 23 @Model classes.
 //
 //  BEFORE Phase 1: 10 raw sqlite3 stores, 20+ tables, hand-rolled
 //  migration (= WenshuWorkspace.swift mega-store + 9 separate stores
 //  with duplicate tables for chat_messages / chat_summaries /
 //  sub_agent_runs / kanban_tasks / bookmarks / memory_entries).
 //
-//  AFTER Phase 1: 1 SwiftData ModelContainer holding all 20 @Model
+//  AFTER Phase 1: 1 SwiftData ModelContainer holding all 23 @Model
 //  classes. Tables still physically exist (= SwiftData uses Core Data's
 //  SQLite under the hood on macOS) but the API surface is unified:
 //  ModelContext.fetch(FetchDescriptor<WSXxx>()) replaces every per-store

@@ -17,7 +17,9 @@ import SwiftData
 public final class WSTodo {
     @Attribute(.unique) public var id: String
     var title: String
-    /// Status string (= matches hermes TodoStatus enum values)
+    /// Status string (= wenshu-native values: "new" / "in_progress" /
+    /// "done" / "cancelled"; = does NOT match hermes TodoStatus enum names
+    /// which use "pending" / "completed"; = see HermesTodoTool for translation).
     var status: String
     /// 0 = highest priority (= matches HermesTodoTool convention; = old schema did not have a priority field; = migration adds it; = init default is 5 to match the old TodoStore behavior where most tasks are medium-priority).
     var priority: Int
