@@ -250,55 +250,7 @@ public final class MarkdownEditorBusBridge {
         }
     }
 
-    /// Subscribe the host's `onSelectionBoldDidChange` /
-    /// `onSelectionItalicDidChange` /
-    /// `onSelectionHighlightDidChange` callbacks to the bus's
-    /// reply notifications. Used by the format toolbar to render
-    /// the active-state highlight on the bold / italic / highlight
-    /// buttons (= mirrors Apple HIG NSToolbar behavior).
-    public func observeSelectionState(
-        onBold: @escaping (Bool) -> Void,
-        onItalic: @escaping (Bool) -> Void,
-        onHighlight: @escaping (Bool) -> Void
-    ) {
-        let center = NotificationCenter.default
-        if let name = bus.selectionBoldDidChange {
-            observers.append(center.addObserver(
-                forName: name, object: nil, queue: .main
-            ) { note in
-                onBold((note.userInfo?["isBold"] as? Bool) ?? false)
-            })
-        }
-        if let name = bus.selectionItalicDidChange {
-            observers.append(center.addObserver(
-                forName: name, object: nil, queue: .main
-            ) { note in
-                onItalic((note.userInfo?["isItalic"] as? Bool) ?? false)
-            })
-        }
-        if let name = bus.selectionHighlightDidChange {
-            observers.append(center.addObserver(
-                forName: name, object: nil, queue: .main
-            ) { note in
-                onHighlight((note.userInfo?["isHighlight"] as? Bool) ?? false)
-            })
-        }
-    }
 
-    /// Subscribe the host's `onFindResults` callback to the
-    /// engine's reply notification. Used by the find bar to show
-    /// "X of Y" (= the engine posts the count after every find
-    /// request).
-    public func observeFindResults(
-        onResults: @escaping (Int) -> Void
-    ) {
-        guard let name = bus.findResults else { return }
-        observers.append(NotificationCenter.default.addObserver(
-            forName: name, object: nil, queue: .main
-        ) { note in
-            onResults((note.userInfo?["count"] as? Int) ?? 0)
-        })
-    }
 }
 
 // MARK: FormatDispatcher + FindReplaceDispatcher
@@ -315,63 +267,6 @@ public struct FormatDispatcher {
     public func applyBold() {
         guard let name = bus.applyBoldRequest else { return }
         NotificationCenter.default.post(name: name, object: nil)
-    }
-    public func applyItalic() {
-        guard let name = bus.applyItalicRequest else { return }
-        NotificationCenter.default.post(name: name, object: nil)
-    }
-    public func applyHeading(level: Int) {
-        guard let name = bus.applyHeadingRequest else { return }
-        NotificationCenter.default.post(
-            name: name, object: nil,
-            userInfo: ["level": level]
-        )
-    }
-    public func applyHighlight() {
-        guard let name = bus.applyHighlightRequest else { return }
-        NotificationCenter.default.post(name: name, object: nil)
-    }
-    public func applyStrikethrough() {
-        guard let name = bus.applyStrikethroughRequest else { return }
-        NotificationCenter.default.post(name: name, object: nil)
-    }
-    public func applyInlineCode() {
-        guard let name = bus.applyInlineCodeRequest else { return }
-        NotificationCenter.default.post(name: name, object: nil)
-    }
-    public func applyBlockquote() {
-        guard let name = bus.applyBlockquoteRequest else { return }
-        NotificationCenter.default.post(name: name, object: nil)
-    }
-    public func applyUnorderedList() {
-        guard let name = bus.applyUnorderedListRequest else { return }
-        NotificationCenter.default.post(name: name, object: nil)
-    }
-    public func applyOrderedList() {
-        guard let name = bus.applyOrderedListRequest else { return }
-        NotificationCenter.default.post(name: name, object: nil)
-    }
-    public func applyLink(url: String) {
-        guard let name = bus.applyLinkRequest else { return }
-        NotificationCenter.default.post(
-            name: name, object: nil,
-            userInfo: ["url": url]
-        )
-    }
-    public func applyCodeBlock() {
-        guard let name = bus.applyCodeBlockRequest else { return }
-        NotificationCenter.default.post(name: name, object: nil)
-    }
-    public func applyHorizontalRule() {
-        guard let name = bus.applyHorizontalRuleRequest else { return }
-        NotificationCenter.default.post(name: name, object: nil)
-    }
-    public func applyImage(url: String) {
-        guard let name = bus.applyImageRequest else { return }
-        NotificationCenter.default.post(
-            name: name, object: nil,
-            userInfo: ["url": url]
-        )
     }
 }
 
@@ -416,20 +311,5 @@ public struct FindReplaceDispatcher {
         )
     }
 
-    public func clearHighlights() {
-        guard let name = bus.findClearHighlights else { return }
-        NotificationCenter.default.post(name: name, object: nil)
-    }
 
-    public func scrollToRange(_ range: NSRange, currentIndex: Int, allRanges: [NSRange]) {
-        guard let name = bus.findScrollToRange else { return }
-        NotificationCenter.default.post(
-            name: name, object: nil,
-            userInfo: [
-                "range": range,
-                "currentIndex": currentIndex,
-                "allRanges": allRanges
-            ]
-        )
-    }
 }
