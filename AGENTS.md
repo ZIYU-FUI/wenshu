@@ -260,8 +260,47 @@ DEFERRED WORK RATIONALE:
   - View code that uses BookXxxStore (JSON file persistence — e.g.
     KanbanView uses BookKanbanStore) is out of SQLite migration scope.
 
-Branches:
-  - `wt/swiftdata/phase1-2026-09-13` (= current worktree; = 35 commits
-    pushed to origin; = phase 1+2+partial phase 3)
-  - Phase 3 follow-up tickets should branch from main (= after this
-    PR merges) and rebase as needed.
+## §11.4.2 Phase 5 prerequisite tickets (= 5 tickets, sequential dependency)
+
+Phase 5 (= delete old raw sqlite3 stores per §11.4 spec) is BLOCKED on these
+5 prerequisite tickets. Each ticket = one dependency migration; = each ticket
+unlocks one sqlite store file for deletion.
+
+Dependency graph (= must be done in this order):
+
+  Phase-5 Ticket 1 (WenshuAppDelegate migration)
+    └─> unlocks: ChatSessionStore.swift deletion
+                KanbanStore.swift deletion (= also needs Ticket 2)
+
+  Phase-5 Ticket 2 (ChatView KanbanStore fallback → WSKanbanRepository)
+    └─> unlocks: KanbanStore.swift deletion (= with Ticket 1)
+
+  Phase-5 Ticket 3 (TodoListView TodoStore → WSTodoRepository)
+    └─> unlocks: TodoStore.swift deletion
+
+  Phase-5 Ticket 4 (ContextEngine MemoryStore → WSMemoryProvider)
+    └─> unlocks: MemoryStore.swift deletion
+
+  Phase-5 Ticket 5 (BacklinkResolver + FullTextSearch LinkIndex → WSLinkRepository)
+    └─> unlocks: LinkIndex.swift deletion
+
+  + bonus: WenshuWorkspaceMigrator + WenshuWorkspaceMigratorTests (= not
+    part of phase 5 prerequisites; = WenshuWorkspace is gated on phase 4
+    migration runner + WSMigrationPerStore completion; = separate cleanup
+    ticket).
+
+After all 5 tickets complete:
+  - 6 raw sqlite3 store files can be `git rm`-ed (= MemoryStore,
+    ChatSessionStore, KanbanStore, BookmarkStore, TodoStore, LinkIndex).
+  - Package.swift: drop `import SQLite3` from production code (= only
+    SQLiteConstants.swift keeps it; = test fixtures may also keep).
+
+Each ticket MUST:
+  1. Land as 1+ atomic commit per migrated caller file (= no mega-commits).
+  2. Pass full test suite (= no regressions).
+  3. Update this section (= move the ticket from "⏸" to "✓" with commit hash).
+  4. NOT touch unrelated code (= scope = 1 ticket = 1 caller file).
+
+Branch:
+  - `wt/migration-phase5-tickets-2026-09-13` (= current worktree;
+    = sequential ticket work; = rebases onto main as each ticket lands).
