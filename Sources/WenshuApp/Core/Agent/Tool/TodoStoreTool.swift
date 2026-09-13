@@ -64,10 +64,14 @@ public struct TodoStoreTool: Tool, Sendable {
     /// isolation becomes relevant) so the unsafe escape hatch is
     /// safe here. TodoStore() with no path uses the default App
     /// Support location (= /tmp fallback if unavailable).
-    public nonisolated(unsafe) static let shared = TodoStoreTool(
-        hermesTodo: HermesTodoTool(store: HermesTodoStore()),
-        todoStore: Self.makeFallback()
-    )
+    public nonisolated(unsafe) static let shared: TodoStoreTool = {
+        MainActor.assumeIsolated {
+            TodoStoreTool(
+                hermesTodo: HermesTodoTool(store: HermesTodoStore()),
+                todoRepository: WSTodoRepository.shared
+            )
+        }
+    }()
 
     /// Tiny fallback TodoStore (= /tmp-backed SQLite) for the
     /// `shared` bootstrap instance. Production wiring uses a
@@ -115,11 +119,11 @@ public struct TodoStoreTool: Tool, Sendable {
     """
 
     private let hermesTodo: HermesTodoTool
-    private let todoStore: TodoStore
+    private let todoRepository: WSTodoRepository
 
-    public init(hermesTodo: HermesTodoTool, todoStore: TodoStore) {
+    public init(hermesTodo: HermesTodoTool, todoRepository: WSTodoRepository) {
         self.hermesTodo = hermesTodo
-        self.todoStore = todoStore
+        self.todoRepository = todoRepository
     }
 
     // MARK: - Tool conformance
@@ -188,7 +192,7 @@ public struct TodoStoreTool: Tool, Sendable {
         //    supplied id so subsequent complete / remove can locate
         //    the row by the same id the LLM passed in).
         do {
-            let stored = try await todoStore.add(id: id, title: content, priority: priority)
+            let stored = try await MainActor.run { try todoRepository.add(id: id, title: content, priority: priority) }
             return Self.jsonOk(
                 action: "create",
                 data: [
@@ -199,7 +203,7 @@ public struct TodoStoreTool: Tool, Sendable {
                 ]
             )
         } catch {
-            return Self.jsonError(action: "create", message: "TodoStore.add failed: \(error)")
+            return Self.jsonError(action: "create", message: "WSTodoRepository.add failed: \(error)")
         }
     }
 
@@ -208,7 +212,7 @@ public struct TodoStoreTool: Tool, Sendable {
     private func runList(parsed: [String: Any]) async -> String {
         let statusFilter: TodoStatus? = (parsed["status"] as? String).flatMap { TodoStatus(rawValue: $0) }
         do {
-            let items = try await todoStore.list(status: statusFilter)
+            let items = try await MainActor.run { try todoRepository.list(status: statusFilter) }
             let data: [[String: Any]] = items.map { item in
                 [
                     "id": item.id,
@@ -219,7 +223,7 @@ public struct TodoStoreTool: Tool, Sendable {
             }
             return Self.jsonOk(action: "list", data: ["items": data, "count": data.count])
         } catch {
-            return Self.jsonError(action: "list", message: "TodoStore.list failed: \(error)")
+            return Self.jsonError(action: "list", message: "WSTodoRepository.list failed: \(error)")
         }
     }
 
@@ -249,8 +253,8 @@ public struct TodoStoreTool: Tool, Sendable {
         //    the new one (preserving the same id). This is a thin
         //    adapter, not a new TodoStore API.
         do {
-            try await todoStore.delete(id: id)
-            let stored = try await todoStore.add(id: id, title: content, priority: priority ?? .medium)
+            try await MainActor.run { try todoRepository.delete(id: id) }
+            let stored = try await MainActor.run { try todoRepository.add(id: id, title: content, priority: priority ?? .medium) }
             return Self.jsonOk(
                 action: "update",
                 data: [
@@ -283,10 +287,10 @@ public struct TodoStoreTool: Tool, Sendable {
 
         // 2) mirror to wenshu-side canonical TodoStore.
         do {
-            try await todoStore.setStatus(id: id, status: .completed)
+            try await MainActor.run { try todoRepository.setStatus(id: id, status: .completed) }
             return Self.jsonOk(action: "complete", data: ["id": id, "status": TodoStatus.completed.rawValue])
         } catch {
-            return Self.jsonError(action: "complete", message: "TodoStore.setStatus failed: \(error)")
+            return Self.jsonError(action: "complete", message: "WSTodoRepository.setStatus failed: \(error)")
         }
     }
 
@@ -313,10 +317,10 @@ public struct TodoStoreTool: Tool, Sendable {
 
         // 2) mirror to wenshu-side: hard-delete the row.
         do {
-            try await todoStore.delete(id: id)
+            try await MainActor.run { try todoRepository.delete(id: id) }
             return Self.jsonOk(action: "remove", data: ["id": id, "removed": true])
         } catch {
-            return Self.jsonError(action: "remove", message: "TodoStore.delete failed: \(error)")
+            return Self.jsonError(action: "remove", message: "WSTodoRepository.delete failed: \(error)")
         }
     }
 
