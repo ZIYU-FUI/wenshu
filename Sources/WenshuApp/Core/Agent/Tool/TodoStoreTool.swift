@@ -73,36 +73,6 @@ public struct TodoStoreTool: Tool, Sendable {
         }
     }()
 
-    /// Tiny fallback TodoStore (= /tmp-backed SQLite) for the
-    /// `shared` bootstrap instance. Production wiring uses a
-    /// dedicated per-library store via `init(hermesTodo:todoStore:)`.
-    ///
-    /// `nonisolated(unsafe)` because constructing an actor
-    /// (= TodoStore) from a nonisolated static-let context trips
-    /// Swift 6's strict-concurrency check.
-    nonisolated(unsafe) private static func makeFallback() -> TodoStore {
-        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
-        // replaced `try! TodoStore(...)` (= would crash on unwritable
-        // /tmp or SQLite open failure) with explicit do/catch + NSLog
-        // that returns a default-init TodoStore as the last-resort
-        // fallback (= requires a non-nil TodoStore because the
-        // `shared` static must always have one).
-        do {
-            return try TodoStore(path: "/tmp/wenshu-toolregistry-todo-fallback-\(UUID().uuidString).sqlite")
-        } catch {
-            NSLog("[wenshu.todo] makeFallback /tmp path failed: %@", String(describing: error))
-            // Last resort: default init (= App Support directory).
-            do {
-                return try TodoStore()
-            } catch {
-                NSLog("[wenshu.todo] makeFallback default init also failed: %@", String(describing: error))
-                // Truly unrecoverable: preconditionFailure (= the same
-                // fatal behavior as the previous try! but with the
-                // failure chain logged for diagnostics).
-                preconditionFailure("TodoStoreTool.makeFallback: cannot construct any TodoStore (= /tmp unwritable + App Support unavailable)")
-            }
-        }
-    }
 
     /// Tool name (matches HermesTodoSchema.name = "todo"; ToolExecutor
     /// routes one tool_use block to one Tool by name).

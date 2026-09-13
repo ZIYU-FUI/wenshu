@@ -74,29 +74,6 @@ public actor KanbanTools {
         self.store = MainActor.assumeIsolated { WSKanbanRepository.shared }
     }
 
-    /// Fallback KanbanStore builder (= when both App Support and /tmp are unavailable).
-    /// Should never happen in practice; tests inject explicit stores.
-    private static func makeFallback() -> KanbanStore {
-        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
-        // replaced `try! KanbanStore(...)` (= would crash on unwritable
-        // /tmp or SQLite open failure) with explicit do/catch + NSLog
-        // that returns a freshly-built empty store (= the actor
-        // requires a non-nil store so we can't return nil).
-        do {
-            return try KanbanStore(path: "/tmp/wenshu-kanban-fallback-\(UUID().uuidString).db")
-        } catch {
-            NSLog("[wenshu.kanban] makeFallback failed: %@", String(describing: error))
-            // Last-resort: try default init. If THIS also fails, log and
-            // preconditionFailure (= the same final behavior as the
-            // previous try! but at least we've logged the failure chain).
-            do {
-                return try KanbanStore()
-            } catch {
-                NSLog("[wenshu.kanban] final fallback also failed: %@", String(describing: error))
-                preconditionFailure("KanbanTools.makeFallback: cannot construct any KanbanStore")
-            }
-        }
-    }
 
     // MARK: - Action enum (= hermes kanban_tools.py handle_* functions)
 
