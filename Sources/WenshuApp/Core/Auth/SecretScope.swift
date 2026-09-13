@@ -26,6 +26,11 @@
 
 import Foundation
 
+// v0.72 SwiftData migration: this file uses ProviderKeychain for metadata read/write.
+// Migration to WSProviderKeyRepository is deferred (per AGENTS.md §11 AppleKeychain
+// contract; = metadata is the only sqlite piece in this path). Future ticket.
+#warning("wenshu.SecretScope: ProviderKeychain metadata is sqlite-backed; = migrate to WSProviderKeyRepository in future ticket")
+
 // MARK: - SecretSource protocol
 
 /// One resolution source in a `SecretScope` chain. Sources are queried

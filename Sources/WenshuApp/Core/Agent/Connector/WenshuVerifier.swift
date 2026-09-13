@@ -12,6 +12,11 @@
 
 import Foundation
 
+// v0.72 SwiftData migration: this file uses ProviderKeychain for metadata read/write.
+// Migration to WSProviderKeyRepository is deferred (per AGENTS.md §11 AppleKeychain
+// contract; = metadata is the only sqlite piece in this path). Future ticket.
+#warning("wenshu.WenshuVerifier: ProviderKeychain metadata is sqlite-backed; = migrate to WSProviderKeyRepository in future ticket")
+
 /// minimax-cn ground-truth probe (Anthropic-compatible protocol)
 public struct WenshuLLMMessage: Codable, Sendable {
     public let role: String

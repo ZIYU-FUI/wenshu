@@ -40,7 +40,7 @@ import Foundation
 /// LLM-facing kanban management tool. Thin facade over wenshu's existing
 /// KanbanStore that exposes the action dispatcher the chat surface uses.
 public actor KanbanTools {
-    private let store: KanbanStore
+    private let store: WSKanbanRepository
     // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
     // replaced the previous `nonisolated(unsafe) var sharedPlaceholder`
     // (= concurrent first-time constructions can race the cache write
@@ -53,9 +53,9 @@ public actor KanbanTools {
     // `nonisolated(unsafe)` marker on the static var (= NSLock
     // ensures runtime safety; = the compiler doesn't model lock
     // acquisition as a happens-before relationship).
-    nonisolated(unsafe) private static var sharedPlaceholder: KanbanStore?
+    nonisolated(unsafe) private static var sharedPlaceholder: WSKanbanRepository?
 
-    public init(store: KanbanStore? = nil) {
+    public init(store: WSKanbanRepository? = nil) {
         // Tests can pass an explicit store; otherwise we lazily build one
         // (= throws on init so we cache a fallback to /tmp/kanban-test.db).
         if let store = store {
@@ -70,22 +70,8 @@ public actor KanbanTools {
             return
         }
         Self.sharedPlaceholderLock.unlock()
-        // Build new placeholder outside lock (= building SQLite may block).
-        if let built = try? KanbanStore(path: "/tmp/wenshu-kanban-test-\(UUID().uuidString).db") {
-            Self.sharedPlaceholderLock.lock()
-            // Double-check: another thread may have populated while we were building.
-            if let cached = Self.sharedPlaceholder {
-                Self.sharedPlaceholderLock.unlock()
-                self.store = cached
-                return
-            }
-            Self.sharedPlaceholder = built
-            Self.sharedPlaceholderLock.unlock()
-            self.store = built
-        } else {
-            // Last resort: try without path (default App Support).
-            self.store = (try? KanbanStore()) ?? KanbanTools.makeFallback()
-        }
+        // SwiftData-backed: just use the shared repository directly.
+        self.store = MainActor.assumeIsolated { WSKanbanRepository.shared }
     }
 
     /// Fallback KanbanStore builder (= when both App Support and /tmp are unavailable).
@@ -226,7 +212,8 @@ public actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for show")
         }
         do {
-            guard let task = try await store.get(id: id) else {
+            let taskOpt = try await MainActor.run { try store.get(id: id) }
+            guard let task = taskOpt else {
                 return KanbanToolResult(success: false, output: "Task not found: \(id)")
             }
             return KanbanToolResult(
@@ -243,7 +230,7 @@ public actor KanbanTools {
     private func list(params: KanbanParams) async -> KanbanToolResult {
         let statusFilter: KanbanStatus? = params.status.flatMap { KanbanStatus(rawValue: $0) }
         do {
-            let tasks = try await store.list(status: statusFilter)
+            let tasks = try await MainActor.run { try store.list(status: statusFilter) }
             let limited = params.limit.map { Array(tasks.prefix($0)) } ?? tasks
             let summary = limited.map { "\($0.id): \($0.title) [\($0.status.rawValue)]" }
                 .joined(separator: "\n")
@@ -284,7 +271,7 @@ public actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for complete")
         }
         do {
-            try await store.transition(id: id, to: .done)
+            try await MainActor.run { try store.transition(id: id, to: .done) }
             return KanbanToolResult(
                 success: true,
                 output: "Completed task: \(id)",
@@ -301,7 +288,7 @@ public actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for block")
         }
         do {
-            try await store.transition(id: id, to: .blocked)
+            try await MainActor.run { try store.transition(id: id, to: .blocked) }
             return KanbanToolResult(
                 success: true,
                 output: "Blocked task: \(id) — \(params.reason ?? "(no reason)")"
@@ -318,7 +305,7 @@ public actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for unblock")
         }
         do {
-            try await store.transition(id: id, to: .ready)
+            try await MainActor.run { try store.transition(id: id, to: .ready) }
             return KanbanToolResult(
                 success: true,
                 output: "Unblocked task: \(id)"
@@ -384,7 +371,7 @@ public actor KanbanTools {
             )
         }
         do {
-            try await store.transition(id: id, to: newStatus)
+            try await MainActor.run { try store.transition(id: id, to: newStatus) }
             return KanbanToolResult(
                 success: true,
                 output: "Transitioned \(id) → \(newStatus.rawValue)"

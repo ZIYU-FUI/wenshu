@@ -26,6 +26,11 @@
 
 import Foundation
 
+// v0.72 SwiftData migration: this file still uses MemoryStore actor (= deprecated).
+// See commit 49 (= ContextEngine deferred) for the full rationale.
+// Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
+#warning("wenshu.WenshuConductor: MemoryStore actor is deprecated; = migrate to WSMemoryProvider in future ticket")
+
 /// Wenshu orchestrator (actor thread-safe, consistent with AgentRuntime / KanbanStore / MemoryStore).
 public actor WenshuConductor {
     private let runtime: AgentRuntime

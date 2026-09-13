@@ -32,6 +32,10 @@
 
 import Foundation
 
+// v0.72 SwiftData migration: ContextEngine still uses MemoryStore actor.
+// Deferred (= actor boundary refactor = separate ticket).
+#warning("wenshu.context-engine: MemoryStore actor is deprecated; = migrate to WSMemoryProvider in future ticket")
+
 public actor ContextEngine {
 
     public struct ContextBundle: Sendable {
