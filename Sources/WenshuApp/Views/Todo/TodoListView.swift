@@ -31,21 +31,17 @@
 //      atomically (= per spec v5 ticket 026). On every add / status
 //      change / delete, the view reloads from disk + writes back.
 //
-//  WIRE-OPENBOX-002 reactivity (= P2 #22): TodoListView additionally
-//  subscribes to the canonical TodoStore (SQLite actor; the same
-//  store that TodoStoreTool writes through when the LLM calls
-//  `todo_create`). When a TodoStore write fires, the view surfaces
-//  it as a transient banner at the top of the list so the user
-//  sees the LLM's todo change immediately, without manual refresh.
+//  Phase 5 ticket 3: removed TodoStore subscription mechanism
+//  (formerly WIRE-OPENBOX-002). The "recent LLM todo activity" banner
+//  above the list is dropped. Production path: LLM `todo_create` writes
+//  via WSTodoRepository (= already migrated in phase 3 deferred commit 45);
+//  user sees the change on next reloadFromDisk (= manual refresh button
+//  or .onAppear / .onChange trigger).
 //
-//  Important architectural note (= future-ticket): TodoStore and
-//  BookTodoStore are currently TWO DISTINCT stores — the LLM's
-//  `todo_create` lands in TodoStore (SQLite), while this view's
-//  per-(book × scope) list is persisted via BookTodoStore (JSON).
-//  They are NOT auto-merged. The banner surfaces the change so the
-//  user has visible feedback; a future ticket can wire the two
-//  stores together (e.g. mirror TodoStore writes into BookTodoStore
-//  on a selected scope).
+//  Future-ticket note (= never-merged): the two stores (TodoStore = SQLite /
+//  BookTodoStore = JSON) were never auto-merged. This ticket removes the
+//  reactive stream entirely (= future "merge them" work can be re-opened
+//  against WSTodoRepository + BookTodoStore without the legacy actor API).
 //
 //  Apple HIG: small icon button + .bordered / .borderedProminent
 //  button styles per macOS 26 Tahoe guidance. No sheet (per
@@ -74,34 +70,11 @@ public struct TodoListView: View {
     /// active scope has no on-disk directory.
     @State private var scopeDir: URL? = nil
 
-    // MARK: - WIRE-OPENBOX-002 (P2 #22): TodoStore reactive subscription
-
-    /// Shared TodoStore (= the same actor ChatView instantiates; the
-    /// LLM's `todo` tool writes through it). Lazily constructed so
-    /// the view never crashes if the disk is unavailable on startup;
-    /// the optional stays nil and the subscription silently no-ops.
-    @State private var sharedTodoStore: TodoStore? = nil
-
-    /// Last few events the canonical TodoStore fired while this view
-    /// is mounted (= shown as a transient banner). We keep a small
-    /// rolling window so the user sees LLM-driven changes without
-    /// flooding the UI; new events prepend, oldest drop off the end.
-    @State private var recentEvents: [TodoItem] = []
-
-    /// Subscription token returned by `TodoStore.subscribe()`. Nil =
-    /// not currently subscribed (= either pre-onAppear or post-
-    /// onDisappear). Held in `@State` so the `.onDisappear` cleanup
-    /// can pair with the matching subscribe in `.task`.
-    @State private var subscriptionToken: UUID? = nil
-
     public init() {}
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             header
-            if !recentEvents.isEmpty {
-                llmActivityBanner
-            }
             inputRow
             if let err = loadError {
                 Text(WenshuI18n.t("auto.todolistview.l107.h41709117"))
@@ -115,13 +88,11 @@ public struct TodoListView: View {
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
         .onChange(of: scope) { _, _ in reloadFromDisk() }
-        // WIRE-OPENBOX-002 (P2 #22): subscribe to the canonical TodoStore
-        // while this view is on-screen; tear down on disappear. The
-        // subscription lets the user see the LLM's `todo_create`
-        // writes (= TodoStore.add / setStatus / delete) immediately
-        // as a banner above the list, without a manual refresh.
-        .task { await subscribeToTodoStore() }
-        .onDisappear { unsubscribeFromTodoStore() }
+        // Phase 5 ticket 3: dropped TodoStore subscription (= the
+        // recent-LLM-todo-activity banner). LLM-driven todo changes are
+        // visible on next reloadFromDisk (= manual refresh button +
+        // .onChange triggers). Production path: TodoStoreTool writes
+        // through WSTodoRepository.shared (= SwiftData).
     }
 
     // MARK: - Subviews
@@ -232,97 +203,6 @@ public struct TodoListView: View {
     }
 
     /// WIRE-OPENBOX-002 (P2 #22): banner shown when the canonical
-    /// TodoStore (= the SQLite actor the LLM's `todo` tool writes
-    /// through) fires an event while this view is on-screen. We keep
-    /// up to 5 most-recent events; each row shows the item's title
-    /// (= the LLM's intent) so the user can see what was created /
-    /// completed / removed without leaving the Todo pane.
-    ///
-    /// Visual: a single horizontal capsule per event with a sparkle
-    /// icon (= "AI did something") + status verb + title. Apple HIG
-    /// friendly: secondary-tinted background, primary text, dismiss
-    /// via the trailing X.
-    private var llmActivityBanner: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                LucideIcon("sparkles", size: 16)
-                    .font(.caption)
-                    .foregroundStyle(.tint)
-                Text(WenshuI18n.t("auto.todolistview.l253.h37022798"))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button(action: { recentEvents.removeAll() }) {
-                    LucideIcon("circle-x", size: 16)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .buttonStyle(.borderless)
-                .help(WenshuI18n.t("auto2.todolistview.l263.h94469033"))
-            }
-            ForEach(Array(recentEvents.prefix(5).enumerated()), id: \.offset) { (_, item) in
-                HStack(spacing: 6) {
-                    LucideIcon(iconName(for: item.status), size: 16)
-                        .font(.caption2)
-                        .foregroundStyle(color(for: item.status))
-                    Text(WenshuI18n.t("b5.todolistview.l270.h83263085"))
-                        .font(.caption)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Spacer()
-                }
-                .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                .padding(.vertical, DesignTokens.chromePaddingNano)
-                .background(Color.secondary.opacity(0.08), in: Capsule())
-            }
-            if recentEvents.count > 5 {
-                Text(WenshuI18n.t("todolist.more_earlier_events"))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(DesignTokens.chromePaddingSmall)
-        .background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
-    }
-
-    /// Map a `TodoStatus` to the SF Symbol shown in the LLM activity
-    /// banner. Apple HIG: filled glyph = done, inset = in-progress,
-    /// circle = pending, x = cancelled. Matches the row icons in
-    /// `TodoRow.statusToggle` for visual consistency.
-    private func iconName(for status: TodoStatus) -> String {
-        switch status {
-        // v0.46 boss OOB 'SF Symbol dropped, use Lucide': names are
-        // Lucide, resolved through LucideIcon at the call site.
-        case .pending: return "circle"
-        case .inProgress: return "circle-dot"
-        case .completed: return "circle-check"
-        case .cancelled: return "circle-x"
-        }
-    }
-
-    /// Color matching the icon — green for completed, tint for
-    /// in-progress, secondary for pending, tertiary for cancelled.
-    private func color(for status: TodoStatus) -> Color {
-        switch status {
-        case .pending: return .secondary
-        case .inProgress: return .accentColor
-        case .completed: return .green
-        case .cancelled: return .secondary
-        }
-    }
-
-    /// Verb shown in the banner per status. Chinese to match the rest
-    /// of the Todo pane (= "Add" is ambiguous because the LLM might
-    /// have updated vs created; we keep status-driven verb only).
-    private func verb(for status: TodoStatus) -> String {
-        switch status {
-        case .pending: return "新增"
-        case .inProgress: return "更新"
-        case .completed: return "完成"
-        case .cancelled: return "取消"
-        }
-    }
-
     @ViewBuilder
     private var content: some View {
         if scopeDir == nil {
@@ -472,62 +352,6 @@ public struct TodoListView: View {
         }
     }
 
-    // MARK: - WIRE-OPENBOX-002 (P2 #22): TodoStore subscribe / unsubscribe
-
-    /// Open (or reuse) the canonical TodoStore (= the SQLite actor
-    /// the LLM's `todo` tool writes through) and subscribe to its
-    /// change stream. We drain events for as long as this view is
-    /// on-screen; each event prepends to `recentEvents` so the user
-    /// sees the LLM's `todo_create` (and friends) appear immediately.
-    ///
-    /// Construction failure is non-fatal: if the SQLite db can't be
-    /// opened (= disk full, permissions, etc.) we just leave
-    /// `sharedTodoStore == nil` and the view falls back to the
-    /// pre-WIRE-OPENBOX-002 behaviour (= manual refresh only).
-    private func subscribeToTodoStore() async {
-        // Lazy open: build the store once per on-screen lifetime.
-        if sharedTodoStore == nil {
-            do {
-                let opened = try TodoStore()
-                try await opened.bootstrap()
-                sharedTodoStore = opened
-            } catch {
-                // Non-fatal: keep going without reactivity.
-                return
-            }
-        }
-        guard let store = sharedTodoStore else { return }
-
-        let (token, stream) = await store.subscribe()
-        subscriptionToken = token
-
-        // Drain the stream on the view's task lifetime (= `.task`
-        // cancels this iterator when the view disappears).
-        for await item in stream {
-            // Prepend so newest is at the top; cap at 20 to bound
-            // memory in case the LLM is chatty.
-            var next = recentEvents
-            next.insert(item, at: 0)
-            if next.count > 20 { next = Array(next.prefix(20)) }
-            recentEvents = next
-        }
-    }
-
-    /// Drop the active subscription (= paired with `subscribeToTodoStore`).
-    /// Safe to call multiple times or when no subscription exists
-    /// (= `unsubscribe(_:)` is a no-op for unknown tokens).
-    private func unsubscribeFromTodoStore() {
-        guard let token = subscriptionToken, let store = sharedTodoStore else {
-            subscriptionToken = nil
-            return
-        }
-        let storeRef = store
-        let tokenRef = token
-        Task {
-            await storeRef.unsubscribe(tokenRef)
-        }
-        subscriptionToken = nil
-    }
 }
 
 // MARK: - Row

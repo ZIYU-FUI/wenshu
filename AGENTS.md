@@ -284,8 +284,13 @@ Dependency graph (= must be done in this order):
     = WSKanbanRepository.shared replacement
     └─> unlocks: KanbanStore.swift deletion
 
-  Phase-5 Ticket 3 (TodoListView TodoStore → WSTodoRepository)
-    └─> unlocks: TodoStore.swift deletion
+  ✓ Phase-5 Ticket 3 (TodoListView TodoStore subscription dropped)
+    = commit ce80c6492 (= TodoListView.swift -191 lines / 1 file)
+    └─> TodoListView.swift no longer imports/instantiates TodoStore.
+    └─> TodoStore.swift NOT yet deletable: production callers remain
+        (= TodoStoreTool.shared already uses WSTodoRepository; =
+        BUT HermesTodoTool + 6 Specialized tools + WSMigrationPerStore
+        still reference TodoStore; = future cleanup ticket 7).
 
   Phase-5 Ticket 4 (ContextEngine MemoryStore → WSMemoryProvider)
     └─> unlocks: MemoryStore.swift deletion
@@ -330,4 +335,8 @@ Ticket 2 sub-tasks (= 2 commits, all landed):
   - 2.1 (= commit 5fbef3a5d): WenshuConductor.kanbanStore param made optional.
   - 2.2 (= commit 0ffd714e2): ChatView drops peer-conductor KanbanStore path.
 
-Next: Ticket 3 (TodoListView TodoStore → WSTodoRepository).
+Ticket 3 (= 1 commit, landed):
+  - ce80c6492: TodoListView drops TodoStore subscription (= -191 lines;
+    = llmActivityBanner + 3 helper funcs + 2 subscribe helpers + 3 @State).
+
+Next: Ticket 4 (ContextEngine MemoryStore → WSMemoryProvider).
