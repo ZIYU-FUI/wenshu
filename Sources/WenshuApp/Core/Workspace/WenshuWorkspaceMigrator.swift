@@ -122,9 +122,6 @@ public struct MigrationPlan: Sendable {
     public let estimatedRows: [String: Int]  // table name → row count
     public let warnings: [String]
 
-    public var totalSizeBytes: Int64 {
-        foundFiles.reduce(0) { $0 + $1.sizeBytes }
-    }
 }
 
 /// Migration result (after real run).

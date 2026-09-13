@@ -135,7 +135,6 @@ public enum DesignTokens {
     /// Settings segmented picker leading inset (= 14 PT). Apple HIG
     /// standard for inline picker alignment inside Settings rows.
     /// Replaces inline `.padding(.leading, 14)`.
-    public static let chromePaddingPickerLeading: CGFloat = 14
     public static let chromePaddingPickerItem: CGFloat = 10
     public static let chromePaddingHero: CGFloat = 20
 
@@ -445,13 +444,11 @@ public enum DesignTokens {
     /// Kanban card borders + EmotionCurve dashed lines + PreviewPane
     /// subsection dividers; = the standard "soft" separator weight).
     /// Replaces inline `.stroke(..., lineWidth: 0.5)` calls.
-    public static let chromeBorderHairline: CGFloat = 0.5
 
     /// Standard border (= 1 PT, Apple HIG default border weight
     /// used by ChatView bubble separators + tool-use cards + specialized
     /// tools sidebar + tab strips + edit mode badges + layout picker
     /// cards; = the standard "neutral" border weight).
     /// Replaces inline `.strokeBorder(..., lineWidth: 1)` calls.
-    public static let chromeBorderStandard: CGFloat = 1
 
 }
