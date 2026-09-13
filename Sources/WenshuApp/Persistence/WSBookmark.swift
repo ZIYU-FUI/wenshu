@@ -1,7 +1,7 @@
 //
 //  Persistence/WSBookmark.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Migration commit 4 of 21 @Model classes: WSBookmark.
+//  Phase 1 commit 4/21: WSBookmark.
 //  Mirrors `bookmarks` table from BookmarkStore.swift (= v0.19 ticket 22).
 //
 //  Polymorphic design: a bookmark can anchor to EITHER a document OR a book

@@ -1,7 +1,10 @@
 //
 //  Core/Memory/WSMemoryManager.swift · Wenshu · v0.72 SwiftData migration Phase 3 deferred
 //
-//  Migration commit 44 of 42: WSMemoryManager.
+//  Phase 3 deferred supplementary (= post-phase-4 work; = NOT part of
+//  the 21-commit phase 1 sequence). Adds SwiftData-backed MemoryManager
+//  that accepts any MemoryProvider (= canonical wenshu-side wins pattern
+//  per ADR-0009).
 //  Per AGENTS.md §11.4.
 //
 //  SwiftData-backed alternative to MemoryManager. Same public surface

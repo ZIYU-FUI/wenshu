@@ -1,7 +1,10 @@
 //
 //  Core/Memory/WSMemoryProvider.swift · Wenshu · v0.72 SwiftData migration Phase 3 deferred
 //
-//  Migration commit 43 of 42: WSMemoryProvider (= SwiftData-backed MemoryProvider).
+//  Phase 3 deferred supplementary (= post-phase-4 work; = NOT part of
+//  the 21-commit phase 1 sequence). Adds SwiftData-backed MemoryProvider
+//  (= the canonical MemoryProvider implementation for code paths that
+//  previously used the deprecated MemoryStore actor).
 //  Per AGENTS.md §11.4.
 //
 //  New MemoryProvider implementation that conforms to the existing

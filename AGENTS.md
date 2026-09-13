@@ -191,6 +191,12 @@ Current state (= deviation from §11.4 spec):
 
 Migration plan (= 6 phases, ~42 commits, 3-4 weeks):
 
+  NOTE: phase 1 = 21 commits introducing 23 @Model classes (= commits 15,
+  16, 17, 19 each introduced 2 classes; = 21 commits × 1-2 classes each = 23 total).
+  This is why each @Model file says "Phase 1 commit X/21" (= the commit number
+  out of 21) while the schema array contains 23 .self entries. See Container.swift
+  header for the authoritative mapping.
+
 ## Phase 1: Define @Model classes (= 5 commits)
 - Sources/WenshuApp/Persistence/Models.swift = 21 @Model classes
 - Sources/WenshuApp/Persistence/Container.swift = ModelContainer setup
