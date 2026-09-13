@@ -457,11 +457,6 @@ extension PromptBuilder {
         let close = "[/OUT-OF-BAND USER MESSAGE]"
         return "\n\n\(open)\n\(steerText)\n\(close)"
     }
-
-    /// Public constants for the steer marker (= exposed for tests +
-    /// callers that need to detect the marker in incoming text).
-    public static let steerMarkerOpen = "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered mid-turn; not tool output]"
-    public static let steerMarkerClose = "[/OUT-OF-BAND USER MESSAGE]"
 }
 
 // MARK: - Computer-use guidance (= hermes computer_use_guidance)

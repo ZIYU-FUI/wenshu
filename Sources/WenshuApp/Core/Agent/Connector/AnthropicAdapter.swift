@@ -296,16 +296,6 @@ public enum AnthropicAdapter {
     public static func propagateRedactedThinking(data: String) -> (text: String, signature: String) {
         return (text: "", signature: "redacted:" + data)
     }
-
-    /// Mark a message's thinking signature as invalidated (= hermes
-    /// L2169-2173 _thinking_signature_invalidated). When the orphan-strip
-    /// demotes a thinking block to the previous turn's signature, we mark
-    /// the surviving prev block with this flag so the next turn rebuilds
-    /// the signature rather than reusing the now-stale one.
-    public static func markSignatureInvalidated(_ message: inout [String: Any]) {
-        message["_thinking_signature_invalidated"] = true
-    }
-
     /// Check whether a model is Claude-family (= hermes _is_claude_model).
     public static func isClaudeModel(_ model: String?) -> Bool {
         guard let m = model?.lowercased() else { return false }
@@ -317,15 +307,6 @@ public enum AnthropicAdapter {
         let m = model.lowercased()
         return m.contains("opus-4") || m.contains("sonnet-4")
     }
-
-    /// Whether a model forbids sampling params (= hermes _forbids_sampling_params).
-    /// Some Anthropic variants reject `temperature` + `top_p` together.
-    public static func forbidsSamplingParams(_ model: String) -> Bool {
-        // Conservative: only apply to the documented restricted variants.
-        let m = model.lowercased()
-        return m.contains("opus-4-1") || m.contains("extended-thinking")
-    }
-
     /// Get Anthropic max-output for a model (= hermes _get_anthropic_max_output).
     public static func maxOutputTokens(for model: String) -> Int {
         let m = model.lowercased()

@@ -97,10 +97,7 @@ public struct A2AError: Codable, Equatable, Sendable {
         self.code = code
         self.message = message
     }
-
-    public static let methodNotFound = A2AError(code: -32601, message: "Method not found")
     public static let invalidParams = A2AError(code: -32602, message: "Invalid params")
-    public static let internalError = A2AError(code: -32603, message: "Internal error")
     public static let taskNotFound = A2AError(code: -32001, message: "Task not found")
 }
 

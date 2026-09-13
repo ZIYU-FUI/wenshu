@@ -11,8 +11,8 @@
 // pane rendering lives in PaneNSController.swift.
 
 import SwiftUI
-import LucideSwift
 import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
+import LucideSwift
 
 /// WorkspaceView — the customizable-layout root (= the Xcode-paradigm
 /// replacement for LayoutShellView). Boss 2026-08-27 grill D1 chose
@@ -1053,11 +1053,6 @@ struct EditorPlaceholder: View {
     private var mode: EditorMode {
         appState.openTabs.first(where: { $0.id == appState.activeTabId })?.mode ?? .preview
     }
-    private func setMode(_ newMode: EditorMode) {
-        guard let idx = appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId }) else { return }
-        appState.openTabs[idx].mode = newMode
-    }
-
     /// v0.34 B-26: derive the display title for a tab (= file basename
     /// without the .md extension; = boss 9/3 OOB 'no .md extension either'). Placeholder tab = 'preview-sample' (= no .md extension,
     /// = no path = render the short placeholder name).
@@ -1882,14 +1877,6 @@ struct EditorPlaceholder: View {
     // v0.34 ticket 09: close handler. If dirty = present confirm dialog;
     // if clean = close immediately (= Apple HIG standard). Cmd+W (ticket
     // 10) routes through this same method.
-    private func tryClose() {
-        if isDirty {
-            showDirtyDiscardConfirm = true
-        } else {
-            documentPath = nil
-        }
-    }
-
     // v0.40 boss 9/7 OOB 'delete': samplePreviewBody
     // (= the "Welcome to wenshu" placeholder) is removed. When no
     // tab is open, the editor zone shows the empty-state hint via
@@ -1928,7 +1915,6 @@ struct EditorPlaceholder: View {
 
     // v0.34 ticket 05: placeholder type alias for the wikilink navigation
     // closure (= ticket 027-35 will replace with actual NavigationLink).
-    typealias WikilinkAction = (String) -> Void
 }
 
 /// EditorPreviewContent (= ticket 05): renders markdown body using
