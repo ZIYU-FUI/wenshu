@@ -72,142 +72,6 @@ enum LayoutTokens {
     static let designW: CGFloat = 1480  // v0.90 boss 2026-09-10 OOB '1480 也可以': boss's preferred column balance. Note: macOS 27 NavigationSplitView appears to ignore this defaultSize and force a minimum window width of ~2205 PT (= 4 columns + drag handles + chrome); the user can manually resize to 1480 but the initial launch is always wider.
     static let designH: CGFloat = 980
 
-    // Ratio operators (0~1, baseline 1920×984)
-    // Boss 2026-08-19 said: title bar uses macOS .windowStyle(.titleBar) 52 PT unified chrome, no longer self-written
-    // v0.15 ticket 001: delete dead LayoutTokens.titleBarHeight / titleRatio code (Apple window chrome provides)
-    static let bandRatio: CGFloat = 465.0 / 984.0        // = 0.4726 (boss 8/18 changed to 465 PT, total 52+465+2+465 = 984)
-    // v0.15 ticket 008 fix: toolbar height = boss Sketch truth 30 PT hardcoded, 1:1 implementation without PT→PX conversion (boss 2026-08-19 said)
-    // Previously toolbarRatio = 30/465 = 0.0645 with algorithm base = 465 hardcoded, but actual bandH was 932 so toolbarH = 932*0.4726*0.0645 ≈ 28 PT (didn't match boss's 30 PT, visually insufficient)
-    static let toolbarHeight: CGFloat = 30  // boss Sketch master truth: top/bottom bars 30 PT (1:1 implementation)
-    // v0.15 rewrite renamed: editorInset is single vertical direction (left/right flush, spec §3.2 intentional two-layer design)
-    static let editorVerticalInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041 (editor 4 PT top/bottom inset)
-    // v0.15 ticket 005: delete dead LayoutTokens.horizontalSplitterRatio code
-    // (the drag-to-resize logic is now provided by NSSplitView).
-
-    // Upper band 4 zone count formula: (200, middle 1, middle 2, 400) = 1920
-    // Boss 8/18 said "count formula" = drag line 1 PT visual line distributed to left/right zones (0.5 PT each)
-    // Middle 1 + Middle 2 = 1920 - 200 - 400 = 1320
-    // Preserves original values 558 + 762 (middle 1 + middle 2 = 1320) = upper band 4 zones 1920 ✓
-    // v0.24 fix (Boss 8/25 50th OOB 'still off by one or two pixels' + 51st OOB 'try to fix it'):
-    // hit area 6 -> 4 PT (= the drag-to-resize logic). 3 splitters
-    // upper = 12 PT (not 18).
-    // Splitter hit area counted into the largest column (= editor),
-    // other columns preserve design ratios.
-    // Total column = 200+200+388+200 = 988 + 12 splitters = 1000
-    // (= exact fit, no HStack shrinkage).
-    // Upper band 4 zones (20/20/40/20 = 100% total):
-    // NOTE: these constants are dead code. The active rendering
-    // path (v0.28+ WorkspaceView) reads column weights from
-    // LayoutTreeStore.builtinDefaultPreset (= [1, 2, 6, 1] after
-    // commit b8fb940d2). Kept here for the legacy LayoutShellView
-    // path (= unreachable in practice but preserved for
-    // backward-compat with the AppStorage flag 'wenshu.useWorkspace'
-    // = false case). Do NOT use these constants directly in new code.
-    static let projectSidebarRatio: CGFloat = 200.0 / 1000.0  // 20% (= Boss 45th OOB)
-    static let projectPreviewRatio: CGFloat = 200.0 / 1000.0  // 20% (= Boss 45th OOB)
-    // v0.24 fix (Boss 8/25 51st OOB): editor itself contains 3 splitters (= 12 PT hit area @ 4 PT each).
-    // 400 (= 40% design) - 12 (= 3 × 4 splitters) = 388 (= design includes splitter)
-    static let editorWRatio: CGFloat = 388.0 / 1000.0         // 40% design - 3 splitters @ 4 PT
-    static let toolsWRatio: CGFloat = 200.0 / 1000.0         // 20% (= Boss 45th OOB)
-
-    // v0.24 fix (Boss 8/25 41st OOB 'originally 400, check official docs to fix visual width mismatch'):
-    // Boss clarified: upper-right (specializedTools) and lower-right (aiDynamic)
-    // original design both = 400 PT.
-    // My previous commit b8d8c04a8 incorrectly changed dynamicWRatio to 1194
-    // (= Boss 38th OOB misinterpretation, Boss 41st OOB clarified = originally 400).
-    // Revert dynamicWRatio 1194 -> 400, aiChatRatio 726 -> 1518 (= back to
-    // original 8/18 design values).
-    // Real problem = same 400 PT visually different widths (= need to check
-    // official docs for proper fix).
-    // v0.24 fix (Boss 8/25 44th OOB 'code width is wrong'): drop aiChatRatio 1518 -> 1514
-    // to absorb 1 splitter hit area (1 × 6 PT = 6 PT). New sum = 1514+400
-    // = 1914 + 6 splitter = 1920 PT (= exact window width, no HStack shrinkage).
-    // v0.24 fix (Boss 8/25 50th OOB 'still off by one or two pixels' + 51st OOB 'try to fix it'):
-    // hit area 6 -> 4 PT. 1 splitter lower = 4 PT (not 6).
-    // aiChat itself contains 1 splitter (= 4 PT hit area @ 4 PT).
-    // 800 (= 80% design) - 4 (= 1 × 4 splitter) = 796 (= design includes splitter)
-    // Total column = 796+200 = 996 + 4 splitter = 1000 (= exact fit, no HStack shrinkage).
-    // Lower band 2 zones (80/20 = 100% total):
-    static let aiChatRatio: CGFloat = 796.0 / 1000.0         // 80% design - 1 splitter @ 4 PT
-    static let dynamicWRatio: CGFloat = 200.0 / 1000.0       // 20% (= Boss 45th OOB)
-
-    // Editor Two Layers Design
-    static let editorInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041
-
-
-    // Top bar color block ratios (boss 8/18 Q3 answer: 22/82/142 origin + 38 PT width + 60 PT spacing)
-    static let iconLeadingRatio: CGFloat = 18.0 / 1920.0  // origin 18 PT (boss 8/18 changed to 18 PT, previously 22 PT)
-    static let iconSizeRatio: CGFloat = 18.0 / 1920.0     // 18 PT side length (boss 2026-08-26 'change to 18') — was 12 in v0.24 ticket 015.027 (= boss 8/24 'change to 12×12' = mid-step before 'change to 18'). Now 18 PT for top-toolbar tab / archive icons.
-    // v0.24 boss acceptance fix (Boss 8/24): tab icon 12×12 PT (= interim; boss 8/24 'change to 12×12' after 18×18 too big).
-    // v0.25.1 (= ticket 006 chat-zone icon size): boss 2026-08-26 OOB 'the top-bar icon size is a bit too small now, change to 18' = 12 → 18 PT.
-    // Scope = top-bar icon class only (= applies to DesignTokens.tabIconSize, used
-    // by ChatZoneTabBar tab + archive + DynamicZoneView tab + ZoneContentView
-    // item, ALL top-toolbar tab icons). Bottom toolbar status bar (= text not
-    // icons) unchanged. Toolbar height hard-capped at 30 PT (= per Boss 8/18
-    // Sketch master): 18 PT icons render with 6 PT vertical padding each side (=
-    // flush fit, no overflow). If owner pushes back on the toolbar-height fit,
-    // ticket 006 followup will address it (= scope of THIS patch is just icon
-    // size).
-    static let iconSize: CGFloat = 18
-    // v0.25.1 (= ticket 007 chat-zone tab hot area): owner 2026-08-26 OOB
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    // 'the hit area has an issue, it seems like the ICON itself is the hit area, you need to make the ICON's 18×18 area be the hit area, otherwise it's hard to click' = inflate click target from icon visual size
-    // (= 18 PT) to a fixed hot area that maps to the boss 8/11 fix3
-    // 'four chat tab height set to 28 PT' (= 28 PT). Hot area applied to
-    // BOTH chat tabs (.chat + the right archive-flow icon) for consistency.
-    // Hot zone = 28 PT (= boss 8/11 fix3) leaves 2 PT vertical padding in
-    // the 30 PT toolbar (= flush fit). Inner icon stays at DesignTokens.tabIconSize
-    // (= 18 PT, ticket 006) so visual size unchanged from previous commit.
-    static let chatTabHotArea: CGFloat = 28
-    // v0.25.1 (= ticket 008 chat-zone tab hit reliability): owner 2026-08-26
-    // OOB 'still has an issue, response is not always triggered' = prior ticket 007 fix
-    // (= .frame(28,28) + contentShape) was flaky on plain-style Button. Per
-    // Apple HIG + SwiftUI Forums canon: reliable hit extension on plain
-    // buttons = inline `.padding(.all, hitPad)` inside the label (= the
-    // padding extends the inner view's rendered bounds, which the outer
-    // button uses as its hit area). 5 PT padding + 18 PT icon = 28 PT
-    // total hit area (= same as chatTabHotArea constant, kept separate
-    // for clarity: hitPad is the lever, hitArea is the resulting size).
-    static let chatTabHitPad: CGFloat = 5
-    // v0.25.1 (= ticket 015 unified icon button hot area): owner 2026-08-26
-    // OOB 'all ICON hit areas should be handled the same as the archive ICON' = the 'archive'
-    // ICON (= chat zone top-right .inbox button, ticket 007 + 008 pattern)
-    // is the canonical hit-area reference for ALL icon buttons in the
-    // project. Apply same hot-area treatment (= 28×28 PT inflated hot
-    // area via inline .padding(.all, LayoutTokens.iconButtonHotPad); .frame
-    // stays 18 PT visual size; .contentShape(Rectangle()); .background
-    // (.clear) for SwiftUI hit-tester reliability) to:
-    //  - upper main toolbar (8 global buttons: New/Open/Import + 4 zone
-    //    toggle + Export)
-    //  - chat zone send button (.paperplane.fill)
-    //  - the 11 tab buttons across 3 tab bar classes (= already applied
-    //    in ticket 011, kept unchanged).
-    static let iconButtonHotPad: CGFloat = 5
-    // v0.25.1 (= ticket 010 tab selected-state underline): owner 2026-
-    // 08-26 OOB 'the current tab's selected state, there's no small underline under the ICON' =
-    // Apple HIG canonical selected-tab underline (= ~2 PT height accent
-    // bar at bottom of selected tab, full button width). All 3 tab bar
-    // classes (DynamicZoneView / ZoneContentView / ChatZoneTabBar) use
-    // this constant for the underline height; the underline color is
-    // Color.accentColor (= Apple system accent, matches selected-tab
-    // icon color so the visual cue is consistent).
-    // v0.25.1 (= ticket 025 underline height = 1 PT per owner spec):
-    // owner 2026-08-26 OOB 'change all ICON underlines to 1PT' = bump down
-    // from 3 PT (= ticket 024) to 1 PT (= owner final spec, = a
-    // minimal visual hint rather than a heavy accent bar). Apple
-    // HIG acceptable range for tab-bar selected indicator =
-    // 1-4 PT (= 1 PT is the thinnest canonical option, = Apple
-    // HIG Finder sidebar selected indicator style per developer
-    // .apple.com/design/human-interface-guidelines/components/
-    // navigation/sidebars).
-    static let tabUnderlineHeight: CGFloat = 1
-    static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT spacing (boss 8/18 changed to 18 PT = icon spacing, origins 18/54/90, adjacent 36 - 18 = 18)
-
-    // Bottom Bar Bit Elements (Boss 8/18 decision "icon 18 x 18, in the body size of an apple character style) - Absolute PT does not go through the ratio system
-    static let bottomLeading: CGFloat = 18                 // 18 PT from left (left placeholder text)
-    static let bottomTrailing: CGFloat = 18                // 18 PT from right (right placeholder icon)
-    static let placeholderIconSize: CGFloat = 18          // 18 PT placeholder icon side length (absolute)
-    static let placeholderTextLeadingRatio: CGFloat = 0.09  // placeholder text origin 18/200 = 9%
 
     // v0.28 followup Boss UX round 33 (Boss 2026-08-29 OOB 'the per-region
     // complete code, regarding styles, inconsistent — why don't you audit them'): single source
@@ -218,21 +82,11 @@ enum LayoutTokens {
     //
     // Apple HIG canonical padding values for per-pane chrome items:
     // - chromePaddingSmall = 4 PT (= tight spacing for chip / pill)
-    // - chromePaddingMedium = 6 PT (= standard for icon + text padding
-    //   in tab bars / statusbars — matches Apple HIG statusbar item
-    //   padding)
     // - chromePaddingLarge = 8 PT (= roomier spacing for top/bottom
     //   alignment of text inside chrome bars — matches Apple HIG
     //   toolbar button padding)
-    // - chromePaddingLeading = 18 PT (= horizontal left padding from
-    //   tab bar edge to first item — matches Apple HIG toolbar left
-    //   padding for macOS 27 Tahoe tab bars)
-    // - chromePaddingTrailing = 18 PT (= horizontal right padding)
     static let chromePaddingSmall: CGFloat = 4
-    static let chromePaddingMedium: CGFloat = 6
     static let chromePaddingLarge: CGFloat = 8
-    static let chromePaddingLeading: CGFloat = 18
-    static let chromePaddingTrailing: CGFloat = 18
 
     // v0.28 followup Boss UX round 33: single source of truth for
     // per-region control heights (= chat input row buttons, tab
@@ -240,15 +94,7 @@ enum LayoutTokens {
     // for chrome controls should reference chromeControlHeight instead.
     static let chromeControlHeight: CGFloat = 30
 
-    // v0.28 followup Boss UX round 33: single source of truth for
-    // visual divider / separator thickness. All instances of
-    // ".frame(height: DesignTokens.dividerHeight)" for chrome separators should reference
-    // chromeDividerThickness (= 1 PT Apple HIG hairline).
-    static let chromeDividerThickness: CGFloat = 1
 
-    // v0.28 followup Boss UX round 33: selected-tab underline height.
-    // (= 1 PT per v0.25.1 ticket 025 owner spec)
-    static let tabUnderlineHeightNew: CGFloat = 1  // legacy alias for tabUnderlineHeight
 }
 
 // MARK: - Self screenshot (boss 8/14 12:38 + 8/15 14:48: must screenshot after every code change)
@@ -455,9 +301,5 @@ enum ZoneSlot {
             .environment(bookStore)
     }
 }
-
-
-
-
 
 
