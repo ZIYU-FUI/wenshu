@@ -272,8 +272,17 @@ Dependency graph (= must be done in this order):
     └─> unlocks: ChatSessionStore.swift deletion
                 KanbanStore.swift deletion (= also needs Ticket 2)
 
-  Phase-5 Ticket 2 (ChatView KanbanStore fallback → WSKanbanRepository)
-    └─> unlocks: KanbanStore.swift deletion (= with Ticket 1)
+  ✓ Phase-5 Ticket 2 (ChatView KanbanStore fallback → WSKanbanRepository)
+    = commits 5fbef3a5d (= 2.1: WenshuConductor.kanbanStore → optional)
+    + 0ffd714e2 (= 2.2: ChatView drops peer-conductor KanbanStore path)
+    └─> ChatView.swift KanbanStore references reduced from 5 to 0 (= doc-only).
+    └─> KanbanStore.swift NOT yet deletable: production callers remain
+        (= WenshuAppDelegate L222 + KanbanStoreTool.swift L87 + WenshuConductor
+        storage layer = 5 kanbanStore.add/transition callsites; = future ticket 6).
+
+  Future Ticket 6 (= KanbanStoreTool + WenshuConductor storage layer migration)
+    = WSKanbanRepository.shared replacement
+    └─> unlocks: KanbanStore.swift deletion
 
   Phase-5 Ticket 3 (TodoListView TodoStore → WSTodoRepository)
     └─> unlocks: TodoStore.swift deletion
@@ -317,5 +326,8 @@ Ticket 1 sub-tasks (= 4 commits, all landed):
   - 1b.3 (= commit 1174bc59d): WenshuAppDelegate calls
     makeContainerForWarehouse + activateWarehouseContainer at launch.
 
-Next: Ticket 2 (ChatView KanbanStore fallback → WSKanbanRepository)
-to unlock KanbanStore deletion.
+Ticket 2 sub-tasks (= 2 commits, all landed):
+  - 2.1 (= commit 5fbef3a5d): WenshuConductor.kanbanStore param made optional.
+  - 2.2 (= commit 0ffd714e2): ChatView drops peer-conductor KanbanStore path.
+
+Next: Ticket 3 (TodoListView TodoStore → WSTodoRepository).
