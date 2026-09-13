@@ -12,8 +12,8 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSWorld {
-    @Attribute(.unique) var id: String
+public final class WSWorld {
+    @Attribute(.unique) public var id: String
     /// FK to WSBook.id
     var bookID: String
     /// WorldEntryType string (= "geography" / "lore" / "event" / "object" / "other")

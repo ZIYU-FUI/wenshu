@@ -22,8 +22,8 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSAttachment {
-    @Attribute(.unique) var id: String
+public final class WSAttachment {
+    @Attribute(.unique) public var id: String
     var parentKind: String
     var parentID: String
     var filename: String

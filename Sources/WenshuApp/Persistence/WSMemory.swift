@@ -21,7 +21,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSMemory {
+public final class WSMemory {
     @Attribute(.unique) var memoryID: String
     var userID: String
     var content: String

@@ -14,8 +14,8 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSKanbanTask {
-    @Attribute(.unique) var id: String
+public final class WSKanbanTask {
+    @Attribute(.unique) public var id: String
     var title: String
     /// Status string (= matches KanbanStatus enum: "new" / "in_progress" / "done" / "cancelled")
     var status: String

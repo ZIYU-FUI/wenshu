@@ -20,7 +20,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSProviderKey {
+public final class WSProviderKey {
     @Attribute(.unique) var providerSlug: String
     /// AES-GCM ciphertext (= never plaintext per AGENTS.md §11)
     var encryptedKey: Data

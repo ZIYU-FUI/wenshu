@@ -14,7 +14,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSSkill {
+public final class WSSkill {
     @Attribute(.unique) var name: String
     var skillDescription: String
     var source: String

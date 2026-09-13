@@ -27,8 +27,8 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSOutlineNode {
-    @Attribute(.unique) var id: String
+public final class WSOutlineNode {
+    @Attribute(.unique) public var id: String
     /// FK to WSChapter.id (= redundant with book_id but kept for query convenience)
     var chapterID: String
     var title: String

@@ -15,8 +15,8 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSChatMessage {
-    @Attribute(.unique) var id: String
+public final class WSChatMessage {
+    @Attribute(.unique) public var id: String
     /// FK to WSSession.sessionID (= string FK, = legacy)
     var sessionID: String
     var role: String

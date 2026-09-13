@@ -15,8 +15,8 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSCharacter {
-    @Attribute(.unique) var id: String
+public final class WSCharacter {
+    @Attribute(.unique) public var id: String
     /// FK to WSBook.id
     var bookID: String
     var name: String

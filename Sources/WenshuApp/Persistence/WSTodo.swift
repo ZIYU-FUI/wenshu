@@ -14,8 +14,8 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSTodo {
-    @Attribute(.unique) var id: String
+public final class WSTodo {
+    @Attribute(.unique) public var id: String
     var title: String
     /// Status string (= matches hermes TodoStatus enum values)
     var status: String

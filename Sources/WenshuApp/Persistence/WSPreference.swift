@@ -13,7 +13,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSPreference {
+public final class WSPreference {
     @Attribute(.unique) var key: String
     var value: String
     var updatedAt: Date

@@ -19,8 +19,8 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSForeshadowing {
-    @Attribute(.unique) var id: String
+public final class WSForeshadowing {
+    @Attribute(.unique) public var id: String
     /// FK to WSBook.id
     var bookID: String
     var title: String

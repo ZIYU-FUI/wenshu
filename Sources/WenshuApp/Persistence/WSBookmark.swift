@@ -14,8 +14,8 @@ import Foundation
 import SwiftData
 
 @Model
-final class WSBookmark {
-    @Attribute(.unique) var id: String
+public final class WSBookmark {
+    @Attribute(.unique) public var id: String
     var docID: String?
     var bookID: String?
     var title: String
