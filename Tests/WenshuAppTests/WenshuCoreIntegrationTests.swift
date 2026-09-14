@@ -12,6 +12,17 @@ import Foundation
 @Suite("WenshuCore Integration")
 @MainActor
 struct WenshuCoreIntegrationTests {
+
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 7 migration from TodoStore actor.
+    @MainActor
+    private static func makeTodoRepository() throws -> WSTodoRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSTodoRepository(container: container)
+    }
+
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
@@ -24,6 +35,7 @@ struct WenshuCoreIntegrationTests {
 
 
     @Test("Memory + Skill + Kanban + Todo 全 Core 集成")
+    @MainActor
     func testAllCoreIntegration() async throws {
         // 1. MemoryStore (mem0)
         let memory = try MemoryStore(path: tmpPath("mem"))
@@ -39,8 +51,7 @@ struct WenshuCoreIntegrationTests {
         #expect(running.count == 1)
 
         // 3. TodoStore
-        let todo = try TodoStore(path: tmpPath("todo"))
-        try await todo.bootstrap()
+        let todo = try Self.makeTodoRepository()
         _ = try await todo.add(title: "Todo 1", priority: .high)
 
         // 4. AgentRuntime + AgentProtocol (A2A + agent) — verifier (key → LLM fail path, S3)
@@ -83,6 +94,7 @@ struct WenshuCoreIntegrationTests {
     }
 
     @Test("AVMediaTools estimateDuration 在 wenshu 写作用途")
+    @MainActor
     func testAVMediaForWriting() {
         let tools = AVMediaTools()
         // wenshu:
@@ -93,6 +105,7 @@ struct WenshuCoreIntegrationTests {
     }
 
     @Test("Cronjob parseSchedule 在 wenshu 写作用途")
+    @MainActor
     func testCronjobForWriting() {
         // wenshu: 5 autosave
         let valid = CronjobStore.parseSchedule("*/5 * * * *")
