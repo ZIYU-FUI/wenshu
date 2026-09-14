@@ -176,7 +176,7 @@ struct SkillBundlesToolTests {
     @Test("unknown action returns typed error")
     func unknownAction() async throws {
         let tool = Self.makeTool()
-        let result = await tool.execute(input: #"{"action":"frobnicate"}"#)
+        let result = try await tool.execute(input: #"{"action":"frobnicate"}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == false)
         let error = env["error"] as? String ?? ""
@@ -187,7 +187,7 @@ struct SkillBundlesToolTests {
     @Test("empty action returns missing-action error")
     func missingAction() async throws {
         let tool = Self.makeTool()
-        let result = await tool.execute(input: #"{}"#)
+        let result = try await tool.execute(input: #"{}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == false)
         let error = env["error"] as? String ?? ""
