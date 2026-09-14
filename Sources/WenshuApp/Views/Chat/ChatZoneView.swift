@@ -6,9 +6,9 @@
 // ChatZoneView = the chat-zone root container (= AI provider model
 // selector + ChatView + HelpTextOverlay).
 //
-// v1.0.0-m1-shell boss 2026-09-10 OOB '聊天区的顶栏不要了, 包括归档
-// ICON 按钮, 还有 teb, 就是整个顶栏不要了, 区域的内间距, 如果 api
-// 自带, 交给 API 默认':
+// v1.0.0-m1-shell boss 2026-09-10 OOB 'drop the chat zone's top bar entirely, including the archive
+// icon button and the tabs — basically the whole top bar. For the zone's internal padding, if the API
+// provides one, let the API handle the defaults':
 // the chat zone no longer hosts any top-bar chrome (= no
 // ChatZoneTabBar, no 3-tab HStack, no archive ICON, no TEB). The
 // body of the chat zone = bare ChatView (= the chat history +
@@ -53,7 +53,7 @@ struct ChatZoneView: View {
     }
 
     var body: some View {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '聊天区没有左右撑满':
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'chat zone doesn't fill the width':
         // apply `.frame(maxWidth: .infinity, maxHeight: .infinity)` to
         // the outer VStack so the chat zone fills the full width
         // and height of its NSSplitViewItem slot.

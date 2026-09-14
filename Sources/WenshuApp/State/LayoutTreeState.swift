@@ -903,7 +903,7 @@ struct LayoutPreset: Codable, Equatable, Identifiable {
     static let builtinQuadID = UUID.literal("00000000-0000-0000-0000-000000000004")
 
     static func builtinDefault(_ workspace: LayoutTreeState) -> LayoutPreset {
-        // v0.71 P1 batch 10: translated "默认" → "Default" (= AGENTS.md §11
+        // v0.71 P1 batch 10: translated the legacy localized string "Default" (which originally rendered in Chinese as 'Default') → "Default" (= AGENTS.md §11
         // English-only rule; = the builtin preset name should be in
         // English and the localized version comes from the i18n layer
         // when shown to the user).

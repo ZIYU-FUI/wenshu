@@ -32,9 +32,7 @@ struct PresetCard: View {
                 .aspectRatio(4.0 / 3.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB
-                // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                // 'regiontop bar, bottom bar, background, color, can
-                // '): preset card thumbnail background =
+                // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
                 // .ultraThinMaterial (= the lightest Liquid Glass
                 // material = subtle tint without overwhelming the
                 // thumbnail preview). Per Apple HIG (= macOS 26 Tahoe

@@ -1,10 +1,10 @@
 //
 //  LLMConnectorConformanceTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  v0.71 P1 batch 3 (boss 2026-09-12 OOB '用户 BYOK (bring your own key)'
+//  v0.71 P1 batch 3 (boss 2026-09-12 OOB 'users BYOK (bring your own key)'
 //  + §11.2 LLM connector profiles = 7 connector profiles (Anthropic /
 //  OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn)' +
-//  '我提需求，你只做我提的事'):
+//  'I raise requirements, you only do what I ask for'):
 //
 //  Code-level verification (= no network, no LLM calls) that all 7
 //  LLMConnector profiles are actually present in the codebase, each

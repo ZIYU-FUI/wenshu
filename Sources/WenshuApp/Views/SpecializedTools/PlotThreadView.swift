@@ -51,7 +51,7 @@ struct PlotThreadView: View {
                     }
                 }
             } else {
-                // v1.0.0-m1-shell boss 2026-09-12 OOB '统一所有空态的样式':
+                // v1.0.0-m1-shell boss 2026-09-12 OOB 'unify the empty-state style across all of them':
                 // use the unified EmptyStateView (= 76 PT Lucide icon
                 // + 1 PT stroke via LucideThinIcon + standard
                 // title/body hierarchy). Same visual treatment as the

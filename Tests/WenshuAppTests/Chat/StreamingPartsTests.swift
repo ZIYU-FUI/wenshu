@@ -1,8 +1,8 @@
 //
 //  StreamingPartsTests.swift · Wenshu · v0.71 P1 batch 1+2
 //
-//  v0.71 P1 batch 1+2 (boss 2026-09-12 OOB '聊天区的流式输出没有实现...
-//  全量复制 hermes... 编辑器使用 SM 我们引入的一个第三方 md 编辑器'):
+//  v0.71 P1 batch 1+2 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented...
+//  port the whole thing from hermes... The editor uses SM, the third-party Markdown editor we brought in'):
 //  code-level (= no UI / no screenshot) verification of the new
 //  streaming parts pipeline. Tests cover:
 //
@@ -325,7 +325,7 @@ struct StreamingPartsTests {
         var streamingThinking: String = ""
 
         // Round 1: LLM emits a .text chunk (= token 1 of
-        // "你好, 文枢").
+        // "Hello, Wenshu").
         streamingParts.append(.text("你好, "))
         // Round 2: another .text chunk.
         if case .text(let last) = streamingParts.last?.kind {
@@ -378,8 +378,8 @@ struct StreamingPartsTests {
             content: "found 0 results",
             isError: false
         ))
-        // Round 6: final reply text (= "你好, 文枢. 继续
-        // 吧.").
+        // Round 6: final reply text (= "Hello, Wenshu. Continue
+        // please.").
         if case .text(let last) = streamingParts.first(where: { p in
             if case .text = p.kind { return true }
             return false
@@ -415,11 +415,11 @@ struct StreamingPartsTests {
         // still has status = .running, and a new .toolResult part
         // is appended at index 3).
         #expect(final.parts.count == 4, "Expected 4 parts, got \(final.parts.count)")
-        // Part 0: .text "你好, 文枢. 继续吧."
+        // Part 0: .text "Hello, Wenshu. Please continue."
         if case let .text(s) = final.parts[0].kind {
             #expect(s == "你好, 文枢. 继续吧.", "Got first .text = \(s)")
         } else { Issue.record("part 0 not text") }
-        // Part 1: .reasoning "用户用中文, 我用中文回"
+        // Part 1: .reasoning "The user is writing in Chinese, so I'll reply in Chinese"
         if case let .reasoning(s) = final.parts[1].kind {
             #expect(s == "用户用中文, 我用中文回")
         } else { Issue.record("part 1 not reasoning") }

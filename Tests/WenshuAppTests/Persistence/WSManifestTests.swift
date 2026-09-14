@@ -8,7 +8,7 @@
 //    - Properties persist + retrieve from an in-memory ModelContainer
 //    - migratedFromRawSqliteAt defaults to nil (= Phase 4 will populate)
 //
-//  Per boss 2026-09-13 OOB: "做一个, 测一个, commit 一个"
+//  Per boss 2026-09-13 OOB: "build one, test one, commit one"
 
 import Foundation
 import SwiftData

@@ -4,7 +4,7 @@
 // swap for MetadataQuery / CoreData / CloudKit later without changing
 // the contract (= LibraryStoring) or any caller (= view layer).
 //
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // Owner 8/15 15:55: 'needok,, refactor
 // '. By satisfying LibraryStoringContractTests, this implementation
 // is the architectural reference: any future impl must behave the same.
@@ -338,7 +338,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     // MARK: - Document ops (v0.03.0)
     //
     // Layout (= 8/15 15:55 'needok,,
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     // refactor'):
     //   ~/Documents/wenshu/<shelf>/<book>/
     //     book.json

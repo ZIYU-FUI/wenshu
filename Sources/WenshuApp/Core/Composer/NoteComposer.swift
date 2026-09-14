@@ -80,7 +80,7 @@ public enum NoteComposer {
 
     // MARK: - Split
 
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     /// split note (ok)
     /// Apple HIG: String.components(separatedBy: \n)
     public static func split(

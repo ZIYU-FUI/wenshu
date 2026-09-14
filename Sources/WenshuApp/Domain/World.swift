@@ -13,7 +13,7 @@
 // v0.26 FCP library replica spec at
 // `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 001.
 //
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // Owner 8/15 15:55: 'needok,, refactor
 // '. The shape of WorldEntry is locked by the spec + the contract
 // tests in ticket 023.
@@ -66,7 +66,7 @@ enum WorldEntryType: String, CaseIterable, Codable, Sendable {
 /// The full lore text lives in the .md body (= free-form markdown
 /// the user writes). This struct holds the structured metadata used
 /// for the second-column card grid (= file 001 / boss 8/26 'card
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 /// yes').
 struct WorldEntry: Identifiable, Hashable, Codable, Sendable {
     let id: UUID

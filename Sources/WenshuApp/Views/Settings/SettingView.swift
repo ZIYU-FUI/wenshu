@@ -37,7 +37,7 @@ import SwiftUI
 /// 8/21 'Pages Settingspanel UI, macOS 27 group'
 /// = toolbar (3 segmented tab, Pages, 2)
 /// yes macOS Settings { } Scene autotitle segmented tab button (commit 0082bd1fe + 030a58355)
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 /// Pages () = window toolbar, yeswindowtitlebutton
 struct SettingView: View {
     @Environment(AppState.self) private var appState
@@ -51,7 +51,7 @@ struct SettingView: View {
     // touching the surrounding body.
     // v0.24 bossverificationfix (2026-08-24): default to empty string when no provider
     // key configured (not "MiniMax-M3" which implies a MiniMax provider is
-    // selected even when user has no key). UI shows "，config" placeholder
+    // selected even when user has no key). UI shows the localized 'please configure the provider first' placeholder
     // when this is empty.
     // v0.24 boss acceptance fix (2026-08-24): the canonical
     // `@AppStorage("wenshu.llm.model") private var llmModel: String = ""`

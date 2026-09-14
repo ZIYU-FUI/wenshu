@@ -115,8 +115,8 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
 
     public init() {}
 
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB '做一个远程调试模式,
-    /// 打开后, 不要钥匙, 远程我也测试不了聊天, 只能调 ui': the
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode,
+    /// once it's on, don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI': the
     /// Apple Security framework backend (SecItemAdd /
     /// SecItemCopyMatching / SecItemDelete) triggers the macOS
     /// SecurityAgent modal on ad-hoc-signed wenshu.app (= no
@@ -139,8 +139,8 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     }
 
     public func saveKeySync(_ key: String, for provider: Provider) throws {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '配置 key 没有持久化,
-        // 需要实现, 如果能走 apple api 的钥匙串更好': restore the
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'the configured key isn't persisted,
+        // this needs to be implemented — going through the Apple Keychain API would be even better': restore the
         // real SecItemAdd implementation (= the canonical Apple
         // Security framework keychain path; = the canonical wenshu
         // architecture per AGENTS.md §11 hard rule 'API keys via
@@ -156,10 +156,10 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         // the user logs in once; = the canonical 'user API key'
         // accessibility tier).
         //
-        // Per AGENTS.md §11 baseline + boss direction '能走 apple
-        // api 的钥匙串更好': Apple Keychain is the canonical wenshu
+        // Per AGENTS.md §11 baseline + boss direction 'going through the Apple
+        // Keychain API would be even better': Apple Keychain is the canonical wenshu
         // path. This is the right restore.
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '做一个远程调试模式':
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode':
         // short-circuit when debugNoKeychain UserDefaults is set (= the
         // remote-debug mode toggle). Silent no-op (= no throw; =
         // callers = Settings Save button = silently accept and move on).
@@ -192,8 +192,8 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     public func loadKeySync(for provider: Provider) -> String? {
         // v1.0.0-m1-shell: restore the real SecItemCopyMatching.
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '做一个远程调试模式,
-        // 打开后, 不要钥匙, 远程我也测试不了聊天, 只能调 ui': also
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode,
+        // once it's on, don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI': also
         // short-circuit the Apple Security framework call here (= the
         // OS-level SecurityAgent modal still prompts even when the
         // ProviderKeychain.backend lazy-init returned InMemoryKeychainStore;
@@ -339,8 +339,8 @@ public enum ProviderKeychain {
     // without touching the real Apple Keychain (= avoids securityd IPC hang in
     // macOS 27 when running swift test). Production builds never set this env var,
     // so production behavior is unchanged.
-    // v1.0.0-m1-shell boss 2026-09-10 OOB '配置 key 没有持久化, 需要
-    // 实现, 如果能走 apple api 的钥匙串更好': flip the default
+    // v1.0.0-m1-shell boss 2026-09-10 OOB 'the configured key isn't persisted — needs
+    // to be implemented; going through the Apple Keychain API would be even better': flip the default
     // backend back to AppleKeychainStore (= the canonical wenshu
     // path per AGENTS.md §11 hard rule 'API keys via AppleKeychain
     // NEVER plaintext SQLite'; = the previous B-10 revert flipped
@@ -363,8 +363,8 @@ public enum ProviderKeychain {
         // still honor the override; = cua / dev / CI overrides also
         // honored).
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '做一个远程调试模式,
-        // 打开后, 不要钥匙, 远程我也测试不了聊天, 只能调 ui':
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode,
+        // once it's on, don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI':
         // add a UserDefaults-based remote-debug switch (= boss is
         // off-site, = the macOS Keychain prompt for ad-hoc-signed
         // wenshu.app hangs onboarding with no remote way to dismiss
@@ -376,7 +376,7 @@ public enum ProviderKeychain {
         // 1. `WENSHU_DEBUG_INMEMORY_KEYCHAIN=1` env var (cua / dev
         //    / CI; pre-existing convention from B-10 phase A).
         // 2. UserDefaults key `wenshu.debugNoKeychain = YES` (NEW;
-        //    boss-set on the 公司 Mac via `defaults write com.wenshu.
+        //    boss-set on the company Mac via `defaults write com.wenshu.
         //    app wenshu.debugNoKeychain -bool YES` before launching
         //    wenshu.app via `open`; = persists across launches; = the
         //    canonical 'remote debug mode' toggle for off-site UI
@@ -386,7 +386,7 @@ public enum ProviderKeychain {
         //
         // Override flips the backend to InMemoryKeychainStore (=
         // loadKeySync returns nil for every provider = ChatZoneView
-        // shows the empty-state hint '请先在设置 中设置好大模型提供方'
+        // shows the empty-state hint 'please configure the LLM provider in Settings first'
         // = no LLM call can be sent = boss can iterate on UI
         // without ever touching macOS Keychain).
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {

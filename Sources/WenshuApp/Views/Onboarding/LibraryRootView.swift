@@ -110,7 +110,7 @@ public struct LibraryRootView: View {
         content
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
-            // v0.74 boss 2026-09-10 OOB '这个库文件名也不需要显示':
+            // v0.74 boss 2026-09-10 OOB 'this library's filename shouldn't be shown either':
             // drop the `.navigationSubtitle(libraryPath.lastPathComponent)`.
             // It was originally added (= ticket 008, commit a0e9b509d) to
             // match Apple's Pages / Numbers 'document basename in the
@@ -125,7 +125,7 @@ public struct LibraryRootView: View {
             // = we just don't call it from this root view anymore).
             // v0.81 boss 2026-09-10 OOB 'inspector toggle button':
             // REMOVED. Per boss 2026-09-10 OOB 'Apple Pages/Numbers/
-            // Keynote 不隐藏右栏' + 'Apple 没给右栏默认折叠按钮',
+            // Keynote doesn't hide the right column' + 'Apple doesn't provide a default collapse button for the right column',
             // inspector is permanently visible (= no toggle, no
             // hide affordance). NavigationSplitShell wires
             // `.inspector(isPresented: .constant(true))`; this
@@ -183,7 +183,7 @@ public struct LibraryRootView: View {
             // bookStore.books.count is correct on the first render.
             self.bookStore?.reloadAllBooks()
         } catch {
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'UI 不加载, 一直菊花':
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'UI doesn't load, just spins forever':
             // the previous `#if DEBUG print` was suppressed in
             // release builds (= the boss is running a release .app
             // bundle). NSLog works in both DEBUG and RELEASE so the
@@ -327,7 +327,7 @@ Group {
 
             Spacer()
         }
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '初始大小, 很小':
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'initial size, too small':
         // the onboarding body has no explicit outer frame, so
         // `.windowResizability(.contentSize)` (= applied at the
         // Scene root in AppRootScene) shrinks the window to the

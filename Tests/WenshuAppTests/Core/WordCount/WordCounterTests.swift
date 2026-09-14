@@ -63,8 +63,8 @@ struct WordCounterTests {
     @Test("中文标点 + 句数")
     func chineseSentences() {
         let count = WordCounter.count("林黛玉哭了。宝玉走了！宝钗问：为什么？")
-        // Apple HIG: in progress 。！？ + .!? 1
-        // "。" "！" "：？" = 3 (regex "？" 1)
+        // Apple HIG: in-progress sentences — full-width period + exclamation + question mark + half-width (.!?) 1
+        // full-width period + full-width exclamation + full-width colon + full-width question mark = 3 (regex matches full-width question mark 1)
         #expect(count.sentences == 3)
     }
 

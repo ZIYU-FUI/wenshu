@@ -36,7 +36,7 @@ struct AppRootScene: Scene {
     @Binding var appearanceMode: AppearanceMode
     let appState: AppState
 
-    // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
+    // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
     // the kanban + todo Windows each construct their own BookStore /
     // Kanban / Todo persistence from the shared `library` URL
     // (= SwiftData-backed via WSKanbanRepository / WSTodoRepository;
@@ -69,8 +69,8 @@ struct AppRootScene: Scene {
             LibraryRootView(library: library, appearanceMode: appearanceMode)
                 .environment(appState)
         }
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '.ws 打开后的持久化,
-        // 不知道怎么回事, 会消失, 最新 N 次我都需求手动打开.ws 库':
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'persistence after opening a .ws,
+        // no idea why, but it disappears, the last N times I had to manually re-open the .ws library every time':
         // the previous `WindowGroup` (= no `restorationBehavior`)
         // inherited the macOS system-wide state-restoration setting.
         // On this machine (= state restoration ON), the system
@@ -85,8 +85,8 @@ struct AppRootScene: Scene {
         // visibly squished. Worse: the saved frame did NOT match
         // the saved `.ws` library path on disk, so on every
         // subsequent launch the user saw a too-narrow window AND
-        // had to manually re-open the `.ws` (= the boss's '持久化
-        // 会消失' symptom = the saved frame and the saved library
+        // had to manually re-open the `.ws` (= the boss's 'persistence
+        // disappears' symptom = the saved frame and the saved library
         // path drifted apart over time).
         //
         // Fix: `.restorationBehavior(.disabled)` (= the canonical
@@ -133,7 +133,7 @@ struct AppRootScene: Scene {
         // containing 8 toolbar items + traffic lights). No custom
         // chrome above or below (= fully Apple-native = ' apple
         // ' per Boss spec).
-        // v0.93 boss 2026-09-10 OOB '之前 NSV probe 好好的':
+        // v0.93 boss 2026-09-10 OOB 'NSV probe was working fine before':
         // the probe (/tmp/wenshu_full/Full.swift, = the
         // 2026-09-10 morning NSV test) used
         // `.windowToolbarStyle(.unifiedCompact)` (= 28 PT compact
@@ -150,8 +150,8 @@ struct AppRootScene: Scene {
         // (= Mail / Notes / Finder all use it = their toolbars
         // do not steal vertical space from the work area). Match
         // the probe's style.
-        .windowToolbarStyle(.unified)  // v1.0.0-m1-shell boss 2026-09-10 OOB '把标题栏, 或者说工具栏, 用 apple 52 PT 高的那个, 按钮大一些': Apple HIG standard toolbar height = 52 PT per developer.apple.com/design/human-interface-guidelines/toolbars 'A standard toolbar is 52 PT tall'; = matches Mail / Notes / Finder / Safari / TextEdit / Pages / Keynote / Numbers standard toolbar; = the previous `.unifiedCompact` (= 28 PT compact toolbar) was a v0.95 cosmetic attempt that the boss rejected; = the larger 52 PT toolbar lets the icon buttons render at the canonical Apple HIG size (= the user wants the buttons to look bigger and more clickable; = the 52 PT toolbar height makes the icon-button frames at the canonical 28-32 PT icon size).
-        // v0.96 boss 2026-09-10 OOB '之前 NSV probe 好好的': the
+        .windowToolbarStyle(.unified)  // v1.0.0-m1-shell boss 2026-09-10 OOB 'use the title bar, or rather the toolbar, use that Apple-standard 52 PT tall one, and make the buttons a bit bigger': Apple HIG standard toolbar height = 52 PT per developer.apple.com/design/human-interface-guidelines/toolbars 'A standard toolbar is 52 PT tall'; = matches Mail / Notes / Finder / Safari / TextEdit / Pages / Keynote / Numbers standard toolbar; = the previous `.unifiedCompact` (= 28 PT compact toolbar) was a v0.95 cosmetic attempt that the boss rejected; = the larger 52 PT toolbar lets the icon buttons render at the canonical Apple HIG size (= the user wants the buttons to look bigger and more clickable; = the 52 PT toolbar height makes the icon-button frames at the canonical 28-32 PT icon size.
+        // v0.96 boss 2026-09-10 OOB 'NSV probe was working fine before': the
         // probe (/tmp/wenshu_full/Full.swift) had no
         // `.defaultSize(width:height:)` (= SwiftUI used the
         // window's natural default size = ~1429 PT). With no
@@ -165,8 +165,8 @@ struct AppRootScene: Scene {
         // ignores every `navigationSplitViewColumnWidth`
         // modifier. Comment out defaultSize to restore SwiftUI's
         // default window sizing (= matches the working probe).
-        // v0.101 boss 2026-09-10 OOB '各列按 Apple 推荐参数
-        // 设置 min/ideal/max': re-enable `defaultSize(1480, 980)`
+        // v0.101 boss 2026-09-10 OOB 'set each column to Apple's recommended parameters
+        // — min/ideal/max': re-enable `defaultSize(1480, 980)`
         // (= Apple HIG ideal-sum for sidebar 280 + content 320 +
         // detail 600 + inspector 280). With the toolbar style
         // now `.unifiedCompact` (= matches probe) + 4 columns
@@ -177,7 +177,7 @@ struct AppRootScene: Scene {
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 1480 x 980 (4-col Apple HIG ideal sum)
         // v0.24 bossverificationfix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
-        // v0.91 boss 2026-09-10 OOB '1480 也可以': change to
+        // v0.91 boss 2026-09-10 OOB '1480 is also OK': change to
         // .contentSize so the defaultSize (= 1480 PT width) is
         // actually applied. The previous `.contentMinSize` made
         // the window grow to fit the NavigationSplitView's
@@ -185,7 +185,7 @@ struct AppRootScene: Scene {
         // handles + window chrome = ~2205 PT), overriding
         // defaultSize entirely.
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '各栏的初始大小, 按最小算':
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'compute each column's initial size using the minimum':
         // `.windowResizability(.contentMinSize)` (= the current
         // setting) makes the initial window = the sum of every
         // column's MIN width (= sidebar 220 + cards 240 + detail
@@ -212,13 +212,13 @@ struct AppRootScene: Scene {
         // `.contentSize` actually DOES honour the outer frame as
         // the intrinsic content size).
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '中栏的默认宽度没有
-        // 写吧好像, 需要补一下': the `.contentSize` resizability
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'the middle column's default width doesn't
+        // have it — write it in, seems like it needs to be patched': the `.contentSize` resizability
         // was making the window size = NavigationSplitView's
         // intrinsic content size (= the sum of each column's
         // MIN width = sidebar 220 + cards 240 + detail 400 +
         // inspector 240 = 1100 PT; = detail only gets its MIN
-        // width 400 PT = the boss's '中栏看着窄' symptom).
+        // width 400 PT = the boss's 'middle column looks narrow' symptom).
         // Switching to `.contentMinSize` + keeping
         // `.defaultSize(1480, 980)` means:
         //   - defaultSize 1480 PT = the INITIAL window width
@@ -231,7 +231,7 @@ struct AppRootScene: Scene {
         //     accommodate the ideal sum 1340 PT (= sidebar 220 +
         //     cards 240 + detail 600 + inspector 280 = 1340 PT)
         //     = detail gets 600 PT (= its ideal = the boss's
-        //     '中栏默认宽度' expectation).
+        //     'middle column's default width' expectation).
         //
         // Per Apple HIG developer.apple.com/documentation/swiftui/
         // view/windowresizability: 'contentMinSize: The window
@@ -296,7 +296,7 @@ struct AppRootScene: Scene {
                 // Menu (= /). Both sub-items post a
                 // NotificationCenter event that NewLibraryOutlineView
                 // listens for and triggers the matching sheet.
-                // v1.0.0-m1-shell boss 2026-09-10 OOB '⌘N 打开新文枢': the
+                // v1.0.0-m1-shell boss 2026-09-10 OOB '⌘N opens a new Wenshu document': the
                 // previous `.keyboardShortcut("n", modifiers:
                 // .command)` was attached to the OUTER Menu (= a
                 // scene-level Menu = the File menu's "New Project"
@@ -350,9 +350,9 @@ struct AppRootScene: Scene {
                 Button(WenshuI18n.t("menu.edit.redo"), action: {})
                     .keyboardShortcut("Z", modifiers: [.command, .shift])
             }
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'NSV 默认, 聊天区
-            // 这个区域是可以显隐的, 但功能在菜单栏里, 没有专门的
-            // 按钮, 先有菜单栏, 以后是否有按钮, 再研究': the View
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'NSV is the default; the chat zone
+            // is a zone that can be shown/hidden, but the toggle lives in the menu bar, there is no dedicated
+            // button — the menu-bar entry comes first, whether to add a button later, we'll investigate': the View
             // menu (= Apple's canonical menu for pane visibility
             // toggles; = per Apple HIG developer.apple.com/design/
             // human-interface-guidelines/menus 'The View menu lets
@@ -403,7 +403,7 @@ struct AppRootScene: Scene {
         // because the Settings scene had no `.environment(appState)`
         // modifier (= only the WindowGroup's content view had one).
         .environment(appState)
-        // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
+        // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
         // add 2 dedicated `Window` scenes (= the SwiftUI macOS
         // 13+ API for SINGLE-INSTANCE independent windows; = the
         // canonical Apple pattern for an 'always one' panel
@@ -436,10 +436,10 @@ struct AppRootScene: Scene {
         // new window). 'wenshu-kanban' / 'wenshu-todo' use
         // short opaque tokens that avoid that namespace
         // collision.
-        // v1.0.0-m1-shell boss 2026-09-11 OOB '我说的多实例和
-        // 你说的是一个事吗? 我是说, 主窗口, 设置, 看板, 待办,
-        // 可以同时出现在屏幕上, 但每个窗口只能唯一, 看板按钮
-        // 只能开关看板窗口, 不是打开多个看板窗口': my previous
+        // v1.0.0-m1-shell boss 2026-09-11 OOB 'what I said about multi-instance and
+        // what you said — are those the same thing? What I mean is: main window, Settings, Kanban, Todo,
+        // can all appear on screen at the same time, but each window has to be unique, the Kanban button
+        // can only toggle the Kanban window open/closed, not open multiple Kanban windows': my previous
         // switch to `WindowGroup` (= MULTI-INSTANCE) was the
         // wrong primitive. Boss wants SINGLE-INSTANCE per window
         // type: = clicking the kanban button when the kanban
@@ -450,7 +450,7 @@ struct AppRootScene: Scene {
         // = the user can have main + settings + kanban + todo
         // ALL on screen simultaneously, but never 2 kanbans.
         //
-        // `Window("看板", id: WindowID.kanban)` (= macOS 13+
+        // `Window("Kanban", id: WindowID.kanban)` (= macOS 13+
         // SINGLE-INSTANCE panel scene) is the correct primitive.
         // Apple HIG (§ Multi-window apps in macOS 14 HIG):
         // "use WindowGroup for documents (e.g. Pages, Numbers),
@@ -458,7 +458,7 @@ struct AppRootScene: Scene {
         // feature surfaces".
         //
         // Lifecycle semantics (= independent of the main window):
-        // `Window("看板")` is a separate scene from the root
+        // `Window("Kanban")` is a separate scene from the root
         // `WindowGroup { LibraryRootView }`. Closing the kanban
         // window does NOT close the main window (= verified by
         // Apple docs: each `Scene` is an independent NSWindow;
@@ -468,9 +468,9 @@ struct AppRootScene: Scene {
         // the existing kanban window to front if it exists, or
         // creates one if it doesn't (= the toggle semantics).
         //
-        // v1.0.0-m1-shell boss 2026-09-11 OOB '看板, 设置, 待办的
-        // windows 实例, 需要根据内容自动适配窗口大小, 不用设置
-        // 尺寸': per Apple HIG `Window` (= single-instance)
+        // v1.0.0-m1-shell boss 2026-09-11 OOB 'for Kanban, Settings, Todo
+        // windows instances, the window size needs to auto-fit the content, no need to set
+        // a fixed size': per Apple HIG `Window` (= single-instance)
         // sizes itself to the view's intrinsic content size
         // by default (= no `.defaultSize` modifier needed).
         Window("看板", id: WindowID.kanban) {

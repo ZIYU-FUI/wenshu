@@ -238,7 +238,7 @@ struct WorkspaceView: View {
             draft: content,
             originalBody: content,
             mode: .preview,
-            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab title didn't go to the document name bug':
             // pass title so tab strip shows the real card name
             // instead of 'preview-sample'.
             title: title.isEmpty ? nil : title
@@ -368,8 +368,7 @@ struct WorkspaceView: View {
         switch kind {
         case .projectSidebar:
             // v0.28 followup Boss UX round 43 (Boss 2026-08-29 OOB
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 'check the project manager zone position, the Y-axis position and the material management zone do not seem aligned'
+            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
             // = sidebar's top chrome (= "Bookshelf" tab + New/Import buttons
             // inside NewLibraryOutlineView) was at a different Y than
             // Preview/Editor/Tools (= which use ZoneContentView with
@@ -625,7 +624,6 @@ struct WorkspaceView: View {
 // placeholders). Boss 2026-08-29 OOB 'are the original tabs in the current framework
 // using the default style' = yes — every zone has a ZoneContentTabBar with
 // Lucide icons + accent underline + selected state. Per Boss
-// 'completely not 1:1' OOB, this commit restores 1:1 match by replacing
 // the placeholder text views with the real tabbed zone views.
 //
 // Per v0.27 boss 8/27 OOB #3: projectSidebar zone has `trailingButton`
@@ -974,7 +972,7 @@ struct ZoneModuleView: View {
             draft: content,
             originalBody: content,
             mode: .preview,
-            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的 bug':
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab title didn't go to the document name bug':
             // pass title so tab strip shows the real card name.
             title: title.isEmpty ? nil : title
         )
@@ -1103,8 +1101,8 @@ struct EditorPlaceholder: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // v1.0.0-m1-shell boss 2026-09-10 OOB '编辑器顶部就留着
-            // 做标签档, 显示多文档' (= keep the tab strip = the
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'at the top of the editor keep
+            // the tab strip for showing multiple documents' (= keep the tab strip = the
             // multi-document title bar; = delete every other chrome
             // element on the editor top bar: the mode toggle Button,
             // ParagraphAIToolbarButtons, Spacer, .frame toolbar
@@ -1113,7 +1111,7 @@ struct EditorPlaceholder: View {
             // strip ONLY (= Apple HIG tabbed-document pattern;
             // = Finder / Safari / Terminal all use a plain tab
             // strip without formatting chrome; = the user said
-            // '就留着做标签档' = nothing else on this bar).
+            // 'just keep it for the tab strip' = nothing else on this bar).
             //
             // Apple HIG tabbed-document pattern (= NSTabView / Safari
             // tab strip): single-line HStack, scrollable horizontally
@@ -1193,16 +1191,16 @@ struct EditorPlaceholder: View {
                 // the preview/edit body (= replaces the previous
                 // samplePreviewBody placeholder).
                 if activeTab == nil {
-                    // v1.0.0-m1-shell boss 2026-09-10 OOB '没有打开任何文档的时候,
-                    // 纸只占位, 不渲染, 不要这个白色, 还是提示空态'
-                    // + follow-up '不是, 我想的是没有打开文档的时候,
-                    // 两个区域也都还在, 上下还是 50/50, 只不过上面
-                    // 是空态':
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB 'when no document is open,
+                    // the paper should just be a placeholder, not rendered — don't show that white, show the empty state instead'
+                    // + follow-up 'no, what I mean is when no document is open,
+                    // both zones should still be there, top/bottom 50/50, only the top
+                    // becomes the empty state':
                     //
-                    // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
-                    // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
-                    // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
-                    // 空态的样式. 右栏 12 个 teb, 很多都缺少空态':
+                    // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+                    // a single component — can you abstract a UI component? While you're at it, on the
+                    // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
+                    // empty-state styles. The right column has 12 tabs and many are missing an empty state':
                     // migrate to the unified EmptyStateView (= 76 PT
                     // Lucide icon + 1 PT stroke via LucideThinIcon +
                     // standard title / body hierarchy). Same visual
@@ -1214,8 +1212,8 @@ struct EditorPlaceholder: View {
                     // half keeps its 50/50 share with the chat
                     // zone; = the chat zone stays at full size
                     // below; = no VSplitView divider math bug; =
-                    // the boss's '两个区域也都还在, 上下还是 50/50,
-                    // 只不过上面是空态').
+                    // the boss's 'both zones should still be there, top/bottom 50/50,
+                    // only the top becomes the empty state').
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
                         EmptyStateView(
@@ -1365,7 +1363,7 @@ struct EditorPlaceholder: View {
             // this frame, the editor VStack shrinks to its intrinsic
             // content width (= the WenshuMarkdownEditor NSTextView's
             // minimum width = ~400 PT; = leaves the right side of the
-            // detail column empty = the boss's '宽度没有撑满' symptom).
+            // detail column empty = the boss's 'width didn't fill' symptom).
             //
             // The v0.30 'inflated the detail column to 1763' concern
             // (= caused by the previous NavigationSplitView layout)
@@ -1373,7 +1371,7 @@ struct EditorPlaceholder: View {
             // not have the unbounded-width issue (= NSSplitViewItem
             // gives a bounded slot).
             //
-            // boss 9/10 OOB '宽度没有撑满' (= 'width did not fill').
+            // boss 9/10 OOB 'width didn't fill' (= 'width did not fill').
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB 'all
             // zone top bars, bottom bars, backgrounds, the colors used, can they adapt to Liquid Glass?'):
@@ -1605,7 +1603,7 @@ struct EditorPlaceholder: View {
             draft: result.body,
             originalBody: result.body,
             mode: .preview,
-            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'the tab title didn't go to the document name'
             // bug': pass wiki-link target title so the tab strip
             // shows the linked entity / chapter name.
             title: result.title.isEmpty ? nil : result.title        )
@@ -1897,10 +1895,10 @@ struct EditorPlaceholder: View {
     /// path: pick a reference library / book / folder, double-
     /// click a card → openCardInEditor creates a tab).
     ///
-    /// v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
-    /// 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
-    /// ICON 放大一倍, 同时用最细的线条. 目的是统一所有空态
-    /// 的样式. 右栏 12 个 teb, 很多都缺少空态': use the
+    /// v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+    /// a single component — can you abstract a UI component? While you're at it, on the
+    /// empty-state icon: double the size and use the thinnest strokes. The goal is to unify all empty-state
+    /// styles. The right column has 12 tabs and many are missing an empty state': use the
     /// unified EmptyStateView component (= 76 PT Lucide icon
     /// + 1 PT stroke via LucideThinIcon + standard title / body
     /// hierarchy). This guarantees consistent visual treatment
@@ -2080,7 +2078,7 @@ fileprivate func findPaneController(in root: NSViewController?) -> PaneNSControl
 struct EditorPaperCanvas<Content: View>: View {
     /// A4 width in points. Apple's own default for a new Pages document
     /// in a metric locale, and what the measurement above confirmed.
-    /// Boss 2026-09-10 OOB '纸就按一张 A4 去设计就好了': keep
+    /// Boss 2026-09-10 OOB 'just design the paper as a single A4 sheet': keep
     /// paperWidth = 595 PT (= Pages / Numbers use the same). The
     /// ScrollView wraps the sheet; when the detail column is
     /// narrower than 595 PT, the user can scroll horizontally to
@@ -2093,7 +2091,7 @@ struct EditorPaperCanvas<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        // v0.100 boss 2026-09-10 OOB '纸左右两边有大量空区域':
+        // v0.100 boss 2026-09-10 OOB 'big empty areas on the left and right of the paper':
         // the sheet used to be left-aligned inside its
         // ScrollView (= the 595 PT paper sat flush against the
         // ScrollView's leading edge = ~370 PT of black empty

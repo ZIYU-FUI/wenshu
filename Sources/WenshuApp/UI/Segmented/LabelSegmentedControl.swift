@@ -2,9 +2,9 @@
 //  LabelSegmentedControl.swift
 //  wenshu
 //
-//  v1.0.0-m1-shell boss 2026-09-11 OOB '工具栏的, 用刚刚的,
-//  那个是工具栏的苹果默认风格. 你现在的这个控件, 要用在,
-//  伏笔, 占位符的这个 teb 栏. 四页都改': the toolbar's
+//  v1.0.0-m1-shell boss 2026-09-11 OOB 'for the toolbar, use the one we
+//  just settled on — that's Apple's default toolbar style. The control you have now needs to be
+//  used in the Foreshadowing/Placeholder tab bar. Apply the change to all four pages': the toolbar's
 //  4-page Picker keeps using the SwiftUI `Picker(.segmented)`
 //  (= the canonical Apple HIG toolbar default style = the
 //  macOS-auto-picked rounded-rect capsule = the same visual
@@ -14,9 +14,9 @@
 //  this commit's previous implementation in commit `5ebd07ecd`
 //  as InspectorPageSegmentedControl.swift) belongs in the
 //  per-tool tab strip inside the inspector column body (= the
-//  per-page tool tabs like 伏笔 / 占位符 / 情节线 on Page 1;
+//  per-page tool tabs like Foreshadowing / Placeholder / Plot Threads on Page 1;
 //  = all 4 pages get the same macOS 27 native control = the
-//  boss's '四页都改' directive).
+//  boss's 'apply the change to all four pages' directive).
 //
 //  Why this exists (= why SwiftUI `Picker(.segmented)` is NOT
 //  sufficient for the inspector body tabs):
@@ -57,8 +57,8 @@
 //    role at the AppKit level).
 //  - `segmentDistribution = .fillEqually` (= each segment
 //    receives equal width; = the N tabs divide the column
-//    width equally; = satisfies the boss's '随右栏宽度自动
-//    拉满' requirement that SwiftUI's `.frame(maxWidth:
+//    width equally; = satisfies the boss's 'auto-fill the right
+//    column's width' requirement that SwiftUI's `.frame(maxWidth:
 //    .infinity)` could not deliver inside the previous
 //    SwiftUI Picker).
 //  - `trackingMode = .selectOne` (= one segment selected at a
@@ -84,10 +84,10 @@
 import SwiftUI
 import AppKit
 
-/// v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27 的控件是我们
-/// 首选' + '工具栏的, 用刚刚的那个是工具栏的苹果默认风格.
-/// 你现在的这个控件, 要用在, 伏笔, 占位符的这个 teb 栏.
-/// 四页都改': the macOS 27 native segmented tab control.
+/// v1.0.0-m1-shell boss 2026-09-11 OOB 'macOS 27's native control is our
+/// first choice' + 'for the toolbar, use the one we just settled on — that's Apple's default toolbar style.
+/// The control you have now needs to be used in the Foreshadowing/Placeholder tab bar.
+/// Apply the change to all four pages': the macOS 27 native segmented tab control.
 ///
 /// Generic over the selection type `Selection` (= Hashable; =
 /// the caller binds the segmented control to a typed selection;
@@ -108,7 +108,7 @@ import AppKit
 /// // Inspector body tabs (per-page tools):
 /// LabelSegmentedControl(
 ///     selection: $currentTool,
-///     labels: ["伏笔", "占位符", "情节线"]
+///     labels: ["Foreshadowing", "Placeholder", "Plot Threads"]
 /// )
 /// .frame(maxWidth: .infinity) // stretches to column width
 /// ```
@@ -161,8 +161,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         configure(control, coordinator: context.coordinator)
     }
 
-    /// v1.0.0-m1-shell boss 2026-09-11 OOB '随右栏宽度自动
-    /// 拉满': configure the control to fill its container with
+    /// v1.0.0-m1-shell boss 2026-09-11 OOB 'auto-fill the right
+    /// column's width': configure the control to fill its container with
     /// equally-sized segments (= `segmentDistribution =
     /// .fillEqually`).
     private func configure(_ control: NSSegmentedControl, coordinator: Coordinator) {
@@ -175,8 +175,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             control.segmentCount = labels.count
         }
         for (index, label) in labels.enumerated() {
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '伏笔, 占位符,
-            // 情节线这一栏': use the per-page tab's display string
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'Foreshadowing, Placeholder,
+            // Plot Threads — that tab bar': use the per-page tab's display string
             // (= the per-tab String label; = matches the
             // existing SwiftUI Picker(.segmented) label washing).
             let display = index < displayStrings.count ? displayStrings[index] : String(describing: label)
@@ -190,7 +190,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         }
 
         // v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27
-        // 的控件是我们首选': apply the macOS 27 native
+        // native control is our first choice': apply the macOS 27 native
         // appearance. Wrapped in `if #available(macOS 27.0, *)`
         // (= the macOS minimum target is 27.0 per AGENTS.md,
         // so the guard is defensive; = any future macOS < 27
@@ -224,8 +224,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // behavior; = matches SwiftUI Picker(.segmented)).
         control.trackingMode = .selectOne
 
-        // v1.0.0-m1-shell boss 2026-09-11 OOB '随右栏宽度自动
-        // 拉满': distribute segments to fill the available
+        // v1.0.0-m1-shell boss 2026-09-11 OOB 'auto-fill the right
+        // column's width': distribute segments to fill the available
         // width equally (= `segmentDistribution = .fillEqually`;
         // = the boss's verbatim ask; = each segment takes 1/N
         // of the column width when N pages; = NSSegmentedControl

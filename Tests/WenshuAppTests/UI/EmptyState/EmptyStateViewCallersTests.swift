@@ -1,10 +1,10 @@
 //
 //  EmptyStateViewCallersTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  v0.71 P1 batch 3 (boss 2026-09-12 OOB '现在的空态不是一个组件,
-//  你能抽象一个 UI 组件吗? 顺手把空态的 ICON 放大一倍, 同时用最细
-//  的线条. 目的是统一所有空态的样式' + '排查右栏 12 个 teb, 很多都
-//  缺少空态'):
+//  v0.71 P1 batch 3 (boss 2026-09-12 OOB 'the current empty state isn't a single component,
+//  can you abstract a UI component? While you're at it, on the empty-state icon: double the size and use the thinnest
+//  strokes. The goal is to unify all empty-state styles' + 'audit the right column's 12 tabs; many of them
+//  are missing an empty state'):
 //
 //  Code-level verification (= no UI render) that the 12 specialized
 //  tool tabs (= Foreshadowing / Placeholder / Plot Thread / Long-Form
@@ -16,7 +16,7 @@
 //  Before this regression test, a single tab could lose its empty state
 //  (= e.g. switch to a hand-rolled VStack + Text layout) and ship
 //  with the legacy 38 PT icon + wrong padding (= breaking boss's
-//  '统一所有空态的样式' directive).
+//  'unify the empty-state style across all of them' directive).
 //
 //  These tests don't render views; they verify the source-file
 //  structure (= code-level verification of the empty-state
@@ -29,7 +29,7 @@ import Foundation
 @Suite("v0.71 P1 — EmptyStateView caller coverage (= 12 specialized tool tabs + 3 main zones)")
 struct EmptyStateViewCallersTests {
 
-    /// boss 9/12 OOB '排查右栏 12 个 teb': the 12 specialized tool
+    /// boss 9/12 OOB 'audit the right column's 12 tabs': the 12 specialized tool
     /// tabs MUST use the unified EmptyStateView (= no hand-rolled
     /// VStack + Text duplicates = no legacy 38 PT icons).
     @Test("all_12_specialized_tool_tabs_use_EmptyStateView")
@@ -77,7 +77,7 @@ struct EmptyStateViewCallersTests {
         )
     }
 
-    /// boss 9/12 OOB '编辑器, 聊天的空态没有取组件': the editor +
+    /// boss 9/12 OOB 'editor and chat — empty state wasn't pulled out into a component': the editor +
     /// chat zones MUST also use the unified EmptyStateView (= boss
     /// explicitly listed them in the same OOB as the 12 tabs).
     @Test("editor_and_chat_zones_use_EmptyStateView")
@@ -85,7 +85,7 @@ struct EmptyStateViewCallersTests {
         let mainZoneFiles = [
             // WorkspaceView = editor zone (EditorPlaceholder)
             "Sources/WenshuApp/Views/Workspace/WorkspaceView.swift",
-            // PreviewPane = 中左素材栏 (the middle-left cards area)
+            // PreviewPane = middle-left assets column (the middle-left cards area)
             "Sources/WenshuApp/Views/Workspace/PreviewPane.swift",
             // ChatHelpTextOverlay = chat empty state with inline Settings link
             "Sources/WenshuApp/Views/Chat/ChatHelpTextOverlay.swift",
@@ -112,7 +112,7 @@ struct EmptyStateViewCallersTests {
         )
     }
 
-    /// boss 9/12 OOB '排查所有 icon 位置, 统一替换': the empty state
+    /// boss 9/12 OOB 'audit every icon position and replace them all consistently': the empty state
     /// icons MUST use LucideThinIcon (= 1 PT hairline stroke; =
     /// matches the unified empty-state icon visual contract).
     /// No hand-rolled `Image(systemName:)` (= SF Symbol fallback

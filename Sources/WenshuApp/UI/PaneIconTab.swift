@@ -1,9 +1,6 @@
 // Sources/WenshuApp/UI/PaneIconTab.swift
 //
-// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'needgroup,
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//, group, yesdefaultauto
-// '): Phase 2 of 5-phase component refactor.
+// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '[Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame`; the cleanup commit replaced it with this placeholder because translation was incomplete]'): Phase 2 of 5-phase component refactor.
 //
 // Single tab button component used by ALL pane tab bars (= sidebar / preview /
 // editor / tools / chat / dynamic). Listed in ComponentIndex.md Level 3.1.

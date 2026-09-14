@@ -57,7 +57,7 @@ public enum QuickSwitcherIndex {
         return fuzzyScore > 0 ? fuzzyScore : nil
     }
 
-    // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
+    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     ///: query text
     ///: ()
     private static func characterOrderScore(query: String, text: String) -> Int {

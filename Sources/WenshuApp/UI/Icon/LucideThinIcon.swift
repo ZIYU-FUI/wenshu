@@ -2,8 +2,8 @@
 //  LucideThinIcon.swift
 //  wenshu
 //
-//  v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
-//  现在放大了, 线条好粗': thin-line Lucide wrapper for the
+//  v1.0.0-m1-shell boss 2026-09-12 OOB 'What's the thinnest Lucide can go?
+//  Now that it's scaled up, the strokes look really thick': thin-line Lucide wrapper for the
 //  unified EmptyStateView. Renders a Lucide glyph at a
 //  configurable size (= defaults to 76 PT for the EmptyStateView
 //  component = 2× the v0.54 38 PT default).
@@ -20,7 +20,7 @@
 //  API mapping:
 //  - `strokeWidth: 1` (= 1 PT hairline)
 //  - `absoluteStrokeWidth: true` (= keep stroke at constant
-//    1 PT regardless of icon size; = boss's '最细' = the same
+//    1 PT regardless of icon size; = boss's 'thinnest' = the same
 //    thin line at every rendered size)
 //
 //  Per the verbatim port discipline (= only do what the boss
@@ -42,8 +42,8 @@
 import SwiftUI
 import LucideSwift
 
-/// v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
-/// 现在放大了, 线条好粗': Lucide glyph rendered at 1 PT
+/// v1.0.0-m1-shell boss 2026-09-12 OOB 'What's the thinnest Lucide can go?
+/// Now that it's scaled up, the strokes look really thick': Lucide glyph rendered at 1 PT
 /// stroke (= the thinnest Apple HIG macOS 27 empty-state icon
 /// weight). Uses the ajaxjiang96/lucide-swift fork's
 /// `strokeWidth` parameter (= the upstream bring-shrubbery fork
@@ -75,15 +75,15 @@ struct LucideThinIcon: View {
     }
 
     var body: some View {
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
-        // 现在放大了, 线条好粗': strokeWidth: 1 (= 1 PT hairline;
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'What's the thinnest Lucide can go?
+        // Now that it's scaled up, the strokes look really thick': strokeWidth: 1 (= 1 PT hairline;
         // = the thinnest Apple HIG empty-state icon weight;
         // = matched to Apple's macOS 27 inspector / Pages /
         // Numbers inspector-tab visual rhythm).
         //
         // absoluteStrokeWidth: true (= keep stroke at constant
         // 1 PT regardless of icon size; = the boss's
-        // '最细的线条' applies even when the icon is resized;
+        // 'the thinnest possible strokes' applies even when the icon is resized;
         // = the icon's overall outline stays crisp at every
         // size).
         //
@@ -91,7 +91,7 @@ struct LucideThinIcon: View {
         // caller's view; = consistent with Apple's standard
         // tinted-icon pattern).
         //
-        // v1.0.0-m1-shell boss 2026-09-12 OOB '排查所有 icon 位置, 统一替换':
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'audit every icon position and replace them all consistently':
         // route through `resolveLucideName` so the empty-state
         // icons (= git-fork, square-dashed, shield-check, etc.)
         // all resolve to the right enum case (= the fork's
@@ -108,7 +108,7 @@ struct LucideThinIcon: View {
         } else {
             // Fallback = empty Color.clear (preserves the column
             // vertical rhythm even when the icon name doesn't
-            // resolve; = the boss's '找不到不显示' contract).
+            // resolve; = the boss's contract: 'if you can't find it, don't render it').
             Color.clear.frame(width: size, height: size)
         }
     }

@@ -1,7 +1,7 @@
 //
 // SubAgentProgressView.swift · Wenshu · v0.23 ticket 005 (sub-agent progress)
 //
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // Boss 2026-08-23: 'kanbanchat, userworkprogress'.
 //  Reads from WSKanbanRepository.shared (= @MainActor SwiftData wrapper; = Phase 5 ticket 6 deleted KanbanStore actor), renders running / done sub-agent tasks in aiDynamic zone.
 //

@@ -22,7 +22,7 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
     public let id: UUID
     public let role: ChatRole
     public let source: ChatSource
-    /// v0.71 P1 batch 1 (boss 2026-09-12 OOB '聊天区的流式输出没有实现... 全量复制 hermes...'):
+    /// v0.71 P1 batch 1 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented... port the whole thing from hermes...'):
     /// streaming parts (= Hermes `parts: ChatMessagePart[]` in
     /// `lib/chat-messages/types.ts:15`). Each part is a typed content
     /// block (text / reasoning / tool_use / tool_result). The streaming
@@ -122,7 +122,7 @@ public enum ChatRole: String, Equatable, Sendable {
     case system
 }
 
-/// v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出...'):
+/// v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone...'):
 /// reference-type accumulator for the streaming LLMBlock callback.
 /// Required because the callback is `@Sendable` (= can fire from
 /// any actor; = Swift 6 forbids capturing `var` local state). Each
@@ -500,7 +500,7 @@ public final class ChatViewModel {
             var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
             if let conductor = conductor {
-                // v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出...'):
+                // v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone...'):
                 // conductor path now also streams (= Hermes pattern).
                 // The same streaming switch below (= the one used for
                 // direct-verifier path) handles LLMBlock events from
@@ -621,7 +621,7 @@ public final class ChatViewModel {
                     model: currentModel
                 )
                 var buffer = ""
-                // v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出...'):
+                // v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone...'):
                 // accumulate every LLMBlock into `parts[]` (= Hermes
                 // `parts: ChatMessagePart[]`); the streaming UI renders
                 // each part independently. We still mirror text into
@@ -1184,7 +1184,7 @@ public struct ChatView: View {
             // = the actual boss OOB intent).
             // v0.25.1 (= ticket 031 chat send button vertical
             // center alignment): owner 2026-08-26 OOB 'button
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
             // buttonchangein progress' = with the 8 PT
             // top padding on TextField, the TextField's effective
             // top edge shifted down 8 PT (= 24 PT height + 8 PT top
@@ -1216,7 +1216,7 @@ public struct ChatView: View {
             // baseline of input field).
             // v0.25.1 (= ticket 033 followup 2: chat send button
             // CENTER alignment — boss corrected AGAIN): owner
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
             // 2026-08-26 OOB 'still wrong, use text field + button center-align'
             // = after 3 alignment attempts (.center, .bottom,
             // .bottom + height 32), the actual visual boss wants
@@ -1266,8 +1266,7 @@ public struct ChatView: View {
             //    use all along, = vertical center between the two
             //    elements at their natural heights).
             // v0.25.1 (= ticket 034 final 3): owner 2026-08-26 OOB
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 'you misunderstood, the text field's outer margin, 8 PT up, this still needs to stay'
+            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
             // = 8 PT OUTER top margin on the chat input HStack
             // (= between the Divider above and the HStack that
             // contains the textfield + button). The textfield +
@@ -1286,8 +1285,7 @@ public struct ChatView: View {
             // centers them vertically at the HStack midline.
             //
             // v0.28 followup Boss UX round 25 (Boss 2026-08-29 OOB
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 'does the text field auto-grow taller when more text is typed?'): changed
+            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
             // HStack alignment from .center → .bottom so the Send
             // button stays anchored at the bottom of the chat input
             // row even as the TextField grows from 24 PT (= 1 line) to
@@ -1363,7 +1361,7 @@ public struct ChatView: View {
                 // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
                 // owner 2026-08-26 OOB 'chat zone chatbutton
-                // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+                // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
                 // send chat 8 PT ' =
                 // 1) replace SF paperplane.fill (= Apple Send ICON) with
                 //    Lucide .send (= paper plane icon, same visual
@@ -1394,8 +1392,7 @@ public struct ChatView: View {
                     // moved to non-intrusive tooltip here).
                     .help(WenshuI18n.t("chat.input.help"))
                     // v0.28 followup Boss UX round 27 (Boss 2026-08-29
-                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // OOB 'buttonstatus 30pt'):
+                    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
                     // .multilineTextAlignment(.leading) + the default
                     // .leading-to-trailing text flow makes the text
                     // top-aligned by default (= text sits at the top
@@ -1429,7 +1426,7 @@ public struct ChatView: View {
                     // RoundedRectangle stroke (lineWidth: 1) on focus.
                     // v0.25.1 (= ticket 035 chat textfield placeholder
                     // color + position): owner 2026-08-26 OOB 'input
-                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+                    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
                     // message... hint defaultyes
                     // color ' = the placeholder text
                     // 'inputmessage...' currently looks too bright (= high
@@ -1456,8 +1453,7 @@ public struct ChatView: View {
                     // (ticket 034 final 3) preserved.
                     .textFieldStyle(.plain)
                     // v0.28 followup Boss UX round 25 (Boss 2026-08-29
-                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // OOB 'does the text field auto-grow taller when more text is typed?'):
+                    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
                     // the textfield now has 2 height modes:
                     //
                     // 1. EMPTY STATE (= no text): .frame(minHeight: 30)
@@ -1486,14 +1482,13 @@ public struct ChatView: View {
                     //   can grow larger when content is multi-line).
                     //
                     // v0.28 followup Boss UX round 27 (Boss 2026-08-29
-                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // OOB 'buttonstatus 30pt'):
+                    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
                     // unified both empty-state heights at 30 PT
                     // (= matches kZoneToolbarHeight = canonical chrome
                     // height across the app).
                     //
                     // v0.25.1 (= ticket 037): was pinned to 24 PT per
-                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+                    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
                     // boss OOB 'is the text field not 32 now, no matter what
                     // change to match the text field height' = at the time, the textfield
                     // visual was 24 PT (= 1 line) so boss wanted to
@@ -1565,8 +1560,7 @@ public struct ChatView: View {
                     }
                 }
                 // v0.28 followup Boss UX round 18 (Boss 2026-08-29 OOB
-                // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                // 'send button next to the input, use the Liquid Glass default button style,
+                // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
                 // swap it'): Use .bordered = the standard macOS Liquid
                 // Glass secondary button style (= Apple's canonical
                 // "default button" look in macOS 26 Tahoe). Per Apple
@@ -1580,8 +1574,7 @@ public struct ChatView: View {
                 // the button at Apple's standard control height
                 // (= same as the TextField so they align flush).
                 // v0.28 followup Boss UX round 27 (Boss 2026-08-29
-                // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                // OOB 'buttonstatus 30pt'):
+                // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
                 // both TextField and Send button pinned to 30 PT
                 // (= canonical macOS HIG chat input height, same
                 // as zone tab bar / statusbar). Previously the
@@ -1627,7 +1620,6 @@ public struct ChatView: View {
                 .help(WenshuI18n.t("chat.ralphLoop.goalHelp"))
                 .keyboardShortcut("g", modifiers: [.command, .shift])
                 // v0.28 followup Boss UX round 20 (Boss 2026-08-29 OOB
-                // 'text field and send button horizontally aligned'): REMOVED the
                 // .padding(.top, DesignTokens.chromePaddingLarge) here (= was misaligning the
                 // button with the TextField because the TextField
                 // had no equivalent top padding = button was 16 PT
@@ -1655,7 +1647,6 @@ public struct ChatView: View {
             .padding(.top, DesignTokens.chromePaddingLarge)
             .padding(.horizontal, DesignTokens.chromePaddingLeading)
             // v0.28 followup Boss UX round 22 (Boss 2026-08-29 OOB
-            // 'text field, send button, all add 10pt to the bottom edge'): 10 PT outer
             // bottom margin (= both TextField + Send button offset up
             // 10 PT from the bottom edge of the chat pane = not flush
             // against the bottom = Apple HIG canonical for chat input
@@ -1815,9 +1806,9 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     .padding(.vertical, 8)
                     .background(bubbleFill, in: bubbleShape)
                 } else {
-                    // v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式
-                    // 输出没有实现... 全量复制 hermes... 编辑器使用 SM
-                    // 我们引入的一个第三方 md 编辑器'): the canonical
+                    // v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat
+                    // zone isn't implemented... port the whole thing from hermes... The editor uses SM,
+                    // a third-party Markdown editor we brought in'): the canonical
                     // 1:1 Hermes streaming UI. Renders message.parts[]
                     // (= the Hermes canonical state) via ChatMessageBodyView
                     // (= text / reasoning / tool_use / tool_result each

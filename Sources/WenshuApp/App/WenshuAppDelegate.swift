@@ -55,8 +55,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// WENSHU_DEBUG_INMEMORY_KEYCHAIN env var (= 1 = use in-memory stub,
     /// 0 = use real Apple keychain). Production builds never set this.
     ///
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB '做一个远程调试模式, 打开
-    /// 后, 不要钥匙, 远程我也测试不了聊天, 只能调 ui': add the same
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode; once it's on,
+    /// don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI': add the same
     /// UserDefaults override (= `wenshu.debugNoKeychain = YES`) for
     /// the boss's off-site UI iteration. The boss-set UserDefaults
     /// flip persists across launches (= the canonical 'remote debug

@@ -3,13 +3,13 @@
 //
 //  v0.71 P1 batch 3 (boss 2026-09-10 OOB 'Apple default ranges; left +
 //  content + inspector widths follow Apple's NSV default ranges' +
-//  '各列按 Apple 推荐参数 设置 min/ideal/max' + '初始启动时, 让左, 左2,
-//  两个栏都用最小尺寸'):
+//  'set each column to Apple's recommended parameters — min/ideal/max' + 'on initial launch, make the left and
+//  left-2 columns use the minimum size':
 //
 //  Code-level verification (= no UI render) that the 4-column
 //  NavigationSplitView uses the Apple HIG canonical column-width
 //  ranges (= min/ideal/max in the documented Apple HIG ranges;
-//  = boss's '各列按 Apple 推荐参数' OOB).
+//  = boss's 'set each column to Apple's recommended parameters' OOB).
 //
 //  Apple HIG canonical ranges (= measured from Apple Mail / Notes /
 //  Finder / Pages / Numbers / Keynote on the same macOS 27 system):
@@ -19,8 +19,8 @@
 //    • inspector  : 240 / 280 / 360 PT
 //
 //  The current wenshu build (= v1.0.0-m1-shell) sets sidebar + content
-//  ideal = min (= the boss's '初始启动时, 让左, 左2, 两个栏都用最小
-//  尺寸' directive). The min/max bounds stay at Apple HIG values.
+//  ideal = min (= the boss's 'on initial launch, make the left and left-2 columns use
+//  the minimum size' directive). The min/max bounds stay at Apple HIG values.
 
 import Testing
 import Foundation
@@ -61,7 +61,7 @@ struct NavigationSplitColumnWidthTests {
     /// use `.navigationSplitViewColumnWidth(min: 220, ideal: 220,
     /// max: 360)` (= the Apple HIG canonical sidebar width range;
     /// = min=220 / ideal=220 / max=360 per the v1.0.0-m1-shell
-    /// '初始启动时 ideal = min' directive).
+    /// 'on initial launch, ideal = min' directive).
     @Test("sidebar_column_width_matches_Apple_HIG_range")
     func sidebar_column_width_matches_Apple_HIG_range() throws {
         let src = try Self.loadNSVSource()
@@ -110,7 +110,7 @@ struct NavigationSplitColumnWidthTests {
         )
     }
 
-    /// boss 9/10 OOB '初始启动时, 让左, 左2, 两个栏都用最小尺寸':
+    /// boss 9/10 OOB 'on initial launch, make the left and left-2 columns use the minimum size':
     /// the sidebar + content ideal widths MUST equal their min
     /// widths (= the initial state shows the tightest legal column
     /// width = no extra padding room).

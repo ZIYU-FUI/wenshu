@@ -238,7 +238,7 @@ public actor WenshuConductor {
     /// falls back to the legacy intent+sub-agent+synthesis pipeline and
     /// logs the error. The legacy path is always preserved (= never
     /// removed) so existing public surface is 100% back-compatible.
-    /// v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出没有实现...'):
+    /// v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone is not implemented...'):
     /// add `streamCallback` parameter (= Hermes streaming pattern).
     /// When supplied (= ChatView passes it for live token rendering),
     /// the conductor emits `LLMBlock` events (= text / thinking /
