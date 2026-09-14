@@ -1,6 +1,20 @@
 //
 //  HermesKanbanDB.swift · Wenshu · HERMES-SUBSYSTEM-3 (kanban 1:1 port retry)
 //
+//  AUDIT (v0.79 spec decision):
+//  This is one of 2 sqlite3 raw-store files that survived Phase 5 of the
+//  v0.72 SwiftData migration (= see SQLiteConstants.swift header).
+//  Production callers in the current tree: zero (= see spec for the
+//  false-positive trap). It is NOT dead code (= FTS5 + hermes-port
+//  Kanban functionality is real), but it is also not wired into any
+//  LLM tool surface or SwiftUI view today.
+//
+//  Per Q46: do NOT delete (= the file has real value if a future ticket
+//  needs Kanban-via-raw-SQLite for hermes parity). Touch only when a
+//  concrete production caller exists.
+//
+//  See .scratch/v0.79-sqlite3-audit/spec.md for the full investigation.
+//
 //  1:1 port of hermes kanban_db.py + kanban.py + kanban_diagnostics.py + kanban_tools.py
 //  (= 14,347 LOC combined). Targets the canonical hermes 4-table schema:
 //      tasks / task_comments / task_events / task_links
