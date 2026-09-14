@@ -143,7 +143,7 @@ public final class WSMemoryRepository {
     }
 }
 
-/// Repository-specific error (= distinct from MemoryStoreError; = Phase 3
+/// Repository-specific error (= distinct from MemoryError; = Phase 3
 /// switch will require call sites to handle this error type).
 public enum WSMemoryRepositoryError: Error {
     case notFound
