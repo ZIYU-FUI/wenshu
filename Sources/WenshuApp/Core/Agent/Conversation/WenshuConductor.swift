@@ -92,10 +92,11 @@ public actor WenshuConductor {
         // so the registry survives the chain (= legacy callers passing
         // a registry but no connector still keep their tools in case
         // the loop path is enabled later in the same lifetime).
-        // Phase 5 ticket 2: kanbanStore param made optional so peer-conductor
-        // fallback paths (= ChatView.preview) can construct WenshuConductor
-        // without instantiating a raw sqlite3 KanbanStore actor (= Phase 5 ticket 6 deleted it). Production path
-        // (= WenshuAppDelegate L222) still passes the kanbanStore arg.
+        // Phase 5 ticket 2: kanbanStore param was removed entirely from
+        // both init signatures (= ticket 6 also deleted the KanbanStore
+        // actor; = there is no kanbanStore arg to pass). KanbanStore
+        // persistence is now exclusively via WSKanbanRepository.shared
+        // (= @MainActor SwiftData wrapper).
         self.init(
             runtime: runtime,
             verifier: verifier,

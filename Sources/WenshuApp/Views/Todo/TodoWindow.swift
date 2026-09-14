@@ -15,11 +15,12 @@
 //    since the window IS the todo list).
 //  - The todo window is a SIBLING scene to the main WindowGroup
 //    (= SwiftUI does NOT inherit env values across WindowGroup
-//    boundaries). We re-construct the BookStore + TodoStore
-//    here from the shared `library` URL (= same .ws package
-//    the main window uses; = the BookTodoStore on-disk file
-//    is shared; = both windows see the same todos in real
-//    time).
+//    boundaries). We re-construct the BookStore here from the
+//    shared `library` URL (= same .ws package the main window
+//    uses; = the BookTodoStore on-disk file is shared; = both
+//    windows see the same todos in real time). Todo persistence
+//    is the shared WSTodoRepository.shared (= @MainActor SwiftData
+//    wrapper; = Phase 5 ticket 7 deleted the TodoStore actor).
 //
 
 import SwiftUI

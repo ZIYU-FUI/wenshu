@@ -33,11 +33,13 @@ import SwiftUI
 /// v1.0.0-m1-shell boss 2026-09-11 OOB: KanbanWindow = the
 /// dedicated scene body for the kanban-as-independent-window
 /// feature (= the WindowGroup(id: WindowID.kanban) in
-/// AppRootScene). Owns its own BookStore + KanbanStore (= the
-/// main window's BookStore is held by LibraryRootView's
-/// `@State` and is not reachable from a sibling scene; = the
-/// simplest fix is to construct a fresh BookStore here that
-/// points at the same .ws root as the main window).
+/// AppRootScene). Owns its own BookStore (= the main window's
+/// BookStore is held by LibraryRootView's `@State` and is not
+/// reachable from a sibling scene; = the simplest fix is to
+/// construct a fresh BookStore here that points at the same .ws
+/// root as the main window). Kanban persistence is the shared
+/// WSKanbanRepository.shared (= @MainActor SwiftData wrapper;
+/// = Phase 5 ticket 6 deleted the KanbanStore actor).
 public struct KanbanWindow: View {
     let library: WenshuLibrary
 
