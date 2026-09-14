@@ -21,7 +21,7 @@
 
 ## Plan
 
-### 1. New file: `Sources/WenshuApp/Core/Agent/Tool/WebSearchTool.swift`
+### 1. Update file: `Sources/WenshuApp/Core/Agent/Tool/WebSearchTool.swift`
 
 - `class WebSearchTool`
 - 2 actions: `search(query, limit, providers?)` / `research(query, depth)`
@@ -34,6 +34,33 @@
 ### 2. Update file: `Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift`
 
 Add `"web_search"` to `defaultToolNames` array (= deterministic ordering; = insert at position 9 per existing research toolset).
+
+## STOP — 2026-09-14 spec re-check (= Q34 step 5 hard rule)
+
+While implementing WebSearchTool, inventory revealed:
+
+```
+Sources/WenshuApp/Core/Agent/Web/WebSearch.swift defines:
+  - WebSearchProvider protocol
+  - WebSearch actor (init + search + research)
+  - WebSearchError enum
+  - WebSearchResult struct
+  - ResearchReport struct
+
+But ZERO provider implementations exist:
+  $ rg -l "EXAProvider|TAVILYProvider|BRAVEProvider|PARALLELProvider|SEARXNGProvider" Sources
+  Sources/WenshuApp/Core/Agent/Web/WebSearch.swift   (= only the protocol mention)
+
+AND WebSearch has no `shared` singleton:
+  - init requires [any WebSearchProvider] — callers cannot construct one without providers
+  - Tool cannot default-instantiate without a stub list
+```
+
+**Implication**: the hermes-port shipped the actor shell but not the providers. Implementing `WebSearchTool` requires EITHER (a) wiring up the 5 provider classes (= 1 ticket becomes 6 files; = scope-creep beyond v0.73) OR (b) deferring WebSearchTool until providers are written (= separate ticket per provider; = future work).
+
+**Per Q46** (boss 2026-08-21 "≥3 redo commits must stop + list real cause + await boss拍"): I stop here. The spec's "wire WebSearch into ToolRegistry" decision is unsupportable without provider implementations.
+
+**Recommended spec change**: reclassify WebSearch from "wire" to "defer" (= like CronjobTools + ContextReferences). Update `spec.md` §Acceptance row + this issue's "Decision" section. **No code change to WebSearch.swift itself** (= per Q57: don't delete hermes-port files).
 
 ## TDD plan
 
