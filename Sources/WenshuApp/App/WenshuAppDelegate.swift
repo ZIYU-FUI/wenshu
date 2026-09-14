@@ -214,6 +214,22 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
                 name: "wenshu", card: card, process: protocol_
             ))
         }
+
+        // v0.75 ticket 002: SkillBundles YAML discovery bootstrap (= loads any
+        // user-placed YAML files into SkillBundles.shared so the LLM can use
+        // them via the skill_bundles tool shipped in v0.73 ticket 001).
+        // Failure-tolerant: a malformed YAML logs to stderr but never blocks
+        // app launch (= per Q34: log + continue).
+        Task { @MainActor in
+            let count = await SkillBundlesYAMLDiscovery.discover(
+                into: SkillBundles.shared,
+                from: nil
+            )
+            if count > 0 {
+                NSLog("[wenshu] SkillBundles: discovered and registered \(count) bundle(s)")
+            }
+        }
+
         NSApp.activate(ignoringOtherApps: true)
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
             SelfScreenshot.run()
