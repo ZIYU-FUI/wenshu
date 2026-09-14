@@ -25,14 +25,20 @@
 //  ModelContext.fetch(FetchDescriptor<WSXxx>()) replaces every per-store
 //  Actor API.
 //
-//  Phase 2 will introduce Repository classes (= preserves the public
+//  Phase 2 introduced Repository classes (= preserves the public
 //  API of the existing Actors so callers don't need to change).
-//  Phase 3 will switch callers to the Repository APIs.
-//  Phase 4 will add the one-time data migration from raw sqlite3.
-//  Phase 5 will delete the old raw sqlite3 store files.
-//  Phase 6 will update CLAUDE.md / CONTEXT.md to reflect new state.
+//  Phase 3 switched callers to the Repository APIs.
+//  Phase 4 added the one-time data migration from raw sqlite3
+//  (= WSMigrationPerStore / WSMigrationRunner).
+//  Phase 5 deleted 4 of the 6 raw sqlite3 store files
+//  (= KanbanStore + TodoStore + MemoryStore + LinkIndex via tickets
+//  6 + 7 + 8 + 9). ChatSessionStore + BookmarkStore + WenshuWorkspace
+//  remain (= AGENTS §11.4.2 HONEST SCOPE GAP; = future ticket 10).
+//  Phase 6 (= AGENTS §11.4 doc updates) is the canonical phase 5
+//  roadmap spec (= see AGENTS.md §11.4.2).
 //
-//  See /tmp/wenshu-swiftdata-migration-spec.md for full plan.
+//  See .scratch/2026-09-13-swiftdata-migration-spec.md for full plan
+//  (= NOT /tmp/...; = the canonical path is .scratch/).
 
 import Foundation
 import SwiftData

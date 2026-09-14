@@ -61,15 +61,16 @@ struct WSLinkRepositoryTests {
         #expect(doc2.count == 1)
     }
 
-    @Test("add replaces existing link at same sourceDocId + line (= composite id)")
+    @Test("addMultipleAtSameLine: 2 distinct [[name]] links on the same line = 2 distinct rows (= composite id includes targetRef after Phase 5 ticket 5)")
     @MainActor
-    func addReplaces() throws {
+    func addMultipleAtSameLine() throws {
         let repo = try makeRepository()
         try repo.add(Link(sourceDocId: "doc", targetRef: "old", targetDocId: nil, line: 5, offset: 0))
         try repo.add(Link(sourceDocId: "doc", targetRef: "new", targetDocId: nil, line: 5, offset: 1))
         let links = try repo.searchForward(sourceDocId: "doc")
-        #expect(links.count == 1)
-        #expect(links[0].targetRef == "new")
-        #expect(links[0].offset == 1)
+        #expect(links.count == 2)
+        // Both targetRefs preserved (= composite id = "<doc>:<line>:<targetRef>").
+        let refs = Set(links.map(\.targetRef))
+        #expect(refs == Set(["old", "new"]))
     }
 }
