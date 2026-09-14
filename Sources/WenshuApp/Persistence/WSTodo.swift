@@ -2,7 +2,9 @@
 //  Persistence/WSTodo.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
 //  Phase 1 commit 3/21: WSTodo.
-//  Mirrors `todos` table from TodoStore.swift (= v0.18 ticket 06 local Todo).
+//  Mirrors todos table schema (= v0.18 ticket 06 local Todo).
+//  (= Phase 5 ticket 7 deleted Core/Todo/TodoStore.swift; the canonical
+//  domain type is now Core/Todo/TodoDomain.swift's TodoItem struct.)
 //
 //  Status values (hermes-port parity per todo.py):
 //    - "new"          = created, not started
