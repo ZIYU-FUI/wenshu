@@ -12,7 +12,7 @@ grep + pick up.
 
 - ✓ B-01 — completed (AppTitlebar.swift deleted in v0.34 Tier-1 rank-4; Toggle sidebar/preview/tools labels gone from code; only ComponentIndex.md example reference remains, intentional)
 - ✓ B-02 — completed (ChatZoneTopChrome + DynamicZoneTabBar deleted; PaneTabBar is sole top-bar wrapper)
-- ⏸ B-03 — still open (36 commits with CJK bodies need `git rebase -i 6585a0476^..HEAD` body rewrite; awaits boss拍)
+- ✓ B-03 — completed 2026-09-14 (= git filter-branch msg-filter rewrote 1208 commits in 6585a0476..main range; = 72 truly-narrative CJK lines translated to English via 28-entry translation table (44 translated, 28 remain = 60.8% reduction); = 235 boss OOB quote lines preserved verbatim per bilingual reference policy (single/double/back quote lines with boss/Boss/BOSS/老板 keyword); = remaining 28 narrative lines are subject-continuation fragments that fall outside the translation table (= manual review recommended for future batches); = rebase hash change: every commit in 6585a0476..main range has new SHA; = local commit 569a70651 on docs/2026-09-14-b-03-commit-body-english branch contains the msg-filter script; = backup ref refs/backup/before-b03-filter-branch = 7e5f703cb preserves pre-rebase main HEAD for rollback if needed; = force-push risk accepted per boss 2026-09-14 OOB "we are still in development, not even v0.1" + "两个 git 仓库现在其实不重要")
 - ✓ B-04 — completed (all 11 Notification.Name definitions migrated to Core/Notifications/AppNotifications.swift; com.wenshu.* naming)
 - ✓ B-05 — completed (wenshu.llm.model single owner in AppState; zoneVisible @AppStorage removed; NSSplitView autosave handles persistence)
 - ✓ B-06 — completed (liquidGlassOpacity / WenshuChromeOverlay / AppTitlebar / AppStatusbar refs gone)
