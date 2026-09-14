@@ -1,7 +1,7 @@
 //
 //  Core/LinkGraph/LinkDomain.swift · Wenshu · v0.72 SwiftData migration Phase 5 ticket 9
 //
-//  Domain types (Link + LinkError) extracted from the deleted
+//  Domain types (Link) extracted from the deleted
 //  Core/LinkGraph/LinkIndex.swift (= sqlite3 legacy actor, now obsolete).
 //
 //  These types are the canonical wenshu-side public API surface for wiki links.
@@ -32,10 +32,9 @@ public struct Link: Equatable, Sendable {
 }
 
 
-public enum LinkError: Error, Equatable {
-    case openFailed(dbPath: String, message: String)
-    case execFailed(sql: String, message: String)
-    case bindFailed(message: String)
-    case notFound(sourceDocId: String)
-}
+/// Reserved for future-hook callers (= no consumers yet; = the
+/// pre-Phase 5 deleted LinkIndex actor's error type was extracted
+/// in Phase 5 ticket 9 and renamed here; = currently dead code but
+/// preserved for potential future callers that want the legacy
+/// 4-case error shape from the old actor's sqlite3 failures).
 

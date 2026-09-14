@@ -1,7 +1,7 @@
 //
 //  Core/Todo/TodoDomain.swift · Wenshu · v0.72 SwiftData migration Phase 5 ticket 7
 //
-//  Domain types (TodoStatus + TodoPriority + TodoItem + TodoError) extracted
+//  Domain types (TodoStatus + TodoPriority + TodoItem) extracted
 //  from the deleted Core/Todo/TodoStore.swift (= sqlite3 legacy actor, now obsolete).
 //
 //  These types are the canonical wenshu-side public API surface for todo items.
@@ -50,10 +50,9 @@ public struct TodoItem: Equatable, Sendable {
 }
 
 
-public enum TodoError: Error {
-    case openFailed(dbPath: String, message: String)
-    case prepareFailed(message: String)
-    case stepFailed(message: String)
-    case execFailed(message: String)
-}
+/// Reserved for future-hook callers (= no consumers yet; = the
+/// pre-Phase 5 deleted TodoStore actor's error type was extracted
+/// in Phase 5 ticket 7 and renamed here; = currently dead code but
+/// preserved for potential future callers that want the legacy
+/// 4-case error shape from the old actor's sqlite3 failures).
 

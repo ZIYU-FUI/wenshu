@@ -295,8 +295,7 @@ public final class ChatViewModel {
     private let store: ChatSessionStore?
     // v0.24 boss acceptance fix (Boss 8/25 OOB ticket 015.014 + F2 cleanup): @MainActor
     // isolation replaces nonisolated(unsafe) for Swift 6 concurrency safety.
-    // Mutable so archive flow can replace. sessionIdPublic accessor dropped
-    // (SUGGEST 1 fix = valueForSessionId() already exists).
+    // Mutable so archive flow can replace.
     @MainActor private var sessionId: String
 
     // B-05 build fix: demote from `public init` to internal `init`. AppState
