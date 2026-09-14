@@ -29,18 +29,20 @@ import Testing
 @Suite("TodoStoreTool adapter (P0 #4 / WIRE-AGENT-004)")
 struct TodoStoreToolTests {
 
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 7 migration from TodoStore actor.
+    @MainActor
+    private static func makeTodoRepository() throws -> WSTodoRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSTodoRepository(container: container)
+    }
+
+
     // MARK: - Helpers
 
-    /// Make a fresh TodoStore backed by a tmp file (= each test gets
-    /// isolation; no cleanup race because we use a unique UUID per
-    /// call and the OS reclaims tmp files on reboot).
-    /// Async because TodoStore.bootstrap() is actor-isolated.
-    private static func makeTodoStore() async throws -> TodoStore {
-        let path = NSTemporaryDirectory() + "wenshu-todo-store-tool-\(UUID().uuidString).sqlite"
-        let store = try TodoStore(path: path)
-        try await store.bootstrap()
-        return store
-    }
+
 
     /// Make a fresh HermesTodoTool + HermesTodoStore pair (= hermes-side
     /// state machine that the adapter mirrors into TodoStore).
@@ -56,7 +58,7 @@ struct TodoStoreToolTests {
     @MainActor
     func testTodoStoreTool_create_persistsToTodoStore() async throws {
         print("[TEST] step 1: makeTodoStore")
-        let todoStore = try await Self.makeTodoStore()
+        let todoStore = try Self.makeTodoRepository()
         print("[TEST] step 2: makeHermesTool")
         let (hermesTool, hermesStore) = Self.makeHermesTool()
         print("[TEST] step 3: TodoStoreTool.init")
@@ -99,7 +101,7 @@ struct TodoStoreToolTests {
     @Test("todo_list returns the canonical TodoStore items as JSON")
     @MainActor
     func testTodoStoreTool_list_returnsTodoStoreItems() async throws {
-        let todoStore = try await Self.makeTodoStore()
+        let todoStore = try Self.makeTodoRepository()
         let (hermesTool, _) = Self.makeHermesTool()
         let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
 
@@ -123,7 +125,7 @@ struct TodoStoreToolTests {
     @Test("todo_complete updates the TodoStore row to status=completed")
     @MainActor
     func testTodoStoreTool_complete_marksItemDone() async throws {
-        let todoStore = try await Self.makeTodoStore()
+        let todoStore = try Self.makeTodoRepository()
         let (hermesTool, hermesStore) = Self.makeHermesTool()
         let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
 
@@ -153,7 +155,7 @@ struct TodoStoreToolTests {
     @Test("todo_remove deletes the TodoStore row")
     @MainActor
     func testTodoStoreTool_remove_deletesItem() async throws {
-        let todoStore = try await Self.makeTodoStore()
+        let todoStore = try Self.makeTodoRepository()
         let (hermesTool, hermesStore) = Self.makeHermesTool()
         let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
 

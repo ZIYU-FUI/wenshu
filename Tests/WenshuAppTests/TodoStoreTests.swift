@@ -10,6 +10,17 @@ import Foundation
 
 @Suite("TodoStore (hermes replica)")
 struct TodoStoreTests {
+
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 7 migration from TodoStore actor.
+    @MainActor
+    private static func makeTodoRepository() throws -> WSTodoRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSTodoRepository(container: container)
+    }
+
     private static func tempDBPath() -> String {
         URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent(".test-todo-\(UUID().uuidString.prefix(8)).db")
@@ -17,10 +28,10 @@ struct TodoStoreTests {
     }
 
     @Test("add + get round-trip")
+    @MainActor
     func testAddGet() async throws {
-        let store = try TodoStore(path: Self.tempDBPath())
-        try await store.bootstrap()
-        let todo = try await store.add(title: "implement FileTools", priority: .high)
+        let store = try Self.makeTodoRepository()
+                let todo = try await store.add(title: "implement FileTools", priority: .high)
         let got = try await store.get(id: todo.id)
         #expect(got?.title == "implement FileTools")
         #expect(got?.status == .pending)
@@ -28,10 +39,10 @@ struct TodoStoreTests {
     }
 
     @Test("setStatus 改 status")
+    @MainActor
     func testSetStatus() async throws {
-        let store = try TodoStore(path: Self.tempDBPath())
-        try await store.bootstrap()
-        let todo = try await store.add(title: "test")
+        let store = try Self.makeTodoRepository()
+                let todo = try await store.add(title: "test")
         try await store.setStatus(id: todo.id, status: .inProgress)
         let updated = try await store.get(id: todo.id)
         #expect(updated?.status == .inProgress)
@@ -41,10 +52,10 @@ struct TodoStoreTests {
     }
 
     @Test("list 按 status 过滤 + priority 排序")
+    @MainActor
     func testListByStatusPriority() async throws {
-        let store = try TodoStore(path: Self.tempDBPath())
-        try await store.bootstrap()
-        _ = try await store.add(title: "low task", priority: .low)
+        let store = try Self.makeTodoRepository()
+                _ = try await store.add(title: "low task", priority: .low)
         _ = try await store.add(title: "urgent task", priority: .urgent)
         _ = try await store.add(title: "medium task", priority: .medium)
         let pending = try await store.list(status: .pending)
@@ -55,20 +66,20 @@ struct TodoStoreTests {
     }
 
     @Test("delete 删 1 个")
+    @MainActor
     func testDelete() async throws {
-        let store = try TodoStore(path: Self.tempDBPath())
-        try await store.bootstrap()
-        let todo = try await store.add(title: "test")
+        let store = try Self.makeTodoRepository()
+                let todo = try await store.add(title: "test")
         try await store.delete(id: todo.id)
         let got = try await store.get(id: todo.id)
         #expect(got == nil)
     }
 
     @Test("count 按 status 过滤")
+    @MainActor
     func testCount() async throws {
-        let store = try TodoStore(path: Self.tempDBPath())
-        try await store.bootstrap()
-        _ = try await store.add(title: "a", priority: .high)
+        let store = try Self.makeTodoRepository()
+                _ = try await store.add(title: "a", priority: .high)
         _ = try await store.add(title: "b", priority: .medium)
         let todo1 = try await store.add(title: "c", priority: .low)
         try await store.setStatus(id: todo1.id, status: .completed)
@@ -79,10 +90,10 @@ struct TodoStoreTests {
     }
 
     @Test("dueDate 持久化")
+    @MainActor
     func testDueDate() async throws {
-        let store = try TodoStore(path: Self.tempDBPath())
-        try await store.bootstrap()
-        let due = Date(timeIntervalSince1970: 1900000000)  // 2030-03-08
+        let store = try Self.makeTodoRepository()
+                let due = Date(timeIntervalSince1970: 1900000000)  // 2030-03-08
         let todo = try await store.add(title: "future task", priority: .urgent, dueDate: due)
         let got = try await store.get(id: todo.id)
         #expect(got?.dueDate?.timeIntervalSince1970 == 1900000000)

@@ -67,6 +67,17 @@ private final class ObservationBox<T>: @unchecked Sendable {
 @Suite("HermesTodoStore concurrency (FIX-TODO-LOCK-001)")
 struct HermesTodoStoreConcurrencyTests {
 
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 7 migration from TodoStore actor.
+    @MainActor
+    private static func makeTodoRepository() throws -> WSTodoRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSTodoRepository(container: container)
+    }
+
+
     // MARK: - Test 1: concurrent writes stay consistent
 
     @Test("100 concurrent writes to different keys all land in the store")
@@ -224,7 +235,7 @@ struct HermesTodoStoreConcurrencyTests {
     @Test("TodoStoreTool.execute() returns in under 5 seconds (regression for the deadlock reported in VERIFY-INTEGRATION-001)")
     @MainActor
     func testTodoStoreTool_execute_doesNotHang() async throws {
-        let todoStore = try await Self.makeTodoStore()
+        let todoStore = try Self.makeTodoRepository()
         let hermesStore = HermesTodoStore()
         let hermesTool = HermesTodoTool(store: hermesStore)
         let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
@@ -278,14 +289,11 @@ struct HermesTodoStoreConcurrencyTests {
 
     // MARK: - Helpers
 
-    /// Make a fresh TodoStore backed by a tmp file (= each test gets
-    /// isolation; no cleanup race because we use a unique UUID per
-    /// call and the OS reclaims tmp files on reboot).
-    /// Async because TodoStore.bootstrap() is actor-isolated.
-    private static func makeTodoStore() async throws -> TodoStore {
-        let path = NSTemporaryDirectory() + "wenshu-todo-store-concurrency-\(UUID().uuidString).sqlite"
-        let store = try TodoStore(path: path)
-        try await store.bootstrap()
-        return store
+    /// Make a fresh WSTodoRepository via in-memory SwiftData container.
+    /// Phase 5 ticket 7 migration from TodoStore actor.
+    @MainActor
+    private static func makeTodoStore() throws -> WSTodoRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSTodoRepository(container: container)
     }
 }

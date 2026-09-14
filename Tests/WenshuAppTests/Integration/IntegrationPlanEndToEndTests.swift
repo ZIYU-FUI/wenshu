@@ -84,6 +84,17 @@ private actor NotificationCollector {
 @Suite("Integration plan end-to-end (= all 22 wire-up tickets exercised together)")
 struct IntegrationPlanEndToEndTests {
     /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 7 migration from TodoStore actor.
+    @MainActor
+    private static func makeTodoRepository() throws -> WSTodoRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSTodoRepository(container: container)
+    }
+
+
+    /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
     /// Phase 5 ticket 6 migration from KanbanStore actor.
@@ -159,13 +170,12 @@ struct IntegrationPlanEndToEndTests {
         return (store, dir, bookId)
     }
 
-    /// Build an isolated TodoStore rooted in /tmp (= avoids the
-    /// default Application Support location so the test never
-    /// collides with a real wenshu-side user install).
-    private static func makeTodoStore() async throws -> TodoStore {
-        let store = try TodoStore(path: "/tmp/wenshu-p5-23-todo-\(UUID().uuidString).db")
-        try await store.bootstrap()
-        return store
+    /// Build an isolated WSTodoRepository via in-memory SwiftData container.
+    /// Phase 5 ticket 7 migration from TodoStore actor.
+    @MainActor
+    private static func makeTodoStore() throws -> WSTodoRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSTodoRepository(container: container)
     }
 
     /// Build an isolated KanbanStore rooted in /tmp. Mirrors the
@@ -201,7 +211,7 @@ struct IntegrationPlanEndToEndTests {
 
         // The three SQL-backed canonical stores (= Todo / Kanban /
         // Memory) used by the wire-up tools; isolated in /tmp.
-        let todoStore = try await Self.makeTodoStore()
+        let todoStore = try Self.makeTodoRepository()
         print("[setup] built todoStore")
         let kanbanStore = try await Self.makeKanbanRepository()
         print("[setup] built kanbanStore")
@@ -651,34 +661,22 @@ struct IntegrationPlanEndToEndTests {
         // performs an add (= a notification must fire; = the
         // WIRE-TODO-001 contract). Then unsubscribes so the
         // stream closes cleanly.
-        let subscription = await todoStore.subscribe()
-        // Boxed accumulator (= Sendable wrapper around a
-        // [TodoItem]; = avoids capturing a mutable local in the
-        // detached Task closure).
+        // P2 #22 reactive stream test removed: WSTodoRepository does NOT expose
+        // a subscribe() stream (= ticket 3 dropped the dead reactive stream that
+        // had no consumer; = see AGENTS.md §11.4.2 ticket 3 commit ce80c6492).
+        // Just verify the basic add path here.
+        // collector + subscriptionTask stubbed since subscribe() was removed
         let collector = NotificationCollector()
-        let subscriptionTask = Task { @Sendable in
-            for await item in subscription.stream {
-                await collector.append(item)
-                if await collector.count >= 1 { break }
-            }
-        }
+        // subscriptionTask skipped (= reactive stream removed)
         // Give the consumer task a chance to start iterating
         // before we mutate the store (= AsyncStream doesn't
         // buffer when the consumer isn't ready).
-        try await Task.sleep(nanoseconds: 10_000_000)  // 10 ms
+        // (10 ms startup sleep removed — no reactive consumer)
         let reactiveTodo = try await todoStore.add(title: "reactive todo", priority: .high)
         // Wait up to 2s for the notification to arrive.
-        let deadline = Date().addingTimeInterval(2.0)
-        var stillWaiting = true
-        while stillWaiting {
-            let count = await collector.count
-            if count > 0 || Date() >= deadline { stillWaiting = false }
-            if stillWaiting {
-                try await Task.sleep(nanoseconds: 20_000_000)  // 20 ms
-            }
-        }
-        subscriptionTask.cancel()
-        await todoStore.unsubscribe(subscription.id)
+        // Wait skipped — no reactive notification to wait for
+        // subscriptionTask.cancel() removed
+        // (subscribe/unsubscribe removed — see comment above)
         #expect(await collector.contains(id: reactiveTodo.id),
                 "P2 #22 TodoStore.subscribe should fire a notification for the reactive add")
 

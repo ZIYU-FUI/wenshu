@@ -27,10 +27,22 @@ import Foundation
 
 @Suite("HermesTodoTool (HERMES-SUBSYSTEM-4)")
 struct HermesTodoToolTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 7 migration from TodoStore actor.
+    @MainActor
+    private static func makeTodoRepository() throws -> WSTodoRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSTodoRepository(container: container)
+    }
+
+
 
     // MARK: - Test 1: todo_add (= write replace mode inserts)
 
     @Test("todo_add writes a fresh item and returns the full list")
+    @MainActor
     func testTodoAdd() throws {
         let store = HermesTodoStore()
         let item = HermesTodoItem(
@@ -51,6 +63,7 @@ struct HermesTodoToolTests {
     // MARK: - Test 2: todo_list (= read with status filter)
 
     @Test("todo_list returns the current list, filterable by status")
+    @MainActor
     func testTodoList() throws {
         let store = HermesTodoStore()
         store.write(
@@ -85,6 +98,7 @@ struct HermesTodoToolTests {
     // MARK: - Test 3: todo_update (= write merge mode updates by id)
 
     @Test("todo_update merges an existing item by id")
+    @MainActor
     func testTodoUpdate() throws {
         let store = HermesTodoStore()
         store.write(
@@ -123,6 +137,7 @@ struct HermesTodoToolTests {
     // MARK: - Test 4: todo_remove (= write replace with id absent)
 
     @Test("todo_remove drops an item when absent from the next write")
+    @MainActor
     func testTodoRemove() throws {
         let store = HermesTodoStore()
         store.write(
@@ -154,6 +169,7 @@ struct HermesTodoToolTests {
     // MARK: - Test 5: todo_clear (= write with empty list)
 
     @Test("todo_clear empties the store")
+    @MainActor
     func testTodoClear() throws {
         let store = HermesTodoStore()
         store.write(
@@ -176,6 +192,7 @@ struct HermesTodoToolTests {
     // MARK: - Test 6: testSerialization (= JSON round-trip for context injection)
 
     @Test("JSON round-trip preserves the todo list for context injection")
+    @MainActor
     func testSerialization() throws {
         let sessionDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("hermes-todo-test-\(UUID().uuidString)")
@@ -237,6 +254,7 @@ struct HermesTodoToolTests {
     // MARK: - Bonus: formatForInjection marker coverage
 
     @Test("formatForInjection emits the correct marker per status")
+    @MainActor
     func testFormatForInjection() throws {
         let store = HermesTodoStore()
         store.write(
@@ -283,6 +301,7 @@ struct HermesTodoToolTests {
     }
 
     @Test("HermesTodoTool.execute parses JSON input via ToolInputParser")
+    @MainActor
     func testToolConformanceJSONInput() async throws {
         let store = HermesTodoStore()
         let tool = HermesTodoTool(store: store)

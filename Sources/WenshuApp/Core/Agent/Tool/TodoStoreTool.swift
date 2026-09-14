@@ -83,7 +83,7 @@ public struct TodoStoreTool: Tool, Sendable {
     public let description = """
     Manage the Todo items for the current session. Actions: \
     create / list / update / complete / remove. Each action mirrors \
-    the canonical TodoStore (= SQLite, user-facing) and the hermes \
+    the canonical WSTodoRepository.shared (= Apple SwiftData) = and the hermes \
     internal planning list. Use list to read; create to add; \
     complete to mark done; remove to delete.
     """
@@ -235,7 +235,7 @@ public struct TodoStoreTool: Tool, Sendable {
                 ]
             )
         } catch {
-            return Self.jsonError(action: "update", message: "TodoStore.update failed: \(error)")
+            return Self.jsonError(action: "update", message: "WSTodoRepository.update failed: \(error)")
         }
     }
 
@@ -375,7 +375,7 @@ extension TodoStoreTool {
                     description: """
                     Manage the Todo items for the current session. Actions: \
                     create / list / update / complete / remove. Each action mirrors \
-                    the canonical TodoStore (= SQLite, user-facing) and the hermes \
+                    the canonical WSTodoRepository.shared (= Apple SwiftData) = and the hermes \
                     internal planning list. Use list to read; create to add; \
                     complete to mark done; remove to delete.
                     """,
