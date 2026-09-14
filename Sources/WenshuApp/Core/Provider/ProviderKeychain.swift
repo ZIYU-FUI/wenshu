@@ -22,7 +22,6 @@
 //
 
 import Foundation
-import Security
 
 public enum ProviderKeychainError: Error, LocalizedError {
     case keychainStatus(OSStatus)
@@ -30,8 +29,22 @@ public enum ProviderKeychainError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .keychainStatus(let s): return "Keychain 操作失败 (status=\(s))"
-        case .invalidKeyFormat: return "LLM key 格式无效"
+        case .keychainStatus(let s): return "Provider keychain operation failed (status=\(s))"
+        case .invalidKeyFormat: return "Provider API key format invalid"
+        }
+    }
+
+    /// Map the canonical `KeychainOpsError` (= shared across all keychain
+    /// consumers in wenshu) into the provider-specific error type.
+    /// Added in v0.86 ticket 001: dry_violation partner dedup partner of
+    /// v0.84 (= `AppleKeychainStore` now delegates to `KeychainOps` like
+    /// `AppleSearchKeychainStore` does).
+    public static func from(_ error: KeychainOpsError) -> ProviderKeychainError {
+        switch error {
+        case .keychainStatus(let s):
+            return .keychainStatus(s)
+        case .invalidKeyFormat:
+            return .invalidKeyFormat
         }
     }
 }
@@ -135,130 +148,75 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     /// the OS-level SecurityAgent modal is suppressed even if a
     /// future caller forgets the in-method check.
     private var debugNoKeychain: Bool {
+        // Retained for backwards compatibility with external readers that
+        // introspect this property; = no longer needed in this file because
+        // v0.86 delegates short-circuit handling to KeychainOps.
         UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain")
     }
 
     public func saveKeySync(_ key: String, for provider: Provider) throws {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'the configured key isn't persisted,
-        // this needs to be implemented — going through the Apple Keychain API would be even better': restore the
-        // real SecItemAdd implementation (= the canonical Apple
-        // Security framework keychain path; = the canonical wenshu
-        // architecture per AGENTS.md §11 hard rule 'API keys via
-        // AppleKeychain NEVER plaintext SQLite'; = the previous
-        // B-10 emergency revert stubbed this out because ad-hoc
-        // signed wenshu.app triggered SecurityAgent modal + SIGABRT
-        // on the Settings window). The canonical Apple HIG path for
-        // API keys = the user's macOS Keychain = persists across
-        // app restarts + sandbox-safe + encrypted at rest by the
-        // OS. Per developer.apple.com/documentation/security/
-        // keychain_services: `kSecClassGenericPassword` items with
-        // `kSecAttrAccessibleAfterFirstUnlock` (= accessible after
-        // the user logs in once; = the canonical 'user API key'
-        // accessibility tier).
+        // v0.86 ticket 001: delegate to KeychainOps (= canonical shared
+        // helper; = eliminates the 16% dry_violation flagged by repowise
+        // between this file and SearchAPIKeychain.swift). Behavior is
+        // preserved: identical short-circuit + identical OSStatus error
+        // mapping (= via ProviderKeychainError.from(_:)).
+        //
+        // v1.0.0-m1-shell: the previous inline SecItemAdd implementation
+        // (= the canonical Apple Security framework keychain path; = the
+        // canonical wenshu architecture per AGENTS.md §11 hard rule 'API
+        // keys via AppleKeychain NEVER plaintext SQLite'; = the previous
+        // B-10 emergency revert stubbed this out because ad-hoc signed
+        // wenshu.app triggered SecurityAgent modal + SIGABRT on the
+        // Settings window). The canonical Apple HIG path for API keys =
+        // the user's macOS Keychain = persists across app restarts +
+        // sandbox-safe + encrypted at rest by the OS. Per
+        // developer.apple.com/documentation/security/keychain_services:
+        // `kSecClassGenericPassword` items with
+        // `kSecAttrAccessibleAfterFirstUnlock` (= accessible after the
+        // user logs in once; = the canonical 'user API key' accessibility
+        // tier). KeychainOps encapsulates these choices.
         //
         // Per AGENTS.md §11 baseline + boss direction 'going through the Apple
         // Keychain API would be even better': Apple Keychain is the canonical wenshu
         // path. This is the right restore.
+        //
         // v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode':
         // short-circuit when debugNoKeychain UserDefaults is set (= the
         // remote-debug mode toggle). Silent no-op (= no throw; =
         // callers = Settings Save button = silently accept and move on).
-        if debugNoKeychain { return }
-        guard !key.isEmpty else { throw ProviderKeychainError.invalidKeyFormat }
-        let keyData = Data(key.utf8)
-        let account = "\(provider.slug).api.key"
-        let deleteQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: AppleKeychainStore.service,
-            kSecAttrAccount as String: account
-        ]
-        SecItemDelete(deleteQuery as CFDictionary)
-        let addQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: AppleKeychainStore.service,
-            kSecAttrAccount as String: account,
-            kSecValueData as String: keyData,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
-            // v0.24 bossverificationfix (2026-08-24): removed 'kSecUseDataProtectionKeychain: true'.
-            // This iOS-only flag on macOS requires explicit entitlement
-            // (kSecAttrAccessGroupFile or similar) and triggers -34018
-            // errSecMissingEntitlement on ad-hoc signed apps. The default
-            // (file-based) keychain on macOS works without entitlement.
-        ]
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
-        guard status == errSecSuccess else { throw ProviderKeychainError.keychainStatus(status) }
+        do {
+            try KeychainOps.save(value: key, service: Self.service, account: "\(provider.slug).api.key")
+        } catch let e as KeychainOpsError {
+            throw ProviderKeychainError.from(e)
+        }
     }
 
     public func loadKeySync(for provider: Provider) -> String? {
-        // v1.0.0-m1-shell: restore the real SecItemCopyMatching.
+        // v0.86 ticket 001: delegate to KeychainOps. See saveKeySync header.
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode,
-        // once it's on, don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI': also
-        // short-circuit the Apple Security framework call here (= the
-        // OS-level SecurityAgent modal still prompts even when the
+        // v1.0.0-m1-shell: also short-circuits the Apple Security framework
+        // call when wenshu.debugNoKeychain UserDefaults is set (= the OS-level
+        // SecurityAgent modal still prompts even when the
         // ProviderKeychain.backend lazy-init returned InMemoryKeychainStore;
         // = the OS scans the keychain at first access regardless of which
         // Swift object made the call; = the only way to suppress the
-        // modal is to never enter SecItemCopyMatching at all). Check the
-        // remote-debug UserDefaults at the top of every Apple Security
-        // framework method (= saveKeySync / loadKeySync / deleteKeySync /
-        // listProvidersWithKeys) and short-circuit (= saveKeySync /
-        // deleteKeySync = no-op success; loadKeySync / listProvidersWithKeys
-        // = nil / []). Belt-and-braces with the ProviderKeychain.backend
-        // lazy-init override (= both paths converge to 'no keychain
-        // touches' = boss can launch wenshu.app remotely without ever
-        // seeing the SecurityAgent modal prompt).
-        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
-            return nil
-        }
-        let account = "\(provider.slug).api.key"
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: AppleKeychainStore.service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        // modal is to never enter SecItemCopyMatching at all). KeychainOps
+        // performs the same short-circuit at the top of load().
+        return KeychainOps.load(service: Self.service, account: "\(provider.slug).api.key")
     }
 
     public func deleteKeySync(for provider: Provider) throws {
-        // v1.0.0-m1-shell: restore the real SecItemDelete.
-        // See saveKeySync (= same remote-debug short-circuit).
-        if debugNoKeychain { return }
-        let account = "\(provider.slug).api.key"
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: AppleKeychainStore.service,
-            kSecAttrAccount as String: account
-        ]
-        let status = SecItemDelete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw ProviderKeychainError.keychainStatus(status)
+        // v0.86 ticket 001: delegate to KeychainOps. See saveKeySync header.
+        do {
+            try KeychainOps.delete(service: Self.service, account: "\(provider.slug).api.key")
+        } catch let e as KeychainOpsError {
+            throw ProviderKeychainError.from(e)
         }
     }
 
     public func listProvidersWithKeys() -> [String] {
-        // v1.0.0-m1-shell: restore the real SecItemCopyMatching
-        // (= queries all generic-password items under our service).
-        // See loadKeySync (= same remote-debug short-circuit).
-        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
-            return []
-        }
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: AppleKeychainStore.service,
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll
-        ]
-        var items: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &items)
-        guard status == errSecSuccess, let array = items as? [[String: Any]] else { return [] }
-        return array.compactMap { $0[kSecAttrAccount as String] as? String }
-            .compactMap { $0.hasSuffix(".api.key") ? String($0.dropLast(".api.key".count)) : nil }
+        // v0.86 ticket 001: delegate to KeychainOps. See saveKeySync header.
+        return KeychainOps.listAccounts(service: Self.service)
     }
 }
 
