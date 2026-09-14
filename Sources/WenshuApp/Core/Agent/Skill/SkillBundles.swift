@@ -68,10 +68,16 @@ public struct SkillBundle: Sendable, Equatable, Identifiable, Codable {
 /// through the direct `skillIDs` list and through every dependency's
 /// `skillIDs` (= transitive).
 ///
-/// Default `SkillBundles()` = empty registry; `resolve(bundleID:)` on
-/// an unknown id throws `SkillBundlesError.bundleNotFound`. The actor
-/// is safe to call from any isolation context (= Swift 6 strict).
+/// `SkillBundles.shared` is the canonical module-singleton (= hermes
+/// `_bundles_state` module-level dict). Use the designated init when
+/// you need an isolated registry (= tests, hot reload).
 public actor SkillBundles {
+    /// Canonical module-singleton (= matches hermes `_bundles_state`).
+    /// Added in v0.73 ticket 001 to give the LLM-facing SkillBundlesTool
+    /// (= `Core/Agent/Tool/SkillBundlesTool.swift`) a stable registry handle
+    /// without leaking actor internals.
+    public static let shared: SkillBundles = SkillBundles()
+
     private var bundles: [String: SkillBundle] = [:]
 
     public init() {}
