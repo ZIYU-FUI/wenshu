@@ -24,9 +24,11 @@
 //  uses UserDefaults for dev path; = this module replaces that path on
 //  production default).
 //
+//  v0.84 ticket 002: refactored to delegate Security framework calls to
+//  `KeychainOps` (= canonical shared helper; = eliminates the 16% dup
+//  with `ProviderKeychain.swift` flagged by repowise dry_violation).
 
 import Foundation
-import Security
 
 public enum SearchAPIKeychainError: Error, LocalizedError {
     case keychainStatus(OSStatus)
@@ -38,6 +40,21 @@ public enum SearchAPIKeychainError: Error, LocalizedError {
             return "Search API keychain operation failed (status=\(s))"
         case .invalidKeyFormat:
             return "Search API key format invalid"
+        }
+    }
+
+    /// Map the canonical `KeychainOpsError` (= shared across all keychain
+    /// consumers in wenshu) into the search-specific error type.
+    /// Added in v0.84 ticket 002: ProviderKeychain.error.keychainStatus(_) and
+    /// .invalidKeyFormat become SearchAPIKeychainError.keychainStatus(_) and
+    /// .invalidKeyFormat respectively (= preserves the OSStatus / format
+    /// semantics at the call site).
+    public static func from(_ error: KeychainOpsError) -> SearchAPIKeychainError {
+        switch error {
+        case .keychainStatus(let s):
+            return .keychainStatus(s)
+        case .invalidKeyFormat:
+            return .invalidKeyFormat
         }
     }
 }
@@ -65,9 +82,9 @@ public protocol SearchAPIKeychainStoring: Sendable {
 }
 
 /// Production Apple Keychain backend for search API keys.
-/// Mirrors `AppleKeychainStore` (= same SecItemAdd / SecItemCopyMatching /
-/// SecItemDelete pattern). Uses a separate keychain service string to
-/// isolate from LLM provider keys.
+/// Delegates the actual Security framework calls to `KeychainOps`
+/// (= canonical shared helper; = same code path as `AppleKeychainStore`
+/// for LLM provider keys, but with the search-specific service namespace).
 public final class AppleSearchKeychainStore: SearchAPIKeychainStoring, @unchecked Sendable {
 
     /// Keychain service identifier for web-search API keys (= isolated
@@ -80,80 +97,28 @@ public final class AppleSearchKeychainStore: SearchAPIKeychainStoring, @unchecke
     /// without triggering the SecurityAgent modal.
     public init() {}
 
-    private var debugNoKeychain: Bool {
-        UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain")
-    }
-
     public func saveKey(_ key: String, for provider: String) throws {
-        guard !key.isEmpty else { throw SearchAPIKeychainError.invalidKeyFormat }
-        if debugNoKeychain { return }
-
-        let account = "\(provider).api.key"
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
-            kSecAttrAccount as String: account
-        ]
-
-        // Delete existing then add (= SecItemAdd fails if item exists)
-        SecItemDelete(query as CFDictionary)
-
-        var addQuery = query
-        addQuery[kSecValueData as String] = Data(key.utf8)
-        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
-
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw SearchAPIKeychainError.keychainStatus(status)
+        do {
+            try KeychainOps.save(value: key, service: Self.service, account: "\(provider).api.key")
+        } catch let e as KeychainOpsError {
+            throw SearchAPIKeychainError.from(e)
         }
     }
 
     public func loadKey(for provider: String) -> String? {
-        if debugNoKeychain { return nil }
-
-        let account = "\(provider).api.key"
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        KeychainOps.load(service: Self.service, account: "\(provider).api.key")
     }
 
     public func deleteKey(for provider: String) throws {
-        if debugNoKeychain { return }
-        let account = "\(provider).api.key"
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
-            kSecAttrAccount as String: account
-        ]
-        let status = SecItemDelete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw SearchAPIKeychainError.keychainStatus(status)
+        do {
+            try KeychainOps.delete(service: Self.service, account: "\(provider).api.key")
+        } catch let e as KeychainOpsError {
+            throw SearchAPIKeychainError.from(e)
         }
     }
 
     public func listConfiguredProviders() -> [String] {
-        if debugNoKeychain { return [] }
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll
-        ]
-        var items: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &items)
-        guard status == errSecSuccess, let array = items as? [[String: Any]] else {
-            return []
-        }
-        return array.compactMap { $0[kSecAttrAccount as String] as? String }
-            .compactMap { $0.hasSuffix(".api.key") ? String($0.dropLast(".api.key".count)) : nil }
+        KeychainOps.listAccounts(service: Self.service)
     }
 }
 
