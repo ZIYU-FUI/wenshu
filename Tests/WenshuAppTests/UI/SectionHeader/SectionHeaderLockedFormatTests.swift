@@ -1,9 +1,9 @@
 //
 //  SectionHeaderLockedFormatTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  v0.71 P1 batch 3 (boss 2026-09-11 OOB '这个样式留作标准，以后也这么
-//  写' = 'this style stays as the standard, use it from now on' + '那个
-//  标题的文字颜色，苹果都偏灰一些，不是纯白的。和分割线的颜色接近' =
+//  v0.71 P1 batch 3 (boss 2026-09-11 OOB 'keep this style as the standard — use it from
+//  now on' = 'this style stays as the standard, use it from now on' + 'that
+//  title's text color — Apple's is a bit grayer, not pure white, close to the divider's color' =
 //  'the title color is gray, not pure white, close to the divider color'):
 //
 //  The section header pattern is LOCKED per memory:
@@ -13,9 +13,9 @@
 //    }
 //
 //  Used in all 3 column titles:
-//    • Sidebar: '书房' in NewLibraryOutlineView.swift
-//    • Content: '素材' in PreviewPane.swift
-//    • Inspector: '写作（小说）' etc in NavigationSplitShell.swift
+//    • Sidebar: 'Studio' in NewLibraryOutlineView.swift
+//    • Content: 'Assets' in PreviewPane.swift
+//    • Inspector: 'Authoring (Fiction)' etc in NavigationSplitShell.swift
 //
 //  These tests don't render views; they verify the source file
 //  structure (= the LOCKED format contract = a regression that
@@ -51,7 +51,7 @@ struct SectionHeaderLockedFormatTests {
         }.joined(separator: "\n")
     }
 
-    /// boss 9/11 OOB '这个样式留作标准, 以后也这么写': the LOCKED
+    /// boss 9/11 OOB 'keep this style as the standard — use it from now on': the LOCKED
     /// format MUST appear in all 3 column-title files (= sidebar +
     /// content + inspector). The format marker = `Spacer()` +
     /// `Text(...).font(.body).foregroundStyle(.secondary).textCase(nil)`
@@ -87,8 +87,8 @@ struct SectionHeaderLockedFormatTests {
         )
     }
 
-    /// boss 9/11 OOB '那个标题的文字颜色，苹果都偏灰一些，不是纯白的.
-    /// 和分割线的颜色接近' (= 'the title color is grayish, not pure
+    /// boss 9/11 OOB 'that title's text color — Apple's is a bit grayer, not pure white.
+    /// Close to the divider's color' (= 'the title color is grayish, not pure
     /// white, close to the divider color'): the section header title
     /// MUST use `.secondary` foreground (= NOT `.primary` and NOT
     /// `.white`). Apple HIG default = .secondary = matches the
@@ -115,7 +115,7 @@ struct SectionHeaderLockedFormatTests {
         }
     }
 
-    /// boss 9/11 OOB '这个样式留作标准, 以后也这么写': each column
+    /// boss 9/11 OOB 'keep this style as the standard — use it from now on': each column
     /// title text MUST use `.textCase(nil)` (= no ALL-CAPS forcing).
     /// Apple HIG default text case = nil (= shows the title as the
     /// user typed it, no automatic uppercasing).

@@ -1,8 +1,8 @@
 //
 //  ChatPartView.swift · Wenshu · v0.71 P1 batch 2 (= Hermes 1:1 streaming UI)
 //
-//  v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出没有实现...
-//  全量复制 hermes...'):
+//  v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented...
+//  port the whole thing from hermes...'):
 //
 //  Renders a single ChatMessagePart in the wenshu streaming chat
 //  zone. Each Hermes `ChatMessagePart` kind (= text / reasoning /
@@ -31,7 +31,7 @@
 //    • conform to `View` (= SwiftUI).
 //    • use DesignTokens (= no magic numbers; = iron-rule 6).
 //    • render via SwiftUI primitives (= no NSTextView, no WebView
-//      = the boss's '一切用到 apple 样式的全都默认' OOB).
+//      = the boss's 'anything that uses Apple styles should default everything' OOB).
 //    • support `message.source == .user` (= outgoing = accent fill)
 //      AND `message.source == .wenshu` (= incoming = quaternary fill)
 //      via the caller-supplied `isOutgoing: Bool` parameter.
@@ -102,11 +102,11 @@ public struct ChatTextPartView: View {
 /// a `ScaffoldRow` header (= "Thinking…" label + elapsed timer + a
 /// shimmer animation while running). wenshu's existing DisclosureGroup
 /// is the canonical Apple HIG equivalent (= no custom scaffold row =
-/// Apple default = boss's '一切用到 apple 样式的全都默认' OOB).
+/// Apple default = boss's 'anything that uses Apple styles should default everything' OOB).
 ///
 /// The `isRunning` parameter (= true when the model is still thinking)
 /// controls:
-///   • the label text ("思考中…" vs "思考过程" = "finished")
+///   • the label text ("Thinking…" vs "Thinking trace" = "finished")
 ///   • the icon (= Lucide `brain` + .shimmer-like Pulse animation
 ///     while running)
 public struct ChatReasoningPartView: View {
@@ -412,8 +412,8 @@ private struct ChatPartRow: View {
 
 // MARK: - User message hover actions (= hermes MessageActions)
 
-/// v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出没有实现... 全量
-/// 复制 hermes...'): hover actions overlay for user messages (= the
+/// v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented... port the
+/// whole thing from hermes...'): hover actions overlay for user messages (= the
 /// Hermes `MessageActions` pattern = copy + delete buttons that fade
 /// in on hover).
 ///

@@ -1,8 +1,8 @@
 //
 //  EditorTabTitleTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  v0.71 P1 batch 3 (boss 2026-09-12 OOB 'tab 没有去到文件名的 bug'
-//  + '我提需求，你只做我提的事... 找相似值就可以'):
+//  v0.71 P1 batch 3 (boss 2026-09-12 OOB 'tab title didn't go to the document name bug'
+//  + 'I raise requirements, you only do what I ask for... just pick an approximate value'):
 //
 //  Code-level verification (= no UI render) that the canonical
 //  EditorTab.displayTitle(_:) (= single source of truth for the
@@ -12,9 +12,9 @@
 //  (= can drift over time = a regression in one copy wouldn't be
 //  caught by the other copy).
 //
-//  Precedence (= per the boss's 'tab 没有去到文件名的 bug' OOB):
+//  Precedence (= per the boss's 'tab title didn't go to the document name' OOB):
 //    1. documentPath basename (= real file wins; = strips .md)
-//    2. tab.title (= entity / book-doc title = '赤壁之战' etc.)
+//    2. tab.title (= entity / book-doc title = 'Battle of Red Cliffs' etc.)
 //    3. 'preview-sample' (= legacy placeholder; = last resort)
 //
 //  These tests don't render the tab strip; they only verify the
@@ -39,7 +39,7 @@ struct EditorTabTitleTests {
         )
     }
 
-    /// boss 9/12 OOB 'tab 没有去到文件名的 bug': when the tab has a
+    /// boss 9/12 OOB 'tab title didn't go to the document name bug': when the tab has a
     /// real documentPath, the basename (= without .md) wins.
     @Test("displayTitle_documentPathBasenameWins_overTitle")
     @MainActor
@@ -55,7 +55,7 @@ struct EditorTabTitleTests {
         )
     }
 
-    /// boss 9/12 OOB 'tab 没有去到文件名的 bug': when documentPath is
+    /// boss 9/12 OOB 'tab title didn't go to the document name bug': when documentPath is
     /// nil (= reference-library card without a resolved path),
     /// the entity title wins.
     @Test("displayTitle_tabTitleWins_whenDocumentPathIsNil")
@@ -69,7 +69,7 @@ struct EditorTabTitleTests {
         )
     }
 
-    /// boss 9/12 OOB 'tab 没有去到文件名的 bug': when both documentPath
+    /// boss 9/12 OOB 'tab title didn't go to the document name bug': when both documentPath
     /// and title are nil, the legacy placeholder is used.
     @Test("displayTitle_previewSample_whenBothNil")
     @MainActor
@@ -111,7 +111,7 @@ struct EditorTabTitleTests {
     }
 
     /// .md extension is stripped from the basename (= the tab
-    /// shows '什么是文枢' not '什么是文枢.md').
+    /// shows 'What is Wenshu' not 'What is Wenshu.md').
     @Test("displayTitle_strips_md_extension")
     @MainActor
     func displayTitle_strips_md_extension() {
@@ -150,8 +150,8 @@ struct EditorTabTitleTests {
 
     // MARK: - Codable round-trip (= title persists across app restart)
 
-    /// The title field was added in v0.71 (= boss 9/12 OOB 'tab 没有去
-    /// 文件名的 bug') so the tab title survives an app relaunch.
+    /// The title field was added in v0.71 (= boss 9/12 OOB 'tab title didn't go to the
+    /// document name bug') so the tab title survives an app relaunch.
     /// This test verifies the PersistedEditorTab Codable encoding
     /// round-trips the title field.
     @Test("persistedEditorTab_codableRoundTripPreservesTitle")

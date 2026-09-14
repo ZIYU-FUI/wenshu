@@ -1,6 +1,6 @@
 // Document.swift · Wenshu (Wenshu) · v0.03.0 (document module)
 //
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // v53 (= 8/15 17:48 ', show,,,
 // need'): the second column of the layout shows a card
 // grid (= FCP Browser filmstrip pattern) of MD documents grouped by
@@ -13,7 +13,7 @@
 // 'title' falls back to the first H1 of the MD, or the filename if no
 // H1 is present).
 //
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // Owner 8/15 15:55: 'needok,, refactor
 // '. The shape of Document is locked by `Tests/WenshuAppTests/
 // Domain/DocumentTests.swift`. Adding any required field forces the

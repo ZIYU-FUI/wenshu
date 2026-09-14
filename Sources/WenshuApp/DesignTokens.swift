@@ -84,9 +84,9 @@ public enum DesignTokens {
     /// chromePaddingMedium (5) + chromePaddingLarge (6) (= inconsistent).
     public static let chromePaddingVertical: CGFloat = 8
 
-    /// v1.0.0-m1-shell boss 2026-09-11 OOB '左, 左中, 右三栏
-    /// 的标题, 距顶加一个 apple 表达式间距, 18pt 左右
-    /// 的, 找相似值': top padding from column edge to first
+    /// v1.0.0-m1-shell boss 2026-09-11 OOB 'left, middle-left, right — three columns'
+    /// title, give it one Apple-standard expression of top spacing, roughly 18pt
+    /// — pick an approximate value': top padding from column edge to first
     /// section header text. Apple HIG macOS 27 Tahoe inspector /
     /// sidebar / content column pattern uses 18 PT (= the
     /// 'standard content margin' for sectional chrome elements;
@@ -337,8 +337,8 @@ public enum DesignTokens {
     public static let bulletSizeSmall: CGFloat = 14
 
     /// Empty-state icon size (= 76 PT, 2× the default ContentUnavailableView
-    /// 38 PT). v1.0.0-m1-shell boss 2026-09-12 OOB '顺手把空态的 ICON
-    /// 放大一倍' (='double the empty-state icon size'). Replaces the
+    /// 38 PT). v1.0.0-m1-shell boss 2026-09-12 OOB 'while you're at it, double the size of the empty-state
+    /// ICON' (='double the empty-state icon size'). Replaces the
     /// raw `.frame(width: 76, height: 76)` in EmptyStateView.swift.
     /// Single source of truth for ALL empty-state icon sizes (= no
     /// other callers at v0.71 = single owner).
@@ -430,7 +430,7 @@ public enum DesignTokens {
 
     // MARK: - v0.71 P1 batch 4: full-project dual-axis audit
     //
-    // (= boss 2026-09-12 OOB '做一个全项目的双轴' = apply the dual-axis
+    // (= boss 2026-09-12 OOB 'do a full-project dual-axis' = apply the dual-axis
     // chrome dimension system across the whole project; = extract every
     // hardcoded magic number to DesignTokens so the X-axis + Y-axis
     // chrome dimensions are centrally controlled).

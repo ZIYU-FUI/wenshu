@@ -35,7 +35,7 @@ import AppKit  // v0.34 B-26: NSDoubleClickInterval (= system double-click inter
 
 // MARK: - Sort order (v0.30 boss OOB)
 //
-// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // Boss 2026-08-30: 'all cards default sort is pinyin initial letter alphabetical, in the material preview top bar add an icon on the right side to implement re-sort. Current options: first letter, creation time, modification time'.
 //
 // 3 sort options:
@@ -254,8 +254,8 @@ struct PreviewPane: View {
     /// (= live refresh, no submit button, no .onChange handler
     /// needed).
     ///
-    /// v0.73 boss 2026-09-10 OOB '两个搜索框的样式不一样, 需要按 apple
-    /// api 默认样式统一': callers can pass an OPTIONAL external
+    /// v0.73 boss 2026-09-10 OOB 'the two search fields look different — they should be unified
+    /// to the Apple API default style': callers can pass an OPTIONAL external
     /// `searchQuery` Binding to use an EXTERNAL `.searchable(...)`
     /// modifier (= the canonical macOS 13+ Apple HIG search field;
     /// = identical visual to the sidebar `.searchable` field).
@@ -272,9 +272,9 @@ struct PreviewPane: View {
     /// `.searchable` modifier).
     @Binding var searchQuery: String?
 
-    /// v1.0.0-m1-shell boss 2026-09-11 OOB '位置调整一下, 放在标题
-    /// 和分割线下方, 第一张卡片上方': per the boss's request, the
-    /// search field renders BELOW the '素材' section header + Divider
+    /// v1.0.0-m1-shell boss 2026-09-11 OOB 'move the position: below the title
+    /// and divider, above the first card': per the boss's request, the
+    /// search field renders BELOW the 'Assets' section header + Divider
     /// and ABOVE the first card (= the Apple HIG "sticky header +
     /// inline search" pattern, not "search on top of header").
     ///
@@ -323,13 +323,13 @@ struct PreviewPane: View {
         searchQuery == nil
     }
 
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
-        /// 那就直接用, 我们别自己写搜索': the previous init took
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'if the Apple API supports
+        /// it, just use it — don't roll our own search': the previous init took
         /// `searchQuery: Binding<String?>?` (= optional; = nil meant
     /// 'fall back to the legacy internal @State'). The optional
     /// path was the source of the lifecycle-reset bug (= the
     /// internal @State got reset on every PreviewPane rebuild
-    /// = the boss's '输入 x, 出来的和 X 都无关' symptom). Now the
+    /// = the boss's 'type x, results are unrelated to x' symptom). Now the
     /// search field lives at the parent level (= Apple's
     /// `.searchable` modifier on ShellMiddleColumn) and the
     /// binding is always non-optional = the search text always
@@ -352,7 +352,7 @@ struct PreviewPane: View {
         self.customLeadingSearch = customLeadingSearch
     }
 
-// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 /// v0.30 boss OOB: 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
     /// not enough for two columns, auto-adapt to one column, in plain words it's card flow, width adaptive'.
     ///
@@ -415,19 +415,19 @@ struct PreviewPane: View {
         // flush against the tab strip, = Apple HIG canonical toolbar
         // pattern = no padding between tab strip and toolbar).
         VStack(spacing: 0) {
-            // v1.0.0-m1-shell boss 2026-09-10 OOB '从搜索往上都
-            // 居顶, 空态继续居中': the section-header block (= '素材'
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'everything from the search bar up
+            // goes to the top; the empty state stays centered': the section-header block (= 'Assets'
             // title + Pages hairline) and the search bar must STICK
             // TO THE TOP of the cards column. The empty-state hint
-            // (= icon + 请选择左侧目录查看文档 + 在左侧选择资料库、
-            // 书籍或文件夹。) must stay vertically CENTERED in the
+            // (= icon + 'Please pick a node on the left to view the document' + 'Pick a reference library,
+            // book, or folder on the left.') must stay vertically CENTERED in the
             // REMAINING space below the header + search bar. This
             // is the Apple HIG canonical 'sticky toolbar + centered
             // empty state' pattern (= Finder / Photos / Music
             // empty-state visuals when a sidebar selection is made
             // but the right-hand column has no content yet).
             //
-            // v0.77 boss 2026-09-10 OOB '位置不对, 是要放在中左栏内部的顶上':
+            // v0.77 boss 2026-09-10 OOB 'wrong position — it should sit at the top INSIDE the middle-left column':
             // the preview-pane search bar ALWAYS renders inline at
             // the top of the middle column body (= same visual slot
             // as the sidebar's `.searchable` field at the top of
@@ -445,11 +445,11 @@ struct PreviewPane: View {
             // rounded-pill pattern hosted inline because `.searchable`
             // has no 'middle column top' placement).
             //
-            // v1.0.0-m1-shell boss 2026-09-10 OOB '卡片区, 加和目录
-            // 一样的标题 "素材" + 分割线, 然后搜索': mirror the
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'cards zone — add a title that matches
+            // the sidebar's style: "Assets" title + divider, then the search field': mirror the
             // sidebar's Pages-style section header (centered title
             // text + 1 PT hairline spanning the full column width
-            // below). Same visual rule as the sidebar's '书房' /
+            // below). Same visual rule as the sidebar's 'Studio' /
             // 'Library' header:
             // - .font(.body) (= matches the card row text below; =
             //   Pages sidebar visual reference).
@@ -466,7 +466,7 @@ struct PreviewPane: View {
             //   card state AND the empty state; = the previous
             //   empty state hid the search bar visually but the
             //   search bar still rendered at the top; = the boss's
-            //   report '空态时搜索框还是居顶' = the search bar is
+            //   report 'in empty state the search bar still goes to the top' = the search bar is
             //   always there but the title was missing; = adding
             //   the title above the search bar fixes the visual
             //   alignment in both states).
@@ -475,11 +475,11 @@ struct PreviewPane: View {
                     Spacer()
                     Text(WenshuI18n.t("preview.column.title"))
                         .font(.body)
-                        // v1.0.0-m1-shell boss 2026-09-10 OOB '那个标题
-                        // 的文字颜色, 苹果都偏灰一些, 不是纯白的,
-                        // 和分割线的颜色接近': section header
+                        // v1.0.0-m1-shell boss 2026-09-10 OOB 'that title
+                        // text color — Apple's is a bit grayer, not pure white,
+                        // and close to the divider's color': section header
                         // text uses `.secondary` (= same as the
-                        // sidebar's '书房' header; = same Apple HIG
+                        // sidebar's 'Studio' header; = same Apple HIG
                         // pattern; = format identical across all
                         // wenshu section headers; = NO pure white).
                         .foregroundStyle(.secondary)
@@ -488,8 +488,8 @@ struct PreviewPane: View {
                 }
                 Divider()
             }
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义 padding
-            // 换 apple 表达式, 找近似值就可以': remove the custom
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
+            // and switch to Apple-standard expressions — find an approximate value': remove the custom
             // top inset (= `chromePaddingSectionTop` = 18 PT) and the
             // custom bottom inset (= 4 PT). The center column is the
             // content column of a NavigationSplitView; = Apple HIG
@@ -501,9 +501,9 @@ struct PreviewPane: View {
             // Divider) and the cards column layout are preserved (= no
             // unrelated changes).
         // Custom leading search field
-            // 放在标题和分割线下方, 第一张卡片上方': render the
+            // below the title and divider, above the first card': render the
             // custom leading-aligned search field HERE (= below the
-            // '素材' title + Divider; above the first card grid) =
+            // 'Assets' title + Divider; above the first card grid) =
             // the Apple HIG "sticky header + inline search field
             // below" pattern (= the canonical Mail / Notes / Pages
             // section-header-then-search layout). The previous
@@ -520,8 +520,8 @@ struct PreviewPane: View {
             // one (= `customLeadingSearch != nil`). Default = nil
             // = no field (= legacy callers / tests still work).
             if let customSearch = customLeadingSearch {
-                // v1.0.0-m1-shell boss 2026-09-11 OOB '宽度自动填满
-                // 宽度, 和卡片一样随着拖拽变宽': render the
+                // v1.0.0-m1-shell boss 2026-09-11 OOB 'fill the width
+                // automatically, growing with the drag just like the cards do': render the
                 // search field at the FULL column width (= the
                 // outer `.frame(maxWidth: .infinity)` makes
                 // SwiftUI stretch this view to consume all
@@ -544,11 +544,11 @@ struct PreviewPane: View {
                 // can see the column width) is what forces the
                 // stretch.
                 customSearch
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框的
-                    // 高度有点过于小了, 就改成 30pt 的高度吧':
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框的
-                    // 高度如果只能写死 30pt, 那你别写, 你用最接近
-                    // 的 apple 的表达式高度': per Apple HIG,
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'the search field
+                    // is a bit too short — change it to 30pt tall':
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'the search field
+                    // height can only be hard-coded to 30pt, then don't hard-code — use the closest
+                    // Apple-standard expression for height': per Apple HIG,
                     // use `.controlSize(.regular)` on the inner
                     // TextField (= the canonical macOS 13+ SwiftUI
                     // expression for the standard form-control
@@ -575,9 +575,9 @@ struct PreviewPane: View {
                     // surrounding HStack padding are added; = the
                     // boss's intuition that 30 PT feels right).
                     .frame(maxWidth: .infinity, alignment: .center)
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框,
-                    // 和第一个卡片的间距, 有没有手写的间距, 如果有,
-                    // 需要去掉': drop the manual BOTTOM padding
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
+                    // spacing between it and the first card — is there a hand-written padding, and if
+                    // so, drop it': drop the manual BOTTOM padding
                     // around the search field (= the previous
                     // `.padding(.bottom, 6)` was a hand-rolled
                     // vertical breathing room between the search
@@ -586,11 +586,11 @@ struct PreviewPane: View {
                     // first card below; = the cards' own LazyVGrid
                     // spacing controls the gap to the next card).
                     //
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB '你刚好
-                    // 改间距扩大了我的范围, 分割线和搜索框之间的 4,
-                    // 你多删了, 需要加回了': per the boss's
-                    // UPDATE 2026-09-11 OOB '删所有自定义 padding
-                    // 换 apple 表达式, 找近似值就可以': REMOVE both
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'you just
+                    // increased the spacing which broadened my range — the 4pt between the divider
+                    // and the search field, you over-deleted, need to put it back': per the boss's
+                    // UPDATE 2026-09-11 OOB 'remove all custom padding
+                    // and switch to Apple-standard expressions — find an approximate value': REMOVE both
                     // `.padding(.top, 4)` (= 4 PT divider→search
                     // gap) and `.padding(.horizontal, 8)` (= 8 PT
                     // horizontal inset). The Apple HIG macOS 27
@@ -600,8 +600,8 @@ struct PreviewPane: View {
                     // padding required; = the canonical Mail /
                     // Notes column search pattern).
             }
-            // v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
-            // 那就直接用, 我们别自己写搜索': the previous internal
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'if the Apple API supports,
+            // just use it — don't roll our own search': the previous internal
             // `previewSearchBar` view (= a hand-rolled HStack with
             // Lucide search icon + TextField + clear-x button) is
             // REMOVED. The search field now lives at the parent
@@ -612,7 +612,7 @@ struct PreviewPane: View {
             // Mail / Notes / Finder column search). Removing the
             // internal search bar means:
             //   - The cards column body no longer has a top
-            //     search field (the user sees only '素材' title +
+            //     search field (the user sees only 'Assets' title +
             //     cards grid below).
             //   - The Apple `.searchable` field at the column's
             //     toolbar slot hosts the search input.
@@ -623,7 +623,7 @@ struct PreviewPane: View {
             // empty state). Padding applied here only (= doesn't
             // affect the search bar's Y position).
             //
-            // v1.0.0-m1-shell boss 2026-09-10 OOB '空态继续居中':
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'empty state stays centered':
             // wrap the scope Group in an explicit `VStack { Spacer;
             // Group; Spacer }` (= top + bottom spacers push the
             // Group to vertical center inside the remaining space
@@ -674,9 +674,9 @@ struct PreviewPane: View {
             // 8 PT inset = the canonical 'comfortable but compact'
             // grid per Apple Design Resources).
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框,
-            // 和第一个卡片的间距, 有没有手写的间距, 如果有,
-            // 需要去掉': the previous `.padding(8)` (= 8 PT
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
+            // spacing between it and the first card — is there a hand-written padding, and if
+            // so, drop it': the previous `.padding(8)` (= 8 PT
             // top + bottom + leading + trailing) added a hand-
             // rolled 8 PT gap between the search field above and
             // the first card below. Per the boss's request to
@@ -730,8 +730,8 @@ struct PreviewPane: View {
     @ViewBuilder
     private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
         let allDocs = loadBookDocs(bookId: bookId, folderName: folderName)
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '素材栏的搜索, 没有
-        // 真的过滤卡片' (= typing in the search field did not
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'the assets column's search field doesn't
+        // actually filter the cards' (= typing in the search field did not
         // filter cards in the book scope). The previous code passed
         // the unfiltered `docs` to `bookDocsGrid(docs:)`; = the
         // search field only filtered reference entities (= in
@@ -988,10 +988,10 @@ struct PreviewPane: View {
         titleKey: String,
         bodyKey: String
     ) -> some View {
-        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
-        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
-        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
-        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': migrate
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // a single component — can you abstract a UI component? While you're at it, on the
+        // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
+        // empty-state styles. The right column has 12 tabs and many are missing an empty state': migrate
         // to the unified EmptyStateView (= 76 PT Lucide icon
         // + 1 PT stroke via LucideThinIcon + standard title /
         // body hierarchy). Same visual treatment as the 12
@@ -1226,12 +1226,12 @@ struct PreviewPane: View {
     /// diacritics, then extract the first letter of each whitespace-
     /// separated word. Uses Apple's CoreFoundation string transform
     /// (= no third-party pinyin lib = AGENTS.md §11.1 hard rule).
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB '拼音首字母 + 中文搜索, 之前
-        /// 已经支持, 应该有现成的代码': extract the search-match
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'pinyin initials + Chinese-character search — it was
+        /// already supported before, there should be existing code for it': extract the search-match
         /// predicate (= title / summary / pinyin first-letter
         /// substring) into a shared helper so reference entities
-        /// AND book docs use the same filter (= per boss '走同一个
-        /// 接口'). Previously each filter was a private inline
+        /// AND book docs use the same filter (= per boss 'use one common
+        /// interface'). Previously each filter was a private inline
         /// closure that duplicated the same pinyin + localized
         /// substring logic.
         private func matchesSearch(title: String, summary: String, query: String) -> Bool {
@@ -1281,13 +1281,13 @@ struct PreviewPane: View {
     /// 1. Original title / summary substring (= case-insensitive)
     /// 2. Pinyin first-letter substring (= e.g. "d" matches "" → DF)
     /// Empty query = pass-through (= show all entities).
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB '素材栏的搜索, 没有真的过滤卡片':
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'the assets column's search field doesn't actually filter the cards':
         /// same filter shape as `searchFilteredEntities` but for book
         /// docs (= filesystem .md files loaded by `loadBookDocs`).
         /// Uses the shared `matchesSearch` helper (= title / summary /
         /// pinyin first-letter substring match) = same logic as the
         /// reference-entity filter; = the user's previous
-        /// '搜索没有真的过滤卡片' bug was that bookDocsGrid was called
+        /// 'the search field doesn't actually filter the cards' bug was that bookDocsGrid was called
         /// with the unfiltered docs.
         private func searchFilteredBookDocs(_ docs: [BookDoc]) -> [BookDoc] {
             let query = resolvedSearchQuery

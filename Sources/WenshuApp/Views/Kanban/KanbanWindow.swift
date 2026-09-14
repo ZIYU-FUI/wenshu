@@ -3,8 +3,8 @@
 //
 //  Kanban as an independent macOS window (= the SwiftUI macOS 14+
 //  WindowGroup(id: "wenshu-kanban") per boss 2026-09-11 OOB
-//  '看板和待办, 独立的窗口显示, 普通苹果的其他软件, 集成不
-//  到主 windows 的功能就独立窗口, 正好看板横向需要很大空间'.
+//  'Kanban and Todo — show in dedicated windows. Other Apple apps don't integrate these
+//  into the main window, they just open a separate window — and Kanban boards need lots of horizontal space anyway'.
 //  Per Apple HIG, multi-window apps (= Pages / Numbers / Keynote /
 //  Photos / Mail) each open independent surfaces in their own
 //  windows so the user can pin the kanban to the side of their

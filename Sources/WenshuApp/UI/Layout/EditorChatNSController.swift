@@ -5,8 +5,8 @@
 // Why NSSplitViewController (= not SwiftUI VSplitView)?
 // ----------------------------------------------------
 //
-// v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 那种演讲者注释,
-// 划出来的分区, 是否有官方的 API':
+// v1.0.0-m1-shell boss 2026-09-10 OOB 'the presenter-notes split view that Keynote uses,
+// the split-zone layout — is there an official Apple API for that?':
 // the canonical Apple HIG pattern for Keynote's 'presenter notes'
 // pane (= hideable + resizable + drag-collapse + animated toggle)
 // is `NSSplitViewController` + `NSSplitViewItem.canCollapse`
@@ -52,7 +52,7 @@ import AppKit
 import SwiftUI
 
 extension Notification.Name {
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB '菜单栏 View > Show/Hide
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'menu bar View > Show/Hide
     /// Chat Zone': posted when the user toggles the chat zone
     /// visibility from the menu bar. The `EditorChatNSController`
     /// (= the detail column's NSSplitViewController child) listens
@@ -83,10 +83,10 @@ final class EditorChatNSController: NSSplitViewController {
     private let conductor: WenshuConductor?
     // Phase 5 ticket 10a: ChatSessionStore deleted. Chat persistence lives
     // in WSChatRepository.shared (= @MainActor SwiftData wrapper).
-    // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复:
-    // 文档在中栏编辑器区打开. 不要单独 windows. 编辑器区就是
-    // 文档的编辑区, 打开的文档是编辑状态. 编辑器使用 SM 我们引入
-    // 的一个第三方 md 编辑器, 后端已经接好了': inject
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix:
+    // documents open in the middle column's editor zone. No separate windows. The editor zone is
+    // the document's editing area, and opening a document means edit state. The editor uses SM, the third-party
+    // Markdown editor we brought in — the backend is already wired': inject
     // AppState + BookStore into the editor pane's
     // NSHostingController (= the SwiftUI @Environment chain
     // breaks at the AppKit NSSplitViewController boundary; =
@@ -143,7 +143,7 @@ final class EditorChatNSController: NSSplitViewController {
         // Apple-standard 1 PT hairline; = matches Pages / Numbers /
         // Keynote).
         self.splitView.dividerStyle = .thin
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '左右结构的, 不能上下吗':
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'It's a left/right layout, can we switch it to top/bottom?':
         // switch the split view to vertical layout (= editor on top,
         // chat on bottom; = top-to-bottom stack). NSSplitView's
         // default `isVertical = true` produces a left-to-right
@@ -185,7 +185,7 @@ final class EditorChatNSController: NSSplitViewController {
         addSplitViewItem(chatItemLocal)
         self.chatItem = chatItemLocal
 
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '菜单栏 View > Show/Hide
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'menu bar View > Show/Hide
         // Chat Zone': observe the wenshuToggleChatZone notification
         // posted by AppRootScene's CommandGroup(after: .toolbar). When
         // the user clicks View > Show Chat Zone in the macOS menu
@@ -250,7 +250,7 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
     let conductor: WenshuConductor?
     // Phase 5 ticket 10a: ChatSessionStore deleted. Chat persistence lives
     // in WSChatRepository.shared (= @MainActor SwiftData wrapper).
-    // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
     // thread appState + bookStore through the SwiftUI →
     // AppKit boundary so the editor pane's @Environment
     // lookups (= AppState + BookStore) actually resolve.
@@ -272,7 +272,7 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
     }
 }
 
-// v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复': helper
+// v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix': helper
 // that applies AppState + BookStore to a SwiftUI view IF they're
 // non-nil (= the editor pane's NSHostingController is created in
 // AppKit code where the SwiftUI @Environment chain doesn't

@@ -2,7 +2,7 @@
 // GraphBuilder.swift · Wenshu · v0.19 ticket 14 (Obsidian replica, do first)
 // 2026-08-19 evening Obsidian A + ', '.
 //
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // vault build + simplelayout.
 // Obsidian Graph view ok (https://obsidian.md/help/plugins/graph).
 // Apple HIG: simple spring force, Apple HIG .

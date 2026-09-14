@@ -3,7 +3,7 @@
 //
 //  Todo as an independent macOS window (= the SwiftUI macOS 14+
 //  WindowGroup(id: "wenshu-todo") per boss 2026-09-11 OOB
-//  '看板和待办, 独立的窗口显示'. Companion to KanbanWindow;
+//  'Kanban and Todo — show in dedicated windows'. Companion to KanbanWindow;
 //  same multi-window pattern (= Pages / Numbers / Keynote /
 //  Photos / Mail each open independent surfaces in their own
 //  windows so the user can keep the todo list pinned to the

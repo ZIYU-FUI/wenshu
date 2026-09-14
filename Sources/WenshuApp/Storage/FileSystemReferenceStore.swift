@@ -308,7 +308,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
     /// with a category, ensure the category subdirectory exists. The category
     /// folder is created LAZILY (= only when the first entity in that category
     /// is saved). This is the "" rule (= boss: 'folder
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     ///, yes').
     ///
     /// v0.30 boss 8/31 OOB: when category is nil (= unclassified entity

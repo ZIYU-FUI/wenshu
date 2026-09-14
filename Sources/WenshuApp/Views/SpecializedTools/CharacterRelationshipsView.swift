@@ -105,10 +105,10 @@ struct CharacterRelationshipsView: View {
     }
 
     private var emptyState: some View {
-        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
-        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
-        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
-        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // a single component — can you abstract a UI component? While you're at it, on the
+        // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
+        // empty-state styles. The right column has 12 tabs and many are missing an empty state': use
         // the unified EmptyStateView component (= Lucide icon
         // at 76 PT + 1 PT stroke via LucideThinIcon + standard
         // title/body hierarchy). Same visual treatment as every

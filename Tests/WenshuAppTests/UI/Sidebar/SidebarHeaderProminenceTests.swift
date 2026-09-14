@@ -1,8 +1,8 @@
 //
 //  SidebarHeaderProminenceTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  v0.71 P1 batch 3 (boss 2026-09-12 OOB '目录栏, 测试书架, 分割线,
-//  资料库. 这几个控件之间有没有我们手动加的间距, 如果有改回默认'):
+//  v0.71 P1 batch 3 (boss 2026-09-12 OOB 'sidebar column, test bookshelf, divider,
+//  reference library — is there spacing between these controls that we added by hand; if so, revert to default'):
 //  code-level verification (= no UI render) that the sidebar's
 //  section header doesn't use the non-Apple-default `.headerProminence
 //  (.increased)` modifier (= the Apple HIG default is .standard = no
@@ -30,8 +30,8 @@ struct SidebarHeaderProminenceTests {
         )
     }
 
-    /// boss 9/12 OOB '目录栏, 测试书架, 分割线, 资料库...如果有改回
-    /// 默认': the sidebar MUST NOT use .headerProminence(.increased)
+    /// boss 9/12 OOB 'sidebar column, test bookshelf, divider, reference library... if any were changed,
+    /// revert to default': the sidebar MUST NOT use .headerProminence(.increased)
     /// (= a non-Apple-default modifier that adds ~36 PT of inter-
     /// section gap; = Apple HIG default = .standard = no modifier;
     /// = the previous fix removed it; = this test prevents re-introduction).
@@ -52,7 +52,7 @@ struct SidebarHeaderProminenceTests {
         )
     }
 
-    /// boss '一切用到 apple 样式的全都默认' (= Apple styles = all
+    /// boss 'anything that uses Apple styles should default everything' (= Apple styles = all
     /// defaults): the sidebar MUST NOT use any non-standard SwiftUI
     /// header prominence (= .standard is the default; .increased
     /// and .decreased are explicit non-default values).
@@ -76,9 +76,9 @@ struct SidebarHeaderProminenceTests {
         }
     }
 
-    /// boss '排查右栏...如果我手动加的间距, 改回默认' (= audit the
+    /// boss 'audit the right column... if I added any spacing by hand, revert to default' (= audit the
     /// right column for any custom padding I added; revert to defaults)
-    /// + '一切用到 apple 样式的全都默认' (= Apple styles = all defaults):
+    /// + 'anything that uses Apple styles should default everything' (= Apple styles = all defaults):
     /// the sidebar section header MUST NOT have any custom numeric
     /// padding (= the previous commit removed `.padding(.top, 18)`
     /// AND `.padding(.top, 4)` AND `.headerProminence(.increased)`;

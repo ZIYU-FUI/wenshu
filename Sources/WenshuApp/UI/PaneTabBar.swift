@@ -1,9 +1,6 @@
 // Sources/WenshuApp/UI/PaneTabBar.swift
 //
-// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'needgroup,
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//, group, yesdefaultauto
-// '): Phase 3 of 5-phase component refactor.
+// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '[Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame`; the cleanup commit replaced it with this placeholder because translation was incomplete]'): Phase 3 of 5-phase component refactor.
 //
 // Generic wrapper for a list of PaneIconTab + optional trailing buttons.
 // Listed in ComponentIndex.md Level 3.2.

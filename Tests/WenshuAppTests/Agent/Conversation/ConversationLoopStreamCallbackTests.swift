@@ -1,8 +1,8 @@
 //
 //  ConversationLoopStreamCallbackTests.swift · Wenshu · v0.71 P1 batch 1+2
 //
-//  v0.71 P1 batch 1+2 (boss 2026-09-12 OOB '聊天区的流式输出没有实现...
-//  全量复制 hermes... 编辑器使用 SM 我们引入的一个第三方 md 编辑器'):
+//  v0.71 P1 batch 1+2 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented...
+//  port the whole thing from hermes... The editor uses SM, the third-party Markdown editor we brought in'):
 //  code-level verification of the streamCallback parameter added
 //  to ConversationLoop.runTurn (= Hermes streaming pattern). The
 //  tests cover:

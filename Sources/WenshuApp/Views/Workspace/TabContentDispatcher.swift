@@ -75,9 +75,7 @@ struct TabContentDispatcher: View {
         switch kind {
         case .projectSidebar:
             // v0.28 followup Boss UX round 14 (Boss 2026-08-29 OOB
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 'top barbottom bar,,,
-            // '): No outer ZonePerRegionChrome (= the old
+            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
             // ZoneTopToolbar outer 30 PT) — the internal
             // ZoneContentTabBar (= 1 tab + trailing /
             // buttons) IS the top chrome. Otherwise we'd have 2 layers
@@ -185,7 +183,6 @@ struct TabContentDispatcher: View {
             }
         case .aiChat:
             // v0.28 followup Boss UX round 16 (Boss 2026-08-29 OOB
-            // 'chat zonetop bar') = restoring the chat top tab bar.
             // Old 6 had ChatZoneTabBar (= 3 tabs: dialog / search / Settings
             // + archive button on right). The new ChatView doesn't
             // have an internal tab bar.

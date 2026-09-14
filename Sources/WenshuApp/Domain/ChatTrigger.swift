@@ -2,12 +2,12 @@
 //
 // Detects when a chat message hints at a new entity (= a character /
 // world fact / research reference) and emits an `IngestionRequest`
-// for the LLM Wiki pipeline. v0.27 spec: 'user，
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// ，auto'.
+// for the LLM Wiki pipeline. v0.27 spec: 'user names it,
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
+// agent auto-ingests'.
 //
 // Trigger heuristics (v0.27 MVP, conservative):
-// 1. Chinese quoted names (= 「」, 「」)
+// 1. Chinese-style quoted names (= single corner brackets U+300C/U+300D)
 // 2. BookTitle patterns (= / / ...)
 //
 // v0.27 followups can add LLM-based extraction; v0.27-03 ships the
@@ -42,7 +42,7 @@ struct IngestionRequest: Identifiable, Hashable, Codable, Sendable {
 /// Chat trigger detector (= the v0.27 scaffolding). Given a chat
 /// message, returns IngestionRequests for any surface forms detected.
 struct ChatTrigger: Sendable {
-    /// Chinese quotation marks (= 「」+ 『』+ 《》).
+    /// Chinese quotation marks (= single corner brackets, double corner brackets, and double angle brackets).
     private let quotationRegex: NSRegularExpression
     /// Common Chinese book-title patterns (= v0.27 hard-coded list;
     /// future versions use LLM detection).

@@ -101,7 +101,7 @@ public actor FullTextSearch {
     /// FTS5 (Obsidian Search 1:1, schema = doc_id / title / body)
     /// Apple HIG: https://www.sqlite.org/fts5.html (built-in virtual table)
     /// tokenizer trigram (SQLite 3.34+): CJK ("" → in progress)
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     ///: / searchwork (trigram need 3+) — app / OK
     private func createSchema() throws {
         let sql = """
@@ -124,7 +124,7 @@ public actor FullTextSearch {
         }
     }
 
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     /// 1 (upsert: delete, insert)
     public func index(docId: String, title: String, body: String) throws {
         // FTS5 UPDATE, delete + insert
@@ -143,7 +143,7 @@ public actor FullTextSearch {
         }
     }
 
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     /// delete 1
     public func remove(docId: String) throws {
         let sql = "DELETE FROM docs_fts WHERE doc_id = ?;"

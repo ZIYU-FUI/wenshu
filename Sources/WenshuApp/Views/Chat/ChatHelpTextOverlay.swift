@@ -14,14 +14,14 @@ public struct ChatHelpTextOverlay: View {
     let onSettingsTap: () -> Void
 
     public var body: some View {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '聊天区的空态提示没有背景,
-        // 加一个和聊天区同样大小的遮挡, 用 apple api, 找遮罩相关
-        // 的 api'. The previous ChatHelpTextOverlay rendered as a
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'the chat zone's empty-state hint has no background,
+        // add a same-sized overlay using Apple APIs — find the mask-related
+        // APIs'. The previous ChatHelpTextOverlay rendered as a
         // pure-text hint (= icon + 2-line title + 1-line body)
         // without any background fill, so the underlying chat
-        // messages (= '老板测试消息: 持久化验证' / '文枢回复:
-        // 收到消息' / 'migration test: tokens column works' / 4
-        // '在?' buttons) bled through the hint and made it hard to
+        // messages (= 'Boss test message: persistence check' / 'Wenshu reply:
+        // message received' / 'migration test: tokens column works' / 4
+        // 'You there?' buttons) bled through the hint and made it hard to
         // read.
         //
         // Apple HIG pattern for an empty-state overlay inside a
@@ -34,22 +34,22 @@ public struct ChatHelpTextOverlay: View {
         // `.regularMaterial`).
         //
         // Apple API options surveyed:
-        // 1. .background(.regularMaterial) → 半透明 material（下方
-        //    内容模糊可见；不适合空态，需要完全遮挡）
+        // 1. .background(.regularMaterial) → semi-transparent material (content below
+        //    shows through blurred — not appropriate for empty state, need full occlusion)
         // 2. .background(Color(NSColor.windowBackgroundColor))
-        //    → 实色（Apple HIG 推荐 for empty state）
+        //    → solid color (Apple HIG recommended for empty state)
         // 3. .background(Color(NSColor.controlBackgroundColor))
-        //    → 控件背景色（适合内嵌 view 不适合大区域）
+        //    → control background color (good for inline views, not large areas)
         // 4. .containerBackground(.background, for: .window)
-        //    → window 级（不适合 per-zone overlay）
+        //    → window-level (not suitable for per-zone overlay)
         //
         // Final pick: #2 `Color(NSColor.windowBackgroundColor)` in a
-        // ZStack background layer (= 实色填充 + 与 chat panel 底色
-        // 一致 = 完全遮挡下方消息 + 与 Apple 系统 chat panel 视觉
-        // 一致 = Apple HIG canonical empty-state pattern).
+        // ZStack background layer (= solid fill matching the chat panel's
+        // base color = fully occludes the messages below + visually consistent
+        // with the Apple system chat panel = Apple HIG canonical empty-state pattern).
         //
         // Frame: `.frame(maxWidth: .infinity, maxHeight: .infinity)`
-        // on the ZStack = overlay 撑满整个 chat zone (= same slot
+        // on the ZStack = overlay fills the entire chat zone (= same slot
         // as the chat messages) = the empty state is a fullscreen-
         // for-this-zone message, not a tiny floating bubble (=
         // Apple HIG canonical for empty states inside scrollable
@@ -67,10 +67,10 @@ public struct ChatHelpTextOverlay: View {
             Color.clear  // zone background shows through (= Apple canonical: parent ZoneContentView provides background)
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
-                // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
-                // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
-                // 空态的样式. 右栏 12 个 teb, 很多都缺少空态':
+                // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+                // a single component — can you abstract a UI component? While you're at it, on the
+                // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
+                // empty-state styles. The right column has 12 tabs and many are missing an empty state':
                 // migrate to the unified EmptyStateView component
                 // (= 76 PT Lucide icon + 1 PT stroke via
                 // LucideThinIcon + standard title / body hierarchy).

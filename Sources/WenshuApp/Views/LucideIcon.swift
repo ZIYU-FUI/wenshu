@@ -1,7 +1,7 @@
 // LucideIcon.swift · Wenshu () · v0.27
 //
-// Boss 2026-08-27 OOB: ' apple sf ，replace lucide，
-// ，'. = replace ALL Image(systemName:) usage
+// Boss 2026-08-27 OOB: 'Apple SF Symbols, replace with Lucide,
+// all of it'. = replace ALL Image(systemName:) usage
 // with Lucide("...") across the wenshu codebase.
 //
 // This file provides the central Icon helper. Call sites should use:
@@ -51,15 +51,15 @@ public func wenshuSidebarIconSize() -> CGFloat {
 ///                                               //  adapts to NSTableViewDefaultSizeMode)
 /// LucideIcon.fromSystemSymbol("checkmark")      // SF 'checkmark' → Lucide 'check'
 /// ```
-/// v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
-/// 现在放大了, 线条好粗': ajaxjiang96/lucide-swift fork exposes
+/// v1.0.0-m1-shell boss 2026-09-12 OOB 'What's the thinnest Lucide can go?
+/// Now that it's scaled up, the strokes look really thick': ajaxjiang96/lucide-swift fork exposes
 /// `LucideIcon(name:)` directly (= no more internal `Lucide(name)`
 /// returning optional). The LucideIcon helper below now wraps
 /// `LucideIcon(name: String, size: CGFloat)` (= the fork's public
 /// non-optional init). The default strokeWidth: 2 (= the fork's
 /// default for LucideIconName) is used (= the same visual
 /// rendering as the old bring-shrubbery fork's baked fills).
-/// v1.0.0-m1-shell boss 2026-09-12 OOB '排查所有 icon 位置, 统一替换'
+/// v1.0.0-m1-shell boss 2026-09-12 OOB 'audit every icon position and replace them all consistently'
 /// (= a few of the Lucide icon names that wenshu was using under
 /// the bring-shrubbery/lucide-swift 1.25.0 fork don't exist as
 /// LucideIconName cases in the ajaxjiang96/lucide-swift 0.9.4 fork;
@@ -114,7 +114,7 @@ private let lucideNameAliases: [String: String] = {
     return map
 }()
 
-/// v1.0.0-m1-shell boss 2026-09-12 OOB '排查所有 icon 位置, 统一替换':
+/// v1.0.0-m1-shell boss 2026-09-12 OOB 'audit every icon position and replace them all consistently':
 /// resolve a Lucide icon name (= kebab-case string) to the
 /// ajaxjiang96 fork's LucideIconName case. Falls back to
 /// stripping the trailing '-2' (a common older pattern in
@@ -213,13 +213,13 @@ public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
     // camelCase alias table + the '-2' suffix stripper + the strict
     // rawValue match). If everything fails, return Color.clear.
     //
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
-    // 现在放大了, 线条好粗': render with strokeWidth: 1 (= 1 PT
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'What's the thinnest Lucide can go?
+    // Now that it's scaled up, the strokes look really thick': render with strokeWidth: 1 (= 1 PT
     // hairline = the thinnest Apple HIG macOS 27 icon weight; =
     // matches the empty-state icons rendered by LucideThinIcon).
     if let iconName = resolveLucideName(name) {
-        // v1.0.0-m1-shell boss 2026-09-12 OOB '大量 icon 消失,
-        // 建议你还得慢点, 没一个都先验证一下会不会 miss': pass the
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'a lot of icons disappeared,
+        // I suggest you slow down and verify each one doesn't miss before moving on': pass the
         // RESOLVED enum case (= e.g. .userRound) to the fork, NOT
         // the original raw string (= e.g. 'user-round'). Passing
         // the original rawValue causes the fork's internal
@@ -248,13 +248,13 @@ public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
 /// fixed while SF Symbols auto-resize, breaking visual harmony.
 @ViewBuilder
 public func LucideIconSidebar(_ name: String) -> some View {
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
-    // 现在放大了, 线条好粗': strokeWidth: 1 + absoluteStrokeWidth: true
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'What's the thinnest Lucide can go?
+    // Now that it's scaled up, the strokes look really thick': strokeWidth: 1 + absoluteStrokeWidth: true
     // (= 1 PT hairline at every size = the same Apple HIG
     // inspector-tab visual weight regardless of the user's
     // "Sidebar icon size" preference).
     //
-    // v1.0.0-m1-shell boss 2026-09-12 OOB '排查所有 icon 位置, 统一替换':
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'audit every icon position and replace them all consistently':
     // route through `resolveLucideName` so callers using
     // 'trash-2' (= bring-shrubbery rawValue) hit the
     // ajaxjiang96 enum case `trash`.
@@ -275,7 +275,7 @@ public func LucideIconSidebar(_ name: String) -> some View {
 /// the SF Symbol itself if no Lucide match exists (= preserves
 /// behavior so boss can request a followup rename).
 ///
-/// Mapping (= boss 8/27 '，' = if SF Symbol name
+/// Mapping (= boss 8/27 'and' = if SF Symbol name
 /// is already valid Lucide, use directly; otherwise try the closest
 /// Lucide equivalent):
 /// - SF 'checkmark' → Lucide 'check'
@@ -303,8 +303,8 @@ public func LucideIconSidebar(_ name: String) -> some View {
 /// - SF 'tag' → Lucide 'tag'
 @ViewBuilder
 public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> some View {
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
-    // 现在放大了, 线条好粗': render with strokeWidth: 1 (= 1 PT
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'What's the thinnest Lucide can go?
+    // Now that it's scaled up, the strokes look really thick': render with strokeWidth: 1 (= 1 PT
     // hairline = the thinnest Apple HIG macOS 27 icon weight; =
     // matches the empty-state icons rendered by LucideThinIcon).
     //
@@ -460,8 +460,8 @@ public func LucideImage(_ name: String, size: CGFloat = 16) -> Image? {
     if let cached = lucideImageCache[key] {
         return Image(nsImage: cached)
     }
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'Lucide 最细的多少?
-    // 现在放大了, 线条好粗': render with strokeWidth: 1 (= 1 PT
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'What's the thinnest Lucide can go?
+    // Now that it's scaled up, the strokes look really thick': render with strokeWidth: 1 (= 1 PT
     // hairline = the thinnest Apple HIG macOS 27 icon weight; =
     // matches the empty-state icons rendered by LucideThinIcon
     // so the rasterized toolbar items (= segmented picker pages,
@@ -478,7 +478,7 @@ public func LucideImage(_ name: String, size: CGFloat = 16) -> Image? {
     // name doesn't match). Return nil only if the renderer itself
     // fails to produce an NSImage.
     //
-    // v1.0.0-m1-shell boss 2026-09-12 OOB '排查所有 icon 位置, 统一替换':
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'audit every icon position and replace them all consistently':
     // route through `resolveLucideName` (= the kebab-case to
     // camelCase alias table) so callers using names like
     // 'circle-x' (= bring-shrubbery rawValue) hit the

@@ -55,7 +55,7 @@ struct LayoutEditBar: View {
         }
         .frame(width: 26 * 16)  // 26rem (= 26 * 16 PT in macOS 1x)
         // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+        // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
         // regiontop bar, bottom bar, background, color, canLiquid Glass'):
         // v0.40 boss real-device test 2026-09-07: removed
         // .regularMaterial (= the Liquid Glass translucent

@@ -50,7 +50,7 @@ public struct AVMediaTools: Tool, Sendable {
     }
 
     /// estimateDuration: (,)
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     ///: / (in progress ~3-5 /, default 4 /)
     public func estimateDuration(text: String, rate: Float = 0.5) -> TimeInterval {
         let charactersPerSecond = 4.0 * Double(rate / 0.5)

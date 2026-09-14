@@ -220,7 +220,7 @@ struct WenshuConductorConversationLoopWiringTests {
         )
 
         // No API key → legacy pipeline's LLM calls fail → S4 fallback
-        // reply is the curated "（, ）" string
+        // reply is the curated "(empty quoted name, empty quoted name)" string
         // OR the sub-agent summary if any sub-agent ran. We only assert
         // S4 graceful degradation invariants (= never throws, reply
         // non-empty, totalTokens = 0 because LLM never succeeded).

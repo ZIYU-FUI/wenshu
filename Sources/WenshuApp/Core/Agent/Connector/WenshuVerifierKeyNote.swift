@@ -9,8 +9,7 @@
 //    analyst / archivist / auditor) call into the same verifier.
 //  - Sub-agents do NOT have their own API key.
 // - User cannot configure a different key per agent (boss 8/23:
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// 'user cannot change related config. all settings have a GUI settings page').
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 //
 //  This is the default behavior — no code change needed. This commit
 //  documents the contract via inline comments + a unit test verifying

@@ -6,7 +6,7 @@
 // New Book Creation Wizard. Three fields:
 // - (title) required, TextField, autofocus
 // - (length) Picker (.segmented), default .medium
-// - （）(idea) optional, TextField (.axis = .vertical)
+// - (idea) optional, TextField (.axis = .vertical)
 //
 // All three fields live in a single modal (= owner '
 // '). Not a multi-step NavigationStack wizard (= overkill for three

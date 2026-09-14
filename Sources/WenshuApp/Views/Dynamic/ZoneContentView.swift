@@ -2,7 +2,7 @@
 // ZoneContentView.swift · Wenshu · v0.24 bossverification
 //
 // Boss 2026-08-24 (out-of-band): region, can tab view.
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // not oktop bar, top bar, can tab.
 //
 // Pattern (ChatZoneView ChatZoneTabBar + DynamicZoneView DynamicZoneTabBar):
@@ -83,7 +83,7 @@ struct ZoneContentView: View {
         // - The Apple-native Liquid Glass selected segment animation
         //   replaces the previous matchedGeometryEffect underline
         //   (= no @Namespace tabBarNamespace needed).
-        // v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27 的控件是我们首选':
+        // v1.0.0-m1-shell boss 2026-09-11 OOB 'macOS 27's native control is our first choice':
         // swap the SwiftUI Picker(.segmented) (= the legacy macOS 10.5
         // wrapper; = intrinsic-size; = does NOT expose
         // NSSegmentedControl.Role; = does NOT auto-fill the column
@@ -95,19 +95,18 @@ struct ZoneContentView: View {
         // semantically correct for a tab switcher; = VoiceOver
         // reads "page N of M") + segmentDistribution =
         // .fillEqually (= each tab stretches to 1/N of the
-        // column width = satisfies the boss's '随右栏宽度自动拉满'
+        // column width = satisfies the boss's 'auto-fill the right column's width'
         // requirement)).
         //
         // Per the verbatim port discipline (= only do what the boss
         // asked): this commit ONLY changes the per-page tab strip
         // control (= ZoneContentView's tabs); = the toolbar's
         // 4-page picker (= SwiftUI Picker(.segmented)) stays
-        // unchanged; = the boss explicitly clarified '工具栏的,
-        // 用刚刚的, 那个是工具栏的苹果默认风格' (= the toolbar
+        // unchanged; = the boss explicitly clarified 'for the toolbar,
+        // use the one we just settled on — that's Apple's default toolbar style' (= the toolbar
         // keeps the SwiftUI Picker(.segmented) = the Apple HIG
         // toolbar default).
         //
-        // '四页都改' directive: this single component handles
         // all 4 inspector pages' per-page tab strip (= the
         // ZoneContentView is reused for each page; = the tabs
         // array is replaced by `filteredToolsForCurrentPage`;
@@ -115,8 +114,8 @@ struct ZoneContentView: View {
         // inspector page supplies; = the boss's directive is
         // satisfied with a single-line change).
         VStack(spacing: 0) {
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27 的控件
-            // 是我们首选': use the macOS 27 native NSSegmentedControl
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'macOS 27's native
+            // control is our first choice': use the macOS 27 native NSSegmentedControl
             // (= via the new `LabelSegmentedControl` wrapper in
             // UI/Segmented/; = the canonical Apple HIG Pages / Numbers
             // inspector tab strip; = auto-fills the column width).
@@ -136,8 +135,8 @@ struct ZoneContentView: View {
                     set: { selectionBinding.wrappedValue = $0 }
                 ),
                 labels: tabs.map(\.id),
-                // v1.0.0-m1-shell boss 2026-09-11 OOB '伏笔, 占位符,
-                // 情节线这一栏': use the per-tab localized label
+                // v1.0.0-m1-shell boss 2026-09-11 OOB 'Foreshadowing, Placeholder,
+                // Plot Threads — that tab bar': use the per-tab localized label
                 // (= the `Tab.label` field = the Chinese
                 // localized title; = rendered via
                 // NSSegmentedControl.setLabel).
@@ -154,8 +153,8 @@ struct ZoneContentView: View {
                 }
             )
             .frame(maxWidth: .infinity)
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义 padding
-            // 换 apple 表达式, 找近似值就可以': remove the custom
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
+            // and switch to Apple-standard expressions — find an approximate value': remove the custom
             // horizontal inset (= `chromePaddingLarge` = 8 PT) on
             // the per-page tab strip. The tabs are inside a
             // VStack in the inspector detail column; = Apple HIG
@@ -202,9 +201,9 @@ struct ZoneContentView: View {
             // content margins (= List, LazyVGrid, ScrollView all
             // have them); = we shouldn't duplicate them with our
             // own outer wrapper.
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '现在都是垂直
-            // 居中的, 空态保持垂直居中, 标题栏, 分割线, teb 栏,
-            // 居顶, teb 栏整栏宽度撑满没改': per the boss's
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'everything is currently vertically
+            // centered — keep the empty state vertically centered, title bar, divider, tab bar go
+            // to the top, tab bar full-width fill is unchanged': per the boss's
             // request, the content area BELOW the tab strip is
             // vertically centered when the content is empty
             // (= the empty state hint sits in the middle of the
@@ -308,8 +307,7 @@ private struct ZoneContentTabBar: View {
     let items: [Item]
     @Binding var selection: String
     // v0.25.1 (= ticket 013 underline slide animation): owner 2026-08-26
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    // OOB 'changemove yes'. See
+    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     // PaneTabBar comment (= matchedGeometryEffect pattern). One
     // namespace per tab bar class (= SwiftUI requires the namespace to
     // scope within a single view tree).

@@ -1,9 +1,9 @@
 //
 //  LucideIconResolutionTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  v0.71 P1 batch 3 (boss 2026-09-12 EOB '先做到代码级别的验证和测试...
-//  剩下的等我周一再说') + icon audit followup (boss 9/12 OOB '大量
-//  icon 消失, 建议你还得慢点, 没一个都先验证一下会不会 miss'):
+//  v0.71 P1 batch 3 (boss 2026-09-12 EOB 'get code-level verification and testing in first...
+//  the rest we'll discuss Monday') + icon audit followup (boss 9/12 OOB 'a lot of
+//  icons disappeared, I suggest you slow down and verify each one doesn't miss'):
 //
 //  Code-level verification (= no UI render) that `resolveLucideName(_:)`
 //  = the kebab→camelCase icon name resolver introduced in commit
@@ -16,7 +16,7 @@
 //  These tests don't render any views; they only verify the pure
 //  resolver function (= code-level verification of the icon
 //  rendering surface; = the 17-entry alias table is the canonical
-//  fix for the '大量 icon 消失' boss feedback; = without these
+//  fix for the 'a lot of icons disappeared' boss feedback; = without these
 //  tests, a regression in resolveLucideName would silently break
 //  every icon in the app).
 
@@ -30,7 +30,7 @@ struct LucideIconResolutionTests {
 
     // MARK: - Direct rawValue match (= unchanged names)
 
-    /// boss 9/12 OOB '排查所有 icon 位置, 统一替换': names that are
+    /// boss 9/12 OOB 'audit every icon position and replace them all consistently': names that are
     /// already in the fork's camelCase rawValue form pass through
     /// unchanged.
     @Test("resolveLucideName_passesThrough_camelCaseRawValues")
@@ -85,8 +85,8 @@ struct LucideIconResolutionTests {
     }
 
     /// specific check = 'circle-x' was one of the icons that
-    /// silently fell back to the house icon (boss 9/12 OOB '大量
-    /// icon 消失'); = this test verifies it's now correctly resolved.
+    /// silently fell back to the house icon (boss 9/12 OOB 'a lot of
+    /// icons disappeared'); = this test verifies it's now correctly resolved.
     @Test("resolveLucideName_circle_x_resolves_to_circleX")
     func resolveLucideName_circle_x_resolves_to_circleX() {
         let resolved = resolveLucideName("circle-x")
@@ -113,7 +113,7 @@ struct LucideIconResolutionTests {
 
     // MARK: - Generic kebab→camelCase
 
-    /// boss 9/11 OOB '排查所有 icon 位置, 统一替换': generic kebab→
+    /// boss 9/11 OOB 'audit every icon position and replace them all consistently': generic kebab→
     /// camelCase conversion handles the bulk of the icon names that
     /// are not in the explicit alias table. Test with a few representative
     /// multi-word names that appear in the wenshu codebase.
@@ -135,7 +135,7 @@ struct LucideIconResolutionTests {
 
     /// A truly unknown name MUST return nil (= the caller can then
     /// show an empty Color.clear placeholder; = the boss's 'icon
-    /// miss 兜底' = the fallback is the `Color.clear.frame(width:height:)`
+    /// miss fallback' = the fallback is the `Color.clear.frame(width:height:)`
     /// path in `resolveLucideIconView`).
     @Test("resolveLucideName_unknownName_returnsNil")
     func resolveLucideName_unknownName_returnsNil() {
@@ -158,8 +158,8 @@ struct LucideIconResolutionTests {
 
     // MARK: - All icon names used in the wenshu codebase resolve
 
-    /// boss 9/12 OOB '排查所有 icon 位置, 统一替换' + '大量 icon 消失,
-    /// 建议你还得慢点, 没一个都先验证一下会不会 miss': a code-level
+    /// boss 9/12 OOB 'audit every icon position and replace them all consistently' + 'a lot of icons disappeared,
+    /// I suggest you slow down and verify each one doesn't miss': a code-level
     /// scan over all literal icon-name arguments passed to
     /// LucideIcon(...) / LucideImage(...) / LucideIconSystemFallback(...)
     /// / LucideIconSidebar(...) / LucideThinIcon(...) across the

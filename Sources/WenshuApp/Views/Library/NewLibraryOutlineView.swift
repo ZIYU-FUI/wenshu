@@ -228,12 +228,12 @@ struct NewLibraryOutlineView: View {
     // immediately on book tap). Keys = book.id, value = isExpanded.
     @State private var bookDisclosureStates: [UUID: Bool] = [:]
     // v0.34 boss 2026-09-02 OOB: reference-library DisclosureGroup expansion state.
-    // v1.0.0-m1-shell boss 2026-09-10 OOB '之前想实现资料库默认展开,
-    // 好像是已经实现过, 这次修目录树的写法, 消失了': default to
+    // v1.0.0-m1-shell boss 2026-09-10 OOB 'previously wanted the reference library to expand by default,
+    // seems like it had already worked, but this rewrite of the tree lost it': default to
     // `true` (= reference library expanded by default on launch).
     // Boss said the previous implementation had it expand by
     // default and the refactor removed it. Restoring the default
-    // to true (= the user sees 世界 / 角色 / 章节大纲 / etc. on
+    // to true (= the user sees Worldview / Characters / Chapter Outline / etc. on
     // first launch without having to click the chevron).
     @State private var referenceLibraryDisclosureExpanded: Bool = true
 
@@ -302,18 +302,18 @@ struct NewLibraryOutlineView: View {
             // inside the DisclosureGroup content. When a book row is
             // selected (= appState.sidebarSelection = .book(...)), its own
             // nested DisclosureGroup for folders (= level 3) auto-
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
+            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
             // expands so Worldview / Characters / Chapter Outline / Novel Body / Novel Drafts
             // are visible without an extra tap (= boss OOB #3 'child
             // folders should be visible immediately on book select').
-            // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree-view style doesn't follow
             // Apple API': the previous manual `Divider().padding(
             // .vertical, 4)` was a non-Apple pattern (= Finder / Mail
             // / Notes never use a manual Divider between sidebar
             // groups; = the hairline spacing is built into the
             // SwiftUI Section primitive). Switch to an Apple HIG
             // canonical `Section { } header: { ... }` divider:
-            // - The Section header (= '书架' label) auto-applies
+            // - The Section header (= 'Bookshelf' label) auto-applies
             //   the canonical Apple sidebar section title style
             //   (small caption, secondary tint, = the same visual
             //   as Notes / Finder section headers).
@@ -331,7 +331,7 @@ struct NewLibraryOutlineView: View {
                 }
             } header: {
                 // v1.0.0-m1-shell boss 2026-09-10 OOB 'section title
-                // 书房 像 pages 那样处理' (Pages sidebar pattern:
+                // handle the Studio like Pages does' (Pages sidebar pattern:
                 // centered title text + a single 1 PT hairline
                 // spanning the full sidebar width below the text).
                 // The text uses `.font(.body)` (= Pages-equivalent
@@ -348,9 +348,9 @@ struct NewLibraryOutlineView: View {
                 // built-in section padding would have inset the
                 // hairline ~16 PT from the left edge, = wrong per
                 // Pages visual reference).
-                // v1.0.0-m1-shell boss 2026-09-10 OOB '那个标题的文字
-                // 颜色, 苹果都偏灰一些, 不是纯白的, 和分割线的
-                // 颜色接近': section header text uses
+                // v1.0.0-m1-shell boss 2026-09-10 OOB 'that title's text
+                // color — Apple's is a bit grayer, not pure white, and close to the divider's
+                // color': section header text uses
                 // `.foregroundStyle(.secondary)` (= the Apple
                 // system secondary label color; = ~60% opacity; =
                 // light mode = mid-gray; = dark mode = mid-gray;
@@ -360,7 +360,7 @@ struct NewLibraryOutlineView: View {
                 // 'Color: Use secondary text colors for less
                 // important or de-emphasized text, such as
                 // labels and section headers.' = NO pure white
-                // = NO pure black = the boss's '不是纯白的'
+                // = NO pure black = the boss's 'not pure white'
                 // requirement).
                 VStack(spacing: 4) {
                     HStack {
@@ -371,26 +371,26 @@ struct NewLibraryOutlineView: View {
                             .textCase(nil)
                         Spacer()
                     }
-                    // v1.0.0-m1-shell boss 2026-09-10 OOB '现在是各区,
-                    // 左右边距都是多少, 是苹果表达示吧':
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB 'right now each zone
+                    // uses some left/right margin — is that the Apple-standard expression?':
                     // = the dividers use the SwiftUI List's default
                     // horizontal inset (= the system-defined row
                     // separator padding; = Apple API's built-in
                     // standard List horizontal padding on both sides;
                     // = no custom modifier; = all 3 dividers use the
                     // SAME no-modifier default = the boss's
-                    // '用同样的修饰符' instruction; = the dividers
+                    // 'use the same modifier' instruction; = the dividers
                     // appear shorter than the sidebar with a
-                    // standard right padding = the boss's '都不边长,
-                    // 右边都留一个标准间距' = the canonical Apple
+                    // standard right padding = the boss's 'all edges are the same
+                    // length, and the right edge gets a standard margin' = the canonical Apple
                     // HIG List row separator pattern; = DO NOT
                     // add `.frame(maxWidth: .infinity)` because that
                     // would force the divider to span the full
                     // sidebar width = wrong = not the Apple default).
                     Divider()
                 }
-                // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义
-                // padding 换 apple 表达式, 找近似值就可以': remove
+                // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom
+                // padding and switch to Apple-standard expressions — find an approximate value': remove
                 // ALL custom numeric padding above/below the section
                 // header (= the previous `chromePaddingSectionTop` = 18
                 // PT and `chromePaddingSmall` = 4 PT). The sidebar List
@@ -408,22 +408,22 @@ struct NewLibraryOutlineView: View {
                 // boss-asked 18 PT or 4 PT overshoot; = the natural
                 // Apple List(.sidebar) section spacing).
             }
-            // v1.0.0-m1-shell boss 2026-09-12 OOB '目录栏, 测试书架,
-            // 分割线, 资料库. 这几个控件之间有没有我们手动加的
-            // 间距, 如果有改回默认': remove `.headerProminence(.increased)`
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'sidebar column, test bookshelf,
+            // divider, reference library — between these controls is there any spacing we
+            // added by hand; if so, revert to the default': remove `.headerProminence(.increased)`
             // (= a non-Apple-default SwiftUI List modifier that
             // artificially inflates the vertical space above and
             // below the section header; = adds ~16-22 PT extra
-            // padding between 测试书架 (= last row of the shelves
-            // Section) and 资料库 (= first row of the reference
+            // padding between Test Bookshelf (= last row of the shelves
+            // Section) and Reference Library (= first row of the reference
             // library Section); = the boss's '58 PT gap' complaint;
             // = SwiftUI's default `.standard` header prominence
             // (= no modifier needed) is the Apple HIG canonical
             // sidebar rhythm between grouped rows). The Divider
             // between sections stays bare (= Apple default
             // horizontal inset; = no padding added).
-            // v1.0.0-m1-shell boss 2026-09-10 OOB '在资料库和书架之间
-            // 加一条分割线, 但除了分割线自带的间隔, 不另加间隔':
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'between the reference library and bookshelf,
+            // add a divider — but only the divider's own spacing, no extra padding':
             // add a single `Divider()` BETWEEN the shelves Section
             // and the reference library Section (= visually separates
             // the user-managed shelves group from the built-in
@@ -431,8 +431,8 @@ struct NewLibraryOutlineView: View {
             // sidebar pattern of grouping 'user content' vs. 'system
             // / built-in content' with a single hairline).
             //
-            // No additional padding (= boss's '除了分割线自带的
-            // 间隔, 不另加间隔'): the SwiftUI List auto-applies
+            // No additional padding (= boss's 'apart from the divider's
+            // own spacing, no extra padding'): the SwiftUI List auto-applies
             // standard vertical spacing between Sections (= the
             // 1 PT hairline + List's intrinsic inter-Section gap;
             // = the Apple HIG canonical sidebar pattern; = no
@@ -451,8 +451,8 @@ struct NewLibraryOutlineView: View {
             // text or padding = the hairline sits at the natural
             // inter-Section gap).
             Section {
-                // v1.0.0-m1-shell boss 2026-09-10 OOB '现在是各区,
-                // 左右边距都是多少, 是苹果表达示吧':
+                // v1.0.0-m1-shell boss 2026-09-10 OOB 'right now each zone
+                // uses some left/right margin — is that the Apple-standard expression?':
                 // = bare `Divider()` (= NO custom modifier; =
                 // the SwiftUI List's default row separator
                 // padding is applied; = all 3 dividers use the
@@ -497,8 +497,8 @@ struct NewLibraryOutlineView: View {
                             LucideIconSidebar(category.icon)
                         }
                         .badge(entitiesCount(in: category))
-                        // v1.0.0-m1-shell boss 2026-09-10 OOB '资料库的目录选择, 和
-                        // 素材区的卡片对不齐, 没有过滤': the previous code used
+                        // v1.0.0-m1-shell boss 2026-09-10 OOB 'library-tree selection and
+                        // the cards in the assets zone weren't aligned and didn't filter': the previous code used
                         // `category.directoryName` (= rawValue.lowercased(), e.g.
                         // 'b' for Philosophy) as the SidebarItem tag. The entity
                         // JSON stores the category as the UPPERCASE rawValue
@@ -566,16 +566,15 @@ struct NewLibraryOutlineView: View {
         // kind (= shelf, book, reference category) to show the
         // right actions (= 'New Book' only on shelves, etc.). The
         // reference library section is excluded (= per boss OOB
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 'Reference Library is not allowed to be deleted').
+        // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
         .contextMenu(forSelectionType: SidebarItem.self) { selectedItems in
             contextMenuForSelection(selectedItems)
         } primaryAction: { selectedItems in
             // No primary action (= double-click = open in editor
             // for books in a future ticket; for now, just no-op).
         }
-        // v0.76 boss 2026-09-10 OOB '在红框处写新建按钮': attach
-        // a '新建书架' button to the sidebar bottom via
+        // v0.76 boss 2026-09-10 OOB 'put the new-item button at the red-box spot': attach
+        // a 'New Bookshelf' button to the sidebar bottom via
         // `.safeAreaInset(edge: .bottom)` (= Apple's canonical API
         // for a fixed accessory attached to the bottom of a
         // sidebar List). The previous commit-history recorded a
@@ -596,8 +595,8 @@ struct NewLibraryOutlineView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             sidebarBottomNewButton
         }
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '右键空区域 -> 新建书架/书
-        // 没生效'. macOS 26 Tahoe's `.contextMenu(forSelectionType:)`
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'right-click on empty area → New Bookshelf/Book
+        // didn't take effect'. macOS 26 Tahoe's `.contextMenu(forSelectionType:)`
         // does NOT route empty-area right-clicks through its builder
         // closure (= the closure is selection-typed; = empty selection
         // = no invocation). The empty-area menu MUST be a plain
@@ -745,7 +744,7 @@ struct NewLibraryOutlineView: View {
                 appState.sidebarSelection = .referenceCategory(cat.directoryName)
             }
         }
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree-view style doesn't follow
         // Apple API': the previous `.onReceive(NotificationCenter.
         // default.publisher(for: .wenshuNewBookRequested))` (and
         // its .wenshuNewShelfRequested + .wenshuChoiceRequested
@@ -972,8 +971,8 @@ struct NewLibraryOutlineView: View {
                                    )
                                }
                            }
-                           // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法,
-                           // 不符合 Apple API': the previous `.onTapGesture(
+                           // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree-view style
+                           // doesn't follow Apple API': the previous `.onTapGesture(
                            // count: 2) { shelfDisclosureStates.toggle() }` was
                            // removed. Apple SwiftUI's DisclosureGroup handles
                            // expand/collapse natively via the system disclosure
@@ -1063,8 +1062,8 @@ struct NewLibraryOutlineView: View {
                     // form is more reliable for nested rows inside
                     // a DisclosureGroup).
                     //
-                    // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法,
-                    // 不符合 Apple API': the previous code BOTH wrapped
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree-view style
+                    // doesn't follow Apple API': the previous code BOTH wrapped
                     // the row in a `Button { appState.sidebarSelection
                     // = .folder(...) }` AND attached a `.tag(
                     // SidebarItem.folder(...))` to the label. Apple
@@ -1120,8 +1119,8 @@ struct NewLibraryOutlineView: View {
                     bookId: book.id,
                     folderDirectoryName: $1.name
                 )})
-                .tag(SidebarItem.book(book.id))                // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法,
-                // 不符合 Apple API': removed `.onTapGesture(count: 2)`
+                .tag(SidebarItem.book(book.id))                // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree-view style
+                // doesn't follow Apple API': removed `.onTapGesture(count: 2)`
                 // for the same reason as the shelf row (= Apple's
                 // DisclosureGroup chevron is the single canonical
                 // expand/collapse affordance; = adding custom
@@ -1280,7 +1279,7 @@ struct NewLibraryOutlineView: View {
         // TAB': added @State isHover + .onHover + .background
         // tint to both buttons (= matches PaneIconTab's hover tint
         // pattern = Color.accentColor.opacity(0.12) on hover).
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree-view style doesn't follow
         // Apple API': switch the poster from NotificationCenter.post
         // (= fire-and-forget, = fragile data flow, = no observed
         // binding on receiver) to the @Observable AppState counter
@@ -1361,8 +1360,8 @@ struct NewLibraryOutlineView: View {
     /// - Multi-select: only delete (= batch delete shelves / books)
     @ViewBuilder
     private func contextMenuForSelection(_ items: Set<SidebarItem>) -> some View {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '右键空区域 -> 新建书架/书
-        // 没生效'. macOS 26 Tahoe's `.contextMenu(forSelectionType:)`
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'right-click on empty area → New Bookshelf/Book
+        // didn't take effect'. macOS 26 Tahoe's `.contextMenu(forSelectionType:)`
         // does NOT invoke this closure when the right-click hits
         // an empty area of the List (= the closure is selection-
         // typed; = empty selection = no builder invocation = the
@@ -1733,13 +1732,13 @@ struct NewLibraryOutlineView: View {
         return result
     }
 
-    /// v0.76 boss 2026-09-10 OOB '我们有一个中间的弹窗, 点新建,
-    /// 会让用户选是建书还是书架, 按钮就写新建, 然后接那个弹窗':
-    /// sidebar bottom accessory button (= single '新建' button,
+    /// v0.76 boss 2026-09-10 OOB 'we have a middle modal — tapping New
+    /// prompts the user to choose between a new book or a new bookshelf; the button just says New, then opens that modal':
+    /// sidebar bottom accessory button (= single 'New' button,
     /// posts .wenshuChoiceRequested = the existing global
     /// notification bound at line 546 that flips
     /// `showNewChoiceSheet` and presents NewChoiceSheet =
-    /// the modal sheet with '建书 / 建书架' choice).
+    /// the modal sheet with 'New Book / New Bookshelf' choice).
     ///
     /// Style: per Apple HIG = a sidebar bottom accessory is a
     /// full-width row at the column's bottom safe area. The button
@@ -1760,8 +1759,8 @@ struct NewLibraryOutlineView: View {
         VStack(spacing: 0) {
             Divider()
             Button {
-                // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法,
-                // 不符合 Apple API': switch from NotificationCenter
+                // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree-view style
+                // doesn't follow Apple API': switch from NotificationCenter
                 // .post to the @Observable AppState counter (= the
                 // Apple HIG cross-component binding = `.onChange(of:
                 // appState.choiceRequestCount)` on the sidebar body).
@@ -2338,7 +2337,7 @@ private struct NewButtonWithHover: View {
     let action: () -> Void
 
     var body: some View {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree-view style doesn't follow
         // Apple API': the previous hand-rolled hover pattern
         // (= `@State isHover` + `.onHover` + manual `.background(
         // RoundedRectangle.fill(.tertiary vs .clear))`) was a non-

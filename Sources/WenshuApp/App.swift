@@ -69,7 +69,7 @@ extension Notification.Name {}  // placeholder; all members moved to AppNotifica
 
 enum LayoutTokens {
     // Design baseline (Apple macOS 27 1x = 1 PT = 1 PX)
-    static let designW: CGFloat = 1480  // v0.90 boss 2026-09-10 OOB '1480 也可以': boss's preferred column balance. Note: macOS 27 NavigationSplitView appears to ignore this defaultSize and force a minimum window width of ~2205 PT (= 4 columns + drag handles + chrome); the user can manually resize to 1480 but the initial launch is always wider.
+    static let designW: CGFloat = 1480  // v0.90 boss 2026-09-10 OOB '1480 is also OK': boss's preferred column balance. Note: macOS 27 NavigationSplitView appears to ignore this defaultSize and force a minimum window width of ~2205 PT (= 4 columns + drag handles + chrome); the user can manually resize to 1480 but the initial launch is always wider.
     static let designH: CGFloat = 980
 
 
@@ -287,8 +287,7 @@ enum ZoneSlot {
             // v0.30: NewLibraryOutlineView has default dummy binding init.
             NewLibraryOutlineView()
             // v0.28 followup Boss UX round 44 (Boss 2026-08-29 OOB
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // ', top barbottom bar' = the
+            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
             // `.padding(.vertical, DesignTokens.chromePaddingNano)` was pushing the sidebar content
             // (= NewLibraryOutlineView's tree outline) up by 2 PT,
             // which made the sidebar's bottom status bar (= ":0")

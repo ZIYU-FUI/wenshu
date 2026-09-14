@@ -1,8 +1,8 @@
 //
 //  ChatPartViewTests.swift · Wenshu · v0.71 P1 batch 2
 //
-//  v0.71 P1 batch 2 (boss 2026-09-12 OOB '聊天区的流式输出没有实现...
-//  全量复制 hermes... 编辑器使用 SM 我们引入的一个第三方 md 编辑器'):
+//  v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented...
+//  port the whole thing from hermes... The editor uses SM, the third-party Markdown editor we brought in'):
 //
 //  Code-level verification (= no UI render, no screenshot) of the
 //  Hermes 1:1 streaming UI surface. The 4 part renderers
@@ -355,7 +355,7 @@ struct ChatPartViewTests {
 
     // MARK: - ChatMessageHoverActions (= hermes MessageActions)
 
-    /// boss 2026-09-12 OOB '全量复制 hermes... 用户消息悬浮': the
+    /// boss 2026-09-12 OOB 'port the whole thing from hermes... user-message hover': the
     /// ChatMessageHoverActions view MUST be constructible from any
     /// message content (= no crash; = the canonical initialization
     /// path). The view's actual hover behavior is rendered by SwiftUI

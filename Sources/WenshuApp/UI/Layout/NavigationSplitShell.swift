@@ -87,7 +87,7 @@ struct NavigationSplitShell: View {
     /// by LibraryLifecycleHook (= may not exist at first frame).
     var bookStore: BookStore?
 
-    /// v0.88 boss 2026-09-10 OOB 'inspector 长显 + 有值必传':
+    /// v0.88 boss 2026-09-10 OOB 'inspector always shown + always pass the value when there is one':
     /// `.inspector(isPresented:)` is wired with `.constant(true)`
     /// below (= inspector is permanently visible = the same
     /// pattern Apple Pages / Numbers / Keynote use; = Apple does
@@ -156,7 +156,7 @@ struct NavigationSplitShell: View {
             // the column's drag-resize and window-scaling bounds;
             // = SwiftUI auto-distributes the remaining width
             // across the other columns.
-            // v0.95 boss 2026-09-10 OOB '之前 NSV probe 好好的':
+            // v0.95 boss 2026-09-10 OOB 'NSV probe was working fine before':
             // the probe (= /tmp/wenshu_full/Full.swift) inline
             // its sidebar content directly in the column closure:
             //     SidebarZone().navigationSplitViewColumnWidth(...)
@@ -171,7 +171,7 @@ struct NavigationSplitShell: View {
             // inline `NewLibraryOutlineView()` with the modifier.
             // ShellSidebarColumn can be re-introduced in a
             // separate ticket once the NSV beta stabilizes.
-            // v0.97 boss 2026-09-10 OOB '之前 NSV probe 好好的':
+            // v0.97 boss 2026-09-10 OOB 'NSV probe was working fine before':
             // the probe (= commit 660c5e820 'land canonical 6-zone
             // layout') had NO `.navigationSplitViewColumnWidth`
             // modifier on any column (= SwiftUI's default
@@ -185,7 +185,7 @@ struct NavigationSplitShell: View {
             // = the same range Mail / Notes / Finder ship with).
             // This restores the working v0.71 state per the
             // boss 9/10 'Apple default' OOB.
-            // v0.98 boss 2026-09-10 OOB '之前 NSV probe 好好的':
+            // v0.98 boss 2026-09-10 OOB 'NSV probe was working fine before':
             // the probe / commit 660c5e820 had no columnWidth
             // modifier; SwiftUI macOS 27 NSV auto-resolves sidebar
             // to a narrow column (~140 PT) but the sidebar IS
@@ -202,8 +202,8 @@ struct NavigationSplitShell: View {
             // fix lands in a follow-up ticket (per the boss OOB
             // 'let's not give up; debug' = the inspector tab is
             // already showing, so the layout is now usable).
-            // v0.101 boss 2026-09-10 OOB '各列按 Apple 推荐参数
-            // 设置 min/ideal/max': re-apply
+            // v0.101 boss 2026-09-10 OOB 'set each column to Apple's recommended parameters
+            // — min/ideal/max': re-apply
             // `.navigationSplitViewColumnWidth(min:ideal:max:)`
             // to all 4 columns with Apple HIG canonical ranges.
             // Per Apple HIG §Sidebars (sidebar ~220-360 PT),
@@ -217,15 +217,15 @@ struct NavigationSplitShell: View {
             // + no defaultSize (= let SwiftUI auto-size the window
             // like the probe), the columnWidth values now apply
             // cleanly and each column lands at its ideal width.
-            // v1.0.0-m1-shell boss 2026-09-10 OOB '初始启动时, 让左, 左2,
-            // 两个栏都用最小尺寸, 其它两栏先不变': set the sidebar +
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'on initial launch, make the left and left-2
+            // columns use the minimum size; leave the other two columns alone for now': set the sidebar +
             // content (= left + left-2) ideal widths to their min
             // values (= sidebar 220, content 240) so the columns
             // open at their tightest legal width (= no extra padding
             // room = the user sees the smallest sidebar + cards band
             // that still fits the row icons + labels). The detail +
             // inspector ideal widths stay as-is (= 600 / 280) per the
-            // boss's '其它两栏先不变' instruction.
+            // boss's 'leave the other two columns alone' instruction.
             //
             // Why this works: `navigationSplitViewColumnWidth(min: X,
             // ideal: Y, max: Z)` sets Y as the initial width when
@@ -250,7 +250,7 @@ struct NavigationSplitShell: View {
             // outline + cards band, exactly as in the probe's
             // ContentZone. The probe measured window = 1449, sidebar
             // = 240, content = 280, detail = 648 with this layout.
-            // v1.0.0-m1-shell boss 2026-09-10 OOB '左左2 用最小':
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'left and left-2 use the minimum':
             // content ideal 320 → 240 (= matches sidebar's
             // 'min-width' pattern; = user can still drag wider up
             // to 480 PT via max).
@@ -278,8 +278,8 @@ struct NavigationSplitShell: View {
             // with this exact combination).
             ShellContentColumn(appState: appState, bookStore: bookStore)
                 .navigationSplitViewColumnWidth(min: 400, ideal: 600, max: 900)
-                // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 三个办公软件
-                // 全是这个逻辑': wire the inspector's `isPresented` to
+                // v1.0.0-m1-shell boss 2026-09-10 OOB 'Keynote and the three office apps
+                // all use this same logic': wire the inspector's `isPresented` to
                 // a real `Binding<Bool>` (= `appState.inspectorVisible`)
                 // so the inspector can collapse (= user drags the
                 // right-column divider past the left edge) and
@@ -352,7 +352,7 @@ struct ShellSidebarColumn: View {
         // 8/30 boss red-line drawing (= cards in the middle
         // column, not the sidebar).
         //
-        // v0.79 boss 2026-09-10 OOB '目录树, 不需要搜索框, 删掉':
+        // v0.79 boss 2026-09-10 OOB 'tree view — no search box needed, remove it':
         // the sidebar's `.searchable` field (= the macOS 13+
         // Apple HIG sidebar search widget = the search field at
         // the top of the sidebar column = ticket 004 of the
@@ -390,17 +390,17 @@ struct ShellSidebarColumn: View {
 // MARK: - Content column (= 2 vertical sub-areas)
 
 /// Apple HIG content column (= 1 zone: the card grid).
-/// Per boss 2026-09-10 'visual 5 columns' + '卡片区放在中左, 错了,
-/// 不需要红框这块': the middle column carries exactly 1 zone
+/// Per boss 2026-09-10 'visual 5 columns' + 'the cards zone goes in middle-left, that's wrong,
+/// we don't need that red-box area': the middle column carries exactly 1 zone
 /// (PreviewPane = the card grid). The previously rendered bottom
 /// outline sub-area (= NewLibraryOutlineView = the same
 /// directory tree the sidebar uses) is removed (= the outline
 /// is the sidebar's job; duplicating it in the middle column
 /// is noise).
 ///
-/// Boss 2026-09-10 '删除 tab, 只留卡片内容 + 图反正没有实现, 直接先删掉':
+/// Boss 2026-09-10 'remove the tab, keep just the cards content — and since the image picker isn't implemented anyway, just remove it too for now':
 /// the sidebar bottom card zone (= previously ZoneContentView
-/// with two tabs '预览 / 图' = a .pickerStyle(.segmented) TabBar
+/// with two tabs 'Preview / Image' = a .pickerStyle(.segmented) TabBar
 /// over a PreviewPane) is gone. PreviewPane now renders the
 /// card grid without any tab chrome (= Apple's empty state +
 /// search bar + the actual grid = the canonical pattern Xcode /
@@ -411,12 +411,12 @@ struct ShellSidebarColumn: View {
 /// fought NSTextView's hit test (= an NSTextView on top of another
 /// NSTextView makes cursor + click ownership ambiguous). The
 /// previous VSplitView held cards on top + outline on bottom; per
-/// the next boss OOB (= '不需要红框这块' = the outline sub-area)
+/// the next boss OOB (= 'we don't need that red-box area' = the outline sub-area)
 /// the VSplitView is gone too and the card zone owns the full
 /// column height.
 struct ShellMiddleColumn: View {
-    // v1.0.0-m1-shell boss 2026-09-10 OOB '资料库的目录选择, 和
-    // 素材区的卡片对不齐, 没有过滤' (= the cards column did not
+    // v1.0.0-m1-shell boss 2026-09-10 OOB 'library-tree selection and
+    // the cards in the assets zone weren't aligned and didn't filter' (= the cards column did not
     // re-render when the user clicked a reference category in the
     // sidebar). Root cause: `let appState: AppState` (= a plain
     // stored property holding an `@Observable` instance) does NOT
@@ -439,7 +439,7 @@ struct ShellMiddleColumn: View {
     // tracking inside body.
     @Environment(AppState.self) private var envAppState
     let appState: AppState
-    // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
     // openCardInEditor needs BookStore.referenceStore to load
     // reference bodies for double-clicked cards (= the same env
     // chain WorkspaceView.openCardInEditor uses via
@@ -455,7 +455,7 @@ struct ShellMiddleColumn: View {
     /// out of ticket scope).
     @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
-    // v1.0.0-m1-shell boss 2026-09-10 OOB '全局搜索': use
+    // v1.0.0-m1-shell boss 2026-09-10 OOB 'global search': use
     // envAppState.searchText (= the AppState @Observable
     // property) instead of a local @State. This lets the
     // .searchable modifier on the cards column share the same
@@ -471,9 +471,9 @@ struct ShellMiddleColumn: View {
         nonmutating set { envAppState.searchText = newValue }
     }
 
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB '目录选择, 卡片栏没有
-    /// 根据目录选择变化卡片内容' + follow-up '左边的目录树选择,
-    /// 中间的素材区没有出现卡片' (= selecting .book(worldview)
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'tree selection — the cards column doesn't
+    /// react to the tree selection' + follow-up 'pick something in the left-side
+    /// tree and no cards appear in the middle assets zone' (= selecting .book(worldview)
     /// in the sidebar showed .empty in the cards column instead of
     /// the book's .md cards). The previous version mapped .book /
     /// .shelf / .folder ALL to .empty (= cards column blanked out
@@ -486,7 +486,7 @@ struct ShellMiddleColumn: View {
     /// - .book(let id) → .bookScope(bookId: id, folderName: nil)
     ///   (= the book with ALL its folders' .md cards = the user
     ///   wants to see the book's content; = the boss's report
-    ///   '左边选世界观, 中间不出现卡片' = the book WAS selected
+    ///   'pick Worldview on the left, no cards in the middle' = the book WAS selected
     ///   but the preview was .empty)
     /// - .shelf(let id) → .shelfScope(shelfId: id) (= shelf hint,
     ///   per PreviewScope comment: 'shelves are a tree level, not
@@ -498,10 +498,10 @@ struct ShellMiddleColumn: View {
     ///   to .referenceScope(nil) so a broken reference selection
     ///   doesn't lock the user out.
     /// Without this fix, selecting ANY user-scope sidebar row (=
-    /// book / shelf / folder) showed '请选择左侧目录查看文档' even
+    /// book / shelf / folder) showed 'Please pick a node on the left to view the document' even
     /// though a real selection was active (= the boss's bug).
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB '资料库的目录选择, 和
-    /// 素材区的卡片对不齐, 没有过滤': map sidebarSelection →
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'library-tree selection and
+    /// the cards in the assets zone weren't aligned and didn't filter': map sidebarSelection →
     /// PreviewScope. The case-mismatch bug (sidebar wrote lowercase
     /// directoryName 'b' but entities JSON stored uppercase
     /// rawValue 'B') was fixed at the sidebar tag + onChange lookup
@@ -541,10 +541,10 @@ struct ShellMiddleColumn: View {
         }
     }
 
-    // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复:
-    // 文档在中栏编辑器区打开. 不要单独 windows. 编辑器区就是
-    // 文档的编辑区, 打开的文档是编辑状态. 编辑器使用 SM 我们引入
-    // 的一个第三方 md 编辑器, 后端已经接好了': card double-
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix:
+    // documents open in the middle column's editor zone. No separate windows. The editor zone is
+    // the document's editing area; opening a document means edit state. The editor uses SM, the third-party
+    // Markdown editor we brought in — the backend is already wired': card double-
     // click handler (= the user double-clicks a card in the cards
     // column = PreviewPane's onDoubleClick fires). Mirrors
     // WorkspaceView.openCardInEditor logic (= reads the actually-
@@ -556,7 +556,7 @@ struct ShellMiddleColumn: View {
     // 1. Reads `previewScope()` (= NavigationSplitShell's helper;
     //    = the equivalent of WorkspaceView's `previewScope`
     //    computed property).
-    // 2. mode = .edit (= boss's '打开的文档是编辑状态' = the
+    // 2. mode = .edit (= boss's 'opening a document means edit state' = the
     //    user wants the WenshuMarkdownEditor's editable NSTextView,
     //    NOT the read-only preview; = uses the SM third-party md
     //    editor's edit surface directly).
@@ -620,12 +620,12 @@ struct ShellMiddleColumn: View {
             return
         }
 
-        // Open as new tab. mode = .edit per boss's '打开的文档是
-        // 编辑状态' directive (= the WenshuMarkdownEditor editable
+        // Open as new tab. mode = .edit per boss's 'opening a document means
+        // edit state' directive (= the WenshuMarkdownEditor editable
         // surface from the start; = no separate preview step).
         //
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab 没有去到文件名的
-        // bug': pass the entity / book-doc title (= '赤壁之战' etc.)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the tab title didn't go to the document
+        // name' bug': pass the entity / book-doc title (= 'Battle of Red Cliffs' etc.)
         // so the tab strip shows the real name instead of the
         // 'preview-sample' placeholder. The title fallback chain in
         // EditorPlaceholder.tabDisplayTitle uses basename first
@@ -645,7 +645,7 @@ struct ShellMiddleColumn: View {
     }
 
     var body: some View {
-        // Boss 2026-09-10 '卡片区放在中左' + '只需要原来的素材卡片':
+        // Boss 2026-09-10 'the cards zone goes in middle-left' + 'we only need the original assets cards':
         // the middle column is exactly 1 zone = the reference library
         // overview grid (= PreviewPane with scope = .referenceScope(nil)
         // = ALL entities across categories). This is the canonical
@@ -656,24 +656,24 @@ struct ShellMiddleColumn: View {
         // Why .referenceScope(nil) and not .empty:
         // - .empty renders Apple's ContentUnavailableView (= an
         //   informational placeholder = NOT the cards themselves).
-        //   Per boss 2026-09-10 '只需要原来的素材卡片', the column
+        //   Per boss 2026-09-10 'we only need the original assets cards', the column
         //   must show the actual card grid (= the entities), even
         //   with no sidebar selection.
         // - .referenceScope(nil) = overview grid of all entities in
-        //   the reference library (= 角色 / 世界观 / 书 / 部 等). When
+        //   the reference library (= Characters / Worldview / Books / Volumes / etc.). When
         //   the user later clicks a sidebar row, AppState can route
         //   a category-scoped scope (= .referenceScope(.some)) into
         //   the PreviewPane for filtered view.
         //
         // No VSplitView wrapper, no outline sub-area, no chapter tree.
-        // No navigationTitle: per boss 2026-09-10 OOB '红框里的标题可以不要吗',
+        // No navigationTitle: per boss 2026-09-10 OOB 'can we drop the title inside the red box',
         // the column-level header (= the NavigationSplitView column
         // title bar = 'Cards' + library subtitle 'anbaiqiang.ws') is
         // removed. The column content (= the cards themselves) is
         // self-explanatory; an extra title bar is noise on a single-
         // zone column.
         //
-        // v0.77 boss 2026-09-10 OOB '位置不对, 是要放在中左栏内部的顶上':
+        // v0.77 boss 2026-09-10 OOB 'wrong position — it should sit at the top INSIDE the middle-left column':
         // the previous `.toolbar { ToolbarItem(.principal) { ...
         // } }` route (= commit dff49498d) put the search field in
         // the window toolbar (= not in the column body). Drop the
@@ -683,11 +683,11 @@ struct ShellMiddleColumn: View {
         // body = same visual slot as the sidebar's `.searchable`
         // field at the top of the sidebar column).
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '目录选择, 卡片栏没有根据
-        // 目录选择变化卡片内容': the previous `.referenceScope(nil)`
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree selection — the cards column doesn't react
+        // to the tree selection': the previous `.referenceScope(nil)`
         // (= unfiltered overview grid of every entity in the library)
-        // ignored sidebar selection entirely (= clicking 哲学宗教
-        // / 军事 / 经济 / 文学 / 历史地理 / 其它 in the sidebar had
+        // ignored sidebar selection entirely (= clicking Philosophy & Religion
+        // / Military / Economics / Literature / History & Geography / Other in the sidebar had
         // no effect on the cards column = the bug boss is reporting).
         // Switch the scope based on `appState.sidebarSelection` so the
         // cards column follows the sidebar:
@@ -703,7 +703,7 @@ struct ShellMiddleColumn: View {
         // All branches are exhaustive over SidebarItem cases (= no
         // unknown-sidebar-selection fallback path = the bug can't
         // reappear silently).
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持, 那就直接用':
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'if the Apple API supports it, just use that directly':
         // wire the Apple `.searchable` system-styled search field to
         // the live `envAppState.searchText` (= the AppState
         // @Observable property; = single source of truth for app-wide
@@ -713,8 +713,8 @@ struct ShellMiddleColumn: View {
         // to the live `envAppState.searchText` (= the filter applies
         // correctly; = survives PreviewPane re-instantiation).
         VStack(spacing: 0) {
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '你先把搜索框
-            // 居左可以吗': per the boss's request, place the search
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'first, can you put the search field
+            // on the left?': per the boss's request, place the search
             // field at the LEADING (= left) edge of the cards column's
             // top bar (= flush to the column's left margin). The
             // SwiftUI `.searchable` modifier is hard-wired to render
@@ -734,8 +734,8 @@ struct ShellMiddleColumn: View {
             // system shortcut) because the search field IS in the
             // view hierarchy.
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '宽度自动填满宽度,
-            // 和卡片一样随着拖拽变宽': the search field now fills
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'fill the width automatically,
+            // grow with the drag just like the cards do': the search field now fills
             // the full column width (= .frame(maxWidth: .infinity,
             // alignment: .leading) so it stretches as the user
             // drags the column wider, matching the card grid's
@@ -761,7 +761,7 @@ struct ShellMiddleColumn: View {
             // updates the other live (= the same envAppState.searchText).
             PreviewPane(
                 scope: previewScope(),
-                // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
+                // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
                 // card double-click opens the document in the editor
                 // pane (= mode = .edit = the WenshuMarkdownEditor
                 // editable surface from the start; = not a separate
@@ -789,10 +789,10 @@ struct ShellMiddleColumn: View {
                             )
                         )
                         // v1.0.0-m1-shell boss 2026-09-11 OOB
-                        // '搜索框的高度有点过于小了, 就改成
-                        // 30pt 的高度吧' + '搜索框的高度如果只
-                        // 能写死 30pt, 那你别写, 你用最接近
-                        // 的 apple 的表达式高度': apply
+                        // 'the search field is a bit too short — change it to
+                        // 30pt tall' + 'if the search field height can only
+                        // be hard-coded to 30pt, then don't hard-code — use the closest
+                        // Apple-standard expression for height': apply
                         // `.controlSize(.regular)` (= the canonical
                         // macOS 13+ SwiftUI semantic expression for
                         // standard form-control height = maps to
@@ -805,9 +805,9 @@ struct ShellMiddleColumn: View {
                         .textFieldStyle(.plain)
                     }
                     .padding(.horizontal, 8)
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框,
-                    // 和第一个卡片的间距, 有没有手写的间距, 如果有,
-                    // 需要去掉': drop the manual `.padding(.vertical,
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
+                    // spacing between it and the first card — is there a hand-written padding, and if
+                    // so, drop it': drop the manual `.padding(.vertical,
                     // 4)` (= 4 PT top + 4 PT bottom = hand-rolled
                     // breathing room inside the search HStack) =
                     // the outer PreviewPane layer handles vertical
@@ -818,8 +818,8 @@ struct ShellMiddleColumn: View {
                     // card spacing). Keep only the `.padding(.horizontal,
                     // 8)` (= Apple HIG 8-point grid for inline
                     // content horizontal inset).
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB '宽度自动填满宽度,
-                    // 和卡片一样随着拖拽变宽': the search field
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'fill the width automatically,
+                    // grow with the drag just like the cards do': the search field
                     // now fills the full column width (= the
                     // `.frame(maxWidth: .infinity)` modifier
                     // forces SwiftUI to stretch this HStack to
@@ -861,7 +861,7 @@ struct ShellMiddleColumn: View {
 
 struct ShellContentColumn: View {
     let appState: AppState
-    // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
+    // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
     // pass BookStore through to EditorChatSplitHost (= the editor
     // pane's EditorPlaceholder needs bookStore for
     // WenshuEditorServicesFactory = builds the engine's
@@ -870,14 +870,14 @@ struct ShellContentColumn: View {
     let bookStore: BookStore?
 
     var body: some View {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '死磕文档的方案': per
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'keep grinding on the doc-handling plan': per
         // Apple's HIG split-views documentation
         // (developer.apple.com/design/human-interface-guidelines/
         // split-views): "Keynote in macOS uses split view panes to
         // present the slide navigator, the presenter notes, and
         // the inspector pane in areas that surround the main slide
         // canvas. For developer guidance, see VSplitView and
-        // HSplitView." = the canonical Apple HIG '中栏' (= detail
+        // HSplitView." = the canonical Apple HIG 'middle column' (= detail
         // column = editor on top + chat on bottom) pattern is
         // VSplitView.
         //
@@ -899,8 +899,8 @@ struct ShellContentColumn: View {
         // height when the user wants the editor to fill the whole
         // window (= the VSplitView divider is draggable down to
         // hide the chat; = same as Keynote's speaker notes panel).
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '改用 NSSplitViewController:
-        // 原生 isCollapsed + 动画, 但整个 detail 列重写': the
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'switch to NSSplitViewController:
+        // native isCollapsed + animation, but rewrite the whole detail column': the
         // detail column is now hosted by `EditorChatNSController`
         // (= AppKit NSSplitViewController with canCollapse=true
         // on the chat item; = the canonical Apple HIG Keynote
@@ -927,7 +927,7 @@ struct ShellContentColumn: View {
         // column width even with NSSplitViewController inside.
         EditorChatSplitHost(
             conductor: WenshuAppDelegate.sharedConductor,
-            // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
             // thread AppState + BookStore through the SwiftUI →
             // AppKit boundary (= NSViewControllerRepresentable)
             // so the editor pane's EditorPlaceholder can read
@@ -973,7 +973,7 @@ struct ShellDetailColumn: View {
     // pattern as ShellSidebarColumn's 2 scope tabs).
     @State private var inspectorPage: InspectorPage = .authoringFiction
 
-    // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
+    // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
     // wire `@Environment(\.openWindow)` so the toolbar buttons can
     // open dedicated KanbanWindow / TodoWindow scenes (= the
     // SwiftUI macOS 14+ API for opening secondary windows from
@@ -981,7 +981,7 @@ struct ShellDetailColumn: View {
     // independent document windows).
     @Environment(\.openWindow) private var openWindow
 
-    /// v1.0.0-m1-shell boss 2026-09-11 OOB '拆成两个页': each
+    /// v1.0.0-m1-shell boss 2026-09-11 OOB 'split into two pages': each
     /// InspectorPage (= .authoring / .craft) renders 1+
     /// specialized tools. Tools are selected via a 2nd segmented
     /// Picker in the body (= above the tool content; = the page
@@ -1004,7 +1004,7 @@ struct ShellDetailColumn: View {
             (WenshuI18n.t("tab.title.long_form"),           "shield-check",   AnyView(LongFormGuardrailsView())),
             (WenshuI18n.t("tab.title.reader_experience"),   "sparkles",       AnyView(ReaderExperienceView())),
             (WenshuI18n.t("tab.title.plot_thread"),         "git-branch",     AnyView(PlotThreadView())),
-            // v1.0.0-m1-shell boss 2026-09-12 OOB '12teb 的多语言不全':
+            // v1.0.0-m1-shell boss 2026-09-12 OOB 'the 12-tab view's localization is incomplete':
             // these 7 hardcoded English labels bypassed i18n
             // lookup; = the rendered tabs displayed raw English
             // even on zh-Hans systems; = migrate them through
@@ -1021,9 +1021,9 @@ struct ShellDetailColumn: View {
         let perPageLabels: Set<String> = {
             switch inspectorPage {
             case .authoringFiction:
-                // v1.0.0-m1-shell boss 2026-09-11 OOB '一页三个,
-                // 分成四页, 全都显示出来': Page 1 = 写作期 +
-                // 情节 / 占位 / 伏笔 = the structural / plot
+                // v1.0.0-m1-shell boss 2026-09-11 OOB 'three per page,
+                // split into four pages, show them all': Page 1 = Authoring +
+                // Plot / Placeholder / Foreshadowing = the structural / plot
                 // tracking tools.
                 return [
                     WenshuI18n.t("tab.title.foreshadowing"),
@@ -1031,10 +1031,10 @@ struct ShellDetailColumn: View {
                     WenshuI18n.t("tab.title.plot_thread"),
                 ]
             case .authoringStyle:
-                // Page 2 = 写作期 + 风格 / 体验 / 体裁 = the
+                // Page 2 = Authoring + Style / Experience / Genre = the
                 // readability / style reference tools.
-                // v1.0.0-m1-shell boss 2026-09-12 OOB '12teb 的
-                // 多语言不全': use WenshuI18n.t() (= same value
+                // v1.0.0-m1-shell boss 2026-09-12 OOB 'the 12-tab view's
+                // localization is incomplete': use WenshuI18n.t() (= same value
                 // as the allTools entry above) so the Set
                 // membership check below correctly filters the
                 // 3 tabs for this page.
@@ -1044,7 +1044,7 @@ struct ShellDetailColumn: View {
                     WenshuI18n.t("tab.title.genre_fit"),
                 ]
             case .authoringCharacters:
-                // Page 3 = 写作期 + 人物 / 关系 / 情绪 = the
+                // Page 3 = Authoring + Characters / Relationships / Emotion = the
                 // character-driven analysis tools.
                 return [
                     WenshuI18n.t("tab.title.character_relationships"),
@@ -1052,7 +1052,7 @@ struct ShellDetailColumn: View {
                     WenshuI18n.t("tab.title.emotion_curve"),
                 ]
             case .projectManagement:
-                // Page 4 = 项目管理 + 灵感 / 标签 / 书籍设置 =
+                // Page 4 = Project Management + Ideas / Tags / Book Settings =
                 // the cross-document project scaffolding.
                 return [
                     WenshuI18n.t("tab.title.idea_library"),
@@ -1065,10 +1065,10 @@ struct ShellDetailColumn: View {
     }
 
     var body: some View {
-        // v1.0.0-m1-shell boss 2026-09-11 OOB '那对了, 把右栏
-        // 四页切换放在Trailing, 居右': per the boss's request,
-        // the 4-page Picker (= 写作 (小说) / 风格 / 人物 / 项目
-        // 管理) now lives in the NSWindow main toolbar's trailing
+        // v1.0.0-m1-shell boss 2026-09-11 OOB 'OK then, in the right column
+        // put the four-page switcher in Trailing, aligned right': per the boss's request,
+        // the 4-page Picker (= Authoring (Fiction) / Style / Characters / Project
+        // Management) now lives in the NSWindow main toolbar's trailing
         // placement (= `.toolbar { ToolbarItem(placement:
         // .primaryAction) { Picker(...) } }` below) = NOT in the
         // inspector column body anymore. The inspector column
@@ -1094,9 +1094,9 @@ struct ShellDetailColumn: View {
         // SwiftUI's normal state binding; = no env-chain work
         // needed (= the binding is local to ShellDetailColumn).
         //
-        // v1.0.0-m1-shell boss 2026-09-11 OOB '每一个页, 都加一
-        // 个标题和分割线的那个组合, 居顶, 然后把 teb 放在分割
-        // 线下面, teb 栏, 全宽, 自动适配右栏宽度': per the
+        // v1.0.0-m1-shell boss 2026-09-11 OOB 'for every page, add a
+        // title-plus-divider combo at the top, then put the tab bar below
+        // the divider — full-width tab bar that auto-fits the right-column width': per the
         // boss's request, the inspector column body now opens
         // with a sticky Pages-style title + Divider (= the
         // canonical Pages / Numbers inspector page header
@@ -1122,7 +1122,7 @@ struct ShellDetailColumn: View {
             // the canonical Pages sidebar header pattern; = the
             // .secondary color matches the divider color so the
             // header reads as one visual unit; = the same
-            // format as the '书房' / '素材' headers used
+            // format as the 'Studio' / 'Assets' headers used
             // elsewhere in wenshu; = format LOCKED per memory).
             VStack(spacing: 4) {
                 HStack {
@@ -1135,8 +1135,8 @@ struct ShellDetailColumn: View {
                 }
                 Divider()
             }
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义 padding
-            // 换 apple 表达式, 找近似值就可以': remove the custom
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
+            // and switch to Apple-standard expressions — find an approximate value': remove the custom
             // top inset (= `chromePaddingSectionTop` = 18 PT) and the
             // custom bottom inset (= 4 PT) on the right column's
             // section header. The right column is the inspector
@@ -1150,8 +1150,8 @@ struct ShellDetailColumn: View {
             // is also removed in the same commit (= the boss's
             // 'all custom padding' directive covers it).
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '标题下方, 和 teb 栏之
-            // 间, 少了 4pt': per the boss's request, ADD 4 PT of
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'between the title and the tab bar,
+            // it's 4pt short': per the boss's request, ADD 4 PT of
             // vertical breathing room between the section's
             // Divider (= end of the title block) and the tab
             // strip. The title block already has `.padding(.top,
@@ -1177,8 +1177,8 @@ struct ShellDetailColumn: View {
             // what the boss asked), we add ONLY 4 PT here (= the
             // boss's exact ask); = other spacing in this column
             // stays unchanged.
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '删所有自定义 padding
-            // 换 apple 表达式, 找近似值就可以': remove the custom
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
+            // and switch to Apple-standard expressions — find an approximate value': remove the custom
             // top inset (= 4 PT) on the ZoneContentView wrapper
             // below. The wrapper sits below the section Divider in
             // a vertical VStack; = Apple HIG macOS 27 default
@@ -1193,8 +1193,8 @@ struct ShellDetailColumn: View {
             .frame(maxWidth: .infinity)
         }
         .toolbar {
-            // v1.0.0-m1-shell boss 2026-09-10 OOB '按钮的位置不对, 默认
-            // 是放在最右边': place the toggle button AFTER the
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'wrong position for the button — by default
+            // it should be at the far right': place the toggle button AFTER the
             // 3-tab Picker in the toolbar (= SwiftUI renders
             // multiple .primaryAction items in declaration order;
             // = the toggle button is the last declared =
@@ -1209,8 +1209,8 @@ struct ShellDetailColumn: View {
             // button; = the user can re-open the inspector at any
             // time; = matches Keynote / Pages / Numbers).
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '那对了, 把右栏
-            // 四页切换放在Trailing, 居右' (the canonical ask):
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'OK then, in the right column
+            // put the four-page switcher in Trailing, aligned right' (the canonical ask):
             // the 4-page Picker goes in the TRAILING area
             // (= ToolbarItem(placement: .primaryAction)) = the
             // boss's reference screenshot shows the iOS-style
@@ -1219,11 +1219,11 @@ struct ShellDetailColumn: View {
             // inspector tab strip pattern.
             //
             // v1.0.0-m1-shell boss 2026-09-11 OOB 'kanban/todo/toggl,
-            // 放在Center 里': the kanban + todo + inspector toggle
+            // put it in Center': the kanban + todo + inspector toggle
             // buttons go in the CENTER area (= .principal).
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '这四个按钮, 就按
-            // 这个风格就好, 切换后, 对应的右栏换页': use the
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'these four buttons — just use
+            // this style, and switching should change the right column's page': use the
             // iOS segmented control style for the Picker (= the
             // .segmented picker style renders as NSSegmentedControl
             // = the Pages / Keynote inspector tab visual = icon-
@@ -1231,8 +1231,8 @@ struct ShellDetailColumn: View {
             // same component across iOS + macOS = canonical Apple
             // HIG segmented control).
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '但不知道你为啥
-            // 有把位置从Trailing 移出去了': the previous commit
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'but I don't know why you
+            // moved the position out of Trailing': the previous commit
             // mistakenly moved the Picker from .primaryAction to
             // .principal (= I over-extended the boss's request
             // beyond what was asked). Restore the Picker to
@@ -1260,7 +1260,7 @@ struct ShellDetailColumn: View {
             // body via SwiftUI's normal state binding; = no
             // env-chain work needed (= the binding is local to
             // ShellDetailColumn).
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '工具栏的, 用刚刚的:
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'for the toolbar, use the one we just
 // (= revert the boss's correction here; = the toolbar picker
 // keeps using the legacy SwiftUI Picker(.segmented) (= the
 // macOS automatic style = the canonical Apple HIG toolbar
@@ -1275,8 +1275,8 @@ struct ShellDetailColumn: View {
 //   and prepares to wire InspectorPageSegmentedControl into
 //   the inspector body instead (= in the next commit).
 //
-// v1.0.0-m1-shell boss 2026-09-11 OOB '工具栏的, 用刚刚的, 那
-// 个是工具栏的苹果默认风格': the toolbar picker uses the
+// v1.0.0-m1-shell boss 2026-09-11 OOB 'for the toolbar, use the one we just
+// settled on — that's Apple's default toolbar style': the toolbar picker uses the
 // Apple HIG default SwiftUI Picker(.segmented) (= the
 // macOS toolbar's automatic rendering = the same as Mail /
 // Notes / Finder / Pages toolbar segmented pickers = the
@@ -1300,8 +1300,8 @@ ToolbarItem(placement: .primaryAction) {
                 .labelsHidden()
                 .help(WenshuI18n.t("inspector.page.help"))
             }
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'kanban/todo/toggl, 放在
-            // Center 里': per the boss's request, the inspector
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'kanban/todo/toggle — put it
+            // in Center': per the boss's request, the inspector
             // toggle button moves from the trailing area (= the
             // previous `.primaryAction` placement = the rightmost
             // position) to the center area (= `.principal`
@@ -1317,8 +1317,8 @@ ToolbarItem(placement: .primaryAction) {
                 Button {
                     appState.inspectorVisible.toggle()
                 } label: {
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB '我们的按钮和
-                    // 默认效果有差别, 看 Apple default 的写法': use
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'our buttons look
+                    // different from the default effect — check Apple's default pattern': use
                     // SwiftUI's native `Label("Title", systemImage:)`
                     // (= the canonical Apple toolbar button = the
                     // system-rendered Liquid Glass icon button that
@@ -1353,7 +1353,7 @@ ToolbarItem(placement: .primaryAction) {
                 }
                 .help(WenshuI18n.t("inspector.toggle.help"))
             }
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '拆成两个页':
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'split into two pages':
             // 2-page segmented Picker for the inspector column.
             // .placement(.principal) (= center of the toolbar;
             // = Apple HIG canonical location for an inspector
@@ -1368,9 +1368,9 @@ ToolbarItem(placement: .primaryAction) {
             // time, which is the Apple HIG 'deep tool surface'
             // pattern).
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '拆成两个页,
-            // 伏笔, 占位符, 右栏的第一页, 长文规范, 读者体验,
-            // 情节线, 右栏的第二页' (= later relaxed to 4 pages
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'split into two pages:
+            // Foreshadowing, Placeholder — right column's first page; Long-form Guardrails,
+            // Reader Experience, Plot Threads — right column's second page' (= later relaxed to 4 pages
             // × 3 tools per page): the Picker is now INSIDE the
             // inspector column body (see the `body` above) =
             // attaching it to the .principal toolbar placement
@@ -1379,10 +1379,10 @@ ToolbarItem(placement: .primaryAction) {
             // the existing editor column's main toolbar already
             // owns the .principal slot. Drop the toolbar
             // ToolbarItem here.
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办,
-            // 独立的窗口显示, 普通苹果的其他软件, 集成不到主
-            // windows 的功能就独立窗口, 正好看板横向需要很大
-            // 空间': add 2 toolbar buttons that open dedicated
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo —
+            // show them in their own dedicated windows. Other Apple apps don't integrate these
+            // into the main window, they just open a separate window — and a Kanban board needs lots
+            // of horizontal space anyway': add 2 toolbar buttons that open dedicated
             // windows via `@Environment(\.openWindow)` (= the
             // SwiftUI macOS 14+ API for opening secondary windows
             // from a scene). Per Apple HIG, multiple WindowGroup /
@@ -1400,7 +1400,7 @@ ToolbarItem(placement: .primaryAction) {
             // visible while editing).
             //
             // v1.0.0-m1-shell boss 2026-09-11 OOB 'kanban/todo/toggl,
-            // 放在Center 里': per the boss's request, the kanban
+            // put it in Center': per the boss's request, the kanban
             // button moves from the trailing area (= the previous
             // `.primaryAction` placement) to the center area
             // (= `.principal` placement = Apple HIG "center
@@ -1440,11 +1440,11 @@ ToolbarItem(placement: .primaryAction) {
     }
 }
 
-/// v1.0.0-m1-shell boss 2026-09-11 OOB '拆成两个页, 伏笔, 占位符
-/// 右栏的第一页, 长文规范, 读者体验, 情节线, 右栏的第二页':
+/// v1.0.0-m1-shell boss 2026-09-11 OOB 'split into two pages: Foreshadowing, Placeholder
+/// — right column's first page; Long-form Guardrails, Reader Experience, Plot Threads — right column's second page':
 /// the inspector column (= the rightmost NSV column) was
-/// previously 1 page with 5 RadioButton tabs (= 伏笔/占位符/
-/// 长文规范/读者体验/情节线 = 5 specialized tools fighting
+/// previously 1 page with 5 RadioButton tabs (= Foreshadowing / Placeholder /
+/// Long-form Guardrails / Reader Experience / Plot Threads = 5 specialized tools fighting
 /// for a ~240-360 PT-wide column; = the tab labels overflow
 /// horizontally; = the body is cramped on every page). Per
 /// Apple HIG 'Inspector' (developer.apple.com/design/
@@ -1456,33 +1456,33 @@ ToolbarItem(placement: .primaryAction) {
 /// column width for the chosen page's content; = no per-tab
 /// horizontal scrolling).
 ///
-/// v1.0.0-m1-shell boss 2026-09-11 OOB '一页三个, 分成四页, 全都
-/// 显示出来, 先显示出来, 以后我再来决定功能怎么安排': expand
+/// v1.0.0-m1-shell boss 2026-09-11 OOB 'three per page, split into four pages, show them
+/// all — show them now, I'll decide later how to organize them': expand
 /// from 2 pages / 5 tools (= .authoring / .craft) to **4 pages
 /// × 3 tools = 12 tools** (= every tool in the specializedTools
 /// zone gets a page; = the user wants to see all 12 in the
 /// toolbar picker; = the actual page→tool mapping is provisional
 /// and the boss will reassign tools to pages later).
 ///
-/// Page 1 (= .authoringFiction) = 写作期, 跟情节 / 人物 / 设定:
-///   - 伏笔 (Foreshadowing)
-///   - 占位符 (Placeholder)
-///   - 情节线 (PlotThread)
+/// Page 1 (= .authoringFiction) = Authoring, with Plot / Characters / Worldbuilding:
+///   - Foreshadowing
+///   - Placeholder
+///   - Plot Threads
 ///
-/// Page 2 (= .authoringStyle) = 写作期, 风格 / 体验:
-///   - 长文规范 (LongFormGuardrails)
-///   - 读者体验 (ReaderExperience)
-///   - 体裁适配 (GenreFit)
+/// Page 2 (= .authoringStyle) = Authoring, Style / Experience:
+///   - Long-form Guardrails
+///   - Reader Experience
+///   - Genre Fit
 ///
-/// Page 3 (= .authoringCharacters) = 写作期, 人物相关:
-///   - 人物关系 (CharacterRelationships)
-///   - 人物生命周期 (CharacterLifecycle)
-///   - 情绪曲线 (EmotionCurve)
+/// Page 3 (= .authoringCharacters) = Authoring, Character-related:
+///   - Character Relationships
+///   - Character Lifecycle
+///   - Emotion Curve
 ///
-/// Page 4 (= .projectManagement) = 项目管理 / 灵感 / 设置:
-///   - 灵感库 (IdeaLibrary)
-///   - 标签管理 (TagManager)
-///   - 书籍设置 (BookSettingConstraints)
+/// Page 4 (= .projectManagement) = Project Management / Ideas / Settings:
+///   - Idea Library
+///   - Tag Manager
+///   - Book Settings
 enum InspectorPage: Hashable, CaseIterable {
     case authoringFiction
     case authoringStyle
@@ -1518,7 +1518,7 @@ enum InspectorContent: Hashable, CaseIterable {
     }
 }
 
-/// v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
+/// v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
 /// Window IDs for the dedicated secondary scenes (= the SwiftUI
 /// macOS 14+ `WindowGroup(id:)` accepts an `id` parameter that
 /// `openWindow(id:)` resolves; = the canonical way to open
