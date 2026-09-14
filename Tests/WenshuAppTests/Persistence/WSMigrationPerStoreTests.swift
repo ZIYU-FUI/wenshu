@@ -122,13 +122,13 @@ struct WSMigrationPerStoreTests {
     }
 
     @MainActor
-    @Test("Bookmark migration: doc_id + book_id → polymorphic")
+    @Test("Bookmark migration: doc_id + label → WSBookmark (= actual schema = id, doc_id, label, created_at)")
     func migrateBookmark() async throws {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
         let context = container.mainContext
         let tempDB = try Self.createTestSQLite(rows: [
-            ("bookmarks", ["id", "doc_id", "title", "note", "position", "created_at"],
-             [["bm1", "doc-1", "My anchor", "some note", 0, Date().timeIntervalSince1970]])
+            ("bookmarks", ["id", "doc_id", "label", "created_at"],
+             [["bm1", "doc-1", "My anchor", Date().timeIntervalSince1970]])
         ])
         let dest = WSMigrationPerStore.defaultDBPath(name: "bookmarks") ?? tempDB
         try? FileManager.default.removeItem(at: dest)
@@ -139,8 +139,9 @@ struct WSMigrationPerStoreTests {
         let bookmarks = try context.fetch(FetchDescriptor<WSBookmark>())
         #expect(bookmarks.count == 1)
         #expect(bookmarks[0].docID == "doc-1")
+        // WSBookmark @Model has `title` field but the BookmarkStore
+        // schema uses `label`; Round 5 migration maps label → title.
         #expect(bookmarks[0].title == "My anchor")
-        #expect(bookmarks[0].note == "some note")
     }
 
     @MainActor
@@ -164,7 +165,7 @@ struct WSMigrationPerStoreTests {
     }
 
     @MainActor
-    @Test("Link migration: sourceDocId + line → WSLink with composite id")
+    @Test("Link migration: sourceDocId + line + targetRef → WSLink with full composite id (= Phase 5 ticket 5 added targetRef)")
     func migrateLink() async throws {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
         let context = container.mainContext
@@ -180,7 +181,9 @@ struct WSMigrationPerStoreTests {
         try await WSMigrationPerStore.migrateLinkIndex(context: context)
         let links = try context.fetch(FetchDescriptor<WSLink>())
         #expect(links.count == 1)
-        #expect(links[0].id == "src:5")
+        // Composite id = "<sourceDocID>:<line>:<targetRef>" (= Phase 5 ticket 5
+        // fix to disambiguate multiple [[name]] links on the same line).
+        #expect(links[0].id == "src:5:Target")
         #expect(links[0].targetRef == "Target")
     }
 
