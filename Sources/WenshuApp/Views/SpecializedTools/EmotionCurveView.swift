@@ -260,7 +260,7 @@ struct EmotionCurveView: View {
         Canvas { context, size in
             drawCurve(report: report, context: &context, size: size)
         }
-        .accessibilityLabel("Emotion curve")
+        .accessibilityLabel(WenshuI18n.t("a11y.emotion_curve"))
     }
 
     private func drawCurve(
