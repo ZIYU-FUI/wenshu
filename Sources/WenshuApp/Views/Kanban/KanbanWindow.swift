@@ -17,7 +17,9 @@
 //  - The kanban window is a SIBLING scene to the main WindowGroup
 //    (= not a child of it; = SwiftUI does NOT inherit env values
 //    across WindowGroup boundaries). We re-construct the same
-//    BookStore + KanbanStore from the shared `library` URL
+//    BookStore from the shared `library` URL (= kanban persistence is now
+//    SwiftData-backed via WSKanbanRepository.shared; = the KanbanStore
+//    actor was deleted in Phase 5 ticket 6)
 //    (= the same .ws package the main window uses; = both
 //    windows read + write to the same on-disk JSON files via
 //    BookKanbanStore; = edits in the kanban window are
@@ -56,7 +58,7 @@ public struct KanbanWindow: View {
             // self)` crashes if BookStore is not in the env chain
             // (= 'No Observable object of type BookStore found').
             //
-            // Note: KanbanView does NOT need the KanbanStore
+            // Note: KanbanView does NOT need the KanbanStore actor (= deleted in Phase 5 ticket 6); kanban reads go through WSKanbanRepository
             // actor injected (= the view does all its file I/O
             // via the BookKanbanStore helper, which is
             // constructed per-call from the BookStore books).

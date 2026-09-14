@@ -2,7 +2,7 @@
 //  BacklinkResolver.swift · Wenshu · v0.19 ticket 12 (Obsidian replica, backend first)
 //  Boss 2026-08-19 evening decision Obsidian replica scope A + 'port the backend, no frontend integration'.
 //
-//  Async parse markdown content + insert into LinkIndex, get bidirectional index.
+//  Async parse markdown content + insert into WSLinkRepository (= @MainActor SwiftData wrapper), get bidirectional index. (= Phase 5 ticket 9 deleted LinkIndex actor.)
 //  API aligned with Obsidian Backlinks plugin ground truth:
 //  - resolve(content, sourceDocId, documentIndex): parse + clear old links + batch insert
 //  - backlinks(forDocId): reverse-query all sources (Backlinks panel)

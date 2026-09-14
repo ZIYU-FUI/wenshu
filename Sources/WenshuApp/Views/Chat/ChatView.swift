@@ -179,7 +179,7 @@ final class StreamingAccumulator: @unchecked Sendable {
     }
 }
 
-/// Message source ground truth (user = sent by the user / wenshu = Wenshu's reply / system = system error). Wenshu's internal multi-agent dispatch results do not show as ChatMessage; they go through the KanbanStore board.
+/// Message source ground truth (user = sent by the user / wenshu = Wenshu's reply / system = system error). Wenshu's internal multi-agent dispatch results do not show as ChatMessage; they go through the WSKanbanRepository board (= Phase 5 ticket 6 deleted KanbanStore actor).
 public enum ChatSource: String, Equatable, Sendable, Codable {
     case user
     case wenshu
@@ -1004,7 +1004,7 @@ public struct ChatView: View {
     /// P0 #5 (WIRE-AGENT-005): the same register site now also wires
     /// KanbanStoreTool (= thin adapter exposing the KanbanTools
     /// LLM-facing dispatcher through the Tool protocol). The
-    /// KanbanStore that the WenshuConductor takes ownership of is
+    /// WSKanbanRepository that the WenshuConductor takes ownership of is
     /// the canonical wenshu-side task store; KanbanStoreTool reads /
     /// writes through it via KanbanTools.kanban(action:params:).
     ///
@@ -1029,8 +1029,9 @@ public struct ChatView: View {
         // not consult a tool registry, so this is a no-op for preview.
         guard let conductor = conductor else { return nil }
         // Phase 5 ticket 2.2: peer conductor no longer instantiates a
-        // KanbanStore (= the sqlite3 fallback path is dropped; = ticket
-        // 2's goal is to remove all in-tree KanbanStore callers so the
+        // WSKanbanRepository (= the sqlite3 fallback path was dropped
+        // in Phase 5 ticket 6, which also deleted the KanbanStore
+        // actor; ticket 2's goal to remove all in-tree KanbanStore callers
         // file can be deleted once ticket 6 migrates the production
         // WenshuConductor storage layer). kanbanStore: nil = the
         // conductor's 6 kanban method callsites become no-ops.
@@ -1040,7 +1041,7 @@ public struct ChatView: View {
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier()
         let tools = WenshuConductor.buildToolsSync(from: ToolRegistry.shared)
-        // Phase 5 ticket 6: KanbanStore removed from conductor entirely.
+        // Phase 5 ticket 6: KanbanStore actor removed from conductor entirely.
         // Conductor reads/writes kanban via WSKanbanRepository.shared
         // (= @MainActor SwiftData wrapper). No kanbanStore param needed.
         return WenshuConductor(
@@ -1057,7 +1058,7 @@ public struct ChatView: View {
     /// standalone path (= ChatView constructs its own conductor
     /// because no App-supplied conductor was provided). We build a
     /// minimal BookStore pointing at a unique `/tmp` root (= same
-    /// forgiving pattern as the KanbanStore fallback above) so the
+    /// forgiving pattern as the WSKanbanRepository fallback above) so the
     /// book_manager tool is fully exercised end-to-end in preview /
     /// tests even when no real library has been opened.
     private static func bookStoreForChatTool() -> BookStore {

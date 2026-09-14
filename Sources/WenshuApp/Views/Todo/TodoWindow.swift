@@ -30,7 +30,9 @@ import SwiftUI
 /// AppRootScene). Owns its own BookStore + TodoStore (= the
 /// main window's BookStore is held by LibraryRootView's
 /// `@State` and is not reachable from a sibling scene; = the
-/// simplest fix is to construct a fresh BookStore + TodoStore
+/// simplest fix is to construct a fresh BookStore (= TodoStore actor
+/// was deleted in Phase 5 ticket 7; todo persistence is
+/// WSTodoRepository.shared)
 /// here that points at the same .ws root as the main window).
 public struct TodoWindow: View {
     let library: WenshuLibrary

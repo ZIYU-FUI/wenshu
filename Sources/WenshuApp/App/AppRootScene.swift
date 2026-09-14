@@ -38,7 +38,9 @@ struct AppRootScene: Scene {
 
     // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
     // the kanban + todo Windows each construct their own BookStore /
-    // KanbanStore / TodoStore from the shared `library` URL (= see
+    // Kanban / Todo persistence from the shared `library` URL
+    // (= SwiftData-backed via WSKanbanRepository / WSTodoRepository;
+    // = Phase 5 tickets 6+7 deleted the KanbanStore + TodoStore actors)
     // KanbanWindow / TodoWindow for the env-chain fix rationale).
     // The Windows are SIBLING scenes (= not children of the main
     // WindowGroup; = SwiftUI does NOT propagate env values across
