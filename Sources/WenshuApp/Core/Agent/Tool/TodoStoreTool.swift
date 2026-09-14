@@ -58,12 +58,19 @@ public struct TodoStoreTool: Tool, Sendable {
     /// pre-populates the conductor with a per-library instance).
     ///
     /// `nonisolated(unsafe)` is required because the initializer
-    /// stores actor-isolated types (`TodoStore`, `HermesTodoTool`)
-    /// from a `static let` (= nonisolated context); the closure
-    /// runs synchronously at first access (= before any actor
-    /// isolation becomes relevant) so the unsafe escape hatch is
-    /// safe here. TodoStore() with no path uses the default App
-    /// Support location (= /tmp fallback if unavailable).
+    /// stores the actor-isolated `HermesTodoTool` from a `static let`
+    /// (= nonisolated context); the closure runs synchronously at
+    /// first access so the unsafe escape hatch is safe here. The
+    /// `TodoStoreTool(hermesTodo:todoRepository:)` initializer does
+    /// NOT touch `TodoStore` actor (= it was deleted in Phase 5
+    /// ticket 7; persistence is now `WSTodoRepository.shared` =
+    /// @MainActor SwiftData wrapper). The inner MainActor.assumeIsolated
+    /// ONLY matters for `WSTodoRepository.shared` access (=
+    /// @MainActor accessor).
+    /// Q99 dual-axis audit (Round 1.3): callers MUST construct this
+    /// singleton from a MainActor context. Production path runs
+    /// after `WenshuAppDelegate.applicationDidFinishLaunching` so the
+    /// trap never fires.
     public nonisolated(unsafe) static let shared: TodoStoreTool = {
         MainActor.assumeIsolated {
             TodoStoreTool(

@@ -54,6 +54,11 @@ public actor KanbanTools {
             return
         }
         // SwiftData-backed: just use the shared repository directly.
+        // Q99 dual-axis audit (Round 1.2): callers MUST be on MainActor
+        // when invoking this init without an explicit store (=
+        // WSKanbanRepository.shared is @MainActor). Future refactor:
+        // mark this init @MainActor and update KanbanStoreTool.shared
+        // to construct via MainActor.assumeIsolated or to be @MainActor.
         self.store = MainActor.assumeIsolated { WSKanbanRepository.shared }
     }
 

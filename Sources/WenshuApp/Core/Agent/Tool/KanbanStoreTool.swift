@@ -59,8 +59,11 @@
 //
 //  Standards-axis S4 (= no new third-party deps): pure Foundation +
 //  the existing WenshuApp module surface (KanbanTools actor +
-//  ToolInputParser + KanbanStore). No SQLite import here.
-//
+//  ToolInputParser). No SQLite import here.
+//  (= KanbanStore actor was deleted in Phase 5 ticket 6;
+//  persistence is now WSKanbanRepository.shared = @MainActor
+//  SwiftData wrapper.)
+
 //
 
 import Foundation
@@ -77,13 +80,20 @@ public struct KanbanStoreTool: Tool, Sendable {
     /// instance).
     ///
     /// `nonisolated(unsafe)` is required because the initializer
-    /// constructs actor-isolated types (`KanbanStore`, `KanbanTools`)
-    /// from a `static let` (= nonisolated context); the closure
-    /// runs synchronously at first access (= before any actor
-    /// isolation becomes relevant) so the unsafe escape hatch is
-    /// safe here. `KanbanTools(store: nil)` is used so the actor
-    /// self-bootstraps its own /tmp-backed store lazily on first
-    /// use, avoiding the actor-init-in-staticlet trap.
+    /// constructs the actor-isolated `KanbanTools` from a `static let`
+    /// (= nonisolated context); the closure runs synchronously at
+    /// first access (= before any actor isolation becomes relevant)
+    /// so the unsafe escape hatch is safe here. `KanbanTools(store:
+    /// nil)` falls through to `WSKanbanRepository.shared` (=
+    /// @MainActor SwiftData wrapper; = no /tmp sqlite3 fallback
+    /// after Phase 5 ticket 6 deleted the KanbanStore actor).
+    /// Q99 dual-axis audit (Round 1.3): callers MUST construct
+    /// this singleton from a MainActor context (= the @MainActor
+    /// accessor on `WSKanbanRepository.shared` traps if accessed
+    /// off-main). In practice the module-load bootstrap path
+    /// (= `KanbanStoreTool._registryBootstrap`) runs after
+    /// `WenshuAppDelegate.applicationDidFinishLaunching` (= main
+    /// thread) so the trap never fires in production.
     public nonisolated(unsafe) static let shared: KanbanStoreTool = KanbanStoreTool(kanbanTools: KanbanTools())
 
     /// Tool name. ToolExecutor routes one tool_use block to one Tool

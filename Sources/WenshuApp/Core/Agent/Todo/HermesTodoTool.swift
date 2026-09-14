@@ -469,10 +469,13 @@ public struct HermesTodoTool: Tool, Sendable {
     /// `init(store:)` initializer (= e.g. ChatView pre-populates
     /// the conductor with a per-session instance).
     // v0.72 Q99 MED note: `nonisolated(unsafe)` escape hatch required because
-    // HermesTodoStore is `@unchecked Sendable` (= DispatchQueue-protected; = the
-    // header comment documents the unsafe escape). Future ticket (= actor
-    // boundary refactor) will replace HermesTodoStore with a proper @MainActor
-    // singleton (= eliminates the `unsafe` marker).
+    // HermesTodoStore is `@unchecked Sendable` (= DispatchQueue-protected).
+    // This is INTENTIONAL: HermesTodoStore is the hermes-port scratchpad
+    // (= mirrors the Python `TodoStore` class for the hermes-python tool
+    // surface) and lives outside the wenshu user-facing data model
+    // (= WSTodo / WSTodoRepository is the canonical wenshu persistence).
+    // = no plan to migrate HermesTodoStore to SwiftData per
+    // HermesTodoTool.swift L87 #warning.
     public nonisolated(unsafe) static let shared: HermesTodoTool = HermesTodoTool(store: HermesTodoStore())
 
     private let store: HermesTodoStore
