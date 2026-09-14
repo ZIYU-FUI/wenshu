@@ -327,20 +327,31 @@ Dependency graph (= must be done in this order):
         (= LinkIndexTests uses LinkIndex directly; = future ticket 9
         migrates those tests + deletes LinkIndex.swift).
 
+  ✓ Phase-5 Ticket 9 (LinkIndexTests + LinkIndex.swift deletion)
+    = 1 commit (= LinkIndex.swift deleted + LinkDomain.swift extracted
+    + LinkIndexTests.swift deleted (= tests the now-deleted actor)).
+    └─> LinkIndex.swift DELETED (= Core/LinkGraph/).
+    └─> Link + LinkStoreError domain types preserved in
+    Core/LinkGraph/LinkDomain.swift (= the canonical public API surface).
+    └─> WSMigrationPerStore.migrateLinkIndex unchanged (= reads legacy
+    sqlite3 file directly via query(db:sql:) without depending on the
+    LinkIndex actor class).
+
   + bonus: WenshuWorkspaceMigrator + WenshuWorkspaceMigratorTests (= not
     part of phase 5 prerequisites; = WenshuWorkspace is gated on phase 4
     migration runner + WSMigrationPerStore completion; = separate cleanup
     ticket).
 
-After all 8 tickets complete (= tickets 1-8 = the required migration
-tickets; = ticket 9 = future cleanup for LinkIndex):
-  - 1 raw sqlite3 store file can be `git rm`-ed once its future cleanup
-    ticket 9 lands (= LinkIndex).
+After all 9 tickets complete (= the full phase 5 ticket roadmap):
   - Package.swift: drop `import SQLite3` from production code (= only
     SQLiteConstants.swift keeps it; = test fixtures may also keep).
-  - Currently 5 sqlite stores DELETED: ChatSessionStore + KanbanStore +
-    TodoStore + BookmarkStore + MemoryStore (via ticket 1 + 6 + 7 + 8
-    + phase 4 followup cleanup).
+  - Currently 6 sqlite stores DELETED: ChatSessionStore + KanbanStore +
+    TodoStore + BookmarkStore + MemoryStore + LinkIndex (via ticket 1
+    + 6 + 7 + 8 + 9 + phase 4 followup cleanup).
+  - Bonus (= not part of phase 5 prerequisites; = separate cleanup
+    ticket): WenshuWorkspaceMigrator (= gated on phase 4 migration
+    runner + WSMigrationPerStore completion; = WenshuWorkspace can
+    be deleted after phase 4 ships to all users).
 
 Each ticket MUST:
   1. Land as 1+ atomic commit per migrated caller file (= no mega-commits).
