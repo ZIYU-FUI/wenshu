@@ -48,13 +48,16 @@ public enum WebSearchConfigurator {
     /// (= the user-config keys are stored under "wenshu.search.<provider_name>").
     public static let userDefaultsKeyPrefix = "wenshu.search."
 
-    /// Read API keys from UserDefaults (= Apple HIG canonical for non-secret
-    /// app config) and construct a `WebSearch` actor with the configured
-    /// providers. Providers without a configured API key are skipped
-    /// (= matches the empty-provider stub behavior in v0.74 ticket 001).
-    public static func configuredEngine(
-        userDefaults: UserDefaults = .standard
-    ) -> WebSearch {
+    /// Read API keys from `SearchAPIKeychain` (= Apple Keychain in production
+    /// per AGENTS.md §11; = InMemorySearchKeychainStore in tests via
+    /// `SearchAPIKeychain.setBackendForTesting(...)`).
+    ///
+    /// First-launch migration: if `wenshu.search.<key_name>` exists in
+    /// UserDefaults (= legacy v0.76 dev path), it is moved into the
+    /// SearchAPIKeychain (= Apple Keychain) and the UserDefaults entry
+    /// is deleted. The migration runs once per key on first access; = after
+    /// the first launch the UserDefaults entries are empty.
+    public static func configuredEngine() -> WebSearch {
         let providers: [any WebSearchProvider] = supportedProviders.compactMap { name in
             guard let keyName = searchAPIKeyName(for: name) else {
                 // SEARXNG: needs endpoint URL, not API key
@@ -62,8 +65,24 @@ public enum WebSearchConfigurator {
                 return nil
             }
 
+            // Migration from UserDefaults (= v0.76 dev path) to
+            // SearchAPIKeychain (= production path per §11).
             let defaultsKey = userDefaultsKeyPrefix + keyName
-            guard let apiKey = userDefaults.string(forKey: defaultsKey),
+            if let legacyKey = UserDefaults.standard.string(forKey: defaultsKey),
+               !legacyKey.isEmpty
+            {
+                do {
+                    try SearchAPIKeychain.saveKey(legacyKey, for: name)
+                    UserDefaults.standard.removeObject(forKey: defaultsKey)
+                } catch {
+                    // Migration failure = fall back to legacy key in this session
+                    // (= next launch will retry the migration).
+                    return provider(for: name, apiKey: legacyKey)
+                }
+                return provider(for: name, apiKey: legacyKey)
+            }
+
+            guard let apiKey = SearchAPIKeychain.loadKey(for: name),
                   !apiKey.isEmpty
             else {
                 return nil
@@ -76,18 +95,15 @@ public enum WebSearchConfigurator {
     }
 
     /// Return the set of provider names (= not key names) that currently
-    /// have a configured API key. Used for UI affordances (= show the
-    /// user which providers are enabled without exposing the key).
-    public static func searchAPIKeysEnabled(
-        userDefaults: UserDefaults = .standard
-    ) -> Set<String> {
+    /// have a configured API key in the SearchAPIKeychain.
+    /// Used for UI affordances (= show the user which providers are enabled
+    /// without exposing the key).
+    public static func searchAPIKeysEnabled() -> Set<String> {
+        let configured = SearchAPIKeychain.listConfiguredProviders()
         var enabled: Set<String> = []
         for name in supportedProviders {
-            guard let keyName = searchAPIKeyName(for: name) else { continue }
-            let defaultsKey = userDefaultsKeyPrefix + keyName
-            if let value = userDefaults.string(forKey: defaultsKey),
-               !value.isEmpty
-            {
+            guard searchAPIKeyName(for: name) != nil else { continue }
+            if configured.contains(name) {
                 enabled.insert(name)
             }
         }
