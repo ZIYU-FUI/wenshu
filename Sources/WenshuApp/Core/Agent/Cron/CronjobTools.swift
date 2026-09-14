@@ -6,6 +6,16 @@
 //  cronjob(action:...) tool dispatcher that the LLM uses to manage
 //  cron jobs from the chat surface).
 //
+//  DEFERRED (v0.73 spec decision):
+//  This 1:1 port of hermes `tools/cronjob_tools.py` is intentionally NOT
+//  wired into ToolRegistry (= see .scratch/v0.73-hermes-agent-wiring-gap/spec.md
+//  §Acceptance row "CronjobTools"). Wenshu cron runs at OS level via LaunchAgent
+//  per AGENTS.md §11.2; LLM-side cron dispatcher is over-engineering.
+//  Future ticket (= v0.74+) may wire it IF the user requests cron-via-chat.
+//
+//  This file is NOT dead code (= per Q57: 3rd-party verdict ≠ authority);
+//  it documents the deferred surface and remains as a reference for future work.
+//
 //  Per spec §2.3: cron is a wenshu-side-wins surface (= wenshu's existing
 //  Cronjob + CronjobStore use Apple HIG macOS LaunchAgent, not hermes's
 //  cross-process claim/lock). HERMES-PARTIAL-010 adds the LLM-facing

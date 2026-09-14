@@ -1,5 +1,17 @@
 // AgentLifecycleTracker.swift · Wenshu · v0.28
 //
+//  DEFERRED (v0.73 spec decision):
+//  This file's production caller is undecided. See
+//  Sources/WenshuApp/Core/Agent/Conversation/AgentLifecycleTrackerDesign.md
+//  for the wiring decision matrix (= Option A vs B vs C). Future
+//  ticket (= v0.74+) will land the recommended path per the design
+//  doc (= Option B = parallel call site in AsyncDelegation, leave UI
+//  alone).
+//
+//  This file is NOT dead code (= per Q57: 3rd-party verdict ≠
+//  authority); it documents the deferred surface and remains as a
+//  reference for future work.
+//
 // Verbatim port from hermes-agent/agent/subagent_lifecycle.py
 // (= wenshu M6 ticket 17 = hermes-port batch 3 seventh ticket).
 //
