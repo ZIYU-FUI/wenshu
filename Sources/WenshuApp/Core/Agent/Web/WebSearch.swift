@@ -134,4 +134,11 @@ public struct ResearchReport: Sendable, Equatable {
 public enum WebSearchError: Error, Sendable, Equatable {
     case noProvidersConfigured
     case emptyResults(providerName: String)
+    /// A specific provider's HTTP call failed (= non-2xx, parse error,
+    /// network error, or other transport-level failure). Added in v0.74
+    /// ticket 001-websearch-providers-stub so the 5 provider implementations
+    /// (= EXAProvider / TAVILYProvider / BRAVEProvider / PARALLELProvider /
+    /// SEARXNGProvider) have a typed way to signal failure distinct from
+    /// `emptyResults` (= "tried but got nothing back").
+    case providerFailure(name: String, underlying: String)
 }
