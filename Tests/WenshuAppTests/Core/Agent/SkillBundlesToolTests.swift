@@ -40,7 +40,7 @@ struct SkillBundlesToolTests {
     @Test("list returns empty envelope on empty registry")
     func listEmptyRegistry() async throws {
         let tool = Self.makeTool()
-        let result = await tool.execute(input: #"{"action":"list"}"#)
+        let result = try await tool.execute(input: #"{"action":"list"}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == true)
         #expect(env["count"] as? Int == 0)
@@ -54,11 +54,11 @@ struct SkillBundlesToolTests {
         let registerInput = #"""
         {"action":"register","bundle":{"id":"alpha","name":"Alpha","skill_ids":["a","b"],"dependencies":[]}}
         """#
-        let registerResult = await tool.execute(input: registerInput)
+        let registerResult = try await tool.execute(input: registerInput)
         let registerEnv = try Self.decodeEnvelope(registerResult)
         #expect(registerEnv["ok"] as? Bool == true)
 
-        let listResult = await tool.execute(input: #"{"action":"list"}"#)
+        let listResult = try await tool.execute(input: #"{"action":"list"}"#)
         let listEnv = try Self.decodeEnvelope(listResult)
         #expect(listEnv["ok"] as? Bool == true)
         #expect(listEnv["count"] as? Int == 1)
@@ -72,8 +72,8 @@ struct SkillBundlesToolTests {
     @Test("show returns the registered bundle by id")
     func showByID() async throws {
         let tool = Self.makeTool()
-        _ = await tool.execute(input: #"{"action":"register","bundle":{"id":"beta","name":"Beta","skill_ids":["x"]}}"#)
-        let result = await tool.execute(input: #"{"action":"show","bundle_id":"beta"}"#)
+        _ = try await tool.execute(input: #"{"action":"register","bundle":{"id":"beta","name":"Beta","skill_ids":["x"]}}"#)
+        let result = try await tool.execute(input: #"{"action":"show","bundle_id":"beta"}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == true)
         let bundle = env["bundle"] as? [String: Any]
@@ -85,7 +85,7 @@ struct SkillBundlesToolTests {
     @Test("show returns bundle_not_found error for unknown id")
     func showUnknownBundle() async throws {
         let tool = Self.makeTool()
-        let result = await tool.execute(input: #"{"action":"show","bundle_id":"nope"}"#)
+        let result = try await tool.execute(input: #"{"action":"show","bundle_id":"nope"}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == false)
         let error = env["error"] as? String ?? ""
@@ -95,7 +95,7 @@ struct SkillBundlesToolTests {
     @Test("show returns missing-bundle_id error when field absent")
     func showMissingField() async throws {
         let tool = Self.makeTool()
-        let result = await tool.execute(input: #"{"action":"show"}"#)
+        let result = try await tool.execute(input: #"{"action":"show"}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == false)
         let error = env["error"] as? String ?? ""
@@ -107,9 +107,9 @@ struct SkillBundlesToolTests {
     @Test("resolve returns transitive skill IDs")
     func resolveTransitive() async throws {
         let tool = Self.makeTool()
-        _ = await tool.execute(input: #"{"action":"register","bundle":{"id":"root","name":"Root","skill_ids":["r1","r2"],"dependencies":["child"]}}"#)
-        _ = await tool.execute(input: #"{"action":"register","bundle":{"id":"child","name":"Child","skill_ids":["c1"],"dependencies":[]}}"#)
-        let result = await tool.execute(input: #"{"action":"resolve","bundle_id":"root"}"#)
+        _ = try await tool.execute(input: #"{"action":"register","bundle":{"id":"root","name":"Root","skill_ids":["r1","r2"],"dependencies":["child"]}}"#)
+        _ = try await tool.execute(input: #"{"action":"register","bundle":{"id":"child","name":"Child","skill_ids":["c1"],"dependencies":[]}}"#)
+        let result = try await tool.execute(input: #"{"action":"resolve","bundle_id":"root"}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == true)
         let skillIDs = env["skill_ids"] as? [String] ?? []
@@ -123,9 +123,9 @@ struct SkillBundlesToolTests {
     @Test("resolve dedupes overlapping skill IDs across dependency levels")
     func resolveDedupes() async throws {
         let tool = Self.makeTool()
-        _ = await tool.execute(input: #"{"action":"register","bundle":{"id":"a","name":"A","skill_ids":["shared","a-only"],"dependencies":["b"]}}"#)
-        _ = await tool.execute(input: #"{"action":"register","bundle":{"id":"b","name":"B","skill_ids":["shared","b-only"],"dependencies":[]}}"#)
-        let result = await tool.execute(input: #"{"action":"resolve","bundle_id":"a"}"#)
+        _ = try await tool.execute(input: #"{"action":"register","bundle":{"id":"a","name":"A","skill_ids":["shared","a-only"],"dependencies":["b"]}}"#)
+        _ = try await tool.execute(input: #"{"action":"register","bundle":{"id":"b","name":"B","skill_ids":["shared","b-only"],"dependencies":[]}}"#)
+        let result = try await tool.execute(input: #"{"action":"resolve","bundle_id":"a"}"#)
         let env = try Self.decodeEnvelope(result)
         let skillIDs = env["skill_ids"] as? [String] ?? []
         // "shared" appears once even though both bundles include it.
@@ -139,7 +139,7 @@ struct SkillBundlesToolTests {
     @Test("register rejects payload without bundle field")
     func registerMissingBundle() async throws {
         let tool = Self.makeTool()
-        let result = await tool.execute(input: #"{"action":"register"}"#)
+        let result = try await tool.execute(input: #"{"action":"register"}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == false)
         let error = env["error"] as? String ?? ""
@@ -149,7 +149,7 @@ struct SkillBundlesToolTests {
     @Test("register rejects bundle without skill_ids")
     func registerMissingSkillIDs() async throws {
         let tool = Self.makeTool()
-        let result = await tool.execute(input: #"{"action":"register","bundle":{"id":"x","name":"X"}}"#)
+        let result = try await tool.execute(input: #"{"action":"register","bundle":{"id":"x","name":"X"}}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == false)
         let error = env["error"] as? String ?? ""
@@ -161,12 +161,12 @@ struct SkillBundlesToolTests {
     @Test("unregister removes a registered bundle")
     func unregisterRemoves() async throws {
         let tool = Self.makeTool()
-        _ = await tool.execute(input: #"{"action":"register","bundle":{"id":"temp","name":"Temp","skill_ids":["t"]}}"#)
-        let unregisterResult = await tool.execute(input: #"{"action":"unregister","bundle_id":"temp"}"#)
+        _ = try await tool.execute(input: #"{"action":"register","bundle":{"id":"temp","name":"Temp","skill_ids":["t"]}}"#)
+        let unregisterResult = try await tool.execute(input: #"{"action":"unregister","bundle_id":"temp"}"#)
         let unregisterEnv = try Self.decodeEnvelope(unregisterResult)
         #expect(unregisterEnv["ok"] as? Bool == true)
 
-        let listResult = await tool.execute(input: #"{"action":"list"}"#)
+        let listResult = try await tool.execute(input: #"{"action":"list"}"#)
         let listEnv = try Self.decodeEnvelope(listResult)
         #expect(listEnv["count"] as? Int == 0)
     }
