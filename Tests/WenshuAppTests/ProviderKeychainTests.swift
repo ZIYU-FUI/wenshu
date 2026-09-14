@@ -14,7 +14,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("ProviderKeychain (Apple Security framework, multi-provider)")
+@Suite("ProviderKeychain (Apple Security framework, multi-provider)", .serialized)
 struct ProviderKeychainTests {
 
     init() {

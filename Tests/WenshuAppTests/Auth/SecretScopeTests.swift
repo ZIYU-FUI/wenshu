@@ -28,7 +28,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("SecretScope (TICKET-HERMES-GAP-005)")
+@Suite("SecretScope (TICKET-HERMES-GAP-005)", .serialized)
 struct SecretScopeTests {
 
     // MARK: - Test 1: EnvVarSource reads process environment
