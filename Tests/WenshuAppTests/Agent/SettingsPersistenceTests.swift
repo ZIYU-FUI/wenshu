@@ -11,6 +11,17 @@ import Foundation
 
 @Suite("SettingsPersistence (001 + 002)")
 struct SettingsPersistenceTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSMemoryRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 8 migration from MemoryStore actor.
+    @MainActor
+    private static func makeMemoryRepository() throws -> WSMemoryRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSMemoryRepository(container: container)
+    }
+
+
 
     private func makeSuite() -> UserDefaults {
         let suiteName = "wenshu.tests.settings-persistence.\(UUID().uuidString)"
@@ -135,65 +146,6 @@ struct SettingsPersistenceTests {
     }
 
     // MARK: - MemoryStore listRecent / purgeOlderThan
-
-    @Test("MemoryStore: listRecent returns newest-first ordering")
-    func testMemoryStoreListRecent() async throws {
-        let tmp = FileManager.default.temporaryDirectory
-            .appendingPathComponent("wenshu-test-\(UUID().uuidString.prefix(8)).db")
-        defer { try? FileManager.default.removeItem(at: tmp) }
-        let store = try MemoryStore(path: tmp.path)
-        try await store.bootstrap()
-        _ = try await store.add(userId: "u1", content: "oldest")
-        try await Task.sleep(nanoseconds: 10_000_000)
-        _ = try await store.add(userId: "u1", content: "middle")
-        try await Task.sleep(nanoseconds: 10_000_000)
-        _ = try await store.add(userId: "u1", content: "newest")
-        let rows = try await store.listRecent(userId: "u1", limit: 5)
-        #expect(rows.count == 3)
-        #expect(rows.first?.content == "newest")
-    }
-
-    @Test("MemoryStore: purgeOlderThan deletes nothing when nothing matches")
-    func testMemoryStorePurgeNoMatch() async throws {
-        let tmp = FileManager.default.temporaryDirectory
-            .appendingPathComponent("wenshu-test-\(UUID().uuidString.prefix(8)).db")
-        defer { try? FileManager.default.removeItem(at: tmp) }
-        let store = try MemoryStore(path: tmp.path)
-        try await store.bootstrap()
-        _ = try await store.add(userId: "u1", content: "fresh")
-        let deleted = try await store.purgeOlderThan(userId: "u1", retentionDays: 365)
-        #expect(deleted == 0)
-        let count = try await store.count(userId: "u1")
-        #expect(count == 1)
-    }
-
-    @Test("MemoryStore: purgeOlderThan with retentionDays <= 0 is a no-op")
-    func testMemoryStorePurgeZeroIsNoop() async throws {
-        let tmp = FileManager.default.temporaryDirectory
-            .appendingPathComponent("wenshu-test-\(UUID().uuidString.prefix(8)).db")
-        defer { try? FileManager.default.removeItem(at: tmp) }
-        let store = try MemoryStore(path: tmp.path)
-        try await store.bootstrap()
-        _ = try await store.add(userId: "u1", content: "x")
-        let deleted = try await store.purgeOlderThan(userId: "u1", retentionDays: 0)
-        #expect(deleted == 0)
-        let deletedNegative = try await store.purgeOlderThan(userId: "u1", retentionDays: -5)
-        #expect(deletedNegative == 0)
-    }
-
-    @Test("MemoryStore: listRecent with limit <= 0 returns empty")
-    func testMemoryStoreListRecentZeroLimit() async throws {
-        let tmp = FileManager.default.temporaryDirectory
-            .appendingPathComponent("wenshu-test-\(UUID().uuidString.prefix(8)).db")
-        defer { try? FileManager.default.removeItem(at: tmp) }
-        let store = try MemoryStore(path: tmp.path)
-        try await store.bootstrap()
-        _ = try await store.add(userId: "u1", content: "x")
-        let rowsZero = try await store.listRecent(userId: "u1", limit: 0)
-        #expect(rowsZero.isEmpty)
-        let rowsNegative = try await store.listRecent(userId: "u1", limit: -3)
-        #expect(rowsNegative.isEmpty)
-    }
 
     // MARK: - Settings-Persistence-002 (Skills)
 

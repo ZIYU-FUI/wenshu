@@ -10,6 +10,17 @@ import Foundation
 
 @Suite("KanbanStore (hermes replica)")
 struct KanbanStoreTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSMemoryRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 8 migration from MemoryStore actor.
+    @MainActor
+    private static func makeMemoryRepository() throws -> WSMemoryRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSMemoryRepository(container: container)
+    }
+
+
 
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own

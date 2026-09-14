@@ -12,6 +12,17 @@ import Foundation
 @Suite("WenshuCore Integration")
 @MainActor
 struct WenshuCoreIntegrationTests {
+    /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSMemoryRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 8 migration from MemoryStore actor.
+    @MainActor
+    private static func makeMemoryRepository() throws -> WSMemoryRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSMemoryRepository(container: container)
+    }
+
+
 
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
@@ -37,10 +48,10 @@ struct WenshuCoreIntegrationTests {
     @Test("Memory + Skill + Kanban + Todo 全 Core 集成")
     @MainActor
     func testAllCoreIntegration() async throws {
-        // 1. MemoryStore (mem0)
-        let memory = try MemoryStore(path: tmpPath("mem"))
-        try await memory.bootstrap()
-        let memResult = try await memory.add(userId: "u1", content: "test memory")
+        // 1. WSMemoryRepository (= Phase 5 ticket 8; = no MemoryStore actor)
+        let memResult = try await MainActor.run {
+            try WSMemoryRepository.shared.add(userId: "u1", content: "test memory")
+        }
         #expect(memResult.userId == "u1")
 
         // 2. KanbanStore (kanban_db)

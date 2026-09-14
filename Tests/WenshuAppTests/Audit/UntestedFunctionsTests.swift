@@ -90,36 +90,6 @@ struct UntestedFunctionsTests {
         #expect(result.isEmpty)
     }
 
-    // MARK: - WenshuConductor.addMemory + searchMemory
-
-    @Test("WenshuConductor.searchMemory returns [] when memory store is nil")
-    @MainActor
-    func testSearchMemoryEmpty() async throws {
-        let runtime = AgentRuntime()
-        let verifier = WenshuVerifier(baseURL: "test://", apiKey: nil, model: .m3)
-        let conductor = await WenshuConductor(
-            runtime: runtime,
-            verifier: verifier,
-            // memoryStore = nil
-        )
-        let memories = await conductor.searchMemory(query: "test")
-        #expect(memories.isEmpty)
-    }
-
-    @Test("WenshuConductor.addMemory silently no-ops when memory store is nil")
-    @MainActor
-    func testAddMemoryNoOp() async throws {
-        let runtime = AgentRuntime()
-        let verifier = WenshuVerifier(baseURL: "test://", apiKey: nil, model: .m3)
-        let conductor = await WenshuConductor(
-            runtime: runtime,
-            verifier: verifier,
-        )
-        await conductor.addMemory(content: "test content")
-        let memories = await conductor.searchMemory(query: "test content")
-        #expect(memories.isEmpty)
-    }
-
     // MARK: - FileTools.pathHasBlockedSymlink (gap 2 fix function)
 
     @Test("FileTools.pathHasBlockedSymlink: regular path returns false")
