@@ -1,5 +1,12 @@
 // LibraryMigrator.swift · Wenshu · v0.26 (FCP library replica)
 //
+// DEFERRED (v0.78 spec decision):
+// The "co_change_scatter" repowise signal (= 25 distinct files) is a
+// historical artifact from v0.26 launch + v0.40-v0.73 era, not a current
+// shotgun surgery pattern. See .scratch/v0.78-librarymigrator-defer/spec.md
+// for the full investigation. Per Q46: do NOT refactor this stable file.
+// Touch it only if a future migration step is actually needed.
+//
 // One-time v0.x → v0.26 .ws layout migration. Detects v0.x .ws (= has
 // books/ at .ws root, OR no WSSchemaVersion key in Info.plist) and
 // migrates to v0.26 layout.
