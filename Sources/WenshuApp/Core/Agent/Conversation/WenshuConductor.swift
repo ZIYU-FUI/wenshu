@@ -4,7 +4,7 @@
 //                          P0 #2 (WIRE-AGENT-002, 2026-09-04)
 //
 //  Wenshu main agent orchestrator: receives user message → calls LLM intent classify → dispatches 0-N v0.19 module agents → waits for results → calls LLM to synthesize final reply.
-//  Dispatch progress goes through KanbanStore (user checks Kanban), ChatView does not show sub-agents (hidden) (boss 2026-08-21 said).
+//  Dispatch progress goes through WSKanbanRepository (= user checks Kanban board), ChatView does not show sub-agents (hidden) (boss 2026-08-21 said). (= Phase 5 ticket 6 deleted KanbanStore actor.)
 //
 //  Reuses v0.19 12-module backend (LinkGraph / Search / Template / Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier;
     //  note: `WenshuVerifier` lives at `Core/Agent/Connector/WenshuVerifier.swift`,
@@ -29,7 +29,7 @@ import Foundation
 // See commit 49 (= ContextEngine deferred) for the full rationale.
 // Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
 
-/// Wenshu orchestrator (actor thread-safe, consistent with AgentRuntime / KanbanStore / MemoryStore).
+/// Wenshu orchestrator (actor thread-safe, consistent with AgentRuntime / WSKanbanRepository / WSMemoryRepository).
 public actor WenshuConductor {
     private let runtime: AgentRuntime
     private let verifier: WenshuVerifier
@@ -38,10 +38,10 @@ public actor WenshuConductor {
     /// backward-compat callers during the migration window).
     private let sessionStore: ChatSessionStore?
     /// Long-term memory persistence for agent (now SwiftData-backed via WSMemoryRepository
-    /// after Phase 5 ticket 8 — no MemoryStore actor instance needed).
+    /// (= Phase 5 ticket 8 deleted MemoryStore.swift; this property was previously MemoryStore? for the deprecated actor bridge, now removed.)
     /// All memory calls go through WSMemoryRepository.shared (= @MainActor).
     /// Local Skills registry (replica of hermes skills_hub). Skills loaded at startup, agent invokes.
-    /// Lazy bootstrap for the same actor isolation reason as MemoryStore.
+    /// Lazy bootstrap pattern (= kept here for the still-actor-isolated SkillRegistry; = the MemoryStore equivalent was removed in Phase 5 ticket 8).
     /// See .scratch/2026-08-22-frontend-integration/issues/h02-skill-registry-frontend.md.
     private var skillRegistry: SkillRegistry?
     private var skillRegistryBootstrapped: Bool = false
@@ -93,7 +93,7 @@ public actor WenshuConductor {
         // the loop path is enabled later in the same lifetime).
         // Phase 5 ticket 2: kanbanStore param made optional so peer-conductor
         // fallback paths (= ChatView.preview) can construct WenshuConductor
-        // without instantiating a raw sqlite3 KanbanStore. Production path
+        // without instantiating a raw sqlite3 KanbanStore actor (= Phase 5 ticket 6 deleted it). Production path
         // (= WenshuAppDelegate L222) still passes the kanbanStore arg.
         self.init(
             runtime: runtime,
@@ -315,7 +315,7 @@ public actor WenshuConductor {
         // triggers), no callback fires.
         streamCallback: (@Sendable (LLMBlock) async -> Void)?
     ) async -> (reply: String, totalTokens: Int, thinking: String?)? {
-        // Step 1: write 1 conductor parent task to KanbanStore (= legacy
+        // Step 1: write 1 conductor parent task to WSKanbanRepository (= legacy
         // parity: same Kanban behaviour as the legacy path).
         let added = await MainActor.run { () -> KanbanTask? in
             try? WSKanbanRepository.shared.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
@@ -403,7 +403,7 @@ public actor WenshuConductor {
         // for live token rendering.
         streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
     ) async -> (reply: String, totalTokens: Int, thinking: String?) {
-        // Step 1: write 1 conductor parent task to KanbanStore (kanban progress, not shown in ChatView)
+        // Step 1: write 1 conductor parent task to WSKanbanRepository (kanban progress, not shown in ChatView)
         let conductorTask: KanbanTask?
         do {
             conductorTask = await MainActor.run {
@@ -458,7 +458,7 @@ public actor WenshuConductor {
         // Each sub-agent has independent system prompt (SubAgentIdentity.systemPrompt).
         var subResults: [(String, String)] = []
         if !selectedAgents.isEmpty {
-            // Build tasks (add to KanbanStore first, before TaskGroup, so all parallel tasks see the same state)
+            // Build tasks (add to WSKanbanRepository first, before TaskGroup, so all parallel tasks see the same state)
             var tasks: [(name: String, kanbanTaskId: String?)] = []
             for agentName in selectedAgents {
                 let kTask = await MainActor.run {

@@ -7,7 +7,7 @@
 //  chat surface).
 //
 //  Per spec §2.3 + AGENTS.md §11.3: kanban is a wenshu-side-wins
-//  surface (= wenshu's existing KanbanStore manages the SQLite-backed
+//  surface (= wenshu's SwiftData WSKanbanRepository manages the
 //  task store; hermes's cross-process claim/lock semantics don't
 //  apply to a single-process macOS app). HERMES-PARTIAL-011 adds the
 //  LLM-facing tool dispatcher so the chat surface can manage tasks
@@ -24,21 +24,24 @@
 //    - heartbeat   — emit a heartbeat (= hermes _handle_heartbeat)
 //    - comment     — add a comment (= hermes _handle_comment)
 //    - link        — link tasks (= hermes _handle_link)
-//    - transition  — transition status (= KanbanStore.transition)
+//    - transition  — transition status (= WSKanbanRepository.transition)
 //
 //  Per spec §2.3: kanban ≠ cross-process claim/lock; the wenshu surface
-//  uses the in-process KanbanStore transitions directly. The hermes
+//  uses the WSKanbanRepository (= @MainActor SwiftData) directly. The hermes
 //  worker_run_id / _enforce_worker_task_ownership surfaces are not
 //  applicable to the wenshu single-process model.
 //
-//  v0.18 ticket 21 (= user-side kanban in KanbanStore.swift) +
+//  v0.18 ticket 21 (= user-side kanban) +
 //  HERMES-PARTIAL-011 (2026-09-04) for the LLM-side surface.
 //
 
 import Foundation
 
-/// LLM-facing kanban management tool. Thin facade over wenshu's existing
-/// KanbanStore that exposes the action dispatcher the chat surface uses.
+/// LLM-facing kanban management tool. Thin facade over wenshu's
+/// SwiftData-backed kanban store (= WSKanbanRepository.shared =
+/// @MainActor; = Phase 5 ticket 6 deleted Core/Kanban/KanbanStore.swift
+/// which used raw sqlite3) that exposes the action dispatcher the
+/// chat surface uses.
 public actor KanbanTools {
     private let store: WSKanbanRepository
     // v0.72 Q99 MED followup: removed the dead sharedPlaceholder cache
@@ -323,7 +326,7 @@ public actor KanbanTools {
         )
     }
 
-    /// Transition status (= KanbanStore.transition).
+    /// Transition status (= WSKanbanRepository.transition).
     private func transition(params: KanbanParams) async -> KanbanToolResult {
         guard let id = params.taskId else {
             return KanbanToolResult(success: false, output: "task_id is required for transition")

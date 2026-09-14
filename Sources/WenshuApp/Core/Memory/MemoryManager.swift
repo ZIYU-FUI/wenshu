@@ -104,7 +104,7 @@ public actor MemoryManager {
                 let total = (try? await countMemory(userId: "default")) ?? 0
                 return .synced(writtenCount: 1, totalChars: total)
             } catch {
-                return .blocked(reason: "MemoryStore.add failed: \(error)")
+                return .blocked(reason: "WSMemoryRepository.add failed: \(error)")
             }
         case .stageForApproval:
             // hermes: stage to pending queue. wenshu v0.23: silent stage (no GUI yet).
@@ -171,8 +171,11 @@ public actor MemoryManager {
     //   - MemoryManager is an actor (= async methods run on the actor's
     //     executor; = not MainActor).
     //
-    // All helpers return results matching the MemoryStore API shape so the
-    // existing prefetch/sync callsites don't need to know which backend is used.
+    // All helpers return [Memory] / Int / Bool (= the public-API shape
+    // preserved across the migration) so existing prefetch/sync callsites
+    // don't need to know which backend is used. Persistence is now always
+    // WSMemoryRepository (= @MainActor SwiftData wrapper for WSMemory
+    // @Model; = Phase 5 ticket 8 deleted the MemoryStore actor).
 
     /// searchMemory: actor-isolated read (= delegates to SwiftData).
     private func searchMemory(

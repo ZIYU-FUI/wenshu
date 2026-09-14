@@ -3,13 +3,13 @@
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // Boss 2026-08-23: 'kanbanchat, userworkprogress'.
-//  Reads from KanbanStore, renders running / done sub-agent tasks in aiDynamic zone.
+//  Reads from WSKanbanRepository.shared (= @MainActor SwiftData wrapper; = Phase 5 ticket 6 deleted KanbanStore actor), renders running / done sub-agent tasks in aiDynamic zone.
 //
 
 import SwiftUI
 
 /// Sub-agent progress view: (transparent open box) showing all sub-agent tasks.
-/// Reads KanbanStore (actor) and renders task list with status, title, duration.
+/// Reads WSKanbanRepository (= @MainActor SwiftData wrapper for WSKanbanTask @Model) and renders task list with status, title, duration.
 /// Per boss 8/23: 'userworkprogress'.
 public struct SubAgentProgressView: View {
     @State private var tasks: [KanbanTask] = []
