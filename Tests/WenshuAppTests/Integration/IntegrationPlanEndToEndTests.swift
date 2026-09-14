@@ -84,6 +84,17 @@ private actor NotificationCollector {
 @Suite("Integration plan end-to-end (= all 22 wire-up tickets exercised together)")
 struct IntegrationPlanEndToEndTests {
     /// Per-test in-memory SwiftData container (= tests don't share state via
+    /// WSPersistenceContainer.shared). Each WSMemoryRepository is its own
+    /// @MainActor-isolated object with its own ModelContext.
+    /// Phase 5 ticket 8 migration from MemoryStore actor.
+    @MainActor
+    private static func makeMemoryRepository() throws -> WSMemoryRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSMemoryRepository(container: container)
+    }
+
+
+    /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
     /// Phase 5 ticket 7 migration from TodoStore actor.
@@ -186,11 +197,12 @@ struct IntegrationPlanEndToEndTests {
         return WSKanbanRepository(container: container)
     }
 
-    /// Build an isolated MemoryStore rooted in /tmp.
-    private static func makeMemoryStore() async throws -> MemoryStore {
-        let store = try MemoryStore(path: "/tmp/wenshu-p5-23-memory-\(UUID().uuidString).db")
-        try await store.bootstrap()
-        return store
+    /// Build an isolated WSMemoryRepository via in-memory SwiftData container.
+    /// Phase 5 ticket 8 migration from MemoryStore actor.
+    @MainActor
+    private static func makeMemoryStore() throws -> WSMemoryRepository {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        return WSMemoryRepository(container: container)
     }
 
     // MARK: - Master integration test
@@ -215,7 +227,7 @@ struct IntegrationPlanEndToEndTests {
         print("[setup] built todoStore")
         let kanbanStore = try await Self.makeKanbanRepository()
         print("[setup] built kanbanStore")
-        _ = try await Self.makeMemoryStore()  // only used as smoke probe (= no LLM path)
+        _ = try Self.makeMemoryStore()  // only used as smoke probe (= no LLM path)
         print("[setup] built memoryStore")
 
         // HermesTodoStore (= the in-memory planning list the

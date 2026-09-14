@@ -32,13 +32,11 @@ public actor MemoryManager {
     /// Phase 5 ticket 4: `store` is now optional. When nil (= default),
     /// the actor delegates reads/writes to WSMemoryRepository.shared
     /// (= the @MainActor SwiftData wrapper for the `WSMemory` @Model).
-    /// Direct MemoryStore usage (= the legacy sqlite3 actor) is preserved
-    /// for tests that want to inject a custom store; = MemoryStore.swift
-    /// deletion is gated on every other caller migrating (= future ticket).
-    private let store: MemoryStore?
-    private let maxCharBudget: Int  // hermes default = 2200
-    public init(store: MemoryStore? = nil, maxCharBudget: Int = 2200) {
-        self.store = store
+    /// Max character budget for prefetch (= hermes default = 2200).
+    /// All memory calls go through WSMemoryRepository.shared (Apple SwiftData-backed)
+    /// after Phase 5 ticket 8.
+    private let maxCharBudget: Int
+    public init(maxCharBudget: Int = 2200) {
         self.maxCharBudget = maxCharBudget
     }
 
@@ -123,15 +121,9 @@ public actor MemoryManager {
     private var prefetchedForNextTurn: PrefetchResult?
 
     public func queuePrefetch(userMessage: String) {
-        let storeRef = store
         let budget = maxCharBudget
         Task.detached {
-            // `self.` (= instance call) because prefetchInBackground now reads
-            // WSMemoryRepository.shared (= @MainActor) when storeRef is nil.
-            // Static call would force MainActor.run from the actor's executor;
-            // = instance call preserves actor isolation.
             let result = await self.prefetchInBackground(
-                store: storeRef,
                 userMessage: userMessage,
                 budget: budget
             )
@@ -151,7 +143,6 @@ public actor MemoryManager {
     }
 
     private func prefetchInBackground(
-        store: MemoryStore?,
         userMessage: String,
         budget: Int
     ) async -> PrefetchResult {
@@ -171,7 +162,7 @@ public actor MemoryManager {
 
     // MARK: - Phase 5 ticket 4: SwiftData bridge helpers
     //
-    // When `store` is nil, MemoryManager delegates reads/writes to
+    // MemoryManager always delegates reads/writes to
     // WSMemoryRepository.shared (= the @MainActor SwiftData wrapper for
     // `WSMemory` @Model class per phase 3 deferred commit 43).
     //
@@ -183,15 +174,12 @@ public actor MemoryManager {
     // All helpers return results matching the MemoryStore API shape so the
     // existing prefetch/sync callsites don't need to know which backend is used.
 
-    /// searchMemory: actor-isolated read (= prefers store; falls back to SwiftData).
+    /// searchMemory: actor-isolated read (= delegates to SwiftData).
     private func searchMemory(
         userId: String,
         query: String,
         limit: Int
     ) async -> [Memory] {
-        if let store {
-            return (try? await searchMemory(userId: userId, query: query, limit: limit)) ?? []
-        }
         return await MainActor.run {
             (try? WSMemoryRepository.shared.search(userId: userId, query: query, limit: limit)) ?? []
         }
@@ -200,9 +188,6 @@ public actor MemoryManager {
     /// addMemory: actor-isolated write.
     @discardableResult
     private func addMemory(userId: String, content: String) async -> Bool {
-        if let store {
-            return (try? await addMemory(userId: userId, content: content)) != nil
-        }
         return await MainActor.run {
             (try? WSMemoryRepository.shared.add(userId: userId, content: content)) != nil
         }
@@ -210,9 +195,6 @@ public actor MemoryManager {
 
     /// countMemory: actor-isolated count.
     private func countMemory(userId: String) async -> Int {
-        if let store {
-            return (try? await countMemory(userId: userId)) ?? 0
-        }
         return await MainActor.run {
             (try? WSMemoryRepository.shared.count(userId: userId)) ?? 0
         }

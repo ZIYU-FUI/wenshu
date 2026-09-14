@@ -54,7 +54,6 @@ import Foundation
 // v0.72 SwiftData migration: this file still uses MemoryStore actor (= deprecated).
 // See commit 49 (= ContextEngine deferred) for the full rationale.
 // Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
-#warning("wenshu.MemoryProvider: MemoryStore actor is deprecated; = migrate to WSMemoryProvider in future ticket")
 
 // MARK: - ABC (= hermes MemoryProvider)
 

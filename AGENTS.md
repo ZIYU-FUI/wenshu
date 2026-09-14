@@ -332,14 +332,15 @@ Dependency graph (= must be done in this order):
     migration runner + WSMigrationPerStore completion; = separate cleanup
     ticket).
 
-After all 7 tickets complete (= tickets 1-7 = the required migration
-tickets; = tickets 8/9 = future cleanup for MemoryStore + LinkIndex):
-  - 4 raw sqlite3 store files can be `git rm`-ed once their future cleanup
-    tickets 8/9 land (= MemoryStore + LinkIndex).
+After all 8 tickets complete (= tickets 1-8 = the required migration
+tickets; = ticket 9 = future cleanup for LinkIndex):
+  - 1 raw sqlite3 store file can be `git rm`-ed once its future cleanup
+    ticket 9 lands (= LinkIndex).
   - Package.swift: drop `import SQLite3` from production code (= only
     SQLiteConstants.swift keeps it; = test fixtures may also keep).
-  - Currently 4 sqlite stores DELETED: ChatSessionStore + KanbanStore +
-    TodoStore + BookmarkStore (via ticket 6/7).
+  - Currently 5 sqlite stores DELETED: ChatSessionStore + KanbanStore +
+    TodoStore + BookmarkStore + MemoryStore (via ticket 1 + 6 + 7 + 8
+    + phase 4 followup cleanup).
 
 Each ticket MUST:
   1. Land as 1+ atomic commit per migrated caller file (= no mega-commits).

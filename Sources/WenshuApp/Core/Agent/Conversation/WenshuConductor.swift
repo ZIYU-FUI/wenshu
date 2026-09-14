@@ -26,10 +26,8 @@
 
 import Foundation
 
-// v0.72 SwiftData migration: this file still uses MemoryStore actor (= deprecated).
 // See commit 49 (= ContextEngine deferred) for the full rationale.
 // Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
-#warning("wenshu.WenshuConductor: MemoryStore actor is deprecated; = migrate to WSMemoryProvider in future ticket")
 
 /// Wenshu orchestrator (actor thread-safe, consistent with AgentRuntime / KanbanStore / MemoryStore).
 public actor WenshuConductor {
@@ -39,11 +37,9 @@ public actor WenshuConductor {
     /// after Phase 5 ticket 1; = the actor still holds an optional reference for
     /// backward-compat callers during the migration window).
     private let sessionStore: ChatSessionStore?
-    /// Long-term memory persistence for agent. Optional — bootstrap failure degrades gracefully (memory disabled).
-    /// Bootstrap is lazy on first `handle()` call (Swift actors cannot await in init).
-    /// See .scratch/2026-08-22-frontend-integration/issues/h01-memorystore-frontend.md.
-    private var memoryStore: MemoryStore?
-    private var memoryStoreBootstrapped: Bool = false
+    /// Long-term memory persistence for agent (now SwiftData-backed via WSMemoryRepository
+    /// after Phase 5 ticket 8 — no MemoryStore actor instance needed).
+    /// All memory calls go through WSMemoryRepository.shared (= @MainActor).
     /// Local Skills registry (replica of hermes skills_hub). Skills loaded at startup, agent invokes.
     /// Lazy bootstrap for the same actor isolation reason as MemoryStore.
     /// See .scratch/2026-08-22-frontend-integration/issues/h02-skill-registry-frontend.md.
@@ -84,7 +80,6 @@ public actor WenshuConductor {
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
         sessionStore: ChatSessionStore? = nil,
-        memoryStore: MemoryStore? = nil,
         skillRegistry: SkillRegistry? = nil,
         tools: [String: any Tool] = [:]
     ) {
@@ -104,7 +99,6 @@ public actor WenshuConductor {
             runtime: runtime,
             verifier: verifier,
             sessionStore: sessionStore,
-            memoryStore: memoryStore,
             skillRegistry: skillRegistry,
             connector: nil,
             loopRuntime: nil,
@@ -136,7 +130,6 @@ public actor WenshuConductor {
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
         sessionStore: ChatSessionStore? = nil,
-        memoryStore: MemoryStore? = nil,
         skillRegistry: SkillRegistry? = nil,
         connector: (any LLMConnector)? = nil,
         loopRuntime: RuntimeHelpers? = nil,
@@ -145,7 +138,6 @@ public actor WenshuConductor {
         self.runtime = runtime
         self.verifier = verifier
         self.sessionStore = sessionStore
-        self.memoryStore = memoryStore
         self.skillRegistry = skillRegistry
         self.connector = connector
         self.loopRuntime = loopRuntime
@@ -155,22 +147,6 @@ public actor WenshuConductor {
         // every existing call site compiles unchanged.
         self.tools = tools
         // Bootstrap deferred to first handle() call (Swift actor init cannot await).
-    }
-
-    /// h01: lazy bootstrap of MemoryStore. Idempotent.
-    private func ensureMemoryStoreBootstrapped() async {
-        guard !memoryStoreBootstrapped else { return }
-        memoryStoreBootstrapped = true
-        guard let store = memoryStore else { return }
-        do {
-            try await store.bootstrap()
-        } catch {
-            // v0.23 audit #014 fix: reset bootstrapped flag on failure so
-            // next call retries (boss 8/23 risk-averse: don't permanently
-            // disable memory if bootstrap transiently fails).
-            memoryStoreBootstrapped = false
-            memoryStore = nil
-        }
     }
 
     /// h02: lazy bootstrap of SkillRegistry. Lists available skills.
@@ -252,20 +228,6 @@ public actor WenshuConductor {
         default:
             return "(tool blocked: unknown tool '\(name)')"
         }
-    }
-
-    /// h01: persist a memory for the current user. No-op if MemoryStore unavailable.
-    public func addMemory(content: String) async {
-        await ensureMemoryStoreBootstrapped()
-        guard let store = memoryStore else { return }
-        _ = try? await store.add(userId: "wenshu-user", content: content)
-    }
-
-    /// h01: search memories for context. Returns [] if MemoryStore unavailable.
-    public func searchMemory(query: String, limit: Int = 5) async -> [Memory] {
-        await ensureMemoryStoreBootstrapped()
-        guard let store = memoryStore else { return [] }
-        return (try? await store.search(userId: "wenshu-user", query: query, limit: limit)) ?? []
     }
 
     /// handle: receive user message, dispatch sub-agents, synthesize final reply
