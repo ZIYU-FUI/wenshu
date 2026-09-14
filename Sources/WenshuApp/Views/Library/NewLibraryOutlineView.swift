@@ -1769,7 +1769,7 @@ struct NewLibraryOutlineView: View {
                 HStack(spacing: 6) {
                     LucideIcon("plus", size: 14)
                         .foregroundStyle(.secondary)
-                    Text("新建")
+                    Text(WenshuI18n.t("sidebar.new_button.label"))
                         .font(.callout)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
