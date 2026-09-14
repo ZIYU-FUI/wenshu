@@ -8,6 +8,22 @@ grep + pick up.
 
 - English only. No CJK characters or punctuation.
 
+# Status sanity (last re-verified 2026-09-14)
+
+- ✓ B-01 — completed (AppTitlebar.swift deleted in v0.34 Tier-1 rank-4; Toggle sidebar/preview/tools labels gone from code; only ComponentIndex.md example reference remains, intentional)
+- ✓ B-02 — completed (ChatZoneTopChrome + DynamicZoneTabBar deleted; PaneTabBar is sole top-bar wrapper)
+- ⏸ B-03 — still open (36 commits with CJK bodies need `git rebase -i 6585a0476^..HEAD` body rewrite; awaits boss拍)
+- ✓ B-04 — completed (all 11 Notification.Name definitions migrated to Core/Notifications/AppNotifications.swift; com.wenshu.* naming)
+- ✓ B-05 — completed (wenshu.llm.model single owner in AppState; zoneVisible @AppStorage removed; NSSplitView autosave handles persistence)
+- ✓ B-06 — completed (liquidGlassOpacity / WenshuChromeOverlay / AppTitlebar / AppStatusbar refs gone)
+- ✓ B-07 — completed 2026-09-14 (= all 9 stale-skipped tickets shipped via prior sessions; audit per commit log + grep against Sources/Tests: 028-001 ratify (b) 2026-08-27 / 028-002 builtinDefault FCP Browser / 028-011 DragRegressionTests.swift / 015.014 commits 8330ddda3+d2195a121+1f1293b95+a03e0c0a5 / 015.019 fcbb0ad99+29666ede9 / 015.020 PaneStatusBar migration / 015.073 zone接入 4421e710f+57918112b / 015.015 e847df272 per-book project files; backlog stale-status cleanup only — no new code; = B-07 0 truly open tickets remaining per audit)
+- ✓ B-08 — completed 2026-09-14 (= commit 6ad59e68b emotion curve .accessibilityLabel → i18n key + commit d2e7cf638 sidebar new button Text("新建") → i18n key; = en + zh-Hans catalogs both 100% complete; source code 0 hardcoded English or Chinese user-facing strings; = forward + reverse UI string sweep closed; merged to main as 734609e21)
+- ✓ B-09 — completed (KanbanView + KanbanWindow + SubAgentProgressView + TodoListView + TodoWindow all ship in Sources/WenshuApp/Views/{Kanban,Todo}/; DynamicZoneView consumes KanbanView; phase 5 ticket 3 commit ce80c6492 dropped TodoStore subscription; Kanban + Todo = backend SwiftData (WSKanbanRepository + WSTodoRepository) + frontend view layer; = "no frontend wiring" claim in original B-09 was stale per 2026-09-14 audit)
+- ✓ B-10 — completed (ProviderKeychain SecItemAdd/SecItemCopyMatching/SecItemDelete real code restored; wenshu.debug.api.key stub removed)
+- ✓ B-11 — completed (v0.34 editor preview/edit 10 commits landed; bug Q33 fixed)
+
+Status entries above are verified by grep against current Sources/WenshuApp/ at the time of writing.
+
 ---
 
 ## B-01 — All wenshu user-facing strings must be Chinese
