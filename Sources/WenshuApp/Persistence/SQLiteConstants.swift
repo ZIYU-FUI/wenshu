@@ -4,11 +4,11 @@
 //  v0.72 Q99 dual-axis LOW fix: consolidated the duplicated
 //  `private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)`
 //  (= previously copy-pasted into 4+ files). Per Phase 5 outcome:
-//  - All 6 of the planned chat/kanban/toDo/memory/bookmark/workspace
+//  - All 7 of the planned chat/kanban/toDo/memory/bookmark/workspace
 //    stores WERE deleted (= Phase 5 tickets 6/7/8/9 deleted KanbanStore
 //    + TodoStore + MemoryStore + LinkIndex; = ticket 10a deleted
-//    ChatSessionStore; = ticket 10b deleted WenshuWorkspace; = the
-//    earlier Round 8 ticket 10b commit deleted BookmarkStore).
+//    ChatSessionStore; = ticket 10b deleted BookmarkStore +
+//    WenshuWorkspace).
 //  - Plus 2 additional sqlite3 files outside this header's original
 //    list that still use SQLITE_TRANSIENT: HermesKanbanDB,
 //    FullTextSearch (= total = 2 still-alive files post-Phase 5).
@@ -23,7 +23,7 @@
 //  docs_fts SQLite FTS5 helper; = HermesKanbanDB is a separate Kanban
 //  SQLite store scoped to the kanban subsystem), not chat/kanban/toDo/
 //  memory/bookmark/workspace persistence.
-//  The 6 deleted files (= KanbanStore + TodoStore + MemoryStore +
+//  The 7 deleted files (= KanbanStore + TodoStore + MemoryStore +
 //  LinkIndex + ChatSessionStore + BookmarkStore + WenshuWorkspace) no
 //  longer import this helper.
 

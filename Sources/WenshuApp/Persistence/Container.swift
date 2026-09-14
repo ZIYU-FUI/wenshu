@@ -166,13 +166,12 @@ public enum WSPersistenceContainer {
     /// boss 8/25 OOB "chat.sqlite must live in .ws warehouse" rule).
     ///
     /// Phase 5 ticket 1 sub-task 1a (= SwiftData warehouse path support).
-    /// Replaces the per-file SQLite Actor pattern (= KanbanStore, TodoStore,
-    /// MemoryStore, LinkIndex, and the ChatSessionStore raw sqlite3 file were
-    /// the 5 store sources; = Phase 5 deleted KanbanStore + TodoStore +
-    /// MemoryStore + LinkIndex via tickets 6/7/8/9, then removed ChatSessionStore
-    /// via ticket 10a; = BookmarkStore still uses raw sqlite3 and is on the
-    /// future cleanup ticket 10b list) where each file opens its
-    /// own sqlite3 handle at a custom path.
+    /// Replaces the per-file SQLite Actor pattern (= all 7 of the planned
+    /// Phase 5 sqlite3 stores — KanbanStore, TodoStore, MemoryStore,
+    /// LinkIndex, ChatSessionStore, BookmarkStore, WenshuWorkspace — were
+    /// deleted via tickets 6/7/8/9 + 10a + 10b; = each file used to open
+    /// its own sqlite3 handle at a custom path; = the warehouse container
+    /// is the canonical SwiftData home for all live data).
     ///
     /// Parameters:
     ///   - url: file URL for the SwiftData store (= the parent directory

@@ -162,9 +162,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         //
         // This runs BEFORE any chat-history view reads from the repository
         // (= so SwiftData repositories are ready before any view reads from them).
-        // Post-Phase 5 ticket 10b: all 6 of the planned sqlite3 stores are deleted
+        // Post-Phase 5 ticket 10b: all 7 of the planned sqlite3 stores are deleted
         // (= KanbanStore + TodoStore + MemoryStore + LinkIndex + ChatSessionStore +
-        // WenshuWorkspace). The warehouse container is the canonical SwiftData
+        // BookmarkStore + WenshuWorkspace). The warehouse container is the canonical SwiftData
         // home for all live data (= phase 4 migration runner imports legacy data
         // on first launch via WSMigrationRunner.migrateIfNeeded).
         // Remaining legacy sqlite3 actors (= separate from the per-store
