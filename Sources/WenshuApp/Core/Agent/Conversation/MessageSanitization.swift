@@ -66,32 +66,34 @@ public enum MessageSanitization {
     public static func sanitizeSurrogates(_ text: String) -> String {
         var out = String()
         out.reserveCapacity(text.count)
-        var iter = text.unicodeScalars.makeIterator()
-        while let scalar = iter.next() {
+        let scalars = text.unicodeScalars
+        var idx = scalars.startIndex
+        while idx < scalars.endIndex {
+            let scalar = scalars[idx]
             // High surrogate: must be followed by a low surrogate to form a pair.
             if scalar.value >= 0xD800 && scalar.value <= 0xDBFF {
-                // Peek next scalar — but unicodeScalars iterator is single-shot.
-                // Fall back to scanning the underlying UTF-16 view for the pair check.
-                let idx = text.unicodeScalars.firstIndex(of: scalar)!
-                let nextIdx = text.unicodeScalars.index(after: idx)
-                if nextIdx < text.unicodeScalars.endIndex {
-                    let next = text.unicodeScalars[nextIdx]
+                let nextIdx = scalars.index(after: idx)
+                if nextIdx < scalars.endIndex {
+                    let next = scalars[nextIdx]
                     if next.value >= 0xDC00 && next.value <= 0xDFFF {
+                        // Valid surrogate pair (= supplementary plane character)
                         out.unicodeScalars.append(scalar)
                         out.unicodeScalars.append(next)
-                        // Skip the low surrogate on next call by advancing.
-                        _ = iter.next()
+                        idx = scalars.index(after: nextIdx)
                         continue
                     }
                 }
-                // Lone high surrogate → drop.
+                // Lone high surrogate (= no following low surrogate) → drop (= was force-unwrap bug)
+                idx = scalars.index(after: idx)
                 continue
             }
             // Low surrogate without preceding high → drop.
             if scalar.value >= 0xDC00 && scalar.value <= 0xDFFF {
+                idx = scalars.index(after: idx)
                 continue
             }
             out.unicodeScalars.append(scalar)
+            idx = scalars.index(after: idx)
         }
         return out
     }
