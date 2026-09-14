@@ -9,8 +9,8 @@
 //    3. sub-agent dispatch loop → no-ops (no agents selected)
 //    4. Auditor pass → no-ops
 //    5. synthesis → graceful degradation (curated fallback reply)
-//    6. ChatSessionStore writes 0 sub-agent runs (because none dispatched)
-//    7. KanbanStore writes the conductor parent task
+//    6. WSChatRepository writes 0 sub-agent runs (because none dispatched)
+//    7. WSKanbanRepository writes the conductor parent task
 //
 //  Verifies the WHOLE pipeline state machine without external dependencies.
 //  For real LLM verification, see wenshu manual integration test (boss 8/21+).
@@ -25,7 +25,7 @@ struct WenshuConductorE2ETests {
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
-    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    /// Phase 5 ticket 6 migration from KanbanStore actor (= now deleted).
     @MainActor
     private static func makeKanbanRepository() throws -> WSKanbanRepository {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
@@ -35,17 +35,16 @@ struct WenshuConductorE2ETests {
 
 
     /// Pipeline test: handle() with no API key → graceful degradation end-to-end.
-    /// Verifies state writes (Kanban + ChatSessionStore) even when LLM calls fail.
+    /// Verifies state writes (WSKanbanRepository + WSChatRepository) even when
+    /// LLM calls fail.
     @Test("e2e pipeline: handle → graceful degradation → state writes")
     @MainActor
     func testE2EGracefulDegradation() async throws {
         // Set up all stores (real SQLite, tmp paths)
         let kanban = try Self.makeKanbanRepository()
-        // Phase 5 ticket 10a: ChatSessionStore is being deleted; the test no
-        // longer constructs one (= sessionStore: param was removed from
-        // WenshuConductor in ticket 10a). The conductor's sub-agent runs
-        // path now uses WSChatRepository.shared (see testE2ESubAgentRunsTableReady
-        // follow-up after ticket 10a lands).
+        // Phase 5 ticket 10a: ChatSessionStore was deleted (= sessionStore: param
+        // removed from WenshuConductor init). Sub-agent run persistence now lives
+        // exclusively in WSChatRepository.shared (= @MainActor SwiftData wrapper).
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier()  // no API key → all LLM calls fail
 
@@ -65,7 +64,7 @@ struct WenshuConductorE2ETests {
         #expect(!result.reply.isEmpty, "synthesis graceful degradation should return non-empty reply")
         #expect(result.totalTokens == 0, "no LLM calls succeeded → totalTokens should be 0")
 
-        // Step 7: KanbanStore has the conductor parent task (from handle step 1)
+        // Step 7: WSKanbanRepository has the conductor parent task (from handle step 1)
         let kanbanTasks = try await kanban.list()
         #expect(kanbanTasks.count >= 1, "conductor should write parent kanban task")
         let conductorTask = kanbanTasks.first { $0.title.contains("conductor:") }
@@ -77,13 +76,6 @@ struct WenshuConductorE2ETests {
         let subAgentRuns = try WSChatRepository.shared.loadSubAgentRuns(sessionId: "default")
         #expect(subAgentRuns.isEmpty, "no LLM → no sub-agent runs persisted")
     }
-
-    /// Pipeline test: ChatSessionStore sub_agent_runs coverage now lives in
-    /// `WSChatRepositoryTests.swift` L84-99 (= recordSubAgentRun +
-    /// loadSubAgentRuns round-trip against WSSubAgentRun SwiftData @Model).
-    /// This test was removed in Phase 5 ticket 10b (= the previous version
-    /// was a `return` stub; = no real assertions; = no coverage value
-    /// beyond the duplicate in WSChatRepositoryTests).
 
     /// Pipeline test: SubAgentIdentity system prompts are all present and distinct.
     /// Verifies the 5 agents can be dispatched (i.e. their prompts exist for handle() to use).
