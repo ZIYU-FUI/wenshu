@@ -7,7 +7,7 @@
 //  - 4 of these 6 stores WERE deleted (= Phase 5 tickets 6/7/8/9
 //    deleted KanbanStore + TodoStore + MemoryStore + LinkIndex).
 //  - 2 stores STILL exist (= per AGENTS.md §11.4.2 HONEST SCOPE GAP;
-//    = future cleanup ticket 10): ChatSessionStore + BookmarkStore.
+//    = future cleanup ticket 10): ChatSessionStore only
 //  - Plus 3 additional sqlite3 files outside this header's original
 //    list that also use SQLITE_TRANSIENT: HermesKanbanDB,
 //    FullTextSearch, WenshuWorkspace (= total = 5 still-alive files).
@@ -18,7 +18,7 @@
 //  canonical Swift workaround.
 //
 //  Still-alive sqlite3 users (= 5 files post-Phase 5): ChatSessionStore,
-//  BookmarkStore, HermesKanbanDB, FullTextSearch, WenshuWorkspace.
+//  HermesKanbanDB, FullTextSearch, WenshuWorkspace.
 //  The 4 deleted files (= KanbanStore + TodoStore + MemoryStore +
 //  LinkIndex) no longer import this helper.
 

@@ -2,7 +2,8 @@
 //  Persistence/WSBookmark.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
 //  Phase 1 commit 4/21: WSBookmark.
-//  Mirrors `bookmarks` table from BookmarkStore.swift (= v0.19 ticket 22).
+//  SwiftData @Model for bookmarks. Replaces `bookmarks` table from
+//  BookmarkStore.swift (= Phase 5 ticket 10b deleted BookmarkStore).
 //
 //  Polymorphic design: a bookmark can anchor to EITHER a document OR a book
 //  (= old schema used `doc_id` only). At least one of docID / bookID must be set

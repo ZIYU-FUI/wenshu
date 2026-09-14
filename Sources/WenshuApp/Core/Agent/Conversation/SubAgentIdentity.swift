@@ -146,7 +146,7 @@ public enum SubAgentIdentity {
 
     # Capabilities (tools you may call)
     - "memory" — store / recall memories (calls WSMemoryRepository)
-    - "bookmark" — add / remove bookmarks (calls BookmarkStore)
+    - "bookmark" — add / remove bookmarks (= via WSBookmarkRepository.shared @MainActor)
     - "backup" — create a backup of the vault (calls BackupTools)
 
     # Limits

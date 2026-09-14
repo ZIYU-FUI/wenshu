@@ -12,20 +12,14 @@ public final class BookmarkViewModel {
     public private(set) var bookmarks: [Bookmark] = []
     public private(set) var error: String? = nil
 
-    private let store: BookmarkStore?
-
-    public init(store: BookmarkStore? = nil) {
-        self.store = store
-    }
+    /// Phase 5 ticket 10b: stores migrated to SwiftData WSBookmarkRepository.shared
+    /// (= @MainActor; = BookmarkStore actor was deleted).
+    public init() {}
 
     /// Load all bookmarks
     public func load() async {
-        guard let store else {
-            self.bookmarks = []
-            return
-        }
         do {
-            self.bookmarks = try await store.list()
+            self.bookmarks = try WSBookmarkRepository.shared.list()
             self.error = nil
         } catch {
             self.error = "\(error)"
