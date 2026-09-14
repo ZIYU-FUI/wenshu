@@ -1,6 +1,15 @@
 //
 //  NavigationSplitShell.swift · Wenshu · M1-shell (2026-09-08) + v0.72 Q99 LOW fix
 //
+//  DEFERRED (v0.77 spec decision):
+//  ViewInspector test coverage for this view is deferred to v0.80+
+//  (= see .scratch/v0.77-workspaceview-tests/spec.md). NavigationSplitShell
+//  is the macOS SwiftUI 27+ shell that the WorkspaceView container wraps;
+//  testing requires a stable NavigationSplitView column-width surface
+//  (= Q227-Q231 trap scope) plus mock WorkspaceMode / LayoutTreeStore.
+//
+//  This file is NOT dead code (= per Q57: 3rd-party verdict ≠ authority).
+//
 //  SwiftUI NavigationSplitView 4-column shell (= sidebar + content + inspector + detail).
 //  This is the canonical layout per AGENTS.md §11 + boss 2026-09-03 OOB.
 //

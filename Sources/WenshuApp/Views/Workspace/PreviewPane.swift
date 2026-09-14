@@ -1,5 +1,17 @@
 // Sources/WenshuApp/Views/Workspace/PreviewPane.swift
 //
+// DEFERRED (v0.77 spec decision):
+// ViewInspector test coverage for this view is deferred to v0.81+
+// (= see .scratch/v0.77-workspaceview-tests/spec.md). PreviewPane is
+// the largest untested view in the WorkspaceView surface (~1460 LOC)
+// and has 3 distinct scope states (.referenceScope / .bookScope /
+// .empty) + 3 sub-view modes (overview grid / scoped grid / document
+// detail). Mocking all of these exceeds 1-ticket scope per Q112.
+//
+// This file is NOT dead code (= per Q57: 3rd-party verdict ≠ authority);
+// it's a documented deferral.
+//
+//
 // v0.30 boss 2026-08-30 OOB 'entity classification is the last layer in the directory tree, after clicking,
 // the entity document should display in the material management area in a wenshu-style card stream layout, and double-clicking the card opens it
 // in the editor. That's why I said implementing the editor and data flow requires finishing these prerequisites first'. Ticket 2 (= the entity card flow).

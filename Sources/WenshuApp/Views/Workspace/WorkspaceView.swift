@@ -1,5 +1,19 @@
 // WorkspaceView.swift · Wenshu · v0.27 ticket 027-34
 //
+// DEFERRED (v0.77 spec decision):
+// ViewInspector test coverage for this view is deferred to v0.78+
+// (= see .scratch/v0.77-workspaceview-tests/spec.md). The view's
+// ownership of LayoutTreeStore + PaneSplitHost + WorkspaceMode requires
+// significant mock scaffolding (~150-200 LOC tests) that exceeds
+// 1-ticket scope per Q112. Future tickets ship ViewInspector tests
+// in priority order: subcomponents first (EditModeBadge /
+// EditorContentPlaceholder / PreviewSortMenuButton / LayoutPicker),
+// then this view as a whole.
+//
+// This file is NOT dead code (= per Q57: 3rd-party verdict ≠ authority);
+// it's a documented deferral, not a dead file.
+//
+//
 // SwiftUI host for the user-customizable workspace. Wraps the
 // LayoutTreeStore and renders the pane tree via PaneSplitHost (=
 // NSViewControllerRepresentable wrapper around PaneNSController,
