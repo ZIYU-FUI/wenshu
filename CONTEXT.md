@@ -35,7 +35,23 @@
 - **LSP / LLM** = no external AI platform calls in any code file.
 - **NOT used** = UIKit, Tauri, Rust, raw SQLite (replaced by SwiftData in v0.72 per AGENTS.md §11.4), Vue 3, sparse-clone, novel-platform / novel-craft / Hermes-Slate-Desk legacy V0.5.x protocol.
 
-  - **Pre-v0.72 legacy** = raw sqlite3 (MemoryStore / ChatSessionStore / TodoStore / BookmarkStore / KanbanStore / LinkIndex + WenshuWorkspace mega-store). Deprecated in v0.72 (= file-header comments + #warning directives per AGENTS.md §11.4); = deletion pending phase 3 deferred caller migrations.
+  - **Pre-v0.72 legacy** = raw sqlite3 (MemoryStore / ChatSessionStore /
+    TodoStore / BookmarkStore / KanbanStore / LinkIndex +
+    WenshuWorkspace mega-store). Deprecated in v0.72 (= file-header
+    comments + #warning directives per AGENTS.md §11.4); = **all
+    7 of these legacy raw sqlite3 actor files were deleted in
+    v0.72 Phase 5 SwiftData migration (= tickets 6/7/8/9 deleted
+    KanbanStore + TodoStore + MemoryStore + LinkIndex; = ticket 10a
+    deleted ChatSessionStore; = ticket 10b deleted BookmarkStore +
+    WenshuWorkspace; = Q99 dual-axis Round 8 cleanup batch had earlier
+    deleted BookmarkStore as part of the cleanup sweep). Phase 5 spec
+    is 100% complete (= no remaining raw-sqlite3 actor files for the
+    per-store chat/kanban/toDo/memory/bookmark/workspace pattern).
+    Remaining raw-sqlite3 users are out-of-scope for Phase 5
+    (= HermesKanbanDB + FullTextSearch = helper indices;
+    = WSMigrationPerStore = one-shot legacy file importers that read
+    raw sqlite3 files from pre-migration user disks; = SQLiteConstants
+    = helper module).**
 - **NOT used** = iOS / iPadOS / Catalyst adapter (dead code per 老板 8/18 拍).
 
 ## Domain words

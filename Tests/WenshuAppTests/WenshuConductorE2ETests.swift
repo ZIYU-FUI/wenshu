@@ -78,22 +78,12 @@ struct WenshuConductorE2ETests {
         #expect(subAgentRuns.isEmpty, "no LLM → no sub-agent runs persisted")
     }
 
-    /// Pipeline test: ChatSessionStore sub_agent_runs schema is created on bootstrap.
-    /// Verifies the table is queryable (separate from full e2e above for granular check).
-    ///
-    /// Phase 5 ticket 10a: deactivated. ChatSessionStore is being deleted; the
-    /// sub_agent_runs SwiftData @Model lives in WSSubAgentRun + WSChatRepository.
-    /// This test was rewritten to use WSChatRepository in a follow-up commit;
-    /// see WSChatRepositoryTests for coverage of the equivalent SwiftData path.
-    @Test("e2e pipeline: ChatSessionStore sub_agent_runs table ready for persistence")
-    @MainActor
-    func testE2ESubAgentRunsTableReady() async throws {
-        // Phase 5 ticket 10a: deactivated. ChatSessionStore is being deleted;
-        // the sub_agent_runs SwiftData @Model lives in WSSubAgentRun +
-        // WSChatRepository. See WSChatRepositoryTests for coverage of the
-        // equivalent SwiftData path.
-        return
-    }
+    /// Pipeline test: ChatSessionStore sub_agent_runs coverage now lives in
+    /// `WSChatRepositoryTests.swift` L84-99 (= recordSubAgentRun +
+    /// loadSubAgentRuns round-trip against WSSubAgentRun SwiftData @Model).
+    /// This test was removed in Phase 5 ticket 10b (= the previous version
+    /// was a `return` stub; = no real assertions; = no coverage value
+    /// beyond the duplicate in WSChatRepositoryTests).
 
     /// Pipeline test: SubAgentIdentity system prompts are all present and distinct.
     /// Verifies the 5 agents can be dispatched (i.e. their prompts exist for handle() to use).

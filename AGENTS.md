@@ -237,7 +237,7 @@ Migration plan (= 6 phases, ~42 commits, 3-4 weeks):
 - CONTEXT.md: replace "NOT used = SQLite" with "SQLite is the pre-v0.72 legacy"
 
 ## Spec doc
-Full spec at /tmp/wenshu-swiftdata-migration-spec.md (= 6.7 KB).
+Full spec at `.scratch/2026-09-13-swiftdata-migration-spec.md` (= 6.7 KB).
 
 ## §11.4.1 Phase 3 progress (= 2026-09-13)
 
@@ -353,7 +353,7 @@ After all 9 tickets complete (= the full phase 5 ticket roadmap):
   - **Phase 5 spec is 100% complete** as of 2026-09-14 (= tickets 10a
     + 10b closed the HONEST SCOPE GAP; = all 7 of the planned sqlite3
     store files are deleted).
-  - Currently 6 sqlite stores DELETED in phase 5: KanbanStore +
+  - Currently 7 sqlite stores DELETED in phase 5: KanbanStore +
     TodoStore + MemoryStore + LinkIndex (via ticket 6 + 7 + 8 + 9)
     + ChatSessionStore (via ticket 10a) + BookmarkStore +
     WenshuWorkspace (via ticket 10b). Ticket 10a was scoped
