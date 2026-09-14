@@ -16,8 +16,8 @@
 //  Domain type (preserved): Link (= sourceDocId + targetRef + targetDocId +
 //  line + offset + createdAt).
 //
-//  Composite id: "<sourceDocID>:<line>" (= ensures uniqueness per source doc
-//  + line; = matches old sqlite3 behavior).
+//  Composite id: "<sourceDocID>:<line>:<targetRef>" (= unique per source +
+//  line + target; = matches WSLink.init + Phase 5 ticket 5 fix).
 
 import Foundation
 import SwiftData
@@ -32,8 +32,11 @@ public final class WSLinkRepository {
     }
 
     public func add(_ link: Link) throws {
-        // Use composite id to dedupe (= same source + line = same link)
-        let id = "\(link.sourceDocId):\(link.line)"
+        // Composite id must match WSLink.init (= sourceDocID + line + targetRef; =
+        // Phase 5 ticket 5 added targetRef so 2 [[name]] links on same line
+        // don't collide). Lookup using truncated id here would miss the
+        // existing row and trigger @Attribute(.unique) insert failure.
+        let id = "\(link.sourceDocId):\(link.line):\(link.targetRef)"
         let descriptor = FetchDescriptor<WSLink>(
             predicate: #Predicate { $0.id == id }
         )
