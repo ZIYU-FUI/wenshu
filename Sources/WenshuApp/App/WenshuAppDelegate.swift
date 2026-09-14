@@ -162,8 +162,17 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         //
         // This runs BEFORE any chat-history view reads from the repository
         // (= so SwiftData repositories are ready before any view reads from them).
-        // Post-Phase 5 ticket 10a: KanbanStore also deleted; only BookmarkStore +
-        // WenshuWorkspace remain as legacy sqlite3 stores.
+        // Post-Phase 5 ticket 10b: all 6 of the planned sqlite3 stores are deleted
+        // (= KanbanStore + TodoStore + MemoryStore + LinkIndex + ChatSessionStore +
+        // WenshuWorkspace). The warehouse container is the canonical SwiftData
+        // home for all live data (= phase 4 migration runner imports legacy data
+        // on first launch via WSMigrationRunner.migrateIfNeeded).
+        // Remaining legacy sqlite3 actors (= separate from the per-store
+        // "Stores" pattern): HermesKanbanDB + FullTextSearch (= helper indices,
+        // not chat/kanban/toDo/memory persistence) and WSMigrationPerStore's
+        // one-shot raw-sqlite3 importers (= read the LEGACY file paths that
+        // users may have on disk from before the migration; = not a per-launch
+        // save path).
         let warehouseURL = warehousePath.map { URL(fileURLWithPath: $0) }
         do {
             let warehouseContainer = try WSPersistenceContainer.makeContainerForWarehouse(warehouseURL)

@@ -350,16 +350,20 @@ Dependency graph (= must be done in this order):
 After all 9 tickets complete (= the full phase 5 ticket roadmap):
   - Package.swift: drop `import SQLite3` from production code (= only
     SQLiteConstants.swift keeps it; = test fixtures may also keep).
-  - Currently 5 sqlite stores DELETED in phase 5: KanbanStore +
+  - **Phase 5 spec is 100% complete** as of 2026-09-14 (= tickets 10a
+    + 10b closed the HONEST SCOPE GAP; = all 7 of the planned sqlite3
+    store files are deleted).
+  - Currently 6 sqlite stores DELETED in phase 5: KanbanStore +
     TodoStore + MemoryStore + LinkIndex (via ticket 6 + 7 + 8 + 9)
-    + ChatSessionStore (via ticket 10a). Ticket 10a was scoped
+    + ChatSessionStore (via ticket 10a) + BookmarkStore +
+    WenshuWorkspace (via ticket 10b). Ticket 10a was scoped
     separately (= 2026-09-14 Q99 dual-axis audit uncovered it as
     still-alive; = chat history is the canonical wenshu feature so
     the audit surfaced this gap before it could leak into the
     Q99-clean release).
-  - **HONEST SCOPE GAP** (= uncovered by dual-axis audit 2026-09-14):
-    - ChatSessionStore.swift — **DELETED in ticket 10a
-      (commit pending)**. Chat persistence migrated to
+  - **HONEST SCOPE GAP** (= closed by Phase 5 ticket 10b):
+    - ChatSessionStore.swift — **DELETED in ticket 10a (commit
+      `49e5a7e64`)**. Chat persistence migrated to
       `WSChatRepository.shared` (= @MainActor SwiftData wrapper;
       = domain types in `Core/Chat/ChatDomain.swift`; =
       `WSSummary` / `WSSubAgentRun` / `WSChatMessage` @Models
@@ -368,13 +372,36 @@ After all 9 tickets complete (= the full phase 5 ticket roadmap):
       `WSMigrationPerStore.migrateChatSessionStore(context:)`
       (= reads raw sqlite3 FILE directly, not the deleted actor).
     - BookmarkStore.swift (= Core/Bookmarks/, raw sqlite3 bookmark
-      actor) — STILL EXISTS. Never listed in any phase 5 ticket.
-    - WenshuWorkspace.swift (= mega-store with 13 tables) — STILL
-      EXISTS; = gated on phase 4 migration runner shipping to all
-      users (= out of phase 5 scope).
-  - Future cleanup ticket 10bc (= BookmarkStore deletion +
-    WenshuWorkspace gating) — needs a fresh ticket after this
-    dual-axis audit.
+      actor) — **DELETED in ticket 10b**. Bookmarks migrated to
+      `WSBookmarkRepository.shared` (= @MainActor SwiftData wrapper;
+      = domain type `Bookmark` in `Core/Bookmarks/BookmarkDomain.swift`;
+      = `WSBookmark` @Model holds the canonical rows).
+    - WenshuWorkspace.swift (= mega-store with 13 tables) —
+      **DELETED in ticket 10b**. The 13 tables in WenshuWorkspace
+      were already migrated to SwiftData @Models by Phase 5 ticket
+      1 (= the per-table @Models like `WSBook` / `WSAttachment` /
+      `WSSkill` etc. were authored in Phase 1 and have been the
+      canonical persistence since). The actor was dead code at the
+      time of deletion (= the only consumer was `WenshuWorkspaceMigrator`
+      which itself had no production callers; = the runtime SQLite
+      connection was only used by 3 stub `WSMigrationPerStore.migrateX`
+      functions that read LEGACY raw-sqlite3 files directly without
+      going through the actor). The `WenshuWorkspace.sqlite` file on
+      user disks is now an orphan (= phase 4 migration runner has
+      already imported any user data; = users can manually delete the
+      file or it will be ignored by the SwiftData-only app).
+
+  - **No future ticket 10c remains** (= the phase 5 sqlite3 cleanup
+    roadmap is 100% complete). Remaining raw-sqlite3 usage lives in:
+    - `HermesKanbanDB.swift` + `FullTextSearch.swift` (= helper indices;
+      = not chat/kanban/toDo/memory/bookmark/workspace persistence;
+      = out of phase 5 scope; = could be future cleanup if user wants
+      pure SwiftData for everything).
+    - `WSMigrationPerStore.swift` (= one-shot legacy importers that
+      read raw-sqlite3 files from before the migration; = preserving
+      these so old chat.sqlite / memory.db / etc. files on user disks
+      continue to import on first launch with the new app; = dead code
+      after the first launch per user).
 
 Each ticket MUST:
   1. Land as 1+ atomic commit per migrated caller file (= no mega-commits).

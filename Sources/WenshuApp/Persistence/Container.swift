@@ -30,12 +30,20 @@
 //  Phase 3 switched callers to the Repository APIs.
 //  Phase 4 added the one-time data migration from raw sqlite3
 //  (= WSMigrationPerStore / WSMigrationRunner).
-//  Phase 5 deleted 5 of the 7 raw sqlite3 store files
+//  Phase 5 deleted all 7 of the planned raw sqlite3 store files
 //  (= KanbanStore + TodoStore + MemoryStore + LinkIndex via tickets
-//  6 + 7 + 8 + 9, then ChatSessionStore via ticket 10a). BookmarkStore
-//  + WenshuWorkspace remain (= AGENTS §11.4.2 HONEST SCOPE GAP; = future ticket 10b).
+//  6 + 7 + 8 + 9, then ChatSessionStore via ticket 10a, then
+//  BookmarkStore + WenshuWorkspace via ticket 10b). The phase 5
+//  spec is 100% complete; no further tickets remain in the roadmap.
 //  Phase 6 (= AGENTS §11.4 doc updates) is the canonical phase 5
 //  roadmap spec (= see AGENTS.md §11.4.2).
+//
+//  Remaining legacy sqlite3 actors (= separate from the per-store
+//  "Stores" pattern): HermesKanbanDB + FullTextSearch (= helper
+//  indices, not chat/kanban/toDo/memory persistence) and
+//  WSMigrationPerStore's one-shot raw-sqlite3 importers (= read
+//  the LEGACY file paths that users may have on disk from before
+//  the migration; = not a per-launch save path).
 //
 //  See .scratch/2026-09-13-swiftdata-migration-spec.md for full plan
 //  (= NOT /tmp/...; = the canonical path is .scratch/).
@@ -143,12 +151,12 @@ public enum WSPersistenceContainer {
     ///
     /// Migration path: existing callers using `WSPersistenceContainer.shared`
     /// stay on Application Support. New callers (= ticket 1b.2+) use `current`.
-    /// Post-Phase 5 (= tickets 1 + 6 + 7 + 8 + 9 + 10a): 5 of 7 sqlite
-    /// stores were deleted (= KanbanStore + TodoStore + MemoryStore +
-    /// LinkIndex + ChatSessionStore). BookmarkStore + WenshuWorkspace
-    /// still use raw sqlite3 (= per AGENTS.md §11.4.2 HONEST SCOPE GAP;
-    /// = future cleanup ticket 10b). New chat/kanban data flows through
-    /// the warehouse container per boss 8/25 OOB.
+    /// Post-Phase 5 (= tickets 1 + 6 + 7 + 8 + 9 + 10a + 10b): all 7 of
+    /// the planned sqlite stores are deleted (= KanbanStore + TodoStore +
+    /// MemoryStore + LinkIndex + ChatSessionStore + BookmarkStore +
+    /// WenshuWorkspace). The phase 5 spec is 100% complete; new
+    /// chat/kanban/toDo/memory/bookmark/workspace data flows exclusively
+    /// through the warehouse container (= per boss 8/25 OOB).
     @MainActor
     public static var current: ModelContainer {
         activeWarehouseContainer ?? shared
