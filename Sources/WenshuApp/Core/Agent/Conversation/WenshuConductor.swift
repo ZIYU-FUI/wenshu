@@ -33,9 +33,10 @@ import Foundation
 public actor WenshuConductor {
     private let runtime: AgentRuntime
     private let verifier: WenshuVerifier
-    /// Chat session persistence (= raw sqlite3 in legacy = SwiftData via WSChatRepository
-    /// after Phase 5 ticket 1; = the actor still holds an optional reference for
-    /// backward-compat callers during the migration window).
+    /// Chat session persistence (= raw sqlite3; = ChatSessionStore actor
+    /// still alive per AGENTS.md §11.4.2 HONEST SCOPE GAP; = the actor
+    /// remains the canonical chat history persistence until future cleanup
+    /// ticket 10 deletes it in favor of WSChatRepository).
     private let sessionStore: ChatSessionStore?
     /// Long-term memory persistence for agent (now SwiftData-backed via WSMemoryRepository
     /// (= Phase 5 ticket 8 deleted MemoryStore.swift; this property was previously MemoryStore? for the deprecated actor bridge, now removed.)
