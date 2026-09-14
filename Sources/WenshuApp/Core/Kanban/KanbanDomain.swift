@@ -14,50 +14,9 @@
 //  Moved 2026-09-13 (= phase 5 ticket 6 — see AGENTS.md §11.4.2).
 //
 
-//
-//  KanbanStore.swift · Wenshu · v0.18 ticket 05 (hermes replica)
-//
-// local Kanban (hermes kanban_db.py).
-// 2026-08-19 ", Apple ".
-//
-//: hermes kanban DB schema = tasks / task_links / task_comments / task_events 4 .
-//: 1 tasks + 6 status + SQLite + actor .
-// Apple HIG: SQLite + actor + Sendable.
-//
-
-
-//
-//  SQL SAFETY: all sqlite3_*() calls in this file use hard-coded string
-//  literals (= zero user-derived SQL = zero SQL injection risk TODAY).
-//  Per AGENTS.md §11.3 wenshu-side wins pattern (= hermes-port parity,
-//  = sqlite3 C API direct call preferred over GRDB abstraction = matches
-//  hermes Python tool-store implementation verbatim).
-//
-//  SAFETY CONTRACT for future contributors:
-//  - DO NOT concatenate user input into the SQL string (= use sqlite3_bind_*
-//    parameter binding instead = the only safe pattern).
-//  - DO NOT use String(format:) with %@/%.20s substitution (= format-injection).
-//  - DO NOT read user input into the table/column names (= always use
-//    fixed enum cases or hardcoded identifiers).
-//  - If user-derived values are needed in WHERE/INSERT clauses, use
-//    sqlite3_bind_text/stmt parameter binding with positional placeholders
-//    (= ?, ?N, :name =, @name = per SQLite docs).
-//
-//  The audit at .scratch/2026-09-06-wenshu-hidden-defects-audit.md
-//  documents this convention (= 14 raw sqlite3 sites across 10 files,
-//  all hardcoded literals = safe).
-
 import Foundation
 
-// DEPRECATED: This file uses raw sqlite3. Per AGENTS.md §11.4
-// SwiftData migration, raw sqlite3 stores are being phased out.
-// New code should use the equivalent SwiftData @Model classes
-// (= WSMemory / WSChatMessage / WSTodo / etc.) via
-// WSMemoryRepository.shared / WSChatRepository.shared / etc.
-// (= Sources/WenshuApp/Persistence/Repositories/<filename>Repository.swift).
-// This file will be deleted in v0.73 once all callers migrate.
-
-/// Kanban taskstatus (hermes kanban state machine: new → triage → ready → running → blocked → review → done)
+/// Kanban task status (= hermes kanban state machine: new → triage → ready → running → blocked → review → done; = wenshu also adds .failed per v0.23 ticket 013.003)
 public enum KanbanStatus: String, Codable, Sendable, CaseIterable {
     case new
     case triage

@@ -1,7 +1,7 @@
 //
 //  Core/Memory/MemoryDomain.swift · Wenshu · v0.72 SwiftData migration Phase 5 ticket 8
 //
-//  Domain types (Memory + MemoryStoreError) extracted from the deleted
+//  Domain types (Memory + MemoryError) extracted from the deleted
 //  Core/Memory/MemoryStore.swift (= sqlite3 legacy actor, now obsolete).
 //
 //  These types are the canonical wenshu-side public API surface for memory entries.
@@ -30,7 +30,7 @@ public struct Memory: Equatable, Sendable {
 }
 
 
-public enum MemoryStoreError: Error {
+public enum MemoryError: Error {
     case openFailed(dbPath: String, message: String)
     case prepareFailed(message: String)
     case stepFailed(message: String)
