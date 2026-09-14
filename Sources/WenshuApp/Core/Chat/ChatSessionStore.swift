@@ -182,11 +182,13 @@ public actor ChatSessionStore {
     /// 015.014): archiveSession writes a snapshot of the current session
     /// to chat_archives table (= Boss spec 'archive existing session and context').
     /// Idempotent via primary key conflict (= INSERT OR REPLACE).
-    /// v0.24 boss acceptance fix (dual-axis Standards F1 follow-up): nonisolated so
-    /// synchronous callers (= archiveAndStartNewSession) don't need await
-    /// (= actor's internal lock still serializes SQLite writes; callers
-    /// can treat this as a sync API).
-    public nonisolated func archiveSession(sessionId: String, messageCount: Int, contextUsed: Int, summary: String? = nil) throws {
+    /// Q99 dual-axis audit (Round 1.4): converted to ISOLATED (= the prior
+    /// `nonisolated` was a HIGH-severity race condition: dbPtr is the shared
+    /// sqlite3 connection opened with SQLITE_OPEN_NOMUTEX, so concurrent
+    /// archiveSession + isolated methods like clear/addMessage corrupted the
+    /// statement handle. Callers now need `try await` — see
+    /// `archiveAndStartNewSession` and any direct callers).
+    public func archiveSession(sessionId: String, messageCount: Int, contextUsed: Int, summary: String? = nil) throws {
         let id = "arc_" + UUID().uuidString.prefix(12).lowercased()
         let archivedAt = Date().timeIntervalSince1970
         let sql = "INSERT OR REPLACE INTO chat_archives (id, session_id, archived_at, message_count, context_used, summary) VALUES (?, ?, ?, ?, ?, ?);"
