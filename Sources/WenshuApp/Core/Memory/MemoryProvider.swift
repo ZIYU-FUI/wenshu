@@ -32,8 +32,10 @@
 // when wenshu adds the corresponding features (= v0.29+ prefetch
 // backgrounding / indicator overlay UI / provider disable surface).
 //
-// The wenshu existing MemoryStore already implements a subset of the
-// hermes MemoryProvider methods. We extend MemoryStore to conform to
+// The wenshu SwiftData-backed WSMemoryRepository (= the @MainActor
+// SwiftData wrapper for WSMemory @Model; = Phase 5 ticket 8 deleted
+// the MemoryStore actor) implements a subset of the hermes
+// MemoryProvider methods.
 // MemoryProvider in a follow-up commit (= the conformance bridge).
 //
 // 3 new concrete impls added:
@@ -42,7 +44,7 @@
 // 2. UserDefaultsMemoryProvider (= tiny on-disk key-value fallback
 //   for environments where GRDB isn't available).
 // 3. SQLiteMemoryProvider (= thin adapter over the existing
-//   FileSystemMemoryStore; full GRDB implementation lands with the
+//   FileSystemMemoryStore (= pre-Phase 5; = current path = SwiftData-only).
 //   v0.29+ memory migration ticket).
 //
 // per AGENTS.md Section 8 pollution-defense hex-encoding rule:
@@ -51,7 +53,8 @@
 
 import Foundation
 
-// v0.72 SwiftData migration: this file still uses MemoryStore actor (= deprecated).
+// v0.72 SwiftData migration: this file uses WSMemoryRepository
+// (= @MainActor SwiftData; = Phase 5 ticket 8 deleted MemoryStore actor).
 // See commit 49 (= ContextEngine deferred) for the full rationale.
 // Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
 

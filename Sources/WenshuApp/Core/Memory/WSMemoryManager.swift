@@ -9,12 +9,15 @@
 //
 //  SwiftData-backed alternative to MemoryManager. Same public surface
 //  (= prefetch + sync + fetch returning PrefetchResult / SyncResult / [Memory])
-//  but uses WSMemoryProvider (= SwiftData-backed) instead of MemoryStore.
+//  (= Phase 5 ticket 8 deleted MemoryStore actor; this file
+//  uses WSMemoryProvider, which itself uses WSMemoryRepository = @MainActor
+//  SwiftData wrapper).
 
 import Foundation
 
 /// MemoryManager that uses WSMemoryProvider (= SwiftData-backed) instead of
-/// MemoryStore (= deprecated).
+/// WSMemoryRepository (= @MainActor SwiftData; = Phase 5 ticket 8
+/// deleted MemoryStore actor).
 public actor WSMemoryManager {
     private let provider: WSMemoryProvider
     private let maxCharBudget: Int

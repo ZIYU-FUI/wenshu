@@ -137,8 +137,12 @@ public enum WSPersistenceContainer {
     ///
     /// Migration path: existing callers using `WSPersistenceContainer.shared`
     /// stay on Application Support. New callers (= ticket 1b.2+) use `current`.
-    /// Once ticket 1 deletion step removes ChatSessionStore + KanbanStore,
-    /// all chat/kanban data lives in the warehouse container (= boss 8/25 OOB).
+    /// Post-Phase 5 (= tickets 1 + 6 + 7 + 8 + 9): 4 of 6 sqlite stores
+    /// were deleted (= KanbanStore + TodoStore + MemoryStore + LinkIndex).
+    /// ChatSessionStore + BookmarkStore + WenshuWorkspace still use raw
+    /// sqlite3 (= per AGENTS.md §11.4.2 HONEST SCOPE GAP; = future
+    /// cleanup ticket 10). New chat/kanban data flows through the
+    /// warehouse container per boss 8/25 OOB.
     @MainActor
     public static var current: ModelContainer {
         activeWarehouseContainer ?? shared
@@ -148,8 +152,12 @@ public enum WSPersistenceContainer {
     /// boss 8/25 OOB "chat.sqlite must live in .ws warehouse" rule).
     ///
     /// Phase 5 ticket 1 sub-task 1a (= SwiftData warehouse path support).
-    /// Replaces the per-file SQLite Actor pattern (= ChatSessionStore, KanbanStore)
-    /// where each file opens its own sqlite3 handle at a custom path.
+    /// Replaces the per-file SQLite Actor pattern (= ChatSessionStore, KanbanStore,
+    /// TodoStore, MemoryStore, LinkIndex were the 5 store actors; = Phase 5
+    /// deleted KanbanStore + TodoStore + MemoryStore + LinkIndex; =
+    /// ChatSessionStore + BookmarkStore still use raw sqlite3 and are
+    /// on the future cleanup ticket 10 list) where each file opens its
+    /// own sqlite3 handle at a custom path.
     ///
     /// Parameters:
     ///   - url: file URL for the SwiftData store (= the parent directory

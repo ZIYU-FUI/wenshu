@@ -199,14 +199,15 @@ enum WSMigrationPerStore {
 
         if try !context.fetch(FetchDescriptor<WSBookmark>()).isEmpty { return }
 
-        let rows = query(db, sql: "SELECT id, doc_id, title, note, position, created_at FROM bookmarks;")
+        // Q99 dual-axis P2 audit: BookmarkStore actual schema is
+        // (id, doc_id, label, created_at) — title/note/position do
+        // not exist. Fixed SELECT to match.
+        let rows = query(db, sql: "SELECT id, doc_id, label, created_at FROM bookmarks;")
         for row in rows {
             let id = (row["id"] as? String) ?? UUID().uuidString
-            let title = (row["title"] as? String) ?? ""
+            let label = (row["label"] as? String) ?? ""
             let docID = row["doc_id"] as? String
-            let model = WSBookmark(id: id, title: title, docID: docID)
-            model.position = Int((row["position"] as? Int64) ?? 0)
-            model.note = row["note"] as? String
+            let model = WSBookmark(id: id, title: label, docID: docID)
             context.insert(model)
         }
         try context.save()

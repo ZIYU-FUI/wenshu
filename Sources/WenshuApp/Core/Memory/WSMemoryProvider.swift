@@ -4,7 +4,8 @@
 //  Phase 3 deferred supplementary (= post-phase-4 work; = NOT part of
 //  the 21-commit phase 1 sequence). Adds SwiftData-backed MemoryProvider
 //  (= the canonical MemoryProvider implementation for code paths that
-//  previously used the deprecated MemoryStore actor).
+//  (= Phase 5 ticket 8 deleted MemoryStore actor; this file
+//  uses WSMemoryRepository.shared = @MainActor SwiftData wrapper).
 //  Per AGENTS.md §11.4.
 //
 //  New MemoryProvider implementation that conforms to the existing
@@ -15,7 +16,8 @@
 //  Sync methods (= getSystemPrompt, preCompressCheckpoint) read from the
 //  cache without touching SwiftData (= safe from any actor).
 //
-//  Per AGENTS.md §11.4: old MemoryStore is deprecated; new code uses
+//  Per AGENTS.md §11.4: post-Phase 5 ticket 8, memory persistence
+//  is WSMemoryRepository (= @MainActor SwiftData wrapper); new code uses
 //  SwiftData. WSMemoryProvider is the SwiftData-backed impl.
 
 import Foundation

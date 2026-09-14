@@ -3,7 +3,9 @@
 // 2026-08-19 evening Obsidian A + ', '.
 //
 // SQLite FTS5 (Apple HIG: SQLite builtin FTS5, https://www.sqlite.org/fts5.html).
-// v0.18 ticket 01 MemoryStore actor + SQLitePtr + bootstrap() .
+// v0.18 ticket 01 pattern: SQLitePtr + bootstrap() (= the pattern
+// pioneered by the now-deleted MemoryStore actor; = this file reuses
+// the same pattern for its own SearchIndex actor).
 // Obsidian Search plugin: index / remove / search / highlight.
 //
 
