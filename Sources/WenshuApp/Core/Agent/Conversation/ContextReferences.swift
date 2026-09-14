@@ -2,6 +2,20 @@
 //  ContextReferences.swift · Wenshu · v0.36 ticket 014 sub-step 2
 //  + HERMES-PARTIAL-014 (2026-09-04).
 //
+//  DEFERRED (v0.73 spec decision):
+//  This 1:1 port of hermes context_references.py (598 LOC) is
+//  intentionally NOT wired into ContextEngine (= grep returns zero
+//  callers referencing ContextReferences from ContextEngine.swift).
+//  Per AGENTS.md §11 single-shelf model + wenshu's existing
+//  BacklinkResolver (= WSLinkRepository.shared), cross-file /
+//  cross-session graph is over-implementation for v0.73.
+//  Future ticket (= v0.74+) may wire it IF user requests
+//  cross-book reference UI.
+//
+//  This file is NOT dead code (= per Q57: 3rd-party verdict ≠
+//  authority); it documents the deferred surface and remains as a
+//  reference for future work.
+//
 //  Cross-reference table between LLMMessage.id and source file paths
 //  (= ticket 003 L40 acceptance criterion + spec §3.1 L198-199).
 //
