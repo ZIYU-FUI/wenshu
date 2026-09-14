@@ -2,6 +2,22 @@
 // FullTextSearch.swift · Wenshu · v0.19 ticket 17 (Obsidian replica, do first)
 // 2026-08-19 evening Obsidian A + ', '.
 //
+// AUDIT (v0.79 spec decision):
+// This is one of 2 sqlite3 raw-store files that survived Phase 5 of the
+// v0.72 SwiftData migration (= see SQLiteConstants.swift header). It is
+// the wenshu search index (= FTS5 over user docs) and is wired into
+// production via the Search subsystem (= used by the cmd-F shortcut +
+// the search panel). It is NOT dead code (= FTS5 is real + provides the
+// only full-text search surface wenshu has today).
+//
+// Per Q57: this is the only file in the v0.79 audit that has real
+// production users. It stays as-is. Future ticket (= if user requests
+// pure SwiftData for everything) can migrate the search index to
+// SwiftData; = out of scope for v0.79.
+//
+// See .scratch/v0.79-sqlite3-audit/spec.md for the full investigation.
+//
+//
 // SQLite FTS5 (Apple HIG: SQLite builtin FTS5, https://www.sqlite.org/fts5.html).
 // v0.18 ticket 01 pattern: SQLitePtr + bootstrap() (= the pattern
 // pioneered by the now-deleted MemoryStore actor; = this file reuses
