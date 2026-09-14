@@ -647,7 +647,8 @@ public actor WenshuConductor {
         "file",             // Core/Tools/FileTools.swift
         "kanban",           // Core/Agent/Tool/KanbanStoreTool.swift
         "process",          // Core/Tools/ProcessTools.swift
-        "todo",             // Core/Agent/Tool/TodoStoreTool.swift
+        "skill_bundles",    // Core/Agent/Tool/SkillBundlesTool.swift  (= v0.73 ticket 001-wire-skillbundles)
+        "todo",             // Core/Tool/TodoStoreTool.swift
         "todo_hermes",      // Core/Agent/Todo/HermesTodoTool.swift
         "vision",           // Core/Tools/VisionTools.swift
         "web"               // Core/Tools/WebTools.swift
