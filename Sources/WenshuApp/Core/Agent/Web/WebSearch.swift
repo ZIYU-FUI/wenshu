@@ -46,6 +46,18 @@ public protocol WebSearchProvider: Sendable {
 // MARK: - Actor
 
 public actor WebSearch {
+    /// Canonical module-singleton with an empty provider list
+    /// (= matches the `SkillBundles.shared` pattern from v0.73 ticket 001).
+    /// Added in v0.74 ticket 002 so the LLM-facing `WebSearchTool`
+    /// (= `Core/Agent/Tool/WebSearchTool.swift`) can default-instantiate
+    /// without leaking the WebSearchProvider plumbing.
+    ///
+    /// When users configure API keys (= EXA / TAVILY / BRAVE / PARALLEL /
+    /// SEARXNG = the 5 provider types from `Core/Agent/Web/Providers/`),
+    /// a future ticket will swap this singleton's empty provider list for
+    /// a populated one (= per AGENTS.md §11, keys come from ProviderKeychain).
+    public static let shared: WebSearch = WebSearch(providers: [])
+
     private let providers: [any WebSearchProvider]
 
     public init(providers: [any WebSearchProvider]) {
@@ -134,4 +146,11 @@ public struct ResearchReport: Sendable, Equatable {
 public enum WebSearchError: Error, Sendable, Equatable {
     case noProvidersConfigured
     case emptyResults(providerName: String)
+    /// A specific provider's HTTP call failed (= non-2xx, parse error,
+    /// network error, or other transport-level failure). Added in v0.74
+    /// ticket 001-websearch-providers-stub so the 5 provider implementations
+    /// (= EXAProvider / TAVILYProvider / BRAVEProvider / PARALLELProvider /
+    /// SEARXNGProvider) have a typed way to signal failure distinct from
+    /// `emptyResults` (= "tried but got nothing back").
+    case providerFailure(name: String, underlying: String)
 }

@@ -133,6 +133,19 @@ enum AgentLifecycleError: Error, Sendable, Hashable {
 /// hermes subagent_lifecycle.py state machine + heartbeat surface.
 final class AgentLifecycleTracker: @unchecked Sendable {
 
+    /// Canonical module-singleton (= matches the `SkillBundles.shared` pattern
+    /// from v0.73 ticket 001 + `WebSearch.shared` from v0.74 ticket 002).
+    /// Added in v0.74 ticket 004 so `AsyncDelegation.delegate(...)` can route
+    /// spawn / complete / fail events into the tracker without leaking a
+    /// constructor across the actor boundary.
+    ///
+    /// `nonisolated(unsafe)` because AgentLifecycleTracker is a final class
+    /// (= not an actor) — the `queue: DispatchQueue` inside handles thread
+    /// safety for the records dict. Same pattern as `KanbanStoreTool.shared`
+    /// (= Swift 6 compiler warning is suppressed at the call site; = safe
+    /// because all state mutations go through the queue).
+    public nonisolated(unsafe) static let shared = AgentLifecycleTracker()
+
     // MARK: - Configuration
 
     /// Heartbeat cadence (= wenshu-specific = 30s vs hermes 60s).

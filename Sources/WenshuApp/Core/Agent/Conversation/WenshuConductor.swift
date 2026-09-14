@@ -651,7 +651,8 @@ public actor WenshuConductor {
         "todo",             // Core/Tool/TodoStoreTool.swift
         "todo_hermes",      // Core/Agent/Todo/HermesTodoTool.swift
         "vision",           // Core/Tools/VisionTools.swift
-        "web"               // Core/Tools/WebTools.swift
+        "web",              // Core/Tools/WebTools.swift  (= URL fetch only)
+        "web_search"        // Core/Agent/Tool/WebSearchTool.swift  (= v0.74 ticket 003-websearch-tool-wire)
     ]
 
     /// Maximum time `buildToolsSync(from:)` will wait for the

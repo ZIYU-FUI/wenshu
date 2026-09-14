@@ -64,6 +64,14 @@ public struct BackgroundDelegationHandle: Sendable, Equatable {
     public let startedAt: Date
     public var completedAt: Date?
     public var result: String?
+    /// v0.74 ticket 004: parallel source-of-truth identifier into
+    /// `AgentLifecycleTracker.shared` (= Option B in
+    /// `AgentLifecycleTrackerDesign.md`). Set via
+    /// `AsyncDelegationRegistry.attachTrackerSpawnID(handleID:spawnID:)`
+    /// immediately after `registerSpawn(...)`. Nil = no tracker record
+    /// (= for handles created before v0.74 or in tests that don't
+    /// exercise the tracker path).
+    public var trackerSpawnID: UUID?
 
     public init(
         id: String = UUID().uuidString,
@@ -72,7 +80,8 @@ public struct BackgroundDelegationHandle: Sendable, Equatable {
         state: BackgroundDelegationState = .pending,
         startedAt: Date = Date(),
         completedAt: Date? = nil,
-        result: String? = nil
+        result: String? = nil,
+        trackerSpawnID: UUID? = nil
     ) {
         self.id = id
         self.agentName = agentName
@@ -81,6 +90,7 @@ public struct BackgroundDelegationHandle: Sendable, Equatable {
         self.startedAt = startedAt
         self.completedAt = completedAt
         self.result = result
+        self.trackerSpawnID = trackerSpawnID
     }
 }
 
@@ -171,6 +181,17 @@ public actor AsyncDelegationRegistry {
         records[handle.id] = handle
     }
 
+    /// v0.74 ticket 004: attach the `AgentLifecycleTracker` spawn UUID to
+    /// an existing handle. Called from `delegate(...)` immediately after
+    /// `tracker.registerSpawn(...)` so the terminal-status path
+    /// (`markCompleted` / `markFailed`) can route the tracker record back
+    /// (= no orphan tracker records).
+    public func attachTrackerSpawnID(handleID: String, spawnID: UUID) {
+        guard var handle = records[handleID] else { return }
+        handle.trackerSpawnID = spawnID
+        records[handleID] = handle
+    }
+
     /// Update an existing handle (e.g. state transition).
     public func update(_ handle: BackgroundDelegationHandle) {
         records[handle.id] = handle
@@ -201,6 +222,12 @@ public actor AsyncDelegationRegistry {
         handle.result = result
         records[id] = handle
         completionQueue.append(id)
+        // v0.74 ticket 004: parallel call into AgentLifecycleTracker
+        // (= Option B per AgentLifecycleTrackerDesign.md). The spawn ID
+        // was captured at delegate(...) time and stored on the handle.
+        if let spawnID = handle.trackerSpawnID {
+            AgentLifecycleTracker.shared.markCompleted(id: spawnID, result: result)
+        }
         emit(AsyncDelegationProgress(
             handleID: id,
             agentName: handle.agentName,
@@ -222,6 +249,10 @@ public actor AsyncDelegationRegistry {
         handle.result = "(failed: \(error))"
         records[id] = handle
         completionQueue.append(id)
+        // v0.74 ticket 004: parallel call into AgentLifecycleTracker.
+        if let spawnID = handle.trackerSpawnID {
+            AgentLifecycleTracker.shared.markFailed(id: spawnID, error: error)
+        }
         emit(AsyncDelegationProgress(
             handleID: id,
             agentName: handle.agentName,
@@ -351,6 +382,22 @@ public func delegate(
         state: .pending
     )
     await registry.register(handle: handle)
+
+    // v0.74 ticket 004: parallel call into AgentLifecycleTracker (= Option B
+    // per AgentLifecycleTrackerDesign.md). The tracker is a parallel source
+    // of truth alongside AsyncDelegationRegistry; UI keeps reading from the
+    // SwiftData-backed KanbanStore path (= zero UI change). This call site is
+    // the single point where sub-agent events are produced (= both AsyncDelegation
+    // + AgentLifecycleTracker read from the same call site, = no drift).
+    //
+    // The spawn ID is stored on the handle so markCompleted / markFailed
+    // (= called later by the sub-agent runner) can route the terminal
+    // status update to the same tracker record.
+    let trackerSpawnID = AgentLifecycleTracker.shared.registerSpawn(
+        profileSlug: subagentProfile,
+        prompt: task
+    )
+    await registry.attachTrackerSpawnID(handleID: handle.id, spawnID: trackerSpawnID)
 
     // Emit .pending progress event so any subscriber sees the spawn.
     // pending is a pre-execution state (not a terminal transition) so
