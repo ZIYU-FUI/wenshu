@@ -927,7 +927,6 @@ struct ShellContentColumn: View {
         // column width even with NSSplitViewController inside.
         EditorChatSplitHost(
             conductor: WenshuAppDelegate.sharedConductor,
-            chatStore: WenshuAppDelegate.sharedChatStoreRef,
             // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
             // thread AppState + BookStore through the SwiftUI →
             // AppKit boundary (= NSViewControllerRepresentable)

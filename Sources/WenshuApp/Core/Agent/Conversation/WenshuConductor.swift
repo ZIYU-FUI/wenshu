@@ -33,11 +33,6 @@ import Foundation
 public actor WenshuConductor {
     private let runtime: AgentRuntime
     private let verifier: WenshuVerifier
-    /// Chat session persistence (= raw sqlite3; = ChatSessionStore actor
-    /// still alive per AGENTS.md §11.4.2 HONEST SCOPE GAP; = the actor
-    /// remains the canonical chat history persistence until future cleanup
-    /// ticket 10 deletes it in favor of WSChatRepository).
-    private let sessionStore: ChatSessionStore?
     /// Long-term memory persistence for agent (now SwiftData-backed via WSMemoryRepository
     /// (= Phase 5 ticket 8 deleted MemoryStore.swift; this property was previously MemoryStore? for the deprecated actor bridge, now removed.)
     /// All memory calls go through WSMemoryRepository.shared (= @MainActor).
@@ -80,7 +75,6 @@ public actor WenshuConductor {
     public init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
-        sessionStore: ChatSessionStore? = nil,
         skillRegistry: SkillRegistry? = nil,
         tools: [String: any Tool] = [:]
     ) {
@@ -100,7 +94,6 @@ public actor WenshuConductor {
         self.init(
             runtime: runtime,
             verifier: verifier,
-            sessionStore: sessionStore,
             skillRegistry: skillRegistry,
             connector: nil,
             loopRuntime: nil,
@@ -131,7 +124,6 @@ public actor WenshuConductor {
     public init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
-        sessionStore: ChatSessionStore? = nil,
         skillRegistry: SkillRegistry? = nil,
         connector: (any LLMConnector)? = nil,
         loopRuntime: RuntimeHelpers? = nil,
@@ -139,7 +131,6 @@ public actor WenshuConductor {
     ) {
         self.runtime = runtime
         self.verifier = verifier
-        self.sessionStore = sessionStore
         self.skillRegistry = skillRegistry
         self.connector = connector
         self.loopRuntime = loopRuntime
@@ -516,22 +507,21 @@ public actor WenshuConductor {
                     }
                 }
             }
-            // v0.23 ticket 006: write 1-line sub-agent run summary to ChatSessionStore
+            // v0.23 ticket 006 + Phase 5 ticket 10a: write 1-line sub-agent run summary
+            // to WSChatRepository.shared (= @MainActor SwiftData wrapper).
             // (boss 8/23 said: user doesn't need execution details, just sees results — no full LLM dialogue stored).
-            if let session = sessionStore {
-                for (name, result) in subResults {
-                    let summary = String(result.prefix(200))  // 1-line summary, not full output
-                    let run = SubAgentRun(
-                        id: UUID().uuidString,
-                        agentName: name,
-                        title: "\(name): \(userMessage.prefix(50))",
-                        status: result.hasPrefix("(subagent unreachable)") ? .failed : .done,
-                        startedAt: Date(),
-                        completedAt: Date(),
-                        resultSummary: summary
-                    )
-                    _ = try? await session.recordSubAgentRun(run, sessionId: "default")
-                }
+            for (name, result) in subResults {
+                let summary = String(result.prefix(200))  // 1-line summary, not full output
+                let run = SubAgentRun(
+                    id: UUID().uuidString,
+                    agentName: name,
+                    title: "\(name): \(userMessage.prefix(50))",
+                    status: result.hasPrefix("(subagent unreachable)") ? .failed : .done,
+                    startedAt: Date(),
+                    completedAt: Date(),
+                    resultSummary: summary
+                )
+                _ = try? await MainActor.run { try? WSChatRepository.shared.recordSubAgentRun(run, sessionId: "default") }
             }
             // v0.23 ticket 002: Auditor runs if Writer or Analyst in selection.
             let needsAudit = selectedAgents.contains("writer") || selectedAgents.contains("analyst")

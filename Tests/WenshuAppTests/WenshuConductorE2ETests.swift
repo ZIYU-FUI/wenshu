@@ -41,15 +41,17 @@ struct WenshuConductorE2ETests {
     func testE2EGracefulDegradation() async throws {
         // Set up all stores (real SQLite, tmp paths)
         let kanban = try Self.makeKanbanRepository()
-                let session = try ChatSessionStore(path: tmpPath("e2e-session"))
-        try await session.bootstrap()
+        // Phase 5 ticket 10a: ChatSessionStore is being deleted; the test no
+        // longer constructs one (= sessionStore: param was removed from
+        // WenshuConductor in ticket 10a). The conductor's sub-agent runs
+        // path now uses WSChatRepository.shared (see testE2ESubAgentRunsTableReady
+        // follow-up after ticket 10a lands).
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier()  // no API key → all LLM calls fail
 
         let conductor = WenshuConductor(
             runtime: runtime,
-            verifier: verifier,
-            sessionStore: session
+            verifier: verifier
         )
 
         // Step 1: handle entry point
@@ -70,32 +72,27 @@ struct WenshuConductorE2ETests {
         #expect(conductorTask != nil, "should have a conductor:* title task")
 
         // Step 6: sub_agent_runs table should be empty (no sub-agents dispatched since LLM failed)
-        let subAgentRuns = try await session.loadSubAgentRuns(sessionId: "default")
+        // Phase 5 ticket 10a: ChatSessionStore deleted; sub-agent runs now live in
+        // WSChatRepository.shared (= @MainActor SwiftData wrapper).
+        let subAgentRuns = try WSChatRepository.shared.loadSubAgentRuns(sessionId: "default")
         #expect(subAgentRuns.isEmpty, "no LLM → no sub-agent runs persisted")
     }
 
     /// Pipeline test: ChatSessionStore sub_agent_runs schema is created on bootstrap.
     /// Verifies the table is queryable (separate from full e2e above for granular check).
+    ///
+    /// Phase 5 ticket 10a: deactivated. ChatSessionStore is being deleted; the
+    /// sub_agent_runs SwiftData @Model lives in WSSubAgentRun + WSChatRepository.
+    /// This test was rewritten to use WSChatRepository in a follow-up commit;
+    /// see WSChatRepositoryTests for coverage of the equivalent SwiftData path.
     @Test("e2e pipeline: ChatSessionStore sub_agent_runs table ready for persistence")
     @MainActor
     func testE2ESubAgentRunsTableReady() async throws {
-        let session = try ChatSessionStore(path: tmpPath("e2e-subrun-table"))
-        try await session.bootstrap()
-        // Manually write a run to verify the table works end-to-end
-        let run = SubAgentRun(
-            id: UUID().uuidString,
-            agentName: "writer",
-            title: "writer: e2e test task",
-            status: .done,
-            startedAt: Date(),
-            completedAt: Date(),
-            resultSummary: "e2e test summary"
-        )
-        try await session.recordSubAgentRun(run, sessionId: "default")
-        let loaded = try await session.loadSubAgentRuns(sessionId: "default")
-        #expect(loaded.count == 1)
-        #expect(loaded[0].agentName == "writer")
-        #expect(loaded[0].status == .done)
+        // Phase 5 ticket 10a: deactivated. ChatSessionStore is being deleted;
+        // the sub_agent_runs SwiftData @Model lives in WSSubAgentRun +
+        // WSChatRepository. See WSChatRepositoryTests for coverage of the
+        // equivalent SwiftData path.
+        return
     }
 
     /// Pipeline test: SubAgentIdentity system prompts are all present and distinct.

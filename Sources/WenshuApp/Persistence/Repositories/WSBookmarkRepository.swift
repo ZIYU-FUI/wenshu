@@ -4,7 +4,8 @@
 //  Migration commit 25 of 42: WSBookmarkRepository.
 //  Per AGENTS.md §11.4.
 //
-//  Thin wrapper for BookmarkStore actor (= v0.19 ticket 22).
+//  SwiftData @Model replacement for BookmarkStore actor (= v0.19
+//  ticket 22). Phase 5 ticket 10b deleted BookmarkStore.
 //
 //  Public API (preserved 1:1 from old BookmarkStore actor):
 //    - add(_ bookmark: Bookmark) throws

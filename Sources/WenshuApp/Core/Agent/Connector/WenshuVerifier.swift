@@ -365,8 +365,8 @@ public actor WenshuVerifier {
     ///
     /// Translates WenshuLLMRequest ↔ LLMMessage and WenshuLLMResponse ↔ LLMResponse
     /// so the existing WenshuLLMRequest-based call sites (= AgentRuntime,
-    /// ChatSessionStore) can opt in to the new LLMConnector protocol without
-    /// breaking the established send() path.
+    /// the chat persistence layer) can opt in to the new LLMConnector protocol
+    /// without breaking the established send() path.
     ///
     /// v0.35 ticket 001 sub-step 8 (= TB-B tracer-bullet). Existing send()
     /// below remains the production path until all call sites migrate.

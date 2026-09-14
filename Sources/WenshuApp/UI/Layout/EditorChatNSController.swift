@@ -81,7 +81,8 @@ final class EditorChatNSController: NSSplitViewController {
     /// External dependencies the SwiftUI views need (passed through
     /// `NSHostingController(rootView:).environment(...)`).
     private let conductor: WenshuConductor?
-    private let chatStore: ChatSessionStore?
+    // Phase 5 ticket 10a: ChatSessionStore deleted. Chat persistence lives
+    // in WSChatRepository.shared (= @MainActor SwiftData wrapper).
     // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复:
     // 文档在中栏编辑器区打开. 不要单独 windows. 编辑器区就是
     // 文档的编辑区, 打开的文档是编辑状态. 编辑器使用 SM 我们引入
@@ -101,12 +102,10 @@ final class EditorChatNSController: NSSplitViewController {
 
     init(
         conductor: WenshuConductor?,
-        chatStore: ChatSessionStore?,
         appState: AppState? = nil,
         bookStore: BookStore? = nil
     ) {
         self.conductor = conductor
-        self.chatStore = chatStore
         self.appState = appState
         self.bookStore = bookStore
         super.init(nibName: nil, bundle: nil)
@@ -177,8 +176,7 @@ final class EditorChatNSController: NSSplitViewController {
         // Bottom pane (= chat zone).
         let chatViewController = NSHostingController(
             rootView: ChatZoneView(
-                conductor: WenshuAppDelegate.sharedConductor,
-                store: WenshuAppDelegate.sharedChatStoreRef
+                conductor: WenshuAppDelegate.sharedConductor
             )
         )
         let chatItemLocal = NSSplitViewItem(viewController: chatViewController)
@@ -250,7 +248,8 @@ final class EditorChatNSController: NSSplitViewController {
 /// into NSHostingController via `.environment(...)` if/when needed).
 struct EditorChatSplitHost: NSViewControllerRepresentable {
     let conductor: WenshuConductor?
-    let chatStore: ChatSessionStore?
+    // Phase 5 ticket 10a: ChatSessionStore deleted. Chat persistence lives
+    // in WSChatRepository.shared (= @MainActor SwiftData wrapper).
     // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
     // thread appState + bookStore through the SwiftUI →
     // AppKit boundary so the editor pane's @Environment
@@ -261,7 +260,6 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
     func makeNSViewController(context: Context) -> EditorChatNSController {
         let controller = EditorChatNSController(
             conductor: conductor,
-            chatStore: chatStore,
             appState: appState,
             bookStore: bookStore
         )

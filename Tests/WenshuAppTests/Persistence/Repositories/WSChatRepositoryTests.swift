@@ -6,7 +6,7 @@ import SwiftData
 import Testing
 @testable import WenshuApp
 
-@Suite("WSChatRepository (= SwiftData @Model ChatSessionStore replacement)")
+@Suite("WSChatRepository (= SwiftData @Model replacement for the deleted ChatSessionStore actor)")
 struct WSChatRepositoryTests {
 
     @MainActor

@@ -4,10 +4,12 @@
 //  Migration commit 23 of 42: WSChatRepository.
 //  Per AGENTS.md §11.4.
 //
-//  Thin wrapper for ChatSessionStore actor (= v0.18 ticket 04). Covers
-//  WSSession + WSChatMessage + WSSummary + WSSubAgentRun.
+//  Thin wrapper around the SwiftData @Model chat session layer
+//  (= WSSession + WSChatMessage + WSSummary + WSSubAgentRun). The
+//  pre-Phase 5 ChatSessionStore actor is deleted; this repository
+//  exposes the same public API surface against SwiftData instead.
 //
-//  Domain types (= preserved 1:1 from ChatSessionStore):
+//  Domain types (= preserved 1:1 from the deleted ChatSessionStore):
 //    - StoredChatMessage: id, source, content, timestamp, tokens
 //    - SubAgentRun: id, agentName, title, status, startedAt, completedAt, resultSummary
 //    - SubAgentRunStatus: enum string
@@ -110,6 +112,110 @@ public final class WSChatRepository {
             context.delete(model)
         }
         try context.save()
+    }
+
+    /// deleteOldMessages(sessionId:beforeTimestamp:) -> Void
+    ///
+    /// Phase 5 ticket 10a: replaces the deleted ChatSessionStore actor's
+    /// `deleteOldMessages(sessionId:beforeTimestamp:)` method (= used by
+    /// the summarization pipeline to drop pre-cutoff messages after a
+    /// successful `saveSummary`). Non-transactional: SwiftData ModelContext
+    /// batches all writes in a single `save()` (= the deleted actor's
+    /// custom `transact` wrapper is no longer needed because SwiftData
+    /// uses an internal Core Data transaction per save).
+    public func deleteOldMessages(sessionId: String, beforeTimestamp: Date) throws {
+        let descriptor = FetchDescriptor<WSChatMessage>(
+            predicate: #Predicate { $0.sessionID == sessionId && $0.createdAt < beforeTimestamp }
+        )
+        let models = try context.fetch(descriptor)
+        for model in models {
+            context.delete(model)
+        }
+        try context.save()
+    }
+
+    /// summaryCutoffTimestamp(sessionId:keepLastN:) -> Date?
+    ///
+    /// Phase 5 ticket 10a: replaces the deleted ChatSessionStore actor's
+    /// helper. Returns the timestamp below which messages should be
+    /// summarised (= the (count - keepLastN)-th message's timestamp).
+    /// Returns nil if no summarization is needed (= count <= keepLastN).
+    public func summaryCutoffTimestamp(sessionId: String, keepLastN: Int) throws -> Date? {
+        let total = try count(sessionId: sessionId)
+        guard total > keepLastN else { return nil }
+        let offset = total - keepLastN
+        var descriptor = FetchDescriptor<WSChatMessage>(
+            predicate: #Predicate { $0.sessionID == sessionId },
+            sortBy: [SortDescriptor(\.createdAt, order: .forward)]
+        )
+        descriptor.fetchOffset = offset
+        descriptor.fetchLimit = 1
+        guard let cutoffMsg = try context.fetch(descriptor).first else { return nil }
+        return cutoffMsg.createdAt
+    }
+
+    /// messagesBeforeCutoff(sessionId:cutoff:) -> [StoredChatMessage]
+    ///
+    /// Phase 5 ticket 10a: replaces the deleted ChatSessionStore actor's
+    /// helper. Returns the pre-cutoff messages (= those to be summarised)
+    /// in ASC timestamp order (= matches the deleted actor's spec).
+    public func messagesBeforeCutoff(sessionId: String, cutoff: Date) throws -> [StoredChatMessage] {
+        let descriptor = FetchDescriptor<WSChatMessage>(
+            predicate: #Predicate { $0.sessionID == sessionId && $0.createdAt < cutoff },
+            sortBy: [SortDescriptor(\.createdAt, order: .forward)]
+        )
+        let models = try context.fetch(descriptor)
+        return models.map { model in
+            StoredChatMessage(
+                id: model.id,
+                source: model.role,
+                content: model.content,
+                timestamp: model.createdAt,
+                tokens: model.tokenCount >= 0 ? model.tokenCount : nil
+            )
+        }
+    }
+
+    /// summarizeIfNeeded(sessionId:lastN:threshold:verifier:) -> Bool
+    ///
+    /// Phase 5 ticket 10a: port of the deleted ChatSessionStore actor's
+    /// `summarizeIfNeeded` (= v0.21 ticket 05 spec). When the message
+    /// count exceeds `threshold`, build a prompt from pre-cutoff messages,
+    /// call `verifier.chat(...)`, then save the summary + delete the
+    /// pre-cutoff originals (= non-transactional because SwiftData
+    /// batches all writes in a single `save()` call).
+    @MainActor
+    public func summarizeIfNeeded(
+        sessionId: String,
+        lastN: Int = 10,
+        threshold: Int = 20,
+        verifier: WenshuVerifier
+    ) async throws -> Bool {
+        let currentCount = try count(sessionId: sessionId)
+        guard currentCount > threshold else { return false }
+        guard let cutoff = try summaryCutoffTimestamp(sessionId: sessionId, keepLastN: lastN) else {
+            return false
+        }
+        let oldMessages = try messagesBeforeCutoff(sessionId: sessionId, cutoff: cutoff)
+        guard !oldMessages.isEmpty else { return false }
+
+        // Assemble summary prompt
+        let transcript = oldMessages.prefix(20).map { msg -> String in
+            "[\(msg.source)] \(msg.content.prefix(100))"
+        }.joined(separator: "\n")
+        let summaryPrompt = """
+        请用 200 字内总结以下聊天记录的关键信息 (人名 / 偏好 / 上下文 / 决定), 用中文:
+
+        \(transcript)
+        """
+        let response = try await verifier.chat(summaryPrompt)
+        let summary = response.content.map(\.displayText).joined()
+
+        if let firstOldId = oldMessages.first?.id {
+            try saveSummary(summary, sessionId: sessionId, lastMessageId: firstOldId)
+        }
+        try deleteOldMessages(sessionId: sessionId, beforeTimestamp: cutoff)
+        return true
     }
 
     public func count(sessionId: String) throws -> Int {

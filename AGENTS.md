@@ -350,22 +350,31 @@ Dependency graph (= must be done in this order):
 After all 9 tickets complete (= the full phase 5 ticket roadmap):
   - Package.swift: drop `import SQLite3` from production code (= only
     SQLiteConstants.swift keeps it; = test fixtures may also keep).
-  - Currently 4 sqlite stores DELETED in phase 5: KanbanStore +
-    TodoStore + MemoryStore + LinkIndex (via ticket 6 + 7 + 8 + 9).
+  - Currently 5 sqlite stores DELETED in phase 5: KanbanStore +
+    TodoStore + MemoryStore + LinkIndex (via ticket 6 + 7 + 8 + 9)
+    + ChatSessionStore (via ticket 10a). Ticket 10a was scoped
+    separately (= 2026-09-14 Q99 dual-axis audit uncovered it as
+    still-alive; = chat history is the canonical wenshu feature so
+    the audit surfaced this gap before it could leak into the
+    Q99-clean release).
   - **HONEST SCOPE GAP** (= uncovered by dual-axis audit 2026-09-14):
-    - ChatSessionStore.swift (= Core/Chat/, raw sqlite3 chat
-      history actor) — STILL EXISTS with `#warning("raw sqlite3
-      store; ...")` marker. AGENTS.md §11.4.2 ticket 1 sub-task
-      list mentions it as "unlocked" for deletion, but no follow-up
-      ticket was ever written. Phase 5 spec lies.
+    - ChatSessionStore.swift — **DELETED in ticket 10a
+      (commit pending)**. Chat persistence migrated to
+      `WSChatRepository.shared` (= @MainActor SwiftData wrapper;
+      = domain types in `Core/Chat/ChatDomain.swift`; =
+      `WSSummary` / `WSSubAgentRun` / `WSChatMessage` @Models
+      hold the canonical rows). The legacy `chat.sqlite` file
+      on user disks is still migrated by
+      `WSMigrationPerStore.migrateChatSessionStore(context:)`
+      (= reads raw sqlite3 FILE directly, not the deleted actor).
     - BookmarkStore.swift (= Core/Bookmarks/, raw sqlite3 bookmark
       actor) — STILL EXISTS. Never listed in any phase 5 ticket.
     - WenshuWorkspace.swift (= mega-store with 13 tables) — STILL
       EXISTS; = gated on phase 4 migration runner shipping to all
       users (= out of phase 5 scope).
-  - Future cleanup ticket 10 (= ChatSessionStore + BookmarkStore
-    deletion + WenshuWorkspace gating) — needs a fresh ticket
-    after this dual-axis audit.
+  - Future cleanup ticket 10bc (= BookmarkStore deletion +
+    WenshuWorkspace gating) — needs a fresh ticket after this
+    dual-axis audit.
 
 Each ticket MUST:
   1. Land as 1+ atomic commit per migrated caller file (= no mega-commits).

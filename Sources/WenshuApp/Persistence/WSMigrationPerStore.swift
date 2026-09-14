@@ -124,6 +124,15 @@ enum WSMigrationPerStore {
         try context.save()
     }
 
+    /// migrateChatSessionStore: one-shot importer for the legacy
+    /// `chat.sqlite` file users may still have on disk (= the SQLite
+    /// file the deleted ChatSessionStore actor used to write, NOT the
+    /// actor itself — the function name is preserved because that's
+    /// the legacy file it migrates FROM). Reads the legacy raw sqlite3
+    /// tables and inserts equivalent WSSession / WSChatMessage rows
+    /// into the SwiftData ModelContext. Safe no-op if the legacy file
+    /// doesn't exist (= fresh installs) or if equivalent rows already
+    /// exist (= re-run after partial migration).
     static func migrateChatSessionStore(context: ModelContext) async throws {
         guard let url = defaultDBPath(name: "chat"),
               FileManager.default.fileExists(atPath: url.path),
