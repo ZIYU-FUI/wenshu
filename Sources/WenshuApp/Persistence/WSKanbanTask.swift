@@ -2,8 +2,9 @@
 //  Persistence/WSKanbanTask.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
 //  Phase 1 commit 19/21: WSKanbanTask.
-//  Mirrors KanbanTask struct from Core/Kanban/KanbanStore.swift +
-//  kanban_tasks table from WenshuWorkspace.swift (= v0.23 ticket 013.003).
+//  Mirrors kanban_tasks table from WenshuWorkspace.swift (= v0.23 ticket 013.003).
+//  (= Phase 5 ticket 6 deleted Core/Kanban/KanbanStore.swift; the canonical
+//  domain type is now Core/Kanban/KanbanDomain.swift's KanbanTask struct.)
 //
 //  NOTE: Similar to WSTodo but separate domain (= kanban = workspace-level
 //  task board; todo = per-session todo list).

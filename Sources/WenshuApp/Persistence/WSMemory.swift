@@ -4,7 +4,9 @@
 //  Phase 1 commit 2/21: WSMemory.
 //  Per AGENTS.md §11.4 + .scratch/2026-09-13-swiftdata-migration-spec.md.
 //
-//  WSMemory mirrors the `memories` table from MemoryStore.swift:
+//  WSMemory mirrors the memories table schema (= v0.21 ticket 02 hermes mem0 port):
+//  (= Phase 5 ticket 8 deleted Core/Memory/MemoryStore.swift; the canonical
+//  domain type is now Core/Memory/MemoryDomain.swift's Memory struct.)
 //    - memory_id TEXT PRIMARY KEY
 //    - user_id TEXT NOT NULL
 //    - content TEXT NOT NULL

@@ -2,7 +2,9 @@
 //  Persistence/WSLink.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
 //  Phase 1 commit 5/21: WSLink.
-//  Mirrors `links` table from LinkIndex.swift (= v0.19 ticket 12 Internal Link).
+//  Mirrors links table schema (= v0.19 ticket 12 Internal Link).
+//  (= Phase 5 ticket 9 deleted Core/LinkGraph/LinkIndex.swift; the canonical
+//  domain type is now Core/LinkGraph/LinkDomain.swift's Link struct.)
 //
 //  Note: old schema had INTEGER PRIMARY KEY AUTOINCREMENT. SwiftData
 //  @Attribute(.unique) auto-generates UUID. The natural uniqueness is
