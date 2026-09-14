@@ -2,7 +2,9 @@
 //  Persistence/WSSubAgentRun.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
 //  Phase 1 commit 14/21: WSSubAgentRun.
-//  Mirrors `sub_agent_runs` table from ChatSessionStore.swift.
+//  Mirrors the `sub_agent_runs` table from the legacy ChatSessionStore actor
+//  (= now deleted via Phase 5 ticket 10a; this @Model is the SwiftData home
+//  for what used to live in that actor's raw sqlite3 table).
 //
 //  1↔N to WSSession (= a chat session can spawn 0+ sub-agent runs;
 //  = e.g. the kanban tool spawns a worker agent per task).

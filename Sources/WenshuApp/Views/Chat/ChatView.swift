@@ -186,7 +186,7 @@ public enum ChatSource: String, Equatable, Sendable, Codable {
     case system
 }
 
-/// ChatViewModel: state management (Apple Observable + ChatSessionStore + WenshuConductor)
+/// ChatViewModel: state management (Apple Observable + WSChatRepository + WenshuConductor)
 @MainActor
 @Observable
 public final class ChatViewModel {
@@ -292,7 +292,9 @@ public final class ChatViewModel {
     public var contextMax: Int = 1_000_000
 
     private let conductor: WenshuConductor?
-    private let store: ChatSessionStore?
+    // Phase 5 ticket 10a: ChatSessionStore deleted. Chat persistence lives
+    // in WSChatRepository.shared (= @MainActor SwiftData wrapper). All
+    // view-side append/load/summarize calls go through the shared repo.
     // v0.24 boss acceptance fix (Boss 8/25 OOB ticket 015.014 + F2 cleanup): @MainActor
     // isolation replaces nonisolated(unsafe) for Swift 6 concurrency safety.
     // Mutable so archive flow can replace.
@@ -307,9 +309,8 @@ public final class ChatViewModel {
     // WenshuApp module, so internal access is sufficient. The class itself
     // stays `public final class` so existing public surface (currentModel,
     // messages, send, etc.) is unchanged.
-    init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = [], appState: AppState? = nil) {
+    init(conductor: WenshuConductor? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = [], appState: AppState? = nil) {
         self.conductor = conductor
-        self.store = store
         self.sessionId = sessionId
         self.messages = initialMessages
         // B-05: hold a strong reference to the AppState instance so
@@ -478,7 +479,7 @@ public final class ChatViewModel {
         messages.append(placeholder)
 
         let userMsgStored = StoredChatMessage(id: userMsg.id.uuidString, source: "user", content: text, timestamp: Date())
-        try? await store?.append(userMsgStored, sessionId: sessionId)
+        try? WSChatRepository.shared.append(userMsgStored, sessionId: sessionId)
 
         do {
             // v0.34: streaming path = render each text chunk as it
@@ -625,8 +626,8 @@ public final class ChatViewModel {
                 // `parts: ChatMessagePart[]`); the streaming UI renders
                 // each part independently. We still mirror text into
                 // `buffer` (= legacy `content`) so callers that read
-                // `content` (= e.g. ChatSessionStore persistence) keep
-                // working. The leading .text part is the one we keep
+                // `content` (= e.g. SwiftData @Model persistence via
+                // WSChatRepository) keep working. The leading .text part is the one we keep
                 // appending to (= Hermes's "append onto the last
                 // open .text part" strategy in `use-message-stream`).
                 var streamingParts: [ChatMessagePart] = []
@@ -755,15 +756,20 @@ public final class ChatViewModel {
                 messages.append(ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply))
             }
             let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date(), tokens: replyTokens)
-            try? await store?.append(agentMsgStored, sessionId: sessionId)
+            try? WSChatRepository.shared.append(agentMsgStored, sessionId: sessionId)
             recomputeContextUsed()
 
             // trigger summary generation (LLM + saveSummary + deleteOldMessages order)
-            if let store = store {
-                let verifier = WenshuVerifier()
-                Task { @MainActor in
-                    _ = try? await store.summarizeIfNeeded(sessionId: sessionId, lastN: 10, threshold: 20, verifier: verifier)
-                }
+            // Phase 5 ticket 10a: route through WSChatRepository.shared
+            // (= @MainActor SwiftData wrapper).
+            let verifier = WenshuVerifier()
+            Task { @MainActor in
+                _ = try? await WSChatRepository.shared.summarizeIfNeeded(
+                    sessionId: sessionId,
+                    lastN: 10,
+                    threshold: 20,
+                    verifier: verifier
+                )
             }
         } catch {
             // v0.34: route through UserFacingError.from (= single
@@ -906,8 +912,10 @@ public final class ChatViewModel {
         lastError = nil
     }
 
-    /// valueForStore: store ChatView .task modifier (init race condition)
-    public nonisolated func valueForStore() -> ChatSessionStore? { store }
+    /// valueForSessionId: used by ChatView .task to load history
+    /// (= was `valueForStore` returning a chat store instance;
+    /// = Phase 5 ticket 10a replaced that with a direct
+    /// `WSChatRepository.shared.loadMessages` call inside the view).
     public func valueForSessionId() -> String { sessionId }  // v0.24 bossverificationfix (F2): @MainActor-isolated with sessionId
 
     /// replaceMessages: ChatView .task loadcompletereplace (append)
@@ -964,7 +972,7 @@ public struct ChatView: View {
         return !model.isEmpty && !vm.isSending
     }
 
-    public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
+    public init(conductor: WenshuConductor? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
         // optional ChatViewModel injection (ChatZoneView shared vm for bottom toolbar
         // Read vm.contextUsed auto-propagate. Q51 child overrides parent partial, do not touch ChatViewModel.send() body, do not touch ChatView body)
         // B-05: when ChatZoneView passes a pre-constructed `vm` (=
@@ -987,7 +995,7 @@ public struct ChatView: View {
             // the App-side conductor already has; App.swift is out of
             // scope for this ticket.
             let wiredConductor = ChatView.conductorRegisteringParagraphAI(conductor)
-            _vm = State(initialValue: ChatViewModel(conductor: wiredConductor, store: store, sessionId: sessionId, initialMessages: []))
+            _vm = State(initialValue: ChatViewModel(conductor: wiredConductor, sessionId: sessionId, initialMessages: []))
         }
     }
 
@@ -1120,11 +1128,9 @@ public struct ChatView: View {
             // async load history via .task modifier (non-blocking)
             .task {
                 await vm.loadAvailableModels()
-                // Fall back to the delegate's store: on a cold launch the
-                // view can run before applicationDidFinishLaunching has
-                // built one, so the vm's snapshot is nil.
-                if let store = vm.valueForStore() ?? WenshuAppDelegate.sharedChatStoreRef {
-                    if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
+                // Phase 5 ticket 10a: chat history loads via
+                // WSChatRepository.shared (= @MainActor SwiftData wrapper).
+                if let loaded = try? WSChatRepository.shared.loadMessages(sessionId: vm.valueForSessionId()) {
                         let mapped: [ChatMessage] = loaded.compactMap { stored -> ChatMessage? in
                             // v0.24 boss acceptance fix: preserve role from stored.source.
                             // Was: hardcoded .agent (wrong, user messages shown as agent).
@@ -1155,7 +1161,6 @@ public struct ChatView: View {
                         }
                         vm.replaceMessages(mapped)
                     }
-                }
             }
 
             // v0.35 ticket 003 sub-step 4 + 5: compression status pill + manual compress button.
@@ -1709,49 +1714,6 @@ public struct ChatView: View {
         // Boss 8/24 feedback: 'clicking other areas, the text field still keeps focus'.
 .onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
     inputFocused = false
-}
-// v0.24 boss acceptance fix (Boss 8/24 feedback 'chat history persistence, I don't see it'):
-// listen for .wenshuChatStoreReady (posted after applicationDidFinishLaunching
-// creates ChatSessionStore). If store wasn't ready at .task time (race
-// condition), retry loading now. Also retry append message if store
-// was nil at send time (we just store in memory, then re-append here).
-.onReceive(NotificationCenter.default.publisher(for: .wenshuChatStoreReady)) { _ in
-    // v0.59: read the delegate's store, not vm.valueForStore(). The vm
-    // captured whatever the store was at construction time, and when the
-    // view is built before applicationDidFinishLaunching finishes that
-    // snapshot is nil forever — which is exactly the race this handler
-    // exists to repair. Measured on this machine: the view's .task logged
-    // store=nil at 23:56:42.032 and the store finished initialising at
-    // .295, 263 ms later.
-    if let store = vm.valueForStore() ?? WenshuAppDelegate.sharedChatStoreRef {
-        Task { @MainActor in
-            if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
-                let mapped: [ChatMessage] = loaded.compactMap { stored -> ChatMessage? in
-                    let resolvedRole: ChatRole = (stored.source == "user") ? .user : .agent
-                    // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
-                    // replaced `UUID(uuidString: stored.id) ?? UUID()` (= silent swap
-                    // = data-corruption symptom: phantom user message with a fresh
-                    // UUID) with `guard let` (= drops malformed records instead of
-                    // silently substituting fresh IDs). The outer `try?` already
-                    // swallows loadMessages errors, so the load still completes for
-                    // valid records; only the phantom entries are skipped.
-                    guard let msgID = UUID(uuidString: stored.id),
-                          let msgSource = ChatSource(rawValue: stored.source) else {
-                        return nil
-                    }
-                    return ChatMessage(
-                        id: msgID,
-                        role: resolvedRole,
-                        source: msgSource,
-                        content: stored.content,
-                        timestamp: stored.timestamp,
-                        tokens: stored.tokens
-                    )
-                }
-                vm.replaceMessages(mapped)
-            }
-        }
-    }
 }
     }
 }

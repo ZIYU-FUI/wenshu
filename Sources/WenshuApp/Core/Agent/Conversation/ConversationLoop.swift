@@ -72,7 +72,7 @@ public struct ConversationResult: Sendable {
 }
 
 /// Agent main loop engine. One ConversationLoop per session (= per
-/// ChatSessionStore session, per spec §3.6 wenshu-side wins).
+/// SwiftData WSSession in WSChatRepository.shared, per spec §3.6 wenshu-side wins).
 ///
 /// Drives one user turn through the LLMConnector (= active connector
 /// profile per Settings → LLM Connector pane) and returns the result.
@@ -303,7 +303,7 @@ public actor ConversationLoop {
         _ = moaConfig
 
         // persistUserMessage / persistUserTimestamp deferred (= transcript
-        // persistence is ChatSessionStore's job per spec §3.6 wenshu-side wins)
+        // persistence is WSChatRepository's job per spec §3.6 wenshu-side wins)
 
         return ConversationResult(
             response: finalResponse,

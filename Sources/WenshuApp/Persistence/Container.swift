@@ -30,10 +30,10 @@
 //  Phase 3 switched callers to the Repository APIs.
 //  Phase 4 added the one-time data migration from raw sqlite3
 //  (= WSMigrationPerStore / WSMigrationRunner).
-//  Phase 5 deleted 4 of the 6 raw sqlite3 store files
+//  Phase 5 deleted 5 of the 7 raw sqlite3 store files
 //  (= KanbanStore + TodoStore + MemoryStore + LinkIndex via tickets
-//  6 + 7 + 8 + 9). ChatSessionStore + BookmarkStore + WenshuWorkspace
-//  remain (= AGENTS §11.4.2 HONEST SCOPE GAP; = future ticket 10).
+//  6 + 7 + 8 + 9, then ChatSessionStore via ticket 10a). BookmarkStore
+//  + WenshuWorkspace remain (= AGENTS §11.4.2 HONEST SCOPE GAP; = future ticket 10b).
 //  Phase 6 (= AGENTS §11.4 doc updates) is the canonical phase 5
 //  roadmap spec (= see AGENTS.md §11.4.2).
 //
@@ -143,12 +143,12 @@ public enum WSPersistenceContainer {
     ///
     /// Migration path: existing callers using `WSPersistenceContainer.shared`
     /// stay on Application Support. New callers (= ticket 1b.2+) use `current`.
-    /// Post-Phase 5 (= tickets 1 + 6 + 7 + 8 + 9): 4 of 6 sqlite stores
-    /// were deleted (= KanbanStore + TodoStore + MemoryStore + LinkIndex).
-    /// ChatSessionStore + BookmarkStore + WenshuWorkspace still use raw
-    /// sqlite3 (= per AGENTS.md §11.4.2 HONEST SCOPE GAP; = future
-    /// cleanup ticket 10). New chat/kanban data flows through the
-    /// warehouse container per boss 8/25 OOB.
+    /// Post-Phase 5 (= tickets 1 + 6 + 7 + 8 + 9 + 10a): 5 of 7 sqlite
+    /// stores were deleted (= KanbanStore + TodoStore + MemoryStore +
+    /// LinkIndex + ChatSessionStore). BookmarkStore + WenshuWorkspace
+    /// still use raw sqlite3 (= per AGENTS.md §11.4.2 HONEST SCOPE GAP;
+    /// = future cleanup ticket 10b). New chat/kanban data flows through
+    /// the warehouse container per boss 8/25 OOB.
     @MainActor
     public static var current: ModelContainer {
         activeWarehouseContainer ?? shared
@@ -158,11 +158,12 @@ public enum WSPersistenceContainer {
     /// boss 8/25 OOB "chat.sqlite must live in .ws warehouse" rule).
     ///
     /// Phase 5 ticket 1 sub-task 1a (= SwiftData warehouse path support).
-    /// Replaces the per-file SQLite Actor pattern (= ChatSessionStore, KanbanStore,
-    /// TodoStore, MemoryStore, LinkIndex were the 5 store actors; = Phase 5
-    /// deleted KanbanStore + TodoStore + MemoryStore + LinkIndex; =
-    /// ChatSessionStore + BookmarkStore still use raw sqlite3 and are
-    /// on the future cleanup ticket 10 list) where each file opens its
+    /// Replaces the per-file SQLite Actor pattern (= KanbanStore, TodoStore,
+    /// MemoryStore, LinkIndex, and the ChatSessionStore raw sqlite3 file were
+    /// the 5 store sources; = Phase 5 deleted KanbanStore + TodoStore +
+    /// MemoryStore + LinkIndex via tickets 6/7/8/9, then removed ChatSessionStore
+    /// via ticket 10a; = BookmarkStore still uses raw sqlite3 and is on the
+    /// future cleanup ticket 10b list) where each file opens its
     /// own sqlite3 handle at a custom path.
     ///
     /// Parameters:

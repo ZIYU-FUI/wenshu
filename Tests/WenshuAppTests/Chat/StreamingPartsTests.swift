@@ -45,7 +45,7 @@ struct StreamingPartsTests {
     /// ChatMessage init) gets a synthesized parts[] array of one
     /// `.text` part. This keeps the public init surface 100% back-
     /// compatible (= all existing call sites in ChatView.swift,
-    /// ChatSessionStoreTests, etc. compile + behave unchanged).
+    /// the chat persistence layer, etc. compile + behave unchanged).
     @Test("init_withContentOnly_synthesizesSingleTextPart")
     func init_withContentOnly_synthesizesSingleTextPart() {
         let message = ChatMessage(

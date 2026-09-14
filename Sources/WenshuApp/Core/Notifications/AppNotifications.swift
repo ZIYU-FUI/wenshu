@@ -68,12 +68,6 @@ enum AppStateEvents: String, CaseIterable {
     /// wenshu.llm.model. Listened by chat-zone LLM model picker etc.
     case providerKeychainChanged = "com.wenshu.providerKeychainChanged"
 
-    /// ChatSessionStore is ready (= post applicationDidFinishLaunching).
-    /// Posted once after ChatSessionStore creation. ChatView listens and
-    /// reloads history when received (= retry load on cold-launch race
-    /// with the store init).
-    case chatStoreReady = "com.wenshu.chatStoreReady"
-
     /// Defocus chat input when user clicks outside (= so keyboard focus
     /// returns to the work area, not stuck in the chat input field).
     case defocusChatInput = "com.wenshu.defocusChatInput"
@@ -136,7 +130,7 @@ extension Notification.Name {
 
     // AppStateEvents
     static let wenshuProviderKeychainChanged = Notification.Name(AppStateEvents.providerKeychainChanged.rawValue)
-    static let wenshuChatStoreReady = Notification.Name(AppStateEvents.chatStoreReady.rawValue)
+    // Phase 5 ticket 10a: wenshuChatStoreReady removed (ChatSessionStore deleted).
     static let wenshuDefocusChatInput = Notification.Name(AppStateEvents.defocusChatInput.rawValue)
 
     // Migration note: original local symbol in RuntimeCWDDisplayChip.swift

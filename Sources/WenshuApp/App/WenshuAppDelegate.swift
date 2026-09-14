@@ -77,11 +77,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     static let sharedRuntime = AgentRuntime()
     static let sharedVerifier = WenshuVerifier()
-    static let sharedChatStore: ChatSessionStore? = {
-        // v0.21 ticket 06: actor init static let (Swift 6 strict concurrency)
-        // nil, applicationDidFinishLaunching redocreate var sharedChatStore
-        return nil
-    }()
+    // Phase 5 ticket 10a: chat history now lives exclusively in
+    // WSChatRepository.shared (= @MainActor SwiftData wrapper).
+    // No per-actor sqlite3 bootstrap needed.
     // v0.72 Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone).
     // Replaced with @MainActor accessor (= safe; = SwiftUI-compliant).
     @MainActor private static var _sharedConductor: WenshuConductor?
@@ -89,14 +87,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         get { _sharedConductor }
         set { _sharedConductor = newValue }
     }
-
-    // v0.72 Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone).
-    // Replaced with @MainActor accessor (= safe).
-    @MainActor private static var _sharedChatStoreRef: ChatSessionStore?
-    @MainActor static var sharedChatStoreRef: ChatSessionStore? {
-        get { _sharedChatStoreRef }
-        set { _sharedChatStoreRef = newValue }
-    }  // code-review H1: unsafe var let nil
 
 
 
@@ -125,7 +115,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // (= exactly macOS standard = native toolbar buttons next to
         // traffic lights = matches Apple Pages / Xcode / Mail etc.).
         //
-        // v0.21 ticket 06: synccreate ChatSessionStore + KanbanStore + WenshuConductor (static let actor init)
+        // v0.21 ticket 06: synccreate KanbanStore + WenshuConductor (static let actor init)
+        // (Phase 5 ticket 10a removed ChatSessionStore from this bootstrap)
         // unsafeMutablePointer / instance var — static let yes immutable,
 // v0.24 bossverificationfix (Boss 8/24 'chat, '):
         // add NSLog for chat store init + bootstrap errors (silent catch
@@ -133,8 +124,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // so ChatView can retry load when store becomes available.
         // v0.72 SwiftData migration: trigger one-time sqlite3 → SwiftData migration
         // (idempotent; = skipped if WSManifest.migratedFromRawSqliteAt is set).
-        // Runs BEFORE the legacy ChatSessionStore init (= so any chat data
-        // that needs migrating is in SwiftData by the time ChatView reads).
+        // Runs BEFORE chat history is read (= so any chat data that needs migrating
+        // is in SwiftData by the time ChatView reads).
         Task { @MainActor in
             do {
                 try await WSMigrationRunner.migrateIfNeeded()
@@ -144,7 +135,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // v0.24 bossverificationfix (Boss 8/25 OOB 'yes .ws file'):
-        // ChatSessionStore location = wenshu warehouse (anbaiqiang.ws/) if set,
+        // Chat persistence location = wenshu warehouse (anbaiqiang.ws/) if set,
         // else fall back to legacy ~/Library/Application Support/wenshu/chat.sqlite.
         // Per boss spec: chat data must be part of the warehouse file so the
         // customer can copy the warehouse to another Mac and continue the
@@ -169,10 +160,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // On failure: activateWarehouseContainer(nil) keeps the default
         // Application Support path (= silent fallback; = logged for diagnosis).
         //
-        // This runs BEFORE ChatSessionStore init (= so SwiftData repositories
-        // are ready before any view reads from them). It does NOT replace
-        // ChatSessionStore or KanbanStore yet (= those files stay alive until
-        // tickets 1+2 deletion step removes them).
+        // This runs BEFORE any chat-history view reads from the repository
+        // (= so SwiftData repositories are ready before any view reads from them).
+        // Post-Phase 5 ticket 10a: KanbanStore also deleted; only BookmarkStore +
+        // WenshuWorkspace remain as legacy sqlite3 stores.
         let warehouseURL = warehousePath.map { URL(fileURLWithPath: $0) }
         do {
             let warehouseContainer = try WSPersistenceContainer.makeContainerForWarehouse(warehouseURL)
@@ -192,31 +183,13 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             Self.migrateLegacyChatIfNeeded(warehousePath: warehouse, chatDbPath: chatDbPath)
         }
 
-        let chatStore: ChatSessionStore?
-        do {
-            let store = try ChatSessionStore(path: chatDbPath)
-            try store.bootstrap()
-            chatStore = store
-            // v0.24 bossverificationfix (Standards F3): log caller-side path (chatDbPath)
-            // instead of store.dbPath — keeps dbPath encapsulated (= private).
-            NSLog("[wenshu.chatStore] init OK: store created at %@", chatDbPath ?? "<legacy>")
-        } catch {
-            chatStore = nil
-            // v0.24 bossverificationfix: also log the attempted path on failure
-            // (was missing path info, made debugging hard).
-            NSLog("[wenshu.chatStore] init FAILED at %@: %@", chatDbPath ?? "<legacy>", String(describing: error))
-        }
-        Self.sharedChatStoreRef = chatStore  // code-review H1
-        if chatStore != nil {
-            NotificationCenter.default.post(name: .wenshuChatStoreReady, object: nil)
-        }
-        // Phase 5 ticket 6: KanbanStore removed; conductor reads/writes kanban
-        // via WSKanbanRepository.shared (= @MainActor SwiftData wrapper).
-        // No per-actor sqlite3 KanbanStore bootstrap needed.
+        // Phase 5 ticket 10a: ChatSessionStore actor + sqlite3 raw connection
+        // removed. Chat history now lives in WSChatRepository.shared
+        // (= @MainActor SwiftData wrapper; = warehouse container activated
+        // above). No per-actor sqlite3 chat store bootstrap needed.
         Self.sharedConductor = WenshuConductor(
             runtime: Self.sharedRuntime,
-            verifier: Self.sharedVerifier,
-            sessionStore: chatStore
+            verifier: Self.sharedVerifier
         )
         // v0.21 ticket 06: NSApp.mainMenu applicationWillFinishLaunching (=, SwiftUI)
         // v0.20 ticket 01: startregister wenshu agent (zone chat UI)

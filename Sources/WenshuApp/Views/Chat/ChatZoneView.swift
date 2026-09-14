@@ -33,7 +33,8 @@ import SwiftUI
 
 struct ChatZoneView: View {
     let conductor: WenshuConductor?
-    let store: ChatSessionStore?
+    // Phase 5 ticket 10a: ChatSessionStore deleted. Chat persistence lives
+    // in WSChatRepository.shared (= @MainActor SwiftData wrapper).
 
     @Environment(AppState.self) private var envAppState
 
@@ -46,10 +47,9 @@ struct ChatZoneView: View {
 
     @State private var vm: ChatViewModel
 
-    init(conductor: WenshuConductor?, store: ChatSessionStore?) {
+    init(conductor: WenshuConductor?) {
         self.conductor = conductor
-        self.store = store
-        _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, appState: nil))
+        _vm = State(initialValue: ChatViewModel(conductor: conductor, appState: nil))
     }
 
     var body: some View {
@@ -59,7 +59,7 @@ struct ChatZoneView: View {
         // and height of its NSSplitViewItem slot.
         VStack(spacing: 0) {
             ZStack {
-                ChatView(conductor: conductor, store: store, vm: vm)
+                ChatView(conductor: conductor, vm: vm)
                 if currentModel.isEmpty {
                     ChatHelpTextOverlay {
                         // canonical 'jump to providerApi tab on open
