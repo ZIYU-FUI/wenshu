@@ -48,8 +48,6 @@
 //  all hardcoded literals = safe).
 
 import Foundation
-import SQLite3
-#warning("wenshu.sqlite3-deprecation: raw sqlite3 store; use SwiftData WSMemory/etc. instead")
 
 // DEPRECATED: This file uses raw sqlite3. Per AGENTS.md §11.4
 // SwiftData migration, raw sqlite3 stores are being phased out.

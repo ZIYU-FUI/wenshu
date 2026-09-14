@@ -269,8 +269,13 @@ unlocks one sqlite store file for deletion.
 Dependency graph (= must be done in this order):
 
   ✓ Phase-5 Ticket 1 (WenshuAppDelegate migration) — commits bc05c4092, e7bb9ee5b, d3644f869, 1174bc59d
-    └─> unlocks: ChatSessionStore.swift deletion
-                KanbanStore.swift deletion (= also needs Ticket 2)
+    └─> actual scope: WSPersistenceContainer.makeContainer(url:) +
+        makeContainerForWarehouse(_:) factory + WenshuAppDelegate
+        activates the warehouse container at launch (= SWIFTDATA
+        URL SUPPORT, not ChatSessionStore deletion; the spec note
+        "unlocks ChatSessionStore.swift deletion" was aspirational
+        and is not delivered).
+    └─> KanbanStore.swift deletion (= also needs Ticket 2)
 
   ✓ Phase-5 Ticket 2 (ChatView KanbanStore fallback → WSKanbanRepository)
     = commits 5fbef3a5d (= 2.1: WenshuConductor.kanbanStore → optional)
@@ -345,13 +350,22 @@ Dependency graph (= must be done in this order):
 After all 9 tickets complete (= the full phase 5 ticket roadmap):
   - Package.swift: drop `import SQLite3` from production code (= only
     SQLiteConstants.swift keeps it; = test fixtures may also keep).
-  - Currently 6 sqlite stores DELETED: ChatSessionStore + KanbanStore +
-    TodoStore + BookmarkStore + MemoryStore + LinkIndex (via ticket 1
-    + 6 + 7 + 8 + 9 + phase 4 followup cleanup).
-  - Bonus (= not part of phase 5 prerequisites; = separate cleanup
-    ticket): WenshuWorkspaceMigrator (= gated on phase 4 migration
-    runner + WSMigrationPerStore completion; = WenshuWorkspace can
-    be deleted after phase 4 ships to all users).
+  - Currently 4 sqlite stores DELETED in phase 5: KanbanStore +
+    TodoStore + MemoryStore + LinkIndex (via ticket 6 + 7 + 8 + 9).
+  - **HONEST SCOPE GAP** (= uncovered by dual-axis audit 2026-09-14):
+    - ChatSessionStore.swift (= Core/Chat/, raw sqlite3 chat
+      history actor) — STILL EXISTS with `#warning("raw sqlite3
+      store; ...")` marker. AGENTS.md §11.4.2 ticket 1 sub-task
+      list mentions it as "unlocked" for deletion, but no follow-up
+      ticket was ever written. Phase 5 spec lies.
+    - BookmarkStore.swift (= Core/Bookmarks/, raw sqlite3 bookmark
+      actor) — STILL EXISTS. Never listed in any phase 5 ticket.
+    - WenshuWorkspace.swift (= mega-store with 13 tables) — STILL
+      EXISTS; = gated on phase 4 migration runner shipping to all
+      users (= out of phase 5 scope).
+  - Future cleanup ticket 10 (= ChatSessionStore + BookmarkStore
+    deletion + WenshuWorkspace gating) — needs a fresh ticket
+    after this dual-axis audit.
 
 Each ticket MUST:
   1. Land as 1+ atomic commit per migrated caller file (= no mega-commits).

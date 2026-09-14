@@ -20,9 +20,9 @@
 //  Implementation: SwiftData @Model WSMemory → Memory struct (= the
 //  old Domain.Memory type, = unchanged).
 //
-//  NOTE: This repository does NOT replace MemoryStore yet (= Phase 2
-//  = adds new repo alongside old actor). Phase 3 switches call sites
-//  to the repository. Phase 5 deletes the actor.
+//  Phase 5 ticket 8 deleted MemoryStore.swift; = WSMemoryRepository
+//  is now the sole canonical memory persistence (= @MainActor
+//  SwiftData wrapper for WSMemory @Model class).
 
 import Foundation
 import SwiftData
