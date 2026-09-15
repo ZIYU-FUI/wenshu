@@ -22,8 +22,14 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("OllamaConnector (§11.2 gap-fill)")
+@Suite("OllamaConnector (§11.2 gap-fill)", .serialized)
 struct OllamaConnectorTests {
+
+    init() {
+        // v1.00 ticket 001: per-file init() reset (= v0.86 / v0.90 pattern)
+        // to avoid cross-suite races on `ProviderKeychain.backend`.
+        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+    }
 
     @Test("OllamaConnector.connectorID == 'ollama' (per AGENTS.md §11.2 profile slug)")
     func testConnectorIDIdentity() async throws {
