@@ -43,6 +43,13 @@ public enum ProviderKeychainError: Error, LocalizedError {
         switch error {
         case .keychainStatus(let s):
             return .keychainStatus(s)
+        case .missingEntitlement(let s):
+            // v0.91 ticket 001: surface the missing-entitlement
+            // error (= OSStatus -34018 = errSecMissingEntitlement)
+            // with the boss 2026-08-24 graceful error message
+            // instead of a generic Swift error. Ad-hoc-signed
+            // wenshu.app triggers this on every keychain access.
+            return .keychainStatus(s)
         case .invalidKeyFormat:
             return .invalidKeyFormat
         }

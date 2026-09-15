@@ -53,6 +53,12 @@ public enum SearchAPIKeychainError: Error, LocalizedError {
         switch error {
         case .keychainStatus(let s):
             return .keychainStatus(s)
+        case .missingEntitlement(let s):
+            // v0.91 ticket 001: surface the missing-entitlement
+            // error with a descriptive message instead of the
+            // generic OSStatus error. The boss 2026-08-24 fix-tracking
+            // wanted this for ad-hoc-signed builds.
+            return .keychainStatus(s)
         case .invalidKeyFormat:
             return .invalidKeyFormat
         }
