@@ -23,8 +23,14 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("MinimaxConnector (ticket 001 sub-step 7)")
+@Suite("MinimaxConnector (ticket 001 sub-step 7)", .serialized)
 struct MinimaxConnectorTests {
+
+    init() {
+        // v1.00 ticket 001: per-file init() reset (= v0.86 / v0.90 pattern)
+        // to avoid cross-suite races on `ProviderKeychain.backend`.
+        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+    }
 
     // MARK: - Test 1: Build Anthropic-compatible request body
 

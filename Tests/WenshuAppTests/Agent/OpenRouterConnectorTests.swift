@@ -25,8 +25,14 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("OpenRouterConnector (§11.2 gap-fill)")
+@Suite("OpenRouterConnector (§11.2 gap-fill)", .serialized)
 struct OpenRouterConnectorTests {
+
+    init() {
+        // v1.00 ticket 001: per-file init() reset (= v0.86 / v0.90 pattern)
+        // to avoid cross-suite races on `ProviderKeychain.backend`.
+        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+    }
 
     @Test("OpenRouterConnector.connectorID == 'openrouter' (per AGENTS.md §11.2 profile slug)")
     func testConnectorIDIdentity() async throws {

@@ -28,8 +28,14 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("DeepSeekConnector (§11.2 gap-fill)")
+@Suite("DeepSeekConnector (§11.2 gap-fill)", .serialized)
 struct DeepSeekConnectorTests {
+
+    init() {
+        // v1.00 ticket 001: per-file init() reset (= v0.86 / v0.90 pattern)
+        // to avoid cross-suite races on `ProviderKeychain.backend`.
+        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+    }
 
     @Test("DeepSeekConnector.connectorID == 'deepseek' (per AGENTS.md §11.2 profile slug)")
     func testConnectorIDIdentity() async throws {
