@@ -24,15 +24,30 @@ struct LiquidGlassPolishTests {
 
     @Test("All 5 polish surfaces (.glassEffect(.regular)) are wired into production views")
     func testAllFivePolishSurfacesWired() {
-        // Verify the source files exist + contain .glassEffect(.regular).
+        // v0.92 ticket 001 (Q34 step 4 atomic verification):
+        // the previous test listed 6 files expecting `.glassEffect(.regular)`,
+        // but real-device testing on 2026-09-07 removed some of these
+        // (= boss OOB) and the codebase evolved:
+        //
+        // - RegionTabBar.swift: doesn't exist (= the canonical tab bar is
+        //   now PaneTabBar.swift, which already has `.glassEffect`).
+        // - WorkspaceView.swift: uses `.background(Color.white)` /
+        //   `.background(.ultraThinMaterial)` / `.background { Color.clear }`
+        //   instead (= boss 2026-09-07 real-device decisions; not glassEffect).
+        // - NewLibraryOutlineView.swift: uses Apple native `.listStyle(.sidebar)`
+        //   (= Apple owns the styling per HIG; no custom view body to apply
+        //   .background to; same rationale as POLISH-LIQUIDGLASS-005).
+        // - BacklinksPanel.swift: uses `.background { Color.clear }` per
+        //   boss 2026-09-07 real-device test (= removed .glassEffect).
+        //
+        // The 2 surfaces that ARE wired with `.glassEffect(.regular)` in
+        // production code (= CommandPaletteView, BookEditorSheet) remain.
+        // Per Q34 5.6 + Q57: 3rd-party verdict ≠ authority; the test was
+        // a snapshot of an earlier state; = update the test to match the
+        // current architecture (= 2 surfaces, not 5).
         let polishedFiles = [
-            "Sources/WenshuApp/UI/RegionTabBar.swift",                         // POLISH-LIQUIDGLASS-001 TopBar
-            "Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift",    // POLISH-LIQUIDGLASS-002 Sidebar
-            "Sources/WenshuApp/Views/Workspace/WorkspaceView.swift",          // POLISH-LIQUIDGLASS-003 Editor
-            // StatusBar lives in RegionTabBar.swift too (= same file; covered above).
             "Sources/WenshuApp/Views/CommandPalette/CommandPaletteView.swift", // POLISH-LIQUIDGLASS-004 sheet
-            "Sources/WenshuApp/Views/Library/BookEditorSheet.swift",          // POLISH-LIQUIDGLASS-004 sheet
-            "Sources/WenshuApp/Core/LinkGraph/BacklinksPanel.swift"           // POLISH-LIQUIDGLASS-005 popover
+            "Sources/WenshuApp/Views/Library/BookEditorSheet.swift"           // POLISH-LIQUIDGLASS-004 sheet
         ]
 
         for file in polishedFiles {
