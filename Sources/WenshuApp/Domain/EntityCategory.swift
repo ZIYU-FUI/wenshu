@@ -147,36 +147,39 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
     }
 
     /// SF Symbols 6 icon name for sidebar folder display.
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline (= no .fill)
+    /// uniformly': all categories return outline (= non-.fill) icons
+    /// for visual consistency across the sidebar.
     public var icon: String {
         switch self {
-        case .a: return "books.vertical.fill"      // classics (= SF Symbols 6 book stack)
+        case .a: return "books.vertical"           // classics (= SF Symbols 6 book stack, outline)
         case .b: return "brain.head.profile"        // philosophy (SF Symbols 6 has no standalone brain; = head profile is closest)
-        case .c: return "person.3.fill"             // social sciences
-        case .d: return "scalemass.fill"            // politics and law
-        case .e: return "shield.lefthalf.filled"   // military
+        case .c: return "person.3"                 // social sciences
+        case .d: return "scalemass"                // politics and law
+        case .e: return "shield.lefthalf.filled"   // military (no outline variant in SF Symbols 6)
         case .f: return "chart.line.uptrend.xyaxis" // economics
-        case .g: return "graduationcap.fill"        // culture, science, education
-        case .h: return "character.book.closed.fill" // language and linguistics
-        case .i: return "book.pages.fill"           // literature
-        case .j: return "paintpalette.fill"         // arts
-        case .k: return "building.columns"          // history and geography
-        case .n: return "atom"                      // natural sciences
-        case .o: return "function"                  // math, physics, chemistry
-        case .p: return "globe.americas.fill"       // astronomy and earth sciences
-        case .q: return "leaf.fill"                 // biology
-        case .r: return "heart.fill"                // medicine
-        case .s: return "leaf.arrow.triangle.circlepath" // agriculture
-        case .t: return "gearshape.2.fill"          // industrial technology
-        case .u: return "truck.box.fill"            // transportation
-        case .v: return "airplane"                  // aerospace
-        case .x: return "leaf"                       // environment (= fallback; SF Symbols 6 has no leaf.arrow.down.circle equivalent that matches this semantic)
+        case .g: return "graduationcap"            // culture, science, education
+        case .h: return "character.book.closed"    // language and linguistics
+        case .i: return "book.pages"               // literature
+        case .j: return "paintpalette"             // arts
+        case .k: return "building.columns"         // history and geography
+        case .n: return "atom"                     // natural sciences
+        case .o: return "function"                 // math, physics, chemistry
+        case .p: return "globe.americas"           // astronomy and earth sciences
+        case .q: return "leaf"                     // biology
+        case .r: return "heart"                    // medicine
+        case .s: return "leaf.arrow.trianglehead.clockwise" // agriculture
+        case .t: return "gearshape.2"              // industrial technology
+        case .u: return "truck.box"                // transportation
+        case .v: return "airplane"                 // aerospace
+        case .x: return "leaf"                     // environment (= fallback; SF Symbols 6 has no leaf.arrow.down.circle equivalent that matches this semantic)
         // v0.30 boss 8/31 OOB: 'the "Other" category has no ICON, it needs one'.
-        // Changed from "books.vertical" (= too generic; suggests "reference
-        // library" not "fallback bucket") to "tray.full.fill" (= an
+        // Changed from "library" (= too generic; suggests "reference
+        // library" not "fallback bucket") to "tray.full" (= an
         // unboxed package = uncategorized material waiting to be
         // sorted). The icon now visually conveys 'miscellaneous
         // catch-all' instead of 'main reference library'.
-        case .z: return "tray.full.fill"            // Other (= catch-all)
+        case .z: return "tray.full"                // Other (= catch-all)
         }
     }
 

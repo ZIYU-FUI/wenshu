@@ -57,14 +57,29 @@ struct Bookshelf: Identifiable, Hashable, Codable, Sendable {
     /// v0.30 boss 8/31 OOB: shelf icon for sidebar display. Returns
     /// `icon` if set, otherwise a default Lucide icon name. The
     /// default varies based on whether the shelf is the canonical
-    /// 'default shelf' (= "square-dashed-mouse-pointer" = placeholder
-    /// cursor, signaling 'start here') vs a user-created shelf
-    /// (= "books-vertical.fill" = generic stack of books).
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use
+    /// SF Symbols 6 with palette rendering': fallback renamed from
+    /// the kebab-case Lucide-era 'books-vertical.fill' to the
+    /// dot.case SF Symbols 6 form 'books.vertical'.
+    ///
+    /// User-saved `icon` may still be a Lucide-era kebab-case name
+    /// (= legacy user data persisted in shelf.json). Fall back to a
+    /// generic SF Symbol 6 icon if the stored name isn't valid.
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline uniformly':
+    /// all defaults are outline (= non-.fill) icons.
     var displayIcon: String {
-        if let icon, !icon.isEmpty { return icon }
+        if let icon, !icon.isEmpty {
+            if icon.contains("-") {
+                return lucideFallbackForShelfIcon(icon)
+                    ?? (id.uuidString == "00000000-0000-0000-0000-000000000000"
+                        ? "square.dashed"
+                        : "books.vertical")
+            }
+            return icon
+        }
         return id.uuidString == "00000000-0000-0000-0000-000000000000"
-            ? "square-dashed-mouse-pointer"
-            : "books-vertical.fill"
+            ? "square.dashed"
+            : "books.vertical"
     }
 
     // id-based identity (= Apple HIG document-based app convention: URL
@@ -78,5 +93,28 @@ struct Bookshelf: Identifiable, Hashable, Codable, Sendable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+// v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use SF
+// Symbols 6': map the most common Lucide-era shelf icon names to
+// the closest SF Symbols 6 equivalent (= boss 'ensure display'
+// rule; = users with legacy persisted shelf icons see a real
+// glyph instead of a blank frame).
+//
+// Mapping source: SF Symbols Beta CLI verified 2026-09-15.
+func lucideFallbackForShelfIcon(_ lucideName: String) -> String? {
+    switch lucideName {
+    case "square-library":          return "books.vertical"
+    case "library", "library-big":  return "books.vertical"
+    case "square-dashed":           return "square.dashed"
+    case "square-dashed-mouse-pointer": return "square.dashed"
+    case "folder":                  return "folder"
+    case "folder-plus":             return "folder.badge.plus"
+    case "book-open":               return "book.pages"
+    case "books-vertical", "books-vertical.fill": return "books.vertical"
+    case "kanban":                  return "rectangle.split.3x1"
+    case "list-checks":             return "checklist"
+    default:                        return nil
     }
 }

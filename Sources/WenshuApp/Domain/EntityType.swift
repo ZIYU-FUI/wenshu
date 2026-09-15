@@ -91,17 +91,19 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
     /// SF Symbols 6 icon name (= for sidebar tree display; = boss 9/15
     /// 'use SF Symbols 6 (3rd gen) with palette rendering' replaces
     /// the Lucide-era icon names).
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline (= no .fill)
+    /// uniformly': all types return outline (= non-.fill) icons.
     public var icon: String {
         switch self {
-        case .character: return "person.fill"       // SF Symbols 6: filled person (= canonical character badge)
+        case .character: return "person"            // SF Symbols 6: person (= canonical character badge)
         case .location: return "mappin.and.ellipse" // SF Symbols 6: location pin
-        case .event: return "calendar"             // SF Symbols 6: scheduled event
-        case .concept: return "lightbulb.fill"     // SF Symbols 6: idea / concept
-        case .artifact: return "shippingbox.fill"  // SF Symbols 6: package / item
-        case .organization: return "building.2.fill" // SF Symbols 6: institution
-        case .era: return "clock.fill"             // SF Symbols 6: time period
-        case .work: return "book.pages.fill"       // SF Symbols 6: creative work (replaces Lucide 'book-open')
-        case .other: return "questionmark.circle"  // SF Symbols 6: unknown / unclassified
+        case .event: return "calendar"              // SF Symbols 6: scheduled event
+        case .concept: return "lightbulb"           // SF Symbols 6: idea / concept
+        case .artifact: return "shippingbox"        // SF Symbols 6: package / item
+        case .organization: return "building.2"     // SF Symbols 6: institution
+        case .era: return "clock"                   // SF Symbols 6: time period
+        case .work: return "book.pages"             // SF Symbols 6: creative work (replaces Lucide 'book-open')
+        case .other: return "questionmark.circle"   // SF Symbols 6: unknown / unclassified
         }
     }
 

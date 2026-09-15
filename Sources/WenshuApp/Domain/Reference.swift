@@ -71,12 +71,14 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
     /// Image(systemName:)). v1.0.0-m1-shell boss 2026-09-15 OOB
     /// 'remove Lucide, use SF Symbols 6 with palette rendering':
     /// replaces Lucide icon names with SF Symbols 6 equivalents.
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline uniformly':
+    /// all layers return outline (= non-.fill) icons.
     var icon: String {
         switch self {
-        case .layerRaw:       return "tray.and.arrow.down.fill"  // = raw inbox
-        case .layerEntities:  return "person.crop.circle.fill"   // = entities (= people)
-        case .layerAbstracts: return "sparkles"                  // = LLM-extracted abstractions
-        case .layerIndexes:   return "magnifyingglass"           // = searchable indexes
+        case .layerRaw:       return "tray.and.arrow.down"   // = raw inbox
+        case .layerEntities:  return "person.crop.circle"    // = entities (= people)
+        case .layerAbstracts: return "sparkles"              // = LLM-extracted abstractions
+        case .layerIndexes:   return "magnifyingglass"       // = searchable indexes
         }
     }
 }
