@@ -12,7 +12,7 @@ import Foundation
 import Testing
 @testable import WenshuApp
 
-@Suite("SearchAPIKeychain (v0.81 ticket 001 — Apple Keychain for web search API keys)")
+@Suite("SearchAPIKeychain (v0.81 ticket 001 — Apple Keychain for web search API keys)", .serialized)
 struct SearchAPIKeychainTests {
 
     // MARK: - InMemorySearchKeychainStore
