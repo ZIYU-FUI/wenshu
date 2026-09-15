@@ -357,7 +357,7 @@ struct SettingView: View {
         let hasKey = providersWithKeys.contains(p.slug)
         return HStack(spacing: 12) {
             // v0.27 boss 8/27 OOB: SF 'key' / 'key.fill' → Lucide 'key'.
-            LucideIconSystemFallback(hasKey ? "key.fill" : "key", size: 18)
+            Image(systemName: hasKey ? "key.fill" : "key").font(.system(size: 18, weight: .regular))
                 .foregroundStyle(hasKey ? Color.green : Color.secondary)
                 .frame(width: DesignTokens.tabIconSize)
             Text(p.name)
@@ -454,7 +454,7 @@ struct SettingView: View {
                     HStack {
                         // v0.27 boss 8/27 OOB: AuxTask.icon (dynamic SF
                         // name string) → Lucide canonical via helper.
-                        LucideIconSystemFallback(task.icon, size: 18)
+                        Image(systemName: task.icon).font(.system(size: 18, weight: .regular))
                             .foregroundStyle(.secondary)
                             .frame(width: DesignTokens.tabIconSize)
                         Text(task.label)

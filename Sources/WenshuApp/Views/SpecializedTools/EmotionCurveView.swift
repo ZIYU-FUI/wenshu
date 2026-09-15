@@ -142,7 +142,7 @@ struct EmotionCurveView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.emotioncurveview.l187.h73202981")) } icon: { LucideIcon("play", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.emotioncurveview.l187.h73202981")) } icon: { Image(systemName: "play").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
@@ -152,7 +152,7 @@ struct EmotionCurveView: View {
                     report = nil
                     status = .idle
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.emotioncurveview.l197.h82618035")) } icon: { LucideIcon("x", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.emotioncurveview.l197.h82618035")) } icon: { Image(systemName: "xmark").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.bordered)
                 .help(WenshuI18n.t("b5.emotioncurveview.l200.h12079331"))

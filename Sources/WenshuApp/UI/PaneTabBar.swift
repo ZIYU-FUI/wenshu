@@ -49,7 +49,7 @@ import SwiftUI
 /// ```swift
 /// PaneTabBar(
 ///     items: [
-/// PaneTabItem(id: "library", icon: "square-library", label: ""),
+/// PaneTabItem(id: "books.vertical", icon: "square-library", label: ""),
 /// PaneTabItem(id: "preview", icon: "book-open-text", label: ""),
 ///     ],
 ///     selection: $selection,
@@ -231,7 +231,7 @@ public struct PaneTrailingIconButton: View {
             Color.clear
                 .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                 .overlay(alignment: .center) {
-                    LucideIconSystemFallback(icon, size: DesignTokens.tabIconSize)
+                    Image(systemName: icon).font(.system(size: DesignTokens.tabIconSize, weight: .regular))
                         .foregroundStyle(.secondary)
                 }
                 .contentShape(Rectangle())

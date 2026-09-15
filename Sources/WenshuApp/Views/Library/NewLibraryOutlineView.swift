@@ -52,7 +52,6 @@
 //   std uses system disclosure indicator)
 
 import SwiftUI
-import LucideSwift
 
 /// Identifies a single sidebar item for List(selection:) binding.
 /// v0.30: composite enum (= book OR reference category) because
@@ -494,7 +493,7 @@ struct NewLibraryOutlineView: View {
                         Label {
                             Text(category.displayName)
                         } icon: {
-                            LucideIconSidebar(category.icon)
+                            Image(systemName: category.icon)
                         }
                         .badge(entitiesCount(in: category))
                         // v1.0.0-m1-shell boss 2026-09-10 OOB 'library-tree selection and
@@ -543,7 +542,7 @@ struct NewLibraryOutlineView: View {
                     Label {
                         Text(WenshuI18n.t("auto.newlibraryoutlineview.l335.h35976706"))
                     } icon: {
-                        LucideIconSidebar("square-library")
+                        Image(systemName: "square-library")
                     }
                     .badge(usedCategories().count)
                     .tag(SidebarItem.referenceLibraryRoot)
@@ -942,7 +941,7 @@ struct NewLibraryOutlineView: View {
             Label {
                 Text(shelf.name)
             } icon: {
-                LucideIconSidebar(shelf.displayIcon)
+                Image(systemName: shelf.displayIcon)
             }
             .badge(books.count > 0 ? books.count : 0)            // v0.30 boss 8/31 OOB: right-click context menu on shelf
                            // row. Apple HIG canonical contextMenu pattern. Two
@@ -1013,7 +1012,7 @@ struct NewLibraryOutlineView: View {
             } icon: {
                 // v0.30 boss 8/31 OOB: use displayIcon (= user-picked
                 // icon if set, else default "book").
-                LucideIconSidebar(book.displayIcon)
+                Image(systemName: book.displayIcon)
                     .foregroundStyle(.primary)
             }
             .tag(SidebarItem.book(book.id))        } else {
@@ -1094,7 +1093,7 @@ struct NewLibraryOutlineView: View {
                     Label {
                         Text(folder.displayName)
                     } icon: {
-                        LucideIconSidebar(folder.icon)
+                        Image(systemName: folder.icon)
                             .foregroundStyle(.primary)
                     }
                     .badge(bookStore.folderDocumentCount(
@@ -1109,7 +1108,7 @@ struct NewLibraryOutlineView: View {
                 } icon: {
                     // v0.30 boss 8/31 OOB: use displayIcon (= user-picked
                     // icon if set, else default "book").
-                    LucideIconSidebar(book.displayIcon)
+                    Image(systemName: book.displayIcon)
                         .foregroundStyle(.primary)
                 }
                 // v0.30 boss 8/31 OOB: book row count badge (= total
@@ -1243,7 +1242,7 @@ struct NewLibraryOutlineView: View {
     /// v0.30 boss 8/30 OOB 'restore those two buttons, plus the icon' = restore the
     /// original v0.27-style buttons and icons:
     /// - New icon = "square-plus" (Lucide canonical, NOT SF "plus")
-    /// - Import icon = "square-arrow-right" (Lucide canonical)
+    /// - Import icon = "arrow.right.square" (Lucide canonical)
     ///
     /// v0.30 dev drift (= what NOT to do): I had used SF Symbol "plus"
     /// for the New icon (= losing the Lucide canonical name + visual
@@ -1300,7 +1299,7 @@ struct NewLibraryOutlineView: View {
             // opens the macOS NSOpenPanel for importing external research
             // materials into the library).
             NewButtonWithHover(
-                iconName: "square-arrow-right",
+                iconName: "arrow.right.square",
                 help: "Import"
             ) {
                 NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
@@ -1767,7 +1766,7 @@ struct NewLibraryOutlineView: View {
                 appState.choiceRequestCount += 1
             } label: {
                 HStack(spacing: 6) {
-                    LucideIcon("plus", size: 14)
+                    Image(systemName: "plus").font(.system(size: 14, weight: .regular))
                         .foregroundStyle(.secondary)
                     Text(WenshuI18n.t("sidebar.new_button.label"))
                         .font(.callout)
@@ -1851,12 +1850,106 @@ private struct NewBookSheet: View {
         _shelfId = State(initialValue: targetShelfId)
     }
 
-    /// v0.30 boss 8/31 OOB: full Lucide icon library (=
-    /// LucideIconName.allCases from lucide-swift enum, ~1500 icons).
+    /// v0.30 boss 8/31 OOB: full SF Symbols 6 icon library (=
+    /// curated list of common SF Symbols 6 names; = boss 2026-09-15
+    /// OOB 'use SF Symbols 6 (3rd gen) with palette rendering'
+    /// replaces the Lucide era's LucideIconName.allCases).
     /// No guessing about which icon names exist; the user scrolls
-    /// through every real Lucide icon and picks one.
-    private var allLucideIcons: [String] {
-        LucideIconName.allCases.map(\.rawValue)
+    /// through every real SF Symbol 6 icon and picks one.
+    private var allSFSymbols: [String] {
+        // Common SF Symbols 6 names (= popular UI glyphs; = curated
+        // subset of the ~7000 SF Symbols 6 catalog covering all 16
+        // categories: arrows / media / communication / people / nature / etc.).
+        // Full catalog lives in /Applications/SF Symbols Beta.app/Contents/Executables/sfsymbols.
+        [
+            "plus", "minus", "xmark", "checkmark",
+            "chevron.left", "chevron.right", "chevron.up", "chevron.down",
+            "chevron.left.circle", "chevron.right.circle",
+            "arrow.left", "arrow.right", "arrow.up", "arrow.down",
+            "arrow.uturn.backward", "arrow.uturn.forward",
+            "arrow.clockwise", "arrow.counterclockwise",
+            "arrow.up.left.and.arrow.down.right", "arrow.down.right.and.arrow.up.left",
+            "arrow.right.square", "arrow.up.right.square", "arrow.down.left.square",
+            "arrow.down.circle", "arrow.up.circle", "arrow.left.circle",
+            "magnifyingglass", "magnifyingglass.circle",
+            "trash", "trash.fill", "trash.circle",
+            "folder", "folder.fill", "folder.badge.plus",
+            "doc", "doc.fill", "doc.badge.plus", "document.badge.plus",
+            "book", "book.fill", "book.closed", "book.pages", "book.pages.fill",
+            "books.vertical", "books.vertical.fill",
+            "person", "person.fill", "person.2", "person.3",
+            "person.crop.circle", "person.crop.circle.fill",
+            "person.text.rectangle", "person.fill.checkmark",
+            "brain", "brain.fill", "brain.head.profile",
+            "calendar", "calendar.day.timeline.left",
+            "ellipsis", "ellipsis.circle", "ellipsis.vertical",
+            "gear", "gearshape", "gearshape.2", "gearshape.2.fill",
+            "link", "link.circle",
+            "play", "play.fill", "pause", "pause.fill",
+            "wand.and.rays", "wand.and.sparkles", "wand.and.outline",
+            "house", "house.fill", "building", "building.2",
+            "lightbulb", "lightbulb.fill", "lightbulb.slash",
+            "paintpalette", "paintpalette.fill",
+            "function", "atom", "atom.shield",
+            "leaf", "leaf.fill", "leaf.arrow.trianglehead.clockwise",
+            "globe", "globe.americas", "globe.americas.fill",
+            "bell", "bell.fill", "bell.slash",
+            "tag", "tag.fill", "tag.circle",
+            "star", "star.fill", "star.slash",
+            "heart", "heart.fill", "heart.slash",
+            "flag", "flag.fill", "flag.checkered",
+            "key", "key.fill", "key.horizontal",
+            "lock", "lock.fill", "lock.open",
+            "shield", "shield.fill", "shield.lefthalf.filled",
+            "bolt", "bolt.fill", "bolt.slash",
+            "sun.max", "sun.max.fill", "moon", "moon.fill",
+            "cloud", "cloud.fill", "cloud.rain",
+            "flame", "flame.fill", "drop", "drop.fill",
+            "pencil", "pencil.tip", "highlighter",
+            "eraser", "scissors", "paperclip",
+            "envelope", "envelope.fill", "envelope.open",
+            "phone", "phone.fill", "phone.connection",
+            "message", "message.fill", "message.circle",
+            "bubble.left", "bubble.left.fill", "bubble.right",
+            "video", "video.fill", "video.slash",
+            "camera", "camera.fill", "camera.circle",
+            "photo", "photo.fill", "photo.stack",
+            "music.note", "speaker.wave.2", "mic", "mic.fill",
+            "tv", "tv.fill", "display", "desktopcomputer",
+            "laptopcomputer", "iphone", "ipad", "applewatch",
+            "square", "square.fill", "square.dashed",
+            "circle", "circle.fill", "circle.dotted", "circle.dashed",
+            "plus.circle", "minus.circle", "xmark.circle",
+            "checkmark.circle", "questionmark.circle",
+            "exclamationmark.triangle", "exclamationmark.circle",
+            "info.circle", "questionmark", "exclamationmark",
+            "sparkles", "sparkle", "wand.and.stars",
+            "scalemass", "scalemass.fill", "ruler",
+            "graduationcap", "graduationcap.fill",
+            "chart.line.uptrend.xyaxis", "chart.bar", "chart.bar.fill",
+            "shippingbox", "shippingbox.fill", "cube", "cube.fill",
+            "tray", "tray.full", "tray.full.fill", "tray.and.arrow.down",
+            "tray.and.arrow.up", "archivebox", "archivebox.fill",
+            "character.book.closed", "character.book.closed.fill",
+            "bookmark", "bookmark.fill", "bookmark.slash",
+            "list.bullet", "list.number", "list.checks",
+            "tablecells", "rectangle.grid.1x2", "rectangle.grid.2x2",
+            "rectangle.grid.3x2", "square.grid.2x2", "square.grid.3x2",
+            "sidebar.left", "sidebar.right",
+            "eye", "eye.fill", "eye.slash",
+            "hand.raised", "hand.thumbsup", "hand.thumbsdown",
+            "bolt.horizontal", "bolt.horizontal.circle",
+            "airplane", "car", "tram", "ferry", "sailboat",
+            "bicycle", "scooter", "bus",
+            "creditcard", "creditcard.fill",
+            "dollarsign.circle", "eurosign.circle", "yensign.circle",
+            "wrench.and.screwdriver", "hammer", "screwdriver",
+            "screwdriver.fill", "wrench", "wrench.adjustable",
+            "truck.box", "truck.box.fill",
+            "airplane.circle", "airplane.arrival", "airplane.departure",
+            "globe.central.south.asia", "globe.europe.africa",
+            "globe.asia.australia",
+        ].sorted()
     }
 
     var body: some View {
@@ -1886,7 +1979,7 @@ private struct NewBookSheet: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(.tint.opacity(0.15))
                                 .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
-                            LucideIcon(selectedIcon, size: 32)
+                            Image(systemName: selectedIcon).font(.system(size: 32, weight: .regular))
                                 .foregroundStyle(Color.accentColor)
                         }
                         VStack(alignment: .leading, spacing: 2) {
@@ -1903,7 +1996,7 @@ private struct NewBookSheet: View {
                             columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8),
                             spacing: 8
                         ) {
-                            ForEach(allLucideIcons, id: \.self) { iconName in
+                            ForEach(allSFSymbols, id: \.self) { iconName in
                                 Button {
                                     selectedIcon = iconName
                                 } label: {
@@ -1913,7 +2006,7 @@ private struct NewBookSheet: View {
                                                   ? AnyShapeStyle(.tint.opacity(0.25))
                                                   : AnyShapeStyle(Color.clear))
                                             .frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)
-                                        LucideIcon(iconName, size: 24)
+                                        Image(systemName: iconName).font(.system(size: 24, weight: .regular))
                                             .foregroundStyle(selectedIcon == iconName
                                                              ? Color.accentColor
                                                              : Color.primary)
@@ -1988,8 +2081,46 @@ private struct NewShelfSheet: View {
     /// from being used as a user shelf name.
     let existingNames: [String]
     @State private var name: String = ""
-    @State private var selectedIcon: String = "square-library"
+    @State private var selectedIcon: String = "books.vertical"
     @Environment(\.dismiss) private var dismiss
+
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use
+    /// SF Symbols 6 with palette rendering': local copy of the SF
+    /// Symbol catalog (= mirrors NewLibraryOutlineView.allSFSymbols
+    /// since nested structs can't access outer computed properties).
+    /// Common SF Symbols 6 names covering all 16 categories.
+    /// Full catalog lives in /Applications/SF Symbols Beta.app.
+    private let allSFSymbols: [String] = [
+        "plus", "minus", "xmark", "checkmark",
+        "chevron.left", "chevron.right", "chevron.up", "chevron.down",
+        "magnifyingglass", "trash", "folder", "folder.fill", "folder.badge.plus",
+        "doc", "doc.fill", "doc.badge.plus", "document.badge.plus",
+        "book", "book.fill", "book.closed", "book.pages", "book.pages.fill",
+        "books.vertical", "books.vertical.fill", "book.badge.plus",
+        "person", "person.fill", "person.2", "person.3",
+        "person.crop.circle", "person.crop.circle.fill",
+        "calendar", "ellipsis",
+        "gear", "gearshape", "gearshape.2", "gearshape.2.fill",
+        "wand.and.stars", "wand.and.rays", "wand.and.sparkles",
+        "bell", "bell.fill", "bell.badge",
+        "tag", "tag.fill", "tag.circle",
+        "link", "paperclip", "paperplane",
+        "play", "play.fill", "pause", "pause.fill", "stop", "stop.fill",
+        "square.and.arrow.up", "square.and.arrow.down",
+        "arrow.up", "arrow.down", "arrow.left", "arrow.right",
+        "arrow.clockwise", "arrow.counterclockwise", "arrow.uturn.backward",
+        "star", "star.fill", "heart", "heart.fill",
+        "circle", "circle.fill", "circle.dashed",
+        "circle.dotted", "checkmark.circle", "checkmark.circle.fill",
+        "xmark.circle", "xmark.circle.fill",
+        "plus.circle", "plus.circle.fill",
+        "questionmark.circle", "info.circle", "info.circle.fill",
+        "exclamationmark.triangle", "exclamationmark.triangle.fill",
+        "exclamationmark.circle", "exclamationmark.circle.fill",
+        "brain", "brain.fill", "atom", "function", "leaf", "leaf.fill",
+        "paintpalette", "paintpalette.fill", "globe.americas",
+        "building.2", "building.columns", "airplane",
+    ]
 
     /// v0.30 boss 8/31 OOB: inline validation (= duplicate name +
     /// reserved name). Computed from the current `name` input on
@@ -2018,21 +2149,6 @@ private struct NewShelfSheet: View {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && nameError == nil
     }
 
-    /// v0.30 boss 8/31 OOB: render the ENTIRE Lucide icon library
-    /// (= LucideIconName.allCases, an enum provided by lucide-swift that's
-    /// auto-generated from lucide-static@1.25.0 = ~1500 icons at
-    /// v0.30). No curated preset list = no guessing about which
-    /// icons exist. The user scrolls through every real Lucide
-    /// icon and picks one. Default = 'square-library' (= the
-    /// reference library icon, per boss OOB).
-    private var allLucideIcons: [String] {
-        // LucideIcon is `enum, CaseIterable, Sendable` with String
-        // rawValues (= the kebab-case icon name). `allCases.map(\.rawValue)`
-        // gives us the complete icon name list at runtime (= no
-        // hardcoded list, no manual sync when lucide-swift upgrades).
-        LucideIconName.allCases.map(\.rawValue)
-    }
-
     var body: some View {
         NavigationStack {
             Form {
@@ -2044,7 +2160,7 @@ private struct NewShelfSheet: View {
                     // or reserved (= computed live in nameError).
                     if let nameError = nameError {
                         HStack(spacing: 6) {
-                            LucideIconSystemFallback("exclamationmark.circle.fill", size: 12)
+                            Image(systemName: "exclamationmark.circle.fill").font(.system(size: 12, weight: .regular))
                                 .foregroundStyle(.red)
                             Text(nameError)
                                 .font(.caption)
@@ -2063,7 +2179,7 @@ private struct NewShelfSheet: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(.tint.opacity(0.15))
                                 .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
-                            LucideIcon(selectedIcon, size: 32)
+                            Image(systemName: selectedIcon).font(.system(size: 32, weight: .regular))
                                 .foregroundStyle(Color.accentColor)
                         }
                         VStack(alignment: .leading, spacing: 2) {
@@ -2087,7 +2203,7 @@ private struct NewShelfSheet: View {
                             columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8),
                             spacing: 8
                         ) {
-                            ForEach(allLucideIcons, id: \.self) { iconName in
+                            ForEach(allSFSymbols, id: \.self) { iconName in
                                 Button {
                                     selectedIcon = iconName
                                 } label: {
@@ -2097,7 +2213,7 @@ private struct NewShelfSheet: View {
                                                   ? AnyShapeStyle(.tint.opacity(0.25))
                                                   : AnyShapeStyle(Color.clear))
                                             .frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)
-                                        LucideIcon(iconName, size: 24)
+                                        Image(systemName: iconName).font(.system(size: 24, weight: .regular))
                                             .foregroundStyle(selectedIcon == iconName
                                                              ? Color.accentColor
                                                              : Color.primary)
@@ -2161,7 +2277,7 @@ struct NewChoiceSheet: View {
                         onNewBook()
                     } label: {
                         VStack(spacing: 8) {
-                            LucideIcon("book-plus", size: 32)
+                            Image(systemName: "book.badge.plus").font(.system(size: 32, weight: .regular))
                             Text(WenshuI18n.t("auto.newlibraryoutlineview.l1855.h10335406")).font(.body)
                         }
                         .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
@@ -2172,7 +2288,7 @@ struct NewChoiceSheet: View {
                         onNewShelf()
                     } label: {
                         VStack(spacing: 8) {
-                            LucideIcon("library", size: 32)
+                            Image(systemName: "books.vertical").font(.system(size: 32, weight: .regular))
                             Text(WenshuI18n.t("auto.newlibraryoutlineview.l1866.h64741338")).font(.body)
                         }
                         .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
@@ -2299,7 +2415,7 @@ private struct RenameItemSheet: View {
                     .textFieldStyle(.roundedBorder)
                 if let nameError = nameError {
                     HStack(spacing: 6) {
-                        LucideIconSystemFallback("exclamationmark.circle.fill", size: 12)
+                        Image(systemName: "exclamationmark.circle.fill").font(.system(size: 12, weight: .regular))
                             .foregroundStyle(.red)
                         Text(nameError)
                             .font(.caption)
@@ -2359,7 +2475,7 @@ private struct NewButtonWithHover: View {
         // tooltip = good UX), .padding(.frame) (auto-applied by
         // borderless button style).
         Button(action: action) {
-            LucideIcon(iconName, size: 18)
+            Image(systemName: iconName).font(.system(size: 18, weight: .regular))
         }
         .buttonStyle(.borderless)
         .help(help)

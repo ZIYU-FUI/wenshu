@@ -1300,7 +1300,7 @@ ToolbarItem(placement: .primaryAction) {
                         Label {
                             Text(page.localizedTitle)
                         } icon: {
-                            LucideImage(page.icon)
+                            Image(systemName: page.icon)
                         }
                         .tag(page)
                     }
@@ -1353,11 +1353,7 @@ ToolbarItem(placement: .primaryAction) {
                     Label {
                         Text(WenshuI18n.t("inspector.toggle.button"))
                     } icon: {
-                        LucideImage(
-                            appState.inspectorVisible
-                                ? "sidebar-right"
-                                : "panel-right"
-                        )
+                        Image(systemName: appState.inspectorVisible ? "sidebar-right" : "sidebar.left")
                     }
                 }
                 .help(WenshuI18n.t("inspector.toggle.help"))
@@ -1423,7 +1419,7 @@ ToolbarItem(placement: .primaryAction) {
                     Label {
                         Text(WenshuI18n.t("window.kanban.open"))
                     } icon: {
-                        LucideImage("kanban")
+                        Image(systemName: "kanban")
                     }
                 }
                 .help(WenshuI18n.t("window.kanban.help"))
@@ -1436,7 +1432,7 @@ ToolbarItem(placement: .primaryAction) {
                     Label {
                         Text(WenshuI18n.t("window.todo.open"))
                     } icon: {
-                        LucideImage("list-checks")
+                        Image(systemName: "list-checks")
                     }
                 }
                 .help(WenshuI18n.t("window.todo.help"))
@@ -1509,10 +1505,10 @@ enum InspectorPage: Hashable, CaseIterable {
 
     var icon: String {
         switch self {
-        case .authoringFiction:     return "book-text"      // Lucide book-text = fiction
-        case .authoringStyle:       return "palette"        // Lucide palette = style
-        case .authoringCharacters:  return "users"          // Lucide users = characters
-        case .projectManagement:    return "folder-cog"     // Lucide folder-cog = project settings
+        case .authoringFiction:     return "book.pages.fill"      // SF Symbols 6 book.pages.fill = fiction
+        case .authoringStyle:       return "paintpalette.fill"    // SF Symbols 6 paintpalette.fill = style
+        case .authoringCharacters:  return "person.2.fill"        // SF Symbols 6 person.2.fill = characters
+        case .projectManagement:    return "folder.fill.badge.gearshape"  // SF Symbols 6 folder + gear = project settings
         }
     }
 }
@@ -1596,7 +1592,7 @@ struct ShellPlaceholder: View {
         ContentUnavailableView {
             // 38 PT matches the glyph height Apple's own
             // ContentUnavailableView renders, measured on this machine.
-            Label { Text(name) } icon: { LucideIcon(icon, size: 38) }
+            Label { Text(name) } icon: { Image(systemName: icon).font(.system(size: 38, weight: .regular)) }
         } description: {
             Text(hint)
         }

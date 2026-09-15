@@ -180,7 +180,7 @@ public struct PlaceholderView: View {
                 Button {
                     Task { await addPlaceholder() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.placeholderview.l213.h26972630")) } icon: { LucideIcon("plus", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.placeholderview.l213.h26972630")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
@@ -271,7 +271,7 @@ public struct PlaceholderView: View {
     private func placeholderRow(_ row: Placeholder) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
-                LucideIconSystemFallback(row.status.lucideIcon, size: 16)
+                Image(systemName: row.status.lucideIcon).font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.tint)
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
@@ -307,7 +307,7 @@ public struct PlaceholderView: View {
                         Button {
                             Task { await resolvePlaceholder(row) }
                         } label: {
-                            LucideIconSystemFallback("check", size: 14)
+                            Image(systemName: "check").font(.system(size: 14, weight: .regular))
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -317,7 +317,7 @@ public struct PlaceholderView: View {
                         Button {
                             Task { await reopenPlaceholder(row) }
                         } label: {
-                            LucideIconSystemFallback("rotate-ccw", size: 14)
+                            Image(systemName: "rotate-ccw").font(.system(size: 14, weight: .regular))
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -327,7 +327,7 @@ public struct PlaceholderView: View {
                         Button {
                             Task { await abandonPlaceholder(row) }
                         } label: {
-                            LucideIconSystemFallback("circle-x", size: 14)
+                            Image(systemName: "xmark.circle").font(.system(size: 14, weight: .regular))
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -336,7 +336,7 @@ public struct PlaceholderView: View {
                     Button(role: .destructive) {
                         Task { await removePlaceholder(row) }
                     } label: {
-                        LucideIconSystemFallback("trash-2", size: 14)
+                        Image(systemName: "trash").font(.system(size: 14, weight: .regular))
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
@@ -355,7 +355,7 @@ public struct PlaceholderView: View {
     private var scanSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                LucideIconSystemFallback("scan-text", size: 14)
+                Image(systemName: "scan-text").font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.tint)
                 Text(WenshuI18n.t("b5.placeholderview.l396.h55542836"))
                     .font(.callout)
@@ -376,7 +376,7 @@ public struct PlaceholderView: View {
                 Button {
                     Task { await runScan() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.placeholderview.l415.h37771405")) } icon: { LucideIcon("circle-plus", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.placeholderview.l415.h37771405")) } icon: { Image(systemName: "plus.circle").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canScan)

@@ -146,7 +146,7 @@ struct LongFormGuardrailsView: View {
             Button {
                 Task { await autoDerive() }
             } label: {
-                Label { Text(WenshuI18n.t("b5.longformguardrailsview.l175.h64020782")) } icon: { LucideIcon("wand-sparkles", size: 16) }
+                Label { Text(WenshuI18n.t("b5.longformguardrailsview.l175.h64020782")) } icon: { Image(systemName: "wand.and.sparkles").font(.system(size: 16, weight: .regular)) }
             }
             .buttonStyle(.bordered)
             .help(WenshuI18n.t("b5.longformguardrailsview.l178.h38811731"))
@@ -154,7 +154,7 @@ struct LongFormGuardrailsView: View {
             Button {
                 showAddSheet = true
             } label: {
-                Label { Text(WenshuI18n.t("button.add")) } icon: { LucideIcon("plus", size: 16) }
+                Label { Text(WenshuI18n.t("button.add")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
             }
             .buttonStyle(.borderedProminent)
             .help(WenshuI18n.t("b5.longformguardrailsview.l186.h97888008"))
@@ -179,7 +179,7 @@ struct LongFormGuardrailsView: View {
 
     private func guardrailRow(_ row: LongFormGuardrail) -> some View {
         HStack(spacing: 10) {
-            LucideIconSystemFallback(row.kind.lucideIcon, size: 16)
+            Image(systemName: row.kind.lucideIcon).font(.system(size: 16, weight: .regular))
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: DesignTokens.chromePaddingSmall) {
@@ -205,7 +205,7 @@ struct LongFormGuardrailsView: View {
             Button {
                 Task { await removeRow(row) }
             } label: {
-                LucideIconSystemFallback("x", size: 14)
+                Image(systemName: "xmark").font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
@@ -257,7 +257,7 @@ struct LongFormGuardrailsView: View {
                 Button {
                     Task { await runCheck() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.longformguardrailsview.l295.h18206542")) } icon: { LucideIcon("play", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.longformguardrailsview.l295.h18206542")) } icon: { Image(systemName: "play").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(checkText.isEmpty || guardrails.isEmpty)

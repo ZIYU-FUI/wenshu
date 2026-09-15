@@ -108,7 +108,7 @@ struct LayoutPicker: View {
                 showingZoneEditor = true
             }) {
                 HStack(spacing: 6) {
-                    LucideIconSystemFallback("plus", size: 12)
+                    Image(systemName: "plus").font(.system(size: 12, weight: .regular))
                     Text(WenshuI18n.t("auto.layoutpicker.l112.h61862158"))
                         .font(.caption)
                 }
@@ -140,7 +140,7 @@ struct LayoutPicker: View {
                     }
                 }) {
                     HStack(spacing: 6) {
-                        LucideIconSystemFallback("square.and.arrow.down", size: 12)
+                        Image(systemName: "square.and.arrow.down").font(.system(size: 12, weight: .regular))
                         Text(WenshuI18n.t("auto.layoutpicker.l144.h96188612"))
                             .font(.caption)
                     }

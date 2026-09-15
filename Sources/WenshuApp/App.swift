@@ -15,7 +15,10 @@
 
 import SwiftUI
 import AppKit
-import LucideSwift
+
+// v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use SF
+// Symbols 6 (3rd generation) with palette rendering': LucideSwift
+// import removed (= see Package.swift + IconStyles.swift).
 
 // MARK: - v0.25.1 (= ticket 019 icon button Apple HIG hit area) — Apple recommended approach
 /// Per Apple SwiftUI docs (developer.apple.com/documentation/swiftui/buttonstyle

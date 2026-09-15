@@ -34,7 +34,7 @@ struct SmartQueryView: View {
                 Button {
                     showCreateSheet = true
                 } label: {
-                    Label { Text(WenshuI18n.t("auto2.smartqueryview.l37.h49599855")) } icon: { LucideIcon("plus", size: 16) }
+                    Label { Text(WenshuI18n.t("auto2.smartqueryview.l37.h49599855")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
                 }
                 .controlSize(.small)
             }
@@ -58,7 +58,7 @@ struct SmartQueryView: View {
         List(queries) { query in
             HStack {
                 // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
-                LucideIconSystemFallback("magnifyingglass.circle", size: 18)
+                Image(systemName: "magnifyingglass.circle").font(.system(size: 18, weight: .regular))
                     .foregroundStyle(.tint)
                 VStack(alignment: .leading) {
                     Text(query.name)
@@ -81,7 +81,7 @@ struct SmartQueryView: View {
     private var emptyState: some View {
         VStack(spacing: 12) {
             // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
-            LucideIconSystemFallback("magnifyingglass.circle", size: 48)
+            Image(systemName: "magnifyingglass.circle").font(.system(size: 48, weight: .regular))
                 .foregroundStyle(.tertiary)
             Text(WenshuI18n.t("auto.smartqueryview.l86.h89952862"))
                 .font(.headline)

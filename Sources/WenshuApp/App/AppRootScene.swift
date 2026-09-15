@@ -29,7 +29,6 @@
 
 import SwiftUI
 import AppKit
-import LucideSwift
 
 struct AppRootScene: Scene {
     let library: WenshuLibrary

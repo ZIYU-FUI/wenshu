@@ -40,13 +40,13 @@ struct PlotThreadView: View {
                             HStack {
                                 VStack(alignment: .leading) { Text(thread.title); Text(thread.status.rawValue).font(.caption).foregroundStyle(.secondary) }
                                 Spacer()
-                                Button(role: .destructive) { remove(thread.id) } label: { LucideIcon("trash-2", size: 16) }.buttonStyle(.borderless)
+                                Button(role: .destructive) { remove(thread.id) } label: { Image(systemName: "trash").font(.system(size: 16, weight: .regular)) }.buttonStyle(.borderless)
                             }
                         }
                     }
                     Section(WenshuI18n.t("b5.plotthreadview.l31.h89394691")) {
                         ForEach(threads.filter { $0.status == .open || $0.status == .developing }) { thread in
-                            Label { Text(thread.title) } icon: { LucideIcon("triangle-alert", size: 16) }
+                            Label { Text(thread.title) } icon: { Image(systemName: "exclamationmark.triangle").font(.system(size: 16, weight: .regular)) }
                         }
                     }
                 }

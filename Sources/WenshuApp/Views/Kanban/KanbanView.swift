@@ -141,7 +141,7 @@ public struct KanbanView: View {
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addTicket() }
                 Button(action: addTicket) {
-                    Label { Text(WenshuI18n.t("auto2.kanbanview.l146.h37112406")) } icon: { LucideIcon("plus", size: 16) }
+                    Label { Text(WenshuI18n.t("auto2.kanbanview.l146.h37112406")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)
@@ -411,7 +411,7 @@ private struct KanbanCard: View {
                 .fixedSize()
                 Spacer()
                 Button(action: onDelete) {
-                    LucideIcon("trash-2", size: 16)
+                    Image(systemName: "trash").font(.system(size: 16, weight: .regular))
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)

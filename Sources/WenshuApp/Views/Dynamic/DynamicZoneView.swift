@@ -18,7 +18,6 @@
 //
 
 import SwiftUI
-import LucideSwift
 
 /// DynamicZoneView: body. 3 tabs (task / progress / search) + Apple HIG TabBar pattern
 /// (ChatZoneTabBar: top bar SF Symbol + .accentColor in progress).

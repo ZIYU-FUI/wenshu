@@ -198,7 +198,7 @@ struct CharacterLifecycleView: View {
                 Button {
                     Task { await addEvent() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723")) } icon: { LucideIcon("plus", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
@@ -249,7 +249,7 @@ struct CharacterLifecycleView: View {
 
     private func eventRow(_ event: LifecycleEvent) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-            LucideIconSystemFallback(event.stage.lucideIcon, size: 16)
+            Image(systemName: event.stage.lucideIcon).font(.system(size: 16, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
@@ -280,7 +280,7 @@ struct CharacterLifecycleView: View {
             Button(role: .destructive) {
                 Task { await removeEvent(event) }
             } label: {
-                LucideIconSystemFallback("trash-2", size: 14)
+                Image(systemName: "trash").font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
@@ -343,7 +343,7 @@ struct CharacterLifecycleView: View {
 
     private func timelineRow(_ event: LifecycleEvent) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-            LucideIconSystemFallback(event.stage.lucideIcon, size: 12)
+            Image(systemName: event.stage.lucideIcon).font(.system(size: 12, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.iconStandardSize)
             Text(event.stage.displayName)
@@ -373,7 +373,7 @@ struct CharacterLifecycleView: View {
             } else {
                 ForEach(Array(contradictions.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-                        LucideIconSystemFallback("alert-triangle", size: 14)
+                        Image(systemName: "alert-triangle").font(.system(size: 14, weight: .regular))
                             .foregroundStyle(Color.orange)
                             .frame(width: DesignTokens.tabIconSize)
                         VStack(alignment: .leading, spacing: 1) {

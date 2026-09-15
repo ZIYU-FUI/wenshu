@@ -189,7 +189,7 @@ struct IdeaLibraryView: View {
                 Button {
                     Task { await addIdea() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.idealibraryview.l223.h11292365")) } icon: { LucideIcon("plus", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.idealibraryview.l223.h11292365")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddIdea)
@@ -292,7 +292,7 @@ struct IdeaLibraryView: View {
     private func ideaRow(_ idea: Idea) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-                LucideIconSystemFallback(idea.status.lucideIcon, size: 16)
+                Image(systemName: idea.status.lucideIcon).font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.tint)
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
@@ -340,7 +340,7 @@ struct IdeaLibraryView: View {
                 Button(role: .destructive) {
                     Task { await removeIdea(idea) }
                 } label: {
-                    LucideIconSystemFallback("trash-2", size: 14)
+                    Image(systemName: "trash").font(.system(size: 14, weight: .regular))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
@@ -414,7 +414,7 @@ struct IdeaLibraryView: View {
                     Button {
                         Task { await linkIdea() }
                     } label: {
-                        Label { Text(WenshuI18n.t("b5.idealibraryview.l454.h37139110")) } icon: { LucideIcon("link", size: 16) }
+                        Label { Text(WenshuI18n.t("b5.idealibraryview.l454.h37139110")) } icon: { Image(systemName: "link").font(.system(size: 16, weight: .regular)) }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canLink)
@@ -463,7 +463,7 @@ struct IdeaLibraryView: View {
 
     private func linkRow(_ link: IdeaLink, for ideaId: UUID) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-            LucideIconSystemFallback(link.target.lucideIcon, size: 14)
+            Image(systemName: link.target.lucideIcon).font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
@@ -489,7 +489,7 @@ struct IdeaLibraryView: View {
             Button(role: .destructive) {
                 Task { await unlinkIdea(ideaId: ideaId, link: link) }
             } label: {
-                LucideIconSystemFallback("x", size: 12)
+                Image(systemName: "xmark").font(.system(size: 12, weight: .regular))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
@@ -520,7 +520,7 @@ struct IdeaLibraryView: View {
                 Button {
                     Task { await runSuggest() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.idealibraryview.l563.h68346633")) } icon: { LucideIcon("wand", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.idealibraryview.l563.h68346633")) } icon: { Image(systemName: "wand.and.rays").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(draftSuggestContext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -531,7 +531,7 @@ struct IdeaLibraryView: View {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                         ForEach(suggestions) { idea in
                             HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-                                LucideIconSystemFallback(idea.status.lucideIcon, size: 12)
+                                Image(systemName: idea.status.lucideIcon).font(.system(size: 12, weight: .regular))
                                     .foregroundStyle(.tint)
                                     .frame(width: DesignTokens.iconStandardSize)
                                 Text(idea.title)

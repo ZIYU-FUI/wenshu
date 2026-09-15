@@ -164,7 +164,7 @@ struct CharacterRelationshipsView: View {
                 .labelsHidden()
                 .disabled(characters.isEmpty)
 
-                LucideIconSystemFallback("arrow-right", size: 14)
+                Image(systemName: "arrow-right").font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.tertiary)
 
                 Picker("To", selection: Binding(
@@ -193,7 +193,7 @@ struct CharacterRelationshipsView: View {
                 Button {
                     Task { await addRelationship() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.characterrelationshipsview.l230.h80913925")) } icon: { LucideIcon("plus", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.characterrelationshipsview.l230.h80913925")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
@@ -239,7 +239,7 @@ struct CharacterRelationshipsView: View {
 
     private func relationshipRow(_ row: CharacterRelationship) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-            LucideIconSystemFallback(row.kind.lucideIcon, size: 16)
+            Image(systemName: row.kind.lucideIcon).font(.system(size: 16, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
@@ -247,7 +247,7 @@ struct CharacterRelationshipsView: View {
                     Text(characterName(for: row.fromCharacterId))
                         .font(.callout)
                         .foregroundStyle(.primary)
-                    LucideIconSystemFallback("arrow-right", size: 10)
+                    Image(systemName: "arrow-right").font(.system(size: 10, weight: .regular))
                         .foregroundStyle(.tertiary)
                     Text(characterName(for: row.toCharacterId))
                         .font(.callout)
@@ -275,7 +275,7 @@ struct CharacterRelationshipsView: View {
             Button(role: .destructive) {
                 Task { await removeRelationship(row) }
             } label: {
-                LucideIconSystemFallback("trash-2", size: 14)
+                Image(systemName: "trash").font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
@@ -302,7 +302,7 @@ struct CharacterRelationshipsView: View {
             } else {
                 ForEach(Array(inconsistencies.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-                        LucideIconSystemFallback("alert-triangle", size: 14)
+                        Image(systemName: "alert-triangle").font(.system(size: 14, weight: .regular))
                             .foregroundStyle(Color.orange)
                             .frame(width: DesignTokens.tabIconSize)
                         Text(issue.message)

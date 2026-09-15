@@ -113,16 +113,16 @@ private struct TaskRowView: View {
     private var statusIcon: some View {
         switch task.status {
         case .running:
-            LucideIconSystemFallback("circle.dashed", size: 14)
+            Image(systemName: "circle.dashed").font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.blue)
         case .done:
-            LucideIconSystemFallback("checkmark.circle.fill", size: 14)
+            Image(systemName: "checkmark.circle.fill").font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.green)
         case .failed:
-            LucideIconSystemFallback("xmark.circle.fill", size: 14)
+            Image(systemName: "xmark.circle.fill").font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.red)
         default:
-            LucideIconSystemFallback("circle", size: 14)
+            Image(systemName: "circle").font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.tertiary)
         }
     }

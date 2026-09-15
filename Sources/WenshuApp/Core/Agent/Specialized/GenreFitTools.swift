@@ -160,7 +160,7 @@ public enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable
     public var lucideIcon: String {
         switch self {
         case .literary:         return "book-open"
-        case .mystery:          return "search"
+        case .mystery:          return "magnifyingglass"
         case .romance:          return "heart"
         case .sciFi:            return "rocket"
         case .fantasy:          return "wand-2"

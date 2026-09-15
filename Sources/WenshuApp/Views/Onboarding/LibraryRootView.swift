@@ -262,7 +262,7 @@ public struct LibraryOnboardingView: View {
 //
 // Why NSImage(contentsOf:) not Image("wenshu-original-fanbai"):
 //   Package.swift copies entire AppIcon.icon/ folder to .app bundle, but
-//   SwiftUI Image("name") only finds images in .xcassets or main bundle
+//   SwiftUI Image("person.text.rectangle") only finds images in .xcassets or main bundle
 //   root, NOT in subdirectories. So Image("wenshu-original-fanbai")
 // returns empty (= "" = no icon visible). Use NSImage(contentsOf:)
 //   to load PNG from absolute path inside .app bundle.
@@ -278,7 +278,7 @@ Group {
             .frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)
     } else {
         // Fallback: Lucide canonical if PNG load fails (boss 2026-09-02: SF Symbol fully replaced)
-        LucideIconSystemFallback("text.book.closed", size: 96)
+        Image(systemName: "text.book.closed").font(.system(size: 96, weight: .regular))
             .foregroundStyle(.white)
     }
 }
@@ -305,7 +305,7 @@ Group {
                 Button {
                     showSavePanel()
                 } label: {
-                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l387.h40947105")) } icon: { LucideIcon("file-plus", size: 16) }
+                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l387.h40947105")) } icon: { Image(systemName: "document.badge.plus").font(.system(size: 16, weight: .regular)) }
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.borderedProminent)
@@ -314,7 +314,7 @@ Group {
                 Button {
                     isImporterPresented = true
                 } label: {
-                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l396.h53178210")) } icon: { LucideIcon("folder", size: 16) }
+                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l396.h53178210")) } icon: { Image(systemName: "folder").font(.system(size: 16, weight: .regular)) }
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.bordered)

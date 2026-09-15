@@ -15,7 +15,6 @@
 //
 
 import SwiftUI
-import LucideSwift
 
 /// One chat message: three roles (user / Wenshu / system); Wenshu's internal multi-agent dispatch does not surface as ChatMessage (it goes through the Kanban board)
 public struct ChatMessage: Equatable, Identifiable, Sendable {
@@ -1324,12 +1323,8 @@ public struct ChatView: View {
                 Button {
                     showingImageImporter = true
                 } label: {
-                    LucideIcon(
-                        name: "paperclip",
-                        size: DesignTokens.tabIconSize,
-                        strokeWidth: 1,
-                        absoluteStrokeWidth: true
-                    )
+                    Image(systemName: "paperclip")
+                        .font(.system(size: DesignTokens.tabIconSize, weight: .regular))
                         .aspectRatio(contentMode: .fit)
                         .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
                         .foregroundStyle(.secondary)
@@ -1540,12 +1535,8 @@ public struct ChatView: View {
                         // pattern with SF Symbol fallback (= Layer
                         // 3 fallback) preserves behavior if
                         // 'send' Lucide is missing.
-                        LucideIcon(
-                            name: "send",
-                            size: DesignTokens.tabIconSize,
-                            strokeWidth: 1,
-                            absoluteStrokeWidth: true
-                        )
+                        Image(systemName: "paperplane")
+                            .font(.system(size: DesignTokens.tabIconSize, weight: .regular))
                             .aspectRatio(contentMode: .fit)
                             .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)  // v0.28 followup Boss UX round 18: shrink to 18 PT
                             // v0.55: pulse the glyph while a reply is streaming
@@ -1603,12 +1594,8 @@ public struct ChatView: View {
                     // used for visual consistency with the rest of the
                     // chat input row (= Lucide-first per project
                     // v0.27 boss OOB).
-                    LucideIcon(
-                        name: "target",
-                        size: DesignTokens.tabIconSize,
-                        strokeWidth: 1,
-                        absoluteStrokeWidth: true
-                    )
+                    Image(systemName: "scope")
+                        .font(.system(size: DesignTokens.tabIconSize, weight: .regular))
                         .aspectRatio(contentMode: .fit)
                         .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
                         .foregroundStyle(.secondary)
@@ -1752,19 +1739,13 @@ struct ChatMessageView: View {
                 if position.hasTail && !isOutgoing {
                     switch message.source {
                     case .user:
-                        LucideIcon(
-                            .userRound,
-                            strokeWidth: 1,
-                            absoluteStrokeWidth: true
-                        ).aspectRatio(contentMode: .fit)
+                        Image(systemName: "person.fill").font(.system(size: 24, weight: .regular))
+                            .aspectRatio(contentMode: .fit)
                     case .wenshu:
-                        LucideIcon(
-                            .botMessageSquare,
-                            strokeWidth: 1,
-                            absoluteStrokeWidth: true
-                        ).aspectRatio(contentMode: .fit)
+                        Image(systemName: "sparkles").font(.system(size: 24, weight: .regular))
+                            .aspectRatio(contentMode: .fit)
                     case .system:
-                        LucideIconSystemFallback(sourceIcon, size: 24)
+                        Image(systemName: sourceIcon).font(.system(size: 24, weight: .regular))
                     }
                 } else if !isOutgoing {
                     Color.clear
@@ -1794,7 +1775,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         // 'bot-message-square' (= wenshu agent face per
                         // Lucide; semantically = 'thinking' = good
                         // placeholder icon).
-                        LucideIconSystemFallback("person.crop.circle.badge.questionmark", size: 16)
+                        Image(systemName: "person.crop.circle.badge.questionmark").font(.system(size: 16, weight: .regular))
                             .foregroundStyle(.secondary)
                         Text(message.content)
                             .foregroundStyle(.secondary)
@@ -1848,7 +1829,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 .transition(.opacity)
                         } label: {
                             HStack(spacing: 4) {
-                                LucideIconSystemFallback("brain")
+                                Image(systemName: "brain").font(.system(size: 16, weight: .regular))
                                     .font(.caption)
                                 Text(WenshuI18n.t("chatview.ai_thinking"))
                                     .font(.caption)

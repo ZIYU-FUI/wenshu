@@ -99,9 +99,9 @@ public enum ForeshadowingStatus: String, Sendable, Codable, CaseIterable, Identi
         case .open:            return "circle"
         case .setup:           return "git-fork"
         case .hinting:         return "git-branch"
-        case .nearlyPaidOff:   return "circle-dot"
+        case .nearlyPaidOff:   return "circle.dotted"
         case .paidOff:         return "check-circle-2"
-        case .abandoned:       return "circle-x"
+        case .abandoned:       return "xmark.circle"
         }
     }
 

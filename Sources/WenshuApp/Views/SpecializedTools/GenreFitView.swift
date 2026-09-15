@@ -139,7 +139,7 @@ struct GenreFitView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label { Text(WenshuI18n.t("button.analyze")) } icon: { LucideIcon("play", size: 16) }
+                    Label { Text(WenshuI18n.t("button.analyze")) } icon: { Image(systemName: "play").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
@@ -149,7 +149,7 @@ struct GenreFitView: View {
                     report = nil
                     status = .idle
                 } label: {
-                    Label { Text(WenshuI18n.t("button.clear")) } icon: { LucideIcon("x", size: 16) }
+                    Label { Text(WenshuI18n.t("button.clear")) } icon: { Image(systemName: "xmark").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.bordered)
                 .help(WenshuI18n.t("b5.genrefitview.l190.h26662967"))
@@ -180,7 +180,7 @@ struct GenreFitView: View {
     private func resultSection(for report: GenreFitReport) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingVertical) {
             HStack(spacing: DesignTokens.chromePaddingVertical) {
-                LucideIconSystemFallback(report.genre.lucideIcon, size: 16)
+                Image(systemName: report.genre.lucideIcon).font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.tint)
                 Text(report.genre.displayName)
                     .font(.callout)

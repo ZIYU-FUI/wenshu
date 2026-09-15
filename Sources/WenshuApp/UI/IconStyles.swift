@@ -52,7 +52,7 @@ import SwiftUI
 /// - "large" (24 PT) = card / prominent control icons.
 /// - "xlarge" (32 PT) = editor zone entity-type badges / hero icons.
 /// - "custom(CGFloat)" = escape hatch (= not common).
-enum IconSize {
+public enum IconSize {
     case small         // 14 PT — chrome toolbar / inline icons
     case medium        // 18 PT — tab bar / action button
     case large         // 24 PT — card / prominent control
@@ -84,7 +84,7 @@ enum IconSize {
 /// .secondary / .tint / .accentColor) = the colors automatically
 /// adapt to light / dark mode + tint settings without any custom
 /// color logic.
-enum IconColor {
+public enum IconColor {
     case primary         // .primary (= main text color)
     case secondary       // .secondary (= secondary text)
     case tint            // .tint (= app accent color = boss 9/2 'zone tint')
@@ -102,7 +102,7 @@ enum IconColor {
 ///
 /// Reference: developer.apple.com/sf-symbols (SF Symbols 6 /
 /// iOS 17+ / macOS 14+).
-enum IconRendering {
+public enum IconRendering {
     /// Single-color icon (= .foregroundStyle(...) = no per-layer
     /// depth). Use this for symbols that don't support palette
     /// or hierarchical rendering in SF Symbols 6.
@@ -128,7 +128,7 @@ enum IconRendering {
 /// STYLES-002 (refreshed 2026-09-15): canonical SF Symbols 6
 /// icon renderer. Renders an SF Symbol glyph at the given size,
 /// rendering mode, and color treatment. Replaces the Lucide-era
-/// `LucideIcon(...)` helper.
+/// `Image(systemName: ...).font(.system(size: 16, weight: .regular))` helper.
 ///
 /// Apple HIG weight rule (boss 2026-09-15 '细体' = 'thin body'):
 /// weight = .regular (= the canonical macOS 27 toolbar glyph
@@ -141,6 +141,7 @@ enum IconRendering {
 /// SFIcon("wand.and.stars", size: .large, rendering: .palette,
 ///        color: .tint)
 /// ```
+@MainActor
 @ViewBuilder
 public func SFIcon(
     _ name: String,
@@ -174,7 +175,6 @@ public func SFIcon(
 
 /// STYLES-002 (refreshed 2026-09-15): maps IconColor enum case
 /// to the matching SwiftUI semantic Color (= no hardcoded RGB).
-@MainActor
 private func semanticColor(_ color: IconColor) -> Color {
     switch color {
     case .primary:   return Color.primary

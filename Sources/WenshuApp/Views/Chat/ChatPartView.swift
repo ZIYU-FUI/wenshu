@@ -140,7 +140,7 @@ public struct ChatReasoningPartView: View {
                 // v0.27 boss 8/27 OOB: Lucide `brain` = the closest
                 // semantic match (= Hermes uses an emoji or a custom
                 // SVG = wenshu's design system = Lucide hairline).
-                LucideIconSystemFallback("brain", size: 12)
+                Image(systemName: "brain").font(.system(size: 12, weight: .regular))
                     .font(.caption)
                 // Label text flips between running + finished (= the
                 // Hermes `thoughtFor` / `thoughtBriefly` / `thought`
@@ -302,7 +302,7 @@ public struct ChatToolResultPartView: View {
                 // (= error); we route through LucideIconSystemFallback
                 // so the SF Symbol name ("checkmark" / "exclamationmark.triangle")
                 // gets mapped to the closest Lucide equivalent.
-                LucideIconSystemFallback(toolResult.isError ? "exclamationmark.triangle" : "checkmark", size: 12)
+                Image(systemName: toolResult.isError ? "exclamationmark.triangle" : "checkmark").font(.system(size: 12, weight: .regular))
                     .foregroundStyle(toolResult.isError ? Color.red : Color.green)
                 Text(toolResult.isError
                      ? WenshuI18n.t("chatview.tool_result.error")
@@ -451,7 +451,7 @@ public struct ChatMessageHoverActions: View {
             Button {
                 copyToPasteboard()
             } label: {
-                LucideIconSystemFallback("doc.on.doc", size: 12)
+                Image(systemName: "doc.on.doc").font(.system(size: 12, weight: .regular))
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
@@ -470,7 +470,7 @@ public struct ChatMessageHoverActions: View {
                     object: content
                 )
             } label: {
-                LucideIconSystemFallback("trash", size: 12)
+                Image(systemName: "trash").font(.system(size: 12, weight: .regular))
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
