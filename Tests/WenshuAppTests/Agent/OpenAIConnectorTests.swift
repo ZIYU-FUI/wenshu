@@ -33,7 +33,7 @@ struct OpenAIConnectorTests {
 
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk-openai-test", for: .openaiCodex)
-        ProviderKeychain.setBackendForTesting(store)
+        try await ProviderKeychain.withBackendForTesting(store) {
 
         let connector = OpenAIConnector(session: session)
         _ = try await connector.send(
@@ -45,7 +45,8 @@ struct OpenAIConnectorTests {
         let auth = captured?.value(forHTTPHeaderField: "Authorization")
         #expect(auth == "Bearer sk-openai-test")
         #expect(captured?.url?.path.contains("/chat/completions") == true)
-    }
+        }
+}
 
     @Test("OpenAI native: system message prepended in messages array")
     func testSystemPrepended() async throws {
@@ -57,7 +58,7 @@ struct OpenAIConnectorTests {
 
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk", for: .openaiCodex)
-        ProviderKeychain.setBackendForTesting(store)
+        try await ProviderKeychain.withBackendForTesting(store) {
 
         let connector = OpenAIConnector(session: session)
         _ = try await connector.send(
@@ -70,7 +71,8 @@ struct OpenAIConnectorTests {
         #expect(messages?[0]["role"] as? String == "system")
         #expect(messages?[0]["content"] as? String == "you are helpful")
         #expect(messages?[1]["role"] as? String == "user")
-    }
+        }
+}
 
     @Test("OpenAI-compatible (DeepSeek): connectorID = 'deepseek' + base URL")
     func testOpenAICompatibleDeepSeek() async throws {
@@ -82,7 +84,7 @@ struct OpenAIConnectorTests {
 
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk-ds", for: .deepseek)
-        ProviderKeychain.setBackendForTesting(store)
+        try await ProviderKeychain.withBackendForTesting(store) {
 
         let connector = OpenAICompatibleConnector(provider: .deepseek, session: session)
         _ = try await connector.send(
@@ -93,7 +95,8 @@ struct OpenAIConnectorTests {
         #expect(connector.connectorID == "deepseek")
         let captured = stub.lastRequest
         #expect(captured?.url?.host == "api.deepseek.com")
-    }
+        }
+}
 
     @Test("Ollama: empty apiKey allowed (no auth required per AGENTS.md §11.2)")
     func testOllamaNoAuth() async throws {
@@ -105,7 +108,7 @@ struct OpenAIConnectorTests {
 
         let store = InMemoryKeychainStore()
         // No key saved for ollama
-        ProviderKeychain.setBackendForTesting(store)
+        try await ProviderKeychain.withBackendForTesting(store) {
 
         let connector = OpenAICompatibleConnector(provider: .ollama, session: session)
         _ = try await connector.send(
@@ -118,7 +121,8 @@ struct OpenAIConnectorTests {
         #expect(captured?.url?.port == 11434)
         // No Authorization header for Ollama
         #expect(captured?.value(forHTTPHeaderField: "Authorization") == nil)
-    }
+        }
+}
 
     @Test("OpenAI-compatible (Ollama): missing key does NOT throw")
     func testOllamaMissingKeyNoThrow() async throws {
@@ -129,7 +133,7 @@ struct OpenAIConnectorTests {
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
-        ProviderKeychain.setBackendForTesting(store)
+        try await ProviderKeychain.withBackendForTesting(store) {
 
         let connector = OpenAICompatibleConnector(provider: .ollama, session: session)
         // Should NOT throw missingAPIKey (= Ollama no-auth)
@@ -137,7 +141,8 @@ struct OpenAIConnectorTests {
             messages: [LLMMessage.user("test")],
             options: LLMCallOptions(model: "llama3.3")
         )
-    }
+        }
+}
 }
 
 // MARK: - Shared OpenAI response builder
