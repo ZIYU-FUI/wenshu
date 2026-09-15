@@ -30,6 +30,12 @@ import Foundation
 @Suite("LLMConnector protocol")
 struct LLMConnectorProtocolTests {
 
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
+
     @Test("LLMBlock.text extraction by case")
     func textExtractionByCase() {
         // text
@@ -110,6 +116,12 @@ struct LLMConnectorProtocolTests {
 
 @Suite("ProviderKeychain + ProviderKeychainMetadata")
 struct ComprehensiveProviderKeychainTests {
+
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
 
     @Test("ProviderKeychainMetadata default state")
     func defaultMetadata() {
@@ -238,6 +250,12 @@ struct ComprehensiveProviderKeychainTests {
 @Suite("OAuthFlow")
 struct OAuthFlowTests {
 
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
+
     @Test("OAuthFlow init: stores endpoints + clientID + scopes")
     func oauthInit() {
         let flow = OAuthFlow(
@@ -297,6 +315,12 @@ struct OAuthFlowTests {
 
 @Suite("ToolGuardrails + ToolNameWhitelist")
 struct ToolGuardrailsTests {
+
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
 
     @Test("ToolGuardrailsResult.pass")
     func guardrailsPass() {
@@ -373,6 +397,12 @@ struct ToolGuardrailsTests {
 
 @Suite("ErrorClassifier + LLMErrorCategory")
 struct ErrorClassifierTests {
+
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
 
     @Test("LLMErrorCategory: 8 cases all unique")
     func allCategories() {
@@ -475,6 +505,12 @@ struct ErrorClassifierTests {
 @Suite("RateLimitTracker")
 struct RateLimitTrackerTests {
 
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
+
     @Test("ProviderRateLimit init: stores provider + limits")
     func rateLimitInit() {
         let limit = ProviderRateLimit(providerSlug: "test", requestsPerMinute: 100)
@@ -551,6 +587,12 @@ struct RateLimitTrackerTests {
 @Suite("BackgroundCreditsTracker")
 struct BackgroundCreditsTrackerTests {
 
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
+
     @Test("CreditConsumption: totalTokens = input + output")
     func creditTotal() {
         let c = CreditConsumption(
@@ -603,6 +645,12 @@ struct BackgroundCreditsTrackerTests {
 
 @Suite("DisplayStateMachine + DisplayState")
 struct DisplayStateMachineTests {
+
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
 
     @Test("DisplayState: idle initial")
     func idleState() {
@@ -695,6 +743,12 @@ struct DisplayStateMachineTests {
 
 @Suite("BackgroundReview + BackgroundProposal")
 struct BackgroundReviewTests {
+
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
 
     @Test("ProposalKind: 7 case types")
     func allProposalKinds() {
@@ -791,6 +845,12 @@ struct BackgroundReviewTests {
 @Suite("Curator")
 struct CuratorTests {
 
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
+
     @Test("Curator.empty: no findings")
     func emptyCurate() {
         let report = Curator.curate(entities: [])
@@ -874,6 +934,12 @@ struct CuratorTests {
 
 @Suite("RuntimeCWD")
 struct RuntimeCWDTests {
+
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
 
     @Test("RuntimeCWD: empty when no library path set")
     func emptyCWD() async {
@@ -976,6 +1042,12 @@ struct RuntimeCWDTests {
 
 @Suite("ContextBreakdown + ContextReferences")
 struct ContextBreakdownAndReferencesTests {
+
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
 
     @Test("ContextBreakdown: zero tokens, zero fractions")
     func zeroTokens() {
@@ -1086,6 +1158,12 @@ struct ContextBreakdownAndReferencesTests {
 @Suite("MemoryEntryRow + ChatMessageBridge")
 struct MemoryEntryRowAndChatMessageBridgeTests {
 
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
+
     @Test("MemoryEntryRow: compact flag toggles display")
     func memoryRowCompact() {
         let entry = MemoryAdapter.MemoryEntry(
@@ -1128,6 +1206,12 @@ struct MemoryEntryRowAndChatMessageBridgeTests {
 
 @Suite("ConnectorCredentials + AnthropicStreamingWireup")
 struct ConnectorCredentialsAndStreamingTests {
+
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
 
     @Test("ConnectorCredentials: init + isReady")
     func credentialsInit() {
@@ -1226,6 +1310,12 @@ struct ConnectorCredentialsAndStreamingTests {
 @Suite("LLMConnectorError + ToolExecutor")
 struct LLMConnectorErrorAndToolExecutorTests {
 
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
+
     @Test("LLMConnectorError: all 5 cases have errorDescription")
     func allErrorsHaveDescription() {
         let errors: [LLMConnectorError] = [
@@ -1303,6 +1393,12 @@ struct LLMConnectorErrorAndToolExecutorTests {
 
 @Suite("Misc edge cases")
 struct MiscEdgeCaseTests {
+
+    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    init() {
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+    }
 
     @Test("DesignTokens chromePadding constants: non-zero")
     @MainActor
