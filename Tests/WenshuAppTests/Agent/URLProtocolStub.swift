@@ -155,6 +155,25 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
     public override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     public override func startLoading() {
+        // v1.17 ticket 001 (= per Q34 5.2 + Q173 ponytail + Q186):
+        // per-test isolated stub routing. If `self` is an instance
+        // of a runtime-generated URLProtocol subclass (= produced by
+        // `makeIsolatedStub()` in v1.16), route the request to the
+        // per-instance stub via associated objects. This eliminates
+        // the global `URLProtocolStub.capturedRequest` write for
+        // tests that opt into the isolated pattern.
+        //
+        // Per Q34 5.2: the routing happens here in startLoading()
+        // because URLSession creates its own URLProtocolStub instance
+        // per request (= the test's local stub is never the live
+        // instance). For isolated subclasses, the test's stub is
+        // captured on the class via associated objects (= survives
+        // across instance creations).
+        if type(of: self) != URLProtocolStub.self {
+            // Isolated subclass: route to per-instance stub.
+            routeToIsolatedStub(request: request, client: client)
+            return
+        }
         // Bridge to the class-level capturedRequest so the test's local stub
         // (= which is never the live instance) sees the request via its
         // computed `lastRequest` getter.
@@ -273,6 +292,91 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         let stub = URLProtocolStub()
         let subclass = IsolatedStubSubclass.makeSubclass(for: stub)
         return (stub, subclass)
+    }
+
+    /// v1.17 ticket 001 (= per Q34 5.2 + Q173 ponytail + Q186):
+    /// per-instance capturedRequest storage (= via instance var).
+    /// Isolated stubs route here instead of writing to the global
+    /// `URLProtocolStub.capturedRequest`. This is the per-test
+    /// state that the isolated pattern needs.
+    private var _isolatedCapturedRequest: URLRequest?
+
+    /// v1.17 ticket 001: route a URLSession-created instance's
+    /// startLoading() to the per-instance stub captured via
+    /// associated objects (= produced by IsolatedStubSubclass).
+    ///
+    /// Per Q34 5.2 + Q173 ponytail + Q186:
+    ///   1. Look up the stub via `IsolatedStubSubclass.getAssociatedStub`
+    ///   2. Drain httpBodyStream (same as the global path)
+    ///   3. Write to `_isolatedCapturedRequest` (= per-instance state)
+    ///   4. Mirror the stub's responseData/error/statusCode/headers
+    ///      onto `self` (= so the URLProtocol client receives them)
+    ///   5. Notify the client (= didReceive response + didLoad data
+    ///      OR didFailWithError)
+    ///
+    /// Returns silently if no associated stub found (= safety net
+    /// for malformed subclass instances).
+    fileprivate func routeToIsolatedStub(
+        request: URLRequest,
+        client: URLProtocolClient?
+    ) {
+        guard let stub = IsolatedStubSubclass.getAssociatedStub(type(of: self)) else {
+            // No associated stub: fall through to default behavior
+            // (= empty response; = the test will see a fail but won't
+            // crash). This is a safety net for malformed subclasses.
+            return
+        }
+        var captured = request
+        // Same httpBodyStream drain as the global path.
+        if captured.httpBody == nil, let stream = captured.httpBodyStream, let url = captured.url {
+            stream.open()
+            defer { stream.close() }
+            var buf = Data()
+            var chunk = [UInt8](repeating: 0, count: 4096)
+            while stream.hasBytesAvailable {
+                let n = stream.read(&chunk, maxLength: chunk.count)
+                if n <= 0 { break }
+                buf.append(chunk, count: n)
+            }
+            if !buf.isEmpty {
+                var rebuilt = URLRequest(url: url)
+                rebuilt.httpMethod = captured.httpMethod
+                rebuilt.allHTTPHeaderFields = captured.allHTTPHeaderFields
+                rebuilt.httpBody = buf
+                captured = rebuilt
+            }
+        }
+        // Write to PER-INSTANCE state (= no global mutation; = safe
+        // for concurrent tests that each have their own isolated stub).
+        _isolatedCapturedRequest = captured
+        // Mirror the stub's response fields onto `self` so the
+        // URLProtocol client receives the test's canned response.
+        responseData = stub.responseData
+        responseError = stub.responseError
+        responseStatusCode = stub.responseStatusCode
+        responseHeaders = stub.responseHeaders
+        guard let client = client else { return }
+
+        if let error = responseError {
+            client.urlProtocol(self, didFailWithError: error)
+            return
+        }
+
+        guard let url = request.url else {
+            client.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: responseStatusCode,
+            httpVersion: "HTTP/1.1",
+            headerFields: responseHeaders
+        )!
+
+        client.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client.urlProtocol(self, didLoad: responseData)
+        client.urlProtocolDidFinishLoading(self)
     }
 
     public static func makeResponse(statusCode: Int, json: String) -> (data: Data, response: URLResponse) {
