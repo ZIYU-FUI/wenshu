@@ -45,6 +45,50 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
     /// live instance after a request fires.
     nonisolated(unsafe) public static var stub: URLProtocolStub?
 
+    /// v1.12 ticket 001 (= per Q34 5.4 fix root cause for the
+    /// remaining URLProtocolStub global static races): TaskLocal
+    /// variants of `stub`, `registeredSnapshot`, `capturedRequest`.
+    /// Tests that opt into the TaskLocal pattern via
+    /// `URLProtocolStub.$stub.withValue(stub) { ... }` (= or via
+    /// the convenience `withStubForTesting(_:perform:)` helper)
+    /// get hermetic isolation per task: the test body's task has
+    /// its own stub reference, so concurrent test bodies do NOT
+    /// race on the global static vars.
+    ///
+    /// Per Q34 5.2 + Q173 ponytail + Q186: the TaskLocal pattern
+    /// is the Swift-native way to give each task its own value
+    /// (= no global mutation; = no race). Tests that don't use
+    /// the helper continue to read the global statics (= backward
+    /// compatible).
+    @TaskLocal
+    nonisolated(unsafe) public static var _taskLocalStub: URLProtocolStub?
+    @TaskLocal
+    nonisolated(unsafe) public static var _taskLocalRegisteredSnapshot: URLProtocolStub?
+    @TaskLocal
+    nonisolated(unsafe) public static var _taskLocalCapturedRequest: URLRequest?
+
+    /// v1.12 ticket 001: scoped test override via TaskLocal. Sets
+    /// the per-task stub + snapshot + capturedRequest to the
+    /// provided stub for the duration of the `body` closure.
+    /// The previous TaskLocal values (= if any) are restored when
+    /// the body returns (= via Swift Concurrency `TaskLocal.withValue`
+    /// semantics).
+    ///
+    /// Per Q34 5.4 + Q186 + Q173 ponytail: this is the OPT-IN
+    /// hermetic stub pattern. Tests that already use the global
+    /// `register` continue to work (= backward compatible).
+    /// New tests should prefer this helper.
+    public static func withStubForTesting<R>(
+        _ stub: URLProtocolStub,
+        perform body: () async throws -> R
+    ) async rethrows -> R {
+        try await URLProtocolStub.$_taskLocalStub.withValue(stub) {
+            try await URLProtocolStub.$_taskLocalRegisteredSnapshot.withValue(stub) {
+                return try await body()
+            }
+        }
+    }
+
     /// Snapshot of the registered instance's response fields, captured at
     // `register(_:)` time. URLSession instantiates a fresh URLProtocolStub
     // per request (= the test's local `let stub = URLProtocolStub()` is never
@@ -148,11 +192,17 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         // `URLProtocolStub.stub?.lastRequest` get the framework's request,
         // not the unused local stub instance.
         URLProtocolStub.stub = self
-        // Mirror the registered stub's responseData / responseError /
-        // responseStatusCode / responseHeaders onto this live instance so the
-        // framework's URLSession receives the test's intended canned response
-        // instead of the empty default.
-        if let registered = URLProtocolStub.registeredSnapshot {
+        // v1.12 ticket 001 (= per Q34 5.2): prefer the per-task TaskLocal
+        // stub (= if set via withStubForTesting); = fall back to the
+        // global registeredSnapshot otherwise (= backward compatible with
+        // tests that use the register() pattern).
+        let taskLocalRegistered = URLProtocolStub._taskLocalRegisteredSnapshot
+        let globalRegistered = URLProtocolStub.registeredSnapshot
+        // v1.12 ticket 001 (= per Q34 5.2): prefer the per-task TaskLocal
+        // stub (= if set via withStubForTesting); = fall back to the
+        // global registeredSnapshot otherwise (= backward compatible with
+        // tests that use the register() pattern).
+        if let registered = taskLocalRegistered ?? globalRegistered {
             responseData = registered.responseData
             responseError = registered.responseError
             responseStatusCode = registered.responseStatusCode
