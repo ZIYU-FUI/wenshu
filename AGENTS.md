@@ -443,3 +443,67 @@ Ticket 5 (= 1 commit, landed):
     multiple [[name]] links on the same line don't collide).
 
 Next: phase 5 deletion step (= tickets 7/8/9 future cleanup + final git rm).
+
+## §11.5 Known test flakes (= accepted 2026-09-14, v1.24 closure)
+
+Per boss OOB 2026-09-14 '按优先级推' + 'A': 2 pre-existing
+MinimaxConnectorTests combined-run failures (= `testRequestBody`
++ `testResponseDecode`) are ACCEPTED as known flakes. Root cause
+= `MinimaxConnector` is an `actor` (= per
+`Sources/WenshuApp/Core/Agent/Connector/MinimaxConnector.swift:38`).
+The actor + URLSession callback interaction causes a continuation
+ordering race when Swift Testing runs multiple connector suites
+concurrently.
+
+Per Q46 stop-rule + Q186 + Q173 ponytail: 10 redo attempts on
+URLProtocolStub migration (= v1.11-v1.23) were either
+flaky, build-failing, or exceeded the Q112「1 ticket 1 file」scope.
+The realistic fix requires a multi-file refactor (= combine
+5 connector suites into 1 parent suite with `.serialized`).
+
+### Acceptance (= per Q34 5.6 honest scope gap)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Isolated run pass rate (= dev inner loop) | 100% (= MinimaxConnector isolated = 4/4 pass; = OpenAIConnector isolated = 10/10 pass) |
+| 2 | Combined run variance | 0-7 fails out of 540+ tests (= timing-dependent) |
+| 3 | Production code affected | 0 (= URLProtocolStub.swift is test-only) |
+| 4 | Test files affected | 0 (= 8 real fixes from v1.18-v1.19 already landed) |
+
+### Future fix (= scope-deferred per Q34 5.6)
+
+| # | Option | Effort | Notes |
+|---|---|---|---|
+| 1 | Multi-file refactor: combine 5 connector suites into 1 parent `ConnectorTests.swift` | 4-6 hours | Defeats parallelism; = future ticket when boss accepts the tradeoff |
+| 2 | Single-file alternative: add `static let _crossSuiteLock` to URLProtocolStub.swift + use in 5 test files' init() | 1-2 hours | Still multi-file change |
+| 3 | Change `MinimaxConnector` to non-actor | 1 hour | Production code change (= violates Q112) |
+| 4 | Accept the variance (= this ticket's recommendation) | 0 | Done |
+
+### Why isolated runs pass but combined runs flake
+
+Each connector test suite has `@Suite(..., .serialized)` (= serializes
+tests WITHIN the suite). Swift Testing still runs DIFFERENT suites
+concurrently. When `MinimaxConnectorTests` (= actor-based) runs in
+parallel with `OpenAIConnectorTests` (= actor-based) etc., the
+URLSession callbacks from multiple test requests interleave with
+the actor continuations, causing the assertion race.
+
+The dev inner loop (= running 1 test at a time via Xcode test
+navigator or `swift test --filter`) is NOT affected. Only the
+batch CI run is affected.
+
+### Migration arc summary (= v0.73-v1.23 = 30+ tickets)
+
+| Phase | Tickets | Net fix |
+|---|---|---|
+| v0.73-v0.82 | 10 | Hermes wiring gap + KeychainOps |
+| v0.83-v0.94 | 12 | WorkspaceView helper tests + flakes investigation |
+| v0.96-v1.08 | 13 | .serialized + init() reset + defer fix (= 5 real fixes) |
+| v1.09 | 1 | TaskLocal backend infrastructure (= enabler) |
+| v1.10 | 1 | OpenAI + Minimax migrate to TaskLocal (= 2 real fixes) |
+| v1.16-v1.17 | 2 | Per-test stub instance infrastructure (= enablers) |
+| v1.18-v1.19 | 2 | OpenAI + Minimax migrate to makeIsolatedStub (= 2 real fixes) |
+| v1.11-v1.15 + v1.20-v1.23 | 9 | Spec-only honest scope gaps (= documented root cause at each attempt) |
+| **v1.24** | **1** | **THIS TICKET: accept 2 flakes as known** |
+| **Total** | **51** | **8 real fixes + 20 honest scope gaps + 2 infra enablers + acceptance closure** |
+
