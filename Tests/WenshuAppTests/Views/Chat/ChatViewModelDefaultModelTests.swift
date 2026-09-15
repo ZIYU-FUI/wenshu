@@ -46,11 +46,13 @@ struct ChatViewModelDefaultModelTests {
         let saved = UserDefaults.standard.string(forKey: "wenshu.llm.model")
         #expect(saved == nil, "UserDefaults 'wenshu.llm.model' should be unset (clean test)")
 
-        // The fix is at SettingView.swift: @AppStorage default = "" (not WenshuLLMModel.m3.rawValue)
-        // v0.40 apple-001 phase 3 ticket 5: this property moved from App.swift to SettingView.swift.
-        let settingViewURL = URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Settings/SettingView.swift")
+        // v0.91 ticket 001: derive path from currentDirectoryPath so the
+        // test reads the worktree-local file (= not the hardcoded main path).
+        let cwd = FileManager.default.currentDirectoryPath
+        let settingViewURL = URL(fileURLWithPath: cwd)
+            .appendingPathComponent("Sources/WenshuApp/Views/Settings/SettingView.swift")
         let settingView = try? String(contentsOf: settingViewURL, encoding: .utf8)
-        #expect(settingView != nil, "SettingView.swift must be readable")
+        #expect(settingView != nil, "SettingView.swift must be readable at \(settingViewURL.path)")
         // v0.24 bossverificationfix line: SettingView.swift has @AppStorage("wenshu.llm.model") default = "" (NOT WenshuLLMModel.m3.rawValue).
         let hasEmptyDefault = settingView!.contains("@AppStorage(\"wenshu.llm.model\") private var llmModel: String = \"\"")
         #expect(hasEmptyDefault, "SettingView.swift llmModel default must be '' (v0.24 boss fix)")
@@ -59,22 +61,48 @@ struct ChatViewModelDefaultModelTests {
     @Test("ChatZoneView.swift currentModel default = '' when no UserDefaults")
     func testAppChatZoneDefault() async {
         clearModelDefaults()
-        let chatZoneView = try? String(contentsOf: URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Chat/ChatZoneView.swift"), encoding: .utf8)
-        #expect(chatZoneView != nil)
-        // v0.24 boss fix: line 1281: @AppStorage default = "" (NOT WenshuLLMModel.m3.rawValue).
-        // v0.40 apple-001 phase 3 ticket 4b: this property moved from App.swift to ChatZoneView.swift.
-        let hasEmptyDefault = chatZoneView!.contains("@AppStorage(\"wenshu.llm.model\") private var currentModel: String = \"\"")
-        #expect(hasEmptyDefault, "ChatZoneView.swift currentModel default must be '' (v0.24 boss fix)")
+        // v0.91 ticket 001: derive path from currentDirectoryPath (= works
+        // from any worktree = not just main).
+        let cwd = FileManager.default.currentDirectoryPath
+        let chatZoneViewURL = URL(fileURLWithPath: cwd)
+            .appendingPathComponent("Sources/WenshuApp/Views/Chat/ChatZoneView.swift")
+        let chatZoneView = try? String(contentsOf: chatZoneViewURL, encoding: .utf8)
+        #expect(chatZoneView != nil, "ChatZoneView.swift must be readable at \(chatZoneViewURL.path)")
+        // v0.91 ticket 001 (Q34 step 4 atomic verification):
+        // the v0.24 boss fix was applied at App.swift line 1281 = `@AppStorage("wenshu.llm.model") private var currentModel: String = ""`.
+        // v0.40 apple-001 phase 3 ticket 4b moved that property into AppState.llmModel (= the canonical source of truth). The previous test was checking ChatZoneView.swift for the old @AppStorage pattern (= the v0.24 boss fix comment), which is now a no-op (= the property is computed via appState.llmModel).
+        //
+        // Fix: verify the canonical source-of-truth (= AppState.llmModel) carries the empty-string default. We strip comments to avoid false positives (= the v0.24 comment in SettingView.swift line 57-67 mentions the literal `@AppStorage("wenshu.llm.model")` as historical reference).
+        let appStateURL = URL(fileURLWithPath: cwd)
+            .appendingPathComponent("Sources/WenshuApp/State/AppState.swift")
+        let appState = try? String(contentsOf: appStateURL, encoding: .utf8)
+        #expect(appState != nil, "AppState.swift must be readable at \(appStateURL.path)")
+        let codeLines = appState!.components(separatedBy: "\n").filter {
+            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
+        }
+        let codeRegion = codeLines.joined(separator: "\n")
+        let hasEmptyDefault = codeRegion.contains("var llmModel: String = \"\"")
+        #expect(hasEmptyDefault, "AppState.llmModel default must be '' (v0.24 boss fix; = moved from ChatZoneView to AppState per v0.40 apple-001 phase 3 ticket 4b)")
     }
 
-    @Test("ChatZoneView.swift model menu text shows '无模型可用' when currentModel empty")
+    @Test("ChatZoneView.swift model menu text shows 'No model available' when currentModel empty")
     func testAppMenuTextPlaceholder() async {
-        let chatZoneView = try? String(contentsOf: URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Chat/ChatZoneView.swift"), encoding: .utf8)
-        #expect(chatZoneView != nil)
-        // v0.24 boss fix: line 1349: 'Text(currentModel.isEmpty ? "": ...)'.
-        // v0.40 apple-001 phase 3 ticket 4b: this Text moved from App.swift to ChatZoneView.swift.
-        let hasPlaceholder = chatZoneView!.contains("currentModel.isEmpty ? \"无模型可用\"")
-        #expect(hasPlaceholder, "ChatZoneView.swift model menu must show '无模型可用' when empty (v0.24 boss fix)")
+        let cwd = FileManager.default.currentDirectoryPath
+        let chatZoneViewURL = URL(fileURLWithPath: cwd)
+            .appendingPathComponent("Sources/WenshuApp/Views/Chat/ChatZoneView.swift")
+        let chatZoneView = try? String(contentsOf: chatZoneViewURL, encoding: .utf8)
+        #expect(chatZoneView != nil, "ChatZoneView.swift must be readable at \(chatZoneViewURL.path)")
+        // v0.91 ticket 001 (Q34 step 4 atomic verification):
+        // the v0.24 boss fix at line 1349 was 'Text(currentModel.isEmpty ? "" : ...)' (= Chinese placeholder; = violates AGENTS.md §11 English-only).
+        //
+        // Current implementation per the v0.40 apple-001 phase 3 ticket 4b refactor: ChatZoneView.swift line 63 has `if currentModel.isEmpty { ChatHelpTextOverlay {...} }` (= the empty-state overlay). The overlay provides the 'no model available' UX guidance.
+        //
+        // Fix: verify (a) the empty-state branch exists, AND (b) the placeholder text is in English (= AGENTS.md §11 invariant).
+        let hasEmptyBranch = chatZoneView!.contains("if currentModel.isEmpty")
+        #expect(hasEmptyBranch, "ChatZoneView.swift must branch on currentModel.isEmpty (= per v0.40 apple-001 phase 3 ticket 4b)")
+        // AGENTS.md §11 hard rule: no Chinese strings in production code.
+        let hasChinesePlaceholder = chatZoneView!.contains("无模型可用")
+        #expect(!hasChinesePlaceholder, "ChatZoneView.swift must NOT contain '无模型可用' (= violates AGENTS.md §11 English-only)")
     }
 
     // MARK: - ChatView.swift (boss's commit message claims — NOT YET FIXED)
@@ -144,17 +172,39 @@ struct ChatViewModelDefaultModelTests {
 
     @Test("Keychain -34018 handling: graceful error (not generic Swift error)")
     func testKeychainError34018() {
-        // Boss fix: keychain operation -34018 (errSecMissingEntitlement) was
-        // showing generic Swift error. Now has graceful error message.
-        // The fix is in code (not testable directly without entitlements), so
-        // we verify the code path exists.
-        let providerKeychainURL = URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Core/Provider/ProviderKeychain.swift")
-        let providerKeychain = try? String(contentsOf: providerKeychainURL, encoding: .utf8)
-        #expect(providerKeychain != nil, "ProviderKeychain.swift must be readable")
-        // The fix should mention -34018 OR errSecMissingEntitlement OR
-        // a graceful error pattern.
-        let mentions34018 = providerKeychain!.contains("34018") ||
-                             providerKeychain!.contains("errSecMissingEntitlement")
-        #expect(mentions34018, "ProviderKeychain.swift should reference 34018 or errSecMissingEntitlement (boss fix)")
+        // v0.91 ticket 001 (Q34 step 4 atomic verification):
+        // the v0.24 boss fix was supposed to add -34018 (= errSecMissingEntitlement)
+        // graceful handling to ProviderKeychain.swift. After v0.84 ticket 001
+        // (= extracted KeychainOps), the Security framework glue (= and
+        // therefore the -34018 mapping) lives in KeychainOps.swift, not
+        // ProviderKeychain.swift. ProviderKeychain.swift now delegates
+        // `SecItemAdd` via `KeychainOps.save(...)` (= the new home for
+        // error mapping).
+        //
+        // Fix: verify the -34018 / errSecMissingEntitlement reference
+        // exists in the canonical Security-glue location (= KeychainOps.swift),
+        // not the pre-v0.84 ProviderKeychain.swift location.
+        //
+        // v0.91 ticket 001 (Q34 step 4 atomic verification):
+        // The hardcoded absolute path previously pointed at the main
+        // checkout (= /Volumes/ANAN/Engineering/wenshu/Sources/...) =
+        // = the test verified the main repo's KeychainOps.swift even
+        // when run from a worktree (= false negative). The fix is to
+        // derive the path from FileManager.currentDirectoryPath (= the
+        // working directory of `swift test`), so the test reads the
+        // worktree-local file (= or the main file when run from main).
+        let cwd = FileManager.default.currentDirectoryPath
+        let keychainOpsURL = URL(fileURLWithPath: cwd)
+            .appendingPathComponent("Sources/WenshuApp/Core/Provider/KeychainOps.swift")
+        let keychainOps = try? String(contentsOf: keychainOpsURL, encoding: .utf8)
+        #expect(keychainOps != nil, "KeychainOps.swift must be readable at \(keychainOpsURL.path)")
+        // Strip comments (= historical references in headers must not count).
+        let codeLines = keychainOps!.components(separatedBy: "\n").filter {
+            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
+        }
+        let codeRegion = codeLines.joined(separator: "\n")
+        let mentions34018 = codeRegion.contains("34018") ||
+                             codeRegion.contains("errSecMissingEntitlement")
+        #expect(mentions34018, "KeychainOps.swift should reference 34018 or errSecMissingEntitlement (= canonical Security-glue home after v0.84 KeychainOps extraction; = boss 2026-08-24 fix-tracking)")
     }
 }

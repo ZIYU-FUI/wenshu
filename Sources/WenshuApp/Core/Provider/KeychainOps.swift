@@ -58,7 +58,7 @@ public enum KeychainOps {
         ]
         let status = SecItemAdd(addQuery as CFDictionary, nil)
         guard status == errSecSuccess else {
-            throw KeychainOpsError.keychainStatus(status)
+            throw KeychainOpsError.from(status)
         }
     }
 
@@ -130,16 +130,43 @@ public enum KeychainOps {
 
 /// Canonical keychain errors (= mapped into each provider's domain-specific
 /// error type by the calling provider file).
+///
+/// v0.91 ticket 001 (= pre-existing flake fix): the
+/// `errSecMissingEntitlement` case (= OSStatus -34018) is now a
+/// first-class error type so callers can show a graceful error message
+/// (= "Keychain access requires code signing entitlement; please run
+/// from the signed .app bundle") instead of a generic Swift error.
+/// Per boss 2026-08-24 fix-tracking: the previous behavior showed
+/// "The operation couldn't be completed" (= generic Swift error) on
+/// ad-hoc-signed wenshu.app (= no TeamIdentifier = no embedded
+/// provisioning profile). The new case preserves the OSStatus code for
+/// callers that need to log it, while giving users an actionable hint.
 public enum KeychainOpsError: Error, LocalizedError {
     case keychainStatus(OSStatus)
+    case missingEntitlement(OSStatus = -34018)
     case invalidKeyFormat
 
     public var errorDescription: String? {
         switch self {
         case .keychainStatus(let s):
             return "Keychain operation failed (status=\(s))"
+        case .missingEntitlement(let s):
+            return "Keychain access requires code-signing entitlement (errSecMissingEntitlement, status=\(s)). Run wenshu.app from the signed .app bundle (= the ad-hoc-signed build does not carry the entitlement)."
         case .invalidKeyFormat:
             return "Key format invalid"
         }
+    }
+
+    /// Bridge from raw `OSStatus` (= the Security framework return value)
+    /// to a typed `KeychainOpsError`. Per Apple developer.apple.com/
+    /// documentation/security/keychain_services: -34018 is the
+    /// canonical `errSecMissingEntitlement` (= team identifier missing
+    /// for ad-hoc-signed binaries; = the boss 2026-08-24 fix-tracking
+    /// root cause for the chat zone showing a generic Swift error).
+    public static func from(_ status: OSStatus) -> KeychainOpsError {
+        if status == -34018 {
+            return .missingEntitlement(status)
+        }
+        return .keychainStatus(status)
     }
 }
