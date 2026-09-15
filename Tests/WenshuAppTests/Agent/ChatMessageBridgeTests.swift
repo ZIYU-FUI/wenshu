@@ -172,10 +172,25 @@ struct ChatMessageBridgeDeepTests {
 
     @Test("ChatMessage: Equatable")
     func chatMessageEquatable() {
+        // v0.94 ticket 001 (Q34 step 4 atomic verification):
+        // the previous test passed `content: "x"` and relied on the
+        // ChatMessage init to synthesize an internal `.text` ChatMessagePart.
+        // Each call to `.text()` creates a fresh UUID (= via
+        // ChatMessagePart.text's static factory `ChatMessagePart(id: UUID(), ...)`).
+        // The two synthesized parts therefore have different UUIDs, which
+        // makes the two ChatMessage values unequal under auto-derived
+        // Equatable (= which compares parts[] element-by-element, UUIDs
+        // included).
+        //
+        // Fix: pass `parts:` explicitly with the same pre-built part
+        // (= shared UUID); = the two ChatMessage values are now
+        // genuinely equal.
         let id = UUID()
         let date = Date()
-        let a = ChatMessage(id: id, role: .user, content: "x", timestamp: date)
-        let b = ChatMessage(id: id, role: .user, content: "x", timestamp: date)
+        let partId = UUID()
+        let part = ChatMessagePart(id: partId, kind: .text("x"), timestamp: date.timeIntervalSinceReferenceDate, completedAt: nil)
+        let a = ChatMessage(id: id, role: .user, source: .wenshu, content: "x", timestamp: date, parts: [part])
+        let b = ChatMessage(id: id, role: .user, source: .wenshu, content: "x", timestamp: date, parts: [part])
         #expect(a == b)
     }
 }
