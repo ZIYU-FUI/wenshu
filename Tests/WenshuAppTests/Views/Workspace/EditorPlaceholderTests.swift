@@ -25,11 +25,38 @@ import Testing
 
 @Suite("EditorPlaceholder (v0.93 — editor pane wrapper with tab strip + dirty alert)")
 struct EditorPlaceholderTests {
+    /// v1.33 (= per Q34 5.2 + Q173 ponytail + Q186): derive the
+    /// EditorPlaceholder source path from THIS test file's path
+    /// (= #filePath). This means the tests work regardless of
+    /// where the worktree is mounted (= v1.32 hit a build failure
+    /// when EditorPlaceholder was in a worktree because the old
+    /// hardcoded path pointed to the main worktree).
+    private static var editorPlaceholderPath: String {
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let testsDir = testFileURL.deletingLastPathComponent()  // Views/Workspace/
+        let repoRoot = testsDir
+            .deletingLastPathComponent()  // Views/
+            .deletingLastPathComponent()  // WenshuAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repo root
+        return repoRoot
+            .appendingPathComponent("Sources")
+            .appendingPathComponent("WenshuApp")
+            .appendingPathComponent("Views")
+            .appendingPathComponent("Workspace")
+            .appendingPathComponent("EditorPlaceholder.swift")
+            .path
+    }
+
+    private func readEditorPlaceholderSource() throws -> String {
+        return try String(contentsOfFile: Self.editorPlaceholderPath, encoding: .utf8)
+    }
+
 
     @Test("struct conforms to View")
     func conformsToView() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        
+        let source = try readEditorPlaceholderSource()
         let startRange = source.range(of: "struct EditorPlaceholder")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
@@ -41,8 +68,8 @@ struct EditorPlaceholderTests {
 
     @Test("reads AppState + BookStore from environment")
     func readsAppStateAndBookStore() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        
+        let source = try readEditorPlaceholderSource()
         let startRange = source.range(of: "struct EditorPlaceholder")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
@@ -56,8 +83,8 @@ struct EditorPlaceholderTests {
 
     @Test("mode reads from active tab (= per-tab preview/edit state per Safari)")
     func modeReadsFromActiveTab() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        
+        let source = try readEditorPlaceholderSource()
         let startRange = source.range(of: "struct EditorPlaceholder")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
@@ -78,8 +105,8 @@ struct EditorPlaceholderTests {
 
     @Test("declares selectedText + isApplyingParagraphAI @State vars (= P2 #19)")
     func declaresSelectionAndApplyingState() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        
+        let source = try readEditorPlaceholderSource()
         let startRange = source.range(of: "struct EditorPlaceholder")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
@@ -100,8 +127,8 @@ struct EditorPlaceholderTests {
 
     @Test("exposes public setSelection(_:) (= engine bridge entry point)")
     func exposesSetSelection() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        
+        let source = try readEditorPlaceholderSource()
         let startRange = source.range(of: "struct EditorPlaceholder")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
@@ -113,8 +140,8 @@ struct EditorPlaceholderTests {
 
     @Test("body starts with VStack + Safari-style tab strip (= v1.0.0-m1 OOB)")
     func bodyUsesSafariStyleTabStrip() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        
+        let source = try readEditorPlaceholderSource()
         let startRange = source.range(of: "struct EditorPlaceholder")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
@@ -132,8 +159,8 @@ struct EditorPlaceholderTests {
 
     @Test("body shows dirty-discard confirm alert on close-with-unsaved-changes")
     func bodyShowsDirtyDiscardAlert() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        
+        let source = try readEditorPlaceholderSource()
         let startRange = source.range(of: "struct EditorPlaceholder")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
@@ -153,8 +180,8 @@ struct EditorPlaceholderTests {
 
     @Test("activeTabIdString uses wenshu-editor-no-tab fallback (= v0.39 ticket 001)")
     func activeTabIdStringFallback() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        
+        let source = try readEditorPlaceholderSource()
         let startRange = source.range(of: "struct EditorPlaceholder")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
