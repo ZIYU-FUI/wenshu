@@ -46,7 +46,7 @@ struct MinimaxConnectorTests {
         // Provide API key via InMemoryKeychainStore (= wenshu-side wins)
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk-test-minimax", for: .minimaxCn)
-        ProviderKeychain.setBackendForTesting(store)
+        try await ProviderKeychain.withBackendForTesting(store) {
 
         let connector = MinimaxConnector(session: session)
         let messages = [LLMMessage.user("hello")]
@@ -66,7 +66,8 @@ struct MinimaxConnectorTests {
         let bodyMessages = body?["messages"] as? [[String: Any]]
         #expect(bodyMessages?.count == 1)
         #expect(bodyMessages?[0]["role"] as? String == "user")
-    }
+        }
+}
 
     // MARK: - Test 2: Decode Anthropic-style response
 
@@ -86,7 +87,7 @@ struct MinimaxConnectorTests {
 
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk-test", for: .minimaxCn)
-        ProviderKeychain.setBackendForTesting(store)
+        try await ProviderKeychain.withBackendForTesting(store) {
 
         let connector = MinimaxConnector(session: session)
         let response = try await connector.send(
@@ -100,7 +101,8 @@ struct MinimaxConnectorTests {
         #expect(response.blocks.contains { block in
             if case .text(let s) = block { return s == "decoded answer" } else { return false }
         })
-    }
+        }
+}
 
     // MARK: - Test 3: Missing API key
 
@@ -108,7 +110,7 @@ struct MinimaxConnectorTests {
     func testMissingAPIKey() async throws {
         // Reset to empty keychain
         let store = InMemoryKeychainStore()
-        ProviderKeychain.setBackendForTesting(store)
+        try await ProviderKeychain.withBackendForTesting(store) {
 
         let connector = MinimaxConnector(session: .shared)
 
@@ -118,7 +120,8 @@ struct MinimaxConnectorTests {
                 options: LLMCallOptions(model: "MiniMax-M3")
             )
         }
-    }
+        }
+}
 
     // MARK: - Test 4: Non-2xx HTTP status
 
@@ -136,7 +139,7 @@ struct MinimaxConnectorTests {
 
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk-test", for: .minimaxCn)
-        ProviderKeychain.setBackendForTesting(store)
+        try await ProviderKeychain.withBackendForTesting(store) {
 
         let connector = MinimaxConnector(session: session)
 
@@ -146,7 +149,8 @@ struct MinimaxConnectorTests {
                 options: LLMCallOptions(model: "MiniMax-M3")
             )
         }
-    }
+        }
+}
 }
 
 // URLProtocolStub is shared from URLProtocolStub.swift (= Tests/WenshuAppTests/Agent/)
