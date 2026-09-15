@@ -25,10 +25,10 @@ struct OpenAIConnectorTests {
 
     @Test("OpenAI native: Bearer auth + Authorization header")
     func testOpenAINativeAuth() async throws {
-        let stub = URLProtocolStub()
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeOpenAIResponse(content: "hi")
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [stubProtocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
@@ -50,10 +50,10 @@ struct OpenAIConnectorTests {
 
     @Test("OpenAI native: system message prepended in messages array")
     func testSystemPrepended() async throws {
-        let stub = URLProtocolStub()
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeOpenAIResponse(content: "ok")
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [stubProtocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
@@ -76,10 +76,10 @@ struct OpenAIConnectorTests {
 
     @Test("OpenAI-compatible (DeepSeek): connectorID = 'deepseek' + base URL")
     func testOpenAICompatibleDeepSeek() async throws {
-        let stub = URLProtocolStub()
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeOpenAIResponse(content: "ok")
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [stubProtocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
@@ -100,10 +100,10 @@ struct OpenAIConnectorTests {
 
     @Test("Ollama: empty apiKey allowed (no auth required per AGENTS.md §11.2)")
     func testOllamaNoAuth() async throws {
-        let stub = URLProtocolStub()
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeOpenAIResponse(content: "ok")
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [stubProtocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
@@ -126,10 +126,10 @@ struct OpenAIConnectorTests {
 
     @Test("OpenAI-compatible (Ollama): missing key does NOT throw")
     func testOllamaMissingKeyNoThrow() async throws {
-        let stub = URLProtocolStub()
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeOpenAIResponse(content: "ok")
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [stubProtocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
