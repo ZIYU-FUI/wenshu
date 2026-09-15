@@ -368,6 +368,60 @@ public enum ProviderKeychain {
         backend = store
     }
 
+    // v1.09 ticket 001 (= per Q34 5.4 fix root cause for the 3
+    // remaining inter-suite OpenAI-compatible connector test
+    // failures): TaskLocal backend reference. Tests that opt into
+    // the TaskLocal pattern via `withBackendForTesting` get
+    // hermetic isolation: the test body's task has its own
+    // `currentBackend` (= a Swift Concurrency TaskLocal), so
+    // concurrent test bodies do NOT race on the global `backend`
+    // static var.
+    //
+    // Per Q34 5.2: the TaskLocal pattern is the Swift-native way
+    // to give each task its own value (= no global mutation; =
+    // no race). Tests that want hermetic isolation wrap their
+    // body in `await ProviderKeychain.withBackendForTesting(store)
+    // { ... }`. Tests that don't use the helper continue to read
+    // the global `backend` (= backward compatible).
+    //
+    // Per Q186: this is a single-file change (= no caller updates
+    // required; = the shim methods read `currentBackend` with a
+    // fallback to the global `backend` when the TaskLocal is
+    // not set).
+    @TaskLocal
+    private static var _taskLocalBackend: (any ProviderKeychainStoring)?
+
+    /// v1.09 ticket 001: scoped test override via TaskLocal.
+    /// Sets the per-task backend to `store` for the duration of
+    /// the `body` closure (= the test body is the only time the
+    /// override is active). The previous TaskLocal value (= if any)
+    /// is restored when the body returns (= via Swift Concurrency
+    /// `TaskLocal.withValue` semantics).
+    ///
+    /// Per Q34 5.4 + Q186 + Q173 ponytail: this is the OPT-IN
+    /// hermetic backend pattern. Tests that already use the global
+    /// `setBackendForTesting` continue to work (= backward
+    /// compatible). New tests should prefer this helper.
+    public static func withBackendForTesting<R>(
+        _ store: any ProviderKeychainStoring,
+        perform body: () async throws -> R
+    ) async rethrows -> R {
+        try await $_taskLocalBackend.withValue(store) {
+            return try await body()
+        }
+    }
+
+    /// v1.09 ticket 001: per-call helper. Returns the current
+    /// task's backend (= the TaskLocal if set; = the global
+    /// `backend` otherwise). The shim methods use this so the
+    /// TaskLocal pattern works without any caller changes.
+    private static func currentBackend() -> any ProviderKeychainStoring {
+        if let local = _taskLocalBackend {
+            return local
+        }
+        return backend
+    }
+
     public static func saveKeySync(_ key: String, for provider: Provider) throws {
         // v1.0.0-m1-shell: belt-and-braces remote-debug short-circuit
         // at the ProviderKeychain shim level (= the dispatch layer
@@ -380,34 +434,38 @@ public enum ProviderKeychain {
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return
         }
-        try backend.saveKeySync(key, for: provider)
+        // v1.09 ticket 001: read from the per-task TaskLocal (= or
+        // fall back to the global `backend`). Tests that opt into
+        // the TaskLocal pattern via `withBackendForTesting` get
+        // hermetic isolation per task.
+        try currentBackend().saveKeySync(key, for: provider)
     }
     public static func loadKeySync(for provider: Provider) -> String? {
         // See saveKeySync.
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return nil
         }
-        return backend.loadKeySync(for: provider)
+        return currentBackend().loadKeySync(for: provider)
     }
     public static func deleteKeySync(for provider: Provider) throws {
         // See saveKeySync.
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return
         }
-        try backend.deleteKeySync(for: provider)
+        try currentBackend().deleteKeySync(for: provider)
     }
     public static func listProvidersWithKeys() -> [String] {
         // See saveKeySync.
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return []
         }
-        return backend.listProvidersWithKeys()
+        return currentBackend().listProvidersWithKeys()
     }
     // v0.36 ticket 012 shim methods (= delegate to backend).
     public static func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? {
-        backend.loadMetadata(for: provider)
+        currentBackend().loadMetadata(for: provider)
     }
     public static func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws {
-        try backend.saveMetadata(metadata, for: provider)
+        try currentBackend().saveMetadata(metadata, for: provider)
     }
 }
