@@ -25,6 +25,26 @@ struct RuntimeCWDDisplayChipTests {
 
     @Test("RuntimeCWD: displayLabel returns 'Unset' when no library + no override")
     func displayLabelUnset() async {
+
+        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
+        let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
+        defer {
+            if let prevLibraryPath {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.set(prevLibraryPath, forKey: RuntimeCWD.libraryPathKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+            }
+            if let prevCwdOverride {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.set(prevCwdOverride, forKey: RuntimeCWD.cwdOverrideKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+            }
+        }
         // Clear any existing defaults to ensure clean state
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
@@ -35,7 +55,29 @@ struct RuntimeCWDDisplayChipTests {
 
     @Test("RuntimeCWD: displayLabel shows 'Library:' prefix when library path is set")
     func displayLabelLibrary() async {
+
+        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
+        let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
+        defer {
+            if let prevLibraryPath {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.set(prevLibraryPath, forKey: RuntimeCWD.libraryPathKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+            }
+            if let prevCwdOverride {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.set(prevCwdOverride, forKey: RuntimeCWD.cwdOverrideKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+            }
+        }
         let tempPath = "/tmp/wenshu-test-library-\(UUID().uuidString).ws"
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
         UserDefaults.standard.set(tempPath, forKey: RuntimeCWD.libraryPathKey)
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
         let cwd = RuntimeCWD()
@@ -48,7 +90,29 @@ struct RuntimeCWDDisplayChipTests {
 
     @Test("RuntimeCWD: displayLabel shows 'Override:' prefix when override is set")
     func displayLabelOverride() async {
+
+        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
+        let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
+        defer {
+            if let prevLibraryPath {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.set(prevLibraryPath, forKey: RuntimeCWD.libraryPathKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+            }
+            if let prevCwdOverride {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.set(prevCwdOverride, forKey: RuntimeCWD.cwdOverrideKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+            }
+        }
         let overridePath = "/tmp/wenshu-override-\(UUID().uuidString)"
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
         UserDefaults.standard.set(overridePath, forKey: RuntimeCWD.cwdOverrideKey)
         let cwd = RuntimeCWD()
         let label = await cwd.displayLabel()
@@ -60,8 +124,30 @@ struct RuntimeCWDDisplayChipTests {
 
     @Test("RuntimeCWD: setCWD override takes precedence over library path")
     func setCWDOverride() async throws {
+
+        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
+        let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
+        defer {
+            if let prevLibraryPath {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.set(prevLibraryPath, forKey: RuntimeCWD.libraryPathKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+            }
+            if let prevCwdOverride {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.set(prevCwdOverride, forKey: RuntimeCWD.cwdOverrideKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+            }
+        }
         let libraryPath = "/tmp/wenshu-library-\(UUID().uuidString).ws"
         let overridePath = "/tmp/wenshu-override-\(UUID().uuidString)"
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
         UserDefaults.standard.set(libraryPath, forKey: RuntimeCWD.libraryPathKey)
         let cwd = RuntimeCWD()
 
@@ -84,7 +170,29 @@ struct RuntimeCWDDisplayChipTests {
 
     @Test("RuntimeCWD: resolve(relativePath) uses current CWD")
     func resolveRelativePath() async throws {
+
+        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
+        let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
+        defer {
+            if let prevLibraryPath {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.set(prevLibraryPath, forKey: RuntimeCWD.libraryPathKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+            }
+            if let prevCwdOverride {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.set(prevCwdOverride, forKey: RuntimeCWD.cwdOverrideKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+            }
+        }
         let overridePath = "/tmp/wenshu-resolve-\(UUID().uuidString)"
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+        UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
         UserDefaults.standard.set(overridePath, forKey: RuntimeCWD.cwdOverrideKey)
         let cwd = RuntimeCWD()
 
@@ -104,6 +212,26 @@ struct RuntimeCWDDisplayChipTests {
 
     @Test("RuntimeCWD: setCWD posts runtimeCWDDidChange notification")
     func setCWDPostsNotification() async throws {
+
+        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
+        let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
+        defer {
+            if let prevLibraryPath {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.set(prevLibraryPath, forKey: RuntimeCWD.libraryPathKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+            }
+            if let prevCwdOverride {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.libraryPathKey)
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+                UserDefaults.standard.set(prevCwdOverride, forKey: RuntimeCWD.cwdOverrideKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+            }
+        }
         let cwd = RuntimeCWD()
         var receivedNotification = false
         let observer = NotificationCenter.default.addObserver(
