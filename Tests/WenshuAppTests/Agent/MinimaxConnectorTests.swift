@@ -36,11 +36,11 @@ struct MinimaxConnectorTests {
 
     @Test("Build Anthropic-compatible request body with x-api-key + anthropic-version headers")
     func testRequestBody() async throws {
-        let stub = URLProtocolStub()
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeAnthropicResponse(content: "hello back", model: "MiniMax-M3")
 
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [stubProtocolClass]
         let session = URLSession(configuration: config)
 
         // Provide API key via InMemoryKeychainStore (= wenshu-side wins)
@@ -73,7 +73,7 @@ struct MinimaxConnectorTests {
 
     @Test("Decode Anthropic-style response (= text + thinking + usage)")
     func testResponseDecode() async throws {
-        let stub = URLProtocolStub()
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeAnthropicResponse(
             content: "decoded answer",
             model: "MiniMax-M3",
@@ -82,7 +82,7 @@ struct MinimaxConnectorTests {
         )
 
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [stubProtocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
@@ -127,14 +127,14 @@ struct MinimaxConnectorTests {
 
     @Test("Throw LLMConnectorError.transport on non-2xx HTTP status")
     func testTransportError() async throws {
-        let stub = URLProtocolStub()
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.responseStatusCode = 401
         stub.responseData = Data()
         stub.responseHeaders = ["Content-Type": "application/json"]
         stub.responseError = nil
 
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [stubProtocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
