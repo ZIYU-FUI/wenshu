@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("GeminiNativeConnector (ticket 007)")
+@Suite("GeminiNativeConnector (ticket 007)", .serialized)
 struct GeminiNativeConnectorTests {
 
     @Test("Gemini native: ?key= query param + generateContent endpoint")
