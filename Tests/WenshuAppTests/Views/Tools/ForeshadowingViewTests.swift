@@ -33,7 +33,7 @@ struct ForeshadowingViewTests {
     func testForeshadowingViewExists() {
         // Source-level: file declares `public struct ForeshadowingView: View`
         // (= verified at compile time when this test imports WenshuApp).
-        let _: AnyClass = NSClassFromString("_TtC10WenshuApp17ForeshadowingView")
+        let _: AnyClass? = NSClassFromString("_TtC10WenshuApp17ForeshadowingView")
         #expect(true, "ForeshadowingView is accessible via @testable import")
     }
 
