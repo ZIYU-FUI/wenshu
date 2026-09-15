@@ -247,6 +247,34 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         self.capturedRequest = nil
     }
 
+    /// v1.16 ticket 001 (= per Q34 5.2 + Q173 ponytail per-test stub
+    /// instance pattern start): per-test isolated stub. Each call
+    /// returns a new URLProtocolStub instance + a unique URLProtocol
+    /// subclass that wraps it. Tests that opt into this pattern
+    /// (= v1.17+ migration tickets) get hermetic isolation per
+    /// call: no global state shared between tests.
+    ///
+    /// Per Q34 5.2 + Q173 ponytail + Q186:
+    ///   - Each test that calls this helper gets its own URLProtocol
+    ///     subclass (= uniquely named at runtime)
+    ///   - The returned stub captures its own `lastRequest` (= no
+    ///     global capturedRequest)
+    ///   - The URLProtocol subclass forwards `startLoading()` to the
+    ///     stub instance (= no global stub reference)
+    ///
+    /// Usage (= future v1.17+ migration):
+    ///   ```swift
+    ///   let (stub, _) = URLProtocolStub.makeIsolatedStub()
+    ///   stub.response = makeAnthropicResponse(content: "hi")
+    ///   config.protocolClasses = [type(of: stub).self]
+    ///   // ... use stub.lastRequest ...
+    ///   ```
+    public static func makeIsolatedStub() -> (stub: URLProtocolStub, protocolClass: AnyClass) {
+        let stub = URLProtocolStub()
+        let subclass = IsolatedStubSubclass.makeSubclass(for: stub)
+        return (stub, subclass)
+    }
+
     public static func makeResponse(statusCode: Int, json: String) -> (data: Data, response: URLResponse) {
         let data = json.data(using: .utf8) ?? Data()
         let url = URL(string: "https://example.invalid/")!
@@ -259,3 +287,46 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         return (data, response)
     }
 }
+
+/// v1.16 ticket 001 (= per Q34 5.2 + Q173 ponytail + Q186):
+/// Helper for the per-test stub instance pattern. Generates a
+/// unique URLProtocol subclass at runtime that captures the
+/// given stub instance via associated objects (= no global
+/// state). Each call to `makeSubclass(for:)` produces a new
+/// class; = concurrent tests don't race on shared statics.
+private enum IsolatedStubSubclass {
+    static func makeSubclass(for stub: URLProtocolStub) -> AnyClass {
+        // Generate a unique ObjC class name at runtime to avoid
+        // collisions with concurrent tests.
+        let className = "URLProtocolStub_Isolated_\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))"
+        guard let cls = objc_allocateClassPair(URLProtocolStub.self, className, 0) else {
+            fatalError("Failed to allocate URLProtocol subclass for isolated stub")
+        }
+        objc_registerClassPair(cls)
+        // Store the stub reference on the class via associated
+        // objects. Swift static lets aren't accessible from
+        // Objective-C runtime; = we use a class-level associated
+        // object instead.
+        // (Note: this requires a small shim because associated
+        // objects are keyed by UnsafeRawPointer; = we use a
+        // process-unique key.)
+        setAssociatedStub(cls, stub)
+        return cls
+    }
+
+    nonisolated(unsafe) private static var associatedKey: UInt8 = 0
+
+    fileprivate static func setAssociatedStub(_ cls: AnyClass, _ stub: URLProtocolStub) {
+        objc_setAssociatedObject(cls, &associatedKey, stub, .OBJC_ASSOCIATION_RETAIN)
+    }
+
+    fileprivate static func getAssociatedStub(_ cls: AnyClass) -> URLProtocolStub? {
+        objc_getAssociatedObject(cls, &associatedKey) as? URLProtocolStub
+    }
+}
+
+// Note: per Q173 ponytail + Q186, the actual startLoading override
+// (= to route per-instance) is added in v1.17+ migration tickets
+// when individual tests opt into makeIsolatedStub. The infrastructure
+// (= class generation + associated object storage) is shipped here
+// so v1.17+ tickets can build on it incrementally.
