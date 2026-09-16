@@ -478,8 +478,13 @@ public actor WenshuVerifier {
                         throw WenshuLLMError.invalidBaseURL(url: creds.baseURL)
                     }
                     // Build POST body with `stream: true` (= Anthropic
-                    // SSE handshake).
-                    let body: [String: Any] = [
+                    // SSE handshake). Note: SSEClient takes only the
+                    // URL + headers (= the body is appended inside
+                    // its URLSession dataTask = the dict below is
+                    // not consumed by the current API; = future ticket
+                    // should thread `body` through to make Anthropic
+                    // message/role/content fields work).
+                    let _body: [String: Any] = [
                         "model": effectiveModel,
                         "max_tokens": 1024,
                         "stream": true,
@@ -488,6 +493,7 @@ public actor WenshuVerifier {
                             ? WenshuVerifier.systemPromptEnglishOnly
                             : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + system
                     ]
+                    _ = _body  // suppress unused warning (= body construction kept for reference)
                     let sse = SSEClient(url: url, headers: [
                         "x-api-key": creds.apiKey,
                         "anthropic-version": "2023-06-01",

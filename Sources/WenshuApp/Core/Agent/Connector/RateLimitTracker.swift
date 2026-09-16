@@ -211,7 +211,7 @@ public actor RateLimitTracker {
             base: base,
             cap: cap
         ) {
-            await self.recordRequest(providerSlug: providerSlug)
+            _ = await self.recordRequest(providerSlug: providerSlug)
             return try await operation()
         }
     }

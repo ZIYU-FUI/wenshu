@@ -1033,7 +1033,7 @@ public struct ChatView: View {
         // No conductor provided → nothing to wrap. ChatViewModel's
         // direct verifier path (= non-conductor branch in send()) does
         // not consult a tool registry, so this is a no-op for preview.
-        guard let conductor = conductor else { return nil }
+        guard conductor != nil else { return nil }
         // Phase 5 ticket 2.2: peer conductor no longer instantiates a
         // WSKanbanRepository (= the sqlite3 fallback path was dropped
         // in Phase 5 ticket 6, which also deleted the KanbanStore

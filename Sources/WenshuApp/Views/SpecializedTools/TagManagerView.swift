@@ -319,7 +319,7 @@ struct TagManagerView: View {
     private var canApply: Bool {
         guard let tagId = draftApplyTagId, tagId != UUID() else { return false }
         guard tags.contains(where: { $0.id == tagId }) else { return false }
-        guard let targetId = UUID(uuidString: draftApplyTargetIdText.trimmingCharacters(in: .whitespacesAndNewlines)) else { return false }
+        guard UUID(uuidString: draftApplyTargetIdText.trimmingCharacters(in: .whitespacesAndNewlines)) != nil else { return false }
         return true
     }
 

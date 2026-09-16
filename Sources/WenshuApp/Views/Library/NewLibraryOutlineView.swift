@@ -933,7 +933,7 @@ struct NewLibraryOutlineView: View {
     private func shelfRow(_ shelf: Bookshelf) -> some View {
         let books = booksInShelf(shelf)
         let isShelfExpanded = books.contains { isBookSelected($0.id) }
-        return DisclosureGroup(isExpanded: Binding(
+        DisclosureGroup(isExpanded: Binding(
             get: { isShelfExpanded || shelfDisclosureStates[shelf.id, default: false] },
             set: { shelfDisclosureStates[shelf.id] = $0 }
         )) {
@@ -1478,7 +1478,7 @@ struct NewLibraryOutlineView: View {
                 // LibraryBootstrapper). Future ticket can add per-
                 // folder .md content management.
                 EmptyView()
-            case .referenceCategory, .referenceLibraryRoot:
+            case .referenceCategory:
                 // No actions (= boss OOB 'Reference Library cannot be deleted' covers
                 // the whole reference section, not just the root).
                 EmptyView()

@@ -89,7 +89,7 @@ public actor MemoryManager {
     /// relevant memory items" surface documented in the ticket spec.
     public func fetch(limit: Int = 20) async -> [Memory] {
         guard limit > 0 else { return [] }
-        return await searchMemory(userId: "default", query: "", limit: limit) ?? []
+        return await searchMemory(userId: "default", query: "", limit: limit)
     }
 
     /// sync: post-turn — persist assistant's response (or important info from turn).
@@ -101,13 +101,9 @@ public actor MemoryManager {
         let decision = MemoryWriteGate.evaluateAdd(content: content)
         switch decision {
         case .allow:
-            do {
-                try await addMemory(userId: "default", content: content)
-                let total = await countMemory(userId: "default") ?? 0
-                return .synced(writtenCount: 1, totalChars: total)
-            } catch {
-                return .blocked(reason: "WSMemoryRepository.add failed: \(error)")
-            }
+            await addMemory(userId: "default", content: content)
+            let total = await countMemory(userId: "default")
+            return .synced(writtenCount: 1, totalChars: total)
         case .stageForApproval:
             // hermes: stage to pending queue. wenshu v0.23: silent stage (no GUI yet).
             return .stagedForApproval

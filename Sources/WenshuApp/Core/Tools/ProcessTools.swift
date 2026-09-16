@@ -156,8 +156,6 @@ public struct ProcessTools: Tool, Sendable {
         // running, then drain any remaining bytes after exit). Without this,
         // a chatty child fills the pipe buffer (~64KB) and blocks forever
         // on write, while waitUntilExit never returns.
-        var stdoutData = Data()
-        var stderrData = Data()
         let ioQueue = DispatchQueue(label: "wenshu.ProcessTools.io", attributes: .concurrent)
         let group = DispatchGroup()
         // v0.46 fix: was `var stdoutData = Data()` mutated inside
