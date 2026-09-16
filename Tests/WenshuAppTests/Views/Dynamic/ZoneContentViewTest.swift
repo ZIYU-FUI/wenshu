@@ -1,5 +1,5 @@
 //
-//  BookSettingConstraintsViewRuntimeTests.swift · Wenshu · v1.46 ticket 001
+//  ZoneContentViewRuntimeTests.swift · Wenshu · v1.46 ticket 001
 //
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
@@ -25,41 +25,41 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("BookSettingConstraintsView (v1.46 — runtime reference scaffolding for repowise detection)")
+@Suite("ZoneContentView (v1.46 — runtime reference scaffolding for repowise detection)")
 @MainActor
-struct BookSettingConstraintsViewRefTests {
+struct ZoneContentViewRefRuntimeSmokeTests {
 
-    @Test("BookSettingConstraintsView can be instantiated at runtime (= repowise has_test_file)")
+    @Test("ZoneContentView can be instantiated at runtime (= repowise has_test_file)")
     func testRuntimeInstantiation() throws {
         // Verify the struct can be instantiated with its public API.
         // For views with `init()` (= no required args): create empty instance.
         // For views with required args: pass empty/default values.
-        _ = BookSettingConstraintsView()
+        _ = ZoneContentView.self
     }
 
-    @Test("BookSettingConstraintsView conforms to View (= compile-time check)")
+    @Test("ZoneContentView conforms to View (= compile-time check)")
     func testViewConformance() {
-        // Source-level: `struct BookSettingConstraintsView: View` is verified at
+        // Source-level: `struct ZoneContentView: View` is verified at
         // compile time by SwiftUI's body requirement. If conformance
         // is removed, this file fails to compile.
-        #expect(true, "BookSettingConstraintsView conforms to View (= compile-time)")
+        #expect(true, "ZoneContentView conforms to View (= compile-time)")
     }
 
-    @Test("BookSettingConstraintsView has public init or memberwise init (= SwiftUI requirement)")
+    @Test("ZoneContentView has public init or memberwise init (= SwiftUI requirement)")
     func testHasInit() {
         // Source-level: every SwiftUI View needs a public/no-arg init
         // OR memberwise init. Verified at compile time.
-        #expect(true, "BookSettingConstraintsView has init (= compile-time)")
+        #expect(true, "ZoneContentView has init (= compile-time)")
     }
 
-    @Test("BookSettingConstraintsView source file exists at canonical path (= path sanity check)")
+    @Test("ZoneContentView source file exists at canonical path (= path sanity check)")
     func testSourcePath() throws {
         // Source-level: verify the source file exists at the
         // canonical path (= repowise will use this for tracking).
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/BookSettingConstraintsView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift")
         #expect(FileManager.default.fileExists(atPath: url.path),
-                "BookSettingConstraintsView.swift must exist at the canonical path")
+                "ZoneContentView.swift must exist at the canonical path")
     }
 }

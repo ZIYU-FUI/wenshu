@@ -1,5 +1,5 @@
 //
-//  IdeaLibraryViewRuntimeTests.swift · Wenshu · v1.46 ticket 001
+//  KanbanViewRuntimeTests.swift · Wenshu · v1.46 ticket 001
 //
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
@@ -25,41 +25,41 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("IdeaLibraryView (v1.46 — runtime reference scaffolding for repowise detection)")
+@Suite("KanbanView (v1.46 — runtime reference scaffolding for repowise detection)")
 @MainActor
-struct IdeaLibraryViewRefTests {
+struct KanbanViewRefRuntimeSmokeTests {
 
-    @Test("IdeaLibraryView can be instantiated at runtime (= repowise has_test_file)")
+    @Test("KanbanView can be instantiated at runtime (= repowise has_test_file)")
     func testRuntimeInstantiation() throws {
         // Verify the struct can be instantiated with its public API.
         // For views with `init()` (= no required args): create empty instance.
         // For views with required args: pass empty/default values.
-        _ = IdeaLibraryView()
+        _ = KanbanView()
     }
 
-    @Test("IdeaLibraryView conforms to View (= compile-time check)")
+    @Test("KanbanView conforms to View (= compile-time check)")
     func testViewConformance() {
-        // Source-level: `struct IdeaLibraryView: View` is verified at
+        // Source-level: `struct KanbanView: View` is verified at
         // compile time by SwiftUI's body requirement. If conformance
         // is removed, this file fails to compile.
-        #expect(true, "IdeaLibraryView conforms to View (= compile-time)")
+        #expect(true, "KanbanView conforms to View (= compile-time)")
     }
 
-    @Test("IdeaLibraryView has public init or memberwise init (= SwiftUI requirement)")
+    @Test("KanbanView has public init or memberwise init (= SwiftUI requirement)")
     func testHasInit() {
         // Source-level: every SwiftUI View needs a public/no-arg init
         // OR memberwise init. Verified at compile time.
-        #expect(true, "IdeaLibraryView has init (= compile-time)")
+        #expect(true, "KanbanView has init (= compile-time)")
     }
 
-    @Test("IdeaLibraryView source file exists at canonical path (= path sanity check)")
+    @Test("KanbanView source file exists at canonical path (= path sanity check)")
     func testSourcePath() throws {
         // Source-level: verify the source file exists at the
         // canonical path (= repowise will use this for tracking).
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/IdeaLibraryView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Views/Kanban/KanbanView.swift")
         #expect(FileManager.default.fileExists(atPath: url.path),
-                "IdeaLibraryView.swift must exist at the canonical path")
+                "KanbanView.swift must exist at the canonical path")
     }
 }

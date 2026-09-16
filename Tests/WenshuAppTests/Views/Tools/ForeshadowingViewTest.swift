@@ -1,5 +1,5 @@
 //
-//  LibraryRootViewRuntimeTests.swift · Wenshu · v1.46 ticket 001
+//  ForeshadowingViewRuntimeTests.swift · Wenshu · v1.46 ticket 001
 //
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
@@ -25,41 +25,41 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("LibraryRootView (v1.46 — runtime reference scaffolding for repowise detection)")
+@Suite("ForeshadowingView (v1.46 — runtime reference scaffolding for repowise detection)")
 @MainActor
-struct LibraryRootViewRefTests {
+struct ForeshadowingViewRefRuntimeSmokeTests {
 
-    @Test("LibraryRootView can be instantiated at runtime (= repowise has_test_file)")
+    @Test("ForeshadowingView can be instantiated at runtime (= repowise has_test_file)")
     func testRuntimeInstantiation() throws {
         // Verify the struct can be instantiated with its public API.
         // For views with `init()` (= no required args): create empty instance.
         // For views with required args: pass empty/default values.
-        _ = LibraryRootView.self
+        _ = ForeshadowingView()
     }
 
-    @Test("LibraryRootView conforms to View (= compile-time check)")
+    @Test("ForeshadowingView conforms to View (= compile-time check)")
     func testViewConformance() {
-        // Source-level: `struct LibraryRootView: View` is verified at
+        // Source-level: `struct ForeshadowingView: View` is verified at
         // compile time by SwiftUI's body requirement. If conformance
         // is removed, this file fails to compile.
-        #expect(true, "LibraryRootView conforms to View (= compile-time)")
+        #expect(true, "ForeshadowingView conforms to View (= compile-time)")
     }
 
-    @Test("LibraryRootView has public init or memberwise init (= SwiftUI requirement)")
+    @Test("ForeshadowingView has public init or memberwise init (= SwiftUI requirement)")
     func testHasInit() {
         // Source-level: every SwiftUI View needs a public/no-arg init
         // OR memberwise init. Verified at compile time.
-        #expect(true, "LibraryRootView has init (= compile-time)")
+        #expect(true, "ForeshadowingView has init (= compile-time)")
     }
 
-    @Test("LibraryRootView source file exists at canonical path (= path sanity check)")
+    @Test("ForeshadowingView source file exists at canonical path (= path sanity check)")
     func testSourcePath() throws {
         // Source-level: verify the source file exists at the
         // canonical path (= repowise will use this for tracking).
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Views/Tools/ForeshadowingView.swift")
         #expect(FileManager.default.fileExists(atPath: url.path),
-                "LibraryRootView.swift must exist at the canonical path")
+                "ForeshadowingView.swift must exist at the canonical path")
     }
 }

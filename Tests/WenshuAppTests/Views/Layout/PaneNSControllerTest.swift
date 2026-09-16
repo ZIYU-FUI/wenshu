@@ -1,5 +1,5 @@
 //
-//  NavigationSplitShellRuntimeTests.swift · Wenshu · v1.46 ticket 001
+//  PaneNSControllerRuntimeTests.swift · Wenshu · v1.46 ticket 001
 //
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
@@ -25,41 +25,41 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("NavigationSplitShell (v1.46 — runtime reference scaffolding for repowise detection)")
+@Suite("PaneNSController (v1.46 — runtime reference scaffolding for repowise detection)")
 @MainActor
-struct NavigationSplitShellRefTests {
+struct PaneNSControllerRefRuntimeSmokeTests {
 
-    @Test("NavigationSplitShell can be instantiated at runtime (= repowise has_test_file)")
+    @Test("PaneNSController can be instantiated at runtime (= repowise has_test_file)")
     func testRuntimeInstantiation() throws {
         // Verify the struct can be instantiated with its public API.
         // For views with `init()` (= no required args): create empty instance.
         // For views with required args: pass empty/default values.
-        _ = NavigationSplitShell.self
+        _ = PaneNSController.self
     }
 
-    @Test("NavigationSplitShell conforms to View (= compile-time check)")
+    @Test("PaneNSController conforms to View (= compile-time check)")
     func testViewConformance() {
-        // Source-level: `struct NavigationSplitShell: View` is verified at
+        // Source-level: `struct PaneNSController: View` is verified at
         // compile time by SwiftUI's body requirement. If conformance
         // is removed, this file fails to compile.
-        #expect(true, "NavigationSplitShell conforms to View (= compile-time)")
+        #expect(true, "PaneNSController conforms to View (= compile-time)")
     }
 
-    @Test("NavigationSplitShell has public init or memberwise init (= SwiftUI requirement)")
+    @Test("PaneNSController has public init or memberwise init (= SwiftUI requirement)")
     func testHasInit() {
         // Source-level: every SwiftUI View needs a public/no-arg init
         // OR memberwise init. Verified at compile time.
-        #expect(true, "NavigationSplitShell has init (= compile-time)")
+        #expect(true, "PaneNSController has init (= compile-time)")
     }
 
-    @Test("NavigationSplitShell source file exists at canonical path (= path sanity check)")
+    @Test("PaneNSController source file exists at canonical path (= path sanity check)")
     func testSourcePath() throws {
         // Source-level: verify the source file exists at the
         // canonical path (= repowise will use this for tracking).
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/UI/Layout/NavigationSplitShell.swift")
+        url.appendPathComponent("Sources/WenshuApp/Views/Layout/PaneNSController.swift")
         #expect(FileManager.default.fileExists(atPath: url.path),
-                "NavigationSplitShell.swift must exist at the canonical path")
+                "PaneNSController.swift must exist at the canonical path")
     }
 }

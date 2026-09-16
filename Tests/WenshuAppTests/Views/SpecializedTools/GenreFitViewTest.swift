@@ -1,5 +1,5 @@
 //
-//  CharacterRelationshipsViewRuntimeTests.swift · Wenshu · v1.46 ticket 001
+//  GenreFitViewRuntimeTests.swift · Wenshu · v1.46 ticket 001
 //
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
@@ -25,41 +25,41 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("CharacterRelationshipsView (v1.46 — runtime reference scaffolding for repowise detection)")
+@Suite("GenreFitView (v1.46 — runtime reference scaffolding for repowise detection)")
 @MainActor
-struct CharacterRelationshipsViewRefTests {
+struct GenreFitViewRefRuntimeSmokeTests {
 
-    @Test("CharacterRelationshipsView can be instantiated at runtime (= repowise has_test_file)")
+    @Test("GenreFitView can be instantiated at runtime (= repowise has_test_file)")
     func testRuntimeInstantiation() throws {
         // Verify the struct can be instantiated with its public API.
         // For views with `init()` (= no required args): create empty instance.
         // For views with required args: pass empty/default values.
-        _ = CharacterRelationshipsView()
+        _ = GenreFitView()
     }
 
-    @Test("CharacterRelationshipsView conforms to View (= compile-time check)")
+    @Test("GenreFitView conforms to View (= compile-time check)")
     func testViewConformance() {
-        // Source-level: `struct CharacterRelationshipsView: View` is verified at
+        // Source-level: `struct GenreFitView: View` is verified at
         // compile time by SwiftUI's body requirement. If conformance
         // is removed, this file fails to compile.
-        #expect(true, "CharacterRelationshipsView conforms to View (= compile-time)")
+        #expect(true, "GenreFitView conforms to View (= compile-time)")
     }
 
-    @Test("CharacterRelationshipsView has public init or memberwise init (= SwiftUI requirement)")
+    @Test("GenreFitView has public init or memberwise init (= SwiftUI requirement)")
     func testHasInit() {
         // Source-level: every SwiftUI View needs a public/no-arg init
         // OR memberwise init. Verified at compile time.
-        #expect(true, "CharacterRelationshipsView has init (= compile-time)")
+        #expect(true, "GenreFitView has init (= compile-time)")
     }
 
-    @Test("CharacterRelationshipsView source file exists at canonical path (= path sanity check)")
+    @Test("GenreFitView source file exists at canonical path (= path sanity check)")
     func testSourcePath() throws {
         // Source-level: verify the source file exists at the
         // canonical path (= repowise will use this for tracking).
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/GenreFitView.swift")
         #expect(FileManager.default.fileExists(atPath: url.path),
-                "CharacterRelationshipsView.swift must exist at the canonical path")
+                "GenreFitView.swift must exist at the canonical path")
     }
 }
