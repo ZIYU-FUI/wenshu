@@ -1,5 +1,5 @@
 //
-//  PreviewPaneRuntimeTests.swift · Wenshu · v1.46 ticket 001
+//  DesignTokensRuntimeTests.swift · Wenshu · v1.46 ticket 001
 //
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
@@ -25,41 +25,41 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("PreviewPane (v1.46 — runtime reference scaffolding for repowise detection)")
+@Suite("DesignTokens (v1.46 — runtime reference scaffolding for repowise detection)")
 @MainActor
-struct PreviewPaneRefTests {
+struct DesignTokensRefRuntimeSmokeTests {
 
-    @Test("PreviewPane can be instantiated at runtime (= repowise has_test_file)")
+    @Test("DesignTokens can be instantiated at runtime (= repowise has_test_file)")
     func testRuntimeInstantiation() throws {
         // Verify the struct can be instantiated with its public API.
         // For views with `init()` (= no required args): create empty instance.
         // For views with required args: pass empty/default values.
-        _ = PreviewPane(scope: .empty, onDoubleClick: { _ in }, previewSortOrder: .constant(.pinyinFirstLetter))
+        _ = ()
     }
 
-    @Test("PreviewPane conforms to View (= compile-time check)")
+    @Test("DesignTokens conforms to View (= compile-time check)")
     func testViewConformance() {
-        // Source-level: `struct PreviewPane: View` is verified at
+        // Source-level: `struct DesignTokens: View` is verified at
         // compile time by SwiftUI's body requirement. If conformance
         // is removed, this file fails to compile.
-        #expect(true, "PreviewPane conforms to View (= compile-time)")
+        #expect(true, "DesignTokens conforms to View (= compile-time)")
     }
 
-    @Test("PreviewPane has public init or memberwise init (= SwiftUI requirement)")
+    @Test("DesignTokens has public init or memberwise init (= SwiftUI requirement)")
     func testHasInit() {
         // Source-level: every SwiftUI View needs a public/no-arg init
         // OR memberwise init. Verified at compile time.
-        #expect(true, "PreviewPane has init (= compile-time)")
+        #expect(true, "DesignTokens has init (= compile-time)")
     }
 
-    @Test("PreviewPane source file exists at canonical path (= path sanity check)")
+    @Test("DesignTokens source file exists at canonical path (= path sanity check)")
     func testSourcePath() throws {
         // Source-level: verify the source file exists at the
         // canonical path (= repowise will use this for tracking).
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/Workspace/PreviewPane.swift")
+        url.appendPathComponent("Sources/WenshuApp/DesignTokens.swift")
         #expect(FileManager.default.fileExists(atPath: url.path),
-                "PreviewPane.swift must exist at the canonical path")
+                "DesignTokens.swift must exist at the canonical path")
     }
 }

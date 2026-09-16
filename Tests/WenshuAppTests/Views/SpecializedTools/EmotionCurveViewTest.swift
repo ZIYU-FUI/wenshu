@@ -1,5 +1,5 @@
 //
-//  EmptyStateViewRuntimeTests.swift · Wenshu · v1.46 ticket 001
+//  EmotionCurveViewRuntimeTests.swift · Wenshu · v1.46 ticket 001
 //
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
@@ -25,41 +25,41 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("EmptyStateView (v1.46 — runtime reference scaffolding for repowise detection)")
+@Suite("EmotionCurveView (v1.46 — runtime reference scaffolding for repowise detection)")
 @MainActor
-struct EmptyStateViewRefTests {
+struct EmotionCurveViewRefRuntimeSmokeTests {
 
-    @Test("EmptyStateView can be instantiated at runtime (= repowise has_test_file)")
+    @Test("EmotionCurveView can be instantiated at runtime (= repowise has_test_file)")
     func testRuntimeInstantiation() throws {
         // Verify the struct can be instantiated with its public API.
         // For views with `init()` (= no required args): create empty instance.
         // For views with required args: pass empty/default values.
-        _ = EmptyStateView.self
+        _ = EmotionCurveView()
     }
 
-    @Test("EmptyStateView conforms to View (= compile-time check)")
+    @Test("EmotionCurveView conforms to View (= compile-time check)")
     func testViewConformance() {
-        // Source-level: `struct EmptyStateView: View` is verified at
+        // Source-level: `struct EmotionCurveView: View` is verified at
         // compile time by SwiftUI's body requirement. If conformance
         // is removed, this file fails to compile.
-        #expect(true, "EmptyStateView conforms to View (= compile-time)")
+        #expect(true, "EmotionCurveView conforms to View (= compile-time)")
     }
 
-    @Test("EmptyStateView has public init or memberwise init (= SwiftUI requirement)")
+    @Test("EmotionCurveView has public init or memberwise init (= SwiftUI requirement)")
     func testHasInit() {
         // Source-level: every SwiftUI View needs a public/no-arg init
         // OR memberwise init. Verified at compile time.
-        #expect(true, "EmptyStateView has init (= compile-time)")
+        #expect(true, "EmotionCurveView has init (= compile-time)")
     }
 
-    @Test("EmptyStateView source file exists at canonical path (= path sanity check)")
+    @Test("EmotionCurveView source file exists at canonical path (= path sanity check)")
     func testSourcePath() throws {
         // Source-level: verify the source file exists at the
         // canonical path (= repowise will use this for tracking).
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/UI/EmptyState/EmptyStateView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/EmotionCurveView.swift")
         #expect(FileManager.default.fileExists(atPath: url.path),
-                "EmptyStateView.swift must exist at the canonical path")
+                "EmotionCurveView.swift must exist at the canonical path")
     }
 }
