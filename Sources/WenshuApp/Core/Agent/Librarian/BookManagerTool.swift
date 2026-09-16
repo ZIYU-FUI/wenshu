@@ -587,7 +587,7 @@ public actor BookManagerTool: Tool {
     /// (= nonisolated context). The closure runs synchronously at
     /// first access, before any concurrency becomes relevant, so the
     /// unsafe escape hatch is safe here.
-    public nonisolated(unsafe) static let shared: BookManagerTool = {
+    public nonisolated static let shared: BookManagerTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-books-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
         let shelvesRoot = tmpRoot.appendingPathComponent("shelves", isDirectory: true)
