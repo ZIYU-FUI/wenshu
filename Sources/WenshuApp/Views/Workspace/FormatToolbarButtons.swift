@@ -166,15 +166,12 @@ struct EditorParagraphAI {
 /// - `isApplying`: an LLM call is already in flight (= prevent
 ///   double-fire; = Apple HIG actionable-control-while-busy).
 ///
-/// Icon system: SF Symbols for the 3 primary buttons (= Apple
-/// built-in icon font; = boss 2026-08-27 OOB carve-out for system
-/// symbols). Lucide icons for the dropdown menu (= consistent
-/// with the rest of the editor zone's chrome). The mix matches
-/// the v0.34 FormatToolbarButtons precedent (= it uses Lucide
-/// for the inline format buttons but SF Symbol-equivalents are
-/// acceptable for the paragraph_ai row since the boss spec
-/// calls them out as `Image(systemName:)` in the wire-up
-/// snippet).
+/// Icon system: SF Symbols 6 for the 3 primary buttons AND the
+/// dropdown menu (= Apple canonical icon layer per boss
+/// 2026-09-15 OOB 'use SF Symbols 6 (3rd gen) with palette
+/// rendering'; = supersedes the v0.34 FormatToolbarButtons
+/// 'SF Symbol + Lucide' mixed era). Both layers now use
+/// Image(systemName:) (= dot.case SF Symbol 6 names).
 ///
 /// Performance: the toolbar is a pure View; no @State. The
 /// selection snapshot + busy flag come in via parameters (= host

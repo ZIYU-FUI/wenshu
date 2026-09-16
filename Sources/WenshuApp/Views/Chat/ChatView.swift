@@ -1528,13 +1528,14 @@ public struct ChatView: View {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        // v0.25.1 (= ticket 030): Lucide .send icon
-                        // (= paper plane / send glyph) for the
-                        // send button. Replaces SF paperplane.fill
-                        // per boss 2026-08-26 OOB. Lucide-first
-                        // pattern with SF Symbol fallback (= Layer
-                        // 3 fallback) preserves behavior if
-                        // 'send' Lucide is missing.
+                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide,
+                        // use SF Symbols 6 (3rd gen) with palette
+                        // rendering': canonical send-button icon
+                        // = SF Symbols 6 `paperplane`. Replaces
+                        // the v0.25.1 'Lucide .send' choice per
+                        // boss 2026-08-26 OOB (= which has since
+                        // been superseded by the 2026-09-15
+                        // 'use SF Symbols 6' reversal).
                         Image(systemName: "paperplane")
                             .font(.system(size: DesignTokens.tabIconSize, weight: .regular))
                             .aspectRatio(contentMode: .fit)
@@ -1588,12 +1589,14 @@ public struct ChatView: View {
                 Button {
                     Task { await vm.startLongRunningGoal() }
                 } label: {
-                    // "target" SF Symbol (= the closest metaphor to the
-                    // Ralph loop = "fire this goal at the agent and let
-                    // it run until done"). Lucide equivalent (.target)
-                    // used for visual consistency with the rest of the
-                    // chat input row (= Lucide-first per project
-                    // v0.27 boss OOB).
+                    // SF Symbols 6 'scope' (= the canonical Apple HIG
+                    // target / scope metaphor for the Ralph
+                    // loop = "fire this goal at the agent
+                    // and let it run until done"). Replaces
+                    // the v0.27 'Lucide .target' choice per
+                    // boss 2026-09-15 OOB 'use SF Symbols 6'
+                    // (= supersedes the 2026-09-09 'Lucide
+                    // only' reversal).
                     Image(systemName: "scope")
                         .font(.system(size: DesignTokens.tabIconSize, weight: .regular))
                         .aspectRatio(contentMode: .fit)
@@ -1767,14 +1770,11 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                 if message.isPlaceholder {
                     // Wenshu AI placeholder status indicator
                     HStack(spacing: 4) {
-                        // v0.27 boss 8/27 OOB: replace SF Symbol with
-                        // closest Lucide equivalent. 'brain' = closest
-                        // semantically (= robot placeholder status
-                        // indicator); LucideIcon.fromSystemSymbol maps
-                        // 'person.crop.circle.badge.questionmark' →
-                        // 'bot-message-square' (= wenshu agent face per
-                        // Lucide; semantically = 'thinking' = good
-                        // placeholder icon).
+                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
+                        // canonical placeholder indicator
+                        // (= 'person.crop.circle.badge.questionmark'
+                        // = SF Symbols 6 dot.case form of
+                        // Lucide's 'bot-message-square').
                         Image(systemName: "person.crop.circle.badge.questionmark").font(.system(size: 16, weight: .regular))
                             .foregroundStyle(.secondary)
                         Text(message.content)

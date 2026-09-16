@@ -30,7 +30,9 @@
 //
 // 4. Apple SwiftUI std:
 //    → List(selection:) for selection binding.
-//    → Label { Text } icon: { LucideIcon } for rows (= Apple std row).
+//    → Label { Text } icon: { Image(systemName:) } for rows
+//      (= Apple std row; = SF Symbols 6 canonical icon layer
+//      per boss 2026-09-15 OOB).
 //    → .badge(count) for count badges (= Apple std count badge).
 //    → listStyle(.sidebar) for native sidebar appearance + Liquid
 //      Glass treatment.
@@ -1009,9 +1011,8 @@ struct NewLibraryOutlineView: View {
     /// v0.30 boss 8/30 OOB 'directory tree has a text label Start Here, that should be
     /// unused, the official Start Here is missing an ICON' = book row missing icon. Root
     /// cause = wrong Lucide icon name 'book.closed' (= doesn't exist in
-    /// Lucide; falls back to Color.clear in LucideIcon helper). Correct
-    /// Lucide canonical name = 'book' (= case book = "book" in
-    /// LucideIcon enum).
+    /// Lucide; falls back to Color.clear in the legacy LucideIcon helper
+    /// since removed). Correct SF Symbols 6 canonical name = 'book'.
     @ViewBuilder
     private func bookRowWithFolders(_ book: Book) -> some View {
         let folders = standardFolderNames
@@ -1779,7 +1780,7 @@ struct NewLibraryOutlineView: View {
     /// Style: per Apple HIG = a sidebar bottom accessory is a
     /// full-width row at the column's bottom safe area. The button
     /// itself uses Apple's `.borderless` button style with a
-    /// plus icon (= Lucide 'plus' = same icon the column's
+    /// plus icon (= SF Symbols 6 'plus' = same icon the column's
     /// internal 'New Book' / 'New Shelf' rows use; = the
     /// canonical Finder / Notes 'sidebar action button' visual).
     ///
@@ -1967,7 +1968,9 @@ private struct NewBookSheet: View {
                 // v0.30 boss 8/31 OOB: icon picker (mirrors
                 // NewShelfSheet). Default = "book" (= matches
                 // existing book row icon). User can scroll through
-                // ~1500 real Lucide icons and pick any.
+                // the full SF Symbols 6 catalog (~7000 names
+                // curated down to ~150 popular UI glyphs here) and
+                // pick any.
                 Section {
                     HStack(spacing: 12) {
                         ZStack {
@@ -2057,11 +2060,11 @@ private struct NewBookSheet: View {
     }
 }
 
-// v0.30 boss 8/31 OOB: NewShelfSheet now lets the user pick a
-// Lucide icon for the new shelf. Default = 'square-library'
+// v0.30 boss 8/31 OOB: NewShelfSheet lets the user pick an
+// SF Symbols 6 icon for the new shelf. Default = 'books.vertical'
 // (= same icon as the reference library section, so a new
 // shelf visually reads as 'another library bucket'). User can
-// pick any Lucide icon from a curated preset list (= see
+// pick any SF Symbol 6 name from a curated preset list (= see
 // shelfIconPresets below). The icon is required (= the picker
 // always shows a selection; the Save button is enabled as
 // soon as the user picks).
@@ -2203,10 +2206,10 @@ private struct NewShelfSheet: View {
                         Spacer()
                     }
                     // Icon picker grid (= 8 columns x many rows). The full
-                    // Lucide library has ~1500 icons so we wrap the
-                    // grid in a ScrollView (= user can scroll to
-                    // find the icon they want). The grid is
-                    // measured with a fixed height (= 320 PT =
+                    // SF Symbols 6 catalog has ~7000 icons so we
+                    // wrap the grid in a ScrollView (= user can
+                    // scroll to find the icon they want). The
+                    // grid is measured with a fixed height (= 320 PT =
                     // ~7 visible rows of 40 PT tiles + spacing) and
                     // scrolls inside.
                     ScrollView {

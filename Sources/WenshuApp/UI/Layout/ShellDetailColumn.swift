@@ -428,15 +428,14 @@ ToolbarItem(placement: .primaryAction) {
                     // label while every Apple toolbar button had the
                     // standard bordered rounded background).
                     //
-                    // Lucide is the project's icon source per
-                    // wenshu-apple-api-first / boss 2026-09-09 OOB
-                    // 'Lucide only, SF Symbol retired project-wide';
-                    // the `image:` closure passes a Lucide-rendered
-                    // Image (= LucideImage returns SwiftUI Image;
-                    // = Label accepts the Image via the .image
-                    // closure; = the toolbar button uses the Lucide
-                    // icon glyph inside Apple's bordered Liquid
-                    // Glass frame = the correct Apple default).
+                    // Apple SF Symbols 6 (= boss 2026-09-15 OOB 'remove Lucide,
+                    // use SF Symbols 6'; = supersedes the
+                    // 2026-09-09 'Lucide only' rule); the `image:`
+                    // closure passes an SF Symbols 6 glyph
+                    // (= sidebar-right / sidebar.left =
+                    // canonical Apple inspector toggle
+                    // affordance; = matches Mail / Notes /
+                    // Finder / Pages / Keynote / Numbers).
                     Label {
                         Text(WenshuI18n.t("inspector.toggle.button"))
                     } icon: {

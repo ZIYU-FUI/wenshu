@@ -72,8 +72,10 @@ public struct ChatHelpTextOverlay: View {
                 // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
                 // empty-state styles. The right column has 12 tabs and many are missing an empty state':
                 // migrate to the unified EmptyStateView component
-                // (= 76 PT Lucide icon + 1 PT stroke via
-                // LucideThinIcon + standard title / body hierarchy).
+                // (= 76 PT SF Symbols 6 icon + .regular weight = the
+                // canonical macOS 27 inspector / empty-state
+                // icon weight; = standard title / body
+                // hierarchy).
                 // Same visual treatment as the 12 specialized tool
                 // tabs + the editor empty state + PreviewPane.
                 //

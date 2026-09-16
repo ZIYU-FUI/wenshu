@@ -262,7 +262,11 @@ private struct CommandPaletteRow: View {
 
     private var categorySymbol: String {
         switch item.category {
-        // v0.46 boss OOB 'SF Symbol dropped, use Lucide'.
+        // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6
+        // (3rd gen) with palette rendering': canonical
+        // category glyphs. Replaces the v0.46 boss 'SF Symbol
+        // dropped, use Lucide' choice (= which has since been
+        // superseded by the 2026-09-15 reversal).
         case "skill": return "wand.and.sparkles"
         case "navigate": return "circle-arrow-right"
         case "command": return "terminal"

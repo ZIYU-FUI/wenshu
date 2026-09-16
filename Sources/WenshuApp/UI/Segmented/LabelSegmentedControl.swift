@@ -128,15 +128,14 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// override for localized labels when Selection is a
     /// non-String Hashable like a custom enum).
     let displayStrings: [String]
-    /// v1.0.0-m1-shell boss 2026-09-11 OOB 'Lucide only, SF Symbol
-    /// retired project-wide': use SF Symbol mapping as a fallback
-    /// (= Lucide is the project's icon source per
-    /// wenshu-apple-api-first; = NSSegmentedControl's
-    /// setImage(_:forSegment:) requires NSImage; = for now we
-    /// render the SF Symbol name from the Lucide name with a
-    /// best-effort heuristic; = TODO future ticket can pre-render
-    /// the Lucide glyph to NSImage for true wenshu visual
-    /// fidelity).
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6
+    /// (3rd gen) with palette rendering': canonical icon layer =
+    /// Apple SF Symbols 6 (= built into macOS 27; = zero SPM
+    /// dependency). NSSegmentedControl.setImage(_:forSegment:)
+    /// requires NSImage; = we resolve the SF Symbol name to
+    /// NSImage via NSImage(systemSymbolName:) at the call site.
+    /// TODO future ticket can pre-render the SF Symbol to
+    /// NSImage for true wenshu visual fidelity.
     let icon: ((Selection) -> NSImage?)?
 
     init(

@@ -20,16 +20,11 @@
 //  (= caller wraps in any frame). Icon at top, title + body
 //  below (= no header bar; = pure empty state).
 //
-//  Icon (= LucideThinIcon):
-//    - Lucide icon name (= kebab-case; = the canonical Lucide
-//      library name; = NOT a SwiftUI SF Symbol name)
+//  Icon (= SF Symbols 6):
+//    - SF Symbol 6 identifier (= canonical Apple SF Symbol
+//      name; = dot.case form like 'books.vertical')
 //    - size: 76 PT (= 2x the v0.54 38 PT; = the boss's '2x size'
 //      directive)
-//    - stroke: 1 PT (= the thinnest SwiftUI Shape stroke; = the
-    //      boss's 'thinnest stroke' directive; = rendered via the new
-    //      `LucideThinIcon` wrapper which delegates to
-    //      `Image(systemName: name).font(.system(size: , strokeWidth: 1, absoluteStrokeWidth: true, weight: .regular))`
-    //      from `UI/Icon/LucideThinIcon.swift`)
 //    - color: .secondary (= adapts to dark/light mode; =
 //      Apple's 2-step hierarchy for empty-state icons)
 //
@@ -176,13 +171,10 @@ public struct EmptyStateView: View {
         VStack(spacing: 0) {
             // v1.0.0-m1-shell boss 2026-09-12 OOB '2x icon size'
             // (= 2× the v0.54 38 PT default = 76 PT)
-            // + 'use thinnest stroke' (= 1 PT stroke via LucideThinIcon).
-            //
-            // The LucideThinIcon wrapper (= separate file in
-            // UI/Icon/) renders the Lucide icon as a 1 PT
-            // stroked Path (= the thinnest SwiftUI Shape
-            // stroke; = matches Apple's macOS 27 inspector /
-            // empty-state icon weight).
+            // + 'use thinnest stroke' (= .regular weight = the
+            // canonical macOS 27 inspector / empty-state icon
+            // weight; = matches the SF Symbols 6 3rd-generation
+            // palette-rendering default).
             //
             // Apple's empty states use a much bigger icon
             // (= measured 38 PT on a real ContentUnavailableView

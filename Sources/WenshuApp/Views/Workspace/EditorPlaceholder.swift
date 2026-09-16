@@ -193,9 +193,11 @@ struct EditorPlaceholder: View {
                     // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
                     // empty-state styles. The right column has 12 tabs and many are missing an empty state':
                     // migrate to the unified EmptyStateView (= 76 PT
-                    // Lucide icon + 1 PT stroke via LucideThinIcon +
-                    // standard title / body hierarchy). Same visual
-                    // treatment as the 12 specialized tool tabs.
+                    // SF Symbols 6 icon + .regular weight =
+                    // the canonical macOS 27 inspector
+                    // icon weight; = standard title /
+                    // body hierarchy). Same visual treatment
+                    // as the 12 specialized tool tabs.
                     //
                     // Wrap the EmptyStateView in a vertical layout
                     // that pushes it to vertical center inside the
@@ -890,8 +892,9 @@ struct EditorPlaceholder: View {
     /// a single component — can you abstract a UI component? While you're at it, on the
     /// empty-state icon: double the size and use the thinnest strokes. The goal is to unify all empty-state
     /// styles. The right column has 12 tabs and many are missing an empty state': use the
-    /// unified EmptyStateView component (= 76 PT Lucide icon
-    /// + 1 PT stroke via LucideThinIcon + standard title / body
+    /// unified EmptyStateView component (= 76 PT SF Symbols 6
+    /// icon + .regular weight = the canonical macOS 27
+    /// inspector icon weight; = standard title / body
     /// hierarchy). This guarantees consistent visual treatment
     /// across every "no content" zone in wenshu.
     private var emptyStateHint: some View {

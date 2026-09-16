@@ -59,10 +59,13 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     /// Author name; empty string = no author specified (= wenshu doesn't
     /// require one; we just record whatever the user types).
     var author: String
-    /// v0.30 boss 8/31 OOB: user-picked Lucide icon name for the
-    /// sidebar display. Optional for backward compat (= existing
-    /// books default to "book" via `displayIcon`). Mirrors the
-    /// Bookshelf.icon pattern (= same shape, same fallback).
+    /// v0.30 boss 8/31 OOB: user-picked SF Symbols 6 icon name
+    /// (= dot.case identifier, e.g. "book.pages") for the
+    /// sidebar display. Optional for backward compat (= legacy
+    /// books may still have a Lucide kebab-case name persisted
+    /// in book.json; the `displayIcon` getter falls back via
+    /// `lucideFallbackForBookIcon`). Mirrors the Bookshelf.icon
+    /// pattern (= same shape, same fallback).
     var icon: String?
     /// Parent bookshelf (= filesystem constraint: the book's directory
     /// must live under its parent shelf's `books/`). Required at init so

@@ -28,7 +28,8 @@
 // - 22 top-level categories (= CLC standard, all letters A-Z used
 //   except 4 letters: L/M/N reserved for future use, 1 letter Q used
 //   for biology specifically)
-// - Each category has a Chinese display name + Lucide icon + subcategories
+// - Each category has a Chinese display name + SF Symbols 6
+//   icon (= dot.case like 'books.vertical') + subcategories
 //   (= 2nd level for finer classification, e.g. "I Literature" → "I1 Literary theory",
 //   "I2 Chinese literature", "I3 Foreign literature")
 // - Categories are created INCREMENTALLY (= boss OOB: "category folders

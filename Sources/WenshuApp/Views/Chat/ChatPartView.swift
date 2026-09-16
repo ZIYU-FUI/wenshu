@@ -297,11 +297,13 @@ public struct ChatToolResultPartView: View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             HStack(spacing: DesignTokens.chromePaddingSmall) {
                 // Success/error icon (= SF Symbol equivalent for the
-                // result type = checkmark / exclamation-triangle).
-                // Lucide has `circle-check` (= success) and `triangle-alert`
-                // (= error); we route through LucideIconSystemFallback
-                // so the SF Symbol name ("checkmark" / "exclamationmark.triangle")
-                // gets mapped to the closest Lucide equivalent.
+                // result type = checkmark / exclamation-mark-triangle).
+                // v1.0.0-m1-shell boss 2026-09-15 OOB 'remove
+                // Lucide, use SF Symbols 6' (= the previous code
+                // routed through the now-deleted
+                // LucideIconSystemFallback helper to map SF
+                // names to Lucide names; = now the SF names
+                // are the canonical input directly).
                 Image(systemName: toolResult.isError ? "exclamationmark.triangle" : "checkmark").font(.system(size: 12, weight: .regular))
                     .foregroundStyle(toolResult.isError ? Color.red : Color.green)
                 Text(toolResult.isError
@@ -432,9 +434,9 @@ private struct ChatPartRow: View {
 /// - opacity fade = `.animation(.easeInOut(duration: 0.15), value: isHovering)`
 /// - small icon buttons = `.controlSize(.small)` (= the canonical
 ///   SwiftUI compact toolbar button)
-/// - monospaced icon labels = Lucide `copy` + `trash2` (= the
-///   closest Lucide equivalents to SF Symbol `doc.on.doc` and
-///   `trash`)
+/// - monospaced icon labels = SF Symbols 6 `doc.on.doc` (= copy)
+///   + `trash` (= delete). Canonical Apple HIG chat action
+///   affordances (= matches Mail / Messages / Notes).
 public struct ChatMessageHoverActions: View {
     /// The message content to copy when the user clicks Copy.
     public let content: String
@@ -446,8 +448,8 @@ public struct ChatMessageHoverActions: View {
 
     public var body: some View {
         HStack(spacing: DesignTokens.chromePaddingSmall) {
-            // Copy button (= Lucide `copy` icon; = copies the
-            // message text to NSPasteboard).
+            // Copy button (= SF Symbols 6 `document.on.document` icon;
+            // = copies the message text to NSPasteboard).
             Button {
                 copyToPasteboard()
             } label: {
@@ -456,7 +458,7 @@ public struct ChatMessageHoverActions: View {
             .buttonStyle(.borderless)
             .controlSize(.small)
             .help(WenshuI18n.t("chatview.message_action.copy"))
-            // Delete button (= Lucide `trash2` icon; = marks the
+            // Delete button (= SF Symbols 6 `trash` icon; = marks the
             // message for deletion = the caller wires the actual
             // delete logic via a parent state).
             Button {

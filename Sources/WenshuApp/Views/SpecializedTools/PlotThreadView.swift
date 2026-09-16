@@ -52,10 +52,11 @@ struct PlotThreadView: View {
                 }
             } else {
                 // v1.0.0-m1-shell boss 2026-09-12 OOB 'unify the empty-state style across all of them':
-                // use the unified EmptyStateView (= 76 PT Lucide icon
-                // + 1 PT stroke via LucideThinIcon + standard
-                // title/body hierarchy). Same visual treatment as the
-                // other 11 tabs.
+                // use the unified EmptyStateView (= 76 PT SF Symbols 6
+                // icon + .regular weight = the canonical
+                // macOS 27 inspector icon weight; = standard
+                // title/body hierarchy). Same visual treatment
+                // as the other 11 tabs.
                 EmptyStateView(
                     icon: "arrow.trianglehead.branch",
                     title: WenshuI18n.t("b5.plotthreadview.l37.h49866041"),

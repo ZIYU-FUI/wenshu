@@ -22,8 +22,8 @@ import SwiftUI
 /// tools/chat/dynamic). Provides:
 /// - RegionTabBar Liquid Glass chrome (= 30 PT + .regularMaterial +
 ///   .separator bottom hairline)
-/// - ForEach of PaneIconTab (= Apple HIG 28×28 hot area + Lucide icon +
-///   matchedGeometry selected-state underline)
+/// - ForEach of PaneIconTab (= Apple HIG 28×28 hot area + SF Symbols 6
+///   icon + matchedGeometry selected-state underline)
 /// - Optional trailing buttons (= e.g. editor's expand/shrink button,
 /// or library's / menu buttons) at the rightmost edge
 /// - matchedGeometryEffect namespace for slide animation
@@ -65,7 +65,8 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
     /// KeyPath to extract the tab's String id (= used for selection binding).
     public let idKeyPath: KeyPath<Item, String>
 
-    /// KeyPath to extract the tab's Lucide icon name (= kebab-case, e.g.="square-library").
+    /// KeyPath to extract the tab's SF Symbols 6 icon name
+    /// (= canonical Apple SF Symbol identifier, e.g. "books.vertical").
     public let iconKeyPath: KeyPath<Item, String>
 
     /// KeyPath to extract the tab's accessibility label.

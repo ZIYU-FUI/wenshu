@@ -25,10 +25,12 @@ import Foundation
 struct Bookshelf: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var name: String
-    /// v0.30 boss 8/31 OOB: shelf icon name (= Lucide kebab-case,
-    /// e.g. "square-library"). Optional for backward compat (=
-    /// existing shelves default to "books.vertical" via
-    /// `displayIcon`).
+    /// v0.30 boss 8/31 OOB: shelf icon name (= SF Symbols 6
+    /// dot.case identifier, e.g. "books.vertical"). Optional
+    /// for backward compat (= legacy shelves may still have a
+    /// Lucide kebab-case name persisted in shelf.json; the
+    /// `displayIcon` getter falls back to a generic SF Symbol
+    /// 6 name via `lucideFallbackForShelfIcon`).
     var icon: String?
     let createdAt: Date
     var updatedAt: Date

@@ -11,13 +11,11 @@
 // NavigationSplitShell. The smallest struct (= ShellPlaceholder
 // = 22 lines) is the SAFE first split.
 //
-// v1.34 also aligns with boss's v1.x 'remove Lucide, use SF
-// Symbols 6' decision (= merged 2026-09-16). The original
-// ShellPlaceholder used `LucideIcon`; = after boss's merge
-// main uses `Image(systemName:)` (= SF Symbols 6). This
-// extracted file uses the SF Symbols version (= no Lucide
-// dependency = matches AGENTS.md §11.1's post-deprecation
-// canonical icon layer).
+// v1.34 aligns with boss's v1.x 'remove Lucide, use SF Symbols 6'
+// decision (= merged 2026-09-15). After boss's deprecation
+// canonical icon layer = Apple SF Symbols 6 built into macOS 27
+// (= zero SPM dependency). This extracted file uses the SF
+// Symbols version via `Image(systemName:)`.
 //
 // Per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112: extract
 // ShellPlaceholder to its own file. This is the SAFE first split
@@ -37,10 +35,7 @@ struct ShellPlaceholder: View {
     let hint: String
 
     var body: some View {
-        // v0.46 boss OOB 'SF Symbol dropped, use Lucide': the
-        // systemImage: overload of ContentUnavailableView only accepts
-        // SF Symbol names. The label: closure overload takes any View,
-        // so the Lucide glyph goes there.
+        // Canonical SF Symbols 6 icon layer (= boss 2026-09-15 OOB).
         ContentUnavailableView {
             // 38 PT matches the glyph height Apple's own
             // ContentUnavailableView renders, measured on this machine.

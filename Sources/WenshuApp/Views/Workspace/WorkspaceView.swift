@@ -622,7 +622,7 @@ struct WorkspaceView: View {
 // 1. ZoneTopToolbar (30 PT) with zone actions (Graph / Search / expand
 //    trailing etc.). This layer is now an outer RegionPerRegionChrome.
 // 2. ZoneContentView (internal tab bar with ZoneContentTabBar)
-//    — Apple HIG canonical tab bar (= 28×28 hot area + Lucide icon +
+//    — Apple HIG canonical tab bar (= 28×28 hot area + SF Symbols 6 icon +
 
 /// Editor main content placeholder (= replaces old DesignColor overlay).
 /// Real editor content view = ticket 027-35 followup; for now we
@@ -706,7 +706,7 @@ struct WorkspaceView: View {
 /// rendered preview).
 ///
 /// Apple HIG rationale:
-/// - Button + .plain buttonStyle + Lucide icons (= system component
+/// - Button + .plain buttonStyle + SF Symbols 6 icons (= system component
 ///   + no custom-drawn controls; = Rule 7).
 /// - Each action wraps the current cursor selection (= or inserts
 ///   at cursor if no selection). Selection tracking is via
@@ -748,7 +748,8 @@ struct WorkspaceView: View {
 /// intrinsic size, and SwiftUI's Menu doesn't render its label in
 /// this context). Replaced with simple plain Button + cycle-through
 /// sort order pattern (= mirrors NewButtonWithHover's plain Button
-/// + LucideIcon + frame pattern which DOES render correctly).
+/// + SF Symbol via Image(systemName:) + frame pattern which
+/// DOES render correctly).
 
 // MARK: - findPaneController (Apple canonical view-tree BFS)
 //

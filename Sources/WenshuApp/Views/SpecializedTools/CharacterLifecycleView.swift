@@ -40,7 +40,7 @@
 //  nil` (= pre-chapter backstory event).
 //
 //  Standards-axis:
-//    S1 (Apple-API-first): pure SwiftUI primitives + Lucide icon
+//    S1 (Apple-API-first): pure SwiftUI primitives + SF Symbols 6 icon
 //        helper (= already wired into wenshu). No custom hover /
 //        click handlers; Apple `.buttonStyle` .borderless +
 //        .borderedProminent per the macOS 27 Liquid Glass
@@ -129,8 +129,7 @@ struct CharacterLifecycleView: View {
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': use
-        // the unified EmptyStateView component (= Lucide icon
-        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // the unified EmptyStateView component (= 76 PT SF Symbols 6 icon + .regular weight = the canonical macOS 27 inspector icon weight; = standard
         // title/body hierarchy). Same visual treatment as every
         // other empty state in the workspace.
         EmptyStateView(

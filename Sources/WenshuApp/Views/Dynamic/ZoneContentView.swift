@@ -142,12 +142,16 @@ struct ZoneContentView: View {
                 displayStrings: tabs.map(\.label),
                 icon: { tabId in
                     guard let tab = tabs.first(where: { $0.id == tabId }) else { return nil }
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'Lucide only,
-                    // SF Symbol retired project-wide': SF Symbol
-                    // mapping as a NSSegmentedControl-friendly
-                    // fallback (= NSSegmentedControl.setImage requires
-                    // NSImage; = TODO future ticket pre-renders the
-                    // Lucide glyph as NSImage for true visual fidelity).
+                    // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6
+                    // (3rd gen) with palette rendering':
+                    // SF Symbol mapping as a
+                    // NSSegmentedControl-friendly fallback
+                    // (= NSSegmentedControl.setImage requires
+                    // NSImage; = TODO future ticket pre-renders
+                    // the SF Symbol glyph as NSImage for true
+                    // visual fidelity). Replaces the
+                    // 2026-09-11 'Lucide only' choice per
+                    // boss 2026-09-15 reversal.
                     return NSImage(systemSymbolName: tab.icon, accessibilityDescription: tab.label)
                 }
             )

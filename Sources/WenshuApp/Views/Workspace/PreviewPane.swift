@@ -1020,8 +1020,9 @@ struct PreviewPane: View {
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': migrate
-        // to the unified EmptyStateView (= 76 PT Lucide icon
-        // + 1 PT stroke via LucideThinIcon + standard title /
+        // to the unified EmptyStateView (= 76 PT SF Symbols 6 icon
+        // + .regular weight = the canonical macOS 27
+        // inspector icon weight; = standard title /
         // body hierarchy). Same visual treatment as the 12
         // specialized tool tabs.
         EmptyStateView(
@@ -1393,8 +1394,9 @@ internal enum CardSource {
     case reference(Reference)
     case bookDoc(BookDoc)
 
-    /// Lucide icon name (= the only visual differentiator between
-    /// sources; everything else is uniform).
+    /// SF Symbols 6 icon name (= the only visual differentiator
+    /// between sources; everything else is uniform). Replaces
+    /// the Lucide-era names removed in v1.0.0-m1-shell.
     var iconName: String {
         switch self {
         case .reference(let r): return r.entityType.icon

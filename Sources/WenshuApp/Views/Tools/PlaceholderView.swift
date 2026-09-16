@@ -25,7 +25,7 @@
 // `books/<bookId>/placeholders.json`).
 //
 // Standards-axis:
-//   S1 (Apple-API-first): pure SwiftUI primitives + Lucide icon
+//   S1 (Apple-API-first): pure SwiftUI primitives + SF Symbols 6 icon
 //       helper (= already wired into wenshu). No custom hover /
 //       click handlers; Apple `.buttonStyle` .borderless +
 //       .borderedProminent per the macOS 27 Liquid Glass
@@ -112,8 +112,7 @@ public struct PlaceholderView: View {
         // a single component — can you abstract a UI component? While you're at it, on the
         // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
-        // the unified EmptyStateView component (= Lucide icon
-        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // the unified EmptyStateView component (= 76 PT SF Symbols 6 icon + .regular weight = the canonical macOS 27 inspector icon weight; = standard
         // title/body hierarchy). Same visual treatment as every
         // other empty state in the workspace.
         EmptyStateView(

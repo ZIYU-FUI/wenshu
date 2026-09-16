@@ -356,7 +356,10 @@ struct SettingView: View {
     private func providerApiRow(_ p: Provider) -> some View {
         let hasKey = providersWithKeys.contains(p.slug)
         return HStack(spacing: 12) {
-            // v0.27 boss 8/27 OOB: SF 'key' / 'key.fill' → Lucide 'key'.
+            // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
+            // canonical LLM-provider key-state glyph = 'key'
+            // (SF Symbols 6). Replaces the v0.27 'Lucide key'
+            // choice per boss 2026-09-15 reversal.
             Image(systemName: hasKey ? "key" : "key").font(.system(size: 18, weight: .regular))
                 .foregroundStyle(hasKey ? Color.green : Color.secondary)
                 .frame(width: DesignTokens.tabIconSize)
@@ -452,8 +455,10 @@ struct SettingView: View {
             Section {
                 ForEach(AuxTask.allCases, id: \.self) { task in
                     HStack {
-                        // v0.27 boss 8/27 OOB: AuxTask.icon (dynamic SF
-                        // name string) → Lucide canonical via helper.
+                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
+                        // AuxTask.icon is already a canonical
+                        // SF Symbols 6 identifier (= per the
+                        // v1.0.0-m1-shell enum property rename).
                         Image(systemName: task.icon).font(.system(size: 18, weight: .regular))
                             .foregroundStyle(.secondary)
                             .frame(width: DesignTokens.tabIconSize)

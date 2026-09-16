@@ -57,7 +57,8 @@ struct SmartQueryView: View {
     private var list: some View {
         List(queries) { query in
             HStack {
-                // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
+                // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
+                // canonical smart-query indicator glyph.
                 Image(systemName: "magnifyingglass.circle").font(.system(size: 18, weight: .regular))
                     .foregroundStyle(.tint)
                 VStack(alignment: .leading) {
@@ -80,7 +81,8 @@ struct SmartQueryView: View {
     @ViewBuilder
     private var emptyState: some View {
         VStack(spacing: 12) {
-            // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
+            // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
+            // canonical empty-state glyph.
             Image(systemName: "magnifyingglass.circle").font(.system(size: 48, weight: .regular))
                 .foregroundStyle(.tertiary)
             Text(WenshuI18n.t("auto.smartqueryview.l86.h89952862"))

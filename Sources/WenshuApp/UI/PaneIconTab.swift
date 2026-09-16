@@ -5,9 +5,10 @@
 // Single tab button component used by ALL pane tab bars (= sidebar / preview /
 // editor / tools / chat / dynamic). Listed in ComponentIndex.md Level 3.1.
 //
-// = replaces the duplicated Button + Color.clear + LucideIcon + contentShape +
-// matchedGeometry underline code (= was duplicated in 2 surviving call sites:
-// ZoneContentTabBar and DynamicZoneTabBar, ~90 LOC each = ~180 LOC total).
+// = replaces the duplicated Button + Color.clear + Image(systemName:) +
+// contentShape + matchedGeometry underline code (= was duplicated in 2
+// surviving call sites: ZoneContentTabBar and DynamicZoneTabBar,
+// ~90 LOC each = ~180 LOC total).
 // The chat-zone wrapper was the third duplicated site (= since deleted in v0.34).
 //
 // Use this component for any new per-pane tab button. Don't write a new
@@ -15,12 +16,13 @@
 
 import SwiftUI
 
-/// Canonical per-pane tab button (= Apple HIG 28×28 hot area + Lucide icon +
-/// selected-state underline with matchedGeometry slide animation).
+/// Canonical per-pane tab button (= Apple HIG 28×28 hot area + SF Symbols 6
+/// icon + selected-state underline with matchedGeometry slide animation).
 ///
 /// **Use this** for any pane tab. The component handles:
 /// - 28×28 PT hot area (= Apple HIG standard small button)
-/// - Lucide icon with SF Symbol fallback (= LucideIconSystemFallback)
+/// - SF Symbols 6 icon (= passed via `icon: String` parameter; = any
+///   canonical Apple SF Symbol identifier like 'books.vertical')
 /// - Selected state: accent color + 3 PT underline at bottom
 /// - Unselected state: secondary color, no underline
 /// - Plain buttonStyle + contentShape (= no clipping issues, reliable hit-testing)
@@ -49,8 +51,8 @@ public struct PaneIconTab: View {
     /// Stable tab identifier (= usually the tab's enum raw value).
     public let id: String
 
-    /// Lucide icon name (kebab-case, e.g. "square-library"). Falls back to
-    /// SF Symbol via LucideIconSystemFallback if not found.
+    /// SF Symbols 6 icon name (= the canonical Apple SF Symbol
+    /// identifier, e.g. "books.vertical", "magnifyingglass").
     public let icon: String
 
     /// Accessibility label (= screen reader voice + tooltip).

@@ -65,8 +65,8 @@ struct EditorExpandShrinkTrailingButton: View {
         // .onHover + .background tint + @State isHover + .clipShape plumbing).
         //
         // v0.34 boss 2026-09-02 OOB (multi-layer audit): the trailing-button
-        // shape (Color.clear.frame(28,28).overlay(LucideIcon) + .hoverWash +
-        // .plain + .help) was duplicated between WorkspaceView.swift
+        // shape (Color.clear.frame(28,28).overlay(Image(systemName:))
+        // + .hoverWash + .plain + .help) was duplicated between WorkspaceView.swift
         // EditorExpandShrinkTrailingButton and TabContentDispatcher.swift
         // (chat-zone archive button). Replaced both with the shared
         // PaneTrailingIconButton helper. EditorExpandShrinkTrailingButton
