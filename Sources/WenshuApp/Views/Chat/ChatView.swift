@@ -345,7 +345,7 @@ public final class ChatViewModel {
     //    the ref is a Sendable pointer (= the actor instance itself
     //    is Sendable across isolation boundaries); only the actor's
     //    methods require `await`.
-    nonisolated(unsafe) static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
+    nonisolated static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
 
     public func switchModel(_ id: String) {
         // B-05: write to the canonical owner (= AppState.llmModel),

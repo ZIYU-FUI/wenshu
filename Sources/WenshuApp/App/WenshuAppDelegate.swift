@@ -255,7 +255,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// (= private) is unreachable from the test target. Exposing the
     /// same logic on WenshuAppDelegate (= module-internal) keeps the
     /// test + production in lockstep without leaking the view API.
-    nonisolated(unsafe) static func activeLLMConnector() -> any LLMConnector {
+    nonisolated static func activeLLMConnector() -> any LLMConnector {
         let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
         // v0.40 followup: unknown slug (= no UserDefaults key, or a slug that
         // ProviderCatalog cannot resolve) must fall back to AnthropicConnector

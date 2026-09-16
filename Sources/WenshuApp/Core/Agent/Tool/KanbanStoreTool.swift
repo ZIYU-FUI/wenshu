@@ -94,7 +94,7 @@ public struct KanbanStoreTool: Tool, Sendable {
     /// (= `KanbanStoreTool._registryBootstrap`) runs after
     /// `WenshuAppDelegate.applicationDidFinishLaunching` (= main
     /// thread) so the trap never fires in production.
-    public nonisolated(unsafe) static let shared: KanbanStoreTool = KanbanStoreTool(kanbanTools: KanbanTools())
+    public nonisolated static let shared: KanbanStoreTool = KanbanStoreTool(kanbanTools: KanbanTools())
 
     /// Tool name. ToolExecutor routes one tool_use block to one Tool
     /// by name (= matches the convention other wenshu tools use:
