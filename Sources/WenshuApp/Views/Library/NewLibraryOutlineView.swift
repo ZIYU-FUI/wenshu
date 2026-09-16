@@ -440,26 +440,33 @@ struct NewLibraryOutlineView: View {
             // hairline floats naturally between the two Section
             // groups without extra chrome).
             //
-            // Implementation: SwiftUI's List only accepts Section
-            // or ForEach as direct children (= a bare Divider()
-            // is not allowed). To draw a single hairline between
-            // the two Sections, we wrap the Divider in a Section
-            // (= it becomes the section's only row = the hairline
-            // spans the full List width = visual match to a `Divider()`).
-            // The Section has an empty header (= no extra header
-            // text or padding = the hairline sits at the natural
-            // inter-Section gap).
-            Section {
-                // v1.0.0-m1-shell boss 2026-09-10 OOB 'right now each zone
-                // uses some left/right margin — is that the Apple-standard expression?':
-                // = bare `Divider()` (= NO custom modifier; =
-                // the SwiftUI List's default row separator
-                // padding is applied; = all 3 dividers use the
-                // same no-modifier default; = matches the Apple
-                // HIG List row separator pattern = standard
-                // horizontal inset on both sides).
-                Divider()
-            }
+            // v1.0.0-m1-shell boss 2026-09-16 OOB '目录树叠图的 BUG 又出现了':
+            // the previous Section { Divider() } wrapper (= an
+            // empty Section whose only child was a Divider) was
+            // Apple HIG pre-SwiftUI 6 boilerplate. Per Apple HIG
+            // for macOS 27 Tahoe (= the current deployment target),
+            // Divider() is accepted as a direct List child. The
+            // Section wrapper added an extra row slot that
+            // SwiftUI's List(.sidebar) selection highlight uses
+            // for positioning the selected row's background
+            // rectangle. When the row above the Divider (= a shelf
+            // row) was selected, the highlight extended past the
+            // Divider and overlapped the first row of the next
+            // Section (= the "资料库" row).
+            //
+            // Fix: bare Divider() as a direct List child (= Apple
+            // HIG canonical pattern for macOS 27 Tahoe; = the
+            // Divider's intrinsic height is exactly 1 PT = the
+            // standard Apple sidebar hairline = no extra row slot).
+            // The "资料库" row is now at its true position
+            // (= shelf rows above the Divider + Divider + 资料库
+            // = no off-by-one in the List's row offset table).
+            //
+            // Apple HIG reference: Notes / Mail sidebar pattern
+            // = `.listStyle(.sidebar) { Section { … } ; Divider() ;
+            // Section { … } }` (= bare Divider between Section
+            // groups; = the canonical macOS 27 sidebar rhythm).
+            Divider()
             // Reference library (= library's default shelf per boss 8/26
             // OOB; user CANNOT delete or rename). Treated as a single
             // Section per Apple HIG; categories expand via
