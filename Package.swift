@@ -115,7 +115,14 @@ let package = Package(
             path: "Sources/WenshuApp",
             exclude: [
                 "Resources/Info.plist",
-                "Resources/AppIcon.icon"
+                "Resources/AppIcon.icon",
+                // v0.46 fix: 'wenshu' found 2 unhandled .md files in
+                // source tree. Both are design docs (= AgentLifecycleTrackerDesign.md
+                // + ComponentIndex.md) consumed by humans + LLMs, not by
+                // the Swift compiler. Excluded from the resource bundle
+                // (= no #fileLiteral resource access at runtime).
+                "Core/Agent/Conversation/AgentLifecycleTrackerDesign.md",
+                "UI/ComponentIndex.md",
             ],
             // v0.38 ticket P2 (= Apple-standard i18n per boss OOB):
             // .process("Resources") ships en.lproj/Localizable.strings +
@@ -207,6 +214,18 @@ let package = Package(
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
             path: "Tests/WenshuAppTests",
+            // v0.46 fix: 'wenshu' found 13 unhandled files in
+            // Tests/WenshuAppTests/Agent/PortedFromHermes/ (= golden
+            // JSON snapshots for hermes port tests + the generate_golden.py
+            // / x_e2e_dual_track.py scripts that build the snapshots).
+            // These are read at test time via direct file URLs (= not
+            // bundled through SPM's resource pipeline) so excluding
+            // them here is correct. Without this, SPM emits a
+            // 'unhandled files' warning every build.
+            exclude: [
+                "Agent/PortedFromHermes/golden",
+                "Agent/PortedFromHermes/scripts",
+            ],
             // v0.71 P1 batch 3: expose Localizable.strings to the
             // test target's Bundle.module (= the I18nParityTests
             // suite needs Bundle.module.url(forResource: "Localizable",
