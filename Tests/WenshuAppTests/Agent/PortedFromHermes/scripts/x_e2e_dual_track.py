@@ -71,15 +71,13 @@ EXPECTED_TOOL_CALL_SEQUENCE: List[Dict[str, Any]] = [
 ]
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="X e2e dual-track harness")
-    parser.add_argument(
-        "--output",
-        default="/tmp/wenshu_x_e2e_report.json",
-        help="Report output path"
-    )
-    args = parser.parse_args()
+def _print_expected_sequence() -> None:
+    """Print the preamble + expected tool-call sequence (= hermes reference).
 
+    Reference contract: both hermes Python and wenshu Swift are run at
+    temperature=0, so the EXPECTED_TOOL_CALL_SEQUENCE (= hard-coded
+    below) defines the canonical sequence.
+    """
     print("=" * 70)
     print("X e2e dual-track harness (spec §6.2)")
     print("=" * 70)
@@ -93,46 +91,48 @@ def main() -> int:
         print(f"    output: {call['output_excerpt']}")
     print()
 
-    # Simulated wenshu Swift run (= identical sequence at temperature=0)
-    # Per wenshu-side wins ADR-0009: wenshu tools = thin wrappers over
-    # wenshu FileTools + ToolExecutor (= ticket 001 sub-step 5 + 6).
+
+def _compute_parity() -> dict[str, bool]:
+    """Compute the 3 parity checks per ADR-0009 (= wenshu-side wins).
+
+    Both hermes + wenshu use the same EXPECTED_TOOL_CALL_SEQUENCE at
+    temperature=0 (= this is a SIMULATED test, not real agent dispatch;
+    see x_e2e spec §6.2 + notes in the report payload below).
+    """
     wenshu_swift_sequence = EXPECTED_TOOL_CALL_SEQUENCE  # same at temperature=0
+    return {
+        "tool_call_sequence_match": wenshu_swift_sequence == EXPECTED_TOOL_CALL_SEQUENCE,
+        "final_assistant_text_match": (
+            "I've read the chapter and written a 3-sentence summary to $TEMP/summary.md."
+            == "I've read the chapter and written a 3-sentence summary to $TEMP/summary.md."
+        ),
+        "file_write_content_match": (
+            EXPECTED_TOOL_CALL_SEQUENCE[1]["input"]["content"]
+            == wenshu_swift_sequence[1]["input"]["content"]
+        ),
+    }
 
-    # Parity check (= deep equality of tool-call sequence)
-    parity_pass = wenshu_swift_sequence == EXPECTED_TOOL_CALL_SEQUENCE
 
-    # Final assistant text comparison
-    final_text_hermes = "I've read the chapter and written a 3-sentence summary to $TEMP/summary.md."
-    final_text_wenshu = "I've read the chapter and written a 3-sentence summary to $TEMP/summary.md."
-    final_text_parity = final_text_hermes == final_text_wenshu
-
-    # File write result comparison (= assert file written with same content)
-    file_write_parity = (
-        EXPECTED_TOOL_CALL_SEQUENCE[1]["input"]["content"] ==
-        wenshu_swift_sequence[1]["input"]["content"]
-    )
-
-    # Report
-    report = {
+def _build_report(parity: dict[str, bool]) -> dict:
+    """Assemble the JSON-serializable report payload."""
+    return {
         "spec_section": "§6.2",
         "ticket_reference": "001 L57",
         "test_harness_prompt": TEST_HARNESS_PROMPT,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "hermes_python": {
             "tool_call_sequence": EXPECTED_TOOL_CALL_SEQUENCE,
-            "final_assistant_text": final_text_hermes,
+            "final_assistant_text": "I've read the chapter and written a 3-sentence summary to $TEMP/summary.md.",
             "temperature": 0.0,
         },
         "wenshu_swift": {
-            "tool_call_sequence": wenshu_swift_sequence,
-            "final_assistant_text": final_text_wenshu,
+            "tool_call_sequence": EXPECTED_TOOL_CALL_SEQUENCE,
+            "final_assistant_text": "I've read the chapter and written a 3-sentence summary to $TEMP/summary.md.",
             "temperature": 0.0,
         },
         "parity_results": {
-            "tool_call_sequence_match": parity_pass,
-            "final_assistant_text_match": final_text_parity,
-            "file_write_content_match": file_write_parity,
-            "overall_pass": parity_pass and final_text_parity and file_write_parity,
+            **parity,
+            "overall_pass": all(parity.values()),
         },
         "notes": (
             "v0.36 X e2e is SIMULATED (= expected sequence hard-coded) "
@@ -145,24 +145,41 @@ def main() -> int:
         ),
     }
 
-    # Write report
+
+def _print_parity_verdict(report: dict) -> None:
+    """Print the human-readable parity summary (= after writing JSON)."""
+    print("=" * 70)
+    print("Parity verdict")
+    print("=" * 70)
+    results = report["parity_results"]
+    print(f"  tool-call sequence match:   {results['tool_call_sequence_match']}")
+    print(f"  final assistant text match: {results['final_assistant_text_match']}")
+    print(f"  file write content match:   {results['file_write_content_match']}")
+    print(f"  OVERALL: {results['overall_pass']}")
+    print()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="X e2e dual-track harness")
+    parser.add_argument(
+        "--output",
+        default="/tmp/wenshu_x_e2e_report.json",
+        help="Report output path"
+    )
+    args = parser.parse_args()
+
+    _print_expected_sequence()
+
+    parity = _compute_parity()
+    report = _build_report(parity)
+
     output_path = Path(args.output)
     output_path.write_text(json.dumps(report, indent=2, sort_keys=True))
     print(f"Report written to: {output_path}")
     print()
 
-    # Print summary
-    print("=" * 70)
-    print("Parity verdict")
-    print("=" * 70)
-    results = report["parity_results"]
-    print(f"  tool-call sequence match:  {results['tool_call_sequence_match']}")
-    print(f"  final assistant text match: {results['final_assistant_text_match']}")
-    print(f"  file write content match:  {results['file_write_content_match']}")
-    print(f"  OVERALL: {results['overall_pass']}")
-    print()
-
-    return 0 if results["overall_pass"] else 1
+    _print_parity_verdict(report)
+    return 0 if report["parity_results"]["overall_pass"] else 1
 
 
 if __name__ == "__main__":

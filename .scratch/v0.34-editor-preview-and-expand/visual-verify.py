@@ -160,36 +160,33 @@ def s11_final(n):
     """S11: Final state capture."""
     capture("final-state", n)
 
-# ---------- Main ----------
+# ---------- Main helpers ----------
 
-def main():
+def _print_banner(title: str) -> None:
+    """Print the centered ASCII banner that introduces a run."""
     print("=" * 60)
-    print("v0.34 editor feature visual verification")
+    print(title)
     print("=" * 60)
 
+
+def _check_prereqs() -> None:
+    """Verify cliclick + WenshuApp are present. sys.exit(1) on failure.
+
+    Two hard prerequisites for the visual-verify harness:
+      - cliclick (= the macOS synthetic-input CLI we use to drive the
+        cursor + click + keystroke scenarios). Install via `brew install
+        cliclick` if missing.
+      - Wenshu.app (= the SUT). The harness drives a running instance;
+        it does NOT spawn the app itself.
+    """
     if subprocess.run(["which", "cliclick"], capture_output=True).returncode != 0:
         print("ERROR: cliclick not installed"); sys.exit(1)
     if subprocess.run(["pgrep", "-f", "WenshuApp"], capture_output=True).returncode != 0:
         print("ERROR: Wenshu.app not running"); sys.exit(1)
 
-    scenarios = [
-        (0, "dismiss TCC file-access modal", s0_dismiss_tcc),
-        (1, "baseline 6-zone state capture", s1_baseline),
-        (2, "sidebar toggle hide (= B-12 snapshot taken)", s2_sidebar_hide),
-        (3, "sidebar toggle show (= B-12 restore)", s3_sidebar_show),
-        (4, "preview toggle hide", s4_preview_hide),
-        (5, "editor expand (= ticket 03 + B-12)", s5_editor_expand),
-        (6, "editor shrink", s6_editor_shrink),
-        (7, "multi-toggle chaos test (5+5 toggles)", s7_chaos),
-        (8, "Cmd+E hotkey toggle preview/edit", s8_cmd_e),
-        (9, "Edit mode = Apple TextEditor visible", s9_edit_mode),
-        (10, "Cmd+S hotkey (no crash)", s10_cmd_s),
-        (11, "final state capture", s11_final),
-    ]
-    for n, label, fn in scenarios:
-        scenario(n, label, fn)
 
-    print("\n" + "=" * 60)
+def _print_summary() -> int:
+    """Print + write the markdown report. Returns the sys.exit code."""
     passed = sum(1 for _, _, s, _ in results if s == "PASS")
     total = len(results)
     for n, label, status, err in results:
@@ -211,7 +208,33 @@ def main():
 
     print(f"\nReport: {REPORT_PATH}")
     print(f"Screenshots: {SCREENSHOT_DIR}/")
-    sys.exit(0 if passed == total else 1)
+    return 0 if passed == total else 1
+
+
+def main():
+    _print_banner("v0.34 editor feature visual verification")
+    _check_prereqs()
+
+    scenarios = [
+        (0, "dismiss TCC file-access modal", s0_dismiss_tcc),
+        (1, "baseline 6-zone state capture", s1_baseline),
+        (2, "sidebar toggle hide (= B-12 snapshot taken)", s2_sidebar_hide),
+        (3, "sidebar toggle show (= B-12 restore)", s3_sidebar_show),
+        (4, "preview toggle hide", s4_preview_hide),
+        (5, "editor expand (= ticket 03 + B-12)", s5_editor_expand),
+        (6, "editor shrink", s6_editor_shrink),
+        (7, "multi-toggle chaos test (5+5 toggles)", s7_chaos),
+        (8, "Cmd+E hotkey toggle preview/edit", s8_cmd_e),
+        (9, "Edit mode = Apple TextEditor visible", s9_edit_mode),
+        (10, "Cmd+S hotkey (no crash)", s10_cmd_s),
+        (11, "final state capture", s11_final),
+    ]
+    for n, label, fn in scenarios:
+        scenario(n, label, fn)
+
+    print("\n" + "=" * 60)
+    sys.exit(_print_summary())
+
 
 if __name__ == "__main__":
     main()
