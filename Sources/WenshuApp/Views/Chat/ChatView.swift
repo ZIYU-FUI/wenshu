@@ -1951,11 +1951,4 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
         }
     }
 }
-/// compactNumber: real token count folded into compact format (Hermes format_token_count_compact ground truth)
-/// 1k → "1.0k", 1.5M → "1.5M", 200 → "200"
-private func compactNumber(_ n: Int) -> String {
-    let d = Double(n)
-    if d >= 1_000_000 { return String(format: "%.1fM", d / 1_000_000).replacingOccurrences(of: ".0M", with: "M") }
-    if d >= 1_000 { return String(format: "%.1fk", d / 1_000).replacingOccurrences(of: ".0k", with: "k") }
-    return "\(n)"
-}
+
