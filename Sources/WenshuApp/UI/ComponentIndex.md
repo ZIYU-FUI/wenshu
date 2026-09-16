@@ -251,6 +251,7 @@ Each component has:
 ### 6.2 ~~Lucide (raw)~~ — REMOVED 2026-09-15
 - **Path**: `Sources/WenshuApp/Views/Lucide.swift` (~~bring-shrubbery/lucide-swift wrapper~~)
 - Replaced by SFIcon (§6.1). All 30 Lucide icon names mapped to SF Symbols 6 equivalents (= verified via `/Applications/SF Symbols Beta.app/Contents/Executables/sfsymbols` CLI). See commit message of `81270abe1` for the full mapping table.
+- Additional cleanup commits: `1dd6a51d8` (removal of wrapper files + Package.swift dependency), `885a8c785` (closure of remaining enum-property migration gap = 14 `lucideIcon` enum properties renamed to `icon` and 29 view call sites updated), `ed8872fa8` (stale doc/header comment sweep).
 
 ---
 
@@ -449,7 +450,7 @@ Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件
 
 ### STYLES-002 IconStyles.swift
 - **Path**: `Sources/WenshuApp/UI/IconStyles.swift` (NEW, boss 9/7 round 3)
-- **Purpose**: Canonical Lucide icon size + color presets (= single source of truth for icon appearance).
+- **Purpose**: Canonical SF Symbols 6 icon size + color presets (= single source of truth for icon appearance; = v1.0.0-m1-shell 2026-09-15 replaced the Lucide library with Apple SF Symbols 6).
 - **API**:
   ```swift
   SFIcon("books.vertical", size: .medium, color: .secondary)   // chrome top bar identity

@@ -2,15 +2,8 @@
   "version": 1,
   "generated_by": "Tools/wenshu-devtool/upstreams-scan.py",
   "source_of_truth": "Package.swift",
-  "count": 8,
+  "count": 7,
   "upstreams": [
-    {
-      "name": "ajaxjiang96/lucide-swift",
-      "url": "https://github.com/ajaxjiang96/lucide-swift.git",
-      "version": "0.3.0",
-      "license": "Unknown",
-      "reason": "Wenshu SPM dependency."
-    },
     {
       "name": "swiftlang/swift-markdown",
       "url": "https://github.com/swiftlang/swift-markdown",

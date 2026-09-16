@@ -40,17 +40,16 @@ let package = Package(
         .executable(name: "WenshuApp", targets: ["WenshuApp"])
     ],
     dependencies: [
-        // v1.0.0-m1-shell boss 2026-09-15 OOB 'I don't want the
-        // ICON library anymore. Apple does its own theme color,
-        // animation, weight really well. Use SF Symbols 6 (3rd
-        // generation) with palette rendering': remove ajaxjiang96
-        // /lucide-swift (= Lucide fork). Canonical icon layer =
-        // Apple SF Symbols 6 (= built into macOS 27 = zero SPM
-        // dependency). All 66+ callsites in the codebase migrated
-        // from LucideIcon(...) / LucideThinIcon(...) / Lucide(...)
-        // to Image(systemName: ...) with .symbolRenderingMode
-        // (.palette) / (.hierarchical) at .regular weight (= boss's
-        // '细体' = the thinnest macOS 27 toolbar glyph weight).
+        // Canonical icon layer = Apple SF Symbols 6 (= built into
+        // macOS 27 = zero SPM dependency). Boss 2026-09-15 OOB
+        // 'remove Lucide, use SF Symbols 6 (3rd gen) with palette
+        // rendering': ajaxjiang96/lucide-swift (= the v0.34 fork)
+        // and bring-shrubbery/lucide-swift (= the v0.28 baseline)
+        // were both removed. All callsites migrated from
+        // LucideIcon(...) / LucideThinIcon(...) / raw Lucide(...) /
+        // Lucide enum string properties to Image(systemName: ...) at
+        // .regular weight with .symbolRenderingMode(.palette) /
+        // (.hierarchical).
 
         // RUNTIME — CommonMark / GFM parser
         // swift-markdown tags weren't returned by `git ls-remote` (it uses GitHub Releases,
@@ -98,12 +97,9 @@ let package = Package(
         .executableTarget(
             name: "WenshuApp",
             dependencies: [
-                // v1.0.0-m1-shell boss 2026-09-15 OOB 'remove
-                // Lucide, use Apple SF Symbols 6': see comment
-                // at top of dependencies array. LucideSwift
-                // product removed; canonical icon rendering now
-                // goes through Image(systemName: ...) on the
-                // Apple HIG SF Symbols 6 glyph library.
+                // Canonical icon rendering goes through Image(systemName: ...)
+                // on Apple SF Symbols 6 (built into macOS 27; = zero SPM
+                // dependency; = see top-level note in the dependencies array).
                 .product(name: "Markdown", package: "swift-markdown"),
                 // v0.39 ticket 001: chapter editor.
                 .product(name: "MarkdownEngineCodeBlocks", package: "swift-markdown-engine"),

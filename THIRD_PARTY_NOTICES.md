@@ -5,14 +5,7 @@ Source of truth = `Package.swift`. Do not edit by hand —
 re-run the scanner (= `bash Scripts/build-app.sh` invokes it
 before build) to refresh after a dependency change.
 
-Total upstreams: **8**.
-
-## ajaxjiang96/lucide-swift
-
-- **URL**: https://github.com/ajaxjiang96/lucide-swift.git
-- **Version**: 0.3.0
-- **License**: Unknown
-- **Reason**: Wenshu SPM dependency.
+Total upstreams: **7**.
 
 ## swiftlang/swift-markdown
 
