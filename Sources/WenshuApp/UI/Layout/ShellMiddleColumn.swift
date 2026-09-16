@@ -217,7 +217,7 @@ struct ShellMiddleColumn: View {
                 return filtered.first
             }()
             if let first = picked {
-                let body = (try? bookStore?.referenceStore.loadReferenceBody(id: first.id)) ?? first.summary
+                let body = bookStore?.referenceStore.loadReferenceBody(id: first.id) ?? first.summary
                 path = nil
                 content = body
                 title = first.title

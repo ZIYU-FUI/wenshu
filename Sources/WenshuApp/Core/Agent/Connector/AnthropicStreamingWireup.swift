@@ -58,7 +58,7 @@ public actor AnthropicStreamingWireup {
                 }
                 if case .messageStop = chunk.kind {
                     Task { [weak self] in
-                        await self?.finish()
+                        self?.finish()
                     }
                 }
             }
@@ -66,7 +66,7 @@ public actor AnthropicStreamingWireup {
             eventSource.onError = { [weak self] error in
                 let streamError = error ?? LLMConnectorError.streamingFailed(provider: "anthropic")
                 Task { [weak self] in
-                    await self?.finish(error: streamError)
+                    self?.finish(error: streamError)
                 }
             }
 
@@ -98,7 +98,7 @@ public actor AnthropicStreamingWireup {
     /// Internal finish helper (= actor-isolated; safe to touch mutable props).
     private func finishStream() async {
         continuation?.finish()
-        await close()  // direct await within actor-isolated method
+        close()  // direct call within actor-isolated method
     }
 
     /// Public close (= Swift 6 actor-isolated).

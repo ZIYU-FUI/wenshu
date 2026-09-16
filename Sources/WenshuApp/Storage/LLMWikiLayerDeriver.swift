@@ -97,7 +97,7 @@ struct LLMWikiLayerDeriver: Sendable {
         // source in the index. replaceReference throws if the ref is not in
         // the abstract layer's index; we catch and fall back to saveReference.
         for ref in rawRefs {
-            guard let body = try store.loadReferenceBody(id: ref.id) else { continue }
+            guard let body = store.loadReferenceBody(id: ref.id) else { continue }
             let summary = Self.firstParagraph(fromMarkdown: body)
             // Skip if the body is empty (= no first paragraph to summarize)
             guard !summary.isEmpty else { continue }
@@ -180,7 +180,7 @@ struct LLMWikiLayerDeriver: Sendable {
     ) -> [String: [UUID]] {
         var index: [String: Set<UUID>] = [:]
         for ref in references {
-            guard let body = try? store.loadReferenceBody(id: ref.id) else { continue }
+            guard let body = store.loadReferenceBody(id: ref.id) else { continue }
             let tokens = tokenize(body)
             for token in tokens {
                 index[token, default: []].insert(ref.id)

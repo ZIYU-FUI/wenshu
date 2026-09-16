@@ -528,7 +528,7 @@ public final class ChatViewModel {
                 // messages[idx] = ... }` overwrites the final sealed
                 // message with an in-flight snapshot).
                 let streamingTaskBox = StreamingTaskBox()
-                let result = try await conductor.handle(
+                let result = await conductor.handle(
                     userMessage: text,
                     sessionId: sessionId,
                     model: currentModel,

@@ -521,7 +521,7 @@ public actor WenshuConductor {
                     completedAt: Date(),
                     resultSummary: summary
                 )
-                _ = try? await MainActor.run { try? WSChatRepository.shared.recordSubAgentRun(run, sessionId: "default") }
+                _ = await MainActor.run { try? WSChatRepository.shared.recordSubAgentRun(run, sessionId: "default") }
             }
             // v0.23 ticket 002: Auditor runs if Writer or Analyst in selection.
             let needsAudit = selectedAgents.contains("writer") || selectedAgents.contains("analyst")
