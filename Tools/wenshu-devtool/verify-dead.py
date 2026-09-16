@@ -22,7 +22,18 @@ def get_decls(file_path):
     ):
         kind = m.group(1)
         name = m.group(2)
-        if name in {'View', 'self', 'guard', 'init', 'body', 'return', 'where', 'some', 'if', 'else', 'for', 'while', 'do', 'catch', 'in', 'as', 'is', 'try', 'await', 'throws'}:
+        # Skip Swift keyword-like names + ultra-common property names
+        # (= too generic to be useful for dead-code detection)
+        if name in {'View', 'self', 'guard', 'init', 'body', 'return', 'where',
+                    'some', 'if', 'else', 'for', 'while', 'do', 'catch', 'in',
+                    'as', 'is', 'try', 'await', 'throws', 'throws}',
+                    # Common generic property names (= not unique signatures):
+                    'value', 'body', 'id', 'name', 'title', 'count', 'index',
+                    'data', 'state', 'self', 'tag', 'type', 'kind', 'result',
+                    'message', 'error', 'success', 'failure', 'context',
+                    'content', 'description', 'enabled', 'visible',
+                    # Auto-synthesized protocol witnesses:
+                    'hashValue', 'description', 'debugDescription'}:
             continue
         if len(name) < 3:  # too short, false positive risk
             continue
@@ -30,7 +41,10 @@ def get_decls(file_path):
     return decls
 
 def has_real_ref(symbol, file_path, scope='Sources/ Tests/', cwd=None):
-    """Check if symbol is referenced in real code in scope (excluding own file, comments, docstrings)"""
+    """Check if symbol is referenced in real code in scope (excluding own file, comments, docstrings)
+    Returns: (external_count, external_refs, internal_count, internal_refs)
+    Internal refs (inside the same file) also count as alive for private/internal symbols.
+    """
     base = os.path.basename(file_path)
     # Patterns to detect real code references:
     # - .symbol(...) member access
@@ -54,12 +68,12 @@ def has_real_ref(symbol, file_path, scope='Sources/ Tests/', cwd=None):
     if scope:
         cmd += scope.split()
     out = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd).stdout
-    real = []
+    external = []
+    internal = []
     for line in out.split('\n'):
         if not line: continue
         # Strip leading ./ for grep -rn output
         clean = line.lstrip('./')
-        if f'{base}:' in clean: continue  # own file
         # Find content after 2nd colon (grep -n format: file:line:content)
         parts = clean.split(':', 2)
         if len(parts) < 3: continue
@@ -67,8 +81,22 @@ def has_real_ref(symbol, file_path, scope='Sources/ Tests/', cwd=None):
         stripped = content.lstrip()
         if stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*'):
             continue
-        real.append(line)
-    return real
+        # Determine if external (different file) or internal (same file)
+        is_same_file = f'{base}:' in clean
+        # Exclude the declaration line itself (= the type/var/let declaration)
+        # We want USES, not definitions
+        if is_same_file and stripped.startswith(('public ', 'private ', 'fileprivate ', 'internal ', 'static ', 'final ')):
+            decl_starters = ('public ', 'private ', 'fileprivate ', 'internal ',
+                              'static ', 'final ', 'let ', 'var ', 'struct ',
+                              'class ', 'enum ', 'actor ', 'func ', 'extension ',
+                              'protocol ', 'typealias ')
+            if any(stripped.startswith(s) for s in decl_starters):
+                continue
+        if is_same_file:
+            internal.append(line)
+        else:
+            external.append(line)
+    return external, internal
 
 def verify_file(file_path, scope='Sources/ Tests/', cwd=None):
     """Run full verification on a file. Returns dict with verdict + details."""
@@ -79,10 +107,17 @@ def verify_file(file_path, scope='Sources/ Tests/', cwd=None):
         return {'verdict': 'EMPTY', 'details': 'no top-level decls found', 'decls': []}
     findings = []
     for kind, name in decls:
-        refs = has_real_ref(name, file_path, scope, cwd)
-        findings.append({'kind': kind, 'name': name, 'ref_count': len(refs), 'refs': refs[:3]})
-    alive = [f for f in findings if f['ref_count'] > 0]
-    dead = [f for f in findings if f['ref_count'] == 0]
+        external, internal = has_real_ref(name, file_path, scope, cwd)
+        # External refs OR internal refs (private symbols used in same file) = alive
+        total_refs = len(external) + len(internal)
+        findings.append({
+            'kind': kind, 'name': name,
+            'ext_count': len(external), 'int_count': len(internal),
+            'total_count': total_refs,
+            'external': external[:2], 'internal': internal[:2]
+        })
+    alive = [f for f in findings if f['total_count'] > 0]
+    dead = [f for f in findings if f['total_count'] == 0]
     if not dead:
         return {'verdict': 'ALIVE', 'details': f'all {len(findings)} decls have real refs', 'findings': findings}
     elif not alive:
@@ -103,6 +138,7 @@ if __name__ == '__main__':
         print(f"  verdict: {result['verdict']}")
         print(f"  details: {result['details']}")
         for fnd in result.get('findings', []):
-            mark = '✓' if fnd['ref_count'] > 0 else '✗'
-            print(f"    {mark} {fnd['kind']:8s} {fnd['name']:30s} {fnd['ref_count']:2d} refs")
+            mark = '✓' if fnd['total_count'] > 0 else '✗'
+            counts = f"(ext={fnd['ext_count']}, int={fnd['int_count']})"
+            print(f"    {mark} {fnd['kind']:8s} {fnd['name']:30s} {fnd['total_count']:3d} refs {counts}")
         print()
