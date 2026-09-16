@@ -348,14 +348,14 @@ func normalize(_ node: LayoutNode) -> LayoutNode? {
                 let totalSafe = total > 0 ? total : 1
                 for (j, grandchild) in inner.children.enumerated() {
                     children.append(grandchild)
-                    let slotWeight = s.weights[s.weights.index(s.weights.startIndex, offsetBy: i, limitedBy: s.weights.endIndex).flatMap { $0 < s.weights.endIndex ? $0 : nil } ?? 0] ?? 1
-                    let grandWeight = inner.weights[inner.weights.index(inner.weights.startIndex, offsetBy: j, limitedBy: inner.weights.endIndex).flatMap { $0 < inner.weights.endIndex ? $0 : nil } ?? 0] ?? 1
+                    let slotWeight = s.weights[s.weights.index(s.weights.startIndex, offsetBy: i, limitedBy: s.weights.endIndex).flatMap { $0 < s.weights.endIndex ? $0 : nil } ?? 0]
+                    let grandWeight = inner.weights[inner.weights.index(inner.weights.startIndex, offsetBy: j, limitedBy: inner.weights.endIndex).flatMap { $0 < inner.weights.endIndex ? $0 : nil } ?? 0]
                     weights.append(slotWeight * (grandWeight / totalSafe))
                 }
                 continue
             }
             children.append(kept)
-            let slotWeight = s.weights[s.weights.index(s.weights.startIndex, offsetBy: i, limitedBy: s.weights.endIndex).flatMap { $0 < s.weights.endIndex ? $0 : nil } ?? 0] ?? 1
+            let slotWeight = s.weights[s.weights.index(s.weights.startIndex, offsetBy: i, limitedBy: s.weights.endIndex).flatMap { $0 < s.weights.endIndex ? $0 : nil } ?? 0]
             weights.append(slotWeight)
         }
         if children.isEmpty { return nil }
