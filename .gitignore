@@ -1,5 +1,7 @@
 # SwiftPM build output
 .build/
+# repowise LLM API keys (= boss 2026-09-16 OOB; = local-only; = do not commit)
+.repowise/.env
 
 # build-app.sh generated .app bundle (regenerate via ./Scripts/build-app.sh)
 build/
