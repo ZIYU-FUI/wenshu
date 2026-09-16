@@ -76,7 +76,7 @@ public struct TodoListView: View {
         VStack(alignment: .leading, spacing: 8) {
             header
             inputRow
-            if let err = loadError {
+            if let _ = loadError {
                 Text(WenshuI18n.t("auto.todolistview.l107.h41709117"))
                     .font(.caption)
                     .foregroundStyle(.red)

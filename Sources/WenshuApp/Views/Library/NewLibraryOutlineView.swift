@@ -910,7 +910,6 @@ struct NewLibraryOutlineView: View {
             // count so the user knows the full blast radius.
             let childCount = pendingDeleteChildCount(target: target)
             if childCount > 0 {
-                let childKindLabel = target.kind == .shelf ? "书" : "文档"
                 Text(WenshuI18n.t("auto2.newlibraryoutlineview.l698.h35313610"))
             } else {
                 Text(WenshuI18n.t("auto2.newlibraryoutlineview.l700.h42077726"))

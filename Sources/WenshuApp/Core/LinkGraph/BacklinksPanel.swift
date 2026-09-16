@@ -96,7 +96,7 @@ public struct BacklinksPanel: View {
                 .font(.headline)
             if viewModel.isLoading {
                 Text(WenshuI18n.t("auto.backlinkspanel.l98.h65489296"))
-            } else if let error = viewModel.error {
+            } else if let _ = viewModel.error {
                 Text(WenshuI18n.t("auto.backlinkspanel.l100.h25269061"))
                     .foregroundStyle(.red)
             } else {

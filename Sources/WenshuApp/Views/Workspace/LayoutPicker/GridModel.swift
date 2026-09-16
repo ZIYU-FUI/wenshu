@@ -602,10 +602,10 @@ func mergeClosureIndices(_ model: GridLayout, indices: [Int]) -> GridLayout {
     let targets = indices.compactMap { idx in zones.first { $0.index == idx } }
     guard targets.count == indices.count else { return model }
 
-    let minLeft = targets.map(\.left).min() ?? 0
-    let maxRight = targets.map(\.right).max() ?? 0
-    let minTop = targets.map(\.top).min() ?? 0
-    let maxBottom = targets.map(\.bottom).max() ?? 0
+    _ = targets.map(\.left).min() ?? 0
+    _ = targets.map(\.right).max() ?? 0
+    _ = targets.map(\.top).min() ?? 0
+    _ = targets.map(\.bottom).max() ?? 0
 
     // Replace all child-map entries for the merged zones with a single zone index.
     // Use the smallest index in the set as the merged zone's representative.

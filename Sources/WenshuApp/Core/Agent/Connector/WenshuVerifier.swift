@@ -404,7 +404,7 @@ public actor WenshuVerifier {
                 return .thinking(text: text, signature: signature)
             case .toolUse(let id, let name, let input):
                 return .toolUse(id: id, name: name, input: input)
-            case .toolResult(let toolUseID, let output):
+            case .toolResult(_, let output):
                 return .text(output)  // collapse to text in legacy surface
             }
         }
@@ -467,14 +467,6 @@ public actor WenshuVerifier {
         // We resolve credentials here (= we don't `throw` from a
         // streaming init; we surface errors via the stream's first
         // iteration).
-        let request: WenshuLLMRequest
-        do {
-            request = WenshuLLMRequest(
-                model: effectiveModel,
-                max_tokens: 1024,
-                messages: [WenshuLLMMessage(role: "user", content: text)]
-            )
-        }
         return AsyncThrowingStream { continuation in
             Task {
                 do {
@@ -496,7 +488,6 @@ public actor WenshuVerifier {
                             ? WenshuVerifier.systemPromptEnglishOnly
                             : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + system
                     ]
-                    let jsonBody = try JSONSerialization.data(withJSONObject: body)
                     let sse = SSEClient(url: url, headers: [
                         "x-api-key": creds.apiKey,
                         "anthropic-version": "2023-06-01",

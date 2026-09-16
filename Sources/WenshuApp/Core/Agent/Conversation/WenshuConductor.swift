@@ -500,7 +500,7 @@ public actor WenshuConductor {
             // skip the kanban transitions if cancelled (loop body no-ops).
             let isCancelled = Task.isCancelled
             // Mark kanban tasks done (after collection)
-            for (name, kanbanId) in tasks where !isCancelled {
+            for (_, kanbanId) in tasks where !isCancelled {
                 if let id = kanbanId {
                     await MainActor.run {
                         _ = try? WSKanbanRepository.shared.transition(id: id, to: .done)

@@ -62,7 +62,7 @@ public struct CanvasView: View {
                 .font(.headline)
             if viewModel.isLoading {
                 Text(WenshuI18n.t("auto.canvasview.l64.h85778528"))
-            } else if let error = viewModel.error {
+            } else if let _ = viewModel.error {
                 Text(WenshuI18n.t("auto.canvasview.l66.h21332939"))
                     .foregroundStyle(.red)
             } else {

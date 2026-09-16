@@ -238,12 +238,6 @@ struct WorkspaceView: View {
 
         // No duplicate. Open as new tab (= reuse current tab if clean,
         // otherwise append).
-        let currentIsDirty: Bool = {
-            guard let tab = appState.openTabs.first(where: { $0.id == appState.activeTabId }) else {
-                return false
-            }
-            return tab.draft != tab.originalBody
-        }()
         let newTab = EditorTab(
             id: UUID(),
             documentPath: path,

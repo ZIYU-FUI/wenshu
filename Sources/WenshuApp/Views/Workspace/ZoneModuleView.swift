@@ -361,12 +361,6 @@ struct ZoneModuleView: View {
         }
 
         // Open new tab.
-        let currentIsDirty: Bool = {
-            guard let tab = appState.openTabs.first(where: { $0.id == appState.activeTabId }) else {
-                return false
-            }
-            return tab.draft != tab.originalBody
-        }()
         let newTab = EditorTab(
             id: UUID(),
             documentPath: path,

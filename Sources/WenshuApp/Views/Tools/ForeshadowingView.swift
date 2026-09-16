@@ -287,12 +287,12 @@ public struct ForeshadowingView: View {
                             .lineLimit(2)
                     }
                     HStack(spacing: 6) {
-                        if let setupId = row.setupChapterId {
+                        if let _ = row.setupChapterId {
                             Text(WenshuI18n.t("b5.foreshadowingview.l322.h55995378"))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
-                        if let payoffId = row.payoffChapterId {
+                        if let _ = row.payoffChapterId {
                             Text(WenshuI18n.t("b5.foreshadowingview.l327.h71979732"))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)

@@ -204,7 +204,6 @@ struct ReaderExperienceView: View {
     }
 
     private func scoreBadge(_ score: Double) -> some View {
-        let pct = Int((score * 100.0).rounded())
         let color: Color = {
             if score >= 0.7 { return Color.green.opacity(0.22) }
             if score >= 0.4 { return Color.orange.opacity(0.22) }

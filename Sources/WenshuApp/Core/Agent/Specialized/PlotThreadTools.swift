@@ -66,7 +66,6 @@ public actor PlotThreadTracker {
 
     public func staleThreads(bookId: UUID) async throws -> [PlotThread] {
         let values = try await load(bookId: bookId)
-        let referenced = Set(values.compactMap(\.lastReferencedIn))
         let chapters = values.compactMap(\.introducedIn)
         let recent = Set(chapters.suffix(3))
         // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):

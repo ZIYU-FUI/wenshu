@@ -266,11 +266,7 @@ struct ZoneContentView: View {
         // v0.24 bossverificationfix: handle invalid saved value (e.g. tab list changed)
         // by falling back to first tab + resetting stored index.
         let savedIndex = UserDefaults.standard.integer(forKey: self.storageKey)
-        let initialLabel: String
-        if mapped.indices.contains(savedIndex) {
-            initialLabel = mapped[savedIndex].label
-        } else {
-            initialLabel = mapped.first?.label ?? ""
+        if !mapped.indices.contains(savedIndex) {
             // Reset stored index to 0 so future launches start at first tab.
             UserDefaults.standard.set(0, forKey: self.storageKey)
         }

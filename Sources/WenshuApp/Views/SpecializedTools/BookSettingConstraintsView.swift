@@ -264,7 +264,7 @@ struct BookSettingConstraintsView: View {
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(.tint.opacity(0.15))
                             )
-                        if let appliesTo = constraint.appliesToId {
+                        if let _ = constraint.appliesToId {
                             Text(WenshuI18n.t("b5.booksettingconstraintsview.l306.h56657996"))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
@@ -370,7 +370,7 @@ struct BookSettingConstraintsView: View {
                     Text(WenshuI18n.t("b5.booksettingconstraintsview.l416.h60886424"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    if let line = violation.lineNumber {
+                    if let _ = violation.lineNumber {
                         Text(WenshuI18n.t("b5.booksettingconstraintsview.l420.h37146244"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)

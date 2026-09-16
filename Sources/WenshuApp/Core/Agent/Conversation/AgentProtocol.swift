@@ -177,7 +177,7 @@ public actor AgentProtocol {
     }
 
     private func handleMessageSend(_ request: A2ARequest) async -> A2AResponse {
-        guard case .messageSend(let taskId, let message, let fromAgent) = request.params else {
+        guard case .messageSend(let taskId, let message, _) = request.params else {
             return A2AResponse(id: request.id, error: .invalidParams)
         }
         var task = tasks[taskId] ?? AgentTask(id: taskId)

@@ -47,7 +47,7 @@ public struct GraphView: View {
                 .font(.headline)
             Text(WenshuI18n.t("graphview.nodes_count"))
             Text(WenshuI18n.t("graphview.edges_count"))
-            if let error = viewModel.error {
+            if let _ = viewModel.error {
                 Text(WenshuI18n.t("auto.graphview.l51.h33390865"))
                     .foregroundStyle(.red)
             }

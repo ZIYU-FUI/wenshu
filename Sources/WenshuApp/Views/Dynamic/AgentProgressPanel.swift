@@ -97,7 +97,7 @@ public struct AgentProgressPanel: View {
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.tertiary)
             }
-            if let eta = entry.etaSeconds {
+            if let _ = entry.etaSeconds {
                 Text(WenshuI18n.t("b5.agentprogresspanel.l107.h24593933"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)

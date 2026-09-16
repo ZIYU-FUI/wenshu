@@ -262,7 +262,7 @@ struct CharacterLifecycleView: View {
                         .padding(.horizontal, DesignTokens.chromePaddingSmall)
                         .padding(.vertical, DesignTokens.chromePaddingPico)
                         
-                    if let cid = event.chapterId {
+                    if let _ = event.chapterId {
                         Text(WenshuI18n.t("b5.characterlifecycleview.l304.h73934719"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
@@ -348,7 +348,7 @@ struct CharacterLifecycleView: View {
             Text(event.stage.displayName)
                 .font(.caption)
                 .foregroundStyle(.primary)
-            if let cid = event.chapterId {
+            if let _ = event.chapterId {
                 Text(WenshuI18n.t("b5.characterlifecycleview.l393.h77015228"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)

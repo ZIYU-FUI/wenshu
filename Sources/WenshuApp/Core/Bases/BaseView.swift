@@ -43,7 +43,7 @@ public struct BaseView: View {
                 .font(.headline)
             Text(WenshuI18n.t("baseview.views_count"))
             Text(WenshuI18n.t("baseview.formulas_count"))
-            if let error = viewModel.error {
+            if let _ = viewModel.error {
                 Text(WenshuI18n.t("auto.baseview.l47.h33472306"))
                     .foregroundStyle(.red)
             }
