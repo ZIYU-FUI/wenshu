@@ -110,79 +110,13 @@ extension View {
     }
 }
 
-// MARK: - Section styles (= Apple canonical typography ladder)
+// MARK: - Section styles (STYLES-001 2026-09-07) were deleted in
+// the v1.27 Q99 dead-code sweep (= 0 production refs for either
+// SectionTypography enum or sectionTypographyStyle extension;
+// = Apple canonical .font(.title/.body/.caption) used directly in
+// each zone, so the indirection added no value). The remaining
+// ContentInset (still used by MemoryRetrievalPanel) and the file
+// header / doc comments are preserved.
 
-/// STYLES-001 (2026-09-07): Apple canonical typography ladder
-/// (= the 11 SwiftUI text styles per iron-rule 2 = no `.system(size:N)`
-/// magic numbers). Each modifier applies a SwiftUI `.font(...)` with
-/// a specific text style + optional color treatment.
-enum SectionTypography {
-    case title          // = .title (= 26 PT; = Apple large header)
-    case sectionTitle   // = .title2 (= 22 PT; = section heading)
-    case subtitle       // = .title3 (= 20 PT; = sub-section heading)
-    case heading        // = .headline (= 13 PT; = item heading)
-    case body           // = .body (= 13 PT; = body text)
-    case callout        // = .callout (= 12 PT; = emphasized body)
-    case subheadline    // = .subheadline (= 11 PT; = secondary heading)
-    case footnote       // = .footnote (= 10 PT; = tertiary text)
-    case caption        // = .caption (= 10 PT; = caption text)
-    case caption2       // = .caption2 (= 10 PT; = secondary caption)
-    case code           // = .system(.body, design: .monospaced) (= code)
-}
+// MARK: - (button styles removed; use Apple .buttonStyle(.borderedProminent) directly)
 
-extension View {
-    /// STYLES-001 (2026-09-07): apply a canonical typography style
-    /// (= maps to one of Apple HIG's 11 text styles per iron-rule 2).
-    /// Centralizes font choices so a "make titles smaller" change
-    /// happens in one place (= this file).
-    @ViewBuilder
-    func sectionTypographyStyle(_ style: SectionTypography) -> some View {
-        switch style {
-        case .title:          self.font(.title)
-        case .sectionTitle:   self.font(.title2)
-        case .subtitle:       self.font(.title3)
-        case .heading:        self.font(.headline)
-        case .body:           self.font(.body)
-        case .callout:        self.font(.callout)
-        case .subheadline:    self.font(.subheadline)
-        case .footnote:       self.font(.footnote)
-        case .caption:        self.font(.caption)
-        case .caption2:       self.font(.caption2)
-        case .code:           self.font(.system(.body, design: .monospaced))
-        }
-    }
-}
-
-// MARK: - Button styles (= Apple canonical 4 styles)
-
-/// STYLES-001 (2026-09-07): canonical button styles (= maps to
-/// Apple SwiftUI's 4 built-in button styles per iron-rule 7).
-/// Centralizes button appearance across the workspace.
-enum ActionButtonStyle {
-    /// Borderless icon button (= Apple HIG toolbar icon).
-    /// Examples: chat top-bar archive button, pane tab icons.
-    case icon
-    /// Bordered secondary action (= Apple HIG dialog button).
-    /// Examples: "Cancel" buttons in confirmation dialogs.
-    case secondary
-    /// Bordered prominent primary action (= Apple HIG primary CTA).
-    /// Examples: "Save" / "Submit" / "New Board Title" buttons.
-    case primary
-    /// Glass prominent (= Apple macOS 26 Liquid Glass primary).
-    /// Examples: chat "Send" button on macOS 27 Tahoe.
-    case glassPrimary
-}
-
-extension View {
-    /// STYLES-001 (2026-09-07): apply a canonical button style.
-    /// Centralizes button appearance across the workspace.
-    @ViewBuilder
-    func actionButtonStyle(_ style: ActionButtonStyle) -> some View {
-        switch style {
-        case .icon:           self.buttonStyle(.borderless)
-        case .secondary:      self.buttonStyle(.bordered)
-        case .primary:        self.buttonStyle(.borderedProminent)
-        case .glassPrimary:   self.buttonStyle(.glassProminent)
-        }
-    }
-}
