@@ -1,7 +1,7 @@
 //
-//  ForeshadowingViewTests.swift · Wenshu · v1.44 ticket 001
+//  TagManagerViewTests.swift · Wenshu · v1.44 ticket 001
 //
-//  Structural tests for ForeshadowingView (= open/developing/resolved/abandoned thread tracker + stale detection (= P1 ticket #8 = hermes plot_thread.py port); = ~440 NLOC,
+//  Structural tests for TagManagerView (= 5 tag categories + 4 targets + tag cloud + filter (= P1 ticket #14 = hermes tag_manager.py port); = ~620 NLOC,
 //  = repowise untested hotspot with 4 dependents).
 //
 //  Per boss OOB 2026-09-16 '按优先级推' + '自己一口气推完' (= keep
@@ -22,68 +22,68 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("ForeshadowingView (v1.44 — specialized tools P1 hermes-port batch)")
-struct ForeshadowingViewTests {
+@Suite("TagManagerView (v1.44 — specialized tools P1 hermes-port batch)")
+struct TagManagerViewTests {
 
     private var sourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/Tools/ForeshadowingView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift")
         return url.path
     }
 
-    @Test("ForeshadowingView exists as public struct (= confirmed by source)")
+    @Test("TagManagerView exists as public struct (= confirmed by source)")
     func testExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("public struct ForeshadowingView: View") ||
-                source.contains("struct ForeshadowingView: View"),
-                "ForeshadowingView must be declared in ForeshadowingView.swift")
+        #expect(source.contains("public struct TagManagerView: View") ||
+                source.contains("struct TagManagerView: View"),
+                "TagManagerView must be declared in TagManagerView.swift")
     }
 
-    @Test("ForeshadowingView conforms to View protocol (= source-level check)")
+    @Test("TagManagerView conforms to View protocol (= source-level check)")
     func testConformsToView() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("View"),
-                "ForeshadowingView must conform to View protocol")
+                "TagManagerView must conform to View protocol")
     }
 
-    @Test("ForeshadowingView has body returning some View (= SwiftUI requirement)")
+    @Test("TagManagerView has body returning some View (= SwiftUI requirement)")
     func testBodyReturnsView() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("var body: some View"),
-                "ForeshadowingView must declare body returning some View")
+                "TagManagerView must declare body returning some View")
     }
 
-    @Test("ForeshadowingView imports SwiftUI (= canonical icon layer)")
+    @Test("TagManagerView imports SwiftUI (= canonical icon layer)")
     func testImportsSwiftUI() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("import SwiftUI"),
-                "ForeshadowingView must import SwiftUI")
+                "TagManagerView must import SwiftUI")
         #expect(!source.contains("import LucideSwift"),
-                "ForeshadowingView must NOT import LucideSwift (= removed by v1.x)")
+                "TagManagerView must NOT import LucideSwift (= removed by v1.x)")
     }
 
-    @Test("ForeshadowingView file > 100 NLOC (= real hermes-port evidence)")
+    @Test("TagManagerView file > 100 NLOC (= real hermes-port evidence)")
     func testFileSize() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         let lineCount = source.components(separatedBy: "\n").count
         #expect(lineCount > 100,
-                "ForeshadowingView.swift must be > 100 NLOC (= real port; found \(lineCount))")
+                "TagManagerView.swift must be > 100 NLOC (= real port; found \(lineCount))")
     }
 
-    @Test("ForeshadowingView has public init (= SwiftUI view requirement)")
+    @Test("TagManagerView has public init (= SwiftUI view requirement)")
     func testHasInit() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("init(") || source.contains("public init"),
-                "ForeshadowingView must declare an init (= SwiftUI view contract)")
+                "TagManagerView must declare an init (= SwiftUI view contract)")
     }
 
-    @Test("ForeshadowingView declares at least one ForeshadowingView struct (= primary view present)")
+    @Test("TagManagerView declares at least one TagManagerView struct (= primary view present)")
     func testSinglePrimaryStruct() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("struct ForeshadowingView: View") ||
-                source.contains("public struct ForeshadowingView: View"),
-                "ForeshadowingView must declare primary ForeshadowingView: View struct")
+        #expect(source.contains("struct TagManagerView: View") ||
+                source.contains("public struct TagManagerView: View"),
+                "TagManagerView must declare primary TagManagerView: View struct")
     }
 
     @Test("X body uses SwiftUI control primitives")
@@ -104,7 +104,7 @@ struct ForeshadowingViewTests {
                 "file must use SwiftUI primitives (= VStack/HStack/List/Form/ScrollView/etc)")
     }
 
-    @Test("ForeshadowingView no Lucide references in code (= post-v1.x SF Symbols 6)")
+    @Test("TagManagerView no Lucide references in code (= post-v1.x SF Symbols 6)")
     func testNoLucideInCode() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         let codeLines = source.components(separatedBy: "\n").filter { line in
@@ -114,19 +114,19 @@ struct ForeshadowingViewTests {
         let codeRegion = codeLines.joined(separator: "\n")
         let lucideCount = codeRegion.components(separatedBy: "Lucide").count - 1
         #expect(lucideCount == 0,
-                "ForeshadowingView must have zero Lucide references in code (post-v1.x); found \(lucideCount)")
+                "TagManagerView must have zero Lucide references in code (post-v1.x); found \(lucideCount)")
     }
 
-    @Test("ForeshadowingView declares body + public init + struct conformance (= source-level triple check)")
+    @Test("TagManagerView declares body + public init + struct conformance (= source-level triple check)")
     func testTripleContract() throws {
         // Triple contract check (= per Q34 5.2 structural verification):
-        // 1. struct ForeshadowingView: View
+        // 1. struct TagManagerView: View
         // 2. var body: some View
         // 3. public init()
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("struct ForeshadowingView: View") ||
-                source.contains("public struct ForeshadowingView: View"),
-                "1/3: ForeshadowingView: View conformance missing")
+        #expect(source.contains("struct TagManagerView: View") ||
+                source.contains("public struct TagManagerView: View"),
+                "1/3: TagManagerView: View conformance missing")
         #expect(source.contains("var body: some View"),
                 "2/3: var body: some View missing")
         #expect(source.contains("init("),
