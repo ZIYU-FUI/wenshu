@@ -229,8 +229,56 @@ def split_comment_line(line: str) -> tuple[str, str, str]:
     return indent, "", stripped
 
 
+def _build_todo_marker(parsed: list[tuple[str, str, str]], block_lines: list[str]) -> list[str]:
+    """Return block_lines prefixed with a `[CJK-TRANSLATE: ...]` marker line.
+
+    The marker label is the first non-empty parsed content (= the human-readable
+    hint for the TODO that survives until a translator picks it up).
+    """
+    contents = [p[2].strip() for p in parsed]
+    label = next((c for c in contents if c), contents[0] if contents else "")
+    indent = parsed[0][0] if parsed else "    "
+    marker_line = f"{indent}// [CJK-TRANSLATE: {label}]"
+    return [marker_line, *block_lines]
+
+
+def _pad_to_match(translated: str, target_count: int) -> list[str]:
+    """Pad (= empty lines) or truncate `translated` so its line count matches target_count.
+
+    Translators may produce a different number of lines than the source block;
+    we need a 1:1 mapping so the reconstructed block has the same comment-line
+    positions as the original.
+    """
+    parts = translated.split("\n")
+    if len(parts) < target_count:
+        return parts + [""] * (target_count - len(parts))
+    return parts[:target_count]
+
+
+def _reconstruct_line(parsed_one: tuple[str, str, str], new_content: str) -> str:
+    """Reconstruct one comment line, preserving indent and the original marker (// or /*).
+
+    `parsed_one` = (indent, marker, _orig). For // and /// markers we add a
+    single-space separator (= Apple HIG doc comment style). For block-comment
+    markers (/*, *, */) we do not (= they wrap their content differently).
+    """
+    indent, marker, _ = parsed_one
+    if marker in ("//", "///"):
+        sep = " " if new_content else ""
+        return f"{indent}{marker}{sep}{new_content}"
+    if marker:
+        return f"{indent}{marker}{new_content}"
+    return f"{indent}{new_content}"
+
+
 def translate_block_lines(block_lines: list[str], cache: dict[str, str]) -> list[str]:
     """Translate one block, preserving indentation and comment markers.
+
+    Pipeline:
+      1. Parse each line into (indent, marker, content) via split_comment_line.
+      2. Translate the joined content via translate_block (cache / manual / argos).
+      3. If no translation, emit a TODO marker line above the original block.
+      4. Otherwise, pad the translated lines to 1:1 and reconstruct each line.
 
     If no translation is found, the block is left untouched but a TODO
     marker line `[CJK-TRANSLATE: <first non-empty line>]` is inserted
@@ -242,29 +290,13 @@ def translate_block_lines(block_lines: list[str], cache: dict[str, str]) -> list
     translated = translate_block(joined, cache)
 
     if translated is None:
-        # TODO marker — pick the first non-empty line as the human-readable label.
-        label = next((c for c in contents if c), contents[0] if contents else "")
-        indent = parsed[0][0] if parsed else "    "
-        marker_line = f"{indent}// [CJK-TRANSLATE: {label}]"
-        return [marker_line, *block_lines]
+        return _build_todo_marker(parsed, block_lines)
 
-    translated_contents = translated.split("\n")
-    # Pad / truncate so 1:1 mapping holds.
-    if len(translated_contents) < len(parsed):
-        translated_contents += [""] * (len(parsed) - len(translated_contents))
-    elif len(translated_contents) > len(parsed):
-        translated_contents = translated_contents[: len(parsed)]
-
-    result = []
-    for (indent, marker, _orig), new_content in zip(parsed, translated_contents):
-        if marker in ("//", "///"):
-            sep = " " if new_content else ""
-            result.append(f"{indent}{marker}{sep}{new_content}")
-        elif marker:
-            result.append(f"{indent}{marker}{new_content}")
-        else:
-            result.append(f"{indent}{new_content}")
-    return result
+    translated_contents = _pad_to_match(translated, len(parsed))
+    return [
+        _reconstruct_line(parsed_one, new_content)
+        for parsed_one, new_content in zip(parsed, translated_contents)
+    ]
 
 
 def atomic_write(path: Path, content: str) -> None:
