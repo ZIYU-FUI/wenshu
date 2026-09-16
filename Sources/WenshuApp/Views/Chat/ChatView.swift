@@ -1829,7 +1829,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 .transition(.opacity)
                         } label: {
                             HStack(spacing: 4) {
-                                Image(systemName: "brain").font(.system(size: 16, weight: .regular))
+                                Image(systemName: "brain.head.profile").font(.system(size: 16, weight: .regular))
                                     .font(.caption)
                                 Text(WenshuI18n.t("chatview.ai_thinking"))
                                     .font(.caption)

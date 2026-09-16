@@ -170,7 +170,7 @@ public struct PlaceholderView: View {
                 .help(WenshuI18n.t("b5.placeholderview.l200.h31066841"))
                 Picker(WenshuI18n.t("picker.status"), selection: $draftStatus) {
                     ForEach(PlaceholderStatus.allCases) { status in
-                        Label(status.displayName, systemImage: status.lucideIcon)
+                        Label(status.displayName, systemImage: status.icon)
                             .tag(status)
                     }
                 }
@@ -231,7 +231,7 @@ public struct PlaceholderView: View {
             )) {
                 Text(WenshuI18n.t("b5.placeholderview.l262.h44751462")).tag(PlaceholderStatus.allCases.first ?? .open)
                 ForEach(PlaceholderStatus.allCases) { status in
-                    Label(status.displayName, systemImage: status.lucideIcon).tag(status)
+                    Label(status.displayName, systemImage: status.icon).tag(status)
                 }
             }
             .pickerStyle(.menu)
@@ -271,7 +271,7 @@ public struct PlaceholderView: View {
     private func placeholderRow(_ row: Placeholder) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: row.status.lucideIcon).font(.system(size: 16, weight: .regular))
+                Image(systemName: row.status.icon).font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.tint)
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {

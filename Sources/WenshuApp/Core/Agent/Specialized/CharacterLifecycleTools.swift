@@ -92,17 +92,20 @@ public enum LifecycleStage: String, Sendable, Codable, CaseIterable, Identifiabl
         }
     }
 
-    /// Lucide icon name (= already wired into wenshu's chrome).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the CharacterLifecycleView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .born:         return "baby"
-        case .introduced:   return "user-plus"
-        case .active:       return "zap"
-        case .absent:       return "user-minus"
-        case .wounded:      return "bandage"
-        case .dead:         return "skull"
-        case .resurrected:  return "sparkles"
-        case .retired:      return "moon"
+        case .born:         return "figure.and.child.holdinghands"  // Lucide 'baby'
+        case .introduced:   return "person.badge.plus"              // Lucide 'user-plus'
+        case .active:       return "bolt"                           // Lucide 'zap'
+        case .absent:       return "person.badge.minus"             // Lucide 'user-minus'
+        case .wounded:      return "bandage.fill"                   // Lucide 'bandage'
+        case .dead:         return "skull"                          // Lucide 'skull'
+        case .resurrected:  return "sparkles"                       // Lucide 'sparkles'
+        case .retired:      return "moon"                           // Lucide 'moon'
         }
     }
 

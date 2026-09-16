@@ -277,7 +277,8 @@ Group {
             .aspectRatio(contentMode: .fit)
             .frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)
     } else {
-        // Fallback: Lucide canonical if PNG load fails (boss 2026-09-02: SF Symbol fully replaced)
+        // Fallback: SF Symbols 6 canonical 'text.book.closed' if PNG load fails
+        // (boss 2026-09-02: SF Symbol fully replaced).
         Image(systemName: "text.book.closed").font(.system(size: 96, weight: .regular))
             .foregroundStyle(.white)
     }

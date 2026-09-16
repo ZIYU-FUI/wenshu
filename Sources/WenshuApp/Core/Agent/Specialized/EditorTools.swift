@@ -118,16 +118,18 @@ public enum EditorTransform: String, Sendable, Codable, CaseIterable, Identifiab
         }
     }
 
-    /// Lucide icon name (= uses Lucide names already shipped by
-    /// wenshu; avoids needing to add a new icon import path).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the EditorTools
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .expand:     return "chevrons-out"
-        case .shorten:    return "chevrons-in"
-        case .rephrase:   return "arrow.clockwise"
-        case .shiftTone:  return "palette"
-        case .simplify:   return "feather"
-        case .dramatize:  return "flame"
+        case .expand:     return "arrow.up.left.and.arrow.down.right"  // Lucide 'chevrons-out'
+        case .shorten:    return "arrow.down.right.and.arrow.up.left"  // Lucide 'chevrons-in'
+        case .rephrase:   return "arrow.clockwise"                     // Lucide 'arrow.clockwise'
+        case .shiftTone:  return "paintpalette"                        // Lucide 'palette'
+        case .simplify:   return "leaf"                                // Lucide 'feather'
+        case .dramatize:  return "flame"                               // Lucide 'flame'
         }
     }
 }

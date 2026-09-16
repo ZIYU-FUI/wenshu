@@ -159,7 +159,7 @@ public struct ForeshadowingView: View {
                 .help(WenshuI18n.t("b5.foreshadowingview.l190.h31850809"))
                 Picker("Status", selection: $draftStatus) {
                     ForEach(ForeshadowingStatus.allCases) { status in
-                        Label(status.displayName, systemImage: status.lucideIcon)
+                        Label(status.displayName, systemImage: status.icon)
                             .tag(status)
                     }
                 }
@@ -222,7 +222,7 @@ public struct ForeshadowingView: View {
             )) {
                 Text(WenshuI18n.t("b5.foreshadowingview.l254.h37202691")).tag(ForeshadowingStatus.allCases.first ?? .open)
                 ForEach(ForeshadowingStatus.allCases) { status in
-                    Label(status.displayName, systemImage: status.lucideIcon).tag(status)
+                    Label(status.displayName, systemImage: status.icon).tag(status)
                 }
             }
             .pickerStyle(.menu)
@@ -262,7 +262,7 @@ public struct ForeshadowingView: View {
     private func foreshadowingRow(_ row: Foreshadowing) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: row.status.lucideIcon).font(.system(size: 16, weight: .regular))
+                Image(systemName: row.status.icon).font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.tint)
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
@@ -355,7 +355,7 @@ public struct ForeshadowingView: View {
 
     private func staleRow(_ row: Foreshadowing) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: row.status.lucideIcon).font(.system(size: 12, weight: .regular))
+            Image(systemName: row.status.icon).font(.system(size: 12, weight: .regular))
                 .foregroundStyle(.secondary)
                 .frame(width: DesignTokens.iconStandardSize)
             Text(row.title)

@@ -24,7 +24,7 @@
 //  the file = `long-form-guardrails.json` in the book root).
 //
 //  Standards-axis:
-//    S1 (Apple-API-first): pure SwiftUI primitives + Lucide icon
+//    S1 (Apple-API-first): pure SwiftUI primitives + SF Symbols 6 icon
 //        helper (= already wired into the wenshu chrome). No
 //        custom hover / click handlers; Apple `.buttonStyle`
 //        .borderless + `.borderedProminent` per the macOS 27
@@ -113,7 +113,7 @@ struct LongFormGuardrailsView: View {
         // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
-        // the unified EmptyStateView component (= Lucide icon
+        // the unified EmptyStateView component (= 76 PT SF Symbols 6 icon
         // at 76 PT + 1 PT stroke via LucideThinIcon + standard
         // title/body hierarchy). Same visual treatment as every
         // other empty state in the workspace.
@@ -179,7 +179,7 @@ struct LongFormGuardrailsView: View {
 
     private func guardrailRow(_ row: LongFormGuardrail) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: row.kind.lucideIcon).font(.system(size: 16, weight: .regular))
+            Image(systemName: row.kind.icon).font(.system(size: 16, weight: .regular))
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: DesignTokens.chromePaddingSmall) {

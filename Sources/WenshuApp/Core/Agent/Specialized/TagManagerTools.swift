@@ -85,14 +85,17 @@ public enum TagCategory: String, Sendable, Codable, CaseIterable, Identifiable, 
         }
     }
 
-    /// Lucide icon name (= already wired into wenshu's chrome).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the TagManagerView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .theme:         return "bookmark"
-        case .motif:         return "repeat"
-        case .trope:         return "shapes"
-        case .symbol:        return "gem"
-        case .pacingMarker:  return "flag"
+        case .theme:         return "bookmark"          // Lucide 'bookmark'
+        case .motif:         return "repeat"            // Lucide 'repeat'
+        case .trope:         return "square.on.circle"  // Lucide 'shapes'
+        case .symbol:        return "diamond"           // Lucide 'gem'
+        case .pacingMarker:  return "flag"              // Lucide 'flag'
         }
     }
 }
@@ -125,13 +128,16 @@ public enum TagTarget: String, Sendable, Codable, CaseIterable, Identifiable, Eq
         }
     }
 
-    /// Lucide icon name (= already wired into wenshu's chrome).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the TagManagerView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .chapter:     return "book-open"
-        case .character:   return "user"
-        case .scene:       return "clapperboard"
-        case .plotThread:  return "git-branch"
+        case .chapter:     return "book.pages"                  // Lucide 'book-open'
+        case .character:   return "person"                      // Lucide 'user'
+        case .scene:       return "movieclapper"                // Lucide 'clapperboard'
+        case .plotThread:  return "arrow.triangle.branch"       // Lucide 'git-branch'
         }
     }
 }

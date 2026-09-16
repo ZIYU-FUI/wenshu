@@ -124,16 +124,18 @@ enum LongFormGuardrailKind: String, Sendable, Codable, CaseIterable, Equatable {
         }
     }
 
-    /// Lucide icon name (= matches the icon catalog already wired
-    /// into wenshu's chrome — verified against LucideIconSystemFallback).
-    var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the LongFormGuardrailsView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    var icon: String {
         switch self {
-        case .constraint:        return "list-checks"
-        case .continuity:        return "link-2"
-        case .selfProof:         return "badge-check"
-        case .persona:           return "user-round"
-        case .characterArc:      return "trending-up"
-        case .worldConsistency:  return "globe-2"
+        case .constraint:        return "checklist"          // Lucide 'list-checks'
+        case .continuity:        return "link"               // Lucide 'link-2'
+        case .selfProof:         return "checkmark.seal"     // Lucide 'badge-check'
+        case .persona:           return "person"             // Lucide 'user-round'
+        case .characterArc:      return "chart.line.uptrend.xyaxis"  // Lucide 'trending-up'
+        case .worldConsistency:  return "globe"              // Lucide 'globe-2'
         }
     }
 }

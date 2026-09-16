@@ -249,7 +249,7 @@ struct CharacterLifecycleView: View {
 
     private func eventRow(_ event: LifecycleEvent) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-            Image(systemName: event.stage.lucideIcon).font(.system(size: 16, weight: .regular))
+            Image(systemName: event.stage.icon).font(.system(size: 16, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
@@ -343,7 +343,7 @@ struct CharacterLifecycleView: View {
 
     private func timelineRow(_ event: LifecycleEvent) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-            Image(systemName: event.stage.lucideIcon).font(.system(size: 12, weight: .regular))
+            Image(systemName: event.stage.icon).font(.system(size: 12, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.iconStandardSize)
             Text(event.stage.displayName)

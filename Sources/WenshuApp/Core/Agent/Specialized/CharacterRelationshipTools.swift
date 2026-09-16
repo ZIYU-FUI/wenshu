@@ -85,17 +85,20 @@ public enum RelationshipKind: String, Sendable, Codable, CaseIterable, Identifia
         }
     }
 
-    /// Lucide icon name (= already wired into wenshu's chrome).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the CharacterRelationshipsView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .ally:          return "handshake"
-        case .rival:         return "swords"
-        case .mentor:        return "graduation-cap"
-        case .family:        return "users-round"
-        case .romantic:      return "heart"
-        case .enemy:         return "skull"
-        case .neutral:       return "minus-circle"
-        case .acquaintance:  return "user"
+        case .ally:          return "hand.raised"              // Lucide 'handshake'
+        case .rival:         return "swords"                   // Lucide 'swords'
+        case .mentor:        return "graduationcap"            // Lucide 'graduation-cap'
+        case .family:        return "person.2"                 // Lucide 'users-round'
+        case .romantic:      return "heart"                    // Lucide 'heart'
+        case .enemy:         return "skull"                    // Lucide 'skull'
+        case .neutral:       return "minus.circle"             // Lucide 'minus-circle'
+        case .acquaintance:  return "person"                   // Lucide 'user'
         }
     }
 }

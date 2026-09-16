@@ -137,10 +137,10 @@ public struct ChatReasoningPartView: View {
                 .transition(.opacity)
         } label: {
             HStack(spacing: 4) {
-                // v0.27 boss 8/27 OOB: Lucide `brain` = the closest
-                // semantic match (= Hermes uses an emoji or a custom
-                // SVG = wenshu's design system = Lucide hairline).
-                Image(systemName: "brain").font(.system(size: 12, weight: .regular))
+                // SF Symbols 6 (= no 'brain' in SF Symbols 6; =
+                // 'brain.head.profile' = the closest 3rd-gen glyph
+                // per sfsymbols search 2026-09-16).
+                Image(systemName: "brain.head.profile").font(.system(size: 12, weight: .regular))
                     .font(.caption)
                 // Label text flips between running + finished (= the
                 // Hermes `thoughtFor` / `thoughtBriefly` / `thought`

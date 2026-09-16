@@ -239,7 +239,7 @@ struct CharacterRelationshipsView: View {
 
     private func relationshipRow(_ row: CharacterRelationship) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-            Image(systemName: row.kind.lucideIcon).font(.system(size: 16, weight: .regular))
+            Image(systemName: row.kind.icon).font(.system(size: 16, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {

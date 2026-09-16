@@ -167,7 +167,7 @@ struct BookSettingConstraintsView: View {
             HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Picker("Severity", selection: $draftSeverity) {
                     ForEach(ConstraintSeverity.allCases) { severity in
-                        Label(severity.displayName, systemImage: severity.lucideIcon).tag(severity)
+                        Label(severity.displayName, systemImage: severity.icon).tag(severity)
                     }
                 }
                 .pickerStyle(.menu)
@@ -175,7 +175,7 @@ struct BookSettingConstraintsView: View {
                 .help(WenshuI18n.t("b5.booksettingconstraintsview.l209.h3955671"))
                 Picker("Scope", selection: $draftScope) {
                     ForEach(ConstraintScope.allCases) { scope in
-                        Label(scope.displayName, systemImage: scope.lucideIcon).tag(scope)
+                        Label(scope.displayName, systemImage: scope.icon).tag(scope)
                     }
                 }
                 .pickerStyle(.menu)
@@ -242,7 +242,7 @@ struct BookSettingConstraintsView: View {
     private func constraintRow(_ constraint: BookSettingConstraint) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-                Image(systemName: constraint.severity.lucideIcon).font(.system(size: 16, weight: .regular))
+                Image(systemName: constraint.severity.icon).font(.system(size: 16, weight: .regular))
                     .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {

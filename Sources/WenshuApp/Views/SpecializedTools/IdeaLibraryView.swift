@@ -179,7 +179,7 @@ struct IdeaLibraryView: View {
                     .help(WenshuI18n.t("b5.idealibraryview.l210.h32208877"))
                 Picker("Status", selection: $draftStatus) {
                     ForEach(IdeaStatus.allCases) { status in
-                        Label(status.displayName, systemImage: status.lucideIcon)
+                        Label(status.displayName, systemImage: status.icon)
                             .tag(status)
                     }
                 }
@@ -244,7 +244,7 @@ struct IdeaLibraryView: View {
                 )) {
                     Text(WenshuI18n.t("b5.idealibraryview.l276.h70256740")).tag(IdeaStatus.allCases.first ?? .seedling)
                     ForEach(IdeaStatus.allCases) { status in
-                        Label(status.displayName, systemImage: status.lucideIcon).tag(status)
+                        Label(status.displayName, systemImage: status.icon).tag(status)
                     }
                 }
                 .pickerStyle(.menu)
@@ -292,7 +292,7 @@ struct IdeaLibraryView: View {
     private func ideaRow(_ idea: Idea) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-                Image(systemName: idea.status.lucideIcon).font(.system(size: 16, weight: .regular))
+                Image(systemName: idea.status.icon).font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.tint)
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
@@ -385,7 +385,7 @@ struct IdeaLibraryView: View {
 
                     Picker("Target", selection: $draftLinkTarget) {
                         ForEach(IdeaLinkTarget.allCases) { target in
-                            Label(target.displayName, systemImage: target.lucideIcon)
+                            Label(target.displayName, systemImage: target.icon)
                                 .tag(target)
                         }
                     }
@@ -463,7 +463,7 @@ struct IdeaLibraryView: View {
 
     private func linkRow(_ link: IdeaLink, for ideaId: UUID) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-            Image(systemName: link.target.lucideIcon).font(.system(size: 14, weight: .regular))
+            Image(systemName: link.target.icon).font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
@@ -531,7 +531,7 @@ struct IdeaLibraryView: View {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                         ForEach(suggestions) { idea in
                             HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-                                Image(systemName: idea.status.lucideIcon).font(.system(size: 12, weight: .regular))
+                                Image(systemName: idea.status.icon).font(.system(size: 12, weight: .regular))
                                     .foregroundStyle(.tint)
                                     .frame(width: DesignTokens.iconStandardSize)
                                 Text(idea.title)

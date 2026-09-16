@@ -240,8 +240,9 @@ struct AppRootScene: Scene {
         // (= 4-column NSV; = sidebar+cards+detail+inspector).
         .windowResizability(.contentMinSize)
         // v0.81 boss 2026-09-10 OOB: the inspector toggle button
-        // (= ⌥⌘I = Lucide "panel-right" icon = the canonical Apple
-        // toolbar affordance for NavigationSplitView `.inspector`)
+        // (= ⌥⌘I = SF Symbols 6 'sidebar-right' icon = the canonical
+        // Apple toolbar affordance for NavigationSplitView
+        // `.inspector`)
         // is attached to LibraryRootView (= the content view)
         // because `some Scene` (= AppRootScene) does not expose
         // a `.toolbar` modifier; = Scene-level `.toolbar` is not

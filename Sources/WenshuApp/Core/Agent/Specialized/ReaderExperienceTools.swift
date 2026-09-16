@@ -129,15 +129,17 @@ public enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Ident
         }
     }
 
-    /// Lucide icon name (= uses Lucide names already shipped by
-    /// wenshu; avoids needing to add a new icon import path).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the ReaderExperienceView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .tension:               return "activity"
-        case .pacing:                return "gauge"
-        case .foreshadowingDensity:  return "git-fork"
-        case .cliffhanger:           return "anchor"
-        case .payoffDetector:        return "check-circle-2"
+        case .tension:               return "waveform.path.ecg"           // Lucide 'activity'
+        case .pacing:                return "gauge.with.dots.needle.bottom.50percent"  // Lucide 'gauge'
+        case .foreshadowingDensity:  return "arrow.triangle.branch"       // Lucide 'git-fork'
+        case .cliffhanger:           return "link.horizontal"             // Lucide 'anchor'
+        case .payoffDetector:        return "checkmark.circle"            // Lucide 'check-circle-2'
         }
     }
 }

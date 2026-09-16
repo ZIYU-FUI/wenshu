@@ -87,14 +87,17 @@ public enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, E
         }
     }
 
-    /// Lucide icon name (= already wired into wenshu's chrome).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the IdeaLibraryView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .seedling:    return "sprout"
-        case .developing:  return "leaf"
-        case .mature:      return "tree-deciduous"
-        case .planted:     return "flower-2"
-        case .discarded:   return "xmark.circle"
+        case .seedling:    return "leaf"               // Lucide 'sprout'
+        case .developing:  return "leaf"               // Lucide 'leaf'
+        case .mature:      return "tree"               // Lucide 'tree-deciduous'
+        case .planted:     return "camera.macro"       // Lucide 'flower-2'
+        case .discarded:   return "xmark.circle"       // Lucide 'xmark.circle'
         }
     }
 }
@@ -125,12 +128,15 @@ public enum IdeaLinkTarget: String, Sendable, Codable, CaseIterable, Identifiabl
         }
     }
 
-    /// Lucide icon name (= already wired into wenshu's chrome).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the IdeaLibraryView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .chapter:     return "book-open"
-        case .character:   return "user"
-        case .plotThread:  return "git-branch"
+        case .chapter:     return "book.pages"                  // Lucide 'book-open'
+        case .character:   return "person"                      // Lucide 'user'
+        case .plotThread:  return "arrow.triangle.branch"       // Lucide 'git-branch'
         }
     }
 }

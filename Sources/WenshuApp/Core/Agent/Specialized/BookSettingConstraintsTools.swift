@@ -85,12 +85,15 @@ public enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identif
         }
     }
 
-    /// Lucide icon name (= already wired into wenshu's chrome).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the SpecializedToolsView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .hard:        return "shield-alert"
-        case .soft:        return "shield"
-        case .preference:  return "feather"
+        case .hard:        return "exclamationmark.shield"  // Lucide 'shield-alert'
+        case .soft:        return "shield"                  // Lucide 'shield'
+        case .preference:  return "leaf"                    // Lucide 'feather'
         }
     }
 }
@@ -122,13 +125,16 @@ public enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiab
         }
     }
 
-    /// Lucide icon name (= already wired into wenshu's chrome).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the SpecializedToolsView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .world:       return "globe"
-        case .character:   return "user"
-        case .plot:        return "git-branch"
-        case .style:       return "palette"
+        case .world:       return "globe"                       // Lucide 'globe'
+        case .character:   return "person"                      // Lucide 'user'
+        case .plot:        return "arrow.triangle.branch"       // Lucide 'git-branch'
+        case .style:       return "paintpalette"                // Lucide 'palette'
         }
     }
 

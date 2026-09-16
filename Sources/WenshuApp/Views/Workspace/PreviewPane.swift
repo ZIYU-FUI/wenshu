@@ -130,12 +130,14 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// Lucide icon for the menu picker (= chevron-up-down for "sort").
+    /// SF Symbols 6 icon name (= Apple canonical; = for the sort
+    /// menu picker). Replaces the Lucide-era names removed in
+    /// v1.0.0-m1-shell (boss 2026-09-15 OOB).
     var menuIcon: String {
         switch self {
-        case .pinyinFirstLetter: return "list-ordered"
-        case .createdAt: return "list-ordered"
-        case .modifiedAt: return "list-ordered"
+        case .pinyinFirstLetter: return "list.number"           // Lucide 'list-ordered'
+        case .createdAt: return "list.number"                   // Lucide 'list-ordered'
+        case .modifiedAt: return "list.number"                  // Lucide 'list-ordered'
         }
     }
 }

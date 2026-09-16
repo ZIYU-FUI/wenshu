@@ -175,7 +175,7 @@ struct TagManagerView: View {
                     .help(WenshuI18n.t("b5.tagmanagerview.l206.h48887491"))
                 Picker("Category", selection: $draftCategory) {
                     ForEach(TagCategory.allCases) { category in
-                        Label(category.displayName, systemImage: category.lucideIcon)
+                        Label(category.displayName, systemImage: category.icon)
                             .tag(category)
                     }
                 }
@@ -225,7 +225,7 @@ struct TagManagerView: View {
 
     private func tagRow(_ tag: Tag) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-            Image(systemName: tag.category.lucideIcon).font(.system(size: 16, weight: .regular))
+            Image(systemName: tag.category.icon).font(.system(size: 16, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
@@ -291,7 +291,7 @@ struct TagManagerView: View {
 
                 Picker("Target", selection: $draftApplyTarget) {
                     ForEach(TagTarget.allCases) { target in
-                        Label(target.displayName, systemImage: target.lucideIcon)
+                        Label(target.displayName, systemImage: target.icon)
                             .tag(target)
                     }
                 }
@@ -351,7 +351,7 @@ struct TagManagerView: View {
 
     private func applicationRow(_ application: TagApplication) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-            Image(systemName: application.target.lucideIcon).font(.system(size: 14, weight: .regular))
+            Image(systemName: application.target.icon).font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
@@ -410,7 +410,7 @@ struct TagManagerView: View {
 
     private func cloudRow(_ entry: TagCloudEntry) -> some View {
         HStack(spacing: DesignTokens.chromePaddingSmall) {
-            Image(systemName: entry.tag.category.lucideIcon).font(.system(size: 12, weight: .regular))
+            Image(systemName: entry.tag.category.icon).font(.system(size: 12, weight: .regular))
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.iconStandardSize)
             Text(entry.tag.label)
@@ -457,7 +457,7 @@ struct TagManagerView: View {
 
                     Picker("Target", selection: $draftFilterTarget) {
                         ForEach(TagTarget.allCases) { target in
-                            Label(target.displayName, systemImage: target.lucideIcon)
+                            Label(target.displayName, systemImage: target.icon)
                                 .tag(target)
                         }
                     }
@@ -478,7 +478,7 @@ struct TagManagerView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(Array(filterMatches.enumerated()), id: \.offset) { _, id in
                             HStack(spacing: DesignTokens.chromePaddingSmall) {
-                                Image(systemName: draftFilterTarget.lucideIcon).font(.system(size: 12, weight: .regular))
+                                Image(systemName: draftFilterTarget.icon).font(.system(size: 12, weight: .regular))
                                     .foregroundStyle(.tint)
                                     .frame(width: DesignTokens.iconStandardSize)
                                 Text(id.uuidString)

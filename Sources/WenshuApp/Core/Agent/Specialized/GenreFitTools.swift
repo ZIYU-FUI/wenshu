@@ -155,20 +155,22 @@ public enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable
         }
     }
 
-    /// Lucide icon name (= uses Lucide names already shipped by
-    /// wenshu; avoids needing to add a new icon import path).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the GenreFitView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .literary:         return "book-open"
-        case .mystery:          return "magnifyingglass"
-        case .romance:          return "heart"
-        case .sciFi:            return "rocket"
-        case .fantasy:          return "wand-2"
-        case .thriller:         return "zap"
-        case .horror:           return "skull"
-        case .historical:       return "landmark"
-        case .youngAdult:       return "smile"
-        case .literaryFiction:  return "feather"
+        case .literary:         return "book.pages"                  // Lucide 'book-open'
+        case .mystery:          return "magnifyingglass"             // Lucide 'magnifyingglass'
+        case .romance:          return "heart"                       // Lucide 'heart'
+        case .sciFi:            return "airplane"                    // Lucide 'rocket'
+        case .fantasy:          return "wand.and.stars"              // Lucide 'wand-2'
+        case .thriller:         return "bolt"                        // Lucide 'zap'
+        case .horror:           return "skull"                       // Lucide 'skull'
+        case .historical:       return "building.columns"            // Lucide 'landmark'
+        case .youngAdult:       return "face.smiling"                // Lucide 'smile'
+        case .literaryFiction:  return "leaf"                        // Lucide 'feather'
         }
     }
 }

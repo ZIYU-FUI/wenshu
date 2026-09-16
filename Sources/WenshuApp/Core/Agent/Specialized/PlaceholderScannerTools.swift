@@ -76,12 +76,15 @@ public enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifi
         }
     }
 
-    /// Lucide icon name (= already wired into wenshu's chrome).
-    public var lucideIcon: String {
+    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// Image(systemName:) directly in the PlaceholderView
+    /// row rendering path). Replaces the Lucide-era names removed
+    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    public var icon: String {
         switch self {
-        case .open:      return "circle"
-        case .resolved:  return "check-circle-2"
-        case .abandoned: return "xmark.circle"
+        case .open:      return "circle"                // Lucide 'circle'
+        case .resolved:  return "checkmark.circle"      // Lucide 'check-circle-2'
+        case .abandoned: return "xmark.circle"          // Lucide 'xmark.circle'
         }
     }
 

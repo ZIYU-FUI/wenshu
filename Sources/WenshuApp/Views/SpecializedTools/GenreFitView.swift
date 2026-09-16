@@ -180,7 +180,7 @@ struct GenreFitView: View {
     private func resultSection(for report: GenreFitReport) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingVertical) {
             HStack(spacing: DesignTokens.chromePaddingVertical) {
-                Image(systemName: report.genre.lucideIcon).font(.system(size: 16, weight: .regular))
+                Image(systemName: report.genre.icon).font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.tint)
                 Text(report.genre.displayName)
                     .font(.callout)
