@@ -522,7 +522,7 @@ func movePanes(
         current = nextPending
     }
     // Rebind to `working` (= the rest of the function uses this name).
-    guard var working = current else { return root }
+    guard let working = current else { return root }
     guard findGroup(working, groupId: target.groupId) != nil else { return root }
     guard var next = insertAtGroup(working, targetGroupId: target.groupId, paneId: lead, pos: target.pos, before: target.before) else {
         return root

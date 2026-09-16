@@ -399,7 +399,7 @@ func modelToResizers(_ model: GridLayout) -> [GridResizer] {
     // Vertical resizers (= between columns) — added per row's
     // column transitions. Mirrors hermes grid-model.ts modelToResizers.
     for r in 0..<model.rows {
-        var indices = uniquePreservingOrder(model.cellChildMap[r])
+        let indices = uniquePreservingOrder(model.cellChildMap[r])
         // For each adjacent-column pair with the same zone index,
         // emit one vertical resizer.
         for c in 0..<(indices.count - 1) {
@@ -418,7 +418,7 @@ func modelToResizers(_ model: GridLayout) -> [GridResizer] {
     }
     // Horizontal resizers (= between rows).
     for r in 0..<(model.rows - 1) {
-        var indices = uniquePreservingOrder(model.cellChildMap[r])
+        let indices = uniquePreservingOrder(model.cellChildMap[r])
         if !indices.isEmpty {
             resizers.append(GridResizer(
                 orientation: .horizontal,

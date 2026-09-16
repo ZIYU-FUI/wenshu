@@ -487,7 +487,7 @@ public actor WenshuVerifier {
                     }
                     // Build POST body with `stream: true` (= Anthropic
                     // SSE handshake).
-                    var body: [String: Any] = [
+                    let body: [String: Any] = [
                         "model": effectiveModel,
                         "max_tokens": 1024,
                         "stream": true,

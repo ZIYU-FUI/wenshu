@@ -191,7 +191,7 @@ public enum TurnFinalizer {
 
         // Post-loop cleanup. Each step is best-effort; failures are collected
         // on cleanupErrors rather than raising (= hermes `_cleanup_errors`).
-        var cleanupErrors: [String] = []
+        let cleanupErrors: [String] = []
 
         // 1. trajectory save
         do {

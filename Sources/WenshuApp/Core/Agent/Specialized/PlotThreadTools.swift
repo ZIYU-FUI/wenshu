@@ -53,7 +53,7 @@ public actor PlotThreadTracker {
 
     public func remove(id: UUID) async throws {
         for bookId in threads.keys {
-            var values = try await load(bookId: bookId)
+            let values = try await load(bookId: bookId)
             let filtered = values.filter { $0.id != id }
             if filtered.count != values.count { try await save(filtered, bookId: bookId) }
         }
