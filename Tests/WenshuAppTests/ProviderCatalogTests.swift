@@ -61,4 +61,38 @@ struct ProviderCatalogTests {
         let p = ProviderCatalog.provider(slug: "unknown")
         #expect(p.slug == "minimax-cn")
     }
+
+    // ---------- v1.27 health-check pins ----------
+    // (= added to lock the v0.28 minimax-cn profileExt metadata,
+    //  so future provider-add tickets can't silently drop aliases
+    //  or change the v1 deployment default.)
+
+    @Test("profileExt: minimax-cn extension carries aliases + Anthropic-version quirk")
+    func testProfileExtMinimaxCn() {
+        let ext = ProviderCatalog.profileExt(for: "minimax-cn")
+        #expect(ext != nil)
+        #expect(ext?.displayName == "minimax cn")
+        #expect(ext?.aliases.contains("minimax") == true)
+        #expect(ext?.signupURL == "https://platform.minimaxi.com/")
+        #expect(ext?.requestQuirks.contains(.useAnthropicVersionHeader) == true,
+                "minimax-cn is Anthropic-compatible — must carry the version-header quirk")
+    }
+
+    @Test("profileExt: unknown slug returns nil (= caller falls back to .empty)")
+    func testProfileExtUnknownSlug() {
+        let ext = ProviderCatalog.profileExt(for: "this-slug-does-not-exist")
+        #expect(ext == nil)
+    }
+
+    @Test("provider: empty slug returns the v1 deployment default (.minimaxCn)")
+    func testProviderEmptySlugFallbackToDefault() {
+        let p = ProviderCatalog.provider(slug: "")
+        #expect(p.slug == "minimax-cn")
+    }
+
+    @Test("defaultModels: unknown slug returns the documented fallback []")
+    func testDefaultModelsUnknownSlug() {
+        let models = ProviderCatalog.defaultModels(for: "this-slug-does-not-exist")
+        #expect(models.isEmpty)
+    }
 }
