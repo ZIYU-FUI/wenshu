@@ -23,7 +23,12 @@ mkdir -p "$MACOS_DIR" "$RES_DIR"
 cp ".build/release/$BIN_NAME" "$MACOS_DIR/$BIN_NAME"
 
 # AppKit 真值: .app bundle 范式必须把 Info.plist 复制到 Contents/Info.plist 让 AppKit 直接读
-# (SwiftPM `-sectcreate __TEXT __info_plist` 是裸 run 用的, .app bundle 不需要)
+# v1.51 boss 2026-09-16 i18n root fix: Package.swift also embeds the same
+# Info.plist into the Mach-O __TEXT,__info_plist section via linkerSettings
+# (= the binary-side mirror for bare-Mach-O dev runs). For .app bundles,
+# Contents/Info.plist (= this cp) takes precedence; the __info_plist
+# section is benign but redundant. Both sources of truth are kept in
+# sync because `Sources/WenshuApp/Resources/Info.plist` is the source.
 cp "Sources/WenshuApp/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
 
 # v0.34 Issue 11: regenerate upstreams.json + THIRD_PARTY_NOTICES.md
