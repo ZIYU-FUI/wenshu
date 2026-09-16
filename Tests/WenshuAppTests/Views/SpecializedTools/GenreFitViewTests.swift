@@ -1,8 +1,8 @@
 //
-//  ForeshadowingViewTests.swift · Wenshu · v1.44 ticket 001
+//  GenreFitViewTests.swift · Wenshu · v1.44 ticket 001
 //
-//  Structural tests for ForeshadowingView (= open/developing/resolved/abandoned thread tracker + stale detection (= P1 ticket #8 = hermes plot_thread.py port); = ~440 NLOC,
-//  = repowise untested hotspot with 4 dependents).
+//  Structural tests for GenreFitView (= 10 genre presets + convention analyzer (= P1 ticket #9 = hermes genre_fit.py port); = ~286 NLOC,
+//  = repowise untested hotspot with 3 dependents).
 //
 //  Per boss OOB 2026-09-16 '按优先级推' + '自己一口气推完' (= keep
 //  pushing until done): v1.44 batch-adds source-level structural
@@ -22,68 +22,68 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("ForeshadowingView (v1.44 — specialized tools P1 hermes-port batch)")
-struct ForeshadowingViewTests {
+@Suite("GenreFitView (v1.44 — specialized tools P1 hermes-port batch)")
+struct GenreFitViewTests {
 
     private var sourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/Tools/ForeshadowingView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/GenreFitView.swift")
         return url.path
     }
 
-    @Test("ForeshadowingView exists as public struct (= confirmed by source)")
+    @Test("GenreFitView exists as public struct (= confirmed by source)")
     func testExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("public struct ForeshadowingView: View") ||
-                source.contains("struct ForeshadowingView: View"),
-                "ForeshadowingView must be declared in ForeshadowingView.swift")
+        #expect(source.contains("public struct GenreFitView: View") ||
+                source.contains("struct GenreFitView: View"),
+                "GenreFitView must be declared in GenreFitView.swift")
     }
 
-    @Test("ForeshadowingView conforms to View protocol (= source-level check)")
+    @Test("GenreFitView conforms to View protocol (= source-level check)")
     func testConformsToView() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("View"),
-                "ForeshadowingView must conform to View protocol")
+                "GenreFitView must conform to View protocol")
     }
 
-    @Test("ForeshadowingView has body returning some View (= SwiftUI requirement)")
+    @Test("GenreFitView has body returning some View (= SwiftUI requirement)")
     func testBodyReturnsView() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("var body: some View"),
-                "ForeshadowingView must declare body returning some View")
+                "GenreFitView must declare body returning some View")
     }
 
-    @Test("ForeshadowingView imports SwiftUI (= canonical icon layer)")
+    @Test("GenreFitView imports SwiftUI (= canonical icon layer)")
     func testImportsSwiftUI() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("import SwiftUI"),
-                "ForeshadowingView must import SwiftUI")
+                "GenreFitView must import SwiftUI")
         #expect(!source.contains("import LucideSwift"),
-                "ForeshadowingView must NOT import LucideSwift (= removed by v1.x)")
+                "GenreFitView must NOT import LucideSwift (= removed by v1.x)")
     }
 
-    @Test("ForeshadowingView file > 100 NLOC (= real hermes-port evidence)")
+    @Test("GenreFitView file > 100 NLOC (= real hermes-port evidence)")
     func testFileSize() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         let lineCount = source.components(separatedBy: "\n").count
         #expect(lineCount > 100,
-                "ForeshadowingView.swift must be > 100 NLOC (= real port; found \(lineCount))")
+                "GenreFitView.swift must be > 100 NLOC (= real port; found \(lineCount))")
     }
 
-    @Test("ForeshadowingView has public init (= SwiftUI view requirement)")
+    @Test("GenreFitView has public init (= SwiftUI view requirement)")
     func testHasInit() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("init(") || source.contains("public init"),
-                "ForeshadowingView must declare an init (= SwiftUI view contract)")
+                "GenreFitView must declare an init (= SwiftUI view contract)")
     }
 
-    @Test("ForeshadowingView declares at least one ForeshadowingView struct (= primary view present)")
+    @Test("GenreFitView declares at least one GenreFitView struct (= primary view present)")
     func testSinglePrimaryStruct() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("struct ForeshadowingView: View") ||
-                source.contains("public struct ForeshadowingView: View"),
-                "ForeshadowingView must declare primary ForeshadowingView: View struct")
+        #expect(source.contains("struct GenreFitView: View") ||
+                source.contains("public struct GenreFitView: View"),
+                "GenreFitView must declare primary GenreFitView: View struct")
     }
 
     @Test("X body uses SwiftUI control primitives")
@@ -104,7 +104,7 @@ struct ForeshadowingViewTests {
                 "file must use SwiftUI primitives (= VStack/HStack/List/Form/ScrollView/etc)")
     }
 
-    @Test("ForeshadowingView no Lucide references in code (= post-v1.x SF Symbols 6)")
+    @Test("GenreFitView no Lucide references in code (= post-v1.x SF Symbols 6)")
     func testNoLucideInCode() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         let codeLines = source.components(separatedBy: "\n").filter { line in
@@ -114,19 +114,19 @@ struct ForeshadowingViewTests {
         let codeRegion = codeLines.joined(separator: "\n")
         let lucideCount = codeRegion.components(separatedBy: "Lucide").count - 1
         #expect(lucideCount == 0,
-                "ForeshadowingView must have zero Lucide references in code (post-v1.x); found \(lucideCount)")
+                "GenreFitView must have zero Lucide references in code (post-v1.x); found \(lucideCount)")
     }
 
-    @Test("ForeshadowingView declares body + public init + struct conformance (= source-level triple check)")
+    @Test("GenreFitView declares body + public init + struct conformance (= source-level triple check)")
     func testTripleContract() throws {
         // Triple contract check (= per Q34 5.2 structural verification):
-        // 1. struct ForeshadowingView: View
+        // 1. struct GenreFitView: View
         // 2. var body: some View
         // 3. public init()
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("struct ForeshadowingView: View") ||
-                source.contains("public struct ForeshadowingView: View"),
-                "1/3: ForeshadowingView: View conformance missing")
+        #expect(source.contains("struct GenreFitView: View") ||
+                source.contains("public struct GenreFitView: View"),
+                "1/3: GenreFitView: View conformance missing")
         #expect(source.contains("var body: some View"),
                 "2/3: var body: some View missing")
         #expect(source.contains("init("),
