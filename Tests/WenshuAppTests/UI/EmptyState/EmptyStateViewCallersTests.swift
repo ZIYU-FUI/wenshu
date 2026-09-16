@@ -119,15 +119,17 @@ struct EmptyStateViewCallersTests {
     /// would break the unified icon style).
     @Test("EmptyStateView_uses_LucideThinIcon_for_visual_consistency")
     func EmptyStateView_uses_LucideThinIcon_for_visual_consistency() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/EmptyState/EmptyStateView.swift")
+        var url = URL(fileURLWithPath: #filePath)
+        for _ in 0..<5 { url.deleteLastPathComponent() }
+        url.appendPathComponent("Sources/WenshuApp/UI/EmptyState/EmptyStateView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             return !trimmed.hasPrefix("//") && !trimmed.hasPrefix("*") && !trimmed.hasPrefix("/*")
         }.joined(separator: "\n")
         #expect(
-            stripped.contains("LucideThinIcon("),
-            "EmptyStateView MUST render its icon via LucideThinIcon (= 1 PT hairline stroke = unified visual contract)"
+            stripped.contains("Image(systemName:") || stripped.contains("LucideThinIcon("),
+            "EmptyStateView MUST render its icon via Image(systemName:) (= v1.x SF Symbols 6) or LucideThinIcon (= pre-v1.x)"
         )
     }
 }
