@@ -77,25 +77,42 @@ struct ShellDetailColumn: View {
     /// toolbar; = the 2-3 tab per-tool Picker is inside the
     /// column body, above the tool content).
     private var filteredToolsForCurrentPage: [(label: String, icon: String, content: AnyView)] {
+        // v1.0.0-m1-shell boss 2026-09-16 OOB 'ICON 丢失还是没有彻底解决':
+        // these tab icons were Lucide kebab-case names (= git-fork /
+        // square-dashed / shield-check / git-branch / book-marked /
+        // activity / users / book-lock) that rendered as blank
+        // rectangles after the v1.0.0-m1-shell Lucide -> SF Symbols
+        // 6 migration. Mapped to verified SF Symbols 6 names per
+        // /Applications/SF Symbols Beta.app/Contents/Executables/
+        // sfsymbols search 2026-09-16. Mapping:
+        //   git-fork      -> arrow.triangle.branch
+        //   square-dashed -> square.dashed (dot.case form)
+        //   shield-check  -> checkmark.shield
+        //   git-branch    -> arrow.triangle.branch (= same as git-fork;
+        //                    page routing prevents both rendering at once)
+        //   book-marked   -> bookmark
+        //   activity      -> waveform.path.ecg
+        //   users         -> person.2
+        //   book-lock     -> book.closed (visual metaphor)
         let allTools: [(label: String, icon: String, content: AnyView)] = [
-            (WenshuI18n.t("tab.title.foreshadowing"),      "git-fork",       AnyView(ForeshadowingView())),
-            (WenshuI18n.t("tab.title.placeholder"),        "square-dashed",  AnyView(PlaceholderView())),
-            (WenshuI18n.t("tab.title.long_form"),           "shield-check",   AnyView(LongFormGuardrailsView())),
-            (WenshuI18n.t("tab.title.reader_experience"),   "sparkles",       AnyView(ReaderExperienceView())),
-            (WenshuI18n.t("tab.title.plot_thread"),         "git-branch",     AnyView(PlotThreadView())),
+            (WenshuI18n.t("tab.title.foreshadowing"),      "arrow.triangle.branch", AnyView(ForeshadowingView())),
+            (WenshuI18n.t("tab.title.placeholder"),        "square.dashed",        AnyView(PlaceholderView())),
+            (WenshuI18n.t("tab.title.long_form"),           "checkmark.shield",     AnyView(LongFormGuardrailsView())),
+            (WenshuI18n.t("tab.title.reader_experience"),   "sparkles",             AnyView(ReaderExperienceView())),
+            (WenshuI18n.t("tab.title.plot_thread"),         "arrow.triangle.branch", AnyView(PlotThreadView())),
             // v1.0.0-m1-shell boss 2026-09-12 OOB 'the 12-tab view's localization is incomplete':
             // these 7 hardcoded English labels bypassed i18n
             // lookup; = the rendered tabs displayed raw English
             // even on zh-Hans systems; = migrate them through
             // WenshuI18n.t() so the new tab.title.* keys (= added
             // in the previous commit) resolve correctly.
-            (WenshuI18n.t("tab.title.genre_fit"),            "book-marked",    AnyView(GenreFitView())),
-            (WenshuI18n.t("tab.title.emotion_curve"),        "activity",       AnyView(EmotionCurveView())),
-            (WenshuI18n.t("tab.title.character_relationships"), "users",         AnyView(CharacterRelationshipsView())),
-            (WenshuI18n.t("tab.title.character_lifecycle"),    "clock",         AnyView(CharacterLifecycleView())),
-            (WenshuI18n.t("tab.title.tag_manager"),           "tag",           AnyView(TagManagerView())),
-            (WenshuI18n.t("tab.title.idea_library"),          "lightbulb",     AnyView(IdeaLibraryView())),
-            (WenshuI18n.t("tab.title.book_setting_constraints"), "book-lock",  AnyView(BookSettingConstraintsView())),
+            (WenshuI18n.t("tab.title.genre_fit"),            "bookmark",             AnyView(GenreFitView())),
+            (WenshuI18n.t("tab.title.emotion_curve"),        "waveform.path.ecg",    AnyView(EmotionCurveView())),
+            (WenshuI18n.t("tab.title.character_relationships"), "person.2",          AnyView(CharacterRelationshipsView())),
+            (WenshuI18n.t("tab.title.character_lifecycle"),    "clock",             AnyView(CharacterLifecycleView())),
+            (WenshuI18n.t("tab.title.tag_manager"),           "tag",                AnyView(TagManagerView())),
+            (WenshuI18n.t("tab.title.idea_library"),          "lightbulb",          AnyView(IdeaLibraryView())),
+            (WenshuI18n.t("tab.title.book_setting_constraints"), "book.closed",     AnyView(BookSettingConstraintsView())),
         ]
         let perPageLabels: Set<String> = {
             switch inspectorPage {

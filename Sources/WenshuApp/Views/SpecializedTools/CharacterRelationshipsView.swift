@@ -164,7 +164,7 @@ struct CharacterRelationshipsView: View {
                 .labelsHidden()
                 .disabled(characters.isEmpty)
 
-                Image(systemName: "arrow-right").font(.system(size: 14, weight: .regular))
+                Image(systemName: "arrow.right").font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.tertiary)
 
                 Picker("To", selection: Binding(
@@ -247,7 +247,7 @@ struct CharacterRelationshipsView: View {
                     Text(characterName(for: row.fromCharacterId))
                         .font(.callout)
                         .foregroundStyle(.primary)
-                    Image(systemName: "arrow-right").font(.system(size: 10, weight: .regular))
+                    Image(systemName: "arrow.right").font(.system(size: 10, weight: .regular))
                         .foregroundStyle(.tertiary)
                     Text(characterName(for: row.toCharacterId))
                         .font(.callout)
@@ -302,7 +302,7 @@ struct CharacterRelationshipsView: View {
             } else {
                 ForEach(Array(inconsistencies.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-                        Image(systemName: "alert-triangle").font(.system(size: 14, weight: .regular))
+                        Image(systemName: "exclamationmark.triangle").font(.system(size: 14, weight: .regular))
                             .foregroundStyle(Color.orange)
                             .frame(width: DesignTokens.tabIconSize)
                         Text(issue.message)

@@ -451,7 +451,7 @@ public struct ChatMessageHoverActions: View {
             Button {
                 copyToPasteboard()
             } label: {
-                Image(systemName: "doc.on.doc").font(.system(size: 12, weight: .regular))
+                Image(systemName: "document.on.document").font(.system(size: 12, weight: .regular))
             }
             .buttonStyle(.borderless)
             .controlSize(.small)

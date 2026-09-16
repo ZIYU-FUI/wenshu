@@ -307,7 +307,7 @@ public struct PlaceholderView: View {
                         Button {
                             Task { await resolvePlaceholder(row) }
                         } label: {
-                            Image(systemName: "check").font(.system(size: 14, weight: .regular))
+                            Image(systemName: "checkmark").font(.system(size: 14, weight: .regular))
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -317,7 +317,7 @@ public struct PlaceholderView: View {
                         Button {
                             Task { await reopenPlaceholder(row) }
                         } label: {
-                            Image(systemName: "rotate-ccw").font(.system(size: 14, weight: .regular))
+                            Image(systemName: "arrow.counterclockwise").font(.system(size: 14, weight: .regular))
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -355,7 +355,7 @@ public struct PlaceholderView: View {
     private var scanSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Image(systemName: "scan-text").font(.system(size: 14, weight: .regular))
+                Image(systemName: "viewfinder").font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.tint)
                 Text(WenshuI18n.t("b5.placeholderview.l396.h55542836"))
                     .font(.callout)

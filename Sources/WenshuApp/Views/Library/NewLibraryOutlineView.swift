@@ -542,7 +542,7 @@ struct NewLibraryOutlineView: View {
                     Label {
                         Text(WenshuI18n.t("auto.newlibraryoutlineview.l335.h35976706"))
                     } icon: {
-                        Image(systemName: "square-library")
+                        Image(systemName: "books.vertical")
                     }
                     .badge(usedCategories().count)
                     .tag(SidebarItem.referenceLibraryRoot)

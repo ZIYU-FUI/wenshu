@@ -328,7 +328,7 @@ public struct ForeshadowingView: View {
     private var staleSection: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Image(systemName: "alert-triangle").font(.system(size: 14, weight: .regular))
+                Image(systemName: "exclamationmark.triangle").font(.system(size: 14, weight: .regular))
                     .foregroundStyle(Color.orange)
                 Text(WenshuI18n.t("b5.foreshadowingview.l360.h31137580"))
                     .font(.callout)

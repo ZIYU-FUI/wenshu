@@ -373,7 +373,7 @@ struct CharacterLifecycleView: View {
             } else {
                 ForEach(Array(contradictions.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-                        Image(systemName: "alert-triangle").font(.system(size: 14, weight: .regular))
+                        Image(systemName: "exclamationmark.triangle").font(.system(size: 14, weight: .regular))
                             .foregroundStyle(Color.orange)
                             .frame(width: DesignTokens.tabIconSize)
                         VStack(alignment: .leading, spacing: 1) {
