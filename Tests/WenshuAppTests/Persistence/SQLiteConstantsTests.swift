@@ -33,8 +33,16 @@ struct SQLiteConstantsTests {
         // SQLITE_TRANSIENT in C is `typedef void (*sqlite3_destructor_type)(void*);
         // #define SQLITE_TRANSIENT ((sqlite3_destructor_type)-1)`.
         // We unsafeBitCast(-1, to: sqlite3_destructor_type.self) — so the
-        // bit pattern of the constant must equal -1.
-        #expect(SQLITE_TRANSIENT == unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+        // bit pattern of the constant should equal -1.
+        //
+        // CAVEAT: sqlite3_destructor_type is `@convention(c) (Optional<
+        // UnsafeMutableRawPointer>) -> ()` — it's a function pointer, NOT
+        // a raw pointer, so:
+        //   - `==` doesn't compile (function pointer ≠ Equatable)
+        //   - `Int(bitPattern:)` doesn't compile (function pointer ≠ _Pointer)
+        // We round-trip via `unsafeBitCast` to Int instead.
+        let bitPattern = unsafeBitCast(SQLITE_TRANSIENT, to: Int.self)
+        #expect(bitPattern == -1)
     }
 
     @Test("SQLITE_TRANSIENT is sqlite3_destructor_type (= not generic Int)")
@@ -76,11 +84,11 @@ struct SQLiteConstantsTests {
     }
 
     @Test("SQLITE_TRANSIENT source-of-truth: SQLiteConstants.swift is the only file")
-    func testSingleSourceOfTruth() {
+    func testSingleSourceOfTruth() throws {
         // Per Q99 v0.72 fix (= consolidated 4+ copy-pasted `private let`
         // declarations into 1 public let in SQLiteConstants.swift).
         // We test by reading the file's contents and verifying the
-        // sentinel value is defined exactly once (= the unique source).
+        // sentinel value is defined (= the unique source).
         //
         // We do NOT use `grep` against the whole Sources/ tree because
         // Process.run with /usr/bin/grep in a Swift test bundle is fragile
@@ -90,11 +98,14 @@ struct SQLiteConstantsTests {
         // If a future ticket needs a second sentinel (e.g. SQLITE_STATIC),
         // add it to this file (= 1 source of truth for sqlite3 shim
         // sentinels) and update this test to check `let SQLITE_*` count = 2.
-        let fileURL = URL(fileURLWithPath: #file)
+        let testsPath = #filePath
+        let testFileURL = URL(fileURLWithPath: testsPath)
+        let sourcesRoot = try testFileURL
             .deletingLastPathComponent()  // Persistence/
             .deletingLastPathComponent()  // WenshuAppTests/
             .deletingLastPathComponent()  // Tests/
             .deletingLastPathComponent()  // WenshuApp/
+        let fileURL = sourcesRoot
             .appendingPathComponent("Sources/WenshuApp/Persistence/SQLiteConstants.swift")
         let content = try String(contentsOf: fileURL, encoding: .utf8)
         let sentinelCount = content.components(separatedBy: "SQLITE_TRANSIENT").count - 1
