@@ -1156,14 +1156,8 @@ struct NewLibraryOutlineView: View {
     /// v5 ticket 001 + ticket 026). 3 hidden folders (LLM sessions, Foreshadowing,
     /// Placeholder) NOT shown per boss 8/30 sidebar cleanup.
     private var standardFolderNames: [(name: String, displayName: String, icon: String)] {
+        // v1.0.0-m1-shell: Lucide -> SF Symbols 6 (boss OOB 2026-09-15). Migrated 2026-09-16.
         [
-            // v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use
-            // SF Symbols 6': Lucide-era kebab-case names (globe /
-            // user-round / list-tree / book-text / file-pen-line)
-            // are NOT valid SF Symbols identifiers and rendered as
-            // blank rectangles. Verified against /Applications/SF
-            // Symbols Beta.app/Contents/Executables/sfsymbols
-            // search 2026-09-16.
             ("world",      "世界观",      "globe"),
             ("characters", "角色",        "person"),
             ("outlines",   "章节大纲",    "list.bullet.rectangle"),
