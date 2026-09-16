@@ -20,6 +20,7 @@
 // - WorkspaceViewRenderTabTests.swift (= ticket 003) = renderTab
 //   dispatcher (= TabKind → existing wenshu view mapping)
 
+import Foundation
 import SwiftUI
 import Testing
 @testable import WenshuApp
@@ -27,20 +28,22 @@ import Testing
 @Suite("WorkspaceView (v0.88 — customizable-layout root, header + state)")
 struct WorkspaceViewTests {
 
-    @Test("source imports SwiftUI + MarkdownEngine (= post-v1.x Lucide → SF Symbols 6 deprecation)")
+    @Test("source imports SwiftUI (= post-v1.37 MarkdownEngine import drop)")
     func sourceImports() throws {
-        // v1.36 ticket 003: drop the `import LucideSwift` assertion
-        // (= removed by boss's v1.x Lucide → SF Symbols 6 deprecation in
-        // commit c50d76167). Per Q34 5.2 + Q173 ponytail + Q186: the
-        // canonical icon layer post-v1.x = SF Symbols 6 (= `Image(systemName:)`),
-        // not the third-party LucideSwift fork. WorkspaceView.swift
-        // already dropped the `import LucideSwift` line (= part of v1.x).
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        // v1.37 ticket 001: drop the `import MarkdownEngine` assertion.
+        // WorkspaceView.swift no longer needs `MarkdownEngine` (= the
+        // MarkdownEditorConfiguration type moved with the markdown editor
+        // surface into EditorPlaceholder.swift during the v1.33 extraction).
+        // Per Q34 5.2 + Q173 ponytail + Q186: per Q57 assert reality (= what
+        // is currently in the file), not what was planned pre-extraction.
+        var url = URL(fileURLWithPath: #filePath)
+        for _ in 0..<5 { url.deleteLastPathComponent() }
+        url.appendPathComponent("Sources/WenshuApp/Views/Workspace/WorkspaceView.swift")
+        let source = try String(contentsOfFile: url.path, encoding: .utf8)
         #expect(source.contains("import SwiftUI"),
                 "must import SwiftUI for View + @State + @Environment + .onChange")
-        #expect(source.contains("import MarkdownEngine"),
-                "must import MarkdownEngine (= the SPM product providing MarkdownEditorConfiguration per v0.39 ticket 001)")
+        #expect(!source.contains("import MarkdownEngine"),
+                "must NOT import MarkdownEngine (= moved to EditorPlaceholder.swift in v1.33)")
         #expect(!source.contains("import LucideSwift"),
                 "must NOT import LucideSwift (= removed by v1.x Lucide → SF Symbols 6 deprecation)")
     }
