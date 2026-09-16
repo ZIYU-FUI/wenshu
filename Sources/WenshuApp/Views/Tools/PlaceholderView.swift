@@ -117,7 +117,7 @@ public struct PlaceholderView: View {
         // title/body hierarchy). Same visual treatment as every
         // other empty state in the workspace.
         EmptyStateView(
-            icon: "square-dashed",
+            icon: "square.dashed",
             title: WenshuI18n.t("b5.placeholderview.l147.h49322278"),
             body: WenshuI18n.t("b5.placeholderview.l150.h59639791")
         )

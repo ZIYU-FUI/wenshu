@@ -114,7 +114,7 @@ struct CharacterRelationshipsView: View {
         // title/body hierarchy). Same visual treatment as every
         // other empty state in the workspace.
         EmptyStateView(
-            icon: "users",
+            icon: "person.2",
             title: WenshuI18n.t("b5.characterrelationshipsview.l148.h14968122"),
             body: WenshuI18n.t("b5.characterrelationshipsview.l151.h23755386")
         )

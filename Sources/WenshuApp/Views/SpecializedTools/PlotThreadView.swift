@@ -57,7 +57,7 @@ struct PlotThreadView: View {
                 // title/body hierarchy). Same visual treatment as the
                 // other 11 tabs.
                 EmptyStateView(
-                    icon: "git-branch",
+                    icon: "arrow.trianglehead.branch",
                     title: WenshuI18n.t("b5.plotthreadview.l37.h49866041"),
                     body: WenshuI18n.t("b5.plotthreadview.l17.h33003032")
                 )

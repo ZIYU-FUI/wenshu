@@ -208,7 +208,7 @@ struct EditorPlaceholder: View {
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
                         EmptyStateView(
-                            icon: "file-text",
+                            icon: "text.document",
                             title: WenshuI18n.t("editor.empty.title"),
                             body: WenshuI18n.t("editor.empty.description")
                         )
@@ -896,7 +896,7 @@ struct EditorPlaceholder: View {
     /// across every "no content" zone in wenshu.
     private var emptyStateHint: some View {
         EmptyStateView(
-            icon: "book-open",
+            icon: "book.pages",
             title: WenshuI18n.t("workspace.empty.title"),
             body: WenshuI18n.t("workspace.empty.body")
         )

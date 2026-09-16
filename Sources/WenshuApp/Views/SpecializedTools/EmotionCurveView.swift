@@ -173,7 +173,7 @@ struct EmotionCurveView: View {
         // title/body hierarchy). Same visual treatment as every
         // other empty state in the workspace.
         EmptyStateView(
-            icon: "activity",
+            icon: "waveform.path.ecg",
             title: WenshuI18n.t("b5.emotioncurveview.l210.h68237505"),
             body: WenshuI18n.t("b5.emotioncurveview.l213.h26939185")
         )

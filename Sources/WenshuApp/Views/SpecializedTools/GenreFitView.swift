@@ -170,7 +170,7 @@ struct GenreFitView: View {
         // title/body hierarchy). Same visual treatment as every
         // other empty state in the workspace.
         EmptyStateView(
-            icon: "book-marked",
+            icon: "bookmark",
             title: WenshuI18n.t("b5.genrefitview.l200.h95444806"),
             body: WenshuI18n.t("b5.genrefitview.l203.h79122074")
         )

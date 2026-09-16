@@ -118,7 +118,7 @@ struct LongFormGuardrailsView: View {
         // title/body hierarchy). Same visual treatment as every
         // other empty state in the workspace.
         EmptyStateView(
-            icon: "shield-check",
+            icon: "checkmark.shield",
             title: WenshuI18n.t("b5.longformguardrailsview.l144.h89220000"),
             body: WenshuI18n.t("b5.longformguardrailsview.l147.h53334640")
         )

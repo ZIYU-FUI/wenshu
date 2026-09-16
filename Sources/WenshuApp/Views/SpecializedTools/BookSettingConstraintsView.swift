@@ -119,7 +119,7 @@ struct BookSettingConstraintsView: View {
         // title/body hierarchy). Same visual treatment as every
         // other empty state in the workspace.
         EmptyStateView(
-            icon: "book-lock",
+            icon: "book.closed",
             title: WenshuI18n.t("b5.booksettingconstraintsview.l153.h29425451"),
             body: WenshuI18n.t("b5.booksettingconstraintsview.l156.h45808897")
         )

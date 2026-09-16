@@ -115,7 +115,7 @@ public struct ForeshadowingView: View {
         // title/body hierarchy). Same visual treatment as every
         // other empty state in the workspace.
         EmptyStateView(
-            icon: "git-fork",
+            icon: "arrow.trianglehead.branch",
             title: WenshuI18n.t("b5.foreshadowingview.l146.h86404455"),
             body: WenshuI18n.t("b5.foreshadowingview.l149.h44610307")
         )

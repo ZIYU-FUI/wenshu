@@ -78,14 +78,17 @@ import SwiftUI
 /// unified empty-state component for ALL "no content" zones in
 /// the wenshu workspace (= 12 specialized tool tabs + editor
 /// zone + PreviewPane + future zones). Caller provides the icon
-/// (= Lucide kebab-case name; = e.g. "git-fork" for the
-/// Foreshadowing tab), title (= String), and body (= String).
+/// (= SF Symbols 6 name; = e.g. "book.pages" for a book-themed
+/// empty state; = any valid SF Symbol 6 identifier — Lucide
+/// kebab-case names are NOT valid SF Symbols and render as blank
+/// rectangles since the v1.0.0-m1-shell migration).
+/// Caller also supplies title (= String) and body (= String).
 ///
 /// Usage:
 ///
 /// ```swift
 /// EmptyStateView(
-///     icon: "git-fork",
+///     icon: "doc.text",  // SF Symbols 6 name (= any valid SF Symbol identifier)
 ///     title: WenshuI18n.t("foreshadowingview.empty.title"),
 ///     body: WenshuI18n.t("foreshadowingview.empty.body")
 /// )
@@ -97,8 +100,8 @@ import SwiftUI
 /// provide ONLY the icon + title + body content.
 ///
 /// Visual contract (= what the user sees):
-/// - 76 PT Lucide icon, 1 PT stroke (= thinnest possible SwiftUI
-///   Shape stroke; = via LucideThinIcon wrapper)
+/// - 76 PT SF Symbol icon (= 2× the v0.54 38 PT default; = sized
+///   for empty states per Apple HIG ContentUnavailableView).
 /// - 15 PT semibold title below the icon (= .secondary tone =
 ///   primary message)
 /// - 13 PT body below the title (= .tertiary tone = supporting
@@ -146,7 +149,12 @@ public struct EmptyStateView: View {
     /// sentence).
     ///
     /// Parameters:
-    /// - icon: Lucide icon name (kebab-case)
+    /// - icon: SF Symbols 6 icon name (= any valid SF Symbol
+    ///   identifier; = `doc.text`, `book.pages`, `person.2`, etc.)
+    ///   - per v1.0.0-m1-shell Lucide -> SF Symbols 6 migration:
+    ///     Lucide kebab-case names (= git-fork, square-dashed,
+    ///     shield-check, etc.) render as blank rectangles and
+    ///     MUST be migrated to dot.case SF Symbols 6 names.
     /// - titleView: caller-supplied title view (= rendered in
     ///   place of the plain Text title; = should use
     ///   `.foregroundStyle(.secondary)` + `.font(.headline)`

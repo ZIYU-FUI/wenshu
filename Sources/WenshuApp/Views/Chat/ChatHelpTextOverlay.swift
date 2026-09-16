@@ -90,7 +90,7 @@ public struct ChatHelpTextOverlay: View {
                 // title→body gap) are matched to Apple's measured
                 // ContentUnavailableView sample.
                 EmptyStateView(
-                    icon: "message-square",
+                    icon: "message.fill",
                     titleView:
                         HStack(spacing: 0) {
                             Text(WenshuI18n.t("chathelp.please_first_goto") + " ")
