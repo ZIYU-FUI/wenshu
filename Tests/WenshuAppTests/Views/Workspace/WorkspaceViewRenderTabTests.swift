@@ -117,21 +117,33 @@ struct WorkspaceViewRenderTabTests {
                 "must use ZoneContentView chrome across all 4 zones (= per the v0.34 audit; found \(zoneContentViewCount) occurrences in code region)")
     }
 
-    @Test("file declares 4 separate structs (= WorkspaceView + ZoneModuleView + EditorPlaceholder + EditorPaperCanvas)")
-    func declaresFourStructs() throws {
-        // WorkspaceView.swift hosts 4 separate SwiftUI structs
-        // (= WorkspaceView, ZoneModuleView, EditorPlaceholder,
-        // EditorPaperCanvas) for the 4-zone layout. Verify all 4
-        // declarations.
+    @Test("file declares WorkspaceView + EditorPaperCanvas structs (= 2 remaining; ZoneModuleView + EditorPlaceholder extracted)")
+    func declaresWorkspaceViewStruct() throws {
+        // v1.32: ZoneModuleView extracted to ZoneModuleView.swift
+        // v1.33: EditorPlaceholder extracted to EditorPlaceholder.swift
+        // WorkspaceView.swift currently hosts 2 sibling structs:
+        //   - WorkspaceView (= the root container, line 40)
+        //   - EditorPaperCanvas (= the A4 paper-canvas overlay, line 821;
+        //     = still inline; = future v1.x ticket extracts it)
+        // Per Q34 5.2 + Q173 ponytail + Q186 + Q57: assert reality (= what
+        // is currently in the file), not what was planned. EditorPaperCanvas
+        // is the next extract candidate for the fat-file split pattern.
         let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct WorkspaceView: View"),
                 "must declare WorkspaceView struct (= the main root)")
-        #expect(source.contains("struct ZoneModuleView: View"),
-                "must declare ZoneModuleView struct (= the zone-slot wrapper)")
-        #expect(source.contains("struct EditorPlaceholder: View"),
-                "must declare EditorPlaceholder struct (= the empty-state for the editor pane)")
         #expect(source.contains("struct EditorPaperCanvas<Content: View>: View"),
-                "must declare EditorPaperCanvas generic struct (= the paper-canvas overlay)")
+                "must declare EditorPaperCanvas struct (= the A4 paper-canvas overlay, = future v1.x extraction target)")
+        #expect(!source.contains("struct ZoneModuleView: View"),
+                "ZoneModuleView must have moved out (= v1.32 extraction)")
+        #expect(!source.contains("struct EditorPlaceholder: View"),
+                "EditorPlaceholder must have moved out (= v1.33 extraction)")
+        // Verify the 2 extracted sibling files exist (= independent consumer check).
+        let zoneModulePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/ZoneModuleView.swift"
+        let editorPlaceholderPath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift"
+        #expect(FileManager.default.fileExists(atPath: zoneModulePath),
+                "ZoneModuleView.swift must exist (= v1.32 sibling)")
+        #expect(FileManager.default.fileExists(atPath: editorPlaceholderPath),
+                "EditorPlaceholder.swift must exist (= v1.33 sibling)")
     }
 }

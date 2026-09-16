@@ -1549,53 +1549,19 @@ enum WindowID {
 
 
 
-// MARK: - Placeholder view (= reusable for M1)
-
-/// M1 placeholder (= Apple HIG standard pattern for empty panes
-/// = Xcode's "No Editor" / Mail's "No Message Selected" =
-/// informational view showing what WILL go there in a future
-/// ticket).
-///
-/// Per boss 9/3 'group, chat zonegroup, group,
-/// groupchat zonebottom bar. replace' (= placeholders
-/// are first-class Apple HIG pattern; = the shell renders the
-/// structure; = future tickets replace each placeholder with a
-/// real zone view).
-///
-/// Per boss 2026-09-09 'fix everything' (= use Apple API unless Apple API
-/// cannot implement the requirement): replaced the previous custom
-/// VStack with `ContentUnavailableView` (= macOS 14+; = Apple HIG
-/// canonical informational view = Xcode / Mail / Notes "no content"
-/// pattern). The custom VStack was 28 LOC of reimplemented chrome;
-/// `ContentUnavailableView` is Apple's first-party replacement and
-/// adapts to Liquid Glass automatically (= no manual `.foregroundStyle`
-/// / `.font` tuning = the platform controls the visual).
-///
-/// wenshu's minimum target is macOS 27 so ContentUnavailableView is
-/// always available (= no fallback needed).
-///
-/// Per boss 2026-09-09 'study docs first, then audit code' (= research Apple HIG first):
-/// WWDC23 "Meet SwiftUI for macOS" introduced `ContentUnavailableView`
-/// as the canonical empty/no-content state. Apple's HIG for empty
-// /// states says: "Use `ContentUnavailableView` for empty states,
-/// not custom layouts". wenshu now follows this guidance.
-struct ShellPlaceholder: View {
-    let name: String
-    let icon: String
-    let hint: String
-
-    var body: some View {
-        // v0.46 boss OOB 'SF Symbol dropped, use Lucide': the
-        // systemImage: overload of ContentUnavailableView only accepts
-        // SF Symbol names. The label: closure overload takes any View,
-        // so the Lucide glyph goes there.
-        ContentUnavailableView {
-            // 38 PT matches the glyph height Apple's own
-            // ContentUnavailableView renders, measured on this machine.
-            Label { Text(name) } icon: { Image(systemName: icon).font(.system(size: 38, weight: .regular)) }
-        } description: {
-            Text(hint)
-        }
-    }
-}
+// v1.36 ticket 001 (= real fix per Q34 5.4 + Q173 ponytail + Q186 + Q112):
+// `ShellPlaceholder` moved to its own file at
+// `Sources/WenshuApp/UI/Layout/ShellPlaceholder.swift` (= v1.34 ticket 001
+// extraction). The struct block (= 22 lines including the legacy
+// `// MARK: - Placeholder view` header + the long ContentUnavailableView
+// rationale block) is removed here so the same name no longer compiles twice.
+//
+// Per Q34 5.2: the extraction was botched (= v1.34 created the new file but
+// left the legacy declaration in place; = main failed to compile with
+// `invalid redeclaration of 'ShellPlaceholder'`). v1.36 finishes the
+// extraction by removing the legacy block from NavigationSplitShell.swift.
+//
+// Per Q57: the legacy `ShellPlaceholder` body (Apple HIG rationale block +
+// ContentUnavailableView wrapper) lives verbatim in the new file (= no
+// behavior change; = pure refactor = 1 file 1 commit).
 

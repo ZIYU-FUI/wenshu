@@ -27,16 +27,22 @@ import Testing
 @Suite("WorkspaceView (v0.88 — customizable-layout root, header + state)")
 struct WorkspaceViewTests {
 
-    @Test("source imports SwiftUI + MarkdownEngine + LucideSwift")
+    @Test("source imports SwiftUI + MarkdownEngine (= post-v1.x Lucide → SF Symbols 6 deprecation)")
     func sourceImports() throws {
+        // v1.36 ticket 003: drop the `import LucideSwift` assertion
+        // (= removed by boss's v1.x Lucide → SF Symbols 6 deprecation in
+        // commit c50d76167). Per Q34 5.2 + Q173 ponytail + Q186: the
+        // canonical icon layer post-v1.x = SF Symbols 6 (= `Image(systemName:)`),
+        // not the third-party LucideSwift fork. WorkspaceView.swift
+        // already dropped the `import LucideSwift` line (= part of v1.x).
         let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("import SwiftUI"),
                 "must import SwiftUI for View + @State + @Environment + .onChange")
         #expect(source.contains("import MarkdownEngine"),
                 "must import MarkdownEngine (= the SPM product providing MarkdownEditorConfiguration per v0.39 ticket 001)")
-        #expect(source.contains("import LucideSwift"),
-                "must import LucideSwift (= wenshu v0.27 Lucide-only mandate; = no SF Symbols)")
+        #expect(!source.contains("import LucideSwift"),
+                "must NOT import LucideSwift (= removed by v1.x Lucide → SF Symbols 6 deprecation)")
     }
 
     @Test("struct conforms to View + owns LayoutTreeStore as ObservedObject")
