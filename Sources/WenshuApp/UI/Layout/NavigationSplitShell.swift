@@ -459,10 +459,16 @@ enum InspectorPage: Hashable, CaseIterable {
 
     var icon: String {
         switch self {
-        case .authoringFiction:     return "book.pages.fill"      // SF Symbols 6 book.pages.fill = fiction
-        case .authoringStyle:       return "paintpalette.fill"    // SF Symbols 6 paintpalette.fill = style
-        case .authoringCharacters:  return "person.2.fill"        // SF Symbols 6 person.2.fill = characters
-        case .projectManagement:    return "folder.fill.badge.gearshape"  // SF Symbols 6 folder + gear = project settings
+        // v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
+        // migrated to outline glyphs (= the canonical Apple HIG
+        // form for the Liquid Glass 3rd-generation design language).
+        // The .fill variant (= solid color glyph) is reserved for
+        // status indicators (= error / success badges); tool tab
+        // chrome should use outline glyphs throughout.
+        case .authoringFiction:     return "book.pages"      // SF Symbols 6 outline
+        case .authoringStyle:       return "paintpalette"    // SF Symbols 6 outline
+        case .authoringCharacters:  return "person.2"        // SF Symbols 6 outline
+        case .projectManagement:    return "folder.badge.gearshape"  // SF Symbols 6 folder + gear
         }
     }
 }

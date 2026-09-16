@@ -1925,8 +1925,12 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
 
     private var sourceIcon: String {
         switch message.source {
-        case .user: return "person.fill"
-        case .wenshu: return "text.book.closed.fill"
+        // v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
+        // chat bubble avatars (= user / wenshu) use outline glyphs
+        // (= the canonical Apple HIG form for the Liquid Glass
+        // 3rd-generation design language).
+        case .user: return "person"
+        case .wenshu: return "text.book.closed"
         case .system: return "exclamationmark.triangle"
         }
     }

@@ -27,7 +27,7 @@ struct Bookshelf: Identifiable, Hashable, Codable, Sendable {
     var name: String
     /// v0.30 boss 8/31 OOB: shelf icon name (= Lucide kebab-case,
     /// e.g. "square-library"). Optional for backward compat (=
-    /// existing shelves default to "books-vertical.fill" via
+    /// existing shelves default to "books.vertical" via
     /// `displayIcon`).
     var icon: String?
     let createdAt: Date

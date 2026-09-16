@@ -55,12 +55,16 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
     }
 
     /// SF Symbol name for the card icon.
+    /// v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
+    /// all entity-type icons use outline glyphs (= the canonical
+    /// Apple HIG form for the Liquid Glass 3rd-generation design
+    /// language).
     var icon: String {
         switch self {
-        case .protagonist: return "person.fill"
-        case .antagonist:  return "person.fill.viewfinder"
-        case .supporting:  return "person.2.fill"
-        case .narrator:    return "text.bubble.fill"
+        case .protagonist: return "person"
+        case .antagonist:  return "person.viewfinder"
+        case .supporting:  return "person.2"
+        case .narrator:    return "text.bubble"
         case .other:       return "person.crop.circle.badge.questionmark"
         }
     }

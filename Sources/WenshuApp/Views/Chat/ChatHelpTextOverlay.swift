@@ -89,8 +89,12 @@ public struct ChatHelpTextOverlay: View {
                 // Inner spacing values (= 22 PT icon→title gap, 4 PT
                 // title→body gap) are matched to Apple's measured
                 // ContentUnavailableView sample.
+                // v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
+                // migrated chat empty-state icon from 'message.fill' to
+                // 'message' (= the outline form = the canonical Apple
+                // HIG Liquid Glass 3rd-generation design language).
                 EmptyStateView(
-                    icon: "message.fill",
+                    icon: "message",
                     titleView:
                         HStack(spacing: 0) {
                             Text(WenshuI18n.t("chathelp.please_first_goto") + " ")

@@ -453,8 +453,8 @@ Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件
 - **API**:
   ```swift
   SFIcon("books.vertical", size: .medium, color: .secondary)   // chrome top bar identity
-  SFIcon("paperplane.fill", rendering: .palette, color: .accent) // 18 PT + accent (= button action)
-  SFIcon("books.vertical.fill", rendering: .palette, color: .tint) // 32 PT + tint (= hero / entity badge)
+  SFIcon("paperplane", rendering: .palette, color: .accent) // 18 PT + accent (= button action)
+  SFIcon("books.vertical", rendering: .palette, color: .tint) // 32 PT + tint (= hero / entity badge)
   Image(systemName: "magnifyingglass").iconStyle(.small, color: .secondary)  // explicit size + color
   ```
 - **Use when**: Adding any icon to any view (= .iconStyle replaces scattered `.frame(width:N).foregroundStyle(...)` chains).

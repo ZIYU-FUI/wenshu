@@ -47,13 +47,17 @@ enum WorldEntryType: String, CaseIterable, Codable, Sendable {
 
     /// SF Symbol name for the card icon. Apple HIG: SF Symbol carries
     /// the visual weight (= wenshu MD files have no thumbnail).
+    /// v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
+    /// all entity-type icons use outline glyphs (= the canonical
+    /// Apple HIG form for the Liquid Glass 3rd-generation design
+    /// language).
     var icon: String {
         switch self {
-        case .geography: return "map.fill"
-        case .lore:      return "book.pages.fill"
+        case .geography: return "map"
+        case .lore:      return "book.pages"
         case .event:     return "calendar"
-        case .object:    return "cube.box.fill"
-        case .other:     return "tag.fill"
+        case .object:    return "cube.box"
+        case .other:     return "tag"
         }
     }
 }

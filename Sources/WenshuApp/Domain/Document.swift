@@ -75,11 +75,15 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     /// weight, FCP Browser does the same when no poster frame exists).
     /// Apple HIG: symbols follow the system font; we use the .large
     /// image scale at render time for empty-state size.
+    /// v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
+    /// all entity-type icons use outline glyphs (= the canonical
+    /// Apple HIG form for the Liquid Glass 3rd-generation design
+    /// language).
     var icon: String {
         switch self {
         case .chapter:  return "book.closed"
         case .setting:  return "gearshape.2"
-        case .research: return "books.vertical.fill"
+        case .research: return "books.vertical"
         }
     }
 }
@@ -199,11 +203,15 @@ enum DocumentRefKind: String, CaseIterable, Codable, Sendable {
     }
 
     /// SF Symbol name (= for chips / badges in the UI).
+    /// v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
+    /// all entity-type icons use outline glyphs (= the canonical
+    /// Apple HIG form for the Liquid Glass 3rd-generation design
+    /// language).
     var icon: String {
         switch self {
-        case .character: return "person.fill"
-        case .world:     return "map.fill"
-        case .reference: return "books.vertical.fill"
+        case .character: return "person"
+        case .world:     return "map"
+        case .reference: return "books.vertical"
         }
     }
 }

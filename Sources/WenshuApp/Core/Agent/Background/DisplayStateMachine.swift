@@ -65,8 +65,14 @@ public enum DisplayState: Sendable, Equatable, Codable {
         switch self {
             case .idle: return "circle"
             case .running: return "arrow.triangle.2.circlepath"
-            case .success: return "checkmark.circle.fill"
-            case .error: return "exclamationmark.triangle.fill"
+            // v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
+            // status icons (success / error) use outline glyphs
+            // (= the canonical Apple HIG form for the Liquid Glass
+            // 3rd-generation design language). The .fill variant
+            // is reserved for selected/active state markers
+            // (= future ticket if the UI needs them).
+            case .success: return "checkmark.circle"
+            case .error: return "exclamationmark.triangle"
             case .cancelled: return "xmark.circle"
         }
     }
