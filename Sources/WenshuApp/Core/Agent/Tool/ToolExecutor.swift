@@ -194,7 +194,7 @@ public actor ToolExecutor {
             do {
                 if let tool = tools[toolName] {
                     output = try await tool.execute(input: serializedInput)
-                } else if let tool = await lookupTool(name: toolName, registry: tools) {
+                } else if let tool = lookupTool(name: toolName, registry: tools) {
                     output = try await tool.execute(input: serializedInput)
                 } else {
                     output = "Error: tool '\(toolName)' not found"

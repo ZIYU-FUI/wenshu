@@ -770,7 +770,7 @@ final class PaneNSController: NSSplitViewController {
 
     private func buildLayout() {
         // Reset any inherited children (= safety against reuse).
-        for child in children {
+        for _ in children {
             removeChild(at: 0)
         }
         // v0.30 boss 2026-09-01 OOB fix: explicitly set the root

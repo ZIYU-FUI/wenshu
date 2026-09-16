@@ -40,8 +40,6 @@ public enum OutlineExtractor {
     /// Parse markdown content, extract all headings
     public static func extract(_ content: String) -> [OutlineItem] {
         var items: [OutlineItem] = []
-        let nsString = content as NSString
-        let fullRange = NSRange(location: 0, length: nsString.length)
         let lines = content.components(separatedBy: "\n")
 
         for (lineIdx, line) in lines.enumerated() {

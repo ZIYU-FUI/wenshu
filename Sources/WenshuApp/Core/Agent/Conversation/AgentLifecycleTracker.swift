@@ -144,7 +144,7 @@ final class AgentLifecycleTracker: @unchecked Sendable {
     /// safety for the records dict. Same pattern as `KanbanStoreTool.shared`
     /// (= Swift 6 compiler warning is suppressed at the call site; = safe
     /// because all state mutations go through the queue).
-    public nonisolated(unsafe) static let shared = AgentLifecycleTracker()
+    public nonisolated static let shared = AgentLifecycleTracker()
 
     // MARK: - Configuration
 

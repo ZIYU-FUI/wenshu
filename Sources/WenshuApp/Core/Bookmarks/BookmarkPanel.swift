@@ -45,7 +45,7 @@ public struct BookmarkPanel: View {
             ForEach(viewModel.bookmarks) { bookmark in
                 Text(bookmark.label).font(.caption)
             }
-            if let error = viewModel.error {
+            if let _ = viewModel.error {
                 Text(WenshuI18n.t("auto.bookmarkpanel.l55.h42196043"))
                     .foregroundStyle(.red)
             }

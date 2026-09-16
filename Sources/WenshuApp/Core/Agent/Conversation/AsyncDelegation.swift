@@ -376,7 +376,7 @@ public func delegate(
     }
 
     // 3. Lifecycle registration.
-    var handle = BackgroundDelegationHandle(
+    let handle = BackgroundDelegationHandle(
         agentName: subagentProfile,
         userMessage: task,
         state: .pending

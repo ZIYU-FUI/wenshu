@@ -213,7 +213,6 @@ struct GenreFitView: View {
     }
 
     private func scoreBadge(_ score: Double) -> some View {
-        let pct = Int(score.rounded())
         let color: Color = {
             if score >= 70 { return Color.green.opacity(0.22) }
             if score >= 40 { return Color.orange.opacity(0.22) }

@@ -53,7 +53,7 @@ public actor PlotThreadTracker {
 
     public func remove(id: UUID) async throws {
         for bookId in threads.keys {
-            var values = try await load(bookId: bookId)
+            let values = try await load(bookId: bookId)
             let filtered = values.filter { $0.id != id }
             if filtered.count != values.count { try await save(filtered, bookId: bookId) }
         }
@@ -66,7 +66,6 @@ public actor PlotThreadTracker {
 
     public func staleThreads(bookId: UUID) async throws -> [PlotThread] {
         let values = try await load(bookId: bookId)
-        let referenced = Set(values.compactMap(\.lastReferencedIn))
         let chapters = values.compactMap(\.introducedIn)
         let recent = Set(chapters.suffix(3))
         // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):

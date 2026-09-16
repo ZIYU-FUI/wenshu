@@ -175,7 +175,7 @@ struct WorkspaceView: View {
                 return filtered.first
             }()
             if let first = pickedReference {
-                let body = (try? bookStore.referenceStore.loadReferenceBody(id: first.id)) ?? first.summary
+                let body = bookStore.referenceStore.loadReferenceBody(id: first.id) ?? first.summary
                 path = nil  // reference is library-public; ticket 027-35 will resolve
                 content = body
                 title = first.title
@@ -238,12 +238,6 @@ struct WorkspaceView: View {
 
         // No duplicate. Open as new tab (= reuse current tab if clean,
         // otherwise append).
-        let currentIsDirty: Bool = {
-            guard let tab = appState.openTabs.first(where: { $0.id == appState.activeTabId }) else {
-                return false
-            }
-            return tab.draft != tab.originalBody
-        }()
         let newTab = EditorTab(
             id: UUID(),
             documentPath: path,

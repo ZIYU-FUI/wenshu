@@ -76,7 +76,7 @@ public actor GoalsManager {
         guard !cleanGoal.isEmpty else { throw GoalsError.emptyGoal }
         var work = ""
         var mainUsages: [LLMUsage] = []
-        var auxiliaryUsages: [LLMUsage] = []
+        let auxiliaryUsages: [LLMUsage] = []
         var judgment: GoalsJudgment = .continue_(reason: "No judgment yet")
 
         for iteration in 1...maxIterations {

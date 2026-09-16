@@ -345,7 +345,7 @@ public final class ChatViewModel {
     //    the ref is a Sendable pointer (= the actor instance itself
     //    is Sendable across isolation boundaries); only the actor's
     //    methods require `await`.
-    nonisolated(unsafe) static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
+    nonisolated static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
 
     public func switchModel(_ id: String) {
         // B-05: write to the canonical owner (= AppState.llmModel),
@@ -528,7 +528,7 @@ public final class ChatViewModel {
                 // messages[idx] = ... }` overwrites the final sealed
                 // message with an in-flight snapshot).
                 let streamingTaskBox = StreamingTaskBox()
-                let result = try await conductor.handle(
+                let result = await conductor.handle(
                     userMessage: text,
                     sessionId: sessionId,
                     model: currentModel,
@@ -1033,7 +1033,7 @@ public struct ChatView: View {
         // No conductor provided → nothing to wrap. ChatViewModel's
         // direct verifier path (= non-conductor branch in send()) does
         // not consult a tool registry, so this is a no-op for preview.
-        guard let conductor = conductor else { return nil }
+        guard conductor != nil else { return nil }
         // Phase 5 ticket 2.2: peer conductor no longer instantiates a
         // WSKanbanRepository (= the sqlite3 fallback path was dropped
         // in Phase 5 ticket 6, which also deleted the KanbanStore

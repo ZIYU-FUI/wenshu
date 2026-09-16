@@ -71,7 +71,7 @@ public struct TodoStoreTool: Tool, Sendable {
     /// singleton from a MainActor context. Production path runs
     /// after `WenshuAppDelegate.applicationDidFinishLaunching` so the
     /// trap never fires.
-    public nonisolated(unsafe) static let shared: TodoStoreTool = {
+    public nonisolated static let shared: TodoStoreTool = {
         MainActor.assumeIsolated {
             TodoStoreTool(
                 hermesTodo: HermesTodoTool(store: HermesTodoStore()),

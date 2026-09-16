@@ -173,18 +173,23 @@ struct FileSystemReferenceStore: ReferenceStoring {
             // The closure below tries ISO8601 first, falls back to a
             // Unix timestamp Double.
             let decoder = JSONDecoder()
-            let isoFormatter = ISO8601DateFormatter()
-            isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            let isoFormatterNoFractional = ISO8601DateFormatter()
-            isoFormatterNoFractional.formatOptions = [.withInternetDateTime]
+            // v0.46 fix: was `let isoFormatter = ISO8601DateFormatter()`
+            // (= a Foundation class that Swift 6 marks non-Sendable)
+            // captured inside the .custom decoding closure (= also
+            // @Sendable, per JSONDecoder.dateDecodingStrategy's
+            // contract). Switched to Date.ISO8601FormatStyle
+            // (= Swift-native Sendable value type; = no @Sendable
+            // capture issue).
+            let isoStyleWithFrac = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+            let isoStyleNoFrac = Date.ISO8601FormatStyle(includingFractionalSeconds: false)
             decoder.dateDecodingStrategy = .custom { dec in
                 let container = try dec.singleValueContainer()
                 if let double = try? container.decode(Double.self) {
                     return Date(timeIntervalSince1970: double)
                 }
                 let raw = try container.decode(String.self)
-                if let d = isoFormatter.date(from: raw) { return d }
-                if let d = isoFormatterNoFractional.date(from: raw) { return d }
+                if let d = try? Date(raw, strategy: isoStyleWithFrac) { return d }
+                if let d = try? Date(raw, strategy: isoStyleNoFrac) { return d }
                 throw DecodingError.dataCorruptedError(
                     in: container,
                     debugDescription: "Date string '\(raw)' is neither ISO8601 nor numeric"

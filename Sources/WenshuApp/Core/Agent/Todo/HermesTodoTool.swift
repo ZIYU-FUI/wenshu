@@ -476,7 +476,7 @@ public struct HermesTodoTool: Tool, Sendable {
     // (= WSTodo / WSTodoRepository is the canonical wenshu persistence).
     // = no plan to migrate HermesTodoStore to SwiftData per
     // HermesTodoTool.swift L87 #warning.
-    public nonisolated(unsafe) static let shared: HermesTodoTool = HermesTodoTool(store: HermesTodoStore())
+    public nonisolated static let shared: HermesTodoTool = HermesTodoTool(store: HermesTodoStore())
 
     private let store: HermesTodoStore
 

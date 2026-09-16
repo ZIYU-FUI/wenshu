@@ -25,7 +25,7 @@ enum WenshuLLMModelFetcher {
     static func fetchLiveModelIds(apiKey: String, baseUrl: String) async -> [String]? {
         let base = baseUrl.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let candidates = [base, base + "/v1"]
-        var headers: [String: String] = [
+        let headers: [String: String] = [
             "x-api-key": apiKey,
             "anthropic-version": "2023-06-01",
             "User-Agent": "wenshu/0.21"

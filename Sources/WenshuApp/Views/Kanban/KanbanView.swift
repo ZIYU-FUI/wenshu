@@ -65,7 +65,7 @@ public struct KanbanView: View {
         VStack(alignment: .leading, spacing: 8) {
             header
             inputRow
-            if let err = loadError {
+            if let _ = loadError {
                 Text(WenshuI18n.t("auto.kanbanview.l69.h78022707"))
                     .font(.caption)
                     .foregroundStyle(.red)

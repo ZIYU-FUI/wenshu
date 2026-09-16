@@ -397,13 +397,12 @@ public actor WenshuConductor {
         streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
     ) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // Step 1: write 1 conductor parent task to WSKanbanRepository (kanban progress, not shown in ChatView)
-        let conductorTask: KanbanTask?
-        do {
-            conductorTask = await MainActor.run {
-                try? WSKanbanRepository.shared.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
-            }
-        } catch {
-            conductorTask = nil
+        // v0.34: create the kanban entry on MainActor (= the WS* repository
+        // singletons are @MainActor in v0.34; the conductor runs on its own
+        // actor). MainActor.run is not throwing (= the inner try? is the
+        // only error sink), so we can drop the do/catch.
+        let conductorTask: KanbanTask? = await MainActor.run {
+            try? WSKanbanRepository.shared.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
         }
 
         // v0.21 ticket 34: accumulate all LLM API real usage (intent classify + sub-agent LLM calls + synthesis)
@@ -500,7 +499,7 @@ public actor WenshuConductor {
             // skip the kanban transitions if cancelled (loop body no-ops).
             let isCancelled = Task.isCancelled
             // Mark kanban tasks done (after collection)
-            for (name, kanbanId) in tasks where !isCancelled {
+            for (_, kanbanId) in tasks where !isCancelled {
                 if let id = kanbanId {
                     await MainActor.run {
                         _ = try? WSKanbanRepository.shared.transition(id: id, to: .done)
@@ -521,7 +520,7 @@ public actor WenshuConductor {
                     completedAt: Date(),
                     resultSummary: summary
                 )
-                _ = try? await MainActor.run { try? WSChatRepository.shared.recordSubAgentRun(run, sessionId: "default") }
+                _ = await MainActor.run { try? WSChatRepository.shared.recordSubAgentRun(run, sessionId: "default") }
             }
             // v0.23 ticket 002: Auditor runs if Writer or Analyst in selection.
             let needsAudit = selectedAgents.contains("writer") || selectedAgents.contains("analyst")

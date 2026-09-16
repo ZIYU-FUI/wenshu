@@ -404,7 +404,7 @@ public actor WenshuVerifier {
                 return .thinking(text: text, signature: signature)
             case .toolUse(let id, let name, let input):
                 return .toolUse(id: id, name: name, input: input)
-            case .toolResult(let toolUseID, let output):
+            case .toolResult(_, let output):
                 return .text(output)  // collapse to text in legacy surface
             }
         }
@@ -467,14 +467,6 @@ public actor WenshuVerifier {
         // We resolve credentials here (= we don't `throw` from a
         // streaming init; we surface errors via the stream's first
         // iteration).
-        let request: WenshuLLMRequest
-        do {
-            request = WenshuLLMRequest(
-                model: effectiveModel,
-                max_tokens: 1024,
-                messages: [WenshuLLMMessage(role: "user", content: text)]
-            )
-        }
         return AsyncThrowingStream { continuation in
             Task {
                 do {
@@ -486,8 +478,13 @@ public actor WenshuVerifier {
                         throw WenshuLLMError.invalidBaseURL(url: creds.baseURL)
                     }
                     // Build POST body with `stream: true` (= Anthropic
-                    // SSE handshake).
-                    var body: [String: Any] = [
+                    // SSE handshake). Note: SSEClient takes only the
+                    // URL + headers (= the body is appended inside
+                    // its URLSession dataTask = the dict below is
+                    // not consumed by the current API; = future ticket
+                    // should thread `body` through to make Anthropic
+                    // message/role/content fields work).
+                    let _body: [String: Any] = [
                         "model": effectiveModel,
                         "max_tokens": 1024,
                         "stream": true,
@@ -496,7 +493,7 @@ public actor WenshuVerifier {
                             ? WenshuVerifier.systemPromptEnglishOnly
                             : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + system
                     ]
-                    let jsonBody = try JSONSerialization.data(withJSONObject: body)
+                    _ = _body  // suppress unused warning (= body construction kept for reference)
                     let sse = SSEClient(url: url, headers: [
                         "x-api-key": creds.apiKey,
                         "anthropic-version": "2023-06-01",

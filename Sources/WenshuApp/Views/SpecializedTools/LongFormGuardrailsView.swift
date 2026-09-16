@@ -299,7 +299,7 @@ struct LongFormGuardrailsView: View {
                         .font(.caption)
                         .foregroundStyle(.primary)
                     Spacer(minLength: 0)
-                    if let line = v.lineNumber {
+                    if let _ = v.lineNumber {
                         Text(WenshuI18n.t("b5.longformguardrailsview.l337.h13219410"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)

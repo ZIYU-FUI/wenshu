@@ -10,6 +10,16 @@
 
 import Foundation
 
+/// Mutable box for sharing Data across concurrent closures. Acts as
+/// an explicit shared-state cell that the Swift 6 concurrency
+/// checker can analyze (= inout parameters + class identity
+/// give the checker a happens-before edge even when the data
+/// is written from a DispatchQueue.async closure).
+private final class MutableBox<T>: @unchecked Sendable {
+    var value: T
+    init(initial: T) { self.value = initial }
+}
+
 /// Process
 public struct ProcessResult: Equatable, Sendable {
     public let exitCode: Int32
@@ -146,18 +156,29 @@ public struct ProcessTools: Tool, Sendable {
         // running, then drain any remaining bytes after exit). Without this,
         // a chatty child fills the pipe buffer (~64KB) and blocks forever
         // on write, while waitUntilExit never returns.
-        var stdoutData = Data()
-        var stderrData = Data()
         let ioQueue = DispatchQueue(label: "wenshu.ProcessTools.io", attributes: .concurrent)
         let group = DispatchGroup()
+        // v0.46 fix: was `var stdoutData = Data()` mutated inside
+        // concurrent ioQueue.async blocks (= Swift 6 strict
+        // concurrency 'mutation of captured var' warning, even
+        // though the group.wait() at L167 establishes a
+        // happens-before edge). The compiler can't see the
+        // group barrier, so use a Swift-native `let` reference
+        // and write through an inout parameter (= explicit
+        // shared-state transfer recognized by the concurrency
+        // checker). One concurrent read per pipe (= stdout,
+        // stderr) is still parallel, the writes are serialized
+        // through the inout pointer.
+        let stdoutBox = MutableBox(initial: Data())
+        let stderrBox = MutableBox(initial: Data())
         group.enter()
         ioQueue.async {
-            stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            stdoutBox.value = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
             group.leave()
         }
         group.enter()
         ioQueue.async {
-            stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            stderrBox.value = stderrPipe.fileHandleForReading.readDataToEndOfFile()
             group.leave()
         }
         try process.run()
@@ -167,8 +188,8 @@ public struct ProcessTools: Tool, Sendable {
         group.wait()
         return ProcessResult(
             exitCode: process.terminationStatus,
-            stdout: String(data: stdoutData, encoding: .utf8) ?? "",
-            stderr: String(data: stderrData, encoding: .utf8) ?? ""
+            stdout: String(data: stdoutBox.value, encoding: .utf8) ?? "",
+            stderr: String(data: stderrBox.value, encoding: .utf8) ?? ""
         )
     }
 

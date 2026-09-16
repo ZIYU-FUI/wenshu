@@ -518,7 +518,6 @@ public actor ConversationLoop {
                     messages: compressedMessages,
                     taskId: resolvedTaskId
                 )
-                _ = compressedSystem  // compressedSystem captured for future turnContext restore
             } catch let error as LLMConnectorError {
                 // WIRE-AGENT-006: mark the entry as failed on retryable
                 // error too (= the user sees the failed step in the

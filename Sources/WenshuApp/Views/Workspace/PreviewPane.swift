@@ -1051,7 +1051,7 @@ struct PreviewPane: View {
     }
 
     private func loadBody(for entity: Reference) -> String? {
-        try? bookStore.referenceStore.loadReferenceBody(id: entity.id)
+        bookStore.referenceStore.loadReferenceBody(id: entity.id)
     }
 
     /// v0.30 boss 8/31 OOB: load .md files from a book folder on the

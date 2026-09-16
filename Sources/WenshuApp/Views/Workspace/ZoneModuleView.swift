@@ -264,7 +264,7 @@ struct ZoneModuleView: View {
                 return filtered.first
             }()
             if let first = pickedReference {
-                let body = (try? bookStore.referenceStore.loadReferenceBody(id: first.id)) ?? first.summary
+                let body = bookStore.referenceStore.loadReferenceBody(id: first.id) ?? first.summary
                 path = nil
                 content = body
                 title = first.title
@@ -361,12 +361,6 @@ struct ZoneModuleView: View {
         }
 
         // Open new tab.
-        let currentIsDirty: Bool = {
-            guard let tab = appState.openTabs.first(where: { $0.id == appState.activeTabId }) else {
-                return false
-            }
-            return tab.draft != tab.originalBody
-        }()
         let newTab = EditorTab(
             id: UUID(),
             documentPath: path,

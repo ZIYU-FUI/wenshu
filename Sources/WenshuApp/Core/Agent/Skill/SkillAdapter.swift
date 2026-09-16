@@ -24,7 +24,7 @@ public actor SkillAdapter {
         }
     }
 
-    private let defaults: UserDefaults
+    private nonisolated(unsafe) let defaults: UserDefaults
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -133,17 +133,17 @@ public actor SkillAdapter {
         return skills
     }
 
-    public func isSkillEnabled(name: String) -> Bool {
+    public nonisolated func isSkillEnabled(name: String) -> Bool {
         let key = DefaultsKey.skillEnabled(name)
         if defaults.object(forKey: key) == nil { return true }
         return defaults.bool(forKey: key)
     }
 
-    public func currentEnabled(name: String) -> Bool {
+    public nonisolated func currentEnabled(name: String) -> Bool {
         return isSkillEnabled(name: name)
     }
 
-    public func setEnabled(name: String, enabled: Bool) {
+    public nonisolated func setEnabled(name: String, enabled: Bool) {
         defaults.set(enabled, forKey: DefaultsKey.skillEnabled(name))
     }
 

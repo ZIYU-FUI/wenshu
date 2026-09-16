@@ -399,7 +399,7 @@ func modelToResizers(_ model: GridLayout) -> [GridResizer] {
     // Vertical resizers (= between columns) — added per row's
     // column transitions. Mirrors hermes grid-model.ts modelToResizers.
     for r in 0..<model.rows {
-        var indices = uniquePreservingOrder(model.cellChildMap[r])
+        let indices = uniquePreservingOrder(model.cellChildMap[r])
         // For each adjacent-column pair with the same zone index,
         // emit one vertical resizer.
         for c in 0..<(indices.count - 1) {
@@ -418,7 +418,7 @@ func modelToResizers(_ model: GridLayout) -> [GridResizer] {
     }
     // Horizontal resizers (= between rows).
     for r in 0..<(model.rows - 1) {
-        var indices = uniquePreservingOrder(model.cellChildMap[r])
+        let indices = uniquePreservingOrder(model.cellChildMap[r])
         if !indices.isEmpty {
             resizers.append(GridResizer(
                 orientation: .horizontal,
@@ -602,10 +602,10 @@ func mergeClosureIndices(_ model: GridLayout, indices: [Int]) -> GridLayout {
     let targets = indices.compactMap { idx in zones.first { $0.index == idx } }
     guard targets.count == indices.count else { return model }
 
-    let minLeft = targets.map(\.left).min() ?? 0
-    let maxRight = targets.map(\.right).max() ?? 0
-    let minTop = targets.map(\.top).min() ?? 0
-    let maxBottom = targets.map(\.bottom).max() ?? 0
+    _ = targets.map(\.left).min() ?? 0
+    _ = targets.map(\.right).max() ?? 0
+    _ = targets.map(\.top).min() ?? 0
+    _ = targets.map(\.bottom).max() ?? 0
 
     // Replace all child-map entries for the merged zones with a single zone index.
     // Use the smallest index in the set as the merged zone's representative.

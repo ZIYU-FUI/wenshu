@@ -394,7 +394,6 @@ struct EmotionCurveView: View {
         }
 
         // 10) Y-axis labels (= +1 / 0 / -1).
-        let labelShading = GraphicsContext.Shading.color(Color(nsColor: .secondaryLabelColor))
         context.draw(
             Text(WenshuI18n.t("b5.emotioncurveview.l446.h6941667")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: 10, y: topY)

@@ -44,7 +44,8 @@ public actor MemoryManager {
     /// hermes equivalent: `prefetch_all(user_message) → Dict[str, str]`.
     /// Simple keyword-match (no embeddings yet — v0.24+).
     public func prefetch(userMessage: String) async -> PrefetchResult {
-        guard let memories = try? await searchMemory(userId: "default", query: userMessage, limit: 10), !memories.isEmpty else {
+        let memories = await searchMemory(userId: "default", query: userMessage, limit: 10)
+        guard !memories.isEmpty else {
             return .empty
         }
         // Apply char budget (hermes: total ≤ memory_char_limit).
@@ -66,7 +67,8 @@ public actor MemoryManager {
     /// with a caller-supplied top-K.
     public func prefetch(userMessage: String, limit: Int) async -> PrefetchResult {
         guard limit > 0 else { return .empty }
-        guard let memories = try? await searchMemory(userId: "default", query: userMessage, limit: limit), !memories.isEmpty else {
+        let memories = await searchMemory(userId: "default", query: userMessage, limit: limit)
+        guard !memories.isEmpty else {
             return .empty
         }
         var totalChars = 0
@@ -87,7 +89,7 @@ public actor MemoryManager {
     /// relevant memory items" surface documented in the ticket spec.
     public func fetch(limit: Int = 20) async -> [Memory] {
         guard limit > 0 else { return [] }
-        return (try? await searchMemory(userId: "default", query: "", limit: limit)) ?? []
+        return await searchMemory(userId: "default", query: "", limit: limit)
     }
 
     /// sync: post-turn — persist assistant's response (or important info from turn).
@@ -99,13 +101,9 @@ public actor MemoryManager {
         let decision = MemoryWriteGate.evaluateAdd(content: content)
         switch decision {
         case .allow:
-            do {
-                try await addMemory(userId: "default", content: content)
-                let total = (try? await countMemory(userId: "default")) ?? 0
-                return .synced(writtenCount: 1, totalChars: total)
-            } catch {
-                return .blocked(reason: "WSMemoryRepository.add failed: \(error)")
-            }
+            await addMemory(userId: "default", content: content)
+            let total = await countMemory(userId: "default")
+            return .synced(writtenCount: 1, totalChars: total)
         case .stageForApproval:
             // hermes: stage to pending queue. wenshu v0.23: silent stage (no GUI yet).
             return .stagedForApproval
@@ -146,7 +144,8 @@ public actor MemoryManager {
         userMessage: String,
         budget: Int
     ) async -> PrefetchResult {
-        guard let memories = try? await searchMemory(userId: "default", query: userMessage, limit: 10), !memories.isEmpty else {
+        let memories = await searchMemory(userId: "default", query: userMessage, limit: 10)
+        guard !memories.isEmpty else {
             return .empty
         }
         var totalChars = 0
