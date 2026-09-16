@@ -102,80 +102,102 @@ def scan(text, source):
             yield f"ERROR: forbidden vocabulary '{token}' in {source}:{line_no} | {context}"
 
 
+def _exact_match(path, entry):
+    """Match 1: path == entry exactly."""
+    return path == entry
+
+
+def _suffix_match(path, entry):
+    """Match 2: path ends with '/<entry>' (entry is treated as a leaf basename with leading slash)."""
+    return path.endswith("/" + entry)
+
+
+def _directory_match(path, entry):
+    """Match 3: entry is a directory (with or without trailing /) and path is inside it.
+    Reuses the suffix_match path when entry already ends with '/'.
+    """
+    if not "/" in entry:
+        return False
+    if path.startswith(entry if entry.endswith("/") else entry + "/"):
+        return True
+    return False
+
+
+def _basename_prefix_match(path, entry):
+    """Match 4: entry is a Swift symbol 'Module.method' (= dotted, no '/').
+    Heuristic: if the substring after the last '.' is a short alphanumeric token
+    (= 1-5 chars like 'md', 'swift', 'json'), treat entry as a filename (= skip this
+    match type). Otherwise, treat it as a symbol prefix and match if path's basename
+    (with extension stripped) starts with the symbol prefix.
+    """
+    if "." not in entry or "/" in entry:
+        return False
+    last_dot = entry.rfind(".")
+    after_dot = entry[last_dot + 1:]
+    # File-extension-like (.md, .swift) = treat as filename, skip basename-prefix.
+    if after_dot and after_dot.isalnum() and len(after_dot) <= 5:
+        return False
+    # This is a symbol like 'WenshuVerifier.shortOutputStopSequences'.
+    symbol_prefix = entry.split(".", 1)[0]
+    basename = path.rsplit("/", 1)[-1]
+    # Remove .swift extension for comparison
+    basename_root = basename.rsplit(".", 1)[0] if "." in basename else basename
+    return basename_root == symbol_prefix or basename.startswith(symbol_prefix + ".")
+
+
+def _glob_prefix_match(path, entry):
+    """Match 5: entry is a path prefix ending in '-' or '_' (= glob-style boundary).
+    Used for prefix-only matches like '.scratch/code-review-' (= matches all
+    '.scratch/code-review-*' files). The trailing '-' or '_' prevents false positives
+    like 'CONTEXT.md' matching 'CONTEXT.md.bak'.
+    """
+    if entry.endswith("/"):
+        return False
+    if not path.startswith(entry):
+        return False
+    last_char = entry[-1]
+    if last_char not in "-_":
+        return False
+    after = path[len(entry):]
+    if after == "" or not after.startswith("/"):
+        # Path continues directly after entry (= same filename).
+        return True
+    # Path goes into a subdirectory starting with this prefix
+    # (= '.scratch/code-review-spec-8-26-v1-2-0-spec-axis/SPEC-AXIS-REPORT.md'
+    # matches '.scratch/code-review-' + 'spec-.../...md').
+    return True
+
+
+# Each match helper returns True on match, False (= 'not my job, try next type').
+_MATCH_HELPERS = [
+    _exact_match,
+    _suffix_match,
+    _directory_match,
+    _basename_prefix_match,
+    _glob_prefix_match,
+]
+
+
 def is_allowed(path):
     """Check if a file path is in the pollution allowlist (= legitimately enumerates forbidden tokens).
 
-    Match types supported:
-      - Exact match: path == entry.
-      - Suffix match: path ends with '/<entry>'.
-      - Directory prefix match: entry ends with '/' and path starts with entry OR
-        entry is a directory name (no trailing /) and path starts with entry + '/'.
-      - Basename prefix match: entry is a Swift symbol like 'WenshuVerifier.X' (= prefix
-        before the first '.' is the file basename). Match if path's basename starts with
-        that prefix.
-      - Glob-style path prefix match: entry is a path prefix ending in a non-alphanumeric
-        char (= '-', etc.) and path starts with entry. Used for prefix-only matches
-        like '.scratch/code-review-' (= matches all '.scratch/code-review-*' files).
+    5 match types (= one helper per type, see _MATCH_HELPERS):
+      1. Exact match: path == entry.
+      2. Suffix match: path ends with '/<entry>'.
+      3. Directory prefix match: entry is a directory and path is inside it.
+      4. Basename prefix match: entry is a Swift symbol 'Module.method' (= dotted, no '/').
+      5. Glob-style path prefix match: entry is a path prefix ending in '-' or '_'.
 
     Examples:
       entry '.scratch/2026-08-22-pollution-mitigation/' → matches any file in that dir.
       entry '.scratch/code-review-' → matches all '.scratch/code-review-*' files.
       entry 'WenshuVerifier.shortOutputStopSequences' → matches files whose basename
-        starts with 'WenshuVerifier' (= 'Sources/.../WenshuVerifier.swift' etc.).
+      starts with 'WenshuVerifier' (= 'Sources/.../WenshuVerifier.swift' etc.).
     """
     for entry in POLLUTION_ALLOWLIST:
-        # Exact match
-        if path == entry:
-            return True
-        # Suffix match (= entry is the leaf basename with leading slash)
-        if path.endswith("/" + entry):
-            return True
-        # Directory prefix match: entry ends with '/' OR entry has a '/' in it (= it's a directory)
-        if "/" in entry:
-            if path.startswith(entry if entry.endswith("/") else entry + "/"):
+        for helper in _MATCH_HELPERS:
+            if helper(path, entry):
                 return True
-        # Basename prefix match: entry is a Swift symbol with dots (= 'Module.method')
-        # But ONLY if entry doesn't end with a common file extension (= .md, .swift, .json, .yaml, .yml)
-        # = 'CONTEXT.md' is a filename (= basename match), 'WenshuVerifier.X' is a symbol (= basename-prefix match).
-        # We use a simple heuristic: if entry's last '.' is followed by 1-5 alphanumeric chars, it's likely
-        # a file extension. We only treat entries as symbol prefixes if they have a '.' that's NOT at
-        # the end (= 'Module.method' has '.' not at end; 'CONTEXT.md' has '.' followed by 'md').
-        if "." in entry and not "/" in entry:
-            last_dot = entry.rfind(".")
-            after_dot = entry[last_dot + 1:]
-            # If after the last '.' is a short alphanumeric token (= file extension like 'md', 'swift'),
-            # treat this entry as a filename (= exact + suffix match only, no basename-prefix).
-            if after_dot and after_dot.isalnum() and len(after_dot) <= 5:
-                # This is a filename like 'CONTEXT.md' or 'commit_filter.py'. Skip basename-prefix.
-                pass
-            else:
-                # This is a symbol like 'WenshuVerifier.shortOutputStopSequences'.
-                symbol_prefix = entry.split(".", 1)[0]
-                # Match if path's basename starts with the symbol prefix
-                basename = path.rsplit("/", 1)[-1]
-                # Remove .swift extension for comparison
-                basename_root = basename.rsplit(".", 1)[0] if "." in basename else basename
-                if basename_root == symbol_prefix or basename.startswith(symbol_prefix + "."):
-                    return True
-        # Glob-style prefix match: entry is a path prefix and path starts with it,
-        # AND the entry ends with a non-dot-dash char (= must be a true prefix,
-        # not a file-extension-like suffix). Used for prefix-only matches like
-        # '.scratch/code-review-' (= matches all '.scratch/code-review-*' files).
-        if not entry.endswith("/"):
-            if path.startswith(entry):
-                after = path[len(entry):]
-                # The entry must end with a separator-char (= '-' or '_' = a "boundary" between
-                # directory name and the file prefix). This prevents false positives like
-                # 'CONTEXT.md' matching 'CONTEXT.md.bak' (= '.' is not a valid prefix boundary).
-                last_char = entry[-1]
-                if last_char in "-_":
-                    if after == "" or not after.startswith("/"):
-                        # Path continues directly after entry (= same filename).
-                        return True
-                    # Path goes into a subdirectory starting with this prefix
-                    # (= '.scratch/code-review-spec-8-26-v1-2-0-spec-axis/SPEC-AXIS-REPORT.md'
-                    # matches '.scratch/code-review-' + 'spec-.../...md').
-                    return True
     return False
 
 
