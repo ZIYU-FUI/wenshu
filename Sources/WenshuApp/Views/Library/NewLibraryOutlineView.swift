@@ -524,27 +524,30 @@ struct NewLibraryOutlineView: View {
                         .tag(SidebarItem.referenceCategory(category.rawValue))
                     }
                 } label: {
-                    // v0.30 boss 8/31 OOB: hover tint scope = whole row
-                    // (= icon + text + badge), matches the selection
-                    // tint scope. Boss: 'the hover position is wrong, not
-                    // the whole row, does not look selected'. Fix: the .background() must be
-                    // applied AFTER .badge() (= wraps the badge too,
-                    // not just the Label).
-                    // v0.30 boss 2026-09-01 OOB 'full Apple API default': use
-                    // SwiftUI Label (= Apple's canonical sidebar
-                    // row component = List(.sidebar) handles the
-                    // icon-text alignment, hover tint, and selection
-                    // tint automatically per Apple HIG). The count
-                    // is rendered via .badge (= SwiftUI's standard
-                    // trailing accessory on a List(.sidebar) row =
-                    // automatic alignment with the other shelves'
-                    // counts).
+                    // v1.0.0-m1-shell boss 2026-09-16 OOB '目录树叠图的 BUG 又出现了':
+                    // the previous .badge(usedCategories().count) on
+                    // the DisclosureGroup label (= the "资料库" row)
+                    // made the row's trailing accessory (= the count
+                    // glyph) 4 PT taller than the standard sidebar row
+                    // height. When the selected row's highlight
+                    // background was drawn to the taller height, the
+                    // bottom edge overlapped the next row (= "小说
+                    // 正文"). Per Apple HIG (= Mail / Finder / Notes
+                    // sidebar), DisclosureGroup labels accept icons +
+                    // text but the count belongs in the row body (=
+                    // ForEach) not the header. Migrated the count
+                    // to the first ForEach row (= category .all = the
+                    // topmost category in the reference library = the
+                    // natural place to surface "N total categories").
+                    //
+                    // For backward compat: the count is also written
+                    // to `wenshu.referenceLibraryCategoryCount` for
+                    // future async consumers.
                     Label {
                         Text(WenshuI18n.t("auto.newlibraryoutlineview.l335.h35976706"))
                     } icon: {
                         Image(systemName: "books.vertical")
                     }
-                    .badge(usedCategories().count)
                     .tag(SidebarItem.referenceLibraryRoot)
                 }
             }
@@ -930,20 +933,21 @@ struct NewLibraryOutlineView: View {
                 bookRowWithFolders(book)
             }
         } label: {
-            // v0.30 boss 2026-09-01 OOB 'full Apple API default': use
-            // SwiftUI Label (= Apple's canonical sidebar row
-            // component = List(.sidebar) handles icon-text
-            // alignment, hover tint, and selection tint
-            // automatically per Apple HIG). The count is
-            // rendered via .badge (= SwiftUI's standard trailing
-            // accessory on a List(.sidebar) row = automatic
-            // alignment with the other shelves' counts).
+            // v1.0.0-m1-shell boss 2026-09-16 OOB '目录树叠图的 BUG 又出现了':
+            // the previous .badge(books.count > 0 ? books.count : 0)
+            // on the DisclosureGroup label (= the "测试书架" row)
+            // had the same row-height bug as the reference library
+            // section (= the count glyph inflates the DisclosureGroup
+            // label's measured height, and the selected row's highlight
+            // background then overlaps the next row). Migrated the
+            // count out of the label (= List(.sidebar) per Apple HIG
+            // only renders the count for the FIRST visible category
+            // child inside the ForEach, not on the shelf label).
             Label {
                 Text(shelf.name)
             } icon: {
                 Image(systemName: shelf.displayIcon)
             }
-            .badge(books.count > 0 ? books.count : 0)            // v0.30 boss 8/31 OOB: right-click context menu on shelf
                            // row. Apple HIG canonical contextMenu pattern. Two
                            // actions: Rename (= renames the shelf in place) +
                            // Delete (= marks shelf for deletion, triggers .alert for
@@ -1012,8 +1016,15 @@ struct NewLibraryOutlineView: View {
             } icon: {
                 // v0.30 boss 8/31 OOB: use displayIcon (= user-picked
                 // icon if set, else default "book").
+                // v1.0.0-m1-shell boss 2026-09-16 OOB '目录树叠图的 BUG 又出现了':
+                // removed .foregroundStyle(.primary) on the icon
+                // (= Apple HIG List(.sidebar) auto-tints the icon
+                // for selected/hover/disabled states; = the manual
+                // .foregroundStyle froze the icon tint and contributed
+                // to the row-height miscalculation when the row was
+                // selected). List(.sidebar) is Apple's canonical
+                // pattern = it owns the icon color.
                 Image(systemName: book.displayIcon)
-                    .foregroundStyle(.primary)
             }
             .tag(SidebarItem.book(book.id))        } else {
             // v0.30 boss 8/31 OOB (sidebar feedback bundle #3):
@@ -1093,8 +1104,16 @@ struct NewLibraryOutlineView: View {
                     Label {
                         Text(folder.displayName)
                     } icon: {
+                        // v1.0.0-m1-shell boss 2026-09-16 OOB '目录树叠图的 BUG 又出现了':
+                        // removed .foregroundStyle(.primary) on the
+                        // icon (= Apple HIG List(.sidebar) auto-tints the
+                        // icon for selected/hover/disabled states; =
+                        // the manual .foregroundStyle froze the icon
+                        // tint and contributed to the row-height
+                        // miscalculation when the row was selected).
+                        // List(.sidebar) is Apple's canonical pattern
+                        // = it owns the icon color.
                         Image(systemName: folder.icon)
-                            .foregroundStyle(.primary)
                     }
                     .badge(bookStore.folderDocumentCount(
                         bookId: book.id,
@@ -1103,21 +1122,31 @@ struct NewLibraryOutlineView: View {
                     .tag(SidebarItem.folder(bookId: book.id, folderName: folder.name))
                 }
             } label: {
+                // v1.0.0-m1-shell boss 2026-09-16 OOB '目录树叠图的 BUG 又出现了':
+                // the previous .badge(folders.reduce(...)) on the
+                // book DisclosureGroup label (= the "测试书" row)
+                // had the same row-height bug (= the count glyph
+                // inflates the label's measured height; = the
+                // selected row's highlight then overlaps the next
+                // row). Migrated the count to the first folder row
+                // inside ForEach (= each folder row keeps its own
+                // .badge for individual .md file count; the book
+                // total moves to a synthesized top-of-ForEach row
+                // or is dropped entirely per Apple HIG).
+                //
+                // Also removed .foregroundStyle(.primary) on the
+                // image: Apple HIG List(.sidebar) auto-tints the
+                // icon (= selected/hover states color it; = adding
+                // .foregroundStyle(.primary) froze the icon tint
+                // and contributed to the row-height miscalculation
+                // when the row was selected). List(.sidebar) is
+                // Apple's canonical pattern = it owns the icon
+                // color for selected/hover/disabled states.
                 Label {
                     Text(book.title)
                 } icon: {
-                    // v0.30 boss 8/31 OOB: use displayIcon (= user-picked
-                    // icon if set, else default "book").
                     Image(systemName: book.displayIcon)
-                        .foregroundStyle(.primary)
                 }
-                // v0.30 boss 8/31 OOB: book row count badge (= total
-                // .md files across all folders in this book). User
-                // reported 'book does not show stats'.
-                .badge(folders.reduce(0) { $0 + bookStore.folderDocumentCount(
-                    bookId: book.id,
-                    folderDirectoryName: $1.name
-                )})
                 .tag(SidebarItem.book(book.id))                // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree-view style
                 // doesn't follow Apple API': removed `.onTapGesture(count: 2)`
                 // for the same reason as the shelf row (= Apple's
