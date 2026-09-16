@@ -339,48 +339,14 @@ struct NavigationSplitShell: View {
         // CRITICAL DO NOT REMOVE (= see comment block above).
         .environment(bookStore)
     }
-}// MARK: - Sidebar column (= 2 vertical sub-areas)
-
-/// Apple HIG sidebar column (= 1 vertical sub-area: directory tree).
-/// Per boss 2026-09-10 second OOB 'NAV default 3 columns + each
-/// column's sub-areas = visual 5 columns' = the card grid migrates
-/// out of the sidebar bottom into the middle column bottom
-/// (= ticket 001 of 2026-09-10-six-zone-ui-rewrite). The sidebar
-/// is left as a single-area column (= no VSplitView) so the
-/// directory tree owns the whole column.
-///
-/// Boss 2026-09-10 'Apple default' = no custom chrome wrappers;
-/// Plan A pass-through ZonePerRegionChrome stub stays as-is
-/// (per boss 9/8 OOB).
-struct ShellSidebarColumn: View {
-    let appState: AppState
-
-    var body: some View {
-        // Sidebar = 1 zone (directory tree). The previous 9/9
-        // v0.49 sidebar card-zone pattern is reverted per the
-        // 8/30 boss red-line drawing (= cards in the middle
-        // column, not the sidebar).
-        //
-        // v0.79 boss 2026-09-10 OOB 'tree view — no search box needed, remove it':
-        // the sidebar's `.searchable` field (= the macOS 13+
-        // Apple HIG sidebar search widget = the search field at
-        // the top of the sidebar column = ticket 004 of the
-        // 2026-09-10-six-zone-ui-rewrite batch) is removed.
-        // All sidebar rows render unconditionally (= no
-        // case-insensitive substring match on title; = the
-        // directory tree is its own document = the user sees
-        // the whole tree and navigates by clicking rows =
-        // standard macOS Finder behavior when the search field is
-        // hidden). The previous commit's `sidebarSearchText`
-        // @State + the `.searchable(text:placement:prompt:)`
-        // modifier (= Apple HIG Inventory 2026-09-06 §
-        // 'add HIG APIs that are currently absent') are both
-        // dropped; NewLibraryOutlineView never read this
-        // binding directly (= its filter reads SidebarState, not
-        // sidebarSearchText; = the binding is fully removable).
-        NewLibraryOutlineView()
-    }
-}
+}// v1.38 ticket 001 (= real fix per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112):
+// `ShellSidebarColumn` moved to its own file at
+// `Sources/WenshuApp/UI/Layout/ShellSidebarColumn.swift`. The struct
+// block (= 29 lines including the `// MARK: - Sidebar column` header
+// + the Apple HIG sidebar rationale + the NewLibraryOutlineView body)
+// is removed here so the same name no longer compiles twice.
+// Same module = no new import needed for the consumer
+// (= NavigationSplitShell instantiates ShellSidebarColumn directly).
 
 /// v0.40 boss 2026-09-08 OOB 'directory tree top bar is also missing': scope selector
 /// for the sidebar top tab bar. 2 cases map to the existing
