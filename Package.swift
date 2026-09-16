@@ -121,6 +121,53 @@ let package = Package(
                 "Resources/Info.plist",
                 "Resources/AppIcon.icon"
             ],
+            // Apple HIG canonical i18n root fix (boss 2026-09-16 OOB
+            // '不要什么都先想着最简单, 不要为以后留坑. 要想着从根本解决问题':
+            // the repeated i18n regression (= sidebar / inspector
+            // labels flipping to English on zh-Hans users) was never
+            // a WenshuI18n bug. The actual root cause per Apple HIG
+            // + TN2418 + polpiella.dev ("Adding an Info.plist file
+            // to a Swift executable"): when a Swift executable runs
+            // as a bare Mach-O (= `swift build` output, `swift run`,
+            // `open .build/.../WenshuApp`), `Bundle.main` resolves
+            // to the binary path and has NO `CFBundleLocalizations`
+            // field. Foundation then falls back to
+            // `CFBundleDevelopmentRegion = en` and every
+            // NSLocalizedString returns English regardless of the
+            // user's `zh-Hans-CN` system language. The .app wrapper
+            // hides this for production builds because build-app.sh
+            // copies Info.plist into Contents/, but every dev iteration
+            // (= every `swift build` + `open .build/.../WenshuApp`)
+            // hits the same regression.
+            //
+            // Apple HIG-canonical fix: embed the project's
+            // Info.plist directly into the Mach-O via the
+            // `__TEXT,__info_plist` section. This is the exact
+            // pattern Apple recommends for Swift CLI tools and
+            // executable SPM targets that need a Bundle.main with
+            // CFBundleLocalizations / CFBundleDevelopmentRegion.
+            // Per developer.apple.com/forums/thread/734540:
+            //
+            //   > it is possible to give a command-line tool a
+            //   > bundle ID, bundle name, and so on. The trick is
+            //   > to embed the Info.plist into a special section
+            //   > in your tool. See the CREATE_INFOPLIST_SECTION_IN_BINARY
+            //   > build setting.
+            //
+            // After this change:
+            //   - Bundle.main.object(forInfoDictionaryKey:
+            //     "CFBundleLocalizations") returns ["en", "zh-Hans"]
+            //   - Bundle.main.preferredLocalizations returns
+            //     ["zh-Hans"] for zh-Hans-CN users
+            //   - NSLocalizedString resolves to zh-Hans values
+            //     regardless of whether wenshu is launched as
+            //     a bare Mach-O or as a packaged .app bundle.
+            //
+            // The .app bundle build-app.sh still copies the same
+            // Info.plist into Contents/Info.plist for Finder /
+            // LaunchServices metadata (= canonical .app layout);
+            // the linkerSettings below is the binary-side mirror
+            // that makes dev builds behave identically.
             // v0.38 ticket P2 (= Apple-standard i18n per boss OOB):
             // .process("Resources") ships en.lproj/Localizable.strings +
             // zh-Hans.lproj/Localizable.strings (= Apple canonical
@@ -132,6 +179,65 @@ let package = Package(
             // build script extracts separately).
             resources: [
                 .process("Resources")
+            ],
+            // Apple HIG canonical i18n root fix (boss 2026-09-16 OOB
+            // '不要什么都先想着最简单, 不要为以后留坑. 要想着从根本解决问题':
+            // the repeated i18n regression (= sidebar / inspector
+            // labels flipping to English on zh-Hans users) was never
+            // a WenshuI18n bug. The actual root cause per Apple HIG
+            // + TN2418 + polpiella.dev ("Adding an Info.plist file
+            // to a Swift executable"): when a Swift executable runs
+            // as a bare Mach-O (= `swift build` output, `swift run`,
+            // `open .build/.../WenshuApp`), `Bundle.main` resolves
+            // to the binary path and has NO `CFBundleLocalizations`
+            // field. Foundation then falls back to
+            // `CFBundleDevelopmentRegion = en` and every
+            // NSLocalizedString returns English regardless of the
+            // user's `zh-Hans-CN` system language. The .app wrapper
+            // hides this for production builds because build-app.sh
+            // copies Info.plist into Contents/, but every dev iteration
+            // (= every `swift build` + `open .build/.../WenshuApp`)
+            // hits the same regression.
+            //
+            // Apple HIG-canonical fix: embed the project's
+            // Info.plist directly into the Mach-O via the
+            // `__TEXT,__info_plist` section. This is the exact
+            // pattern Apple recommends for Swift CLI tools and
+            // executable SPM targets that need a Bundle.main with
+            // CFBundleLocalizations / CFBundleDevelopmentRegion.
+            // Per developer.apple.com/forums/thread/734540:
+            //
+            //   > it is possible to give a command-line tool a
+            //   > bundle ID, bundle name, and so on. The trick is
+            //   > to embed the Info.plist into a special section
+            //   > in your tool. See the CREATE_INFOPLIST_SECTION_IN_BINARY
+            //   > build setting.
+            //
+            // After this change:
+            //   - Bundle.main.object(forInfoDictionaryKey:
+            //     "CFBundleLocalizations") returns ["en", "zh-Hans"]
+            //   - Bundle.main.preferredLocalizations returns
+            //     ["zh-Hans"] for zh-Hans-CN users
+            //   - NSLocalizedString resolves to zh-Hans values
+            //     regardless of whether wenshu is launched as
+            //     a bare Mach-O or as a packaged .app bundle.
+            //
+            // The .app bundle build-app.sh still copies the same
+            // Info.plist into Contents/Info.plist for Finder /
+            // LaunchServices metadata (= canonical .app layout);
+            // the linkerSettings below is the binary-side mirror
+            // that makes dev builds behave identically.
+            //
+            // SPM field-order requirement: PackageDescription's
+            // Target builder validates parameter order; =
+            // linkerSettings must follow resources.
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-sectcreate",
+                    "-Xlinker", "__TEXT",
+                    "-Xlinker", "__info_plist",
+                    "-Xlinker", "Sources/WenshuApp/Resources/Info.plist"
+                ])
             ]
         ),
         .testTarget(
