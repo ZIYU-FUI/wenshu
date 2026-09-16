@@ -15,6 +15,7 @@
 // renderTabByKind. Kept for backward compatibility with downstream
 // extensions.
 
+import Foundation
 import SwiftUI
 import Testing
 @testable import WenshuApp
@@ -117,33 +118,51 @@ struct WorkspaceViewRenderTabTests {
                 "must use ZoneContentView chrome across all 4 zones (= per the v0.34 audit; found \(zoneContentViewCount) occurrences in code region)")
     }
 
-    @Test("file declares WorkspaceView + EditorPaperCanvas structs (= 2 remaining; ZoneModuleView + EditorPlaceholder extracted)")
+    @Test("file declares WorkspaceView struct only (= ZoneModuleView + EditorPlaceholder + EditorPaperCanvas all extracted to own files)")
     func declaresWorkspaceViewStruct() throws {
         // v1.32: ZoneModuleView extracted to ZoneModuleView.swift
         // v1.33: EditorPlaceholder extracted to EditorPlaceholder.swift
-        // WorkspaceView.swift currently hosts 2 sibling structs:
-        //   - WorkspaceView (= the root container, line 40)
-        //   - EditorPaperCanvas (= the A4 paper-canvas overlay, line 821;
-        //     = still inline; = future v1.x ticket extracts it)
-        // Per Q34 5.2 + Q173 ponytail + Q186 + Q57: assert reality (= what
-        // is currently in the file), not what was planned. EditorPaperCanvas
-        // is the next extract candidate for the fat-file split pattern.
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
+        // v1.37: EditorPaperCanvas extracted to EditorPaperCanvas.swift (= this ticket)
+        // WorkspaceView.swift now hosts ONLY the WorkspaceView root struct.
+        // Per Q34 5.2 + Q173 ponytail + Q186 + Q57: assert reality (= what is
+        // currently in the file), not what was planned.
+        var url = URL(fileURLWithPath: #filePath)
+        url.deleteLastPathComponent()  // → .../Workspace
+        url.deleteLastPathComponent()  // → .../Views
+        url.deleteLastPathComponent()  // → .../WenshuAppTests
+        url.deleteLastPathComponent()  // → .../Tests
+        url.deleteLastPathComponent()  // → project root
+        url.appendPathComponent("Sources")
+        url.appendPathComponent("WenshuApp")
+        url.appendPathComponent("Views")
+        url.appendPathComponent("Workspace")
+        url.appendPathComponent("WorkspaceView.swift")
+        let sourcePath = url.path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct WorkspaceView: View"),
                 "must declare WorkspaceView struct (= the main root)")
-        #expect(source.contains("struct EditorPaperCanvas<Content: View>: View"),
-                "must declare EditorPaperCanvas struct (= the A4 paper-canvas overlay, = future v1.x extraction target)")
+        // Verify the 3 sibling structs moved out (= no longer in this file).
         #expect(!source.contains("struct ZoneModuleView: View"),
                 "ZoneModuleView must have moved out (= v1.32 extraction)")
         #expect(!source.contains("struct EditorPlaceholder: View"),
                 "EditorPlaceholder must have moved out (= v1.33 extraction)")
-        // Verify the 2 extracted sibling files exist (= independent consumer check).
-        let zoneModulePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/ZoneModuleView.swift"
-        let editorPlaceholderPath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift"
-        #expect(FileManager.default.fileExists(atPath: zoneModulePath),
+        #expect(!source.contains("struct EditorPaperCanvas<Content: View>: View"),
+                "EditorPaperCanvas must have moved out (= v1.37 extraction)")
+        // Verify the 3 sibling files exist (= independent consumer check).
+        // Use #filePath-derived paths (= robust to worktree relocations).
+        func projectRootURL() -> URL {
+            var u = URL(fileURLWithPath: #filePath)
+            for _ in 0..<5 { u.deleteLastPathComponent() }  // 5 deletes = file + 4 dirs
+            return u
+        }
+        let zoneModuleURL = projectRootURL().appendingPathComponent("Sources/WenshuApp/Views/Workspace/ZoneModuleView.swift")
+        let editorPlaceholderURL = projectRootURL().appendingPathComponent("Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift")
+        let editorPaperCanvasURL = projectRootURL().appendingPathComponent("Sources/WenshuApp/Views/Workspace/EditorPaperCanvas.swift")
+        #expect(FileManager.default.fileExists(atPath: zoneModuleURL.path),
                 "ZoneModuleView.swift must exist (= v1.32 sibling)")
-        #expect(FileManager.default.fileExists(atPath: editorPlaceholderPath),
+        #expect(FileManager.default.fileExists(atPath: editorPlaceholderURL.path),
                 "EditorPlaceholder.swift must exist (= v1.33 sibling)")
+        #expect(FileManager.default.fileExists(atPath: editorPaperCanvasURL.path),
+                "EditorPaperCanvas.swift must exist (= v1.37 sibling)")
     }
 }

@@ -17,7 +17,12 @@
 // ViewInspector v0.10.3 behavior tests are limited for generic
 // structs + ScrollView wrappers (= v0.82 Q-lesson); = use
 // source-level structural assertions per v0.82 pattern.
+//
+// v1.37 ticket 001: path is derived from `#filePath` (= the same
+// pattern as v1.33 EditorPlaceholderTests = robust to worktree
+// relocations).
 
+import Foundation
 import SwiftUI
 import Testing
 @testable import WenshuApp
@@ -25,18 +30,37 @@ import Testing
 @Suite("EditorPaperCanvas (v0.93 — A4 paper-canvas wrapper)")
 struct EditorPaperCanvasTests {
 
+    /// Resolves the EditorPaperCanvas.swift path from this test file's
+    /// `#filePath` (= `.../Tests/WenshuAppTests/Views/Workspace/EditorPaperCanvasTests.swift`)
+    /// by walking up 5 levels to the project root and appending the
+    /// canonical `Sources/...` path.
+    private var editorPaperCanvasPath: String {
+        var url = URL(fileURLWithPath: #filePath)
+        url.deleteLastPathComponent()  // drop file name → .../Workspace
+        url.deleteLastPathComponent()  // drop Workspace → .../Views
+        url.deleteLastPathComponent()  // drop Views → .../WenshuAppTests
+        url.deleteLastPathComponent()  // drop WenshuAppTests → .../Tests
+        url.deleteLastPathComponent()  // drop Tests → project root
+        url.appendPathComponent("Sources")
+        url.appendPathComponent("WenshuApp")
+        url.appendPathComponent("Views")
+        url.appendPathComponent("Workspace")
+        url.appendPathComponent("EditorPaperCanvas.swift")
+        return url.path
+    }
+
     @Test("source imports SwiftUI")
     func importsSwiftUI() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        // v1.34 ticket 001: EditorPaperCanvas extracted from WorkspaceView.swift
+        // to its own file at Sources/WenshuApp/Views/Workspace/EditorPaperCanvas.swift.
+        let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
         #expect(source.contains("struct EditorPaperCanvas<Content: View>: View"),
-                "EditorPaperCanvas must be declared inside WorkspaceView.swift (= per Q112 1-file scope)")
+                "EditorPaperCanvas must be declared inside EditorPaperCanvas.swift (= v1.34 extraction)")
     }
 
     @Test("struct is a generic over Content conforming to View")
     func isGenericOverContent() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
         let codeLines = source.components(separatedBy: "\n").filter {
             !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
         }
@@ -50,75 +74,57 @@ struct EditorPaperCanvasTests {
 
     @Test("body wraps content in ScrollView with horizontal + vertical axes")
     func bodyUsesScrollView() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
         // EditorPaperCanvas's body must wrap content in ScrollView so the
         // sheet scrolls horizontally when the detail column is narrower
         // than A4 (= boss 2026-09-10 OOB 'Pages does the same when its
         // window is narrower than A4').
-        let editorPaperCanvasRange = source.range(of: "struct EditorPaperCanvas")!
-        let editorPaperCanvasSection = String(source[editorPaperCanvasRange.lowerBound...])
-        #expect(editorPaperCanvasSection.contains("ScrollView([.horizontal, .vertical])"),
+        #expect(source.contains("ScrollView([.horizontal, .vertical])"),
                 "EditorPaperCanvas body must wrap content in ScrollView with horizontal + vertical axes (= per boss 2026-09-10 OOB)")
     }
 
     @Test("paper width = 595 PT (= A4 width, per Pages standard)")
     func paperWidthIsA4() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
         // Per boss 2026-09-10 OOB 'just design the paper as a single A4
         // sheet' (= Pages / Numbers use the same). The paperWidth
         // constant must be 595 PT (= A4 width in points).
-        let editorPaperCanvasRange = source.range(of: "struct EditorPaperCanvas")!
-        let editorPaperCanvasSection = String(source[editorPaperCanvasRange.lowerBound...])
-        #expect(editorPaperCanvasSection.contains("paperWidth: CGFloat { 595 }"),
+        #expect(source.contains("paperWidth: CGFloat { 595 }"),
                 "EditorPaperCanvas.paperWidth must be 595 PT (= A4 width; = per boss 2026-09-10 OOB)")
     }
 
     @Test("paper margin = 72 PT (= 1 inch Pages default)")
     func paperMarginIsOneInch() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        let editorPaperCanvasRange = source.range(of: "struct EditorPaperCanvas")!
-        let editorPaperCanvasSection = String(source[editorPaperCanvasRange.lowerBound...])
-        #expect(editorPaperCanvasSection.contains("paperMargin: CGFloat { 72 }"),
+        let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
+        #expect(source.contains("paperMargin: CGFloat { 72 }"),
                 "EditorPaperCanvas.paperMargin must be 72 PT (= 1 inch; = Pages default)")
     }
 
     @Test("body uses Color.white background + shadow for the paper sheet")
     func bodyUsesPaperStyling() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        let editorPaperCanvasRange = source.range(of: "struct EditorPaperCanvas")!
-        let editorPaperCanvasSection = String(source[editorPaperCanvasRange.lowerBound...])
-        #expect(editorPaperCanvasSection.contains(".background(Color.white)"),
+        let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
+        #expect(source.contains(".background(Color.white)"),
                 "EditorPaperCanvas body must use .background(Color.white) (= paper sheet visual contract)")
-        #expect(editorPaperCanvasSection.contains(".shadow(color: .black.opacity(0.35)"),
+        #expect(source.contains(".shadow(color: .black.opacity(0.35)"),
                 "EditorPaperCanvas body must add shadow for the paper sheet (= Pages-like presentation)")
-        #expect(editorPaperCanvasSection.contains(".environment(\\.colorScheme, .light)"),
+        #expect(source.contains(".environment(\\.colorScheme, .light)"),
                 "EditorPaperCanvas body must force light color scheme (= white paper on dark column)")
     }
 
     @Test("body uses defaultScrollAnchor(.center) (= macOS 14+ centering API)")
     func bodyUsesDefaultScrollAnchor() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        let editorPaperCanvasRange = source.range(of: "struct EditorPaperCanvas")!
-        let editorPaperCanvasSection = String(source[editorPaperCanvasRange.lowerBound...])
+        let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
         // Per boss 2026-09-10 OOB: the sheet used to be left-aligned.
         // Center the paper horizontally with defaultScrollAnchor(.center)
         // (= Apple macOS 14+ API).
-        #expect(editorPaperCanvasSection.contains(".defaultScrollAnchor(.center)"),
+        #expect(source.contains(".defaultScrollAnchor(.center)"),
                 "EditorPaperCanvas body must center the paper horizontally with .defaultScrollAnchor(.center) (= per boss 2026-09-10 OOB)")
     }
 
     @Test("body sets minHeight 842 (= A4 height)")
     func bodySetsMinHeightA4() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        let editorPaperCanvasRange = source.range(of: "struct EditorPaperCanvas")!
-        let editorPaperCanvasSection = String(source[editorPaperCanvasRange.lowerBound...])
-        #expect(editorPaperCanvasSection.contains(".frame(minHeight: 842)"),
+        let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
+        #expect(source.contains(".frame(minHeight: 842)"),
                 "EditorPaperCanvas body must set minHeight 842 (= A4 height in points)")
     }
 }
