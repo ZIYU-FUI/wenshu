@@ -81,7 +81,7 @@ public enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifi
         switch self {
         case .open:      return "circle"
         case .resolved:  return "check-circle-2"
-        case .abandoned: return "circle-x"
+        case .abandoned: return "xmark.circle"
         }
     }
 

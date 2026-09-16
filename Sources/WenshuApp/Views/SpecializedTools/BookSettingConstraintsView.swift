@@ -193,7 +193,7 @@ struct BookSettingConstraintsView: View {
                 Button {
                     Task { await addConstraint() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l230.h25158042")) } icon: { LucideIcon("plus", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l230.h25158042")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
@@ -242,7 +242,7 @@ struct BookSettingConstraintsView: View {
     private func constraintRow(_ constraint: BookSettingConstraint) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-                LucideIconSystemFallback(constraint.severity.lucideIcon, size: 16)
+                Image(systemName: constraint.severity.lucideIcon).font(.system(size: 16, weight: .regular))
                     .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
@@ -299,7 +299,7 @@ struct BookSettingConstraintsView: View {
                 Button(role: .destructive) {
                     Task { await removeConstraint(constraint) }
                 } label: {
-                    LucideIconSystemFallback("trash-2", size: 14)
+                    Image(systemName: "trash").font(.system(size: 14, weight: .regular))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
@@ -330,7 +330,7 @@ struct BookSettingConstraintsView: View {
                     Button {
                         Task { await runCheck() }
                     } label: {
-                        Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l376.h23587784")) } icon: { LucideIcon("search-check", size: 16) }
+                        Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l376.h23587784")) } icon: { Image(systemName: "magnifyingglass").font(.system(size: 16, weight: .regular)) }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || constraints.isEmpty)
@@ -359,12 +359,10 @@ struct BookSettingConstraintsView: View {
 
     private func violationRow(_ violation: ConstraintViolation) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-            LucideIconSystemFallback(
-                violation.severity == .hard ? "alert-octagon" : "alert-triangle",
-                size: 14
-            )
-            .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(Color.orange))
-            .frame(width: DesignTokens.tabIconSize)
+            Image(systemName: violation.severity == .hard ? "octagon.fill" : "exclamationmark.triangle.fill")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(Color.orange))
+                .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: DesignTokens.chromePaddingMicro) {
                     Text(violation.title)

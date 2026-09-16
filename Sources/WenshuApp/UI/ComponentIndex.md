@@ -142,7 +142,7 @@ Each component has:
 
 ### 3.1 PaneIconTab (NEW, Phase 2)
 - **Path**: `Sources/WenshuApp/UI/PaneIconTab.swift` (NEW)
-- **Purpose**: Single tab button (= 28×28 hot area + Lucide icon + selected underline + matchGeometry animation)
+- **Purpose**: Single tab button (= 28×28 hot area + SF Symbol icon + selected underline + matchGeometry animation)
 - **Use when**: Building ANY per-pane tab with icon + selected state
 - **Don't use when**: Tab needs label text (= use SwiftUI's native `Picker`)
 - **API**:
@@ -157,7 +157,7 @@ Each component has:
       onTap: { selection = item.id }
   )
   ```
-- **Replaces**: Inline `Button { Color.clear.frame(28,28).overlay { LucideIcon }.overlay(.bottom) { Rectangle }` patterns (= 3 implementations, ~90 LOC each)
+- **Replaces**: Inline `Button { Color.clear.frame(28,28).overlay { Image(systemName:) }.overlay(.bottom) { Rectangle }` patterns (= 3 implementations, ~90 LOC each)
 
 ### 3.2 PaneTabBar (NEW, Phase 3)
 - **Path**: `Sources/WenshuApp/UI/PaneTabBar.swift` (NEW)
@@ -235,26 +235,22 @@ Each component has:
 
 ## 🧩 LEVEL 6: Icon 组件
 
-### 6.1 LucideIconSystemFallback
-- **Path**: `Sources/WenshuApp/Views/LucideIcon.swift`
-- **Purpose**: Lucide-first icon renderer with SF Symbol fallback (= always try Lucide, fall back to SF if not found)
+### 6.1 SFIcon (= canonical SF Symbols 6 renderer; v1.0.0-m1-shell 2026-09-15)
+- **Path**: `Sources/WenshuApp/UI/IconStyles.swift`
+- **Purpose**: Apple SF Symbols 6 icon renderer (= built into macOS 27 = zero SPM dependency). Boss 2026-09-15 OOB 'use SF Symbols 6 (3rd gen) with palette rendering' replaces the Lucide era.
 - **Use when**: Any tab button, button, or icon needs an icon
 - **API**:
   ```swift
-  LucideIconSystemFallback("square-plus", size: DesignTokens.tabIconSize)
+  SFIcon("books.vertical", size: .medium, color: .secondary)
+  SFIcon("wand.and.stars", size: .large, rendering: .palette, color: .tint)
+  Image(systemName: "magnifyingglass").iconStyle(.chrome)
   ```
-- **DON'T**: Use `Image(systemName:)` directly (= bypasses Lucide layer)
+- **Rendering modes**: `.monochrome` / `.hierarchical` (default; = Apple HIG chrome) / `.palette` (= per-layer color depth) / `.paletteLayers(Color, Color)` (= explicit two-layer).
+- **Weight**: `.regular` (= boss 9/15 '细体' = canonical macOS 27 toolbar weight).
 
-### 6.2 Lucide (raw)
-- **Path**: `Sources/WenshuApp/Views/Lucide.swift` (bring-shrubbery/lucide-swift wrapper)
-- **Purpose**: Raw Lucide icon (= when you know the icon exists in Lucide)
-- **Use when**: You want strict Lucide-only (no SF fallback)
-- **API**:
-  ```swift
-  if let lucide = Lucide("square-plus") {
-      lucide.frame(width: 18, height: 18)
-  }
-  ```
+### 6.2 ~~Lucide (raw)~~ — REMOVED 2026-09-15
+- **Path**: `Sources/WenshuApp/Views/Lucide.swift` (~~bring-shrubbery/lucide-swift wrapper~~)
+- Replaced by SFIcon (§6.1). All 30 Lucide icon names mapped to SF Symbols 6 equivalents (= verified via `/Applications/SF Symbols Beta.app/Contents/Executables/sfsymbols` CLI). See commit message of `81270abe1` for the full mapping table.
 
 ---
 
@@ -297,7 +293,7 @@ These were removed in various phases (= v0.32 Apple-API-first sweep + v0.34 boss
 ### 8.4 ❌ zoneContentTabBarIcon / dynamicZoneTabBarIcon / chatZoneTabBarIcon
 - **Was in**: same files as 8.3
 - **Deleted**: Phase 3
-- **Use instead**: `LucideIconSystemFallback(icon, size:)` directly (= call site)
+- **Use instead**: `SFIcon(icon, size:)` directly (= call site; see LEVEL 6.1)
 
 ### 8.5 ❌ LayoutTokens.chatTabHotArea
 - **Was in**: `Sources/WenshuApp/UI/LayoutTokens.swift`
@@ -415,7 +411,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 
 ## 🎨 STYLES (= boss 2026-09-07 'ui 与功能分离' architecture)
 
-Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件类似 css, 这样我们以后也好管理, 功能与样式分离' = abstract ALL chrome/content/icon styling into CSS-like style files (= single source of truth for visual tokens + modifiers; = zones own only FUNCTIONAL wiring). Ponytail principle 'use stdlib / Apple-native / existing dependencies before writing new code': the 4 STYLES files below all wrap Apple canonical APIs (= SwiftUI .padding, .font, .buttonStyle, Lucide library) = no new abstractions over Apple primitives.
+Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件类似 css, 这样我们以后也好管理, 功能与样式分离' = abstract ALL chrome/content/icon styling into CSS-like style files (= single source of truth for visual tokens + modifiers; = zones own only FUNCTIONAL wiring). Ponytail principle 'use stdlib / Apple-native / existing dependencies before writing new code': the 4 STYLES files below all wrap Apple canonical APIs (= SwiftUI .padding, .font, .buttonStyle, SF Symbols 6 Image) = no new abstractions over Apple primitives. (v1.0.0-m1-shell 2026-09-15: replaced Lucide library with SF Symbols 6.)
 
 ### The 4 STYLES files (= the "CSS-like" layer)
 
@@ -424,7 +420,7 @@ Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件
 | `DesignTokens.swift` | VALUES | All chrome dimensions, paddings, font sizes, divider thicknesses (= raw `static let CGFloat` + `Color`) |
 | `ChromeStyles.swift` | CHROME | Background + top bar + bottom bar (= what ZonePerRegionChrome wraps each zone with) |
 | `ContentStyles.swift` | CONTENT | Content-level inset / typography / button styles (= what each zone's inner UI applies) |
-| `IconStyles.swift` | ICONS | Lucide icon size + color presets (= canonical icon appearance) |
+| `IconStyles.swift` | ICONS | SF Symbols 6 icon size + rendering mode + color presets (= canonical icon appearance; v1.0.0-m1-shell 2026-09-15 replaces Lucide library) |
 
 ### STYLES-001 ContentStyles.swift
 - **Path**: `Sources/WenshuApp/UI/ContentStyles.swift` (NEW, boss 9/7 round 3)
@@ -456,13 +452,13 @@ Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件
 - **Purpose**: Canonical Lucide icon size + color presets (= single source of truth for icon appearance).
 - **API**:
   ```swift
-  Lucide("library").iconStyle(.chrome)   // 14 PT + secondary (= chrome top bar identity)
-  Lucide("send").iconStyle(.action)       // 18 PT + accent (= button action)
-  Lucide("library").iconStyle(.card)      // 32 PT + tint (= hero / entity badge)
-  Lucide("library").iconStyle(.small, color: .secondary)  // explicit size + color
+  SFIcon("books.vertical", size: .medium, color: .secondary)   // chrome top bar identity
+  SFIcon("paperplane.fill", rendering: .palette, color: .accent) // 18 PT + accent (= button action)
+  SFIcon("books.vertical.fill", rendering: .palette, color: .tint) // 32 PT + tint (= hero / entity badge)
+  Image(systemName: "magnifyingglass").iconStyle(.small, color: .secondary)  // explicit size + color
   ```
-- **Use when**: Adding any Lucide icon to any view (= .iconStyle replaces scattered `.frame(width:N).foregroundStyle(...)` chains).
-- **Don't use when**: The icon is a non-Lucide (= `SF Symbol` directly = no iconStyle needed).
+- **Use when**: Adding any icon to any view (= .iconStyle replaces scattered `.frame(width:N).foregroundStyle(...)` chains).
+- **Rendering modes**: `.monochrome` / `.hierarchical` (default) / `.palette` / `.paletteLayers(Color, Color)`.
 
 ### Boss 9/7 round 3 audit (= the doubled-padding bug)
 Boss 9/7 '实测一下, 1-2-4 三个区明显过大, 3 区是对的, 6 区过小' =

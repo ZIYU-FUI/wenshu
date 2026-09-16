@@ -124,7 +124,7 @@ public enum EditorTransform: String, Sendable, Codable, CaseIterable, Identifiab
         switch self {
         case .expand:     return "chevrons-out"
         case .shorten:    return "chevrons-in"
-        case .rephrase:   return "refresh-cw"
+        case .rephrase:   return "arrow.clockwise"
         case .shiftTone:  return "palette"
         case .simplify:   return "feather"
         case .dramatize:  return "flame"

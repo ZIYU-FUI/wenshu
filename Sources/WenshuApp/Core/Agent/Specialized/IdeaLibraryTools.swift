@@ -94,7 +94,7 @@ public enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, E
         case .developing:  return "leaf"
         case .mature:      return "tree-deciduous"
         case .planted:     return "flower-2"
-        case .discarded:   return "circle-x"
+        case .discarded:   return "xmark.circle"
         }
     }
 }

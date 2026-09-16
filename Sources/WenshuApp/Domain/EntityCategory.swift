@@ -146,37 +146,40 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
         }
     }
 
-    /// Lucide icon name for sidebar folder display.
+    /// SF Symbols 6 icon name for sidebar folder display.
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline (= no .fill)
+    /// uniformly': all categories return outline (= non-.fill) icons
+    /// for visual consistency across the sidebar.
     public var icon: String {
         switch self {
-        case .a: return "book-marked"           // classics
-        case .b: return "brain"                  // philosophy
-        case .c: return "users"                  // social sciences
-        case .d: return "scale"                  // politics and law
-        case .e: return "sword"                  // military
-        case .f: return "trending-up"            // economics
-        case .g: return "graduation-cap"         // culture, science, education
-        case .h: return "alphabet"               // language and linguistics
-        case .i: return "book-open"              // literature
-        case .j: return "palette"                // arts
-        case .k: return "landmark"               // history and geography
-        case .n: return "atom"                    // natural sciences
-        case .o: return "sigma"                  // math, physics, chemistry
-        case .p: return "globe-2"                 // astronomy and earth sciences
-        case .q: return "leaf"                    // biology
-        case .r: return "heart-pulse"            // medicine
-        case .s: return "wheat"                  // agriculture
-        case .t: return "cog"                     // industrial technology
-        case .u: return "truck"                  // transportation
-        case .v: return "plane"                  // aerospace
-        case .x: return "leaf-2"                  // environment
+        case .a: return "books.vertical"           // classics (= SF Symbols 6 book stack, outline)
+        case .b: return "brain.head.profile"        // philosophy (SF Symbols 6 has no standalone brain; = head profile is closest)
+        case .c: return "person.3"                 // social sciences
+        case .d: return "scalemass"                // politics and law
+        case .e: return "shield.lefthalf.filled"   // military (no outline variant in SF Symbols 6)
+        case .f: return "chart.line.uptrend.xyaxis" // economics
+        case .g: return "graduationcap"            // culture, science, education
+        case .h: return "character.book.closed"    // language and linguistics
+        case .i: return "book.pages"               // literature
+        case .j: return "paintpalette"             // arts
+        case .k: return "building.columns"         // history and geography
+        case .n: return "atom"                     // natural sciences
+        case .o: return "function"                 // math, physics, chemistry
+        case .p: return "globe.americas"           // astronomy and earth sciences
+        case .q: return "leaf"                     // biology
+        case .r: return "heart"                    // medicine
+        case .s: return "leaf.arrow.trianglehead.clockwise" // agriculture
+        case .t: return "gearshape.2"              // industrial technology
+        case .u: return "truck.box"                // transportation
+        case .v: return "airplane"                 // aerospace
+        case .x: return "leaf"                     // environment (= fallback; SF Symbols 6 has no leaf.arrow.down.circle equivalent that matches this semantic)
         // v0.30 boss 8/31 OOB: 'the "Other" category has no ICON, it needs one'.
         // Changed from "library" (= too generic; suggests "reference
-        // library" not "fallback bucket") to "package-open" (= an
+        // library" not "fallback bucket") to "tray.full" (= an
         // unboxed package = uncategorized material waiting to be
         // sorted). The icon now visually conveys 'miscellaneous
         // catch-all' instead of 'main reference library'.
-        case .z: return "package-open"           // Other (= catch-all)
+        case .z: return "tray.full"                // Other (= catch-all)
         }
     }
 

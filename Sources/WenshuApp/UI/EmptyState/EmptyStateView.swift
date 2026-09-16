@@ -28,7 +28,7 @@
 //    - stroke: 1 PT (= the thinnest SwiftUI Shape stroke; = the
     //      boss's 'thinnest stroke' directive; = rendered via the new
     //      `LucideThinIcon` wrapper which delegates to
-    //      `LucideIcon(name, size:, strokeWidth: 1, absoluteStrokeWidth: true)`
+    //      `Image(systemName: name).font(.system(size: , strokeWidth: 1, absoluteStrokeWidth: true, weight: .regular))`
     //      from `UI/Icon/LucideThinIcon.swift`)
 //    - color: .secondary (= adapts to dark/light mode; =
 //      Apple's 2-step hierarchy for empty-state icons)
@@ -183,7 +183,7 @@ public struct EmptyStateView: View {
             // vertical gap (= 22 PT below) matches Apple's
             // measured ContentUnavailableView sample (= NOT
             // custom; = Apple HIG standard).
-            LucideThinIcon(icon, size: DesignTokens.emptyStateIconSize)
+            Image(systemName: icon).font(.system(size: DesignTokens.emptyStateIconSize, weight: .regular))
                 .foregroundStyle(.secondary)
                 .padding(.bottom, DesignTokens.chromePaddingEmptyStateGap)
             VStack(spacing: DesignTokens.chromePaddingSmall) {

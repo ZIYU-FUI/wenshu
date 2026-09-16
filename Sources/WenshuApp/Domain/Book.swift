@@ -109,9 +109,25 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
 
     /// v0.30 boss 8/31 OOB: book icon for sidebar display. Returns
     /// `icon` if set, otherwise the default "book" icon.
+    ///
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use SF
+    /// Symbols 6': `icon` may still hold a Lucide-era kebab-case name
+    /// (= legacy user data persisted in book.json). Fall back to a
+    /// generic SF Symbol 6 icon if the stored name isn't a known SF
+    /// Symbol (= boss 'ensure display' rule; = users see a real icon
+    /// instead of a blank frame until they pick a new one).
+    ///
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline uniformly':
+    /// default returns outline (= non-.fill) icons.
     var displayIcon: String {
-        if let icon, !icon.isEmpty { return icon }
-        return "book"
+        guard let icon, !icon.isEmpty else { return "book" }
+        // Legacy Lucide names (= kebab-case with hyphens) are not
+        // valid SF Symbol identifiers; = replace with the closest
+        // semantic match.
+        if icon.contains("-") {
+            return lucideFallbackForBookIcon(icon) ?? "book"
+        }
+        return icon
     }
 
     // id-based identity (= Apple HIG document-based convention).
@@ -161,5 +177,28 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
+    }
+}
+
+// v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use SF
+// Symbols 6': map the most common Lucide-era book icon names to
+// the closest SF Symbols 6 equivalent (= boss 'ensure display'
+// rule; = users with legacy persisted icons see a real glyph
+// instead of a blank frame). Returns nil for unrecognized names
+// (= caller falls back to the default 'book.fill').
+//
+// Mapping source: SF Symbols Beta CLI (/Applications/SF Symbols
+// Beta.app/Contents/Executables/sfsymbols search) verified 2026-09-15.
+func lucideFallbackForBookIcon(_ lucideName: String) -> String? {
+    switch lucideName {
+    case "book":                   return "book"
+    case "book-open":              return "book.pages"
+    case "book-plus":              return "book.badge.plus"
+    case "book-text":              return "text.book.closed"
+    case "library", "library-big": return "books.vertical"
+    case "square-library":         return "books.vertical"
+    case "notebook":               return "book"
+    case "scroll":                 return "scroll"
+    default:                       return nil
     }
 }

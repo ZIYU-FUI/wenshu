@@ -799,7 +799,7 @@ struct PreviewPane: View {
             VStack(alignment: .leading, spacing: 16) {
                 // Header: type badge + title
                 HStack(spacing: 8) {
-                    LucideIcon(entity.entityType.icon, size: 28)
+                    Image(systemName: entity.entityType.icon).font(.system(size: 28, weight: .regular))
                         .foregroundStyle(.tint)
                     Text(WenshuI18n.t("b5.previewpane.l353.h50033891"))
                         .font(.title3)
@@ -1448,7 +1448,7 @@ private struct Card: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                LucideIcon(source.iconName, size: 64)
+                Image(systemName: source.iconName).font(.system(size: 64, weight: .regular))
                     .foregroundStyle(.tint.opacity(0.85))
             }
             .frame(height: DesignTokens.panelMinHeight)

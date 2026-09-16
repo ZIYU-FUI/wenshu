@@ -26,7 +26,6 @@
 
 import SwiftUI
 import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
-import LucideSwift
 
 /// WorkspaceView — the customizable-layout root (= the Xcode-paradigm
 /// replacement for LayoutShellView). Boss 2026-08-27 grill D1 chose

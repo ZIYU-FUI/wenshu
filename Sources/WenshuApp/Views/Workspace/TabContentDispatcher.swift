@@ -323,7 +323,7 @@ private struct GroupTabStrip: View {
                     // the last pane — would empty the workspace).
                     if panes.count > 1 {
                         Button(action: { onClose(paneID) }) {
-                            LucideIconSystemFallback("xmark", size: 10)
+                            Image(systemName: "xmark").font(.system(size: 10, weight: .regular))
                                 .foregroundStyle(.secondary)
                                 .frame(width: DesignTokens.bulletSizeSmall, height: DesignTokens.bulletSizeSmall)
                         }

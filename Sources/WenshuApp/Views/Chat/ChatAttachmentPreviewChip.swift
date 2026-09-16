@@ -1,5 +1,4 @@
 import SwiftUI
-import LucideSwift
 
 /// CHATIMG-001 (2026-09-07): the small attachment preview chip that
 /// sits above the chat input HStack when an image is pending
@@ -12,7 +11,7 @@ import LucideSwift
 ///
 /// Visual: Apple Messages / Slack attachment preview pattern. 48 PT
 /// square thumbnail on the leading side, 8 PT gap, then a small
-/// ✕ button (Lucide "x") that calls the `onClear` closure. The
+/// ✕ button (Lucide "xmark") that calls the `onClear` closure. The
 /// whole chip is wrapped in `.regularMaterial` (= macOS 27 Liquid
 /// Glass translucency) + a 1 PT separator border = matches the
 /// TextField below for visual continuity (= Apple HIG canonical
@@ -33,12 +32,8 @@ struct ChatAttachmentPreviewChip: View {
             Button {
                 onClear()
             } label: {
-                LucideIcon(
-                    name: "x",
-                    size: 14,
-                    strokeWidth: 1,
-                    absoluteStrokeWidth: true
-                )
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .regular))
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 14, height: 14)
                     .foregroundStyle(.secondary)

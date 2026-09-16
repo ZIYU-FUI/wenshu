@@ -59,7 +59,7 @@ public struct ChatViewCompressionRow: View {
                 Button {
                     Task { await manualCompress() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.chatviewcompressionrow.l62.h10389252")) } icon: { LucideIcon("circle-arrow-down", size: 16) }
+                    Label { Text(WenshuI18n.t("b5.chatviewcompressionrow.l62.h10389252")) } icon: { Image(systemName: "arrow.down.circle").font(.system(size: 16, weight: .regular)) }
                         .labelStyle(.titleAndIcon)
                 }
                 .buttonStyle(.borderless)

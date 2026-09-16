@@ -120,7 +120,7 @@ public struct CommandPaletteView: View {
             // text-field render; no custom frame / border / Liquid Glass
             // paint = boss 2026-09-02 OOB 'let Apple defaults through').
             HStack(spacing: 8) {
-                LucideIcon("search", size: 16)
+                Image(systemName: "magnifyingglass").font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.secondary)
                 TextField(WenshuI18n.t("b5.commandpaletteview.l125.h99176598"), text: Binding(
                     get: { model.query },
@@ -140,7 +140,7 @@ public struct CommandPaletteView: View {
                     Button {
                         Task { await model.filter(by: "") }
                     } label: {
-                        LucideIcon("circle-x", size: 16)
+                        Image(systemName: "xmark.circle").font(.system(size: 16, weight: .regular))
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
@@ -225,7 +225,7 @@ private struct CommandPaletteRow: View {
             // "chat" / "custom"). SF Symbol fallback is acceptable here
             // because this is a debug/internal UX surface (= not the
             // user-facing app chrome).
-            LucideIcon(categorySymbol, size: 16)
+            Image(systemName: categorySymbol).font(.system(size: 16, weight: .regular))
                 .foregroundStyle(categoryColor)
                 .frame(width: DesignTokens.iconStandardSize, height: DesignTokens.iconStandardSize)
             VStack(alignment: .leading, spacing: 2) {
@@ -263,7 +263,7 @@ private struct CommandPaletteRow: View {
     private var categorySymbol: String {
         switch item.category {
         // v0.46 boss OOB 'SF Symbol dropped, use Lucide'.
-        case "skill": return "wand-sparkles"
+        case "skill": return "wand.and.sparkles"
         case "navigate": return "circle-arrow-right"
         case "command": return "terminal"
         case "chat": return "message-square"
@@ -341,7 +341,7 @@ public enum CommandPaletteController {
             NotificationCenter.default.post(
                 name: .wenshuPaletteCustomAction,
                 object: nil,
-                userInfo: ["name": name]
+                userInfo: ["person.text.rectangle": name]
             )
         }
     }

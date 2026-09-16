@@ -32,16 +32,16 @@ import SwiftUI
 /// Example:
 /// ```swift
 /// @Namespace private var tabBarNamespace
-/// @State private var selection: String = "library"
+/// @State private var selection: String = "books.vertical"
 ///
 /// PaneIconTab(
-///     id: "library",
+///     id: "books.vertical",
 ///     icon: "square-library",
 /// label: "",
-///     isSelected: selection == "library",
+///     isSelected: selection == "books.vertical",
 ///     namespace: tabBarNamespace,
 ///     namespaceID: "tabBarUnderline",
-///     onTap: { selection = "library" }
+///     onTap: { selection = "books.vertical" }
 /// )
 /// ```
 @MainActor
@@ -102,7 +102,7 @@ public struct PaneIconTab: View {
             Color.clear
                 .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                 .overlay(alignment: .center) {
-                    LucideIconSystemFallback(icon, size: DesignTokens.tabIconSize)
+                    Image(systemName: icon).font(.system(size: DesignTokens.tabIconSize, weight: .regular))
                         .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                 }
                 .contentShape(Rectangle())

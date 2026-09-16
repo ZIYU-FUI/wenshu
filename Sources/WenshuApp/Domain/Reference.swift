@@ -67,18 +67,18 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Lucide icon name (= for direct Lucide lookup via Lucide("name")).
-    /// v0.27 boss 8/27 OOB: was SF Symbol name ('tray.full.fill' / etc.);
-    /// Lucide doesn't have those names (= returned nil → sidebar rows
-    /// rendered empty per boss 8/27 'folder
-    /// ICON'). Boss 8/27 ' lucide ' = use the closest
-    /// Lucide equivalent that exists.
+    /// SF Symbols 6 icon name (= for direct SF Symbol lookup via
+    /// Image(systemName:)). v1.0.0-m1-shell boss 2026-09-15 OOB
+    /// 'remove Lucide, use SF Symbols 6 with palette rendering':
+    /// replaces Lucide icon names with SF Symbols 6 equivalents.
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline uniformly':
+    /// all layers return outline (= non-.fill) icons.
     var icon: String {
         switch self {
-        case .layerRaw:       return "inbox"
-        case .layerEntities:  return "user-round"
-        case .layerAbstracts: return "sparkles"
-        case .layerIndexes:   return "search"
+        case .layerRaw:       return "tray.and.arrow.down"   // = raw inbox
+        case .layerEntities:  return "person.crop.circle"    // = entities (= people)
+        case .layerAbstracts: return "sparkles"              // = LLM-extracted abstractions
+        case .layerIndexes:   return "magnifyingglass"       // = searchable indexes
         }
     }
 }
