@@ -46,6 +46,46 @@ def list_all_md_files(repo):
     return sorted(f for f in files if f.endswith((".md", ".swift", ".txt", ".json", ".yaml", ".yml")))
 
 
+def _scan_for_pollution(repo: str, files: list[str]) -> list[str]:
+    """Return a flat list of scan()-emitted error strings for each file.
+
+    Filters out:
+      - paths missing on disk (= deleted between ls-files + open).
+      - paths allowed by commit_filter.is_allowed (= legitimate enumerations
+        of the forbidden vocab, e.g. AGENTS.md + commit_filter.py itself).
+      - non-utf-8 / non-readable files (= binary blobs, missing perms).
+
+    Returns the raw error strings (= caller formats them for stdout vs
+    cron output vs exit code).
+    """
+    errors: list[str] = []
+    for relpath in files:
+        abspath = os.path.join(repo, relpath)
+        if not os.path.isfile(abspath):
+            continue
+        if is_allowed(relpath):
+            continue
+        try:
+            with open(abspath, "r", encoding="utf-8") as f:
+                text = f.read()
+        except (UnicodeDecodeError, PermissionError):
+            continue
+        errors.extend(scan(text, relpath))
+    return errors
+
+
+def _report_and_exit(repo: str, errors: list[str]) -> int:
+    """Print either the OK banner or the pollution report. Returns exit code."""
+    if errors:
+        print(f"POLLUTION DETECTED in {repo}:")
+        for err in errors:
+            print(f"  {err}")
+        print(f"\nTotal: {len(errors)} forbidden-vocab hits across the working tree.")
+        return 1
+    print(f"OK: 0 forbidden-vocab hits in {repo}")
+    return 0
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: pollution_watchdog.py /path/to/repo", file=sys.stderr)
@@ -55,30 +95,9 @@ def main():
         print(f"Not a git repo: {repo}", file=sys.stderr)
         sys.exit(2)
 
-    errors = []
-    for relpath in list_all_md_files(repo):
-        abspath = os.path.join(repo, relpath)
-        if not os.path.isfile(abspath):
-            continue
-        # Respect the same allowlist as commit_filter.py.
-        if is_allowed(relpath):
-            continue
-        try:
-            with open(abspath, "r", encoding="utf-8") as f:
-                text = f.read()
-        except (UnicodeDecodeError, PermissionError):
-            continue
-        for err in scan(text, relpath):
-            errors.append(err)
-
-    if errors:
-        print(f"POLLUTION DETECTED in {repo}:")
-        for err in errors:
-            print(f"  {err}")
-        print(f"\nTotal: {len(errors)} forbidden-vocab hits across the working tree.")
-        sys.exit(1)
-    print(f"OK: 0 forbidden-vocab hits in {repo}")
-    sys.exit(0)
+    files = list_all_md_files(repo)
+    errors = _scan_for_pollution(repo, files)
+    sys.exit(_report_and_exit(repo, errors))
 
 
 if __name__ == "__main__":
