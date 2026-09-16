@@ -762,7 +762,7 @@ struct PreviewPane: View {
         VStack(spacing: 0) {
             if docs.isEmpty {
                 emptyState(
-                    icon: "book-open",
+                    icon: "book.pages",
                     titleKey: folderName != nil
                         ? "preview.empty_state.book_with_folder"
                         : "preview.empty_state.book_no_folder",
@@ -779,7 +779,7 @@ struct PreviewPane: View {
     @ViewBuilder
     private func shelfScopeView() -> some View {
         emptyState(
-            icon: "book-open",
+            icon: "book.pages",
             titleKey: "preview.empty_state.shelf_empty",
             bodyKey: "preview.empty.pick_book"
         )
@@ -789,7 +789,7 @@ struct PreviewPane: View {
     @ViewBuilder
     private func emptyScopeView() -> some View {
         emptyState(
-            icon: "book-open",
+            icon: "book.pages",
             titleKey: "preview.empty_state.pick_book",
             bodyKey: "preview.empty.scope_hint"
         )
@@ -907,7 +907,7 @@ struct PreviewPane: View {
         VStack(alignment: .leading, spacing: 0) {
             if inCategory.isEmpty {
                 emptyState(
-                    icon: "book-open",
+                    icon: "book.pages",
                     titleKey: "preview.empty_state.category_empty",
                     bodyKey: "preview.empty.import_hint"
                 )
@@ -958,7 +958,7 @@ struct PreviewPane: View {
     private func overviewGrid(allEntities: [Reference]) -> some View {
         if allEntities.isEmpty {
             emptyState(
-                icon: "book-open",
+                icon: "book.pages",
                 titleKey: "preview.empty_state.reference_empty",
                 bodyKey: "preview.empty.import_hint"
             )
@@ -1003,7 +1003,14 @@ struct PreviewPane: View {
     /// icon. Caller can override per-call (= rare; most callers
     /// use the default).
     private func emptyState(
-        icon: String = "book-open",
+        // v1.0.0-m1-shell boss 2026-09-16 OOB '先修空态的 ICON，没有显示':
+        // default icon 'book-open' is Lucide kebab-case (= NOT a
+        // valid SF Symbol 6 identifier) = renders as a blank
+        // rectangle in PreviewPane's empty states. Migrated to
+        // the dot.case SF Symbols 6 form ('book.pages'). Per
+        // /Applications/SF Symbols Beta.app/Contents/Executables/
+        // sfsymbols search 2026-09-16.
+        icon: String = "book.pages",
         titleKey: String,
         bodyKey: String
     ) -> some View {
