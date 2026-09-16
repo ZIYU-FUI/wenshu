@@ -1157,11 +1157,18 @@ struct NewLibraryOutlineView: View {
     /// Placeholder) NOT shown per boss 8/30 sidebar cleanup.
     private var standardFolderNames: [(name: String, displayName: String, icon: String)] {
         [
+            // v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use
+            // SF Symbols 6': Lucide-era kebab-case names (globe /
+            // user-round / list-tree / book-text / file-pen-line)
+            // are NOT valid SF Symbols identifiers and rendered as
+            // blank rectangles. Verified against /Applications/SF
+            // Symbols Beta.app/Contents/Executables/sfsymbols
+            // search 2026-09-16.
             ("world",      "世界观",      "globe"),
-            ("characters", "角色",        "user-round"),
-            ("outlines",   "章节大纲",    "list-tree"),
-            ("chapters",   "小说正文",    "book-text"),
-            ("drafts",     "小说草稿",    "file-pen-line"),
+            ("characters", "角色",        "person"),
+            ("outlines",   "章节大纲",    "list.bullet.rectangle"),
+            ("chapters",   "小说正文",    "text.book.closed"),
+            ("drafts",     "小说草稿",    "pencil"),
         ]
     }
 
