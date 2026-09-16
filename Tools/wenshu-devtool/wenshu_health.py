@@ -127,22 +127,42 @@ def test_gap_section(limit=20):
     }
 
 def maintenance_debt_section():
-    """Count TODO/FIXME/HACK/XXX in production code (exclude .scratch/)."""
+    """Count TODO/FIXME/HACK/XXX in production code (exclude .scratch/).
+
+    Heuristic: only count tokens that are FOLLOWED BY a space + a non-letter
+    (= avoids matching identifier names like TODO_SCHEMA, FIXME_LIST, etc.)
+    AND not inside a string literal / regex / comment triple (= "([^"]*" / #"..."#).
+    We approximate by requiring the marker to be preceded by "//" + optional
+    space (i.e. it's a line comment, not code).
+    """
     patterns = ['TODO', 'FIXME', 'HACK', 'XXX', 'TECH DEBT']
     debt = {p: 0 for p in patterns}
     files_with_debt = []
     for f in SOURCES.rglob("*.swift"):
         if '.scratch' in str(f):
             continue
-        content = f.read_text()
-        for p in patterns:
-            count = content.count(p)
-            if count > 0:
-                debt[p] += count
-                files_with_debt.append((str(f.relative_to(WENSHU_ROOT)), p, count))
+        # Per-line match: only when marker is in a single-line // comment
+        # (= not inside a string literal, regex, or /// doc comment).
+        text = f.read_text()
+        for line_no, line in enumerate(text.splitlines(), 1):
+            # Strip string literals (rough — handles "..." and #"..."#)
+            stripped = line
+            # Remove quoted string content (best-effort, doesn't handle escapes)
+            import re
+            stripped = re.sub(r'#?\"(?:[^\"\\]|\\.)*\"', '', stripped)
+            # Now check if the (stripped) line has a // comment that contains
+            # the marker at a word boundary.
+            comment_match = re.search(r'//.*$', stripped)
+            if not comment_match:
+                continue
+            comment_text = comment_match.group(0)
+            for p in patterns:
+                if re.search(rf'\b{p}\b', comment_text):
+                    debt[p] += 1
+                    files_with_debt.append((str(f.relative_to(WENSHU_ROOT)), p, line_no))
     return {
         'counts': debt,
-        'top_files': sorted(files_with_debt, key=lambda x: -x[2])[:20],
+        'top_files': sorted(files_with_debt, key=lambda x: x[1])[:20],
     }
 
 def single_owner_files_section(min_commits=3):
