@@ -357,7 +357,7 @@ struct SettingView: View {
         let hasKey = providersWithKeys.contains(p.slug)
         return HStack(spacing: 12) {
             // v0.27 boss 8/27 OOB: SF 'key' / 'key.fill' → Lucide 'key'.
-            Image(systemName: hasKey ? "key.fill" : "key").font(.system(size: 18, weight: .regular))
+            Image(systemName: hasKey ? "key" : "key").font(.system(size: 18, weight: .regular))
                 .foregroundStyle(hasKey ? Color.green : Color.secondary)
                 .frame(width: DesignTokens.tabIconSize)
             Text(p.name)

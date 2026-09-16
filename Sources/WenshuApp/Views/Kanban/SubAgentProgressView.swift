@@ -116,10 +116,10 @@ private struct TaskRowView: View {
             Image(systemName: "circle.dashed").font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.blue)
         case .done:
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 14, weight: .regular))
+            Image(systemName: "checkmark.circle").font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.green)
         case .failed:
-            Image(systemName: "xmark.circle.fill").font(.system(size: 14, weight: .regular))
+            Image(systemName: "xmark.circle").font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.red)
         default:
             Image(systemName: "circle").font(.system(size: 14, weight: .regular))

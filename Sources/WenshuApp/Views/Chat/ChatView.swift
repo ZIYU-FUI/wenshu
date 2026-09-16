@@ -1739,7 +1739,7 @@ struct ChatMessageView: View {
                 if position.hasTail && !isOutgoing {
                     switch message.source {
                     case .user:
-                        Image(systemName: "person.fill").font(.system(size: 24, weight: .regular))
+                        Image(systemName: "person").font(.system(size: 24, weight: .regular))
                             .aspectRatio(contentMode: .fit)
                     case .wenshu:
                         Image(systemName: "sparkles").font(.system(size: 24, weight: .regular))

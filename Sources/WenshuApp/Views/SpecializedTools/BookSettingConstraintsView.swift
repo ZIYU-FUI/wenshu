@@ -359,7 +359,7 @@ struct BookSettingConstraintsView: View {
 
     private func violationRow(_ violation: ConstraintViolation) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-            Image(systemName: violation.severity == .hard ? "octagon.fill" : "exclamationmark.triangle.fill")
+            Image(systemName: violation.severity == .hard ? "octagon" : "exclamationmark.triangle")
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(Color.orange))
                 .frame(width: DesignTokens.tabIconSize)

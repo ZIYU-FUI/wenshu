@@ -461,7 +461,7 @@ extension LibraryOnboardingView {
         // Use SF Symbol fill book icon (= book.fill) instead of wenshu LOGO PNG.
         // Per Apple HIG: SF Symbol fill variant for package icon.
         // Render SF Symbol to NSImage at 1024x1024, then setIcon.
-        if let symbolImage = renderSFSymbol("book.fill", size: 1024) {
+        if let symbolImage = renderSFSymbol("book", size: 1024) {
             let workspace = NSWorkspace.shared
             let success = workspace.setIcon(symbolImage, forFile: url.path, options: [])
             NSLog("[wenshu.library] icon set=%@ for: %@", success ? "yes" : "no", url.path)
