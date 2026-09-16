@@ -489,7 +489,14 @@ ToolbarItem(placement: .primaryAction) {
                     Label {
                         Text(WenshuI18n.t("window.kanban.open"))
                     } icon: {
-                        Image(systemName: "kanban")
+                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'remove
+                        // Lucide, use SF Symbols 6': 'kanban' is NOT
+                        // a valid SF Symbol (= SF Symbols has no
+                        // 'kanban' = Apple HIG has no kanban
+                        // primitive; = blank rectangle). Use
+                        // 'rectangle.split.3x1' (= the closest
+                        // semantic match per sfsymbols search).
+                        Image(systemName: "rectangle.split.3x1")
                     }
                 }
                 .help(WenshuI18n.t("window.kanban.help"))
@@ -502,7 +509,13 @@ ToolbarItem(placement: .primaryAction) {
                     Label {
                         Text(WenshuI18n.t("window.todo.open"))
                     } icon: {
-                        Image(systemName: "list-checks")
+                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'remove
+                        // Lucide, use SF Symbols 6': 'list-checks'
+                        // is NOT a valid SF Symbol (= Apple HIG has
+                        // no 'list-checks' primitive). Use 'checklist'
+                        // (= closest semantic match per sfsymbols
+                        // search).
+                        Image(systemName: "checklist")
                     }
                 }
                 .help(WenshuI18n.t("window.todo.help"))

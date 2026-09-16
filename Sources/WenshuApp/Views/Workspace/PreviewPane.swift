@@ -100,18 +100,25 @@ enum BookFolder: String, CaseIterable {
         }
     }
 
-    /// Lucide icon (= matches sidebar folder icons where they
-    /// overlap; placeholder icons for the 3 hidden folders).
+    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use
+    /// SF Symbols 6 (3rd generation) with palette rendering': Lucide
+    /// kebab-case names (= globe / user-round / list-tree / book-text /
+    /// file-pen-line) are NOT valid SF Symbols 6 identifiers and
+    /// SwiftUI renders them as blank rectangles. Verified against
+    /// /Applications/SF Symbols Beta.app/Contents/Executables/
+    /// sfsymbols search 2026-09-16. Mapping mirrors
+    /// NewLibraryOutlineView.standardFolderNames (= the sidebar's
+    /// folder row ICON, to keep both surfaces visually consistent).
     var icon: String {
         switch self {
         case .world: return "globe"
-        case .characters: return "user-round"
-        case .outlines: return "list-tree"
-        case .chapters: return "book-text"
-        case .drafts: return "file-pen-line"
+        case .characters: return "person"
+        case .outlines: return "list.bullet.rectangle"
+        case .chapters: return "text.book.closed"
+        case .drafts: return "pencil"
         case .sessions: return "message-square"
         case .foreshadowing: return "git-fork"
-        case .placeholders: return "square-dashed"
+        case .placeholders: return "square.dashed"
         }
     }
 }
