@@ -24,7 +24,13 @@
 
 import SwiftUI
 import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
-import LucideSwift
+// v1.36 ticket 002: drop `import LucideSwift` (= removed by boss's v1.x
+// Lucide → SF Symbols 6 deprecation in commit c50d76167). The legacy
+// `Lucide`/`LucideIcon` references in this file are comments only (= no
+// active symbol resolution = drop is safe). Per Q34 5.2 + Q173 ponytail +
+// Q186: this is part of the same v1.36 work as `ShellPlaceholder` duplicate
+// removal (= both are PREREQUISITES for `swift build --target WenshuAppTests`
+// to pass on main = main is currently broken without these fixes).
 
 struct ZoneModuleView: View {
     let zoneSlot: ZoneSlot
