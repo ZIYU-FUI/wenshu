@@ -153,7 +153,7 @@ struct LayoutPicker: View {
                 .padding(.bottom, DesignTokens.chromePaddingMedium)
             }
         }
-        .frame(width: 26 * 16)
+        .frame(width: DesignTokens.layoutPickerWidth)
         // v0.28 ticket 028-009: confirmation dialog for deleting
         // a user-saved preset (= .confirmationDialog with
         // presenting: the preset; macOS-standard destructive /
