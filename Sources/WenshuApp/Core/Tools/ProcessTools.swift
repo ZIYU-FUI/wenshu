@@ -219,7 +219,7 @@ extension ProcessTools {
     /// legitimate shell access.
     public static let _registryBootstrap: Void = {
         Task {
-            await ToolRegistry.shared.register(
+            await ToolRegistry.shared.registerTool(
                 name: "process",
                 toolset: "data",
                 schema: ToolRegistrySchema(

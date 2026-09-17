@@ -172,7 +172,7 @@ extension WebSearchTool {
     /// Module-load registration with `ToolRegistry.shared`. Idempotent.
     public static let _registryBootstrap: Void = {
         Task {
-            await ToolRegistry.shared.register(
+            await ToolRegistry.shared.registerTool(
                 name: "web_search",
                 toolset: "research",
                 schema: ToolRegistrySchema(

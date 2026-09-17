@@ -85,7 +85,7 @@ extension AVMediaTools {
     /// `register(...)` call off the init thread.
     public static let _registryBootstrap: Void = {
         Task {
-            await ToolRegistry.shared.register(
+            await ToolRegistry.shared.registerTool(
                 name: "av",
                 toolset: "meta",
                 schema: ToolRegistrySchema(

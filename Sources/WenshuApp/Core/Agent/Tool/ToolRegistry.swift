@@ -371,6 +371,29 @@ public actor ToolRegistry {
 
     /// Last error message from `register()` (= tests inspect; nil =
     /// clean).
+    /// v1.28 B2.5: thin wrapper for the canonical `_registryBootstrap`
+    /// boilerplate (= 14 files repeat the same `Task { await register(...) }`
+    /// pattern; = the wrapper schedules the async call off the init
+    /// thread; = collapse each call site from 8-line `Task { ... }`
+    /// to 1-line `Task { await registerTool(...) }`).
+    public func registerTool(
+        name: String,
+        toolset: String,
+        schema: ToolRegistrySchema,
+        handler: any Tool,
+        description: String = "",
+        emoji: String = ""
+    ) async {
+        await register(
+            name: name,
+            toolset: toolset,
+            schema: schema,
+            handler: handler,
+            description: description,
+            emoji: emoji
+        )
+    }
+
     public func lastRegisterError() -> String? { _lastRegisterError }
 
     // MARK: - Deregister (= hermes `deregister()` L450-515)

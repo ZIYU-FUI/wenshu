@@ -108,7 +108,7 @@ extension WebTools {
     /// `register(...)` call off the init thread.
     public static let _registryBootstrap: Void = {
         Task {
-            await ToolRegistry.shared.register(
+            await ToolRegistry.shared.registerTool(
                 name: "web",
                 toolset: "research",
                 schema: ToolRegistrySchema(
