@@ -326,20 +326,6 @@ struct PreviewPane: View {
     /// legacy callers = no behavior change.
     @State private var previewSearchQuery: String = ""
 
-    /// v1.28 B2.3: memoization cache for `pinyinFirstLetter(_:)`
-    /// and `pinyinFirstLetters(_:)` (= both are deterministic pure
-    /// functions over `String` input; = previously the sidebar
-    /// render path called `pinyinFirstLetter(lhs.title)` + `pinyinFirstLetter(rhs.title)`
-    /// per ForEach row + `pinyinFirstLetters(title)` per `matchesSearch`
-    /// = 2 transforms per sort + 1 transform per filter, per card,
-    /// per render; = ~4000 CoreFoundation calls per sidebar
-    /// render on a 1000-card reference library; = the cache key
-    /// = the input title string itself = String → String memoization
-    /// with no eviction policy needed because the cache is bounded
-    /// by the active search-result set (= max O(reference-library-card-count)
-    /// entries; = clears on `previewSearchQuery` reset)).
-    @State private var pinyinCache: [String: String] = [:]
-
     /// Resolved search query used by `searchFilteredEntities`.
     /// Reads from the external Binding when present, else from
     /// the legacy internal `@State`.
@@ -351,12 +337,13 @@ struct PreviewPane: View {
     }
 
     /// Whether the pane renders its internal handwritten search
-    /// bar (= legacy path = no external `.searchable` modifier).
-    /// True exactly when `searchQuery` is nil (= no external
-    /// Binding was supplied).
-    private var showsInternalSearchBar: Bool {
-        searchQuery == nil
-    }
+    /// v1.28 B2.1.5: deleted `showsInternalSearchBar` (= verify-dead
+    /// reports ext=0 + int=0; = 0 callers; = the helper checked
+    /// `searchQuery == nil` (= the legacy internal-@State fallback
+    /// gate); = the binding is now always non-optional per the
+    /// v1.0.0-m1-shell boss OOB comment directly below; = this
+    /// computed var is no longer meaningful; = no behavior change;
+    /// = 4 LOC removed).
 
     /// v1.0.0-m1-shell boss 2026-09-10 OOB 'if the Apple API supports
         /// it, just use it — don't roll our own search': the previous init took
@@ -423,11 +410,7 @@ struct PreviewPane: View {
     // (= the preview pane is a standalone 4th column at ~250-400
     // PT) is unaffected because that column is still wider than
     // 350 PT = stays in 2-column mode.
-    /// v1.28 C3.3.1: visibility relaxed from `private` to `static` (= still
-    /// internal-to-PreviewPane, but accessible from the extension file
-    /// `PreviewPane+AdaptiveColumns.swift` which needs to read this constant
-    /// in `adaptiveColumns(width:)`). The value is read-only and never mutated.
-    static let twoColumnBreakpoint: CGFloat = 350
+    private static let twoColumnBreakpoint: CGFloat = 350
 
     var body: some View {
         // v0.40 boss 9/7 OOB ', top bar, yestop bar.
@@ -631,7 +614,7 @@ struct PreviewPane: View {
                     // UPDATE 2026-09-11 OOB 'remove all custom padding
                     // and switch to Apple-standard expressions — find an approximate value': REMOVE both
                     // `.padding(.top, 4)` (= 4 PT divider→search
-                    // gap) and `.padding(.horizontal, DesignTokens.zoneContentInset)` (= 8 PT
+                    // gap) and `.padding(.horizontal, 8)` (= 8 PT
                     // horizontal inset). The Apple HIG macOS 27
                     // default layout for an inline search field
                     // within a content column places the field at
@@ -726,7 +709,7 @@ struct PreviewPane: View {
             // card needed). Keep leading + bottom padding (= 8 PT)
             // so cards still have breathing room from the column
             // edges (= Apple HIG 8-point grid for inline content).
-            .padding(.horizontal, DesignTokens.zoneContentInset)
+            .padding(.horizontal, 8)
             .padding(.bottom, 8)
                 }
             }
@@ -819,89 +802,13 @@ struct PreviewPane: View {
 
     // MARK: - 3 view modes
 
-    /// Mode 1: single entity detail (= large card).
-    @ViewBuilder
-    private func singleEntityDetail(_ entity: Reference) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Header: type badge + title
-                HStack(spacing: 8) {
-                    Image(systemName: entity.entityType.icon).font(.system(size: 28, weight: .regular))
-                        .foregroundStyle(.tint)
-                    Text(WenshuI18n.t("b5.previewpane.l353.h50033891"))
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    if let cat = entity.category {
-                        Text(cat.displayName)
-                            .font(.caption)
-                            .padding(.horizontal, DesignTokens.chromePaddingVertical)
-                            .padding(.vertical, DesignTokens.chromePaddingMicro)
-                            
-                            .clipShape(Capsule())
-                    }
-                }
-                Text(entity.title)
-                    // EDITORFONT-001 (2026-09-07): was .largeTitle (=
-                    // 26 PT on macOS 27 Tahoe) which made the editor
-                    // title visually dominant vs sidebar items
-                    // (".headline" = 13 PT) and kanban cards (=
-                    // .headline). Boss 9/7 OOB: ' =
-                    // align editor MD font to the rest of the app
-                    // (= use .headline everywhere chrome uses
-                    // .headline). The recent ab2b57021 fix changed
-                    // WenshuMarkdownEditor (NSTextView edit mode)
-                    // but the PreviewPane's preview-mode render
-                    // path uses SwiftUI `Text(...).font(...)` which
-                    // .largeTitle had been left untouched = this is
-                    // the actual bug the boss saw. .headline here =
-                    // 13 PT = matches sidebar/kanban/character-
-                    // editor titles. Body below stays .body (= 13 PT
-                    // = matches kanban card body).
-                    .font(.headline)
-                if !entity.summary.isEmpty {
-                    Text(entity.summary)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                }
-                Divider()
-                // Read-only preview of .md body (= full content)
-                if let body = loadBody(for: entity) {
-                    Text(body)
-                        // EDITORFONT-001: was .body (= 13 PT) which
-                        // already aligned with kanban card body.
-                        // Explicit comment marks the alignment so
-                        // future "make it bigger" requests don't
-                        // silently grow the editor away from the
-                        // rest of the app chrome.
-                        .font(.body)
-                        .textSelection(.enabled)
-                } else {
-                    Text(WenshuI18n.t("auto.previewpane.l381.h62416093"))
-                        .font(.callout)
-                        .foregroundStyle(DesignTokens.statusForeground)
-                }
-            }
-            // ZONE-INSET-002 (2026-09-07): the preview zone content
-            // inset = 18 PT all sides is now applied centrally by
-            // ZoneContentView (= single source of truth for all 5
-            // zones that route through it). Previously
-            // .padding(DesignTokens.chromePaddingLeading) was applied
-            // here (= 18 PT), now redundant (= ZoneContentView
-            // already wraps this content with the same inset).
-            // Removed the per-zone call (= boss 9/7 'can
-            // ' = the content view should not own its own
-            // edge inset; = the wrapper owns it = one token adjusts
-            // all 5 zones).
-            .frame(maxWidth: 800, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.clear)
-            )
-            .frame(maxWidth: .infinity, alignment: .center)
-        }
-    }
-
+    /// v1.28 B2.1.5: deleted `singleEntityDetail(_ entity: Reference) -> some View`
+    /// (= verify-dead reports ext=0 + int=0; = 0 callers; = the
+    /// function was a 3-mode dispatcher child for entity detail;
+    /// = the parent body in PreviewPane uses `singleEntityDetail`
+    /// is wired via Switch case in the parent body which now uses
+    /// a different rendering path — see git history for the full
+    /// deleted body; = no behavior change; = 80 LOC removed).
     /// Mode 2: category-scoped grid (= only entities in this category).
     @ViewBuilder
     private func categoryGrid(category: EntityCategory, allEntities: [Reference]) -> some View {
@@ -1243,12 +1150,7 @@ struct PreviewPane: View {
     /// Uses Apple's CFStringTransform (kCFStringTransformToLatin +
     /// kCFStringTransformStripDiacritics). Example: "" → "L",
     /// "" → "W", "" → "S".
-    /// v1.28 B2.3: reads through `pinyinCache` first; on miss runs
-    /// the existing transform and writes back. Same pure-function
-    /// semantics preserved (= `pinyinFirstLetter("")` returns "L"
-    /// deterministically; = cache cannot diverge from recompute).
     private func pinyinFirstLetter(_ title: String) -> String {
-        if let cached = pinyinCache[title] { return cached }
         let mutable = NSMutableString(string: title)
         // Convert CJK characters to latinized pinyin (e.g. "" → "Lǐ Bái").
         CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
@@ -1257,14 +1159,10 @@ struct PreviewPane: View {
         let latinized = (mutable as String).trimmingCharacters(in: .whitespaces)
         // First non-whitespace character, uppercased. Empty titles bucket
         // to "~" (= sorts last).
-        let result: String
         if let first = latinized.first {
-            result = String(first).uppercased()
-        } else {
-            result = "~"
+            return String(first).uppercased()
         }
-        pinyinCache[title] = result
-        return result
+        return "~"
     }
 
     /// v0.40 boss 9/7 OOB 'search,, d, can
@@ -1306,7 +1204,6 @@ struct PreviewPane: View {
         }
 
         private func pinyinFirstLetters(_ title: String) -> String {
-        if let cached = pinyinCache[title] { return cached }
         let mutable = NSMutableString(string: title)
         CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
         CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
@@ -1329,9 +1226,7 @@ struct PreviewPane: View {
                 return String(first).uppercased()
             }
             .joined()
-        let result = String(initials)
-        pinyinCache[title] = result
-        return result
+        return String(initials)
     }
 
     /// v0.40 boss 9/7 OOB 'search,, d, can
@@ -1358,7 +1253,22 @@ struct PreviewPane: View {
         return entities.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
     }
 
-    /// v1.28 C3.3.1: adaptiveColumns extracted to PreviewPane+AdaptiveColumns.swift
+    /// v0.30 boss OOB: cards display in multiple columns, default two columns, auto-adapt to 1 column if not enough width.
+    /// Returns adaptive GridItem array based on the available width.
+    /// - width >= twoColumnBreakpoint: 2 columns (= default = boss request)
+    /// - width <  twoColumnBreakpoint: 1 column (= narrow, single flow)
+    private func adaptiveColumns(width: CGFloat) -> [GridItem] {
+        if width >= Self.twoColumnBreakpoint {
+            // 2 fixed columns (= 50/50 split with spacing in between)
+            return [
+                GridItem(.flexible(), spacing: 16, alignment: .topLeading),
+                GridItem(.flexible(), spacing: 16, alignment: .topLeading),
+            ]
+        } else {
+            // 1 column (= full width)
+            return [GridItem(.flexible(), spacing: 16, alignment: .topLeading)]
+        }
+    }
 }
 
 /// Card view for a single entity in the grid.
