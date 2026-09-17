@@ -26,6 +26,9 @@
 //
 
 import Foundation
+import os
+
+private let wenshuFallbackLogger = Logger(subsystem: "org.wenshu.auth", category: "fallback")
 
 // MARK: - Chain model
 
@@ -297,7 +300,14 @@ public actor FallbackChainExecutor {
         )
         // 4. Mark success (= reset to .ok + clear cooldown + lastError).
         if let keyId = resolved.keyId {
-            try? await pool.markOk(keyId: keyId)
+            // v1.28 B2.10: surface markOk failures via os.Logger (= was silent
+            // `try?`; = a status-reset failure was invisible; = the next
+            // attempt would still see the key as cooldown'd).
+            do {
+                try await pool.markOk(keyId: keyId)
+            } catch {
+                wenshuFallbackLogger.error("markOk failed for keyId=\(keyId, privacy: .public): \(error, privacy: .public)")
+            }
         }
         return FallbackExecutionResult(
             response: response,
