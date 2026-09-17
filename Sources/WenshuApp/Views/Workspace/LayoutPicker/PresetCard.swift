@@ -57,7 +57,7 @@ struct PresetCard: View {
         }
         .padding(DesignTokens.chromePaddingSmall)
         .background(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .fill(isActive ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.clear))
         )
         .overlay(alignment: .topTrailing) {

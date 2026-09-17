@@ -1973,7 +1973,7 @@ private struct NewBookSheet: View {
                 Section {
                     HStack(spacing: 12) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                                 .fill(.tint.opacity(0.15))
                                 .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
                             Image(systemName: selectedIcon).font(.system(size: 32, weight: .regular))
@@ -2189,7 +2189,7 @@ private struct NewShelfSheet: View {
                     // large size so user can see what they're picking).
                     HStack(spacing: 12) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                                 .fill(.tint.opacity(0.15))
                                 .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
                             Image(systemName: selectedIcon).font(.system(size: 32, weight: .regular))
