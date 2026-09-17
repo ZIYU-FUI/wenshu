@@ -441,7 +441,7 @@ struct ShellMiddleColumn: View {
                         .controlSize(.regular)
                         .textFieldStyle(.plain)
                     }
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, DesignTokens.zoneContentInset)
                     // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
                     // spacing between it and the first card — is there a hand-written padding, and if
                     // so, drop it': drop the manual `.padding(.vertical,

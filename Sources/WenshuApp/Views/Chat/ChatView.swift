@@ -1783,7 +1783,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             .controlSize(.mini)
                             .progressViewStyle(.circular)
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DesignTokens.bubblePaddingHorizontal)
                     .padding(.vertical, 8)
                     .background(bubbleFill, in: bubbleShape)
                 } else {
@@ -1874,7 +1874,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         isOutgoing: isOutgoing,
                         isStreaming: message.isPlaceholder
                     )
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DesignTokens.bubblePaddingHorizontal)
                     .padding(.vertical, 8)
                     .background(bubbleFill, in: bubbleShape)
                     .overlay(alignment: .topTrailing) {

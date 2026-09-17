@@ -1810,7 +1810,7 @@ struct NewLibraryOutlineView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 8)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, DesignTokens.zoneContentInset)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

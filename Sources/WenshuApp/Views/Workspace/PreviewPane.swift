@@ -613,7 +613,7 @@ struct PreviewPane: View {
                     // UPDATE 2026-09-11 OOB 'remove all custom padding
                     // and switch to Apple-standard expressions — find an approximate value': REMOVE both
                     // `.padding(.top, 4)` (= 4 PT divider→search
-                    // gap) and `.padding(.horizontal, 8)` (= 8 PT
+                    // gap) and `.padding(.horizontal, DesignTokens.zoneContentInset)` (= 8 PT
                     // horizontal inset). The Apple HIG macOS 27
                     // default layout for an inline search field
                     // within a content column places the field at
@@ -708,7 +708,7 @@ struct PreviewPane: View {
             // card needed). Keep leading + bottom padding (= 8 PT)
             // so cards still have breathing room from the column
             // edges (= Apple HIG 8-point grid for inline content).
-            .padding(.horizontal, 8)
+            .padding(.horizontal, DesignTokens.zoneContentInset)
             .padding(.bottom, 8)
                 }
             }
