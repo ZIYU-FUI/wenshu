@@ -1483,62 +1483,13 @@ public struct ChatView: View {
                                 .strokeBorder(inputFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.separator), lineWidth: 1)
                         }
                     )
-                Button {
-                    Task { await vm.routeInput() }
-                } label: {
-                    if vm.isSending {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide,
-                        // use SF Symbols 6 (3rd gen) with palette
-                        // rendering': canonical send-button icon
-                        // = SF Symbols 6 `paperplane`. Replaces
-                        // the v0.25.1 'Lucide .send' choice per
-                        // boss 2026-08-26 OOB (= which has since
-                        // been superseded by the 2026-09-15
-                        // 'use SF Symbols 6' reversal).
-                        Image(systemName: "paperplane")
-                            .font(.system(size: DesignTokens.tabIconSize, weight: .regular))
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)  // v0.28 followup Boss UX round 18: shrink to 18 PT
-                            // v0.55: pulse the glyph while a reply is streaming
-                            .opacity(vm.isSending ? 0.5 : 1)
-                            .scaleEffect(vm.isSending ? 0.92 : 1)
-                            .animation(
-                                vm.isSending
-                                    ? .easeInOut(duration: 0.7).repeatForever(autoreverses: true)
-                                    : .default,
-                                value: vm.isSending
-                            )
-                    }
-                }
-                // v0.28 followup Boss UX round 18 (Boss 2026-08-29 OOB
-                // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-                // swap it'): Use .bordered = the standard macOS Liquid
-                // Glass secondary button style (= Apple's canonical
-                // "default button" look in macOS 26 Tahoe). Per Apple
-                // developer.apple.com/documentation/SwiftUI/PrimitiveButtonStyle,
-                // .bordered renders a translucent rounded capsule
-                // (= Liquid Glass material in macOS 26+) with a
-                // 1 PT separator border + tint-on-hover effect.
-                // The icon shrinks to 18 PT (= matches Apple's
-                // canonical glyph size for secondary toolbar buttons
-                // per Liquid Glass HIG). .frame(height: LayoutTokens.chromeControlHeight = 30 PT, or DesignTokens.toolbarBandHeight = 32 PT for canonical) keeps
-                // the button at Apple's standard control height
-                // (= same as the TextField so they align flush).
-                // v0.28 followup Boss UX round 27 (Boss 2026-08-29
-                // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-                // both TextField and Send button pinned to 30 PT
-                // (= canonical macOS HIG chat input height, same
-                // as zone tab bar / statusbar). Previously the
-                // TextField was visually ~22 PT (= font 13 PT +
-                // auto-padding = shorter than the button's 24 PT
-                // controlSize regular).
-                .buttonStyle(.bordered)
-                .controlSize(.regular)  // 24 PT control height (= boss OOB)
-                .frame(height: LayoutTokens.chromeControlHeight)
-                .disabled(vm.inputText.isEmpty || vm.isSending)
+                // v1.28 C3.4.7: extract leaked Send button modifiers (.buttonStyle
+                // + .controlSize + .frame + .disabled + v0.28/v0.61 boss OOB comments)
+                // from ChatView into ChatSendButton.swift (= the C3.4.4 commit
+                // missed these modifiers, = they were still chained off the
+                // ChatSendButton(vm: vm) call site; = per boss '做好清理' principle,
+                // this amendment closes the gap).
+                ChatSendButton(vm: vm)
                 // WIRE-AGENT-003 (2026-09-04): start-long-running-goal
                 // button. ⌘⇧G shortcut per P0 #3 brief. Lives next to
                 // the Send button so the user has both single-turn
