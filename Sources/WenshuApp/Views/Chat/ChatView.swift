@@ -1312,46 +1312,8 @@ public struct ChatView: View {
                     }
                 }
             HStack(alignment: .bottom, spacing: 8) {
-                // CHATIMG-001 (2026-09-07): paperclip attach button to
-                // the left of the TextField. Toggles .fileImporter on
-                // the input HStack (= canonical Apple HIG SwiftUI
-                // pattern for picking a single file). The picked
-                // image is copied into `<libraryPath>/cache/chat-uploads/`
-                // via ChatViewModel.attachImage(at:) and rendered as a
-                // preview chip above the HStack (= Apple Messages /
-                // Slack attachment preview pattern).
-                Button {
-                    showingImageImporter = true
-                } label: {
-                    Image(systemName: "paperclip")
-                        .font(.system(size: DesignTokens.tabIconSize, weight: .regular))
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
-                        .foregroundStyle(.secondary)
-                }
-                // v0.61 boss 2026-09-10 OOB 'the attach button and the
-                // send button should match styles': they are both in the
-                // same HStack, so any visual mismatch reads as a bug.
-                // Send uses .bordered (= Apple standard Liquid Glass
-                // capsule, per boss 8/29 OOB); attach was .borderless
-                // (the older CHATIMG-001 default). The two are now the
-                // same style, which is also what Apple uses for the
-                // paperclip in Messages and the send in every chat app
-                // that ships with the platform.
-                .buttonStyle(.bordered)
-                .help(WenshuI18n.t("chat.input.attach.help"))
-                // CHATIMG-001 (2026-09-07): the attach button is
-                // intentionally NOT gated on `hasUsableKey` (=
-                // LLM model availability). Attaching a draft image
-                // is independent of sending (= you can attach + see
-                // the preview chip + clear it even when no LLM
-                // provider is configured). Send itself still
-                // requires `hasUsableKey` via the Send button's own
-                // .disabled check; if you try to send with no
-                // model, the existing routeInput() guard handles
-                // it (= no LLM call = no error message; the
-                // message just persists in the in-memory list).
-                .disabled(vm.isSending)
+                // v1.28 C3.4.3: extract attach button to ChatAttachButton.swift
+                ChatAttachButton(showingImageImporter: $showingImageImporter, isSending: vm.isSending)
                 // v0.24 boss acceptance fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
