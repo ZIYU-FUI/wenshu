@@ -83,15 +83,10 @@ struct BookSettingConstraintsView: View {
     @State private var chapterText: String = ""
     @State private var hasChecked: Bool = false
 
-    @State private var status: LoadStatus = .idle
+    @State private var status: SpecializedToolLoadStatus = .idle
     @State private var errorText: String?
 
-    private enum LoadStatus: Equatable, Sendable {
-        case idle
-        case loading
-        case loaded
-        case failed(String)
-    }
+
 
     init() {}
 
