@@ -1732,15 +1732,11 @@ struct NewLibraryOutlineView: View {
         }
     }
 
-    /// v1.28 B2.1.2: deleted `encodeDisclosureStates` and
-    /// `decodeDisclosureStates` (= verify-dead reports both as
-    /// ext=0 + int=0; = 0 callers across the entire codebase;
-    /// = the helper comment line above = "kept only for callers
-    /// that imported the old keys (= legacy migration is no-op
-    /// since the new key is single)" = the helpers' own docstring
-    /// acknowledged they were dead; = the canonical disclosure-state
-    /// path is `SidebarState.jsonString` per the comment; = no
-    /// behavior change; = 24 LOC removed).
+    // Encode/decode [UUID: Bool] for AppStorage (= AppStorage
+    // requires String, so we round-trip via JSONEncoder/JSONDecoder).
+    // Empty string = no entries (= first-launch state). Empty dict
+    /// v1.28 C3.6.1: encodeDisclosureStates + decodeDisclosureStates extracted
+    /// to NewLibraryOutlineView+DisclosureState.swift
 
     /// v0.76 boss 2026-09-10 OOB 'we have a middle modal — tapping New
     /// prompts the user to choose between a new book or a new bookshelf; the button just says New, then opens that modal':
@@ -1784,7 +1780,7 @@ struct NewLibraryOutlineView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 8)
-                .padding(.horizontal, DesignTokens.zoneContentInset)
+                .padding(.horizontal, 8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -1947,7 +1943,7 @@ private struct NewBookSheet: View {
                 Section {
                     HStack(spacing: 12) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
+                            RoundedRectangle(cornerRadius: 8)
                                 .fill(.tint.opacity(0.15))
                                 .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
                             Image(systemName: selectedIcon).font(.system(size: 32, weight: .regular))
@@ -2163,7 +2159,7 @@ private struct NewShelfSheet: View {
                     // large size so user can see what they're picking).
                     HStack(spacing: 12) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
+                            RoundedRectangle(cornerRadius: 8)
                                 .fill(.tint.opacity(0.15))
                                 .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
                             Image(systemName: selectedIcon).font(.system(size: 32, weight: .regular))
