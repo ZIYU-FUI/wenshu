@@ -43,21 +43,17 @@ final class PaneNSController: NSSplitViewController {
 
     // MARK: - Stored dependencies (= set once at init; not mutated)
 
-    /// v1.28 C3.2.4: visibility relaxed from `private` to `internal` so the
-    /// extension files (`PaneNSController+ZoneSlotMapping` + `+ZoneVisibility`
-    /// + `+PaneSizing`) can read it. `store` is mutated only via init (= not
-    /// after construction); = the relaxed access matches the actual usage.
+    /// v1.28 C3.2.5: visibility relaxed from `private` to `internal` so the
+    /// extension files (`PaneNSController+CollectHelpers` reads `store.workspace.root`
+    /// in `countSplitNodesBefore(_:)`). `store` is mutated only via init
+    /// (= not after construction); = the relaxed access matches the actual usage.
     let store: LayoutTreeStore
-    let appState: AppState
-    let bookStore: BookStore
+    private let appState: AppState
+    private let bookStore: BookStore
 
     /// Layout identifier (= for autosaveName scoping; per-preset so
     /// switching presets restores each one's last divider positions).
-    ///
-    /// v1.28 C3.2.4: visibility relaxed from `private` to `internal` so the
-    /// extension file `PaneNSController+PaneSizing.swift` can read it (= the
-    /// `autosaveKey(for:)` helper uses `layoutID` to scope the autosave name).
-    let layoutID: String
+    private let layoutID: String
 
     /// Applied-once flag: tracks whether the initial weight ratio
     /// has been applied via setPosition. NSSplitView's bounds are 0
@@ -554,8 +550,49 @@ final class PaneNSController: NSSplitViewController {
         // hidden on expand).
         adjustRootForCollapsedBands()
     }
-    /// v1.28 C3.2.2: allZoneSlots + isZoneVisible + isZoneVisibleRecursive
-    /// extracted to PaneNSController+ZoneVisibility.swift
+
+    /// v0.34 ticket 02: explicit list of all ZoneSlot cases (= ZoneSlot
+    /// is not CaseIterable; mirror the enum's 6-case definition here).
+    private func allZoneSlots() -> [ZoneSlot] {
+        [.projectSidebar, .projectPreview, .editor,
+         .specializedTools, .aiChat, .aiDynamic]
+    }
+
+    /// ZONE-VIS-FIX-001 (2026-09-08): query isCollapsed across self
+    /// + nested PaneNSControllers for a ZoneSlot. True = zone is
+    /// currently visible (= not collapsed). Used by
+    /// `collapseAllNonEditorZones` to know which zones to collapse
+    /// (= skip the ones already collapsed).
+    private func isZoneVisible(_ slot: ZoneSlot) -> Bool {
+        let kind = zoneSlotToTabKind(slot)
+        guard let kind else { return true }
+        for (idx, item) in splitViewItems.enumerated() {
+            guard let tab = paneKindByItem[idx], tab == kind else { continue }
+            return !item.isCollapsed
+        }
+        // Check nested controllers (= same flatten as handleToggleZone).
+        for child in children {
+            if let splitChild = child as? PaneNSController,
+               let visible = splitChild.isZoneVisibleRecursive(kind) {
+                return visible
+            }
+        }
+        return true
+    }
+
+    private func isZoneVisibleRecursive(_ kind: TabKind) -> Bool? {
+        for (idx, item) in splitViewItems.enumerated() {
+            guard let tab = paneKindByItem[idx], tab == kind else { continue }
+            return !item.isCollapsed
+        }
+        for child in children {
+            if let splitChild = child as? PaneNSController,
+               let visible = splitChild.isZoneVisibleRecursive(kind) {
+                return visible
+            }
+        }
+        return nil
+    }
 
     /// v0.34 ticket 02: collapse the 5 non-editor zones (= hide sidebar /
     /// preview / tools / chat / dynamic; editor stays visible and takes
@@ -584,7 +621,19 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-    /// v1.28 C3.2.1: zoneSlotToTabKind extracted to PaneNSController+ZoneSlotMapping.swift
+    /// v0.34 ticket 02: ZoneSlot → TabKind canonical mapping (= mirror
+    /// of the switch in handleToggleZone, factorised out for reuse).
+    private func zoneSlotToTabKind(_ slot: ZoneSlot) -> TabKind? {
+        switch slot {
+        case .projectSidebar: return .projectSidebar
+        case .projectPreview: return .projectPreview
+        case .editor: return .editor
+        case .specializedTools: return .specializedTools
+        case .aiChat: return .aiChat
+        case .aiDynamic: return .aiDynamic
+        }
+    }
+
     /// Resolve the first TabKind for an NSSplitViewItem (= it hosts an
     /// NSHostingController(rootView: TabContentDispatcher); the
     /// dispatcher is the rootView itself).
@@ -714,13 +763,7 @@ final class PaneNSController: NSSplitViewController {
     /// re-wrapped the items. Index 0 is enough for v0.30 because
     /// every GroupNode renders exactly one pane (= multi-pane
     /// groups are flattened by `makeSplitItems`).
-    ///
-    /// v1.28 C3.2.2: visibility relaxed from `private` to `internal` so the
-    /// extension file `PaneNSController+ZoneVisibility.swift` can read it.
-    /// The dictionary is mutated only by `makeSplitItems` and read by
-    /// `isZoneVisible` / `isZoneVisibleRecursive` (= both now in the
-    /// extension file); = the relaxed access matches the actual usage.
-    var paneKindByItem: [Int: TabKind] = [:]
+    private var paneKindByItem: [Int: TabKind] = [:]
     /// v0.30 boss 2026-09-01 OOB (zone toggle fix): the subtree this
     /// controller renders. The root instance renders `store.workspace.root`
     /// (= the full tree); nested instances render the SplitNode they
@@ -939,21 +982,7 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-    /// Count how many .split nodes appear before `node` in the
-    /// parent's children array. Used to pair .split SplitNodes with
-    /// the corresponding nested NSSplitViewController by index.
-    private func countSplitNodesBefore(_ node: LayoutNode) -> Int {
-        guard case .split(let parent) = store.workspace.root else { return 0 }
-        guard let index = parent.children.firstIndex(of: node) else { return 0 }
-        var count = 0
-        for i in 0..<index {
-            if case .split = parent.children[i] {
-                count += 1
-            }
-        }
-        return count
-    }
-
+        /// v1.28 C3.2.5: countSplitNodesBefore extracted to PaneNSController+CollectHelpers.swift
     override func viewDidLayout() {
         super.viewDidLayout()
         // v0.30 boss 2026-09-01 OOB fix: NSSplitView's bounds are
@@ -1453,8 +1482,58 @@ final class PaneNSController: NSSplitViewController {
 
     // MARK: - Pane property helpers (= min thickness + collapse permission)
 
-    /// v1.28 C3.2.4: minThickness + maxThickness + isCollapsiblePane extracted
-    /// to PaneNSController+PaneSizing.swift
+    /// Minimum thickness in points for the pane (= left/right edges get
+    /// a hard minimum so the user can't drag them below Apple HIG
+    /// readability; middle panes get a smaller minimum so the editor
+    /// can shrink when the sidebar expands).
+    private func minThickness(for paneID: PaneID, weight: Double) -> CGFloat {
+        guard let pane = store.workspace.pane(for: paneID) else { return 100 }
+        // Honor the pane's declared minWidth/idealWidth (= user-tunable).
+        if pane.frame.minWidth > 0 { return pane.frame.minWidth }
+        // Fallback: collapseable side panes default to 200 (= Apple HIG
+        // sidebar minimum); non-collapseable panes (= editor, viewer)
+        // default to 100 (= can shrink down to almost nothing).
+        return isCollapsiblePane(paneID) ? 200 : 100
+    }
+
+    /// ZONE-VIS-FIX-002 (2026-09-08): canonical per-TabKind
+    /// `maximumThickness` (= the upper bound for a pane's thickness).
+    /// Returning `nil` means "no upper bound" (= Apple default).
+    /// Per-zone rationale (= see the `maximumThickness` setter in
+    /// `makeSplitItems`):
+    /// - sidebar: 400 PT (= tree outline natural max)
+    /// - cards: 500 PT (= card grid natural max)
+    /// - tools: 300 PT (= icon row natural max; = matches FCP
+    ///   inspector width)
+    /// - editor / chat / dynamic: nil (= no upper bound; =
+    ///   always takes remaining space via `preferredThicknessFraction`)
+    private func maxThickness(for kind: TabKind) -> CGFloat? {
+        switch kind {
+        case .projectSidebar:   return 400
+        case .projectPreview:   return 500
+        case .specializedTools: return 300
+        case .editor, .aiChat, .aiDynamic: return nil
+        }
+    }
+
+    /// Which panes can the user collapse (= via the "Display" menu /
+    /// sidebar toolbar toggle). Boss 2026-09-01 OOB rule: everything
+    /// except the editor is collapsible (= the editor is the one
+    /// pane the user is always writing in; collapsing it would
+    /// hide the work surface). Sidebar / preview / tools / chat /
+    /// dynamic all follow the standard FCP hide/show affordance.
+    private func isCollapsiblePane(_ paneID: PaneID) -> Bool {
+        guard let pane = store.workspace.pane(for: paneID),
+              let firstTabID = pane.tabIDs.first,
+              let tab = store.workspace.tab(for: firstTabID)
+        else { return false }
+        switch tab.kind {
+        case .projectSidebar, .projectPreview, .specializedTools, .aiChat, .aiDynamic:
+            return true
+        case .editor:
+            return false
+        }
+    }
 
     // MARK: - Apple HIG canonical zone toggle (= boss 2026-09-02 OOB)
 
@@ -1528,25 +1607,13 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-    /// Flatten self + every nested PaneNSController child into an
-    /// array. The root controller hosts wrap-mode items (= the
-    /// upper-band and lower-band nested controllers live as
-    /// root.splitViewItems); the per-pane NSSplitViewItems live on
-    /// the nested controllers.
-    private func collectPaneControllers() -> [PaneNSController] {
-        var result: [PaneNSController] = [self]
-        var queue: [NSSplitViewController] = [self]
-        while let next = queue.first {
-            queue.removeFirst()
-            for child in next.children {
-                if let splitChild = child as? PaneNSController {
-                    result.append(splitChild)
-                    queue.append(splitChild)
-                }
-            }
-        }
-        return result
-    }
+        /// v1.28 C3.2.5: collectPaneControllers extracted to PaneNSController+CollectHelpers.swift
+    // MARK: - autosaveName key (= per-layout + per-split)
 
-    /// v1.28 C3.2.4: autosaveKey extracted to PaneNSController+PaneSizing.swift
+    /// Apple autosaveName key (= scopes divider positions per preset +
+    /// per split subtree, so switching presets restores each one's last
+    /// divider positions).
+    private func autosaveKey(for splitID: String) -> String {
+        "wenshu.split.\(layoutID).\(splitID)"
+    }
 }
