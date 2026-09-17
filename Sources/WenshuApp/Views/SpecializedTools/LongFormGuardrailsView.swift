@@ -82,14 +82,15 @@ struct LongFormGuardrailsView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
-            if activeBookId == nil {
-                emptyState
-            } else {
-                contentBody
-            }
-        }
-        .padding(DesignTokens.chromePaddingMedium)
+        // v1.28 C3.7.5: migrate to specializedToolBody modifier
+        // (= 6th and final SpecializedTool migration; = LongFormGuardrailsView).
+        // Note: this view has an additional `.sheet(isPresented: $showAddSheet)`
+        // modifier chained AFTER .task; = the migration preserves that.
+        specializedToolBody(
+            activeBookId: activeBookId,
+            emptyContent: { emptyState },
+            mainContent: { contentBody }
+        )
         .task(id: activeBookId) {
             await reload()
         }

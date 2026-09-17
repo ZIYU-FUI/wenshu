@@ -114,14 +114,13 @@ struct IdeaLibraryView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
-            if activeBookId == nil {
-                emptyState
-            } else {
-                contentBody
-            }
-        }
-        .padding(DesignTokens.chromePaddingMedium)
+        // v1.28 C3.7.5: migrate to specializedToolBody modifier
+        // (= 5th of 6 SpecializedTool migrations; = IdeaLibraryView).
+        specializedToolBody(
+            activeBookId: activeBookId,
+            emptyContent: { emptyState },
+            mainContent: { contentBody }
+        )
         .task(id: activeBookId) {
             await reload()
         }
