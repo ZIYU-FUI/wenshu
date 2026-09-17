@@ -183,7 +183,16 @@ public struct EmptyStateView: View {
             // vertical gap (= 22 PT below) matches Apple's
             // measured ContentUnavailableView sample (= NOT
             // custom; = Apple HIG standard).
-            Image(systemName: icon).font(.system(size: DesignTokens.emptyStateIconSize, weight: .regular))
+            // Per wenshu-icon-policy v1.5 boss OOB 2026-09-17:
+            // empty-state / large icons (>=38 PT) MUST pin
+            // .symbolRenderingMode(.monochrome). SF Symbols 6 on
+            // macOS 27 silently falls back to the .fill variant
+            // when the caller passes an outline root name without
+            // setting the rendering mode (= at 76 PT the fill
+            // glyph reads as a heavy solid blob = boss's "太粗").
+            Image(systemName: icon)
+                .font(.system(size: DesignTokens.emptyStateIconSize, weight: .regular))
+                .symbolRenderingMode(.monochrome)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, DesignTokens.chromePaddingEmptyStateGap)
             VStack(spacing: DesignTokens.chromePaddingSmall) {
