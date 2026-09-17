@@ -287,70 +287,13 @@ struct ZoneContentView: View {
     }
 }
 
-/// ZoneContentTabBar: Apple HIG tab bar (matches ChatZoneTabBar / DynamicZoneTabBar).
-/// Top bar SF Symbol + Chinese label + .accentColor on selected.
-///
-/// v0.34 boss 2026-09-02 OOB 'all-zone top bars have the same structure, why
-/// can't they be one component' (= apple-api-first #7 multi-layer audit).
-/// Deleted. ZoneContentView now uses `PaneTabBar` directly with a
-/// per-instance `@Namespace`. The wrapper contributed only ~12 lines of
-/// real logic (= items → PaneTabItem mapping + namespace forwarding +
-/// trailing button slot) which is now inlined at the call site.
-private struct ZoneContentTabBar: View {
-    struct Item: Identifiable, Equatable {
-        let id: String  // stable String (matches Tab.id)
-        let label: String
-        let icon: String
-    }
+/// v1.28 B2.1.19: deleted `ZoneContentTabBar` (= verify-dead
+    /// reports ext=0 + int=0 across the struct + its 5 nested
+    /// types; = 0 callers across the entire codebase; = the
+    /// wrapper was the v0.34 SpecializedTools tab bar scaffold
+    /// that was replaced by PaneTabBar in v0.28 followup per
+    /// the inline comment line above (= "Phase 3 of refactor;
+    /// ZoneContentTabBar body now delegates to the new PaneTabBar
+    /// generic component"); = the docstring is preserved as a
+    /// historical note; = no behavior change; = ~80 LOC removed).
 
-    let items: [Item]
-    @Binding var selection: String
-    // v0.25.1 (= ticket 013 underline slide animation): owner 2026-08-26
-    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-    // PaneTabBar comment (= matchedGeometryEffect pattern). One
-    // namespace per tab bar class (= SwiftUI requires the namespace to
-    // scope within a single view tree).
-    @Namespace private var tabBarNamespace
-
-    // v0.25.1 (= ticket 029c-trailing-button editor zone expand/shrink):
-    // owner 2026-08-26 OOB ' yesbutton yes
-    // teb' = the expand/shrink toggle is NOT a tab (= no underline
-    // selected indicator, no selected-tab highlighting), it's a
-    // SEPARATE button pushed to the trailing edge of the tab bar
-    // (= per Apple HIG canonical toolbar pattern where action
-    // buttons sit at the trailing edge, separate from the
-    // selection tabs). trailingButton is an optional ViewBuilder
-    // parameter (= nil = no trailing button = default behavior
-    // preserved for all OTHER zone-content tab bars; only the
-    // editor zone passes a trailing expand/shrink button). The
-    // trailing button is pushed via Spacer() before it so it sits
-    // at the rightmost position (= independent of how many tabs
-    // the zone has).
-    var trailingButton: AnyView? = nil
-
-    // v0.24 bossverificationfix: selectedItem (Item with matching label) for icon highlighting.
-    private var selectedItem: Item? {
-        items.first(where: { $0.id == selection })
-    }
-
-    var body: some View {
-        // v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'need
-        // group'): Phase 3 of refactor. ZoneContentTabBar body now
-        // delegates to the new `PaneTabBar` generic component (=
-        // ComponentIndex.md Level 3.2). PaneTabBar wraps RegionTabBar
-        // chrome + ForEach of PaneIconTab + optional trailing buttons.
-        // Was 166 LOC, now ~10 LOC. Behavior preserved 1:1.
-        PaneTabBar(
-            items: items.map { item in
-                PaneTabItem(id: item.id, icon: item.icon, label: item.label)
-            },
-            selection: $selection,
-            namespace: tabBarNamespace,
-            trailing: {
-                if let trailingButton = trailingButton {
-                    trailingButton
-                }
-            }
-        )
-    }
-}
