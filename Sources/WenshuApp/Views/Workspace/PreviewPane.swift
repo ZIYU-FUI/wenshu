@@ -1466,7 +1466,17 @@ private struct Card: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                Image(systemName: source.iconName).font(.system(size: 64, weight: .regular))
+                // Boss 2026-09-17 OOB: '素材卡片的 ICON, 用 .ultraLight'.
+                // Per wenshu-icon-policy v1.5: 64 PT (= empty-state
+                // threshold >=38 PT) MUST pin .symbolRenderingMode(.monochrome).
+                // SF Symbols 6 on macOS 27 silently falls back to the
+                // .fill variant (= boss's "粗蓝书图标"). Pinning
+                // .monochrome forces the outline glyph at 64 PT.
+                // Trade-off: .tint(.opacity 0.85) blue is replaced by
+                // default .secondary blue tint via .foregroundStyle.
+                Image(systemName: source.iconName)
+                    .font(.system(size: 64, weight: .ultraLight))
+                    .symbolRenderingMode(.monochrome)
                     .foregroundStyle(.tint.opacity(0.85))
             }
             .frame(height: DesignTokens.panelMinHeight)
