@@ -223,6 +223,14 @@ public enum DesignTokens {
     /// (= the zone-level grid inset); = bubble internal padding is
     /// larger because the bubble itself adds visual weight.
     public static let bubblePaddingHorizontal: CGFloat = 12
+    /// v1.28 A1.9: Layout picker chrome width (= 416 PT; = 26rem
+    /// at 16 PT/rem; = replaces inline `26 * 16` at LayoutEditBar:56
+    /// + LayoutPicker:156 (= the comment-encoded magic constant
+    /// pair). Per v1.27 component audit: the arithmetic was the
+    /// only documentation for the picker column; = data-driven now
+    /// so future picker redesign is 1-stop.
+    public static let layoutPickerWidth: CGFloat = 416
+
 
     /// Badge surface corner radius (= 8 PT, Apple HIG capsule-style
     /// badge standard). Replaces file-scope `badgeCornerRadius: CGFloat = 8`

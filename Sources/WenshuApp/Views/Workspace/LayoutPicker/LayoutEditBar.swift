@@ -53,7 +53,7 @@ struct LayoutEditBar: View {
                 }
             )
         }
-        .frame(width: 26 * 16)  // 26rem (= 26 * 16 PT in macOS 1x)
+        .frame(width: DesignTokens.layoutPickerWidth)  // 26rem (= 26 * 16 PT in macOS 1x)
         // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '
         // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
         // regiontop bar, bottom bar, background, color, canLiquid Glass'):
