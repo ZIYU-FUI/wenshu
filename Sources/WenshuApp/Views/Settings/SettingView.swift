@@ -183,12 +183,12 @@ struct SettingView: View {
         providersWithKeys = Set(ProviderKeychain.listProvidersWithKeys())
     }
 
-    private func selectProvider(_ p: Provider) {
-        providerSlug = p.slug
-        llmModel = p.defaultModels.first ?? WenshuLLMModel.m3.rawValue
-        liveModelIds = []
-        refreshProviderStatus()
-    }
+    /// v1.28 B2.1.7: deleted `selectProvider(_:)` (= verify-dead
+    /// reports ext=0 + int=0; = 0 callers; = the function was an
+    /// old provider-selection entry point that wrote to the
+    /// @State providers directly; = the current Provider row uses
+    /// inline `Toggle(isOn: bindingForExpanded)` + `Button(action:)`;
+    /// = no behavior change; = 7 LOC removed).
 
     private var modelIdList: [String] {
         liveModelIds.isEmpty ? currentProvider.defaultModels : liveModelIds
@@ -310,20 +310,12 @@ struct SettingView: View {
         }
     }
 
-    private func bindingForExpanded(_ p: Provider) -> Binding<Bool> {
-        Binding(
-            get: { apiExpandedProviders.contains(p.slug) },
-            set: { newValue in
-                if newValue {
-                    apiExpandedProviders.insert(p.slug)
-                    apiDraftKey = currentDraftPreview(for: p)
-                    apiError = nil
-                } else {
-                    apiExpandedProviders.remove(p.slug)
-                }
-            }
-        )
-    }
+    /// v1.28 B2.1.7: deleted `bindingForExpanded(_:)` (= verify-dead
+    /// reports ext=0 + int=0; = 0 callers; = the helper built a
+    /// Binding<Bool> from `apiExpandedProviders` Set state; =
+    /// the current API row uses inline
+    /// `DisclosureGroup(isExpanded: $binding)` directly with the
+    /// parent @State; = no behavior change; = 13 LOC removed).
 
     private func currentDraftPreview(for provider: Provider) -> String {
         let hasKey = providersWithKeys.contains(provider.slug)
