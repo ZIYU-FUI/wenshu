@@ -197,6 +197,16 @@ public enum DesignTokens {
     /// Replaces `.foregroundStyle(.tertiary)` in 16 files.
     public static let statusForeground: HierarchicalShapeStyle = .tertiary
 
+    /// v1.28 A1.7: System message surface fill (= 15% red opacity on
+    /// Apple accent red; = the canonical warning banner background
+    /// for chat error / system messages; = replaces the band-aid
+    /// inline `Color.red.opacity(0.15)` at ChatView.swift:1907
+    /// (= the source-check at v1.0.0-m1-shell added it as a
+    /// one-off 4th branch in bubbleFill; = data-driven now via
+    /// token lookup). Apple HIG: warning fills should be token-
+    /// based, not literal, so dark/light adjustments are 1-stop.
+    public static let systemMessageFill: Color = Color.red.opacity(0.15)
+
     // MARK: - Surface metrics (Apple HIG, v0.35 +1)
 
     /// Card surface corner radius (= 8 PT, Apple HIG rounded card standard).

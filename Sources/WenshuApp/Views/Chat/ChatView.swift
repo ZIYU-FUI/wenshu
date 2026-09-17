@@ -1905,7 +1905,12 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
     /// accent colour and appearance rather than being pinned to one theme.
     private var bubbleFill: AnyShapeStyle {
         if message.source == .system {
-            return AnyShapeStyle(Color.red.opacity(0.15))
+            // v1.28 A1.7: data-driven via DesignTokens.systemMessageFill
+            // (= was inline Color.red.opacity(0.15); = the band-aid
+            // special-case for the system-message bubble style; =
+            // token now owns the warning-banner color; = future
+            // dark/light adjustments are 1-stop).
+            return AnyShapeStyle(DesignTokens.systemMessageFill)
         }
         return isOutgoing
             ? AnyShapeStyle(Color.accentColor)
