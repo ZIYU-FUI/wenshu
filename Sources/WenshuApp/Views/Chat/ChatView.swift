@@ -1301,17 +1301,8 @@ public struct ChatView: View {
             // unchanged (= paperclip button + TextField + Send +
             // Goal button + the same outer paddings).
             VStack(alignment: .leading, spacing: 4) {
-                if let imagePath = vm.attachedImagePath {
-                    // Attachment preview chip: small thumbnail + a
-                    // ✕ button to clear the draft. Sized to fit the
-                    // chat input row width (= bounded by outer
-                    // horizontal padding via the parent's
-                    // .padding(.horizontal, ...) below).
-                    ChatAttachmentPreviewChip(imagePath: imagePath) {
-                        vm.clearAttachedImage()
-                    }
-                }
-            HStack(alignment: .bottom, spacing: 8) {
+                ChatInputAttachmentRow(vm: vm)
+                HStack(alignment: .bottom, spacing: 8) {
                 // CHATIMG-001 (2026-09-07): paperclip attach button to
                 // the left of the TextField. Toggles .fileImporter on
                 // the input HStack (= canonical Apple HIG SwiftUI
