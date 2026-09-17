@@ -546,49 +546,8 @@ final class PaneNSController: NSSplitViewController {
         // hidden on expand).
         adjustRootForCollapsedBands()
     }
-
-    /// v0.34 ticket 02: explicit list of all ZoneSlot cases (= ZoneSlot
-    /// is not CaseIterable; mirror the enum's 6-case definition here).
-    private func allZoneSlots() -> [ZoneSlot] {
-        [.projectSidebar, .projectPreview, .editor,
-         .specializedTools, .aiChat, .aiDynamic]
-    }
-
-    /// ZONE-VIS-FIX-001 (2026-09-08): query isCollapsed across self
-    /// + nested PaneNSControllers for a ZoneSlot. True = zone is
-    /// currently visible (= not collapsed). Used by
-    /// `collapseAllNonEditorZones` to know which zones to collapse
-    /// (= skip the ones already collapsed).
-    private func isZoneVisible(_ slot: ZoneSlot) -> Bool {
-        let kind = zoneSlotToTabKind(slot)
-        guard let kind else { return true }
-        for (idx, item) in splitViewItems.enumerated() {
-            guard let tab = paneKindByItem[idx], tab == kind else { continue }
-            return !item.isCollapsed
-        }
-        // Check nested controllers (= same flatten as handleToggleZone).
-        for child in children {
-            if let splitChild = child as? PaneNSController,
-               let visible = splitChild.isZoneVisibleRecursive(kind) {
-                return visible
-            }
-        }
-        return true
-    }
-
-    private func isZoneVisibleRecursive(_ kind: TabKind) -> Bool? {
-        for (idx, item) in splitViewItems.enumerated() {
-            guard let tab = paneKindByItem[idx], tab == kind else { continue }
-            return !item.isCollapsed
-        }
-        for child in children {
-            if let splitChild = child as? PaneNSController,
-               let visible = splitChild.isZoneVisibleRecursive(kind) {
-                return visible
-            }
-        }
-        return nil
-    }
+    /// v1.28 C3.2.2: allZoneSlots + isZoneVisible + isZoneVisibleRecursive
+    /// extracted to PaneNSController+ZoneVisibility.swift
 
     /// v0.34 ticket 02: collapse the 5 non-editor zones (= hide sidebar /
     /// preview / tools / chat / dynamic; editor stays visible and takes
@@ -617,19 +576,7 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-    /// v0.34 ticket 02: ZoneSlot → TabKind canonical mapping (= mirror
-    /// of the switch in handleToggleZone, factorised out for reuse).
-    private func zoneSlotToTabKind(_ slot: ZoneSlot) -> TabKind? {
-        switch slot {
-        case .projectSidebar: return .projectSidebar
-        case .projectPreview: return .projectPreview
-        case .editor: return .editor
-        case .specializedTools: return .specializedTools
-        case .aiChat: return .aiChat
-        case .aiDynamic: return .aiDynamic
-        }
-    }
-
+    /// v1.28 C3.2.1: zoneSlotToTabKind extracted to PaneNSController+ZoneSlotMapping.swift
     /// Resolve the first TabKind for an NSSplitViewItem (= it hosts an
     /// NSHostingController(rootView: TabContentDispatcher); the
     /// dispatcher is the rootView itself).
@@ -759,7 +706,13 @@ final class PaneNSController: NSSplitViewController {
     /// re-wrapped the items. Index 0 is enough for v0.30 because
     /// every GroupNode renders exactly one pane (= multi-pane
     /// groups are flattened by `makeSplitItems`).
-    private var paneKindByItem: [Int: TabKind] = [:]
+    ///
+    /// v1.28 C3.2.2: visibility relaxed from `private` to `internal` so the
+    /// extension file `PaneNSController+ZoneVisibility.swift` can read it.
+    /// The dictionary is mutated only by `makeSplitItems` and read by
+    /// `isZoneVisible` / `isZoneVisibleRecursive` (= both now in the
+    /// extension file); = the relaxed access matches the actual usage.
+    var paneKindByItem: [Int: TabKind] = [:]
     /// v0.30 boss 2026-09-01 OOB (zone toggle fix): the subtree this
     /// controller renders. The root instance renders `store.workspace.root`
     /// (= the full tree); nested instances render the SplitNode they
