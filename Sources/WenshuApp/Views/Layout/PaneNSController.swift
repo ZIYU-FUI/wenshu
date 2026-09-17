@@ -617,18 +617,7 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-    /// v0.34 ticket 02: ZoneSlot → TabKind canonical mapping (= mirror
-    /// of the switch in handleToggleZone, factorised out for reuse).
-    private func zoneSlotToTabKind(_ slot: ZoneSlot) -> TabKind? {
-        switch slot {
-        case .projectSidebar: return .projectSidebar
-        case .projectPreview: return .projectPreview
-        case .editor: return .editor
-        case .specializedTools: return .specializedTools
-        case .aiChat: return .aiChat
-        case .aiDynamic: return .aiDynamic
-        }
-    }
+    /// v1.28 C3.2.1: zoneSlotToTabKind extracted to PaneNSController+ZoneSlotMapping.swift
 
     /// Resolve the first TabKind for an NSSplitViewItem (= it hosts an
     /// NSHostingController(rootView: TabContentDispatcher); the
