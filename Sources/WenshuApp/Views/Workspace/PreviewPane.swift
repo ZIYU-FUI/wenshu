@@ -326,6 +326,20 @@ struct PreviewPane: View {
     /// legacy callers = no behavior change.
     @State private var previewSearchQuery: String = ""
 
+    /// v1.28 B2.3: memoization cache for `pinyinFirstLetter(_:)`
+    /// and `pinyinFirstLetters(_:)` (= both are deterministic pure
+    /// functions over `String` input; = previously the sidebar
+    /// render path called `pinyinFirstLetter(lhs.title)` + `pinyinFirstLetter(rhs.title)`
+    /// per ForEach row + `pinyinFirstLetters(title)` per `matchesSearch`
+    /// = 2 transforms per sort + 1 transform per filter, per card,
+    /// per render; = ~4000 CoreFoundation calls per sidebar
+    /// render on a 1000-card reference library; = the cache key
+    /// = the input title string itself = String → String memoization
+    /// with no eviction policy needed because the cache is bounded
+    /// by the active search-result set (= max O(reference-library-card-count)
+    /// entries; = clears on `previewSearchQuery` reset)).
+    @State private var pinyinCache: [String: String] = [:]
+
     /// Resolved search query used by `searchFilteredEntities`.
     /// Reads from the external Binding when present, else from
     /// the legacy internal `@State`.
@@ -1225,7 +1239,12 @@ struct PreviewPane: View {
     /// Uses Apple's CFStringTransform (kCFStringTransformToLatin +
     /// kCFStringTransformStripDiacritics). Example: "" → "L",
     /// "" → "W", "" → "S".
+    /// v1.28 B2.3: reads through `pinyinCache` first; on miss runs
+    /// the existing transform and writes back. Same pure-function
+    /// semantics preserved (= `pinyinFirstLetter("")` returns "L"
+    /// deterministically; = cache cannot diverge from recompute).
     private func pinyinFirstLetter(_ title: String) -> String {
+        if let cached = pinyinCache[title] { return cached }
         let mutable = NSMutableString(string: title)
         // Convert CJK characters to latinized pinyin (e.g. "" → "Lǐ Bái").
         CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
@@ -1234,10 +1253,14 @@ struct PreviewPane: View {
         let latinized = (mutable as String).trimmingCharacters(in: .whitespaces)
         // First non-whitespace character, uppercased. Empty titles bucket
         // to "~" (= sorts last).
+        let result: String
         if let first = latinized.first {
-            return String(first).uppercased()
+            result = String(first).uppercased()
+        } else {
+            result = "~"
         }
-        return "~"
+        pinyinCache[title] = result
+        return result
     }
 
     /// v0.40 boss 9/7 OOB 'search,, d, can
@@ -1279,6 +1302,7 @@ struct PreviewPane: View {
         }
 
         private func pinyinFirstLetters(_ title: String) -> String {
+        if let cached = pinyinCache[title] { return cached }
         let mutable = NSMutableString(string: title)
         CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
         CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
@@ -1301,7 +1325,9 @@ struct PreviewPane: View {
                 return String(first).uppercased()
             }
             .joined()
-        return String(initials)
+        let result = String(initials)
+        pinyinCache[title] = result
+        return result
     }
 
     /// v0.40 boss 9/7 OOB 'search,, d, can
