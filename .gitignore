@@ -1,5 +1,31 @@
 # SwiftPM build output
 .build/
+
+# Tool-generated artefacts (= boss 2026-09-17 OOB 'the colleague is gone,
+# you own the worktree'; = these dirs/files are produced by local tools,
+# not authored code; = keep them out of `git status` noise):
+# (CAUTION: do NOT add inline `# comment` after the pattern — git 2.54
+# on macOS does NOT strip trailing comments reliably. Use a separate
+# comment line above if you want to document why.)
+.repowise/
+# repowise health-check cache + LLM docs index
+.claude/
+# Claude Code agent runtime state
+.mcp.json
+# MCP server registry (= regenerated per-machine)
+.worktrees/
+# git worktree sub-checkouts (= each WO's branch; = top-level only;
+# = git internals manage the dir itself; = this rule prevents `git
+# status` from listing worktrees/ as untracked when one is missing
+# its git link file)
+.hermes/
+# Hermes agent runtime state (= cron, skills, etc.)
+.scratch/
+# ephemeral design notes (= per-WO ticket scratch; = legitimate
+# tracked scratch assets are unaffected by .gitignore — git only
+# honours ignore for untracked files; = this rule suppresses
+# untracked scratch dirs like the prior colleague's
+# v1.36-v1.45-arc-closure/)
 # repowise LLM API keys (= boss 2026-09-16 OOB; = local-only; = do not commit)
 .repowise/.env
 
