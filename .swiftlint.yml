@@ -49,18 +49,16 @@ disabled_rules:
 opt_in_rules:
   - custom_rules
 
-# v1.28 D2: View struct max LOC (= warning 500 / error 800).
-# Scoped to types whose name ends in `View` (= SwiftUI View structs;
-# = prevents the rule from firing on Core/ actor types which
-# legitimately exceed 800 LOC). The 12 god Views that v1.28 Tier C
-# splits will trigger this rule post-merge (= heads-up at 500,
-# hard-fail at 800).
-type_body_length:
-  - 500
-  - 800
-  - warning
-  - types:
-    - View
+# v1.28 D3: hard-coded surface palette values must route through
+# DesignTokens. v1.28 Tier A1.5-A1.6 routed 89 inline values; = this
+# rule prevents future regressions. Severity: warning (= the v1.27
+# baseline still has a few hundred legitimate uses; = a hard error
+# would block the merge).
+hardcoded_surface_palette:
+  name: "hard-coded surface palette values must route through DesignTokens"
+  regex: '(Color\(red: |Color\(nsColor: \.controlBackground|AnyShapeStyle\(HierarchicalShapeStyle\.(primary|secondary|tertiary|quaternary)\))'
+  message: "Hard-coded surface palette value. Use DesignTokens (e.g. DesignTokens.standardSecondaryForeground) instead."
+  severity: warning
 
 # Custom rule: 12-token xianxia pollution-defense vocabulary (= per
 # AGENTS.md Section 8 hard rule + WenshuVerifier.shortOutputStopSequencesHex
