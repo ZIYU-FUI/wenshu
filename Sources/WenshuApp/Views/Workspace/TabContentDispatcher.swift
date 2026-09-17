@@ -85,72 +85,24 @@ struct TabContentDispatcher: View {
             // The bottom status text (=: N /: N) still comes
             // from a single ZoneBottomStatus (= no duplicate with the
             // internal ZoneContentView).
-            ZonePerRegionChrome(
-                topActions: [],  // empty (= no outer top toolbar)
-                // B-07 015.019 (boss 2026-09-04 OOB '):
-                // bottom status book count now reads from
-                // `bookStore.books.count` (= reactive, kept in sync
-                // by `BookStore.sidebarSaveBook` /
-                // `sidebarDeleteBook`). Previous v0.30 fix ran an
-                // inline `FileManager.contentsOfDirectory` walk at
-                // every render (= non-reactive, ran on every body
-                // re-evaluation). The reactive mirror fixes both.
-                bottomStatus: projectSidebarChrome(
-                    shelfCount: bookStore.shelves.count,
-                    bookCount: bookStore.books.count
-                ).bottom,
-                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar now renders (= unified 30 PT ZoneSlot identity); the zone's internal ZoneContentTabBar is the 2nd-layer tab strip (kept inline).
-                // v0.32 boss 2026-09-02 OOB: sidebar = chrome tier
-                // (= .controlBackgroundColor per Apple HIG "large
-                // controls" = sidebar / inspector / table view).
-                zone: .projectSidebar
-            ) {
+            
                 ZoneModuleView(zoneSlot: .projectSidebar)
-            }
+
         case .projectPreview:
             // Same: no outer top toolbar (= internal ZoneContentTabBar
             // for / tabs IS the top chrome). Just the bottom
             // status text.
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: projectPreviewChrome(chapterCount: 0).bottom,
-                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
-                // v0.32 boss 2026-09-02 OOB: preview = content tier
-                // (= .windowBackgroundColor per Apple HIG "the area
-                // beneath your window's views" = content area;
-                // inset 1 tier darker than chrome in dark mode =
-                // matches FCP viewer depth).
-                zone: .projectPreview
-            ) {
+            
                 ZoneModuleView(zoneSlot: .projectPreview)
-            }
+
         case .editor:
             // No outer top (= internal ZoneContentTabBar for edit /
             // / IS the top chrome). Bottom status = /
             // (= boss 9/2 OOB replaces the legacy "N%" progress text
             // with backlinks count; = spec spec v0.34 B-15).
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: ZoneBottomStatus(
-                    // v0.34 B-18: chrome bottom left = live word count.
-                    // AppState.editorWordCount is written by
-                    // EditorEditContent's .onChange(of: draft) handler
-                    // (= single source of truth shared with any
-                    // future editor-zone status widget).
-                    left: "字数: \(appState.editorWordCount)",
-                    right: "反链 \(backlinksCount)",
-                    // B-16: chrome bottom right text is clickable
-                    // (= tap triggers BacklinksPanel popover).
-                    rightOnTap: { showBacklinksPopover.toggle() }
-                ),
-                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
-                // v0.32 boss 2026-09-02 OOB: editor = content tier
-                // (= .windowBackgroundColor = matches Xcode editor
-                // and Pages document inset depth).
-                zone: .editor
-            ) {
+            
                 ZoneModuleView(zoneSlot: .editor)
-            }
+
             // v0.34 B-15: trigger backlinks load on first appear.
             // .task runs once when the editor zone is mounted (= won't
             // re-fetch on every re-render; = Apple HIG async task lifecycle).
@@ -170,17 +122,9 @@ struct TabContentDispatcher: View {
         case .specializedTools:
             // No outer top (= internal ZoneContentTabBar for /
             // IS the top chrome). Bottom status = .
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: specializedToolsChrome().bottom,
-                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
-                // v0.32 boss 2026-09-02 OOB: tools = chrome tier
-                // (= .controlBackgroundColor = matches Xcode
-                // inspector / FCP inspector depth).
-                zone: .specializedTools
-            ) {
+            
                 ZoneModuleView(zoneSlot: .specializedTools)
-            }
+
         case .aiChat:
             // v0.28 followup Boss UX round 16 (Boss 2026-08-29 OOB
             // Old 6 had ChatZoneTabBar (= 3 tabs: dialog / search / Settings
@@ -194,16 +138,7 @@ struct TabContentDispatcher: View {
             // TabContentDispatcher above). Single source of truth for
             // chat top chrome.
             // NO outer ZonePerRegionChrome (= this PaneTabBar IS the top chrome).
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: aiChatChrome().bottom,
-                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
-                bottomSkip: false, // CHATBAR-001 (2026-09-07): chat zone now uses the shared chrome bottom bar (= boss 'bring back the chat zone bottom bar') showing chat-specific status (= current agent model + message count). Previously bottomSkip: true (= chat used internal ChatBottomToolbar per v0.21 ticket 10) but that internal bar was thin / inconsistent with the other 5 zones.
-                // v0.32 boss 2026-09-02 OOB: chat = content tier
-                // (= .windowBackgroundColor = matches Mail message
-                // list / Messages conversation depth).
-                zone: .aiChat
-            ) {
+            
                 ChatView()
                     .safeAreaInset(edge: .top, spacing: 0) {
                         // safeAreaInset adds a view above the ChatView
@@ -232,22 +167,14 @@ struct TabContentDispatcher: View {
                             }
                         )
                     }
-            }
+
         case .aiDynamic:
             // No outer top (= internal DynamicZoneTabBar for progress /
             // / search IS the top chrome). Just the bottom kanban
             // status text.
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: aiDynamicChrome().bottom,
-                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
-                // v0.32 boss 2026-09-02 OOB: dynamic / kanban =
-                // content tier (= .windowBackgroundColor = matches
-                // Xcode issue navigator depth).
-                zone: .aiDynamic
-            ) {
+            
                 ZoneModuleView(zoneSlot: .aiDynamic)
-            }
+
         }
     }
 }
