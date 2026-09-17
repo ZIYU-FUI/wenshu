@@ -55,7 +55,7 @@ struct WorkspaceView: View {
     /// here, NOT in WorkspaceView's @State. WorkspaceView just
     /// observes (= for the previewScope computed) and persists
     /// (= for the @AppStorage round-trip via .onChange).
-    @Environment(AppState.self) private var appState
+    @Bindable var appState: AppState
 
     // v0.34 boss 2026-09-02 OOB 'sidebar + preview should share one unified persistence interface':
     // Sidebar selection persistence moved into NewLibraryOutlineView's
@@ -66,7 +66,13 @@ struct WorkspaceView: View {
     /// v0.30 boss 8/31 OOB: card-grid sort order (= shared between
     /// PreviewPane's cards and the sort menu in the preview pane's
     /// tab bar trailing slot). Default = .pinyinFirstLetter.
-    @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
+    ///
+    /// v1.27 component-architecture (2026-09-17): removed.
+    /// Sort order now lives on `AppState.previewSortOrder`
+    /// (= shared across ShellMiddleColumn + WorkspaceView +
+    /// PreviewPane; = the 3 independent `@State` copies drifted
+    /// before; = the merge logic now lives in AppState).
+
 
     /// v0.30 boss 8/31 OOB: convert sidebar selection to PreviewScope
     /// for the material management zone. Computed on every render so
@@ -285,14 +291,22 @@ struct WorkspaceView: View {
         // now hoisted up to `LibraryRootView.body` (= root-of-Scene
         // position; = env chain stays intact). The branch
         // remains here as a no-op fallback (= the WorkspaceView
-        // still exists, = PaneSplitHost path is the only
+        // still exists, = NSViewControllerRepresentable path is the only
         // remaining path; = unchanged behavior).
-            PaneSplitHost(
-                layout: FCPLayout(),
-                store: store,
-                appState: appState,
-                bookStore: bookStore
-            )
+        //
+        // v1.27 component-arc: inlined `PaneSplitHost` here (= was a
+        // 1-caller NSViewControllerRepresentable wrapper around
+        // `PaneNSController`; = the v0.30 ticket 02/4 stub layer is
+        // removed). Layout construction now goes directly through
+        // `PaneNSController(store:appState:bookStore:layoutID:)`,
+        // which is the actual NSSplitViewController subclass that
+        // walks `store.workspace.root` recursively.
+        PaneNSViewController(
+            store: store,
+            appState: appState,
+            bookStore: bookStore
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.34 boss 2026-09-02 OOB: sidebar selection persistence
             // moved to NewLibraryOutlineView's unified SidebarState.
             // WorkspaceView no longer owns any @AppStorage key for
@@ -454,7 +468,7 @@ struct WorkspaceView: View {
                         // so it opens THIS card (= not the topmost one).
                         openCardInEditor(source: source)
                     },
-                    previewSortOrder: $previewSortOrder
+                    previewSortOrder: $appState.previewSortOrder
                 ))),
                 (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ], trailingButton: AnyView(
@@ -462,7 +476,7 @@ struct WorkspaceView: View {
                 // ▼ replace with list-ordered icon'. The sort menu button
                 // shows [sort rule text (dim)] + [list-ordered icon
                 // (tint)] = icon right-aligned within the trailing button.
-                PreviewSortMenuButton(sortOrder: $previewSortOrder)
+                PreviewSortMenuButton(sortOrder: $appState.previewSortOrder)
             ))
         case .editor:
             // v0.28 followup Boss UX round 43: switch from
@@ -808,3 +822,47 @@ fileprivate func findPaneController(in root: NSViewController?) -> PaneNSControl
 // Same module (= no new import needed); consumer is
 // `Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift:220`
 // (= v1.33 extraction).
+
+// MARK: - PaneNSViewController (inlined 2026-09-17 from Views/Layout/PaneSplitHost.swift)
+//
+// Was previously a separate NSViewControllerRepresentable wrapper in
+// Views/Layout/PaneSplitHost.swift (98 LOC). Inlined here because the
+// only caller (= WorkspaceView above) consumes it locally; = no
+// external API surface to preserve.
+//
+// v0.30 ticket 02/4 layered design:
+//   PaneSplitHost(NSViewControllerRepresentable)
+//     → calls FCPLayout.makeSplitController()  [DELETED 2026-09-17]
+//     → returns NSSplitViewController
+//
+// Current shape (= post v1.27 component-arc):
+//   PaneNSViewController(NSViewControllerRepresentable)
+//     → constructs PaneNSController directly (= the actual subclass
+//       from v0.30 ticket 03/4 that walks store.workspace.root
+//       recursively and hosts SwiftUI pane content via NSHostingController)
+//
+// The deleted PaneLayout / FCPLayout stub layer (= v0.30 ticket 01/4)
+// was the indirection "each preset = a different PaneLayout impl".
+// That design was abandoned when NSA framework landed: we have one
+// canonical layout (= the FCP-style 6-zone shell) and no longer need
+// pluggable PaneLayout strategies.
+private struct PaneNSViewController: NSViewControllerRepresentable {
+    let store: LayoutTreeStore
+    let appState: AppState
+    let bookStore: BookStore
+
+    func makeNSViewController(context: Context) -> NSSplitViewController {
+        PaneNSController(
+            store: store,
+            appState: appState,
+            bookStore: bookStore,
+            layoutID: "fcp-default"
+        )
+    }
+
+    func updateNSViewController(_ nsViewController: NSSplitViewController, context: Context) {
+        // No-op (= matches PaneSplitHost's prior behavior; = tree
+        // is rebuilt only on make; = preset switches trigger a full
+        // re-make via SwiftUI's view identity system).
+    }
+}

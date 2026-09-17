@@ -263,7 +263,14 @@ struct NavigationSplitShell: View {
             // content ideal 320 → 240 (= matches sidebar's
             // 'min-width' pattern; = user can still drag wider up
             // to 480 PT via max).
-            ShellMiddleColumn(appState: appState)
+            // v1.27 component-architecture (2026-09-17): now passes
+            // `envAppState:` (= the @Bindable / @Environment entry
+            // declared on ShellMiddleColumn) in addition to the
+            // existing `appState:` shim. Both point to the same
+            // instance (= wenshu's NSA framework convention; =
+            // see ShellMiddleColumn L57-72 for the @Bindable +
+            // `let appState` parallel-ownership pattern).
+            ShellMiddleColumn(envAppState: appState, appState: appState)
                 .navigationSplitViewColumnWidth(min: 240, ideal: 240, max: 480)
         } detail: {
             // Apple HIG detail column = the editor + chat sub-areas

@@ -43,14 +43,28 @@ import SwiftUI
 /// (spacing: 0) with 2 sub-areas and a .toolbar for the column
 /// chrome. No custom inspector wrapper needed.'
 struct ShellDetailColumn: View {
-    let appState: AppState
+    // v1.27 component-architecture (2026-09-17): changed from
+    // `let appState: AppState` (= plain let; = no binding syntax)
+    // to `@Bindable var appState: AppState` (= the @Observable
+    // binding wrapper; = allows `$appState.inspectorPage` syntax
+    // in Picker / Toggle etc.; = single source of truth for
+    // inspectorPage, not duplicated @State).
+    //
+    // Per Apple Observation framework (= developer.apple.com/documentation/swiftui/migrating-from-the-observable-object-protocol-to-the-observable-macro):
+    //   "To create a binding to a property of an Observable object,
+    //    declare a `@Bindable` variable in your View."
+    @Bindable var appState: AppState
 
-    // v0.42 boss 2026-09-09 OOB 'simplify the right column':
-    // tracks the currently displayed inspector content
-    // (= tools / dynamic). The 2-toggle Picker(.segmented)
-    // lives in the .toolbar .principal placement (= same
-    // pattern as ShellSidebarColumn's 2 scope tabs).
-    @State private var inspectorPage: InspectorPage = .authoringFiction
+    // v1.27 component-architecture (2026-09-17): inspectorPage
+    // promoted from `@State private var` (= column-local, ephemeral,
+    // = lost on column collapse-expand per SwiftUI view identity
+    // rules) to `AppState.inspectorPage` (= single source of
+    // truth; = survives shell lifecycle changes; = future
+    // inspector pane embeds can read the same value).
+    //
+    // Access pattern: `$appState.inspectorPage` (= appState is
+    // @Observable + injected via init parameter from
+    // NavigationSplitShell L306).
 
     // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
     // wire `@Environment(\.openWindow)` so the toolbar buttons can
@@ -115,7 +129,7 @@ struct ShellDetailColumn: View {
             (WenshuI18n.t("tab.title.book_setting_constraints"), "book.closed",     AnyView(BookSettingConstraintsView())),
         ]
         let perPageLabels: Set<String> = {
-            switch inspectorPage {
+            switch appState.inspectorPage {
             case .authoringFiction:
                 // v1.0.0-m1-shell boss 2026-09-11 OOB 'three per page,
                 // split into four pages, show them all': Page 1 = Authoring +
@@ -185,7 +199,7 @@ struct ShellDetailColumn: View {
         // boundaries): `inspectorPage` is `@State` on
         // ShellDetailColumn; = ToolbarItem(placement: .primaryAction)
         // inside the same view's `.toolbar` block can bind
-        // directly to `$inspectorPage`; = the state change in
+        // directly to `$appState.inspectorPage`; = the state change in
         // the toolbar Picker propagates to the body below via
         // SwiftUI's normal state binding; = no env-chain work
         // needed (= the binding is local to ShellDetailColumn).
@@ -223,7 +237,7 @@ struct ShellDetailColumn: View {
             VStack(spacing: 4) {
                 HStack {
                     Spacer()
-                    Text(inspectorPage.localizedTitle)
+                    Text(appState.inspectorPage.localizedTitle)
                         .font(.body)
                         .foregroundStyle(.secondary)
                         .textCase(nil)
@@ -351,7 +365,7 @@ struct ShellDetailColumn: View {
             // revert: `inspectorPage` is `@State` on
             // ShellDetailColumn; = ToolbarItem(placement: .primaryAction)
             // inside the same view's `.toolbar` block can bind
-            // directly to `$inspectorPage`; = the state change in
+            // directly to `$appState.inspectorPage`; = the state change in
             // the toolbar Picker propagates to the inspector
             // body via SwiftUI's normal state binding; = no
             // env-chain work needed (= the binding is local to
@@ -382,7 +396,7 @@ struct ShellDetailColumn: View {
 // saw in their iOS reference screenshot earlier; = the
 // canonical Apple HIG toolbar style).
 ToolbarItem(placement: .primaryAction) {
-                Picker("Inspector Page", selection: $inspectorPage) {
+                Picker("Inspector Page", selection: $appState.inspectorPage) {
                     ForEach(InspectorPage.allCases, id: \.self) { page in
                         Label {
                             Text(page.localizedTitle)

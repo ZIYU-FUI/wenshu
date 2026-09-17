@@ -242,3 +242,75 @@ public struct PaneTrailingIconButton: View {
         .help(tooltip)
     }
 }
+
+// MARK: - PaneIconTab (inlined 2026-09-17 from UI/PaneIconTab.swift)
+//
+// v0.28 followup Boss UX round A: Phase 2 of 5-phase component refactor.
+// Inlined because the only caller (= PaneTabBar above) is in this same
+// file (= file-local consumer; = a separate file with a public type just
+// to host a single internal caller is gratuitous separation).
+//
+// Apple HIG 28×28 hot area + SF Symbols 6 icon + selected-state underline
+// with matchedGeometry slide animation.
+@MainActor
+struct PaneIconTab: View {
+    let id: String
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let namespace: Namespace.ID
+    let namespaceID: String
+    let onTap: () -> Void
+
+    init(
+        id: String,
+        icon: String,
+        label: String,
+        isSelected: Bool,
+        namespace: Namespace.ID,
+        namespaceID: String = "tabBarUnderline",
+        onTap: @escaping () -> Void
+    ) {
+        self.id = id
+        self.icon = icon
+        self.label = label
+        self.isSelected = isSelected
+        self.namespace = namespace
+        self.namespaceID = namespaceID
+        self.onTap = onTap
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            // Apple HIG canonical tab pattern: Color.clear as BASE
+            // (= its 28×28 frame becomes the Button's hit area), icon as
+            // .overlay aligned .center (= icon visually centered, no clipping).
+            Color.clear
+                .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
+                .overlay(alignment: .center) {
+                    Image(systemName: icon).font(.system(size: DesignTokens.tabIconSize, weight: .regular))
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                }
+                .contentShape(Rectangle())
+                // Apple HIG canonical selected-state underline:
+                // - 1 PT height (= DesignTokens.tabUnderlineHeight)
+                // - accent color
+                // - bottom-anchored (= at the bottom of the 28 PT hot area)
+                // - matchedGeometryEffect for L/R slide animation (= not
+                //   per-tab crossfade)
+                // - .clipShape(Capsule()) for fully rounded ends
+                .overlay(alignment: .bottom) {
+                    if isSelected {
+                        Rectangle()
+                            .fill(Color.accentColor)
+                            .frame(height: DesignTokens.tabUnderlineHeight)
+                            .matchedGeometryEffect(id: namespaceID, in: namespace)
+                            .clipShape(Capsule())
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .hoverWash()
+        .help(label)
+    }
+}
