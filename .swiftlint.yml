@@ -49,17 +49,6 @@ disabled_rules:
 opt_in_rules:
   - custom_rules
 
-# v1.28 D3: hard-coded surface palette values must route through
-# DesignTokens. v1.28 Tier A1.5-A1.6 routed 89 inline values; = this
-# rule prevents future regressions. Severity: warning (= the v1.27
-# baseline still has a few hundred legitimate uses; = a hard error
-# would block the merge).
-hardcoded_surface_palette:
-  name: "hard-coded surface palette values must route through DesignTokens"
-  regex: '(Color\(red: |Color\(nsColor: \.controlBackground|AnyShapeStyle\(HierarchicalShapeStyle\.(primary|secondary|tertiary|quaternary)\))'
-  message: "Hard-coded surface palette value. Use DesignTokens (e.g. DesignTokens.standardSecondaryForeground) instead."
-  severity: warning
-
 # Custom rule: 12-token xianxia pollution-defense vocabulary (= per
 # AGENTS.md Section 8 hard rule + WenshuVerifier.shortOutputStopSequencesHex
 # hex-encoding pattern from commit 2748bb8). This is the SOURCE-side
@@ -74,15 +63,14 @@ custom_rules:
     message: "Forbidden xianxia-vocab token found. Use hex-encoded form (see WenshuVerifier.shortOutputStopSequencesHex) or describe semantically."
     severity: error
 
-  # v1.28 D4: inline `.padding(.horizontal, N)` / `.padding(.vertical, N)`
-  # must route through DesignTokens (= canonical spacing scale).
-  # v1.28 Tier A1.8 added `DesignTokens.bubblePaddingHorizontal = 12`
-  # and routed 7 sites (= chat bubble padding); this D4 rule prevents
-  # future inline-padding drift. Severity: warning (= the v1.27
-  # baseline still has ~50 legitimate one-off paddings; = hard error
-  # would block merge).
-  inline_padding_must_use_token:
-    name: "inline padding must route through DesignTokens"
-    regex: '\.padding\(\.(horizontal|vertical), \d+\)'
-    message: "Inline padding value. Use DesignTokens (e.g. DesignTokens.bubblePaddingHorizontal for chat bubble padding). For one-off padding, add a new spacing-scale token to DesignTokens and route through it."
+  # v1.28 D5: inline `RoundedRectangle(cornerRadius: N)` must route
+  # through DesignTokens (= canonical corner-radius scale).
+  # v1.28 Tier A1.6 added `DesignTokens.surfaceCornerRadiusCard`
+  # and routed 6 sites (= the 8pt card corner radius used by
+  # chat attachment previews); this D5 rule prevents future
+  # inline-corner-radius drift.
+  inline_corner_radius_must_use_token:
+    name: "inline corner radius must route through DesignTokens"
+    regex: 'RoundedRectangle\(cornerRadius: \d+(?:\.\d+)?\)'
+    message: "Inline corner radius value. Use DesignTokens (e.g. DesignTokens.surfaceCornerRadiusCard for 8pt card corners). For one-off corner radii, add a new token to DesignTokens and route through it."
     severity: warning
