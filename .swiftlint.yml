@@ -62,3 +62,16 @@ custom_rules:
     regex: '(修真|渡劫|筑基|返虚|结丹|金丹|元婴|飞升|天劫|雷劫|心魔|魔障)'
     message: "Forbidden xianxia-vocab token found. Use hex-encoded form (see WenshuVerifier.shortOutputStopSequencesHex) or describe semantically."
     severity: error
+
+  # v1.28 D4: inline `.padding(.horizontal, N)` / `.padding(.vertical, N)`
+  # must route through DesignTokens (= canonical spacing scale).
+  # v1.28 Tier A1.8 added `DesignTokens.bubblePaddingHorizontal = 12`
+  # and routed 7 sites (= chat bubble padding); this D4 rule prevents
+  # future inline-padding drift. Severity: warning (= the v1.27
+  # baseline still has ~50 legitimate one-off paddings; = hard error
+  # would block merge).
+  inline_padding_must_use_token:
+    name: "inline padding must route through DesignTokens"
+    regex: '\.padding\(\.(horizontal|vertical), \d+\)'
+    message: "Inline padding value. Use DesignTokens (e.g. DesignTokens.bubblePaddingHorizontal for chat bubble padding). For one-off padding, add a new spacing-scale token to DesignTokens and route through it."
+    severity: warning
