@@ -24,8 +24,11 @@
 //
 
 import Foundation
+import os
 
 // MARK: - Policy
+
+private let wenshuRotationLogger = Logger(subsystem: "org.wenshu.auth", category: "rotation")
 
 /// Auto-rotation policy (= configurable knobs for the wrapper).
 public struct AutoRotationPolicy: Sendable, Codable, Equatable {
@@ -213,7 +216,14 @@ public actor AutoRotatingConnector {
         do {
             let response = try await performSend(request, context)
             // Mark ok (= reset status after successful send).
-            try? await pool.markOk(keyId: key.id)
+            // v1.28 B2.10: surface markOk failures via os.Logger (= was silent
+            // `try?`; = a status-reset failure would leave the key in
+            // a cooldown state across attempts).
+            do {
+                try await pool.markOk(keyId: key.id)
+            } catch {
+                wenshuRotationLogger.error("markOk failed for keyId=\(key.id, privacy: .public): \(error, privacy: .public)")
+            }
             return response
         } catch {
             // Classify the error to decide whether to rotate.

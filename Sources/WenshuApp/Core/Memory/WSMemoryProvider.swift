@@ -20,7 +20,7 @@
 //  is WSMemoryRepository (= @MainActor SwiftData wrapper); new code uses
 //  SwiftData. WSMemoryProvider is the SwiftData-backed impl.
 
-import Foundation
+import os
 
 /// In-memory mirror of the SwiftData WSMemory store (= thread-safe via NSLock).
 /// Updated by async prefetch/sync methods (= bridges to @MainActor SwiftData).
@@ -42,7 +42,9 @@ final class WSMemoryMirror: @unchecked Sendable {
     }
 }
 
-public final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
+private let wenshuMemoryLogger = Logger(subsystem: "org.wenshu.memory", category: "provider")
+
+final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     let slug: String
     var isEnabled: Bool
