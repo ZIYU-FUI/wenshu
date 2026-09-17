@@ -56,7 +56,7 @@ struct LongFormGuardrailsView: View {
     /// @State so SwiftUI keeps the identity across re-renders).
     @State private var manager: LongFormGuardrails?
     @State private var guardrails: [LongFormGuardrail] = []
-    @State private var loadingState: LoadingState = .idle
+    @State private var loadingState: SpecializedToolLoadStatus = .idle
     @State private var showAddSheet = false
     @State private var draftName: String = ""
     @State private var draftDescription: String = ""
@@ -66,12 +66,6 @@ struct LongFormGuardrailsView: View {
     @State private var lastViolations: [LongFormGuardrailViolation] = []
     @State private var lastCheckStatus: CheckStatus = .idle
 
-    private enum LoadingState: Equatable, Sendable {
-        case idle
-        case loading
-        case loaded
-        case failed(String)
-    }
 
     private enum CheckStatus: Equatable, Sendable {
         case idle
