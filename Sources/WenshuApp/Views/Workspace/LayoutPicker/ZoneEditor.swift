@@ -376,11 +376,13 @@ struct ZoneEditor: View {
         }
     }
 
-    /// Insert a vertical split at the given column index.
-    private func splitAtColumn(_ columnIndex: Int) {
-        model = splitZone(model, atColumn: columnIndex)
-        splitColumnIndex = columnIndex
-    }
+    /// v1.28 B2.1.3: deleted `splitAtColumn(_:)` (= verify-dead
+    /// reports ext=0 + int=0; = 0 callers; = the function was
+    /// leftover from an earlier ZoneEditor MVP that supported
+    /// manual column splits; = the current MVP uses preset-based
+    /// grid init via `initGrid(_:)` + `initPriorityGrid(_:_:)`
+    /// which encode the split shape at creation time; = no
+    /// behavior change; = 5 LOC removed).
 
     /// Save the current grid as a user preset.
     private func saveAsPreset() {
