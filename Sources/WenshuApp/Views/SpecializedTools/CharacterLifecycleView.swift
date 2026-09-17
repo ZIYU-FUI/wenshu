@@ -111,14 +111,14 @@ struct CharacterLifecycleView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
-            if activeBookId == nil {
-                emptyState
-            } else {
-                contentBody
-            }
-        }
-        .padding(DesignTokens.chromePaddingMedium)
+        // v1.28 C3.7.3: migrate to specializedToolBody modifier
+        // (= see SpecializedToolBodyModifier.swift; = extracted by C3.7.1
+        // and adopted by TagManagerView in C3.7.2).
+        specializedToolBody(
+            activeBookId: activeBookId,
+            emptyContent: { emptyState },
+            mainContent: { contentBody }
+        )
         .task(id: activeBookId) {
             await reload()
         }
