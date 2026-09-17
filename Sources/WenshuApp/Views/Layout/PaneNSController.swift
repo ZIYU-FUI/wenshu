@@ -43,7 +43,11 @@ final class PaneNSController: NSSplitViewController {
 
     // MARK: - Stored dependencies (= set once at init; not mutated)
 
-    private let store: LayoutTreeStore
+    /// v1.28 C3.2.5: visibility relaxed from `private` to `internal` so the
+    /// extension files (`PaneNSController+CollectHelpers` reads `store.workspace.root`
+    /// in `countSplitNodesBefore(_:)`). `store` is mutated only via init
+    /// (= not after construction); = the relaxed access matches the actual usage.
+    let store: LayoutTreeStore
     private let appState: AppState
     private let bookStore: BookStore
 
@@ -978,21 +982,7 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-    /// Count how many .split nodes appear before `node` in the
-    /// parent's children array. Used to pair .split SplitNodes with
-    /// the corresponding nested NSSplitViewController by index.
-    private func countSplitNodesBefore(_ node: LayoutNode) -> Int {
-        guard case .split(let parent) = store.workspace.root else { return 0 }
-        guard let index = parent.children.firstIndex(of: node) else { return 0 }
-        var count = 0
-        for i in 0..<index {
-            if case .split = parent.children[i] {
-                count += 1
-            }
-        }
-        return count
-    }
-
+        /// v1.28 C3.2.5: countSplitNodesBefore extracted to PaneNSController+CollectHelpers.swift
     override func viewDidLayout() {
         super.viewDidLayout()
         // v0.30 boss 2026-09-01 OOB fix: NSSplitView's bounds are
@@ -1617,26 +1607,7 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-    /// Flatten self + every nested PaneNSController child into an
-    /// array. The root controller hosts wrap-mode items (= the
-    /// upper-band and lower-band nested controllers live as
-    /// root.splitViewItems); the per-pane NSSplitViewItems live on
-    /// the nested controllers.
-    private func collectPaneControllers() -> [PaneNSController] {
-        var result: [PaneNSController] = [self]
-        var queue: [NSSplitViewController] = [self]
-        while let next = queue.first {
-            queue.removeFirst()
-            for child in next.children {
-                if let splitChild = child as? PaneNSController {
-                    result.append(splitChild)
-                    queue.append(splitChild)
-                }
-            }
-        }
-        return result
-    }
-
+        /// v1.28 C3.2.5: collectPaneControllers extracted to PaneNSController+CollectHelpers.swift
     // MARK: - autosaveName key (= per-layout + per-split)
 
     /// Apple autosaveName key (= scopes divider positions per preset +
