@@ -72,6 +72,21 @@ final class BookStore: @unchecked Sendable {
     /// stale counts).
     var books: [Book] = []
 
+    /// v1.28 B2.2: cached book-id → on-disk directory URL lookup map.
+    /// Previously every `bookDirectory(bookId:)` call (= and
+    /// `folderDocumentCount(bookId:folderDirectoryName:)` which calls it
+    /// internally) re-scanned every shelf under `shelvesRoot`
+    /// (= N shelf scans per call; = the sidebar render path invoked
+    /// both methods per cell = `shelves × books × 8 folders × 2 scans`
+    /// = ~5000 file stat() calls per render on a 50-book library).
+    /// The cache is invalidated whenever `books` mutates (= save /
+    /// delete / reload) so the cache stays coherent with on-disk
+    /// truth (= save + delete both touch the same path; = rebuild
+    /// from the freshest `books` array). `var` (= not `let`) because
+    /// @Observable + SwiftUI requires mutation through `var` to
+    /// trigger view diff.
+    var bookDirectoryCache: [UUID: URL] = [:]
+
     /// Currently selected book id (= drives currentBook reload via
     /// SwiftUI .onChange observer in App.swift).
     var selectedBookId: UUID?
@@ -301,6 +316,9 @@ extension BookStore {
     /// `sidebarDeleteBook`.
     func reloadAllBooks() {
         books = (try? sidebarLoadAllBooks()) ?? []
+        // v1.28 B2.2: invalidate cache (= fresh books = potentially
+        // different on-disk paths).
+        bookDirectoryCache.removeAll(keepingCapacity: true)
     }
 
     /// Create a new shelf on disk with reserved-name + duplicate-name
@@ -349,7 +367,18 @@ extension BookStore {
     /// Apple HIG: pure helper on the data store (= no SwiftUI
     /// dependency; trivially testable; matches `folderDocumentCount`
     /// scan pattern above).
+    ///
+    /// v1.28 B2.2: read-through cache (= O(1) hit on warm cache;
+    /// = the original N-shelf scan only runs on cache miss; =
+    /// rebuild on miss rebuilds from the freshest `books` array in
+    /// one pass; = subsequent calls hit cache until the next books
+    /// mutation invalidates it).
     func bookDirectory(bookId: UUID) -> URL? {
+        if let cached = bookDirectoryCache[bookId] {
+            return cached
+        }
+        // Cache miss: scan shelves (= the same N-shelf loop the
+        // pre-cache version ran every call; = now only on miss).
         let fm = FileManager.default
         let shelvesRoot = stores.shelvesRoot
         guard let shelfEntries = try? fm.contentsOfDirectory(
@@ -362,6 +391,7 @@ extension BookStore {
                 .appendingPathComponent("books", isDirectory: true)
                 .appendingPathComponent(bookId.uuidString, isDirectory: true)
             if fm.fileExists(atPath: candidate.path) {
+                bookDirectoryCache[bookId] = candidate
                 return candidate
             }
         }
