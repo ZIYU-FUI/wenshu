@@ -1735,38 +1735,8 @@ struct NewLibraryOutlineView: View {
     // Encode/decode [UUID: Bool] for AppStorage (= AppStorage
     // requires String, so we round-trip via JSONEncoder/JSONDecoder).
     // Empty string = no entries (= first-launch state). Empty dict
-    // (= '{}') decodes to an empty dict (= no expansion state).
-    // Retained as private helpers because SidebarState.jsonString is
-    // the canonical path now; these are kept only for callers that
-    // imported the old keys (= legacy migration is no-op since the
-    // new key is single).
-    private func encodeDisclosureStates(_ states: [UUID: Bool]) -> String {
-        // Convert UUID keys to strings (= JSON requires string keys)
-        let stringDict = Dictionary(
-            uniqueKeysWithValues: states.map { ($0.key.uuidString, $0.value) }
-        )
-        guard let data = try? JSONEncoder().encode(stringDict),
-              let s = String(data: data, encoding: .utf8) else {
-            return ""
-        }
-        return s
-    }
-
-    private func decodeDisclosureStates(_ json: String) -> [UUID: Bool] {
-        guard !json.isEmpty,
-              let data = json.data(using: .utf8),
-              let dict = try? JSONDecoder().decode([String: Bool].self, from: data)
-        else {
-            return [:]
-        }
-        var result: [UUID: Bool] = [:]
-        for (key, value) in dict {
-            if let uuid = UUID(uuidString: key) {
-                result[uuid] = value
-            }
-        }
-        return result
-    }
+    /// v1.28 C3.6.1: encodeDisclosureStates + decodeDisclosureStates extracted
+    /// to NewLibraryOutlineView+DisclosureState.swift
 
     /// v0.76 boss 2026-09-10 OOB 'we have a middle modal — tapping New
     /// prompts the user to choose between a new book or a new bookshelf; the button just says New, then opens that modal':
