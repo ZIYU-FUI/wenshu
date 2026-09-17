@@ -43,11 +43,11 @@ struct ChatAttachmentPreviewChip: View {
         }
         .padding(4)
         .background(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .fill(.regularMaterial)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .strokeBorder(.separator, lineWidth: 1)
         )
     }
