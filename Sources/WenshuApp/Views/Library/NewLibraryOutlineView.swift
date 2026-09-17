@@ -1732,41 +1732,15 @@ struct NewLibraryOutlineView: View {
         }
     }
 
-    // Encode/decode [UUID: Bool] for AppStorage (= AppStorage
-    // requires String, so we round-trip via JSONEncoder/JSONDecoder).
-    // Empty string = no entries (= first-launch state). Empty dict
-    // (= '{}') decodes to an empty dict (= no expansion state).
-    // Retained as private helpers because SidebarState.jsonString is
-    // the canonical path now; these are kept only for callers that
-    // imported the old keys (= legacy migration is no-op since the
-    // new key is single).
-    private func encodeDisclosureStates(_ states: [UUID: Bool]) -> String {
-        // Convert UUID keys to strings (= JSON requires string keys)
-        let stringDict = Dictionary(
-            uniqueKeysWithValues: states.map { ($0.key.uuidString, $0.value) }
-        )
-        guard let data = try? JSONEncoder().encode(stringDict),
-              let s = String(data: data, encoding: .utf8) else {
-            return ""
-        }
-        return s
-    }
-
-    private func decodeDisclosureStates(_ json: String) -> [UUID: Bool] {
-        guard !json.isEmpty,
-              let data = json.data(using: .utf8),
-              let dict = try? JSONDecoder().decode([String: Bool].self, from: data)
-        else {
-            return [:]
-        }
-        var result: [UUID: Bool] = [:]
-        for (key, value) in dict {
-            if let uuid = UUID(uuidString: key) {
-                result[uuid] = value
-            }
-        }
-        return result
-    }
+    /// v1.28 B2.1.2: deleted `encodeDisclosureStates` and
+    /// `decodeDisclosureStates` (= verify-dead reports both as
+    /// ext=0 + int=0; = 0 callers across the entire codebase;
+    /// = the helper comment line above = "kept only for callers
+    /// that imported the old keys (= legacy migration is no-op
+    /// since the new key is single)" = the helpers' own docstring
+    /// acknowledged they were dead; = the canonical disclosure-state
+    /// path is `SidebarState.jsonString` per the comment; = no
+    /// behavior change; = 24 LOC removed).
 
     /// v0.76 boss 2026-09-10 OOB 'we have a middle modal — tapping New
     /// prompts the user to choose between a new book or a new bookshelf; the button just says New, then opens that modal':
