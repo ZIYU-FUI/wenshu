@@ -410,7 +410,7 @@ struct PreviewPane: View {
     // (= the preview pane is a standalone 4th column at ~250-400
     // PT) is unaffected because that column is still wider than
     // 350 PT = stays in 2-column mode.
-    private static let twoColumnBreakpoint: CGFloat = 350
+    static let twoColumnBreakpoint: CGFloat = 350
 
     var body: some View {
         // v0.40 boss 9/7 OOB ', top bar, yestop bar.
@@ -1253,22 +1253,6 @@ struct PreviewPane: View {
         return entities.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
     }
 
-    /// v0.30 boss OOB: cards display in multiple columns, default two columns, auto-adapt to 1 column if not enough width.
-    /// Returns adaptive GridItem array based on the available width.
-    /// - width >= twoColumnBreakpoint: 2 columns (= default = boss request)
-    /// - width <  twoColumnBreakpoint: 1 column (= narrow, single flow)
-    private func adaptiveColumns(width: CGFloat) -> [GridItem] {
-        if width >= Self.twoColumnBreakpoint {
-            // 2 fixed columns (= 50/50 split with spacing in between)
-            return [
-                GridItem(.flexible(), spacing: 16, alignment: .topLeading),
-                GridItem(.flexible(), spacing: 16, alignment: .topLeading),
-            ]
-        } else {
-            // 1 column (= full width)
-            return [GridItem(.flexible(), spacing: 16, alignment: .topLeading)]
-        }
-    }
 }
 
 /// Card view for a single entity in the grid.
