@@ -196,25 +196,10 @@ func aiDynamicChrome() -> (bottom: ZoneBottomStatus, top: [ZoneAction]) {
 }
 
 // MARK: - View extension stubs (Plan A pass-through)
-
-extension View {
-    /// Stub of the deleted `chromeBottomBarStyle` modifier (= Plan A pass-through).
-    func chromeBottomBarStyle(zone: ZoneType) -> some View {
-        self
-    }
-
-    /// Stub of the deleted `chromeZoneBackgroundStyle` modifier (= Plan A pass-through).
-    func chromeZoneBackgroundStyle(zone: ZoneType) -> some View {
-        self
-    }
-
-    /// Stub of the deleted `regionContentBackground` modifier (= Plan A pass-through).
-    func regionContentBackground() -> some View {
-        self
-    }
-
-    /// Stub of the deleted `chromeTopBarStyle` modifier (= Plan A pass-through).
-    func chromeTopBarStyle() -> some View {
-        self
-    }
-}
+//
+// (= removed 2026-09-17 in component-arc audit: chromeBottomBarStyle /
+// chromeZoneBackgroundStyle / regionContentBackground / chromeTopBarStyle
+// all had 0 callers per `grep -rIn 'chromeBottomBarStyle\|chromeZoneBackgroundStyle\|regionContentBackground\|chromeTopBarStyle' Sources/`
+// returning only this file itself; = the entire extension was dead code
+// preserved from v0.40 Plan A cutover. Removed in ticket:
+// "fix(wenshu): delete 4 dead chrome modifier extensions from ChromeStubs".)
