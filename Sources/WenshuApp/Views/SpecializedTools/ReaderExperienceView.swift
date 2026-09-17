@@ -126,7 +126,7 @@ struct ReaderExperienceView: View {
                 Spacer(minLength: 0)
                 Text(WenshuI18n.t("b5.readerexperienceview.l159.h48868028"))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             TextEditor(text: $chapterText)
                 .font(.caption)

@@ -227,7 +227,7 @@ struct SettingView: View {
                     .foregroundStyle(.secondary)
                 Text(WenshuI18n.t("settings.general.liquidGlass.hint"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             Section(WenshuI18n.t("settings.general.agentAddress")) {
                 // v0.24 fix (Boss 8/24 OOB): user-set value for agent-to-user address.
@@ -369,11 +369,11 @@ struct SettingView: View {
             if hasKey {
                 Text(keyPrefix12(for: p))
                     .font(.caption.monospaced())
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             } else {
                 Text(WenshuI18n.t("settings.provider.tbd_label"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
         }
         .contentShape(Rectangle())

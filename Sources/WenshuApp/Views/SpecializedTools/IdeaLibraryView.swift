@@ -273,7 +273,7 @@ struct IdeaLibraryView: View {
             if ideas.isEmpty {
                 Text(WenshuI18n.t("b5.idealibraryview.l306.h5887031"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
@@ -308,7 +308,7 @@ struct IdeaLibraryView: View {
                         if idea.links.count > 0 {
                             Text(WenshuI18n.t("b5.idealibraryview.l344.h94081771"))
                                 .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(DesignTokens.statusForeground)
                         }
                     }
                     if !idea.description.isEmpty {
@@ -362,7 +362,7 @@ struct IdeaLibraryView: View {
             if ideas.isEmpty {
                 Text(WenshuI18n.t("b5.idealibraryview.l401.h79667379"))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             } else {
                 HStack(spacing: DesignTokens.chromePaddingVertical) {
                     Picker("Idea", selection: Binding(
@@ -443,7 +443,7 @@ struct IdeaLibraryView: View {
                 if selectedIdea.links.isEmpty {
                     Text(WenshuI18n.t("b5.idealibraryview.l482.h84215487"))
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
@@ -475,7 +475,7 @@ struct IdeaLibraryView: View {
                         
                     Text(WenshuI18n.t("b5.idealibraryview.l517.h19641342"))
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                 }
                 if !link.context.isEmpty {
                     Text(link.context)

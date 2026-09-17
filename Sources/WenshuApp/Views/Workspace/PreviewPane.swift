@@ -861,7 +861,7 @@ struct PreviewPane: View {
                 } else {
                     Text(WenshuI18n.t("auto.previewpane.l381.h62416093"))
                         .font(.callout)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                 }
             }
             // ZONE-INSET-002 (2026-09-07): the preview zone content

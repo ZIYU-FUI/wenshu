@@ -131,7 +131,7 @@ struct EmotionCurveView: View {
                 Spacer(minLength: 0)
                 Text(WenshuI18n.t("b5.emotioncurveview.l171.h283252"))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             TextEditor(text: $chapterText)
                 .font(.caption)
@@ -232,7 +232,7 @@ struct EmotionCurveView: View {
                 if items.isEmpty {
                     Text(WenshuI18n.t("b5.emotioncurveview.l280.h69702322"))
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                 } else {
                     ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {

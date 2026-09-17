@@ -117,7 +117,7 @@ struct LayoutPicker: View {
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                 )
             }
             .buttonStyle(.plain)

@@ -166,11 +166,11 @@ public struct TodoListView: View {
             if scopeDir == nil {
                 Text(scopeUnavailableHint)
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             } else if newItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
                 Text(WenshuI18n.t("auto.todolistview.l202.h74652246"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
         }
     }
@@ -208,11 +208,11 @@ public struct TodoListView: View {
         if scopeDir == nil {
             Text(scopeUnavailableHint)
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(DesignTokens.statusForeground)
         } else if items.isEmpty {
             Text(WenshuI18n.t("todo.empty_state"))
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(DesignTokens.statusForeground)
         } else {
             // Section by status (Apple HIG inset-grouped style).
             // Pending first (= highest attention), then inProgress,
@@ -236,7 +236,7 @@ public struct TodoListView: View {
             if subset.isEmpty {
                 Text(WenshuI18n.t("auto.todolistview.l357.h8034177"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             } else {
                 ForEach(subset) { item in
                     TodoRow(
@@ -429,7 +429,7 @@ private struct TodoRow: View {
         } else {
             Text(WenshuI18n.t("todolist.no_due_date"))
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(DesignTokens.statusForeground)
         }
     }
 
@@ -468,7 +468,7 @@ private struct TodoRow: View {
             .help(WenshuI18n.t("todolist.reopen"))
         case .cancelled:
             Image(systemName: "xmark.circle").font(.system(size: 16, weight: .regular))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(DesignTokens.statusForeground)
         }
     }
 

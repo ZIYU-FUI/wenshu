@@ -25,7 +25,7 @@ public struct SubAgentProgressView: View {
                 Spacer()
                 Text(WenshuI18n.t("auto2.subagentprogressview.l27.h17103990"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
 
             Divider()
@@ -33,7 +33,7 @@ public struct SubAgentProgressView: View {
             if tasks.isEmpty {
                 Text(WenshuI18n.t("subagent.empty_state"))
                     .font(.body)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 6) {
@@ -49,7 +49,7 @@ public struct SubAgentProgressView: View {
             HStack {
                 Text(WenshuI18n.t("subagent.live_update_hint"))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                 Spacer()
                 Button(WenshuI18n.t("auto2.subagentprogressview.l59.h26216387")) {
                     refreshTrigger += 1
@@ -96,7 +96,7 @@ private struct TaskRowView: View {
                     .font(.body)
                 Text(statusLabel)
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             Spacer()
         }
@@ -123,7 +123,7 @@ private struct TaskRowView: View {
                 .foregroundStyle(.red)
         default:
             Image(systemName: "circle").font(.system(size: 14, weight: .regular))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(DesignTokens.statusForeground)
         }
     }
 

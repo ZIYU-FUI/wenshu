@@ -68,6 +68,6 @@ public struct WordCountInlineLabel: View {
             : "\(chars) 字"
         Text(display)
             .font(.body)
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(DesignTokens.statusForeground)
     }
 }

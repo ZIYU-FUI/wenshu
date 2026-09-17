@@ -95,12 +95,12 @@ public struct AgentProgressPanel: View {
                 Spacer()
                 Text(WenshuI18n.t("b5.agentprogresspanel.l102.h88801664"))
                     .font(.caption.monospacedDigit())
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             if let _ = entry.etaSeconds {
                 Text(WenshuI18n.t("b5.agentprogresspanel.l107.h24593933"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
         }
         .padding(.horizontal, DesignTokens.chromePaddingMedium)

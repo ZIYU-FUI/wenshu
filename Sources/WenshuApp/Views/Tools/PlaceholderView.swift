@@ -252,7 +252,7 @@ public struct PlaceholderView: View {
             if rows.isEmpty {
                 Text(WenshuI18n.t("b5.placeholderview.l284.h44264694"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
@@ -294,10 +294,10 @@ public struct PlaceholderView: View {
                     HStack(spacing: 6) {
                         Text(WenshuI18n.t("b5.placeholderview.l329.h63216295"))
                             .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(DesignTokens.statusForeground)
                         Text(WenshuI18n.t("b5.placeholderview.l332.h25232981"))
                             .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(DesignTokens.statusForeground)
                     }
                 }
                 Spacer(minLength: 0)
