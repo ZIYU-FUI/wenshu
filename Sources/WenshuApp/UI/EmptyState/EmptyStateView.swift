@@ -35,7 +35,7 @@
 //
 //  Body:
 //    - .font(.system(size: 13))
-//    - .foregroundStyle(.tertiary)
+//    - .foregroundStyle(DesignTokens.statusForeground)
 //    - multilineTextAlignment(.center)
 //    - maxWidth: 360 (= wraps on small inspector columns)
 //
@@ -217,7 +217,7 @@ public struct EmptyStateView: View {
                 // Pages convention).
                 Text(detail)
                     .font(.callout)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: DesignTokens.guardrailSheetWidth)
             }

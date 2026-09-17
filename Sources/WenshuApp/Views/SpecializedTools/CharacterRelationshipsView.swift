@@ -147,7 +147,7 @@ struct CharacterRelationshipsView: View {
             if characters.count < 2 {
                 Text(WenshuI18n.t("b5.characterrelationshipsview.l183.h86534805"))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Picker("From", selection: Binding(
@@ -164,7 +164,7 @@ struct CharacterRelationshipsView: View {
                 .disabled(characters.isEmpty)
 
                 Image(systemName: "arrow.right").font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
 
                 Picker("To", selection: Binding(
                     get: { draftToId ?? characters.dropFirst().first?.id ?? UUID() },
@@ -221,7 +221,7 @@ struct CharacterRelationshipsView: View {
             if relationships.isEmpty {
                 Text(WenshuI18n.t("b5.characterrelationshipsview.l257.h87596331"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
@@ -247,7 +247,7 @@ struct CharacterRelationshipsView: View {
                         .font(.callout)
                         .foregroundStyle(.primary)
                     Image(systemName: "arrow.right").font(.system(size: 10, weight: .regular))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                     Text(characterName(for: row.toCharacterId))
                         .font(.callout)
                         .foregroundStyle(.primary)
@@ -296,7 +296,7 @@ struct CharacterRelationshipsView: View {
             if inconsistencies.isEmpty {
                 Text(WenshuI18n.t("b5.characterrelationshipsview.l338.h51048722"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ForEach(Array(inconsistencies.enumerated()), id: \.offset) { _, issue in

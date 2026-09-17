@@ -223,7 +223,7 @@ struct BookSettingConstraintsView: View {
             if constraints.isEmpty {
                 Text(WenshuI18n.t("b5.booksettingconstraintsview.l259.h46205528"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
@@ -267,7 +267,7 @@ struct BookSettingConstraintsView: View {
                         if let _ = constraint.appliesToId {
                             Text(WenshuI18n.t("b5.booksettingconstraintsview.l306.h56657996"))
                                 .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(DesignTokens.statusForeground)
                         }
                     }
                     if !constraint.description.isEmpty {
@@ -345,7 +345,7 @@ struct BookSettingConstraintsView: View {
                 if violations.isEmpty {
                     Text(WenshuI18n.t("b5.booksettingconstraintsview.l390.h74566260"))
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     ForEach(violations) { violation in
@@ -373,7 +373,7 @@ struct BookSettingConstraintsView: View {
                     if let _ = violation.lineNumber {
                         Text(WenshuI18n.t("b5.booksettingconstraintsview.l420.h37146244"))
                             .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(DesignTokens.statusForeground)
                     }
                 }
                 Text("matched \"\"\" \(violation.matchedText) \"\"\"")
@@ -382,7 +382,7 @@ struct BookSettingConstraintsView: View {
                     .lineLimit(2)
                 Text(violation.suggestion)
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

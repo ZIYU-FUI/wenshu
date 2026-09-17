@@ -168,7 +168,7 @@ struct CharacterLifecycleView: View {
             if characters.isEmpty {
                 Text(WenshuI18n.t("b5.characterlifecycleview.l204.h79350323"))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Picker(WenshuI18n.t("picker.character"), selection: Binding(
@@ -231,7 +231,7 @@ struct CharacterLifecycleView: View {
             if events.isEmpty {
                 Text(WenshuI18n.t("b5.characterlifecycleview.l267.h43318691"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
@@ -265,7 +265,7 @@ struct CharacterLifecycleView: View {
                     if let _ = event.chapterId {
                         Text(WenshuI18n.t("b5.characterlifecycleview.l304.h73934719"))
                             .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(DesignTokens.statusForeground)
                     }
                 }
                 if !event.excerpt.isEmpty {
@@ -301,7 +301,7 @@ struct CharacterLifecycleView: View {
             if characters.isEmpty {
                 Text(WenshuI18n.t("b5.characterlifecycleview.l343.h47112699"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 HStack(spacing: DesignTokens.chromePaddingVertical) {
@@ -324,7 +324,7 @@ struct CharacterLifecycleView: View {
                 if timelineRows.isEmpty {
                     Text(WenshuI18n.t("b5.characterlifecycleview.l366.h98560518"))
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     ScrollView {
@@ -351,7 +351,7 @@ struct CharacterLifecycleView: View {
             if let _ = event.chapterId {
                 Text(WenshuI18n.t("b5.characterlifecycleview.l393.h77015228"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             Spacer(minLength: 0)
         }
@@ -367,7 +367,7 @@ struct CharacterLifecycleView: View {
             if contradictions.isEmpty {
                 Text(WenshuI18n.t("b5.characterlifecycleview.l409.h10185050"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ForEach(Array(contradictions.enumerated()), id: \.offset) { _, issue in

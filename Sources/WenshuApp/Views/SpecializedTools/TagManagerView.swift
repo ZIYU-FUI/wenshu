@@ -207,7 +207,7 @@ struct TagManagerView: View {
             if tags.isEmpty {
                 Text(WenshuI18n.t("b5.tagmanagerview.l240.h97833218"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
@@ -242,7 +242,7 @@ struct TagManagerView: View {
                     if appCount > 0 {
                         Text(WenshuI18n.t("b5.tagmanagerview.l278.h7057400"))
                             .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(DesignTokens.statusForeground)
                     }
                 }
             }
@@ -272,7 +272,7 @@ struct TagManagerView: View {
             if tags.isEmpty {
                 Text(WenshuI18n.t("b5.tagmanagerview.l311.h83311017"))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             HStack(spacing: DesignTokens.chromePaddingVertical) {
                 Picker("Tag", selection: Binding(
@@ -333,7 +333,7 @@ struct TagManagerView: View {
             if applications.isEmpty {
                 Text(WenshuI18n.t("b5.tagmanagerview.l372.h9838641"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
@@ -366,7 +366,7 @@ struct TagManagerView: View {
                         
                     Text(WenshuI18n.t("b5.tagmanagerview.l408.h8961516"))
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                 }
             }
             Spacer(minLength: 0)
@@ -392,7 +392,7 @@ struct TagManagerView: View {
             if cloud.isEmpty {
                 Text(WenshuI18n.t("b5.tagmanagerview.l434.h60440302"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
@@ -436,7 +436,7 @@ struct TagManagerView: View {
             if tags.isEmpty {
                 Text(WenshuI18n.t("b5.tagmanagerview.l481.h78063039"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             } else {
                 HStack(spacing: DesignTokens.chromePaddingVertical) {
                     Picker("Tag", selection: Binding(
@@ -471,7 +471,7 @@ struct TagManagerView: View {
                 if filterMatches.isEmpty {
                     Text(WenshuI18n.t("b5.tagmanagerview.l516.h78857770"))
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     VStack(alignment: .leading, spacing: 2) {

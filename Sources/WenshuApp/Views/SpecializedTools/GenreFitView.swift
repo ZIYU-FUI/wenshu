@@ -128,7 +128,7 @@ struct GenreFitView: View {
                 Spacer(minLength: 0)
                 Text(WenshuI18n.t("b5.genrefitview.l161.h19367178"))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             TextEditor(text: $chapterText)
                 .font(.caption)
@@ -238,7 +238,7 @@ struct GenreFitView: View {
                 if items.isEmpty {
                     Text(WenshuI18n.t("b5.genrefitview.l274.h53280066"))
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(DesignTokens.statusForeground)
                 } else {
                     ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {

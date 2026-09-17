@@ -150,7 +150,7 @@ public struct ChatReasoningPartView: View {
                      : WenshuI18n.t("chatview.ai_thought"))
                     .font(.caption)
             }
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(DesignTokens.statusForeground)
         }
         .animation(.default, value: isExpanded)
     }
@@ -212,7 +212,7 @@ public struct ChatToolUsePartView: View {
                 // in a monospaced font for readability).
                 Text(Self.prettyJSON(toolUse.args))
                     .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, DesignTokens.chromePaddingMicro)
@@ -318,7 +318,7 @@ public struct ChatToolResultPartView: View {
             // can be inspected via the chatview's selection.
             Text(toolResult.content)
                 .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(DesignTokens.statusForeground)
                 .textSelection(.enabled)
                 .lineLimit(8)
                 .frame(maxWidth: .infinity, alignment: .leading)

@@ -323,7 +323,7 @@ Group {
 
                 Text(WenshuI18n.t("onboarding.library.new_vs_open"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
 
             Spacer()

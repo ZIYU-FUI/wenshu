@@ -1834,7 +1834,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 Text(WenshuI18n.t("chatview.ai_thinking"))
                                     .font(.caption)
                             }
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(DesignTokens.statusForeground)
                         }
                         .animation(.default, value: thinkingExpanded)
                     }

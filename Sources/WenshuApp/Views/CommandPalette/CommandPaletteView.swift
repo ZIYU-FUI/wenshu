@@ -176,7 +176,7 @@ public struct CommandPaletteView: View {
                 Spacer()
                 Text(WenshuI18n.t("b5.commandpaletteview.l177.h59099234"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
             .padding(.horizontal, DesignTokens.chromePaddingLarge)
             .padding(.vertical, DesignTokens.chromePaddingVertical)

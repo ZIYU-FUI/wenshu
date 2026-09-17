@@ -243,7 +243,7 @@ public struct ForeshadowingView: View {
             if rows.isEmpty {
                 Text(WenshuI18n.t("b5.foreshadowingview.l276.h48032637"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
@@ -290,12 +290,12 @@ public struct ForeshadowingView: View {
                         if let _ = row.setupChapterId {
                             Text(WenshuI18n.t("b5.foreshadowingview.l322.h55995378"))
                                 .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(DesignTokens.statusForeground)
                         }
                         if let _ = row.payoffChapterId {
                             Text(WenshuI18n.t("b5.foreshadowingview.l327.h71979732"))
                                 .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(DesignTokens.statusForeground)
                         }
                     }
                 }
@@ -337,7 +337,7 @@ public struct ForeshadowingView: View {
             if staleRows.isEmpty {
                 Text(WenshuI18n.t("b5.foreshadowingview.l366.h57955114"))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {

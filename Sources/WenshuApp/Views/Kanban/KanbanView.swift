@@ -150,11 +150,11 @@ public struct KanbanView: View {
             if scopeDir == nil {
                 Text(scopeUnavailableHint)
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             } else if newTicketTitle.trimmingCharacters(in: .whitespaces).isEmpty {
                 Text(WenshuI18n.t("auto.kanbanview.l157.h65127890"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
             }
         }
     }
@@ -193,11 +193,11 @@ public struct KanbanView: View {
         if scopeDir == nil {
             Text(scopeUnavailableHint)
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(DesignTokens.statusForeground)
         } else if tickets.isEmpty {
             Text(WenshuI18n.t("kanban.empty_state"))
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(DesignTokens.statusForeground)
         } else {
             // Group by status. Display order = the state-machine flow
             // (new → ready → running → blocked → review → done) so
@@ -340,7 +340,7 @@ private struct KanbanColumn: View {
             if tickets.isEmpty {
                 Text(WenshuI18n.t("auto.kanbanview.l343.h97636928"))
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DesignTokens.statusForeground)
                     .padding(.horizontal, DesignTokens.chromePaddingMicro)
             } else {
                 ScrollView(.vertical, showsIndicators: true) {
