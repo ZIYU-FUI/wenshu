@@ -91,14 +91,15 @@ struct BookSettingConstraintsView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
-            if activeBookId == nil {
-                emptyState
-            } else {
-                contentBody
-            }
-        }
-        .padding(DesignTokens.chromePaddingMedium)
+        // v1.28 C3.7.4: migrate to specializedToolBody modifier
+        // (= TagManagerView, CharacterLifecycleView, CharacterRelationshipsView
+        // already migrated in C3.7.2 + C3.7.3; = BookSettingConstraintsView is
+        // the 4th of 6 SpecializedTools to adopt the modifier).
+        specializedToolBody(
+            activeBookId: activeBookId,
+            emptyContent: { emptyState },
+            mainContent: { contentBody }
+        )
         .task(id: activeBookId) {
             await reload()
         }
