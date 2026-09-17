@@ -55,7 +55,7 @@ struct WorkspaceView: View {
     /// here, NOT in WorkspaceView's @State. WorkspaceView just
     /// observes (= for the previewScope computed) and persists
     /// (= for the @AppStorage round-trip via .onChange).
-    @Environment(AppState.self) private var appState
+    @Bindable var appState: AppState
 
     // v0.34 boss 2026-09-02 OOB 'sidebar + preview should share one unified persistence interface':
     // Sidebar selection persistence moved into NewLibraryOutlineView's
@@ -66,7 +66,13 @@ struct WorkspaceView: View {
     /// v0.30 boss 8/31 OOB: card-grid sort order (= shared between
     /// PreviewPane's cards and the sort menu in the preview pane's
     /// tab bar trailing slot). Default = .pinyinFirstLetter.
-    @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
+    ///
+    /// v1.27 component-architecture (2026-09-17): removed.
+    /// Sort order now lives on `AppState.previewSortOrder`
+    /// (= shared across ShellMiddleColumn + WorkspaceView +
+    /// PreviewPane; = the 3 independent `@State` copies drifted
+    /// before; = the merge logic now lives in AppState).
+
 
     /// v0.30 boss 8/31 OOB: convert sidebar selection to PreviewScope
     /// for the material management zone. Computed on every render so
@@ -462,7 +468,7 @@ struct WorkspaceView: View {
                         // so it opens THIS card (= not the topmost one).
                         openCardInEditor(source: source)
                     },
-                    previewSortOrder: $previewSortOrder
+                    previewSortOrder: $appState.previewSortOrder
                 ))),
                 (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ], trailingButton: AnyView(
@@ -470,7 +476,7 @@ struct WorkspaceView: View {
                 // ▼ replace with list-ordered icon'. The sort menu button
                 // shows [sort rule text (dim)] + [list-ordered icon
                 // (tint)] = icon right-aligned within the trailing button.
-                PreviewSortMenuButton(sortOrder: $previewSortOrder)
+                PreviewSortMenuButton(sortOrder: $appState.previewSortOrder)
             ))
         case .editor:
             // v0.28 followup Boss UX round 43: switch from

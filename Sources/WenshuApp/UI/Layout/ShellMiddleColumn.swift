@@ -57,16 +57,17 @@ struct ShellMiddleColumn: View {
     // plain `let` field is treated as a non-tracked read, so the
     // view body never re-renders when `sidebarSelection` mutates.
     //
-    // Fix: switch to `@Environment(AppState.self)` (= the
+    // Fix: switch to `@Bindable var envAppState: AppState` (= the
     // canonical SwiftUI Observation entry point for `@Observable`
-    // instances; = reads of `appState.x` register tracking; = body
-    // re-renders on every mutation). The `init` / call sites that
+    // instances; = reads of `envAppState.x` register tracking; = body
+    // re-renders on every mutation; = supports `$envAppState.x`
+    // binding syntax for Picker/Toggle). The `init` / call sites that
     // previously passed `appState: appState` as a parameter can
     // keep passing it for backwards compat (= the let field is
     // kept as a no-op shim so callers don't have to change) but
-    // the @Environment entry takes precedence for observation
+    // the @Bindable entry takes precedence for observation
     // tracking inside body.
-    @Environment(AppState.self) private var envAppState
+    @Bindable var envAppState: AppState
     let appState: AppState
     // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
     // openCardInEditor needs BookStore.referenceStore to load
@@ -79,10 +80,17 @@ struct ShellMiddleColumn: View {
 
     private var bookStore: BookStore? { envBookStore }
 
-    /// Sort order for the preview pane card grid. Owned locally
-    /// (= PreviewPane requires @Binding; = AppState migration is
-    /// out of ticket scope).
-    @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
+    // v1.27 component-architecture (2026-09-17): previewSortOrder
+    // promoted from `@State private var` (= column-local, ephemeral,
+    // = 3 independent copies in ShellMiddleColumn + WorkspaceView
+    // + PreviewPane that drifted) to `AppState.previewSortOrder`
+    // (= single source of truth; = shared across all columns;
+    // = survives column collapse-expand; = future changes to one
+    // place propagate to all readers).
+    //
+    // Access pattern: `$envAppState.previewSortOrder` is the
+    // SwiftUI binding (= AppState is @Observable; = property
+    // changes trigger view re-render via Observation framework).
 
     // v1.0.0-m1-shell boss 2026-09-10 OOB 'global search': use
     // envAppState.searchText (= the AppState @Observable
@@ -401,7 +409,7 @@ struct ShellMiddleColumn: View {
                 onDoubleClick: { source in
                     openCardInEditor(source: source)
                 },
-                previewSortOrder: $previewSortOrder,
+                previewSortOrder: $envAppState.previewSortOrder,
                 searchQuery: Binding<String?>(
                     get: { envAppState.searchText },
                     set: { newValue in envAppState.searchText = newValue ?? "" }

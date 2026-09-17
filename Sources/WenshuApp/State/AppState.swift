@@ -157,6 +157,34 @@ var sidebarSelection: SidebarItem? = nil {
     // matches Keynote's 'presenter notes' Show/Hide behavior).
     var chatVisible: Bool = true
 
+    // v1.27 component-architecture (2026-09-17): column-local state
+    // promotion (= boss OOB '在新框架下, 哪些没有同成组件, 要抽好').
+    //
+    // These two states were previously `@State private var` inside
+    // ShellMiddleColumn / ShellDetailColumn respectively. That
+    // was wrong because:
+    //   1. Multiple columns had their own @State for the same
+    //      semantic value (= previewSortOrder existed in both
+    //      ShellMiddleColumn and WorkspaceView = three independent
+    //      copies that drifted = 'change sort in middle column,
+    //      workspace preview stayed default order').
+    //   2. Column-local state survives only the column's view
+    //      identity = collapse-then-expand resets the sort = user
+    //      surprise.
+    //   3. NSA framework's column shell is supposed to be a thin
+    //      routing layer (= NavigationSplitShell + 4 Shell*Column);
+    //      = column body should not own app-wide session state.
+    //
+    // Lives on AppState (= the @Observable SwiftUI state; = the same
+    // pattern as `sidebarSelection`, `inspectorVisible`, `chatVisible`).
+    //
+    // NOT persisted to UserDefaults yet (= column-local state is
+    // ephemeral; = matches the boss's 'should disappear on restart'
+    // expectation; = future ticket can add persistence via
+    // didSet + Codable if needed).
+    var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
+    var inspectorPage: InspectorPage = .authoringFiction
+
     // v1.0.0-m1-shell boss 2026-09-10 OOB 'the sidebar tree syntax does not match
     // Apple API': 3 sheet-request triggers moved from
     // NotificationCenter (.wenshuNewBookRequested /
