@@ -62,3 +62,15 @@ custom_rules:
     regex: '(修真|渡劫|筑基|返虚|结丹|金丹|元婴|飞升|天劫|雷劫|心魔|魔障)'
     message: "Forbidden xianxia-vocab token found. Use hex-encoded form (see WenshuVerifier.shortOutputStopSequencesHex) or describe semantically."
     severity: error
+
+  # v1.28 D5: inline `RoundedRectangle(cornerRadius: N)` must route
+  # through DesignTokens (= canonical corner-radius scale).
+  # v1.28 Tier A1.6 added `DesignTokens.surfaceCornerRadiusCard`
+  # and routed 6 sites (= the 8pt card corner radius used by
+  # chat attachment previews); this D5 rule prevents future
+  # inline-corner-radius drift.
+  inline_corner_radius_must_use_token:
+    name: "inline corner radius must route through DesignTokens"
+    regex: 'RoundedRectangle\(cornerRadius: \d+(?:\.\d+)?\)'
+    message: "Inline corner radius value. Use DesignTokens (e.g. DesignTokens.surfaceCornerRadiusCard for 8pt card corners). For one-off corner radii, add a new token to DesignTokens and route through it."
+    severity: warning
