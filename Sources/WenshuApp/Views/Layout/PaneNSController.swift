@@ -546,49 +546,8 @@ final class PaneNSController: NSSplitViewController {
         // hidden on expand).
         adjustRootForCollapsedBands()
     }
-
-    /// v0.34 ticket 02: explicit list of all ZoneSlot cases (= ZoneSlot
-    /// is not CaseIterable; mirror the enum's 6-case definition here).
-    private func allZoneSlots() -> [ZoneSlot] {
-        [.projectSidebar, .projectPreview, .editor,
-         .specializedTools, .aiChat, .aiDynamic]
-    }
-
-    /// ZONE-VIS-FIX-001 (2026-09-08): query isCollapsed across self
-    /// + nested PaneNSControllers for a ZoneSlot. True = zone is
-    /// currently visible (= not collapsed). Used by
-    /// `collapseAllNonEditorZones` to know which zones to collapse
-    /// (= skip the ones already collapsed).
-    private func isZoneVisible(_ slot: ZoneSlot) -> Bool {
-        let kind = zoneSlotToTabKind(slot)
-        guard let kind else { return true }
-        for (idx, item) in splitViewItems.enumerated() {
-            guard let tab = paneKindByItem[idx], tab == kind else { continue }
-            return !item.isCollapsed
-        }
-        // Check nested controllers (= same flatten as handleToggleZone).
-        for child in children {
-            if let splitChild = child as? PaneNSController,
-               let visible = splitChild.isZoneVisibleRecursive(kind) {
-                return visible
-            }
-        }
-        return true
-    }
-
-    private func isZoneVisibleRecursive(_ kind: TabKind) -> Bool? {
-        for (idx, item) in splitViewItems.enumerated() {
-            guard let tab = paneKindByItem[idx], tab == kind else { continue }
-            return !item.isCollapsed
-        }
-        for child in children {
-            if let splitChild = child as? PaneNSController,
-               let visible = splitChild.isZoneVisibleRecursive(kind) {
-                return visible
-            }
-        }
-        return nil
-    }
+    /// v1.28 C3.2.2: allZoneSlots + isZoneVisible + isZoneVisibleRecursive
+    /// extracted to PaneNSController+ZoneVisibility.swift
 
     /// v0.34 ticket 02: collapse the 5 non-editor zones (= hide sidebar /
     /// preview / tools / chat / dynamic; editor stays visible and takes
@@ -618,22 +577,64 @@ final class PaneNSController: NSSplitViewController {
     }
 
     /// v1.28 C3.2.1: zoneSlotToTabKind extracted to PaneNSController+ZoneSlotMapping.swift
+    /// Resolve the first TabKind for an NSSplitViewItem (= it hosts an
+    /// NSHostingController(rootView: TabContentDispatcher); the
+    /// dispatcher is the rootView itself).
+    private func firstTabKind(for item: NSSplitViewItem) -> TabKind? {
+        // NSHostingController typed-erases its rootView into AnyView;
+        // the underlying SwiftUI type identity is lost at runtime.
+        // Workaround: search the active pane's tab via the pane's
+        // workspace state (= the same lookup FCPLayout/PaneNSController
+        // already does in makeSplitItems).
+        for paneID in store.workspace.allPaneIDsInTree {
+            guard let pane = store.workspace.pane(for: paneID),
+                  let firstTabID = pane.tabIDs.first,
+                  let tab = store.workspace.tab(for: firstTabID)
+            else { continue }
+            let title = tab.title
+            if hostingIdentifierMatches(item: item, title: title) {
+                return tab.kind
+            }
+        }
+        return nil
+    }
 
-    /// v1.28 B2.1.1: deleted `firstTabKind` + `hostingIdentifierMatches`
-    /// + `viewAccessibilityWalk` (= 3 dead chain = firstTabKind
-    /// called hostingIdentifierMatches, hostingIdentifierMatches
-    /// called viewAccessibilityWalk; = ext=0 + int=0 across all three
-    /// per verify-dead; = the resolver logic they provided is
-    /// replaced by Apple's default AnyView introspection in
-    /// NSHostingController's rootView). See git history for the
-    /// deleted firstTabKind docstring (= Resolve the first TabKind
-    /// for an NSSplitViewItem) + the deleted hostingIdentifierMatches
-    /// docstring (= Heuristic match: NSHostingController doesn't
-    /// expose its rootView type, so we walk the item's view
-    /// hierarchy looking for any descendant Accessibility label
-    /// matching `title`) + the deleted viewAccessibilityWalk
-    /// docstring (= Recursive accessibility label walker. Reads the
-    /// AX hierarchy via `NSAccessibility`). No behavior change.
+    /// Heuristic match: NSHostingController doesn't expose its
+    /// rootView type, so we walk the item's view hierarchy looking for
+    /// any descendant Accessibility label matching `title`. Apple HIG
+    /// truth-source: every SwiftUI view with a `.accessibilityLabel(...)`
+    /// = the TabContentDispatcher carries `title` as the parameter;
+    /// the rendered chrome uses that title in its tab bar (= which is
+    /// NOT in this item because the tab strip lives in the parent
+    /// `GroupTabStrip`, not the hosting view). Fallback: return false
+    /// (= skip; user can still toggle via the toolbar button when the
+    /// LayoutEditMode is active).
+    private func hostingIdentifierMatches(item: NSSplitViewItem, title: String) -> Bool {
+        let view = item.viewController.view
+        // String-search the accessibility hierarchy for the title.
+        // This is intentionally lenient (= exact substring match) so
+        // locale-neutral tab titles (Chinese / English) all work.
+        var matched = false
+        viewAccessibilityWalk(view) { label in
+            if label.contains(title) { matched = true }
+        }
+        return matched
+    }
+
+    /// Recursive accessibility label walker. Reads the AX hierarchy via
+    /// `NSAccessibility` (no SwiftUI introspection needed). Cheap (=
+    /// walks the local subtree only); called once per zone-toggle click.
+    private func viewAccessibilityWalk(
+        _ view: NSView,
+        visit: (String) -> Void
+    ) {
+        if let label = view.accessibilityLabel() {
+            visit(label)
+        }
+        for sub in view.subviews {
+            viewAccessibilityWalk(sub, visit: visit)
+        }
+    }
     // MARK: - NSSplitViewDelegate (= divider hit-area widening)
 
     /// Apple HIG thin divider (= 1 PT drawn line) is hard to grab. We
@@ -705,7 +706,13 @@ final class PaneNSController: NSSplitViewController {
     /// re-wrapped the items. Index 0 is enough for v0.30 because
     /// every GroupNode renders exactly one pane (= multi-pane
     /// groups are flattened by `makeSplitItems`).
-    private var paneKindByItem: [Int: TabKind] = [:]
+    ///
+    /// v1.28 C3.2.2: visibility relaxed from `private` to `internal` so the
+    /// extension file `PaneNSController+ZoneVisibility.swift` can read it.
+    /// The dictionary is mutated only by `makeSplitItems` and read by
+    /// `isZoneVisible` / `isZoneVisibleRecursive` (= both now in the
+    /// extension file); = the relaxed access matches the actual usage.
+    var paneKindByItem: [Int: TabKind] = [:]
     /// v0.30 boss 2026-09-01 OOB (zone toggle fix): the subtree this
     /// controller renders. The root instance renders `store.workspace.root`
     /// (= the full tree); nested instances render the SplitNode they
