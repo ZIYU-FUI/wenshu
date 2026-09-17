@@ -43,13 +43,21 @@ final class PaneNSController: NSSplitViewController {
 
     // MARK: - Stored dependencies (= set once at init; not mutated)
 
-    private let store: LayoutTreeStore
-    private let appState: AppState
-    private let bookStore: BookStore
+    /// v1.28 C3.2.4: visibility relaxed from `private` to `internal` so the
+    /// extension files (`PaneNSController+ZoneSlotMapping` + `+ZoneVisibility`
+    /// + `+PaneSizing`) can read it. `store` is mutated only via init (= not
+    /// after construction); = the relaxed access matches the actual usage.
+    let store: LayoutTreeStore
+    let appState: AppState
+    let bookStore: BookStore
 
     /// Layout identifier (= for autosaveName scoping; per-preset so
     /// switching presets restores each one's last divider positions).
-    private let layoutID: String
+    ///
+    /// v1.28 C3.2.4: visibility relaxed from `private` to `internal` so the
+    /// extension file `PaneNSController+PaneSizing.swift` can read it (= the
+    /// `autosaveKey(for:)` helper uses `layoutID` to scope the autosave name).
+    let layoutID: String
 
     /// Applied-once flag: tracks whether the initial weight ratio
     /// has been applied via setPosition. NSSplitView's bounds are 0
@@ -1492,58 +1500,8 @@ final class PaneNSController: NSSplitViewController {
 
     // MARK: - Pane property helpers (= min thickness + collapse permission)
 
-    /// Minimum thickness in points for the pane (= left/right edges get
-    /// a hard minimum so the user can't drag them below Apple HIG
-    /// readability; middle panes get a smaller minimum so the editor
-    /// can shrink when the sidebar expands).
-    private func minThickness(for paneID: PaneID, weight: Double) -> CGFloat {
-        guard let pane = store.workspace.pane(for: paneID) else { return 100 }
-        // Honor the pane's declared minWidth/idealWidth (= user-tunable).
-        if pane.frame.minWidth > 0 { return pane.frame.minWidth }
-        // Fallback: collapseable side panes default to 200 (= Apple HIG
-        // sidebar minimum); non-collapseable panes (= editor, viewer)
-        // default to 100 (= can shrink down to almost nothing).
-        return isCollapsiblePane(paneID) ? 200 : 100
-    }
-
-    /// ZONE-VIS-FIX-002 (2026-09-08): canonical per-TabKind
-    /// `maximumThickness` (= the upper bound for a pane's thickness).
-    /// Returning `nil` means "no upper bound" (= Apple default).
-    /// Per-zone rationale (= see the `maximumThickness` setter in
-    /// `makeSplitItems`):
-    /// - sidebar: 400 PT (= tree outline natural max)
-    /// - cards: 500 PT (= card grid natural max)
-    /// - tools: 300 PT (= icon row natural max; = matches FCP
-    ///   inspector width)
-    /// - editor / chat / dynamic: nil (= no upper bound; =
-    ///   always takes remaining space via `preferredThicknessFraction`)
-    private func maxThickness(for kind: TabKind) -> CGFloat? {
-        switch kind {
-        case .projectSidebar:   return 400
-        case .projectPreview:   return 500
-        case .specializedTools: return 300
-        case .editor, .aiChat, .aiDynamic: return nil
-        }
-    }
-
-    /// Which panes can the user collapse (= via the "Display" menu /
-    /// sidebar toolbar toggle). Boss 2026-09-01 OOB rule: everything
-    /// except the editor is collapsible (= the editor is the one
-    /// pane the user is always writing in; collapsing it would
-    /// hide the work surface). Sidebar / preview / tools / chat /
-    /// dynamic all follow the standard FCP hide/show affordance.
-    private func isCollapsiblePane(_ paneID: PaneID) -> Bool {
-        guard let pane = store.workspace.pane(for: paneID),
-              let firstTabID = pane.tabIDs.first,
-              let tab = store.workspace.tab(for: firstTabID)
-        else { return false }
-        switch tab.kind {
-        case .projectSidebar, .projectPreview, .specializedTools, .aiChat, .aiDynamic:
-            return true
-        case .editor:
-            return false
-        }
-    }
+    /// v1.28 C3.2.4: minThickness + maxThickness + isCollapsiblePane extracted
+    /// to PaneNSController+PaneSizing.swift
 
     // MARK: - Apple HIG canonical zone toggle (= boss 2026-09-02 OOB)
 
@@ -1637,12 +1595,5 @@ final class PaneNSController: NSSplitViewController {
         return result
     }
 
-    // MARK: - autosaveName key (= per-layout + per-split)
-
-    /// Apple autosaveName key (= scopes divider positions per preset +
-    /// per split subtree, so switching presets restores each one's last
-    /// divider positions).
-    private func autosaveKey(for splitID: String) -> String {
-        "wenshu.split.\(layoutID).\(splitID)"
-    }
+    /// v1.28 C3.2.4: autosaveKey extracted to PaneNSController+PaneSizing.swift
 }
