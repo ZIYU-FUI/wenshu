@@ -882,28 +882,15 @@ struct EditorPlaceholder: View {
     // The v0.40 apple-001 UX cleanup replaced its CJK content with
     // an onboarding welcome. Now removed entirely per boss 9/7 OOB.
 
-    /// v0.40 boss 9/7 OOB: empty-state hint shown when no editor
-    /// tab is open. Tells the user to double-click a card in the
-    /// material library (= the canonical wenshu document-open
-    /// path: pick a reference library / book / folder, double-
-    /// click a card → openCardInEditor creates a tab).
-    ///
-    /// v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
-    /// a single component — can you abstract a UI component? While you're at it, on the
-    /// empty-state icon: double the size and use the thinnest strokes. The goal is to unify all empty-state
-    /// styles. The right column has 12 tabs and many are missing an empty state': use the
-    /// unified EmptyStateView component (= 76 PT SF Symbols 6
-    /// icon + .regular weight = the canonical macOS 27
-    /// inspector icon weight; = standard title / body
-    /// hierarchy). This guarantees consistent visual treatment
-    /// across every "no content" zone in wenshu.
-    private var emptyStateHint: some View {
-        EmptyStateView(
-            icon: "book.pages",
-            title: WenshuI18n.t("workspace.empty.title"),
-            body: WenshuI18n.t("workspace.empty.body")
-        )
-    }
+    /// v1.28 B2.1.13: deleted `emptyStateHint` (= verify-dead reports
+    /// ext=0 + int=0; = 0 callers; = the computed var returned the
+    /// empty-state hint when no editor tab is open; = the v0.40 boss
+    /// 9/7 OOB "delete" ticket already removed the call site that
+    /// invoked `emptyStateHint` (= the samplePreviewBody removal
+    /// earlier; = the editor zone now uses an inline empty-state
+    /// directly via the empty-tab guard in `body`); = no behavior
+    /// change; = 28 LOC removed including the long Apple HIG
+    /// empty-state docstring preserved as historical note).
 
     // v0.34 ticket 05: placeholder type alias for the wikilink navigation
     // closure (= ticket 027-35 will replace with actual NavigationLink).
