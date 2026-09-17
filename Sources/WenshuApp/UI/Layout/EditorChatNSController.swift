@@ -51,15 +51,6 @@
 import AppKit
 import SwiftUI
 
-extension Notification.Name {
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'menu bar View > Show/Hide
-    /// Chat Zone': posted when the user toggles the chat zone
-    /// visibility from the menu bar. The `EditorChatNSController`
-    /// (= the detail column's NSSplitViewController child) listens
-    /// and calls `splitViewItems[chat].animator().isCollapsed.toggle()`.
-    static let wenshuToggleChatZone = Notification.Name("wenshu.editor.toggleChatZone")
-}
-
 /// Native AppKit split container (= editor on top, chat zone on bottom).
 /// Hosts SwiftUI views via `NSHostingController`.
 @MainActor
@@ -185,36 +176,13 @@ final class EditorChatNSController: NSSplitViewController {
         addSplitViewItem(chatItemLocal)
         self.chatItem = chatItemLocal
 
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'menu bar View > Show/Hide
-        // Chat Zone': observe the wenshuToggleChatZone notification
-        // posted by AppRootScene's CommandGroup(after: .toolbar). When
-        // the user clicks View > Show Chat Zone in the macOS menu
-        // bar, the AppState's chatVisible flag flips AND we get the
-        // notification; we mirror the flag onto the native NSSplitViewItem
-        // by toggling isCollapsed via animator() (= the native Keynote
-        // speaker-notes collapse animation).
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleChatToggleNotification),
-            name: .wenshuToggleChatZone,
-            object: nil
-        )
-    }
-
-    /// v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis HIGH):
-    /// remove the selector-based NotificationCenter observer added in
-    /// viewDidLoad (= HIGH leak: NotificationCenter retains `self`
-    /// forever if no `removeObserver` runs; = the editor chat
-    /// controller leaks on pane close). Apple HIG canonical lifecycle
-    /// is `addObserver` paired with explicit `removeObserver` in
-    /// `deinit` (= the controller is `final` so a single deinit
-    /// covers all instances).
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-
-    @objc private func handleChatToggleNotification() {
-        toggleChatZone()
+        // v1.28 A1.3: removed NotificationCenter observer
+        // (= Notification.Name.wenshuToggleChatZone static was removed
+        // = no producer posts the notification anymore; = the
+        // editor chat controller no longer needs to listen; = the
+        // chat zone visibility is owned by AppState.chatVisible
+        // downstream consumers and the AppState flag is now the
+        // single source of truth for the chat zone toggle state).
     }
 
     /// Programmatic toggle (= called from the menu bar View >

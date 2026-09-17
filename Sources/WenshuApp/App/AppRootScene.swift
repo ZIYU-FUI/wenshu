@@ -371,21 +371,16 @@ struct AppRootScene: Scene {
             // edge of the split view, by clicking the collapse
             // button in the divider, or programmatically.').
             //
-            // The toggle action posts an NSNotification on
-            // `Notification.Name.wenshuToggleChatZone`. The
-            // `EditorChatNSController` instance (the detail
-            // column's NSViewControllerRepresentable child)
-            // listens and calls
-            // `splitViewItems[chat].animator().isCollapsed.toggle()`.
+            // v1.28 A1.3: the NSNotification dispatch was removed
+            // (= EditorChatNSController listener deleted in this
+            // commit; = only the AppState flag flip remains; = the
+            // chat zone visibility is owned by AppState.chatVisible
+            // downstream consumers). Toggle still binds the flag.
             CommandGroup(after: .toolbar) {
                 Toggle(WenshuI18n.t("menu.view.show_chat_zone"), isOn: Binding(
                     get: { appState.chatVisible },
                     set: { newValue in
                         appState.chatVisible = newValue
-                        NotificationCenter.default.post(
-                            name: .wenshuToggleChatZone,
-                            object: nil
-                        )
                     }
                 ))
                 .keyboardShortcut("k", modifiers: [.command, .option])
