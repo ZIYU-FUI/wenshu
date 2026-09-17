@@ -93,13 +93,12 @@ struct LongFormGuardrailsView: View {
         }
     }
 
-    private var autoDerivedCount: Int {
-        guardrails.filter { $0.isAutoDerived }.count
-    }
-
-    private var userCount: Int {
-        guardrails.filter { !$0.isAutoDerived }.count
-    }
+    /// v1.28 B2.1.10: deleted `autoDerivedCount` + `userCount`
+    /// (= verify-dead reports both as ext=0 + int=0; = 0 callers;
+    /// = the 2 computed vars tallied `guardrails.filter` results for
+    /// header counts that the v0.34 MVP never wired into the body;
+    /// = the current header uses inline counts; = no behavior
+    /// change; = 6 LOC removed).
 
     // MARK: - Empty state
 
