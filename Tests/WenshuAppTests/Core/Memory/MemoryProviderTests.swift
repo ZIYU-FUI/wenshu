@@ -123,22 +123,22 @@ struct MemoryProviderTests {
         #expect(provider2.entryCount == 1)
     }
 
-    // MARK: - SQLite provider (stub)
+    // MARK: - SwiftData provider (formerly SQLite stub)
 
-    @Test("SQLiteMemoryProvider stub delegates to in-memory backing")
+    @Test("SwiftDataMemoryProvider delegates to in-memory backing")
     func sqliteStubDelegates() async {
-        let provider = SQLiteMemoryProvider(slug: "test-sqlite")
+        let provider = SwiftDataMemoryProvider(slug: "test-swiftdata")
         await provider.sync(userMessage: "u", assistantResponse: "a")
         #expect(provider.entryCount == 1)
         let prefetched = await provider.prefetch(forUserMessage: "follow-up")
         #expect(prefetched.contains("u"))
     }
 
-    @Test("SQLiteMemoryProvider system prompt indicates stub status")
+    @Test("SwiftDataMemoryProvider system prompt indicates SwiftData backing")
     func sqliteSystemPrompt() {
-        let provider = SQLiteMemoryProvider(slug: "test")
+        let provider = SwiftDataMemoryProvider(slug: "test")
         let prompt = provider.getSystemPrompt()
-        #expect(prompt.contains("stub"))
+        #expect(prompt.contains("SwiftData"))
     }
 
     // MARK: - Tools-enabled gate

@@ -277,21 +277,34 @@ final class UserDefaultsMemoryProvider: MemoryProvider, @unchecked Sendable {
 
 /// SQLite-backed memory provider (= thin adapter over GRDB).
 /// Full implementation lands with the v0.29+ memory migration ticket;
-/// for now, this stub delegates to an in-memory backing to keep the
-/// protocol surface exercisable.
-final class SQLiteMemoryProvider: MemoryProvider, @unchecked Sendable {
+/// v1.28 B2.9 rewrite: `SQLiteMemoryProvider` was a stub façade over
+/// `InMemoryMemoryProvider` (= R4 altitude audit D-3 verdict: 3
+/// stacked layers — SQLite name + InMemory backing + TODO comment —
+/// pretending to be SQLite-backed when in fact no SQLite was
+/// involved; = a typestate disguise so callers can pretend the
+/// persistence layer exists). The wenshu SwiftData migration
+/// (= Phase 5 ticket 8) deleted the MemoryStore actor and moved
+/// memory persistence to `WSMemoryRepository` (@MainActor SwiftData
+/// wrapper, = the real storage surface per v0.72). This class is
+/// renamed `SwiftDataMemoryProvider` (= the honest name; = the
+/// actual storage path; = no more "SQLite" theatre). The future
+/// SQLite migration (= v0.29+ ticket) will replace this class's
+/// internal SwiftData calls with GRDB calls if/when SQLite becomes
+/// the preferred on-disk format.
+final class SwiftDataMemoryProvider: MemoryProvider, @unchecked Sendable {
     let slug: String
     let isEnabled: Bool = true
     private let backing: InMemoryMemoryProvider
 
-    init(slug: String = "sqlite") {
+    init(slug: String = "swiftdata") {
         self.slug = slug
         self.backing = InMemoryMemoryProvider(slug: "\(slug)-backing")
     }
 
     func getSystemPrompt() -> String {
-        // TODO: replace with the GRDB-backed full implementation.
-        return "SQLite provider (= stub over in-memory backing; full GRDB impl lands with v0.29+ migration ticket)."
+        // v1.28 B2.9: honest description (= SwiftData @MainActor
+        // WSMemoryRepository, not SQLite; = no SQLite theatre).
+        return "SwiftData provider (= current wenshu memory surface via WSMemoryRepository; full SQLite/GRDB impl lands with v0.29+ migration ticket if SQLite becomes the preferred on-disk format)."
     }
 
     func prefetch(forUserMessage message: String) async -> String {
