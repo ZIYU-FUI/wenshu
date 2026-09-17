@@ -92,38 +92,21 @@ struct ZonePerRegionChrome<Content: View>: View {
     }
 }
 
-// MARK: - RegionTabBar stub
-
-/// Stub of the deleted `RegionTabBar` wrapper (= Plan A pass-through).
-struct RegionTabBar<Content: View>: View {
-    let content: () -> Content
-
-    init(@ViewBuilder content: @escaping () -> Content) {
-        self.content = content
-    }
-
-    var body: some View {
-        content()
-    }
-}
-
-// MARK: - PaneStatusBar stub
-
-/// Stub of the deleted `PaneStatusBar` (= Plan A pass-through).
-struct PaneStatusBar: View {
-    let left: String
-    let right: String
-
-    init(left: String = "", right: String = "") {
-        self.left = left
-        self.right = right
-    }
-
-    var body: some View {
-        // Plan A: pass-through. No status bar (= Apple-native = no custom layer).
-        EmptyView()
-    }
-}
+// MARK: - RegionTabBar + PaneStatusBar stubs (removed 2026-09-17)
+//
+// Both had 0 callers per `grep -rIn 'RegionTabBar\|PaneStatusBar' Sources/`
+// returning only this file + ComponentIndex.md. Both were Plan A
+// (= boss 2026-09-09 'full Apple native') pass-through stubs for
+// chrome types deleted in v0.40 commit f2539ef18. The legacy code
+// that referenced them (= ZonePerRegionChrome + TabContentDispatcher)
+// was further removed in v1.34 boss 2026-09-02 OOB
+// (= RegionTabBar collapsed into direct PaneTabBar use; PaneStatusBar
+// collapsed into Apple canonical status bar placement).
+//
+// Kept as a doc-only marker (= the surrounding type definitions
+// ZoneType / ZoneAction / ZoneBottomStatus below are still used by
+// ZonePerRegionChrome above; = ZonePerRegionChrome's init signature
+// requires them).
 
 // MARK: - ZoneType stub
 
