@@ -191,7 +191,7 @@ public struct EmptyStateView: View {
             // setting the rendering mode (= at 76 PT the fill
             // glyph reads as a heavy solid blob = boss's "太粗").
             Image(systemName: icon)
-                .font(.system(size: DesignTokens.emptyStateIconSize, weight: .regular))
+                .font(.system(size: DesignTokens.emptyStateIconSize, weight: .thin))
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, DesignTokens.chromePaddingEmptyStateGap)
