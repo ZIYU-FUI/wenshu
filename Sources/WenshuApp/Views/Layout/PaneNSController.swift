@@ -630,64 +630,21 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-    /// Resolve the first TabKind for an NSSplitViewItem (= it hosts an
-    /// NSHostingController(rootView: TabContentDispatcher); the
-    /// dispatcher is the rootView itself).
-    private func firstTabKind(for item: NSSplitViewItem) -> TabKind? {
-        // NSHostingController typed-erases its rootView into AnyView;
-        // the underlying SwiftUI type identity is lost at runtime.
-        // Workaround: search the active pane's tab via the pane's
-        // workspace state (= the same lookup FCPLayout/PaneNSController
-        // already does in makeSplitItems).
-        for paneID in store.workspace.allPaneIDsInTree {
-            guard let pane = store.workspace.pane(for: paneID),
-                  let firstTabID = pane.tabIDs.first,
-                  let tab = store.workspace.tab(for: firstTabID)
-            else { continue }
-            let title = tab.title
-            if hostingIdentifierMatches(item: item, title: title) {
-                return tab.kind
-            }
-        }
-        return nil
-    }
-
-    /// Heuristic match: NSHostingController doesn't expose its
-    /// rootView type, so we walk the item's view hierarchy looking for
-    /// any descendant Accessibility label matching `title`. Apple HIG
-    /// truth-source: every SwiftUI view with a `.accessibilityLabel(...)`
-    /// = the TabContentDispatcher carries `title` as the parameter;
-    /// the rendered chrome uses that title in its tab bar (= which is
-    /// NOT in this item because the tab strip lives in the parent
-    /// `GroupTabStrip`, not the hosting view). Fallback: return false
-    /// (= skip; user can still toggle via the toolbar button when the
-    /// LayoutEditMode is active).
-    private func hostingIdentifierMatches(item: NSSplitViewItem, title: String) -> Bool {
-        let view = item.viewController.view
-        // String-search the accessibility hierarchy for the title.
-        // This is intentionally lenient (= exact substring match) so
-        // locale-neutral tab titles (Chinese / English) all work.
-        var matched = false
-        viewAccessibilityWalk(view) { label in
-            if label.contains(title) { matched = true }
-        }
-        return matched
-    }
-
-    /// Recursive accessibility label walker. Reads the AX hierarchy via
-    /// `NSAccessibility` (no SwiftUI introspection needed). Cheap (=
-    /// walks the local subtree only); called once per zone-toggle click.
-    private func viewAccessibilityWalk(
-        _ view: NSView,
-        visit: (String) -> Void
-    ) {
-        if let label = view.accessibilityLabel() {
-            visit(label)
-        }
-        for sub in view.subviews {
-            viewAccessibilityWalk(sub, visit: visit)
-        }
-    }
+    /// v1.28 B2.1.1: deleted `firstTabKind` + `hostingIdentifierMatches`
+    /// + `viewAccessibilityWalk` (= 3 dead chain = firstTabKind
+    /// called hostingIdentifierMatches, hostingIdentifierMatches
+    /// called viewAccessibilityWalk; = ext=0 + int=0 across all three
+    /// per verify-dead; = the resolver logic they provided is
+    /// replaced by Apple's default AnyView introspection in
+    /// NSHostingController's rootView). See git history for the
+    /// deleted firstTabKind docstring (= Resolve the first TabKind
+    /// for an NSSplitViewItem) + the deleted hostingIdentifierMatches
+    /// docstring (= Heuristic match: NSHostingController doesn't
+    /// expose its rootView type, so we walk the item's view
+    /// hierarchy looking for any descendant Accessibility label
+    /// matching `title`) + the deleted viewAccessibilityWalk
+    /// docstring (= Recursive accessibility label walker. Reads the
+    /// AX hierarchy via `NSAccessibility`). No behavior change.
     // MARK: - NSSplitViewDelegate (= divider hit-area widening)
 
     /// Apple HIG thin divider (= 1 PT drawn line) is hard to grab. We
