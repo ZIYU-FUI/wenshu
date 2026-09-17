@@ -285,14 +285,22 @@ struct WorkspaceView: View {
         // now hoisted up to `LibraryRootView.body` (= root-of-Scene
         // position; = env chain stays intact). The branch
         // remains here as a no-op fallback (= the WorkspaceView
-        // still exists, = PaneSplitHost path is the only
+        // still exists, = NSViewControllerRepresentable path is the only
         // remaining path; = unchanged behavior).
-            PaneSplitHost(
-                layout: FCPLayout(),
-                store: store,
-                appState: appState,
-                bookStore: bookStore
-            )
+        //
+        // v1.27 component-arc: inlined `PaneSplitHost` here (= was a
+        // 1-caller NSViewControllerRepresentable wrapper around
+        // `PaneNSController`; = the v0.30 ticket 02/4 stub layer is
+        // removed). Layout construction now goes directly through
+        // `PaneNSController(store:appState:bookStore:layoutID:)`,
+        // which is the actual NSSplitViewController subclass that
+        // walks `store.workspace.root` recursively.
+        PaneNSViewController(
+            store: store,
+            appState: appState,
+            bookStore: bookStore
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.34 boss 2026-09-02 OOB: sidebar selection persistence
             // moved to NewLibraryOutlineView's unified SidebarState.
             // WorkspaceView no longer owns any @AppStorage key for
@@ -808,3 +816,47 @@ fileprivate func findPaneController(in root: NSViewController?) -> PaneNSControl
 // Same module (= no new import needed); consumer is
 // `Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift:220`
 // (= v1.33 extraction).
+
+// MARK: - PaneNSViewController (inlined 2026-09-17 from Views/Layout/PaneSplitHost.swift)
+//
+// Was previously a separate NSViewControllerRepresentable wrapper in
+// Views/Layout/PaneSplitHost.swift (98 LOC). Inlined here because the
+// only caller (= WorkspaceView above) consumes it locally; = no
+// external API surface to preserve.
+//
+// v0.30 ticket 02/4 layered design:
+//   PaneSplitHost(NSViewControllerRepresentable)
+//     → calls FCPLayout.makeSplitController()  [DELETED 2026-09-17]
+//     → returns NSSplitViewController
+//
+// Current shape (= post v1.27 component-arc):
+//   PaneNSViewController(NSViewControllerRepresentable)
+//     → constructs PaneNSController directly (= the actual subclass
+//       from v0.30 ticket 03/4 that walks store.workspace.root
+//       recursively and hosts SwiftUI pane content via NSHostingController)
+//
+// The deleted PaneLayout / FCPLayout stub layer (= v0.30 ticket 01/4)
+// was the indirection "each preset = a different PaneLayout impl".
+// That design was abandoned when NSA framework landed: we have one
+// canonical layout (= the FCP-style 6-zone shell) and no longer need
+// pluggable PaneLayout strategies.
+private struct PaneNSViewController: NSViewControllerRepresentable {
+    let store: LayoutTreeStore
+    let appState: AppState
+    let bookStore: BookStore
+
+    func makeNSViewController(context: Context) -> NSSplitViewController {
+        PaneNSController(
+            store: store,
+            appState: appState,
+            bookStore: bookStore,
+            layoutID: "fcp-default"
+        )
+    }
+
+    func updateNSViewController(_ nsViewController: NSSplitViewController, context: Context) {
+        // No-op (= matches PaneSplitHost's prior behavior; = tree
+        // is rebuilt only on make; = preset switches trigger a full
+        // re-make via SwiftUI's view identity system).
+    }
+}
