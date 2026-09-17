@@ -1057,35 +1057,15 @@ public struct ChatView: View {
         )
     }
 
-    /// P2 #20 (WIRE-LIBRARIAN-001): build the BookStore instance that
-    /// BookManagerTool wraps in this fallback conductor. The canonical
-    /// production wiring is `appState.bookStore` (= injected via
-    /// `@Environment(BookStore.self)`); this helper is the fallback /
-    /// standalone path (= ChatView constructs its own conductor
-    /// because no App-supplied conductor was provided). We build a
-    /// minimal BookStore pointing at a unique `/tmp` root (= same
-    /// forgiving pattern as the WSKanbanRepository fallback above) so the
-    /// book_manager tool is fully exercised end-to-end in preview /
-    /// tests even when no real library has been opened.
-    private static func bookStoreForChatTool() -> BookStore {
-        let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p2-20-chat-tool-\(UUID().uuidString)", isDirectory: true)
-        try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        let shelvesRoot = tmpRoot.appendingPathComponent("shelves", isDirectory: true)
-        let referenceLibraryRoot = tmpRoot.appendingPathComponent("reference-library", isDirectory: true)
-        let referenceStore = FileSystemReferenceStore(referenceLibraryRoot: referenceLibraryRoot)
-        let stores = LibraryStores(
-            shelvesRoot: shelvesRoot,
-            referenceLibraryRoot: referenceLibraryRoot,
-            referenceStore: referenceStore
-        )
-        let bookStore = BookStore(stores: stores)
-        // Best-effort mirror of any on-disk shelves into the in-memory
-        // `shelves` cache (= mirrors what `LibraryLifecycleHook` /
-        // `reloadAllBooks` do in the production launch path).
-        bookStore.shelves = (try? bookStore.sidebarLoadShelves()) ?? []
-        bookStore.reloadAllBooks()
-        return bookStore
-    }
+    /// v1.28 B2.1.4: deleted `bookStoreForChatTool()` (= verify-dead
+    /// reports ext=0 + int=0; = 0 callers across the entire codebase;
+    /// = the helper docstring acknowledged it was the "fallback /
+    /// standalone path" for preview/tests; = no production caller
+    /// ever invoked it; = ChatViewModel's conductor init
+    /// (= `init(conductor:appState:bookStore:)`) takes BookStore as
+    /// a parameter, = the production code path already supplies a
+    /// BookStore from the App environment; = the fallback helper
+    /// never fired; = no behavior change; = 29 LOC removed).
 
     public var body: some View {
         // v0.24 boss acceptance fix: listen for global defocus notification.
