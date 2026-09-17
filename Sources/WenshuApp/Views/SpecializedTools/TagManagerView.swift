@@ -103,14 +103,15 @@ struct TagManagerView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
-            if activeBookId == nil {
-                emptyState
-            } else {
-                contentBody
-            }
-        }
-        .padding(DesignTokens.chromePaddingMedium)
+        // v1.28 C3.7.2: migrate to specializedToolBody modifier (= extracted by
+        // C3.7.1; = the canonical chromePadding + if/else pattern now lives
+        // in a single modifier instead of being repeated verbatim across the
+        // 6 SpecializedTools files).
+        specializedToolBody(
+            activeBookId: activeBookId,
+            emptyContent: { emptyState },
+            mainContent: { contentBody }
+        )
         .task(id: activeBookId) {
             await reload()
         }
