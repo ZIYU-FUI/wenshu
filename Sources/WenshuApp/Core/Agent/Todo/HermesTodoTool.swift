@@ -538,7 +538,7 @@ extension HermesTodoTool {
     /// wenshu-side TodoStoreTool `todo` (= same domain, different layer).
     public static let _registryBootstrap: Void = {
         Task {
-            await ToolRegistry.shared.register(
+            await ToolRegistry.shared.registerTool(
                 name: "todo_hermes",
                 toolset: "agent",
                 schema: ToolRegistrySchema(

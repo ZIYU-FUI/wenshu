@@ -299,7 +299,7 @@ extension KanbanStoreTool {
     /// cross-toolset shadowing is blocked unless `override=true`.
     public static let _registryBootstrap: Void = {
         Task {
-            await ToolRegistry.shared.register(
+            await ToolRegistry.shared.registerTool(
                 name: "kanban",
                 toolset: "agent",
                 schema: ToolRegistrySchema(

@@ -175,7 +175,7 @@ extension ParagraphAITool {
     /// in ToolRegistry blocks accidental cross-toolset shadowing).
     public static let _registryBootstrap: Void = {
         Task {
-            await ToolRegistry.shared.register(
+            await ToolRegistry.shared.registerTool(
                 name: "ParagraphAI",
                 toolset: "editor",
                 schema: ToolRegistrySchema(

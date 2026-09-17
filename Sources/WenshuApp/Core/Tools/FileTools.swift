@@ -250,7 +250,7 @@ extension FileTools {
     /// ToolRegistry.shared.
     public static let _registryBootstrap: Void = {
         Task {
-            await ToolRegistry.shared.register(
+            await ToolRegistry.shared.registerTool(
                 name: "file",
                 toolset: "data",
                 schema: ToolRegistrySchema(

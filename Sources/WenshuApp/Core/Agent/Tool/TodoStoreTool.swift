@@ -374,7 +374,7 @@ extension TodoStoreTool {
     /// `tools/registry.py` override-protection semantics).
     public static let _registryBootstrap: Void = {
         Task {
-            await ToolRegistry.shared.register(
+            await ToolRegistry.shared.registerTool(
                 name: "todo",
                 toolset: "agent",
                 schema: ToolRegistrySchema(
