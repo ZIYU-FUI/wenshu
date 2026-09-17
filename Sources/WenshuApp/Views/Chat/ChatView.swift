@@ -1586,28 +1586,8 @@ public struct ChatView: View {
                 // disabled when the draft is empty (= no goal text to
                 // run); it does NOT block on isSending because the Ralph
                 // loop runs in background (= the user can keep chatting).
-                Button {
-                    Task { await vm.startLongRunningGoal() }
-                } label: {
-                    // SF Symbols 6 'scope' (= the canonical Apple HIG
-                    // target / scope metaphor for the Ralph
-                    // loop = "fire this goal at the agent
-                    // and let it run until done"). Replaces
-                    // the v0.27 'Lucide .target' choice per
-                    // boss 2026-09-15 OOB 'use SF Symbols 6'
-                    // (= supersedes the 2026-09-09 'Lucide
-                    // only' reversal).
-                    Image(systemName: "scope")
-                        .font(.system(size: DesignTokens.tabIconSize, weight: .regular))
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.regular)
-                .frame(height: LayoutTokens.chromeControlHeight)
-                .disabled(vm.inputText.isEmpty)
-                .help(WenshuI18n.t("chat.ralphLoop.goalHelp"))
+                // v1.28 C3.4.6: extract Goal button to ChatGoalButton.swift
+                ChatGoalButton(vm: vm)
                 .keyboardShortcut("g", modifiers: [.command, .shift])
                 // v0.28 followup Boss UX round 20 (Boss 2026-08-29 OOB
                 // .padding(.top, DesignTokens.chromePaddingLarge) here (= was misaligning the
