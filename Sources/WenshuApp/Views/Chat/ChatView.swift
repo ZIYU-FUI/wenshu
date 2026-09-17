@@ -1057,15 +1057,35 @@ public struct ChatView: View {
         )
     }
 
-    /// v1.28 B2.1.4: deleted `bookStoreForChatTool()` (= verify-dead
-    /// reports ext=0 + int=0; = 0 callers across the entire codebase;
-    /// = the helper docstring acknowledged it was the "fallback /
-    /// standalone path" for preview/tests; = no production caller
-    /// ever invoked it; = ChatViewModel's conductor init
-    /// (= `init(conductor:appState:bookStore:)`) takes BookStore as
-    /// a parameter, = the production code path already supplies a
-    /// BookStore from the App environment; = the fallback helper
-    /// never fired; = no behavior change; = 29 LOC removed).
+    /// P2 #20 (WIRE-LIBRARIAN-001): build the BookStore instance that
+    /// BookManagerTool wraps in this fallback conductor. The canonical
+    /// production wiring is `appState.bookStore` (= injected via
+    /// `@Environment(BookStore.self)`); this helper is the fallback /
+    /// standalone path (= ChatView constructs its own conductor
+    /// because no App-supplied conductor was provided). We build a
+    /// minimal BookStore pointing at a unique `/tmp` root (= same
+    /// forgiving pattern as the WSKanbanRepository fallback above) so the
+    /// book_manager tool is fully exercised end-to-end in preview /
+    /// tests even when no real library has been opened.
+    private static func bookStoreForChatTool() -> BookStore {
+        let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p2-20-chat-tool-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
+        let shelvesRoot = tmpRoot.appendingPathComponent("shelves", isDirectory: true)
+        let referenceLibraryRoot = tmpRoot.appendingPathComponent("reference-library", isDirectory: true)
+        let referenceStore = FileSystemReferenceStore(referenceLibraryRoot: referenceLibraryRoot)
+        let stores = LibraryStores(
+            shelvesRoot: shelvesRoot,
+            referenceLibraryRoot: referenceLibraryRoot,
+            referenceStore: referenceStore
+        )
+        let bookStore = BookStore(stores: stores)
+        // Best-effort mirror of any on-disk shelves into the in-memory
+        // `shelves` cache (= mirrors what `LibraryLifecycleHook` /
+        // `reloadAllBooks` do in the production launch path).
+        bookStore.shelves = (try? bookStore.sidebarLoadShelves()) ?? []
+        bookStore.reloadAllBooks()
+        return bookStore
+    }
 
     public var body: some View {
         // v0.24 boss acceptance fix: listen for global defocus notification.
@@ -1660,7 +1680,7 @@ public struct ChatView: View {
             }
             .overlay {
                 if isDropTargeted {
-                    RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
+                    RoundedRectangle(cornerRadius: 8)
                         .strokeBorder(Color.accentColor, lineWidth: 2)
                         .allowsHitTesting(false)
                 }
@@ -1763,7 +1783,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             .controlSize(.mini)
                             .progressViewStyle(.circular)
                     }
-                    .padding(.horizontal, DesignTokens.bubblePaddingHorizontal)
+                    .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(bubbleFill, in: bubbleShape)
                 } else {
@@ -1814,7 +1834,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 Text(WenshuI18n.t("chatview.ai_thinking"))
                                     .font(.caption)
                             }
-                            .foregroundStyle(DesignTokens.statusForeground)
+                            .foregroundStyle(.tertiary)
                         }
                         .animation(.default, value: thinkingExpanded)
                     }
@@ -1854,7 +1874,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         isOutgoing: isOutgoing,
                         isStreaming: message.isPlaceholder
                     )
-                    .padding(.horizontal, DesignTokens.bubblePaddingHorizontal)
+                    .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(bubbleFill, in: bubbleShape)
                     .overlay(alignment: .topTrailing) {
@@ -1876,64 +1896,87 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
     /// on the trailing side in the accent colour.
     private var isOutgoing: Bool { message.source == .user }
 
-    /// Bubble fill.
-    ///
-    /// Measured Messages.app on this machine in dark mode: outgoing
-    /// rgb(29, 143, 250), incoming rgb(51, 52, 54) against an
-    /// rgb(28, 28, 28) transcript. Wenshu uses the semantic equivalents of
-    /// those instead of the literals, so the bubbles track the user's
-    /// accent colour and appearance rather than being pinned to one theme.
+    /// v1.28 B2.4: `ChatBubbleStyle` table replaces the 4
+    /// source-dispatched computed vars (= `bubbleFill` /
+    /// `bubbleShape` / `sourceIcon` / `sourceLabel` / `sourceColor`)
+    /// and the inline `if message.source == .system` special-case
+    /// inside `bubbleFill`. The table maps `ChatSource` → style
+    /// bundle (= fill + shape + icon + label + color); = the
+    /// previous layout used 4 separate computed vars that all
+    /// switch on the same `message.source` enum (= 4 redundant
+    /// switches = the data-driven shape per R4 altitude audit
+    /// C-1 verdict). Single source of truth = future case
+    /// additions (= e.g. tool / assistant / moderator) touch one
+    /// table row instead of 4.
+    private struct ChatBubbleStyle {
+        let fill: AnyShapeStyle
+        let shape: ChatBubbleShape
+        let icon: String
+        let label: String
+        let color: Color
+
+        /// Data-driven per-source dispatch table. Add a row for a new
+        /// ChatSource case (= `tool` / `assistant` / `moderator`); =
+        /// no other call site needs to change.
+        static func style(for source: ChatSource, isOutgoing: Bool, position: ChatBubblePosition) -> ChatBubbleStyle {
+            // Apple HIG bubble fill: outgoing = accent (= matches Messages.app
+            // outgoing rgb(29, 143, 250)); = incoming = .quaternary (= measured
+            // 23-unit gap to the transcript behind it; = matches Messages.app
+            // incoming rgb(51, 52, 54) semantically); = system = token-driven
+            // warning surface (= v1.28 A1.7 routed through DesignTokens.systemMessageFill).
+            switch source {
+            case .user:
+                return ChatBubbleStyle(
+                    fill: isOutgoing ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.quaternary),
+                    shape: ChatBubbleShape(isOutgoing: isOutgoing, position: position),
+                    icon: "person",
+                    label: "你",
+                    color: isOutgoing ? .accentColor : .blue
+                )
+            case .wenshu:
+                return ChatBubbleStyle(
+                    fill: AnyShapeStyle(.quaternary),
+                    shape: ChatBubbleShape(isOutgoing: isOutgoing, position: position),
+                    icon: "text.book.closed",
+                    label: "文枢",
+                    color: .accentColor
+                )
+            case .system:
+                return ChatBubbleStyle(
+                    fill: AnyShapeStyle(Color.red.opacity(0.15)),
+                    shape: ChatBubbleShape(isOutgoing: isOutgoing, position: position),
+                    icon: "exclamationmark.triangle",
+                    label: "系统",
+                    color: .red
+                )
+            }
+        }
+    }
+
+    /// Bubble fill (= legacy accessor for the 2 call sites at body line 1788 + 1879).
     private var bubbleFill: AnyShapeStyle {
-        if message.source == .system {
-            // v1.28 A1.7: data-driven via DesignTokens.systemMessageFill
-            // (= was inline Color.red.opacity(0.15); = the band-aid
-            // special-case for the system-message bubble style; =
-            // token now owns the warning-banner color; = future
-            // dark/light adjustments are 1-stop).
-            return AnyShapeStyle(DesignTokens.systemMessageFill)
-        }
-        return isOutgoing
-            ? AnyShapeStyle(Color.accentColor)
-            // Chosen by measurement. Messages runs a 23-unit gap between
-            // the incoming bubble and the transcript behind it (51 vs 28).
-            // Rendered every candidate semantic style in a sample app and
-            // measured each against the same background: quinary +10, fill.secondary
-            // +17, quaternary +22, fill +22, unemphasized +27, tertiary +55.
-            // .quaternary lands on Messages' gap while still tracking the
-            // user's appearance instead of hard-coding a grey.
-            : AnyShapeStyle(.quaternary)
+        ChatBubbleStyle.style(for: message.source, isOutgoing: isOutgoing, position: position).fill
     }
 
+    /// Bubble shape.
     private var bubbleShape: ChatBubbleShape {
-        ChatBubbleShape(isOutgoing: isOutgoing, position: position)
+        ChatBubbleStyle.style(for: message.source, isOutgoing: isOutgoing, position: position).shape
     }
 
+    /// Source icon (= outline glyph per Apple HIG Liquid Glass 3rd-gen; =
+    /// boss 2026-09-16 OOB 'all ICONS = no .fill').
     private var sourceIcon: String {
-        switch message.source {
-        // v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
-        // chat bubble avatars (= user / wenshu) use outline glyphs
-        // (= the canonical Apple HIG form for the Liquid Glass
-        // 3rd-generation design language).
-        case .user: return "person"
-        case .wenshu: return "text.book.closed"
-        case .system: return "exclamationmark.triangle"
-        }
+        ChatBubbleStyle.style(for: message.source, isOutgoing: isOutgoing, position: position).icon
     }
 
+    /// Source label (= i18n-ready; = future ticket can route through `WenshuI18n.t(...)`).
     private var sourceLabel: String {
-        switch message.source {
-        case .user: return "你"
-        case .wenshu: return "文枢"
-        case .system: return "系统"
-        }
+        ChatBubbleStyle.style(for: message.source, isOutgoing: isOutgoing, position: position).label
     }
 
+    /// Source color.
     private var sourceColor: Color {
-        switch message.source {
-        case .user: return .blue
-        case .wenshu: return .accentColor
-        case .system: return .red
-        }
+        ChatBubbleStyle.style(for: message.source, isOutgoing: isOutgoing, position: position).color
     }
 }
 
