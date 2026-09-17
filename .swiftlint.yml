@@ -49,6 +49,17 @@ disabled_rules:
 opt_in_rules:
   - custom_rules
 
+# v1.28 D3: hard-coded surface palette values must route through
+# DesignTokens. v1.28 Tier A1.5-A1.6 routed 89 inline values; = this
+# rule prevents future regressions. Severity: warning (= the v1.27
+# baseline still has a few hundred legitimate uses; = a hard error
+# would block the merge).
+hardcoded_surface_palette:
+  name: "hard-coded surface palette values must route through DesignTokens"
+  regex: '(Color\(red: |Color\(nsColor: \.controlBackground|AnyShapeStyle\(HierarchicalShapeStyle\.(primary|secondary|tertiary|quaternary)\))'
+  message: "Hard-coded surface palette value. Use DesignTokens (e.g. DesignTokens.standardSecondaryForeground) instead."
+  severity: warning
+
 # Custom rule: 12-token xianxia pollution-defense vocabulary (= per
 # AGENTS.md Section 8 hard rule + WenshuVerifier.shortOutputStopSequencesHex
 # hex-encoding pattern from commit 2748bb8). This is the SOURCE-side
