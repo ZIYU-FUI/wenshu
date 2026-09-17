@@ -215,6 +215,15 @@ public enum DesignTokens {
     /// Round style = `.continuous` (Apple HIG 13+ corner style).
     public static let surfaceCornerRadiusCard: CGFloat = 8
 
+    /// v1.28 A1.8: Chat bubble horizontal padding (= 12 PT; = the
+    /// iMessage-style bubble internal padding measured against
+    /// Messages.app in dark mode; = replaces the inline literal at
+    /// ChatView.swift:1786 + 1877 = duplicated chat-bubble padding
+    /// per v1.27 component audit). Distinct from `zoneContentInset = 8`
+    /// (= the zone-level grid inset); = bubble internal padding is
+    /// larger because the bubble itself adds visual weight.
+    public static let bubblePaddingHorizontal: CGFloat = 12
+
     /// Badge surface corner radius (= 8 PT, Apple HIG capsule-style
     /// badge standard). Replaces file-scope `badgeCornerRadius: CGFloat = 8`
     /// in ConnectorProfileRow.
