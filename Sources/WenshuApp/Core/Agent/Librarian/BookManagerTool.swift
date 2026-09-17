@@ -589,7 +589,12 @@ public actor BookManagerTool: Tool {
     /// unsafe escape hatch is safe here.
     public nonisolated static let shared: BookManagerTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-books-\(UUID().uuidString)", isDirectory: true)
-        try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
+        // v1.28 B2.10: surface createDirectory failures via NSLog (= was silent `try?`).
+        do {
+            try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
+        } catch {
+            NSLog("[wenshu.BookManagerTool] failed to create tmp root %@: %@", tmpRoot.path, "\(error)")
+        }
         let shelvesRoot = tmpRoot.appendingPathComponent("shelves", isDirectory: true)
         let referenceLibraryRoot = tmpRoot.appendingPathComponent("reference-library", isDirectory: true)
         let referenceStore = FileSystemReferenceStore(referenceLibraryRoot: referenceLibraryRoot)
