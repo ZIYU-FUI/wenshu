@@ -432,16 +432,31 @@ public actor ConversationLoop {
                 )
 
                 // Tool dispatch loop (= hermes _execute_tool_calls_sequential).
-                // Inspect the assistant message for tool_use blocks; if
-                // any are present, dispatch them sequentially and
-                // re-invoke the LLM with the tool results appended.
-                if let assistant = result.messages.last,
-                   assistant.blocks.contains(where: { if case .toolUse = $0 { return true } else { return false } }) {
+                // T3-MULTI-TURN-LOOP (2026-09-18): wrap the tool dispatch
+                // + LLM re-prompt in a `while` (= keep going as long as
+                // the assistant message contains .toolUse blocks; cap
+                // at maxAgentTurns to prevent runaway loops). Each
+                // iteration increments a turn counter and emits a
+                // `.text` block carrying the counter (= ChatView's
+                // ChatTurnProgress button reads this to render
+                // "agent turn N/10").
+                let maxAgentTurns = 10
+                var turnCount = 1  // first LLM call = turn 1
+                while let assistant = result.messages.last,
+                      assistant.blocks.contains(where: { if case .toolUse = $0 { return true } else { return false } }),
+                      turnCount < maxAgentTurns {
+                    turnCount += 1
+                    // Emit turn-counter as a .text block (= ChatView
+                    // picks it up via streamCallback; ChatTurnProgress
+                    // button filters on this marker).
+                    if let streamCallback {
+                        await streamCallback(.text("[wenshu.agent] turn \(turnCount)/\(maxAgentTurns)"))
+                    }
                     // WIRE-AGENT-006 step 6: "Executing tools".
                     await progressTracker.setStep(
                         id: progressEntry.id,
                         stepNumber: 6,
-                        label: "Executing tools",
+                        label: "Executing tools (turn \(turnCount))",
                         etaSeconds: nil
                     )
                     let executor = ToolExecutor()
@@ -460,13 +475,10 @@ public actor ConversationLoop {
 
                     // Re-invoke LLM with tool results (= hermes
                     // "tool result -> next assistant message" loop body).
-                    // Briefly re-show step 4 "Calling LLM" since the
-                    // second LLM round-trip is what users feel as the
-                    // longest stretch of step 6.
                     await progressTracker.setStep(
                         id: progressEntry.id,
                         stepNumber: 4,
-                        label: "Calling LLM (after tools)",
+                        label: "Calling LLM (turn \(turnCount))",
                         etaSeconds: 4
                     )
                     let reasoningEffort = UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")
