@@ -75,6 +75,13 @@ public struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
         /// appends a result WITHOUT a prior use (= e.g. orphan tool
         /// result surfaced for context).
         case toolResult(ToolResultPart)
+        // T22-PLAN-PART (2026-09-18): plan-mode plan part. Carries the
+        // full Plan from PlanModeEngine (= numbered steps + query +
+        // connectorID + createdAt). Rendered by ChatPlanPartView as
+        // a collapsible card with numbered steps + Approve & Run
+        // button. Codable for SwiftData persistence (= the plan
+        // travels with the ChatMessage through @Model storage).
+        case plan(Plan)
     }
 
     public struct ToolUsePart: Equatable, Hashable, Sendable {
@@ -141,6 +148,17 @@ public struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
             completedAt: nil
         )
     }
+
+    /// T22 factory: build a plan part (= /plan <query> result =
+    /// numbered plan from PlanModeEngine).
+    public static func plan(_ plan: Plan, timestamp: TimeInterval? = nil) -> ChatMessagePart {
+        ChatMessagePart(
+            id: UUID(),
+            kind: .plan(plan),
+            timestamp: timestamp,
+            completedAt: nil
+        )
+    }
 }
 
 extension ChatMessagePart {
@@ -160,6 +178,17 @@ extension ChatMessagePart {
     public static func joinedReasoning(_ parts: [ChatMessagePart]) -> String? {
         for part in parts {
             if case let .reasoning(s) = part.kind { return s }
+        }
+        return nil
+    }
+
+    /// T22: extracted plan (= first `.plan` part; = a chat message
+    /// may carry at most one plan per Hermes' plan-mode convention).
+    /// Returns nil when no plan part exists (= the caller decides
+    /// how to render the non-plan fallback).
+    public static func joinedPlan(_ parts: [ChatMessagePart]) -> Plan? {
+        for part in parts {
+            if case let .plan(p) = part.kind { return p }
         }
         return nil
     }

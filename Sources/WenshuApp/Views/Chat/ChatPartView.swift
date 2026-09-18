@@ -429,11 +429,22 @@ public struct ChatMessageBodyView: View {
     public let message: ChatMessage
     public let isOutgoing: Bool
     public let isStreaming: Bool
+    /// T22: optional closure for plan part approval (= flows down
+    /// through ChatPartRow to ChatPlanPartView). Nil = no approve
+    /// action (= the plan is read-only). Future ticket wires the
+    /// actual approve-reinvoke path.
+    public let onApprovePlan: ((Plan) -> Void)?
 
-    public init(message: ChatMessage, isOutgoing: Bool, isStreaming: Bool = false) {
+    public init(
+        message: ChatMessage,
+        isOutgoing: Bool,
+        isStreaming: Bool = false,
+        onApprovePlan: ((Plan) -> Void)? = nil
+    ) {
         self.message = message
         self.isOutgoing = isOutgoing
         self.isStreaming = isStreaming
+        self.onApprovePlan = onApprovePlan
     }
 
     public var body: some View {
@@ -452,7 +463,12 @@ public struct ChatMessageBodyView: View {
             )
         } else {
             ForEach(message.parts) { part in
-                ChatPartRow(part: part, isOutgoing: isOutgoing, isStreaming: isStreaming)
+                ChatPartRow(
+                    part: part,
+                    isOutgoing: isOutgoing,
+                    isStreaming: isStreaming,
+                    onApprovePlan: onApprovePlan
+                )
             }
         }
     }
@@ -466,6 +482,24 @@ private struct ChatPartRow: View {
     let part: ChatMessagePart
     let isOutgoing: Bool
     let isStreaming: Bool
+    /// T22: optional approval closure for plan parts (= the user
+    /// clicks Approve & Run = the parent = ChatMessageView = decides
+    /// how to re-invoke the conductor with the approved plan). Nil
+    /// for non-plan parts (= unused). Future ticket wires the actual
+    /// approve-reinvoke path.
+    let onApprovePlan: ((Plan) -> Void)?
+
+    init(
+        part: ChatMessagePart,
+        isOutgoing: Bool,
+        isStreaming: Bool,
+        onApprovePlan: ((Plan) -> Void)? = nil
+    ) {
+        self.part = part
+        self.isOutgoing = isOutgoing
+        self.isStreaming = isStreaming
+        self.onApprovePlan = onApprovePlan
+    }
 
     var body: some View {
         switch part.kind {
@@ -477,6 +511,17 @@ private struct ChatPartRow: View {
             ChatToolUsePartView(toolUse: tu, isOutgoing: isOutgoing)
         case .toolResult(let tr):
             ChatToolResultPartView(toolResult: tr, isOutgoing: isOutgoing)
+        case .plan(let p):
+            // T22: render the plan via ChatPlanPartView (= T20b
+            // primitive). The onApprove closure is passed through;
+            // when nil = the Approve button is hidden (= the user
+            // can still read the plan = they just can't re-invoke).
+            ChatPlanPartView(
+                plan: p,
+                onApprove: { plan in
+                    onApprovePlan?(plan)
+                }
+            )
         }
     }
 }

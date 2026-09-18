@@ -242,6 +242,14 @@ struct ChatPartViewTests {
                 isError: resultPart.isError
             ),
             .text("Based on the search, here's what I found: ..."),
+            // T22-PLAN-PART (2026-09-18): append a .plan part so the
+            // test exercises all 5 part kinds (= Hermes 1:1 parity +
+            // plan-mode support).
+            ChatMessagePart.plan(Plan(
+                query: "search then summarize",
+                steps: [PlanStep(index: 1, title: "Search", detail: "Run search.")],
+                connectorID: "anthropic"
+            )),
         ]
         let msg = ChatMessage(
             id: UUID(),
@@ -249,7 +257,7 @@ struct ChatPartViewTests {
             content: "ignored because parts is non-empty",
             parts: parts
         )
-        #expect(msg.parts.count == 4, "The Hermes canonical turn shape has 4 parts")
+        #expect(msg.parts.count == 5, "The Hermes canonical turn shape has 5 parts (= text/reasoning/toolUse/toolResult/plan)")
         // Verify each kind is represented (Hermes parity).
         var kinds: Set<String> = Set()
         for part in msg.parts {
@@ -258,9 +266,10 @@ struct ChatPartViewTests {
             case .reasoning: kinds.insert("reasoning")
             case .toolUse: kinds.insert("toolUse")
             case .toolResult: kinds.insert("toolResult")
+            case .plan: kinds.insert("plan")
             }
         }
-        #expect(kinds.count == 4, "All 4 part kinds must be represented (= Hermes 1:1 parity)")
+        #expect(kinds.count == 5, "All 5 part kinds must be represented (= Hermes 1:1 parity + T22 plan)")
         let body = ChatMessageBodyView(message: msg, isOutgoing: false, isStreaming: false)
         _ = body
     }
