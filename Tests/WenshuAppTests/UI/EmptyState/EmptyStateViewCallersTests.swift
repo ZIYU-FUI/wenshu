@@ -83,8 +83,9 @@ struct EmptyStateViewCallersTests {
     @Test("editor_and_chat_zones_use_EmptyStateView")
     func editor_and_chat_zones_use_EmptyStateView() throws {
         let mainZoneFiles = [
-            // WorkspaceView = editor zone (EditorPlaceholder)
-            "Sources/WenshuApp/Views/Workspace/WorkspaceView.swift",
+            // EditorPlaceholder = editor zone (= v1.34 ticket 001 extracted
+            // the WorkspaceView empty state into EditorPlaceholder.swift)
+            "Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift",
             // PreviewPane = middle-left assets column (the middle-left cards area)
             "Sources/WenshuApp/Views/Workspace/PreviewPane.swift",
             // ChatHelpTextOverlay = chat empty state with inline Settings link
