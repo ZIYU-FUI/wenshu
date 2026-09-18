@@ -1278,7 +1278,17 @@ public struct ChatView: View {
                                 position: Self.bubblePosition(
                                     at: index,
                                     in: vm.messages
-                                )
+                                ),
+                                // T24-PLAN-APPROVE (2026-09-18): when the
+                                // user clicks Approve & Run on a plan card,
+                                // submit the plan's original query back
+                                // into the chat zone as a user message
+                                // (= re-invokes the LLM with the plan in
+                                // history = produces an answer).
+                                onApprovePlan: { plan in
+                                    vm.inputText = plan.query
+                                    Task { await vm.send() }
+                                }
                             )
                             .id(msg.id)
                         }

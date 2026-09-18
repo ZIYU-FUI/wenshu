@@ -27,7 +27,25 @@ struct ChatMessageView: View {
     /// Where this bubble sits in a run of consecutive messages from one
     /// author, which decides the tail and the merged corners.
     var position: ChatBubblePosition = .only
+    /// T24-PLAN-APPROVE (2026-09-18): callback invoked when the user
+    /// clicks Approve & Run on a plan card. The closure is provided
+    /// by the parent ChatView (= the closure submits the plan's original
+    /// query back into the chat zone as a user message; = the LLM sees
+    /// both the plan (= via chat history) and the question; = produces
+    /// an answer). Nil = the Approve button is hidden (= the user can
+    /// still read the plan, they just can't re-invoke).
+    let onApprovePlan: ((Plan) -> Void)?
     @State private var thinkingExpanded: Bool = false
+
+    public init(
+        message: ChatMessage,
+        position: ChatBubblePosition = .only,
+        onApprovePlan: ((Plan) -> Void)? = nil
+    ) {
+        self.message = message
+        self.position = position
+        self.onApprovePlan = onApprovePlan
+    }
 
     /// Parses a message body as markdown for display.
     ///
@@ -224,7 +242,8 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     ChatMessageBodyView(
                         message: message,
                         isOutgoing: isOutgoing,
-                        isStreaming: message.isPlaceholder
+                        isStreaming: message.isPlaceholder,
+                        onApprovePlan: onApprovePlan
                     )
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
