@@ -280,7 +280,12 @@ struct LazySidebarView: View {
                 Spacer(minLength: 4)
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            // v1.75 boss 2026-09-18 'constrain each sidebar row to 30 PT':
+            // fix the shelf row to DesignTokens.chromeHeight (= 30 PT,
+            // Apple HIG canonical chrome row standard). Removes the
+            // previous .padding(.vertical, 5) (= unconstrained height
+            // = rows could grow with text content).
+            .frame(width: nil, height: DesignTokens.chromeHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                         RoundedRectangle(cornerRadius: 6)
@@ -346,8 +351,8 @@ struct LazySidebarView: View {
                 Spacer(minLength: 4)
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 5)
             .padding(.leading, 14)
+            .frame(width: nil, height: DesignTokens.chromeHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                         RoundedRectangle(cornerRadius: 6)
@@ -418,8 +423,8 @@ struct LazySidebarView: View {
                         Spacer(minLength: 4)
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
                     .padding(.leading, 28)
+                    .frame(width: nil, height: DesignTokens.chromeHeight)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                                                         RoundedRectangle(cornerRadius: 6)
@@ -458,7 +463,7 @@ struct LazySidebarView: View {
                 Spacer(minLength: 4)
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .frame(width: nil, height: DesignTokens.chromeHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.clear)
             .contentShape(Rectangle())
@@ -483,8 +488,8 @@ struct LazySidebarView: View {
                         Spacer(minLength: 4)
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
                     .padding(.leading, 14)
+                    .frame(width: nil, height: DesignTokens.chromeHeight)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                                                         RoundedRectangle(cornerRadius: 6)
@@ -516,8 +521,8 @@ struct LazySidebarView: View {
                     Text(WenshuI18n.t("sidebar.new_button.label"))
                         .font(.callout)
                 }
+                .frame(width: nil, height: DesignTokens.chromeHeight)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 8)
                 .padding(.horizontal, 8)
                 .contentShape(Rectangle())
             }
