@@ -141,7 +141,17 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     // the reasoning parts render via ChatReasoningPartView
                     // (= each part is its own collapsible block) — so we
                     // hide the legacy DisclosureGroup to avoid duplication.
-                    if message.parts.isEmpty, let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
+                    // T1-THINKING-VISIBLE (2026-09-18): also hide when ANY .reasoning
+                    // part is present in message.parts (= the new
+                    // ChatReasoningPartView renders the reasoning as
+                    // its own collapsible block; = legacy
+                    // DisclosureGroup would render the same content
+                    // a 2nd time as a duplicate).
+                    let hasReasoningPart = message.parts.contains { part in
+                        if case .reasoning = part.kind { return true }
+                        return false
+                    }
+                    if message.parts.isEmpty && !hasReasoningPart, let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
                         DisclosureGroup(isExpanded: $thinkingExpanded) {
                             Text(thinking)
                                 .font(.caption)

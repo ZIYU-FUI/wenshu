@@ -533,6 +533,22 @@ public final class ChatViewModel {
                     sessionId: sessionId,
                     model: currentModel,
                     streamCallback: { [weak self] block in
+                        // T1-THINKING-VISIBLE (2026-09-18): log each
+                        // stream block (= dev can confirm which part
+                        // kinds the LLM actually emits). Tag with
+                        // PATH=... so it grep-parity with T0 logs.
+                        let kindTag: String = {
+                            switch block {
+                            case .text: return "text"
+                            case .thinking: return "thinking"
+                            case .toolUse: return "toolUse"
+                            case .toolResult: return "toolResult"
+                            }
+                        }()
+                        NSLog(
+                            "[wenshu.conductor] PATH=stream BLOCK=%@ (model=%@)",
+                            kindTag, currentModel
+                        )
                         // v0.71 P1 batch 2 (MainActor isolation): the
                         // streamCallback fires from ConversationLoop
                         // actor (= NOT main actor = the `messages`
