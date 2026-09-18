@@ -182,16 +182,13 @@ public struct CommandPaletteView: View {
             .padding(.vertical, DesignTokens.chromePaddingVertical)
         }
         .frame(width: DesignTokens.settingIOsheetSize.width, height: DesignTokens.settingIOsheetSize.height)
-        // POLISH-LIQUIDGLASS-004: ⌘K palette sheet root uses Apple
-        // .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass
-        // material; same shape as the prior POLISH-LIQUIDGLASS-001/002/003
-        // commits that glassed TopBar + Sidebar + Editor chrome + StatusBar).
-        // Color.clear provides the glass layer size; the modifier applies
-        // the canonical Apple Liquid Glass. No custom border or shadow
-        // (= boss 2026-09-02 hard rule 'every color comes from an Apple
-        // API'; .glassEffect already includes the canonical hairline +
-        // depth shadow per Apple HIG).
-        .background { Color.clear.glassEffect(.regular) }
+        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // audit ticket 2): per-pane `.glassEffect(.regular)` is
+        // forbidden per boss 2026-09-02 OOB "默认不加液态玻璃效果
+        // 的, 我们就不加; 默认带的, 我们就默认带". The canonical
+        // pattern = Apple NSColor.windowBackgroundColor for sheet
+        // surface.
+        .background { Color(nsColor: .windowBackgroundColor) }
         // Keyboard navigation: arrow keys move selection, return invokes,
         // esc dismisses. Uses Apple's SwiftUI .onKeyPress API (= macOS 14+
         // native; no custom key-event listener needed).
