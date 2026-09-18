@@ -118,6 +118,16 @@ struct LazySidebarView: View {
                 }
                 .padding(.vertical, 4)
             }
+            // v1.76 boss 2026-09-18 'left + right columns need default
+            // inner padding matching the chat zone': add horizontal
+            // padding to the sidebar (= the same 8 PT Apple HIG
+            // canonical inline content inset that chat history uses
+            // via DesignTokens.chromePaddingLeading; = SwiftUI's
+            // Spacing.small). Currently the sidebar rows flush
+            // against the column edges (= no outer inset = the
+            // sidebar looks cramped next to the chat zone's padded
+            // content).
+            .padding(.horizontal, DesignTokens.chromePaddingLeading)
             // v1.72 macOS 27 sidebar standard (= no extra glass background;
             // = the NavigationSplitView auto-paints the standard
             // content-tier background; = the boss's screenshot showed
@@ -279,7 +289,7 @@ struct LazySidebarView: View {
                     .lineLimit(1)
                 Spacer(minLength: 4)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, DesignTokens.chromePaddingLeading)
             // v1.75 boss 2026-09-18 'constrain each sidebar row to 30 PT':
             // fix the shelf row to DesignTokens.chromeHeight (= 30 PT,
             // Apple HIG canonical chrome row standard). Removes the
@@ -350,7 +360,7 @@ struct LazySidebarView: View {
                     .lineLimit(1)
                 Spacer(minLength: 4)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, DesignTokens.chromePaddingLeading)
             .padding(.leading, 14)
             .frame(width: nil, height: DesignTokens.chromeHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -422,7 +432,7 @@ struct LazySidebarView: View {
                             .lineLimit(1)
                         Spacer(minLength: 4)
                     }
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, DesignTokens.chromePaddingLeading)
                     .padding(.leading, 28)
                     .frame(width: nil, height: DesignTokens.chromeHeight)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -462,7 +472,7 @@ struct LazySidebarView: View {
                     .lineLimit(1)
                 Spacer(minLength: 4)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, DesignTokens.chromePaddingLeading)
             .frame(width: nil, height: DesignTokens.chromeHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.clear)
@@ -487,7 +497,7 @@ struct LazySidebarView: View {
                             .lineLimit(1)
                         Spacer(minLength: 4)
                     }
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, DesignTokens.chromePaddingLeading)
                     .padding(.leading, 14)
                     .frame(width: nil, height: DesignTokens.chromeHeight)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -523,7 +533,7 @@ struct LazySidebarView: View {
                 }
                 .frame(width: nil, height: DesignTokens.chromeHeight)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, DesignTokens.chromePaddingLeading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

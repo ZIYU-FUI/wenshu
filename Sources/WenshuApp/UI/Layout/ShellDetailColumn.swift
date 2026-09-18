@@ -301,6 +301,14 @@ struct ShellDetailColumn: View {
                 tabs: filteredToolsForCurrentPage
             )
             .frame(maxWidth: .infinity)
+            // v1.76 boss 2026-09-18 'left + right columns need default
+            // inner padding matching the chat zone': add horizontal
+            // padding to the right column (= 8 PT Apple HIG
+            // canonical inline content inset via
+            // DesignTokens.chromePaddingLeading; = matches the
+            // sidebar's outer padding added in this commit; =
+            // matches the chat history's content rhythm).
+            .padding(.horizontal, DesignTokens.chromePaddingLeading)
         }
         .toolbar {
             // v1.0.0-m1-shell boss 2026-09-10 OOB 'wrong position for the button — by default
