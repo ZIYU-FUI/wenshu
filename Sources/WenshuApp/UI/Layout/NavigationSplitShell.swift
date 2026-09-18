@@ -244,12 +244,21 @@ struct NavigationSplitShell: View {
             // user can drag sidebar up to 360 PT and content up to
             // 480 PT).
             //
-            // Window total: 220 + 240 + 600 + 280 = 1340 PT + chrome
-            // ~28 PT = ~1368 PT initial width (= smaller than the
-            // previous 1480 PT 'ideal sum' = the cards band gets the
-            // min treatment).
+            // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+            // audit ticket 4): strip
+            // `.navigationSplitViewColumnWidth(min:ideal:max:)`
+            // (= per boss 9/10 'Apple default' OOB = let
+            // `.automatic` style pick columns = Mail / Notes /
+            // Finder default). The previous 5-round iteration
+            // (= v0.83 / v0.95 / v0.97 / v0.98 / v0.101) tried
+            // various min/ideal/max ranges; all caused sidebar
+            // to collapse to 8 PT or split-view column-width
+            // layout pass to enter a degenerate state. The
+            // canonical answer per wenshu-visual-alignment/SKILL.md
+            // reverse-pattern = strip the modifier + let
+            // SwiftUI's NSV `.automatic` style use its Apple HIG
+            // canonical column ranges (~140 / ~200 / detail natural).
             NewLibraryOutlineView()
-                .navigationSplitViewColumnWidth(min: 220, ideal: 220, max: 360)
         } content: {
             // v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone
             // layout from the probe (= NavigationSplitView 3 columns
@@ -259,10 +268,6 @@ struct NavigationSplitShell: View {
             // outline + cards band, exactly as in the probe's
             // ContentZone. The probe measured window = 1449, sidebar
             // = 240, content = 280, detail = 648 with this layout.
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'left and left-2 use the minimum':
-            // content ideal 320 → 240 (= matches sidebar's
-            // 'min-width' pattern; = user can still drag wider up
-            // to 480 PT via max).
             // v1.27 component-architecture (2026-09-17): now passes
             // `envAppState:` (= the @Bindable / @Environment entry
             // declared on ShellMiddleColumn) in addition to the
@@ -270,8 +275,10 @@ struct NavigationSplitShell: View {
             // instance (= wenshu's NSA framework convention; =
             // see ShellMiddleColumn L57-72 for the @Bindable +
             // `let appState` parallel-ownership pattern).
+            // macOS 27 doc-alignment (audit ticket 4): strip
+            // `.navigationSplitViewColumnWidth(min:ideal:max:)`
+            // (= canonical Apple default; see comment above).
             ShellMiddleColumn(envAppState: appState, appState: appState)
-                .navigationSplitViewColumnWidth(min: 240, ideal: 240, max: 480)
         } detail: {
             // Apple HIG detail column = the editor + chat sub-areas
             // in a vertical split (= VSplitView is what Mail uses
@@ -292,8 +299,10 @@ struct NavigationSplitShell: View {
             // column NSV + inspector pattern is the canonical Apple
             // 6-zone layout (= the probe confirms window = 1449
             // with this exact combination).
+            // macOS 27 doc-alignment (audit ticket 4): strip
+            // `.navigationSplitViewColumnWidth(min:ideal:max:)`
+            // (= canonical Apple default; see comment above).
             ShellContentColumn(appState: appState, bookStore: bookStore)
-                .navigationSplitViewColumnWidth(min: 400, ideal: 600, max: 900)
                 // v1.0.0-m1-shell boss 2026-09-10 OOB 'Keynote and the three office apps
                 // all use this same logic': wire the inspector's `isPresented` to
                 // a real `Binding<Bool>` (= `appState.inspectorVisible`)
@@ -306,12 +315,15 @@ struct NavigationSplitShell: View {
                 // but they aren't resizable by default. We can change
                 // it with .inspectorColumnWidth. We can also add a
                 // toolbar button to toggle the presented property.'
+                // macOS 27 doc-alignment (audit ticket 4): strip
+                // `.inspectorColumnWidth(min:ideal:max:)` (= canonical
+                // Apple default for inspector; matches Mail / Notes /
+                // Reminders / Pages inspector width).
                 .inspector(isPresented: Binding(
                     get: { appState.inspectorVisible },
                     set: { newValue in appState.inspectorVisible = newValue }
                 )) {
                     ShellDetailColumn(appState: appState)
-                        .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
                 }
         }
         // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
