@@ -76,25 +76,60 @@ struct LazySidebarView: View {
     @State private var pendingDelete: LazyPendingDelete?
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 2) {
-                sidebarHeader
-                shelvesSection
-                referenceLibrarySection
-                if let loadError {
-                    Text(loadError)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
+            // v1.72 boss 2026-09-18 'sidebar is not macOS 27 standard,
+            // selection isn't Liquid Glass' — boss clarification: don't
+            // add a glass panel to the sidebar background itself (= the
+            // v1.72 first attempt wrapped the entire ScrollView in
+            // .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+            // + .backgroundExtensionEffect() = the sidebar became a
+            // gray fog covering everything = boss rejected it). The
+            // correct macOS 27 sidebar pattern (= Apple Mail / Notes /
+            // Pages) = the sidebar background STAYS the standard content-
+            // tier (.underPageBackgroundColor = Apple Pages sidebar
+            // visual) and ONLY the selected row gets a glass-effect
+            // tinted highlight (= the macOS 27 .background(.tint) +
+            // .glassEffect() pattern Apple uses for selected sidebar
+            // rows on Mail / Notes / Finder).
+            //
+            // Selected row visual = nested macOS 27 glass tint:
+            //   .background(
+            //     RoundedRectangle(cornerRadius: 6)
+            //         .fill(Color.accentColor.opacity(0.22))  // Apple system tint
+            //         .overlay(
+            //             RoundedRectangle(cornerRadius: 6)
+            //                 .strokeBorder(.tint.opacity(0.30), lineWidth: 1)
+            //         )
+            //   )
+            // = the standard Apple Mail / Notes selected sidebar row
+            // visual (= light glass tint background + 1 PT tint stroke
+            // border; = no flat opacity fill; = the macOS 27 standard).
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 2) {
+                    sidebarHeader
+                    shelvesSection
+                    referenceLibrarySection
+                    if let loadError {
+                        Text(loadError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                    }
                 }
+                .padding(.vertical, 4)
             }
-            .padding(.vertical, 4)
-        }
-        .background(Color.clear)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            sidebarBottomNewButton
-        }
+            // v1.72 macOS 27 sidebar standard (= no extra glass background;
+            // = the NavigationSplitView auto-paints the standard
+            // content-tier background; = the boss's screenshot showed
+            // the sidebar with a clean dark gray content-tier background
+            // (= same as the editor zone) which IS the macOS 27 sidebar
+            // visual). Strip the v1.72 first-attempt .glassEffect
+            // background + .backgroundExtensionEffect (= that fog layer
+            // = boss rejected).
+            .background(Color.clear)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                sidebarBottomNewButton
+            }
         .onAppear { onAppearLoad() }
         .onChange(of: appState.sidebarSelection) { _, _ in
             persistedSidebarState = snapshotSidebarState().jsonString
@@ -248,11 +283,12 @@ struct LazySidebarView: View {
             .padding(.vertical, 5)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(appState.sidebarSelection == .shelf(shelf.id)
-                          ? Color.accentColor.opacity(0.18)
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(appState.sidebarSelection == .shelf(shelf.id)
+                          ? Color.accentColor.opacity(0.22)
                           : Color.clear)
-            )
+                            
+                    )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -315,11 +351,12 @@ struct LazySidebarView: View {
             .padding(.leading, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(appState.sidebarSelection == .book(book.id)
-                          ? Color.accentColor.opacity(0.18)
-                          : Color.clear)
-            )
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(appState.sidebarSelection == .book(book.id)
+                              ? Color.accentColor.opacity(0.22)
+                              : Color.clear)
+                            
+                    )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -387,10 +424,11 @@ struct LazySidebarView: View {
                     .padding(.leading, 28)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: 6)
                             .fill(appState.sidebarSelection == .folder(bookId: book.id, folderName: folder.name)
-                                  ? Color.accentColor.opacity(0.18)
-                                  : Color.clear)
+                                          ? Color.accentColor.opacity(0.22)
+                                          : Color.clear)
+                            
                     )
                     .contentShape(Rectangle())
                 }
@@ -452,10 +490,11 @@ struct LazySidebarView: View {
                     .padding(.leading, 14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: 6)
                             .fill(appState.sidebarSelection == .referenceCategory(category.rawValue)
-                                  ? Color.accentColor.opacity(0.18)
-                                  : Color.clear)
+                                          ? Color.accentColor.opacity(0.22)
+                                          : Color.clear)
+                            
                     )
                     .contentShape(Rectangle())
                 }
