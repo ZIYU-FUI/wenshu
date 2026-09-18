@@ -91,4 +91,60 @@ public actor AnthropicConnector: LLMConnector {
             providerID: connectorID
         )
     }
+
+    /// T9-ANTHROPIC-STREAMING-WIRE (2026-09-18): override the default
+    /// `stream()` (= which would call `send(...)` and emit the whole
+    /// response as one chunk) with a real SSE pipeline that yields
+    /// Anthropic chunks converted to cross-connector LLMBlock events.
+    ///
+    /// Pipeline:
+    ///   1. AnthropicStreamingWireupFactory.streamingStream(...) opens
+    ///      the SSE connection via EventSource (= mattt/EventSource 1.5.1)
+    ///      and yields AnthropicStreamingChunk events.
+    ///   2. AnthropicChunkToLLMBlockConverter.convert(stream:) maps
+    ///      each chunk to an LLMBlock (= textDelta -> .text,
+    ///      thinkingDelta -> .thinking, etc).
+    ///   3. The resulting AsyncStream<LLMBlock> is returned to
+    ///      ConversationLoop's streamCallback path (= ChatView's
+    ///      ChatPartView sees live per-token text + reasoning).
+    ///
+    /// `nonisolated` (= T9 protocol conformance isolation fix): the
+    /// stream(...) override reads `self.useCacheControl` (= actor-
+    /// isolated) inside the function body. Marking the method
+    /// `nonisolated` would normally require a copy of self state,
+    /// but `useCacheControl` is a `let` (= Sendable + immutable =
+    /// safe to read from any actor context). The default
+    /// implementation in LLMConnector extension is also nonisolated,
+    /// so this override matches.
+    public nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        let credentials = ConnectorCredentials.resolve(for: .anthropic)
+
+        // Empty key -> emit synthetic error block (= no silent stream end).
+        if credentials.apiKey.isEmpty {
+            return AnthropicChunkToLLMBlockConverter.errorStream(
+                "[stream error] missing API key for anthropic"
+            )
+        }
+
+        // Apply prompt caching (= same path as send()).
+        let cachedMessages = useCacheControl
+            ? PromptCaching.applyCacheControl(
+                messages: messages,
+                systemPrompt: options.systemPrompt ?? "",
+                ttl: "5m"
+            )
+            : messages
+
+        let chunkStream = AnthropicStreamingWireupFactory.streamingStream(
+            credentials: credentials,
+            model: options.model,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt,
+            messages: cachedMessages
+        )
+        return AnthropicChunkToLLMBlockConverter.convert(stream: chunkStream)
+    }
 }

@@ -98,4 +98,17 @@ public enum AnthropicChunkToLLMBlockConverter {
             }
         }
     }
+
+    /// T9-ANTHROPIC-STREAMING-WIRE (2026-09-18): produce a synthetic
+    /// error stream that yields exactly one `.text` block carrying the
+    /// error message, then finishes. Used by AnthropicConnector.stream()
+    /// when credentials are missing (= no SSE connection can be opened)
+    /// so ChatView surfaces the error instead of ending the stream
+    /// silently.
+    public static func errorStream(_ message: String) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            continuation.yield(.text("[stream error] \(message)"))
+            continuation.finish()
+        }
+    }
 }
