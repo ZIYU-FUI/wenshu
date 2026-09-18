@@ -258,7 +258,17 @@ struct NavigationSplitShell: View {
             // reverse-pattern = strip the modifier + let
             // SwiftUI's NSV `.automatic` style use its Apple HIG
             // canonical column ranges (~140 / ~200 / detail natural).
-            NewLibraryOutlineView()
+            // v1.64 boss 2026-09-18 'sidebar has a real problem —
+            // Apple API has other methods, not necessarily outline
+            // tree': switch from NewLibraryOutlineView() (= List(
+            // .sidebar) = NSTableView = NSTableRowData NSLayout
+            // Constraint conflict on window resize per
+            // WenshuApp-2026-09-18-143621.ips) to LazySidebarView
+            // (= pure-SwiftUI ScrollView + LazyVStack + Button rows;
+            // = no NSTableView = no CoreAutoLayout conflict during
+            // window resize). LazySidebarView is in
+            // Sources/WenshuApp/Views/Library/LazySidebarView.swift.
+            LazySidebarView()
         } content: {
             // v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone
             // layout from the probe (= NavigationSplitView 3 columns
