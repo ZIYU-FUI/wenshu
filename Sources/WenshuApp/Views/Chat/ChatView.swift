@@ -540,22 +540,32 @@ public final class ChatViewModel {
             let planText = plan.steps
                 .map { "\($0.index). \($0.title): \($0.detail)" }
                 .joined(separator: "\n")
+            // T21-PLAN-I18N (2026-09-18): use localized labels for the
+            // "Plan (via <connector>)" header + "Plan mode failed"
+            // fallback (= both en.lproj + zh-Hans.lproj keys added in
+            // this ticket; = the prior hardcoded English strings are
+            // retired). The %@ format arg gets the connector slug.
+            let viaLabel = WenshuI18n.tf(
+                "chatview.plan.via", plan.connectorID
+            )
             messages.append(ChatMessage(
                 role: .system,
                 source: .system,
-                content: "Plan (via \(plan.connectorID)):\n\(planText)"
+                content: "\(viaLabel):\n\(planText)"
             ))
         } catch let error as PlanModeError {
             messages.append(ChatMessage(
                 role: .system,
                 source: .system,
-                content: error.errorDescription ?? "Plan mode failed."
+                content: error.errorDescription
+                    ?? WenshuI18n.t("chatview.plan.failed")
             ))
         } catch {
             messages.append(ChatMessage(
                 role: .system,
                 source: .system,
-                content: "Plan mode failed: \(error.localizedDescription)"
+                content: WenshuI18n.t("chatview.plan.failed")
+                    + ": \(error.localizedDescription)"
             ))
         }
     }
