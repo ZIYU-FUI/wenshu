@@ -1576,8 +1576,13 @@ public struct ChatView: View {
                 // HStack(alignment: .center) so buttons stay
                 // vertically centered regardless of the
                 // textfield's current height).
+                // T0-PATH-VISIBLE (2026-09-18): new indicator button placed immediately
+                // after ChatAttachButton (= per boss OOB '加按钮就在附件上传
+                // 按钮后面先加'). HStack layout otherwise unchanged (= Spacer,
+                // Send, Goal all stay in place).
                 HStack(alignment: .center, spacing: 8) {
                     ChatAttachButton(showingImageImporter: $showingImageImporter, isSending: vm.isSending)
+                    ChatAgentPathIndicator(isSending: vm.isSending)
                     Spacer(minLength: 8)
                     ChatSendButton(vm: vm)
                     ChatGoalButton(vm: vm)
