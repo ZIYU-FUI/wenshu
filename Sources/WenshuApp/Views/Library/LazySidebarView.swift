@@ -285,9 +285,8 @@ struct LazySidebarView: View {
             .background(
                         RoundedRectangle(cornerRadius: 6)
                             .fill(appState.sidebarSelection == .shelf(shelf.id)
-                          ? Color.accentColor.opacity(0.22)
-                          : Color.clear)
-                            
+                                ? AnyShapeStyle(.tint)
+                                : AnyShapeStyle(Color.clear))
                     )
             .contentShape(Rectangle())
         }
@@ -353,9 +352,8 @@ struct LazySidebarView: View {
             .background(
                         RoundedRectangle(cornerRadius: 6)
                             .fill(appState.sidebarSelection == .book(book.id)
-                              ? Color.accentColor.opacity(0.22)
-                              : Color.clear)
-                            
+                                ? AnyShapeStyle(.tint)
+                                : AnyShapeStyle(Color.clear))
                     )
             .contentShape(Rectangle())
         }
@@ -424,12 +422,11 @@ struct LazySidebarView: View {
                     .padding(.leading, 28)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(appState.sidebarSelection == .folder(bookId: book.id, folderName: folder.name)
-                                          ? Color.accentColor.opacity(0.22)
-                                          : Color.clear)
-                            
-                    )
+                                                        RoundedRectangle(cornerRadius: 6)
+                                                            .fill(appState.sidebarSelection == .folder(bookId: book.id, folderName: folder.name)
+                                                                ? AnyShapeStyle(.tint)
+                                                                : AnyShapeStyle(Color.clear))
+                                                    )
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -490,12 +487,11 @@ struct LazySidebarView: View {
                     .padding(.leading, 14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(appState.sidebarSelection == .referenceCategory(category.rawValue)
-                                          ? Color.accentColor.opacity(0.22)
-                                          : Color.clear)
-                            
-                    )
+                                                        RoundedRectangle(cornerRadius: 6)
+                                                            .fill(appState.sidebarSelection == .referenceCategory(category.rawValue)
+                                                                ? AnyShapeStyle(.tint)
+                                                                : AnyShapeStyle(Color.clear))
+                                                    )
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
