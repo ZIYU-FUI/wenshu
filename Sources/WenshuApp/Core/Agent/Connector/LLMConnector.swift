@@ -52,6 +52,45 @@ public protocol LLMConnector: Sendable {
         messages: [LLMMessage],
         options: LLMCallOptions
     ) async throws -> LLMResponse
+
+    /// Stream blocks from the LLM (= token-by-token + tool dispatch).
+    ///
+    /// T7-STREAM-DEFAULT (2026-09-18): default implementation calls
+    /// send(...) and yields each block in the response as a single
+    /// chunk (= the "fake streaming" path). Connectors with native
+    /// SSE support can override this to yield per-token chunks.
+    func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock>
+}
+
+extension LLMConnector {
+    /// Default stream implementation: calls send(...), then yields
+    /// each block from the response. Connectors with native streaming
+    /// override this.
+    public func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            Task {
+                do {
+                    let response = try await self.send(
+                        messages: messages,
+                        options: options
+                    )
+                    for block in response.blocks {
+                        continuation.yield(block)
+                    }
+                } catch {
+                    // Emit a synthetic error block so ChatView shows it.
+                    continuation.yield(.text("[stream error] \(error)"))
+                }
+                continuation.finish()
+            }
+        }
+    }
 }
 
 /// Per-call options for `LLMConnector.send`.
