@@ -72,18 +72,22 @@ struct ZoneEditor: View {
                 .padding(DesignTokens.chromePaddingHero)
         }
         .frame(minWidth: 720, minHeight: 540)
-        // POLISH-LIQUIDGLASS-004: ZoneEditor modal sheet root uses
-        // Apple .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass;
-        // same shape as POLISH-LIQUIDGLASS-001/002/003 that glassed
-        // TopBar + Sidebar + Editor chrome + StatusBar). Color.clear
-        // provides the glass layer size; the modifier applies the
-        // canonical Apple Liquid Glass material. No custom border or
-        // shadow (= boss 2026-09-02 hard rule 'every color comes from
-        // an Apple API'; .glassEffect already includes the canonical
-        // hairline + depth shadow per Apple HIG). Applied AFTER .frame
-        // so the glass layer sizes to the sheet's minWidth: 720 outer
-        // rect.
-        .background { Color.clear.glassEffect(.regular) }
+        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // audit ticket 2): per-pane `.glassEffect(.regular)` is
+        // forbidden per boss 2026-09-02 OOB "默认不加液态玻璃效果
+        // 的, 我们就不加; 默认带的, 我们就默认带" + per
+        // pane-chrome-canonic-pattern.md L88 (".glassEffect(.regular)
+        // = per-pane glass specular (= boss拍 '默认不加液态玻璃效果
+        // 的, 我们就不加')"). The canonical pattern is:
+        //   - Window-level containerBackground = windowBackgroundColor
+        //     (= set at LibraryRootView, audit ticket 1) = the Apple
+        //     Liquid Glass tonal layer for the entire window
+        //   - Sheet surface = Apple NSColor.windowBackgroundColor
+        //     (= the per-pane content fill, NOT a manual glass)
+        //   - Chrome inside the sheet = NSColor.controlBackgroundColor
+        // = the Apple-managed 2-layer NSColor micro-differentiation
+        // is the boundary, NOT custom per-pane glass overlays.
+        .background { Color(nsColor: .windowBackgroundColor) }
         .onKeyPress(.escape) {
             dismiss()
             return .handled

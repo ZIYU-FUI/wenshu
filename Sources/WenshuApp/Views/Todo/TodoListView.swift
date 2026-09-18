@@ -418,7 +418,7 @@ private struct TodoRow: View {
                     .font(.caption2)
                 Text(Self.dueDateFormatter.string(from: due))
                     .font(.caption)
-                    .foregroundStyle(isOverdue ? Color.red : Color.secondary)
+                    .foregroundStyle(isOverdue ? Color(nsColor: .systemRed) : Color.secondary)
                 if isOverdue {
                     Text(WenshuI18n.t("todolist.overdue"))
                         .font(.caption2.weight(.semibold))
@@ -487,11 +487,27 @@ private struct TodoRow: View {
     }
 
     private func chipStyle(for priority: TodoPriority) -> (String, Color, Color) {
+        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // audit ticket 8): HierarchicalShapeStyle.tertiary is
+        // the Apple semantic ShapeStyle that auto-adapts to
+        // dark mode + Liquid Glass. Color.secondary.opacity(N)
+        // is a static gray that does NOT adapt.
+        //
+        // Implementation note (= reason we keep
+        // Color.secondary.opacity() here): the chipStyle
+        // function returns a (String, Color, Color) tuple, and
+        // SwiftUI Color.init(_ style: ShapeStyle, opacity:)
+        // resolves to Color(_ white: Double, opacity:) (= the
+        // gray Color initializer) before the ShapeStyle
+        // overload in this context. To migrate, refactor the
+        // tuple return type to use AnyShapeStyle (= see other
+        // sites in this audit). Tracked as a follow-up
+        // migration in the next audit batch.
         switch priority {
         case .low: return ("低", Color.secondary, Color.secondary.opacity(0.15))
         case .medium: return ("中", Color.primary, Color.secondary.opacity(0.2))
-        case .high: return ("高", Color.orange, Color.orange.opacity(0.18))
-        case .urgent: return ("紧急", Color.red, Color.red.opacity(0.18))
+        case .high: return ("高", Color(nsColor: .systemOrange), Color(nsColor: .systemOrange).opacity(0.18))
+        case .urgent: return ("紧急", Color(nsColor: .systemRed), Color(nsColor: .systemRed).opacity(0.18))
         }
     }
 }

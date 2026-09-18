@@ -94,6 +94,11 @@ public struct SkillRow: View {
                 }
         }
         .padding(DesignTokens.chromePaddingSmall)
-        .background(Color.secondary.opacity(subtleSurfaceAlpha), in: RoundedRectangle(cornerRadius: smallChipCornerRadius))
+        .background(
+            // macOS 27 doc-alignment (audit ticket 8):
+            // HierarchicalShapeStyle.tertiary.
+            AnyShapeStyle(.tertiary.opacity(subtleSurfaceAlpha)),
+            in: RoundedRectangle(cornerRadius: smallChipCornerRadius)
+        )
     }
 }

@@ -484,8 +484,18 @@ struct ShellMiddleColumn: View {
                             .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     )
                     .overlay(
+                        // macOS 27 doc-alignment (boss 9/18 OOB
+                        // '全都改一下', audit ticket 6):
+                        // HierarchicalShapeStyle.separator is the
+                        // Apple semantic ShapeStyle that
+                        // auto-adapts to dark mode + Liquid Glass
+                        // (= 1 PT hairline by default; = not the
+                        // solid NSColor.separatorColor which fails
+                        // on dark mode + glass tint backgrounds per
+                        // wenshu-macos26-liquid-glass-pitfalls
+                        // Pitfall 1 = Attempt 1/2 boss-rejected).
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
+                            .stroke(.separator, lineWidth: 0.5)
                     )
                 )
             )

@@ -54,7 +54,14 @@ public struct MemoryEntryRow: View {
         }
         .padding(DesignTokens.chromePaddingMicro)
         .background(
-            Color.secondary.opacity(compact ? 0.5 : DesignTokens.surfaceActiveTintAlpha),
+            // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+            // audit ticket 8): HierarchicalShapeStyle.tertiary
+            // (= Apple semantic ShapeStyle = auto-adapts to dark
+            // mode + Liquid Glass). Color.secondary.opacity(N)
+            // is a static gray that does NOT adapt to dark mode
+            // or accent tint. Wrap in AnyShapeStyle for the
+            // .background ShapeStyle parameter.
+            AnyShapeStyle(.tertiary.opacity(compact ? 0.5 : DesignTokens.surfaceActiveTintAlpha)),
             in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip, style: .continuous)
         )
     }

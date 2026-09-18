@@ -149,7 +149,22 @@ struct AppRootScene: Scene {
         // (= Mail / Notes / Finder all use it = their toolbars
         // do not steal vertical space from the work area). Match
         // the probe's style.
-        .windowToolbarStyle(.unified)  // v1.0.0-m1-shell boss 2026-09-10 OOB 'use the title bar, or rather the toolbar, use that Apple-standard 52 PT tall one, and make the buttons a bit bigger': Apple HIG standard toolbar height = 52 PT per developer.apple.com/design/human-interface-guidelines/toolbars 'A standard toolbar is 52 PT tall'; = matches Mail / Notes / Finder / Safari / TextEdit / Pages / Keynote / Numbers standard toolbar; = the previous `.unifiedCompact` (= 28 PT compact toolbar) was a v0.95 cosmetic attempt that the boss rejected; = the larger 52 PT toolbar lets the icon buttons render at the canonical Apple HIG size (= the user wants the buttons to look bigger and more clickable; = the 52 PT toolbar height makes the icon-button frames at the canonical 28-32 PT icon size.
+        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // audit ticket 3 + 4): switch from
+        // `.windowToolbarStyle(.unified)` (= 52 PT titlebar) to
+        // `.windowToolbarStyle(.unifiedCompact)` (= 28 PT compact
+        // toolbar) per the v0.93 boss 9/10 OOB 'NSV probe was
+        // working fine before' (= the probe used .unifiedCompact
+        // and showed all 4 columns at Apple HIG ideal widths).
+        // Per Apple docs, `.unifiedCompact` is the recommended
+        // style for dense workspace apps (= Mail / Notes /
+        // Finder all use it = their toolbars do not steal
+        // vertical space from the work area). The previous
+        // 52-PT titlebar reserves more vertical space at the
+        // top of the window, which pushes NavigationSplitView's
+        // intrinsic-content-size calculation past the 4-column
+        // minimum widening disproportionately. Match the
+        // probe's style.
         // v0.96 boss 2026-09-10 OOB 'NSV probe was working fine before': the
         // probe (/tmp/wenshu_full/Full.swift) had no
         // `.defaultSize(width:height:)` (= SwiftUI used the
@@ -173,7 +188,27 @@ struct AppRootScene: Scene {
         // respects the defaultSize (= the previous collapse was
         // caused by defaultSize + .unified pushing NSV into a
         // degenerate layout; that combo is no longer in effect).
-        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 1480 x 980 (4-col Apple HIG ideal sum)
+        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // audit ticket 3): strip `.defaultSize(width:height:)`
+        // (= per the v0.95/v0.97 boss OOB "NSV probe was working
+        // fine before" = the probe (/tmp/wenshu_full/Full.swift)
+        // had no `.defaultSize` + `.unifiedCompact` (= 28 PT) =
+        // all 4 columns at Apple HIG ideal widths. Adding
+        // `.defaultSize(1480, 980)` + `.unified` (= 52 PT titlebar)
+        // pushes NavigationSplitView into a degenerate layout
+        // pass that collapses the sidebar to ~8 PT and ignores
+        // every `navigationSplitViewColumnWidth` modifier.
+        // The canonical answer per
+        // wenshu-visual-alignment/SKILL.md reverse-pattern =
+        // strip `.defaultSize` + let SwiftUI's window auto-size
+        // from NavigationSplitView intrinsic content.
+        //
+        // See .scratch/2026-09-18-macos27-doc-align/audit.md
+        // ticket 3 for the canonical rationale + v0.95/v0.97/v0.101
+        // iteration history (= 5 rounds trying to make defaultSize
+        // + columnWidth work; all 5 failed; the working state was
+        // "no defaultSize + .unifiedCompact + no columnWidth").
+        .windowToolbarStyle(.unifiedCompact)
         // v0.24 bossverificationfix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
         // v0.91 boss 2026-09-10 OOB '1480 is also OK': change to
@@ -472,11 +507,16 @@ struct AppRootScene: Scene {
             KanbanWindow(library: library)
         }
         .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
+        // macOS 27 doc-alignment (audit ticket 3): kanban + todo
+        // secondary windows match the main window's
+        // `.unifiedCompact` (= 28 PT compact toolbar) for
+        // consistency. Apple docs: `.unifiedCompact` is the
+        // recommended style for dense workspace apps.
+        .windowToolbarStyle(.unifiedCompact)
         Window("待办", id: WindowID.todo) {
             TodoWindow(library: library)
         }
         .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
+        .windowToolbarStyle(.unifiedCompact)
     }
 }

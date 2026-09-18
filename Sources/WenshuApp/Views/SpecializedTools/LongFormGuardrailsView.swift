@@ -226,9 +226,9 @@ struct LongFormGuardrailsView: View {
 
     private func badgeColor(for level: LongFormGuardrailEnforcement) -> Color {
         switch level {
-        case .strict: return Color.red.opacity(0.18)
-        case .warn:   return Color.orange.opacity(0.18)
-        case .off:    return Color.gray.opacity(0.18)
+        case .strict: return Color(nsColor: .systemRed).opacity(0.18)
+        case .warn:   return Color(nsColor: .systemOrange).opacity(0.18)
+        case .off:    return Color(nsColor: .systemGray).opacity(0.18)
         }
     }
 
@@ -274,7 +274,7 @@ struct LongFormGuardrailsView: View {
             case .done(let count, let hasCritical):
                 Text(hasCritical ? "\(count) violations (= critical)" : "\(count) violations")
                     .font(.caption)
-                    .foregroundStyle(hasCritical ? Color.red : .secondary)
+                    .foregroundStyle(hasCritical ? Color(nsColor: .systemRed) : .secondary)
             }
         }
     }
@@ -316,8 +316,8 @@ struct LongFormGuardrailsView: View {
 
     private func severityColor(_ s: LongFormGuardrailViolation.Severity) -> Color {
         switch s {
-        case .critical: return Color.red
-        case .warning:  return Color.orange
+        case .critical: return Color(nsColor: .systemRed)
+        case .warning:  return Color(nsColor: .systemOrange)
         case .info:     return .secondary
         }
     }
@@ -362,18 +362,15 @@ struct LongFormGuardrailsView: View {
                 }
             }
         }
-        // POLISH-LIQUIDGLASS-004: Add-guardrail modal sheet root uses
-        // Apple .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass;
-        // same shape as POLISH-LIQUIDGLASS-001/002/003 that glassed
-        // TopBar + Sidebar + Editor chrome + StatusBar). Color.clear
-        // provides the glass layer size; the modifier applies the
-        // canonical Apple Liquid Glass material. No custom border or
-        // shadow (= boss 2026-09-02 hard rule 'every color comes from
-        // an Apple API'; .glassEffect already includes the canonical
-        // hairline + depth shadow per Apple HIG). Applied AFTER .frame
-        // so the glass layer sizes to the sheet's width: 360 outer
-        // rect.
-        .background { Color.clear.glassEffect(.regular) }
+        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // audit ticket 2): per-pane `.glassEffect(.regular)` is
+        // forbidden per boss 2026-09-02 OOB "默认不加液态玻璃效果
+        // 的, 我们就不加; 默认带的, 我们就默认带". The canonical
+        // pattern = Apple NSColor.windowBackgroundColor for sheet
+        // surface = the 2-layer NSColor micro-differentiation
+        // boundary (windowBackground vs controlBackground = the
+        // visible boundary, NOT custom per-pane glass overlays).
+        .background { Color(nsColor: .windowBackgroundColor) }
     }
 
     // MARK: - Async actions

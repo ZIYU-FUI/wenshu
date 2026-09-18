@@ -134,7 +134,7 @@ struct BookSettingConstraintsView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color.red)
+                    .foregroundStyle(Color(nsColor: .systemRed))
             }
         }
     }
@@ -238,7 +238,7 @@ struct BookSettingConstraintsView: View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
                 Image(systemName: constraint.severity.icon).font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
+                    .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(.tint))
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: DesignTokens.chromePaddingSmall) {
@@ -283,7 +283,7 @@ struct BookSettingConstraintsView: View {
                                         .padding(.vertical, DesignTokens.chromePaddingPico)
                                         .background(
                                             RoundedRectangle(cornerRadius: 3)
-                                                .fill(Color.red.opacity(0.15))
+                                                .fill(Color(nsColor: .systemRed).opacity(0.15))
                                         )
                                 }
                             }
@@ -333,7 +333,7 @@ struct BookSettingConstraintsView: View {
                     if hasChecked {
                         Text("\(violations.count) violation\(violations.count == 1 ? "" : "s")")
                             .font(.caption)
-                            .foregroundStyle(violations.isEmpty ? Color.green : Color.orange)
+                            .foregroundStyle(violations.isEmpty ? Color(nsColor: .systemGreen) : Color(nsColor: .systemOrange))
                     }
                 }
             }
@@ -356,7 +356,7 @@ struct BookSettingConstraintsView: View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
             Image(systemName: violation.severity == .hard ? "octagon" : "exclamationmark.triangle")
                 .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color.red) : AnyShapeStyle(Color.orange))
+                .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(Color(nsColor: .systemOrange)))
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: DesignTokens.chromePaddingMicro) {

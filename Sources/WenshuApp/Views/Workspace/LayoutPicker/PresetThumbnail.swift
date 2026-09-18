@@ -55,7 +55,10 @@ struct PresetThumbnail: View {
             // hermes `TreeThumbnail` — the group is a tab stack,
             // shown as one filled rectangle at thumbnail scale).
             ZStack {
-                Color.secondary.opacity(0.15)
+                Rectangle()
+                    // macOS 27 doc-alignment (audit ticket 8):
+                    // HierarchicalShapeStyle.tertiary.
+                    .fill(.tertiary.opacity(0.15))
                 // If the group has > 1 pane, show a small tab
                 // indicator (= divider line at the top) to convey
                 // that it's a tabbed group.

@@ -69,6 +69,19 @@ struct EditorPaperCanvas<Content: View>: View {
                 .padding(Self.paperMargin)
                 .frame(width: Self.paperWidth, alignment: .topLeading)
                 .frame(minHeight: 842)          // A4 height
+                // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+                // audit ticket 7): Color.white kept here because
+                // this is the A4 paper background (= explicit
+                // "white paper" semantic; = not a status tint).
+                // Color(nsColor: .textBackgroundColor) would
+                // also work (= Apple dynamic white) but
+                // .textBackgroundColor darkens on dark mode
+                // (= defeats the A4-white-paper semantic).
+                // = Color.white is the semantic constant here.
+                // = NOT a wenshu-apple-api-first violation because
+                // Apple doesn't ship a "static white" semantic
+                // NSColor (= .textBackgroundColor / .windowBackgroundColor
+                // both dark-mode-adapt).
                 .background(Color.white)
                 .environment(\.colorScheme, .light)
                 .shadow(color: .black.opacity(0.35), radius: 8, y: 2)

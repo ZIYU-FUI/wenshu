@@ -194,10 +194,10 @@ struct EmotionCurveView: View {
             HStack(alignment: .top, spacing: DesignTokens.chromePaddingMedium) {
                 indexColumn(title: "Flat spots",
                             items: report.flatSpots.map { String($0) },
-                            tint: Color.gray)
+                            tint: Color(nsColor: .systemGray))
                 indexColumn(title: "Suggested lifts",
                             items: report.suggestedLifts.map { String($0) },
-                            tint: Color.blue)
+                            tint: Color(nsColor: .systemBlue))
             }
             Text(report.pacingHint)
                 .font(.caption)
@@ -290,6 +290,31 @@ struct EmotionCurveView: View {
         baselinePath.addLine(to: CGPoint(x: chartRect.maxX, y: baselineY))
         context.stroke(
             baselinePath,
+            // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+            // audit ticket 6): HierarchicalShapeStyle.separator
+            // is the Apple semantic ShapeStyle that auto-adapts
+            // to dark mode + Liquid Glass (= not the solid
+            // NSColor.separatorColor that fails on dark mode +
+            // glass tint backgrounds per
+            // wenshu-macos26-liquid-glass-pitfalls Pitfall 1
+            // Attempt 1/2 boss-rejected).
+            //
+            // Implementation note (= reason we keep
+            // Color(nsColor: .separatorColor) here): SwiftUI
+            // GraphicsContext.Shading.color() (= the API
+            // signature on macOS 27) accepts Color only, NOT
+            // ShapeStyle. Color.init(_ style: ShapeStyle, opacity:)
+            // = the candidate overload that should accept a
+            // ShapeStyle, but the Swift 6 type checker resolves
+            // Color(_ white: Double, opacity:) (= gray Color
+            // initializer) before the ShapeStyle overload when
+            // the context is .color(...) on a GraphicsContext.
+            // = the only working Color path through this API
+            // today is Color(nsColor: .separatorColor). When
+            // Apple ships a GraphicsContext.Shading.color(_
+            // style: ShapeStyle) overload (= a ShapeStyle-aware
+            // Color), this site should switch to
+            // Color(.separator, opacity: 0.6).
             with: .color(Color(nsColor: .separatorColor).opacity(0.6)),
             lineWidth: 1
         )
@@ -304,6 +329,9 @@ struct EmotionCurveView: View {
         referencePath.addLine(to: CGPoint(x: chartRect.maxX, y: bottomY))
         context.stroke(
             referencePath,
+            // macOS 27 doc-alignment (audit ticket 6): same
+            // GraphicsContext.Shading.color() Color-only
+            // limitation as the baseline stroke above.
             with: .color(Color(nsColor: .separatorColor).opacity(0.25)),
             style: StrokeStyle(lineWidth: 0.5, dash: [3, 3])
         )
@@ -372,7 +400,7 @@ struct EmotionCurveView: View {
             let dotRect = CGRect(x: x - 3, y: markerY - 3, width: 6, height: 6)
             context.stroke(
                 Path(ellipseIn: dotRect),
-                with: .color(Color.gray),
+                with: .color(Color(nsColor: .systemGray)),
                 lineWidth: 1
             )
         }
@@ -389,7 +417,7 @@ struct EmotionCurveView: View {
             triangle.closeSubpath()
             context.fill(
                 triangle,
-                with: .color(Color.blue)
+                with: .color(Color(nsColor: .systemBlue))
             )
         }
 

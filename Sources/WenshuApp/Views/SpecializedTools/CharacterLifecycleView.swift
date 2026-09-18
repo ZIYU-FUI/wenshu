@@ -148,7 +148,7 @@ struct CharacterLifecycleView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color.red)
+                    .foregroundStyle(Color(nsColor: .systemRed))
             }
         }
     }
@@ -368,7 +368,7 @@ struct CharacterLifecycleView: View {
                 ForEach(Array(contradictions.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
                         Image(systemName: "exclamationmark.triangle").font(.system(size: 14, weight: .regular))
-                            .foregroundStyle(Color.orange)
+                            .foregroundStyle(Color(nsColor: .systemOrange))
                             .frame(width: DesignTokens.tabIconSize)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(characterName(for: issue.characterId))
