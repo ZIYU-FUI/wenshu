@@ -277,9 +277,15 @@ struct LazySidebarView: View {
             appState.sidebarSelection = .shelf(shelf.id)
         }
 
-        if isExpanded {
-            ForEach(booksInShelf) { book in
+        // v1.67 mutual-exclusion fix (= see bookBlock for full
+        // rationale): hoist the isExpanded check OUT of the
+        // ForEach so LazyVStack sees N distinct view children
+        // instead of one collapsed tuple.
+        ForEach(booksInShelf) { book in
+            if isExpanded {
                 bookBlock(book)
+            } else {
+                EmptyView()
             }
         }
     }
@@ -338,8 +344,31 @@ struct LazySidebarView: View {
             appState.sidebarSelection = .book(book.id)
         }
 
-        if isExpanded {
-            ForEach(folders, id: \.name) { folder in
+        // v1.67 boss 2026-09-18 '展开帮助的时候测试小说下面 5 项
+        // 全没了，关上帮助就显示了' (=互斥) fix:
+        // hoist the isExpanded check OUT of the parent ForEach.
+        // The previous v1.64 pattern =
+        //   if isExpanded { ForEach(folders) { Button(...) } }
+        // = SwiftUI @ViewBuilder collapses the ForEach into ONE
+        // tuple slot; = LazyVStack gives that slot ONE row's
+        // height; = the buttons are rendered (= call chain runs,
+        // = the v1.65 os_log confirmed this) but only the first
+        // button visually occupies the slot. The "mutual exclusion"
+        // symptom (= "打开帮助时 测试小说 folders 没显示") is
+        // because LazyVStack's cell-reuse algorithm treats the
+        // entire ForEach-tuple as a single id-less cell and
+        // recycles it (= collapses to first row height) when the
+        // parent shelf's button state toggles.
+        // Fix: emit each folder as a SEPARATE view in the
+        // @ViewBuilder tree by gating with a Group / empty view
+        // trick (= empty View still counts as 1 slot so the layout
+        // doesn't break; = the actual Button only appears when
+        // isExpanded). The key change is = the `if isExpanded`
+        // MUST wrap each folder row, NOT the ForEach as a whole,
+        // so SwiftUI sees 5 distinct view children (= each gets
+        // its own layout slot in the parent LazyVStack).
+        ForEach(folders, id: \.name) { folder in
+            if isExpanded {
                 Button {
                     appState.sidebarSelection = .folder(
                         bookId: book.id, folderName: folder.name
@@ -366,6 +395,8 @@ struct LazySidebarView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+            } else {
+                EmptyView()
             }
         }
     }
@@ -386,7 +417,7 @@ struct LazySidebarView: View {
                     .frame(width: 12)
                 Image(systemName: "books.vertical")
                     .frame(width: 18)
-                Text("参考库")
+                Text("资料库")
                     .font(.body)
                     .lineLimit(1)
                 Spacer(minLength: 4)
@@ -399,8 +430,12 @@ struct LazySidebarView: View {
         }
         .buttonStyle(.plain)
 
-        if isExpanded {
-            ForEach(usedCategories()) { category in
+        // v1.67 mutual-exclusion fix (= see bookBlock for full
+        // rationale): hoist the isExpanded check OUT of the
+        // ForEach so LazyVStack sees N distinct view children
+        // instead of one collapsed tuple.
+        ForEach(usedCategories()) { category in
+            if isExpanded {
                 Button {
                     appState.sidebarSelection = .referenceCategory(category.rawValue)
                 } label: {
@@ -425,6 +460,8 @@ struct LazySidebarView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+            } else {
+                EmptyView()
             }
         }
     }
