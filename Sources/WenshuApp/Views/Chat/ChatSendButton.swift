@@ -25,6 +25,11 @@ import SwiftUI
 
 struct ChatSendButton: View {
     var vm: ChatViewModel
+    /// v1.55 chat-input-row-key-gate: same `hasUsableKey`
+    /// signal the TextField + AttachButton use, so the whole
+    /// input row answers to a single keychain-backed
+    /// availability check.
+    var hasUsableKey: Bool
 
     var body: some View {
         Button {
@@ -73,7 +78,16 @@ struct ChatSendButton: View {
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
                 .frame(height: LayoutTokens.chromeControlHeight)
-                .disabled(vm.inputText.isEmpty || vm.isSending)
+                // v1.55 chat-input-row-key-gate: gate the send
+                // button on `hasUsableKey` so the whole input row
+                // (paperclip + textfield + send) shares one
+                // availability signal. Previously gated on
+                // `vm.inputText.isEmpty || vm.isSending` only,
+                // which let the user press send with a non-empty
+                // draft even when no provider key was configured
+                // (= the row looked active but every send
+                // silently failed inside routeInput).
+                .disabled(vm.inputText.isEmpty || !hasUsableKey)
                 .help(WenshuI18n.t("chat.input.send.help"))
                 }
                 }
