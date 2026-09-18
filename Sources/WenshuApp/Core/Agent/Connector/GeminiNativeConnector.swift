@@ -73,4 +73,47 @@ public actor GeminiNativeConnector: LLMConnector {
             providerID: connectorID
         )
     }
+
+    /// T15-GEMINI-STREAM (2026-09-18): override the default `stream()`
+    /// (= which would call `send(...)` and emit the whole response as
+    /// one chunk) with the real Gemini streaming pipeline.
+    ///
+    /// Pipeline:
+    ///   1. GeminiStreamingWireupFactory.streamingStream(...) opens
+    ///      the SSE connection via EventSource and yields parsed
+    ///      GeminiStreamingChunk events.
+    ///   2. GeminiChunkToLLMBlockConverter.convert(stream:) emits
+    ///      LLMBlock events (= .text / .thinking / .toolUse).
+    ///
+    /// Gemini wire-format notes (= diffs from Anthropic + OpenAI):
+    ///   - Gemini returns tool_calls fully assembled per chunk
+    ///     (= no aggregation needed; = the stateful converter pattern
+    ///     from T11/T12 doesn't apply).
+    ///   - Gemini 2.5 thinking parts carry `thought: true` on the
+    ///     part (= converted to .thinking with nil signature).
+    ///   - Gemini uses POST-with-body for streaming (= unlike GET-only
+    ///     SSE providers); = EventSource accepts a URLRequest.
+    ///
+    /// Empty-key path: synthetic errorStream so ChatView surfaces
+    /// the auth failure.
+    public nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        let credentials = ConnectorCredentials.resolve(for: .gemini)
+        if credentials.apiKey.isEmpty {
+            return OpenAIChunkToLLMBlockConverter.errorStream(
+                "missing API key for gemini",
+                provider: connectorID
+            )
+        }
+        let chunkStream = GeminiStreamingWireupFactory.streamingStream(
+            apiKey: credentials.apiKey,
+            model: options.model,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt,
+            messages: messages
+        )
+        return GeminiChunkToLLMBlockConverter.convert(stream: chunkStream)
+    }
 }
