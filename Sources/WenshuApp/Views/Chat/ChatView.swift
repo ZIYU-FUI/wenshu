@@ -1497,6 +1497,40 @@ public struct ChatView: View {
                     .disabled(!hasUsableKey)
                     .focused($inputFocused)
                     .onSubmit { Task { await vm.routeInput() } }
+                    // T18-SLASH-AUTOCOMPLETE (2026-09-18): inline slash
+                    // command popup (= Hermes-style autocomplete). Appears
+                    // above the TextField when the user types `/`. Filter
+                    // rows = commands whose name starts with the typed
+                    // prefix (= case-insensitive). Tap a row -> fill
+                    // vm.inputText with `/commandName ` (= trailing space
+                    // = user can immediately type the remainder).
+                    //
+                    // The overlay uses .topLeading alignment (= sits
+                    // flush against the TextField top edge with 8 PT
+                    // inset = the standard autocomplete popup pattern).
+                    // The popup is bound to vm.inputText via the engine
+                    // (= re-evaluates on every keystroke).
+                    //
+                    // Hidden when no slash prefix OR no matching rows.
+                    // Apple HIG: no custom chrome; = uses .regularMaterial
+                    // + .quaternary border (= same as the chat input panel).
+                    .overlay(alignment: .topLeading) {
+                        let prefix = ChatSlashCommandAutocompleteEngine.prefixFromInput(vm.inputText)
+                        let rows = ChatSlashCommandAutocompleteEngine.filter(
+                            prefix: prefix,
+                            allCommands: SkillAdapter.hubCommands
+                        )
+                        if ChatSlashCommandAutocompleteEngine.shouldShow(input: vm.inputText) {
+                            ChatSlashCommandAutocomplete(
+                                rows: rows,
+                                onSelect: { row in
+                                    vm.inputText = "/\(row.name) "
+                                }
+                            )
+                            .padding(.top, -8)
+                            .offset(y: -4)
+                        }
+                    }
                     // v1.54 chat-input-disabled-key-check: removed the
                     // `.onChange(of: vm.currentModel)` blur/focus dance.
                     // The old code toggled `inputFocused` based on
