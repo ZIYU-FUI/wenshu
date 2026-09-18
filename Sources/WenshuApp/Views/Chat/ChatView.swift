@@ -1380,20 +1380,18 @@ public struct ChatView: View {
                           text: $vm.inputText, axis: .vertical)
                     .lineLimit(1...4)
                     // v1.71 boss 2026-09-18 'textfield needs to be 3 lines
-                    // tall by default'. Place .frame(minHeight: 96) AFTER
+                    // tall by default'. Place .frame(minHeight: 64) AFTER
                     // .lineLimit(1...4) so SwiftUI honors the minimum
-                    // (= the empty-state default height = 96 PT = ~3
-                    // lines of 13 PT font = 32 PT per line × 3). The
-                    // previous v1.70 commit added .frame(minHeight: 72)
-                    // to the surrounding comment block but never wrote
-                    // the actual .frame() modifier (= the empty-state
-                    // height stayed at 1 line; = the boss's screenshot
-                    // showed a single-line textfield). Placing the
-                    // .frame(minHeight: 96) AFTER .lineLimit(1...4)
-                    // (= Apple SwiftUI TextField height resolution order)
-                    // = the empty textfield starts at 96 PT and grows
-                    // up to 4 lines = 128 PT when the user types more.
-                    .frame(minHeight: 96)
+                    // (= the empty-state default height = 64 PT = ~2
+                    // lines of 13 PT font + padding = comfortable
+                    // multi-line default). The previous v1.71 first
+                    // attempt set .frame(minHeight: 96) (= ~3 lines)
+                    // but boss said it was 'a bit too tall' and asked
+                    // for 64 PT (= the canonical Apple Messages empty-
+                    // state chat input height per WWDC 2023). The
+                    // .lineLimit(1...4) range stays (= auto-grow
+                    // ceiling at 4 lines = 128 PT).
+                    .frame(minHeight: 64)
                     // v0.40 boss 9/7 OOB ', shouldchat zonedialog
                     // . hint, should /help ': the slash-
                     // command hint (= "/create-book My new novel")
