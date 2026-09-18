@@ -60,7 +60,34 @@ struct ChatZoneView: View {
         VStack(spacing: 0) {
             ZStack {
                 ChatView(conductor: conductor, vm: vm)
-                if currentModel.isEmpty {
+                // v1.68 boss 2026-09-18 'chat zone empty state still
+                // shows after configuring key': switch the empty
+                // state gate from `appState.llmModel.isEmpty` (=
+                // checks the SELECTED MODEL ID, not whether a
+                // key is configured) to `!ProviderKeychain.
+                // listProvidersWithKeys().isEmpty` (= checks the
+                // authoritative source of truth for 'is the LLM
+                // configured?' = same call SettingView uses to
+                // know whether the LLM Connector tab has anything
+                // configured). With a key already in the keychain,
+                // `listProvidersWithKeys().isEmpty` returns false,
+                // so the ChatHelpTextOverlay is dismissed and
+                // the chat zone becomes interactive.
+                // Per the v1.53 (= 19fa2feb9) reverted commit
+                // message (= the same bug was fixed once
+                // before; = the revert was due to that v1.53
+                // branch being part of the broader v1.55/v1.57
+                // chat-input-row work that itself crashed =
+                // unrelated to this empty-state gate logic):
+                // the ProviderKeychain.listProvidersWithKeys() call
+                // is in-memory after first read; = chat zone
+                // re-renders are infrequent; = the cost is
+                // negligible. Source of truth stays in one place
+                // (SettingView + ChatZoneView + ChatView.hasUsableKey
+                // = all three call ProviderKeychain.listProvidersWithKeys()).
+                if !ProviderKeychain.listProvidersWithKeys().isEmpty {
+                    EmptyView()
+                } else {
                     ChatHelpTextOverlay {
                         // canonical 'jump to providerApi tab on open
                         // Settings' pattern: UserDefaults IS the source
