@@ -202,6 +202,10 @@ public final class ChatViewModel {
     // T4-SUBAGENT-UI (2026-09-18): name of the currently active sub-agent
     // (= nil when no sub-agent is running). ChatSubAgentTag reads this.
     public var activeSubAgentName: String? = nil
+    // T8-CHATVIEWMODEL-WIR (2026-09-18): current agent turn label
+    // (= emitted by ConversationLoop as '[wenshu.agent] turn N/M').
+    // ChatTurnProgress reads this for the button label.
+    public var currentAgentTurn: String? = nil
 
     /// CHATIMG-001 (2026-09-07): copy the picked file into the
     /// library's `cache/chat-uploads/` dir (= canonical cache
@@ -552,6 +556,41 @@ public final class ChatViewModel {
                             "[wenshu.conductor] PATH=stream BLOCK=%@ (model=%@)",
                             kindTag, currentModel
                         )
+                        // T8-CHATVIEWMODEL-WIR (2026-09-18): parse
+                        // marker text blocks emitted by the agent
+                        // (= [wenshu.subagent] <name>, [wenshu.agent]
+                        // turn N/M, [wenshu.turn] N/M) and update the
+                        // ChatViewModel's reactive state (= ChatTurnProgress
+                        // + ChatSubAgentTag buttons render live).
+                        if case .text(let s) = block {
+                            let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if trimmed.hasPrefix("[wenshu.subagent] ") {
+                                let rest = String(trimmed.dropFirst("[wenshu.subagent] ".count))
+                                if rest.hasSuffix(" done") {
+                                    // End marker → clear the tag.
+                                    Task { @MainActor in
+                                        self?.activeSubAgentName = nil
+                                    }
+                                } else {
+                                    // Start marker → set the tag.
+                                    Task { @MainActor in
+                                        self?.activeSubAgentName = rest
+                                    }
+                                }
+                                // Don't surface marker text in the bubble.
+                                return
+                            }
+                            if trimmed.hasPrefix("[wenshu.agent] turn ") {
+                                // Surface turn counter via a private
+                                // published value (= consumed by the
+                                // ChatTurnProgress button).
+                                let rest = String(trimmed.dropFirst("[wenshu.agent] turn ".count))
+                                Task { @MainActor in
+                                    self?.currentAgentTurn = rest
+                                }
+                                return
+                            }
+                        }
                         // v0.71 P1 batch 2 (MainActor isolation): the
                         // streamCallback fires from ConversationLoop
                         // actor (= NOT main actor = the `messages`
@@ -1607,7 +1646,7 @@ public struct ChatView: View {
                 HStack(alignment: .center, spacing: 8) {
                     ChatAttachButton(showingImageImporter: $showingImageImporter, isSending: vm.isSending)
                     ChatAgentPathIndicator(isSending: vm.isSending)
-                    ChatTurnProgress(isSending: vm.isSending)
+                    ChatTurnProgress(turnLabel: vm.currentAgentTurn ?? "—", isSending: vm.isSending)
                     ChatSubAgentTag(subAgentName: vm.activeSubAgentName, isSending: vm.isSending)
                     // T4-SUBAGENT-UI (2026-09-18): sub-agent indicator
                     // placed immediately after ChatAttachButton (=
