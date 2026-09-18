@@ -151,12 +151,20 @@ public actor ToolExecutor {
     // MARK: - Sequential execution
 
     /// Run tool_use blocks sequentially (= one at a time, in order).
+    /// T2-TOOL-UI (2026-09-18): added `streamCallback` parameter so
+    /// each `.toolUse` block + its matching `.toolResult` block are
+    /// emitted via the same streamCallback that ConversationLoop uses
+    /// for text/thinking. Without this, ChatView never sees the tool
+    /// UI cards (ChatToolUsePartView / ChatToolResultPartView) because
+    /// the blocks stayed inside ConversationResult.blocks[] without
+    /// a per-block notification.
     public func executeSequential(
         assistantMessage: LLMMessage,
         messages: inout [LLMMessage],
         taskId: String,
         apiCallCount: Int = 0,
-        tools: [String: any Tool] = [:]
+        tools: [String: any Tool] = [:],
+        streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
     ) async throws {
         let toolUseBlocks = assistantMessage.blocks.compactMap { block -> (String, String, String)? in
             if case .toolUse(let id, let name, let input) = block {
@@ -168,6 +176,15 @@ public actor ToolExecutor {
         for (toolUseID, toolName, input) in toolUseBlocks {
             let call = ToolCall(id: toolUseID, name: toolName, input: input)
 
+            // T2-TOOL-UI (2026-09-18): emit the .toolUse block FIRST so
+            // ChatView's ChatToolUsePartView appears immediately (= the
+            // user sees "Tool: read_file" card while the tool is
+            // executing). Without this, the tool card only appears
+            // after the whole tool finishes.
+            if let streamCallback {
+                await streamCallback(.toolUse(id: toolUseID, name: toolName, input: input))
+            }
+
             // HERMES-PARTIAL-003 step 1: permission gate.
             if let denial = permissionGate(toolName, input) {
                 let toolMessage = LLMMessage(
@@ -175,6 +192,10 @@ public actor ToolExecutor {
                     blocks: [.toolResult(toolUseID: toolUseID, output: denial)]
                 )
                 messages.append(toolMessage)
+                // T2-TOOL-UI: emit matching toolResult so ChatToolResultPartView shows denial
+                if let streamCallback {
+                    await streamCallback(.toolResult(toolUseID: toolUseID, output: denial))
+                }
                 continue
             }
 
@@ -233,18 +254,25 @@ public actor ToolExecutor {
                 blocks: [.toolResult(toolUseID: toolUseID, output: formatted)]
             )
             messages.append(toolMessage)
+            // T2-TOOL-UI: emit matching .toolResult so ChatToolResultPartView
+            // (= green checkmark / red X card) appears after the tool finishes.
+            if let streamCallback {
+                await streamCallback(.toolResult(toolUseID: toolUseID, output: formatted))
+            }
         }
     }
 
     // MARK: - Concurrent execution
 
     /// Run tool_use blocks concurrently (= all in parallel via TaskGroup).
+    /// T2-TOOL-UI (2026-09-18): same streamCallback wiring as executeSequential.
     public func executeConcurrent(
         assistantMessage: LLMMessage,
         messages: inout [LLMMessage],
         taskId: String,
         apiCallCount: Int = 0,
-        tools: [String: any Tool] = [:]
+        tools: [String: any Tool] = [:],
+        streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
     ) async throws {
         let toolUseBlocks = assistantMessage.blocks.compactMap { block -> (String, String, String)? in
             if case .toolUse(let id, let name, let input) = block {
@@ -353,6 +381,13 @@ public actor ToolExecutor {
                 blocks: [.toolResult(toolUseID: result.toolUseID, output: result.output)]
             )
             messages.append(toolMessage)
+            // T2-TOOL-UI (2026-09-18): emit the .toolResult block to ChatView.
+            // For concurrent path, .toolUse is NOT emitted at start (= all
+            // tools run in parallel; = we'd emit N cards at once which is
+            // noisy); = ChatView shows the result card directly.
+            if let streamCallback {
+                await streamCallback(.toolResult(toolUseID: result.toolUseID, output: result.output))
+            }
         }
     }
 
