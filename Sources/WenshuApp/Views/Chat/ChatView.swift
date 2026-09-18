@@ -1324,7 +1324,7 @@ public struct ChatView: View {
                 }
             HStack(alignment: .bottom, spacing: 8) {
                 // v1.28 C3.4.3: extract attach button to ChatAttachButton.swift
-                ChatAttachButton(showingImageImporter: $showingImageImporter, isEnabled: hasUsableKey)
+                ChatAttachButton(showingImageImporter: $showingImageImporter, isSending: vm.isSending)
                 // v0.24 boss acceptance fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
@@ -1503,7 +1503,7 @@ public struct ChatView: View {
                 // missed these modifiers, = they were still chained off the
                 // ChatSendButton(vm: vm) call site; = per boss '做好清理' principle,
                 // this amendment closes the gap).
-                ChatSendButton(vm: vm, hasUsableKey: hasUsableKey)
+                ChatSendButton(vm: vm)
                 // WIRE-AGENT-003 (2026-09-04): start-long-running-goal
                 // button. ⌘⇧G shortcut per P0 #3 brief. Lives next to
                 // the Send button so the user has both single-turn

@@ -22,18 +22,7 @@ import SwiftUI
 
 struct ChatAttachButton: View {
     @Binding var showingImageImporter: Bool
-    /// v1.55 chat-attach-button-key-gate: gate the paperclip on
-    /// the same signal as the input + send (= `hasUsableKey`).
-    /// Before this, the button only mirrored `isSending` (= was
-    /// enabled whenever no request was in flight), so the
-    /// paperclip and the TextField disagreed on availability
-    /// (= the input was locked, the paperclip was clickable).
-    /// That asymmetry is the boss 2026-09-18 OOB 'the attach
-    /// button is still in a disabled state when the key is
-    /// configured' follow-up to v1.54. Now the whole input
-    /// row (paperclip + textfield + send) answers to the
-    /// single `hasUsableKey` signal.
-    var isEnabled: Bool
+    var isSending: Bool
 
     var body: some View {
         Button {
@@ -56,6 +45,17 @@ struct ChatAttachButton: View {
         // that ships with the platform.
         .buttonStyle(.bordered)
         .help(WenshuI18n.t("chat.input.attach.help"))
-        .disabled(!isEnabled)
+        // CHATIMG-001 (2026-09-07): the attach button is
+        // intentionally NOT gated on `hasUsableKey` (=
+        // LLM model availability). Attaching a draft image
+        // is independent of sending (= you can attach + see
+        // the preview chip + clear it even when no LLM
+        // provider is configured). Send itself still
+        // requires `hasUsableKey` via the Send button's own
+        // .disabled check; if you try to send with no
+        // model, the existing routeInput() guard handles
+        // it (= no LLM call = no error message; the
+        // message just persists in the in-memory list).
+        .disabled(isSending)
     }
 }
