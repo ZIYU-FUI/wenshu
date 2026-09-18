@@ -199,6 +199,9 @@ public final class ChatViewModel {
     public var attachedImagePath: String?
     public var isSending: Bool = false
     public var lastError: String?
+    // T4-SUBAGENT-UI (2026-09-18): name of the currently active sub-agent
+    // (= nil when no sub-agent is running). ChatSubAgentTag reads this.
+    public var activeSubAgentName: String? = nil
 
     /// CHATIMG-001 (2026-09-07): copy the picked file into the
     /// library's `cache/chat-uploads/` dir (= canonical cache
@@ -1578,6 +1581,12 @@ public struct ChatView: View {
                 // textfield's current height).
                 HStack(alignment: .center, spacing: 8) {
                     ChatAttachButton(showingImageImporter: $showingImageImporter, isSending: vm.isSending)
+                    // T4-SUBAGENT-UI (2026-09-18): sub-agent indicator
+                    // placed immediately after ChatAttachButton (=
+                    // per boss OOB '加按钮就在附件上传按钮后面先加').
+                    // Hidden when no sub-agent is running (= renders
+                    // empty view; = HStack spacing absorbs it).
+                    ChatSubAgentTag(subAgentName: vm.activeSubAgentName, isSending: vm.isSending)
                     Spacer(minLength: 8)
                     ChatSendButton(vm: vm)
                     ChatGoalButton(vm: vm)
