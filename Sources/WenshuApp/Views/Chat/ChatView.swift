@@ -1122,6 +1122,21 @@ public struct ChatView: View {
                         }
                     }
                     .padding(DesignTokens.chromePaddingVertical)
+                    // v1.74 boss 2026-09-18 'is there another layer behind it? the
+                    // text scrolls underneath but I can't see it — the
+                    // floating panel should be semi-transparent so I can
+                    // see through it'. Add .contentMargins(.bottom, 80) so
+                    // the chat history content extends UP TO 80 PT below
+                    // the ScrollView's visible bottom (= the area where the
+                    // floating chat input panel sits). The .glassEffect
+                    // (.regular) panel above is translucent (= the macOS
+                    // 27 .regular tier = Apple Mail/Notes chat input
+                    // translucency), so the user can see the chat
+                    // history content scrolling behind the panel (= the
+                    // Apple Messages / Slack / Telegram chat input
+                    // pattern where the last message peeks behind the
+                    // input bar).
+                    .contentMargins(.bottom, 80, for: .scrollContent)
                 }
                 // Apple SwiftUI 14+ .defaultScrollAnchor(.bottom)
                 // Apple = ScrollView changeauto, placeholder -> reply replace scrollTo
@@ -1177,8 +1192,14 @@ public struct ChatView: View {
             // Per spec §6.4 UI mapping: 🟨 half-visible pill + 🟥 must-UI button.
             ChatViewCompressionRow(vm: vm)
 
-            Divider()
-
+            // v1.74 boss 2026-09-18 'chat panel has a line at the top':
+            // removed the Divider() that was here (= the macOS 27
+            // hairline = the line boss saw crossing the top of the
+            // chat input panel). The chat input panel now sits flush
+            // against the chat history above (= Apple Messages /
+            // Slack pattern; = the floating panel handles its own
+            // visual boundary via the .glassEffect + .clipShape).
+            //
             // Input box + send button (Apple HIG SwiftUI ground truth)
             // v0.25.1 (= ticket 030 chat send button 8 PT textfield
             // top padding + button vertical center alignment):
@@ -1526,7 +1547,20 @@ public struct ChatView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(.regularMaterial)
                             RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(inputFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.separator), lineWidth: 1)
+                                // v1.74 boss 2026-09-18 'chat panel has a line at the top':
+                                // switched the unfocused border from
+                                // AnyShapeStyle(.separator) to AnyShapeStyle(.quaternary)
+                                // because .separator (= the macOS 27 system
+                                // separator color) renders as a blue-tinted
+                                // hairline (= 1 PT accent-tinted line) on the
+                                // top edge of the TextField inside the chat
+                                // panel in dark mode. .quaternary (= the
+                                // HierarchicalShapeStyle quaternary tier = a
+                                // lighter neutral gray) removes the visible
+                                // line entirely while still hinting at the
+                                // unfocused control boundary (= Apple HIG
+                                // TextField pattern).
+                                .strokeBorder(inputFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary), lineWidth: 1)
                         }
                     )
                 // v1.28 C3.4.7: extract leaked Send button modifiers (.buttonStyle
@@ -1626,6 +1660,18 @@ public struct ChatView: View {
             // swiftui/glass (= .regular is the same tier Apple
             // Messages chat input uses = visually balanced between
             // translucent and opaque).
+            // v1.74 boss 2026-09-18 'chat panel has a line at the top':
+            // boss clarification: the line was the macOS 27
+            // Divider() (= SwiftUI HairlineShapeStyle), NOT the
+            // .glassEffect shape parameter (= the shape parameter
+            // does NOT paint a visible border; = it only defines the
+            // extent of the Liquid Glass material = the rounded
+            // corner radius). Removed the Divider() (= the actual
+            // root cause). Kept the `in: RoundedRectangle(cornerRadius:
+            // 14)` shape parameter on the .glassEffect primitive
+            // (= the floating panel needs this shape to draw its
+            // big rounded corners). Net effect: big rounded
+            // floating Liquid Glass panel + no top hairline.
             .glassEffect(
                 .regular,
                 in: RoundedRectangle(cornerRadius: 14)
