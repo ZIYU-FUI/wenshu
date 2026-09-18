@@ -135,7 +135,7 @@ public struct ForeshadowingView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color.red)
+                    .foregroundStyle(Color(nsColor: .systemRed))
             }
         }
     }
@@ -328,7 +328,7 @@ public struct ForeshadowingView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle").font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(Color(nsColor: .systemOrange))
                 Text(WenshuI18n.t("b5.foreshadowingview.l360.h31137580"))
                     .font(.callout)
                     .foregroundStyle(.primary)

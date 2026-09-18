@@ -227,7 +227,7 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
     /// accent colour and appearance rather than being pinned to one theme.
     private var bubbleFill: AnyShapeStyle {
         if message.source == .system {
-            return AnyShapeStyle(Color.red.opacity(0.15))
+            return AnyShapeStyle(Color(nsColor: .systemRed).opacity(0.15))
         }
         return isOutgoing
             ? AnyShapeStyle(Color.accentColor)

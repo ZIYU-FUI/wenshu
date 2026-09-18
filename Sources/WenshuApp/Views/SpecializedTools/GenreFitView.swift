@@ -190,33 +190,33 @@ struct GenreFitView: View {
             HStack(alignment: .top, spacing: DesignTokens.chromePaddingMedium) {
                 column(title: "Matched beats (\(report.matchedBeats.count))",
                        items: report.matchedBeats,
-                       tint: Color.green)
+                       tint: Color(nsColor: .systemGreen))
                 column(title: "Missing beats (\(report.missingBeats.count))",
                        items: report.missingBeats,
-                       tint: Color.orange)
+                       tint: Color(nsColor: .systemOrange))
             }
             HStack(alignment: .top, spacing: DesignTokens.chromePaddingMedium) {
                 column(title: "Expected vocab used (\(report.expectedVocabUsed.count))",
                        items: report.expectedVocabUsed,
-                       tint: Color.blue)
+                       tint: Color(nsColor: .systemBlue))
                 column(title: "Expected vocab missing (\(report.expectedVocabMissing.count))",
                        items: report.expectedVocabMissing,
-                       tint: Color.gray)
+                       tint: Color(nsColor: .systemGray))
             }
             column(title: "Forbidden hits (\(report.forbiddenHits.count))",
                    items: report.forbiddenHits,
-                   tint: Color.red)
+                   tint: Color(nsColor: .systemRed))
         }
         .padding(DesignTokens.chromePaddingPickerItem)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        
+
     }
 
     private func scoreBadge(_ score: Double) -> some View {
         let color: Color = {
-            if score >= 70 { return Color.green.opacity(0.22) }
-            if score >= 40 { return Color.orange.opacity(0.22) }
-            return Color.red.opacity(0.22)
+            if score >= 70 { return Color(nsColor: .systemGreen).opacity(0.22) }
+            if score >= 40 { return Color(nsColor: .systemOrange).opacity(0.22) }
+            return Color(nsColor: .systemRed).opacity(0.22)
         }()
         return Text(WenshuI18n.t("b5.genrefitview.l256.h78050164"))
             .font(.caption2)

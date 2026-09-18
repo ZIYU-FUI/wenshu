@@ -126,7 +126,7 @@ struct CharacterRelationshipsView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color.red)
+                    .foregroundStyle(Color(nsColor: .systemRed))
             }
         }
     }
@@ -254,7 +254,7 @@ struct CharacterRelationshipsView: View {
                     if row.isMutual {
                         Text(WenshuI18n.t("b5.characterrelationshipsview.l299.h17838183"))
                             .font(.caption2)
-                            .foregroundStyle(Color.blue)
+                            .foregroundStyle(Color(nsColor: .systemBlue))
                     }
                 }
                 if !row.description.isEmpty {
@@ -296,7 +296,7 @@ struct CharacterRelationshipsView: View {
                 ForEach(Array(inconsistencies.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
                         Image(systemName: "exclamationmark.triangle").font(.system(size: 14, weight: .regular))
-                            .foregroundStyle(Color.orange)
+                            .foregroundStyle(Color(nsColor: .systemOrange))
                             .frame(width: DesignTokens.tabIconSize)
                         Text(issue.message)
                             .font(.caption)

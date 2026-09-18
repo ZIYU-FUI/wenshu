@@ -226,9 +226,9 @@ struct LongFormGuardrailsView: View {
 
     private func badgeColor(for level: LongFormGuardrailEnforcement) -> Color {
         switch level {
-        case .strict: return Color.red.opacity(0.18)
-        case .warn:   return Color.orange.opacity(0.18)
-        case .off:    return Color.gray.opacity(0.18)
+        case .strict: return Color(nsColor: .systemRed).opacity(0.18)
+        case .warn:   return Color(nsColor: .systemOrange).opacity(0.18)
+        case .off:    return Color(nsColor: .systemGray).opacity(0.18)
         }
     }
 
@@ -274,7 +274,7 @@ struct LongFormGuardrailsView: View {
             case .done(let count, let hasCritical):
                 Text(hasCritical ? "\(count) violations (= critical)" : "\(count) violations")
                     .font(.caption)
-                    .foregroundStyle(hasCritical ? Color.red : .secondary)
+                    .foregroundStyle(hasCritical ? Color(nsColor: .systemRed) : .secondary)
             }
         }
     }
@@ -316,8 +316,8 @@ struct LongFormGuardrailsView: View {
 
     private func severityColor(_ s: LongFormGuardrailViolation.Severity) -> Color {
         switch s {
-        case .critical: return Color.red
-        case .warning:  return Color.orange
+        case .critical: return Color(nsColor: .systemRed)
+        case .warning:  return Color(nsColor: .systemOrange)
         case .info:     return .secondary
         }
     }

@@ -137,7 +137,7 @@ public struct PlaceholderView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color.red)
+                    .foregroundStyle(Color(nsColor: .systemRed))
             }
         }
     }

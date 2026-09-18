@@ -353,7 +353,7 @@ struct SettingView: View {
             // (SF Symbols 6). Replaces the v0.27 'Lucide key'
             // choice per boss 2026-09-15 reversal.
             Image(systemName: hasKey ? "key" : "key").font(.system(size: 18, weight: .regular))
-                .foregroundStyle(hasKey ? Color.green : Color.secondary)
+                .foregroundStyle(hasKey ? Color(nsColor: .systemGreen) : Color.secondary)
                 .frame(width: DesignTokens.tabIconSize)
             Text(p.name)
                 .font(.body)

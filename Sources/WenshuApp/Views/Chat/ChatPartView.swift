@@ -77,7 +77,7 @@ public struct ChatTextPartView: View {
             // transition re-renders the whole run; this one interpolates
             // so the bubble does not flicker on every chunk.
             .contentTransition(isStreaming ? .interpolate : .identity)
-            .foregroundStyle(isOutgoing ? Color.white : Color.primary)
+            .foregroundStyle(isOutgoing ? Color(nsColor: .windowBackgroundColor) : Color.primary)
     }
 
     /// Parse the text as inline markdown (= canonical SwiftUI path).
@@ -250,7 +250,7 @@ public struct ChatToolUsePartView: View {
     /// bubble color).
     private var toolCardFill: AnyShapeStyle {
         if isOutgoing {
-            return AnyShapeStyle(Color.white.opacity(0.12))
+            return AnyShapeStyle(Color(nsColor: .windowBackgroundColor).opacity(0.12))
         }
         return AnyShapeStyle(.quaternary.opacity(0.5))
     }
@@ -305,7 +305,7 @@ public struct ChatToolResultPartView: View {
                 // names to Lucide names; = now the SF names
                 // are the canonical input directly).
                 Image(systemName: toolResult.isError ? "exclamationmark.triangle" : "checkmark").font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(toolResult.isError ? Color.red : Color.green)
+                    .foregroundStyle(toolResult.isError ? Color(nsColor: .systemRed) : Color(nsColor: .systemGreen))
                 Text(toolResult.isError
                      ? WenshuI18n.t("chatview.tool_result.error")
                      : WenshuI18n.t("chatview.tool_result.success"))
@@ -336,13 +336,13 @@ public struct ChatToolResultPartView: View {
 
     private var cardFill: AnyShapeStyle {
         if isOutgoing {
-            return AnyShapeStyle(Color.white.opacity(0.12))
+            return AnyShapeStyle(Color(nsColor: .windowBackgroundColor).opacity(0.12))
         }
         return AnyShapeStyle(.quinary.opacity(0.5))
     }
 
     private var borderColor: Color {
-        (toolResult.isError ? Color.red : Color.green).opacity(0.5)
+        (toolResult.isError ? Color(nsColor: .systemRed) : Color(nsColor: .systemGreen)).opacity(0.5)
     }
 }
 
