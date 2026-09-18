@@ -1576,8 +1576,15 @@ public struct ChatView: View {
                 // HStack(alignment: .center) so buttons stay
                 // vertically centered regardless of the
                 // textfield's current height).
+                // T3-MULTI-TURN-LOOP (2026-09-18): new turn counter button placed
+                // immediately after ChatAttachButton (= per boss OOB
+                // '加按钮就在附件上传按钮后面先加'). HStack layout otherwise
+                // unchanged (= Spacer, Send, Goal all stay in place).
+                // The turn counter reads "[wenshu.agent] turn N/M" blocks
+                // emitted by ConversationLoop.swift.
                 HStack(alignment: .center, spacing: 8) {
                     ChatAttachButton(showingImageImporter: $showingImageImporter, isSending: vm.isSending)
+                    ChatTurnProgress(isSending: vm.isSending)
                     Spacer(minLength: 8)
                     ChatSendButton(vm: vm)
                     ChatGoalButton(vm: vm)
