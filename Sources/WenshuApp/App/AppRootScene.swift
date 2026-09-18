@@ -208,7 +208,13 @@ struct AppRootScene: Scene {
         // iteration history (= 5 rounds trying to make defaultSize
         // + columnWidth work; all 5 failed; the working state was
         // "no defaultSize + .unifiedCompact + no columnWidth").
-        .windowToolbarStyle(.unifiedCompact)
+        // v1.77 boss 2026-09-18 'toolbar was 52 PT, change back':
+        // restored .windowToolbarStyle(.unified) (= 52 PT default
+        // macOS toolbar = the size boss originally approved; =
+        // Apple docs developer.apple.com/documentation/swiftui/
+        // view/windowtoolbarstyle: '.unified is the canonical
+        // macOS default toolbar style (= 52 PT)').
+        .windowToolbarStyle(.unified)
         // v0.24 bossverificationfix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
         // v0.91 boss 2026-09-10 OOB '1480 is also OK': change to
@@ -509,14 +515,13 @@ struct AppRootScene: Scene {
         .windowResizability(.contentSize)
         // macOS 27 doc-alignment (audit ticket 3): kanban + todo
         // secondary windows match the main window's
-        // `.unifiedCompact` (= 28 PT compact toolbar) for
-        // consistency. Apple docs: `.unifiedCompact` is the
-        // recommended style for dense workspace apps.
-        .windowToolbarStyle(.unifiedCompact)
+        // `.unified` (= 52 PT default macOS toolbar) for
+        // consistency.
+        .windowToolbarStyle(.unified)
         Window("待办", id: WindowID.todo) {
             TodoWindow(library: library)
         }
         .windowResizability(.contentSize)
-        .windowToolbarStyle(.unifiedCompact)
+        .windowToolbarStyle(.unified)
     }
 }
