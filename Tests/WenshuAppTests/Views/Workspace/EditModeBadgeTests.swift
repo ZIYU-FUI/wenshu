@@ -70,7 +70,7 @@ struct EditModeBadgeTests {
     @Test("badge source file uses the i18n label key")
     func sourceUsesLabelKey() throws {
         // Read the source from disk (= the test file lives in a worktree).
-        let worktreePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/v0.82-workspaceview-tests/Sources/WenshuApp/Views/Workspace/EditModeBadge.swift"
+        let worktreePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/v1.52-stale-test-cleanup/Sources/WenshuApp/Views/Workspace/EditModeBadge.swift"
         let source = try String(contentsOfFile: worktreePath)
         #expect(source.contains("\"workspace.layoutEditMode\""),
                 "EditModeBadge.swift must reference the i18n label key")
@@ -78,7 +78,7 @@ struct EditModeBadgeTests {
 
     @Test("badge source file uses the hotkey formatter")
     func sourceUsesHotkeyFormatter() throws {
-        let worktreePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/v0.82-workspaceview-tests/Sources/WenshuApp/Views/Workspace/EditModeBadge.swift"
+        let worktreePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/v1.52-stale-test-cleanup/Sources/WenshuApp/Views/Workspace/EditModeBadge.swift"
         let source = try String(contentsOfFile: worktreePath)
         #expect(source.contains("HotkeyFormatter.editModeCombo"),
                 "EditModeBadge.swift must use HotkeyFormatter.editModeCombo")
@@ -86,7 +86,7 @@ struct EditModeBadgeTests {
 
     @Test("badge source file uses a Circle (= the indicator dot)")
     func sourceUsesCircle() throws {
-        let worktreePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/v0.82-workspaceview-tests/Sources/WenshuApp/Views/Workspace/EditModeBadge.swift"
+        let worktreePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/v1.52-stale-test-cleanup/Sources/WenshuApp/Views/Workspace/EditModeBadge.swift"
         let source = try String(contentsOfFile: worktreePath)
         #expect(source.contains("Circle()"),
                 "EditModeBadge.swift must contain a Circle (= the indicator)")
@@ -94,7 +94,7 @@ struct EditModeBadgeTests {
 
     @Test("badge uses .regularMaterial background (= Liquid Glass canonical)")
     func sourceUsesRegularMaterial() throws {
-        let worktreePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/v0.82-workspaceview-tests/Sources/WenshuApp/Views/Workspace/EditModeBadge.swift"
+        let worktreePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/v1.52-stale-test-cleanup/Sources/WenshuApp/Views/Workspace/EditModeBadge.swift"
         let source = try String(contentsOfFile: worktreePath)
         #expect(source.contains(".regularMaterial"),
                 "EditModeBadge.swift must use .regularMaterial (= Apple HIG macOS 27 Liquid Glass)")
