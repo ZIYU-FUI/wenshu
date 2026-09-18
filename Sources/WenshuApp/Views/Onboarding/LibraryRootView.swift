@@ -110,6 +110,30 @@ public struct LibraryRootView: View {
         content
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
+            // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+            // audit ticket 1): the canonical macOS 27 SwiftUI window
+            // background is the `.containerBackground(for: .window)`
+            // modifier applied at the root view inside WindowGroup.
+            // Per developer.apple.com/documentation/swiftui/view/
+            // containerbackground(_:for:) = the API that sets the
+            // window's container background. Without this modifier,
+            // macOS 27 SwiftUI leaves the window background empty
+            // (= NSScreen wallpaper shows through = desktop icons
+            // visible behind the SwiftUI control surface = the entire
+            // standard-control surface is missing Apple's Liquid
+            // Glass tonal layer). Setting it to
+            // `Color(nsColor: .windowBackgroundColor)` (= Apple-managed
+            // NSColor, NOT a custom RGB; per boss 9/2 OOB '你所有用的
+            // 颜色，都是 API 给的, 不要自定义') gives the window its
+            // canonical Apple HIG background tone (= the 1 NSColor
+            // pane content fills, paired with `.controlBackgroundColor`
+            // for chrome, where the Apple-managed ~10% brightness
+            // delta between the two IS the visible boundary between
+            // pane content and chrome = the canonical 2-layer pattern
+            // from `pane-chrome-canonic-pattern.md`).
+            .containerBackground(for: .window) {
+                Color(nsColor: .windowBackgroundColor)
+            }
             // v0.74 boss 2026-09-10 OOB 'this library's filename shouldn't be shown either':
             // drop the `.navigationSubtitle(libraryPath.lastPathComponent)`.
             // It was originally added (= ticket 008, commit a0e9b509d) to
