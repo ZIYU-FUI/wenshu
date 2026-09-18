@@ -62,7 +62,7 @@ struct TodoStoreToolTests {
         print("[TEST] step 2: makeHermesTool")
         let (hermesTool, hermesStore) = Self.makeHermesTool()
         print("[TEST] step 3: TodoStoreTool.init")
-        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
+        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: todoStore)
 
         // Sanity check: TodoStore actor works in isolation.
         print("[TEST] step 4: precheck list")
@@ -103,7 +103,7 @@ struct TodoStoreToolTests {
     func testTodoStoreTool_list_returnsTodoStoreItems() async throws {
         let todoStore = try Self.makeTodoRepository()
         let (hermesTool, _) = Self.makeHermesTool()
-        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
+        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: todoStore)
 
         // Pre-seed TodoStore with 2 items (= bypasses the adapter so
         // this test isolates the list path).
@@ -127,7 +127,7 @@ struct TodoStoreToolTests {
     func testTodoStoreTool_complete_marksItemDone() async throws {
         let todoStore = try Self.makeTodoRepository()
         let (hermesTool, hermesStore) = Self.makeHermesTool()
-        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
+        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: todoStore)
 
         // 1) create an item
         let createInput = #"{"action":"create","id":"task-2","content":"Write outline"}"#
@@ -157,7 +157,7 @@ struct TodoStoreToolTests {
     func testTodoStoreTool_remove_deletesItem() async throws {
         let todoStore = try Self.makeTodoRepository()
         let (hermesTool, hermesStore) = Self.makeHermesTool()
-        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: WSTodoRepository.shared)
+        let tool = TodoStoreTool(hermesTodo: hermesTool, todoRepository: todoStore)
 
         // 1) create
         _ = try await tool.execute(input: #"{"action":"create","id":"task-3","content":"Throwaway task"}"#)

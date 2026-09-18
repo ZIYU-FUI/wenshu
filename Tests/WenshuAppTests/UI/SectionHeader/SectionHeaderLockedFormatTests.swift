@@ -32,10 +32,13 @@ struct SectionHeaderLockedFormatTests {
     /// section header format (= VStack(spacing: 4) { HStack { Spacer();
     /// Text(...).font(.body).foregroundStyle(.secondary).textCase(nil);
     /// Spacer() }; Divider() }).
+    /// v1.52 stale-test-cleanup: replaced NavigationSplitShell.swift with
+    /// ShellDetailColumn.swift (= v1.43 ticket 001 extracted the inspector
+    /// column title = 'Authoring' from the shell into its own column file).
     private static let sectionHeaderFiles = [
         "Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift",
         "Sources/WenshuApp/Views/Workspace/PreviewPane.swift",
-        "Sources/WenshuApp/UI/Layout/NavigationSplitShell.swift",
+        "Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift",
     ]
 
     private static func loadSource(_ path: String) throws -> String {

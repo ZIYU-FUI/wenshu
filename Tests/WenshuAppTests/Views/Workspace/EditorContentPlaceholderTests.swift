@@ -66,20 +66,35 @@ struct EditorContentPlaceholderTests {
 
     @Test("source mentions v0.28 (= the removal of the white overlay)")
     func sourceHasV028Context() throws {
-        let path = "/Volumes/ANAN/Engineering/wenshu/.worktrees/v0.83-workspaceview-subcomponents/Sources/WenshuApp/Views/Workspace/EditorContentPlaceholder.swift"
-        let source = try String(contentsOfFile: path)
+        let source = try Self.readSource()
         #expect(source.contains("v0.28"), "EditorContentPlaceholder.swift should document v0.28 context")
     }
 
     // MARK: - Helpers
+
+    /// Read the file via #filePath-relative resolution (= works in any
+    /// worktree; = replaces v1.52 hardcoded worktree path that broke
+    /// after v0.83 worktree merged and was deleted).
+    private static func readSource() throws -> String {
+        let testFile = URL(fileURLWithPath: #filePath)
+        let repoRoot = testFile
+            .deletingLastPathComponent()  // Views/Workspace
+            .deletingLastPathComponent()  // Views
+            .deletingLastPathComponent()  // WenshuAppTests
+            .deletingLastPathComponent()  // Tests
+            .deletingLastPathComponent()  // <repo>
+        let path = repoRoot
+            .appendingPathComponent("Sources/WenshuApp/Views/Workspace/EditorContentPlaceholder.swift")
+            .path
+        return try String(contentsOfFile: path)
+    }
 
     /// Read the code region (= between `import SwiftUI` and the end of the
     /// `struct` closing brace). Strips doc comments that would otherwise
     /// false-positive the @Binding/@State/@Environment checks (= the file's
     /// doc says "No params, no @State, no @Binding, no @Environment").
     private static func codeRegion() throws -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/.worktrees/v0.83-workspaceview-subcomponents/Sources/WenshuApp/Views/Workspace/EditorContentPlaceholder.swift"
-        let source = try String(contentsOfFile: path)
+        let source = try readSource()
 
         // Strip // line comments (= doc comments contain the @Binding substring)
         let lines = source.components(separatedBy: .newlines).filter { line in

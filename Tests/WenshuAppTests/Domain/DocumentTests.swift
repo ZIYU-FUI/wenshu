@@ -107,7 +107,7 @@ struct DocumentTests {
         // SF Symbol names (= the card uses Image(systemName:) with these).
         #expect(BookCategory.chapter.icon == "book.closed")
         #expect(BookCategory.setting.icon == "gearshape.2")
-        #expect(BookCategory.research.icon == "books.vertical.fill")
+        #expect(BookCategory.research.icon == "books.vertical")
     }
 
     @Test("BookCategory raw value round-trips (= Codable stable JSON keys)")

@@ -57,7 +57,10 @@ struct DesignTokensRefRuntimeSmokeTests {
         // Source-level: verify the source file exists at the
         // canonical path (= repowise will use this for tracking).
         var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        // <repo>/Tests/WenshuAppTests/DesignTokens_test.swift
+        // → <repo>/Sources/WenshuApp/DesignTokens.swift
+        // delete 3 components: DesignTokens_test, WenshuAppTests/, Tests/
+        for _ in 0..<3 { url.deleteLastPathComponent() }
         url.appendPathComponent("Sources/WenshuApp/DesignTokens.swift")
         #expect(FileManager.default.fileExists(atPath: url.path),
                 "DesignTokens.swift must exist at the canonical path")

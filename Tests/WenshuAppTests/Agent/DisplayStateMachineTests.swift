@@ -58,8 +58,8 @@ struct DisplayStateMachineDeepTests {
     func displayStateIconNames() {
         #expect(DisplayState.idle.systemImageName == "circle")
         #expect(DisplayState.running(progress: 0.5).systemImageName == "arrow.triangle.2.circlepath")
-        #expect(DisplayState.success(message: nil).systemImageName == "checkmark.circle.fill")
-        #expect(DisplayState.error(message: "x").systemImageName == "exclamationmark.triangle.fill")
+        #expect(DisplayState.success(message: nil).systemImageName == "checkmark.circle")
+        #expect(DisplayState.error(message: "x").systemImageName == "exclamationmark.triangle")
         #expect(DisplayState.cancelled.systemImageName == "xmark.circle")
     }
 

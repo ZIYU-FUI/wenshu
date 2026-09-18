@@ -57,7 +57,10 @@ struct AppRootSceneRefRuntimeSmokeTests {
         // Source-level: verify the source file exists at the
         // canonical path (= repowise will use this for tracking).
         var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        // <repo>/Tests/WenshuAppTests/App/AppRootScene_test.swift
+        // → <repo>/Sources/WenshuApp/App/AppRootScene.swift
+        // delete 4 components: AppRootScene_test, App/, WenshuAppTests/, Tests/
+        for _ in 0..<4 { url.deleteLastPathComponent() }
         url.appendPathComponent("Sources/WenshuApp/App/AppRootScene.swift")
         #expect(FileManager.default.fileExists(atPath: url.path),
                 "AppRootScene.swift must exist at the canonical path")
