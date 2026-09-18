@@ -104,12 +104,16 @@ struct PresetCardTests {
                 "delete button must only render when hovering (= per the v0.28 hover-gating UX)")
     }
 
-    @Test("uses LucideIconSystemFallback for xmark (= Lucide only per wenshu v0.27)")
+    @Test("uses Image(systemName:) for xmark (= SF Symbols 6 per AGENTS.md §11.1)")
     func usesLucideXmark() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/LayoutPicker/PresetCard.swift"
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("LucideIconSystemFallback(\"xmark\""),
-                "delete button must use LucideIconSystemFallback with xmark (= per wenshu v0.27 Lucide-only mandate)")
+        // v1.52 stale-test-cleanup: AGENTS.md §11.1 boss OOB 2026-09-15
+        // 'use SF Symbols 6 (3rd gen) with palette rendering' retired
+        // LucideIconSystemFallback. PresetCard.swift now uses
+        // `Image(systemName: "xmark")` directly. Test updated to
+        // assert the new SF Symbol pattern (= source-level grep).
+        let source = try String(contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/LayoutPicker/PresetCard.swift", encoding: .utf8)
+        #expect(source.contains("Image(systemName: \"xmark\""),
+                "delete button must use Image(systemName:) for xmark per AGENTS.md §11.1 (= LucideIcon retired)")
     }
 
     @Test("strokeOverlay helper has 2 branches (active vs inactive separator)")
