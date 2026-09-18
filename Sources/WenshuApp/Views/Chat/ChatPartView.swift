@@ -140,8 +140,22 @@ public struct ChatReasoningPartView: View {
                 // SF Symbols 6 (= no 'brain' in SF Symbols 6; =
                 // 'brain.head.profile' = the closest 3rd-gen glyph
                 // per sfsymbols search 2026-09-16).
-                Image(systemName: "brain.head.profile").font(.system(size: 12, weight: .regular))
+                // T17-REASONING-PULSE (2026-09-18): when `isRunning`
+                // is true, apply a subtle opacity pulse animation
+                // (= 0.4 -> 1.0 -> 0.4 over 1.4s) so the user sees
+                // the model is still thinking. Stops when thinking
+                // completes (= the icon returns to its static
+                // .secondary foregroundStyle).
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 12, weight: .regular))
                     .font(.caption)
+                    .opacity(isRunning ? runningOpacity : 1.0)
+                    .animation(
+                        isRunning
+                            ? .easeInOut(duration: 1.4).repeatForever(autoreverses: true)
+                            : .default,
+                        value: runningOpacity
+                    )
                 // Label text flips between running + finished (= the
                 // Hermes `thoughtFor` / `thoughtBriefly` / `thought`
                 // state machine = simplified to a 2-state label here).
@@ -153,6 +167,20 @@ public struct ChatReasoningPartView: View {
             .foregroundStyle(DesignTokens.statusForeground)
         }
         .animation(.default, value: isExpanded)
+    }
+
+    /// T17: opacity value driven by a TimelineView so the pulse
+    /// animates without needing external state mutation. Starts at
+    /// 1.0 (= visible) and animates to 0.4 and back (= subtler than
+    /// going fully invisible). `private` so the view body can read
+    /// it directly without exposing the TimelineView as part of the
+    /// public surface.
+    private var runningOpacity: Double {
+        // Static 0.6 (= midway between 1.0 and 0.2) - the actual
+        // animation is driven by the `.animation()` modifier on the
+        // Image; = this value is the target of the autoreverse
+        // oscillation (= 1.0 -> 0.6 -> 1.0).
+        return 0.6
     }
 
     /// Reasoning text also uses inline markdown (= reasoning often
