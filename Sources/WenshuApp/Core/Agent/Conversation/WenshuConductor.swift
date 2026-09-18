@@ -269,6 +269,19 @@ public actor WenshuConductor {
             }
             // loopResult == nil means the loop threw — fall through to the
             // legacy pipeline (which itself has S4 graceful degradation).
+            // T0-PATH-VISIBLE (2026-09-18): explicit fallback log so the
+            // dev / wenshu-pocock can see which path actually fired
+            // (= no more "why is this a one-shot reply" mystery).
+            NSLog(
+                "[wenshu.conductor] PATH=legacy REASON=ConversationLoop.runTurn returned nil (model=%@ msg_prefix=%@)",
+                model, String(userMessage.prefix(40))
+            )
+        } else {
+            // No connector wired at all = only legacy path is reachable.
+            NSLog(
+                "[wenshu.conductor] PATH=legacy REASON=no_connector (model=%@ msg_prefix=%@)",
+                model, String(userMessage.prefix(40))
+            )
         }
 
         // Legacy path (= v0.21 pipeline, preserved as the fallback).
@@ -371,11 +384,24 @@ public actor WenshuConductor {
             // model parameter is used by the legacy path; the loop reads
             // its model from the connector's default-model resolution.
             _ = model
+            // T0-PATH-VISIBLE (2026-09-18): explicit success log
+            // (= mirror of the fallback log in handle(); lets the
+            // dev confirm the new ConversationLoop path actually
+            // executed end-to-end, not just the fallback).
+            NSLog(
+                "[wenshu.conductor] PATH=new_agent REASON=ConversationLoop.runTurn succeeded (model=%@ tokens=%d)",
+                model, totalTokens
+            )
             return (reply.isEmpty ? "(文枢暂时无法回复, 请稍后再试)" : reply, totalTokens, thinking)
         } catch {
             // S4 graceful degradation: never throw out of handle(). Log
             // so the wenshu-dev / boss sees the underlying error.
-            NSLog("[wenshu.conductor] ConversationLoop.runTurn failed, falling back to legacy pipeline: %@", String(describing: error))
+            // T0-PATH-VISIBLE (2026-09-18): tag with PATH=legacy for
+            // grep parity with the success path.
+            NSLog(
+                "[wenshu.conductor] PATH=legacy REASON=ConversationLoop.runTurn threw (model=%@ err=%@)",
+                model, String(describing: error)
+            )
             return nil
         }
     }
