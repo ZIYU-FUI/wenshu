@@ -666,31 +666,20 @@ struct IntegrationPlanEndToEndTests {
                 "P2 #21 AgentProgressTracker.complete should flip status to .succeeded")
 
         // ===== P2 #22: TodoStore reactivity =====
-
+        // v1.52 stale-test-cleanup: WSTodoRepository does NOT have a reactive
+        // stream (= ticket 3 dropped the dead stream that had no consumer;
+        // = see AGENTS.md §11.4.2 ticket 3 commit ce80c6492). The previous
+        // test stubbed a collector and asserted it received the notification;
+        // that assertion is structurally unreachable. Replace with a basic
+        // add + list verification (= the add path must succeed = the
+        // WSTodoRepository contract is still honored, just without a
+        // notification fan-out).
 
         print("[P2 #22: TodoStore reactivity] starting")
-        // Subscribes to TodoStore writes via AsyncStream, then
-        // performs an add (= a notification must fire; = the
-        // WIRE-TODO-001 contract). Then unsubscribes so the
-        // stream closes cleanly.
-        // P2 #22 reactive stream test removed: WSTodoRepository does NOT expose
-        // a subscribe() stream (= ticket 3 dropped the dead reactive stream that
-        // had no consumer; = see AGENTS.md §11.4.2 ticket 3 commit ce80c6492).
-        // Just verify the basic add path here.
-        // collector + subscriptionTask stubbed since subscribe() was removed
-        let collector = NotificationCollector()
-        // subscriptionTask skipped (= reactive stream removed)
-        // Give the consumer task a chance to start iterating
-        // before we mutate the store (= AsyncStream doesn't
-        // buffer when the consumer isn't ready).
-        // (10 ms startup sleep removed — no reactive consumer)
         let reactiveTodo = try await todoStore.add(title: "reactive todo", priority: .high)
-        // Wait up to 2s for the notification to arrive.
-        // Wait skipped — no reactive notification to wait for
-        // subscriptionTask.cancel() removed
-        // (subscribe/unsubscribe removed — see comment above)
-        #expect(await collector.contains(id: reactiveTodo.id),
-                "P2 #22 TodoStore.subscribe should fire a notification for the reactive add")
+        let afterAddList = try await todoStore.list()
+        #expect(afterAddList.contains(where: { $0.id == reactiveTodo.id }),
+                "P2 #22 TodoStore.add must persist the new row (= no reactive fan-out post-ticket 3)")
 
         // ===== END: all 22 wire-up tickets have fired at least once =====
         // If we reach this line, every wire-up ticket produced at
