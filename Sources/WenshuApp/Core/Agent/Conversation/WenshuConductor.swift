@@ -164,6 +164,27 @@ public actor WenshuConductor {
         return (try? await registry.invoke(name: name, input: input)) ?? ""
     }
 
+    /// T4-SUBAGENT-UI (2026-09-18): invokeSkill variant that also
+    /// emits a "[wenshu.subagent] <name>" text block via streamCallback
+    /// before/after the actual skill invocation. Lets ChatView's
+    /// ChatSubAgentTag button surface the active sub-agent name live.
+    public func invokeSkillWithCallback(
+        name: String,
+        input: String = "",
+        streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
+    ) async -> String {
+        // Emit start marker so ChatView's ChatSubAgentTag appears immediately.
+        if let streamCallback {
+            await streamCallback(.text("[wenshu.subagent] \(name)"))
+        }
+        let result = await invokeSkill(name: name, input: input)
+        // Emit end marker (= ChatView can clear the tag if it wants).
+        if let streamCallback {
+            await streamCallback(.text("[wenshu.subagent] \(name) done"))
+        }
+        return result
+    }
+
     /// h02: list available skills (for agent context). Returns [] if registry unavailable.
     public func availableSkills() async -> [String] {
         await ensureSkillRegistryBootstrapped()
