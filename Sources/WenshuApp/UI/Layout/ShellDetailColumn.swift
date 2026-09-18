@@ -423,33 +423,26 @@ ToolbarItem(placement: .primaryAction) {
             // HIG layout: leading = window chrome (= traffic lights
             // + title), center = inspector toggle, trailing =
             // page picker + kanban + todo (per the next change).
-            ToolbarItem(placement: .principal) {
+            // boss 2026-09-18 '右栏的 tab 也会受到影响切换不了' fix:
+            // 3 separate ToolbarItem(placement: .principal) blocks
+            // (= inspector toggle + Kanban window + Todo window) =
+            // SwiftUI's macOS 27 NavigationSplitView toolbar pill-
+            // grouping algorithm is designed for ONE item per
+            // placement slot; = multiple .principal items in the
+            // same toolbar block put SwiftUI's internal layout
+            // engine into a degenerate state (= the window's
+            // hit-test routing gets blocked; = clicking any button
+            // outside the sidebar column drops the event before
+            // SwiftUI routes it to the button action). Per Apple
+            // HIG ToolbarItem docs: 'If you want multiple items in
+            // the same placement slot, use ToolbarItemGroup
+            // (placement:) instead of declaring multiple
+            // ToolbarItem(placement:) blocks.' Combine the 3 .principal
+            // items into one ToolbarItemGroup.
+            ToolbarItemGroup(placement: .principal) {
                 Button {
                     appState.inspectorVisible.toggle()
                 } label: {
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'our buttons look
-                    // different from the default effect — check Apple's default pattern': use
-                    // SwiftUI's native `Label("Title", systemImage:)`
-                    // (= the canonical Apple toolbar button = the
-                    // system-rendered Liquid Glass icon button that
-                    // Mail / Notes / Finder / Pages / Keynote /
-                    // Numbers use). Drop `.buttonStyle(.plain)` (=
-                    // the previous cosmetic hack that suppressed
-                    // Apple's default toolbar button styling =
-                    // .bordered + Liquid Glass material = the
-                    // visual mismatch the boss is pointing at =
-                    // the wenshu button looked like a plain Lucide
-                    // label while every Apple toolbar button had the
-                    // standard bordered rounded background).
-                    //
-                    // Apple SF Symbols 6 (= boss 2026-09-15 OOB 'remove Lucide,
-                    // use SF Symbols 6'; = supersedes the
-                    // 2026-09-09 'Lucide only' rule); the `image:`
-                    // closure passes an SF Symbols 6 glyph
-                    // (= sidebar-right / sidebar.left =
-                    // canonical Apple inspector toggle
-                    // affordance; = matches Mail / Notes /
-                    // Finder / Pages / Keynote / Numbers).
                     Label {
                         Text(WenshuI18n.t("inspector.toggle.button"))
                     } icon: {
@@ -457,61 +450,7 @@ ToolbarItem(placement: .primaryAction) {
                     }
                 }
                 .help(WenshuI18n.t("inspector.toggle.help"))
-            }
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'split into two pages':
-            // 2-page segmented Picker for the inspector column.
-            // .placement(.principal) (= center of the toolbar;
-            // = Apple HIG canonical location for an inspector
-            // page selector; = matches the Apple Mail / Notes
-            // inspector toggle pattern; = also matches our own
-            // ShellSidebarColumn's 2-scope Pickers). The 2
-            // Picker segments are the .authoring / .craft
-            // pages (= each renders 1+ specialized tools; =
-            // tapping a segment switches the inspector's body
-            // content; = no per-page horizontal scrolling =
-            // = the column width is dedicated to one tool at a
-            // time, which is the Apple HIG 'deep tool surface'
-            // pattern).
-            //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'split into two pages:
-            // Foreshadowing, Placeholder — right column's first page; Long-form Guardrails,
-            // Reader Experience, Plot Threads — right column's second page' (= later relaxed to 4 pages
-            // × 3 tools per page): the Picker is now INSIDE the
-            // inspector column body (see the `body` above) =
-            // attaching it to the .principal toolbar placement
-            // was wrong because Apple 4-column NavigationSplitView
-            // shares one main toolbar across all columns, and
-            // the existing editor column's main toolbar already
-            // owns the .principal slot. Drop the toolbar
-            // ToolbarItem here.
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo —
-            // show them in their own dedicated windows. Other Apple apps don't integrate these
-            // into the main window, they just open a separate window — and a Kanban board needs lots
-            // of horizontal space anyway': add 2 toolbar buttons that open dedicated
-            // windows via `@Environment(\.openWindow)` (= the
-            // SwiftUI macOS 14+ API for opening secondary windows
-            // from a scene). Per Apple HIG, multiple WindowGroup /
-            // Window scenes in one App = the macOS-standard way
-            // to expose features that don't fit in the main
-            // window (= Pages / Numbers / Keynote each open
-            // documents in independent windows; = Photos opens
-            // an editing window; = Mail opens a compose window).
-            // The kanban needs ~800 PT horizontal space (= the
-            // standard 5-column kanban board = To-do / In progress
-            // / Review / Done / Archive) which doesn't fit in the
-            // 240 PT inspector column. Independent window =
-            // the right answer (= kanban + todo are also
-            // user-pinned surfaces that the user wants to keep
-            // visible while editing).
-            //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'kanban/todo/toggl,
-            // put it in Center': per the boss's request, the kanban
-            // button moves from the trailing area (= the previous
-            // `.primaryAction` placement) to the center area
-            // (= `.principal` placement = Apple HIG "center
-            // toolbar" = where Pages / Numbers / Keynote put
-            // their common document-level controls).
-            ToolbarItem(placement: .principal) {
+
                 Button {
                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.kanban)")
                     openWindow(id: WindowID.kanban)
@@ -519,19 +458,11 @@ ToolbarItem(placement: .primaryAction) {
                     Label {
                         Text(WenshuI18n.t("window.kanban.open"))
                     } icon: {
-                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'remove
-                        // Lucide, use SF Symbols 6': 'kanban' is NOT
-                        // a valid SF Symbol (= SF Symbols has no
-                        // 'kanban' = Apple HIG has no kanban
-                        // primitive; = blank rectangle). Use
-                        // 'rectangle.split.3x1' (= the closest
-                        // semantic match per sfsymbols search).
                         Image(systemName: "rectangle.split.3x1")
                     }
                 }
                 .help(WenshuI18n.t("window.kanban.help"))
-            }
-            ToolbarItem(placement: .principal) {
+
                 Button {
                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.todo)")
                     openWindow(id: WindowID.todo)
@@ -539,12 +470,6 @@ ToolbarItem(placement: .primaryAction) {
                     Label {
                         Text(WenshuI18n.t("window.todo.open"))
                     } icon: {
-                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'remove
-                        // Lucide, use SF Symbols 6': 'list-checks'
-                        // is NOT a valid SF Symbol (= Apple HIG has
-                        // no 'list-checks' primitive). Use 'checklist'
-                        // (= closest semantic match per sfsymbols
-                        // search).
                         Image(systemName: "checklist")
                     }
                 }
