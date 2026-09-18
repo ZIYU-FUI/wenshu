@@ -112,4 +112,101 @@ public actor MockLLMConnector: LLMConnector {
             usage: LLMUsage(inputTokens: 5, outputTokens: 5)
         )
     }
+
+    // MARK: - T13 streaming support (= Mock stream() override)
+
+    /// Per-call streaming yield configuration. Default = yield each
+    /// block of the next scripted response back-to-back with no delay.
+    /// Override via `streamedBlockInterval` (= nanoseconds between
+    /// yields) to simulate network latency in tests.
+    public var streamedBlockInterval: UInt64 = 0
+
+    /// Recorded stream() calls (= mirror of `receivedMessages` /
+    /// `receivedOptions` but for the streaming entry point).
+    public var streamedMessages: [[LLMMessage]] = []
+    public var streamedOptions: [LLMCallOptions] = []
+
+    /// If non-empty, return this fixed block sequence on every stream()
+    /// call (= simpler than per-call scripted responses for streaming
+    /// tests; = does not consume `scriptedIndex`).
+    public var streamedBlocks: [LLMBlock] = []
+
+    /// T13-MOCK-STREAM-CONNECTOR (2026-09-18): implements LLMConnector's
+    /// `stream(...)` default override (= the default extension in T7
+    /// would call `send()` and yield blocks once at end; = this
+    /// override yields them one-by-one so tests can assert per-block
+    /// ordering + intermediate state).
+    ///
+    /// Yield strategy:
+    ///   1. If `streamedBlocks` is set (= explicit per-call override),
+    ///      yield each block in order with `streamedBlockInterval`
+    ///      nanoseconds between yields (= simulate network latency).
+    ///   2. Else if scriptedResponses has a next entry, yield each
+    ///      block of that response (= mirrors `send()` but as a stream).
+    ///   3. Else echo path (= one .text block with "echo: ...").
+    public nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            Task { [weak self] in
+                guard let self = self else {
+                    continuation.finish()
+                    return
+                }
+                await self.recordStreamCall(messages: messages, options: options)
+                let blocks = await self.nextStreamedBlocks(
+                    messages: messages, options: options
+                )
+                for block in blocks {
+                    if await self.streamedBlockInterval > 0 {
+                        let interval = await self.streamedBlockInterval
+                        try? await Task.sleep(nanoseconds: interval)
+                    }
+                    continuation.yield(block)
+                }
+                continuation.finish()
+            }
+        }
+    }
+
+    private func recordStreamCall(messages: [LLMMessage], options: LLMCallOptions) {
+        streamedMessages.append(messages)
+        streamedOptions.append(options)
+    }
+
+    /// Snapshot of the next batch of blocks to yield. Captures
+    /// `scriptedIndex` advancement as a side effect (= same semantics
+    /// as `send()` advancing the index on consumption).
+    private func nextStreamedBlocks(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> [LLMBlock] {
+        // Explicit per-call override wins.
+        if !streamedBlocks.isEmpty {
+            return streamedBlocks
+        }
+        // Scripted response path (= consume the index like send() does).
+        if scriptedIndex < scriptedResponses.count {
+            let response = scriptedResponses[scriptedIndex]
+            scriptedIndex += 1
+            return response.blocks
+        }
+        // Custom response text path (= single .text block).
+        if responseText != "ok" {
+            return [.text(responseText)]
+        }
+        // Default echo path.
+        let echo: String
+        if case let last = messages.last, let block = last?.blocks.first {
+            if case .text(let s) = block {
+                echo = "echo: \(s)"
+            } else {
+                echo = responseText
+            }
+        } else {
+            echo = responseText
+        }
+        return [.text(echo)]
+    }
 }
