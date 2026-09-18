@@ -278,16 +278,9 @@ public actor ConversationLoop {
         )
 
         // Send to LLMConnector (= one round-trip)
-        let response = try await connector.send(messages: messages, options: options)
-
-        // Stream callback (= one block per response block; full SSE per-block
-        // delta streaming lands in ticket 004 AnthropicConnector + ticket 005
-        // OpenAICompatibleConnector)
-        if let streamCallback {
-            for block in response.blocks {
-                await streamCallback(block)
-            }
-        }
+        let response = try await streamInto(
+            messages: messages, options: options, streamCallback: streamCallback
+        )
 
         // Append assistant response to message list (= result.messages)
         let assistantMessage = LLMMessage(role: .assistant, blocks: response.blocks)
@@ -492,15 +485,11 @@ public actor ConversationLoop {
                         temperature: nil,
                         reasoningEffort: reasoningEffort
                     )
-                    let nextResponse = try await connector.send(
+                    let nextResponse = try await streamInto(
                         messages: result.messages,
-                        options: options
+                        options: options,
+                        streamCallback: streamCallback
                     )
-                    if let streamCallback {
-                        for block in nextResponse.blocks {
-                            await streamCallback(block)
-                        }
-                    }
                     let nextAssistant = LLMMessage(role: .assistant, blocks: nextResponse.blocks)
                     result.messages.append(nextAssistant)
                     result = ConversationResult(
@@ -568,6 +557,59 @@ public actor ConversationLoop {
             provider: connector.connectorID,
             statusCode: 0,
             body: "ConversationLoop.runTurn retries exhausted (maxAttempts = \(maxAttempts))"
+        )
+    }
+
+    /// T14-CONVLOOP-STREAMING (2026-09-18): replace direct `connector.send(...)`
+    /// with this streaming wrapper that calls `connector.stream(...)`
+    /// and accumulates blocks into the final LLMResponse shape.
+    ///
+    /// Two-way contract preserved:
+    ///   - Forward: every emitted block is forwarded to `streamCallback`
+    ///     synchronously (= ChatView sees per-block streaming, not the
+    ///     all-at-once behavior of `send()` followed by a tight for-loop).
+    ///   - Backward: the returned LLMResponse has the same shape as
+    ///     `send()` would have produced (= `runConversation` + the re-prompt
+    ///     in `runTurn`'s tool loop only consume `response.blocks` +
+    ///     `TurnFinalizer.finalize(response:)`).
+    ///
+    /// Why not just call `send()` and iterate the blocks (= the v0.41 path):
+    ///   - `send()` returns the whole LLMResponse at once; = ChatView sees
+    ///     the entire assistant message appear in one render cycle. The
+    ///     stream variant yields per-token/per-block events as the LLM
+    ///     produces them; = the ChatPartView cards animate in real-time.
+    ///
+    /// Empty stream path: if the connector's stream finishes without
+    /// emitting any blocks (= malformed response / network drop / model
+    /// misconfigured), return an empty LLMResponse so the calling code
+    /// (= runConversation + TurnFinalizer) still gets a valid shape.
+    private func streamInto(
+        messages: [LLMMessage],
+        options: LLMCallOptions,
+        streamCallback: (@Sendable (LLMBlock) async -> Void)?
+    ) async throws -> LLMResponse {
+        var accumulated: [LLMBlock] = []
+        let stream = connector.stream(messages: messages, options: options)
+        for await block in stream {
+            accumulated.append(block)
+            if let streamCallback {
+                await streamCallback(block)
+            }
+        }
+        // Stable id + model shape (= mirrors what send() produces).
+        // The connector's send() implementation supplies its own id +
+        // model; = here we use the deterministic connector-derived fallback
+        // (= "mock-model" for MockLLMConnector, "<slug>-model" for real
+        // connectors) so downstream code (TurnFinalizer, tests) sees a
+        // consistent model name regardless of send() vs stream().
+        let model = defaultModelForConnector()
+        return LLMResponse(
+            id: "\(connector.connectorID)-stream-\(UUID().uuidString)",
+            model: model,
+            blocks: accumulated,
+            stopReason: accumulated.contains(where: { if case .toolUse = $0 { return true } else { return false } })
+                ? .toolUse : .endTurn,
+            usage: LLMUsage(inputTokens: 0, outputTokens: 0)
         )
     }
 
