@@ -40,24 +40,12 @@ struct ChatZoneView: View {
 
     private var appState: AppState { envAppState }
 
-    @State private var vm: ChatViewModel
-
-    /// v1.53 chat-empty-state-key-check: empty-state gate =
-    /// "any provider has a saved key" (matches SettingView's
-    /// `providersWithKeys` logic). Previously this read
-    /// `appState.llmModel.isEmpty` — but `llmModel` is the selected
-    /// model id, not the key-configured flag. Users who saved a key
-    /// in Settings but hadn't yet picked a specific model (the
-    /// common onboarding path) saw the empty-state overlay stuck on
-    /// top of a fully functional chat zone. Source of truth now =
-    /// `ProviderKeychain.listProvidersWithKeys()` — same call
-    /// SettingView uses to know whether the LLM Connector tab has
-    /// anything configured. Recomputed on every body re-evaluation;
-    /// the keychain is fast (in-memory after first read) and the
-    /// chat zone re-renders are infrequent.
-    private var hasConfiguredProvider: Bool {
-        !ProviderKeychain.listProvidersWithKeys().isEmpty
+    private var currentModel: String {
+        get { appState.llmModel }
+        nonmutating set { appState.llmModel = newValue }
     }
+
+    @State private var vm: ChatViewModel
 
     init(conductor: WenshuConductor?) {
         self.conductor = conductor
@@ -72,7 +60,7 @@ struct ChatZoneView: View {
         VStack(spacing: 0) {
             ZStack {
                 ChatView(conductor: conductor, vm: vm)
-                if !hasConfiguredProvider {
+                if currentModel.isEmpty {
                     ChatHelpTextOverlay {
                         // canonical 'jump to providerApi tab on open
                         // Settings' pattern: UserDefaults IS the source
