@@ -145,6 +145,15 @@ public actor AnthropicConnector: LLMConnector {
             systemPrompt: options.systemPrompt,
             messages: cachedMessages
         )
-        return AnthropicChunkToLLMBlockConverter.convert(stream: chunkStream)
+        // T11b-WIRE-ANTHROPIC-STATEFUL (2026-09-18): use the stateful
+        // converter variant (= accumulates tool_use blocks across 3 SSE
+        // event types into a single .toolUse LLMBlock at block close).
+        // The stateless variant (= T9) silently dropped input_delta chunks;
+        // = this 1-line swap unblocks live tool cards in ChatPartView.
+        let accumulator = AnthropicChunkToLLMBlockConverter.ToolUseAccumulator()
+        return AnthropicChunkToLLMBlockConverter.convert(
+            stream: chunkStream,
+            accumulator: accumulator
+        )
     }
 }
