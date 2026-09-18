@@ -962,13 +962,24 @@ public struct ChatView: View {
     // chat input and the ChatZoneView overlay above it answer to the same
     // signal.
     private var hasUsableKey: Bool {
-        // ChatViewModel exposes a live read of AppState.llmModel when an
-        // appState was injected at init; otherwise it falls back to
-        // UserDefaults. Both look at the same key.
-        let model = !vm.currentModel.isEmpty
-            ? vm.currentModel
-            : (UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? "")
-        return !model.isEmpty && !vm.isSending
+        // v1.54 chat-input-disabled-key-check: gate on the
+        // keychain, not on `wenshu.llm.model`. Previous
+        // implementation read `vm.currentModel` (which routes
+        // through AppState.llmModel = the SELECTED model id) and
+        // treated an empty model string as 'no key configured'.
+        // Same root cause as the ChatZoneView empty-state bug
+        // (= v1.53): a user who saved a key in Settings but had
+        // not yet picked a specific model (the common onboarding
+        // path) would see the chat input TextField permanently
+        // `.disabled` even though the LLM was fully reachable.
+        //
+        // Source of truth = `ProviderKeychain.listProvidersWithKeys()`,
+        // the same call SettingView and ChatZoneView use to know
+        // whether any provider has a saved key. The
+        // `!vm.isSending` part stays (= we still want to lock
+        // input while a request is in flight so a user cannot
+        // race-fire a second send; = Apple Messages behavior).
+        return !ProviderKeychain.listProvidersWithKeys().isEmpty && !vm.isSending
     }
 
     public init(conductor: WenshuConductor? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
@@ -1363,14 +1374,17 @@ public struct ChatView: View {
                     .disabled(!hasUsableKey)
                     .focused($inputFocused)
                     .onSubmit { Task { await vm.routeInput() } }
-                    .onChange(of: vm.currentModel) { _, new in
-                        if new.isEmpty {
-                            inputFocused = false
-                        } else {
-                            // v0.24 boss acceptance fix: focus input when key becomes available.
-                            inputFocused = true
-                        }
-                    }
+                    // v1.54 chat-input-disabled-key-check: removed the
+                    // `.onChange(of: vm.currentModel)` blur/focus dance.
+                    // The old code toggled `inputFocused` based on
+                    // whether `wenshu.llm.model` had a value (= which
+                    // was the same broken signal as `hasUsableKey`
+                    // pre-fix; = a user who saved a key but had not
+                    // picked a specific model would lose focus on the
+                    // input even though the LLM was reachable). Now
+                    // `hasUsableKey` reads the keychain directly, so
+                    // model selection no longer drives input focus.
+                    // User focus is preserved across model picks.
                     // v0.25.1 (= ticket 034 chat textfield 1 PT focus
                     // ring): owner 2026-08-26 OOB 'when the text field is focused this
                     // blue outline is too thick — change to 1PT and try' = SwiftUI
