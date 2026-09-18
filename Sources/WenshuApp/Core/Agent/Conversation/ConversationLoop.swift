@@ -445,11 +445,17 @@ public actor ConversationLoop {
                         etaSeconds: nil
                     )
                     let executor = ToolExecutor()
+                    // T2-TOOL-UI (2026-09-18): forward streamCallback so
+                    // ToolExecutor emits .toolUse + .toolResult blocks to
+                    // ChatView (= the ChatToolUsePartView / ChatToolResultPartView
+                    // cards appear live, not only when the whole turn
+                    // finishes).
                     try await executor.executeSequential(
                         assistantMessage: assistant,
                         messages: &result.messages,
                         taskId: resolvedTaskId,
-                        tools: tools
+                        tools: tools,
+                        streamCallback: streamCallback
                     )
 
                     // Re-invoke LLM with tool results (= hermes
