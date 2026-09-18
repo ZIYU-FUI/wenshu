@@ -288,6 +288,8 @@ public struct ChatToolResultPartView: View {
     public let toolResult: ChatMessagePart.ToolResultPart
     public let isOutgoing: Bool
 
+    @State private var isExpanded: Bool = false
+
     public init(toolResult: ChatMessagePart.ToolResultPart, isOutgoing: Bool) {
         self.toolResult = toolResult
         self.isOutgoing = isOutgoing
@@ -313,16 +315,38 @@ public struct ChatToolResultPartView: View {
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
             }
-            // The result content (= may be multiline JSON / text).
-            // Truncate to a reasonable inline length; the full content
-            // can be inspected via the chatview's selection.
-            Text(toolResult.content)
-                .font(.system(.caption, design: .monospaced))
+            // T16-TOOL-RESULT-MARKDOWN (2026-09-18): render the result
+            // content as inline markdown (= same parseMarkdown call as
+            // ChatTextPartView) so multi-line tool outputs render with
+            // bold / italic / inline code / links instead of raw text.
+            // Collapsed state: lineLimit(8) (= inline preview). Expanded
+            // state: full content (= tap the card to toggle; = mirrors
+            // ChatToolUsePartView's click-to-expand affordance).
+            Text(Self.parseMarkdown(toolResult.content))
+                .font(.caption)
                 .foregroundStyle(DesignTokens.statusForeground)
                 .textSelection(.enabled)
-                .lineLimit(8)
+                .lineLimit(isExpanded ? nil : 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, DesignTokens.chromePaddingMicro)
+            // T16 expansion toggle (= shown only when the result is
+            // actually long enough to truncate; = the lineLimit vs nil
+            // difference is invisible if there are <= 8 lines).
+            if needsExpandToggle {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    Text(isExpanded
+                         ? WenshuI18n.t("chatview.tool_result.collapse")
+                         : WenshuI18n.t("chatview.tool_result.expand"))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .padding(.top, DesignTokens.chromePaddingMicro / 2)
+            }
         }
         .padding(.horizontal, DesignTokens.chromePaddingSmall)
         .padding(.vertical, DesignTokens.chromePaddingMicro)
@@ -332,6 +356,23 @@ public struct ChatToolResultPartView: View {
                 .strokeBorder(borderColor, lineWidth: 1)
         )
         .frame(maxWidth: 360)
+    }
+
+    /// T16: show the expand toggle only when the content exceeds the
+    /// 8-line collapsed preview. Heuristic: count newlines; = multiline
+    /// outputs (e.g. JSON tool results, file contents) trigger the toggle;
+    /// single-line tool results don't (= the lineLimit(8) wouldn't
+    /// truncate them anyway).
+    private var needsExpandToggle: Bool {
+        toolResult.content.components(separatedBy: "\n").count > 8
+            || toolResult.content.count > 480  // long single-line outputs
+    }
+
+    /// T16: inline-markdown parse for tool result content. Reuses the
+    /// canonical `ChatTextPartView.parseMarkdown` (= same inline-only
+    /// treatment; = preserves whitespace).
+    nonisolated static func parseMarkdown(_ raw: String) -> AttributedString {
+        ChatTextPartView.parseMarkdown(raw)
     }
 
     private var cardFill: AnyShapeStyle {
