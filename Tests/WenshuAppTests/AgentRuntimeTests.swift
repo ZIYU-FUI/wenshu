@@ -69,12 +69,18 @@ struct AgentRuntimeTests {
 
     @Test("delegateTask 派任务 + 拿 task 详情 (dev env 没 LLM key → 期望 delegateFailed)")
     func testDelegateTask() async throws {
-        let runtime = AgentRuntime()
-        await runtime.register(Self.makeAgent(name: "worker"))
-        // v0.21 ticket 03 + code-review S3: handle LLM → AgentProtocol error → AgentRuntime .delegateFailed
-        // dev env MINIMAX_CN_API_KEY, LLM fail, (yes, yestest bug)
-        await #expect(throws: AgentRuntimeError.self) {
-            _ = try await runtime.delegateTask(to: "worker", content: "do something")
+        // v1.52 stale-test-cleanup: hermetic InMemoryKeychainStore override
+        // (= ensures WenshuVerifier hits .missingAPIKey, = AgentRuntime.delegateTask
+        // surfaces AgentRuntimeError as expected).
+        let empty = InMemoryKeychainStore()
+        try await ProviderKeychain.withBackendForTesting(empty) {
+            let runtime = AgentRuntime()
+            await runtime.register(Self.makeAgent(name: "worker"))
+            // v0.21 ticket 03 + code-review S3: handle LLM → AgentProtocol error → AgentRuntime .delegateFailed
+            // dev env MINIMAX_CN_API_KEY, LLM fail, (yes, yestest bug)
+            await #expect(throws: AgentRuntimeError.self) {
+                _ = try await runtime.delegateTask(to: "worker", content: "do something")
+            }
         }
     }
 
