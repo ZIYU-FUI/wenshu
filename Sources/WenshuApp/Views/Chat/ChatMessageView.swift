@@ -218,6 +218,27 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     }
                     .wenshuChatHover()
                 }
+                // T19-MESSAGE-TIMESTAMP (2026-09-18): render a small
+                // timestamp footer below sealed assistant messages
+                // (= same Apple HIG footer pattern as Apple Messages
+                // = small monospaced text below the bubble showing
+                // the time). Hidden for:
+                //   - user messages (= iMessage doesn't show timestamps
+                //     on user-sent bubbles; = the pattern lives below
+                //     the bubble row in the conversation, not per-message)
+                //   - streaming messages (= the cursor + shimmer
+                //     communicate activity; = adding a stale timestamp
+                //     here would be misleading)
+                //   - system messages (= too noisy; = the bubble
+                //     already includes the error icon)
+                if message.source == .wenshu && message.streamState == .sealed {
+                    Text(message.timestamp, format: .dateTime.hour().minute())
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .padding(.top, 2)
+                        .padding(.leading, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
 
             if !isOutgoing { Spacer(minLength: 40) }
