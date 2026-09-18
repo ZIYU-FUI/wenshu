@@ -85,9 +85,29 @@ struct ChatMessageView: View {
 VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                 // iMessage names the author once per run, not per bubble.
                 if position == .only || position == .first {
-                    Text(sourceLabel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Text(sourceLabel)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        // T23-PLAN-BADGE (2026-09-18): when the message
+                        // has a .plan part (= a /plan command result),
+                        // show a small "PLAN" badge next to the
+                        // source label (= identifies plan-mode
+                        // messages at a glance; = matches the Hermes
+                        // desktop pattern where plan cards get a
+                        // distinct header tag).
+                        if messageHasPlanPart {
+                            Text("PLAN")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(Color.accentColor)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .strokeBorder(Color.accentColor.opacity(0.4), lineWidth: 0.5)
+                                )
+                        }
+                    }
                 }
                 if message.isPlaceholder {
                     // Wenshu AI placeholder status indicator
@@ -248,6 +268,16 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
     /// Outgoing messages are the ones this person sent, which iMessage puts
     /// on the trailing side in the accent colour.
     private var isOutgoing: Bool { message.source == .user }
+
+    /// T23-PLAN-BADGE (2026-09-18): true when the message carries at
+    /// least one `.plan` part (= identifies /plan command results
+    /// = the source label area gets a small "PLAN" badge).
+    private var messageHasPlanPart: Bool {
+        message.parts.contains { part in
+            if case .plan = part.kind { return true }
+            return false
+        }
+    }
 
     /// Bubble fill.
     ///
