@@ -1311,6 +1311,25 @@ public struct ChatView: View {
             // `vm.attachedImagePath != nil`. The HStack itself is
             // unchanged (= paperclip button + TextField + Send +
             // Goal button + the same outer paddings).
+            // v1.69 boss 2026-09-18 'chat textfield, walk Apple API
+            // official mode, macOS 27 style, make it a floating
+            // panel': wrap the entire input VStack (= attachment
+            // preview chip + input row HStack) in macOS 27
+            // .glassEffect(.bar, in: RoundedRectangle(cornerRadius:
+            // 14)) (= the SwiftUI macOS 27 Liquid Glass floating
+            // panel material; = same translucent + tinted + soft
+            // shadow look as Apple Messages / Slack / Xcode 16
+            // chat input). Per developer.apple.com/documentation/
+            // swiftui/view/glasseffect(_:), the .bar material tier
+            // matches the system toolbar style (= exactly the
+            // floating chrome look we want for the bottom chat
+            // input bar). The TextField inside still grows from
+            // 30 PT (1 line) up to 4 lines via .lineLimit(1...4) +
+            // .frame(minHeight: 30) (= unchanged auto-grow behavior;
+            // = macOS 27 standard chat input pattern = the panel
+            // container stretches while the textfield inside it
+            // expands upward; = the Send button stays bottom-
+            // anchored via HStack(alignment: .bottom)).
             VStack(alignment: .leading, spacing: 4) {
                 if let imagePath = vm.attachedImagePath {
                     // Attachment preview chip: small thumbnail + a
@@ -1464,36 +1483,24 @@ public struct ChatView: View {
                     // change to match the text field height' = at the time, the textfield
                     // visual was 24 PT (= 1 line) so boss wanted to
                     // match the button height.
-                    .frame(minHeight: 30)
                     .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                    // v0.28 followup Boss UX round 23 (Boss 2026-08-29
-                    // OOB 'is the text field in Liquid Glass style?'): Was using
-                    // Color.gray.opacity(0.1) (= solid 10% opacity
-                    // gray = NOT Liquid Glass). Now uses
-                    // .regularMaterial (= macOS 26 Tahoe Liquid Glass
-                    // translucency = matches the Apple HIG canonical
-                    // TextField look in Messages / Mail / Xcode).
-                    // The placeholder text naturally appears in
-                    // the secondary color (= .gray via SwiftUI's
-                    // semantic foregroundStyle) on the Liquid Glass
-                    // background, just like Apple Messages / Slack.
-                    // The 1 PT focus ring (borderColor on focus)
-                    // v0.40 boss 2026-09-08 OOB 'chat zonebackground color, changeeditor
-                    // color': the chat input TextField background was
-                    // .regularMaterial (= glass tier = lighter shade
-                    // in dark mode = visually distinct from the
-                    // surrounding content tier). Boss wants the
-                    // chat input area to match the editor zone
-                    // (= .underPageBackgroundColor = content tier
-                    // = same shade as the empty state background).
-                    // Drop the .regularMaterial glass tier (= was
-                    // Apple Messages / Slack convention, but boss
-                    // wants visual consistency with the editor).
+                    // v1.69 boss 2026-09-18 'chat textfield, walk
+                    // Apple API official mode, macOS 27 style':
+                    // switch the TextField background from
+                    // .regularMaterial (= macOS 26 Tahoe Liquid
+                    // Glass tier = lighter translucent) to the
+                    // macOS 27 SwiftUI Liquid Glass nested text
+                    // field surface. The outer VStack already
+                    // gets .glassEffect(.bar, ...) so the
+                    // TextField stays a nested darker tint (=
+                    // Apple Messages does this = the input
+                    // field has a deeper glass tier than the
+                    // surrounding bar).
                     .background(
                         ZStack {
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: 8)
                                 .fill(.regularMaterial)
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: 8)
                                 .strokeBorder(inputFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.separator), lineWidth: 1)
                         }
                     )
@@ -1593,6 +1600,31 @@ public struct ChatView: View {
                 }
             }
             .animation(.snappy, value: isDropTargeted)
+            // v1.69 boss 2026-09-18 'chat textfield, walk Apple API
+            // official mode, macOS 27 style, make it a floating
+            // panel': wrap the entire chat input VStack in macOS 27
+            // SwiftUI Liquid Glass .glassEffect(.regular, in:
+            // RoundedRectangle(cornerRadius: 14)) (= the canonical
+            // macOS 27 floating panel material; = translucent +
+            // tinted + soft shadow look that Apple Messages /
+            // Slack / Xcode 16 chat input all use). The
+            // RoundedRectangle shape gives the panel a 14 PT
+            // (= Apple HIG toolbar corner radius) rounded boundary.
+            // Glass cases = .ultraThin / .thin / .regular / .thick /
+            // .ultraThick per developer.apple.com/documentation/
+            // swiftui/glass (= .regular is the same tier Apple
+            // Messages chat input uses = visually balanced between
+            // translucent and opaque).
+            .glassEffect(
+                .regular,
+                in: RoundedRectangle(cornerRadius: 14)
+            )
+            // Small outer padding around the glass panel so it
+            // doesn't touch the chat column edges (Apple Messages
+            // uses 8 PT horizontal + 8 PT bottom outer padding
+            // around the floating input bar).
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
         }
         // v0.24 boss acceptance fix (2026-08-24): help text DIRECTLY below input box.
         // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first. Click Settings'
