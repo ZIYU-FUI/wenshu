@@ -537,21 +537,18 @@ public final class ChatViewModel {
         let engine = PlanModeEngine(connector: connector, model: model)
         do {
             let plan = try await engine.run(query: query)
-            let planText = plan.steps
-                .map { "\($0.index). \($0.title): \($0.detail)" }
-                .joined(separator: "\n")
-            // T21-PLAN-I18N (2026-09-18): use localized labels for the
-            // "Plan (via <connector>)" header + "Plan mode failed"
-            // fallback (= both en.lproj + zh-Hans.lproj keys added in
-            // this ticket; = the prior hardcoded English strings are
-            // retired). The %@ format arg gets the connector slug.
-            let viaLabel = WenshuI18n.tf(
-                "chatview.plan.via", plan.connectorID
-            )
+            // T22-PLAN-PART (2026-09-18): surface the plan as a
+            // structured .plan ChatMessagePart (= rendered via
+            // ChatPlanPartView) instead of a plain system text message.
+            // The plan carries query + steps + connectorID + createdAt;
+            // = ChatPlanPartView shows them as a numbered step list with
+            // an Approve button (T20b primitive; = Approve wiring is a
+            // future ticket = T22b).
             messages.append(ChatMessage(
                 role: .system,
                 source: .system,
-                content: "\(viaLabel):\n\(planText)"
+                content: plan.query,
+                parts: [ChatMessagePart.plan(plan)]
             ))
         } catch let error as PlanModeError {
             messages.append(ChatMessage(
