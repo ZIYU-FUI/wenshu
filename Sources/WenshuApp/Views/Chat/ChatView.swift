@@ -403,6 +403,22 @@ public final class ChatViewModel {
         let input = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return }
 
+        // T20c-PLAN-ROUTE (2026-09-18): intercept `/plan <query>` BEFORE
+        // the slash-command path (= /plan is a hub command that needs
+        // engine dispatch + plan rendering, = not a normal skill).
+        // Strategy: extract the query after `/plan ` and call
+        // PlanModeEngine.run() to get a numbered plan. The plan is
+        // surfaced as a system ChatMessage (= the text content
+        // includes the numbered steps; = a future ticket can render
+        // it via the ChatPlanPartView once the plan-as-ChatMessagePart
+        // plumbing lands). This is the lightweight route — keeps the
+        // engine integration self-contained (= no ChatMessagePart
+        // type change required for T20c).
+        if let planQuery = stripPlanPrefix(input) {
+            await runPlanMode(query: planQuery)
+            return
+        }
+
         // CHATBOX-003 (2026-09-04): try @-mention subagent trigger
         // FIRST (= higher priority than slash commands, because @slug
         // syntax is more specific — it names a known sub-agent).
@@ -461,6 +477,87 @@ public final class ChatViewModel {
 
         // No slash match → existing LLM send path.
         await send()
+    }
+
+    // MARK: - T20c-PLAN-ROUTE (2026-09-18): /plan command surface
+
+    /// Returns the query portion of a `/plan <query>` slash
+    /// command (= everything after `/plan `, trimmed). Returns
+    /// nil when the input is not a `/plan` command (= so the
+    /// caller can fall through to the normal slash-command path).
+    /// Recognizes:
+    ///   - `/plan query here`         -> "query here"
+    ///   - `/plan` (no args)           -> nil (= empty query is
+    ///                                    not a valid plan command;
+    ///                                    = fall through to the
+    ///                                    SkillAdapter path which
+    ///                                    will treat it as unknown
+    ///                                    /plan invocation)
+    ///   - `/plans` (extra char)       -> nil (= exact prefix
+    ///                                    match only; = prevents
+    ///                                    accidental collision
+    ///                                    with future /plans
+    ///                                    commands)
+    private func stripPlanPrefix(_ input: String) -> String? {
+        guard input.hasPrefix("/plan") else { return nil }
+        // Exact-match on "/plan" + whitespace (= no args means
+        // the command is invalid for plan-mode; = let SkillAdapter
+        // surface it as an unknown skill).
+        let afterPrefix = input.dropFirst("/plan".count)
+        // Either whitespace (= normal command) or end-of-string
+        // (= no args) is allowed.
+        if afterPrefix.isEmpty {
+            return nil
+        }
+        // First character must be whitespace (= prevents /plans
+        // from matching /plan as a prefix).
+        guard afterPrefix.first == " " else { return nil }
+        let trimmed = afterPrefix.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// Run plan mode for the given query: invoke PlanModeEngine
+    /// (= wraps the current connector + model) and append a
+    /// system ChatMessage containing the plan text. Errors are
+    /// surfaced as a system message too (= so the user sees why
+    /// the plan failed).
+    private func runPlanMode(query: String) async {
+        inputText = ""
+        // Resolve connector + model from the active conductor
+        // (= same source of truth ChatViewModel.send() uses).
+        // The conductor owns a connector actor; = use its
+        // currentModel. We don't currently have direct accessor
+        // for the connector on WenshuConductor, so instantiate
+        // PlanModeEngine with AnthropicConnector (= the conductor's
+        // default) + the current model id. Future tickets may
+        // route through AppState.activeConnector; = out of scope
+        // for T20c.
+        let model = self.currentModel
+        let connector: any LLMConnector = AnthropicConnector()
+        let engine = PlanModeEngine(connector: connector, model: model)
+        do {
+            let plan = try await engine.run(query: query)
+            let planText = plan.steps
+                .map { "\($0.index). \($0.title): \($0.detail)" }
+                .joined(separator: "\n")
+            messages.append(ChatMessage(
+                role: .system,
+                source: .system,
+                content: "Plan (via \(plan.connectorID)):\n\(planText)"
+            ))
+        } catch let error as PlanModeError {
+            messages.append(ChatMessage(
+                role: .system,
+                source: .system,
+                content: error.errorDescription ?? "Plan mode failed."
+            ))
+        } catch {
+            messages.append(ChatMessage(
+                role: .system,
+                source: .system,
+                content: "Plan mode failed: \(error.localizedDescription)"
+            ))
+        }
     }
 
     /// send: send message → Wenshu main agent synthesis
