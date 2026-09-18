@@ -1379,6 +1379,21 @@ public struct ChatView: View {
                 TextField(WenshuI18n.t("auto2.chatview.l858.h59940148"),
                           text: $vm.inputText, axis: .vertical)
                     .lineLimit(1...4)
+                    // v1.71 boss 2026-09-18 'textfield needs to be 3 lines
+                    // tall by default'. Place .frame(minHeight: 96) AFTER
+                    // .lineLimit(1...4) so SwiftUI honors the minimum
+                    // (= the empty-state default height = 96 PT = ~3
+                    // lines of 13 PT font = 32 PT per line × 3). The
+                    // previous v1.70 commit added .frame(minHeight: 72)
+                    // to the surrounding comment block but never wrote
+                    // the actual .frame() modifier (= the empty-state
+                    // height stayed at 1 line; = the boss's screenshot
+                    // showed a single-line textfield). Placing the
+                    // .frame(minHeight: 96) AFTER .lineLimit(1...4)
+                    // (= Apple SwiftUI TextField height resolution order)
+                    // = the empty textfield starts at 96 PT and grows
+                    // up to 4 lines = 128 PT when the user types more.
+                    .frame(minHeight: 96)
                     // v0.40 boss 9/7 OOB ', shouldchat zonedialog
                     // . hint, should /help ': the slash-
                     // command hint (= "/create-book My new novel")
