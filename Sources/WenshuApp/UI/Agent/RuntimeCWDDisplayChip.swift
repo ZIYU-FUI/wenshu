@@ -50,11 +50,14 @@ public struct RuntimeCWDDisplayChip: View {
         .padding(.vertical, DesignTokens.badgePaddingVertical)
         .background(
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
-                .fill(Color.secondary.opacity(0.1))
+                // macOS 27 doc-alignment (audit ticket 8):
+                // HierarchicalShapeStyle.tertiary (= Apple semantic
+                // ShapeStyle; = auto-adapts dark mode + Liquid Glass).
+                .fill(.tertiary.opacity(0.1))
         )
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
-                .stroke(Color.secondary.opacity(DesignTokens.surfaceInactiveBorderAlpha), lineWidth: DesignTokens.surfaceInactiveBorderWidth)
+                .stroke(.tertiary.opacity(DesignTokens.surfaceInactiveBorderAlpha), lineWidth: DesignTokens.surfaceInactiveBorderWidth)
         )
         .task {
             await refreshLabel()
