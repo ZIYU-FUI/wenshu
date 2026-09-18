@@ -1341,9 +1341,21 @@ public struct ChatView: View {
                         vm.clearAttachedImage()
                     }
                 }
-            HStack(alignment: .bottom, spacing: 8) {
-                // v1.28 C3.4.3: extract attach button to ChatAttachButton.swift
-                ChatAttachButton(showingImageImporter: $showingImageImporter, isSending: vm.isSending)
+            // v1.70 boss 2026-09-18 "the 3 buttons don't sit on
+            // the same row as the textfield, looks ugly" +
+            // "default 2-3 lines height": split the chat input
+            // into a 2-row layout (= Apple Messages / Slack
+            // pattern; = TextField on its own row that auto-
+            // grows from a 72 PT baseline up to 4 lines via
+            // .lineLimit(1...4); = the 3 buttons attach / send
+            // / goal on a fixed 30 PT bottom row below it
+            // that stays put while the textfield expands).
+            VStack(alignment: .leading, spacing: 6) {
+                // TextField row (= the expanding editor surface;
+                // = defaults to 72 PT = ~3 lines of 13 PT font
+                // before the user types; = grows up to 4 lines
+                // via .lineLimit(1...4); = Apple Messages /
+                // Slack pattern).
                 // v0.24 boss acceptance fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
@@ -1388,7 +1400,7 @@ public struct ChatView: View {
                     // label is centered within the 30 PT capsule),
                     // use no special alignment (= SwiftUI TextField
                     // axis: .vertical centers content by default
-                    // within the .frame(minHeight: 30) bounds).
+                    // within the .frame(minHeight: 72)  // v1.70 default 2-3 lines: 72 PT = ~3 lines of 13 PT font bounds).
                     // v0.24 boss acceptance fix: disable when no key configured.
                     .disabled(!hasUsableKey)
                     .focused($inputFocused)
@@ -1446,7 +1458,7 @@ public struct ChatView: View {
                     // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
                     // the textfield now has 2 height modes:
                     //
-                    // 1. EMPTY STATE (= no text): .frame(minHeight: 30)
+                    // 1. EMPTY STATE (= no text): .frame(minHeight: 72)  // v1.70 default 2-3 lines: 72 PT = ~3 lines of 13 PT font
                     //    (= matches the Send button at 30 PT so the
                     //    two controls look like the same height when
                     //    there's no text — per Apple HIG canonical
@@ -1462,12 +1474,12 @@ public struct ChatView: View {
                     //    .lineLimit(1...4). The Send button stays
                     //    bottom-anchored via HStack(alignment: .bottom).
                     //
-                    // Why .frame(minHeight: 30) and not .frame(height: LayoutTokens.chromeControlHeight):
+                    // Why .frame(minHeight: 72)  // v1.70 default 2-3 lines: 72 PT = ~3 lines of 13 PT font and not .frame(height: LayoutTokens.chromeControlHeight):
                     // - .frame(height: LayoutTokens.chromeControlHeight) PIN the textfield to 30 PT
                     //   (= LayoutTokens value = 30 PT per v0.28 Apple HIG basis; DesignTokens canonical toolbarBandHeight = 32 PT is the newer canonical).
                     //   regardless of content (= would block the auto-grow
                     //   from round 25).
-                    // - .frame(minHeight: 30) ONLY enforces a minimum
+                    // - .frame(minHeight: 72)  // v1.70 default 2-3 lines: 72 PT = ~3 lines of 13 PT font ONLY enforces a minimum
                     //   (= textfield starts at 30 PT when empty, but
                     //   can grow larger when content is multi-line).
                     //
@@ -1510,35 +1522,21 @@ public struct ChatView: View {
                 // missed these modifiers, = they were still chained off the
                 // ChatSendButton(vm: vm) call site; = per boss '做好清理' principle,
                 // this amendment closes the gap).
-                ChatSendButton(vm: vm)
-                // WIRE-AGENT-003 (2026-09-04): start-long-running-goal
-                // button. ⌘⇧G shortcut per P0 #3 brief. Lives next to
-                // the Send button so the user has both single-turn
-                // (= Send → routeInput → send) and multi-turn Ralph loop
-                // (= ⌘⇧G → startLongRunningGoal → GoalsManager.runGoal)
-                // reachable from the same input row. The button is
-                // disabled when the draft is empty (= no goal text to
-                // run); it does NOT block on isSending because the Ralph
-                // loop runs in background (= the user can keep chatting).
-                // v1.28 C3.4.6: extract Goal button to ChatGoalButton.swift
-                ChatGoalButton(vm: vm)
-                .keyboardShortcut("g", modifiers: [.command, .shift])
-                // v0.28 followup Boss UX round 20 (Boss 2026-08-29 OOB
-                // .padding(.top, DesignTokens.chromePaddingLarge) here (= was misaligning the
-                // button with the TextField because the TextField
-                // had no equivalent top padding = button was 16 PT
-                // below the TextField top edge). Now both TextField
-                // (= 24 PT frame height) and Send button (= 24 PT
-                // frame height) are flush at the HStack top edge
-                // and HStack(alignment: .center) centers them
-                // vertically (= Apple HIG canonical for chat input
-                // rows in Messages / Slack). The 16 PT outer top
-                // margin (= boss 8/26 OOB 'text field top 8PT is not enough, add
-                // another 8') is now applied to the entire HStack
-                // (= both TextField and button offset down together,
-                // = no misalignment).
-                // Apply the outer top margin (= 16 PT = 8 PT existing
-                // + 8 PT new) to the HStack (= not to the button).
+
+                // Button row (= fixed 30 PT height; = 3 buttons
+                // spread across the row width; = Attach on
+                // the left, Send + Goal on the right; =
+                // HStack(alignment: .center) so buttons stay
+                // vertically centered regardless of the
+                // textfield's current height).
+                HStack(alignment: .center, spacing: 8) {
+                    ChatAttachButton(showingImageImporter: $showingImageImporter, isSending: vm.isSending)
+                    Spacer(minLength: 8)
+                    ChatSendButton(vm: vm)
+                    ChatGoalButton(vm: vm)
+                        .keyboardShortcut("g", modifiers: [.command, .shift])
+                }
+                .frame(minHeight: 30)
             }
             }   // CHATIMG-001 (2026-09-07): close inner VStack (preview chip + HStack)
             // v0.28 followup Boss UX round 20: 16 PT outer top margin
