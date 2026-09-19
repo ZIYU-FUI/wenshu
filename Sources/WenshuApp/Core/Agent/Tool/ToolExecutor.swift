@@ -398,3 +398,106 @@ public actor ToolExecutor {
         registry[name]
     }
 }
+
+// MARK: - P6 Hermes-Python gap port (= 1:1 port of hermes
+//         `agent/tool_executor.py` pure helpers).
+//
+// Wenshu-side wins (= per AGENTS.md §11.3):
+//
+// Direct port of hermes `agent/tool_executor.py` per spec
+// §3.1 #12 (= TICKET-HERMES-PARTIAL-003 follow-up). The target
+// file already existed at 400 LOC with full surface
+// (= executeConcurrent + executeSequential + 5 helper
+// functions = wenshu chose an actor-based dispatch
+// architecture per the wenshu-side-wins pattern). This P6
+// ticket adds the 2 hermes pure helpers that are reusable
+// outside the actor (= the runtime-error check + the
+// cancelled-tool-result JSON builder):
+//
+//   1. _is_interpreter_shutdown_submit_error (= hermes L120-L123)
+//   2. _cancelled_tool_result (= hermes L159-L167)
+//
+// These 2 helpers close the audit-described gap
+// (= 6 helpers not ported; = the other 4 are not pure
+// functions and live in the wenshu ToolExecutor actor
+// already).
+//
+// Hermes Python line ranges cited in doc-comments below
+// (= for traceability back to `/Volumes/ANAN/.hermes/agent/
+// tool_executor.py`).
+//
+// Per AGENTS.md §11.3 wenshu-side wins:
+//   - Pre-existing ToolExecutor actor + executeConcurrent +
+//     executeSequential + ShellHookChain + ToolDispatchHookChain
+//     preserved (= Q112 no regressions).
+//   - The interpreter-shutdown check is hermes-specific
+//     (= Python's asyncio interpreter shutdown = "cannot
+//     schedule new futures after interpreter shutdown");
+//     = wenshu uses Swift Concurrency (= no interpreter
+//     shutdown concept); = the check returns false for
+//     any RuntimeError in wenshu (matches hermes behavior
+//     when the wenshu runtime never reaches this state but
+//     the function is preserved for API parity + test
+//     coverage).
+//   - The cancelled-tool-result JSON uses hermes's
+//     canonical shape (= {"error": "Tool execution
+//     cancelled by <reason>", "status": "cancelled"}).
+//
+// Per AGENTS.md §11 hard rule: Apple Foundation only. No
+// third-party imports.
+
+extension ToolExecutor {
+
+    // MARK: -- P6.1 interpreter shutdown check (= hermes L120-L123)
+
+    /// Pure-function: return true when a RuntimeError indicates
+    /// the Python interpreter was shut down (= hermes
+    /// `_is_interpreter_shutdown_submit_error` at
+    /// `agent/tool_executor.py` L120-L123).
+    ///
+    /// This pattern surfaces in hermes when a concurrent
+    /// tool-dispatch Task tries to submit a new future
+    /// after the Python interpreter has begun tearing down
+    /// (= e.g. on Ctrl-C during a parallel batch). The
+    /// hermes match string is `"cannot schedule new futures
+    /// after interpreter shutdown"`.
+    ///
+    /// Wenshu-side wins: Swift Concurrency has no interpreter
+    /// shutdown concept (= actor deinit vs. interpreter
+    /// shutdown are different lifecycles); = the check
+    /// preserves hermes's API shape for API parity but
+    /// returns false in practice (= wenshu RuntimeErrors
+    /// don't carry this signature).
+    public static func isInterpreterShutdownSubmitError(_ error: Error) -> Bool {
+        let message = String(describing: error)
+        return message.contains("cannot schedule new futures after interpreter shutdown")
+    }
+
+    // MARK: -- P6.2 cancelled tool result (= hermes L159-L167)
+
+    /// Pure-function: return the JSON body for a cancelled
+    /// tool result (= hermes `_cancelled_tool_result` at
+    /// `agent/tool_executor.py` L159-L167).
+    ///
+    /// Canonical shape (hermes):
+    /// ```json
+    /// {
+    ///   "error": "Tool execution cancelled by <reason>",
+    ///   "status": "cancelled"
+    /// }
+    /// ```
+    public static func cancelledToolResultJSON(reason: String = "user interrupt") -> String {
+        let dict: [String: Any] = [
+            "error": "Tool execution cancelled by \(reason)",
+            "status": "cancelled",
+        ]
+        guard JSONSerialization.isValidJSONObject(dict),
+              let data = try? JSONSerialization.data(
+                  withJSONObject: dict,
+                  options: [.fragmentsAllowed]
+              ) else {
+            return "{}"
+        }
+        return String(data: data, encoding: .utf8) ?? "{}"
+    }
+}
