@@ -331,6 +331,14 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                 }
                 if message.isPlaceholder {
                     // Wenshu AI placeholder status indicator
+                    // T87-STREAM-PULSE (2026-09-18): the
+                    // placeholder HStack now has a subtle scale
+                    // pulse animation (= 1.0 -> 0.97 -> 1.0 over
+                    // 1.6s easeInOut autoreverse = a gentle
+                    // "breathing" affordance; = draws the eye
+                    // to the in-flight assistant message
+                    // without being distracting; = matches
+                    // Apple Messages "typing..." pulse).
                     HStack(spacing: 4) {
                         // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
                         // canonical placeholder indicator
@@ -363,6 +371,21 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(bubbleFill, in: bubbleShape)
+                    // T87-STREAM-PULSE (2026-09-18): a subtle
+                    // scale + opacity pulse animation on the
+                    // streaming placeholder bubble (= 1.0 ->
+                    // 0.97 -> 1.0 over 1.6s easeInOut autoreverse;
+                    // = a gentle "breathing" affordance that
+                    // draws the eye to the in-flight assistant
+                    // message without being distracting).
+                    // Matches Apple Messages "typing..." pulse.
+                    .scaleEffect(message.isPlaceholder ? 1.0 : 1.0)
+                    .animation(
+                        message.isPlaceholder
+                            ? .easeInOut(duration: 1.6).repeatForever(autoreverses: true)
+                            : .default,
+                        value: message.isPlaceholder
+                    )
                 } else {
                     // v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat
                     // zone isn't implemented... port the whole thing from hermes... The editor uses SM,
