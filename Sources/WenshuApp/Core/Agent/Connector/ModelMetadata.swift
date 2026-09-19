@@ -330,4 +330,90 @@ public struct WenshuModelCatalog: Sendable, Equatable {
         }
         return total
     }
+
+    // MARK: - H7 Hermes-Python gap port (= 1:1 port of hermes
+    //         `agent/chat_completion_helpers.py` `estimate_request_context_tokens`).
+    //
+    // Wenshu-side wins (= per AGENTS.md §11.3):
+    //
+    // Direct port of hermes `agent/chat_completion_helpers.py` per
+    // spec §3.1 #26 (= TICKET-HERMES-GAP-001 follow-up). The target
+    // file already had the basic `estimateTokensRough` + `estimateMessagesTokensRough`
+    // (= ⚠️ partial per gap audit 2026-09-04 = wenshu-side wins =
+    // the per-text + per-message-list estimators). This H7 ticket
+    // adds `estimateRequestContextTokens(_:)` (= 53 LOC hermes at
+    // L66-L117) which handles the request-payload-level estimate
+    // (= Chat Completions + Responses API + bare list + dict
+    // fallback).
+    //
+    // The remaining 14 hermes functions in chat_completion_helpers.py
+    // (= interruptible_api_call / build_api_kwargs /
+    // build_assistant_message / try_activate_fallback /
+    // handle_max_iterations / cleanup_task_resources /
+    // interruptible_streaming_api_call / etc.) are intentionally
+    // NOT ported in this ticket — they fall into separate wenshu-side
+    // wins patterns (= ConversationLoop owns the request-building
+    // + interruptible-call concerns; = per Q112 = one ticket per
+    // file).
+    //
+    // Hermes Python line range cited in doc-comment below (= for
+    // traceability back to `/Volumes/ANAN/.hermes/agent/
+    // chat_completion_helpers.py`).
+
+    /// Pure-function: estimate context/load tokens from an API
+    /// payload (= dict or messages list) (= hermes
+    /// `estimate_request_context_tokens` at
+    /// `agent/chat_completion_helpers.py` L66-L117).
+    ///
+    /// Handles 4 shapes:
+    ///   1. bare list -> treat as Chat Completions ``messages``
+    ///   2. dict with ``messages`` -> Chat Completions (+ ``tools`` if present)
+    ///   3. dict with ``input`` -> Responses API (+ ``instructions``/``tools``)
+    ///   4. any other dict -> fall back to summing string values
+    public static func estimateRequestContextTokens(_ apiPayload: Any) -> Int {
+        func chars(_ value: Any) -> Int {
+            if value is NSNull { return 0 }
+            if let s = value as? String { return s.count }
+            if let n = value as? NSNumber { return n.stringValue.count }
+            if let arr = value as? [Any] {
+                return arr.reduce(0) { $0 + chars($1) }
+            }
+            if let dict = value as? [String: Any] {
+                return dict.values.reduce(0) { $0 + chars($1) }
+            }
+            return String(describing: value).count
+        }
+
+        func messageChars(_ messages: Any) -> Int {
+            if let arr = messages as? [Any] {
+                return arr.reduce(0) { $0 + chars($1) }
+            }
+            return chars(messages)
+        }
+
+        if let messages = apiPayload as? [Any] {
+            return messageChars(messages) / 4
+        }
+
+        if let dict = apiPayload as? [String: Any] {
+            if let messages = dict["messages"] as? [Any] {
+                var totalChars = messageChars(messages)
+                if let tools = dict["tools"] {
+                    totalChars += chars(tools)
+                }
+                return totalChars / 4
+            }
+
+            if dict["input"] != nil {
+                let totalChars = chars(dict["input"] ?? NSNull())
+                    + chars(dict["instructions"] ?? NSNull())
+                    + chars(dict["tools"] ?? NSNull())
+                return totalChars / 4
+            }
+
+            return dict.values.reduce(0) { $0 + chars($1) } / 4
+        }
+
+        return chars(apiPayload) / 4
+    }
 }
