@@ -1957,6 +1957,23 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T69-EDIT-SHORTCUT (2026-09-18): ⌘⇧E = edit
+            // the last user message (= sets input text to
+            // the most recent user message + focuses the
+            // input for editing). Useful when the user
+            // wants to tweak their prompt and resend
+            // (= the inverse of T59 RELOAD which just
+            // resends the original text).
+            Button("Edit last user message") {
+                if let lastUserText = vm.messages.last(where: { $0.source == .user })?.content {
+                    vm.inputText = lastUserText
+                    inputFocused = true
+                }
+            }
+            .keyboardShortcut("e", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // v0.28 followup Boss UX round 20: 16 PT outer top margin
             // moved from .padding(.top, DesignTokens.chromePaddingLarge) on the button (= was
             // misaligning the button with TextField) to the HStack
