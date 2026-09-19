@@ -56,6 +56,7 @@ public struct ChatTextPartView: View {
     public let text: String
     public let isOutgoing: Bool
     public let isStreaming: Bool
+    @State private var isCursorOn: Bool = true
 
     public init(text: String, isOutgoing: Bool, isStreaming: Bool = false) {
         self.text = text
@@ -71,13 +72,36 @@ public struct ChatTextPartView: View {
         // `.inlineOnlyPreservingWhitespace` blocks are excluded (= those
         // would require a full markdown renderer = out of scope for this
         // batch).
-        Text(Self.parseMarkdown(text))
-            .textSelection(.enabled)
-            // Streaming replies grow token by token. The default Text
-            // transition re-renders the whole run; this one interpolates
-            // so the bubble does not flicker on every chunk.
-            .contentTransition(isStreaming ? .interpolate : .identity)
-            .foregroundStyle(isOutgoing ? Color(nsColor: .windowBackgroundColor) : Color.primary)
+        //
+        // T42-STREAM-CURSOR (2026-09-18): when isStreaming, render the
+        // text with a trailing blinking cursor (▎) at the end. The
+        // cursor's on/off state oscillates via a TimelineView
+        // (= .periodic(from: .now, by: 0.5)) so it blinks every 0.5s
+        // (= matches the Apple Messages / Slack typing indicator
+        // cadence). Hidden when isStreaming = false (= the message is
+        // sealed; = no cursor).
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text(Self.parseMarkdown(text))
+                .textSelection(.enabled)
+                // Streaming replies grow token by token. The default Text
+                // transition re-renders the whole run; this one interpolates
+                // so the bubble does not flicker on every chunk.
+                .contentTransition(isStreaming ? .interpolate : .identity)
+                .foregroundStyle(isOutgoing ? Color(nsColor: .windowBackgroundColor) : Color.primary)
+            if isStreaming {
+                // T42 blinking caret (= white-on-cursor / vertical bar)
+                TimelineView(.periodic(from: .now, by: 0.5)) { context in
+                    // Toggle visibility every 0.5s (= matches Apple's
+                    // text-cursor cadence in NSTextView).
+                    let elapsed = context.date.timeIntervalSinceReferenceDate
+                    let phase = Int(elapsed / 0.5) % 2 == 0
+                    Text("▎")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(isOutgoing ? Color(nsColor: .windowBackgroundColor) : Color.primary)
+                        .opacity(phase ? 1.0 : 0.0)
+                }
+            }
+        }
     }
 
     /// Parse the text as inline markdown (= canonical SwiftUI path).
