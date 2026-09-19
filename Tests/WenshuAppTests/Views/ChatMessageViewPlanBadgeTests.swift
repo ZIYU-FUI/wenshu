@@ -15,13 +15,16 @@ import Foundation
 struct ChatMessageViewPlanBadgeTests {
 
     /// T23 contract: ChatMessageView source contains the PLAN
-    /// badge Text + the messageHasPlanPart guard.
+    /// badge Text (= with the T28 hover-expand ternary).
     @Test func source_contains_plan_badge_text() throws {
         let source = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
             encoding: .utf8
         )
-        #expect(source.contains("Text(\"PLAN\")"))
+        // T28-PLAN-BADGE-EXPAND made the badge text a hover-state
+        // ternary; = the literal "PLAN" still appears in the
+        // non-hovered branch (= preserved from T23).
+        #expect(source.contains("\"PLAN\""))
     }
 
     /// T23 contract: the badge appears ONLY when the message has
