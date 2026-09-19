@@ -2032,6 +2032,30 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T77-REGEN-SHORTCUT (2026-09-18): ⌘⇧G =
+            // regenerate last assistant message (= re-runs
+            // the LLM with the same prompt as the most
+            // recent user message; = the "regenerate reply"
+            // affordance that Apple Pages / Xcode call
+            // "regenerate"). For wenshu, ⌘⇧G = discard the
+            // last assistant reply and produce a new one
+            // with the same user prompt.
+            Button("Regenerate last assistant") {
+                if let lastUserText = vm.messages.last(where: { $0.source == .user })?.content {
+                    // Remove the last assistant message (= the
+                    // one the user wants to regenerate).
+                    if let lastAssistantIndex = vm.messages.lastIndex(where: { $0.source == .wenshu }) {
+                        vm.messages.remove(at: lastAssistantIndex)
+                    }
+                    // Re-send the user's last prompt.
+                    vm.inputText = lastUserText
+                    Task { await vm.send() }
+                }
+            }
+            .keyboardShortcut("g", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
