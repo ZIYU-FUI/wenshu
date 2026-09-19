@@ -1869,6 +1869,21 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T48-NEW-CHAT-SHORTCUT (2026-09-18): ⌘N = new chat
+            // (= the standard macOS File > New shortcut; = matches
+            // Pages / TextEdit / Xcode behavior). Wenshu's chat is
+            // a single-session at a time (= no session tab bar in
+            // v0.x; = ⌘N clears the current chat AND starts a new
+            // session). Same hidden-Button pattern as T37
+            // (= .frame(0,0) + .opacity(0) + .accessibilityHidden).
+            Button("New chat") {
+                vm.startNewSession()
+                inputFocused = true
+            }
+            .keyboardShortcut("n", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // v0.28 followup Boss UX round 20: 16 PT outer top margin
             // moved from .padding(.top, DesignTokens.chromePaddingLarge) on the button (= was
             // misaligning the button with TextField) to the HStack
