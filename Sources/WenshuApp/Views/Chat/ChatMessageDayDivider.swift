@@ -38,8 +38,18 @@ public struct ChatMessageDayDivider: View {
     }
 
     public var body: some View {
-        HStack {
-            Spacer(minLength: 0)
+        HStack(spacing: 6) {
+            // T56-DAY-ICON (2026-09-18): a small SF Symbol calendar
+            // icon prefix for the day-divider label (= "📅
+            // Today" / "📅 Mon 9/14"). The icon uses .secondary
+            // tone (= matches the label's tone) and .caption2
+            // (= slightly smaller than the label's .caption).
+            // Provides a visual cue that the divider is a
+            // date marker (= the SF Symbol is the canonical
+            // Apple HIG date affordance).
+            Image(systemName: "calendar")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
