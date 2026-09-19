@@ -2115,6 +2115,23 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T79-CLEAR-CHAT (2026-09-18): ⌘⇧K = clear chat
+            // (= the standard Apple Safari "Clear History"
+            // shortcut; = in wenshu = wipe all messages and
+            // reset the conversation). Different from T48
+            // ⌘N (= new chat session) which also calls
+            // vm.startNewSession (= also clears). The
+            // ⌘⇧K shortcut is an explicit "clear" affordance
+            // (= doesn't go through startNewSession's
+            // sessionId rotation; = just empties messages).
+            Button("Clear chat") {
+                vm.messages.removeAll()
+                vm.inputText = ""
+            }
+            .keyboardShortcut("k", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
