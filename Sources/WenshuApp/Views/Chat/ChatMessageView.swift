@@ -251,6 +251,18 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 .font(.system(size: 6, weight: .bold))
                                 .foregroundStyle(.green)
                         }
+                        // T73-USER-SENT-ICON (2026-09-18): a small
+                        // "paperplane.fill" SF Symbol for user-sent
+                        // messages (= "sent" affordance; = matches
+                        // Apple Messages' delivered-status icon
+                        // for outgoing bubbles). Mirror of T71: T71
+                        // is for wenshu (= delivery receipt), T73
+                        // is for user (= sent confirmation).
+                        if message.source == .user {
+                            Image(systemName: "paperplane.fill")
+                                .font(.system(size: 9, weight: .regular))
+                                .foregroundStyle(.secondary)
+                        }
                         Text(sourceLabel)
                             .font(.caption)
                             .foregroundStyle(.secondary)
