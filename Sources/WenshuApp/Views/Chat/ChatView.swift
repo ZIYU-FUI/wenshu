@@ -2599,6 +2599,20 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T115-NEXT-CHAT-SHORTCUT (2026-09-18): ⌘]
+            // = "next chat" (= pairs with T114 ⌘[;
+            // = the standard Safari "Next Tab" shortcut).
+            // Hidden Button pattern.
+            Button("Next chat") {
+                NSLog("[wenshu.chat] next-chat requested (\(vm.messages.count) messages in current)")
+                // Future ticket: wire to the same
+                // ConversationList model as T114 (= switch
+                // to the chat at vm.currentIndex + 1).
+            }
+            .keyboardShortcut("]", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
