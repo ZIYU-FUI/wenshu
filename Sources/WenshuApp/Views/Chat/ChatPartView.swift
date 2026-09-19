@@ -365,12 +365,27 @@ public struct ChatToolUsePartView: View {
     }
 
     /// Card background (= thin tint that respects the surrounding
-    /// bubble color).
+    /// bubble color AND the tool's status).
+    /// T46-CARD-STATUS-TINT (2026-09-18): when status = .complete,
+    /// the card fill gets a subtle green tint (= success). When
+    /// status = .error, a subtle red tint. Running + outgoing are
+    /// unchanged.
+    ///   - running:  no tint (= original neutral quaternary)
+    ///   - complete: green.opacity(0.06)
+    ///   - error:    red.opacity(0.06)
+    ///   - outgoing user bubble: windowBackground tint preserved
     private var toolCardFill: AnyShapeStyle {
         if isOutgoing {
             return AnyShapeStyle(Color(nsColor: .windowBackgroundColor).opacity(0.12))
         }
-        return AnyShapeStyle(.quaternary.opacity(0.5))
+        switch toolUse.status {
+        case .running:
+            return AnyShapeStyle(.quaternary.opacity(0.5))
+        case .complete:
+            return AnyShapeStyle(Color.green.opacity(0.06))
+        case .error:
+            return AnyShapeStyle(Color.red.opacity(0.06))
+        }
     }
 
     /// Border color (= matches the status dot color at low opacity).
