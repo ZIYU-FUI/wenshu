@@ -2219,6 +2219,25 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T92-HISTORY-SHORTCUT (2026-09-18): ⌘Y
+            // = "history" (= the standard Apple Mail
+            // Show History shortcut; = in wenshu =
+            // NSLogs a history-view intent; = a future
+            // ticket can wire it to a real SwiftUI
+            // .sheet that shows the conversation
+            // metadata = message count, first message
+            // timestamp, total token usage, etc.).
+            // Hidden Button pattern.
+            Button("Show conversation history") {
+                let firstTs = vm.messages.first?.timestamp
+                let lastTs = vm.messages.last?.timestamp
+                let totalTokens = vm.messages.compactMap { $0.tokens }.reduce(0, +)
+                NSLog("[wenshu.history] \(vm.messages.count) messages · \(totalTokens) tokens · first: \(String(describing: firstTs)) · last: \(String(describing: lastTs))")
+            }
+            .keyboardShortcut("y", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
