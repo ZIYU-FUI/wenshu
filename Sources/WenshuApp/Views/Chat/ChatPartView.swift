@@ -321,6 +321,24 @@ public struct ChatToolUsePartView: View {
                 Text(toolUse.name)
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
+                // T47-TOOL-DURATION (2026-09-18): show the tool
+                // execution duration when present (= e.g. "1.2s" /
+                // "234ms"). Appended inline after the tool name with
+                // a · separator (= Apple HIG metadata pattern).
+                // Hidden when:
+                //   - status != .complete / .error (= the tool is
+                //     still running; = no duration yet)
+                //   - durationSeconds is nil (= legacy tool calls
+                //     without the duration field)
+                if let duration = toolUse.durationSeconds,
+                   toolUse.status != .running {
+                    Text("·")
+                        .font(.caption2)
+                        .foregroundStyle(.quaternary)
+                    Text(Self.formatDuration(duration))
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                }
                 Spacer(minLength: 0)
                 // Expand toggle (= click anywhere on the card; = the
                 // Hermes ToolFallback uses a `ScaffoldRow` click target).
@@ -472,6 +490,25 @@ public struct ChatToolUsePartView: View {
         case .complete: return "checkmark"
         case .error: return "xmark"
         }
+    }
+
+    /// T47-TOOL-DURATION (2026-09-18): format a tool execution
+    /// duration in seconds as a human-readable string.
+    ///   - < 1 second  → "234ms" (millisecond precision)
+    ///   - < 60 seconds → "1.2s" (one decimal)
+    ///   - >= 60 seconds → "2m 5s" (minutes + seconds)
+    /// nonisolated (= pure utility function).
+    nonisolated static func formatDuration(_ seconds: Double) -> String {
+        if seconds < 1.0 {
+            let ms = Int(seconds * 1000)
+            return "\(ms)ms"
+        }
+        if seconds < 60.0 {
+            return String(format: "%.1fs", seconds)
+        }
+        let minutes = Int(seconds / 60)
+        let remainingSeconds = Int(seconds.truncatingRemainder(dividingBy: 60))
+        return "\(minutes)m \(remainingSeconds)s"
     }
 
     /// T45-STATUS-PULSE (2026-09-18): true when the tool call is
