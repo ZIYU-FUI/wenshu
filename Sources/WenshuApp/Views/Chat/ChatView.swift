@@ -2518,6 +2518,24 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T110-LIST-SHORTCUT (2026-09-18): ⌘; =
+            // "insert bulleted list" (= a wenshu-specific
+            // shortcut; = in wenshu = prefixes each line
+            // of vm.inputText with "- " for Markdown
+            // bullet list = matches the standard Apple
+            // Pages Insert List affordance).
+            // Hidden Button pattern.
+            Button("Wrap selection in bullet list") {
+                let current = vm.inputText
+                let lines = current.split(separator: "\n", omittingEmptySubsequences: false)
+                let listed = lines.map { "- \($0)" }.joined(separator: "\n")
+                vm.inputText = listed
+                NSLog("[wenshu.list] wrapped \(current.count) chars in - bullet list")
+            }
+            .keyboardShortcut(";", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
