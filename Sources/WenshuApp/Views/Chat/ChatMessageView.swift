@@ -36,6 +36,10 @@ struct ChatMessageView: View {
     /// still read the plan, they just can't re-invoke).
     let onApprovePlan: ((Plan) -> Void)?
     @State private var thinkingExpanded: Bool = false
+    /// T26-HOVER-TIMESTAMP (2026-09-18): true when the user is
+    /// hovering the timestamp footer (= expands the time to a full
+    /// date; = Apple Messages hover affordance).
+    @State private var isTimestampHovered: Bool = false
 
     public init(
         message: ChatMessage,
@@ -89,6 +93,20 @@ struct ChatMessageView: View {
         // 1.2M, 234M (= one decimal)
         let m = Double(count) / 1_000_000.0
         return String(format: "%.1fM tokens", m)
+    }
+
+    /// T26-HOVER-TIMESTAMP (2026-09-18): Date.FormatStyle for the
+    /// timestamp footer. Compact form by default (= "14:32");
+    /// expanded form on hover (= "14:32 · 9月18日"). Apple's
+    /// Date.FormatStyle uses the system locale (= automatically
+    /// picks the user's preferred date format).
+    private var timestampDisplayFormat: Date.FormatStyle {
+        if isTimestampHovered {
+            return .dateTime
+                .hour().minute()
+                .day().month()
+        }
+        return .dateTime.hour().minute()
     }
 
     var body: some View {
@@ -300,9 +318,18 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         // T19-MESSAGE-TIMESTAMP (2026-09-18): time footer
                         // (= same Apple HIG footer pattern as Apple Messages
                         // = small monospaced text below the bubble).
-                        Text(message.timestamp, format: .dateTime.hour().minute())
+                        // T26-HOVER-TIMESTAMP (2026-09-18): on hover,
+                        // expand the time to a full date (= "14:32" ->
+                        // "14:32 · 9月18日"). Matches Apple Messages' hover
+                        // affordance (= hovering a timestamp reveals
+                        // the full date). Uses .onHover + @State
+                        // to toggle the display format.
+                        Text(message.timestamp, format: timestampDisplayFormat)
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
+                            .onHover { hovering in
+                                isTimestampHovered = hovering
+                            }
                         // T25-TOKEN-FOOTER (2026-09-18): token count footer
                         // (= LLM API usage.total_tokens = input + output).
                         // Hidden when:
