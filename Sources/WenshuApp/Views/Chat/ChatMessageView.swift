@@ -323,6 +323,26 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(Color.accentColor)
+                            // T99-USER-READ-RECEIPT (2026-09-18):
+                            // a 2nd small "checkmark" SF
+                            // Symbol AFTER the T88 single
+                            // checkmark (= Apple Messages
+                            // double-checkmark "delivered"
+                            // affordance; = visually pairs
+                            // with the read-receipt pattern
+                            // for assistant messages; = the
+                            // user message shows "sent +
+                            // delivered" before the assistant
+                            // shows its own read receipt).
+                            // Uses a slightly smaller font
+                            // size (= the second checkmark
+                            // visually nests under the first)
+                            // and Color.accentColor (= matches
+                            // T88).
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 7, weight: .semibold))
+                                .foregroundStyle(Color.accentColor.opacity(0.7))
+                                .offset(x: -3, y: 1)
                         }
                         Text(sourceLabel)
                             .font(.caption)
