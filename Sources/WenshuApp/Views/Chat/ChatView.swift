@@ -2497,6 +2497,27 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T109-WORD-COUNT-SHORTCUT (2026-09-18):
+            // ⌥W = "word count" (= the standard
+            // Microsoft Word Word Count shortcut; = in
+            // wenshu = NSLogs the total word count of
+            // all messages + the per-message word count
+            // for the last sealed message).
+            // Hidden Button pattern.
+            Button("Show word count") {
+                let totalWords = vm.messages
+                    .map { $0.content.split(separator: " ").count }
+                    .reduce(0, +)
+                let lastAssistantWords = vm.messages.last(where: { $0.source == .wenshu })?
+                    .content
+                    .split(separator: " ")
+                    .count ?? 0
+                NSLog("[wenshu.wordcount] total: \(totalWords) words across \(vm.messages.count) messages · last assistant: \(lastAssistantWords) words")
+            }
+            .keyboardShortcut("w", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
