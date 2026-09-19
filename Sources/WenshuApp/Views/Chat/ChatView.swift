@@ -2382,6 +2382,31 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T104-APPEND-SHORTCUT (2026-09-18): ⌥A
+            // = "append last assistant to input" (= a
+            // wenshu-specific shortcut; = in wenshu =
+            // appends the LAST sealed assistant message
+            // content to the current chat input text; =
+            // the user can then edit before sending).
+            // Pairs with T85 ⌥C copy-last-sealed +
+            // T103 ⌥S save-selection = the ⌥-modifier
+            // triple for chat input affordances.
+            // Hidden Button pattern.
+            Button("Append last assistant to input") {
+                if let lastAssistant = vm.messages.last(where: { $0.source == .wenshu && !$0.isPlaceholder })?.content {
+                    if vm.inputText.isEmpty {
+                        vm.inputText = lastAssistant
+                    } else {
+                        vm.inputText += "\n\n" + lastAssistant
+                    }
+                    inputFocused = true
+                    NSLog("[wenshu.append] appended \(lastAssistant.count) chars to input")
+                }
+            }
+            .keyboardShortcut("a", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
