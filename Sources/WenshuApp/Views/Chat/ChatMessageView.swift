@@ -280,6 +280,22 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             Image(systemName: "link")
                                 .font(.system(size: 9, weight: .regular))
                                 .foregroundStyle(.tertiary)
+                            // T111-FLASK-ICON (2026-09-18): a
+                            // small "flask.fill" SF Symbol
+                            // next to the T90 link icon (= the
+                            // Apple HIG "experiment/test"
+                            // affordance; = visually marks
+                            // this response as a trial or
+                            // experimental answer; = matches
+                            // the standard SF Symbols lab
+                            // glass icon).
+                            // Icon uses .system(size: 9) +
+                            // .tertiary tone (= matches T90
+                            // link icon style; = the two
+                            // together form a small icon pair).
+                            Image(systemName: "flask.fill")
+                                .font(.system(size: 9, weight: .regular))
+                                .foregroundStyle(.tertiary)
                         }
                         // T73-USER-SENT-ICON (2026-09-18): a small
                         // "paperplane.fill" SF Symbol for user-sent
