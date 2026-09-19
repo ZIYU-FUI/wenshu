@@ -277,6 +277,22 @@ public struct ChatToolUsePartView: View {
                 Circle()
                     .fill(statusColor)
                     .frame(width: 6, height: 6)
+                // T43-TOOL-ICON-SF (2026-09-18): a small SF Symbol
+                // icon that visualises the tool kind (= replaces the
+                // bare tool-name text with a leading glyph). The
+                // icon map covers the wenshu tool categories:
+                //   - ReadFileTool / ListDir / Search → "magnifyingglass"
+                //   - WriteFile / Edit / Append      → "square.and.pencil"
+                //   - Shell / Process                → "terminal"
+                //   - Calculator / Math              → "function"
+                //   - Web fetch                      → "globe"
+                //   - Default (unknown tool)         → "wrench.and.screwdriver"
+                // Falls back to "wrench.and.screwdriver" for tools
+                // not in the map (= forward-compat for new tools).
+                Image(systemName: Self.iconName(for: toolUse.name))
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 14)
                 // Tool name in monospaced font (= the wenshu convention
                 // for tool identifiers = matches the chat input's
                 // `/command` autocomplete rendering).
@@ -354,6 +370,53 @@ public struct ChatToolUsePartView: View {
             return raw
         }
         return s
+    }
+
+    /// T43-TOOL-ICON-SF (2026-09-18): map a tool name to a SF
+    /// Symbol that visually identifies the tool kind. The map
+    /// covers the standard wenshu tool categories; = unknown
+    /// tools fall through to the generic wrench glyph.
+    ///
+    /// Mapping strategy:
+    ///   - Prefix-based for `*Tool` naming convention (= the
+    ///     standard wenshu / hermes-port convention).
+    ///   - Keyword-based for tools that don't follow the convention
+    ///     (= e.g. "shell" matches both "RunShellTool" and "Shell").
+    nonisolated static func iconName(for toolName: String) -> String {
+        let lower = toolName.lowercased()
+        // Image / media (= photo) = checked FIRST so that
+        // 'photo_edit' matches photo (= the edit suffix would
+        // otherwise catch it as write/edit).
+        if lower.contains("image") || lower.contains("media") || lower.contains("photo") {
+            return "photo"
+        }
+        // Read tools (= magnifying glass = data lookup)
+        if lower.contains("read") || lower.contains("list") || lower.contains("search")
+            || lower.contains("find") || lower.contains("query") || lower.contains("grep") {
+            return "magnifyingglass"
+        }
+        // Write / edit tools (= pencil = mutation)
+        if lower.contains("write") || lower.contains("edit") || lower.contains("append")
+            || lower.contains("create") || lower.contains("delete") || lower.contains("move") {
+            return "square.and.pencil"
+        }
+        // Shell / process (= terminal)
+        if lower.contains("shell") || lower.contains("process") || lower.contains("exec")
+            || lower.contains("bash") || lower.contains("command") {
+            return "terminal"
+        }
+        // Calculator / math (= function notation)
+        if lower.contains("calc") || lower.contains("math") || lower.contains("eval") {
+            return "function"
+        }
+        // Web tools (= globe)
+        if lower.contains("web") || lower.contains("fetch") || lower.contains("http")
+            || lower.contains("url") {
+            return "globe"
+        }
+        // Fallback (= generic tool glyph = Apple HIG "Settings"
+        // equivalent for unknown tools).
+        return "wrench.and.screwdriver"
     }
 }
 
