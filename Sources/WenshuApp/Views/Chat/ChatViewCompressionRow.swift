@@ -38,8 +38,11 @@ enum ChatViewCompressionRowFormatter {
         return "\(countStr) / \(thresholdStr) tokens (\(percent)%)"
     }
 
-    /// T31 helper: compact token count (= "1.5k", "234", "12.3k").
-    nonisolated private static func formatCompactTokenCount(_ count: Int) -> String {
+    /// T33 helper: compact token count (= "1.5k", "234", "12.3k").
+    /// Public (= not private) so the ChatViewCompressionRow view body
+    /// can call it directly for the below-threshold always-visible
+    /// label (= T33).
+    nonisolated static func formatCompactTokenCount(_ count: Int) -> String {
         if count < 1_000 { return "\(count)" }
         if count < 10_000 {
             return String(format: "%.1fk", Double(count) / 1_000.0)
@@ -61,10 +64,16 @@ public struct ChatViewCompressionRow: View {
     }
 
     public var body: some View {
-        // Show row when context exceeds threshold OR when a compression
-        // summary is set (= either threshold warning or post-compress pill).
-        let showRow = vm.contextUsed >= contextCompressionThreshold || compressionSummary != nil
-        if showRow {
+        // T33-ALWAYS-SHOW-COMPRESSION (2026-09-18): show the row
+        // whenever there are messages in the conversation (= not
+        // only when context exceeds the threshold). The threshold
+        // gate (= > 30k) only triggers the orange warning style;
+        // below the threshold we show a quiet "N tokens used" label
+        // so the user always has a live context budget indicator.
+        // = matches the Apple Mail attachment-size badge (= always
+        // visible = the user always knows how much room they have).
+        let hasMessages = !vm.messages.isEmpty
+        if hasMessages {
             HStack(spacing: DesignTokens.chromePaddingMicro) {
                 if let summary = compressionSummary {
                     // Compression status pill (🟨)
@@ -77,8 +86,8 @@ public struct ChatViewCompressionRow: View {
                             .regularMaterial,
                             in: Capsule()
                         )
-                } else {
-                    // Threshold warning
+                } else if vm.contextUsed >= contextCompressionThreshold {
+                    // Threshold warning (= orange style).
                     // T31-CONTEXT-PERCENTAGE (2026-09-18): the text now
                     // includes a live percentage of the compression
                     // budget (= e.g. "💡 1.5k / 30k tokens (5%)"). The
@@ -88,6 +97,14 @@ public struct ChatViewCompressionRow: View {
                     Text(ChatViewCompressionRowFormatter.formatContextUsage(vm.contextUsed, threshold: contextCompressionThreshold))
                     .font(DesignTokens.statusFont)
                     .foregroundStyle(.orange)
+                } else {
+                    // T33-ALWAYS-SHOW-COMPRESSION (2026-09-18): below the
+                    // threshold, show a quiet "N tokens used" label in
+                    // .secondary tone (= the user always sees the live
+                    // context budget, not just the orange warning).
+                    Text(ChatViewCompressionRowFormatter.formatCompactTokenCount(vm.contextUsed) + " tokens used")
+                    .font(DesignTokens.statusFont)
+                    .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Button {
