@@ -543,6 +543,19 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             // order-of-magnitude is right (= the
                             // user gets a sense of "this cost
                             // cents vs dollars").
+                            //
+                            // T64-DOLLAR-ICON (2026-09-18): a small
+                            // "$" SF Symbol prefix for the cost
+                            // label (= Apple HIG metadata icon
+                            // affordance). The icon uses .caption2 +
+                            // .quaternary tone (= matches the T63
+                            // 'number' icon style = visual
+                            // consistency). Icon placed BEFORE
+                            // the cost text (= Apple HIG metadata
+                            // icon convention).
+                            Image(systemName: "dollarsign.circle")
+                                .font(.caption2)
+                                .foregroundStyle(.quaternary)
                             Text(Self.formatTokenCost(tokens))
                                 .font(.system(.caption2, design: .monospaced))
                                 .foregroundStyle(.quaternary)
