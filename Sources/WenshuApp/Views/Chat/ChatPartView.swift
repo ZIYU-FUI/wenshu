@@ -727,6 +727,13 @@ private struct ChatPartRow: View {
         switch part.kind {
         case .text(let s):
             ChatTextPartView(text: s, isOutgoing: isOutgoing, isStreaming: isStreaming)
+                // T49-TEXT-FADEIN (2026-09-18): apply the same
+                // appear-from-top transition as T40 reasoning parts
+                // + T41 tool parts. Text parts also fade in when
+                // they appear in a streaming message (= each text
+                // chunk = the model "typing" = visual feedback that
+                // streaming is alive).
+                .transition(.wenshuThinkingAppear())
         case .reasoning(let s):
             ChatReasoningPartView(text: s, isRunning: isStreaming)
                 // T40-THINKING-FADEIN (2026-09-18): when a reasoning
