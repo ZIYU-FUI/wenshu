@@ -152,6 +152,21 @@ public struct ChatMessageDayDivider: View {
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(Color.accentColor)
                         .offset(x: 4, y: 4)
+                    // T97-LIVE-DOT (2026-09-18): a small
+                    // "circle.fill" SF Symbol overlay at the
+                    // bottom-left of the calendar icon (=
+                    // Apple HIG "live/now" affordance; =
+                    // visually marks today as "currently
+                    // happening"). Uses Color.green for the
+                    // live dot tint (= the universal "live"
+                    // color = matches Apple Notes "now"
+                    // indicator). Pinned bottom-left (= the
+                    // third in the T60+T89+T97 badge cluster
+                    // on today's calendar icon).
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 5, weight: .bold))
+                        .foregroundStyle(.green)
+                        .offset(x: -3, y: 3)
                 }
             }
             Text(label)
