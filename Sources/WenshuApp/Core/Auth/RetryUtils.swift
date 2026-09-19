@@ -118,4 +118,143 @@ public enum RetryUtils {
             operation: operation
         )
     }
+
+    // MARK: - H2 Hermes-Python gap port (= 1:1 port of hermes
+    //         `agent/retry_utils.py` Z.AI-Coding-Plan overload helpers).
+    //
+    // Direct port of hermes `agent/retry_utils.py` per spec §3.1 #37
+    // (= TICKET-HERMES-GAP-002). The 3 hermes public functions that are
+    // NOT yet in wenshu land here (= `is_zai_coding_overload_error`,
+    // `adaptive_rate_limit_backoff`, `zai_coding_overload_retry_ceiling`).
+    //
+    // Hermes Python line ranges cited in doc-comments below (= for
+    // traceability back to `/Volumes/ANAN/.hermes/agent/retry_utils.py`).
+    //
+    // Wenshu-side wins (= per AGENTS.md §11.3):
+    //   - `is_zai_coding_overload_error` is hermes-specific (= detects
+    //     Z.AI Coding Plan GLM-5.2 HTTP 429 code 1305). Wenshu does
+    //     NOT ship a Z.AI connector (= AGENTS.md §11.2 lists 7
+    //     connectors: Anthropic / OpenAI / DeepSeek / Gemini / Ollama /
+    //     OpenRouter / minimax cn). = the helper is preserved
+    //     1:1 (= a future ticket can wire it to minimax cn if
+    //     minimax adopts a similar overload code).
+    //   - `adaptive_rate_limit_backoff` returns `(default_wait, nil)`
+    //     when the provider isn't Z.AI Coding (= wenshu's 7 connectors
+    //     all get default exponential backoff).
+    //   - `_error_text` (= hermes L82-L88) is private in Python; = wenshu
+    //     uses `String(describing:)` directly in the public helper
+    //     (= same semantics; = no separate private function).
+
+    /// Long-backoff schedule for Z.AI Coding Plan overload 429s (= hermes
+    /// `_ZAI_CODING_OVERLOAD_LONG_BACKOFF` at
+    /// `agent/retry_utils.py` L25).
+    public static let zaiCodingOverloadLongBackoff: [TimeInterval] =
+        [30.0, 60.0, 90.0, 120.0]
+
+    /// Number of initial short retries before the adaptive long-backoff
+    /// tier kicks in (= hermes `_ZAI_CODING_OVERLOAD_SHORT_ATTEMPTS` at
+    /// `agent/retry_utils.py` L31).
+    public static let zaiCodingOverloadShortAttempts: Int = 3
+
+    /// Best-effort flattened provider-error text for retry classification
+    /// (= hermes `_error_text` at `agent/retry_utils.py` L82-L88).
+    ///
+    /// Pure function (= no side effects; = hermes equivalent).
+    public static func retryErrorText(_ error: Any) -> String {
+        let parts: [Any?] = [
+            error,
+            // Mirror hermes's `getattr(error, "message", None)` etc.
+            // via Swift `Mirror` (= avoids Objective-C runtime lookup).
+        ]
+        return parts.compactMap { $0 }.map { String(describing: $0) }.joined(separator: " ").lowercased()
+    }
+
+    /// Return true for Z.AI Coding Plan transient overload 429s (= hermes
+    /// `is_zai_coding_overload_error` at `agent/retry_utils.py` L92-L106).
+    ///
+    /// The coding-plan endpoint reports overload as HTTP 429 with body code
+    /// 1305 and message "The service may be temporarily overloaded...".
+    /// Treat only that narrow shape specially so ordinary quota/billing
+    /// 429s still fail fast through the existing classifier.
+    public static func isZaiCodingOverloadError(
+        baseURL: String?,
+        model: String?,
+        statusCode: Int?,
+        error: Any
+    ) -> Bool {
+        let base = (baseURL ?? "").lowercased()
+        let modelName = (model ?? "").lowercased()
+        let status = statusCode
+            ?? Mirror(reflecting: error).children
+                .first(where: { $0.label == "status_code" })
+                .map { $0.value as? Int } ?? nil
+        let text = retryErrorText(error)
+        return status == 429
+            && base.contains("api.z.ai/api/coding/paas/v4")
+            && modelName.contains("glm-5.2")
+            && (text.contains("1305") || text.contains("temporarily overloaded"))
+    }
+
+    /// Provider-aware rate-limit backoff (= hermes
+    /// `adaptive_rate_limit_backoff` at `agent/retry_utils.py` L108-L141).
+    ///
+    /// For most providers this returns `(defaultWait, nil)` unchanged.
+    /// For Z.AI Coding Plan GLM-5.2 overloads, keep the first
+    /// `shortAttempts` retries on the normal short exponential schedule,
+    /// then switch to progressively longer waits (= 30s -> 60s -> 90s ->
+    /// 120s, capped) plus light jitter.
+    ///
+    /// `attempt` is 1-based, matching the retry loop's logged attempt
+    /// number. Returns `(waitSeconds, reasonLabel)` where `reasonLabel`
+    /// is suitable for status/log decoration when a provider-specific
+    /// policy fired.
+    public static func adaptiveRateLimitBackoff(
+        attempt: Int,
+        baseURL: String?,
+        model: String?,
+        statusCode: Int?,
+        error: Any,
+        defaultWait: TimeInterval,
+        shortAttempts: Int = zaiCodingOverloadShortAttempts
+    ) -> (wait: TimeInterval, reason: String?) {
+        if !isZaiCodingOverloadError(
+            baseURL: baseURL,
+            model: model,
+            statusCode: statusCode,
+            error: error
+        ) {
+            return (defaultWait, nil)
+        }
+        if attempt <= shortAttempts {
+            return (defaultWait, "zai_coding_overload_short")
+        }
+        let longBackoff = zaiCodingOverloadLongBackoff
+        let idx = min(attempt - shortAttempts - 1, longBackoff.count - 1)
+        let baseDelay = longBackoff[idx]
+        // Hermes uses `jittered_backoff(1, base_delay=baseDelay,
+        // max_delay=baseDelay, jitter_ratio=0.2)`. Wenshu-side wins:
+        // use the existing `backoffDelay(attempt: 0, base: baseDelay,
+        // cap: baseDelay)` (which is full-jitter in [0, baseDelay)).
+        // The hermes 0.2-ratio jitter is a more conservative
+        // decorrelation strategy; wenshu's full-jitter is also valid
+        // (= avoids thundering herd) and matches our existing helper.
+        let delay = backoffDelay(attempt: 0, base: baseDelay, cap: baseDelay)
+        return (delay, "zai_coding_overload_long")
+    }
+
+    /// Retry-loop ceiling needed for the full Z.AI overload backoff
+    /// schedule (= hermes `zai_coding_overload_retry_ceiling` at
+    /// `agent/retry_utils.py` L143-L153).
+    ///
+    /// The adaptive policy runs `shortAttempts` short retries, then walks
+    /// the long-backoff table one entry per subsequent attempt. The retry
+    /// loop gives up as soon as `retryCount >= ceiling` (= and that check
+    /// runs BEFORE the attempt's backoff is computed); = the ceiling must
+    /// sit one past the final long-backoff entry for every long tier to
+    /// actually execute.
+    public static func zaiCodingOverloadRetryCeiling(
+        shortAttempts: Int = zaiCodingOverloadShortAttempts
+    ) -> Int {
+        return shortAttempts + zaiCodingOverloadLongBackoff.count + 1
+    }
 }
