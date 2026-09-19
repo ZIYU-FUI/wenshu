@@ -99,6 +99,21 @@ struct ChatMessageView: View {
         return String(format: "%.1fM tokens", m)
     }
 
+    /// T52-TOKEN-TOOLTIP (2026-09-18): full token count string
+    /// for the .help() tooltip (= "1,500 tokens" vs the inline
+    /// "1.5k tokens" compact format from T25/formatTokenCount).
+    /// Uses NumberFormatter with .decimal style for the
+    /// thousand-separator (= the user's locale-aware digit
+    /// grouping; = matches the standard macOS number format
+    /// in tooltips).
+    nonisolated static func fullTokenCountTooltip(for count: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        let formatted = formatter.string(from: NSNumber(value: count)) ?? String(count)
+        return "\(formatted) tokens"
+    }
+
     /// T26-HOVER-TIMESTAMP (2026-09-18): Date.FormatStyle for the
     /// timestamp footer. Compact form by default (= "14:32");
     /// expanded form on hover (= "14:32 · 9月18日"). Apple's
@@ -421,6 +436,16 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             Text(Self.formatTokenCount(tokens))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
+                                // T52-TOKEN-TOOLTIP (2026-09-18):
+                                // .help() tooltip showing the EXACT
+                                // full token count (= "1,500 tokens"
+                                // vs the inline "1.5k tokens"
+                                // compact format). Matches T50's
+                                // timestamp tooltip pattern (= full
+                                // precision lives in the native
+                                // tooltip; = compact text stays
+                                // scannable).
+                                .help(Self.fullTokenCountTooltip(for: tokens))
                         }
                     }
                     .padding(.top, 2)
