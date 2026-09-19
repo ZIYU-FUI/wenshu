@@ -2339,6 +2339,26 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T102-QUOTE-SHORTCUT (2026-09-18): ⌘⇧Q
+            // = "insert quote" (= the standard Apple
+            // Mail Quote shortcut; = in wenshu = wraps
+            // the current chat input text in a
+            // Markdown blockquote = each line prefixed
+            // with "> "; = pairs with T93 ⌘B + T94 ⌘I
+            // + T95 ⌘⇧X + T101 ⌘⇧K = the markdown
+            // formatting quintet).
+            // Hidden Button pattern.
+            Button("Wrap selection in blockquote") {
+                let current = vm.inputText
+                let lines = current.split(separator: "\n", omittingEmptySubsequences: false)
+                let quoted = lines.map { "> \($0)" }.joined(separator: "\n")
+                vm.inputText = quoted
+                NSLog("[wenshu.quote] wrapped \(current.count) chars in > ")
+            }
+            .keyboardShortcut("q", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
