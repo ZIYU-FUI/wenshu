@@ -282,9 +282,22 @@ public struct ChatToolUsePartView: View {
                 // (= smaller than the tool-icon size 11 = the
                 // status icon is a "secondary" visual cue, not the
                 // primary one).
+                // T45-STATUS-PULSE (2026-09-18): when status = .running,
+                // the hourglass icon gets a subtle opacity pulse
+                // (= 1.0 → 0.5 → 1.0 over 1.2s = faster than the
+                // T17 reasoning pulse = more "active tool" feel).
+                // The pulse stops when status leaves .running (= the
+                // icon returns to its static foregroundStyle tint).
                 Image(systemName: Self.statusIconName(for: toolUse.status))
                     .font(.system(size: 9, weight: .regular))
                     .foregroundStyle(statusColor)
+                    .opacity(isRunningStatus ? runningStatusOpacity : 1.0)
+                    .animation(
+                        isRunningStatus
+                            ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true)
+                            : .default,
+                        value: runningStatusOpacity
+                    )
                     .frame(width: 14)
                 // T43-TOOL-ICON-SF (2026-09-18): a small SF Symbol
                 // icon that visualises the tool kind (= replaces the
@@ -444,6 +457,21 @@ public struct ChatToolUsePartView: View {
         case .complete: return "checkmark"
         case .error: return "xmark"
         }
+    }
+
+    /// T45-STATUS-PULSE (2026-09-18): true when the tool call is
+    /// still running (= the hourglass icon should pulse).
+    private var isRunningStatus: Bool {
+        toolUse.status == .running
+    }
+
+    /// T45-STATUS-PULSE (2026-09-18): target opacity for the
+    /// status icon's autoreverse pulse (= 0.5 = halfway between
+    /// 1.0 and 0.0 = visible but dimmed = the "still working"
+    /// affordance). Faster than T17 reasoning pulse (= 1.2s vs
+    /// 1.4s = a tool call should feel more "active").
+    private var runningStatusOpacity: Double {
+        0.5
     }
 }
 
