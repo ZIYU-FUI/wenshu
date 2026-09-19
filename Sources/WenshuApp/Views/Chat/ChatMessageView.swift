@@ -480,6 +480,25 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     // (= T50 + T52 not regressed).
                     .help(Self.comboFooterTooltip(message: message))
                 }
+                // T54-ATTACHMENT-FOOTER-ICON (2026-09-18): when
+                // the message carries an image attachment,
+                // render a small paperclip SF Symbol in the
+                // footer (= meta indicator = "this message has
+                // an attachment"). Hidden when message has no
+                // imagePath. Placed AFTER the timestamp HStack
+                // so the existing footer is untouched.
+                if message.imagePath != nil {
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        Image(systemName: "paperclip")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .help(WenshuI18n.t("chatview.message.has_attachment"))
+                    }
+                    .padding(.top, 2)
+                    .padding(.trailing, DesignTokens.chromePaddingLeading)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                }
             }
 
             if !isOutgoing { Spacer(minLength: 40) }
