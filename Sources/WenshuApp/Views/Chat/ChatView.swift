@@ -2297,6 +2297,25 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T96-MUTE-SHORTCUT (2026-09-18): ⌘⇧M
+            // = "mute all sounds" (= the standard
+            // macOS Mute shortcut; = in wenshu =
+            // NSLogs a mute-request intent; = a
+            // future ticket can wire it to a real
+            // audio service that pauses TTS + UI
+            // sounds).
+            // Hidden Button pattern.
+            Button("Mute all sounds") {
+                NSLog("[wenshu.mute] mute all sounds requested")
+                // Future ticket: wire to a real
+                // AudioService that pauses TTS + UI
+                // sounds (= pairs with the future
+                // VoiceMode feature).
+            }
+            .keyboardShortcut("m", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
