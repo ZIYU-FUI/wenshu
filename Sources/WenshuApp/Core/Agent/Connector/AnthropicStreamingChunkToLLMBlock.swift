@@ -238,3 +238,233 @@ public enum AnthropicChunkToLLMBlockConverter {
         }
     }
 }
+
+// MARK: - P5 Hermes-Python gap port (= 1:1 port of hermes
+//         `agent/anthropic_adapter.py` redacted_thinking +
+//         signature propagation + multi-content block
+//         helpers).
+//
+// Wenshu-side wins (= per AGENTS.md §11.3):
+//
+// Direct port of hermes `agent/anthropic_adapter.py` per
+// spec §3.1 #14 (= TICKET-HERMES-PARTIAL-009 follow-up).
+// The target file already existed at 240 LOC (= ⚠ partial
+// per gap audit 2026-09-04 = wenshu-side wins = the basic
+// content-block canonicalization layer). This P5 ticket
+// adds the 3 hermes Anthropic-specific helpers that were
+// intentionally NOT ported in TICKET-HERMES-PARTIAL-009:
+//
+//   1. _extract_preserved_thinking_blocks (= hermes L1800-L1820)
+//   2. _convert_content_to_anthropic (= hermes L1822-L1834)
+//   3. _sanitize_replay_block (= hermes L1868-L1916)
+//
+// These 3 helpers close the audit-described gap:
+//   - redacted_thinking blocks (= hermes audit item #1)
+//   - thinking signature propagation (= hermes audit item #2)
+//   - multi-content image/document blocks (= hermes audit
+//     item #3)
+//
+// Hermes Python line ranges cited in doc-comments below
+// (= for traceability back to `/Volumes/ANAN/.hermes/agent/
+// anthropic_adapter.py`).
+//
+// Per AGENTS.md §11.3 wenshu-side wins:
+//   - The hermes signature handling (= `b.get("signature")`)
+//     is preserved 1:1.
+//   - The hermes redacted_thinking data payload handling
+//     (= `{"type": "redacted_thinking", "data": ...}` only
+//     with non-empty data) is preserved 1:1.
+//   - The multi-content block conversion preserves text +
+//     image + document blocks.
+//   - The whitelist-per-block-type pattern (= hermes
+//     `_sanitize_replay_block` returns None for unknown
+//     types) is preserved (= hermes explicitly chose
+//     whitelist over blacklist so future Anthropic SDK
+//     output-only fields cannot reintroduce the bug).
+//
+// Per AGENTS.md §11 hard rule: Apple Foundation only. No
+// third-party imports.
+
+extension AnthropicChunkToLLMBlockConverter {
+
+    // MARK: -- P5.1 preserved thinking blocks (= hermes L1800-L1820)
+
+    /// Return Anthropic thinking blocks previously preserved on
+    /// the message (= hermes `_extract_preserved_thinking_blocks`
+    /// at `agent/anthropic_adapter.py` L1800-L1820).
+    ///
+    /// Walks the message's `reasoning_details` array and
+    /// returns deep copies of the thinking / redacted_thinking
+    /// blocks (= the only types that need preservation for
+    /// signature chain continuity on subsequent turns).
+    public static func extractPreservedThinkingBlocks(
+        _ message: [String: Any]
+    ) -> [[String: Any]] {
+        guard let rawDetails = message["reasoning_details"] as? [Any] else {
+            return []
+        }
+        var preserved: [[String: Any]] = []
+        for detail in rawDetails {
+            guard let dict = detail as? [String: Any] else { continue }
+            let blockType = (dict["type"] as? String ?? "")
+                .trimmingCharacters(in: .whitespaces)
+                .lowercased()
+            guard blockType == "thinking" || blockType == "redacted_thinking" else {
+                continue
+            }
+            // Deep copy via JSON round-trip (= hermes
+            // `copy.deepcopy(detail)`).
+            if JSONSerialization.isValidJSONObject(dict),
+               let data = try? JSONSerialization.data(
+                   withJSONObject: dict,
+                   options: []
+               ),
+               let copy = try? JSONSerialization.jsonObject(
+                   with: data,
+                   options: []
+               ) as? [String: Any] {
+                preserved.append(copy)
+            } else {
+                preserved.append(dict)
+            }
+        }
+        return preserved
+    }
+
+    // MARK: -- P5.2 convert content to Anthropic (= hermes L1822-L1834)
+
+    /// Convert OpenAI-style multimodal content arrays to
+    /// Anthropic blocks (= hermes `_convert_content_to_anthropic`
+    /// at `agent/anthropic_adapter.py` L1822-L1834).
+    ///
+    /// Each part is normalized via
+    /// `convertContentPartToAnthropic(part)`. Parts that
+    /// convert to nil are dropped.
+    public static func convertContentToAnthropic(_ content: Any) -> Any {
+        guard let parts = content as? [Any] else { return content }
+        var converted: [Any] = []
+        for part in parts {
+            if let block = convertContentPartToAnthropic(part) {
+                converted.append(block)
+            }
+        }
+        return converted
+    }
+
+    /// Convert a single OpenAI-style content part to an
+    /// Anthropic block (= hermes `_convert_content_part_to_anthropic`
+    /// at `agent/anthropic_adapter.py` ~L1836-L1866).
+    ///
+    /// Supports text + image + document blocks (= the
+    /// multi-content image/document block support the audit
+    /// flagged as missing).
+    public static func convertContentPartToAnthropic(_ part: Any) -> [String: Any]? {
+        guard let dict = part as? [String: Any] else {
+            // Plain string content → wrap as a text block.
+            if let text = part as? String {
+                return ["type": "text", "text": text]
+            }
+            return nil
+        }
+        let type = (dict["type"] as? String ?? "").lowercased()
+        switch type {
+        case "text":
+            if let text = dict["text"] as? String {
+                return ["type": "text", "text": text]
+            }
+            return nil
+        case "image_url", "image":
+            // OpenAI-style image_url format.
+            if let imageUrl = dict["image_url"] as? [String: Any],
+               let url = imageUrl["url"] as? String {
+                return ["type": "image", "source": ["type": "url", "url": url]]
+            }
+            // Anthropic-style source format (= base64).
+            if let source = dict["source"] as? [String: Any] {
+                return ["type": "image", "source": source]
+            }
+            return nil
+        case "document":
+            // Anthropic document block support (= the multi-content
+            // image/document block support the audit flagged).
+            if let source = dict["source"] as? [String: Any] {
+                return ["type": "document", "source": source]
+            }
+            return nil
+        default:
+            return nil
+        }
+    }
+
+    // MARK: -- P5.3 sanitize replay block (= hermes L1868-L1916)
+
+    /// Strip output-only fields from a stored Anthropic
+    /// content block so it is valid as REQUEST input on replay
+    /// (= hermes `_sanitize_replay_block` at
+    /// `agent/anthropic_adapter.py` L1868-L1916).
+    ///
+    /// The SDK response objects carry output-only attributes
+    /// that the Messages *input* schema forbids (= "Extra
+    /// inputs are not permitted"): text blocks get
+    /// `parsed_output` / `citations` (= when null), tool_use
+    /// blocks get `caller`, etc. `normalize_response` captured
+    /// blocks verbatim via `_to_plain_data`, so these leak
+    /// back as input on the next turn → HTTP 400.
+    ///
+    /// **Whitelist per type** (= NOT a blacklist) so future
+    /// SDK output-only fields cannot reintroduce the bug
+    /// (= hermes explicitly chose this pattern). Returns a
+    /// clean block, or nil to drop it.
+    public static func sanitizeReplayBlock(_ block: [String: Any]) -> [String: Any]? {
+        let btype = block["type"] as? String ?? ""
+        switch btype {
+        case "text":
+            var out: [String: Any] = [
+                "type": "text",
+                "text": block["text"] ?? "",
+            ]
+            // citations is input-valid ONLY when non-empty list.
+            if let cits = block["citations"] as? [Any], !cits.isEmpty {
+                out["citations"] = cits
+            }
+            if let cacheControl = block["cache_control"] as? [String: Any] {
+                out["cache_control"] = cacheControl
+            }
+            return out
+        case "thinking":
+            var out: [String: Any] = [
+                "type": "thinking",
+                "thinking": block["thinking"] ?? "",
+            ]
+            // Thinking signature propagation (= hermes audit
+            // item #2: signature propagation).
+            if let sig = block["signature"] as? String, !sig.isEmpty {
+                out["signature"] = sig
+            }
+            return out
+        case "redacted_thinking":
+            // Only valid with its data payload; drop if missing
+            // (= hermes audit item #1: redacted_thinking
+            // blocks).
+            guard let data = block["data"] as? String, !data.isEmpty else {
+                return nil
+            }
+            return ["type": "redacted_thinking", "data": data]
+        case "tool_use":
+            var out: [String: Any] = [
+                "type": "tool_use",
+                "id": block["id"] ?? "",
+                "name": block["name"] ?? "",
+                "input": block["input"] ?? [:],
+            ]
+            if let cacheControl = block["cache_control"] as? [String: Any] {
+                out["cache_control"] = cacheControl
+            }
+            return out
+        default:
+            // Unknown block type → drop (= whitelist
+            // behavior; hermes audit item #3).
+            return nil
+        }
+    }
+}
