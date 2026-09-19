@@ -296,6 +296,22 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             Image(systemName: "flask.fill")
                                 .font(.system(size: 9, weight: .regular))
                                 .foregroundStyle(.tertiary)
+                            // T116-MICROSCOPE-ICON (2026-09-18):
+                            // a small "magnifyingglass" SF
+                            // Symbol next to the T111 flask
+                            // icon (= Apple HIG "detailed
+                            // analysis" affordance; =
+                            // visually marks this response as
+                            // a thorough/analytical answer;
+                            // = pairs with T111 flask to
+                            // form a small "experiment +
+                            // analysis" icon pair).
+                            // Icon uses .system(size: 9) +
+                            // .tertiary tone (= matches T90
+                            // link + T111 flask icon style).
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 9, weight: .regular))
+                                .foregroundStyle(.tertiary)
                         }
                         // T73-USER-SENT-ICON (2026-09-18): a small
                         // "paperplane.fill" SF Symbol for user-sent
