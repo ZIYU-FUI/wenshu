@@ -2262,6 +2262,23 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T94-ITALIC-SHORTCUT (2026-09-18): ⌘I
+            // = "italic" (= the standard Apple Italic
+            // shortcut; = in wenshu = wraps the
+            // current chat input text in `_ ... _`
+            // markdown; = pairs with T93 ⌘B Bold
+            // shortcut).
+            // Hidden Button pattern.
+            Button("Italicize selected text") {
+                let current = vm.inputText
+                let italicized = "_\(current)_"
+                vm.inputText = italicized
+                NSLog("[wenshu.italic] wrapped \(current.count) chars in _ _")
+            }
+            .keyboardShortcut("i", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
