@@ -479,6 +479,21 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     // tooltips on timestamp + token text remain
                     // (= T50 + T52 not regressed).
                     .help(Self.comboFooterTooltip(message: message))
+                    // T55-FOOTER-DIVIDER (2026-09-18): a thin
+                    // hairline above the footer (= Apple HIG
+                    // secondary chrome = separates the message
+                    // body from the metadata row). Hidden when
+                    // both timestamp + token are absent (= the
+                    // divider would float without context).
+                    .overlay(alignment: .top) {
+                        if message.streamState == .sealed
+                            && (message.tokens ?? 0) > 0 {
+                            Rectangle()
+                                .fill(.quaternary)
+                                .frame(height: 0.5)
+                                .offset(y: -2)
+                        }
+                    }
                 }
                 // T54-ATTACHMENT-FOOTER-ICON (2026-09-18): when
                 // the message carries an image attachment,
