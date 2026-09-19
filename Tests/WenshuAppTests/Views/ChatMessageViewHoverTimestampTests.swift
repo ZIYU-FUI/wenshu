@@ -48,10 +48,12 @@ struct ChatMessageViewHoverTimestampTests {
     /// T26 contract: .onHover wired to set isTimestampHovered
     /// (= SwiftUI hover affordance is the trigger).
     @Test func on_hover_wired_to_state() throws {
-        let source = try String(
+        let src = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
             encoding: .utf8
         )
-        #expect(source.contains(".onHover { hovering in\n                                isTimestampHovered = hovering\n                            }"))
+        // T65 wrapped the timestamp Text inside an HStack with
+        // the clock icon. The .onHover block is now nested deeper.
+        #expect(src.contains(".onHover { hovering in") && src.contains("isTimestampHovered = hovering"))
     }
 }
