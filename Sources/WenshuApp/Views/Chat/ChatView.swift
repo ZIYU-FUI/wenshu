@@ -2177,6 +2177,25 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T85-ALT-C-SHORTCUT (2026-09-18): ⌥C = copy
+            // last sealed message content. Lighter weight
+            // alternative to T66 ⌘⇧D (= T66 uses Cmd+Shift
+            // which is also the macOS "Duplicate" shortcut;
+            // ⌥C is more discoverable as "Alt-Copy" = a
+            // "quick copy" affordance).
+            // Hidden Button pattern.
+            Button("Copy last sealed message") {
+                if let lastAssistant = vm.messages.last(where: { $0.source == .wenshu && !$0.isPlaceholder })?.content {
+                    let pb = NSPasteboard.general
+                    pb.clearContents()
+                    pb.setString(lastAssistant, forType: .string)
+                    NSLog("[wenshu.copy] last-sealed copied (\(lastAssistant.count) chars)")
+                }
+            }
+            .keyboardShortcut("c", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
