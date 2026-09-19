@@ -33,7 +33,7 @@ import SwiftUI
 public struct ChatMessageDayDivider: View {
     public let timestamp: TimeInterval
 
-/// T68-COUNT-DIVIDER (2026-09-18): a public init that
+    /// T68-COUNT-DIVIDER (2026-09-18): a public init that
     /// accepts an optional message-count. When the caller
     /// passes a count, the divider's label suffix shows
     /// " · N" (= the Apple HIG secondary chrome pattern
@@ -41,16 +41,38 @@ public struct ChatMessageDayDivider: View {
     /// "Today · 5 items" affordance).
     public let messageCount: Int?
 
-    public init(timestamp: TimeInterval, messageCount: Int? = nil) {
+    /// T81-DIVIDER-STYLE (2026-09-18): visual style enum.
+    ///   - .standard: current T36/T39/T56/T57/T60/T68 visual
+    ///     treatment (= full padding + full font sizes).
+    ///   - .compact: tighter padding + smaller font sizes
+    ///     (= for use in dense lists where the divider
+    ///     shouldn't take too much vertical space; = forward-
+    ///     flexibility).
+    public enum DividerStyle: String, Equatable, Sendable {
+        case standard
+        case compact
+    }
+
+    public let style: DividerStyle
+
+    public init(timestamp: TimeInterval, messageCount: Int? = nil, style: DividerStyle = .standard) {
         self.timestamp = timestamp
         self.messageCount = messageCount
+        self.style = style
+    }
+
+    /// T81-DIVIDER-STYLE (2026-09-18): backward-compatible init
+    /// (= preserves the T36/T39/T56/T57/T60/T68 callers that
+    /// don't pass a style).
+    public init(timestamp: TimeInterval, messageCount: Int? = nil) {
+        self.init(timestamp: timestamp, messageCount: messageCount, style: .standard)
     }
 
     /// T68-COUNT-DIVIDER (2026-09-18): backward-compatible init
     /// (= preserves the T36/T39/T56/T57/T60 callers that don't
     /// pass a count).
     public init(timestamp: TimeInterval) {
-        self.init(timestamp: timestamp, messageCount: nil)
+        self.init(timestamp: timestamp, messageCount: nil, style: .standard)
     }
 
     /// T68-COUNT-DIVIDER (2026-09-18): a divider that displays
