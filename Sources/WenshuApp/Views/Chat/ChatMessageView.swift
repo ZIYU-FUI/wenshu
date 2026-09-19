@@ -251,6 +251,20 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 .font(.system(size: 6, weight: .bold))
                                 .foregroundStyle(.green)
                         }
+                        // T75-BOT-ICON (2026-09-18): a small
+                        // "brain.head.profile" SF Symbol for
+                        // wenshu messages (= the Apple HIG
+                        // AI/assistant identity affordance;
+                        // = replaces the older "person.crop.circle
+                        // .badge.questionmark" placeholder glyph
+                        // with a cleaner AI visual). Used in
+                        // the source label row alongside the
+                        // T71 delivery dot.
+                        if message.source == .wenshu {
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: 10, weight: .regular))
+                                .foregroundStyle(.secondary)
+                        }
                         // T73-USER-SENT-ICON (2026-09-18): a small
                         // "paperplane.fill" SF Symbol for user-sent
                         // messages (= "sent" affordance; = matches
