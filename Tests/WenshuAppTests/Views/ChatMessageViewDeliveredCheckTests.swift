@@ -53,7 +53,17 @@ struct ChatMessageViewDeliveredCheckTests {
             encoding: .utf8
         )
         let clockPos = src.range(of: "Image(systemName: \"clock\")")!
-        let checkPos = src.range(of: "Image(systemName: \"checkmark\")")!
+        // T88-USER-CHECK (2026-09-18) added a 2nd
+        // Image(systemName: "checkmark") in the user
+        // branch (= BEFORE the timestamp clock icon's
+        // checkmark). The T84 contract is specifically
+        // about the timestamp-area checkmark = the one
+        // that appears AFTER the clock icon. = find the
+        // checkmark that appears AFTER the clock icon.
+        guard let checkPos = src.range(of: "Image(systemName: \"checkmark\")", range: clockPos.upperBound..<src.endIndex) else {
+            #expect(Bool(false), "expected checkmark after clock icon")
+            return
+        }
         #expect(checkPos.lowerBound > clockPos.lowerBound)
     }
 

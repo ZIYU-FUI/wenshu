@@ -295,6 +295,18 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 .font(.system(size: 6, weight: .bold))
                                 .foregroundStyle(Color.accentColor)
                                 .padding(.trailing, 2)
+                            // T88-USER-CHECK (2026-09-18): a
+                            // small "checkmark" SF Symbol AFTER
+                            // the T86 dot (= Apple Messages
+                            // single-checkmark "sent"
+                            // affordance; = visually pairs with
+                            // T84's checkmark for sealed
+                            // assistant messages; = user sees
+                            // "sent" + assistant sees
+                            // "delivered" pattern).
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(Color.accentColor)
                         }
                         Text(sourceLabel)
                             .font(.caption)
