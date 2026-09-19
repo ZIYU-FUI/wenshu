@@ -1895,6 +1895,36 @@ public struct ChatView: View {
             // to ChatViewModel.attachImage(at:) which copies it into
             // the library's cache/chat-uploads/ dir and sets
             // attachedImagePath.
+            //
+            // T38-PASTE-IMAGE (2026-09-18): add .onPasteCommand(of:)
+            // so the user can ⌘V an image from clipboard (= matches
+            // Apple Messages + Slack + Discord behavior). The
+            // pasted NSItemProvider is saved to a temp .png file
+            // (= sandbox needs an actual file on disk for
+            // vm.attachImage(at:) which uses file coordination;
+            // = clipboard binary in-memory isn't addressable here).
+            // The temp file is then handed to vm.attachImage(at:)
+            // (= same code path as dropDestination + fileImporter).
+            .onPasteCommand(of: [.image]) { providers in
+                guard let provider = providers.first else { return }
+                _ = provider.loadObject(ofClass: NSImage.self) { item, error in
+                    guard let image = item as? NSImage,
+                          let tiff = image.tiffRepresentation,
+                          let bitmap = NSBitmapImageRep(data: tiff),
+                          let pngData = bitmap.representation(using: .png, properties: [:])
+                    else { return }
+                    let tempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("wenshu-paste-\(UUID().uuidString).png")
+                    do {
+                        try pngData.write(to: tempURL)
+                        DispatchQueue.main.async {
+                            _ = vm.attachImage(at: tempURL)
+                        }
+                    } catch {
+                        // ignore write failures (= sandbox / disk full)
+                    }
+                }
+            }
             .fileImporter(
                 isPresented: $showingImageImporter,
                 allowedContentTypes: [.image, .png, .jpeg, .gif, .heic],
