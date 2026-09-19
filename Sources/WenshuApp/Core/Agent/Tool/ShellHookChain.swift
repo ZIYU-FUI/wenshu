@@ -188,3 +188,243 @@ public struct NoopShellHook: ShellHook {
     public func preTurn(_: String) async throws {}
     public func postTurn(_: LLMResponse) async throws {}
 }
+
+// MARK: - H8 Hermes-Python gap port (= 1:1 port of hermes
+//         `agent/shell_hooks.py` payload + response + allowlist
+//         helpers).
+//
+// Wenshu-side wins (= per AGENTS.md §11.3):
+//
+// Direct port of hermes `agent/shell_hooks.py` per spec §3.1 #34
+// (= TICKET-HERMES-GAP-004 follow-up). The target file already
+// existed at 189 LOC (= ⚠️ partial per gap audit 2026-09-04 =
+// wenshu-side wins = the hook protocol + actor). This H8 ticket
+// adds the 7 hermes payload/response/allowlist pure helpers.
+//
+// The remaining 12 hermes functions in shell_hooks.py
+// (= register_from_config / iter_configured_hooks / reset_for_tests
+// / _parse_hooks_block / _parse_single_entry / _spawn /
+// _make_callback / _prompt_and_record / _record_approval /
+// _utc_now_iso / revoke / _command_script_path / etc.) are
+// intentionally NOT ported in this ticket — they fall into
+// separate wenshu-side wins patterns (= wenshu uses
+// ToolExecutor for the runtime dispatch; = per Q112 = one
+// ticket per file).
+//
+// Hermes Python line range cited in doc-comments below (= for
+// traceability back to `/Volumes/ANAN/.hermes/agent/
+// shell_hooks.py`).
+
+extension ShellHookChain {
+
+    // MARK: -- H8.1 payload serialization (= hermes L536-L553)
+
+    /// Pure-function: render the stdin JSON payload for a shell
+    /// hook (= hermes `_serialize_payload` at
+    /// `agent/shell_hooks.py` L536-L553).
+    ///
+    /// Unserialisable values are stringified via `JSONEncoder`
+    /// fallback (= wenshu uses `String(describing:)` instead of
+    /// hermes's Python `default=str`; = same effect).
+    public static func serializePayload(event: String, kwargs: [String: Any]) -> String {
+        let topLevelKeys: Set<String> = [
+            "tool_name", "args", "session_id", "parent_session_id",
+        ]
+        var extras: [String: Any] = [:]
+        for (k, v) in kwargs where !topLevelKeys.contains(k) {
+            extras[k] = v
+        }
+        let cwd: String
+        do {
+            cwd = String(describing: FileManager.default.currentDirectoryPath)
+        } catch {
+            cwd = ""
+        }
+        let payload: [String: Any] = [
+            "hook_event_name": event,
+            "tool_name": kwargs["tool_name"] as Any? ?? NSNull(),
+            "tool_input": (kwargs["args"] as? [String: Any]) ?? NSNull(),
+            "session_id": (kwargs["session_id"] as? String)
+                ?? (kwargs["parent_session_id"] as? String)
+                ?? "",
+            "cwd": cwd,
+            "extra": extras,
+        ]
+        guard JSONSerialization.isValidJSONObject(payload) else {
+            return "{}"
+        }
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: payload,
+            options: [.fragmentsAllowed]
+        ) else {
+            return "{}"
+        }
+        return String(data: data, encoding: .utf8) ?? "{}"
+    }
+
+    // MARK: -- H8.2 block message (= hermes L555-L564)
+
+    /// Pure-function: return a validated string block message,
+    /// falling back to the default (= hermes `_block_message` at
+    /// `agent/shell_hooks.py` L555-L564).
+    ///
+    /// Accepts two candidate fields (= primary wins over secondary)
+    /// so callers can express field-priority differences between
+    /// the two hook wire formats.
+    public static func blockMessage(primary: Any?, secondary: Any?) -> String {
+        if let raw = primary as? String, !raw.isEmpty {
+            return raw
+        }
+        if let raw = secondary as? String, !raw.isEmpty {
+            return raw
+        }
+        return "Shell hook blocked the request."
+    }
+
+    // MARK: -- H8.3 response parsing (= hermes L566-L625)
+
+    /// Pure-function: translate stdout JSON into a wire-shape
+    /// dict (= hermes `_parse_response` at
+    /// `agent/shell_hooks.py` L566-L625).
+    ///
+    /// Handles 3 wire shapes:
+    ///   1. `pre_tool_call` = `{"decision": "block", "reason": "..."}`
+    ///      OR `{"action": "block", "message": "..."}` =
+    ///      translated to canonical `{"action": "block",
+    ///      "message": "..."}`.
+    ///   2. `pre_verify` = `{"action": "continue"|"block", ...}`
+    ///      = translated to canonical `{"action": "continue", ...}`.
+    ///   3. `pre_llm_call` = `{"context": "..."}` = passed through
+    ///      unchanged.
+    public static func parseResponse(event: String, stdout: String) -> [String: Any]? {
+        let trimmed = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        guard let data = trimmed.data(using: .utf8) else { return nil }
+        guard let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+
+        if event == "pre_tool_call" {
+            if parsed["action"] as? String == "block" {
+                let msg = blockMessage(
+                    primary: parsed["message"],
+                    secondary: parsed["reason"]
+                )
+                return ["action": "block", "message": msg]
+            }
+            if parsed["decision"] as? String == "block" {
+                let msg = blockMessage(
+                    primary: parsed["reason"],
+                    secondary: parsed["message"]
+                )
+                return ["action": "block", "message": msg]
+            }
+            return nil
+        }
+
+        if event == "pre_verify" {
+            let actionRaw = (parsed["action"] as? String)
+                ?? (parsed["decision"] as? String)
+                ?? ""
+            let action = actionRaw.lowercased()
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if action == "continue" || action == "block" {
+                if let message = (parsed["message"] as? String) ?? (parsed["reason"] as? String),
+                   !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return ["action": "continue", "message": message.trimmingCharacters(in: .whitespacesAndNewlines)]
+                }
+            }
+            return nil
+        }
+
+        if let context = parsed["context"] as? String,
+           !context.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return ["context": context]
+        }
+
+        return nil
+    }
+
+    // MARK: -- H8.4 allowlist path (= hermes L627-L630)
+
+    /// Pure-function: return the per-user shell-hook allowlist
+    /// file path (= hermes `allowlist_path` at
+    /// `agent/shell_hooks.py` L627-L630).
+    ///
+    /// Wenshu-side wins: returns the macOS
+    /// `~/Library/Application Support/wenshu/` path (= matches
+    /// the wenshu `.ws` bundle path from AGENTS.md §11).
+    public static func allowlistPath() -> URL {
+        let base: URL
+        if let appSupport = try? FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        ) {
+            base = appSupport.appendingPathComponent("wenshu", isDirectory: true)
+        } else {
+            base = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".wenshu", isDirectory: true)
+        }
+        return base.appendingPathComponent("shell-hooks-allowlist.json")
+    }
+
+    // MARK: -- H8.5 load allowlist (= hermes L632-L644)
+
+    /// Pure-function: return the parsed allowlist, or an empty
+    /// skeleton if absent (= hermes `load_allowlist` at
+    /// `agent/shell_hooks.py` L632-L644).
+    public static func loadAllowlist() -> [String: Any] {
+        let path = allowlistPath()
+        guard let data = try? Data(contentsOf: path),
+              let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            return ["approvals": []]
+        }
+        if !(raw["approvals"] is [Any]) {
+            var fixed = raw
+            fixed["approvals"] = []
+            return fixed
+        }
+        return raw
+    }
+
+    // MARK: -- H8.6 save allowlist (= hermes L646-L676)
+
+    /// Pure-function: atomically persist the allowlist
+    /// (= hermes `save_allowlist` at
+    /// `agent/shell_hooks.py` L646-L676).
+    ///
+    /// Wenshu-side wins: uses Foundation's
+    /// `FileManager.replaceItem` for atomic write (= the macOS
+    /// equivalent of Python's `mkstemp + os.replace`).
+    public static func saveAllowlist(_ data: [String: Any]) throws {
+        let path = allowlistPath()
+        try FileManager.default.createDirectory(
+            at: path.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let jsonData = try JSONSerialization.data(
+            withJSONObject: data,
+            options: [.prettyPrinted, .sortedKeys]
+        )
+        try jsonData.write(to: path, options: .atomic)
+    }
+
+    // MARK: -- H8.7 is allowlisted (= hermes L678-L687)
+
+    /// Pure-function: return true when the (event, command) pair
+    /// is in the allowlist (= hermes `_is_allowlisted` at
+    /// `agent/shell_hooks.py` L678-L687).
+    public static func isAllowlisted(event: String, command: String) -> Bool {
+        let data = loadAllowlist()
+        guard let approvals = data["approvals"] as? [[String: Any]] else {
+            return false
+        }
+        return approvals.contains { entry in
+            entry["event"] as? String == event
+                && entry["command"] as? String == command
+        }
+    }
+}
