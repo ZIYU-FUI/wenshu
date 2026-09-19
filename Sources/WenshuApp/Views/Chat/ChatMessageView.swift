@@ -545,6 +545,19 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             Image(systemName: "clock")
                                 .font(.caption2)
                                 .foregroundStyle(.quaternary)
+                            // T84-DELIVERED-CHECK (2026-09-18): a
+                            // small "checkmark" SF Symbol after
+                            // the timestamp text (= Apple HIG
+                            // "delivered" affordance; = mirrors
+                            // Apple Messages read-receipts).
+                            // Icon uses .caption2 + .quaternary
+                            // tone (= matches T65 clock icon
+                            // style; = only shown when the
+                            // message is sealed AND has at
+                            // least one non-placeholder part).
+                            Image(systemName: "checkmark")
+                                .font(.caption2)
+                                .foregroundStyle(.quaternary)
                             Text(message.timestamp, format: timestampDisplayFormat)
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
