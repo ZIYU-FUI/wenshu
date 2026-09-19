@@ -2427,6 +2427,30 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T106-FIND-SHORTCUT (2026-09-18): ⌥F =
+            // "find in conversation" (= the standard
+            // macOS Find affordance via the Option
+            // modifier; = in wenshu = NSLogs a
+            // find-request intent with the current
+            // chat input as the search term; = a future
+            // ticket can wire it to a real SwiftUI
+            // search bar + filter).
+            // Note: ⌘F is the standard Find shortcut but
+            // we leave it unused for future CUA
+            // integration; T106 uses ⌥F = "Alt-Find" =
+            // the Option modifier variant.
+            // Hidden Button pattern.
+            Button("Find in conversation") {
+                let searchTerm = vm.inputText.isEmpty ? "(empty)" : vm.inputText
+                NSLog("[wenshu.find] find-in-conversation requested (term: '\(searchTerm.prefix(30))', \(vm.messages.count) messages)")
+                // Future ticket: wire to a real SwiftUI
+                // .searchable modifier on the chat list
+                // + highlight matching messages.
+            }
+            .keyboardShortcut("f", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
