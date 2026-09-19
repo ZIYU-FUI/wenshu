@@ -135,6 +135,23 @@ public struct ChatMessageDayDivider: View {
                         .font(.system(size: 6, weight: .bold))
                         .foregroundStyle(.yellow)
                         .offset(x: 3, y: -2)
+                    // T89-PIN-ICON (2026-09-18): a second
+                    // overlay icon = "mappin.circle.fill" SF
+                    // Symbol below the star (= Apple HIG
+                    // "you are here" affordance; = visually
+                    // marks today as the user's current
+                    // location in time). Uses
+                    // Color.accentColor for the mappin tint
+                    // (= matches the calendar icon's today
+                    // accent). Pinned bottom-right of the
+                    // calendar icon (= complementary to T60's
+                    // top-right star; = the two together
+                    // create a small badge cluster on today's
+                    // calendar icon).
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(Color.accentColor)
+                        .offset(x: 4, y: 4)
                 }
             }
             Text(label)
