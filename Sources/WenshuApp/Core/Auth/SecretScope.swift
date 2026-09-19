@@ -149,3 +149,146 @@ public actor SecretScope {
 /// Errors thrown by `SecretScope` / sources. Distinct from
 /// `ProviderKeychainError` so callers can pattern-match on the scope
 /// layer without coupling to keychain internals.
+
+// MARK: - H3 Hermes-Python gap port (= 1:1 port of hermes
+//         `agent/secret_scope.py` env-file + global-env helpers).
+//
+// Wenshu-side wins (= per AGENTS.md §11.3):
+//
+// Direct port of hermes `agent/secret_scope.py` per spec §3.1 #33 (= TICKET-
+// HERMES-GAP-005 follow-up). The 3 hermes public functions that are NOT yet
+// in wenshu land here (= `load_env_file`, `build_profile_secret_scope`,
+// `_is_global_env`). The multiplex-contextvar logic (= `set_secret_scope`,
+// `get_secret`, `_SECRET_SCOPE`, `_MULTIPLEX_ACTIVE`,
+// `UnscopedSecretError`) is hermes-multi-profile-specific (= wenshu is
+// single-profile per AGENTS.md §11 "single-shelf model"; = future ticket
+// can port it if wenshu ever adds multi-profile multiplexer).
+//
+// Hermes Python line ranges cited in doc-comments below (= for traceability
+// back to `/Volumes/ANAN/.hermes/agent/secret_scope.py`).
+//
+// Per AGENTS.md §11.3 wenshu-side wins:
+//   - Hermes's `_SECRET_SCOPE` contextvar (Python-only concept) maps
+//     to wenshu's `SecretScope` actor (= Swift Concurrency actor =
+//     thread-safe by Apple contract; = no manual contextvars needed).
+//   - Hermes's `_GLOBAL_ENV_EXACT` (= HERMES_HOME / HERMES_PROFILE /
+//     PATH / HOME / etc) maps to wenshu's `_wenshuGlobalEnvExact`
+//     (= WENSHU_HOME / PATH / HOME / TMPDIR etc; = HERMES_-prefixed
+//     entries replaced with WENSHU_-prefixed).
+//   - Hermes's `_GLOBAL_ENV_PREFIXES` (= HERMES_KANBAN_ /
+//     HERMES_TELEGRAM_ / TERMINAL_) maps to wenshu's
+//     `_wenshuGlobalEnvPrefixes` (= WENSHU_/TERMINAL_/etc; = no
+//     HERMES_-prefixed entries since wenshu is single-profile).
+
+extension SecretScope {
+
+    /// Genuinely-global (non-profile-secret) env vars per wenshu-side
+    /// wins (= hermes `_GLOBAL_ENV_EXACT` at
+    /// `agent/secret_scope.py` L99-L109).
+    ///
+    /// Wenshu-substituted entries:
+    ///   - HERMES_HOME → WENSHU_HOME
+    ///   - HERMES_PROFILE → (omitted; = wenshu is single-profile)
+    ///   - HERMES_GATEWAY_LOCK_DIR → (omitted; = no gateway)
+    ///   - HERMES_MAX_ITERATIONS / _MAX_TOKENS / _API_TIMEOUT →
+    ///     WENSHU_MAX_* (= future ticket can wire these)
+    ///   - HERMES_REDACT_SECRETS → WENSHU_REDACT_SECRETS
+    ///   - _HERMES_GATEWAY → (omitted)
+    ///   - HERMES_KANBAN_* → (omitted; = wenshu uses kanban at wenshu
+    ///     level not hermes level; = covered by _wenshuGlobalEnvPrefixes)
+    ///   - HERMES_TELEGRAM_* → (omitted; = no telegram in wenshu)
+    public static let wenshuGlobalEnvExact: Set<String> = [
+        // Wenshu runtime / deployment
+        "WENSHU_HOME", "WENSHU_REDACT_SECRETS",
+        // OS / interpreter
+        "PATH", "HOME", "USER", "LANG", "LC_ALL", "TZ", "PWD", "SHELL", "TMPDIR",
+        "VIRTUAL_ENV", "PYTHONPATH", "SSL_CERT_FILE",
+    ]
+
+    /// Genuinely-global env-var prefixes per wenshu-side wins
+    /// (= hermes `_GLOBAL_ENV_PREFIXES` at
+    /// `agent/secret_scope.py` L111-L115).
+    public static let wenshuGlobalEnvPrefixes: [String] = [
+        "TERMINAL_",  // terminal/sandbox backend settings
+    ]
+
+    /// Return true for genuinely process-global (non-profile-secret)
+    /// env vars (= hermes `_is_global_env` at
+    /// `agent/secret_scope.py` L117-L121).
+    ///
+    /// Pure function (= no side effects; = hermes equivalent).
+    public static func isGlobalEnv(_ name: String) -> Bool {
+        if wenshuGlobalEnvExact.contains(name) {
+            return true
+        }
+        return wenshuGlobalEnvPrefixes.contains { name.hasPrefix($0) }
+    }
+
+    /// Parse a `.env` file into a plain dict WITHOUT touching
+    /// `ProcessInfo.processInfo.environment` (= hermes `load_env_file`
+    /// at `agent/secret_scope.py` L172-L202).
+    ///
+    /// Pure function (= no side effects; = hermes equivalent).
+    ///
+    /// Mirrors python-dotenv's basic parsing:
+    ///   - Lines starting with `#` are comments.
+    ///   - Empty lines are skipped.
+    ///   - `export ` prefix is stripped (= bash-style).
+    ///   - `KEY=VALUE` syntax; = optional matching single/double
+    ///     quotes are stripped.
+    ///   - Lines without `=` are silently skipped.
+    ///
+    /// - Parameter envPath: path to the `.env` file.
+    /// - Returns: parsed dict (= empty when file is missing or
+    ///   unreadable; = matches hermes safe-default semantics).
+    public static func loadEnvFile(_ envPath: URL) -> [String: String] {
+        var secrets: [String: String] = [:]
+        guard let text = try? String(contentsOf: envPath, encoding: .utf8) else {
+            return secrets
+        }
+        for raw in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty || line.hasPrefix("#") {
+                continue
+            }
+            var content = line
+            if content.hasPrefix("export ") {
+                content = String(content.dropFirst("export ".count)).trimmingCharacters(in: .whitespaces)
+            }
+            guard let eqIdx = content.firstIndex(of: "=") else {
+                continue
+            }
+            let key = content[..<eqIdx].trimmingCharacters(in: .whitespaces)
+            guard !key.isEmpty else { continue }
+            var value = content[content.index(after: eqIdx)...].trimmingCharacters(in: .whitespaces)
+            // Strip optional matching single/double quotes
+            // (= hermes L195-L198 = quote-strip logic).
+            if value.count >= 2,
+               let first = value.first,
+               let last = value.last,
+               first == last,
+               first == "\"" || first == "'"
+            {
+                value = String(value.dropFirst().dropLast())
+            }
+            secrets[String(key)] = String(value)
+        }
+        return secrets
+    }
+
+    /// Build a profile's secret mapping from its `<wenshu-home>/.env`
+    /// (= hermes `build_profile_secret_scope` at
+    /// `agent/secret_scope.py` L204-L209).
+    ///
+    /// Returns a fresh dict (= safe to install via `SecretScope`).
+    /// Genuinely global vars are intentionally NOT copied in
+    /// (= `SecretScope.resolve` reads those from
+    /// `ProcessInfo.processInfo.environment` directly via `EnvVarSource`;
+    /// = matches hermes L207-L208 = "Global vars intentionally NOT copied").
+    public static func buildProfileSecretScope(
+        wenshuHome: URL
+    ) -> [String: String] {
+        let envPath = wenshuHome.appendingPathComponent(".env")
+        return loadEnvFile(envPath)
+    }
+}
