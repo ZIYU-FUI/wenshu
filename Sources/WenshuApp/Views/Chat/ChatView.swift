@@ -1884,6 +1884,29 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T59-RELOAD-SHORTCUT (2026-09-18): ⌘R = reload chat
+            // (= the standard macOS browser-style reload shortcut;
+            // = also matches VSCode / Xcode). For wenshu's
+            // single-session chat, "reload" = re-send the last
+            // user message (= re-invokes the LLM with the same
+            // prompt = a "retry" affordance without retyping).
+            // Same hidden-Button pattern as T37/T48.
+            Button("Reload chat") {
+                // T59 implementation: re-send the last user message
+                // (= the most recent user-authored message in the
+                // chat history). If no user message exists, focus
+                // the input (= the user can type a new query).
+                if let lastUserText = vm.messages.last(where: { $0.source == .user })?.content {
+                    vm.inputText = lastUserText
+                    Task { await vm.send() }
+                } else {
+                    inputFocused = true
+                }
+            }
+            .keyboardShortcut("r", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // v0.28 followup Boss UX round 20: 16 PT outer top margin
             // moved from .padding(.top, DesignTokens.chromePaddingLarge) on the button (= was
             // misaligning the button with TextField) to the HStack
