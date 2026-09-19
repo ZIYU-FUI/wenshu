@@ -2359,6 +2359,29 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T103-SAVE-SELECTION-SHORTCUT (2026-09-18):
+            // ⌥S = "save selection" (= the standard
+            // macOS Save Selection affordance; = in
+            // wenshu = NSLogs a save-selection intent
+            // that snapshots the current chat input
+            // text into the AppKit Services pasteboard
+            // for use by other apps).
+            // Note: ⌥S is not a standard Apple shortcut
+            // (= reserved as wenshu-specific; = matches
+            // the forward-flexibility pattern of T91
+            // ⌥⌘D + T96 ⌘⇧M for custom shortcuts).
+            // Hidden Button pattern.
+            Button("Save selection") {
+                let current = vm.inputText
+                let pb = NSPasteboard.general
+                pb.clearContents()
+                pb.setString(current, forType: .string)
+                NSLog("[wenshu.savesel] saved \(current.count) chars to clipboard as selection")
+            }
+            .keyboardShortcut("s", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
