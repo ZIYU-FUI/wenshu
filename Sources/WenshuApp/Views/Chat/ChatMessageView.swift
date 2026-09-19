@@ -40,6 +40,10 @@ struct ChatMessageView: View {
     /// hovering the timestamp footer (= expands the time to a full
     /// date; = Apple Messages hover affordance).
     @State private var isTimestampHovered: Bool = false
+    /// T28-PLAN-BADGE-EXPAND (2026-09-18): true when the user is
+    /// hovering the PLAN badge (= expands the badge to show the
+    /// step count; = Apple Messages hover affordance).
+    @State private var isPlanBadgeHovered: Bool = false
 
     public init(
         message: ChatMessage,
@@ -158,7 +162,14 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         // desktop pattern where plan cards get a
                         // distinct header tag).
                         if messageHasPlanPart {
-                            Text("PLAN")
+                            // T28-PLAN-BADGE-EXPAND (2026-09-18): on
+                            // hover, the PLAN badge expands to show
+                            // the step count (= "PLAN" -> "PLAN · 3 steps").
+                            // Matches Apple Messages' "typing..."
+                            // expand affordance.
+                            Text(isPlanBadgeHovered
+                                 ? "PLAN · \(planStepCountLabel)"
+                                 : "PLAN")
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(Color.accentColor)
                                 .padding(.horizontal, 4)
@@ -167,6 +178,9 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                     RoundedRectangle(cornerRadius: 3)
                                         .strokeBorder(Color.accentColor.opacity(0.4), lineWidth: 0.5)
                                 )
+                                .onHover { hovering in
+                                    isPlanBadgeHovered = hovering
+                                }
                         }
                     }
                 }
@@ -367,6 +381,21 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
             if case .plan = part.kind { return true }
             return false
         }
+    }
+
+    /// T28-PLAN-BADGE-EXPAND (2026-09-18): step count shown in the
+    /// PLAN badge on hover (= "PLAN · 3"). Pulls the first .plan
+    /// part's steps.count and formats it. Returns empty string when
+    /// no plan part exists (= the caller only invokes this when
+    /// messageHasPlanPart is true; = defensive return for safety).
+    private var planStepCountLabel: String {
+        for part in message.parts {
+            if case .plan(let p) = part.kind {
+                let n = p.steps.count
+                return "\(n) step\(n == 1 ? "" : "s")"
+            }
+        }
+        return ""
     }
 
     /// Bubble fill.
