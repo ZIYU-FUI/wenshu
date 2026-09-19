@@ -59,6 +59,15 @@ public struct Plan: Equatable, Sendable, Hashable, Codable {
     /// debugging + future approval UI = which provider generated
     /// the plan).
     public let connectorID: String
+    /// T30-PLAN-MODEL (2026-09-18): the LLM model id that produced
+    /// the plan (= e.g. "claude-sonnet-4-20250514" = the model
+    /// row in Provider.defaultModels). Surfaced in the plan card
+    /// header next to the connector name (= so the user sees
+    /// "via Anthropic · claude-sonnet-4-20250514"). Optional
+    /// because older serialized plans (= T20a) may not have it;
+    /// = the renderer falls back to the connector-only display
+    /// when model is nil.
+    public let model: String?
     /// When the plan was generated (= for staleness checks in
     /// future UI work).
     public let createdAt: Date
@@ -67,11 +76,13 @@ public struct Plan: Equatable, Sendable, Hashable, Codable {
         query: String,
         steps: [PlanStep],
         connectorID: String,
+        model: String? = nil,
         createdAt: Date = Date()
     ) {
         self.query = query
         self.steps = steps
         self.connectorID = connectorID
+        self.model = model
         self.createdAt = createdAt
     }
 }
@@ -298,6 +309,17 @@ public actor PlanModeEngine {
         guard !plan.steps.isEmpty else {
             throw PlanModeError.planEmpty(query: query)
         }
-        return plan
+        // T30-PLAN-MODEL (2026-09-18): enrich the Plan with the
+        // model id that produced it (= Plan.model = connector.connectorID's
+        // active model = the `model` field on the engine, captured at
+        // engine construction time). Falls back to nil when the
+        // model id is empty (= defensive).
+        return Plan(
+            query: plan.query,
+            steps: plan.steps,
+            connectorID: plan.connectorID,
+            model: model.isEmpty ? nil : model,
+            createdAt: plan.createdAt
+        )
     }
 }
