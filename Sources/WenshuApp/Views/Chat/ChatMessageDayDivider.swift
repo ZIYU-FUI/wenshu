@@ -55,9 +55,24 @@ public struct ChatMessageDayDivider: View {
             // text stays .secondary (= matching the icon's
             // normal-state tone; = the icon is the visual cue,
             // not the label).
-            Image(systemName: "calendar")
-                .font(.caption2)
-                .foregroundStyle(isTodayLabel ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+            //
+            // T60-TODAY-STAR (2026-09-18): when isTodayLabel,
+            // a small .star.fill SF Symbol overlay appears on
+            // top-right of the calendar icon (= the "today"
+            // day-divider is visually marked as special with
+            // a star = matches Apple HIG "current day"
+            // affordance). Hidden when not today.
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "calendar")
+                    .font(.caption2)
+                    .foregroundStyle(isTodayLabel ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+                if isTodayLabel {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 6, weight: .bold))
+                        .foregroundStyle(.yellow)
+                        .offset(x: 3, y: -2)
+                }
+            }
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
