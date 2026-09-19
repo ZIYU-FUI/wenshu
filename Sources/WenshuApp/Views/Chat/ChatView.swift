@@ -1845,6 +1845,30 @@ public struct ChatView: View {
                 .frame(minHeight: 30)
             }
             }   // CHATIMG-001 (2026-09-07): close inner VStack (preview chip + HStack)
+            // T37-KEYBOARD-SHORTCUTS (2026-09-18): two hidden Buttons that
+            // register app-level keyboard shortcuts without changing the
+            // visible HStack layout. The Buttons are .frame(width: 0, height: 0)
+            // + .opacity(0) so they don't take any layout space. The
+            // keyboardShortcut modifier is invisible at runtime and only
+            // consumes keystrokes.
+            //   - ⌘K → focus the chat input (= matches Slack / Discord)
+            //   - ⌘L → clear the input + the chat (= matches ChatGPT / Claude)
+            Button("Focus input") {
+                inputFocused = true
+            }
+            .keyboardShortcut("k", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
+            Button("Clear chat") {
+                vm.inputText = ""
+                vm.startNewSession()
+                inputFocused = true
+            }
+            .keyboardShortcut("l", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // v0.28 followup Boss UX round 20: 16 PT outer top margin
             // moved from .padding(.top, DesignTokens.chromePaddingLarge) on the button (= was
             // misaligning the button with TextField) to the HStack
