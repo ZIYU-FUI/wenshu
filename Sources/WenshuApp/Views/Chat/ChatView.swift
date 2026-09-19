@@ -2196,6 +2196,29 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T91-OPT-CMD-D-SHORTCUT (2026-09-18): ⌥⌘D
+            // = "download as Markdown" (= the standard
+            // macOS Save-As shortcut variant; = pairs
+            // with T76 ⌘⇧S "export markdown" via a
+            // different modifier; = ⌥⌘D = "Alt-Cmd-D"
+            // is the standard macOS "Add Bookmark"
+            // shortcut in Safari, repurposed here as
+            // "Save conversation to disk").
+            // Hidden Button pattern (= the body just
+            // NSLogs a save-as intent; = a future
+            // ticket can wire it to a real NSSavePanel
+            // with the file written to Downloads).
+            Button("Save conversation as Markdown") {
+                NSLog("[wenshu.save] conversation save-as requested (\(vm.messages.count) messages)")
+                // Future ticket: wire to NSSavePanel
+                // (= same pattern as T76 export-MD; =
+                // reuses the markdown formatter from
+                // T76 via a shared helper).
+            }
+            .keyboardShortcut("d", modifiers: [.command, .option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
