@@ -2536,6 +2536,30 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T112-ZOOM-OUT-SHORTCUT (2026-09-18): ⌥Z
+            // = "zoom out chat font" (= the standard
+            // macOS Zoom Out shortcut via the Option
+            // modifier; = in wenshu = NSLogs a
+            // zoom-out intent; = a future ticket can
+            // wire it to a @State chatFontSize -= 1 with
+            // min/max bounds).
+            // Note: ⌘- is the standard Zoom Out shortcut
+            // in macOS (= dash key); T112 uses ⌥Z to
+            // avoid collision with the system-wide
+            // zoom-out binding.
+            // Hidden Button pattern.
+            Button("Zoom out chat font") {
+                NSLog("[wenshu.zoom] zoom-out requested (current: chatFontSize=default 13pt)")
+                // Future ticket: wire to a @State
+                // chatFontSize: CGFloat + clamp(min: 9,
+                // max: 24) + thread the value through
+                // ChatMessageBodyView + ChatInput
+                // TextEditor.
+            }
+            .keyboardShortcut("z", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
