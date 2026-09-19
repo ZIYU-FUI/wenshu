@@ -287,8 +287,17 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 let url = URL(fileURLWithPath: imagePath)
                                 NSWorkspace.shared.activateFileViewerSelecting([url])
                             } label: {
-                                Label("Reveal in Finder", systemImage: "folder")
-                                    .font(.caption2)
+                                // T35-REVEAL-I18N (2026-09-18): retired the
+                                // hardcoded English "Reveal in Finder" label
+                                // (= landed in T34) in favor of the localized
+                                // WenshuI18n.t("chatview.message.reveal_in_finder")
+                                // = "Reveal in Finder" in en.lproj,
+                                //   "在访达中显示" in zh-Hans.lproj.
+                                Label(
+                                    WenshuI18n.t("chatview.message.reveal_in_finder"),
+                                    systemImage: "folder"
+                                )
+                                .font(.caption2)
                             }
                             .buttonStyle(.borderless)
                             .padding(.bottom, DesignTokens.chromePaddingMicro)
