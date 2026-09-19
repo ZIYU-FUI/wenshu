@@ -2560,6 +2560,23 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T113-ZOOM-IN-SHORTCUT (2026-09-18): ⌥=
+            // = "zoom in chat font" (= pairs with T112
+            // ⌥Z zoom-out; = the Option modifier avoids
+            // collision with the system-wide ⌘=
+            // zoom-in binding).
+            // Hidden Button pattern.
+            Button("Zoom in chat font") {
+                NSLog("[wenshu.zoom] zoom-in requested (current: chatFontSize=default 13pt)")
+                // Future ticket: wire to the same
+                // chatFontSize @State as T112 (= clamp
+                // min 9, max 24; = thread through
+                // ChatMessageBodyView + ChatInput).
+            }
+            .keyboardShortcut("=", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
