@@ -2451,6 +2451,30 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T107-GROUP-SHORTCUT (2026-09-18): ⌥G =
+            // "group messages by date" (= a wenshu-
+            // specific shortcut; = in wenshu = NSLogs
+            // a group-by-date intent; = a future ticket
+            // can wire it to a real grouping algorithm
+            // that inserts extra day-dividers between
+            // messages from the same day).
+            // Note: ⌘G is "Find Again" in standard
+            // macOS apps; T107 uses ⌥G to avoid
+            // collision.
+            // Hidden Button pattern.
+            Button("Group messages by date") {
+                let dates = Set(vm.messages.map { Calendar.current.startOfDay(for: $0.timestamp) })
+                NSLog("[wenshu.group] group-by-date requested (\(vm.messages.count) messages across \(dates.count) unique days)")
+                // Future ticket: wire to a @State
+                // groupByDate = true + thread the flag
+                // through ChatView's ForEach + insert
+                // additional day-dividers between same-day
+                // messages.
+            }
+            .keyboardShortcut("g", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
