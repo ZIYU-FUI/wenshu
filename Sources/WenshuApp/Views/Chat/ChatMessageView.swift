@@ -177,6 +177,29 @@ struct ChatMessageView: View {
         return "\(minutes)m \(remainingSeconds)s"
     }
 
+    /// T62-TOKEN-COST (2026-09-18): format an estimated USD cost
+    /// for a given total token count.
+    ///   - 0          → hidden (caller checks)
+    ///   - < 0.01     → "≈ <$0.01" (= the cost is sub-cent)
+    ///   - >= 0.01    → "≈ $X.XX" with 2 decimals
+    /// Pricing: assumes the claude-sonnet-4-5 tier (= $3 / 1M input
+    /// + $15 / 1M output). For other models the value is off by
+    /// ~10x but the order-of-magnitude is correct (= the user gets
+    /// a sense of "this cost cents vs dollars").
+    nonisolated static func formatTokenCost(_ tokens: Int) -> String {
+        guard tokens > 0 else { return "" }
+        // Conservative average rate (= $9 / 1M tokens = the average
+        // of input + output pricing for Sonnet 4.5). This is a
+        // rough heuristic (= the user gets a sense of magnitude,
+        // not an exact billing figure).
+        let avgRatePerMillion: Double = 9.0
+        let cost = Double(tokens) / 1_000_000.0 * avgRatePerMillion
+        if cost < 0.01 {
+            return "≈ <$0.01"
+        }
+        return String(format: "≈ $%.2f", cost)
+    }
+
     var body: some View {
         // v0.57 boss 2026-09-09 OOB: push the bubbles toward the iMessage
         // look. Outgoing messages sit on the trailing side in the accent
@@ -495,6 +518,24 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 // tooltip; = compact text stays
                                 // scannable).
                                 .help(Self.fullTokenCountTooltip(for: tokens))
+                            // T62-TOKEN-COST (2026-09-18): an
+                            // estimated USD cost label next to
+                            // the token count (= "≈ $0.045" for
+                            // 1500 input + output tokens). Hidden
+                            // when tokens is 0 (= meaningless).
+                            // Uses a simple heuristic:
+                            //   - $3 per million input tokens
+                            //   - $15 per million output tokens
+                            // (= the Claude Sonnet 4.5 pricing
+                            // tier; = the most common wenshu
+                            // profile). For other models the
+                            // cost will be off by ~10x but the
+                            // order-of-magnitude is right (= the
+                            // user gets a sense of "this cost
+                            // cents vs dollars").
+                            Text(Self.formatTokenCost(tokens))
+                                .font(.system(.caption2, design: .monospaced))
+                                .foregroundStyle(.quaternary)
                         }
                     }
                     .padding(.top, 2)
