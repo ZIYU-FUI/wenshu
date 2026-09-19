@@ -43,6 +43,25 @@ public struct ChatPlanPartView: View {
         self.onApprove = onApprove
     }
 
+    /// T29-CONNECTOR-ICON (2026-09-18): map a connector slug to a
+    /// distinctive SF Symbol. Covers all 7 connectors in AGENTS.md
+    /// §11.2 + a generic fallback for unknown slugs. The icon
+    /// appears next to the connector name in the plan header
+    /// (= a quick visual hint of which LLM produced the plan).
+    nonisolated static func connectorIcon(_ slug: String) -> String {
+        switch slug {
+        case "anthropic":     return "brain.head.profile"   // Claude = brain
+        case "openai-codex":  return "circle.hexagongrid.fill"  // OpenAI = OpenAI logo-ish
+        case "gemini":        return "sparkles"             // Gemini = dual stars
+        case "deepseek":      return "water.waves"          // DeepSeek = depth
+        case "ollama":        return "laptopcomputer"        // Ollama = local
+        case "openrouter":    return "arrow.triangle.branch" // OpenRouter = routing
+        case "minimax-cn",
+             "minimax":       return "leaf.fill"             // MiniMax = brand-ish
+        default:              return "questionmark.circle"  // unknown
+        }
+    }
+
     public var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
             // Header: 'Plan: <query>' + connector label.
@@ -59,8 +78,16 @@ public struct ChatPlanPartView: View {
                 // provider's friendly display name (= "Anthropic",
                 // "OpenAI Codex", "MiniMax (China)") instead of the
                 // raw slug (= "anthropic", "openai-codex", "minimax-cn").
-                // Falls back to the slug if the provider isn't
-                // registered (= forward-compat for future connectors).
+                // T29-CONNECTOR-ICON (2026-09-18): also show a small
+                // SF Symbol icon that identifies the provider at a
+                // glance (= the user sees the provider *and* a visual
+                // hint in the same HStack; = matches the connector-
+                // profile pattern in the Settings pane).
+                // Falls back to 'questionmark.circle' when the slug
+                // is unknown (= forward-compat for future connectors).
+                Image(systemName: Self.connectorIcon(plan.connectorID))
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.tertiary)
                 Text(Provider.by(slug: plan.connectorID)?.name ?? plan.connectorID)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
