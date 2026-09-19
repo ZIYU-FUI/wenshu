@@ -55,7 +55,13 @@ public struct ChatPlanPartView: View {
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                 Spacer(minLength: 0)
-                Text(plan.connectorID)
+                // T27-CONNECTOR-DISPLAY (2026-09-18): show the
+                // provider's friendly display name (= "Anthropic",
+                // "OpenAI Codex", "MiniMax (China)") instead of the
+                // raw slug (= "anthropic", "openai-codex", "minimax-cn").
+                // Falls back to the slug if the provider isn't
+                // registered (= forward-compat for future connectors).
+                Text(Provider.by(slug: plan.connectorID)?.name ?? plan.connectorID)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
