@@ -25,14 +25,14 @@ struct ChatMessageViewRevealInFinderTests {
         #expect(source.contains("NSWorkspace.shared.activateFileViewerSelecting([url])"))
     }
 
-    /// T34 contract: the Button label shows "Reveal in Finder" +
-    /// a folder SF Symbol.
-    @Test func button_label_shows_reveal_in_finder() throws {
+    /// T34 contract: the Button label uses the localized key
+    /// (= WenshuI18n.t = T35 retired the hardcoded English label).
+    @Test func button_label_uses_localized_key() throws {
         let source = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
             encoding: .utf8
         )
-        #expect(source.contains("Label(\"Reveal in Finder\", systemImage: \"folder\")"))
+        #expect(source.contains("WenshuI18n.t(\"chatview.message.reveal_in_finder\")"))
     }
 
     /// T34 contract: the Button is placed inside the same `if let
