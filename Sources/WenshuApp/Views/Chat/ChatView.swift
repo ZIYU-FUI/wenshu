@@ -1974,6 +1974,31 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T74-THEME-TOGGLE (2026-09-18): ⌥T = toggle
+            // dark/light theme. Cycles through system -> dark
+            // -> light -> system. Uses NSApp.appearance to
+            // apply the change (= the macOS-native appearance
+            // API; = doesn't require wenshu to define a
+            // custom color scheme).
+            Button("Toggle theme") {
+                let appearance = NSApp.effectiveAppearance.name
+                switch appearance {
+                case .darkAqua:
+                    NSApp.appearance = NSAppearance(named: .aqua)
+                case .aqua:
+                    NSApp.appearance = NSAppearance(named: .darkAqua)
+                default:
+                    // System (= uncontrolled by user) — toggle
+                    // to explicit dark to make the change
+                    // visible (= the user pressed ⌥T, they
+                    // expect a visible effect).
+                    NSApp.appearance = NSAppearance(named: .darkAqua)
+                }
+            }
+            .keyboardShortcut("t", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
