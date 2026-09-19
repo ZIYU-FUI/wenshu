@@ -82,6 +82,18 @@ public struct ChatMessageDayDivider: View {
         ChatMessageDayDivider(timestamp: 0, messageCount: count)
     }
 
+    /// T98-FULL-DATE-TOOLTIP (2026-09-18): the full ISO-format
+    /// date string for the .help() tooltip on the divider
+    /// label text (= e.g. "2026-09-18"). Complements T50's
+    /// timestamp tooltip pattern.
+    public static func fullDateTooltip(for timestamp: TimeInterval) -> String {
+        let date = Date(timeIntervalSince1970: timestamp)
+        return Date.FormatStyle.dateTime
+            .year().month(.twoDigits).day()
+            .locale(.current)
+            .format(date)
+    }
+
     public var body: some View {
         HStack(spacing: 6) {
             // T56-DAY-ICON (2026-09-18): a small SF Symbol calendar
@@ -172,6 +184,13 @@ public struct ChatMessageDayDivider: View {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                // T98-FULL-DATE-TOOLTIP (2026-09-18): a
+                // native macOS .help() tooltip showing the
+                // full ISO-format date when the user hovers
+                // the divider label (= a11y + discoverability
+                // affordance; = matches the T50 timestamp
+                // tooltip pattern).
+                .help(Self.fullDateTooltip(for: timestamp))
             // T68-COUNT-DIVIDER (2026-09-18): a small " · N"
             // suffix when the caller passes a message count.
             // Hidden when count is nil (= preserves the
