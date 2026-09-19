@@ -66,6 +66,31 @@ struct ChatMessageView: View {
         )) ?? AttributedString(raw)
     }
 
+    /// T25-TOKEN-FOOTER (2026-09-18): format a token count for the
+    /// sealed-message footer (= e.g. "1.5k tokens", "234 tokens",
+    /// "12.3k tokens"). Uses the Apple HIG compact-number convention
+    /// (= drop trailing zeros, cap at one decimal). `nonisolated` so
+    /// tests can call it without instantiating the view (= SwiftUI
+    /// value-typed views are not directly testable otherwise).
+    nonisolated static func formatTokenCount(_ count: Int) -> String {
+        if count < 1_000 {
+            return "\(count) tokens"
+        }
+        if count < 10_000 {
+            // 1.2k, 9.9k (= one decimal)
+            let k = Double(count) / 1_000.0
+            return String(format: "%.1fk tokens", k)
+        }
+        if count < 1_000_000 {
+            // 12k, 234k, 999k (= no decimal)
+            let k = count / 1_000
+            return "\(k)k tokens"
+        }
+        // 1.2M, 234M (= one decimal)
+        let m = Double(count) / 1_000_000.0
+        return String(format: "%.1fM tokens", m)
+    }
+
     var body: some View {
         // v0.57 boss 2026-09-09 OOB: push the bubbles toward the iMessage
         // look. Outgoing messages sit on the trailing side in the accent
@@ -271,12 +296,31 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                 //   - system messages (= too noisy; = the bubble
                 //     already includes the error icon)
                 if message.source == .wenshu && message.streamState == .sealed {
-                    Text(message.timestamp, format: .dateTime.hour().minute())
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .padding(.top, 2)
-                        .padding(.leading, 12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(spacing: 6) {
+                        // T19-MESSAGE-TIMESTAMP (2026-09-18): time footer
+                        // (= same Apple HIG footer pattern as Apple Messages
+                        // = small monospaced text below the bubble).
+                        Text(message.timestamp, format: .dateTime.hour().minute())
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        // T25-TOKEN-FOOTER (2026-09-18): token count footer
+                        // (= LLM API usage.total_tokens = input + output).
+                        // Hidden when:
+                        //   - tokens is nil (= user message; = no LLM
+                        //     usage to report; = the field is nil for
+                        //     non-assistant messages per ChatMessage init)
+                        //   - tokens is 0 (= streaming connector didn't
+                        //     surface usage; = avoid showing "0 tokens"
+                        //     which is misleading)
+                        if let tokens = message.tokens, tokens > 0 {
+                            Text(Self.formatTokenCount(tokens))
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .padding(.top, 2)
+                    .padding(.leading, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
 
