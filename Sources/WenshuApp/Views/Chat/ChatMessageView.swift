@@ -160,6 +160,23 @@ struct ChatMessageView: View {
         return parts.joined(separator: " · ")
     }
 
+    /// T58-ELAPSED-TIME (2026-09-18): format a TimeInterval as a
+    /// human-readable "thinking for Xs" string.
+    ///   - < 1s    → "0.3s" (one decimal)
+    ///   - < 60s   → "3.2s" / "12.5s"
+    ///   - >= 60s  → "1m 5s"
+    ///   - < 0     → "0.0s" (defensive: clock skew)
+    /// nonisolated (= pure utility function).
+    nonisolated static func formatElapsed(_ seconds: TimeInterval) -> String {
+        if seconds < 0 { return "0.0s" }
+        if seconds < 60.0 {
+            return String(format: "%.1fs", seconds)
+        }
+        let minutes = Int(seconds / 60)
+        let remainingSeconds = Int(seconds.truncatingRemainder(dividingBy: 60))
+        return "\(minutes)m \(remainingSeconds)s"
+    }
+
     var body: some View {
         // v0.57 boss 2026-09-09 OOB: push the bubbles toward the iMessage
         // look. Outgoing messages sit on the trailing side in the accent
@@ -246,6 +263,21 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         ProgressView()
                             .controlSize(.mini)
                             .progressViewStyle(.circular)
+                        // T58-ELAPSED-TIME (2026-09-18): a small
+                        // elapsed-time indicator next to the
+                        // ProgressView (= "🧠 3.2s"). Drives a
+                        // TimelineView(.periodic(from: .now,
+                        // by: 0.5)) so the seconds tick while the
+                        // model is thinking. Gives the user a
+                        // concrete sense of progress (= "still
+                        // thinking, has been for 3s now") rather
+                        // than a generic spinner.
+                        TimelineView(.periodic(from: .now, by: 0.5)) { context in
+                            let elapsed = context.date.timeIntervalSince(message.timestamp)
+                            Text(Self.formatElapsed(elapsed))
+                                .font(.system(.caption2, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
