@@ -505,6 +505,16 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         //     surface usage; = avoid showing "0 tokens"
                         //     which is misleading)
                         if let tokens = message.tokens, tokens > 0 {
+                            // T63-TOKEN-ICON (2026-09-18): a small
+                            // "number" SF Symbol prefix for the token
+                            // count text (= Apple HIG metadata icon
+                            // affordance). The icon uses .caption2 +
+                            // .quaternary tone (= one notch quieter
+                            // than the .tertiary token count = the
+                            // icon is a visual cue, not the data).
+                            Image(systemName: "number")
+                                .font(.caption2)
+                                .foregroundStyle(.quaternary)
                             Text(Self.formatTokenCount(tokens))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
