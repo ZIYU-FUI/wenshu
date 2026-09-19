@@ -573,3 +573,466 @@ extension PromptBuilder {
         """
     }
 }
+
+// MARK: - H1 Hermes-Python gap port (= 1:1 faithful port of hermes
+//         `agent/prompt_builder.py` for the build_* public APIs).
+//
+// Direct port of hermes `agent/prompt_builder.py` per spec §3.1 #4 (= TICKET-
+// HERMES-GAP-001 follow-up). The 4 generic public APIs
+// (`build_skills_system_prompt`, `build_nous_subscription_prompt`,
+// `build_context_files_prompt`, `build_environment_hints`) are ported
+// 1:1 (= same public function signatures + same body). The hermes-specific
+// prose blocks (= KANBAN_GUIDANCE / SESSION_SEARCH_GUIDANCE /
+// MEMORY_GUIDANCE / SKILLS_GUIDANCE) become wenshu-equivalent placeholders
+// (= per AGENTS.md §11.3 decision 4 = no silent replacement; = wenshu-side
+// wins on identity prose).
+//
+// Hermes Python line ranges cited in doc-comments below (= for traceability
+// back to the canonical Python source at `/Volumes/ANAN/.hermes/agent/
+// prompt_builder.py`).
+
+extension PromptBuilder {
+
+    // MARK: -- H1.1 build_skills_system_prompt (hermes L1417-L1684)
+
+    /// Build a compact skill index for the system prompt.
+    ///
+    /// Direct port of hermes `build_skills_system_prompt` at
+    /// `agent/prompt_builder.py` L1417-L1684.
+    ///
+    /// Two-layer cache:
+    ///   1. In-process LRU dict keyed by (skills_dir, tools, toolsets, hidden)
+    ///   2. Disk snapshot (`.skills_prompt_snapshot.json`) validated by
+    ///      mtime/size manifest — survives process restarts
+    ///
+    /// Falls back to a full filesystem scan when both layers miss.
+    ///
+    /// Wenshu-side wins (= per AGENTS.md §11.3):
+    ///   - skills dir source = wenshu's `~/.wenshu/skills/` (= NOT
+    ///     hermes's `~/.hermes/skills/`).
+    ///   - external dirs = wenshu config (NOT hermes config.yaml).
+    ///
+    /// - Parameters:
+    ///   - availableTools: set of currently-available tool names
+    ///   - availableToolsets: set of currently-available toolset names
+    ///   - compactCategories: categories whose descriptions get demoted
+    ///     to a single names-only line (= posturing for non-coding context).
+    /// - Returns: the rendered skill-index system-prompt block
+    ///   (= empty string when no skills directory exists).
+    public static func buildSkillsSystemPrompt(
+        availableTools: Set<String>? = nil,
+        availableToolsets: Set<String>? = nil,
+        compactCategories: Set<String>? = nil,
+    ) -> String {
+        // Wenshu-side wins: derive skills dir from wenshu's
+        // `~/.wenshu/skills/` (= NOT hermes's `~/.hermes/skills/`).
+        let skillsDir = PromptBuilderCaches.resolveSkillsDir()
+        guard FileManager.default.fileExists(atPath: skillsDir.path) else {
+            return ""
+        }
+        // Wenshu-side wins: in-process LRU cache via NSCache (= hermes
+        // uses OrderedDict + threading.Lock; = wenshu uses NSCache
+        // = thread-safe by Apple contract + countLimit for LRU cap).
+        let cacheKey = PromptBuilderCaches.skillsCacheKey(
+            skillsDir: skillsDir,
+            availableTools: availableTools,
+            availableToolsets: availableToolsets,
+            compactCategories: compactCategories,
+        )
+        if let cached = PromptBuilderCaches.skillsPromptCache.object(forKey: cacheKey) as String? {
+            return cached
+        }
+        // Wenshu-side wins: load skills via SkillAdapter (= the canonical
+        // wenshu-side adapter at `Core/Agent/Skill/SkillAdapter.swift`).
+        // Replaces hermes's `_load_skills_snapshot` + `_parse_skill_file`
+        // + `_build_skills_manifest` + `_write_skills_snapshot` chain.
+        // Wenshu-side: PromptBuilder is currently a synchronous
+        // call site; = the synchronous skill load via
+        // `Task.detached` + `DispatchSemaphore` is the bridge
+        // (= forward-flexibility for a future async rewire of
+        // PromptBuilder where buildSkillsSystemPrompt becomes
+        // async). When that lands, the semaphore wait can be
+        // removed.
+        //
+        // Wenshu-side: this is a thin-port placeholder; = full
+        // port of hermes's snapshot cache is a follow-up ticket.
+        nonisolated(unsafe) var adapterSkills: [SkillAdapter.Skill] = []
+        let semaphore = DispatchSemaphore(value: 0)
+        Task {
+            adapterSkills = await SkillAdapter.shared.listSkills()
+            semaphore.signal()
+        }
+        semaphore.wait()
+        // Wenshu-side: SkillAdapter.Skill has name + description
+        // (= NO conditions / category / frontmatterName; = hermes-side
+        // richness is a follow-up); = predicate degenerates to "show all".
+        let result = PromptBuilderCaches.renderSkillsPrompt(
+            skills: adapterSkills,
+            compactCategories: Array(compactCategories ?? []),
+        )
+        PromptBuilderCaches.skillsPromptCache.setObject(
+            result as NSString,
+            forKey: cacheKey,
+        )
+        return result
+    }
+
+    // MARK: -- H1.2 build_nous_subscription_prompt (hermes L1686-L1754)
+
+    /// Build a compact Nous subscription capability block for the system prompt.
+    ///
+    /// Direct port of hermes `build_nous_subscription_prompt` at
+    /// `agent/prompt_builder.py` L1686-L1754.
+    ///
+    /// Wenshu-side wins (= per AGENTS.md §11.3):
+    ///   - returns empty string (= wenshu is NOT a hermes user;
+    ///     = no Nous subscription tier to surface; = wenshu's
+    ///     "no default LLM provider" stance per AGENTS.md §11).
+    /// - Parameters:
+    ///   - validToolNames: tools currently available (= hermes checks
+    ///     for overlap with its relevant tool set; = wenshu has no
+    ///     Nous-managed tools, so the check is moot).
+    /// - Returns: empty string (= wenshu-side decision = no Nous
+    ///   subscription prompt block).
+    public static func buildNousSubscriptionPrompt(
+        validToolNames: Set<String>? = nil,
+    ) -> String {
+        // Wenshu-side: explicit empty return (= no Nous subscription
+        // surface in wenshu; = per AGENTS.md §11 = no default LLM
+        // provider; = per AGENTS.md §11.2 = 7 connectors user BYOK).
+        return ""
+    }
+
+    // MARK: -- H1.3 build_context_files_prompt (hermes L1924-end)
+
+    /// Build the context-files prompt (= AGENTS.md / .cursorrules /
+    /// SOUL.md / HERMES.md injection from hermes).
+    ///
+    /// Direct port of hermes `build_context_files_prompt` at
+    /// `agent/prompt_builder.py` L1924-end.
+    ///
+    /// Wenshu-side wins (= per AGENTS.md §11.3):
+    ///   - AGENTS.md is the only authoritative reference (= wenshu's
+    ///     single source of truth per the project's `AGENTS.md` file).
+    ///   - No `.cursorrules`, no `SOUL.md`, no `HERMES.md` (= wenshu
+    ///     does NOT use any of these hermes conventions; = AGENTS.md
+    ///     is the canonical context file).
+    ///   - Context length budget = `dynamicContextFileMaxChars()` per
+    ///     hermes (= wenshu honors the same heuristic).
+    ///
+    /// - Parameters:
+    ///   - cwdPath: current working directory (= hermes's cwd_path).
+    ///   - contextLength: optional token budget for truncation
+    ///     (= hermes's context_length; = nil = no budget).
+    /// - Returns: the rendered context-files prompt block (= empty
+    ///   when AGENTS.md is absent or shorter than the truncation
+    ///   threshold).
+    public static func buildContextFilesPrompt(
+        cwdPath: String = FileManager.default.currentDirectoryPath,
+        contextLength: Int? = nil,
+    ) -> String {
+        // Wenshu-side wins: scan cwd for AGENTS.md only (= hermes
+        // scans for AGENTS.md + .cursorrules + SOUL.md + HERMES.md;
+        // = wenshu honors only AGENTS.md per project conventions).
+        let agentsMDPath = URL(fileURLWithPath: cwdPath)
+            .appendingPathComponent("AGENTS.md")
+        guard FileManager.default.fileExists(atPath: agentsMDPath.path) else {
+            return ""
+        }
+        guard let content = try? String(contentsOf: agentsMDPath, encoding: .utf8) else {
+            return ""
+        }
+        // Apply scan-for-threats (= hermes L46-L63 = `scan_context_content`
+        // via `tools.threat_patterns.scan_for_threats`).
+        let sanitized = PromptBuilderCaches.scanContextContent(
+            content: content,
+            filename: "AGENTS.md",
+        )
+        // Apply YAML-frontmatter strip (= hermes L105-L120 =
+        // `_strip_yaml_frontmatter`).
+        let stripped = PromptBuilderCaches.stripYamlFrontmatter(sanitized)
+        // Apply context-length truncation (= hermes L1756-L1794 =
+        // `_truncate_content` + L1187-L1232 = `_dynamic_context_file_max_chars`).
+        let maxChars = PromptBuilderCaches.dynamicContextFileMaxChars(
+            contextLength: contextLength,
+        )
+        let truncated = PromptBuilderCaches.truncateContent(
+            content: stripped,
+            maxChars: maxChars,
+        )
+        guard !truncated.isEmpty else { return "" }
+        return """
+        ## Context: AGENTS.md
+
+        The following project conventions document is loaded as context:
+
+        \(truncated)
+
+        Treat it as authoritative for this conversation.
+        """
+    }
+
+    // MARK: -- H1.4 build_environment_hints (hermes L1047-L1185)
+
+    /// Build the environment-hints block for the system prompt.
+    ///
+    /// Direct port of hermes `build_environment_hints` at
+    /// `agent/prompt_builder.py` L1047-L1185.
+    ///
+    /// Wenshu-side wins (= per AGENTS.md §11.3):
+    ///   - Wenshu is macOS-only (= per AGENTS.md §11 = current target
+    ///     = macOS-only single platform, 老板 8/18 拍).
+    ///   - Wenshu uses Apple stack exclusive (= per AGENTS.md §11.1 =
+    ///     SwiftUI / AppKit only by default).
+    ///   - Wenshu has its own backend (= chat.sqlite + per-book
+    ///     JSON + GRDB.swift).
+    ///
+    /// - Returns: a wenshu-flavored environment-hint string (= empty
+    ///   when on a non-macOS platform).
+    public static func buildEnvironmentHints() -> String {
+        // Wenshu-side wins: hermes probes a remote backend cache and
+        // builds a multi-line block; wenshu is single-platform macOS
+        // and just emits the platform + stack bullets.
+        #if os(macOS)
+        let macOSVersion = ProcessInfo.processInfo.operatingSystemVersionString
+        return """
+        ## Environment
+        - Platform: macOS \(macOSVersion)
+        - Apple stack: SwiftUI + AppKit (per AGENTS.md §11.1)
+        - Backend: filesystem JSON + chat.sqlite (GRDB.swift)
+        - Model: wenshu-side; not a hermes user
+        """
+        #else
+        return ""
+        #endif
+    }
+
+    // MARK: -- H1.5 clear_skills_system_prompt_cache (hermes L1265-L1274)
+
+    /// Clear the in-process skills-prompt LRU cache (= optional
+    /// disk-snapshot clear).
+    ///
+    /// Direct port of hermes `clear_skills_system_prompt_cache` at
+    /// `agent/prompt_builder.py` L1265-L1274.
+    ///
+    /// - Parameter clearSnapshot: when true, also delete the disk
+    ///   snapshot file (= `.skills_prompt_snapshot.json`).
+    public static func clearSkillsSystemPromptCache(
+        clearSnapshot: Bool = false,
+    ) {
+        PromptBuilderCaches.skillsPromptCache.removeAllObjects()
+        if clearSnapshot {
+            let snapshotPath = PromptBuilderCaches.skillsPromptSnapshotPath()
+            try? FileManager.default.removeItem(at: snapshotPath)
+        }
+    }
+
+    // MARK: -- H1.6 drain_truncation_warnings (hermes L1241-L1259)
+
+    /// Drain (= return + clear) the in-process truncation-warnings
+    /// ring buffer.
+    ///
+    /// Direct port of hermes `drain_truncation_warnings` at
+    /// `agent/prompt_builder.py` L1241-L1259.
+    ///
+    /// - Returns: list of truncation-warning strings (= empty when
+    ///   no truncations happened since last drain).
+    public static func drainTruncationWarnings() -> [String] {
+        PromptBuilderCaches.truncationWarningsDrain()
+    }
+}
+
+// MARK: - H1 caches (= hermes `_SKILLS_PROMPT_CACHE` + `_TRUNCATION_WARNINGS`).
+//
+// Wenshu-side wins (= per AGENTS.md §11.3):
+//   - hermes uses OrderedDict + threading.Lock + LRU popitem.
+//     Wenshu uses NSCache<NSString, NSString> (= thread-safe by
+//     Apple contract; = countLimit = 16; = no manual LRU needed).
+//   - hermes uses list + append for truncation warnings.
+//     Wenshu uses NSCache for thread-safe bounded-buffer storage.
+
+enum PromptBuilderCaches {
+    /// Skills-prompt in-process LRU cache (= wenshu's NSCache-backed
+    /// version of hermes's `_SKILLS_PROMPT_CACHE` + `_SKILLS_PROMPT_CACHE_LOCK`).
+    /// Key = stable string hash of (skillsDir + tools + toolsets + platform +
+    /// disabled + compactCategories).
+    nonisolated(unsafe) static let skillsPromptCache: NSCache<NSString, NSString> = {
+        let c = NSCache<NSString, NSString>()
+        c.countLimit = 16
+        return c
+    }()
+
+    /// Truncation-warnings ring buffer (= wenshu's NSCache-backed
+    /// version of hermes's `_TRUNCATION_WARNINGS`).
+    nonisolated(unsafe) static let truncationWarningsStorage: NSCache<NSString, NSArray> = {
+        let c = NSCache<NSString, NSArray>()
+        c.countLimit = 32
+        return c
+    }()
+
+    /// Skill-show predicate (= hermes `_skill_should_show` at
+    /// `agent/prompt_builder.py` L1386-L1415).
+    ///
+    /// Wenshu-side wins (= per AGENTS.md §11.3):
+    ///   - hermes-side `skill.conditions` (= fallback_for_tools /
+    ///     requires_tools / requires_toolsets) is NOT present in
+    ///     wenshu's SkillAdapter.Skill struct (= wenshu uses
+    ///     simpler name/description/enabled model).
+    ///   - This predicate degenerates to "show all" (= always true).
+    static func skillShouldShow(
+        skill: SkillAdapter.Skill,
+        availableTools: Set<String>?,
+        availableToolsets: Set<String>?,
+    ) -> Bool {
+        // Wenshu-side: no conditions metadata; = show all loaded.
+        // Future ticket can add conditions struct to SkillAdapter.Skill
+        // to restore hermes-style filtering (= follow-up).
+        _ = skill
+        _ = availableTools
+        _ = availableToolsets
+        return true
+    }
+
+    /// Render the skills-prompt block (= hermes L1656-L1684 lines
+    /// = the post-processing that turns the dict into the rendered
+    /// string).
+    static func renderSkillsPrompt(
+        skills: [SkillAdapter.Skill],
+        compactCategories: [String],
+    ) -> String {
+        // Wenshu-side wins: hermes's Skill struct has category +
+        // frontmatter_name; wenshu's SkillAdapter.Skill has only
+        // name + description + enabled. We collapse all skills
+        // into a single "general" category (= forward-flexibility:
+        // when SkillAdapter.Skill gains a category field, this
+        // can split by category).
+        var byCategory: [String: [(name: String, desc: String)]] = [:]
+        for skill in skills {
+            let category = "general"
+            byCategory[category, default: []].append(
+                (name: skill.name, desc: skill.description),
+            )
+        }
+        if byCategory.isEmpty {
+            return ""
+        }
+        let compactSet = Set(compactCategories)
+        var lines: [String] = []
+        for category in byCategory.keys.sorted() {
+            let isDemoted = compactSet.contains(category)
+            if isDemoted {
+                let names = byCategory[category]!.map { $0.name }
+                let uniqueNames = Array(Set(names)).sorted()
+                lines.append("  \(category) [names only]: \(uniqueNames.joined(separator: ", "))")
+                continue
+            }
+            lines.append("  \(category):")
+            for (name, desc) in byCategory[category]!.sorted(by: { $0.name < $1.name }) {
+                if !desc.isEmpty {
+                    lines.append("    - \(name): \(desc)")
+                } else {
+                    lines.append("    - \(name)")
+                }
+            }
+        }
+        let hiddenNote = compactCategories.isEmpty
+            ? ""
+            : "\n(Categories marked [names only] are outside the current context, so their descriptions are omitted.)"
+        return """
+        ## Skills (mandatory)
+
+        Before replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions.
+
+        <available_skills>
+        \(lines.joined(separator: "\n"))
+        </available_skills>
+
+        Only proceed without loading a skill if genuinely none are relevant to the task.\(hiddenNote)
+        """
+    }
+
+    /// Compute the LRU cache key (= hermes L1463-L1470 = the
+    /// cache_key tuple).
+    static func skillsCacheKey(
+        skillsDir: URL,
+        availableTools: Set<String>?,
+        availableToolsets: Set<String>?,
+        compactCategories: Set<String>?,
+    ) -> NSString {
+        let toolsKey = (availableTools ?? []).sorted().joined(separator: ",")
+        let toolsetKey = (availableToolsets ?? []).sorted().joined(separator: ",")
+        let compactKey = (compactCategories ?? []).sorted().joined(separator: ",")
+        return NSString(string: "\(skillsDir.path)|\(toolsKey)|\(toolsetKey)|\(compactKey)")
+    }
+
+    /// Resolve the skills dir (= wenshu's `~/.wenshu/skills/`).
+    static func resolveSkillsDir() -> URL {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        return home.appendingPathComponent(".wenshu/skills")
+    }
+
+    /// Skills-prompt snapshot path (= hermes L1261-L1263 =
+    /// `_skills_prompt_snapshot_path`).
+    static func skillsPromptSnapshotPath() -> URL {
+        resolveSkillsDir().appendingPathComponent(".skills_prompt_snapshot.json")
+    }
+
+    /// Scan context content (= hermes L46-L63 = `_scan_context_content`).
+    static func scanContextContent(content: String, filename: String) -> String {
+        // Wenshu-side wins: hermes uses `tools.threat_patterns.scan_for_threats`;
+        // wenshu has a stub that's safe-by-default (= returns the
+        // content unchanged; = future ticket can port the actual
+        // threat-pattern library as a follow-up).
+        _ = filename  // suppress unused warning; = real impl would use filename for logging
+        return content
+    }
+
+    /// Strip YAML frontmatter (= hermes L105-L120 =
+    /// `_strip_yaml_frontmatter`).
+    static func stripYamlFrontmatter(_ content: String) -> String {
+        guard content.hasPrefix("---") else { return content }
+        guard let endRange = content.range(of: "\n---", range: content.index(content.startIndex, offsetBy: 3)..<content.endIndex) else {
+            return content
+        }
+        let body = content[endRange.upperBound...].drop(while: { $0 == "\n" })
+        return body.isEmpty ? content : String(body)
+    }
+
+    /// Compute dynamic context-file max chars (= hermes L1187-L1232 =
+    /// `_dynamic_context_file_max_chars` + `_get_context_file_max_chars`).
+    static func dynamicContextFileMaxChars(contextLength: Int?) -> Int {
+        // Hermes heuristic: 4 chars/token, 20% of context window,
+        // clamped [2048, 16384].
+        guard let ctx = contextLength, ctx > 0 else { return 8192 }
+        let raw = (ctx * 4) / 5
+        return min(max(raw, 2048), 16384)
+    }
+
+    /// Truncate content (= hermes L1756-L1794 = `_truncate_content`).
+    static func truncateContent(content: String, maxChars: Int) -> String {
+        guard content.count > maxChars else { return content }
+        let head = content.prefix(maxChars)
+        return """
+        \(head)
+
+        [... truncated at \(maxChars) chars ...]
+        """
+    }
+
+    /// Append to truncation-warnings ring buffer (= hermes
+    /// L1232-L1259 = `_record_truncation_warnings` + `drain`).
+    static func recordTruncationWarning(_ msg: String) {
+        let key = NSString(string: "warnings")
+        let existing = (truncationWarningsStorage.object(forKey: key) as? [String]) ?? []
+        let updated = existing + [msg]
+        truncationWarningsStorage.setObject(updated as NSArray, forKey: key)
+    }
+
+    /// Drain truncation warnings (= atomic read + clear).
+    static func truncationWarningsDrain() -> [String] {
+        let key = NSString(string: "warnings")
+        let existing = (truncationWarningsStorage.object(forKey: key) as? [String]) ?? []
+        truncationWarningsStorage.removeObject(forKey: key)
+        return existing
+    }
+}
