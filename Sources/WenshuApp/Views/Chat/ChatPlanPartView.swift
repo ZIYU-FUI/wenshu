@@ -83,14 +83,29 @@ public struct ChatPlanPartView: View {
                 // glance (= the user sees the provider *and* a visual
                 // hint in the same HStack; = matches the connector-
                 // profile pattern in the Settings pane).
+                // T30-PLAN-MODEL (2026-09-18): also surface the LLM
+                // model id (= "claude-sonnet-4-20250514") so the user
+                // knows which exact model generated the plan. Falls
+                // back to the connector-only display when model is
+                // nil (= older plans without the model field).
                 // Falls back to 'questionmark.circle' when the slug
                 // is unknown (= forward-compat for future connectors).
                 Image(systemName: Self.connectorIcon(plan.connectorID))
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(.tertiary)
-                Text(Provider.by(slug: plan.connectorID)?.name ?? plan.connectorID)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                HStack(spacing: 2) {
+                    Text(Provider.by(slug: plan.connectorID)?.name ?? plan.connectorID)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    if let model = plan.model {
+                        Text("·")
+                            .font(.caption2)
+                            .foregroundStyle(.quaternary)
+                        Text(model)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
             }
             // DisclosureGroup (= collapsible step list; = the
             // standard macOS expand/collapse pattern). Default = expanded
