@@ -1974,6 +1974,33 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
+            // the entire conversation to the clipboard
+            // (= each message on its own line, prefixed by
+            // "你:" or "文枢:" based on source). Useful for
+            // sharing the chat log or pasting it into another
+            // app (= the standard ⌘⇧C = "copy selection"
+            // shortcut in many apps; = wenshu reuses it as
+            // "copy conversation" since chat text isn't
+            // selectable via the standard modifier).
+            Button("Copy conversation") {
+                let formatted = vm.messages.map { msg in
+                    let prefix: String
+                    switch msg.source {
+                    case .user: prefix = "你"
+                    case .wenshu: prefix = "文枢"
+                    case .system: prefix = "系统"
+                    }
+                    return "[\(prefix)]: \(msg.content)"
+                }.joined(separator: "\n\n")
+                let pb = NSPasteboard.general
+                pb.clearContents()
+                pb.setString(formatted, forType: .string)
+            }
+            .keyboardShortcut("c", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // v0.28 followup Boss UX round 20: 16 PT outer top margin
             // moved from .padding(.top, DesignTokens.chromePaddingLarge) on the button (= was
             // misaligning the button with TextField) to the HStack
