@@ -113,6 +113,21 @@ struct ChatMessageView: View {
         return .dateTime.hour().minute()
     }
 
+    /// T50-TIMESTAMP-TOOLTIP (2026-09-18): full ISO-format date
+    /// string for the .help() tooltip on the timestamp text
+    /// (= e.g. "2026-09-18 14:32:05"). Complements T26's on-hover
+    /// format expansion: T26 = visible-in-text change to compact
+    /// locale format, T50 = native tooltip with full ISO
+    /// precision (= shows year + seconds that T26 omits).
+    /// nonisolated (= pure utility function; = testable from
+    /// XCTest without instantiating the view).
+    nonisolated static func fullTimestampTooltip(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")  // ISO-style format
+        return formatter.string(from: date)
+    }
+
     var body: some View {
         // v0.57 boss 2026-09-09 OOB: push the bubbles toward the iMessage
         // look. Outgoing messages sit on the trailing side in the accent
@@ -370,6 +385,17 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             .onHover { hovering in
                                 isTimestampHovered = hovering
                             }
+                            // T50-TIMESTAMP-TOOLTIP (2026-09-18): the
+                            // timestamp text gets a .help() tooltip
+                            // (= the macOS native accessibility /
+                            // tooltip affordance). When the user
+                            // hovers the timestamp OR uses VoiceOver,
+                            // they see the FULL ISO-format date
+                            // (= e.g. "2026-09-18 14:32:05"). This
+                            // complements T26's on-hover format
+                            // expansion: T26 = visible-in-text change,
+                            // T50 = native tooltip with full precision.
+                            .help(Self.fullTimestampTooltip(for: message.timestamp))
                         // T25-TOKEN-FOOTER (2026-09-18): token count footer
                         // (= LLM API usage.total_tokens = input + output).
                         // Hidden when:
