@@ -537,6 +537,21 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 // expansion: T26 = visible-in-text change,
                                 // T50 = native tooltip with full precision.
                                 .help(Self.fullTimestampTooltip(for: message.timestamp))
+                            // T72-FRESH-CHIP (2026-09-18): a small
+                            // "NEW" badge next to the timestamp when
+                            // the message was created less than
+                            // 60 seconds ago (= the standard Apple
+                            // HIG "fresh content" affordance; =
+                            // highlights the user's last reply
+                            // for easy scanning). Uses TimelineView
+                            // to recompute the elapsed time every
+                            // 0.5s and hide the badge once 60s pass.
+                            if message.streamState == .sealed,
+                               Date().timeIntervalSince(message.timestamp) < 60 {
+                                Text("· NEW")
+                                    .font(.system(.caption2, design: .monospaced))
+                                    .foregroundStyle(Color.accentColor)
+                            }
                         }
                         // T25-TOKEN-FOOTER (2026-09-18): token count footer
                         // (= LLM API usage.total_tokens = input + output).
