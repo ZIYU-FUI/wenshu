@@ -2161,6 +2161,22 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T82-SHORTCUT-HELP (2026-09-18): ⌘? = keyboard
+            // shortcuts help popover (= the standard Apple
+            // help shortcut; = the macOS "Help" menu uses
+            // ⌘? as well = lists all keyboard shortcuts).
+            // For wenshu, ⌘? = shows a popover listing all
+            // T37-T82 keyboard shortcuts.
+            // Hidden Button pattern (= the body just NSLogs
+            // a cheat-sheet for now; = a future ticket can
+            // wire it to a real SwiftUI .popover or .sheet).
+            Button("Show shortcuts") {
+                NSLog("[wenshu.shortcuts] ⌘K focus input · ⌘L clear chat · ⌘N new chat · ⌘P print · ⌘R reload · ⌘. cancel streaming · ⌘⇧C copy conversation · ⌘⇧D copy last assistant · ⌘⇧E edit last user · ⌘⇧G regenerate · ⌘⇧K clear chat (in-place) · ⌘⇧O open chat markdown · ⌘⇧S export markdown · ⌥T toggle theme")
+            }
+            .keyboardShortcut("?", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
