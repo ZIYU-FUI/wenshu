@@ -60,8 +60,9 @@ struct ChatPartViewToolUseFadeInTests {
     }
 
     /// T41 contract: the count of .transition(.wenshuThinkingAppear())
-    /// calls in ChatPartRow is 3 (= reasoning + toolUse + toolResult).
-    @Test func transition_applied_to_three_cases() throws {
+    /// calls in ChatPartRow is 4 (= reasoning + toolUse + toolResult
+    /// + text = T49 added text).
+    @Test func transition_applied_to_four_cases() throws {
         let src = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
             encoding: .utf8
@@ -76,12 +77,12 @@ struct ChatPartViewToolUseFadeInTests {
         }
         let rowBody = src[rowBodyStart.lowerBound..<rowBodyEnd.lowerBound]
         let count = rowBody.components(separatedBy: ".transition(.wenshuThinkingAppear())").count - 1
-        #expect(count == 3, "expected 3 transitions in ChatPartRow switch (= reasoning + toolUse + toolResult); got \(count)")
+        #expect(count == 4, "expected 4 transitions in ChatPartRow switch (= reasoning + toolUse + toolResult + text); got \(count)")
     }
 
-    /// T41 contract: .plan + .text cases do NOT apply the
-    /// transition (= only streaming-event parts animate).
-    @Test func plan_and_text_cases_dont_apply_transition() throws {
+    /// T41 contract: .plan case does NOT apply the transition
+    /// (= only streaming-event parts animate; = plan is static).
+    @Test func plan_case_doesnt_apply_transition() throws {
         let src = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
             encoding: .utf8
@@ -90,8 +91,7 @@ struct ChatPartViewToolUseFadeInTests {
         let rowBodyEnd = src.range(of: "    }", range: rowBodyStart.upperBound..<src.endIndex)
         guard let rowBodyEnd else { return }
         let rowBody = src[rowBodyStart.lowerBound..<rowBodyEnd.lowerBound]
-        // Count occurrences in the rowBody.
         let count = rowBody.components(separatedBy: ".transition(.wenshuThinkingAppear())").count - 1
-        #expect(count == 3, "exactly 3 transitions expected (= reasoning + toolUse + toolResult); got \(count)")
+        #expect(count == 4, "exactly 4 transitions expected (= text + reasoning + toolUse + toolResult); got \(count)")
     }
 }
