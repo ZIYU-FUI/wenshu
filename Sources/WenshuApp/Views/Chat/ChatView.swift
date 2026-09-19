@@ -1103,6 +1103,29 @@ public struct ChatView: View {
         }
     }
 
+    /// T36-DATE-DIVIDERS (2026-09-18): returns true when the message
+    /// at `index` should be preceded by a centered day-separator
+    /// header. Strategy:
+    ///   - The first message (= index == 0) ALWAYS gets a header
+    ///     so the user knows when this chat started.
+    ///   - A subsequent message gets a header iff its calendar day
+    ///     differs from the previous message's calendar day.
+    ///   - If either timestamp is nil, no header (= legacy messages
+    ///     without timestamps skip the divider).
+    static func shouldShowDayDivider(
+        at index: Int, in messages: [ChatMessage]
+    ) -> Bool {
+        let currentDate = messages[index].timestamp
+        let calendar = Calendar.current
+
+        if index == 0 { return true }
+
+        guard index > 0 else { return false }
+        let previousDate = messages[index - 1].timestamp
+
+        return !calendar.isDate(currentDate, inSameDayAs: previousDate)
+    }
+
     @State private var vm: ChatViewModel
     // v0.24 boss acceptance fix (2026-08-24): focus management for input box.
     // Boss 8/24 feedback: when no provider key, chat input should be disabled
@@ -1273,6 +1296,18 @@ public struct ChatView: View {
                             // a run of consecutive messages from one author,
                             // because iMessage only tails the last one and
                             // squares off the corners facing a neighbour.
+                            //
+                            // T36-DATE-DIVIDERS (2026-09-18): above the
+                            // current message, render a small "Today" /
+                            // "Yesterday" / "Mon 9/14" centered header
+                            // when the calendar day changes from the
+                            // previous message. The first message in the
+                            // conversation (= index == 0) ALSO shows a
+                            // header so the user knows when this chat
+                            // started.
+                            if Self.shouldShowDayDivider(at: index, in: vm.messages) {
+                                ChatMessageDayDivider(timestamp: msg.timestamp.timeIntervalSince1970)
+                            }
                             ChatMessageView(
                                 message: msg,
                                 position: Self.bubblePosition(
