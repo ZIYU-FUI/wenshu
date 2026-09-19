@@ -284,12 +284,24 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     // thumbnail above the parts. (= unchanged)
                     if let imagePath = message.imagePath {
                         if let nsImage = NSImage(contentsOfFile: imagePath) {
-                            Image(nsImage: nsImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(maxWidth: 240, maxHeight: 240)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                                .padding(.bottom, DesignTokens.chromePaddingMicro)
+                            // T51-OPEN-IMAGE (2026-09-18): wrap the
+                            // thumbnail in a Button so clicking it
+                            // opens the image in Preview.app via
+                            // NSWorkspace.shared.open(url). The
+                            // Reveal-in-Finder button (= T34) is
+                            // preserved below as a separate affordance.
+                            Button {
+                                let url = URL(fileURLWithPath: imagePath)
+                                NSWorkspace.shared.open(url)
+                            } label: {
+                                Image(nsImage: nsImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(maxWidth: 240, maxHeight: 240)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    .padding(.bottom, DesignTokens.chromePaddingMicro)
+                            }
+                            .buttonStyle(.plain)
                             // T34-OPEN-IMAGE-IN-FINDER (2026-09-18): a small
                             // "Reveal" button below the thumbnail (= the
                             // user can right-click a file in Finder to
