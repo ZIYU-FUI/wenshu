@@ -2279,6 +2279,24 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T95-STRIKETHROUGH-SHORTCUT (2026-09-18):
+            // ⌘⇧X = "strikethrough" (= the standard
+            // Apple Notes strikethrough shortcut; =
+            // in wenshu = wraps the current chat
+            // input text in `~~ ... ~~` markdown; =
+            // pairs with T93 ⌘B + T94 ⌘I = the
+            // canonical text-formatting trio).
+            // Hidden Button pattern.
+            Button("Strikethrough selected text") {
+                let current = vm.inputText
+                let struck = "~~\(current)~~"
+                vm.inputText = struck
+                NSLog("[wenshu.strike] wrapped \(current.count) chars in ~~ ~~")
+            }
+            .keyboardShortcut("x", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
