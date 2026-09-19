@@ -329,3 +329,205 @@ public actor RuntimeHelpers {
 // collision and keeps the dep edge narrow (= RuntimeHelpers only needs
 // the catalog's slug→Provider lookup, not the rest of the Provider API
 // surface).
+
+// MARK: - H6 Hermes-Python gap port (= 1:1 port of hermes
+//         `agent/agent_runtime_helpers.py` `strip_think_blocks`).
+//
+// Wenshu-side wins (= per AGENTS.md §11.3):
+//
+// Direct port of hermes `agent/agent_runtime_helpers.py` per spec
+// §3.1 #31 (= TICKET-HERMES-GAP-003 follow-up). The target file
+// already existed at 331 LOC (= ⚠️ partial per gap audit 2026-09-04
+// = wenshu-side wins = the time / verbose / debug / credential
+// subset). This H6 ticket adds the hermes `strip_think_blocks`
+// pure helper (= 97 LOC Python at L600-L696) which strips
+// reasoning/thinking blocks from content.
+//
+// The remaining 28 hermes functions in agent_runtime_helpers.py
+// (= message-format conversions / credential-pool rotation /
+// signal handlers / subprocess management / message-sequence
+// repair / trajectory conversion / etc.) are intentionally NOT
+// ported in this ticket — they fall into separate wenshu-side
+// wins patterns (= ConversationLoop / WenshuConductor /
+// PromptCaching own the message-sequence + credential-pool
+// concerns; = per Q112 = one ticket per file).
+//
+// Hermes Python line range cited in doc-comment below (= for
+// traceability back to `/Volumes/ANAN/.hermes/agent/
+// agent_runtime_helpers.py`).
+//
+// Per AGENTS.md §11.3 wenshu-side wins:
+//   - hermes takes `agent` as first arg (= 5 of 28 hermes
+//     functions are method-shaped; = the agent is needed only
+//     for log routing + `_get_tool_call_id_static`). The
+//     wenshu-side `stripThinkBlocks(_:)` is a pure static
+//     function on `RuntimeHelpers` (= no agent dependency;
+//     = testable in isolation; = matches hermes's
+//     "static helpers" prefix in the file header docstring).
+//   - Logger output routes to `os_log` (= Apple system log)
+//     via Apple's `Logger` (= the pre-existing wenshu pattern
+//     in `RuntimeHelpers.dprint`).
+//   - The 5 hermes reasoning tag variants (= `<think>` /
+//     `<thinking>` / `<reasoning>` / `<REASONING_SCRATCHPAD>` /
+//     `<thought>`) are preserved 1:1 (= wenshu uses Apple HIG
+//     tag rendering, = hermes-style raw HTML/XML strips out
+//     before rendering).
+
+extension RuntimeHelpers {
+
+    /// Pure-function: strip reasoning/thinking blocks from
+    /// content, returning only visible text (= hermes
+    /// `strip_think_blocks` at `agent/agent_runtime_helpers.py`
+    /// L600-L696).
+    ///
+    /// Handles 4 cases:
+    ///   1. Closed tag pairs (= `<think>…</think>`).
+    ///   2. Unterminated open tag at a block boundary (= fixes
+    ///      the MiniMax M2.7 / NIM endpoints where the closing
+    ///      tag is dropped).
+    ///   3. Stray orphan open/close tags that slip through.
+    ///   4. Tag variants: `<think>` / `<thinking>` /
+    ///      `<reasoning>` / `<REASONING_SCRATCHPAD>` /
+    ///      `<thought>` (= Gemma 4), all case-insensitive.
+    ///
+    /// Additionally strips standalone tool-call XML blocks that
+    /// some open models emit inside assistant content (= ported
+    /// from openclaw/openclaw#67318):
+    ///   * `<tool_call>…</tool_call>`
+    ///   * `<tool_calls>…</tool_calls>`
+    ///   * `<tool_result>…</tool_result>`
+    ///   * `<function_call>…</function_call>`
+    ///   * `<function_calls>…</function_calls>`
+    ///   * `<function name="…">…</function>` (= Gemma style)
+    public static func stripThinkBlocks(_ content: String) -> String {
+        guard !content.isEmpty else { return "" }
+
+        var result = content
+
+        // 1. Closed tag pairs (= case-insensitive).
+        let closedPatterns = [
+            "<think>", "</think>",
+            "<thinking>", "</thinking>",
+            "<reasoning>", "</reasoning>",
+            "<REASONING_SCRATCHPAD>", "</REASONING_SCRATCHPAD>",
+            "<thought>", "</thought>",
+        ]
+        for tag in closedPatterns {
+            // Find balanced open/close tag pairs for this tag.
+            // Use NSRegularExpression to handle DOTALL.
+            let openTag = tag
+            let closeTag: String
+            if tag.hasPrefix("</") {
+                closeTag = tag
+                // Skip orphan close tags in this loop (= handled in #3).
+                continue
+            } else {
+                closeTag = "</\(tag.dropFirst())>"
+            }
+            // Escape for regex
+            let escapedOpen = NSRegularExpression.escapedPattern(for: openTag)
+            let escapedClose = NSRegularExpression.escapedPattern(for: closeTag)
+            let pattern = "\(escapedOpen).*?\(escapedClose)"
+            if let regex = try? NSRegularExpression(
+                pattern: pattern,
+                options: [.dotMatchesLineSeparators, .caseInsensitive]
+            ) {
+                let range = NSRange(result.startIndex..., in: result)
+                result = regex.stringByReplacingMatches(
+                    in: result,
+                    options: [],
+                    range: range,
+                    withTemplate: ""
+                )
+            }
+        }
+
+        // 1b. Tool-call XML blocks (= openclaw/openclaw#67318).
+        let toolCallTags = [
+            "tool_call", "tool_calls", "tool_result",
+            "function_call", "function_calls",
+        ]
+        for tag in toolCallTags {
+            let escaped = NSRegularExpression.escapedPattern(for: tag)
+            let pattern = "<\(escaped)\\b[^>]*>.*?</\(escaped)>"
+            if let regex = try? NSRegularExpression(
+                pattern: pattern,
+                options: [.dotMatchesLineSeparators, .caseInsensitive]
+            ) {
+                let range = NSRange(result.startIndex..., in: result)
+                result = regex.stringByReplacingMatches(
+                    in: result,
+                    options: [],
+                    range: range,
+                    withTemplate: ""
+                )
+            }
+        }
+
+        // 1c. <function name="...">...</function> (= Gemma-style
+        //     standalone tool call). Only strip when the tag sits
+        //     at a block boundary AND carries a name="..." attribute.
+        if let regex = try? NSRegularExpression(
+            pattern: "(?:(?<=^)|(?<=[\\n\\r.!?:]))[ \\t]*"
+                + "<function\\b[^>]*\\bname\\s*=[^>]*>"
+                + "(?:(?:(?!</function>).)*)</function>",
+            options: [.dotMatchesLineSeparators, .caseInsensitive]
+        ) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(
+                in: result,
+                options: [],
+                range: range,
+                withTemplate: ""
+            )
+        }
+
+        // 2. Unterminated reasoning block (= open tag at a block
+        //    boundary with no matching close). Strip from tag to end
+        //    of string.
+        if let regex = try? NSRegularExpression(
+            pattern: "(?:^|\\n)[ \\t]*"
+                + "<(?:think|thinking|reasoning|thought|REASONING_SCRATCHPAD)\\b[^>]*>.*$",
+            options: [.dotMatchesLineSeparators, .caseInsensitive]
+        ) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(
+                in: result,
+                options: [],
+                range: range,
+                withTemplate: ""
+            )
+        }
+
+        // 3. Stray orphan open/close tags.
+        if let regex = try? NSRegularExpression(
+            pattern: "</?(?:think|thinking|reasoning|thought|REASONING_SCRATCHPAD)>\\s*",
+            options: [.caseInsensitive]
+        ) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(
+                in: result,
+                options: [],
+                range: range,
+                withTemplate: ""
+            )
+        }
+
+        // 3b. Stray tool-call closers (= not bare <function> close,
+        //     which we keep for streaming safety per OpenClaw pattern).
+        if let regex = try? NSRegularExpression(
+            pattern: "</(?:tool_call|tool_calls|tool_result|function_call|function_calls|function)>\\s*",
+            options: [.caseInsensitive]
+        ) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(
+                in: result,
+                options: [],
+                range: range,
+                withTemplate: ""
+            )
+        }
+
+        return result
+    }
+}
