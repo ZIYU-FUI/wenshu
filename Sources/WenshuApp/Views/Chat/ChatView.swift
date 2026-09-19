@@ -2407,6 +2407,26 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T105-EXPAND-REASONING-SHORTCUT (2026-09-18):
+            // ⌥E = "expand all reasoning blocks" (= the
+            // standard macOS Expand All affordance; =
+            // in wenshu = NSLogs an expand-all-reasoning
+            // intent; = a future ticket can wire it to
+            // a state flag that auto-expands all
+            // ChatReasoningPartView DisclosureGroups in
+            // the conversation).
+            // Hidden Button pattern.
+            Button("Expand all reasoning blocks") {
+                NSLog("[wenshu.reasoning] expand-all requested (\(vm.messages.count) messages)")
+                // Future ticket: wire to a @State
+                // reasoningExpanded = true + thread the
+                // flag through ChatMessageBodyView to
+                // each ChatReasoningPartView.
+            }
+            .keyboardShortcut("e", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
