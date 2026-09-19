@@ -47,6 +47,25 @@ public struct ChatMessageDayDivider: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, DesignTokens.chromePaddingLeading)
+        // T39-DIVIDER-MATERIAL (2026-09-18): give the divider a thin
+        // background material so it visually anchors against the
+        // surrounding chat zone (= the divider text alone can blend
+        // into a busy scroll position). Uses Material.ultraThin =
+        // the standard Apple HIG sidebar / toolbar material that
+        // adapts to light + dark mode automatically.
+        //   - Background tint = Color.clear (= the material itself
+        //     supplies the chrome).
+        //   - Shape = Capsule (= rounded ends matching the Apple
+        //     HIG date-pill affordance).
+        //   - Padding = 16 horizontal = the divider text gets
+        //     breathing room inside the capsule.
+        .background(.clear)
+        .padding(.horizontal, 16)
+        .background {
+            Capsule()
+                .fill(.ultraThinMaterial)
+        }
+        .padding(.horizontal, -16)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Chat day separator: \(label)")
     }
