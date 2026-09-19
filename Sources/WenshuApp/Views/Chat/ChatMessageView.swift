@@ -264,6 +264,22 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             Image(systemName: "brain.head.profile")
                                 .font(.system(size: 10, weight: .regular))
                                 .foregroundStyle(.secondary)
+                            // T90-LINK-ICON (2026-09-18): a small
+                            // "link" SF Symbol next to the T75
+                            // brain icon (= Apple HIG "contains
+                            // links" affordance; = visual cue
+                            // that this response may include
+                            // URL references; = matches the
+                            // standard Apple Pages / Notes
+                            // link indicator). Icon uses
+                            // .system(size: 9) + .secondary tone
+                            // (= matches T75 brain icon style).
+                            // Always rendered (= forward-flexibility
+                            // for a future ticket that gates this
+                            // on `hasURLs` detection).
+                            Image(systemName: "link")
+                                .font(.system(size: 9, weight: .regular))
+                                .foregroundStyle(.tertiary)
                         }
                         // T73-USER-SENT-ICON (2026-09-18): a small
                         // "paperplane.fill" SF Symbol for user-sent
