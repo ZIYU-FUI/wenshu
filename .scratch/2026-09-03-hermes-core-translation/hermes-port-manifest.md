@@ -34,11 +34,11 @@ Batch 2.3 11-ticket enumeration, not the full 43-module audit.
 |---|---|---|---|
 | ✅ direct port | 7 | 16% | hermes Python module has a dedicated wenshu Swift file that ports the behavior 1:1 (verified by doc-comment citation + comparable LOC + matching public API). Modules: prompt_caching, error_classifier, turn_retry_state, context_breakdown, rate_limit_tracker, runtime_cwd, chat_completion_helpers. |
 | ✅ wenshu-side wins | 11 | 26% | existing wenshu Core module (= pre-dates the hermes port) is the source of truth; hermes-port = thin adapter that delegates to it per ADR-0009 / AGENTS.md §11.3 wenshu-side wins pattern. No code duplication. Modules: context_compressor, credential_pool, tool_guardrails, memory_manager, memory_provider, skill_utils, credential_persistence, display, background_review, curator, credits_tracker. |
-| ⚠️ partial | 10 | 23% | Swift file exists with a doc-comment citing the hermes module, but the implementation is a stub / minimum-surface / wire-up-not-yet-done. Z-contract golden tests on most of these would fail. Modules: conversation_loop, auxiliary_client, agent_init, turn_context, turn_finalizer, message_sanitization, message_content, system_prompt, context_engine, context_references. (8 of the original 18 ⚠ partial entries have been closed by H1-H8 + P1-P8 follow-up tickets: anthropic_adapter + tool_executor + conversation_compression + model_metadata + skill_preprocessing + skill_commands + credential_sources + tool_result_classification. = per-module table below shows the per-module closure status per the 2026-09-19 audit re-check.) |
+| ⚠️ partial | 8 | 19% | Swift file exists with a doc-comment citing the hermes module, but the implementation is a stub / minimum-surface / wire-up-not-yet-done. Z-contract golden tests on most of these would fail. Modules: conversation_loop, auxiliary_client, system_prompt, context_engine, context_references, turn_finalizer, message_sanitization. (10 of the original 18 ⚠ partial entries have been closed by H1-H8 + P1-P11 follow-up tickets: anthropic_adapter + tool_executor + conversation_compression + model_metadata + skill_preprocessing + skill_commands + credential_sources + tool_result_classification + agent_init + message_content. = 2 of the remaining 8 are stale (= turn_finalizer + message_sanitization already have the hermes surface per TICKET-HERMES-PARTIAL-008/009; = per-module table below shows the per-module closure status per the 2026-09-19 audit re-check.) |
 | ❌ missing | 7 | 16% | No Swift file exists; spec §3.1 lists a target file but it has not been authored. The hermes module has zero Swift surface. Modules: prompt_builder, agent_runtime_helpers, tool_dispatch_helpers, skill_bundles, secret_sources + secret_scope, retry_utils, shell_hooks. (chat_completion_helpers was previously listed here but landed 2026-09-04 via TICKET-HERMES-GAP-002 commit `1b5b038de`; see ✅ direct port row.) |
 | **TOTAL** | **43** | **100%** | = 7 ✅ direct port + 11 ✅ wenshu-side wins + 10 ⚠️ partial + 7 ❌ missing (= pre-H/P-series = 18 ⚠️ partial + 7 ❌ missing = 25; = 8 ⚠️ partial closed by H1-H8 + P1-P8 follow-up; = the 8 ❌ missing were closed by H1-H8 + P1-P4; = the ❌ missing row above is stale (= reflects the 2026-09-04 pre-fixup state; = all 7 originally-missing modules are now closed) |
 
-Honest tally: **26/43 modules fully done** (= direct port + wenshu-side wins = 7 + 11 = 18 baseline + 8 closed by H1-H8 + P1-P8 follow-up = 26) and **17/43 still partial** (= 10 ⚠️ partial with documented gaps + 7 ❌ missing closed but stale in the audit row above). Per the 2026-09-19 audit re-check (= see per-module table below), the work-tree gap is now 17/43 modules (= down from 25/43 at 2026-09-04).
+Honest tally: **28/43 modules fully done** (= direct port + wenshu-side wins = 7 + 11 = 18 baseline + 10 closed by H1-H8 + P1-P11 follow-up = 28) and **15/43 still partial** (= 8 ⚠️ partial with documented gaps + 7 ❌ missing closed but stale in the audit row above). Per the 2026-09-19 audit re-check (= see per-module table below), the work-tree gap is now 15/43 modules (= down from 25/43 at 2026-09-04).
 
 Honest re-audit tally per 2026-09-19 (= the closure status per module):
 
@@ -52,6 +52,9 @@ Honest re-audit tally per 2026-09-19 (= the closure status per module):
 | tool_executor | ✅ closed | P6 (`3b25997c4`) |
 | model_metadata | ✅ closed | P7 (`2056cabf9`) |
 | conversation_compression | ✅ closed | P8 (`c7af8c503`) |
+| agent_init | ✅ closed | P9 (`5eef58dc5`) |
+| message_content | ✅ closed | P11 (`e1f2fbc82`) |
+| turn_context | ✅ stale (= already closed per TICKET-HERMES-PARTIAL-007; = `shouldRunPreflightEstimate` + `compressionMadeProgress` + `TurnContext` struct + `TurnContextBuilder.buildTurnContext` all present per audit 2026-09-19 re-check) | (no P-ticket needed) |
 | prompt_builder | ✅ closed | H1 (`169ce8adb`) |
 | retry_utils | ✅ closed | H2 (`49157718d`) |
 | secret_scope | ✅ closed | H3 (`131b305c6`) |
@@ -60,6 +63,8 @@ Honest re-audit tally per 2026-09-19 (= the closure status per module):
 | agent_runtime_helpers | ✅ closed | H6 (`6a6a88ac8`) |
 | chat_completion_helpers | ✅ closed | H7 (`d4c03f3f2`) |
 | shell_hooks | ✅ closed | H8 (`b5145bd1f`) |
+| turn_finalizer | ✅ stale (= already closed per TICKET-HERMES-PARTIAL-008; = `finalize` + `coalesceAdjacentText` + `finalizeTurn` + `PostTurnHooks` + `FinalizedTurn` + `closeInterruptedToolSequence` + `dropTrailingEmptyResponseScaffolding` all present per audit 2026-09-19 re-check) | (no P-ticket needed) |
+| message_sanitization | ✅ stale (= already closed per TICKET-HERMES-PARTIAL-009; = `sanitizeText` + `sanitize` + `sanitizeSurrogates` + `escapeInvalidCharsInJSONStrings` + `repairToolCallArguments` + `closeInterruptedToolSequence` + `stripNonASCII` + `dropTrailingEmptyResponseScaffolding` + `sanitizeAll` all present per audit 2026-09-19 re-check) | (no P-ticket needed) |
 
 Per boss OOB
 2026-09-04 '先不验收, 先继续把工作树干完' = the 25 incomplete modules are the
