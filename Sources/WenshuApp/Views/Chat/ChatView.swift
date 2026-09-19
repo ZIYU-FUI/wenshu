@@ -1999,6 +1999,39 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T76-EXPORT-MD (2026-09-18): ⌘⇧S = export
+            // conversation as Markdown. Opens NSSavePanel
+            // with .md extension; = on save, writes the
+            // conversation in standard chat-as-markdown
+            // format (= same prefix format as T70 copy).
+            // Hidden Button pattern.
+            Button("Export as Markdown") {
+                let panel = NSSavePanel()
+                panel.allowedContentTypes = [.text]
+                panel.nameFieldStringValue = "wenshu-chat-\(Date().timeIntervalSince1970).md"
+                panel.canCreateDirectories = true
+                panel.title = "Export chat as Markdown"
+                if panel.runModal() == .OK, let url = panel.url {
+                    let formatted = vm.messages.map { msg in
+                        let prefix: String
+                        switch msg.source {
+                        case .user: prefix = "你"
+                        case .wenshu: prefix = "文枢"
+                        case .system: prefix = "系统"
+                        }
+                        return "[\(prefix)]: \(msg.content)"
+                    }.joined(separator: "\n\n")
+                    do {
+                        try formatted.write(to: url, atomically: true, encoding: .utf8)
+                    } catch {
+                        NSLog("[wenshu.export] failed to write markdown: %@", error.localizedDescription)
+                    }
+                }
+            }
+            .keyboardShortcut("s", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
