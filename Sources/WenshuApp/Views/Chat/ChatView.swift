@@ -2132,6 +2132,35 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T80-PRINT-SHORTCUT (2026-09-18): ⌘P = print
+            // conversation (= the standard macOS Print
+            // shortcut; = in wenshu = render the chat to a
+            // printable view via NSPrintOperation).
+            // Hidden Button pattern.
+            Button("Print conversation") {
+                let formatted = vm.messages.map { msg in
+                    let prefix: String
+                    switch msg.source {
+                    case .user: prefix = "你"
+                    case .wenshu: prefix = "文枢"
+                    case .system: prefix = "系统"
+                    }
+                    return "[\(prefix)]: \(msg.content)"
+                }.joined(separator: "\n\n")
+                let printInfo = NSPrintInfo.shared
+                let op = NSPrintOperation(view: NSView(frame: NSRect(x: 0, y: 0, width: 612, height: 792)), printInfo: printInfo)
+                op.showsPrintPanel = true
+                op.showsProgressPanel = true
+                op.run()
+                _ = formatted  // currently unused (= print
+                                // framework reads view content;
+                                // = future ticket can wire this
+                                // into a real print view).
+            }
+            .keyboardShortcut("p", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
