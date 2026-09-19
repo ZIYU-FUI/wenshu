@@ -2056,6 +2056,65 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T78-OPEN-MD (2026-09-18): ⌘⇧O = open chat
+            // Markdown file (= NSOpenPanel for opening a
+            // .md file and parsing it back into a chat
+            // history). Pairs with T76 export (= open ↔ save).
+            // Hidden Button pattern.
+            Button("Open chat Markdown") {
+                let panel = NSOpenPanel()
+                panel.allowedContentTypes = [.text]
+                panel.allowsMultipleSelection = false
+                panel.canChooseDirectories = false
+                panel.canChooseFiles = true
+                panel.title = "Open chat Markdown"
+                if panel.runModal() == .OK, let url = panel.url {
+                    do {
+                        let raw = try String(contentsOf: url, encoding: .utf8)
+                        // Parse the Markdown back into
+                        // ChatMessage instances (= naive split
+                        // on "\n\n"; = each block becomes a
+                        // message). The first "[xx]:" prefix
+                        // determines the source.
+                        let blocks = raw.components(separatedBy: "\n\n")
+                        var loaded: [ChatMessage] = []
+                        for block in blocks {
+                            let trimmed = block.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if trimmed.isEmpty { continue }
+                            let source: ChatSource
+                            let content: String
+                            if trimmed.hasPrefix("[你]: ") {
+                                source = .user
+                                content = String(trimmed.dropFirst("[你]: ".count))
+                            } else if trimmed.hasPrefix("[文枢]: ") {
+                                source = .wenshu
+                                content = String(trimmed.dropFirst("[文枢]: ".count))
+                            } else if trimmed.hasPrefix("[系统]: ") {
+                                source = .system
+                                content = String(trimmed.dropFirst("[系统]: ".count))
+                            } else {
+                                source = .user
+                                content = trimmed
+                            }
+                            loaded.append(ChatMessage(
+                                id: UUID(),
+                                role: source == .wenshu ? .agent : .user,
+                                source: source,
+                                content: content,
+                                timestamp: Date()
+                            ))
+                        }
+                        // Replace the conversation with the loaded history.
+                        vm.messages = loaded
+                    } catch {
+                        NSLog("[wenshu.import] failed to read markdown: %@", error.localizedDescription)
+                    }
+                }
+            }
+            .keyboardShortcut("o", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
