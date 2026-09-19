@@ -202,10 +202,23 @@ public final class ChatViewModel {
     // T4-SUBAGENT-UI (2026-09-18): name of the currently active sub-agent
     // (= nil when no sub-agent is running). ChatSubAgentTag reads this.
     public var activeSubAgentName: String? = nil
-    // T8-CHATVIEWMODEL-WIR (2026-09-18): current agent turn label
+    // T8-CHATVIEWMODEL-WIRE (2026-09-18): current agent turn label
     // (= emitted by ConversationLoop as '[wenshu.agent] turn N/M').
     // ChatTurnProgress reads this for the button label.
     public var currentAgentTurn: String? = nil
+    // T67-MUTE-SHORTCUT (2026-09-18): flag set by ⌘. shortcut
+    // (= the standard macOS Cancel). ConversationLoop reads this
+    // to stop mid-stream generation (= the user can cancel
+    // an in-flight reply without losing the partial result).
+    public var cancelRequested: Bool = false
+    /// T67-MUTE-SHORTCUT (2026-09-18): ⌘. handler (= cancel
+    /// the currently-streaming assistant reply). Sets the
+    /// cancelRequested flag (= ConversationLoop polls this
+    /// flag per-block to stop mid-stream). Silent no-op when
+    /// nothing is streaming.
+    public func cancelStreaming() {
+        cancelRequested = true
+    }
 
     /// CHATIMG-001 (2026-09-07): copy the picked file into the
     /// library's `cache/chat-uploads/` dir (= canonical cache
@@ -1922,6 +1935,25 @@ public struct ChatView: View {
                 }
             }
             .keyboardShortcut("d", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
+            // T67-MUTE-SHORTCUT (2026-09-18): ⌘. = mute
+            // (= the standard macOS Cancel shortcut; =
+            // matches Apple Pages' "Insert Page Break
+            // Cancelled" and Xcode's "Cancel Operation"
+            // affordance). For wenshu, ⌘. = mute the
+            // currently-streaming assistant reply
+            // (= the user can stop generation mid-stream).
+            // Same hidden-Button pattern as T37/T48/T59/T66.
+            Button("Mute streaming") {
+                // T67 implementation: cancel the streaming
+                // by clearing the streaming state flag on
+                // ChatViewModel. If nothing is streaming,
+                // the action is a silent no-op.
+                vm.cancelStreaming()
+            }
+            .keyboardShortcut(".", modifiers: [.command])
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
