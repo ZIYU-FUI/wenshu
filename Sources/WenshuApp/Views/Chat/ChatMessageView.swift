@@ -238,6 +238,19 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                 // iMessage names the author once per run, not per bubble.
                 if position == .only || position == .first {
                     HStack(spacing: 4) {
+                        // T71-SOURCE-STATUS-DOT (2026-09-18): a small
+                        // "circle.fill" status dot BEFORE the source
+                        // label (= green for wenshu = sealed /
+                        // delivered; = Apple Messages read receipt
+                        // pattern). Dot is .caption + .green tone
+                        // (= matches T44/T45 status icon style).
+                        // Hidden for user messages (= user doesn't
+                        // need a delivery receipt on their own message).
+                        if message.source == .wenshu {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 6, weight: .bold))
+                                .foregroundStyle(.green)
+                        }
                         Text(sourceLabel)
                             .font(.caption)
                             .foregroundStyle(.secondary)
