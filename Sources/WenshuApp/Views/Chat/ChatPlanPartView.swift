@@ -73,6 +73,20 @@ public struct ChatPlanPartView: View {
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
+                // T32-STEP-COUNT-CHIP (2026-09-18): a small "(N steps)"
+                // chip immediately after the query (= gives the user
+                // an at-a-glance summary of the plan size before they
+                // expand the DisclosureGroup to see the actual steps).
+                Text("(N steps)".replacingOccurrences(
+                    of: "N", with: "\(plan.steps.count)"
+                ))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 3)
+                            .strokeBorder(.quaternary, lineWidth: 0.5)
+                    )
                 Spacer(minLength: 0)
                 // T27-CONNECTOR-DISPLAY (2026-09-18): show the
                 // provider's friendly display name (= "Anthropic",
@@ -106,6 +120,15 @@ public struct ChatPlanPartView: View {
                             .foregroundStyle(.tertiary)
                     }
                 }
+                // T32-PLAN-ELAPSED (2026-09-18): a small relative-time
+                // chip after the model id (= "3s ago", "2m ago",
+                // "1h ago"). Matches the Apple HIG relative-time
+                // convention (= .relative(presentation: .named) on
+                // Date.FormatStyle). Helps the user judge whether
+                // the plan is fresh or stale.
+                Text(plan.createdAt, format: .relative(presentation: .named))
+                    .font(.caption2)
+                    .foregroundStyle(.quaternary)
             }
             // DisclosureGroup (= collapsible step list; = the
             // standard macOS expand/collapse pattern). Default = expanded
