@@ -312,6 +312,19 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 9, weight: .regular))
                                 .foregroundStyle(.tertiary)
+                            // T117-SPARKLES-ICON (2026-09-18):
+                            // a small "sparkles" SF Symbol
+                            // next to the T116 magnifyingglass
+                            // icon (= Apple HIG "AI-powered
+                            // insight" affordance; = the
+                            // sparkle = wenshu's brand icon
+                            // for AI-generated content).
+                            // Icon uses .system(size: 9) +
+                            // .tertiary tone (= matches T90
+                            // + T111 + T116 style).
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 9, weight: .regular))
+                                .foregroundStyle(.tertiary)
                         }
                         // T73-USER-SENT-ICON (2026-09-18): a small
                         // "paperplane.fill" SF Symbol for user-sent
