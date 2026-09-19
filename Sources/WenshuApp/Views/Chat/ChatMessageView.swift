@@ -478,23 +478,53 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         // affordance (= hovering a timestamp reveals
                         // the full date). Uses .onHover + @State
                         // to toggle the display format.
-                        Text(message.timestamp, format: timestampDisplayFormat)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .onHover { hovering in
-                                isTimestampHovered = hovering
-                            }
-                            // T50-TIMESTAMP-TOOLTIP (2026-09-18): the
-                            // timestamp text gets a .help() tooltip
-                            // (= the macOS native accessibility /
-                            // tooltip affordance). When the user
-                            // hovers the timestamp OR uses VoiceOver,
-                            // they see the FULL ISO-format date
-                            // (= e.g. "2026-09-18 14:32:05"). This
-                            // complements T26's on-hover format
-                            // expansion: T26 = visible-in-text change,
-                            // T50 = native tooltip with full precision.
-                            .help(Self.fullTimestampTooltip(for: message.timestamp))
+                        //
+                        // T50-TIMESTAMP-TOOLTIP (2026-09-18):
+                        // the timestamp text gets a .help()
+                        // tooltip (= the macOS native
+                        // accessibility / tooltip affordance).
+                        // When the user hovers the timestamp
+                        // OR uses VoiceOver, they see the FULL
+                        // ISO-format date
+                        // (= e.g. "2026-09-18 14:32:05"). This
+                        // complements T26's on-hover format
+                        // expansion: T26 = visible-in-text change,
+                        // T50 = native tooltip with full precision.
+                        //
+                        // T65-CLOCK-PREFIX (2026-09-18): a
+                        // small "clock" SF Symbol prefix for
+                        // the timestamp text (= Apple HIG
+                        // metadata icon affordance; = mirrors
+                        // T63 'number' icon for token count
+                        // + T64 'dollarsign.circle' for cost).
+                        // Icon uses .caption2 + .quaternary
+                        // tone (= the established footer
+                        // metadata icon style).
+                        HStack(spacing: 2) {
+                            // T65-CLOCK-PREFIX: small "clock" icon
+                            // before the timestamp text.
+                            Image(systemName: "clock")
+                                .font(.caption2)
+                                .foregroundStyle(.quaternary)
+                            Text(message.timestamp, format: timestampDisplayFormat)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .onHover { hovering in
+                                    isTimestampHovered = hovering
+                                }
+                                // T50-TIMESTAMP-TOOLTIP (2026-09-18): the
+                                // timestamp text gets a .help()
+                                // tooltip (= the macOS native
+                                // accessibility / tooltip affordance).
+                                // When the user hovers the timestamp
+                                // OR uses VoiceOver, they see the FULL
+                                // ISO-format date
+                                // (= e.g. "2026-09-18 14:32:05"). This
+                                // complements T26's on-hover format
+                                // expansion: T26 = visible-in-text change,
+                                // T50 = native tooltip with full precision.
+                                .help(Self.fullTimestampTooltip(for: message.timestamp))
+                        }
                         // T25-TOKEN-FOOTER (2026-09-18): token count footer
                         // (= LLM API usage.total_tokens = input + output).
                         // Hidden when:

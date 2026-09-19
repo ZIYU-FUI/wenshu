@@ -61,7 +61,9 @@ struct ChatMessageViewTimestampTooltipTests {
             encoding: .utf8
         )
         #expect(src.contains("private var timestampDisplayFormat: Date.FormatStyle"))
-        #expect(src.contains(".onHover { hovering in\n                                isTimestampHovered = hovering"))
+        // T65 wrapped the timestamp Text inside an HStack = .onHover
+        // is now nested deeper.
+        #expect(src.contains(".onHover { hovering in") && src.contains("isTimestampHovered = hovering"))
     }
 
     /// T50 contract: T25 token footer preserved.
