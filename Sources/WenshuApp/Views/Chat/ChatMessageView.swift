@@ -143,6 +143,23 @@ struct ChatMessageView: View {
         return formatter.string(from: date)
     }
 
+    /// T53-FOOTER-COMBO-TOOLTIP (2026-09-18): combined tooltip
+    /// string for the entire sealed footer (= "1,500 tokens ·
+    /// 2026-09-18 14:32:05"). Provides a one-glance summary when
+    /// the user hovers the footer's empty space.
+    ///   - tokens present + timestamp present → "X tokens · <ISO>"
+    ///   - tokens only                       → "X tokens"
+    ///   - timestamp only                    → "<ISO>"
+    ///   - neither                           → ""
+    nonisolated static func comboFooterTooltip(message: ChatMessage) -> String {
+        var parts: [String] = []
+        if let tokens = message.tokens, tokens > 0 {
+            parts.append(fullTokenCountTooltip(for: tokens))
+        }
+        parts.append(fullTimestampTooltip(for: message.timestamp))
+        return parts.joined(separator: " · ")
+    }
+
     var body: some View {
         // v0.57 boss 2026-09-09 OOB: push the bubbles toward the iMessage
         // look. Outgoing messages sit on the trailing side in the accent
@@ -451,6 +468,17 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     .padding(.top, 2)
                     .padding(.leading, 12)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    // T53-FOOTER-COMBO-TOOLTIP (2026-09-18): the
+                    // entire footer HStack gets a .help()
+                    // tooltip combining timestamp + token count
+                    // in one summary string (= "1,500 tokens ·
+                    // 2026-09-18 14:32:05"). Useful when the
+                    // user hovers the footer's empty space
+                    // (between the timestamp + token text) and
+                    // wants the combined picture. Individual
+                    // tooltips on timestamp + token text remain
+                    // (= T50 + T52 not regressed).
+                    .help(Self.comboFooterTooltip(message: message))
                 }
             }
 
