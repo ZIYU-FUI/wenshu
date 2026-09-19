@@ -75,6 +75,14 @@ public struct ChatMessageDayDivider: View {
         self.init(timestamp: timestamp, messageCount: nil, style: .standard)
     }
 
+    /// T100-DATE-INIT (2026-09-18): convenience initializer
+    /// that takes a Foundation Date (= caller doesn't have
+    /// to compute timeIntervalSince1970; = matches the
+    /// canonical SwiftUI Date API surface).
+    public init(date: Date, messageCount: Int? = nil, style: DividerStyle = .standard) {
+        self.init(timestamp: date.timeIntervalSince1970, messageCount: messageCount, style: style)
+    }
+
     /// T68-COUNT-DIVIDER (2026-09-18): a divider that displays
     /// only the message count (= used when the caller wants
     /// the count chip without a date label; = forward-flexibility).
