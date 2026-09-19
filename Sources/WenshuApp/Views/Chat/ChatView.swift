@@ -2238,6 +2238,30 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T93-BOLD-SHORTCUT (2026-09-18): ⌘B
+            // = "bold" (= the standard Apple Bold
+            // shortcut; = in wenshu = appends `**`
+            // markers around the current chat input
+            // text content for future markdown
+            // rendering; = lightweight editing
+            // affordance for the chat input text).
+            // Note: full selection handling (= wrap
+            // only the selected substring) is out of
+            // scope for T93 (= vm has no selection
+            // state exposed to SwiftUI); = T93 just
+            // appends ** ... ** around the WHOLE input
+            // text and NSLogs the result).
+            // Hidden Button pattern.
+            Button("Bold selected text") {
+                let current = vm.inputText
+                let bolded = "**\(current)**"
+                vm.inputText = bolded
+                NSLog("[wenshu.bold] wrapped \(current.count) chars in ** **")
+            }
+            .keyboardShortcut("b", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
