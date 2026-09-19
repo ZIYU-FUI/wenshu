@@ -1907,6 +1907,24 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T66-COPY-LAST-ASSISTANT (2026-09-18): ⌘⇧D = copy
+            // the last sealed assistant message (= standard
+            // macOS duplicate-shortcut; = also matches Apple's
+            // "Duplicate" affordance in Pages / TextEdit). For
+            // wenshu, ⌘⇧D = copy the most recent assistant
+            // reply to the clipboard (= a quick "copy the
+            // answer" affordance). Hidden Button pattern.
+            Button("Copy last assistant") {
+                if let lastAssistant = vm.messages.last(where: { $0.source == .wenshu })?.content {
+                    let pb = NSPasteboard.general
+                    pb.clearContents()
+                    pb.setString(lastAssistant, forType: .string)
+                }
+            }
+            .keyboardShortcut("d", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // v0.28 followup Boss UX round 20: 16 PT outer top margin
             // moved from .padding(.top, DesignTokens.chromePaddingLarge) on the button (= was
             // misaligning the button with TextField) to the HStack
