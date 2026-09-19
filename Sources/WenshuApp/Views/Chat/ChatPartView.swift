@@ -190,6 +190,34 @@ public struct ChatReasoningPartView: View {
     }
 }
 
+// T40-THINKING-FADEIN (2026-09-18): a static helper that produces
+// the standard fade-in transition for a reasoning part. Used by
+// the ChatPartRow container when it inserts / removes a
+// ChatReasoningPartView in response to streaming events.
+extension AnyTransition {
+    /// T40 standard transition (= fade-in + small upward slide,
+    /// = Apple HIG "appear from above" affordance).
+    ///   - duration: 0.3s (= matches Apple HIG 0.2-0.4s range for
+    ///     content insertion)
+    ///   - opacity: 0 -> 1
+    ///   - movement: 4pt upward (edge: .top, so the view slides
+    ///     DOWN into position; = reads as "drop into place")
+    ///
+    /// T40 implementation note: implemented as a STATIC FUNCTION
+    /// (not a stored property) to satisfy Swift 6 strict concurrency
+    /// (= AnyTransition is not Sendable, so a static let at file
+    /// scope triggers MutableGlobalVariable). The function is
+    /// @MainActor-isolated (= it is only ever called from SwiftUI
+    /// view bodies which run on the main actor).
+    @MainActor
+    public static func wenshuThinkingAppear() -> AnyTransition {
+        .asymmetric(
+            insertion: .opacity.combined(with: .move(edge: .top)),
+            removal: .opacity
+        )
+    }
+}
+
 // MARK: - Tool-use part (= hermes ToolCallMessagePart)
 
 /// Render a `.toolUse(ToolUsePart)` part (= the model invokes a tool
@@ -507,6 +535,13 @@ private struct ChatPartRow: View {
             ChatTextPartView(text: s, isOutgoing: isOutgoing, isStreaming: isStreaming)
         case .reasoning(let s):
             ChatReasoningPartView(text: s, isRunning: isStreaming)
+                // T40-THINKING-FADEIN (2026-09-18): when a reasoning
+                // part is added to or removed from a streaming message,
+                // the view fades in from the top (= Apple HIG content
+                // insertion pattern; = matches the visual rhythm of
+                // streamed tokens appearing). Pair with .animation on
+                // the parent ForEach for smooth transitions.
+                .transition(.wenshuThinkingAppear())
         case .toolUse(let tu):
             ChatToolUsePartView(toolUse: tu, isOutgoing: isOutgoing)
         case .toolResult(let tr):
