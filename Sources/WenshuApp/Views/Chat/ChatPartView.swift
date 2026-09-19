@@ -272,11 +272,20 @@ public struct ChatToolUsePartView: View {
         // visual = same pattern as Xcode / Mail "Show Details" blocks).
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             HStack(spacing: DesignTokens.chromePaddingSmall) {
-                // Status dot (= running = secondary; = completed = green;
-                // = error = red; = the 3-state indicator pattern).
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 6, height: 6)
+                // Status indicator (= T2 dot + T44 icon overlay).
+                // T2 introduced the colored Circle status dot
+                // (= running = secondary / complete = green /
+                // error = red). T44 replaces it with a small
+                // SF Symbol that matches the status (= hourglass
+                // for running / checkmark for complete / xmark for
+                // error). The icon uses .font(.system(size: 9))
+                // (= smaller than the tool-icon size 11 = the
+                // status icon is a "secondary" visual cue, not the
+                // primary one).
+                Image(systemName: Self.statusIconName(for: toolUse.status))
+                    .font(.system(size: 9, weight: .regular))
+                    .foregroundStyle(statusColor)
+                    .frame(width: 14)
                 // T43-TOOL-ICON-SF (2026-09-18): a small SF Symbol
                 // icon that visualises the tool kind (= replaces the
                 // bare tool-name text with a leading glyph). The
@@ -377,6 +386,7 @@ public struct ChatToolUsePartView: View {
     /// covers the standard wenshu tool categories; = unknown
     /// tools fall through to the generic wrench glyph.
     ///
+    ///
     /// Mapping strategy:
     ///   - Prefix-based for `*Tool` naming convention (= the
     ///     standard wenshu / hermes-port convention).
@@ -417,6 +427,23 @@ public struct ChatToolUsePartView: View {
         // Fallback (= generic tool glyph = Apple HIG "Settings"
         // equivalent for unknown tools).
         return "wrench.and.screwdriver"
+    }
+
+    /// T44-TOOL-STATUS-ICON (2026-09-18): map a tool call's status
+    /// to a SF Symbol that visualises it (= hourglass for running,
+    /// checkmark for complete, xmark for error). Companion to the
+    /// T44 status indicator in the card header.
+    ///
+    /// Visual mapping:
+    ///   - .running  → "hourglass" (= "in progress" affordance)
+    ///   - .complete → "checkmark" (= Apple HIG success)
+    ///   - .error    → "xmark" (= Apple HIG error)
+    nonisolated static func statusIconName(for status: ChatMessagePart.ToolUsePart.Status) -> String {
+        switch status {
+        case .running: return "hourglass"
+        case .complete: return "checkmark"
+        case .error: return "xmark"
+        }
     }
 }
 
