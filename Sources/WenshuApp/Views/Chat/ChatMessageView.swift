@@ -273,9 +273,28 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         // is for wenshu (= delivery receipt), T73
                         // is for user (= sent confirmation).
                         if message.source == .user {
+                            // T73-USER-SENT-ICON (2026-09-18): a
+                            // small "paperplane.fill" SF Symbol
+                            // for user messages (= the Apple
+                            // HIG "sent" affordance; = mirrors
+                            // T71 green dot for wenshu messages;
+                            // = visually pairs the two states
+                            // in the source label row).
                             Image(systemName: "paperplane.fill")
                                 .font(.system(size: 9, weight: .regular))
                                 .foregroundStyle(.secondary)
+                            // T86-USER-STATUS-DOT (2026-09-18): a
+                            // small blue status dot for user
+                            // messages (= Apple HIG "outgoing"
+                            // affordance; = complements T73
+                            // paperplane icon; = matches the
+                            // standard macOS outgoing-message
+                            // color = Apple Messages blue
+                            // bubble tint via Color.accentColor).
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 6, weight: .bold))
+                                .foregroundStyle(Color.accentColor)
+                                .padding(.trailing, 2)
                         }
                         Text(sourceLabel)
                             .font(.caption)
