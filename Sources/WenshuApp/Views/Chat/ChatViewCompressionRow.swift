@@ -20,6 +20,37 @@ import SwiftUI
 
 private let contextCompressionThreshold: Int = 30_000
 
+/// T31-CONTEXT-PERCENTAGE (2026-09-18): namespace for the
+/// context-usage formatting helpers. Separate enum (= top-level
+/// type) so the static functions compile correctly (= file-scope
+/// nonisolated static funcs are not allowed on plain file-scope
+/// declarations in Swift).
+enum ChatViewCompressionRowFormatter {
+    /// Format a context-used value as a percentage of the compression
+    /// threshold (= e.g. "1.5k / 30k tokens (5%)"). `nonisolated` so
+    /// the ChatViewModel (= MainActor) can call it without an actor
+    /// hop. Uses the same compact-token convention as
+    /// ChatMessageView.formatTokenCount.
+    nonisolated static func formatContextUsage(_ count: Int, threshold: Int) -> String {
+        let countStr = formatCompactTokenCount(count)
+        let thresholdStr = formatCompactTokenCount(threshold)
+        let percent = Int((Double(count) / Double(max(threshold, 1))) * 100)
+        return "\(countStr) / \(thresholdStr) tokens (\(percent)%)"
+    }
+
+    /// T31 helper: compact token count (= "1.5k", "234", "12.3k").
+    nonisolated private static func formatCompactTokenCount(_ count: Int) -> String {
+        if count < 1_000 { return "\(count)" }
+        if count < 10_000 {
+            return String(format: "%.1fk", Double(count) / 1_000.0)
+        }
+        if count < 1_000_000 {
+            return "\(count / 1_000)k"
+        }
+        return String(format: "%.1fM", Double(count) / 1_000_000.0)
+    }
+}
+
 public struct ChatViewCompressionRow: View {
     public let vm: ChatViewModel
     @State private var isCompressing: Bool = false
@@ -48,10 +79,13 @@ public struct ChatViewCompressionRow: View {
                         )
                 } else {
                     // Threshold warning
-                    Text(String(
-                        format: "💡 %d tokens used (compress recommended)",
-                        vm.contextUsed
-                    ))
+                    // T31-CONTEXT-PERCENTAGE (2026-09-18): the text now
+                    // includes a live percentage of the compression
+                    // budget (= e.g. "💡 1.5k / 30k tokens (5%)"). The
+                    // pre-T31 format was just "💡 N tokens used"; = the
+                    // user can see at a glance how close they are to the
+                    // 30k compression threshold.
+                    Text(ChatViewCompressionRowFormatter.formatContextUsage(vm.contextUsed, threshold: contextCompressionThreshold))
                     .font(DesignTokens.statusFont)
                     .foregroundStyle(.orange)
                 }
