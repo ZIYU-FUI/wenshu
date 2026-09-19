@@ -2316,6 +2316,29 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T101-CODE-BLOCK-SHORTCUT (2026-09-18):
+            // ⌘K + ⇧⌘K = "insert code block" (= the
+            // standard Apple Xcode / VSCode "comment
+            // toggle" / "code block" shortcut variant;
+            // = in wenshu = wraps the current chat
+            // input text in a Markdown code fence
+            // ``` ``` for future syntax highlighting).
+            // Pairs with T93 ⌘B / T94 ⌘I / T95 ⌘⇧X =
+            // the markdown formatting quartet.
+            // Note: T37 already uses ⌘K for "focus
+            // input"; T101 uses ⌘⇧K (= shift modifier)
+            // to avoid collision with T37's ⌘K.
+            // Hidden Button pattern.
+            Button("Wrap selection in code block") {
+                let current = vm.inputText
+                let coded = "```\n\(current)\n```"
+                vm.inputText = coded
+                NSLog("[wenshu.codeblock] wrapped \(current.count) chars in ``` ```")
+            }
+            .keyboardShortcut("k", modifiers: [.command, .shift])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
