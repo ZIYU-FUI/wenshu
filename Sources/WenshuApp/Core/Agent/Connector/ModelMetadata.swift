@@ -417,3 +417,202 @@ public struct WenshuModelCatalog: Sendable, Equatable {
         return chars(apiPayload) / 4
     }
 }
+
+// MARK: - P7 Hermes-Python gap port (= 1:1 port of hermes
+//         `agent/model_metadata.py` context-length-from-error
+//         parsing helpers).
+//
+// Wenshu-side wins (= per AGENTS.md §11.3):
+//
+// Direct port of hermes `agent/model_metadata.py` per spec
+// §3.1 #26 follow-up. The target file already had
+// `contextWindow(for:)` (= hermes `get_model_context_length`)
+// + `pricing(for:)` (= hermes `_extract_pricing`) at 419 LOC.
+// This P7 ticket adds the 3 hermes error-message parsing
+// helpers that close the audit-described gap
+// (= parsing context-limit + output-cap info from
+// provider error messages; = essential for context-
+// overflow recovery + output-cap retry):
+//
+//   1. parseContextLimitFromError(_:) (= hermes L1068-L1096)
+//   2. getContextLengthFromProviderError(...) (= hermes
+//      L1098-L1116)
+//   3. parseAvailableOutputTokensFromError(_:)
+//      (= hermes L1118-L1140)
+//
+// Hermes Python line ranges cited in doc-comments below
+// (= for traceability back to `/Volumes/ANAN/.hermes/agent/
+// model_metadata.py`).
+//
+// Per AGENTS.md §11.3 wenshu-side wins:
+//   - Pre-existing WenshuModelCatalog + ModelInfo + Pricing
+//     + Features preserved (= Q112 no regressions).
+//   - The 7 regex patterns from hermes L1076-L1084 preserved
+//     1:1 (= vLLM "max_model_len" + Anthropic "max context
+//     length" + OpenAI "context_length_exceeded" etc.).
+//   - The sanity check `1024 <= limit <= 10_000_000`
+//     preserved (= hermes explicit sanity range).
+//   - The "lower than current" filter (= hermes
+//     `get_context_length_from_provider_error`) preserved.
+//   - The output-cap-error parsing (= hermes
+//     `parse_available_output_tokens_from_error`)
+//     preserved 1:1.
+//
+// The remaining 50+ hermes functions in model_metadata.py
+// (= local endpoint detection / Codex OAuth / Nous portal /
+// Anthropic direct / Gemini / etc.) are intentionally NOT
+// ported in this ticket — they fall into separate wenshu-
+// side wins patterns (= LLMConnector layer owns the
+// provider-specific URL detection + auth flows; = per
+// Q112 = one ticket per file).
+//
+// Per AGENTS.md §11 hard rule: Apple Foundation only. No
+// third-party imports.
+
+extension WenshuModelCatalog {
+
+    // MARK: -- P7.1 parse context limit from error (= hermes L1068-L1096)
+
+    /// Try to extract the actual context limit from an API
+    /// error message (= hermes `parse_context_limit_from_error`
+    /// at `agent/model_metadata.py` L1068-L1096).
+    ///
+    /// Many providers include the limit in their error text
+    /// (= e.g. "maximum context length is 32768 tokens",
+    /// "context_length_exceeded: 131072", "Maximum context
+    /// size 32768 exceeded", "model's max context length
+    /// is 65536").
+    ///
+    /// - Parameters:
+    ///   - errorMessage: The error message to parse.
+    /// - Returns: The parsed context limit, or nil if no
+    ///   reasonable value was found (= outside the
+    ///   `1024 <= limit <= 10_000_000` sanity range).
+    public static func parseContextLimitFromError(_ errorMessage: String) -> Int? {
+        let errorLower = errorMessage.lowercased()
+
+        // The 7 hermes regex patterns (= L1076-L1084).
+        let patterns = [
+            // vLLM: "max_model_len 32768", "=32768", ": 32768", "(32768)", "is 32768"
+            #"max_model_len\s*(?:is\s*)?[:=(]?\s*(\d{4,})"#,
+            // vLLM alt: "maximum model length 131072", "... is 131072"
+            #"maximum model length\s*(?:is\s*)?[:=(]?\s*(\d{4,})"#,
+            // "(?:max(?:imum)?|limit)\s*(?:context\s*)?(?:length|size|window)?\s*(?:is|of|:)?\s*(\d{4,})"
+            #"(?:max(?:imum)?|limit)\s*(?:context\s*)?(?:length|size|window)?\s*(?:is|of|:)?\s*(\d{4,})"#,
+            // "context\s*(?:length|size|window)\s*(?:is|of|:)?\s*(\d{4,})"
+            #"context\s*(?:length|size|window)\s*(?:is|of|:)?\s*(\d{4,})"#,
+            // "(\d{4,})\s*(?:token)?\s*(?:context|limit)"
+            #"(\d{4,})\s*(?:token)?\s*(?:context|limit)"#,
+            // ">\s*(\d{4,})\s*(?:max|limit|token)"  -- "250000 tokens > 200000 maximum"
+            #">\s*(\d{4,})\s*(?:max|limit|token)"#,
+            // "(\d{4,})\s*(?:max(?:imum)?)\b"
+            #"(\d{4,})\s*(?:max(?:imum)?)\b"#,
+        ]
+
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(
+                pattern: pattern,
+                options: [.caseInsensitive]
+            ) else { continue }
+            let range = NSRange(errorLower.startIndex..., in: errorLower)
+            if let match = regex.firstMatch(in: errorLower, options: [], range: range),
+               match.numberOfRanges >= 2 {
+                let captureRange = match.range(at: 1)
+                guard captureRange.location != NSNotFound,
+                      let swiftRange = Range(captureRange, in: errorLower),
+                      let limit = Int(errorLower[swiftRange])
+                else { continue }
+                if (1024...10_000_000).contains(limit) {
+                    return limit
+                }
+            }
+        }
+        return nil
+    }
+
+    // MARK: -- P7.2 get context length from provider error (= hermes L1098-L1116)
+
+    /// Return a provider-reported lower context limit, if
+    /// one is present (= hermes
+    /// `get_context_length_from_provider_error` at
+    /// `agent/model_metadata.py` L1098-L1116).
+    ///
+    /// Context-overflow recovery must not invent a new
+    /// model window size. Some providers only say that the
+    /// input exceeds the context window without reporting
+    /// the actual maximum. In that case callers should
+    /// keep the configured context length and try
+    /// compression only, rather than stepping down through
+    /// guessed probe tiers.
+    ///
+    /// - Parameters:
+    ///   - errorMessage: The error message to parse.
+    ///   - currentContextLength: The current configured
+    ///     context length (= used to filter out values
+    ///     that are not actually lower than current).
+    /// - Returns: The lower limit (= parsed_limit if
+    ///   `< currentContextLength`), or nil otherwise.
+    public static func getContextLengthFromProviderError(
+        errorMessage: String,
+        currentContextLength: Int
+    ) -> Int? {
+        guard let parsedLimit = parseContextLimitFromError(errorMessage) else {
+            return nil
+        }
+        if parsedLimit < currentContextLength {
+            return parsedLimit
+        }
+        return nil
+    }
+
+    // MARK: -- P7.3 parse available output tokens (= hermes L1118-L1140)
+
+    /// Detect an "output cap too large" error and return
+    /// how many output tokens are available (= hermes
+    /// `parse_available_output_tokens_from_error` at
+    /// `agent/model_metadata.py` L1118-L1140).
+    ///
+    /// Patterns: "max_tokens ... must be <= 8192",
+    /// "max_output_tokens 4096", etc.
+    ///
+    /// - Parameters:
+    ///   - errorMessage: The error message to parse.
+    /// - Returns: The parsed output cap, or nil if no
+    ///   reasonable value was found.
+    public static func parseAvailableOutputTokensFromError(
+        _ errorMessage: String
+    ) -> Int? {
+        let errorLower = errorMessage.lowercased()
+        let patterns = [
+            // "max_tokens ... must be <= 8192"
+            #"max_tokens[^.]{0,80}<=\s*(\d{2,})"#,
+            #"max_tokens[^.]{0,80}less than or equal to\s*(\d{2,})"#,
+            // "max_output_tokens 4096"
+            #"max_output_tokens\s*(?:is|of|:)?\s*(\d{2,})"#,
+            // "max_completion_tokens ... 4096"
+            #"max_completion_tokens[^.]{0,80}(\d{2,})"#,
+            // generic "output token limit ... 4096"
+            #"output\s*(?:token)?\s*(?:limit|cap)\s*(?:is|of|:)?\s*(\d{2,})"#,
+        ]
+
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(
+                pattern: pattern,
+                options: [.caseInsensitive]
+            ) else { continue }
+            let range = NSRange(errorLower.startIndex..., in: errorLower)
+            if let match = regex.firstMatch(in: errorLower, options: [], range: range),
+               match.numberOfRanges >= 2 {
+                let captureRange = match.range(at: 1)
+                guard captureRange.location != NSNotFound,
+                      let swiftRange = Range(captureRange, in: errorLower),
+                      let cap = Int(errorLower[swiftRange])
+                else { continue }
+                if (16...10_000_000).contains(cap) {
+                    return cap
+                }
+            }
+        }
+        return nil
+    }
+}
