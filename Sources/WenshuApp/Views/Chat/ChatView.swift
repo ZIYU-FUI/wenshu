@@ -2577,6 +2577,28 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T114-PREV-CHAT-SHORTCUT (2026-09-18): ⌘[
+            // = "previous chat" (= the standard Safari
+            // "Previous Tab" shortcut; = in wenshu =
+            // NSLogs a previous-chat intent; = a future
+            // ticket can wire it to a real conversation
+            // list manager that switches to the chat at
+            // index n-1 in the chat history).
+            // Note: ⌘⇧[ is the standard Tab Previous
+            // in browsers; T114 uses ⌘[ for a
+            // wenshu-specific intent (= no collision
+            // because wenshu has no Tab concept).
+            // Hidden Button pattern.
+            Button("Previous chat") {
+                NSLog("[wenshu.chat] previous-chat requested (\(vm.messages.count) messages in current)")
+                // Future ticket: wire to a
+                // ConversationList model that switches
+                // to the chat at vm.currentIndex - 1.
+            }
+            .keyboardShortcut("[", modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
