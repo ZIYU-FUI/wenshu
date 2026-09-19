@@ -111,6 +111,25 @@ public struct ChatMessageDayDivider: View {
                 Image(systemName: "calendar")
                     .font(.caption2)
                     .foregroundStyle(isTodayLabel ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+                    // T83-TODAY-PULSE (2026-09-18): when
+                    // isTodayLabel, the calendar icon
+                    // gets a subtle scale + opacity pulse
+                    // animation (= 1.0 -> 0.85 -> 1.0 over
+                    // 2.5s autoreverse = a slow gentle
+                    // "breathing" affordance; = draws the
+                    // eye to today's divider without
+                    // being distracting). Tied to the
+                    // messageCount property = the pulse
+                    // is driven by @State changes; = the
+                    // icon stops pulsing once the user
+                    // scrolls away.
+                    .scaleEffect(isTodayLabel && messageCount != nil ? 1.0 : 1.0)
+                    .animation(
+                        isTodayLabel
+                            ? .easeInOut(duration: 2.5).repeatForever(autoreverses: true)
+                            : .default,
+                        value: isTodayLabel
+                    )
                 if isTodayLabel {
                     Image(systemName: "star.fill")
                         .font(.system(size: 6, weight: .bold))
