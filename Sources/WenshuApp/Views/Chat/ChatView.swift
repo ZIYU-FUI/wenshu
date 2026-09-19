@@ -2475,6 +2475,28 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+            // T108-UNREAD-SHORTCUT (2026-09-18): ⌥U
+            // = "jump to unread" (= the standard Apple
+            // Mail "Next Unread" shortcut via the Option
+            // modifier; = in wenshu = NSLogs a
+            // jump-to-unread intent; = a future ticket
+            // can wire it to a real SwiftUI scroll
+            // target that scrolls to the first
+            // not-yet-viewed message).
+            // Note: ⌘U is "Underline" in TextEdit;
+            // T108 uses ⌥U = "Alt-Underline" to
+            // repurpose for wenshu-specific intent.
+            // Hidden Button pattern.
+            Button("Jump to unread") {
+                NSLog("[wenshu.unread] jump-to-unread requested (\(vm.messages.count) messages)")
+                // Future ticket: wire to a ScrollViewReader
+                // proxy that scrolls to the first
+                // message where message.viewedAt == nil.
+            }
+            .keyboardShortcut("u", modifiers: [.option])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
