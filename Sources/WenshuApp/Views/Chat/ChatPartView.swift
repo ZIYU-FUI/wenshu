@@ -99,6 +99,15 @@ public struct ChatTextPartView: View {
                         .font(.system(size: 14, weight: .regular))
                         .foregroundStyle(isOutgoing ? Color(nsColor: .windowBackgroundColor) : Color.primary)
                         .opacity(phase ? 1.0 : 0.0)
+                        // T61-CURSOR-HELP (2026-09-18): a .help()
+                        // tooltip on the streaming cursor that
+                        // explains the visual cue (= "Generating
+                        // response..."). Helps screen-reader users
+                        // + adds context for hover users (= a
+                        // visible streaming cursor without
+                        // surrounding text could be confusing;
+                        // = the tooltip clarifies it).
+                        .help(Self.streamingCursorTooltip)
                 }
             }
         }
@@ -109,6 +118,15 @@ public struct ChatTextPartView: View {
     /// Marked `nonisolated` so it can be called from test contexts
     /// without `@MainActor` isolation (= the function is a pure
     /// utility that doesn't touch any view state).
+    /// T42-HELPER (2026-09-18): the localized tooltip string
+    /// for the streaming cursor. Helps screen-reader users
+    /// understand the blinking ▎ affordance (= "Generating
+    /// response...").
+    /// nonisolated (= pure constant; = testable from XCTest).
+    nonisolated static var streamingCursorTooltip: String {
+        WenshuI18n.t("chatview.streaming_cursor.generating")
+    }
+
     nonisolated static func parseMarkdown(_ raw: String) -> AttributedString {
         (try? AttributedString(
             markdown: raw,
