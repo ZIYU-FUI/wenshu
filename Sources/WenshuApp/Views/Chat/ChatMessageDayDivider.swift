@@ -47,9 +47,17 @@ public struct ChatMessageDayDivider: View {
             // Provides a visual cue that the divider is a
             // date marker (= the SF Symbol is the canonical
             // Apple HIG date affordance).
+            //
+            // T57-TODAY-ACCENT (2026-09-18): when the label is
+            // "Today" (= the calendar day is the current day),
+            // the icon gets .accentColor tint (= visual
+            // emphasis = today is the "active" day). The label
+            // text stays .secondary (= matching the icon's
+            // normal-state tone; = the icon is the visual cue,
+            // not the label).
             Image(systemName: "calendar")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(isTodayLabel ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -111,5 +119,15 @@ public struct ChatMessageDayDivider: View {
         let isSameYear = calendar.isDate(date, equalTo: now, toGranularity: .year)
         formatter.setLocalizedDateFormatFromTemplate(isSameYear ? "MMMd" : "yMMMd")
         return formatter.string(from: date)
+    }
+
+    /// T57-TODAY-ACCENT (2026-09-18): true when the label is the
+    /// "Today" localized string (= drives the icon's accent
+    /// color tint). Uses the resolved label (= the same string
+    /// the body shows) for the comparison = no risk of
+    /// locale drift breaking the accent.
+    private var isTodayLabel: Bool {
+        let todayKey = WenshuI18n.t("chatview.day_divider.today")
+        return label == todayKey
     }
 }
