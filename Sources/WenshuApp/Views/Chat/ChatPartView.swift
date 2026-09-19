@@ -544,8 +544,22 @@ private struct ChatPartRow: View {
                 .transition(.wenshuThinkingAppear())
         case .toolUse(let tu):
             ChatToolUsePartView(toolUse: tu, isOutgoing: isOutgoing)
+                // T41-TOOL-USE-FADEIN (2026-09-18): apply the same
+                // appear-from-top transition as T40 reasoning parts.
+                // Tool-use calls appearing in a streaming message
+                // (= the model invoking a tool) also benefit from
+                // a soft fade-in (= matches the Apple HIG content
+                // insertion pattern). Reuses AnyTransition.wenshuThinkingAppear()
+                // because the visual idiom is identical (= streaming
+                // event lands on screen; = fade in).
+                .transition(.wenshuThinkingAppear())
         case .toolResult(let tr):
             ChatToolResultPartView(toolResult: tr, isOutgoing: isOutgoing)
+                // T41-TOOL-USE-FADEIN (2026-09-18): tool-result parts
+                // (= the output of a tool call) fade in too (= the
+                // whole tool lifecycle = call + result = a single
+                // visual unit; = both halves should animate in sync).
+                .transition(.wenshuThinkingAppear())
         case .plan(let p):
             // T22: render the plan via ChatPlanPartView (= T20b
             // primitive). The onApprove closure is passed through;
