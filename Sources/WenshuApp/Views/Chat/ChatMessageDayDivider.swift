@@ -33,8 +33,31 @@ import SwiftUI
 public struct ChatMessageDayDivider: View {
     public let timestamp: TimeInterval
 
-    public init(timestamp: TimeInterval) {
+/// T68-COUNT-DIVIDER (2026-09-18): a public init that
+    /// accepts an optional message-count. When the caller
+    /// passes a count, the divider's label suffix shows
+    /// " · N" (= the Apple HIG secondary chrome pattern
+    /// for "section header + count"; = matches Finder's
+    /// "Today · 5 items" affordance).
+    public let messageCount: Int?
+
+    public init(timestamp: TimeInterval, messageCount: Int? = nil) {
         self.timestamp = timestamp
+        self.messageCount = messageCount
+    }
+
+    /// T68-COUNT-DIVIDER (2026-09-18): backward-compatible init
+    /// (= preserves the T36/T39/T56/T57/T60 callers that don't
+    /// pass a count).
+    public init(timestamp: TimeInterval) {
+        self.init(timestamp: timestamp, messageCount: nil)
+    }
+
+    /// T68-COUNT-DIVIDER (2026-09-18): a divider that displays
+    /// only the message count (= used when the caller wants
+    /// the count chip without a date label; = forward-flexibility).
+    public static func countOnly(_ count: Int) -> ChatMessageDayDivider {
+        ChatMessageDayDivider(timestamp: 0, messageCount: count)
     }
 
     public var body: some View {
@@ -76,6 +99,16 @@ public struct ChatMessageDayDivider: View {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            // T68-COUNT-DIVIDER (2026-09-18): a small " · N"
+            // suffix when the caller passes a message count.
+            // Hidden when count is nil (= preserves the
+            // existing T36/T39/T56/T57/T60 affordance = the
+            // date-only label).
+            if let count = messageCount {
+                Text("· \(count)")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
             Spacer(minLength: 0)
         }
         .padding(.vertical, 8)
