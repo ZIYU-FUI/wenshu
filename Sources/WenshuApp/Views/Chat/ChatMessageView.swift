@@ -275,6 +275,23 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 .frame(maxWidth: 240, maxHeight: 240)
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
                                 .padding(.bottom, DesignTokens.chromePaddingMicro)
+                            // T34-OPEN-IMAGE-IN-FINDER (2026-09-18): a small
+                            // "Reveal" button below the thumbnail (= the
+                            // user can right-click a file in Finder to
+                            // see it; = the equivalent here is a single-
+                            // click button that does NSWorkspace.activateFileViewerSelecting
+                            // = the standard macOS "Reveal in Finder" affordance).
+                            // Hidden when the file doesn't exist (= already
+                            // handled by the outer if-let).
+                            Button {
+                                let url = URL(fileURLWithPath: imagePath)
+                                NSWorkspace.shared.activateFileViewerSelecting([url])
+                            } label: {
+                                Label("Reveal in Finder", systemImage: "folder")
+                                    .font(.caption2)
+                            }
+                            .buttonStyle(.borderless)
+                            .padding(.bottom, DesignTokens.chromePaddingMicro)
                         } else {
                             Text(WenshuI18n.t("chat.message.imageMissing"))
                                 .font(.caption)
