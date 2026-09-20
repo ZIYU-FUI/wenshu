@@ -1783,48 +1783,31 @@ public struct ChatView: View {
                     // change to match the text field height' = at the time, the textfield
                     // visual was 24 PT (= 1 line) so boss wanted to
                     // match the button height.
-                    .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                    // v1.59 boss 2026-09-20: 1 PT tint focus
-                    // ring around the TextField when focused (=
-                    // preserved from v1.69 nested design, applied
-                    // as a single overlay instead of nested inside
-                    // a ZStack with a material fill below it).
-                    // Unfocused: no border (= the panel boundary
-                    // is the visible chrome = Apple Messages
-                    // behavior).
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(
-                                inputFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.clear),
-                                lineWidth: 1
-                            )
-                    )
-                    // v1.59 boss 2026-09-20 'change style only
-                    // not function': the v1.69 nested RoundedRectangle
-                    // pair (= RoundedRectangle.fill(.regularMaterial)
-                    // + RoundedRectangle.strokeBorder for the
-                    // focused/unfocused border) painted the textfield
-                    // as a darker translucent tile inside the floating
-                    // panel. Apple Messages (= boss reference
-                    // screenshot 2026-09-20) renders the textfield
-                    // area inside the floating panel as a single
-                    // subtle horizontal bar (= no separate rounded
-                    // tile = the textfield IS the panel content =
-                    // panel + textfield read as one surface). Drop
-                    // the nested material fill (it was making the
-                    // textfield look like a dark inset that competed
-                    // with the floating panel). Keep the focus ring
-                    // stroke (= 1 PT tint line when focused) but
-                    // apply it directly via `.overlay` on the
-                    // TextField itself (= the canonical SwiftUI
-                    // TextField focus indicator pattern per
-                    // developer.apple.com/design/human-interface-
-                    // guidelines/components/selection-and-input/
-                    // text-fields) instead of nested inside a
-                    // ZStack-with-two-RoundedRectangles pattern.
-                    // Function unchanged: textfield auto-grow,
-                    // placeholder, slash-command autocomplete,
-                    // disabled state — all preserved.
+                    // v1.64 boss 2026-09-20 'place current code in wenshu':
+                    // Apple Messages Liquid Glass chat input pattern.
+                    // 1. Drop the .padding(.horizontal, DesignTokens.chromePaddingMedium)
+                    //    (= was padding the textfield inside the panel
+                    //    chrome = the old panel-style chat input). Apple
+                    //    Messages renders the textfield as a self-contained
+                    //    capsule with internal padding = the .glassEffect
+                    //    capsule provides the visible boundary.
+                    // 2. Drop the .overlay RoundedRectangle focus ring (=
+                    //    Apple Messages has no focus ring = the glass
+                    //    capsule is the only chrome).
+                    // 3. Add .glassEffect(.regular.interactive(), in: Capsule())
+                    //    (= the Apple macOS 27 Liquid Glass capsule = blurs
+                    //    + refracts the content underneath = the canonical
+                    //    Apple Messages chrome).
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    // v1.64 Apple macOS 27 Liquid Glass: turns the
+                    // textfield into a real glass capsule that blurs
+                    // + refracts the chat history underneath. The
+                    // glass IS the visible boundary (= no border, no
+                    // focus ring). Function unchanged: textfield
+                    // auto-grow, placeholder, slash-command
+                    // autocomplete, disabled state — all preserved.
+                    .glassEffect(.regular.interactive(), in: Capsule())
                 // v1.28 C3.4.7: extract leaked Send button modifiers (.buttonStyle
                 // + .controlSize + .frame + .disabled + v0.28/v0.61 boss OOB comments)
                 // from ChatView into ChatSendButton.swift (= the C3.4.4 commit
@@ -1848,19 +1831,33 @@ public struct ChatView: View {
                 // order matches worktree commit history: T0 -> T3).
                 // HStack layout otherwise unchanged.
                 HStack(alignment: .center, spacing: 8) {
+                    // v1.64 Apple Messages Liquid Glass: each chat input
+                    // button is a circular glass element (= the same
+                    // chrome as iMessage + / mic / emoji buttons).
+                    // Chain .glassEffect(.regular.interactive(), in: Circle)
+                    // on each button (= SwiftUI modifier applies after
+                    // the button's internal .bordered style + frame, so
+                    // the button becomes a circular glass element).
                     ChatAttachButton(showingImageImporter: $showingImageImporter, isSending: vm.isSending)
+                        .glassEffect(.regular.interactive(), in: Circle())
                     ChatAgentPathIndicator(isSending: vm.isSending)
+                        .glassEffect(.regular.interactive(), in: Circle())
                     ChatTurnProgress(turnLabel: vm.currentAgentTurn ?? "—", isSending: vm.isSending)
+                        .glassEffect(.regular.interactive(), in: Circle())
                     ChatSubAgentTag(subAgentName: vm.activeSubAgentName, isSending: vm.isSending)
+                        .glassEffect(.regular.interactive(), in: Circle())
                     // T4-SUBAGENT-UI (2026-09-18): sub-agent indicator
                     // placed immediately after ChatAttachButton (=
                     // per boss OOB '加按钮就在附件上传按钮后面先加').
                     // Hidden when no sub-agent is running (= renders
                     // empty view; = HStack spacing absorbs it).
                     ChatSubAgentTag(subAgentName: vm.activeSubAgentName, isSending: vm.isSending)
+                        .glassEffect(.regular.interactive(), in: Circle())
                     Spacer(minLength: 8)
                     ChatSendButton(vm: vm)
+                        .glassEffect(.regular.interactive(), in: Circle())
                     ChatGoalButton(vm: vm)
+                        .glassEffect(.regular.interactive(), in: Circle())
                         .keyboardShortcut("g", modifiers: [.command, .shift])
                 }
                 .frame(minHeight: 30)
