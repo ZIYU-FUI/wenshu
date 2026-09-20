@@ -91,11 +91,12 @@ final class ToolExecutorHermesGapPortTests: XCTestCase {
     // MARK: -- Spec check
 
     func testSourceFile_documentedAsHermesPort() {
-        let sourcePath = #file
-            .replacingOccurrences(of: "ToolExecutorHermesGapPortTests.swift", with: "")
-            + "ToolExecutor.swift"
-        guard let source = try? String(contentsOfFile: sourcePath, encoding: .utf8) else {
-            XCTFail("Could not read ToolExecutor.swift at \(sourcePath)")
+        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        guard let source = HermesGapPortTestHelpers.readSource(
+            relativeToTest: #filePath,
+            sourceFileName: "ToolExecutor.swift"
+        ) else {
+            XCTFail("HermesGapPortTestHelpers could not locate ToolExecutor.swift")
             return
         }
         XCTAssertTrue(source.contains("P6 Hermes-Python gap port"))
