@@ -179,11 +179,12 @@ final class RuntimeHelpersHermesGapPortTests: XCTestCase {
         // Pure spec check: the source file MUST contain the
         // hermes-port marker + line-range citation per the
         // spec §3.1 contract.
-        let sourcePath = #file
-            .replacingOccurrences(of: "RuntimeHelpersHermesGapPortTests.swift", with: "")
-            + "RuntimeHelpers.swift"
-        guard let source = try? String(contentsOfFile: sourcePath, encoding: .utf8) else {
-            XCTFail("Could not read RuntimeHelpers.swift at \(sourcePath)")
+        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        guard let source = HermesGapPortTestHelpers.readSource(
+            relativeToTest: #filePath,
+            sourceFileName: "RuntimeHelpers.swift"
+        ) else {
+            XCTFail("HermesGapPortTestHelpers could not locate RuntimeHelpers.swift")
             return
         }
         XCTAssertTrue(source.contains("H6 Hermes-Python gap port"))
