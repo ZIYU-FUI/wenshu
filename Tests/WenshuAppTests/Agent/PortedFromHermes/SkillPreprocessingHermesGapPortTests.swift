@@ -196,7 +196,7 @@ final class SkillPreprocessingHermesGapPortTests: XCTestCase {
             InlineShellResult(stdout: "[\(cmd)]", stderr: "", exitCode: 0)
         }
         let result = expandInlineShell(
-            content: "Before `` after",
+            content: "Before !`` after",
             skillDir: nil,
             timeout: 5,
             executor: executor
