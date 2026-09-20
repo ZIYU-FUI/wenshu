@@ -263,6 +263,20 @@ public enum SkillBundlesYAMLDiscovery {
                         reason: "unexpected mapping key '\(key)'"
                     )
                 }
+            } else if rawValue == "[]" {
+                // Inline empty array (= `key: []`); = accepted as a
+                // no-op (= same as the empty-`rawValue` + multi-line
+                // array path but for single-line brevity).
+                currentArray = nil
+                switch key {
+                case "skill_ids", "dependencies":
+                    continue
+                default:
+                    throw SkillBundlesYAMLDiscoveryError.malformedYAML(
+                        file: sourceFile ?? URL(fileURLWithPath: "/unknown"),
+                        reason: "unexpected mapping key '\(key)'"
+                    )
+                }
             } else {
                 // Scalar value
                 currentArray = nil
