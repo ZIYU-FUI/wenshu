@@ -1784,39 +1784,47 @@ public struct ChatView: View {
                     // visual was 24 PT (= 1 line) so boss wanted to
                     // match the button height.
                     .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                    // v1.69 boss 2026-09-18 'chat textfield, walk
-                    // Apple API official mode, macOS 27 style':
-                    // switch the TextField background from
-                    // .regularMaterial (= macOS 26 Tahoe Liquid
-                    // Glass tier = lighter translucent) to the
-                    // macOS 27 SwiftUI Liquid Glass nested text
-                    // field surface. The outer VStack already
-                    // gets .glassEffect(.bar, ...) so the
-                    // TextField stays a nested darker tint (=
-                    // Apple Messages does this = the input
-                    // field has a deeper glass tier than the
-                    // surrounding bar).
-                    .background(
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(.regularMaterial)
-                            RoundedRectangle(cornerRadius: 8)
-                                // v1.74 boss 2026-09-18 'chat panel has a line at the top':
-                                // switched the unfocused border from
-                                // AnyShapeStyle(.separator) to AnyShapeStyle(.quaternary)
-                                // because .separator (= the macOS 27 system
-                                // separator color) renders as a blue-tinted
-                                // hairline (= 1 PT accent-tinted line) on the
-                                // top edge of the TextField inside the chat
-                                // panel in dark mode. .quaternary (= the
-                                // HierarchicalShapeStyle quaternary tier = a
-                                // lighter neutral gray) removes the visible
-                                // line entirely while still hinting at the
-                                // unfocused control boundary (= Apple HIG
-                                // TextField pattern).
-                                .strokeBorder(inputFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary), lineWidth: 1)
-                        }
+                    // v1.59 boss 2026-09-20: 1 PT tint focus
+                    // ring around the TextField when focused (=
+                    // preserved from v1.69 nested design, applied
+                    // as a single overlay instead of nested inside
+                    // a ZStack with a material fill below it).
+                    // Unfocused: no border (= the panel boundary
+                    // is the visible chrome = Apple Messages
+                    // behavior).
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(
+                                inputFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.clear),
+                                lineWidth: 1
+                            )
                     )
+                    // v1.59 boss 2026-09-20 'change style only
+                    // not function': the v1.69 nested RoundedRectangle
+                    // pair (= RoundedRectangle.fill(.regularMaterial)
+                    // + RoundedRectangle.strokeBorder for the
+                    // focused/unfocused border) painted the textfield
+                    // as a darker translucent tile inside the floating
+                    // panel. Apple Messages (= boss reference
+                    // screenshot 2026-09-20) renders the textfield
+                    // area inside the floating panel as a single
+                    // subtle horizontal bar (= no separate rounded
+                    // tile = the textfield IS the panel content =
+                    // panel + textfield read as one surface). Drop
+                    // the nested material fill (it was making the
+                    // textfield look like a dark inset that competed
+                    // with the floating panel). Keep the focus ring
+                    // stroke (= 1 PT tint line when focused) but
+                    // apply it directly via `.overlay` on the
+                    // TextField itself (= the canonical SwiftUI
+                    // TextField focus indicator pattern per
+                    // developer.apple.com/design/human-interface-
+                    // guidelines/components/selection-and-input/
+                    // text-fields) instead of nested inside a
+                    // ZStack-with-two-RoundedRectangles pattern.
+                    // Function unchanged: textfield auto-grow,
+                    // placeholder, slash-command autocomplete,
+                    // disabled state — all preserved.
                 // v1.28 C3.4.7: extract leaked Send button modifiers (.buttonStyle
                 // + .controlSize + .frame + .disabled + v0.28/v0.61 boss OOB comments)
                 // from ChatView into ChatSendButton.swift (= the C3.4.4 commit
@@ -2729,43 +2737,69 @@ public struct ChatView: View {
                 }
             }
             .animation(.snappy, value: isDropTargeted)
-            // v1.69 boss 2026-09-18 'chat textfield, walk Apple API
-            // official mode, macOS 27 style, make it a floating
-            // panel': wrap the entire chat input VStack in macOS 27
-            // SwiftUI Liquid Glass .glassEffect(.regular, in:
-            // RoundedRectangle(cornerRadius: 14)) (= the canonical
-            // macOS 27 floating panel material; = translucent +
-            // tinted + soft shadow look that Apple Messages /
-            // Slack / Xcode 16 chat input all use). The
-            // RoundedRectangle shape gives the panel a 14 PT
-            // (= Apple HIG toolbar corner radius) rounded boundary.
-            // Glass cases = .ultraThin / .thin / .regular / .thick /
-            // .ultraThick per developer.apple.com/documentation/
-            // swiftui/glass (= .regular is the same tier Apple
-            // Messages chat input uses = visually balanced between
-            // translucent and opaque).
-            // v1.74 boss 2026-09-18 'chat panel has a line at the top':
-            // boss clarification: the line was the macOS 27
-            // Divider() (= SwiftUI HairlineShapeStyle), NOT the
-            // .glassEffect shape parameter (= the shape parameter
-            // does NOT paint a visible border; = it only defines the
-            // extent of the Liquid Glass material = the rounded
-            // corner radius). Removed the Divider() (= the actual
-            // root cause). Kept the `in: RoundedRectangle(cornerRadius:
-            // 14)` shape parameter on the .glassEffect primitive
-            // (= the floating panel needs this shape to draw its
-            // big rounded corners). Net effect: big rounded
-            // floating Liquid Glass panel + no top hairline.
-            .glassEffect(
-                .regular,
-                in: RoundedRectangle(cornerRadius: 14)
+            // v1.59 boss 2026-09-20 'chat input was a floating panel,
+            // change style only not function, restore floating panel':
+            // v1.69 wrote the panel with macOS 27 .glassEffect
+            // (.regular, in: RoundedRectangle(cornerRadius: 14))
+            // (= the canonical Liquid Glass floating panel API per
+            // developer.apple.com/documentation/swiftui/view/
+            // glasseffect). On the boss's runtime it renders as a
+            // flat dark surface that blends into the chat column
+            // (= the panel no longer reads as a floating panel =
+            // looks like an ordinary bottom-attached row). Restore
+            // the floating look with an explicit `.background`
+            // (= `.regularMaterial` = the canonical translucent
+            // material Apple uses for its floating panels in
+            // Messages / Notes / Mail per developer.apple.com/
+            // design/human-interface-guidelines/materials) +
+            // `.shadow` (= the soft drop shadow that signals
+            // "this surface is elevated above the content behind
+            // it" = Apple HIG floating chrome). RoundedRectangle
+            // (cornerRadius: 14) = Apple HIG toolbar corner radius
+            // (= matches the system Messages / Slack chat input).
+            // Function unchanged: textfield auto-grow 1-4 lines,
+            // attach / send / goal buttons, drag-drop upload, slash
+            // command autocomplete, attachment preview chip, focus
+            // management, paste-image — all preserved per boss OOB
+            // '只改样式不改功能'.
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.regularMaterial)
             )
-            // Small outer padding around the glass panel so it
-            // doesn't touch the chat column edges (Apple Messages
-            // uses 8 PT horizontal + 8 PT bottom outer padding
-            // around the floating input bar).
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    // v1.59 boss 2026-09-20: 1 PT hairline
+                    // stroke around the floating panel so the
+                    // panel boundary reads as a distinct surface
+                    // even on backgrounds where .regularMaterial
+                    // blends with the column color. `.quaternary`
+                    // (= the macOS 27 HierarchicalShapeStyle
+                    // quaternary tier) = a neutral light gray
+                    // (= no accent tint = no visible "line" the
+                    // way .separator was = matches the Apple
+                    // Messages panel boundary).
+                    .strokeBorder(AnyShapeStyle(.quaternary), lineWidth: 1)
+            )
+            .shadow(
+                color: Color.black.opacity(0.28),
+                radius: 12,
+                x: 0,
+                y: -2
+            )
+            // v1.59 boss 2026-09-20: outer padding around the
+            // floating panel expanded from 8 PT (v1.69) to 12 PT
+            // to match the Apple Messages reference (= boss
+            // shared the Messages screenshot on 2026-09-20: the
+            // floating input bar has ~12 PT of horizontal and
+            // bottom margin from the chat column edges, and
+            // ~12-14 PT of top margin from the chat history
+            // above = the panel "floats" rather than touching
+            // any column edge). Adds 4 PT of breathing room on
+            // every side of the panel vs the v1.69 8 PT
+            // padding.
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
+            .padding(.top, 12)
         }
         // v0.24 boss acceptance fix (2026-08-24): help text DIRECTLY below input box.
         // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first. Click Settings'
