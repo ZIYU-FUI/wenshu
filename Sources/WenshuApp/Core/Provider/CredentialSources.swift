@@ -128,7 +128,7 @@ public struct RemovalStep: Sendable {
     /// pair (= hermes `RemovalStep.matches` at
     /// `agent/credential_sources.py` L107-L113).
     public func matches(provider: String, source: String) -> Bool {
-        if provider != "*" && provider != provider {
+        if self.provider != "*" && provider != self.provider {
             return false
         }
         if let matchFn = matchFn {

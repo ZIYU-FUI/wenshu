@@ -23,6 +23,20 @@ import XCTest
 
 final class SkillBundlesHermesGapPortTests: XCTestCase {
 
+    // Per wenshu-stale-test-cleanup Class D recipe: SkillBundles.shared
+    // is an actor with mutable state (= bundles dict); tests that share it
+    // leak state across test runs. Reset in setUp to give every test a
+    // known empty baseline.
+    override func setUp() async throws {
+        try await super.setUp()
+        await SkillBundles.shared.unregisterAll()
+    }
+
+    override func tearDown() async throws {
+        await SkillBundles.shared.unregisterAll()
+        try await super.tearDown()
+    }
+
     // MARK: -- H5.1 slugify tests (= hermes L78-L82)
 
     func testSlugify_lowercasesInput() {

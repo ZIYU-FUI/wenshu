@@ -152,11 +152,12 @@ final class ConversationCompressionHermesGapPortTests: XCTestCase {
     // MARK: -- Spec check
 
     func testSourceFile_documentedAsHermesPort() {
-        let sourcePath = #file
-            .replacingOccurrences(of: "ConversationCompressionHermesGapPortTests.swift", with: "")
-            + "ConversationCompression.swift"
-        guard let source = try? String(contentsOfFile: sourcePath, encoding: .utf8) else {
-            XCTFail("Could not read ConversationCompression.swift at \(sourcePath)")
+        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        guard let source = HermesGapPortTestHelpers.readSource(
+            relativeToTest: #filePath,
+            sourceFileName: "ConversationCompression.swift"
+        ) else {
+            XCTFail("HermesGapPortTestHelpers could not locate ConversationCompression.swift")
             return
         }
         XCTAssertTrue(source.contains("P8 Hermes-Python gap port"))

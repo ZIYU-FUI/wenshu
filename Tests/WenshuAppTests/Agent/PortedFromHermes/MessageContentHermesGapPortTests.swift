@@ -183,11 +183,12 @@ final class MessageContentHermesGapPortTests: XCTestCase {
     // MARK: -- Spec check
 
     func testSourceFile_documentedAsHermesPort() {
-        let sourcePath = #file
-            .replacingOccurrences(of: "MessageContentHermesGapPortTests.swift", with: "")
-            + "MessageContent.swift"
-        guard let source = try? String(contentsOfFile: sourcePath, encoding: .utf8) else {
-            XCTFail("Could not read MessageContent.swift at \(sourcePath)")
+        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        guard let source = HermesGapPortTestHelpers.readSource(
+            relativeToTest: #filePath,
+            sourceFileName: "MessageContent.swift"
+        ) else {
+            XCTFail("HermesGapPortTestHelpers could not locate MessageContent.swift")
             return
         }
         XCTAssertTrue(source.contains("P11 Hermes-Python gap port"))

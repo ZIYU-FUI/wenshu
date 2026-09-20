@@ -96,11 +96,12 @@ final class ToolResultClassificationHermesGapPortTests: XCTestCase {
     // MARK: -- Spec check (= hermes line-range citations in source)
 
     func testSourceFile_documentedAsHermesPort() {
-        let sourcePath = #file
-            .replacingOccurrences(of: "ToolResultClassificationHermesGapPortTests.swift", with: "")
-            + "ToolResultClassification.swift"
-        guard let source = try? String(contentsOfFile: sourcePath, encoding: .utf8) else {
-            XCTFail("Could not read ToolResultClassification.swift at \(sourcePath)")
+        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        guard let source = HermesGapPortTestHelpers.readSource(
+            relativeToTest: #filePath,
+            sourceFileName: "ToolResultClassification.swift"
+        ) else {
+            XCTFail("HermesGapPortTestHelpers could not locate ToolResultClassification.swift")
             return
         }
         XCTAssertTrue(source.contains("P2-TOOL-RESULT-CLASSIFICATION-HERMES-PORT"))

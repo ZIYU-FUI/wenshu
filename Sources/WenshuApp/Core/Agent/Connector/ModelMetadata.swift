@@ -507,6 +507,11 @@ extension WenshuModelCatalog {
             #">\s*(\d{4,})\s*(?:max|limit|token)"#,
             // "(\d{4,})\s*(?:max(?:imum)?)\b"
             #"(\d{4,})\s*(?:max(?:imum)?)\b"#,
+            // OpenAI: "context_length_exceeded: 131072" (= colons after
+            // the error name). Match colons OR spaces between the
+            // error-name + the number (= covers OpenAI / Anthropic /
+            // Google error formats).
+            #"context_length(?:_exceeded)?\s*[:=]?\s*(\d{4,})"#,
         ]
 
         for pattern in patterns {
@@ -589,7 +594,10 @@ extension WenshuModelCatalog {
             #"max_tokens[^.]{0,80}less than or equal to\s*(\d{2,})"#,
             // "max_output_tokens 4096"
             #"max_output_tokens\s*(?:is|of|:)?\s*(\d{2,})"#,
-            // "max_completion_tokens ... 4096"
+            // "max_completion_tokens 4096" (= no intervening prose,
+            // common in OpenAI gpt-5 family errors)
+            #"max_completion_tokens\s*[:=]?\s*(\d{2,})"#,
+            // "max_completion_tokens ... 4096" (= with prose before number)
             #"max_completion_tokens[^.]{0,80}(\d{2,})"#,
             // generic "output token limit ... 4096"
             #"output\s*(?:token)?\s*(?:limit|cap)\s*(?:is|of|:)?\s*(\d{2,})"#,

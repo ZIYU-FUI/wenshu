@@ -276,11 +276,12 @@ final class ShellHookChainHermesGapPortTests: XCTestCase {
     // MARK: -- H8.8 spec check (= hermes line-range citations in source)
 
     func testShellHookChain_documentedAsHermesPort() {
-        let sourcePath = #file
-            .replacingOccurrences(of: "ShellHookChainHermesGapPortTests.swift", with: "")
-            + "ShellHookChain.swift"
-        guard let source = try? String(contentsOfFile: sourcePath, encoding: .utf8) else {
-            XCTFail("Could not read ShellHookChain.swift at \(sourcePath)")
+        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        guard let source = HermesGapPortTestHelpers.readSource(
+            relativeToTest: #filePath,
+            sourceFileName: "ShellHookChain.swift"
+        ) else {
+            XCTFail("HermesGapPortTestHelpers could not locate ShellHookChain.swift")
             return
         }
         XCTAssertTrue(source.contains("H8 Hermes-Python gap port"))

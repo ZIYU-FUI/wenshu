@@ -422,7 +422,7 @@ extension RuntimeHelpers {
                 // Skip orphan close tags in this loop (= handled in #3).
                 continue
             } else {
-                closeTag = "</\(tag.dropFirst())>"
+                closeTag = "</" + String(tag.dropFirst().dropLast()) + ">"
             }
             // Escape for regex
             let escapedOpen = NSRegularExpression.escapedPattern(for: openTag)
@@ -497,6 +497,33 @@ extension RuntimeHelpers {
                 range: range,
                 withTemplate: ""
             )
+        }
+
+        // 3a. Orphan-tag-with-content stripper (= tests like
+        //     `stripsStrayOrphanTags` expect the parser to drop
+        //     "</tag>...content...</tag>" pairs even when the
+        //     input is a stray close tag with no preceding open tag).
+        //     Without this pass, prose between two orphan close tags
+        //     would survive in the output (= leaks internal reasoning).
+        //     NOTE: this runs BEFORE the bare-tag stripper (#3) so
+        //     the paired close-close case (= </tag>...</tag>) is
+        //     recognized before the individual </tag> tags are dropped.
+        let orphanTags = ["think", "thinking", "reasoning", "thought", "REASONING_SCRATCHPAD"]
+        for tagName in orphanTags {
+            let escaped = NSRegularExpression.escapedPattern(for: tagName)
+            let pattern = "</?\(escaped)\\b[^>]*>(?:(?!</?\(escaped)\\b)[\\s\\S])*</?\(escaped)\\b[^>]*>"
+            if let regex = try? NSRegularExpression(
+                pattern: pattern,
+                options: [.dotMatchesLineSeparators, .caseInsensitive]
+            ) {
+                let range = NSRange(result.startIndex..., in: result)
+                result = regex.stringByReplacingMatches(
+                    in: result,
+                    options: [],
+                    range: range,
+                    withTemplate: ""
+                )
+            }
         }
 
         // 3. Stray orphan open/close tags.
