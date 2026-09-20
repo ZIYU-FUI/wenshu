@@ -62,9 +62,10 @@ public let skillTemplateVarRegex = try! NSRegularExpression(
 /// (= hermes `_INLINE_SHELL_RE` at L17).
 ///
 /// Non-greedy, single-line only -- no newlines inside the
-/// backticks.
+/// backticks. Matches empty snippets too (= `!```) per the
+/// hermes `expand_inline_shell` L106-L124 contract.
 public let inlineShellRegex = try! NSRegularExpression(
-    pattern: #"!`([^`\n]+)`"#
+    pattern: #"!`([^`\n]*)`"#
 )
 
 // MARK: - Public API
