@@ -238,11 +238,12 @@ final class CredentialSourcesHermesGapPortTests: XCTestCase {
     // MARK: -- Spec check
 
     func testSourceFile_documentedAsHermesPort() {
-        let sourcePath = #file
-            .replacingOccurrences(of: "CredentialSourcesHermesGapPortTests.swift", with: "")
-            + "CredentialSources.swift"
-        guard let source = try? String(contentsOfFile: sourcePath, encoding: .utf8) else {
-            XCTFail("Could not read CredentialSources.swift at \(sourcePath)")
+        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        guard let source = HermesGapPortTestHelpers.readSource(
+            relativeToTest: #filePath,
+            sourceFileName: "CredentialSources.swift"
+        ) else {
+            XCTFail("HermesGapPortTestHelpers could not locate CredentialSources.swift")
             return
         }
         XCTAssertTrue(source.contains("P1-CREDENTIAL-SOURCES-HERMES-PORT"))
