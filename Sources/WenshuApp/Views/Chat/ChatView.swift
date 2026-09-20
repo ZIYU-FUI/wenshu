@@ -1831,34 +1831,58 @@ public struct ChatView: View {
                 // order matches worktree commit history: T0 -> T3).
                 // HStack layout otherwise unchanged.
                 HStack(alignment: .center, spacing: 8) {
-                    // v1.64 Apple Messages Liquid Glass: each chat input
-                    // button is a circular glass element (= the same
-                    // chrome as iMessage + / mic / emoji buttons).
-                    // Chain .glassEffect(.regular.interactive(), in: Circle)
-                    // on each button (= SwiftUI modifier applies after
-                    // the button's internal .bordered style + frame, so
-                    // the button becomes a circular glass element).
-                    ChatAttachButton(showingImageImporter: $showingImageImporter, isSending: vm.isSending)
-                        .glassEffect(.regular.interactive(), in: Circle())
-                    ChatAgentPathIndicator(isSending: vm.isSending)
-                        .glassEffect(.regular.interactive(), in: Circle())
-                    ChatTurnProgress(turnLabel: vm.currentAgentTurn ?? "—", isSending: vm.isSending)
-                        .glassEffect(.regular.interactive(), in: Circle())
-                    ChatSubAgentTag(subAgentName: vm.activeSubAgentName, isSending: vm.isSending)
-                        .glassEffect(.regular.interactive(), in: Circle())
-                    // T4-SUBAGENT-UI (2026-09-18): sub-agent indicator
-                    // placed immediately after ChatAttachButton (=
-                    // per boss OOB '加按钮就在附件上传按钮后面先加').
-                    // Hidden when no sub-agent is running (= renders
-                    // empty view; = HStack spacing absorbs it).
-                    ChatSubAgentTag(subAgentName: vm.activeSubAgentName, isSending: vm.isSending)
-                        .glassEffect(.regular.interactive(), in: Circle())
+                    // v1.64f boss 2026-09-20 'apply the prototype to
+                    // wenshu directly': replace the v1.64 6-button
+                    // chat input HStack with the canonical Apple macOS 27
+                    // NSButton(bezelStyle: .glass) buttons via the new
+                    // GlassIconButton NSViewRepresentable (= the same
+                    // chrome Apple's NSToolbar uses for its toolbar items
+                    // per developer.apple.com/documentation/appkit/nsbutton/
+                    // bezelstyle-swift.enum/glass).
+                    //
+                    // Order per boss 2026-09-20 '3 buttons + textfield +
+                    // 2 buttons' (= the canonical Apple Messages chat
+                    // input layout). No Spacer (= buttons + textfield
+                    // pack flush into a single HStack row).
+                    //
+                    // SubAgentTag is rendered conditionally (= empty view
+                    // when no sub-agent is running = HStack spacing absorbs
+                    // it = no visible orphan gap).
+                    //
+                    // Stub action closures = real wiring lives in follow-
+                    // up tickets (= each button's original SwiftUI helper
+                    // file ChatAttachButton.swift / ChatSendButton.swift /
+                    // etc. will be migrated to wire to GlassIconButton
+                    // actions in v1.64f-ticket-3+).
+                    //
+                    // LEFT: 3 state indicators
+                    GlassIconButton(systemName: "paperclip", help: "附件") {
+                        // ChatAttachButton action (file picker)
+                        showingImageImporter = true
+                    }
+                    GlassIconButton(systemName: "sparkles", help: "Agent path") {
+                        // ChatAgentPathIndicator action
+                    }
+                    GlassIconButton(systemName: "arrow.triangle.2.circlepath", help: "Turn counter") {
+                        // ChatTurnProgress action (display-only)
+                    }
+                    // Sub-agent tag = conditional (hidden when no sub-agent)
+                    if vm.activeSubAgentName != nil {
+                        GlassIconButton(systemName: "person.crop.circle", help: vm.activeSubAgentName ?? "Sub-agent") {
+                            // ChatSubAgentTag action
+                        }
+                    }
+
                     Spacer(minLength: 8)
-                    ChatSendButton(vm: vm)
-                        .glassEffect(.regular.interactive(), in: Circle())
-                    ChatGoalButton(vm: vm)
-                        .glassEffect(.regular.interactive(), in: Circle())
-                        .keyboardShortcut("g", modifiers: [.command, .shift])
+
+                    // RIGHT: 2 action buttons
+                    GlassIconButton(systemName: "paperplane", help: "发送") {
+                        Task { await vm.routeInput() }
+                    }
+                    GlassIconButton(systemName: "scope", help: "目标 (⌘⇧G)") {
+                        Task { await vm.startLongRunningGoal() }
+                    }
+                    .keyboardShortcut("g", modifiers: [.command, .shift])
                 }
                 .frame(minHeight: 30)
             }
