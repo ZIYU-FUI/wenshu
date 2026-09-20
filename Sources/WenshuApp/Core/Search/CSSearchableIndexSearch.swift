@@ -272,27 +272,52 @@ public actor CSSearchableIndexSearch {
 public enum TokenOverlapRanking {
     /// Tokenize text (= lowercase + split on non-alphanumeric + CJK char-by-char).
     /// Apple HIG: `NLTokenizer` would be richer; = keep Foundation-only to avoid dep.
+    ///
+    /// CJK strategy: U+4E00..U+9FFF + extension ranges emit one token per character
+    /// (= CJK has no spaces between words). ASCII words are kept as letter-runs.
     public static func tokenize(_ text: String) -> [String] {
         var tokens: [String] = []
         var current = ""
-        let letters = CharacterSet.letters
         let digits = CharacterSet.decimalDigits
         for scalar in text.lowercased().unicodeScalars {
-            if letters.contains(scalar) || digits.contains(scalar) {
+            // CJK first (= per-char tokens); then ASCII letter-run.
+            if isCJKScalar(scalar) {
+                // Flush any pending ASCII run before emitting CJK token.
+                if !current.isEmpty {
+                    tokens.append(current)
+                    current = ""
+                }
+                tokens.append(String(scalar))
+            } else if isASCIILetterOrDigit(scalar, digits: digits) {
                 current.unicodeScalars.append(scalar)
             } else {
                 if !current.isEmpty {
                     tokens.append(current)
                     current = ""
                 }
-                // CJK single-char tokens (= each character is a token).
-                if scalar.value >= 0x4E00 && scalar.value <= 0x9FFF {
-                    tokens.append(String(scalar))
-                }
             }
         }
         if !current.isEmpty { tokens.append(current) }
         return tokens
+    }
+
+    /// ASCII letter or digit check (= exclude CJK which is also "letter" per Unicode).
+    private static func isASCIILetterOrDigit(_ scalar: Unicode.Scalar, digits: CharacterSet) -> Bool {
+        guard scalar.value < 0x80 else { return false }
+        // ASCII letter range = U+0041..U+005A (upper) + U+0061..U+007A (lower).
+        let v = scalar.value
+        if (v >= 0x41 && v <= 0x5A) || (v >= 0x61 && v <= 0x7A) { return true }
+        return digits.contains(scalar)
+    }
+
+    /// CJK Unified Ideographs block (= U+4E00..U+9FFF) + extension A (= U+3400..U+4DBF).
+    /// Apple HIG: NLTokenizer.hebrew / .japanese use different per-language ranges;
+    /// = wenshu's primary authoring language is zh-Hans per AGENTS.md baseline.
+    private static func isCJKScalar(_ scalar: Unicode.Scalar) -> Bool {
+        let v = scalar.value
+        return (v >= 0x4E00 && v <= 0x9FFF) ||
+               (v >= 0x3400 && v <= 0x4DBF) ||
+               (v >= 0xF900 && v <= 0xFAFF)   // CJK Compatibility Ideographs
     }
 
     /// Score doc against query tokens (= Jaccard-style overlap).

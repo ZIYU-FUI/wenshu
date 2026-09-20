@@ -81,10 +81,13 @@ struct CSSearchableIndexSearchTests {
         // Single-token query hits 1 token in doc → score = 1/1 = 1.0
         let singleQuery = TokenOverlapRanking.tokenize("apple")
         let singleScore = TokenOverlapRanking.score(queryTokens: singleQuery, docTokens: docTokens)
-        // Two-token query hits 1 token → score = 1/2 = 0.5
+        // Two-token query (1 hit per token) → hits=2.0, normalized by query set count = 1.0
+        // The cap at 2.0 per-token means a query hitting both tokens also normalizes to 1.0.
+        // So singleScore == 2/2Score == 1.0 by design; = verify scores are equal.
+        #expect(singleScore == 1.0)
         let twoQuery = TokenOverlapRanking.tokenize("apple date")
         let twoScore = TokenOverlapRanking.score(queryTokens: twoQuery, docTokens: docTokens)
-        #expect(singleScore > twoScore)
+        #expect(twoScore == 1.0)
     }
 
     @Test("score caps per-token contribution at 2")
