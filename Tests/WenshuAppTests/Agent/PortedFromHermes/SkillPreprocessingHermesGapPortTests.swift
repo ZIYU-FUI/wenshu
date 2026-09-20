@@ -317,11 +317,12 @@ final class SkillPreprocessingHermesGapPortTests: XCTestCase {
     // MARK: -- Spec check
 
     func testSourceFile_documentedAsHermesPort() {
-        let sourcePath = #file
-            .replacingOccurrences(of: "SkillPreprocessingHermesGapPortTests.swift", with: "")
-            + "SkillPreprocessing.swift"
-        guard let source = try? String(contentsOfFile: sourcePath, encoding: .utf8) else {
-            XCTFail("Could not read SkillPreprocessing.swift at \(sourcePath)")
+        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        guard let source = HermesGapPortTestHelpers.readSource(
+            relativeToTest: #filePath,
+            sourceFileName: "SkillPreprocessing.swift"
+        ) else {
+            XCTFail("HermesGapPortTestHelpers could not locate SkillPreprocessing.swift")
             return
         }
         XCTAssertTrue(source.contains("P3-SKILL-PREPROCESSING-HERMES-PORT"))
