@@ -24,7 +24,7 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 - Version format = three digits (Hermes style): middle digit = phase, third digit = hotfix.
 - 3 docs = this file + `README.md` + `CLAUDE.md`. `CONTEXT.md` = domain glossary (see `docs/agents/domain.md`).
 - No hermes monorepo trace (no longer fork).
-- No Tauri / Rust / Vue 3 trace. SQLite allowed inside `.ws` bundle only (= `chat.sqlite` and per-book `indexes.sqlite` via `groue/GRDB.swift` for FTS5; per §11.1 ratification 2026-08-28).
+- No Tauri / Rust / Vue 3 trace. SQLite REMOVED from wenshu stack (= boss 2026-09-20 OOB 'SQLite 全部弃用，只用 SwiftData' + A1 'Apple-default-first = Core Spotlight'; = see §11.7 v1.55 sqlite3-zero migration arc); legacy `.ws` bundle sqlite3 files (= `chat.sqlite`, `indexes.sqlite`, `search.db`, `kanban.sqlite`) are imported once at first launch by `WSMigrationPerStore.swift` then never touched.
 - No sparse-clone assumption.
 - No novel-platform / novel-craft / Hermes-Slate-Desk legacy V0.5.x protocol.
 - Do not decide LLM key config for 老板.
@@ -51,7 +51,7 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
     - `sindresorhus/KeyboardShortcuts` 2.2.0 — global shortcut binding (MIT, 1.1k★, P1; bumped 1.10.0 → 2.2.0 in v0.28 batch 2 issue 09 per boss拍 'v1 → v2 breaking-change risk 由 ticket 评估' = evaluated to zero source impact = wenshu has zero `import KeyboardShortcuts`; all 26 .keyboardShortcut calls use Apple SwiftUI native modifier; lib reserved for v0.28+ Settings pane Keyboard tab where users rebind global shortcuts via System Settings)
     - `kean/Nuke` + `kean/NukeUI` — async image pipeline + SwiftUI `LazyImage` (MIT, 8.6k★ + 1.3k★, P0; NukeUI is a product of the main Nuke repo since Nuke 11.0; the standalone `kean/NukeUI` repo is frozen at Nuke 10.5 and rejected as the SPM pin source)
     - `weichsel/ZIPFoundation` 0.9.20 — pure-Swift ZIP read/write (MIT, 2.7k★, unblocked 2026-08-28 from prior defer)
-    - `groue/GRDB.swift` 7.11.1 — SQLite toolkit + FTS5 full-text (MIT, 8.6k★, P0; replaces prior "No SQLite" rule scope = inside `.ws` bundle only)
+    - ~~`groue/GRDB.swift` 7.11.1 — SQLite toolkit + FTS5 full-text (MIT, 8.6k★, P0; replaces prior "No SQLite" rule scope = inside `.ws` bundle only)~~ — REMOVED 2026-09-20 per boss OOB 'SQLite 全部弃用，只用 SwiftData' + A1 'Core Spotlight 替代 FTS5'; canonical search layer is now `Core Spotlight` (= `CSSearchableIndex` + `CSSearchQuery`; = built into macOS 27 = zero SPM dependency); see §11.7 v1.55 sqlite3-zero migration arc.
     - `swiftlang/swift-markdown` 0.4.0 — CommonMark/GFM parser (Apache-2.0, 3.4k★, P1; SPM resolves to latest 0.8.0 via the permissive `from:` lower bound)
     - `mattt/EventSource` 1.5.1 — spec-compliant SSE client (`AsyncSequence` + `Last-Event-ID` reconnect, MIT, 116★, P1)
     - `gonzalezreal/Textual` 0.5.0 — SwiftUI rich-text engine with Markdown support (MIT, 842★, P2; future editor preview)
@@ -187,7 +187,7 @@ Current state (= deviation from §11.4 spec):
   bookmarks / memory_entries (= risk of divergence with the 9 separate stores)
 - CONTEXT.md L36 says "NOT used = ... SQLite" but wenshu IS 10 sqlite3 files
 - CLAUDE.md = updated to "use SwiftData" (= migration complete; = commit 88471839a)
-- AGENTS.md §11.1 keeps GRDB.swift approved (= for FTS5 only)
+- AGENTS.md §11.1 GRDB.swift REMOVED 2026-09-20 per boss OOB (= Core Spotlight replaces FTS5; = see §11.7)
 
 Migration plan (= 6 phases, ~42 commits, 3-4 weeks):
 
@@ -581,4 +581,61 @@ works; = only batch CI runs are affected.
 | 5 | AGENTS.md §11.6 closure (= this section) | Documents the arc completion |
 | 6 | Git state | Clean working tree, 1 branch (main), 0 stale worktrees |
 | 7 | 135 commits on main | All merged via `--no-ff` (= preserves ticket boundaries) |
+
+# §11.7 v1.55 sqlite3-zero migration arc (= boss 2026-09-20 OOB)
+
+Per boss 2026-09-20 OOB 'SQLite 全部弃用，只用 SwiftData' + A1 'Apple-default-first':
+SQLite is REMOVED from wenshu runtime stack (= `GRDB.swift` SPM pin REMOVED per
+§11.1; = raw `import SQLite3` survives ONLY in `WSMigrationPerStore.swift` for
+one-shot legacy import).
+
+Search layer = `Core Spotlight` (= `CSSearchableIndex` + `CSSearchQuery`; = built
+into macOS 27; = zero SPM dependency). The 207 LOC `FullTextSearch.swift` actor
+(SQLite FTS5) is REPLACED by `CSSearchableIndexSearch.swift` (= `CSSearchableIndex`
+primary path + SwiftData token-overlap ranking fallback when Spotlight is
+disabled by user).
+
+Kanban helper = `HermesKanbanDB.swift` (994 LOC raw sqlite3) is REPLACED by
+`HermesKanbanHelper.swift` (= pure SwiftData @Model query helpers; = no actor;
+= ModelContext.fetch with #Predicate).
+
+### Ticket roadmap (= 5 tickets, all on `wt/v1.55-sqlite3-zero-2026-09-20`)
+
+| # | Ticket | Source change | Test change | Status |
+|---|---|---|---|---|
+| 1 | T1 — AGENTS.md §11.1 收窄 | `AGENTS.md` L27/L54/L190 + §11.7 new | doc-only | ⏸ starting |
+| 2 | T2a — `CSSearchableIndexSearch.swift` 创建 (= `CSSearchableIndex` primary) | NEW file `Core/Search/CSSearchableIndexSearch.swift` | NEW test `CSSearchableIndexSearchTests.swift` | ⏸ starting |
+| 3 | T2b — `FullTextSearch.swift` → `LegacyFTS5Fallback.swift` (= used only when Spotlight disabled) | rename + add fallback trigger | update `FullTextSearchTests.swift` | ⏸ starting |
+| 4 | T3a — `HermesKanbanDB.swift` → `HermesKanbanHelper.swift` (= SwiftData @Model helpers) | rewrite 994 LOC → ~200 LOC SwiftData | NEW test `HermesKanbanHelperTests.swift` | ⏸ starting |
+| 5 | T3b — `HermesKanbanDBTests.swift` + `HermesKanbanDB.swift` delete | delete file | delete test | ⏸ starting |
+| 6 | T4 — `Package.swift` 删 GRDB | `Package.swift` + remove tests | n/a | ⏸ starting |
+
+### Acceptance (= per Q112 + Q99 dual-axis)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 = 1 source + 1 test per ticket | YES (T1 doc-only exempt) |
+| 2 | `swift build` clean | 0 errors / 0 warnings introduced |
+| 3 | `swift test --filter` 100% pass on migrated files | YES |
+| 4 | Q99 spec axis (= hermes 1:1 fidelity) | N/A (= SQLite removal is wenshu-side design divergence per §11 baseline 'no external AI platform calls' + boss 2026-09-20 OOB) |
+| 5 | Q99 standards axis (= Apple default + pre-existing preservation) | YES (= Core Spotlight = Apple native; = no behavior loss for users) |
+| 6 | `import SQLite3` count in production code | 1 (= `WSMigrationPerStore.swift` only, = one-shot legacy import) |
+| 7 | `import GRDB` count in production code | 0 |
+| 8 | Migration data flow | preserved (= legacy `.ws` sqlite3 files imported once at first launch by `WSMigrationPerStore.swift`, then never touched) |
+
+### What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | `SubAgentIdentity.swift` calls `FullTextSearch` | migrated to `CSSearchableIndexSearch` (= same public API: `index(docId:title:body:)`, `remove(docId:)`, `search(query:limit:)`) |
+| 2 | `KanbanStoreTool` reads kanban via `HermesKanbanDB` | migrated to `HermesKanbanHelper` (= SwiftData fetch via #Predicate) |
+| 3 | `WSMigrationPerStore.swift` reads raw sqlite3 files at first launch | unchanged (= dead code after first launch per user) |
+
+### What is NOT done (= future tickets if boss approves)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | SwiftData @Model for `WSChatMessage` / `WSSummary` already exists per §11.4 phase 1-5 | DONE in phase 1-5 (= 23 @Models) |
+| 2 | `WenshuWorkspaceMigrator` cleanup | out of v1.55 scope (= separate ticket per §11.4.2 bonus) |
+| 3 | `HermesKanbanDB.swift` SQLite helper reuse for `WSMigrationPerStore.migrateChatSessionStore` (= reads `chat.sqlite` directly) | N/A (= already uses raw `sqlite3_open` via SQLiteConstants.swift; = out of v1.55 scope) |
 
