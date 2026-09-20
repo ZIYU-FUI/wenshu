@@ -62,7 +62,8 @@ struct ToolDispatchHelpersHermesGapPortTests {
     @Test func isMultimodalToolResult_rejects_non_dict() {
         #expect(!ToolDispatchInputParser.isMultimodalToolResult("just a string"))
         #expect(!ToolDispatchInputParser.isMultimodalToolResult(42))
-        #expect(!ToolDispatchInputParser.isMultimodalToolResult(nil))
+        // API is `Any` (not `Any?`); nil must be wrapped via Optional.
+        #expect(!ToolDispatchInputParser.isMultimodalToolResult(Optional<Any>.none as Any))
     }
 
     /// H4.1 contract: multimodalTextSummary returns text_summary

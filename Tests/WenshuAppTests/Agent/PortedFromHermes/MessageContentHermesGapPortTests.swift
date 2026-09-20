@@ -163,7 +163,7 @@ final class MessageContentHermesGapPortTests: XCTestCase {
         let blocks: [LLMBlock] = [
             .text(""),
             .text("hello"),
-            .thinking(text: "secret"),
+            .thinking(text: "secret", signature: nil),
         ]
         let result = MessageContent.canonicalize(blocks)
         XCTAssertEqual(result.count, 2)
