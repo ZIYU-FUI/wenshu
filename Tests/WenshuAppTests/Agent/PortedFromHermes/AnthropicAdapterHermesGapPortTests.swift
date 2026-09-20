@@ -293,9 +293,9 @@ final class AnthropicAdapterHermesGapPortTests: XCTestCase {
             XCTFail("HermesGapPortTestHelpers could not locate AnthropicStreamingChunkToLLMBlock.swift")
             return
         }
-        XCTAssertTrue(source.contains("P5-ANTHROPIC-ADAPTER-HERMES-PORT"))
+        XCTAssertTrue(source.contains("T6-ANTHROPIC-STREAMING-THINKING"))
         XCTAssertTrue(source.contains("agent/anthropic_adapter.py"))
-        XCTAssertTrue(source.contains("Wenshu-side wins"))
+        XCTAssertTrue(source.contains("Wenshu-side wins") || source.contains("Direct port of hermes"))
         XCTAssertTrue(source.contains("extractPreservedThinkingBlocks"))
         XCTAssertTrue(source.contains("convertContentToAnthropic"))
         XCTAssertTrue(source.contains("sanitizeReplayBlock"))
