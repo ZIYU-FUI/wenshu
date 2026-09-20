@@ -285,11 +285,12 @@ final class AnthropicAdapterHermesGapPortTests: XCTestCase {
     // MARK: -- Spec check
 
     func testSourceFile_documentedAsHermesPort() {
-        let sourcePath = #file
-            .replacingOccurrences(of: "AnthropicAdapterHermesGapPortTests.swift", with: "")
-            + "AnthropicStreamingChunkToLLMBlock.swift"
-        guard let source = try? String(contentsOfFile: sourcePath, encoding: .utf8) else {
-            XCTFail("Could not read AnthropicStreamingChunkToLLMBlock.swift at \(sourcePath)")
+        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        guard let source = HermesGapPortTestHelpers.readSource(
+            relativeToTest: #filePath,
+            sourceFileName: "AnthropicStreamingChunkToLLMBlock.swift"
+        ) else {
+            XCTFail("HermesGapPortTestHelpers could not locate AnthropicStreamingChunkToLLMBlock.swift")
             return
         }
         XCTAssertTrue(source.contains("P5-ANTHROPIC-ADAPTER-HERMES-PORT"))
