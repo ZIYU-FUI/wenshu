@@ -56,7 +56,9 @@ struct SQLiteConstantsTests {
     func testBindTextCompatible() throws {
         // Open an in-memory DB, create a table with a TEXT column, bind a
         // string using SQLITE_TRANSIENT as the destructor (= the call pattern
-        // used by HermesKanbanDB + FullTextSearch, the 2 surviving users).
+        // used by HermesKanbanDB + FullTextSearch before v1.55; = both removed
+        // 2026-09-20; = WSMigrationPerStore is the only remaining raw sqlite3
+        // user (= one-shot legacy import)).
         // If SQLITE_TRANSIENT's type drifted to Int (= 0.72 regression),
         // this would fail to compile (= sqlite3_bind_text wants
         // sqlite3_destructor_type).

@@ -168,10 +168,11 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // home for all live data (= phase 4 migration runner imports legacy data
         // on first launch via WSMigrationRunner.migrateIfNeeded).
         // Remaining legacy sqlite3 actors (= separate from the per-store
-        // "Stores" pattern): HermesKanbanDB + FullTextSearch (= helper indices,
-        // not chat/kanban/toDo/memory persistence) and WSMigrationPerStore's
-        // one-shot raw-sqlite3 importers (= read the LEGACY file paths that
-        // users may have on disk from before the migration; = not a per-launch
+        // "Stores" pattern): WSMigrationPerStore's one-shot raw-sqlite3
+        // importers (= read the LEGACY file paths that users may have on
+        // disk from before the migration; = not a per-launch save path).
+        // HermesKanbanDB + FullTextSearch were REMOVED in v1.55
+        // sqlite3-zero (= boss 2026-09-20 OOB).
         // save path).
         let warehouseURL = warehousePath.map { URL(fileURLWithPath: $0) }
         do {

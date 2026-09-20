@@ -39,11 +39,11 @@
 //  roadmap spec (= see AGENTS.md §11.4.2).
 //
 //  Remaining legacy sqlite3 actors (= separate from the per-store
-//  "Stores" pattern): HermesKanbanDB + FullTextSearch (= helper
-//  indices, not chat/kanban/toDo/memory persistence) and
-//  WSMigrationPerStore's one-shot raw-sqlite3 importers (= read
-//  the LEGACY file paths that users may have on disk from before
-//  the migration; = not a per-launch save path).
+//  "Stores" pattern): WSMigrationPerStore's one-shot raw-sqlite3
+//  importers (= read the LEGACY file paths that users may have on disk
+//  from before the migration; = not a per-launch save path).
+//  HermesKanbanDB + FullTextSearch were REMOVED in v1.55 sqlite3-zero
+//  (= boss 2026-09-20 OOB).
 //
 //  See .scratch/2026-09-13-swiftdata-migration-spec.md for full plan
 //  (= NOT /tmp/...; = the canonical path is .scratch/).
