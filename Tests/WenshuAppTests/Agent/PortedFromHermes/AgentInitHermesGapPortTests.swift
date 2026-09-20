@@ -156,11 +156,15 @@ final class AgentInitHermesGapPortTests: XCTestCase {
     // MARK: -- Spec check
 
     func testSourceFile_documentedAsHermesPort() {
-        let sourcePath = #file
-            .replacingOccurrences(of: "AgentInitHermesGapPortTests.swift", with: "")
-            + "AgentInit.swift"
-        guard let source = try? String(contentsOfFile: sourcePath, encoding: .utf8) else {
-            XCTFail("Could not read AgentInit.swift at \(sourcePath)")
+        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe,
+        // the v0.35-era #file substitution breaks under 'swift test' (= build
+        // dir flattens source tree). Use the shared helper to walk up to the
+        // wenshu root and resolve the canonical Agent/ subpath.
+        guard let source = HermesGapPortTestHelpers.readSource(
+            relativeToTest: #filePath,
+            sourceFileName: "AgentInit.swift"
+        ) else {
+            XCTFail("HermesGapPortTestHelpers could not locate AgentInit.swift")
             return
         }
         XCTAssertTrue(source.contains("P9-AGENT-INIT-HERMES-PORT"))
