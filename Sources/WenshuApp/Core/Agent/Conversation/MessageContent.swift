@@ -178,10 +178,19 @@ public enum MessageContent {
                 .filter { !$0.isEmpty }
             return chunks.joined(separator: sep)
         }
+        // Single-part content (= dict or other). Detect image/audio
+        // dicts early (= per nonTextTypes) and return empty; = else
+        // let textFromPart walk the recognized text keys.
+        if let dict = content as? [String: Any],
+           let partTypeRaw = (dict["type"] as? String ?? "")
+               .trimmingCharacters(in: .whitespaces)
+               .lowercased() as String?,
+           ["image", "image_url", "input_image", "audio", "input_audio"].contains(partTypeRaw) {
+            return ""
+        }
         let text = textFromPart(content)
         if !text.isEmpty { return text }
-        // str() fallback for unknown content types
-        // (= hermes L48-L50).
+        // str() fallback for unknown content types (= hermes L48-L50).
         return String(describing: content)
     }
 }
