@@ -35,19 +35,27 @@ public struct StoredChatMessage: Equatable, Sendable {
     /// v0.21 ticket 34: real LLM API usage.total_tokens
     /// (= nil if not available; = legacy actor preserved this field).
     public let tokens: Int?
+    // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示': persisted
+    // reasoning content for round-trip restore. nil = no thinking
+    // (= user message, or pre-v1.65-cleanup assistant message); = non-nil
+    // for assistant messages that streamed .reasoning parts during the
+    // turn. Mirrors WSChatMessage.thinking on the SwiftData side.
+    public let thinking: String?
 
     public init(
         id: String,
         source: String,
         content: String,
         timestamp: Date,
-        tokens: Int? = nil
+        tokens: Int? = nil,
+        thinking: String? = nil
     ) {
         self.id = id
         self.source = source
         self.content = content
         self.timestamp = timestamp
         self.tokens = tokens
+        self.thinking = thinking
     }
 }
 

@@ -929,7 +929,7 @@ public final class ChatViewModel {
             if !messages.contains(where: { $0.id == placeholderId }) {
                 messages.append(ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply))
             }
-            let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date(), tokens: replyTokens)
+            let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date(), tokens: replyTokens, thinking: replyThinking?.isEmpty == false ? replyThinking : nil)
             try? WSChatRepository.shared.append(agentMsgStored, sessionId: sessionId)
             recomputeContextUsed()
 
@@ -1491,7 +1491,15 @@ public struct ChatView: View {
                                 source: msgSource,
                                 content: stored.content,
                                 timestamp: stored.timestamp,
-                                tokens: stored.tokens
+                                tokens: stored.tokens,
+                                // v1.65-cleanup E2 boss 2026-09-21 OOB
+                                // 'AI 思考过程不显示': restore the persisted
+                                // reasoning content. ChatMessage init wraps
+                                // non-empty `thinking` into a single .reasoning
+                                // part (= matches the streaming shape; =
+                                // ChatReasoningPartView renders it visible by
+                                // default per E2).
+                                thinking: stored.thinking
                             )
                         }
                         vm.replaceMessages(mapped)
