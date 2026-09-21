@@ -1285,6 +1285,18 @@ public struct ChatView: View {
         // Boss 8/24 feedback: 'clicking other areas, the textfield still keeps focus'.
         VStack(spacing: 0) {
             // Message list (ScrollView + LazyVStack ground truth)
+            // v1.65 MC3 (= hermes list.tsx:1454 'mx-auto flex min-h-full
+            // w-full max-w-(--composer-width) min-w-0 flex-col px-6'):
+            // center the transcript content column on wide windows
+            // (= wenshu main editor canvas can span far beyond the
+            // chat zone; = the chat content sits in a capped column
+            // that matches the chat input width so the bubble + input
+            // column visually align per Hermes).
+            // maxWidth = 720 PT (= the canonical chat content width
+            // observed in Hermes desktop = roughly 75% of a 960 PT
+            // detail pane). Apple's HIG 'Readable Content' default
+            // is around 60-75 characters per line; 720 PT × ~10 PT
+            // / char ≈ 72 chars per line, in the right band.
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
@@ -1322,6 +1334,17 @@ public struct ChatView: View {
                         }
                     }
                     .padding(DesignTokens.chromePaddingVertical)
+                    // v1.65 MC3: cap the content column at 720 PT and
+                    // center on wide windows (= the chat input row
+                    // sits in the same capped column per the v1.57-
+                    // floating-chat-input layout; = visual alignment
+                    // between bubble + input). `mx-auto` here on the
+                    // LazyVStack (= SwiftUI `.frame(maxWidth: 720,
+                    // alignment: .center)`) centers the column when
+                    // the pane is wider than 720 PT (= the
+                    // translated `mx-auto flex max-w`).
+                    .frame(maxWidth: 720, alignment: .center)
+                    .frame(maxWidth: .infinity)
                     // v1.74 boss 2026-09-18 'is there another layer behind it? the
                     // text scrolls underneath but I can't see it — the
                     // floating panel should be semi-transparent so I can
