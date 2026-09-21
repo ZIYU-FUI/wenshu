@@ -1422,70 +1422,64 @@ public struct ChatView: View {
                         proxy.scrollTo(last.id, anchor: .bottom)
                     }
                 }
-            }
-            // v1.65 boss 'all 1:1 hermes真值' + 'Apple API 限制可接受':
-            // Hermes真值 = `StickyHumanMessageContainer` (`user-message
-            // .tsx:30-55`) pins the latest user bubble to the top of
-            // the scroll viewport via `position: sticky; top: 0`.
-            // Apple SwiftUI on macOS 27 does NOT expose a CSS
-            // `position: sticky` equivalent (= no .sticky() modifier
-            // exists). The closest 1:1 fallback (= boss 拍 'Apple
-            // API 限制可接受') is to render the latest user bubble
-            // as a fixed overlay at the top of the scroll viewport
-            // via `.safeAreaInset(edge: .top, spacing: 0)`.
-            //
-            // `spacing: 0` (= no gap between the overlay and the
-            // scroll viewport content below) lets the latest user
-            // bubble sit flush against the transcript (= the same
-            // visual relationship hermes achieves with sticky).
-            //
-            // Trade-off (= per boss 'Apple API 限制可接受'):
-            //   - Hermes真值: the latest user bubble IS in the
-            //     LazyVStack (= scrolls with the transcript, pins
-            //     at viewport top when reached).
-            //   - wenshu 1:1: the latest user bubble is rendered
-            //     TWICE — once at its LazyVStack timeline position
-            //     (= scrolls normally), once in the safeAreaInset
-            //     overlay (= fixed at the top). When a NEW user
-            //     message arrives, the overlay swaps to the new
-            //     latest; the in-LazyVStack version of the old
-            //     latest loses the special treatment (= becomes a
-            //     normal historical user bubble).
-            //
-            // z-index: the overlay sits above the transcript
-            // content (= Apple SwiftUI default z-order for safeArea
-            // insets) but below the titlebar (= the titlebar is a
-            // separate .overlay on the outer container). 80 PT
-            // vertical gap from the viewport top (= the v1.57
-            // floating chat input row reservation; = the overlay
-            // parks ABOVE the floating input rather than underneath
-            // it, matching the sticky behavior).
-            //
-            // Empty-state handling: when `latestUser` is nil
-            // (= transcript has no user messages yet, e.g. first
-            // run), the overlay renders an invisible
-            // `.frame(height: 0)` (= no visual overhead; = the
-            // safeAreaInset reservation is zero so the transcript
-            // content can scroll all the way to the top).
-            .safeAreaInset(edge: .top, spacing: 0) {
-                if let latest = vm.messages.last(where: { $0.source == .user }) {
-                    ChatMessageView(
-                        message: latest,
-                        isLatestUser: true,
-                        onApprovePlan: nil
-                    )
-                    .zIndex(40) // = Hermes真值 `z-40`
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                    .padding(.horizontal, 32) // = hermes真值 `2rem` (32 PT, NOT px-6 24 PT)
-                    //                              = the chat composer dock's
-                    //                                horizontal gutter;
-                    //                                = applied to the
-                    //                                safeAreaInset
-                    //                                overlay so the
-                    //                                latest-user sticky
-                    //                                bubble aligns with
-                    //                                the in-transcript
-                    //                                column below.
+                // v1.65 boss 'B = 试着补一下 sticky 真值': the
+                // `scrollTo(anchor: .bottom)` above is the DEFAULT
+                // scroll-to-bottom for new content (= assistant
+                // streaming reply). The sticky behavior for the
+                // LATEST USER message is a separate trigger: when a
+                // new user message arrives (= latestUserID changes),
+                // the scroll viewport pins the latest user row to
+                // the TOP edge (= CSS-like `position: sticky; top: 0`
+                // in effect).
+                //
+                // The two `onChange` paths live inside the
+                // ScrollViewReader scope (= proxy is captured there):
+                //   - `onChange(of: content)`: bottom-anchor scroll
+                //     when content changes (= assistant streams in;
+                //     = user stays at bottom).
+                //   - `onChange(of: latestUserID)`: TOP-anchor
+                //     scroll when the latest user ID changes (= a
+                //     new user message arrives; = the viewport
+                //     jumps to put the new latest user row at the
+                //     top).
+                //
+                // Trade-off (= documented per boss 'Apple API 限制
+                // 可接受'): the scroll-to-top on new-user-message
+                // is a DISCRETE event (= the user gets yanked to
+                // the top whenever a new message lands; = jarring
+                // if the user was reading history). Hermes真值
+                // `position: sticky` is continuous (= the row
+                // scrolls WITH the transcript; = the user can scroll
+                // up and back without being yanked). The Apple
+                // public API doesn't expose continuous
+                // sticky-with-scroll behavior without an
+                // NSScrollView bridge (= 1-2 week ticket; = future).
+                //
+                // `.safeAreaInset(edge: .top, spacing: 0)` from MC6
+                // is REMOVED in MC8 (= no double-render of the
+                // latest user bubble; = the in-LazyVStack row IS
+                // the latest user bubble; = zIndex 40 in
+                // ChatMessageView keeps it visible above scrolling
+                // assistant content; = 80 PT top padding in
+                // ChatMessageView reserves the
+                // v1.57-floating-chat-input zone).
+                //
+                // Single-argument `onChange(of:)` form (= takes
+                // only the new value; = macOS 14+ has the 2-arg
+                // form, but the 1-arg form is universal; = we don't
+                // need the old value; = SwiftUI dedupes identical
+                // new values).
+                .onChange(of: vm.messages.last(where: { $0.source == .user })?.id) { newLatestID in
+                    if let newLatestID {
+                        // anchor: .top pins the new latest user row
+                        // to the scroll viewport top edge. The 80 PT
+                        // top padding in ChatMessageView (= the
+                        // zIndex 40 row's padding) sits ABOVE the
+                        // row itself (= visually: the row lands
+                        // below the titlebar-safe zone, not flush
+                        // against the titlebar).
+                        proxy.scrollTo(newLatestID, anchor: .top)
+                    }
                 }
             }
             // async load history via .task modifier (non-blocking)
