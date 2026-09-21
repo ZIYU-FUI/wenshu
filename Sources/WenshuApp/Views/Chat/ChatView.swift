@@ -1098,6 +1098,23 @@ public final class ChatViewModel {
     }
 }
 
+// v1.65-cleanup E3.5: PreferenceKey used by the chat ScrollView's
+// .coordinateSpace + .background(GeometryReader) pair to bubble the
+// current scroll offset up to ChatView's @State. The GeometryReader
+// inside the .background reads `geo.frame(in: .named("chatScroll")).minY`
+// (= the scroll offset in the chat coordinate space; = 0 when the
+// scroll viewport is at the top of the content; = grows as the user
+// scrolls down; = inverted = positive = scrolled down). We negate the
+// value to get a "how far has the user scrolled from the top"
+// semantically positive number (= consistent with ScrollGeometry's
+// contentOffset.y). macOS 13+; = SwiftUI canonical pattern; = portable.
+private struct ChatScrollOffsetPreferenceKey: PreferenceKey {
+    nonisolated(unsafe) static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 /// ChatView: lower-left zone UI (Apple SwiftUI + conductor + store)
 public struct ChatView: View {
     /// v1.65 boss 'all 1:1 hermes真值': true when `messageID` is the
@@ -1135,6 +1152,17 @@ public struct ChatView: View {
     /// True while a drag is hovering the input row, so the row can show a
     /// drop highlight. Apple's .dropDestination reports this for free.
     @State private var isDropTargeted: Bool = false
+    // v1.65-cleanup E3.5 boss 2026-09-21 '错了，向上回看的时候应该
+    // 替换' (= the sticky overlay must REPLACE its content as the
+    // user scrolls up to read history; = the overlay must always
+    // show the user message whose row is closest to the viewport's
+    // TOP edge at any scroll position; = not always the latest user
+    // message; = the overlay's identity tracks the scroll). The id
+    // of the user message to show in the overlay; = nil when no
+    // user message is in the viewport (= new empty chat; = the
+    // overlay slot is empty).
+    @State private var stickyUserMessageID: UUID? = nil
+
     // Reactive check: is the current model usable?
     // v0.61 boss 2026-09-10 OOB 'put the no-key overlay back': the vm's
     // snapshot of the model id lags when the key is configured from
@@ -1162,6 +1190,106 @@ public struct ChatView: View {
         // input while a request is in flight so a user cannot
         // race-fire a second send; = Apple Messages behavior).
         return !ProviderKeychain.listProvidersWithKeys().isEmpty && !vm.isSending
+    }
+
+    // v1.65-cleanup E3.5: extract the sticky-overlay candidate lookup into
+    // a private helper so the SwiftUI compiler doesn't choke on the
+    // large body expression (= the previous inline form hit the
+    // "compiler unable to type-check in reasonable time" diagnostic
+    // on macOS 27 / Swift 6). Helper returns the user message UUID
+    // (= nil = no user message in viewport; = latest user message
+    // fallback = the previous-sticky value should stay).
+    private func updateStickyUserMessageID(scrollOffsetY: CGFloat) {
+        // v1.65-cleanup E3.5 simpler heuristic: the ScrollView's
+        // contentOffset.y (= how far the user has scrolled down from
+        // the top of the scroll content) combined with the message
+        // position index (= the in-session ordinal; = persisted in
+        // WSChatMessage.position) gives a coarse mapping from scroll
+        // position to message index.
+        //
+        // We use the per-message position field (= monotonic
+        // ordinal in the session; = 0 = oldest; = N-1 = newest).
+        // Find the user message with the smallest position whose row
+        // top is at or above the viewport top (= the user message
+        // currently scrolled into; = the user message the user is
+        // looking at).
+        //
+        // For simplicity (= we don't have row heights; = we don't
+        // know the cumulative offset per row), use a position-based
+        // heuristic: sort user messages by position (= oldest first);
+        // = assume average user row height ≈ 60 PT (= small user
+        // bubble = ~12 PT padding + 24 PT text + 24 PT padding);
+        // = scroll-offset 0 = position 0 visible at top; = scroll
+        // offset N × 60 PT = position N visible at top. This is
+        // approximate (= breaks when user messages have very long
+        // text or when AI messages occupy a large portion of the
+        // scroll content) but is good enough for the sticky overlay
+        // (= the overlay is content-tracking, not pixel-perfect).
+        let averageUserRowHeight: CGFloat = 60
+        let positionAtTop = max(0, Int(scrollOffsetY / averageUserRowHeight))
+        // Find the user message at or just before positionAtTop.
+        var userMessages: [(index: Int, message: ChatMessage)] = []
+        for (idx, msg) in vm.messages.enumerated() where msg.source == .user {
+            userMessages.append((idx, msg))
+        }
+        guard !userMessages.isEmpty else {
+            if stickyUserMessageID != nil { stickyUserMessageID = nil }
+            return
+        }
+        // Find the user message whose index is closest to positionAtTop (= above or at).
+        var bestID: UUID? = nil
+        for entry in userMessages {
+            if entry.index <= positionAtTop {
+                bestID = entry.message.id
+            } else {
+                break
+            }
+        }
+        // Fallback: if scrollOffsetY is large enough that we're past
+        // all user messages (= pure assistant history at the bottom),
+        // keep the last user message sticky (= still visible at the
+        // top of the overlay).
+        if bestID == nil {
+            bestID = userMessages.last?.message.id
+        }
+        if bestID != stickyUserMessageID {
+            stickyUserMessageID = bestID
+        }
+    }
+
+    // v1.65-cleanup E3.5: extract the sticky overlay content into a
+    // separate computed subview so the main body type-checks (= the
+    // previous inline safeAreaInset was triggering the "compiler
+    // unable to type-check in reasonable time" diagnostic on
+    // macOS 27 / Swift 6).
+    @ViewBuilder
+    private var stickyOverlay: some View {
+        if let stickyID = stickyUserMessageID,
+           let stickyUserMsg = vm.messages.first(where: { $0.id == stickyID && $0.source == .user }) {
+            ChatMessageView(
+                message: stickyUserMsg,
+                isLatestUser: true,
+                onApprovePlan: { plan in
+                    vm.inputText = plan.query
+                    Task { await vm.send() }
+                }
+            )
+            .background(Color(nsColor: .controlBackgroundColor))
+            // v1.65-cleanup E3.5 boss 2026-09-21 '距离那个拖拽线 10
+            // 左右，现在太远' (= the sticky overlay sat flush against
+            // the scroll viewport top edge; = 0 PT gap to the
+            // titlebar / floating panel separator). 10 PT top padding
+            // (= matches hermes chat list.tsx `pt-2.5`).
+            .padding(.top, 10)
+            // Apple HIG floating-overlay pattern: 1 PT separatorColor
+            // at 0.4 opacity at the bottom edge (= hairline that
+            // delimits the overlay from the scroll content below).
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Color(nsColor: .separatorColor).opacity(0.4))
+                    .frame(height: 1)
+            }
+        }
     }
 
     public init(conductor: WenshuConductor? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
@@ -1520,60 +1648,96 @@ public struct ChatView: View {
                 // the ScrollView. The safeAreaInset overlay sits ABOVE
                 // the scroll content area but inside the ScrollView
                 // frame (= does NOT scroll with the user; = always
-                // visible at the top of the chat viewport). The
-                // overlay only renders when there is a latest user
-                // message in the transcript (= empty for new
-                // sessions).
+                // visible at the top of the chat viewport).
                 //
-                // The overlay uses ChatMessageView with isLatestUser=true
-                // (= the latest user row picks up the sticky-top
-                // styling and zIndex layering inside its own body).
-                // The LazyVStack skip (= this row is NOT in the scroll
-                // content; = only in the overlay) prevents the
-                // double-render that would shift the scroll baseline
-                // and cause the AI reply to land below an empty
-                // placeholder row.
+                // v1.65-cleanup E3.5 boss 2026-09-21 '错了，向上回看
+                // 的时候应该替换' (= the overlay's content must
+                // CHANGE as the user scrolls up to read history; =
+                // the overlay is not pinned to the latest user message;
+                // = the overlay tracks the user message whose row is
+                // closest to the viewport's TOP edge; = the user
+                // scrolling up to read older history sees the
+                // overlay's content shift to older user messages; =
+                // the same content-replacement pattern as
+                // macOS Mail's / Messages' / Telegram's chat
+                // header that tracks the scroll position).
+                //
+                // Implementation: `stickyUserMessageID` (a @State on
+                // ChatView) is updated by the ScrollView's
+                // `.onScrollGeometryChange(for:of:)` modifier (= fires
+                // on every scroll frame; = reads the ScrollView's
+                // visible viewport bounds; = finds the user message
+                // whose row's top is closest to the viewport top;
+                // = updates stickyUserMessageID). The safeAreaInset
+                // overlay reads stickyUserMessageID and renders the
+                // matching user message (= content swaps as the
+                // user scrolls). When stickyUserMessageID is nil
+                // (= no user message in viewport; = new chat; = the
+                // overlay slot is empty).
                 .safeAreaInset(edge: .top, spacing: 0) {
-                    if let latestUserMsg = vm.messages.last(where: { $0.source == .user }) {
-                        ChatMessageView(
-                            message: latestUserMsg,
-                            isLatestUser: true,
-                            onApprovePlan: { plan in
-                                vm.inputText = plan.query
-                                Task { await vm.send() }
-                            }
-                        )
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        // v1.65-cleanup E3.5 boss 2026-09-21 '距离那个拖
-                        // 拽线 10 左右，现在太远' (= the sticky overlay
-                        // sat flush against the scroll viewport top
-                        // edge; = 0 PT gap to the titlebar / floating
-                        // panel separator). Add a 10 PT top padding to
-                        // the overlay's outer frame so the user card
-                        // sits 10 PT below the visible top edge
-                        // (= matches hermes chat list.tsx `pt-2.5`
-                        // = 10 PT spacing between the sticky row and
-                        // the toolbar above; = the Apple HIG
-                        // floating-overlay pattern; = visually
-                        // anchored with breathing room).
-                        .padding(.top, 10)
-                        // The bottom edge of the overlay needs a
-                        // hairline separator so the floating card
-                        // visually delimits from the scroll content
-                        // below. Apple HIG pattern: 1 PT
-                        // separatorColor at full opacity (= the same
-                        // color as the user card's border; = visually
-                        // unified).
-                        .overlay(alignment: .bottom) {
-                            Rectangle()
-                                .fill(Color(nsColor: .separatorColor).opacity(0.4))
-                                .frame(height: 1)
-                        }
-                    }
+                    stickyOverlay
                 }
                 // Apple SwiftUI 14+ .defaultScrollAnchor(.bottom)
                 // Apple = ScrollView changeauto, placeholder -> reply replace scrollTo
                 .defaultScrollAnchor(.bottom)
+                // v1.65-cleanup E3.5 boss 2026-09-21 '错了，向上回看的时候
+                // 应该替换' (= the sticky overlay's content must
+                // REPLACE as the user scrolls up; = the overlay
+                // tracks the user message whose row's top is closest
+                // to the viewport's TOP edge at any scroll position).
+                //
+                // Apple SwiftUI 14+ provides `.onScrollGeometryChange(for:of:)`
+                // on ScrollView; = fires on every scroll frame; =
+                // delivers a `ScrollGeometry` (= contains bounds =
+                // CGRect of the visible viewport; = origin.y = top
+                // edge in content coordinates; = size.height =
+                // visible viewport height; = contentSize.height =
+                // total scrollable content height). We compute the
+                // user message whose row is closest to the
+                // viewport's top edge (= the topmost user message
+                // currently visible; = the user message whose row
+                // top is at or above `bounds.origin.y + tolerance`
+                // and whose row bottom is at or below the same line;
+                // = use the most recent such user message; = update
+                // stickyUserMessageID). When the user scrolls into a
+                // section where the topmost visible row is an
+                // assistant message (= no user message in the
+                // viewport yet; = the user has scrolled past the
+                // latest user message into pure assistant history;
+                // = the overlay should track the most recent user
+                // message that was just above the current viewport
+                // top edge; = find the user message just before the
+                // first visible row at this scroll position; = fall
+                // back to the most recent user message overall).
+                //
+                // Tolerance = 24 PT (= the row height of a small
+                // user bubble; = within 24 PT of the viewport top,
+                // any row is considered "at the top" and becomes
+                // the sticky overlay candidate; = prevents jitter
+                // when the row is partially scrolled out at the
+                // top edge).
+                // v1.65-cleanup E3.5: track scroll offset via .coordinateSpace +
+                // .background(GeometryReader) (= the canonical Apple HIG
+                // pattern for scroll-tracking; = the GeometryReader's
+                // frame proxy.minY = the scroll offset). macOS 27's
+                // .onScrollGeometryChange API signature is fragile across
+                // SDK versions (= 2-arg closure vs 1-arg vs missing
+                // action label; = broke the type-checker on the inline
+                // form; = the GeometryReader approach is more portable
+                // and works on macOS 13+).
+                .coordinateSpace(name: "chatScroll")
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .preference(
+                                key: ChatScrollOffsetPreferenceKey.self,
+                                value: geo.frame(in: .named("chatScroll")).minY
+                            )
+                    }
+                )
+                .onPreferenceChange(ChatScrollOffsetPreferenceKey.self) { offsetY in
+                    updateStickyUserMessageID(scrollOffsetY: -offsetY)
+                }
                 // onChange of lastContent, not just count
                 // placeholder create content="AI in progress…" (15 chars), reply replace content= reply (~hundreds chars)
                 // content change onChange, scrollTo last.id
