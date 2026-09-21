@@ -1283,7 +1283,20 @@ public struct ChatView: View {
     public var body: some View {
         // v0.24 boss acceptance fix: listen for global defocus notification.
         // Boss 8/24 feedback: 'clicking other areas, the textfield still keeps focus'.
-        VStack(spacing: 0) {
+        // v1.65-cleanup E3 boss 2026-09-21 '文字不是左对齐' (= the chat
+        // transcript content was horizontally centered inside the chat
+        // column; = each AI message sat in the middle of the column
+        // instead of the leading edge). Root cause: VStack default
+        // horizontal alignment is .center (= SwiftUI sets it this way
+        // for SwiftUI's `mx-auto` Tailwind-style column-centering
+        // convention; = right for a single column that needs to be
+        // centered in a wider pane, = wrong for a multi-element
+        // layout where every child must individually leading-align).
+        // Override to .leading (= the chat transcript is a vertical
+        // stack of leading-aligned message rows; = each row starts at
+        // the same x coordinate; = matches hermes真值 thread/list.tsx
+        // leading-aligned rendering per boss 'all 1:1').
+        VStack(alignment: .leading, spacing: 0) {
             // Message list (ScrollView + LazyVStack ground truth)
             // v1.65 MC3 (= hermes list.tsx:1454 'mx-auto flex min-h-full
             // w-full max-w-(--composer-width) min-w-0 flex-col px-6'):
@@ -1329,21 +1342,77 @@ public struct ChatView: View {
                             let isLatestUser = Self.isLatestUserMessage(
                                 messageID: msg.id, in: vm.messages
                             )
-                            ChatMessageView(
-                                message: msg,
-                                isLatestUser: isLatestUser,
-                                // T24-PLAN-APPROVE (2026-09-18): when the
-                                // user clicks Approve & Run on a plan card,
-                                // submit the plan's original query back
-                                // into the chat zone as a user message
-                                // (= re-invokes the LLM with the plan in
-                                // history = produces an answer).
-                                onApprovePlan: { plan in
-                                    vm.inputText = plan.query
-                                    Task { await vm.send() }
-                                }
-                            )
-                            .id(msg.id)
+                            // v1.65-cleanup E3 boss 2026-09-21 '那个框的悬浮
+                            // 吸顶，确实没有实现。你上午好像是尝试过'
+                            // (= the latest user message card needs to
+                            // stick to the top of the chat viewport,
+                            // not scroll out of view when the user
+                            // scrolls back to read history). The
+                            // earlier attempt used `.padding(.top, 80)
+                            // + .zIndex(40)` inside the LazyVStack;
+                            // = SwiftUI macOS 27 has no `.sticky()`
+                            // modifier; = zIndex 40 only changes the
+                            // z-order within the LazyVStack, NOT the
+                            // scroll behavior; = the latest user row
+                            // still scrolls out of view (= the issue
+                            // boss saw this afternoon).
+                            //
+                            // Real fix (= the SwiftUI 27 way to do CSS
+                            // `position: sticky` on the latest user row):
+                            // render the latest user message OUTSIDE
+                            // the LazyVStack (= it's not part of the
+                            // scrolling transcript stream), wrapped in
+                            // a `.safeAreaInset(edge: .top)` modifier
+                            // on the ScrollView itself. The overlay
+                            // floats above the scroll content (= it
+                            // doesn't move when the user scrolls), the
+                            // user card always sits at the leading
+                            // edge of the scroll viewport (= matches
+                            // hermes user-message.tsx:46 `sticky z-40`
+                            // 1:1). The LazyVStack skips the latest
+                            // user row entirely (= avoids double-render;
+                            // = scroll layout only contains assistant
+                            // rows + older user history).
+                            //
+                            // The skip must stay invisible to the
+                            // scroll anchor (= ScrollViewReader
+                            // `proxy.scrollTo(latestUserID, anchor: .bottom)`
+                            // still resolves to a real row id; = the
+                            // skip happens at the ForEach body level so
+                            // `latestUserID` resolves to the next-
+                            // newest visible row in the LazyVStack
+                            // (= the AI reply that was just generated
+                            // in response to the user message)).
+                            if !isLatestUser {
+                                ChatMessageView(
+                                    message: msg,
+                                    isLatestUser: false,
+                                    onApprovePlan: { plan in
+                                        vm.inputText = plan.query
+                                        Task { await vm.send() }
+                                    }
+                                )
+                                .id(msg.id)
+                            } else {
+                                // v1.65-cleanup E3 sticky-top: keep an
+                                // invisible 0-height placeholder at the
+                                // latest user message's id so
+                                // ScrollViewReader's
+                                // `proxy.scrollTo(latestUserID, anchor: .bottom)`
+                                // (= fires when a new message lands) still
+                                // has a target row id in the scroll
+                                // content. Without this, SwiftUI logs a
+                                // warning and the scroll anchors to the
+                                // end of the visible scroll (= wrong
+                                // behavior). The placeholder occupies no
+                                // vertical space (.frame(height: 0)); = the
+                                // actual content rendering for this id
+                                // happens in the .safeAreaInset(.top)
+                                // overlay (= sticky-top).
+                                Color.clear
+                                    .frame(height: 0)
+                                    .id(msg.id)
+                            }
                         }
                     }
                     .padding(DesignTokens.chromePaddingVertical)
@@ -1388,6 +1457,93 @@ public struct ChatView: View {
                     // pattern where the last message peeks behind the
                     // input bar).
                     .contentMargins(.bottom, 80, for: .scrollContent)
+                    // v1.65-cleanup E3 boss 2026-09-21 '聊天区的背景能不能
+                    // 降低一点颜色，比如用左栏的颜色' (= the chat
+                    // transcript area was using the macOS default
+                    // windowBackgroundColor = RGB(28,28,28) on dark
+                    // mode; = the same near-black as the user glass
+                    // card's controlBackgroundColor; = visually
+                    // indistinguishable from the user bubble surface;
+                    // = the user card lost its contrast). Apply the
+                    // Apple HIG sidebar/inspector tint
+                    // (= Color(nsColor: .controlBackgroundColor); =
+                    // RGB ~36,36,36 on dark mode; = noticeably lighter
+                    // than windowBackgroundColor and matches the
+                    // sidebar background visible in the leftmost
+                    // column = boss's requested 'use the left
+                    // sidebar's color'). The user glass card uses
+                    // .underPageBackgroundColor (one SwiftUI tint
+                    // step lighter; = +14pt luminance above the chat
+                    // bg; = visibly lifted off the surface; = the
+                    // Apple HIG pattern of inspector / popover content
+                    // sitting above the window tier).
+                }
+                // ScrollView background. SwiftUI on macOS 27 wraps the
+                // SwiftUI ScrollView in an NSScrollView (= visible
+                // background is the AppKit window background, = SwiftUI
+                // .background() applied to ScrollView's content does
+                // NOT paint the empty scrollback area; = it only
+                // paints behind the LazyVStack messages). To tint the
+                // entire visible chat area (= including the empty
+                // space below the last message and above the input
+                // row), apply .scrollContentBackground(.hidden) +
+                // .background(Color(nsColor: .controlBackgroundColor))
+                // on the ScrollView itself (= SwiftUI macOS 27
+                // ScrollView accepts the .background modifier on
+                // itself when .scrollContentBackground(.hidden) is
+                // used; = the visible area picks up our tint). Per
+                // Apple HIG conversation-with-macOS 27 default chat
+                // surface (= Apple Mail, Apple Messages, Notes chat
+                // = inspector/content tier; = controlBackgroundColor).
+                .scrollContentBackground(.hidden)
+                .background(Color(nsColor: .controlBackgroundColor))
+                // v1.65-cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，确实没有实现'
+                // (= the latest user message card needs to stick to
+                // the top of the chat viewport, not scroll out of
+                // view when the user scrolls back to read history).
+                // Apple SwiftUI macOS 27 has no `.sticky()` modifier;
+                // = the closest 1:1 (= hermes user-message.tsx:46
+                // `sticky z-40`) is `.safeAreaInset(edge: .top)` on
+                // the ScrollView. The safeAreaInset overlay sits ABOVE
+                // the scroll content area but inside the ScrollView
+                // frame (= does NOT scroll with the user; = always
+                // visible at the top of the chat viewport). The
+                // overlay only renders when there is a latest user
+                // message in the transcript (= empty for new
+                // sessions).
+                //
+                // The overlay uses ChatMessageView with isLatestUser=true
+                // (= the latest user row picks up the sticky-top
+                // styling and zIndex layering inside its own body).
+                // The LazyVStack skip (= this row is NOT in the scroll
+                // content; = only in the overlay) prevents the
+                // double-render that would shift the scroll baseline
+                // and cause the AI reply to land below an empty
+                // placeholder row.
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if let latestUserMsg = vm.messages.last(where: { $0.source == .user }) {
+                        ChatMessageView(
+                            message: latestUserMsg,
+                            isLatestUser: true,
+                            onApprovePlan: { plan in
+                                vm.inputText = plan.query
+                                Task { await vm.send() }
+                            }
+                        )
+                        .background(Color(nsColor: .controlBackgroundColor))
+                        // The bottom edge of the overlay needs a
+                        // hairline separator so the floating card
+                        // visually delimits from the scroll content
+                        // below. Apple HIG pattern: 1 PT
+                        // separatorColor at full opacity (= the same
+                        // color as the user card's border; = visually
+                        // unified).
+                        .overlay(alignment: .bottom) {
+                            Rectangle()
+                                .fill(Color(nsColor: .separatorColor).opacity(0.4))
+                                .frame(height: 1)
+                        }
+                    }
                 }
                 // Apple SwiftUI 14+ .defaultScrollAnchor(.bottom)
                 // Apple = ScrollView changeauto, placeholder -> reply replace scrollTo

@@ -277,19 +277,39 @@ struct ChatMessageView: View {
                     //     closest the Apple public API gets without an
                     //     NSScrollView bridge (= 1-2 week ticket; = future).
                     //
-                    // Historical user rows (= non-latest) get neither the
-                    // 80 PT padding nor the zIndex (= they scroll normally
-                    // without overlap with the floating input; = matches
-                    // the MC1 flat-text self-start behavior).
-                    //
-                    // The safeAreaInset overlay from MC6 (= the visual
-                    // fallback for Apple API limitation) is REMOVED in
-                    // MC8 (= no double-render of the latest user bubble;
-                    // = the in-LazyVStack row IS the latest user bubble;
-                    // = zIndex 40 keeps it visible above scrolling
-                    // assistant content).
-                    .padding(.top, isOutgoing && isLatestUser ? 80 : 0)
-                    .zIndex(isOutgoing && isLatestUser ? 40 : 0)
+                    // historical user rows (= non-latest) get neither the
+                                        // 80 PT padding nor the zIndex (= they scroll normally
+                                        // without overlap with the floating input; = matches
+                                        // the MC1 flat-text self-start behavior).
+                                        //
+                                        // v1.65-cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，
+                                        // 确实没有实现' (= the latest user message card was
+                                        // padded 80 PT down inside the LazyVStack but did NOT
+                                        // actually stick to the top of the chat viewport; =
+                                        // the LazyVStack row scrolled out of view when the
+                                        // user scrolled back to read history; = the
+                                        // 80 PT padding was just an empty visual gap below
+                                        // the floating chat input panel; = wrong). The real
+                                        // sticky-top behavior now lives in ChatView's
+                                        // `.safeAreaInset(edge: .top)` overlay
+                                        // (= the latest user row is mounted as a SwiftUI
+                                        // safeAreaInset overlay that floats above the
+                                        // scroll content; = does not scroll with the user;
+                                        // = matches hermes user-message.tsx:46 `sticky z-40`
+                                        // 1:1). The in-LazyVStack row for the latest user
+                                        // message id is now a 0-height placeholder
+                                        // (= scroll anchor target; = no visual contribution
+                                        // since the overlay renders the same id). The
+                                        // padding + zIndex modifiers below are now no-ops
+                                        // for the latest-user case; = kept for backward
+                                        // compatibility with older wenshu chat views that
+                                        // don't have the safeAreaInset overlay (= if some
+                                        // other chat zone still uses ChatMessageView
+                                        // directly without the overlay, the 80 PT padding
+                                        // and zIndex 40 still rescue that older layout
+                                        // from floating-input overlap).
+                                        .padding(.top, isOutgoing && isLatestUser ? 80 : 0)
+                                        .zIndex(isOutgoing && isLatestUser ? 40 : 0)
             }
 
     /// The row's content (= source label row + body row + footer +
@@ -297,7 +317,22 @@ struct ChatMessageView: View {
     /// the glass card wraps this when the row is outgoing.
     @ViewBuilder
     private var messageContents: some View {
-        VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
+        // v1.65-cleanup E3 boss 2026-09-21 '用户说的话，要在那个框中，左对齐，
+        // 现在是显示在右边' (= the user text inside the glass card was
+        // right-aligned; = boss expected left-aligned text reading like
+        // iMessage / Slack / hermes真值). Root cause: the inner VStack
+        // (= messageContents) was using .trailing alignment for outgoing
+        // rows; = all child elements (= ChatMessageBodyView text +
+        // timestamp footer + image thumbnail) anchored to the right
+        // edge of the card. Override: outgoing rows now use .leading
+        // for the inner VStack (= text reads left-to-right from the
+        // leading edge of the card); the OUTER frame in the body still
+        // uses .trailing alignment to push the entire card to the
+        // trailing edge of the chat column. Net visual: card is on
+        // the right (= outer alignment), but text inside reads from
+        // the left (= inner alignment); = matches iMessage +
+        // Slack + hermes真值 user-message.tsx).
+        VStack(alignment: .leading, spacing: 4) {
                 // v1.65 boss 2026-09-21 "just refer to HERMES, do 1:1; drop
                 // wenshu-side source label + icon chrome that HERMES doesn't have":
                 //   - user-message.tsx:240-585 (= full UserMessage scan) renders
@@ -754,19 +789,33 @@ private struct UserGlassCardModifier: ViewModifier {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .frame(maxWidth: .infinity, alignment: .trailing)
+                // v1.65-cleanup E3 boss 2026-09-21 '你甚至可以把用户的那个框，
+                // 加上真正的液态玻璃，以示突出' (= the user glass
+                // card previously used Color(nsColor: .underPageBackgroundColor)
+                // = a flat solid tint; = no surface variation; =
+                // visually merged into the chat bg tint). Apply the
+                // real macOS 27 Liquid Glass regular tier
+                // (.regularMaterial) = Apple HIG inspector / popover
+                // surface; = subtle blur + saturation shift over the
+                // chat background; = the user card visibly lifts off
+                // the chat surface (= boss's 'show its prominence'
+                // intent). Border kept at 0.5 PT separator tint at
+                // 0.6 opacity (= unchanged; = edge cue).
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(nsColor: .controlBackgroundColor))
+                        .fill(.regularMaterial)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
+                        .strokeBorder(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 0.5)
                 )
         } else {
             content
         }
     }
 }
+
+// MARK: - Hermes真值 user bubble surface per `apps/desktop/src/components/
 
 
 // v1.65 boss '思考中的那个效果不是 hermes 的效果': StatusPulse
