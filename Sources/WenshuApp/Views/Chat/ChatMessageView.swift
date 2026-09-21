@@ -399,26 +399,35 @@ struct ChatMessageView: View {
                                 .padding(.top, DesignTokens.chromePaddingMicro)
                                 .transition(.opacity)
                         } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "brain.head.profile").font(.system(size: 16, weight: .regular))
-                                    .font(.caption)
-                                Text(WenshuI18n.t("chatview.ai_thinking"))
-                                    .font(.caption)
-                            }
-                            .foregroundStyle(.tertiary)
+                            // v1.65-cleanup C2 boss 2026-09-21 'just refer to
+                            // HERMES, do 1:1; drop the wenshu-side chrome':
+                            // Hermes真值 thinking DisclosureGroup (= status.tsx
+                            // ResponseLoadingIndicator + assistant-message.tsx)
+                            // uses NO icon + NO 'chatview.ai_thinking' label —
+                            // just the 3×3 PT StatusPulse square (= the
+                            // wenshu StatusPulse private struct already
+                            // implements this 1:1). The collapsed row in
+                            // wenshu becomes the StatusPulse inline (= the
+                            // user clicks to expand; the pulse is the row
+                            // identity).
+                            StatusPulse()
                         }
                         .animation(.default, value: thinkingExpanded)
                     }
                     // CHATIMG-001 (2026-09-07): render attached image
-                    // thumbnail above the parts. (= unchanged)
+                    // thumbnail above the parts. (= unchanged structure
+                    // but cleaned per v1.65-cleanup C2 boss 2026-09-21
+                    // 'just refer to HERMES, do 1:1; drop the wenshu-side
+                    // chrome': the Reveal-in-Finder button (= T34 +
+                    // T35 i18n) was a macOS-specific wenshu-side add-on;
+                    // hermes真值 has attachment directive chips inline
+                    // with the bubble surface (= per user-message.tsx:415
+                    // attachmentRefs.map). The thumbnail click now opens
+                    // Preview directly without a separate reveal
+                    // affordance; = the macro-free Mac-side reveal
+                    // affordance is dropped, matching hermes真值.)
                     if let imagePath = message.imagePath {
                         if let nsImage = NSImage(contentsOfFile: imagePath) {
-                            // T51-OPEN-IMAGE (2026-09-18): wrap the
-                            // thumbnail in a Button so clicking it
-                            // opens the image in Preview.app via
-                            // NSWorkspace.shared.open(url). The
-                            // Reveal-in-Finder button (= T34) is
-                            // preserved below as a separate affordance.
                             Button {
                                 let url = URL(fileURLWithPath: imagePath)
                                 NSWorkspace.shared.open(url)
@@ -431,32 +440,6 @@ struct ChatMessageView: View {
                                     .padding(.bottom, DesignTokens.chromePaddingMicro)
                             }
                             .buttonStyle(.plain)
-                            // T34-OPEN-IMAGE-IN-FINDER (2026-09-18): a small
-                            // "Reveal" button below the thumbnail (= the
-                            // user can right-click a file in Finder to
-                            // see it; = the equivalent here is a single-
-                            // click button that does NSWorkspace.activateFileViewerSelecting
-                            // = the standard macOS "Reveal in Finder" affordance).
-                            // Hidden when the file doesn't exist (= already
-                            // handled by the outer if-let).
-                            Button {
-                                let url = URL(fileURLWithPath: imagePath)
-                                NSWorkspace.shared.activateFileViewerSelecting([url])
-                            } label: {
-                                // T35-REVEAL-I18N (2026-09-18): retired the
-                                // hardcoded English "Reveal in Finder" label
-                                // (= landed in T34) in favor of the localized
-                                // WenshuI18n.t("chatview.message.reveal_in_finder")
-                                // = "Reveal in Finder" in en.lproj,
-                                //   "在访达中显示" in zh-Hans.lproj.
-                                Label(
-                                    WenshuI18n.t("chatview.message.reveal_in_finder"),
-                                    systemImage: "folder"
-                                )
-                                .font(.caption2)
-                            }
-                            .buttonStyle(.borderless)
-                            .padding(.bottom, DesignTokens.chromePaddingMicro)
                         } else {
                             Text(WenshuI18n.t("chat.message.imageMissing"))
                                 .font(.caption)
@@ -702,25 +685,6 @@ struct ChatMessageView: View {
                         }
                     }
                 }
-                // T54-ATTACHMENT-FOOTER-ICON (2026-09-18): when
-                // the message carries an image attachment,
-                // render a small paperclip SF Symbol in the
-                // footer (= meta indicator = "this message has
-                // an attachment"). Hidden when message has no
-                // imagePath. Placed AFTER the timestamp HStack
-                // so the existing footer is untouched.
-                if message.imagePath != nil {
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        Image(systemName: "paperclip")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .help(WenshuI18n.t("chatview.message.has_attachment"))
-                    }
-                    .padding(.top, 2)
-                    .padding(.trailing, DesignTokens.chromePaddingLeading)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                }
             }
 
             // Right-side spacer removed: with the left-gutter glyph
@@ -752,50 +716,43 @@ struct ChatMessageView: View {
 /// Activates only on outgoing (= user) messages; on assistant rows the
 /// modifier is a pass-through (= no visual change from MC1's flat
 /// self-start text).
+/// v1.65-cleanup C2 boss 2026-09-21 'just refer to HERMES, do 1:1;
+/// drop the wenshu-side chrome': the user bubble surface now uses
+/// hermes真值 `bg-DT-USER-BUBBLE` semantics (= Apple semantic
+/// `Color(nsColor: .controlBackgroundColor)`) instead of the
+/// previous Liquid Glass `.regularMaterial` (= too heavy vs
+/// hermes真值's subtle bg token). The border keeps Apple HIG
+/// semantic `Color(nsColor: .separatorColor).opacity(0.5)` (= 0.5
+/// PT; = matches hermes border-UI-STROKE-TERTIARY token in spirit).
+///
+/// Card internal padding = 12 PT horizontal + 6 PT vertical (= was
+/// 16 + 8 in MC6; = tighter, matches hermes `px-3 py-2` from
+/// USER_BUBBLE_BASE_CLASS).
+///
+/// Card maxWidth stays 0.95 of the transcript column (= preserves
+/// MC6's outdent-without-overflow cap; = hermes `-mx-4 px-4`
+/// outdent is not expressible in SwiftUI macOS 27 without breaking
+/// the parent frame, so 0.95 is the closest 1:1 visual).
+///
+/// Activates only on outgoing (= user) messages; on assistant rows the
+/// modifier is a pass-through (= no visual change from C1's flat
+/// self-start text).
 private struct UserGlassCardModifier: ViewModifier {
     let isOutgoing: Bool
 
     func body(content: Content) -> some View {
         if isOutgoing {
             content
-                // v1.65 boss '试着补一下': hermes user-message.tsx:46
-                // `-mx-4 w-[calc(100%+2rem)] px-4` = the user sticky
-                // container extends 16 PT past the parent on each
-                // side (= visual "outdent" past the chat column
-                // edges). The internal `px-4` (= 16 PT padding)
-                // keeps the card text aligned with the transcript
-                // column (= the text doesn't move; = only the card
-                // background + border extend past the edges).
-                //
-                // wenshu SwiftUI真值实现 (= closest 1:1 with the
-                // macOS 27 SwiftUI API surface): we can't push a view
-                // past its parent's frame (= LazyVStack row is
-                // bounded by the pane width; = wenshu chats don't
-                // have a parent container with extra padding room).
-                // The closest visual: pad the card internally with
-                // 16 PT (= matches hermes `px-4`), AND extend the
-                // card's maxWidth from 0.75 (= MC2 cap) to 0.95
-                // (= the card fills nearly the full transcript
-                // column width without visibly going past the pane
-                // edge; = the same visual emphasis as hermes' outdent
-                // without the layout-break risk of trying to render
-                // outside the pane).
-                //
-                // Hermes真值 `px-4` (= 16 PT) replaces the previous
-                // MC2 `px-3` (= 12 PT) for the card internal
-                // padding. The 16 PT matches hermes' tailwind px-4
-                // token (= the rounding-equivalent of 16 / 4 in
-                // Tailwind's default spacing scale of 0.25 rem).
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
                 .frame(maxWidth: 0.95, alignment: .trailing)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(.regularMaterial)
+                        .fill(Color(nsColor: .controlBackgroundColor))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.accentColor.opacity(0.18), lineWidth: 0.5)
+                        .strokeBorder(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
                 )
         } else {
             content

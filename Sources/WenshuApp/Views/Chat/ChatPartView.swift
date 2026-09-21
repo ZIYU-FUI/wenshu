@@ -688,29 +688,52 @@ public struct ChatMessageBodyView: View {
     }
 
     public var body: some View {
-        // Hermes `MessagePrimitive.Parts` (= the canonical part-by-part
-        // render = wenshu's equivalent). We use `ForEach` over
-        // `message.parts` (= each part is Identifiable via its UUID)
-        // and route through a switch on `part.kind` (= the 4-case
-        // enum = text / reasoning / toolUse / toolResult).
-        if message.parts.isEmpty {
-            // Back-compat path: no parts (= a v0.34 message). Render
-            // the single content string as before.
-            ChatTextPartView(
-                text: message.content,
-                isOutgoing: isOutgoing,
-                isStreaming: isStreaming
-            )
-        } else {
-            ForEach(message.parts) { part in
-                ChatPartRow(
-                    part: part,
+        // v1.65-cleanup C5 boss 2026-09-21 'just refer to HERMES, do
+        // 1:1; drop wenshu-side chrome; differentiate user/AI by color
+        // alone': hermes truth source = user-message.tsx:386
+        // 'text-foreground/95' for user messages (= 95% opacity) +
+        // assistant-message.tsx:292 'text-foreground' for assistant
+        // (= 100% opacity). The 5% delta is intentional and visible
+        // against a neutral transcript.
+        //
+        // SwiftUI closest-1:1 (= Apple semantic ShapeStyle):
+        //   user   = .primary (= foreground at full strength) +
+        //            .opacity(0.92) on the tint container (= the 95%
+        //            saturation approximation hermes sets on the
+        //            user bubble text specifically)
+        //   assistant = .secondary (= one tint step quieter than
+        //            .primary; = the macOS 27 default tertiary
+        //            foreground that matches hermes text-foreground
+        //            for the assistant rows)
+        //
+        // We apply the tint as an outer container so per-part
+        // `.foregroundStyle(.secondary)` etc. (= already in the file)
+        // still wins for their local chrome (= status text / icons
+        // inside reasoning + tool rows).
+        let roleForeground: HierarchicalShapeStyle = isOutgoing
+            ? .primary
+            : .secondary
+        return Group {
+            if message.parts.isEmpty {
+                // Back-compat path: no parts (= a v0.34 message). Render
+                // the single content string as before.
+                ChatTextPartView(
+                    text: message.content,
                     isOutgoing: isOutgoing,
-                    isStreaming: isStreaming,
-                    onApprovePlan: onApprovePlan
+                    isStreaming: isStreaming
                 )
+            } else {
+                ForEach(message.parts) { part in
+                    ChatPartRow(
+                        part: part,
+                        isOutgoing: isOutgoing,
+                        isStreaming: isStreaming,
+                        onApprovePlan: onApprovePlan
+                    )
+                }
             }
         }
+        .foregroundStyle(roleForeground)
     }
 }
 
