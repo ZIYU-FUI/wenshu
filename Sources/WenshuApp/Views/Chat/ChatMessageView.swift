@@ -57,10 +57,6 @@ struct ChatMessageView: View {
     /// hovering the timestamp footer (= expands the time to a full
     /// date; = Apple Messages hover affordance).
     @State private var isTimestampHovered: Bool = false
-    /// T28-PLAN-BADGE-EXPAND (2026-09-18): true when the user is
-    /// hovering the PLAN badge (= expands the badge to show the
-    /// step count; = Apple Messages hover affordance).
-    @State private var isPlanBadgeHovered: Bool = false
 
     public init(
         message: ChatMessage,
@@ -302,193 +298,24 @@ struct ChatMessageView: View {
     @ViewBuilder
     private var messageContents: some View {
         VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
-                // Source label row (= every row, not just run start; =
-                // matches hermes assistant-message.tsx where the model
-                // glyph identifies each assistant message inline).
-                    HStack(spacing: 4) {
-                        // T71-SOURCE-STATUS-DOT (2026-09-18): a small
-                        // "circle.fill" status dot BEFORE the source
-                        // label (= green for wenshu = sealed /
-                        // delivered; = Apple Messages read receipt
-                        // pattern). Dot is .caption + .green tone
-                        // (= matches T44/T45 status icon style).
-                        // Hidden for user messages (= user doesn't
-                        // need a delivery receipt on their own message).
-                        if message.source == .wenshu {
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 6, weight: .bold))
-                                .foregroundStyle(.green)
-                        }
-                        // T75-BOT-ICON (2026-09-18): a small
-                        // "brain.head.profile" SF Symbol for
-                        // wenshu messages (= the Apple HIG
-                        // AI/assistant identity affordance;
-                        // = replaces the older "person.crop.circle
-                        // .badge.questionmark" placeholder glyph
-                        // with a cleaner AI visual). Used in
-                        // the source label row alongside the
-                        // T71 delivery dot.
-                        if message.source == .wenshu {
-                            Image(systemName: "brain.head.profile")
-                                .font(.system(size: 10, weight: .regular))
-                                .foregroundStyle(.secondary)
-                            // T90-LINK-ICON (2026-09-18): a small
-                            // "link" SF Symbol next to the T75
-                            // brain icon (= Apple HIG "contains
-                            // links" affordance; = visual cue
-                            // that this response may include
-                            // URL references; = matches the
-                            // standard Apple Pages / Notes
-                            // link indicator). Icon uses
-                            // .system(size: 9) + .secondary tone
-                            // (= matches T75 brain icon style).
-                            // Always rendered (= forward-flexibility
-                            // for a future ticket that gates this
-                            // on `hasURLs` detection).
-                            Image(systemName: "link")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundStyle(.tertiary)
-                            // T111-FLASK-ICON (2026-09-18): a
-                            // small "flask.fill" SF Symbol
-                            // next to the T90 link icon (= the
-                            // Apple HIG "experiment/test"
-                            // affordance; = visually marks
-                            // this response as a trial or
-                            // experimental answer; = matches
-                            // the standard SF Symbols lab
-                            // glass icon).
-                            // Icon uses .system(size: 9) +
-                            // .tertiary tone (= matches T90
-                            // link icon style; = the two
-                            // together form a small icon pair).
-                            Image(systemName: "flask.fill")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundStyle(.tertiary)
-                            // T116-MICROSCOPE-ICON (2026-09-18):
-                            // a small "magnifyingglass" SF
-                            // Symbol next to the T111 flask
-                            // icon (= Apple HIG "detailed
-                            // analysis" affordance; =
-                            // visually marks this response as
-                            // a thorough/analytical answer;
-                            // = pairs with T111 flask to
-                            // form a small "experiment +
-                            // analysis" icon pair).
-                            // Icon uses .system(size: 9) +
-                            // .tertiary tone (= matches T90
-                            // link + T111 flask icon style).
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundStyle(.tertiary)
-                            // T117-SPARKLES-ICON (2026-09-18):
-                            // a small "sparkles" SF Symbol
-                            // next to the T116 magnifyingglass
-                            // icon (= Apple HIG "AI-powered
-                            // insight" affordance; = the
-                            // sparkle = wenshu's brand icon
-                            // for AI-generated content).
-                            // Icon uses .system(size: 9) +
-                            // .tertiary tone (= matches T90
-                            // + T111 + T116 style).
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundStyle(.tertiary)
-                        }
-                        // T73-USER-SENT-ICON (2026-09-18): a small
-                        // "paperplane.fill" SF Symbol for user-sent
-                        // messages (= "sent" affordance; = matches
-                        // Apple Messages' delivered-status icon
-                        // for outgoing bubbles). Mirror of T71: T71
-                        // is for wenshu (= delivery receipt), T73
-                        // is for user (= sent confirmation).
-                        if message.source == .user {
-                            // T73-USER-SENT-ICON (2026-09-18): a
-                            // small "paperplane.fill" SF Symbol
-                            // for user messages (= the Apple
-                            // HIG "sent" affordance; = mirrors
-                            // T71 green dot for wenshu messages;
-                            // = visually pairs the two states
-                            // in the source label row).
-                            Image(systemName: "paperplane.fill")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundStyle(.secondary)
-                            // T86-USER-STATUS-DOT (2026-09-18): a
-                            // small blue status dot for user
-                            // messages (= Apple HIG "outgoing"
-                            // affordance; = complements T73
-                            // paperplane icon; = matches the
-                            // standard macOS outgoing-message
-                            // color = Apple Messages blue
-                            // bubble tint via Color.accentColor).
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 6, weight: .bold))
-                                .foregroundStyle(Color.accentColor)
-                                .padding(.trailing, 2)
-                            // T88-USER-CHECK (2026-09-18): a
-                            // small "checkmark" SF Symbol AFTER
-                            // the T86 dot (= Apple Messages
-                            // single-checkmark "sent"
-                            // affordance; = visually pairs with
-                            // T84's checkmark for sealed
-                            // assistant messages; = user sees
-                            // "sent" + assistant sees
-                            // "delivered" pattern).
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(Color.accentColor)
-                            // T99-USER-READ-RECEIPT (2026-09-18):
-                            // a 2nd small "checkmark" SF
-                            // Symbol AFTER the T88 single
-                            // checkmark (= Apple Messages
-                            // double-checkmark "delivered"
-                            // affordance; = visually pairs
-                            // with the read-receipt pattern
-                            // for assistant messages; = the
-                            // user message shows "sent +
-                            // delivered" before the assistant
-                            // shows its own read receipt).
-                            // Uses a slightly smaller font
-                            // size (= the second checkmark
-                            // visually nests under the first)
-                            // and Color.accentColor (= matches
-                            // T88).
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 7, weight: .semibold))
-                                .foregroundStyle(Color.accentColor.opacity(0.7))
-                                .offset(x: -3, y: 1)
-                        }
-                        Text(sourceLabel)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        // T23-PLAN-BADGE (2026-09-18): when the message
-                        // has a .plan part (= a /plan command result),
-                        // show a small "PLAN" badge next to the
-                        // source label (= identifies plan-mode
-                        // messages at a glance; = matches the Hermes
-                        // desktop pattern where plan cards get a
-                        // distinct header tag).
-                        if messageHasPlanPart {
-                            // T28-PLAN-BADGE-EXPAND (2026-09-18): on
-                            // hover, the PLAN badge expands to show
-                            // the step count (= "PLAN" -> "PLAN · 3 steps").
-                            // Matches Apple Messages' "typing..."
-                            // expand affordance.
-                            Text(isPlanBadgeHovered
-                                 ? "PLAN · \(planStepCountLabel)"
-                                 : "PLAN")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(Color.accentColor)
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 1)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .strokeBorder(Color.accentColor.opacity(0.4), lineWidth: 0.5)
-                                )
-                                .onHover { hovering in
-                                    isPlanBadgeHovered = hovering
-                                }
-                        }
-                    }
+                // v1.65 boss 2026-09-21 "just refer to HERMES, do 1:1; drop
+                // wenshu-side source label + icon chrome that HERMES doesn't have":
+                //   - user-message.tsx:240-585 (= full UserMessage scan) renders
+                //     the user text with NO source label, NO avatar/icon, NO
+                //     role text — only `UserMessageText` (= pure markdown) +
+                //     the `bg-(--dt-user-bubble)` glass card wrapper.
+                //   - assistant-message.tsx:106-340 (= full AssistantMessage
+                //     scan) renders only `MESSAGE_PARTS` (= pure markdown) with
+                //     `text-foreground` — NO source label, NO avatar/icon, NO
+                //     role text.
+                //   - The 1:1 hermes真值 distinguishes user vs assistant by
+                //     foreground color + container presence alone (= user has
+                //     `bg-(--dt-user-bubble)`, assistant has none; user has
+                //     `text-foreground/95`, assistant has `text-foreground`).
+                //   - All wenshu-side chrome (= source label row + 9 icon +
+                //     status dot + paperplane + checkmarks + PLAN badge) is
+                //     REMOVED in this commit (= C1 of the v1.65-cleanup arc;
+                //     = boss 2026-09-21 "多做的，没用的，你就改掉").
                 if message.isPlaceholder {
                     // v1.65 boss '思考中的那个效果不是 hermes 的效果':
                     // Hermes真值 (= status.tsx ResponseLoadingIndicator
@@ -908,57 +735,6 @@ struct ChatMessageView: View {
     private var isOutgoing: Bool { message.source == .user }
 
     /// T23-PLAN-BADGE (2026-09-18): true when the message carries at
-    /// least one `.plan` part (= identifies /plan command results
-    /// = the source label area gets a small "PLAN" badge).
-    private var messageHasPlanPart: Bool {
-        message.parts.contains { part in
-            if case .plan = part.kind { return true }
-            return false
-        }
-    }
-
-    /// T28-PLAN-BADGE-EXPAND (2026-09-18): step count shown in the
-    /// PLAN badge on hover (= "PLAN · 3"). Pulls the first .plan
-    /// part's steps.count and formats it. Returns empty string when
-    /// no plan part exists (= the caller only invokes this when
-    /// messageHasPlanPart is true; = defensive return for safety).
-    private var planStepCountLabel: String {
-        for part in message.parts {
-            if case .plan(let p) = part.kind {
-                let n = p.steps.count
-                return "\(n) step\(n == 1 ? "" : "s")"
-            }
-        }
-        return ""
-    }
-
-    private var sourceIcon: String {
-        switch message.source {
-        // v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
-        // chat bubble avatars (= user / wenshu) use outline glyphs
-        // (= the canonical Apple HIG form for the Liquid Glass
-        // 3rd-generation design language).
-        case .user: return "person"
-        case .wenshu: return "text.book.closed"
-        case .system: return "exclamationmark.triangle"
-        }
-    }
-
-    private var sourceLabel: String {
-        switch message.source {
-        case .user: return "你"
-        case .wenshu: return "文枢"
-        case .system: return "系统"
-        }
-    }
-
-    private var sourceColor: Color {
-        switch message.source {
-        case .user: return .blue
-        case .wenshu: return .accentColor
-        case .system: return .red
-        }
-    }
 }
 
 /// Hermes真值 user bubble surface per `apps/desktop/src/components/
