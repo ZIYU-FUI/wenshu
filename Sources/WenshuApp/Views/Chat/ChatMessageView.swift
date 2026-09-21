@@ -200,36 +200,16 @@ struct ChatMessageView: View {
         // drop the iMessage-style bubble + avatar-run-merge path (= the
         // v0.57 boss OOB) and render the assistant message as plain left-
         // aligned text per `apps/desktop/src/components/assistant-ui/
-        // thread/assistant-message.tsx:275-282`, with user messages getting
-        // a rounded-xl glass card pinned to the bottom of the scroll
-        // viewport per `user-message.tsx:67-69`. The avatar shown here is
-        // the column glyph (= left gutter), not the bubble-end glyph: a
-        // run of consecutive messages from one author renders a glyph on
-        // every row, which matches the Hermes `ROLE` glyph path.
-        HStack(alignment: .top, spacing: 8) {
-            // Avatar / source glyph column (= left gutter; = a column
-            // wide enough for the SF Symbol at iconLargeSize so rows
-            // align regardless of whether the message carries a source
-            // glyph or a transparent slot).
-            Group {
-                switch message.source {
-                case .user:
-                    Image(systemName: "person").font(.system(size: 24, weight: .regular))
-                        .aspectRatio(contentMode: .fit)
-                case .wenshu:
-                    Image(systemName: "sparkles").font(.system(size: 24, weight: .regular))
-                        .aspectRatio(contentMode: .fit)
-                case .system:
-                    Image(systemName: sourceIcon).font(.system(size: 24, weight: .regular))
-                }
-            }
-            .foregroundStyle(sourceColor)
-            .frame(
-                width: DesignTokens.iconLargeSize,
-                height: DesignTokens.iconLargeSize
-            )
-
-            VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
+        // thread/assistant-message.tsx:275-282` (= `self-start` flex column
+        // with no avatar / icon column). User messages also lose the bubble
+        // here; the rounded-xl glass card + sticky top per
+        // `user-message.tsx:67-69` is scheduled for MC2.
+        //
+        // The source label row (= "你" / "文枢" / "系统" + status dots
+        // + brain/link/flask/etc icons) stays as the row header = it
+        // identifies the author per Hermes' `ROLE[role](t)` glyph pattern,
+        // but rendered inline (= not as a separate avatar column).
+        VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                 // Source label row (= every row, not just run start; =
                 // matches hermes assistant-message.tsx where the model
                 // glyph identifies each assistant message inline).
@@ -834,8 +814,7 @@ struct ChatMessageView: View {
             // column above, every row is full-width from the avatar to
             // the right edge (= the Hermes `ROLE` glyph + flat body
             // pattern; = no right-edge trailing space).
-            Spacer(minLength: 0)
-        }
+            // L818: extra } removed (= previous HStack wrapper gone).
     }
 
     /// Outgoing messages are the ones this person sent, which iMessage puts

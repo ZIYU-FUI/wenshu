@@ -87,7 +87,7 @@ public struct ChatTextPartView: View {
                 // transition re-renders the whole run; this one interpolates
                 // so the bubble does not flicker on every chunk.
                 .contentTransition(isStreaming ? .interpolate : .identity)
-                .foregroundStyle(isOutgoing ? Color(nsColor: .windowBackgroundColor) : Color.primary)
+                .foregroundStyle(Color.primary)
             if isStreaming {
                 // T42 blinking caret (= white-on-cursor / vertical bar)
                 TimelineView(.periodic(from: .now, by: 0.5)) { context in
@@ -97,7 +97,7 @@ public struct ChatTextPartView: View {
                     let phase = Int(elapsed / 0.5) % 2 == 0
                     Text("▎")
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(isOutgoing ? Color(nsColor: .windowBackgroundColor) : Color.primary)
+                        .foregroundStyle(Color.primary)
                         .opacity(phase ? 1.0 : 0.0)
                         // T61-CURSOR-HELP (2026-09-18): a .help()
                         // tooltip on the streaming cursor that
