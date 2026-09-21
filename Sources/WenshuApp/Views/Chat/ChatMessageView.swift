@@ -729,10 +729,18 @@ struct ChatMessageView: View {
 /// 16 + 8 in MC6; = tighter, matches hermes `px-3 py-2` from
 /// USER_BUBBLE_BASE_CLASS).
 ///
-/// Card maxWidth stays 0.95 of the transcript column (= preserves
-/// MC6's outdent-without-overflow cap; = hermes `-mx-4 px-4`
-/// outdent is not expressible in SwiftUI macOS 27 without breaking
-/// the parent frame, so 0.95 is the closest 1:1 visual).
+/// v1.65-cleanup E1 (boss 2026-09-21 OOB 'user message not visible' bug):
+/// remove the broken `.frame(maxWidth: 0.95, alignment: .trailing)` line.
+/// Root cause: `maxWidth: 0.95` was treated as 0.95 PT (= less than 1 PT,
+/// = essentially zero usable width); = the user card collapsed to a
+/// single 1-2 PT vertical line in the center of the chat column while
+/// the AI card passed through normally. The correct SwiftUI expression
+/// is `.frame(maxWidth: .infinity, alignment: ...)` (= fills the parent's
+/// horizontal extent; = the inner VStack trailing-aligns its children;
+/// = the background draws at content intrinsic size and floats to the
+/// trailing edge). This restores the v1.65 MC6 visual (= user bubble
+/// wraps text, sits at trailing edge, full chat-column width available
+/// for very long messages).
 ///
 /// Activates only on outgoing (= user) messages; on assistant rows the
 /// modifier is a pass-through (= no visual change from C1's flat
@@ -745,7 +753,7 @@ private struct UserGlassCardModifier: ViewModifier {
             content
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .frame(maxWidth: 0.95, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Color(nsColor: .controlBackgroundColor))
