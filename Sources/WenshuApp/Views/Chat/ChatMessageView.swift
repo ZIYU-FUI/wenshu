@@ -198,17 +198,37 @@ struct ChatMessageView: View {
     var body: some View {
         // v1.65 boss 2026-09-21 'chat detail 1:1 hermes macOS desktop':
         // drop the iMessage-style bubble + avatar-run-merge path (= the
-        // v0.57 boss OOB) and render the assistant message as plain left-
-        // aligned text per `apps/desktop/src/components/assistant-ui/
-        // thread/assistant-message.tsx:275-282` (= `self-start` flex column
-        // with no avatar / icon column). User messages also lose the bubble
-        // here; the rounded-xl glass card + sticky top per
-        // `user-message.tsx:67-69` is scheduled for MC2.
+        // v0.57 boss OOB) and render per Hermes真值:
+        //   - user row: `apps/desktop/src/components/assistant-ui/
+        //     thread/user-message.tsx:67-69` rounded-xl glass card with
+        //     bg fill + border (= MC2).
+        //   - assistant row: `assistant-message.tsx:275-282`
+        //     `self-start` flat text, no background / no rounded / no tail
+        //     (= MC1).
+        // The source label row + body row + footer + attachments stay
+        // identical to the MC1 layout; the only structural change in
+        // MC2 is the OUTER wrapper that hosts the glass card for
+        // outgoing (= user) messages.
         //
-        // The source label row (= "你" / "文枢" / "系统" + status dots
-        // + brain/link/flask/etc icons) stays as the row header = it
-        // identifies the author per Hermes' `ROLE[role](t)` glyph pattern,
-        // but rendered inline (= not as a separate avatar column).
+        // STICKY NOTE: hermes user-message.tsx:46 renders the latest user
+        // bubble sticky at the top of the scroll viewport. wenshu already
+        // has the floating chat input row claiming that scroll-viewport
+        // top zone (= v1.57-floating-chat-input), so a sticky user bubble
+        // would overlap the input. MC2 deliberately drops the sticky
+        // behaviour. If a future ticket wants to re-introduce it, the
+        // right hook is a `.sticky()` modifier on the userCard wrapper
+        // below plus a `z-index` above the floating input but below the
+        // titlebar.
+        messageContents
+            .frame(maxWidth: .infinity, alignment: isOutgoing ? .trailing : .leading)
+            .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
+    }
+
+    /// The row's content (= source label row + body row + footer +
+    /// attachments). Identical structure for user + assistant rows;
+    /// the glass card wraps this when the row is outgoing.
+    @ViewBuilder
+    private var messageContents: some View {
         VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                 // Source label row (= every row, not just run start; =
                 // matches hermes assistant-message.tsx where the model
@@ -587,7 +607,26 @@ struct ChatMessageView: View {
                     ChatMessageBodyView(
                         message: message,
                         isOutgoing: isOutgoing,
-                        isStreaming: message.isPlaceholder,
+                        // MC2.1 streaming fix: `isStreaming` stays true
+                        // for the full streaming lifecycle (= .streaming
+                        // state) AND the initial placeholder. The
+                        // previous `message.isPlaceholder` only was
+                        // true during the placeholder row (= flipped
+                        // off the instant the first streamCallback
+                        // replaced the placeholder with the real
+                        // message). After that flip ChatTextPartView's
+                        // `.contentTransition` degraded from
+                        // `.interpolate` to `.identity` AND the
+                        // streaming cursor wasn't drawn. Combined: the
+                        // user saw the text appear in one render
+                        // (= the boss's '一次吐出' report).
+                        //
+                        // Hermes真值: assistant-message.tsx:346
+                        // checks `s.message.status?.type === 'running'`
+                        // = the same gate (= true for the entire
+                        // active turn, not just the initial
+                        // placeholder).
+                        isStreaming: message.streamState == .streaming || message.isPlaceholder,
                         onApprovePlan: onApprovePlan
                     )
                     .padding(.horizontal, 12)
@@ -871,6 +910,48 @@ struct ChatMessageView: View {
         case .user: return .blue
         case .wenshu: return .accentColor
         case .system: return .red
+        }
+    }
+}
+
+/// Hermes真值 user bubble surface per `apps/desktop/src/components/
+/// assistant-ui/thread/user-message.tsx:67-69` `USER_BUBBLE_BASE_CLASS`.
+///
+/// In Tailwind the source is `rounded-xl border bg-(--dt-user-bubble)
+/// px-3 py-2`. In SwiftUI on macOS 27 the equivalent is
+/// `.regularMaterial` for the bg (= Apple's canonical translucent
+/// surface; = the `.bg-(--dt-user-bubble)` token tracks the user's
+/// appearance automatically, same as `.regularMaterial` does). The
+/// border uses `.accentColor.opacity(0.18)` (= the same family of
+/// subtle accent borders Apple HIG adopts for floating surfaces on
+/// macOS 27; = tracks the user's accent in subtle mode).
+///
+/// Activates only on outgoing (= user) messages; on assistant rows the
+/// modifier is a pass-through (= no visual change from MC1's flat
+/// self-start text).
+private struct UserGlassCardModifier: ViewModifier {
+    let isOutgoing: Bool
+
+    func body(content: Content) -> some View {
+        if isOutgoing {
+            content
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                // Cap the user card at 75% of the transcript width
+                // (= matches Hermes iMessage-style outgoing bubble
+                // proportions; = a long user message breaks inside the
+                // card rather than spanning the whole row).
+                .frame(maxWidth: 0.75, alignment: .trailing)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(.regularMaterial)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Color.accentColor.opacity(0.18), lineWidth: 0.5)
+                )
+        } else {
+            content
         }
     }
 }
