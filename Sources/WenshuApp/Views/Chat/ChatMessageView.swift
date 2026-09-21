@@ -24,9 +24,6 @@ import SwiftUI
 /// One chat-message view (Apple HIG ground truth)
 struct ChatMessageView: View {
     let message: ChatMessage
-    /// Where this bubble sits in a run of consecutive messages from one
-    /// author, which decides the tail and the merged corners.
-    var position: ChatBubblePosition = .only
     /// T24-PLAN-APPROVE (2026-09-18): callback invoked when the user
     /// clicks Approve & Run on a plan card. The closure is provided
     /// by the parent ChatView (= the closure submits the plan's original
@@ -47,11 +44,9 @@ struct ChatMessageView: View {
 
     public init(
         message: ChatMessage,
-        position: ChatBubblePosition = .only,
         onApprovePlan: ((Plan) -> Void)? = nil
     ) {
         self.message = message
-        self.position = position
         self.onApprovePlan = onApprovePlan
     }
 
@@ -201,42 +196,43 @@ struct ChatMessageView: View {
     }
 
     var body: some View {
-        // v0.57 boss 2026-09-09 OOB: push the bubbles toward the iMessage
-        // look. Outgoing messages sit on the trailing side in the accent
-        // colour, incoming ones on the leading side in the neutral fill,
-        // and a run of consecutive messages from one author merges.
-        HStack(alignment: .bottom, spacing: 8) {
-            if isOutgoing { Spacer(minLength: 40) }
-
-            // The avatar only appears on the last bubble of a run, so a
-            // burst of replies is not a column of repeated faces. The
-            // slot stays reserved on the other bubbles to keep the run's
-            // left edge aligned.
+        // v1.65 boss 2026-09-21 'chat detail 1:1 hermes macOS desktop':
+        // drop the iMessage-style bubble + avatar-run-merge path (= the
+        // v0.57 boss OOB) and render the assistant message as plain left-
+        // aligned text per `apps/desktop/src/components/assistant-ui/
+        // thread/assistant-message.tsx:275-282`, with user messages getting
+        // a rounded-xl glass card pinned to the bottom of the scroll
+        // viewport per `user-message.tsx:67-69`. The avatar shown here is
+        // the column glyph (= left gutter), not the bubble-end glyph: a
+        // run of consecutive messages from one author renders a glyph on
+        // every row, which matches the Hermes `ROLE` glyph path.
+        HStack(alignment: .top, spacing: 8) {
+            // Avatar / source glyph column (= left gutter; = a column
+            // wide enough for the SF Symbol at iconLargeSize so rows
+            // align regardless of whether the message carries a source
+            // glyph or a transparent slot).
             Group {
-                if position.hasTail && !isOutgoing {
-                    switch message.source {
-                    case .user:
-                        Image(systemName: "person").font(.system(size: 24, weight: .regular))
-                            .aspectRatio(contentMode: .fit)
-                    case .wenshu:
-                        Image(systemName: "sparkles").font(.system(size: 24, weight: .regular))
-                            .aspectRatio(contentMode: .fit)
-                    case .system:
-                        Image(systemName: sourceIcon).font(.system(size: 24, weight: .regular))
-                    }
-                } else if !isOutgoing {
-                    Color.clear
+                switch message.source {
+                case .user:
+                    Image(systemName: "person").font(.system(size: 24, weight: .regular))
+                        .aspectRatio(contentMode: .fit)
+                case .wenshu:
+                    Image(systemName: "sparkles").font(.system(size: 24, weight: .regular))
+                        .aspectRatio(contentMode: .fit)
+                case .system:
+                    Image(systemName: sourceIcon).font(.system(size: 24, weight: .regular))
                 }
             }
             .foregroundStyle(sourceColor)
             .frame(
-                width: isOutgoing ? 0 : DesignTokens.iconLargeSize,
-                height: isOutgoing ? 0 : DesignTokens.iconLargeSize
+                width: DesignTokens.iconLargeSize,
+                height: DesignTokens.iconLargeSize
             )
 
-VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
-                // iMessage names the author once per run, not per bubble.
-                if position == .only || position == .first {
+            VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
+                // Source label row (= every row, not just run start; =
+                // matches hermes assistant-message.tsx where the model
+                // glyph identifies each assistant message inline).
                     HStack(spacing: 4) {
                         // T71-SOURCE-STATUS-DOT (2026-09-18): a small
                         // "circle.fill" status dot BEFORE the source
@@ -421,7 +417,6 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 }
                         }
                     }
-                }
                 if message.isPlaceholder {
                     // Wenshu AI placeholder status indicator
                     // T87-STREAM-PULSE (2026-09-18): the
@@ -463,10 +458,9 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(bubbleFill, in: bubbleShape)
                     // T87-STREAM-PULSE (2026-09-18): a subtle
                     // scale + opacity pulse animation on the
-                    // streaming placeholder bubble (= 1.0 ->
+                    // streaming placeholder (= 1.0 ->
                     // 0.97 -> 1.0 over 1.6s easeInOut autoreverse;
                     // = a gentle "breathing" affordance that
                     // draws the eye to the in-flight assistant
@@ -618,14 +612,6 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     )
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(bubbleFill, in: bubbleShape)
-                    .overlay(alignment: .topTrailing) {
-                        if isOutgoing {
-                            ChatMessageHoverActions(content: message.content)
-                                .padding(.top, DesignTokens.chromePaddingSmall)
-                                .padding(.trailing, DesignTokens.chromePaddingSmall)
-                        }
-                    }
                     .wenshuChatHover()
                 }
                 // T19-MESSAGE-TIMESTAMP (2026-09-18): render a small
@@ -844,7 +830,11 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                 }
             }
 
-            if !isOutgoing { Spacer(minLength: 40) }
+            // Right-side spacer removed: with the left-gutter glyph
+            // column above, every row is full-width from the avatar to
+            // the right edge (= the Hermes `ROLE` glyph + flat body
+            // pattern; = no right-edge trailing space).
+            Spacer(minLength: 0)
         }
     }
 
@@ -875,33 +865,6 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
             }
         }
         return ""
-    }
-
-    /// Bubble fill.
-    ///
-    /// Measured Messages.app on this machine in dark mode: outgoing
-    /// rgb(29, 143, 250), incoming rgb(51, 52, 54) against an
-    /// rgb(28, 28, 28) transcript. Wenshu uses the semantic equivalents of
-    /// those instead of the literals, so the bubbles track the user's
-    /// accent colour and appearance rather than being pinned to one theme.
-    private var bubbleFill: AnyShapeStyle {
-        if message.source == .system {
-            return AnyShapeStyle(Color(nsColor: .systemRed).opacity(0.15))
-        }
-        return isOutgoing
-            ? AnyShapeStyle(Color.accentColor)
-            // Chosen by measurement. Messages runs a 23-unit gap between
-            // the incoming bubble and the transcript behind it (51 vs 28).
-            // Rendered every candidate semantic style in a sample app and
-            // measured each against the same background: quinary +10, fill.secondary
-            // +17, quaternary +22, fill +22, unemphasized +27, tertiary +55.
-            // .quaternary lands on Messages' gap while still tracking the
-            // user's appearance instead of hard-coding a grey.
-            : AnyShapeStyle(.quaternary)
-    }
-
-    private var bubbleShape: ChatBubbleShape {
-        ChatBubbleShape(isOutgoing: isOutgoing, position: position)
     }
 
     private var sourceIcon: String {

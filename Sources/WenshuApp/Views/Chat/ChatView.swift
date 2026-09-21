@@ -1100,22 +1100,6 @@ public final class ChatViewModel {
 
 /// ChatView: lower-left zone UI (Apple SwiftUI + conductor + store)
 public struct ChatView: View {
-    /// Works out where a message sits in a run of consecutive messages from
-    /// the same author. iMessage tails only the last bubble of a run and
-    /// squares the corners facing a neighbour, which is what makes a burst
-    /// of replies read as one block instead of a stack of pills.
-    static func bubblePosition(at index: Int, in messages: [ChatMessage]) -> ChatBubblePosition {
-        let source = messages[index].source
-        let samePrevious = index > 0 && messages[index - 1].source == source
-        let sameNext = index + 1 < messages.count && messages[index + 1].source == source
-        switch (samePrevious, sameNext) {
-        case (false, false): return .only
-        case (false, true):  return .first
-        case (true, true):   return .middle
-        case (true, false):  return .last
-        }
-    }
-
     /// T36-DATE-DIVIDERS (2026-09-18): returns true when the message
     /// at `index` should be preceded by a centered day-separator
     /// header. Strategy:
@@ -1323,10 +1307,6 @@ public struct ChatView: View {
                             }
                             ChatMessageView(
                                 message: msg,
-                                position: Self.bubblePosition(
-                                    at: index,
-                                    in: vm.messages
-                                ),
                                 // T24-PLAN-APPROVE (2026-09-18): when the
                                 // user clicks Approve & Run on a plan card,
                                 // submit the plan's original query back
