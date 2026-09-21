@@ -713,6 +713,99 @@ production code = **0**.
 | 3 | `WSMigration*Tests` re-creation if v1.55d ever needs reversal (= git revert) | no value (= boss OOB 2026-09-21 is firm; = if reversed, AGENTS.md amendment is the only path) |
 
 
+
+## §11.7e v1.65-cleanup D2 day-divider header removed (boss 2026-09-21 OOB)
+
+Per boss 2026-09-21 OOB (= chat display arc Q/A) on the wenshu chat transcript:
+'昨天/明天/周五的功能，我看 hermes 没有。如果确认没有，删掉对应的功能'.
+Verified hermes真值 (= `~/.hermes/hermes-agent/apps/desktop/src/components/assistant-ui/thread/`):
+no day-divider header (= "今天" / "Yesterday" / weekday + date) exists in
+transcript. Hermes distinguishes turns by foreground color + container
+presence alone (= see §11.7 spec box "Assistant 消息 = 左对齐纯文字",
+file `assistant-message.tsx:275-282` no day-divider element).
+
+Hermes day labels (= "Yesterday" / "Last week" / "June") exist ONLY in the
+**sidebar chat list** (= `app/chat/sidebar/chrome.tsx` `SidebarDateDivider`
++ `app/chat/sidebar/sessions-section.tsx`) — never inside the message
+transcript stream. The wenshu-side `ChatMessageDayDivider.swift` (= a
+day-bucket header rendered between consecutive messages in the transcript
+when the calendar day changes) is therefore a wenshu-side chrome addition
+not present in hermes 1:1 (= per boss '就参考 HERMES, 做 1:1; 多做的没用的,
+你就改掉'). The macOS Apple Messages app also doesn't render this header
+on macOS (= Apple Messages iOS shows a sticky date label on iOS, but the
+macOS variant does not — wenshu's macOS desktop target inherits the macOS
+behavior, not the iOS one).
+
+### Files removed (= 13 = 1 source + 12 test)
+
+| # | Path | Type | Pre-D2 role |
+|---|---|---|---|
+| 1 | `Sources/WenshuApp/Views/Chat/ChatMessageDayDivider.swift` | source (= 281 LOC) | centered day-bucket header view: renders "Today" / "Yesterday" / weekday (e.g. "Mon") / weekday + date (e.g. "Mon 9/14") based on calendar-day comparison between consecutive messages |
+| 2 | `Tests/WenshuAppTests/Views/ChatMessageDayDividerTests.swift` | test | core view behavior coverage |
+| 3-12 | `Tests/WenshuAppTests/Views/ChatMessageDayDivider{Count,DateInit,DayIcon,FullDateTooltip,LiveDot,Material,PinIcon,Style,TodayAccent,TodayPulse,TodayStar}Tests.swift` (10 files) | test | per-property coverage (= accent, pulse, star, material, etc.) |
+| 13 | (no other production callers in tree — `git grep ChatMessageDayDivider Sources/` matched only the deleted file) | n/a | confirmed via `git rm` |
+
+### Call sites updated (= 1 source file; = 1 function + 1 inline block)
+
+| # | File | Change |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Views/Chat/ChatView.swift` | DELETED `static func shouldShowDayDivider(at:in:) -> Bool` (= 12 LOC + 10-LOC doc comment; = the function that decided whether to insert a divider before each message); = inside `ForEach(Array(vm.messages.enumerated()))` body, REMOVED the inline `if Self.shouldShowDayDivider(...) { ChatMessageDayDivider(timestamp:) }` block (= 3 LOC; = the call site); = the surrounding doc comment was rewritten to a v1.65-cleanup D2 history note (= references boss OOB 2026-09-21 + hermes-真值 reasoning + AGENTS.md §11.7e forward-link) |
+
+### i18n keys removed (= 4 occurrences × 2 keys)
+
+| # | File | Keys removed |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Resources/en.lproj/Localizable.strings` | `chatview.day_divider.today` (= "Today"), `chatview.day_divider.yesterday` (= "Yesterday") |
+| 2 | `Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings` | `chatview.day_divider.today` (= "今天"), `chatview.day_divider.yesterday` (= "昨天") |
+| 3 | `Tests/WenshuAppTests/Resources/en.lproj/Localizable.strings` | (already absent; = no change) |
+| 4 | `Tests/WenshuAppTests/Resources/zh-Hans.lproj/Localizable.strings` | (already absent; = no change) |
+
+Removed via `plutil -convert json` → `del data[k]` → `plutil -convert binary1`
+round-trip (= preserves plist format + encoding; = no manual binary edits).
+Total 4 keys removed (2 en + 2 zh-Hans). Other weekday strings
+(= "Mon" / "Tue" / short weekday names) were hardcoded in `ChatMessageDayDivider.swift`'s
+`DateFormatter` and vanished with the file; no separate i18n key.
+
+### Acceptance (= per Q112 + Q99 dual-axis)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 = 1 source + 1 test per ticket | **YES** (= 1 commit: source deletion + 12 test deletions + 2 i18n key removals in en + 2 in zh-Hans; = call-site edit + doc-comment rewrite; all form one inseparable visual-arc change = atomic-coupling per Q112 justification) |
+| 2 | `swift build` clean | **0 errors / 0 warnings introduced** (= the only `warning: case will never be executed` from pre-existing `ChatMessageView` source content is unrelated to this ticket — same pre-existing warning observed on §11.7d base) |
+| 3 | `swift test --filter Chat` pass | **100 tests passed, 0 fatal** (= 2 pre-existing flakes from §11.5 acceptance still present: `cursor_uses_same_foregroundStyle` + `ChatZoneView.swift model menu text shows 'No model available'`; = both unrelated to this ticket) |
+| 4 | `grep "ChatMessageDayDivider"` in `Sources/` | **0 hits** (= the file is deleted; = the call site in `ChatView.swift` is deleted; = the helper function in `ChatView.swift` is deleted; = nothing references it) |
+| 5 | `grep "day_divider"` in i18n resources | **0 hits** (= 4 keys removed from 2 files; = remaining en/zh-Hans resource files contain no `day_divider` prefix) |
+| 6 | User-visible chat detail area | **simpler** (= no more "今天" / "Yesterday" / "Fri 9/14" centered headers between messages; = hermes 1:1; = day change is now visible only via per-message timestamp footer = spec §2.4 hermes 真值) |
+
+### What was NOT preserved (= post-D2 behavior change)
+
+| # | Surface | Pre-D2 | Post-D2 |
+|---|---|---|---|
+| 1 | Day-bucket headers in chat transcript | "今天" / "Yesterday" / "Fri" / "Mon 9/14" centered headers shown between consecutive messages when calendar day changes (= 281 LOC ChatMessageDayDivider.swift + 12 tests + 4 i18n keys) | **none** (= per hermes 1:1; = the gap between two messages on different days is rendered with the same `gap-(--conversation-turn-gap)` (= wenshu `DesignTokens.conversationTurnGap` semantic) as any other turn gap; = no visual day change marker inside the transcript) |
+| 2 | First-message "when did this chat start" header | "今天" / "Yesterday" / "Fri" centered header rendered before the first message of every chat (= pre-D2 default for index == 0) | **none** (= per hermes 1:1; = the user can still tell when the chat started from the first message's timestamp footer; = the per-message timestamp remains per spec §2.4 row "per-message footer timestamp" + the `MessageTimelineTimestamp` element still renders at the bottom of each assistant turn) |
+| 3 | Localized strings for "Today" / "Yesterday" in chat context | 4 keys: `chatview.day_divider.{today,yesterday}` × {en, zh-Hans} | **0 keys** (= removed; = `WenshuI18n.t("chatview.day_divider.today")` would now return the empty string fallback; = no call site asks for it anymore) |
+
+### Why this is the right shape (= per boss 2026-09-21 OOB)
+
+1. **Hermes 1:1 invariant** (= per boss '就参考 HERMES, 做 1:1'): hermes真值 `apps/desktop/src/components/assistant-ui/thread/` (= 0 day-divider references in `grep -rln day.*divider thread/`) confirms there is no day-bucket header in the macOS Electron transcript. The wenshu `ChatMessageDayDivider` was therefore a wenshu-side invention (= T36 ticket 2026-09-18 referenced "Apple Messages convention" but the macOS Messages app does not render this either — only iOS Messages does, and wenshu is macOS-only per AGENTS.md §11 baseline).
+2. **Boss intent** (= per boss '我看 hermes 没有'): explicit confirmation that the feature does not exist in hermes triggers an explicit deletion. This is the canonical "1:1 means drop everything that isn't in hermes" pattern (= opposite of "I want a feature, model it on hermes if available").
+3. **Chat history still readable** (= per spec §2.4 hermes 真值): each message keeps its per-message timestamp footer (= `MessageTimelineTimestamp` = the bottom-of-bubble `8:36:05` style label = the same Apple-IG-message-convention footer hermes uses). So users can still tell when a message was sent; the only thing they lose is the "above-the-bubble" day-bucket header between consecutive cross-day messages. Per spec §2.4 row "MessageTimelineTimestamp" + "timestamp + action footer inline below content", this is the hermes-style timestamp path; the deleted day-divider was a wenshu-only add-on.
+4. **Future-safe** (= per boss '写明白'): this section is the canonical record of D2. Any future agent reading §11.7 (= "v1.55 sqlite3-zero migration arc") sees §11.7d (= sqlite3 closure) AND §11.7e (= day-divider header deletion) AND §11.7 (= the underlying hermes真值 spec box preserved) — the timeline is v1.55 = runtime layer, v1.55d = sqlite3 closure, D2 = day-divider deletion, all consistent with "wenshu code is hermes 1:1 or it is gone".
+
+### Files touched (= 18 total = 13 deletes + 2 edits + 4 .strings edits)
+
+| # | Path | Change |
+|---|---|---|
+| 1-13 | 1 source file + 12 test files (per "Files removed" table above) | `git rm` |
+| 14 | `Sources/WenshuApp/Views/Chat/ChatView.swift` | delete `shouldShowDayDivider` static func + delete inline `if Self.shouldShowDayDivider { ChatMessageDayDivider(...) }` call block; rewrite surrounding doc comments to v1.65-cleanup D2 history note |
+| 15-16 | `Sources/WenshuApp/Resources/{en,zh-Hans}.lproj/Localizable.strings` | remove `chatview.day_divider.{today,yesterday}` keys via plutil round-trip |
+| 17 | `AGENTS.md` | add this §11.7e section |
+
+### Future tickets (= NOT in D2 scope)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | wenshu-side `MessageTimelineTimestamp` (= per-message timestamp footer) audit (= is it wired to all message paths, or only assistant turns?) | Q112 scope (= separate ticket); = pre-D2 audit confirmed it renders at the bottom of assistant messages; = no audit was needed for D2 (= D2 only deletes, doesn't touch the timestamp footer) |
 # §11.8 v1.57 stale-helper migration arc + pre-existing flake closure (= boss 2026-09-20 OOB)
 
 Per boss OOB 2026-09-20 '继续' (= continue; = no spec change required;

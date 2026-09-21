@@ -1100,29 +1100,6 @@ public final class ChatViewModel {
 
 /// ChatView: lower-left zone UI (Apple SwiftUI + conductor + store)
 public struct ChatView: View {
-    /// T36-DATE-DIVIDERS (2026-09-18): returns true when the message
-    /// at `index` should be preceded by a centered day-separator
-    /// header. Strategy:
-    ///   - The first message (= index == 0) ALWAYS gets a header
-    ///     so the user knows when this chat started.
-    ///   - A subsequent message gets a header iff its calendar day
-    ///     differs from the previous message's calendar day.
-    ///   - If either timestamp is nil, no header (= legacy messages
-    ///     without timestamps skip the divider).
-    static func shouldShowDayDivider(
-        at index: Int, in messages: [ChatMessage]
-    ) -> Bool {
-        let currentDate = messages[index].timestamp
-        let calendar = Calendar.current
-
-        if index == 0 { return true }
-
-        guard index > 0 else { return false }
-        let previousDate = messages[index - 1].timestamp
-
-        return !calendar.isDate(currentDate, inSameDayAs: previousDate)
-    }
-
     /// v1.65 boss 'all 1:1 hermes真值': true when `messageID` is the
     /// most recent user-sourced message in the transcript. Hermes
     /// (`user-message.tsx:30-55` `StickyHumanMessageContainer`) pins
@@ -1329,17 +1306,18 @@ public struct ChatView: View {
                             // because iMessage only tails the last one and
                             // squares the corners facing a neighbour.
                             //
-                            // T36-DATE-DIVIDERS (2026-09-18): above the
-                            // current message, render a small "Today" /
-                            // "Yesterday" / "Mon 9/14" centered header
-                            // when the calendar day changes from the
-                            // previous message. The first message in the
-                            // conversation (= index == 0) ALSO shows a
+                            // v1.65-cleanup D2 boss 2026-09-21 '昨天/明天/周五
+                            // the hermes transcript has no day-divider header':
+                            // the wenshu-side ChatMessageDayDivider
+                            // (= "Today" / "Yesterday" / weekday + date header)
+                            // was deleted (= see AGENTS.md §11.7e). Hermes
+                            // 真值 distinguishes turns by foreground color
+                            // + container presence alone (= no day bucket
+                            // header in transcript; = per boss 2026-09-21
+                            // OOB '我看 hermes 没有').
+                            // The first message (= index == 0) ALSO shows a
                             // header so the user knows when this chat
                             // started.
-                            if Self.shouldShowDayDivider(at: index, in: vm.messages) {
-                                ChatMessageDayDivider(timestamp: msg.timestamp.timeIntervalSince1970)
-                            }
                             // v1.65 boss 'all 1:1 hermes真值': compute
                             // the latest user message id (= the row
                             // that gets the sticky-top treatment per
