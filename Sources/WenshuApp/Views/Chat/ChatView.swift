@@ -1441,7 +1441,20 @@ public struct ChatView: View {
                     // boss 2026-09-21 '试着补一下'; = 100% 1:1 means
                     // the COLUMN fills, not that the user card
                     // becomes full-width too).
-                    .padding(.horizontal, 32)
+                    //
+                    // v1.65-cleanup E3.5 boss 2026-09-21 '所有的对话，
+                    // 在聊天区的展示，居左 10PT，居右 10PT。现在都
+                    // 过于宽了' (= the chat column used 32 PT
+                    // horizontal gutter; = too much padding; = the
+                    // chat content sat in a narrow strip in the
+                    // middle of the column; = boss explicitly
+                    // requires exactly 10 PT on each side). Set
+                    // horizontal padding to 10 PT (= matches Apple
+                    // HIG px-2.5 = 10 PT; = matches the chat input
+                    // row's existing 10 PT horizontal padding; =
+                    // visual alignment between the chat input and
+                    // the chat transcript above it).
+                    .padding(.horizontal, 10)
                     // v1.74 boss 2026-09-18 'is there another layer behind it? the
                     // text scrolls underneath but I can't see it — the
                     // floating panel should be semi-transparent so I can
@@ -1531,6 +1544,19 @@ public struct ChatView: View {
                             }
                         )
                         .background(Color(nsColor: .controlBackgroundColor))
+                        // v1.65-cleanup E3.5 boss 2026-09-21 '距离那个拖
+                        // 拽线 10 左右，现在太远' (= the sticky overlay
+                        // sat flush against the scroll viewport top
+                        // edge; = 0 PT gap to the titlebar / floating
+                        // panel separator). Add a 10 PT top padding to
+                        // the overlay's outer frame so the user card
+                        // sits 10 PT below the visible top edge
+                        // (= matches hermes chat list.tsx `pt-2.5`
+                        // = 10 PT spacing between the sticky row and
+                        // the toolbar above; = the Apple HIG
+                        // floating-overlay pattern; = visually
+                        // anchored with breathing room).
+                        .padding(.top, 10)
                         // The bottom edge of the overlay needs a
                         // hairline separator so the floating card
                         // visually delimits from the scroll content

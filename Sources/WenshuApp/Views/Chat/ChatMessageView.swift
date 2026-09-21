@@ -785,8 +785,18 @@ private struct UserGlassCardModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         if isOutgoing {
+            // v1.65-cleanup E3.5 boss 2026-09-21 '本字要在矩形框里左对齐，
+            // 距离框的边缘 10PT' (= the user text inside the glass card
+            // was at 12 PT horizontal padding; = boss wants exactly
+            // 10 PT (= the Apple HIG px-2.5 = 10 PT convention; = the
+            // hermes真值 `UserBubbleBaseClass px-3 py-2` = 12 PT px / 8 PT
+            // py is slightly more spacious; = boss explicitly chose
+            // 10 PT)). Set horizontal padding to 10 PT (= tighter card,
+            // more text per row, = matches boss's explicit 10 PT
+            // instruction). Vertical padding stays at 6 PT (= unchanged;
+            // = compact card height; = matches Apple HIG py-1.5 = 6 PT).
             content
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 // v1.65-cleanup E3 boss 2026-09-21 '你甚至可以把用户的那个框，
