@@ -25,8 +25,9 @@
 //     zero results. Fallback loads all indexed docs from a SwiftData-side
 //     mirror and computes token-overlap score in-process.
 //
-// The SwiftData mirror lives in `WSMigrationPerStore.migrateSearchIndex`
-// (= one-shot import from the legacy `search.db` FTS5 file at first launch).
+// The SwiftData mirror lives in this actor (= SearchDocMirrorPersistence
+// helper; = no longer imported from WSMigrationPerStore, which was
+// deleted in v1.55d arc, boss 2026-09-21 '数据库不要在用sqlite3 了').
 // The mirror is written on every `index(docId:title:body:)` so that the
 // fallback always has fresh data.
 //
@@ -89,7 +90,10 @@ public struct SearchDocMirrorEntry: Equatable, Sendable {
 /// Actor-isolated (= 1:1 with FullTextSearch actor contract).
 public actor CSSearchableIndexSearch {
     /// In-process mirror of indexed docs (= fallback when Spotlight disabled).
-    /// Persisted to disk via `SearchDocMirrorPersistence` (= see WSMigrationPerStore).
+    /// Persisted to disk via `SearchDocMirrorPersistence` (= see
+    /// Persistence/SearchDocMirrorPersistence.swift; = written every
+    /// `index(docId:title:body:)` call; = loadable on next launch via
+    /// `loadPersistedMirror()`).
     private var mirror: [String: SearchDocMirrorEntry] = [:]
 
     /// Index-ready batch queue (= coalesces rapid `index` calls into 1 CSSearchableIndex call).
@@ -104,7 +108,7 @@ public actor CSSearchableIndexSearch {
     /// Apple HIG: CSSearchableIndex.default() returns the system Spotlight index
     /// (= created lazily by macOS on first write).
     public func bootstrap() throws {
-        // Best-effort load of mirror from disk (= see WSMigrationPerStore).
+        // Best-effort load of mirror from disk (= see SearchDocMirrorPersistence).
         // Failure here is non-fatal (= mirror just starts empty).
     }
 
