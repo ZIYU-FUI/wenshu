@@ -992,13 +992,37 @@ private struct UserGlassCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         if isOutgoing {
             content
-                .padding(.horizontal, 12)
+                // v1.65 boss '试着补一下': hermes user-message.tsx:46
+                // `-mx-4 w-[calc(100%+2rem)] px-4` = the user sticky
+                // container extends 16 PT past the parent on each
+                // side (= visual "outdent" past the chat column
+                // edges). The internal `px-4` (= 16 PT padding)
+                // keeps the card text aligned with the transcript
+                // column (= the text doesn't move; = only the card
+                // background + border extend past the edges).
+                //
+                // wenshu SwiftUI真值实现 (= closest 1:1 with the
+                // macOS 27 SwiftUI API surface): we can't push a view
+                // past its parent's frame (= LazyVStack row is
+                // bounded by the pane width; = wenshu chats don't
+                // have a parent container with extra padding room).
+                // The closest visual: pad the card internally with
+                // 16 PT (= matches hermes `px-4`), AND extend the
+                // card's maxWidth from 0.75 (= MC2 cap) to 0.95
+                // (= the card fills nearly the full transcript
+                // column width without visibly going past the pane
+                // edge; = the same visual emphasis as hermes' outdent
+                // without the layout-break risk of trying to render
+                // outside the pane).
+                //
+                // Hermes真值 `px-4` (= 16 PT) replaces the previous
+                // MC2 `px-3` (= 12 PT) for the card internal
+                // padding. The 16 PT matches hermes' tailwind px-4
+                // token (= the rounding-equivalent of 16 / 4 in
+                // Tailwind's default spacing scale of 0.25 rem).
+                .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                // Cap the user card at 75% of the transcript width
-                // (= matches Hermes iMessage-style outgoing bubble
-                // proportions; = a long user message breaks inside the
-                // card rather than spanning the whole row).
-                .frame(maxWidth: 0.75, alignment: .trailing)
+                .frame(maxWidth: 0.95, alignment: .trailing)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(.regularMaterial)

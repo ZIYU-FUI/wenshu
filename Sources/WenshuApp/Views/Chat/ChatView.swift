@@ -1369,26 +1369,32 @@ public struct ChatView: View {
                         }
                     }
                     .padding(DesignTokens.chromePaddingVertical)
-                    // v1.65 boss 'all 1:1 hermes真值': add the
-                    // hermes真值 `px-6` (= 24 PT) horizontal padding
-                    // to the LazyVStack content (= matches list.tsx:1454
-                    // `px-6` on `aui_thread-content`). The cap-at-720
-                    // frame centers the column on wide windows; the
-                    // 24 PT padding ensures the row text doesn't
-                    // touch the LazyVStack edges (= the same gutter
-                    // hermes gives each message row).
-                    .padding(.horizontal, 24)
-                    // v1.65 MC3: cap the content column at 720 PT and
-                    // center on wide windows (= the chat input row
-                    // sits in the same capped column per the v1.57-
-                    // floating-chat-input layout; = visual alignment
-                    // between bubble + input). `mx-auto` here on the
-                    // LazyVStack (= SwiftUI `.frame(maxWidth: 720,
-                    // alignment: .center)`) centers the column when
-                    // the pane is wider than 720 PT (= the
-                    // translated `mx-auto flex max-w`).
-                    .frame(maxWidth: 720, alignment: .center)
-                    .frame(maxWidth: .infinity)
+                    // v1.65 boss 'all 1:1 hermes真值' + '试着补一下':
+                    // hermes `--composer-width: 100%` (= not a fixed
+                    // pixel cap; = the chat content column fills the
+                    // full chat pane width). The only horizontal
+                    // constraint is `min(var(--composer-width),
+                    // calc(100% - 2rem))` on the composer dock
+                    // (= 2rem = 32 PT = horizontal gutter so the
+                    // composer doesn't touch the pane edges).
+                    // = the chat content column has NO cap.
+                    //
+                    // Earlier v1.65 MC3 used `.frame(maxWidth: 720,
+                    // alignment: .center)` (= wrong; = I inferred
+                    // 720 PT from a screenshot guess). The hermes真
+                    // 值 is "fill the chat pane width, with 32 PT
+                    // gutter". This commit drops the 720 cap and
+                    // keeps the 32 PT gutter (= `px-6` from the
+                    // MC6 commit was 24 PT = wrong; = 2rem = 32 PT
+                    // is the hermes真值).
+                    //
+                    // The user glass card (= 75% maxWidth cap inside
+                    // UserGlassCardModifier) stays at 75% so a long
+                    // user message breaks inside the card (= per
+                    // boss 2026-09-21 '试着补一下'; = 100% 1:1 means
+                    // the COLUMN fills, not that the user card
+                    // becomes full-width too).
+                    .padding(.horizontal, 32)
                     // v1.74 boss 2026-09-18 'is there another layer behind it? the
                     // text scrolls underneath but I can't see it — the
                     // floating panel should be semi-transparent so I can
@@ -1470,7 +1476,16 @@ public struct ChatView: View {
                     )
                     .zIndex(40) // = Hermes真值 `z-40`
                     .transition(.opacity.combined(with: .move(edge: .top)))
-                    .padding(.horizontal, 24) // = hermes `px-6`
+                    .padding(.horizontal, 32) // = hermes真值 `2rem` (32 PT, NOT px-6 24 PT)
+                    //                              = the chat composer dock's
+                    //                                horizontal gutter;
+                    //                                = applied to the
+                    //                                safeAreaInset
+                    //                                overlay so the
+                    //                                latest-user sticky
+                    //                                bubble aligns with
+                    //                                the in-transcript
+                    //                                column below.
                 }
             }
             // async load history via .task modifier (non-blocking)
