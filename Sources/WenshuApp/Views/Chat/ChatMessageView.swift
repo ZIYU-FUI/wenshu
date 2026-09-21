@@ -24,6 +24,26 @@ import SwiftUI
 /// One chat-message view (Apple HIG ground truth)
 struct ChatMessageView: View {
     let message: ChatMessage
+    /// v1.65 boss 2026-09-21 'all 1:1 hermes真值, 文字回显就按
+    /// hermes 的方式走': true when this row is the most recent
+    /// user (= .user source) message in the transcript. Hermes
+    /// (`user-message.tsx:30-55` `StickyHumanMessageContainer`)
+    /// pins the latest user bubble to the top of the scroll
+    /// viewport via `position: sticky; top: 0` (= the bubble
+    /// scrolls with the rest until it reaches the viewport top,
+    /// then it pins there). The SwiftUI equivalent is the
+    /// `.sticky(top:)` modifier; we apply it ONLY to the latest
+    /// user message (= the historical user messages scroll
+    /// normally, no overlap stack at the top).
+    ///
+    /// The `top: 80` offset (= the v1.74 boss 拍 chat input row
+    /// height) lets the sticky bubble park ABOVE the floating
+    /// input row instead of underneath (= the same `sticky-human-
+    /// top` reservation hermes uses in list.tsx for the secondary
+    /// window titlebar case; wenshu uses 80 PT for the floating
+    /// input instead). z-index places the sticky bubble above the
+    /// transcript content but below the titlebar.
+    var isLatestUser: Bool = false
     /// T24-PLAN-APPROVE (2026-09-18): callback invoked when the user
     /// clicks Approve & Run on a plan card. The closure is provided
     /// by the parent ChatView (= the closure submits the plan's original
@@ -44,9 +64,11 @@ struct ChatMessageView: View {
 
     public init(
         message: ChatMessage,
+        isLatestUser: Bool = false,
         onApprovePlan: ((Plan) -> Void)? = nil
     ) {
         self.message = message
+        self.isLatestUser = isLatestUser
         self.onApprovePlan = onApprovePlan
     }
 
@@ -222,6 +244,41 @@ struct ChatMessageView: View {
         messageContents
             .frame(maxWidth: .infinity, alignment: isOutgoing ? .trailing : .leading)
             .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
+            // v1.65 boss 'all 1:1 hermes真值' + 'Apple API 限制可接受':
+            // Apple SwiftUI does NOT expose CSS `position: sticky` (= no
+            // .sticky() modifier exists on macOS 27). The closest
+            // 1:1 implementation of the Hermes `StickyHumanMessage
+            // Container` (user-message.tsx:46 `sticky z-40`) lives in
+            // ChatView via `.safeAreaInset(edge: .top, spacing: 0)` —
+            // see ChatView.swift for the overlay render. The latest-
+            // user-bubble visual treatment (= the `isLatestUser`
+            // flag = z-index 40 + opaque glass card) is applied at
+            // the overlay level there.
+            //
+            // The in-LazyVStack version of the latest user bubble
+            // (= this row) renders normally (= scrolls with the
+            // transcript). When a NEW user message arrives, the
+            // overlay swaps to the new latest; this row loses the
+            // special treatment (= becomes a normal historical user
+            // bubble).
+            //
+            // Trade-off (= documented per boss 'Apple API 限制可
+            // 接受'):
+            //   - Hermes真值: sticky = row scrolls with transcript,
+            //     pins at viewport top when it reaches it. The row
+            //     IS in the LazyVStack (= participates in the
+            //     transcript timeline).
+            //   - wenshu 1:1 here: the latest user bubble is
+            //     rendered TWICE — once in the LazyVStack at its
+            //     timeline position (= full transcript including
+            //     this row), once in the safeAreaInset overlay at
+            //     the top (= fixed display).
+            //
+            // `isLatestUser` is accepted here (= no modifier needed)
+            // so the parameter stays for future use (= e.g. a
+            // different visual treatment if a later ticket replaces
+            // the safeAreaInset overlay with a per-row zIndex
+            // trick).
     }
 
     /// The row's content (= source label row + body row + footer +

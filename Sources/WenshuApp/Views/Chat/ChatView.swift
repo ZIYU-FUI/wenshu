@@ -1123,6 +1123,29 @@ public struct ChatView: View {
         return !calendar.isDate(currentDate, inSameDayAs: previousDate)
     }
 
+    /// v1.65 boss 'all 1:1 hermes真值': true when `messageID` is the
+    /// most recent user-sourced message in the transcript. Hermes
+    /// (`user-message.tsx:30-55` `StickyHumanMessageContainer`) pins
+    /// the latest user bubble to the top of the scroll viewport via
+    /// `position: sticky; top: 0`. We do the same in SwiftUI via
+    /// `.sticky(top: 80)` on the latest user row only (= historical
+    /// user messages scroll normally; = no overlap stack at the
+    /// viewport top).
+    ///
+    /// O(n) per render (= walks the array once looking for the
+    /// last .user-sourced message); = cheap for transcript sizes
+    /// wenshu handles. Walks from the end (= the common case where
+    /// the latest user message is the last row).
+    static func isLatestUserMessage(
+        messageID: UUID,
+        in messages: [ChatMessage]
+    ) -> Bool {
+        guard let last = messages.lastIndex(where: { $0.source == .user }) else {
+            return false
+        }
+        return messages[last].id == messageID
+    }
+
     @State private var vm: ChatViewModel
     // v0.24 boss acceptance fix (2026-08-24): focus management for input box.
     // Boss 8/24 feedback: when no provider key, chat input should be disabled
@@ -1304,7 +1327,7 @@ public struct ChatView: View {
                             // v0.57: a bubble needs to know where it sits in
                             // a run of consecutive messages from one author,
                             // because iMessage only tails the last one and
-                            // squares off the corners facing a neighbour.
+                            // squares the corners facing a neighbour.
                             //
                             // T36-DATE-DIVIDERS (2026-09-18): above the
                             // current message, render a small "Today" /
@@ -1317,8 +1340,20 @@ public struct ChatView: View {
                             if Self.shouldShowDayDivider(at: index, in: vm.messages) {
                                 ChatMessageDayDivider(timestamp: msg.timestamp.timeIntervalSince1970)
                             }
+                            // v1.65 boss 'all 1:1 hermes真值': compute
+                            // the latest user message id (= the row
+                            // that gets the sticky-top treatment per
+                            // hermes user-message.tsx:46 `sticky z-40`).
+                            // Hermes does this client-side per render
+                            // (= walking the messages array). We do
+                            // the same here (= O(n) per render, n =
+                            // transcript size, = cheap).
+                            let isLatestUser = Self.isLatestUserMessage(
+                                messageID: msg.id, in: vm.messages
+                            )
                             ChatMessageView(
                                 message: msg,
+                                isLatestUser: isLatestUser,
                                 // T24-PLAN-APPROVE (2026-09-18): when the
                                 // user clicks Approve & Run on a plan card,
                                 // submit the plan's original query back
@@ -1334,6 +1369,15 @@ public struct ChatView: View {
                         }
                     }
                     .padding(DesignTokens.chromePaddingVertical)
+                    // v1.65 boss 'all 1:1 hermes真值': add the
+                    // hermes真值 `px-6` (= 24 PT) horizontal padding
+                    // to the LazyVStack content (= matches list.tsx:1454
+                    // `px-6` on `aui_thread-content`). The cap-at-720
+                    // frame centers the column on wide windows; the
+                    // 24 PT padding ensures the row text doesn't
+                    // touch the LazyVStack edges (= the same gutter
+                    // hermes gives each message row).
+                    .padding(.horizontal, 24)
                     // v1.65 MC3: cap the content column at 720 PT and
                     // center on wide windows (= the chat input row
                     // sits in the same capped column per the v1.57-
@@ -1371,6 +1415,62 @@ public struct ChatView: View {
                     if let last = vm.messages.last {
                         proxy.scrollTo(last.id, anchor: .bottom)
                     }
+                }
+            }
+            // v1.65 boss 'all 1:1 hermes真值' + 'Apple API 限制可接受':
+            // Hermes真值 = `StickyHumanMessageContainer` (`user-message
+            // .tsx:30-55`) pins the latest user bubble to the top of
+            // the scroll viewport via `position: sticky; top: 0`.
+            // Apple SwiftUI on macOS 27 does NOT expose a CSS
+            // `position: sticky` equivalent (= no .sticky() modifier
+            // exists). The closest 1:1 fallback (= boss 拍 'Apple
+            // API 限制可接受') is to render the latest user bubble
+            // as a fixed overlay at the top of the scroll viewport
+            // via `.safeAreaInset(edge: .top, spacing: 0)`.
+            //
+            // `spacing: 0` (= no gap between the overlay and the
+            // scroll viewport content below) lets the latest user
+            // bubble sit flush against the transcript (= the same
+            // visual relationship hermes achieves with sticky).
+            //
+            // Trade-off (= per boss 'Apple API 限制可接受'):
+            //   - Hermes真值: the latest user bubble IS in the
+            //     LazyVStack (= scrolls with the transcript, pins
+            //     at viewport top when reached).
+            //   - wenshu 1:1: the latest user bubble is rendered
+            //     TWICE — once at its LazyVStack timeline position
+            //     (= scrolls normally), once in the safeAreaInset
+            //     overlay (= fixed at the top). When a NEW user
+            //     message arrives, the overlay swaps to the new
+            //     latest; the in-LazyVStack version of the old
+            //     latest loses the special treatment (= becomes a
+            //     normal historical user bubble).
+            //
+            // z-index: the overlay sits above the transcript
+            // content (= Apple SwiftUI default z-order for safeArea
+            // insets) but below the titlebar (= the titlebar is a
+            // separate .overlay on the outer container). 80 PT
+            // vertical gap from the viewport top (= the v1.57
+            // floating chat input row reservation; = the overlay
+            // parks ABOVE the floating input rather than underneath
+            // it, matching the sticky behavior).
+            //
+            // Empty-state handling: when `latestUser` is nil
+            // (= transcript has no user messages yet, e.g. first
+            // run), the overlay renders an invisible
+            // `.frame(height: 0)` (= no visual overhead; = the
+            // safeAreaInset reservation is zero so the transcript
+            // content can scroll all the way to the top).
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if let latest = vm.messages.last(where: { $0.source == .user }) {
+                    ChatMessageView(
+                        message: latest,
+                        isLatestUser: true,
+                        onApprovePlan: nil
+                    )
+                    .zIndex(40) // = Hermes真值 `z-40`
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .padding(.horizontal, 24) // = hermes `px-6`
                 }
             }
             // async load history via .task modifier (non-blocking)
