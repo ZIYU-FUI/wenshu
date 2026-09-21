@@ -490,37 +490,23 @@ struct ChatMessageView: View {
                         }
                     }
                 if message.isPlaceholder {
-                    // Wenshu AI placeholder status indicator
-                    // T87-STREAM-PULSE (2026-09-18): the
-                    // placeholder HStack now has a subtle scale
-                    // pulse animation (= 1.0 -> 0.97 -> 1.0 over
-                    // 1.6s easeInOut autoreverse = a gentle
-                    // "breathing" affordance; = draws the eye
-                    // to the in-flight assistant message
-                    // without being distracting; = matches
-                    // Apple Messages "typing..." pulse).
-                    HStack(spacing: 4) {
-                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
-                        // canonical placeholder indicator
-                        // (= 'person.crop.circle.badge.questionmark'
-                        // = SF Symbols 6 dot.case form of
-                        // Lucide's 'bot-message-square').
-                        Image(systemName: "person.crop.circle.badge.questionmark").font(.system(size: 16, weight: .regular))
-                            .foregroundStyle(.secondary)
+                    // v1.65 boss '思考中的那个效果不是 hermes 的效果':
+                    // Hermes真值 (= status.tsx ResponseLoadingIndicator
+                    // + status-pulse.tsx PULSE_DURATION_MS=400 +
+                    // PULSE_PERIOD_MS=5000):
+                    //   - A 3×3 PT rounded-2PT square (`size-3
+                    //     rounded-[2px]`) tinted at text-midground/80.
+                    //   - Animates opacity 1 → 0.5 → 1 over 400 ms
+                    //     ease-in-out; then SLEEPS 5 seconds
+                    //     (= PULSE_PERIOD_MS) before the next pulse.
+                    //     NOT a continuous breathing animation.
+                    //   - Sits inside a StatusRow (= flex self-start
+                    //     = left-aligned with the assistant content).
+                    //   - Followed by hint text + ActivityTimerText.
+                    HStack(spacing: 6) {
+                        StatusPulse()
                         Text(message.content)
                             .foregroundStyle(.secondary)
-                        ProgressView()
-                            .controlSize(.mini)
-                            .progressViewStyle(.circular)
-                        // T58-ELAPSED-TIME (2026-09-18): a small
-                        // elapsed-time indicator next to the
-                        // ProgressView (= "🧠 3.2s"). Drives a
-                        // TimelineView(.periodic(from: .now,
-                        // by: 0.5)) so the seconds tick while the
-                        // model is thinking. Gives the user a
-                        // concrete sense of progress (= "still
-                        // thinking, has been for 3s now") rather
-                        // than a generic spinner.
                         TimelineView(.periodic(from: .now, by: 0.5)) { context in
                             let elapsed = context.date.timeIntervalSince(message.timestamp)
                             Text(Self.formatElapsed(elapsed))
@@ -530,21 +516,10 @@ struct ChatMessageView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    // T87-STREAM-PULSE (2026-09-18): a subtle
-                    // scale + opacity pulse animation on the
-                    // streaming placeholder (= 1.0 ->
-                    // 0.97 -> 1.0 over 1.6s easeInOut autoreverse;
-                    // = a gentle "breathing" affordance that
-                    // draws the eye to the in-flight assistant
-                    // message without being distracting).
-                    // Matches Apple Messages "typing..." pulse.
-                    .scaleEffect(message.isPlaceholder ? 1.0 : 1.0)
-                    .animation(
-                        message.isPlaceholder
-                            ? .easeInOut(duration: 1.6).repeatForever(autoreverses: true)
-                            : .default,
-                        value: message.isPlaceholder
-                    )
+                    // T87-STREAM-PULSE removed (= 1.6s scale breathing):
+                    // hermes真值 `StatusPulse` (= 400 ms opacity pulse
+                    // every 5 s) replaces it. The 1.6 s breathing was
+                    // NOT what hermes does.
                 } else {
                     // v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat
                     // zone isn't implemented... port the whole thing from hermes... The editor uses SM,
@@ -1049,5 +1024,65 @@ private struct UserGlassCardModifier: ViewModifier {
         } else {
             content
         }
+    }
+}
+
+
+// v1.65 boss '思考中的那个效果不是 hermes 的效果': StatusPulse
+// (= hermes真值 `.tsx status-pulse.tsx` PULSE_DURATION_MS=400 +
+// PULSE_PERIOD_MS=5000).
+//
+// 1:1 visual (= a small 3×3 PT rounded-2PT square that opacity-
+// pulses 1 → 0.5 → 1 over 400 ms, then sleeps 5 seconds before
+// the next pulse; = NOT a continuous breathing animation). The
+// wenshu-side implementation uses SwiftUI's `TimelineView` for
+// the 5 second tick (= scheduled against `PULSE_PERIOD_MS`) +
+// `withAnimation(.easeInOut(duration: 0.4))` for the 400 ms
+// opacity transition (= same visual rhythm as hermes's WAAPI
+// `element.animate(...)`).
+private struct StatusPulse: View {
+    /// 5 second sleep between pulses (= matches hermes PULSE_PERIOD_MS).
+    private static let pulsePeriod: TimeInterval = 5.0
+    /// 400 ms opacity transition (= matches hermes PULSE_DURATION_MS).
+    private static let pulseDuration: Double = 0.4
+
+    @State private var isPulsing: Bool = false
+    @State private var nextPulseAt: Date = .now.addingTimeInterval(pulsePeriod)
+
+    var body: some View {
+        // The 3×3 PT rounded-2PT square (= hermes真值 `size-3
+        // rounded-[2px] text-midground/80`). SwiftUI's tint is
+        // mapped to Color.secondary (= Apple semantic for muted
+        // foreground on the assistant transcript).
+        RoundedRectangle(cornerRadius: 2, style: .continuous)
+            .fill(Color.secondary)
+            .frame(width: 3, height: 3)
+            .opacity(isPulsing ? 0.5 : 1.0)
+            // 400 ms ease-in-out opacity transition (1 → 0.5 → 1).
+            // The single keyframe `from→to` matches hermes's
+            // `[{opacity:1}, {opacity:0.5}, {opacity:1}]` visual
+            // rhythm (= the .easeInOut curve makes the fade out
+            // + fade back in feel like a soft "breath" inside the
+            // 400 ms window).
+            .animation(
+                .easeInOut(duration: Self.pulseDuration),
+                value: isPulsing
+            )
+            // TimelineView ticks once every 5 seconds (= matches
+            // hermes PULSE_PERIOD_MS); on each tick, if the
+            // scheduled time has been reached, flip isPulsing (= one
+            // pulse: 1 → 0.5 → 1 over the 400 ms animation).
+            .onAppear { nextPulseAt = .now.addingTimeInterval(Self.pulsePeriod) }
+            .background(
+                TimelineView(.periodic(from: .now, by: Self.pulsePeriod)) { context in
+                    Color.clear
+                        .onChange(of: context.date) { _, now in
+                            if now >= nextPulseAt {
+                                nextPulseAt = now.addingTimeInterval(Self.pulsePeriod)
+                                isPulsing.toggle()
+                            }
+                        }
+                }
+            )
     }
 }
