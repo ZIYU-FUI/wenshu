@@ -374,10 +374,10 @@ public struct ChatToolUsePartView: View {
         }
         .padding(.horizontal, DesignTokens.chromePaddingSmall)
         .padding(.vertical, DesignTokens.chromePaddingMicro)
-        .background(toolCardFill, in: RoundedRectangle(cornerRadius: 6))
+        .background(toolCardFill, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             // Thin left border (= Apple Mail "block quote" indicator).
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
         .frame(maxWidth: 360)
@@ -618,9 +618,9 @@ public struct ChatToolResultPartView: View {
         }
         .padding(.horizontal, DesignTokens.chromePaddingSmall)
         .padding(.vertical, DesignTokens.chromePaddingMicro)
-        .background(cardFill, in: RoundedRectangle(cornerRadius: 6))
+        .background(cardFill, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
         .frame(maxWidth: 360)
