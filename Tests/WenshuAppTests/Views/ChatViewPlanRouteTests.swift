@@ -16,8 +16,14 @@ import Foundation
 struct ChatViewPlanRouteTests {
 
     @Test func plan_with_query_extracts_query() throws {
+        // C-3 (refactor chat-mvvm-3layer): ChatViewModel moved out
+        // of ChatView.swift to Core/Chat/ChatSessionViewModel.swift
+        // (= business layer = Apple MVVM canonical separation).
+        // The plan-route helpers (= stripPlanPrefix / runPlanMode /
+        // PlanModeError catch / input.hasPrefix("/plan")) live in
+        // the business layer now; = the test follows.
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Core/Chat/ChatSessionViewModel.swift",
             encoding: .utf8
         )
         #expect(source.contains("private func stripPlanPrefix"))
@@ -25,8 +31,10 @@ struct ChatViewPlanRouteTests {
     }
 
     @Test func routeInput_intercepts_plan_before_skilladapter() throws {
+        // C-3: read the business layer file (ChatSessionViewModel.swift)
+        // where routeInput + stripPlanPrefix live now.
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Core/Chat/ChatSessionViewModel.swift",
             encoding: .utf8
         )
         guard let planIdx = source.range(of: "if let planQuery = stripPlanPrefix(input)"),
@@ -38,8 +46,9 @@ struct ChatViewPlanRouteTests {
     }
 
     @Test func plan_mode_clears_inputText() throws {
+        // C-3: runPlanMode moved to ChatSessionViewModel.swift.
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Core/Chat/ChatSessionViewModel.swift",
             encoding: .utf8
         )
         guard let start = source.range(of: "private func runPlanMode") else {
@@ -56,8 +65,9 @@ struct ChatViewPlanRouteTests {
     }
 
     @Test func plan_mode_errors_surfaced_via_error_description() throws {
+        // C-3: PlanModeError catch moved to ChatSessionViewModel.swift.
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Core/Chat/ChatSessionViewModel.swift",
             encoding: .utf8
         )
         #expect(source.contains("catch let error as PlanModeError"))
