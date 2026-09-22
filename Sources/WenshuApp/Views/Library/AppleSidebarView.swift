@@ -101,7 +101,44 @@ struct AppleSidebarView: View {
                 service = SidebarService(
                     loadShelves: { try bookStore.sidebarLoadShelves() },
                     loadAllBooks: { try bookStore.sidebarLoadAllBooks() },
-                    loadReferences: { try bookStore.referenceStore.loadAllReferences() }
+                    loadReferences: { try bookStore.referenceStore.loadAllReferences() },
+                    // v1.69 boss 2026-09-22 OOB '上面书架的五
+                    // 目录也可以加' (= mirror the reference
+                    // library's "X 项" subtitle on each book
+                    // folder row). Count .md files in the
+                    // matching on-disk folder; = returns 0 if
+                    // the folder doesn't exist (= first-launch
+                    // / empty folder).
+                    loadFolderDocCount: { [bookStore] bookId, folderName in
+                        let shelvesRoot = bookStore.stores.shelvesRoot
+                        // Walk every shelf under shelvesRoot
+                        // (= the book can live under any shelf; =
+                        // matches PreviewPane.loadBookDocs path
+                        // resolution logic).
+                        guard FileManager.default.fileExists(atPath: shelvesRoot.path),
+                              let shelfDirs = try? FileManager.default.contentsOfDirectory(
+                                at: shelvesRoot,
+                                includingPropertiesForKeys: nil,
+                                options: [.skipsHiddenFiles]
+                              ) else {
+                            return 0
+                        }
+                        for shelfDir in shelfDirs {
+                            let folderDir = shelfDir
+                                .appendingPathComponent("books")
+                                .appendingPathComponent(bookId.uuidString)
+                                .appendingPathComponent(folderName)
+                            if FileManager.default.fileExists(atPath: folderDir.path),
+                               let contents = try? FileManager.default.contentsOfDirectory(
+                                at: folderDir,
+                                includingPropertiesForKeys: nil,
+                                options: [.skipsHiddenFiles]
+                              ) {
+                                return contents.filter { $0.pathExtension == "md" }.count
+                            }
+                        }
+                        return 0
+                    }
                 )
             }
             await service?.reload()
@@ -142,6 +179,37 @@ struct AppleSidebarView: View {
                 openBookInEditor(bookId: node.id)
             }
         case .reference:
+            // v1.69 reference-library leaf (= a single Reference
+            // document). node.title carries the reference's
+            // display title, not its category, so writing
+            // `.referenceCategory(node.title)` here is incorrect;
+            // the correct route is `.referenceCategory(<ref's
+            // category directoryName>)` — but the SidebarNode
+            // doesn't carry the Reference struct (= only id +
+            // title + subtitle), so we resolve the reference's
+            // category downstream by storing a structured
+            // selection. Without that plumbing (= v1.69 ticket
+            // scope = expand the CLC category tree only; =
+            // single-reference selection lands on a future
+            // ticket), the leaf row falls through to
+            // .referenceScope(nil) in the preview pane via
+            // ShellMiddleColumn's case-mismatch fallback (= =
+            // the user sees the full overview; = the leaf can
+            // be opened via the existing double-click pipeline
+            // on the middle-column card).
+            appState.sidebarSelection = .referenceCategory(node.title)
+        case .referenceCategory:
+            // v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示':
+            // a category parent row (= one of the 22 CLC
+            // top-level categories under the Reference-Library
+            // root). Selecting it scopes the middle-column card
+            // grid to that category.
+            //
+            // node.title = EntityCategory.directoryName (= "a" /
+            // "b" / ... / "其它" / "未分类"). ShellMiddleColumn
+            // handles the lowercase → rawValue restoration in
+            // .referenceCategory case (= case-insensitive
+            // lookup with nil-fallback).
             appState.sidebarSelection = .referenceCategory(node.title)
         }
     }

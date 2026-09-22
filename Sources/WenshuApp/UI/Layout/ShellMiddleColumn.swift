@@ -166,7 +166,28 @@ struct ShellMiddleColumn: View {
         case .referenceLibraryRoot:
             return .referenceScope(nil)
         case .referenceCategory(let dirName):
-            return .referenceScope(EntityCategory(rawValue: dirName))
+            // v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示':
+            // SidebarItem.referenceCategory(directoryName) carries the
+            // EntityCategory.directoryName (= lowercase letter for the
+            // official 22 CLC cases, "其它" for the .z fallback, "未分类"
+            // for pre-v0.29 nil-category references). EntityCategory
+            // rawValues are uppercase letters (= "A" .. "Z"), so a
+            // case-insensitive lookup restores the canonical form.
+            //
+            // Previous behavior (= v1.0.0-m1-shell): the rawValue
+            // lookup was case-sensitive, so a lowercase dirName
+            // produced nil → fall-back to .referenceScope(nil) = the
+            // user picked a category but the middle column showed the
+            // full overview (= the boss's 'click category → still
+            // shows all entities' bug).
+            if let raw = EntityCategory(rawValue: dirName) {
+                return .referenceScope(raw)
+            }
+            let upper = dirName.uppercased()
+            if let raw = EntityCategory(rawValue: upper) {
+                return .referenceScope(raw)
+            }
+            return .referenceScope(nil)
         case .book(let bookId):
             return .bookScope(bookId: bookId, folderName: nil)
         case .shelf(let shelfId):
