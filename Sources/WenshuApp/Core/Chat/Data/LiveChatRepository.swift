@@ -69,6 +69,36 @@ public final class LiveChatRepository: ChatRepositoryProtocol, @unchecked Sendab
         )
     }
 
+    // C-6: filesystem IO = data-layer concern. The business layer
+    // used to call FileManager.default.copyItem directly inside
+    // ChatSessionViewModel.attachImage (= violated the
+    // UI / business / data separation; = FileManager is data-layer
+    // IO). Now the live impl owns:
+    //   - extension whitelist (= png / jpg / jpeg / gif / heic)
+    //   - directory creation (cache/chat-uploads/)
+    //   - unique filename via UUID
+    //   - FileManager.copyItem call
+    public func copyChatUpload(sourceURL: URL, intoLibraryAt path: String) async throws -> String? {
+        let fm = FileManager.default
+        let ext = sourceURL.pathExtension.lowercased()
+        guard ["png", "jpg", "jpeg", "gif", "heic"].contains(ext) else { return nil }
+        guard fm.fileExists(atPath: sourceURL.path) else { return nil }
+        guard !path.isEmpty else { return nil }
+        let uploadsDir = URL(fileURLWithPath: path)
+            .appendingPathComponent("cache", isDirectory: true)
+            .appendingPathComponent("chat-uploads", isDirectory: true)
+        try fm.createDirectory(at: uploadsDir, withIntermediateDirectories: true)
+        let destName = UUID().uuidString + "." + ext
+        let destURL = uploadsDir.appendingPathComponent(destName)
+        // security-scoped resource: NSOpenPanel gives us a URL with
+        // sandbox-scoped access; copying into our own uploads dir
+        // permanently lifts the scope. For .fileImporter (= the
+        // entry point used by the attach button), the picked URL
+        // is already accessible in the process sandbox.
+        try fm.copyItem(at: sourceURL, to: destURL)
+        return destURL.path
+    }
+
     // MARK: - StoredChatMessage ↔ ChatMessage mapping
 
     /// Convert a ChatMessage (= domain type, may carry streaming parts

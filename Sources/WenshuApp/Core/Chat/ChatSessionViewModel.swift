@@ -142,37 +142,27 @@ public final class ChatViewModel {
     /// screenshot formats). The library path is read from
     /// `wenshu.libraryPath` UserDefaults (= canonical home for the
     /// .ws bundle path = written by LibraryRootView at onboarding).
+    ///
+    /// C-6 (refactor chat-mvvm-3layer): filesystem IO moved into
+    /// ChatRepositoryProtocol.copyChatUpload (= data layer).
+    /// The business layer keeps the app-config lookup
+    /// (= UserDefaults.standard.string(forKey: "wenshu.libraryPath"))
+    /// because that is a config query (= not IO). The actual
+    /// directory creation + FileManager.copyItem lives in
+    /// LiveChatRepository.
     @discardableResult
-    public func attachImage(at sourceURL: URL) -> Bool {
-        let fm = FileManager.default
-        let ext = sourceURL.pathExtension.lowercased()
-        guard ["png", "jpg", "jpeg", "gif", "heic"].contains(ext) else { return false }
-        guard fm.fileExists(atPath: sourceURL.path) else { return false }
+    public func attachImage(at sourceURL: URL) async -> Bool {
+        // Config lookup (= business layer reads app config from
+        // UserDefaults; = not data-layer IO; = OK to keep here).
         let libraryPath = UserDefaults.standard.string(forKey: "wenshu.libraryPath") ?? ""
         guard !libraryPath.isEmpty else { return false }
-        let uploadsDir = URL(fileURLWithPath: libraryPath)
-            .appendingPathComponent("cache", isDirectory: true)
-            .appendingPathComponent("chat-uploads", isDirectory: true)
-        do {
-            try fm.createDirectory(at: uploadsDir, withIntermediateDirectories: true)
-        } catch {
-            return false
-        }
-        // Unique filename = <uuid>.<ext> so two attachments don't collide.
-        let destName = UUID().uuidString + "." + ext
-        let destURL = uploadsDir.appendingPathComponent(destName)
-        do {
-            // security-scoped resource = NSOpenPanel gives us a URL
-            // with sandbox-scoped access; copying into our own
-            // uploads dir permanently lifts the scope. For the
-            // fileImporter case (= .fileImporter is the entry
-            // point used by the attach button), the picked URL is
-            // already accessible in the process sandbox.
-            try fm.copyItem(at: sourceURL, to: destURL)
-        } catch {
-            return false
-        }
-        attachedImagePath = destURL.path
+        // Delegate the actual copy to the data layer.
+        let destPath = try? await repository.copyChatUpload(
+            sourceURL: sourceURL,
+            intoLibraryAt: libraryPath
+        )
+        guard let destPath else { return false }
+        attachedImagePath = destPath
         return true
     }
 

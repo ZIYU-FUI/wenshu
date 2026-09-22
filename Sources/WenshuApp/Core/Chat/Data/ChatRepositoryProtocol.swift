@@ -64,4 +64,23 @@ public protocol ChatRepositoryProtocol: Sendable {
         threshold: Int,
         verifier: WenshuVerifier
     ) async throws
+
+    /// C-6: copy a user-picked chat attachment (e.g. a screenshot
+    /// from .fileImporter) into the library's canonical
+    /// `cache/chat-uploads/` dir. Returns the destination absolute
+    /// path on success; nil (= silent no-op) when the source file
+    /// is missing, the extension isn't whitelisted, or the
+    /// library path is empty.
+    ///
+    /// Caller responsibility (= business layer):
+    ///   - read `wenshu.libraryPath` from UserDefaults and pass it
+    ///     as `intoLibraryAt`. This is an app-config lookup (= OK
+    ///     for the business layer to read UserDefaults directly);
+    ///     FileManager / filesystem IO is NOT.
+    ///   - decide when to clear the draft (= call `clearAttachedImage`
+    ///     on the view model after the send).
+    ///
+    /// File extension whitelist (= common screenshot formats):
+    ///   png / jpg / jpeg / gif / heic.
+    func copyChatUpload(sourceURL: URL, intoLibraryAt path: String) async throws -> String?
 }

@@ -1773,8 +1773,11 @@ public struct ChatView: View {
                         .appendingPathComponent("wenshu-paste-\(UUID().uuidString).png")
                     do {
                         try pngData.write(to: tempURL)
-                        DispatchQueue.main.async {
-                            _ = vm.attachImage(at: tempURL)
+                        // C-6: attachImage is now async (= routes through
+                        // ChatRepositoryProtocol.copyChatUpload in the
+                        // data layer). Hop to MainActor explicitly.
+                        Task { @MainActor in
+                            _ = await vm.attachImage(at: tempURL)
                         }
                     } catch {
                         // ignore write failures (= sandbox / disk full)
@@ -1789,7 +1792,11 @@ public struct ChatView: View {
                 switch result {
                 case .success(let urls):
                     if let url = urls.first {
-                        _ = vm.attachImage(at: url)
+                        // C-6: attachImage is now async. Wrap in a Task
+                        // to fire-and-forget the data-layer copy.
+                        Task { @MainActor in
+                            _ = await vm.attachImage(at: url)
+                        }
                     }
                 case .failure:
                     break   // user cancelled or sandbox denial; ignore
@@ -1802,7 +1809,16 @@ public struct ChatView: View {
             // it can actually take.
             .dropDestination(for: URL.self) { urls, _ in
                 guard let url = urls.first else { return false }
-                return vm.attachImage(at: url)
+                // C-6: attachImage is now async (= routes through the
+                // data layer). .dropDestination's action closure is
+                // sync (= returns Bool for whether to accept the drop),
+                // so we fire-and-forget the async copy and report true
+                // (= accept the drop; = the actual copy happens in the
+                // background; = the preview chip appears once it lands).
+                Task { @MainActor in
+                    _ = await vm.attachImage(at: url)
+                }
+                return true
             } isTargeted: { targeted in
                 isDropTargeted = targeted
             }
