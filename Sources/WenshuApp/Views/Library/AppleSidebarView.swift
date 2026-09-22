@@ -71,7 +71,7 @@ struct AppleSidebarView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            LazySidebarBottomNewButton {
+            AppleSidebarBottomNewButton {
                 appState.choiceRequestCount += 1
             }
         }
