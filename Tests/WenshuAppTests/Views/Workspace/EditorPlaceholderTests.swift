@@ -235,15 +235,17 @@ struct EditorPlaceholderTests {
                 "EditorPlaceholder must declare autoSaveTask as computed (= debounced auto-save Task)")
     }
 
-    @Test("declares file watcher + alert state as computed properties (= v0.34 B-23)")
+    @Test("declares file watcher + alert state as computed properties (= v0.34 B-23 + v1.70 T1b)")
     func declaresFileWatcherAndAlertStateAsComputed() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
         // v0.34 B-23: per-tab file-system watcher. State lives on the
         // active tab (= appState.openTabs[idx].fileWatcher).
-        #expect(code.contains("private var fileWatcher: DispatchSourceFileSystemObject? {"),
-                "EditorPlaceholder must declare fileWatcher as computed (= per-tab DispatchSource)")
-        #expect(code.contains("private var watchedFD: Int32 {"),
-                "EditorPlaceholder must declare watchedFD as Int32 computed (= open file descriptor sentinel)")
+        // v1.70 editor-mvvm T1b: `fileWatcher` + `watchedFD` are NO
+        // LONGER computed properties on the view (= the DispatchSource
+        // lifecycle migrated to `EditorFileWatcher`; = the helper
+        // writes them on `tab.*` directly). The view still surfaces
+        // the user-facing alert state (= externalChangeNotice +
+        // showDirtyDiscardConfirm) as computed properties.
         #expect(code.contains("private var externalChangeNotice: String? {"),
                 "EditorPlaceholder must declare externalChangeNotice as computed (= FS event feedback)")
         #expect(code.contains("private var showDirtyDiscardConfirm: Bool {"),
@@ -278,7 +280,7 @@ struct EditorPlaceholderTests {
                 "EditorPlaceholder must declare handleEditorWikiLink (= editor wikilink tap)")
     }
 
-    @Test("declares 5 lifecycle methods = applyParagraphAI + replaceSelectedText + startFileWatcher + stopFileWatcher + handleDirtyTransition")
+    @Test("declares 3 lifecycle methods = applyParagraphAI + replaceSelectedText + handleDirtyTransition (= v1.70 T1b)")
     func declaresLifecycleMethods() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
         // applyParagraphAI is public (= engine bridge), takes EditorTransform parameter.
@@ -286,10 +288,9 @@ struct EditorPlaceholderTests {
                 "EditorPlaceholder must declare public func applyParagraphAI(_ transform:) (= P2 #19 WIRE-PARAGRAPH-002 engine bridge)")
         #expect(code.contains("private func replaceSelectedText(with newText: String)"),
                 "EditorPlaceholder must declare replaceSelectedText(with:) (= SMC engine bridge)")
-        #expect(code.contains("private func startFileWatcher()"),
-                "EditorPlaceholder must declare startFileWatcher (= DispatchSource setup)")
-        #expect(code.contains("private func stopFileWatcher()"),
-                "EditorPlaceholder must declare stopFileWatcher (= DispatchSource cleanup)")
+        // v1.70 editor-mvvm T1b: `startFileWatcher` + `stopFileWatcher`
+        // migrated to `EditorFileWatcher`. The view no longer declares
+        // them (= the helper is the single owner of the fd lifecycle).
         #expect(code.contains("private func handleDirtyTransition(_ isDirty: Bool)"),
                 "EditorPlaceholder must declare handleDirtyTransition (= isDirty state machine)")
     }
@@ -312,34 +313,57 @@ struct EditorPlaceholderTests {
                 "writeDraftToDisk must use atomically: true write option (= prevents half-written file on crash)")
     }
 
-    @Test("startFileWatcher uses DispatchSource.makeFileSystemObjectSource + POSIX open (= B-23)")
+    @Test("EditorFileWatcher uses DispatchSource.makeFileSystemObjectSource + POSIX open (= B-23 + v1.70 T1b)")
     func startFileWatcherUsesDispatchSource() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
-        // v0.34 B-23: per-tab file-system watcher. POSIX open(2) +
+        // v1.70 editor-mvvm T1b: the DispatchSource + POSIX open
+        // lifecycle migrated to `EditorFileWatcher`. The assertions
+        // now point at the new file (= the view no longer holds them).
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let testsRoot = testFileURL
+            .deletingLastPathComponent()  // Views/Workspace/
+            .deletingLastPathComponent()  // Views/
+            .deletingLastPathComponent()  // WenshuAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repo root
+        let helperPath = testsRoot
+            .appendingPathComponent("Sources/WenshuApp/Editor/EditorFileWatcher.swift").path
+        let code = try String(contentsOfFile: helperPath, encoding: .utf8)
+        // v0.34 B-23 invariant: per-tab file-system watcher. POSIX open(2) +
         // DispatchSourceFileSystemObject event source.
         #expect(code.contains("DispatchSource.makeFileSystemObjectSource"),
-                "EditorPlaceholder must use DispatchSource.makeFileSystemObjectSource (= kernel-level FS events)")
-        #expect(code.contains("let fd = open(path, O_EVTONLY)"),
-                "startFileWatcher must POSIX-open the FD with O_EVTONLY (= notify without read perm)")
-        #expect(code.contains("fileWatcher = source"),
-                "startFileWatcher must store the DispatchSource in fileWatcher")
-        #expect(code.contains("watchedFD = fd"),
-                "startFileWatcher must store the FD in watchedFD (= cancel-handler reference)")
-        #expect(code.contains("source.setCancelHandler {"),
-                "startFileWatcher must set cancel handler (= close fd on cancel, prevents FD leak)")
+                "EditorFileWatcher must use DispatchSource.makeFileSystemObjectSource (= kernel-level FS events)")
+        #expect(code.contains("open(path, O_EVTONLY)"),
+                "EditorFileWatcher must POSIX-open the FD with O_EVTONLY (= notify without read perm)")
+        #expect(code.contains("tab.fileWatcher = source"),
+                "EditorFileWatcher must store the DispatchSource in tab.fileWatcher")
+        #expect(code.contains("tab.watchedFD = fd"),
+                "EditorFileWatcher must store the FD in tab.watchedFD (= cancel-handler reference)")
+        #expect(code.contains("setCancelHandler"),
+                "EditorFileWatcher must set cancel handler (= close fd on cancel, prevents FD leak)")
         #expect(code.contains("close(fd)"),
-                "cancel handler must close(fd) (= Apple HIG FD lifecycle)")
+                "EditorFileWatcher's cancel handler must close(fd) (= Apple HIG FD lifecycle)")
     }
 
-    @Test("stopFileWatcher cancels DispatchSource + resets watchedFD to -1 (= B-23)")
+    @Test("EditorFileWatcher.stop cancels DispatchSource + resets tab.watchedFD to -1 (= B-23 + v1.70 T1b)")
     func stopFileWatcherCancelsDispatchSource() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
-        #expect(code.contains("fileWatcher?.cancel()"),
-                "stopFileWatcher must cancel the DispatchSource (= no event leak)")
-        #expect(code.contains("fileWatcher = nil"),
-                "stopFileWatcher must nil out fileWatcher (= no stale reference)")
-        #expect(code.contains("watchedFD = -1"),
-                "stopFileWatcher must reset watchedFD to -1 (= sentinel for closed FD)")
+        // v1.70 editor-mvvm T1b: the stop path migrated to
+        // `EditorFileWatcher.stop(tab:)`.
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let testsRoot = testFileURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let helperPath = testsRoot
+            .appendingPathComponent("Sources/WenshuApp/Editor/EditorFileWatcher.swift").path
+        let code = try String(contentsOfFile: helperPath, encoding: .utf8)
+        #expect(code.contains("tab.fileWatcher?.cancel()"),
+                "EditorFileWatcher.stop must cancel the DispatchSource (= no event leak)")
+        #expect(code.contains("tab.fileWatcher = nil"),
+                "EditorFileWatcher.stop must nil out tab.fileWatcher (= no stale reference)")
+        #expect(code.contains("tab.watchedFD = -1"),
+                "EditorFileWatcher.stop must reset tab.watchedFD to -1 (= sentinel for closed FD)")
     }
 
     @Test("handlePreviewWikiLink + handleEditorWikiLink differentiate scope (= SMC bridge)")
@@ -403,15 +427,19 @@ struct EditorPlaceholderTests {
                 "EditorPlaceholder body must iterate appState.openTabs (= canonical tab list)")
     }
 
-    @Test("reloadDocumentFromDisk triggers on DispatchSource .write + .extend events (= B-23)")
+    @Test("reloadDocumentFromDisk fires via EditorFileWatcher's onChange closure (= B-23 + v1.70 T1b)")
     func reloadDocumentFromDiskTriggersOnWriteEvent() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
         // v0.34 B-23: external file change. The trigger is the
-        // DispatchSource event handler (= .write + .extend), NOT SwiftUI
-        // .onChange. externalChangeNotice is the UI feedback (= not the trigger).
-        #expect(code.contains("events.contains(.write) || events.contains(.extend)"),
-                "reloadDocumentFromDisk must trigger on .write + .extend (= file content changed)")
+        // DispatchSource event handler (= .write + .extend) in
+        // `EditorFileWatcher`, which invokes the `onChange` closure
+        // (= the view's `reloadDocumentFromDisk()`).
+        // v1.70 editor-mvvm T1b: the view passes
+        // `reloadDocumentFromDisk` as the `onChange:` closure when
+        // calling `EditorFileWatcher.start(path:tab:onChange:)`.
+        #expect(code.contains("EditorFileWatcher.start("),
+                "EditorPlaceholder must invoke EditorFileWatcher.start (= DispatchSource hand-off)")
         #expect(code.contains("reloadDocumentFromDisk()"),
-                "event handler must call reloadDocumentFromDisk (= FS event → UI reload)")
+                "EditorPlaceholder must pass reloadDocumentFromDisk as the onChange closure (= FS event → UI reload)")
     }
 }

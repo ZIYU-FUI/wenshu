@@ -411,7 +411,16 @@ struct EditorPlaceholder: View {
             // documentPath (nil = placeholder mode; = no-op). The watcher
             // auto-reloads draft when the file changes externally (= agent
             // write, git pull, terminal `echo > file.md`, etc.).
-            startFileWatcher()
+            // v1.70 editor-mvvm T1b: DispatchSource lifecycle lives in
+            // `EditorFileWatcher` (= extracted in v1.70 T1a). The view
+            // just hands off the active tab + the reload closure.
+            if let tab = activeTab {
+                EditorFileWatcher.start(
+                    path: tab.documentPath,
+                    tab: tab,
+                    onChange: { [self] in reloadDocumentFromDisk() }
+                )
+            }
         }
         // v0.40 boss 2026-09-08 OOB 'chattop bar 3 tab, editortop bar
         // ': REVERTED (= boss 2026-09-08 follow-up 'yes, don't
@@ -428,8 +437,12 @@ struct EditorPlaceholder: View {
         // }
         // v0.34 B-23: tear down the file watcher when the view goes away
         // (= prevents zombie DispatchSource holding the file descriptor).
+        // v1.70 editor-mvvm T1b: delegate to EditorFileWatcher (= the
+        // extracted helper owns the fd + cancel lifecycle).
         .onDisappear {
-            stopFileWatcher()
+            if let tab = activeTab {
+                EditorFileWatcher.stop(tab: tab)
+            }
         }
     }
 
@@ -490,21 +503,14 @@ struct EditorPlaceholder: View {
             appState.openTabs[idx].autoSaveTask = newValue
         }
     }
-    /// Per-tab file-system watcher (= B-23).
-    private var fileWatcher: DispatchSourceFileSystemObject? {
-        get { activeTab?.fileWatcher }
-        nonmutating set {
-            guard let idx = activeTabIndex else { return }
-            appState.openTabs[idx].fileWatcher = newValue
-        }
-    }
-    private var watchedFD: Int32 {
-        get { activeTab?.watchedFD ?? -1 }
-        nonmutating set {
-            guard let idx = activeTabIndex else { return }
-            appState.openTabs[idx].watchedFD = newValue
-        }
-    }
+    /// v1.70 editor-mvvm T1b: per-tab file-system watcher state
+    /// (= `tab.fileWatcher` + `tab.watchedFD`) is now owned by
+    /// `EditorFileWatcher` (= the extracted helper). The view
+    /// passes the active tab into `EditorFileWatcher.start(path:
+    /// tab:onChange:)` / `.stop(tab:)` and the helper mutates
+    /// the tab fields directly. No computed-property wrapper is
+    /// needed on the view side anymore (= the helper is the
+    /// single entry point for the fd + DispatchSource lifecycle).
     /// Per-tab external-change notification (= B-23 conflict).
     private var externalChangeNotice: String? {
         get { activeTab?.externalChangeNotice }
@@ -705,61 +711,17 @@ struct EditorPlaceholder: View {
 
 
     // MARK: - B-23 file-system watcher
-
-    // v0.34 B-23: open the file descriptor + create a DispatchSource
-    // for external-write detection. DispatchSource is the Apple HIG
-    // canonical file-watch primitive (= wraps kqueue's EVFILT_VNODE;
-    // = cross-Unix, no third-party dep). Fired on external write /
-    // extend / delete / rename (= covers all scenarios where the
-    // file's content could change outside our process).
-    private func startFileWatcher() {
-        guard let path = documentPath else {
-            // Placeholder mode (= no real document) → no watcher needed.
-            return
-        }
-        // Open the file for read (= O_EVTONLY flag on macOS = notify-only,
-        // = no actual read permission needed). POSIX open(2) returns
-        // the file descriptor; DispatchSource reads from it.
-        let fd = open(path, O_EVTONLY)
-        guard fd >= 0 else {
-            #if DEBUG
-            print("[wenshu.editor] B-23: cannot open fd for \(path)")
-            #endif
-            return
-        }
-        let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fd,
-            eventMask: [.write, .extend, .delete, .rename],
-            queue: .main
-        )
-        source.setEventHandler { [weak source] in
-            guard let source = source else { return }
-            let events = source.data
-            // .write + .extend = file content changed (= the cases we care about).
-            // .delete + .rename = file replaced/moved (= re-arm the watcher
-            // against the new file descriptor in a follow-up ticket;
-            // = current implementation just reloads from the original path).
-            if events.contains(.write) || events.contains(.extend) {
-                reloadDocumentFromDisk()
-            }
-        }
-        source.setCancelHandler {
-            // Apple HIG: close the fd when the source is cancelled
-            // (= prevents fd leaks; = standard pattern).
-            close(fd)
-        }
-        source.resume()
-        fileWatcher = source
-        watchedFD = fd
-    }
-
-    // v0.34 B-23: tear down the watcher (= cancel DispatchSource; = close fd
-    // happens automatically via the cancel handler above).
-    private func stopFileWatcher() {
-        fileWatcher?.cancel()
-        fileWatcher = nil
-        watchedFD = -1
-    }
+    //
+    // v1.70 editor-mvvm T1b: the DispatchSource lifecycle (= fd
+    // open + event handler + cancel + close) migrated to
+    // `EditorFileWatcher` (= v0.34 B-23 inline implementation is
+    // gone). The view passes `tab.documentPath` + the
+    // `reloadDocumentFromDisk` closure to `EditorFileWatcher.start(...)`
+    // when the active tab changes / the view appears (= see the
+    // `.onChange { }` + `.onDisappear { }` blocks in `body` above).
+    // The `tab.fileWatcher` + `tab.watchedFD` fields stay on
+    // `EditorTab` (= the helper writes them; = future inspection
+    // hooks can still read them).
 
     // v0.34 B-23: handle external file change. Apple HIG TextEdit /
     // Pages / Xcode behavior:
@@ -859,11 +821,15 @@ struct EditorPlaceholder: View {
             autoSaveTask = nil
         }
     }
-    // v0.34 B-24: documentPath + autoSaveTask + fileWatcher + watchedFD +
-    // externalChangeNotice + showDirtyDiscardConfirm are now computed
-    // properties (= read/write the active tab's state via AppState).
-    // Defined above as part of the per-tab state migration; = these
-    // View-local @State duplicates would shadow the active-tab reads.
+    // v0.34 B-24: documentPath + autoSaveTask + externalChangeNotice
+    // + showDirtyDiscardConfirm are now computed properties (= read/
+    // write the active tab's state via AppState). Defined above as
+    // part of the per-tab state migration; = these View-local @State
+    // duplicates would shadow the active-tab reads.
+    //
+    // v1.70 editor-mvvm T1b: `fileWatcher` + `watchedFD` removed
+    // from this view (= lifecycle is now `EditorFileWatcher`'s
+    // responsibility; = the helper writes them on `tab.*` directly).
 
     // v0.34 ticket 09: close handler. If dirty = present confirm dialog;
     // if clean = close immediately (= Apple HIG standard). Cmd+W (ticket
