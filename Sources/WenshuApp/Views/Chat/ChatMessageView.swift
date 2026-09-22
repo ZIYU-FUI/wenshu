@@ -448,28 +448,23 @@ struct ChatMessageView: View {
                         return false
                     }
                     if message.parts.isEmpty && !hasReasoningPart, let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
-                        DisclosureGroup(isExpanded: $thinkingExpanded) {
-                            Text(thinking)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .textSelection(.enabled)
-                                .padding(.top, DesignTokens.chromePaddingMicro)
-                                .transition(.opacity)
-                        } label: {
-                            // v1.65-cleanup C2 boss 2026-09-21 'just refer to
-                            // HERMES, do 1:1; drop the wenshu-side chrome':
-                            // Hermes真值 thinking DisclosureGroup (= status.tsx
-                            // ResponseLoadingIndicator + assistant-message.tsx)
-                            // uses NO icon + NO 'chatview.ai_thinking' label —
-                            // just the 3×3 PT StatusPulse square (= the
-                            // wenshu StatusPulse private struct already
-                            // implements this 1:1). The collapsed row in
-                            // wenshu becomes the StatusPulse inline (= the
-                            // user clicks to expand; the pulse is the row
-                            // identity).
+                        // C-8b (refactor chat-mvvm-3layer): thinking
+                        // DisclosureGroup extracted to its own leaf view
+                        // (Views/Chat/ChatMessageThinkingDisclosure.swift).
+                        // The collapse state stays on ChatMessageView's
+                        // @State (= each message owns its own collapse).
+                        // The collapsed-label slot is generic (any View)
+                        // because StatusPulse is a private nested type
+                        // in ChatMessageView.swift and stays there (=
+                        // hermes 1:1 thinking identity).
+                        ChatMessageThinkingDisclosure(
+                            thinking: thinking,
+                            isExpanded: $thinkingExpanded
+                        ) {
+                            // hermes真值 = NO icon, NO 'chatview.ai_thinking'
+                            // label, just the 3×3 PT StatusPulse square.
                             StatusPulse()
                         }
-                        .animation(.default, value: thinkingExpanded)
                     }
                     // CHATIMG-001 (2026-09-07): render attached image
                     // thumbnail above the parts. (= unchanged structure
