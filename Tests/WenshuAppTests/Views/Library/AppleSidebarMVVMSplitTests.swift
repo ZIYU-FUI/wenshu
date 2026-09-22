@@ -293,6 +293,47 @@ struct AppleSidebarMVVMSplitTests {
                 "ShellMiddleColumn.previewScope MUST do a case-insensitive rawValue lookup")
     }
 
+    @Test("sidebar_service_reference_category_title_is_directoryName")
+    func sidebar_service_reference_category_title_is_directoryName() throws {
+        // v1.69 boss 2026-09-22 OOB '分类点击, 卡片没有做筛选':
+        // category row title MUST be the EntityCategory
+        // directoryName (= the routing key the previewScope
+        // resolves back to a category) NOT the user-facing
+        // displayName (= the Chinese label "文学"). The
+        // previous code put displayName in the title slot; =
+        // forwardSelection wrote `.referenceCategory("文学")`;
+        // = previewScope couldn't resolve "文学" to an
+        // EntityCategory; = fallback to .referenceScope(nil) =
+        // the user clicked a category row and saw the full
+        // overview instead of the filtered set.
+        let src = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarService.swift"),
+            encoding: .utf8
+        )
+        #expect(src.contains("title: category.directoryName"),
+                "category rows MUST use directoryName as the title (= the routing key)")
+        #expect(src.contains("category.displayName"),
+                "category rows MUST show displayName somewhere (= for the user-facing label)")
+    }
+
+    @Test("previewPane_shelfScopeView_loads_union_of_books_under_shelf")
+    func previewPane_shelfScopeView_loads_union_of_books_under_shelf() throws {
+        // v1.69 boss 2026-09-22 OOB '书架, 就是从这里开始,
+        // 测试书架. 这两个目录项可以点击, 但没有在卡片栏
+        // 加载所有卡片': clicking a shelf row must load every
+        // .md card from every book under that shelf (= the
+        // union of `loadBookDocs(bookId:, folderName: nil)`
+        // for books whose `shelfId` matches).
+        let src = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Workspace/PreviewPane.swift"),
+            encoding: .utf8
+        )
+        #expect(src.contains("private func shelfScopeView(shelfId: UUID)"),
+                "shelfScopeView MUST accept a shelfId parameter (= replaces the empty-state-only v1.0.0-m1-shell form)")
+        #expect(src.contains("func loadBooksInShelf(shelfId: UUID)"),
+                "PreviewPane MUST expose loadBooksInShelf(= helper that filters BookStore.sidebarLoadAllBooks by shelfId)")
+    }
+
     @Test("previewPane_loadBookDocs_handles_folder_scope")
     func previewPane_loadBookDocs_handles_folder_scope() throws {
         let src = try String(
