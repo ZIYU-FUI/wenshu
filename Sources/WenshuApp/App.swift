@@ -280,28 +280,11 @@ enum ZoneSlot {
 }
 
 // MARK: - Library outline (sidebar)
-
-/// sidebar (= v0.27 wiring: NewLibraryOutlineView reads from
-/// BookStore via @Environment). Replaces v0.25.x WenshuLibrary-backed
-/// LibraryOutlineView (= no longer used in production zone).
-    struct LibraryOutlineViewContent: View {
-        @Environment(BookStore.self) private var bookStore
-        var body: some View {
-            // v0.30: NewLibraryOutlineView has default dummy binding init.
-            NewLibraryOutlineView()
-            // v0.28 followup Boss UX round 44 (Boss 2026-08-29 OOB
-            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-            // `.padding(.vertical, DesignTokens.chromePaddingNano)` was pushing the sidebar content
-            // (= NewLibraryOutlineView's tree outline) up by 2 PT,
-            // which made the sidebar's bottom status bar (= ":0")
-            // appear higher than the other 3 general panes'
-            // (= ":0" / ":0" / "") = visual.
-            // Fix = removed `.padding(.vertical, DesignTokens.chromePaddingNano)`. The horizontal
-            // `.padding(DesignTokens.chromePaddingVertical)` (= 8 PT left/right margin) is preserved
-            // for the tree outline indentation.
-            .padding(DesignTokens.chromePaddingVertical)
-            .environment(bookStore)
-    }
-}
+//
+// v1.69 sidebar MVVM cleanup: LibraryOutlineViewContent was a
+// v0.27 wiring wrapper that rendered NewLibraryOutlineView (the
+// old legacy sidebar). Both are removed: the sidebar surface in
+// production lives in NavigationSplitShell.swift (= AppleSidebarView
+// = the v1.68b MVVM-split sidebar). No replacement needed here.
 
 

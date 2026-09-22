@@ -404,11 +404,8 @@ struct WorkspaceView: View {
             // v0.30: pass bindings so sidebar selection → preview pane.
             // The trailingButton uses the default-init (doesn't drive preview).
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(NewLibraryOutlineView(
-                    selectedEntityCategory: $selectedEntityCategory,
-                    selectedEntity: $selectedEntity
-                ))),
-            ], trailingButton: AnyView(NewLibraryOutlineView().zoneHeaderButtons))
+                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(AppleSidebarView())),
+            ], trailingButton: AnyView(SidebarZoneHeaderButtons()))
         case .projectPreview:
             // v0.28 followup Boss UX round 45 (Boss 2026-08-29 OOB
             // 'top and bottom bars are not aligned' = Preview/Tools were using old
