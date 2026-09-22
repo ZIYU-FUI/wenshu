@@ -54,17 +54,38 @@ struct AppleSidebarView: View {
                     selection: $selectedNode
                 ) { node in
                     SidebarRowView(node: node)
-                        // Forward book / folder selections to BookStore
-                        // (= the single source of truth for the rest
-                        // of wenshu). Shelf / reference rows don't
-                        // forward (= AppState.sidebarSelection keeps
-                        // its own previous value; = no spurious
-                        // selection flicker).
-                        .onChange(of: selectedNode) { _, newValue in
-                            forwardSelection(newValue)
-                        }
                 }
                 .listStyle(.sidebar)
+                // v1.69 sidebar fix (= boss 2026-09-22 OOB
+                // '现在目录树还是点不了'): the .onChange(of:
+                // selectedNode) MUST live on the List (= outside
+                // the rowContent closure), not on each row.
+                //
+                // Bug history: v1.68b placed `.onChange(of:
+                // selectedNode) { forwardSelection(newValue) }`
+                // INSIDE the rowContent closure. Each row's
+                // onChange handler was re-registered whenever
+                // SwiftUI rebuilt that row. When selectedNode
+                // changed (= the user clicked a row), the change
+                // propagated but the row rebuild had already
+                // happened with the new selectedNode value baked
+                // in — so onChange never fired (= a known SwiftUI
+                // Observation + List(selection:) inter-row
+                // race). Net user-visible effect: clicking any
+                // sidebar row did nothing; = the middle-column
+                // card grid (= PreviewPane) never re-rendered
+                // for the clicked book / folder; = the card the
+                // user saw was the one persisted from the last
+                // launch via AppState.sidebarSelection.
+                //
+                // Fix: hoist the onChange to the List (= the
+                // parent of all rows; = the change fires exactly
+                // once per selectedNode mutation; =
+                // forwardSelection runs with the canonical
+                // newValue).
+                .onChange(of: selectedNode) { _, newValue in
+                    forwardSelection(newValue)
+                }
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
