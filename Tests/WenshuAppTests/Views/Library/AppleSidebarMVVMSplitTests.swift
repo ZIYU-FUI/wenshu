@@ -60,6 +60,22 @@ struct AppleSidebarMVVMSplitTests {
         wenshuRoot() + "/" + relative
     }
 
+    /// Parse a binary1 Localizable.strings file and return its keys.
+    /// v1.69s boss 2026-09-22 OOB shelf-empty-state copy needs
+    /// both languages to define the new keys; = the test asserts
+    /// the keys are present in the plist (= not just the Swift
+    /// call site that reads them).
+    private static func localizableKeys(relaPath: String) throws -> Set<String> {
+        let url = URL(fileURLWithPath: repoPath(relaPath))
+        let data = try Data(contentsOf: url)
+        // binary1 Localizable.strings == NSDictionary of String → String.
+        let plist = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
+        guard let dict = plist as? [String: String] else {
+            return []
+        }
+        return Set(dict.keys)
+    }
+
     // MARK: - 1. Old legacy sidebar is gone
 
     @Test("legacy_NewLibraryOutlineView_is_removed")
@@ -355,6 +371,41 @@ struct AppleSidebarMVVMSplitTests {
                 "shelfScopeView MUST accept a shelfId parameter (= replaces the empty-state-only v1.0.0-m1-shell form)")
         #expect(src.contains("func loadBooksInShelf(shelfId: UUID)"),
                 "PreviewPane MUST expose loadBooksInShelf(= helper that filters BookStore.sidebarLoadAllBooks by shelfId)")
+    }
+
+    @Test("previewPane_shelfScopeView_empty_state_uses_shelf_specific_copy")
+    func previewPane_shelfScopeView_empty_state_uses_shelf_specific_copy() throws {
+        // v1.69s boss 2026-09-22 OOB '点击网络长文时, 卡片区
+        // 的空态, 原来用的是非选书, 现在因为书架可以点了.
+        // 这个地方需要换了. 和测试小说点击时一样. 应该改成
+        // 书架下暂无文档': the shelf empty-state copy must
+        // describe the shelf (= "暂无文档"), NOT a stale
+        // "select a book" hint from the v1.0.0-m1-shell era
+        // (= when shelves were a drill-down intermediate
+        // rather than a document scope).
+        let src = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Workspace/PreviewPane.swift"),
+            encoding: .utf8
+        )
+        #expect(src.contains("titleKey: \"preview.empty_state.shelf_empty\""),
+                "shelfScopeView MUST use the shelf-specific empty-state title key (= no longer references the v1.0.0-m1 pick-book hint)")
+        #expect(src.contains("bodyKey: \"preview.empty.shelf_no_books\""),
+                "shelfScopeView MUST use a shelf-specific body key (= distinct from book_scope / reference_scope body keys)")
+
+        // Verify both Localizable.strings files define the keys
+        // (= the v1.69q-r era shipped the title-only override;
+        // v1.69s adds a body key + retitles the title to match
+        // the book_empty copy contract).
+        let enKeys = try Self.localizableKeys(relaPath: "Sources/WenshuApp/Resources/en.lproj/Localizable.strings")
+        let zhKeys = try Self.localizableKeys(relaPath: "Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings")
+        #expect(enKeys.contains("preview.empty_state.shelf_empty"),
+                "en.lproj MUST define preview.empty_state.shelf_empty (= the shelf empty title)")
+        #expect(zhKeys.contains("preview.empty_state.shelf_empty"),
+                "zh-Hans.lproj MUST define preview.empty_state.shelf_empty (= the shelf empty title)")
+        #expect(enKeys.contains("preview.empty.shelf_no_books"),
+                "en.lproj MUST define preview.empty.shelf_no_books (= the shelf empty body)")
+        #expect(zhKeys.contains("preview.empty.shelf_no_books"),
+                "zh-Hans.lproj MUST define preview.empty.shelf_no_books (= the shelf empty body)")
     }
 
     @Test("previewPane_loadBookDocs_handles_folder_scope")
