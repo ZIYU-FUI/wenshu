@@ -802,26 +802,28 @@ struct PreviewPane: View {
         let books = loadBooksInShelf(shelfId: shelfId)
         let allDocs = books.flatMap { loadBookDocs(bookId: $0.id, folderName: nil) }
         let filteredDocs = searchFilteredBookDocs(allDocs)
-        return VStack(alignment: .leading, spacing: 0) {
-            if filteredDocs.isEmpty {
-                emptyState(
-                    icon: "books.vertical",
-                    titleKey: "preview.empty_state.shelf_empty",
-                    bodyKey: "preview.empty.shelf_no_books"
-                )
-            } else {
-                GeometryReader { geometry in
-                    ScrollView {
-                        LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
-                            ForEach(filteredDocs) { doc in
-                                Card(source: .bookDoc(doc), onDoubleClick: onDoubleClick)
-                            }
-                        }
-                        .padding(18)
-                    }
-                }
-            }
+        if filteredDocs.isEmpty {
+            // Empty shelf branch (= no books under the shelf,
+            // or every book has no .md cards, or the search
+            // filter excluded everything). Reuse the existing
+            // emptyState view (= matches the v1.0.0-m1-shell
+            // shape that the other scopes fall back to) but
+            // with a shelf-specific bodyKey.
+            return AnyView(emptyState(
+                icon: "books.vertical",
+                titleKey: "preview.empty_state.shelf_empty",
+                bodyKey: "preview.empty.shelf_no_books"
+            ))
         }
+        // Non-empty: reuse the canonical bookDocsGrid (= same
+        // LazyVGrid + adaptiveColumns(width:) + sort + Card
+        // styling as bookScopeView). Avoids the v1.69n-draft
+        // duplicate LazyVGrid (= different .padding(24) vs
+        // .padding(.vertical, DesignTokens.chromePaddingVertical);
+        // = the user's "width is wrong" complaint was the
+        // duplicate-render path bypassing the existing
+        // chromePaddingVertical / card chrome contract).
+        return AnyView(bookDocsGrid(docs: filteredDocs))
     }
 
     /// Empty scope: empty state with hint to select a sidebar item.
