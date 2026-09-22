@@ -56,14 +56,24 @@ final class SidebarService {
     /// (= `bookStore.referenceStore.loadAllReferences()` in production.)
     private let loadReferences: @MainActor () throws -> [Reference]
 
+    /// v1.69 boss 2026-09-22 OOB: closure that returns the number
+    /// of .md files in a given book + folder (= used to populate
+    /// the "X 项" subtitle on each folder row in the sidebar).
+    /// Defaults to `{ _, _ in 0 }` (= unit tests + legacy call
+    /// sites that don't need folder counts; = the subtitle reads
+    /// "0 项" which is harmless).
+    private let loadFolderDocCount: @MainActor (UUID, String) -> Int
+
     init(
         loadShelves: @MainActor @escaping () throws -> [Bookshelf],
         loadAllBooks: @MainActor @escaping () throws -> [Book],
-        loadReferences: @MainActor @escaping () throws -> [Reference]
+        loadReferences: @MainActor @escaping () throws -> [Reference],
+        loadFolderDocCount: @MainActor @escaping (UUID, String) -> Int = { _, _ in 0 }
     ) {
         self.loadShelves = loadShelves
         self.loadAllBooks = loadAllBooks
         self.loadReferences = loadReferences
+        self.loadFolderDocCount = loadFolderDocCount
     }
 
     /// Reload the sidebar tree from the data layer. Idempotent
@@ -102,7 +112,7 @@ final class SidebarService {
                             title: book.title,
                             subtitle: (book.author.isEmpty || book.author == "wenshu") ? nil : book.author,
                             systemImage: book.displayIcon,
-                            children: Self.folderChildren(for: book)
+                            children: folderChildren(for: book)
                         )
                     }
                 roots.append(SidebarNode(
@@ -115,37 +125,101 @@ final class SidebarService {
                 ))
             }
 
-            // Reference library = one root node (= matches the
-            // previous v1.67 LazySidebarView's reference library
-            // section; = expanded later when boss asks to).
+            // Reference library = one root node whose children
+            // are the auto-classified CLC categories (= boss
+            // 2026-09-22 OOB '资料库自动分类目录的展示' = the
+            // 22 CLC top-level categories that auto-classify
+            // references; = user can pick a category in the
+            // sidebar to filter the middle-column card grid).
             //
-            // v1.68b boss 2026-09-22 '资料库先不动' (= reference
-            // library expansion is out of scope for the v1.68 Apple
-            // HIG sidebar rewrite — it has its own rewrite ticket).
-            // The individual reference rows are kept in `let _`
-            // form (= the deduped sorted map) so a future reference-
-            // library expansion ticket can attach them as children
-            // of the synthetic Reference-Library root without
-            // having to re-derive the projection.
-            let _ = references
-                .sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
-                .map { ref in
-                    SidebarNode(
-                        id: ref.id,
-                        kind: .reference,
-                        title: ref.title,
-                        subtitle: ref.source,
-                        systemImage: "book.closed",
+            // v0.29 incremental display rule (= boss 8/30 OOB):
+            // 'category folders grow with the content, instead of
+            // being laid out all at once' — only categories with
+            // >= 1 reference are visible. Empty categories are
+            // hidden (= no row = no disclosure clutter).
+            //
+            // Projection rules:
+            // 1. Group references by category (= .category? — nil
+            //    references go under a synthetic '未分类' bucket
+            //    = below the official 22 CLC categories; =
+            //    entity-classifier assigns category on save;
+            //    pre-v0.29 references have nil).
+            // 2. For each non-empty bucket, emit one
+            //    `.referenceCategory` parent SidebarNode with the
+            //    EntityCategory's displayName + icon (= the same
+            //    iconography the entity-classifier uses for the
+            //    folder rendering in the reference library).
+            // 3. Each category parent's children = the references
+            //    (= `.reference` leaves, sorted by title ascending
+            //    = CLC convention).
+            // 4. The Reference-Library root keeps its existing
+            //    kind = .reference (= the v0.30 SidebarItem
+            //    .referenceCategory(__root__) sentinel still
+            //    resolves to .referenceScope(nil) in
+            //    ShellMiddleColumn.previewScope).
+            let grouped = Dictionary(grouping: references, by: { Self.referenceCategoryKey(for: $0) })
+            var referenceRootChildren: [SidebarNode] = []
+            for (key, refs) in grouped.sorted(by: { lhs, rhs in
+                Self.categorySortKey(lhs.key) < Self.categorySortKey(rhs.key)
+            }) {
+                let leafNodes = refs
+                    .sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
+                    .map { ref -> SidebarNode in
+                        SidebarNode(
+                            id: ref.id,
+                            kind: .reference,
+                            title: ref.title,
+                            subtitle: ref.source,
+                            systemImage: "book.closed",
+                            children: nil
+                        )
+                    }
+                if let category = Self.EntityCategoryFromDirectoryName(key) {
+                    // Official CLC category — show by its
+                    // EntityCategory displayName + icon.
+                    //
+                    // v1.69 boss 2026-09-22 OOB '到分类层就够
+                    // 了': leaf rows (= individual references)
+                    // are NOT rendered in the sidebar (= the
+                    // user browses them via the middle-column
+                    // card grid after picking a category). Pass
+                    // nil for children so the row carries no
+                    // disclosure chevron (= leaf-shaped row;
+                    // = single-click routes to the category
+                    // scope immediately).
+                    referenceRootChildren.append(SidebarNode(
+                        id: Self.stableReferenceCategoryId(key),
+                        kind: .referenceCategory,
+                        title: category.displayName,
+                        subtitle: "\(refs.count) 项",
+                        systemImage: category.icon,
                         children: nil
-                    )
+                    ))
+                } else {
+                    // nil-category bucket (= pre-v0.29 references
+                    // that were imported before EntityClassifier
+                    // existed). Same leaf shape as the official
+                    // categories (= the user can still see and
+                    // pick the bucket from the sidebar; = the
+                    // bucket's contents show in the middle-column
+                    // card grid).
+                    referenceRootChildren.append(SidebarNode(
+                        id: Self.stableReferenceCategoryId(key),
+                        kind: .referenceCategory,
+                        title: key,
+                        subtitle: "\(refs.count) 项",
+                        systemImage: "tray.full",
+                        children: nil
+                    ))
                 }
+            }
             roots.append(SidebarNode(
                 id: Self.referenceLibraryRootId,
                 kind: .reference,
                 title: WenshuI18n.t("sidebar.reference_library.title"),
                 subtitle: nil,
                 systemImage: "books.vertical",
-                children: nil
+                children: referenceRootChildren.isEmpty ? nil : referenceRootChildren
             ))
 
             nodes = roots
@@ -194,16 +268,23 @@ final class SidebarService {
     /// = the v1.68f design keeps that convention so existing user
     /// muscle memory still works; = future ticket can scope this
     /// to default-seeded books only if needed).
-    private static func folderChildren(for book: Book) -> [SidebarNode]? {
+    private func folderChildren(for book: Book) -> [SidebarNode]? {
         // Stable id = "<book-id>.<folder-name>" so two different
         // books don't collide on the same folder name. Apple HIG
         // List(.sidebar) requires unique row ids within the tree.
-        return folderCatalog.map { folder in
-            SidebarNode(
-                id: UUID(uuidString: stableFolderId(bookId: book.id, folderName: folder.name)) ?? UUID(),
+        //
+        // v1.69 boss 2026-09-22 OOB: add the "X 项" subtitle
+        // (= the .md file count under each folder) so the
+        // sidebar rows mirror the reference-library row shape
+        // (= same 2-line: icon + title + subtitle = icon +
+        // title + "X 项").
+        return Self.folderCatalog.map { folder in
+            let count = self.loadFolderDocCount(book.id, folder.name)
+            return SidebarNode(
+                id: UUID(uuidString: Self.stableFolderId(bookId: book.id, folderName: folder.name)) ?? UUID(),
                 kind: .book,
                 title: folder.displayName,
-                subtitle: nil,
+                subtitle: "\(count) 项",
                 systemImage: folder.icon,
                 children: nil
             )
@@ -234,5 +315,80 @@ final class SidebarService {
         let s = u
         let formatted = "\(s.prefix(8))-\(s.dropFirst(8).prefix(4))-\(s.dropFirst(12).prefix(4))-\(s.dropFirst(16).prefix(4))-\(s.dropFirst(20).prefix(12))"
         return String(formatted)
+    }
+
+    // MARK: - v1.69 reference library auto-classification
+    // (= boss 2026-09-22 OOB '资料库自动分类目录的展示').
+    //
+    // Group references into CLC top-level categories for the
+    // sidebar tree (= project the 22-bucket CLC taxonomy onto
+    // the reference library's display). Bucket key = the
+    // EntityCategory.directoryName (= "a" / "b" / ... / "其它"
+    // for official categories; "未分类" for pre-v0.29 references
+    // whose category is nil).
+
+    /// Map a Reference to its sidebar-bucket key. v0.29
+    /// references always have a category (= assigned by
+    /// EntityClassifier on save). Pre-v0.29 imports have nil
+    /// (= still seen in the wild on existing user libraries);
+    /// those bucket under a synthetic '未分类' label so they
+    /// stay browsable rather than disappearing.
+    private static func referenceCategoryKey(for ref: Reference) -> String {
+        if let category = ref.category {
+            return category.directoryName
+        }
+        return "未分类"
+    }
+
+    /// Sort the sidebar buckets in CLC canonical order (= A, B,
+    /// C, ..., Z), with the synthetic '未分类' bucket pushed to
+    /// the end (= the official categories are the primary
+    /// structure; the unclassified bucket is the cleanup-pending
+    /// tail). Returns a sort key that Dictionary.sorted(by:)
+    /// can compare directly.
+    private static func categorySortKey(_ key: String) -> String {
+        if key == "未分类" { return "~" } // '~' = ASCII 0x7E = sorts after letters (= A-Z = 0x41-0x5A)
+        return key
+    }
+
+    /// Map a directoryName back to the EntityCategory. Returns
+    /// nil for the synthetic '未分类' bucket (= no
+    /// EntityCategory corresponds) and for any unrecognized
+    /// key (= forward-compatible with future CLC categories
+    /// = the existing 22 cases cover CLC 5th edition
+    /// simplified; future expansion would add new enum cases).
+    private static func EntityCategoryFromDirectoryName(_ name: String) -> EntityCategory? {
+        // EntityCategory.directoryName returns the lowercase
+        // rawValue for the official 22 cases (= .a → "a",
+        // .i → "i", etc.) and "其它" for .z.
+        // EntityCategory(rawValue:) is case-sensitive — so we
+        // case-fold the input for the lookup. The official raw
+        // values are uppercase letters, so uppercase folding
+        // restores the canonical form before lookup.
+        let upper = name.uppercased()
+        return EntityCategory(rawValue: upper)
+    }
+
+    /// Stable UUID for a sidebar category row (= same key →
+    /// same UUID across launches; = selection state survives
+    /// reload). Distinct from stableFolderId because category
+    /// rows live under a different parent (= the synthetic
+    /// Reference-Library root) and the ID namespace is
+    /// separate (= "wenshu.sidebar.refcat." vs
+    /// "wenshu.sidebar.folder.").
+    private static func stableReferenceCategoryId(_ key: String) -> UUID {
+        let raw = "wenshu.sidebar.refcat.\(key)"
+        var hasher = Hasher()
+        hasher.combine(raw)
+        let hash = hasher.finalize()
+        let bytes = withUnsafeBytes(of: hash.bigEndian) { Array($0) }
+        var uuidBytes = Array(bytes)
+        while uuidBytes.count < 16 { uuidBytes.append(0) }
+        uuidBytes = Array(uuidBytes.prefix(16))
+        uuidBytes[6] = (uuidBytes[6] & 0x0F) | 0x40
+        uuidBytes[8] = (uuidBytes[8] & 0x3F) | 0x80
+        let u = uuidBytes.map { String(format: "%02x", $0) }.joined()
+        let formatted = "\(u.prefix(8))-\(u.dropFirst(8).prefix(4))-\(u.dropFirst(12).prefix(4))-\(u.dropFirst(16).prefix(4))-\(u.dropFirst(20).prefix(12))"
+        return UUID(uuidString: formatted) ?? UUID()
     }
 }
