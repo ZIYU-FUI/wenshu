@@ -239,79 +239,69 @@ public struct KanbanView: View {
 
     // MARK: - Mutations
 
-    /// B-09 + B-13: load tickets from the scope's JSON file. The scope
-    /// is resolved via `bookStore.scopeDirectory(bookId:selectedBookId,
-    /// scope:)`. When the active scope has no directory (= no book
-    /// selected + per-book scope, OR library not bootstrapped), the
-    /// view shows the empty / unavailable state, not an error.
+    /// v1.72 T1c: lift the disk-IO + state-transition logic into
+    /// `KanbanOps` (= the stateless business layer at
+    /// `Sources/WenshuApp/Views/Kanban/KanbanOps.swift`). Per
+    /// ADR-0009 (= UI/业务/数据 separation), the View is now a pure
+    /// consumer: it holds the @State (tickets / newTicketTitle /
+    /// scopeDir / loadError), reads via @Environment for the
+    /// BookStore, and delegates every mutation to KanbanOps.
     private func reloadFromDisk() {
-        let dir = bookStore.scopeDirectory(
+        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
+        let result = KanbanOps.loadTickets(
             bookId: bookStore.selectedBookId,
-            scope: scope
+            scope: scope,
+            resolver: resolver
         )
-        scopeDir = dir
-        guard let dir = dir else {
-            tickets = []
-            loadError = nil
-            return
-        }
-        // The library scope has no book id; for per-book scopes we use
-        // the active book (= may be nil for `.book` if no book is
-        // selected, but we already returned above in that case).
-        let bookId = bookStore.selectedBookId ?? UUID()
-        let store = BookKanbanStore(bookId: bookId, directory: dir, scope: scope)
-        do {
-            tickets = try store.load()
-            loadError = nil
-        } catch {
-            tickets = []
-            loadError = "\(error)"
-        }
+        tickets = result.tickets
+        scopeDir = result.scopeDir
+        loadError = result.loadError
     }
 
     private func addTicket() {
-        let trimmed = newTicketTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let dir = scopeDir else { return }
-        let bookId = bookStore.selectedBookId ?? UUID()
-        let store = BookKanbanStore(bookId: bookId, directory: dir, scope: scope)
-        var next = tickets
-        next.append(KanbanTicket(title: trimmed, status: .new))
-        do {
-            try store.save(next)
-            tickets = next
+        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
+        let result = KanbanOps.addTicket(
+            bookId: bookStore.selectedBookId,
+            scope: scope,
+            resolver: resolver,
+            title: newTicketTitle,
+            to: tickets
+        )
+        tickets = result.savedTickets
+        if result.didSave {
+            // SwiftUI-side reset (= inline-create TextField clears on
+            // successful save; = a binding reset, NOT a business rule,
+            // = stays in the view per ADR-0009).
             newTicketTitle = ""
-        } catch {
-            loadError = "保存失败: \(error)"
         }
+        if let err = result.error { loadError = err }
     }
 
     private func updateStatus(ticket: KanbanTicket, to newStatus: KanbanStatus) {
-        guard let dir = scopeDir else { return }
-        let bookId = bookStore.selectedBookId ?? UUID()
-        let store = BookKanbanStore(bookId: bookId, directory: dir, scope: scope)
-        var next = tickets
-        guard let idx = next.firstIndex(of: ticket) else { return }
-        next[idx].status = newStatus
-        next[idx].updatedAt = .now
-        do {
-            try store.save(next)
-            tickets = next
-        } catch {
-            loadError = "保存失败: \(error)"
-        }
+        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
+        let result = KanbanOps.updateStatus(
+            bookId: bookStore.selectedBookId,
+            scope: scope,
+            resolver: resolver,
+            ticket: ticket,
+            to: newStatus,
+            in: tickets
+        )
+        tickets = result.savedTickets
+        if let err = result.error { loadError = err }
     }
 
     private func deleteTicket(_ ticket: KanbanTicket) {
-        guard let dir = scopeDir else { return }
-        let bookId = bookStore.selectedBookId ?? UUID()
-        let store = BookKanbanStore(bookId: bookId, directory: dir, scope: scope)
-        let next = tickets.filter { $0.id != ticket.id }
-        do {
-            try store.save(next)
-            tickets = next
-        } catch {
-            loadError = "保存失败: \(error)"
-        }
+        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
+        let result = KanbanOps.deleteTicket(
+            bookId: bookStore.selectedBookId,
+            scope: scope,
+            resolver: resolver,
+            ticket: ticket,
+            in: tickets
+        )
+        tickets = result.savedTickets
+        if let err = result.error { loadError = err }
     }
 }
 
