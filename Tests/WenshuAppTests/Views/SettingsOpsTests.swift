@@ -55,7 +55,13 @@ struct SettingsOpsTests {
     /// model id list. Mirrors v1.70 WikiLinkNavigation's MockReference
     /// Store pattern (= a thin concrete struct that satisfies the
     /// helper's protocol seam).
-    private final class StubProviderFetcher: SettingsOps.ProviderFetcherSeam {
+    ///
+    /// `@unchecked Sendable` (= Swift 6 region isolation: the
+    /// `ProviderFetcherSeam: Sendable` constraint requires the
+    /// conforming type to be Sendable; = `final class` with mutable
+    /// stored properties needs `@unchecked Sendable` (= the tests
+    /// are single-threaded @MainActor; = no real shared mutation).
+    private final class StubProviderFetcher: SettingsOps.ProviderFetcherSeam, @unchecked Sendable {
         var lastProvider: Provider?
         var lastAPIKey: String?
         var cannedIDs: [String] = []
@@ -101,10 +107,10 @@ struct SettingsOpsTests {
     func refreshProviderStatusReturnsSetFromKeychain() throws {
         let keychain = makeInMemoryKeychain()
         try keychain.saveKeySync("anthropic-key", for: .anthropic)
-        try keychain.saveKeySync("openai-key", for: .openai)
+        try keychain.saveKeySync("minimax-key", for: .minimax)
         let providersWithKeys = SettingsOps.refreshProviderStatus(keychain: keychain)
-        #expect(providersWithKeys.contains(.anthropic.slug))
-        #expect(providersWithKeys.contains(.openai.slug))
+        #expect(providersWithKeys.contains(Provider.anthropic.slug))
+        #expect(providersWithKeys.contains(Provider.minimax.slug))
         #expect(providersWithKeys.count == 2,
                 "Exactly 2 providers must be reported as configured")
     }
@@ -232,18 +238,17 @@ struct SettingsOpsTests {
     @Test("toggleExpansion adds the slug when absent")
     func toggleExpansionAddsSlugWhenAbsent() throws {
         let result = SettingsOps.toggleExpansion(provider: .anthropic, in: [])
-        #expect(result.contains(.anthropic.slug),
+        #expect(result.contains(Provider.anthropic.slug),
                 "Absent slug must be inserted (= SettingView.toggleExpand's `if contains ... else insert` branch)")
     }
 
     @Test("toggleExpansion removes the slug when present")
     func toggleExpansionRemovesSlugWhenPresent() throws {
-        var input: Set<String> = [.anthropic.slug, .openai.slug]
+        let input: Set<String> = [Provider.anthropic.slug, Provider.minimax.slug]
         let result = SettingsOps.toggleExpansion(provider: .anthropic, in: input)
-        #expect(!result.contains(.anthropic.slug),
+        #expect(!result.contains(Provider.anthropic.slug),
                 "Present slug must be removed (= SettingView.toggleExpand's `if contains ... remove` branch)")
-        #expect(result.contains(.openai.slug),
+        #expect(result.contains(Provider.minimax.slug),
                 "Unrelated slugs must be preserved (= no-op on the rest of the set)")
-        _ = input  // silence unused-let under @Suite re-instantiation
     }
 }
