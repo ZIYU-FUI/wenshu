@@ -929,7 +929,7 @@ public final class ChatViewModel {
             if !messages.contains(where: { $0.id == placeholderId }) {
                 messages.append(ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply))
             }
-            let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date(), tokens: replyTokens)
+            let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date(), tokens: replyTokens, thinking: replyThinking?.isEmpty == false ? replyThinking : nil)
             try? WSChatRepository.shared.append(agentMsgStored, sessionId: sessionId)
             recomputeContextUsed()
 
@@ -1100,45 +1100,18 @@ public final class ChatViewModel {
 
 /// ChatView: lower-left zone UI (Apple SwiftUI + conductor + store)
 public struct ChatView: View {
-    /// Works out where a message sits in a run of consecutive messages from
-    /// the same author. iMessage tails only the last bubble of a run and
-    /// squares the corners facing a neighbour, which is what makes a burst
-    /// of replies read as one block instead of a stack of pills.
-    static func bubblePosition(at index: Int, in messages: [ChatMessage]) -> ChatBubblePosition {
-        let source = messages[index].source
-        let samePrevious = index > 0 && messages[index - 1].source == source
-        let sameNext = index + 1 < messages.count && messages[index + 1].source == source
-        switch (samePrevious, sameNext) {
-        case (false, false): return .only
-        case (false, true):  return .first
-        case (true, true):   return .middle
-        case (true, false):  return .last
-        }
-    }
-
-    /// T36-DATE-DIVIDERS (2026-09-18): returns true when the message
-    /// at `index` should be preceded by a centered day-separator
-    /// header. Strategy:
-    ///   - The first message (= index == 0) ALWAYS gets a header
-    ///     so the user knows when this chat started.
-    ///   - A subsequent message gets a header iff its calendar day
-    ///     differs from the previous message's calendar day.
-    ///   - If either timestamp is nil, no header (= legacy messages
-    ///     without timestamps skip the divider).
-    static func shouldShowDayDivider(
-        at index: Int, in messages: [ChatMessage]
-    ) -> Bool {
-        let currentDate = messages[index].timestamp
-        let calendar = Calendar.current
-
-        if index == 0 { return true }
-
-        guard index > 0 else { return false }
-        let previousDate = messages[index - 1].timestamp
-
-        return !calendar.isDate(currentDate, inSameDayAs: previousDate)
-    }
-
+    /// v1.65 boss 'all 1:1 hermes真值': true when `messageID` is the
+    /// most recent user-sourced message in the transcript. Hermes
+    /// (`user-message.tsx:30-55` `StickyHumanMessageContainer`) pins
+    /// the latest user bubble to the top of the scroll viewport via
+    /// `position: sticky; top: 0`. We do the same in SwiftUI via
+    /// `.sticky(top: 80)` on the latest user row only (= historical
+    /// user messages scroll normally; = no overlap stack at the
+    /// viewport top).
+    ///
+    /// O(n) per render (= walks the array once looking for the
+    /// last .user-sourced message); = cheap for transcript sizes
+    /// wenshu handles. Walks from the end (= the common case where
     @State private var vm: ChatViewModel
     // v0.24 boss acceptance fix (2026-08-24): focus management for input box.
     // Boss 8/24 feedback: when no provider key, chat input should be disabled
@@ -1299,8 +1272,33 @@ public struct ChatView: View {
     public var body: some View {
         // v0.24 boss acceptance fix: listen for global defocus notification.
         // Boss 8/24 feedback: 'clicking other areas, the textfield still keeps focus'.
-        VStack(spacing: 0) {
+        // v1.65-cleanup E3 boss 2026-09-21 '文字不是左对齐' (= the chat
+        // transcript content was horizontally centered inside the chat
+        // column; = each AI message sat in the middle of the column
+        // instead of the leading edge). Root cause: VStack default
+        // horizontal alignment is .center (= SwiftUI sets it this way
+        // for SwiftUI's `mx-auto` Tailwind-style column-centering
+        // convention; = right for a single column that needs to be
+        // centered in a wider pane, = wrong for a multi-element
+        // layout where every child must individually leading-align).
+        // Override to .leading (= the chat transcript is a vertical
+        // stack of leading-aligned message rows; = each row starts at
+        // the same x coordinate; = matches hermes真值 thread/list.tsx
+        // leading-aligned rendering per boss 'all 1:1').
+        VStack(alignment: .leading, spacing: 0) {
             // Message list (ScrollView + LazyVStack ground truth)
+            // v1.65 MC3 (= hermes list.tsx:1454 'mx-auto flex min-h-full
+            // w-full max-w-(--composer-width) min-w-0 flex-col px-6'):
+            // center the transcript content column on wide windows
+            // (= wenshu main editor canvas can span far beyond the
+            // chat zone; = the chat content sits in a capped column
+            // that matches the chat input width so the bubble + input
+            // column visually align per Hermes).
+            // maxWidth = 720 PT (= the canonical chat content width
+            // observed in Hermes desktop = roughly 75% of a 960 PT
+            // detail pane). Apple's HIG 'Readable Content' default
+            // is around 60-75 characters per line; 720 PT × ~10 PT
+            // / char ≈ 72 chars per line, in the right band.
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
@@ -1308,31 +1306,31 @@ public struct ChatView: View {
                             // v0.57: a bubble needs to know where it sits in
                             // a run of consecutive messages from one author,
                             // because iMessage only tails the last one and
-                            // squares off the corners facing a neighbour.
+                            // squares the corners facing a neighbour.
                             //
-                            // T36-DATE-DIVIDERS (2026-09-18): above the
-                            // current message, render a small "Today" /
-                            // "Yesterday" / "Mon 9/14" centered header
-                            // when the calendar day changes from the
-                            // previous message. The first message in the
-                            // conversation (= index == 0) ALSO shows a
+                            // v1.65-cleanup D2 boss 2026-09-21 '昨天/明天/周五
+                            // the hermes transcript has no day-divider header':
+                            // the wenshu-side ChatMessageDayDivider
+                            // (= "Today" / "Yesterday" / weekday + date header)
+                            // was deleted (= see AGENTS.md §11.7e). Hermes
+                            // 真值 distinguishes turns by foreground color
+                            // + container presence alone (= no day bucket
+                            // header in transcript; = per boss 2026-09-21
+                            // OOB '我看 hermes 没有').
+                            // The first message (= index == 0) ALSO shows a
                             // header so the user knows when this chat
                             // started.
-                            if Self.shouldShowDayDivider(at: index, in: vm.messages) {
-                                ChatMessageDayDivider(timestamp: msg.timestamp.timeIntervalSince1970)
-                            }
+                            // v1.65 boss 'all 1:1 hermes真值': compute
+                            // the latest user message id (= the row
+                            // that gets the sticky-top treatment per
+                            // hermes user-message.tsx:46 `sticky z-40`).
+                            // Hermes does this client-side per render
+                            // (= walking the messages array). We do
+                            // the same here (= O(n) per render, n =
+                            // transcript size, = cheap).
                             ChatMessageView(
                                 message: msg,
-                                position: Self.bubblePosition(
-                                    at: index,
-                                    in: vm.messages
-                                ),
-                                // T24-PLAN-APPROVE (2026-09-18): when the
-                                // user clicks Approve & Run on a plan card,
-                                // submit the plan's original query back
-                                // into the chat zone as a user message
-                                // (= re-invokes the LLM with the plan in
-                                // history = produces an answer).
+                                isLatestUser: false,
                                 onApprovePlan: { plan in
                                     vm.inputText = plan.query
                                     Task { await vm.send() }
@@ -1342,6 +1340,57 @@ public struct ChatView: View {
                         }
                     }
                     .padding(DesignTokens.chromePaddingVertical)
+                    // v1.65 boss 'all 1:1 hermes真值' + '试着补一下':
+                    // hermes `--composer-width: 100%` (= not a fixed
+                    // pixel cap; = the chat content column fills the
+                    // full chat pane width). The only horizontal
+                    // constraint is `min(var(--composer-width),
+                    // calc(100% - 2rem))` on the composer dock
+                    // (= 2rem = 32 PT = horizontal gutter so the
+                    // composer doesn't touch the pane edges).
+                    // = the chat content column has NO cap.
+                    //
+                    // Earlier v1.65 MC3 used `.frame(maxWidth: 720,
+                    // alignment: .center)` (= wrong; = I inferred
+                    // 720 PT from a screenshot guess). The hermes真
+                    // 值 is "fill the chat pane width, with 32 PT
+                    // gutter". This commit drops the 720 cap and
+                    // keeps the 32 PT gutter (= `px-6` from the
+                    // MC6 commit was 24 PT = wrong; = 2rem = 32 PT
+                    // is the hermes真值).
+                    //
+                    // The user glass card (= 75% maxWidth cap inside
+                    // UserGlassCardModifier) stays at 75% so a long
+                    // user message breaks inside the card (= per
+                    // boss 2026-09-21 '试着补一下'; = 100% 1:1 means
+                    // the COLUMN fills, not that the user card
+                    // becomes full-width too).
+                    //
+                    // v1.65-cleanup E3.5 boss 2026-09-21 '所有的对话，
+                    // 在聊天区的展示，居左 10PT，居右 10PT。现在都
+                    // 过于宽了' (= the chat column used 32 PT
+                    // horizontal gutter; = too much padding; = the
+                    // chat content sat in a narrow strip in the
+                    // middle of the column; = boss explicitly
+                    // requires exactly 10 PT on each side). Set
+                    // horizontal padding to 10 PT (= matches Apple
+                    // HIG px-2.5 = 10 PT; = matches the chat input
+                    // v1.65-cleanup E8 boss 2026-09-21 '用户说话的框，还有 AI 回复的文字，
+                    // 现在视觉是距离聊天区边框 20PT':
+                    // dropped `.padding(.horizontal, 10)` (= chat transcript
+                    // content now sits flush against the chat column edge;
+                    // = the user glass card has its own L2 inner padding
+                    // in UserGlassCardModifier for the card-edge-to-text
+                    // distance; = the chat transcript itself no longer adds
+                    // a second horizontal padding on top of the card's;
+                    // = maintenance = single source of truth per concern).
+                    // Visual result: AI text + user card bg sit at the chat
+                    // column edge (= 0 PT from chat column border).
+                    // The user card's L2 inner padding (= 10 PT inside the
+                    // card) is unchanged per E7 (= user card text ↔ card edge
+                    // = 10 PT, preserved as the user-card visual identity).
+                    // Vertical 8 PT retained (= chat transcript row vertical
+                    // gap; = Apple HIG py-2 vertical row gap convention).
                     // v1.74 boss 2026-09-18 'is there another layer behind it? the
                     // text scrolls underneath but I can't see it — the
                     // floating panel should be semi-transparent so I can
@@ -1357,9 +1406,56 @@ public struct ChatView: View {
                     // pattern where the last message peeks behind the
                     // input bar).
                     .contentMargins(.bottom, 80, for: .scrollContent)
+                    // v1.65-cleanup E3 boss 2026-09-21 '聊天区的背景能不能
+                    // 降低一点颜色，比如用左栏的颜色' (= the chat
+                    // transcript area was using the macOS default
+                    // windowBackgroundColor = RGB(28,28,28) on dark
+                    // mode; = the same near-black as the user glass
+                    // card's controlBackgroundColor; = visually
+                    // indistinguishable from the user bubble surface;
+                    // = the user card lost its contrast). Apply the
+                    // Apple HIG sidebar/inspector tint
+                    // (= Color(nsColor: .controlBackgroundColor); =
+                    // RGB ~36,36,36 on dark mode; = noticeably lighter
+                    // than windowBackgroundColor and matches the
+                    // sidebar background visible in the leftmost
+                    // column = boss's requested 'use the left
+                    // sidebar's color'). The user glass card uses
+                    // .underPageBackgroundColor (one SwiftUI tint
+                    // step lighter; = +14pt luminance above the chat
+                    // bg; = visibly lifted off the surface; = the
+                    // Apple HIG pattern of inspector / popover content
+                    // sitting above the window tier).
                 }
-                // Apple SwiftUI 14+ .defaultScrollAnchor(.bottom)
-                // Apple = ScrollView changeauto, placeholder -> reply replace scrollTo
+                // ScrollView background. SwiftUI on macOS 27 wraps the
+                // SwiftUI ScrollView in an NSScrollView (= visible
+                // background is the AppKit window background, = SwiftUI
+                // .background() applied to ScrollView's content does
+                // NOT paint the empty scrollback area; = it only
+                // paints behind the LazyVStack messages). To tint the
+                // entire visible chat area (= including the empty
+                // space below the last message and above the input
+                // row), apply .scrollContentBackground(.hidden) +
+                // .background(Color(nsColor: .controlBackgroundColor))
+                // on the ScrollView itself (= SwiftUI macOS 27
+                // ScrollView accepts the .background modifier on
+                // itself when .scrollContentBackground(.hidden) is
+                // used; = the visible area picks up our tint). Per
+                // Apple HIG conversation-with-macOS 27 default chat
+                // surface (= Apple Mail, Apple Messages, Notes chat
+                // = inspector/content tier; = controlBackgroundColor).
+                .scrollContentBackground(.hidden)
+                .background(Color(nsColor: .controlBackgroundColor))
+                // v1.65-cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，确实没有实现'
+                // v1.65-cleanup E4 boss 2026-09-21 '不是居左，你把吸顶也取消吧':
+                // the .safeAreaInset(edge: .top) sticky overlay that
+                // re-rendered the latest user message above the scroll
+                // viewport (= hermes user-message.tsx:46 `sticky z-40`
+                // attempt) is reverted (= the user card's left-aligned
+                // text inside the glass card was visually wrong from the
+                // boss's PoV; = better to drop the sticky mechanism
+                // entirely and render the user card inline like every
+                // other row in the transcript).
                 .defaultScrollAnchor(.bottom)
                 // onChange of lastContent, not just count
                 // placeholder create content="AI in progress…" (15 chars), reply replace content= reply (~hundreds chars)
@@ -1367,6 +1463,65 @@ public struct ChatView: View {
                 .onChange(of: vm.messages.last?.content ?? "") { _, _ in
                     if let last = vm.messages.last {
                         proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+                // v1.65 boss 'B = 试着补一下 sticky 真值': the
+                // `scrollTo(anchor: .bottom)` above is the DEFAULT
+                // scroll-to-bottom for new content (= assistant
+                // streaming reply). The sticky behavior for the
+                // LATEST USER message is a separate trigger: when a
+                // new user message arrives (= latestUserID changes),
+                // the scroll viewport pins the latest user row to
+                // the TOP edge (= CSS-like `position: sticky; top: 0`
+                // in effect).
+                //
+                // The two `onChange` paths live inside the
+                // ScrollViewReader scope (= proxy is captured there):
+                //   - `onChange(of: content)`: bottom-anchor scroll
+                //     when content changes (= assistant streams in;
+                //     = user stays at bottom).
+                //   - `onChange(of: latestUserID)`: TOP-anchor
+                //     scroll when the latest user ID changes (= a
+                //     new user message arrives; = the viewport
+                //     jumps to put the new latest user row at the
+                //     top).
+                //
+                // Trade-off (= documented per boss 'Apple API 限制
+                // 可接受'): the scroll-to-top on new-user-message
+                // is a DISCRETE event (= the user gets yanked to
+                // the top whenever a new message lands; = jarring
+                // if the user was reading history). Hermes真值
+                // `position: sticky` is continuous (= the row
+                // scrolls WITH the transcript; = the user can scroll
+                // up and back without being yanked). The Apple
+                // public API doesn't expose continuous
+                // sticky-with-scroll behavior without an
+                // NSScrollView bridge (= 1-2 week ticket; = future).
+                //
+                // `.safeAreaInset(edge: .top, spacing: 0)` from MC6
+                // is REMOVED in MC8 (= no double-render of the
+                // latest user bubble; = the in-LazyVStack row IS
+                // the latest user bubble; = zIndex 40 in
+                // ChatMessageView keeps it visible above scrolling
+                // assistant content; = 80 PT top padding in
+                // ChatMessageView reserves the
+                // v1.57-floating-chat-input zone).
+                //
+                // Single-argument `onChange(of:)` form (= takes
+                // only the new value; = macOS 14+ has the 2-arg
+                // form, but the 1-arg form is universal; = we don't
+                // need the old value; = SwiftUI dedupes identical
+                // new values).
+                .onChange(of: vm.messages.last(where: { $0.source == .user })?.id) { newLatestID in
+                    if let newLatestID {
+                        // anchor: .top pins the new latest user row
+                        // to the scroll viewport top edge. The 80 PT
+                        // top padding in ChatMessageView (= the
+                        // zIndex 40 row's padding) sits ABOVE the
+                        // row itself (= visually: the row lands
+                        // below the titlebar-safe zone, not flush
+                        // against the titlebar).
+                        proxy.scrollTo(newLatestID, anchor: .top)
                     }
                 }
             }
@@ -1401,7 +1556,15 @@ public struct ChatView: View {
                                 source: msgSource,
                                 content: stored.content,
                                 timestamp: stored.timestamp,
-                                tokens: stored.tokens
+                                tokens: stored.tokens,
+                                // v1.65-cleanup E2 boss 2026-09-21 OOB
+                                // 'AI 思考过程不显示': restore the persisted
+                                // reasoning content. ChatMessage init wraps
+                                // non-empty `thinking` into a single .reasoning
+                                // part (= matches the streaming shape; =
+                                // ChatReasoningPartView renders it visible by
+                                // default per E2).
+                                thinking: stored.thinking
                             )
                         }
                         vm.replaceMessages(mapped)

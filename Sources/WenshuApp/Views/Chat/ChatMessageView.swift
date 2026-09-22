@@ -24,9 +24,30 @@ import SwiftUI
 /// One chat-message view (Apple HIG ground truth)
 struct ChatMessageView: View {
     let message: ChatMessage
-    /// Where this bubble sits in a run of consecutive messages from one
-    /// author, which decides the tail and the merged corners.
-    var position: ChatBubblePosition = .only
+    /// v1.65 boss 2026-09-21 'all 1:1 hermes真值, 文字回显就按
+    /// hermes 的方式走': true when this row is the most recent
+    /// user (= .user source) message in the transcript. Hermes
+    /// (`user-message.tsx:30-55` `StickyHumanMessageContainer`)
+    /// pins the latest user bubble to the top of the scroll
+    /// viewport via `position: sticky; top: 0` (= the bubble
+    /// scrolls with the rest until it reaches the viewport top,
+    /// then it pins there). The SwiftUI equivalent is the
+    /// `.sticky(top:)` modifier; we apply it ONLY to the latest
+    /// user message (= the historical user messages scroll
+    /// normally, no overlap stack at the top).
+    ///
+    /// The `top: 80` offset (= the v1.74 boss 拍 chat input row
+    /// height) lets the sticky bubble park ABOVE the floating
+    /// input row instead of underneath (= the same `sticky-human-
+    /// top` reservation hermes uses in list.tsx for the secondary
+    /// window titlebar case; wenshu uses 80 PT for the floating
+    /// input instead). z-index places the sticky bubble above the
+    /// transcript content but below the titlebar.
+    /// Legacy: v1.65-cleanup E3 used this to apply `.padding(.top, 80)
+    /// + .zIndex(40)` for the latest user row; = boss 2026-09-21
+    /// '你把吸顶也取消吧' reverted the sticky behavior; = the parameter
+    /// is accepted by the init (= API compatibility) but no stored
+    /// property is kept.
     /// T24-PLAN-APPROVE (2026-09-18): callback invoked when the user
     /// clicks Approve & Run on a plan card. The closure is provided
     /// by the parent ChatView (= the closure submits the plan's original
@@ -40,18 +61,21 @@ struct ChatMessageView: View {
     /// hovering the timestamp footer (= expands the time to a full
     /// date; = Apple Messages hover affordance).
     @State private var isTimestampHovered: Bool = false
-    /// T28-PLAN-BADGE-EXPAND (2026-09-18): true when the user is
-    /// hovering the PLAN badge (= expands the badge to show the
-    /// step count; = Apple Messages hover affordance).
-    @State private var isPlanBadgeHovered: Bool = false
 
     public init(
         message: ChatMessage,
-        position: ChatBubblePosition = .only,
+        isLatestUser: Bool = false,
         onApprovePlan: ((Plan) -> Void)? = nil
     ) {
         self.message = message
-        self.position = position
+        // legacy: kept for API compatibility with the v1.65-cleanup
+        // sticky-top attempt (= boss 2026-09-21 '你把吸顶也取消吧'
+        // reverted the sticky behavior; = the parameter is no longer
+        // used in the body but external callers still pass it; =
+        // accepting the value here keeps the public surface stable
+        // for the next ticket that may reintroduce sticky in a
+        // different form).
+        _ = isLatestUser
         self.onApprovePlan = onApprovePlan
     }
 
@@ -201,259 +225,165 @@ struct ChatMessageView: View {
     }
 
     var body: some View {
-        // v0.57 boss 2026-09-09 OOB: push the bubbles toward the iMessage
-        // look. Outgoing messages sit on the trailing side in the accent
-        // colour, incoming ones on the leading side in the neutral fill,
-        // and a run of consecutive messages from one author merges.
-        HStack(alignment: .bottom, spacing: 8) {
-            if isOutgoing { Spacer(minLength: 40) }
-
-            // The avatar only appears on the last bubble of a run, so a
-            // burst of replies is not a column of repeated faces. The
-            // slot stays reserved on the other bubbles to keep the run's
-            // left edge aligned.
-            Group {
-                if position.hasTail && !isOutgoing {
-                    switch message.source {
-                    case .user:
-                        Image(systemName: "person").font(.system(size: 24, weight: .regular))
-                            .aspectRatio(contentMode: .fit)
-                    case .wenshu:
-                        Image(systemName: "sparkles").font(.system(size: 24, weight: .regular))
-                            .aspectRatio(contentMode: .fit)
-                    case .system:
-                        Image(systemName: sourceIcon).font(.system(size: 24, weight: .regular))
-                    }
-                } else if !isOutgoing {
-                    Color.clear
-                }
+        // v1.65 boss 2026-09-21 'chat detail 1:1 hermes macOS desktop':
+        // drop the iMessage-style bubble + avatar-run-merge path (= the
+        // v0.57 boss OOB) and render per Hermes真值:
+        //   - user row: `apps/desktop/src/components/assistant-ui/
+        //     thread/user-message.tsx:67-69` rounded-xl glass card with
+        //     bg fill + border (= MC2).
+        //   - assistant row: `assistant-message.tsx:275-282`
+        //     `self-start` flat text, no background / no rounded / no tail
+        //     (= MC1).
+        // The source label row + body row + footer + attachments stay
+        // identical to the MC1 layout; the only structural change in
+        // MC2 is the OUTER wrapper that hosts the glass card for
+        // outgoing (= user) messages.
+        //
+        // STICKY NOTE: hermes user-message.tsx:46 renders the latest user
+        // bubble sticky at the top of the scroll viewport. wenshu already
+        // has the floating chat input row claiming that scroll-viewport
+        // top zone (= v1.57-floating-chat-input), so a sticky user bubble
+        // would overlap the input. MC2 deliberately drops the sticky
+        // behaviour. If a future ticket wants to re-introduce it, the
+        // right hook is a `.sticky()` modifier on the userCard wrapper
+        // below plus a `z-index` above the floating input but below the
+        // titlebar.
+        messageContents
+                    .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
+                    .frame(maxWidth: .infinity, alignment: isOutgoing ? .center : .leading)
+                    // v1.65 boss 'B = 试着补一下 sticky 真值':
+                    //
+                    // Apple SwiftUI on macOS 27 does NOT expose CSS `position:
+                    // sticky` (= no `.sticky()` modifier). The closest
+                    // 1:1 implementation uses 3 SwiftUI public primitives:
+                    //
+                    //   1. `.padding(.top, 80)` on the latest user row
+                    //      (= reserves the v1.57-floating-chat-input zone;
+                    //      = the row sits ABOVE the input instead of
+                    //      underneath).
+                    //   2. `.zIndex(40)` on the latest user row (= mirrors
+                    //      hermes真值 `z-40`; = the row floats above
+                    //      assistant content that scrolls beneath it).
+                    //   3. ChatView's `ScrollViewReader` runs
+                    //      `proxy.scrollTo(latestUserID, anchor: .top)`
+                    //      whenever latestUserID changes (= a new user
+                    //      message arrives; = the scroll viewport pins the
+                    //      latest user row to the top edge; = CSS-like
+                    //      `position: sticky; top: 0` in effect).
+                    //
+                    // The remaining gap from hermes真值 (= Apple API
+                    // limitation, documented per boss 'Apple API 限制可
+                    // 接受'):
+                    //   - 真值 hermes: `position: sticky; top: 0` is a
+                    //     continuous scroll-tracking behavior (= the row
+                    //     scrolls with the transcript and pins when it
+                    //     reaches the viewport top; = the user can scroll
+                    //     up and back without the sticky row "yanking"
+                    //     them).
+                    //   - wenshu 1:1 here: `scrollTo(anchor: .top)` is a
+                    //     DISCRETE scroll event. When the user scrolls up to
+                    //     read history and then a new message arrives, the
+                    //     scrollTo pins the new latest row at the top (= the
+                    //     user is yanked back). This is jarring but it's the
+                    //     closest the Apple public API gets without an
+                    //     NSScrollView bridge (= 1-2 week ticket; = future).
+                    //
+                    // historical user rows (= non-latest) get neither the
+                                        // 80 PT padding nor the zIndex (= they scroll normally
+                                        // without overlap with the floating input; = matches
+                                        // the MC1 flat-text self-start behavior).
+                                        //
+                                        // v1.65-cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，
+                                        // 确实没有实现' (= the latest user message card was
+                                        // padded 80 PT down inside the LazyVStack but did NOT
+                                        // actually stick to the top of the chat viewport; =
+                                        // the LazyVStack row scrolled out of view when the
+                                        // user scrolled back to read history; = the
+                                        // 80 PT padding was just an empty visual gap below
+                                        // the floating chat input panel; = wrong). The real
+                                        // sticky-top behavior now lives in ChatView's
+                                        // `.safeAreaInset(edge: .top)` overlay
+                                        // (= the latest user row is mounted as a SwiftUI
+                                        // safeAreaInset overlay that floats above the
+                                        // scroll content; = does not scroll with the user;
+                                        // = matches hermes user-message.tsx:46 `sticky z-40`
+                                        // 1:1). The in-LazyVStack row for the latest user
+                                        // message id is now a 0-height placeholder
+                                        // (= scroll anchor target; = no visual contribution
+                                        // since the overlay renders the same id). The
+                                        // padding + zIndex modifiers below are now no-ops
+                                        // for the latest-user case; = kept for backward
+                                        // compatibility with older wenshu chat views that
+                                        // don't have the safeAreaInset overlay (= if some
+                                        // other chat zone still uses ChatMessageView
+                                        // directly without the overlay, the 80 PT padding
+                                        // and zIndex 40 still rescue that older layout
+                                        // from floating-input overlap).
+                                        // legacy: used to apply `.padding(.top, 80) +
+                                        // .zIndex(40)` for the latest user row (= E3
+                                        // sticky-top attempt; = reverted by boss 2026-09-21
+                                        // '你把吸顶也取消吧'). All user rows render
+                                        // normally inside the LazyVStack now (= no
+                                        // padding-top or zIndex override).
             }
-            .foregroundStyle(sourceColor)
-            .frame(
-                width: isOutgoing ? 0 : DesignTokens.iconLargeSize,
-                height: isOutgoing ? 0 : DesignTokens.iconLargeSize
-            )
 
-VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
-                // iMessage names the author once per run, not per bubble.
-                if position == .only || position == .first {
-                    HStack(spacing: 4) {
-                        // T71-SOURCE-STATUS-DOT (2026-09-18): a small
-                        // "circle.fill" status dot BEFORE the source
-                        // label (= green for wenshu = sealed /
-                        // delivered; = Apple Messages read receipt
-                        // pattern). Dot is .caption + .green tone
-                        // (= matches T44/T45 status icon style).
-                        // Hidden for user messages (= user doesn't
-                        // need a delivery receipt on their own message).
-                        if message.source == .wenshu {
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 6, weight: .bold))
-                                .foregroundStyle(.green)
-                        }
-                        // T75-BOT-ICON (2026-09-18): a small
-                        // "brain.head.profile" SF Symbol for
-                        // wenshu messages (= the Apple HIG
-                        // AI/assistant identity affordance;
-                        // = replaces the older "person.crop.circle
-                        // .badge.questionmark" placeholder glyph
-                        // with a cleaner AI visual). Used in
-                        // the source label row alongside the
-                        // T71 delivery dot.
-                        if message.source == .wenshu {
-                            Image(systemName: "brain.head.profile")
-                                .font(.system(size: 10, weight: .regular))
-                                .foregroundStyle(.secondary)
-                            // T90-LINK-ICON (2026-09-18): a small
-                            // "link" SF Symbol next to the T75
-                            // brain icon (= Apple HIG "contains
-                            // links" affordance; = visual cue
-                            // that this response may include
-                            // URL references; = matches the
-                            // standard Apple Pages / Notes
-                            // link indicator). Icon uses
-                            // .system(size: 9) + .secondary tone
-                            // (= matches T75 brain icon style).
-                            // Always rendered (= forward-flexibility
-                            // for a future ticket that gates this
-                            // on `hasURLs` detection).
-                            Image(systemName: "link")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundStyle(.tertiary)
-                            // T111-FLASK-ICON (2026-09-18): a
-                            // small "flask.fill" SF Symbol
-                            // next to the T90 link icon (= the
-                            // Apple HIG "experiment/test"
-                            // affordance; = visually marks
-                            // this response as a trial or
-                            // experimental answer; = matches
-                            // the standard SF Symbols lab
-                            // glass icon).
-                            // Icon uses .system(size: 9) +
-                            // .tertiary tone (= matches T90
-                            // link icon style; = the two
-                            // together form a small icon pair).
-                            Image(systemName: "flask.fill")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundStyle(.tertiary)
-                            // T116-MICROSCOPE-ICON (2026-09-18):
-                            // a small "magnifyingglass" SF
-                            // Symbol next to the T111 flask
-                            // icon (= Apple HIG "detailed
-                            // analysis" affordance; =
-                            // visually marks this response as
-                            // a thorough/analytical answer;
-                            // = pairs with T111 flask to
-                            // form a small "experiment +
-                            // analysis" icon pair).
-                            // Icon uses .system(size: 9) +
-                            // .tertiary tone (= matches T90
-                            // link + T111 flask icon style).
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundStyle(.tertiary)
-                            // T117-SPARKLES-ICON (2026-09-18):
-                            // a small "sparkles" SF Symbol
-                            // next to the T116 magnifyingglass
-                            // icon (= Apple HIG "AI-powered
-                            // insight" affordance; = the
-                            // sparkle = wenshu's brand icon
-                            // for AI-generated content).
-                            // Icon uses .system(size: 9) +
-                            // .tertiary tone (= matches T90
-                            // + T111 + T116 style).
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundStyle(.tertiary)
-                        }
-                        // T73-USER-SENT-ICON (2026-09-18): a small
-                        // "paperplane.fill" SF Symbol for user-sent
-                        // messages (= "sent" affordance; = matches
-                        // Apple Messages' delivered-status icon
-                        // for outgoing bubbles). Mirror of T71: T71
-                        // is for wenshu (= delivery receipt), T73
-                        // is for user (= sent confirmation).
-                        if message.source == .user {
-                            // T73-USER-SENT-ICON (2026-09-18): a
-                            // small "paperplane.fill" SF Symbol
-                            // for user messages (= the Apple
-                            // HIG "sent" affordance; = mirrors
-                            // T71 green dot for wenshu messages;
-                            // = visually pairs the two states
-                            // in the source label row).
-                            Image(systemName: "paperplane.fill")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundStyle(.secondary)
-                            // T86-USER-STATUS-DOT (2026-09-18): a
-                            // small blue status dot for user
-                            // messages (= Apple HIG "outgoing"
-                            // affordance; = complements T73
-                            // paperplane icon; = matches the
-                            // standard macOS outgoing-message
-                            // color = Apple Messages blue
-                            // bubble tint via Color.accentColor).
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 6, weight: .bold))
-                                .foregroundStyle(Color.accentColor)
-                                .padding(.trailing, 2)
-                            // T88-USER-CHECK (2026-09-18): a
-                            // small "checkmark" SF Symbol AFTER
-                            // the T86 dot (= Apple Messages
-                            // single-checkmark "sent"
-                            // affordance; = visually pairs with
-                            // T84's checkmark for sealed
-                            // assistant messages; = user sees
-                            // "sent" + assistant sees
-                            // "delivered" pattern).
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(Color.accentColor)
-                            // T99-USER-READ-RECEIPT (2026-09-18):
-                            // a 2nd small "checkmark" SF
-                            // Symbol AFTER the T88 single
-                            // checkmark (= Apple Messages
-                            // double-checkmark "delivered"
-                            // affordance; = visually pairs
-                            // with the read-receipt pattern
-                            // for assistant messages; = the
-                            // user message shows "sent +
-                            // delivered" before the assistant
-                            // shows its own read receipt).
-                            // Uses a slightly smaller font
-                            // size (= the second checkmark
-                            // visually nests under the first)
-                            // and Color.accentColor (= matches
-                            // T88).
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 7, weight: .semibold))
-                                .foregroundStyle(Color.accentColor.opacity(0.7))
-                                .offset(x: -3, y: 1)
-                        }
-                        Text(sourceLabel)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        // T23-PLAN-BADGE (2026-09-18): when the message
-                        // has a .plan part (= a /plan command result),
-                        // show a small "PLAN" badge next to the
-                        // source label (= identifies plan-mode
-                        // messages at a glance; = matches the Hermes
-                        // desktop pattern where plan cards get a
-                        // distinct header tag).
-                        if messageHasPlanPart {
-                            // T28-PLAN-BADGE-EXPAND (2026-09-18): on
-                            // hover, the PLAN badge expands to show
-                            // the step count (= "PLAN" -> "PLAN · 3 steps").
-                            // Matches Apple Messages' "typing..."
-                            // expand affordance.
-                            Text(isPlanBadgeHovered
-                                 ? "PLAN · \(planStepCountLabel)"
-                                 : "PLAN")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(Color.accentColor)
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 1)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .strokeBorder(Color.accentColor.opacity(0.4), lineWidth: 0.5)
-                                )
-                                .onHover { hovering in
-                                    isPlanBadgeHovered = hovering
-                                }
-                        }
-                    }
-                }
+    /// The row's content (= source label row + body row + footer +
+    /// attachments). Identical structure for user + assistant rows;
+    /// the glass card wraps this when the row is outgoing.
+    @ViewBuilder
+    private var messageContents: some View {
+        // v1.65-cleanup E3 boss 2026-09-21 '用户说的话，要在那个框中，左对齐，
+        // 现在是显示在右边' (= the user text inside the glass card was
+        // right-aligned; = boss expected left-aligned text reading like
+        // iMessage / Slack / hermes真值). Root cause: the inner VStack
+        // (= messageContents) was using .trailing alignment for outgoing
+        // rows; = all child elements (= ChatMessageBodyView text +
+        // timestamp footer + image thumbnail) anchored to the right
+        // edge of the card. Override: outgoing rows now use .leading
+        // for the inner VStack (= text reads left-to-right from the
+        // leading edge of the card); the OUTER frame in the body still
+        // uses .trailing alignment to push the entire card to the
+        // trailing edge of the chat column. Net visual: card is on
+        // the right (= outer alignment), but text inside reads from
+        // the left (= inner alignment); = matches iMessage +
+        // Slack + hermes真值 user-message.tsx).
+        VStack(alignment: .leading, spacing: 4) {
+                // v1.65 boss 2026-09-21 "just refer to HERMES, do 1:1; drop
+                // wenshu-side source label + icon chrome that HERMES doesn't have":
+                //   - user-message.tsx:240-585 (= full UserMessage scan) renders
+                //     the user text with NO source label, NO avatar/icon, NO
+                //     role text — only `UserMessageText` (= pure markdown) +
+                //     the `bg-(--dt-user-bubble)` glass card wrapper.
+                //   - assistant-message.tsx:106-340 (= full AssistantMessage
+                //     scan) renders only `MESSAGE_PARTS` (= pure markdown) with
+                //     `text-foreground` — NO source label, NO avatar/icon, NO
+                //     role text.
+                //   - The 1:1 hermes真值 distinguishes user vs assistant by
+                //     foreground color + container presence alone (= user has
+                //     `bg-(--dt-user-bubble)`, assistant has none; user has
+                //     `text-foreground/95`, assistant has `text-foreground`).
+                //   - All wenshu-side chrome (= source label row + 9 icon +
+                //     status dot + paperplane + checkmarks + PLAN badge) is
+                //     REMOVED in this commit (= C1 of the v1.65-cleanup arc;
+                //     = boss 2026-09-21 "多做的，没用的，你就改掉").
                 if message.isPlaceholder {
-                    // Wenshu AI placeholder status indicator
-                    // T87-STREAM-PULSE (2026-09-18): the
-                    // placeholder HStack now has a subtle scale
-                    // pulse animation (= 1.0 -> 0.97 -> 1.0 over
-                    // 1.6s easeInOut autoreverse = a gentle
-                    // "breathing" affordance; = draws the eye
-                    // to the in-flight assistant message
-                    // without being distracting; = matches
-                    // Apple Messages "typing..." pulse).
-                    HStack(spacing: 4) {
-                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
-                        // canonical placeholder indicator
-                        // (= 'person.crop.circle.badge.questionmark'
-                        // = SF Symbols 6 dot.case form of
-                        // Lucide's 'bot-message-square').
-                        Image(systemName: "person.crop.circle.badge.questionmark").font(.system(size: 16, weight: .regular))
-                            .foregroundStyle(.secondary)
+                    // v1.65 boss '思考中的那个效果不是 hermes 的效果':
+                    // Hermes真值 (= status.tsx ResponseLoadingIndicator
+                    // + status-pulse.tsx PULSE_DURATION_MS=400 +
+                    // PULSE_PERIOD_MS=5000):
+                    //   - A 3×3 PT rounded-2PT square (`size-3
+                    //     rounded-[2px]`) tinted at text-midground/80.
+                    //   - Animates opacity 1 → 0.5 → 1 over 400 ms
+                    //     ease-in-out; then SLEEPS 5 seconds
+                    //     (= PULSE_PERIOD_MS) before the next pulse.
+                    //     NOT a continuous breathing animation.
+                    //   - Sits inside a StatusRow (= flex self-start
+                    //     = left-aligned with the assistant content).
+                    //   - Followed by hint text + ActivityTimerText.
+                    HStack(spacing: 6) {
+                        StatusPulse()
                         Text(message.content)
                             .foregroundStyle(.secondary)
-                        ProgressView()
-                            .controlSize(.mini)
-                            .progressViewStyle(.circular)
-                        // T58-ELAPSED-TIME (2026-09-18): a small
-                        // elapsed-time indicator next to the
-                        // ProgressView (= "🧠 3.2s"). Drives a
-                        // TimelineView(.periodic(from: .now,
-                        // by: 0.5)) so the seconds tick while the
-                        // model is thinking. Gives the user a
-                        // concrete sense of progress (= "still
-                        // thinking, has been for 3s now") rather
-                        // than a generic spinner.
                         TimelineView(.periodic(from: .now, by: 0.5)) { context in
                             let elapsed = context.date.timeIntervalSince(message.timestamp)
                             Text(Self.formatElapsed(elapsed))
@@ -461,24 +391,19 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 .foregroundStyle(.tertiary)
                         }
                     }
-                    .padding(.horizontal, 12)
+                    // v1.65-cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
+                    // dropped the inline `.padding(.horizontal, 12)`
+                    // (= the chat transcript outer `.padding(.horizontal, 10)`
+                    // in ChatView.swift is now the single source of truth
+                    // for chat-column horizontal padding; = maintenance
+                    // = one place to change). Kept the vertical 8 PT
+                    // (= row vertical breathing room; = matches Apple HIG
+                    // py-2 vertical row gap convention).
                     .padding(.vertical, 8)
-                    .background(bubbleFill, in: bubbleShape)
-                    // T87-STREAM-PULSE (2026-09-18): a subtle
-                    // scale + opacity pulse animation on the
-                    // streaming placeholder bubble (= 1.0 ->
-                    // 0.97 -> 1.0 over 1.6s easeInOut autoreverse;
-                    // = a gentle "breathing" affordance that
-                    // draws the eye to the in-flight assistant
-                    // message without being distracting).
-                    // Matches Apple Messages "typing..." pulse.
-                    .scaleEffect(message.isPlaceholder ? 1.0 : 1.0)
-                    .animation(
-                        message.isPlaceholder
-                            ? .easeInOut(duration: 1.6).repeatForever(autoreverses: true)
-                            : .default,
-                        value: message.isPlaceholder
-                    )
+                    // T87-STREAM-PULSE removed (= 1.6s scale breathing):
+                    // hermes真值 `StatusPulse` (= 400 ms opacity pulse
+                    // every 5 s) replaces it. The 1.6 s breathing was
+                    // NOT what hermes does.
                 } else {
                     // v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat
                     // zone isn't implemented... port the whole thing from hermes... The editor uses SM,
@@ -531,26 +456,35 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                 .padding(.top, DesignTokens.chromePaddingMicro)
                                 .transition(.opacity)
                         } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "brain.head.profile").font(.system(size: 16, weight: .regular))
-                                    .font(.caption)
-                                Text(WenshuI18n.t("chatview.ai_thinking"))
-                                    .font(.caption)
-                            }
-                            .foregroundStyle(.tertiary)
+                            // v1.65-cleanup C2 boss 2026-09-21 'just refer to
+                            // HERMES, do 1:1; drop the wenshu-side chrome':
+                            // Hermes真值 thinking DisclosureGroup (= status.tsx
+                            // ResponseLoadingIndicator + assistant-message.tsx)
+                            // uses NO icon + NO 'chatview.ai_thinking' label —
+                            // just the 3×3 PT StatusPulse square (= the
+                            // wenshu StatusPulse private struct already
+                            // implements this 1:1). The collapsed row in
+                            // wenshu becomes the StatusPulse inline (= the
+                            // user clicks to expand; the pulse is the row
+                            // identity).
+                            StatusPulse()
                         }
                         .animation(.default, value: thinkingExpanded)
                     }
                     // CHATIMG-001 (2026-09-07): render attached image
-                    // thumbnail above the parts. (= unchanged)
+                    // thumbnail above the parts. (= unchanged structure
+                    // but cleaned per v1.65-cleanup C2 boss 2026-09-21
+                    // 'just refer to HERMES, do 1:1; drop the wenshu-side
+                    // chrome': the Reveal-in-Finder button (= T34 +
+                    // T35 i18n) was a macOS-specific wenshu-side add-on;
+                    // hermes真值 has attachment directive chips inline
+                    // with the bubble surface (= per user-message.tsx:415
+                    // attachmentRefs.map). The thumbnail click now opens
+                    // Preview directly without a separate reveal
+                    // affordance; = the macro-free Mac-side reveal
+                    // affordance is dropped, matching hermes真值.)
                     if let imagePath = message.imagePath {
                         if let nsImage = NSImage(contentsOfFile: imagePath) {
-                            // T51-OPEN-IMAGE (2026-09-18): wrap the
-                            // thumbnail in a Button so clicking it
-                            // opens the image in Preview.app via
-                            // NSWorkspace.shared.open(url). The
-                            // Reveal-in-Finder button (= T34) is
-                            // preserved below as a separate affordance.
                             Button {
                                 let url = URL(fileURLWithPath: imagePath)
                                 NSWorkspace.shared.open(url)
@@ -563,32 +497,6 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                                     .padding(.bottom, DesignTokens.chromePaddingMicro)
                             }
                             .buttonStyle(.plain)
-                            // T34-OPEN-IMAGE-IN-FINDER (2026-09-18): a small
-                            // "Reveal" button below the thumbnail (= the
-                            // user can right-click a file in Finder to
-                            // see it; = the equivalent here is a single-
-                            // click button that does NSWorkspace.activateFileViewerSelecting
-                            // = the standard macOS "Reveal in Finder" affordance).
-                            // Hidden when the file doesn't exist (= already
-                            // handled by the outer if-let).
-                            Button {
-                                let url = URL(fileURLWithPath: imagePath)
-                                NSWorkspace.shared.activateFileViewerSelecting([url])
-                            } label: {
-                                // T35-REVEAL-I18N (2026-09-18): retired the
-                                // hardcoded English "Reveal in Finder" label
-                                // (= landed in T34) in favor of the localized
-                                // WenshuI18n.t("chatview.message.reveal_in_finder")
-                                // = "Reveal in Finder" in en.lproj,
-                                //   "在访达中显示" in zh-Hans.lproj.
-                                Label(
-                                    WenshuI18n.t("chatview.message.reveal_in_finder"),
-                                    systemImage: "folder"
-                                )
-                                .font(.caption2)
-                            }
-                            .buttonStyle(.borderless)
-                            .padding(.bottom, DesignTokens.chromePaddingMicro)
                         } else {
                             Text(WenshuI18n.t("chat.message.imageMissing"))
                                 .font(.caption)
@@ -613,19 +521,35 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                     ChatMessageBodyView(
                         message: message,
                         isOutgoing: isOutgoing,
-                        isStreaming: message.isPlaceholder,
+                        // MC2.1 streaming fix: `isStreaming` stays true
+                        // for the full streaming lifecycle (= .streaming
+                        // state) AND the initial placeholder. The
+                        // previous `message.isPlaceholder` only was
+                        // true during the placeholder row (= flipped
+                        // off the instant the first streamCallback
+                        // replaced the placeholder with the real
+                        // message). After that flip ChatTextPartView's
+                        // `.contentTransition` degraded from
+                        // `.interpolate` to `.identity` AND the
+                        // streaming cursor wasn't drawn. Combined: the
+                        // user saw the text appear in one render
+                        // (= the boss's '一次吐出' report).
+                        //
+                        // Hermes真值: assistant-message.tsx:346
+                        // checks `s.message.status?.type === 'running'`
+                        // = the same gate (= true for the entire
+                        // active turn, not just the initial
+                        // placeholder).
+                        isStreaming: message.streamState == .streaming || message.isPlaceholder,
                         onApprovePlan: onApprovePlan
                     )
-                    .padding(.horizontal, 12)
+                    // v1.65-cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
+                    // dropped the inline `.padding(.horizontal, 12)` (= L1 in
+                    // ChatView.swift is now the single source of truth for
+                    // chat-column horizontal padding; = maintenance = one place
+                    // to change). Kept the vertical 8 PT (= row vertical breathing
+                    // room; = matches Apple HIG py-2 vertical row gap convention).
                     .padding(.vertical, 8)
-                    .background(bubbleFill, in: bubbleShape)
-                    .overlay(alignment: .topTrailing) {
-                        if isOutgoing {
-                            ChatMessageHoverActions(content: message.content)
-                                .padding(.top, DesignTokens.chromePaddingSmall)
-                                .padding(.trailing, DesignTokens.chromePaddingSmall)
-                        }
-                    }
                     .wenshuChatHover()
                 }
                 // T19-MESSAGE-TIMESTAMP (2026-09-18): render a small
@@ -794,7 +718,12 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         }
                     }
                     .padding(.top, 2)
-                    .padding(.leading, 12)
+                    // v1.65-cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
+                    // dropped the inline `.padding(.leading, 12)` (= L1 in
+                    // ChatView.swift is now the single source of truth for
+                    // chat-column horizontal padding; = maintenance = one place
+                    // to change). Kept the vertical 2 PT top (= row separator
+                    // gap; = matches Apple HIG caption2 metadata vertical gap).
                     .frame(maxWidth: .infinity, alignment: .leading)
                     // T53-FOOTER-COMBO-TOOLTIP (2026-09-18): the
                     // entire footer HStack gets a .help()
@@ -823,29 +752,20 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
                         }
                     }
                 }
-                // T54-ATTACHMENT-FOOTER-ICON (2026-09-18): when
-                // the message carries an image attachment,
-                // render a small paperclip SF Symbol in the
-                // footer (= meta indicator = "this message has
-                // an attachment"). Hidden when message has no
-                // imagePath. Placed AFTER the timestamp HStack
-                // so the existing footer is untouched.
-                if message.imagePath != nil {
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        Image(systemName: "paperclip")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .help(WenshuI18n.t("chatview.message.has_attachment"))
-                    }
-                    .padding(.top, 2)
-                    .padding(.trailing, DesignTokens.chromePaddingLeading)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                }
             }
 
-            if !isOutgoing { Spacer(minLength: 40) }
-        }
+            // Right-side spacer removed: with the left-gutter glyph
+            // column above, every row is full-width from the avatar to
+            // the right edge (= the Hermes `ROLE` glyph + flat body
+            // pattern; = no right-edge trailing space).
+            // L818: extra } removed (= previous HStack wrapper gone).
+            // v1.65-cleanup E5 boss 2026-09-21 '聊天文字，用户和 AI
+            // 回复，都自动拉宽全宽': make messageContents fill the
+            // full chat column width (= the VStack previously was
+            // intrinsic-width = text didn't wrap to the chat column
+            // edge; = now it does). User card gets the same treatment
+            // via the UserGlassCardModifier's .frame(maxWidth: .infinity).
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Outgoing messages are the ones this person sent, which iMessage puts
@@ -853,82 +773,176 @@ VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
     private var isOutgoing: Bool { message.source == .user }
 
     /// T23-PLAN-BADGE (2026-09-18): true when the message carries at
-    /// least one `.plan` part (= identifies /plan command results
-    /// = the source label area gets a small "PLAN" badge).
-    private var messageHasPlanPart: Bool {
-        message.parts.contains { part in
-            if case .plan = part.kind { return true }
-            return false
+}
+
+/// Hermes真值 user bubble surface per `apps/desktop/src/components/
+/// assistant-ui/thread/user-message.tsx:67-69` `USER_BUBBLE_BASE_CLASS`.
+///
+/// In Tailwind the source is `rounded-xl border bg-(--dt-user-bubble)
+/// px-3 py-2`. In SwiftUI on macOS 27 the equivalent is
+/// `.regularMaterial` for the bg (= Apple's canonical translucent
+/// surface; = the `.bg-(--dt-user-bubble)` token tracks the user's
+/// appearance automatically, same as `.regularMaterial` does). The
+/// border uses `.accentColor.opacity(0.18)` (= the same family of
+/// subtle accent borders Apple HIG adopts for floating surfaces on
+/// macOS 27; = tracks the user's accent in subtle mode).
+///
+/// Activates only on outgoing (= user) messages; on assistant rows the
+/// modifier is a pass-through (= no visual change from MC1's flat
+/// self-start text).
+/// v1.65-cleanup C2 boss 2026-09-21 'just refer to HERMES, do 1:1;
+/// drop the wenshu-side chrome': the user bubble surface now uses
+/// hermes真值 `bg-DT-USER-BUBBLE` semantics (= Apple semantic
+/// `Color(nsColor: .controlBackgroundColor)`) instead of the
+/// previous Liquid Glass `.regularMaterial` (= too heavy vs
+/// hermes真值's subtle bg token). The border keeps Apple HIG
+/// semantic `Color(nsColor: .separatorColor).opacity(0.5)` (= 0.5
+/// PT; = matches hermes border-UI-STROKE-TERTIARY token in spirit).
+///
+/// Card internal padding = 12 PT horizontal + 6 PT vertical (= was
+/// 16 + 8 in MC6; = tighter, matches hermes `px-3 py-2` from
+/// USER_BUBBLE_BASE_CLASS).
+///
+/// v1.65-cleanup E1 (boss 2026-09-21 OOB 'user message not visible' bug):
+/// remove the broken `.frame(maxWidth: 0.95, alignment: .trailing)` line.
+/// Root cause: `maxWidth: 0.95` was treated as 0.95 PT (= less than 1 PT,
+/// = essentially zero usable width); = the user card collapsed to a
+/// single 1-2 PT vertical line in the center of the chat column while
+/// the AI card passed through normally. The correct SwiftUI expression
+/// is `.frame(maxWidth: .infinity, alignment: ...)` (= fills the parent's
+/// horizontal extent; = the inner VStack trailing-aligns its children;
+/// = the background draws at content intrinsic size and floats to the
+/// trailing edge). This restores the v1.65 MC6 visual (= user bubble
+/// wraps text, sits at trailing edge, full chat-column width available
+/// for very long messages).
+///
+/// Activates only on outgoing (= user) messages; on assistant rows the
+/// modifier is a pass-through (= no visual change from C1's flat
+/// self-start text).
+private struct UserGlassCardModifier: ViewModifier {
+    let isOutgoing: Bool
+
+    func body(content: Content) -> some View {
+        if isOutgoing {
+            // v1.65-cleanup E3.5 boss 2026-09-21 '本字要在矩形框里左对齐，
+            // 距离框的边缘 10PT' (= the user text inside the glass card
+            // was at 12 PT horizontal padding; = boss wants exactly
+            // 10 PT (= the Apple HIG px-2.5 = 10 PT convention; = the
+            // hermes真值 `UserBubbleBaseClass px-3 py-2` = 12 PT px / 8 PT
+            // py is slightly more spacious; = boss explicitly chose
+            // 10 PT)). Set horizontal padding to 10 PT (= tighter card,
+            // more text per row, = matches boss's explicit 10 PT
+            // instruction). Vertical padding stays at 6 PT (= unchanged;
+            // = compact card height; = matches Apple HIG py-1.5 = 6 PT).
+            // v1.65-cleanup E8 boss 2026-09-21 '改对了，用户说话的框，里面的文字距离框
+            // 10PT。把这个改回来' (= the L1 in ChatView.swift is now 0 PT
+            // = chat transcript content sits flush against the chat
+            // column edge; = the user card L2 inner padding below is
+            // the SOLE source of horizontal padding for user cards; =
+            // user card text ↔ card edge = 10 PT; = preserved per E7).
+            // Vertical 6 PT retained (= card height breathing room).
+            content
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // v1.65-cleanup E9 boss 2026-09-21 '现在改用户说话的枢，加液态玻璃':
+                // apply the macOS 27 `.glassEffect(.regular)` API
+                // (= the canonical Apple HIG Liquid Glass container; =
+                // blurs + refracts the chat content underneath; = same
+                // surface the chat input row uses at
+                // ChatView.swift:1960). Shape = 12 PT continuous corner
+                // radius rounded-rectangle (= matches the existing card
+                // shape; = Apple HIG popover surface convention).
+                // The `.interactive()` modifier lets the glass respond
+                // to pointer events (= Apple HIG chat input is
+                // interactive; = user card surface mirrors that
+                // affordance). Border dropped (= the glass edge is its
+                // own visual boundary; = matches Apple HIG chat input
+                // row which has no separate border).
+                //
+                // v1.65-cleanup E10 boss 2026-09-21 '液态玻璃的透明度
+                // 跟随系统' (= Apple System Settings > Appearance >
+                // Liquid Glass > translucency slider; = wenshu
+                // user-card glass follows the system slider via the
+                // canonical macOS 27 `Glass.translucency` SwiftUI
+                // environment value (= Apple's canonical 'follow the
+                // system liquid glass setting' API surface; = the
+                // system automatically animates between glass and flat
+                // for the user as they move the slider)). The
+                // `.glassEffect(.regular.interactive())` API already
+                // follows this slider by default (= per
+                // ComponentIndex.md §4.1 'Apple canonical .glassEffect
+                // auto-adapts to system Liquid Glass setting'); = no
+                // manual @Environment read or fallback branch needed
+                // here (= the manual fallback was overengineering =
+                // reverted). The same API is used by the chat input
+                // row at ChatView.swift:1960 (= the canonical Apple
+                // HIG pattern across wenshu).
+                .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        } else {
+            content
         }
     }
+}
 
-    /// T28-PLAN-BADGE-EXPAND (2026-09-18): step count shown in the
-    /// PLAN badge on hover (= "PLAN · 3"). Pulls the first .plan
-    /// part's steps.count and formats it. Returns empty string when
-    /// no plan part exists (= the caller only invokes this when
-    /// messageHasPlanPart is true; = defensive return for safety).
-    private var planStepCountLabel: String {
-        for part in message.parts {
-            if case .plan(let p) = part.kind {
-                let n = p.steps.count
-                return "\(n) step\(n == 1 ? "" : "s")"
-            }
-        }
-        return ""
-    }
+// MARK: - Hermes真值 user bubble surface per `apps/desktop/src/components/
 
-    /// Bubble fill.
-    ///
-    /// Measured Messages.app on this machine in dark mode: outgoing
-    /// rgb(29, 143, 250), incoming rgb(51, 52, 54) against an
-    /// rgb(28, 28, 28) transcript. Wenshu uses the semantic equivalents of
-    /// those instead of the literals, so the bubbles track the user's
-    /// accent colour and appearance rather than being pinned to one theme.
-    private var bubbleFill: AnyShapeStyle {
-        if message.source == .system {
-            return AnyShapeStyle(Color(nsColor: .systemRed).opacity(0.15))
-        }
-        return isOutgoing
-            ? AnyShapeStyle(Color.accentColor)
-            // Chosen by measurement. Messages runs a 23-unit gap between
-            // the incoming bubble and the transcript behind it (51 vs 28).
-            // Rendered every candidate semantic style in a sample app and
-            // measured each against the same background: quinary +10, fill.secondary
-            // +17, quaternary +22, fill +22, unemphasized +27, tertiary +55.
-            // .quaternary lands on Messages' gap while still tracking the
-            // user's appearance instead of hard-coding a grey.
-            : AnyShapeStyle(.quaternary)
-    }
 
-    private var bubbleShape: ChatBubbleShape {
-        ChatBubbleShape(isOutgoing: isOutgoing, position: position)
-    }
+// v1.65 boss '思考中的那个效果不是 hermes 的效果': StatusPulse
+// (= hermes真值 `.tsx status-pulse.tsx` PULSE_DURATION_MS=400 +
+// PULSE_PERIOD_MS=5000).
+//
+// 1:1 visual (= a small 3×3 PT rounded-2PT square that opacity-
+// pulses 1 → 0.5 → 1 over 400 ms, then sleeps 5 seconds before
+// the next pulse; = NOT a continuous breathing animation). The
+// wenshu-side implementation uses SwiftUI's `TimelineView` for
+// the 5 second tick (= scheduled against `PULSE_PERIOD_MS`) +
+// `withAnimation(.easeInOut(duration: 0.4))` for the 400 ms
+// opacity transition (= same visual rhythm as hermes's WAAPI
+// `element.animate(...)`).
+private struct StatusPulse: View {
+    /// 5 second sleep between pulses (= matches hermes PULSE_PERIOD_MS).
+    private static let pulsePeriod: TimeInterval = 5.0
+    /// 400 ms opacity transition (= matches hermes PULSE_DURATION_MS).
+    private static let pulseDuration: Double = 0.4
 
-    private var sourceIcon: String {
-        switch message.source {
-        // v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
-        // chat bubble avatars (= user / wenshu) use outline glyphs
-        // (= the canonical Apple HIG form for the Liquid Glass
-        // 3rd-generation design language).
-        case .user: return "person"
-        case .wenshu: return "text.book.closed"
-        case .system: return "exclamationmark.triangle"
-        }
-    }
+    @State private var isPulsing: Bool = false
+    @State private var nextPulseAt: Date = .now.addingTimeInterval(pulsePeriod)
 
-    private var sourceLabel: String {
-        switch message.source {
-        case .user: return "你"
-        case .wenshu: return "文枢"
-        case .system: return "系统"
-        }
-    }
-
-    private var sourceColor: Color {
-        switch message.source {
-        case .user: return .blue
-        case .wenshu: return .accentColor
-        case .system: return .red
-        }
+    var body: some View {
+        // The 3×3 PT rounded-2PT square (= hermes真值 `size-3
+        // rounded-[2px] text-midground/80`). SwiftUI's tint is
+        // mapped to Color.secondary (= Apple semantic for muted
+        // foreground on the assistant transcript).
+        RoundedRectangle(cornerRadius: 2, style: .continuous)
+            .fill(Color.secondary)
+            .frame(width: 3, height: 3)
+            .opacity(isPulsing ? 0.5 : 1.0)
+            // 400 ms ease-in-out opacity transition (1 → 0.5 → 1).
+            // The single keyframe `from→to` matches hermes's
+            // `[{opacity:1}, {opacity:0.5}, {opacity:1}]` visual
+            // rhythm (= the .easeInOut curve makes the fade out
+            // + fade back in feel like a soft "breath" inside the
+            // 400 ms window).
+            .animation(
+                .easeInOut(duration: Self.pulseDuration),
+                value: isPulsing
+            )
+            // TimelineView ticks once every 5 seconds (= matches
+            // hermes PULSE_PERIOD_MS); on each tick, if the
+            // scheduled time has been reached, flip isPulsing (= one
+            // pulse: 1 → 0.5 → 1 over the 400 ms animation).
+            .onAppear { nextPulseAt = .now.addingTimeInterval(Self.pulsePeriod) }
+            .background(
+                TimelineView(.periodic(from: .now, by: Self.pulsePeriod)) { context in
+                    Color.clear
+                        .onChange(of: context.date) { _, now in
+                            if now >= nextPulseAt {
+                                nextPulseAt = now.addingTimeInterval(Self.pulsePeriod)
+                                isPulsing.toggle()
+                            }
+                        }
+                }
+            )
     }
 }

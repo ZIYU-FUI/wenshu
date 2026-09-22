@@ -24,7 +24,7 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 - Version format = three digits (Hermes style): middle digit = phase, third digit = hotfix.
 - 3 docs = this file + `README.md` + `CLAUDE.md`. `CONTEXT.md` = domain glossary (see `docs/agents/domain.md`).
 - No hermes monorepo trace (no longer fork).
-- No Tauri / Rust / Vue 3 trace. SQLite REMOVED from wenshu stack (= boss 2026-09-20 OOB 'SQLite 全部弃用，只用 SwiftData' + A1 'Apple-default-first = Core Spotlight'; = see §11.7 v1.55 sqlite3-zero migration arc); legacy `.ws` bundle sqlite3 files (= `chat.sqlite`, `indexes.sqlite`, `search.db`, `kanban.sqlite`) are imported once at first launch by `WSMigrationPerStore.swift` then never touched.
+- No Tauri / Rust / Vue 3 trace. SQLite REMOVED from wenshu stack (= boss 2026-09-20 OOB 'SQLite 全部弃用，只用 SwiftData' + A1 'Apple-default-first = Core Spotlight'; = runtime layer fully replaced in §11.7 v1.55 sqlite3-zero arc; = one-shot legacy importer deleted in §11.7d v1.55d closure on 2026-09-21 per boss OOB '数据库不要在用sqlite3 了'); legacy `.ws` bundle sqlite files (= `chat.sqlite`, `indexes.sqlite`, `search.db`, `kanban.sqlite`) are now orphaned (= no production code reads them; = see §11.7d for full removal record).
 - No sparse-clone assumption.
 - No novel-platform / novel-craft / Hermes-Slate-Desk legacy V0.5.x protocol.
 - Do not decide LLM key config for 老板.
@@ -619,9 +619,9 @@ Kanban helper = `HermesKanbanDB.swift` (994 LOC raw sqlite3) is REPLACED by
 | 3 | `swift test --filter` 100% pass on migrated files | YES |
 | 4 | Q99 spec axis (= hermes 1:1 fidelity) | N/A (= SQLite removal is wenshu-side design divergence per §11 baseline 'no external AI platform calls' + boss 2026-09-20 OOB) |
 | 5 | Q99 standards axis (= Apple default + pre-existing preservation) | YES (= Core Spotlight = Apple native; = no behavior loss for users) |
-| 6 | `import SQLite3` count in production code | 2 (= `SQLiteConstants.swift` SQLITE_TRANSIENT helper + `WSMigrationPerStore.swift` one-shot legacy import; = both legacy-path-only) |
+| 6 | `import SQLite3` count in production code | **0** (= pre-v1.55d = 2; = `SQLiteConstants.swift` SQLITE_TRANSIENT helper + `WSMigrationPerStore.swift` one-shot legacy import; = both files removed in v1.55d closure, see §11.7d) |
 | 7 | `import GRDB` count in production code | 0 |
-| 8 | Migration data flow | preserved (= legacy `.ws` sqlite3 files imported once at first launch by `WSMigrationPerStore.swift`, then never touched) |
+| 8 | Migration data flow | **closed in v1.55d** (= legacy `.ws` sqlite3 files are now orphaned; = no importer reads them; = see §11.7d for full closure record) |
 
 ### What is preserved (= scope-no-regression)
 
@@ -629,7 +629,7 @@ Kanban helper = `HermesKanbanDB.swift` (994 LOC raw sqlite3) is REPLACED by
 |---|---|---|
 | 1 | `SubAgentIdentity.swift` calls `FullTextSearch` | migrated to `CSSearchableIndexSearch` (= same public API: `index(docId:title:body:)`, `remove(docId:)`, `search(query:limit:)`) |
 | 2 | `KanbanStoreTool` reads kanban via `HermesKanbanDB` | migrated to `HermesKanbanHelper` (= SwiftData fetch via #Predicate) |
-| 3 | `WSMigrationPerStore.swift` reads raw sqlite3 files at first launch | unchanged (= dead code after first launch per user) |
+| 3 | `WSMigrationPerStore.swift` reads raw sqlite3 files at first launch | **DELETED in v1.55d closure (= see §11.7d)** — was preserved through §11.7 v1.55 ship (= import count = 2; = dead code after first launch per user) but removed entirely on 2026-09-21 per boss OOB '数据库不要在用sqlite3 了' (= `import SQLite3` count drops from 2 to 0) |
 
 ### What is NOT done (= future tickets if boss approves)
 
@@ -637,9 +637,175 @@ Kanban helper = `HermesKanbanDB.swift` (994 LOC raw sqlite3) is REPLACED by
 |---|---|---|
 | 1 | SwiftData @Model for `WSChatMessage` / `WSSummary` already exists per §11.4 phase 1-5 | DONE in phase 1-5 (= 23 @Models) |
 | 2 | `WenshuWorkspaceMigrator` cleanup | out of v1.55 scope (= separate ticket per §11.4.2 bonus) |
-| 3 | `HermesKanbanDB.swift` SQLite helper reuse for `WSMigrationPerStore.migrateChatSessionStore` (= reads `chat.sqlite` directly) | N/A (= already uses raw `sqlite3_open` via SQLiteConstants.swift; = out of v1.55 scope) |
+| 3 | `HermesKanbanDB.swift` SQLite helper reuse for `WSMigrationPerStore.migrateChatSessionStore` (= reads `chat.sqlite` directly) | **N/A after v1.55d closure** — both `HermesKanbanDB.swift` (= §11.7 v1.55) and `WSMigrationPerStore.swift` (= §11.7d) are deleted; = no SQLite helper reuse to track |
+
+## §11.7d v1.55d closure — sqlite3 fully removed from wenshu runtime (boss 2026-09-21 OOB)
+
+Per boss 2026-09-21 OOB '数据库不要在用sqlite3 了' (= following §11.7 v1.55 ship
+which removed the runtime layer but kept one-shot legacy importer):
+
+The three remaining sqlite3 files (= declared by §11.7 v1.55 acceptance row 6 as
+`import SQLite3 count = 2`) are DELETED. Post-v1.55d `import SQLite3` count in
+production code = **0**.
+
+### Files removed (= 6 total = 3 source + 3 test)
+
+| # | Path | Type | Pre-v1.55d role |
+|---|---|---|---|
+| 1 | `Sources/WenshuApp/Persistence/WSMigrationPerStore.swift` | source (= 297 LOC) | one-shot raw-sqlite3 importer: read legacy `.ws/*.sqlite` files (= `chat.sqlite`, `memory.db`, `todos.db`, `bookmarks.db`, `kanban.db`, `links.db`) and insert rows into SwiftData @Model tables at first launch |
+| 2 | `Sources/WenshuApp/Persistence/WSMigrationRunner.swift` | source (= 119 LOC) | driver: `migrateIfNeeded()` entry point + idempotent `WSManifest.migratedFromRawSqliteAt` gate + per-store migration orchestration |
+| 3 | `Sources/WenshuApp/Persistence/SQLiteConstants.swift` | source (= 60 LOC) | shared helper: `SQLITE_TRANSIENT` token + raw `sqlite3_open_v2` flags (= consumed by #1 + #2) |
+| 4 | `Tests/WenshuAppTests/Persistence/WSMigrationPerStoreTests.swift` | test | integration coverage for #1 |
+| 5 | `Tests/WenshuAppTests/Persistence/WSMigrationRunnerTests.swift` | test | integration coverage for #2 |
+| 6 | `Tests/WenshuAppTests/Persistence/SQLiteConstantsTests.swift` | test | unit coverage for #3 |
+
+### Call sites updated (= 2 source files; = doc comments + 1 dead call site)
+
+| # | File | Change |
+|---|---|---|
+| 1 | `Sources/WenshuApp/App/WenshuAppDelegate.swift` | deleted the `Task { try await WSMigrationRunner.migrateIfNeeded() }` block (= L129-135 pre-v1.55d); replaced doc comment with §11.7d history note (= boss OOB 2026-09-21 + post-v1.55d behavior) |
+| 2 | `Sources/WenshuApp/Persistence/Container.swift` | updated the "Remaining legacy sqlite3 actors" doc block to "v1.55d deleted WSMigrationPerStore + WSMigrationRunner + SQLiteConstants" history |
+| 3 | `Sources/WenshuApp/Core/Search/CSSearchableIndexSearch.swift` | updated 3 doc-comment cross-references from `WSMigrationPerStore` to `SearchDocMirrorPersistence` (= the actual file that owns mirror persistence; = the historical `WSMigrationPerStore` reference was already an outdated forward-link) |
+
+### Acceptance (= per Q112 + Q99 dual-axis)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 = 1 source + 1 test per ticket | **YES** (1 commit per file pair + 1 commit for AGENTS.md doc update + 1 commit for call-site + 1 commit for Container.swift doc) |
+| 2 | `swift build` clean | **0 errors / 0 warnings introduced** (= the only `warning: case will never be executed` from pre-existing `ChatMessageView` source content is unrelated to this ticket) |
+| 3 | `swift test --filter Chat` pass | **128 tests / 2 pre-existing flakes** (= `cursor_uses_same_foregroundStyle` + `ChatZoneView.swift model menu text shows 'No model available'`; = both pre-existing per §11.5 acceptance table; = not introduced by v1.55d) |
+| 4 | `import SQLite3` count in production code | **0** (= was 2 pre-v1.55d: SQLiteConstants + WSMigrationPerStore; = both deleted) |
+| 5 | `import GRDB` count in production code | **0** (= unchanged from §11.7 v1.55 ship) |
+| 6 | Legacy `.ws/*.sqlite` files on disk | **orphaned** (= `chat.sqlite`, `indexes.sqlite`, `search.db`, `kanban.sqlite`; = no production code reads them; = safe to manually delete if boss wants disk space back; = wenshu does not delete them automatically = per wenshu-pollution-defense principle "never mutate user state without explicit consent") |
+| 7 | New chat history path | SwiftData only (= `WSChatRepository.shared` writes to `ZWSCHATMESSAGE`; = see §11.4 phase 1-5 for the 23 @Model definitions) |
+
+### What was NOT preserved (= post-v1.55d behavior change)
+
+| # | Surface | Pre-v1.55d | Post-v1.55d |
+|---|---|---|---|
+| 1 | First-launch import of legacy `.ws/chat.sqlite` rows into SwiftData | 4-row import attempted (= silently failed because raw schema lacks `thinking` column; = ZWSCHATMESSAGE always 0) | **no import attempted** (= no importer exists) — pre-v0.72 chat history written by the deleted `ChatSessionStore` actor is permanently inaccessible; = per boss 2026-09-21 '历史没有就没有，不用修回来' |
+| 2 | `WSManifest` SwiftData entity (= records whether migration ran) | created on first launch + stamped with `migratedFromRawSqliteAt` | **never created** (= no migration runs) — `WSManifest` remains an unused @Model declaration; = future ticket if cleanup needed (out of v1.55d scope per Q112 1-commit-per-file rule) |
+| 3 | `.ws/WenshuStore.store` (= SwiftData warehouse container file) | created on first launch (= `WSPersistenceContainer.makeContainerForWarehouse`) | **created on first launch** (unchanged; = SwiftData is still the canonical store; = only the legacy-import path is gone) |
+
+### Why this is the right shape (= per boss 2026-09-21 OOB)
+
+1. **Boss intent** = '数据库不要在用sqlite3 了' = "the database should no longer use sqlite3" (= a clean break, not a deprecation). The §11.7 v1.55 arc kept 2 files (= `SQLiteConstants` + `WSMigrationPerStore`) on the basis "import SQLite3 count = 2 is acceptable; = dead code after first launch per user". Boss 2026-09-21 explicitly retired this exception: even the dead-after-first-launch code path is gone.
+2. **Honest scope gap** (= per the §11.7 v1.55 L622 correction doc = "the SQLiteConstants helper became a live production consumer (= not dead code)"): the §11.7 ship acceptance row 6 claimed `import SQLite3 count = 2` was acceptable; in fact these 2 files together formed the only remaining sqlite3 read/write surface; removing them is the boss-asked clean break.
+3. **No data loss regression** (= per boss '历史没有就没有，不用修回来'): pre-v1.55d the legacy import silently failed anyway (= schema mismatch on `thinking` column = 0 rows imported); post-v1.55d no import runs; = user-visible behavior is unchanged (= empty chat history on first launch either way; = the only difference is the v1.55d path doesn't pretend to migrate).
+4. **Future-safe** (= per boss '写明白'): this section is the canonical record of v1.55d (= commit-immutable; = survives any future §11.7 arc amendment). Any future agent reading §11.7 sees the v1.55d closure row in "What is preserved" + sees this §11.7d section above and understands the timeline (= runtime layer removed in v1.55; = one-shot legacy importer removed in v1.55d; = no sqlite3 anywhere post-v1.55d).
+
+### Files touched (= 9 total = 6 deletes + 3 doc-only + 1 AGENTS.md)
+
+| # | Path | Change |
+|---|---|---|
+| 1-6 | 3 production files + 3 test files (per table above) | `git rm` |
+| 7 | `Sources/WenshuApp/App/WenshuAppDelegate.swift` | delete dead `Task { try await WSMigrationRunner.migrateIfNeeded() }` block; update doc comment |
+| 8 | `Sources/WenshuApp/Persistence/Container.swift` | update "Remaining legacy sqlite3 actors" doc block to v1.55d history |
+| 9 | `Sources/WenshuApp/Core/Search/CSSearchableIndexSearch.swift` | update 3 stale doc-comment cross-references from `WSMigrationPerStore` to `SearchDocMirrorPersistence` |
+| 10 | `AGENTS.md` | add this §11.7d section + update §11 baseline L27 + update §11.7 v1.55 acceptance row 6 (= import SQLite3 count = 0) + update §11.7 "What is preserved" row 3 (= now DELETED in v1.55d) |
+
+### Future tickets (= NOT in v1.55d scope)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | `WSManifest` @Model entity cleanup (= SwiftData declaration no longer populated by anything) | Q112 scope (= separate ticket); = safe to leave (= unused @Model declarations are harmless) |
+| 2 | Legacy `.ws/*.sqlite` file deletion (= `chat.sqlite`, `indexes.sqlite`, `search.db`, `kanban.sqlite` now orphaned) | per wenshu-pollution-defense "never mutate user state without explicit consent"; = manual deletion only if boss asks |
+| 3 | `WSMigration*Tests` re-creation if v1.55d ever needs reversal (= git revert) | no value (= boss OOB 2026-09-21 is firm; = if reversed, AGENTS.md amendment is the only path) |
 
 
+
+## §11.7e v1.65-cleanup D2 day-divider header removed (boss 2026-09-21 OOB)
+
+Per boss 2026-09-21 OOB (= chat display arc Q/A) on the wenshu chat transcript:
+'昨天/明天/周五的功能，我看 hermes 没有。如果确认没有，删掉对应的功能'.
+Verified hermes真值 (= `~/.hermes/hermes-agent/apps/desktop/src/components/assistant-ui/thread/`):
+no day-divider header (= "今天" / "Yesterday" / weekday + date) exists in
+transcript. Hermes distinguishes turns by foreground color + container
+presence alone (= see §11.7 spec box "Assistant 消息 = 左对齐纯文字",
+file `assistant-message.tsx:275-282` no day-divider element).
+
+Hermes day labels (= "Yesterday" / "Last week" / "June") exist ONLY in the
+**sidebar chat list** (= `app/chat/sidebar/chrome.tsx` `SidebarDateDivider`
++ `app/chat/sidebar/sessions-section.tsx`) — never inside the message
+transcript stream. The wenshu-side `ChatMessageDayDivider.swift` (= a
+day-bucket header rendered between consecutive messages in the transcript
+when the calendar day changes) is therefore a wenshu-side chrome addition
+not present in hermes 1:1 (= per boss '就参考 HERMES, 做 1:1; 多做的没用的,
+你就改掉'). The macOS Apple Messages app also doesn't render this header
+on macOS (= Apple Messages iOS shows a sticky date label on iOS, but the
+macOS variant does not — wenshu's macOS desktop target inherits the macOS
+behavior, not the iOS one).
+
+### Files removed (= 13 = 1 source + 12 test)
+
+| # | Path | Type | Pre-D2 role |
+|---|---|---|---|
+| 1 | `Sources/WenshuApp/Views/Chat/ChatMessageDayDivider.swift` | source (= 281 LOC) | centered day-bucket header view: renders "Today" / "Yesterday" / weekday (e.g. "Mon") / weekday + date (e.g. "Mon 9/14") based on calendar-day comparison between consecutive messages |
+| 2 | `Tests/WenshuAppTests/Views/ChatMessageDayDividerTests.swift` | test | core view behavior coverage |
+| 3-12 | `Tests/WenshuAppTests/Views/ChatMessageDayDivider{Count,DateInit,DayIcon,FullDateTooltip,LiveDot,Material,PinIcon,Style,TodayAccent,TodayPulse,TodayStar}Tests.swift` (10 files) | test | per-property coverage (= accent, pulse, star, material, etc.) |
+| 13 | (no other production callers in tree — `git grep ChatMessageDayDivider Sources/` matched only the deleted file) | n/a | confirmed via `git rm` |
+
+### Call sites updated (= 1 source file; = 1 function + 1 inline block)
+
+| # | File | Change |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Views/Chat/ChatView.swift` | DELETED `static func shouldShowDayDivider(at:in:) -> Bool` (= 12 LOC + 10-LOC doc comment; = the function that decided whether to insert a divider before each message); = inside `ForEach(Array(vm.messages.enumerated()))` body, REMOVED the inline `if Self.shouldShowDayDivider(...) { ChatMessageDayDivider(timestamp:) }` block (= 3 LOC; = the call site); = the surrounding doc comment was rewritten to a v1.65-cleanup D2 history note (= references boss OOB 2026-09-21 + hermes-真值 reasoning + AGENTS.md §11.7e forward-link) |
+
+### i18n keys removed (= 4 occurrences × 2 keys)
+
+| # | File | Keys removed |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Resources/en.lproj/Localizable.strings` | `chatview.day_divider.today` (= "Today"), `chatview.day_divider.yesterday` (= "Yesterday") |
+| 2 | `Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings` | `chatview.day_divider.today` (= "今天"), `chatview.day_divider.yesterday` (= "昨天") |
+| 3 | `Tests/WenshuAppTests/Resources/en.lproj/Localizable.strings` | (already absent; = no change) |
+| 4 | `Tests/WenshuAppTests/Resources/zh-Hans.lproj/Localizable.strings` | (already absent; = no change) |
+
+Removed via `plutil -convert json` → `del data[k]` → `plutil -convert binary1`
+round-trip (= preserves plist format + encoding; = no manual binary edits).
+Total 4 keys removed (2 en + 2 zh-Hans). Other weekday strings
+(= "Mon" / "Tue" / short weekday names) were hardcoded in `ChatMessageDayDivider.swift`'s
+`DateFormatter` and vanished with the file; no separate i18n key.
+
+### Acceptance (= per Q112 + Q99 dual-axis)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 = 1 source + 1 test per ticket | **YES** (= 1 commit: source deletion + 12 test deletions + 2 i18n key removals in en + 2 in zh-Hans; = call-site edit + doc-comment rewrite; all form one inseparable visual-arc change = atomic-coupling per Q112 justification) |
+| 2 | `swift build` clean | **0 errors / 0 warnings introduced** (= the only `warning: case will never be executed` from pre-existing `ChatMessageView` source content is unrelated to this ticket — same pre-existing warning observed on §11.7d base) |
+| 3 | `swift test --filter Chat` pass | **100 tests passed, 0 fatal** (= 2 pre-existing flakes from §11.5 acceptance still present: `cursor_uses_same_foregroundStyle` + `ChatZoneView.swift model menu text shows 'No model available'`; = both unrelated to this ticket) |
+| 4 | `grep "ChatMessageDayDivider"` in `Sources/` | **0 hits** (= the file is deleted; = the call site in `ChatView.swift` is deleted; = the helper function in `ChatView.swift` is deleted; = nothing references it) |
+| 5 | `grep "day_divider"` in i18n resources | **0 hits** (= 4 keys removed from 2 files; = remaining en/zh-Hans resource files contain no `day_divider` prefix) |
+| 6 | User-visible chat detail area | **simpler** (= no more "今天" / "Yesterday" / "Fri 9/14" centered headers between messages; = hermes 1:1; = day change is now visible only via per-message timestamp footer = spec §2.4 hermes 真值) |
+
+### What was NOT preserved (= post-D2 behavior change)
+
+| # | Surface | Pre-D2 | Post-D2 |
+|---|---|---|---|
+| 1 | Day-bucket headers in chat transcript | "今天" / "Yesterday" / "Fri" / "Mon 9/14" centered headers shown between consecutive messages when calendar day changes (= 281 LOC ChatMessageDayDivider.swift + 12 tests + 4 i18n keys) | **none** (= per hermes 1:1; = the gap between two messages on different days is rendered with the same `gap-(--conversation-turn-gap)` (= wenshu `DesignTokens.conversationTurnGap` semantic) as any other turn gap; = no visual day change marker inside the transcript) |
+| 2 | First-message "when did this chat start" header | "今天" / "Yesterday" / "Fri" centered header rendered before the first message of every chat (= pre-D2 default for index == 0) | **none** (= per hermes 1:1; = the user can still tell when the chat started from the first message's timestamp footer; = the per-message timestamp remains per spec §2.4 row "per-message footer timestamp" + the `MessageTimelineTimestamp` element still renders at the bottom of each assistant turn) |
+| 3 | Localized strings for "Today" / "Yesterday" in chat context | 4 keys: `chatview.day_divider.{today,yesterday}` × {en, zh-Hans} | **0 keys** (= removed; = `WenshuI18n.t("chatview.day_divider.today")` would now return the empty string fallback; = no call site asks for it anymore) |
+
+### Why this is the right shape (= per boss 2026-09-21 OOB)
+
+1. **Hermes 1:1 invariant** (= per boss '就参考 HERMES, 做 1:1'): hermes真值 `apps/desktop/src/components/assistant-ui/thread/` (= 0 day-divider references in `grep -rln day.*divider thread/`) confirms there is no day-bucket header in the macOS Electron transcript. The wenshu `ChatMessageDayDivider` was therefore a wenshu-side invention (= T36 ticket 2026-09-18 referenced "Apple Messages convention" but the macOS Messages app does not render this either — only iOS Messages does, and wenshu is macOS-only per AGENTS.md §11 baseline).
+2. **Boss intent** (= per boss '我看 hermes 没有'): explicit confirmation that the feature does not exist in hermes triggers an explicit deletion. This is the canonical "1:1 means drop everything that isn't in hermes" pattern (= opposite of "I want a feature, model it on hermes if available").
+3. **Chat history still readable** (= per spec §2.4 hermes 真值): each message keeps its per-message timestamp footer (= `MessageTimelineTimestamp` = the bottom-of-bubble `8:36:05` style label = the same Apple-IG-message-convention footer hermes uses). So users can still tell when a message was sent; the only thing they lose is the "above-the-bubble" day-bucket header between consecutive cross-day messages. Per spec §2.4 row "MessageTimelineTimestamp" + "timestamp + action footer inline below content", this is the hermes-style timestamp path; the deleted day-divider was a wenshu-only add-on.
+4. **Future-safe** (= per boss '写明白'): this section is the canonical record of D2. Any future agent reading §11.7 (= "v1.55 sqlite3-zero migration arc") sees §11.7d (= sqlite3 closure) AND §11.7e (= day-divider header deletion) AND §11.7 (= the underlying hermes真值 spec box preserved) — the timeline is v1.55 = runtime layer, v1.55d = sqlite3 closure, D2 = day-divider deletion, all consistent with "wenshu code is hermes 1:1 or it is gone".
+
+### Files touched (= 18 total = 13 deletes + 2 edits + 4 .strings edits)
+
+| # | Path | Change |
+|---|---|---|
+| 1-13 | 1 source file + 12 test files (per "Files removed" table above) | `git rm` |
+| 14 | `Sources/WenshuApp/Views/Chat/ChatView.swift` | delete `shouldShowDayDivider` static func + delete inline `if Self.shouldShowDayDivider { ChatMessageDayDivider(...) }` call block; rewrite surrounding doc comments to v1.65-cleanup D2 history note |
+| 15-16 | `Sources/WenshuApp/Resources/{en,zh-Hans}.lproj/Localizable.strings` | remove `chatview.day_divider.{today,yesterday}` keys via plutil round-trip |
+| 17 | `AGENTS.md` | add this §11.7e section |
+
+### Future tickets (= NOT in D2 scope)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | wenshu-side `MessageTimelineTimestamp` (= per-message timestamp footer) audit (= is it wired to all message paths, or only assistant turns?) | Q112 scope (= separate ticket); = pre-D2 audit confirmed it renders at the bottom of assistant messages; = no audit was needed for D2 (= D2 only deletes, doesn't touch the timestamp footer) |
 # §11.8 v1.57 stale-helper migration arc + pre-existing flake closure (= boss 2026-09-20 OOB)
 
 Per boss OOB 2026-09-20 '继续' (= continue; = no spec change required;

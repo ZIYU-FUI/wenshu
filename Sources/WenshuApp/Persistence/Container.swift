@@ -37,11 +37,15 @@
 //  spec is 100% complete; no further tickets remain in the roadmap.
 //  Phase 6 (= AGENTS §11.4 doc updates) is the canonical phase 5
 //  roadmap spec (= see AGENTS.md §11.4.2).
-//
-//  Remaining legacy sqlite3 actors (= separate from the per-store
-//  "Stores" pattern): WSMigrationPerStore's one-shot raw-sqlite3
-//  importers (= read the LEGACY file paths that users may have on disk
-//  from before the migration; = not a per-launch save path).
+//  v1.55d (= boss 2026-09-21 '数据库不要在用sqlite3 了') deleted
+//  WSMigrationPerStore + WSMigrationRunner + SQLiteConstants (= the
+//  Phase 4 raw-sqlite3 one-shot importer + its driver + the shared
+//  SQLITE_TRANSIENT helper; = see AGENTS.md §11.7d). Post-v1.55d no
+//  file in the production source tree imports SQLite3, opens a raw
+//  sqlite3 connection, or reads `.ws/*.sqlite` (= legacy files become
+//  orphaned; = chat history from the pre-v0.72 ChatSessionStore era
+//  is no longer imported into SwiftData; = per boss '历史没有就没有，
+//  不用修回来'). New chat history lives entirely in SwiftData.
 //  HermesKanbanDB + FullTextSearch were REMOVED in v1.55 sqlite3-zero
 //  (= boss 2026-09-20 OOB).
 //

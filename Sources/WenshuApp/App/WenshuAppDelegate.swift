@@ -122,17 +122,19 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // add NSLog for chat store init + bootstrap errors (silent catch
         // makes debugging hard), and post .wenshuChatStoreReady notification
         // so ChatView can retry load when store becomes available.
-        // v0.72 SwiftData migration: trigger one-time sqlite3 → SwiftData migration
-        // (idempotent; = skipped if WSManifest.migratedFromRawSqliteAt is set).
-        // Runs BEFORE chat history is read (= so any chat data that needs migrating
-        // is in SwiftData by the time ChatView reads).
-        Task { @MainActor in
-            do {
-                try await WSMigrationRunner.migrateIfNeeded()
-            } catch {
-                NSLog("[wenshu.migration] FAILED: %@", String(describing: error))
-            }
-        }
+        // v0.72 SwiftData migration history (= per v1.55 sqlite3-zero arc, boss 2026-09-20
+        // OOB): WSMigrationRunner + WSMigrationPerStore were removed 2026-09-21 (= boss
+        // 2026-09-21 '数据库不要在用sqlite3 了'). Legacy `.ws/chat.sqlite` files (= pre-v0.72
+        // data written by the deleted ChatSessionStore actor) are now treated as
+        // orphaned files (= no importer reads them; = no chat history migrate from raw
+        // sqlite to SwiftData). New chat history lives entirely in SwiftData
+        // (= WSChatRepository.shared writes to ZWSCHATMESSAGE; = see
+        // WenshuAppDelegate.swift:178-204 below).
+        //
+        // Idempotency note: previously this hook ran
+        // `Task { try await WSMigrationRunner.migrateIfNeeded() }` once per launch.
+        // Post-v1.55d that call is gone (= no code path left; = the entire
+        // legacy-import mechanism is deleted alongside the file removal).
 
         // v0.24 bossverificationfix (Boss 8/25 OOB 'yes .ws file'):
         // Chat persistence location = wenshu warehouse (anbaiqiang.ws/) if set,
@@ -164,15 +166,19 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // (= so SwiftData repositories are ready before any view reads from them).
         // Post-Phase 5 ticket 10b: all 7 of the planned sqlite3 stores are deleted
         // (= KanbanStore + TodoStore + MemoryStore + LinkIndex + ChatSessionStore +
-        // BookmarkStore + WenshuWorkspace). The warehouse container is the canonical SwiftData
-        // home for all live data (= phase 4 migration runner imports legacy data
-        // on first launch via WSMigrationRunner.migrateIfNeeded).
-        // Remaining legacy sqlite3 actors (= separate from the per-store
-        // "Stores" pattern): WSMigrationPerStore's one-shot raw-sqlite3
-        // importers (= read the LEGACY file paths that users may have on
-        // disk from before the migration; = not a per-launch save path).
+        // BookmarkStore + WenshuWorkspace). The warehouse container is the canonical
+        // SwiftData home for all live data. Post-v1.55d (= boss 2026-09-21 '数据库不要
+        // 在用sqlite3 了'): the one-shot legacy sqlite3 importer
+        // (WSMigrationPerStore + WSMigrationRunner + SQLiteConstants) is DELETED
+        // (= no legacy `.ws/*.sqlite` file is read by wenshu anymore; = legacy
+        // chat.sqlite etc. become orphaned files on disk; = no chat history
+        // migration). New chat history is written directly to SwiftData
+        // (= WSChatRepository.shared → ZWSCHATMESSAGE).
         // HermesKanbanDB + FullTextSearch were REMOVED in v1.55
         // sqlite3-zero (= boss 2026-09-20 OOB).
+        // `import SQLite3` count in production code = 0 (= was 2 pre-v1.55d:
+        // SQLiteConstants.swift SQLITE_TRANSIENT helper + WSMigrationPerStore
+        // raw-sqlite3 import; = both files removed).
         // save path).
         let warehouseURL = warehousePath.map { URL(fileURLWithPath: $0) }
         do {

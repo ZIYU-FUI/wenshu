@@ -87,7 +87,16 @@ public struct ChatTextPartView: View {
                 // transition re-renders the whole run; this one interpolates
                 // so the bubble does not flicker on every chunk.
                 .contentTransition(isStreaming ? .interpolate : .identity)
-                .foregroundStyle(isOutgoing ? Color(nsColor: .windowBackgroundColor) : Color.primary)
+                // v1.65-cleanup E2 boss 2026-09-21 OOB 'no gray text like
+                // hermes' (= the assistant reply was rendered as full
+                // white because ChatTextPartView hardcoded
+                // `.foregroundStyle(Color.primary)`; = overrode the parent
+                // `.secondary` tint applied by ChatMessageBodyView per
+                // hermes 1:1). Drop the local override and let the parent
+                // tint win: assistant text = .secondary (= muted gray on
+                // dark background; = matches hermes assistant-message.tsx
+                // styling), user text = .primary (= full brightness; =
+                // matches hermes user-message.tsx text-foreground/95).
             if isStreaming {
                 // T42 blinking caret (= white-on-cursor / vertical bar)
                 TimelineView(.periodic(from: .now, by: 0.5)) { context in
@@ -97,7 +106,7 @@ public struct ChatTextPartView: View {
                     let phase = Int(elapsed / 0.5) % 2 == 0
                     Text("▎")
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(isOutgoing ? Color(nsColor: .windowBackgroundColor) : Color.primary)
+                        .foregroundStyle(Color.primary)
                         .opacity(phase ? 1.0 : 0.0)
                         // T61-CURSOR-HELP (2026-09-18): a .help()
                         // tooltip on the streaming cursor that
@@ -154,7 +163,15 @@ public struct ChatTextPartView: View {
 public struct ChatReasoningPartView: View {
     public let text: String
     public let isRunning: Bool
-    @State private var isExpanded: Bool = false
+    // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示' (= the
+    // thinking content was collapsed by default; = the user could see
+    // only the brain-head-profile icon and the "AI thought for Xs"
+    // label, = effectively no visible thinking content). Default to
+    // expanded so the reasoning text is always visible (= matches
+    // hermes assistant-message.tsx: where the reasoning block sits
+    // inline with the message body, = visible by default). The user
+    // can collapse it manually via the disclosure chevron.
+    @State private var isExpanded: Bool = true
 
     public init(text: String, isRunning: Bool = false) {
         self.text = text
@@ -178,35 +195,18 @@ public struct ChatReasoningPartView: View {
                 .padding(.top, DesignTokens.chromePaddingMicro)
                 .transition(.opacity)
         } label: {
-            HStack(spacing: 4) {
-                // SF Symbols 6 (= no 'brain' in SF Symbols 6; =
-                // 'brain.head.profile' = the closest 3rd-gen glyph
-                // per sfsymbols search 2026-09-16).
-                // T17-REASONING-PULSE (2026-09-18): when `isRunning`
-                // is true, apply a subtle opacity pulse animation
-                // (= 0.4 -> 1.0 -> 0.4 over 1.4s) so the user sees
-                // the model is still thinking. Stops when thinking
-                // completes (= the icon returns to its static
-                // .secondary foregroundStyle).
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 12, weight: .regular))
-                    .font(.caption)
-                    .opacity(isRunning ? runningOpacity : 1.0)
-                    .animation(
-                        isRunning
-                            ? .easeInOut(duration: 1.4).repeatForever(autoreverses: true)
-                            : .default,
-                        value: runningOpacity
-                    )
-                // Label text flips between running + finished (= the
-                // Hermes `thoughtFor` / `thoughtBriefly` / `thought`
-                // state machine = simplified to a 2-state label here).
-                Text(isRunning
-                     ? WenshuI18n.t("chatview.ai_thinking")
-                     : WenshuI18n.t("chatview.ai_thought"))
-                    .font(.caption)
-            }
-            .foregroundStyle(DesignTokens.statusForeground)
+            // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示'
+            // (= the brain-head-profile icon was C2-era wenshu-side chrome
+            // that hermes真值 does NOT use; = status.tsx ResponseLoadingIndicator
+            // is a 3×3 PT StatusPulse square, no icon). Drop the icon; =
+            // a small grayer caption label is enough to identify the
+            // thinking section. The label flips between running + finished
+            // (= the Hermes `thoughtFor` / `thoughtBriefly` / `thought`
+            // state machine = simplified to a 2-state label here).
+            Text(isRunning
+                 ? WenshuI18n.t("chatview.ai_thinking")
+                 : WenshuI18n.t("chatview.ai_thought"))
+                .font(.caption)
         }
         .animation(.default, value: isExpanded)
     }
@@ -217,13 +217,11 @@ public struct ChatReasoningPartView: View {
     /// going fully invisible). `private` so the view body can read
     /// it directly without exposing the TimelineView as part of the
     /// public surface.
-    private var runningOpacity: Double {
-        // Static 0.6 (= midway between 1.0 and 0.2) - the actual
-        // animation is driven by the `.animation()` modifier on the
-        // Image; = this value is the target of the autoreverse
-        // oscillation (= 1.0 -> 0.6 -> 1.0).
-        return 0.6
-    }
+    // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示': removed
+    // the brain-head-profile icon + the runningOpacity pulse animation
+    // (= was driving the icon's 0.4 -> 1.0 -> 0.4 oscillation). The
+    // thinking section is now a small caption label (= "AI 已思考" /
+    // "AI 思考中") with no icon, no pulse
 
     /// Reasoning text also uses inline markdown (= reasoning often
     /// contains structure like `**KEY POINT**: ...`).
@@ -374,10 +372,10 @@ public struct ChatToolUsePartView: View {
         }
         .padding(.horizontal, DesignTokens.chromePaddingSmall)
         .padding(.vertical, DesignTokens.chromePaddingMicro)
-        .background(toolCardFill, in: RoundedRectangle(cornerRadius: 6))
+        .background(toolCardFill, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             // Thin left border (= Apple Mail "block quote" indicator).
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
         .frame(maxWidth: 360)
@@ -618,9 +616,9 @@ public struct ChatToolResultPartView: View {
         }
         .padding(.horizontal, DesignTokens.chromePaddingSmall)
         .padding(.vertical, DesignTokens.chromePaddingMicro)
-        .background(cardFill, in: RoundedRectangle(cornerRadius: 6))
+        .background(cardFill, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
         .frame(maxWidth: 360)
@@ -688,29 +686,52 @@ public struct ChatMessageBodyView: View {
     }
 
     public var body: some View {
-        // Hermes `MessagePrimitive.Parts` (= the canonical part-by-part
-        // render = wenshu's equivalent). We use `ForEach` over
-        // `message.parts` (= each part is Identifiable via its UUID)
-        // and route through a switch on `part.kind` (= the 4-case
-        // enum = text / reasoning / toolUse / toolResult).
-        if message.parts.isEmpty {
-            // Back-compat path: no parts (= a v0.34 message). Render
-            // the single content string as before.
-            ChatTextPartView(
-                text: message.content,
-                isOutgoing: isOutgoing,
-                isStreaming: isStreaming
-            )
-        } else {
-            ForEach(message.parts) { part in
-                ChatPartRow(
-                    part: part,
+        // v1.65-cleanup C5 boss 2026-09-21 'just refer to HERMES, do
+        // 1:1; drop wenshu-side chrome; differentiate user/AI by color
+        // alone': hermes truth source = user-message.tsx:386
+        // 'text-foreground/95' for user messages (= 95% opacity) +
+        // assistant-message.tsx:292 'text-foreground' for assistant
+        // (= 100% opacity). The 5% delta is intentional and visible
+        // against a neutral transcript.
+        //
+        // SwiftUI closest-1:1 (= Apple semantic ShapeStyle):
+        //   user   = .primary (= foreground at full strength) +
+        //            .opacity(0.92) on the tint container (= the 95%
+        //            saturation approximation hermes sets on the
+        //            user bubble text specifically)
+        //   assistant = .secondary (= one tint step quieter than
+        //            .primary; = the macOS 27 default tertiary
+        //            foreground that matches hermes text-foreground
+        //            for the assistant rows)
+        //
+        // We apply the tint as an outer container so per-part
+        // `.foregroundStyle(.secondary)` etc. (= already in the file)
+        // still wins for their local chrome (= status text / icons
+        // inside reasoning + tool rows).
+        let roleForeground: HierarchicalShapeStyle = isOutgoing
+            ? .primary
+            : .secondary
+        return Group {
+            if message.parts.isEmpty {
+                // Back-compat path: no parts (= a v0.34 message). Render
+                // the single content string as before.
+                ChatTextPartView(
+                    text: message.content,
                     isOutgoing: isOutgoing,
-                    isStreaming: isStreaming,
-                    onApprovePlan: onApprovePlan
+                    isStreaming: isStreaming
                 )
+            } else {
+                ForEach(message.parts) { part in
+                    ChatPartRow(
+                        part: part,
+                        isOutgoing: isOutgoing,
+                        isStreaming: isStreaming,
+                        onApprovePlan: onApprovePlan
+                    )
+                }
             }
         }
+        .foregroundStyle(roleForeground)
     }
 }
 
