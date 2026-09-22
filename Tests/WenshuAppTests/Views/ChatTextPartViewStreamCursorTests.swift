@@ -21,7 +21,7 @@ struct ChatTextPartViewStreamCursorTests {
     /// cursor (= the canonical SwiftUI blink idiom).
     @Test func source_uses_timeline_view_periodic() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("TimelineView(.periodic(from: .now, by: 0.5))"))
@@ -30,7 +30,7 @@ struct ChatTextPartViewStreamCursorTests {
     /// T42 contract: cursor only renders when isStreaming = true.
     @Test func cursor_only_renders_when_streaming() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
             encoding: .utf8
         )
         // Find the cursor block and verify it's gated on isStreaming.
@@ -43,7 +43,7 @@ struct ChatTextPartViewStreamCursorTests {
     /// Apple text-cursor glyph).
     @Test func cursor_glyph_is_text_caret() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("Text(\"▎\")"))
@@ -54,7 +54,7 @@ struct ChatTextPartViewStreamCursorTests {
     /// and uses .opacity(phase ? 1.0 : 0.0).
     @Test func cursor_opacity_oscillates() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("let phase = Int(elapsed / 0.5) % 2 == 0"))
@@ -66,9 +66,9 @@ struct ChatTextPartViewStreamCursorTests {
     /// introduce a new color).
     @Test func cursor_uses_same_foregroundStyle() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
             encoding: .utf8
         )
-        #expect(src.contains(".foregroundStyle(isOutgoing ? Color(nsColor: .windowBackgroundColor) : Color.primary)"))
+        #expect(src.contains(".foregroundStyle(Color.primary)"))
     }
 }

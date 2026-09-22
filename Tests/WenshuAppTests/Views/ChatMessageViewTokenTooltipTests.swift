@@ -15,7 +15,7 @@ struct ChatMessageViewTokenTooltipTests {
     /// T52 contract: fullTokenCountTooltip helper exists.
     @Test func helper_exists() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func fullTokenCountTooltip(for count: Int) -> String"))
@@ -24,7 +24,7 @@ struct ChatMessageViewTokenTooltipTests {
     /// T52 contract: source wires .help(Self.fullTokenCountTooltip(for:)).
     @Test func source_uses_help_tooltip() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.fullTokenCountTooltip(for: tokens))"))
@@ -46,14 +46,14 @@ struct ChatMessageViewTokenTooltipTests {
 
     /// T52 contract: small token count (< 1000) stays plain.
     @Test func tooltip_handles_small_count() {
-        let result = ChatMessageView.fullTokenCountTooltip(for: 234)
+        let result = ChatMessageFooter.fullTokenCountTooltip(for: 234)
         #expect(result.hasSuffix("tokens"))
         #expect(result.contains("234"))
     }
 
     /// T52 contract: large token count has thousand-separator.
     @Test func tooltip_handles_large_count() {
-        let result = ChatMessageView.fullTokenCountTooltip(for: 1234567)
+        let result = ChatMessageFooter.fullTokenCountTooltip(for: 1234567)
         #expect(result.hasSuffix("tokens"))
         // Output should contain digits + commas (locale-dependent grouping).
         #expect(result.contains(",") || result == "1234567 tokens")
@@ -62,16 +62,16 @@ struct ChatMessageViewTokenTooltipTests {
     /// T52 contract: T50 timestamp tooltip preserved.
     @Test func t50_timestamp_tooltip_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains(".help(Self.fullTimestampTooltip(for: message.timestamp))"))
+        #expect(src.contains(".help(Self.fullTimestampTooltip(for: timestamp))"))
     }
 
     /// T52 contract: T25 compact formatTokenCount preserved.
     @Test func t25_compact_formatTokenCount_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func formatTokenCount(_ count: Int) -> String"))

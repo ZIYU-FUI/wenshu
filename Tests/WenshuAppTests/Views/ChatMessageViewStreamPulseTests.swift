@@ -46,7 +46,7 @@ struct ChatMessageViewStreamPulseTests {
         )
         #expect(src.contains(".opacity(isPulsing ? 0.5 : 1.0)"))
         #expect(src.contains(".easeInOut(duration: Self.pulseDuration)"))
-        #expect(src.contains("pulseDuration: Double = 0.4"))
+        #expect(src.contains("private static let pulseDuration: Double = 0.4"))
     }
 
     /// MC9 contract: pulse period = 5 seconds (= hermes
@@ -56,7 +56,7 @@ struct ChatMessageViewStreamPulseTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
             encoding: .utf8
         )
-        #expect(src.contains("pulsePeriod: TimeInterval = 5.0"))
+        #expect(src.contains("private static let pulsePeriod: TimeInterval = 5.0"))
         #expect(src.contains("TimelineView(.periodic(from: .now, by: Self.pulsePeriod))"))
     }
 
@@ -72,8 +72,11 @@ struct ChatMessageViewStreamPulseTests {
 
     /// MC9 contract: T58 elapsed-time TimelineView preserved.
     @Test func t58_elapsed_time_preserved() throws {
+        // The elapsed-time TimelineView (= 0.5s cadence; = different
+        // from the StatusPulse 5s pulsePeriod) lives in
+        // ChatMessagePlaceholderRow after C-8c refactor.
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessagePlaceholderRow.swift",
             encoding: .utf8
         )
         #expect(src.contains("TimelineView(.periodic(from: .now, by: 0.5))"))

@@ -70,8 +70,10 @@ struct ChatPartViewTextFadeInTests {
 
     /// T49 contract: T42 streaming cursor on text part preserved.
     @Test func t42_stream_cursor_preserved() throws {
+        // The streaming cursor TimelineView lives in ChatTextPartView
+        // (not in ChatPartView's switch case).
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("TimelineView(.periodic(from: .now, by: 0.5))"))

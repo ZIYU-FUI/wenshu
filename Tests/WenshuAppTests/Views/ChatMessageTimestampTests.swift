@@ -19,7 +19,7 @@ struct ChatMessageTimestampTests {
     /// Text(...) call gated on sealed + wenshu.
     @Test func source_contains_timestamp_text() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         // The .dateTime.hour().minute() format string is canonical
@@ -51,7 +51,7 @@ struct ChatMessageTimestampTests {
     /// (= Apple HIG "secondary metadata" tone).
     @Test func timestamp_uses_caption2_tertiary() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(source.contains(".font(.caption2)"))

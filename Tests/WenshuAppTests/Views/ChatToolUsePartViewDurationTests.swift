@@ -39,7 +39,7 @@ struct ChatToolUsePartViewDurationTests {
 
     @Test func source_uses_formatDuration() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("Self.formatDuration(duration)"))
@@ -47,7 +47,7 @@ struct ChatToolUsePartViewDurationTests {
 
     @Test func source_gates_duration_on_status() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("if let duration = toolUse.durationSeconds,\n                   toolUse.status != .running"))
@@ -55,7 +55,7 @@ struct ChatToolUsePartViewDurationTests {
 
     @Test func t44_status_icon_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func statusIconName(for status: ChatMessagePart.ToolUsePart.Status) -> String"))
@@ -63,7 +63,7 @@ struct ChatToolUsePartViewDurationTests {
 
     @Test func t43_iconName_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func iconName(for toolName: String) -> String"))

@@ -15,7 +15,7 @@ struct ChatMessageViewTokenIconTests {
     /// T63 contract: source uses Image(systemName: "number") in the footer.
     @Test func source_uses_number_sf_symbol() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("Image(systemName: \"number\")"))
@@ -24,7 +24,7 @@ struct ChatMessageViewTokenIconTests {
     /// T63 contract: icon uses .caption2 + .quaternary tone.
     @Test func icon_uses_caption2_quaternary() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         let iconPos = src.range(of: "Image(systemName: \"number\")")!
@@ -38,7 +38,7 @@ struct ChatMessageViewTokenIconTests {
     /// Apple HIG metadata icon convention).
     @Test func icon_appears_before_token_count() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         let iconPos = src.range(of: "Image(systemName: \"number\")")!
@@ -49,7 +49,7 @@ struct ChatMessageViewTokenIconTests {
     /// T63 contract: T52 token tooltip preserved.
     @Test func t52_token_tooltip_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.fullTokenCountTooltip(for: tokens))"))
@@ -58,7 +58,7 @@ struct ChatMessageViewTokenIconTests {
     /// T63 contract: T62 token cost preserved.
     @Test func t62_token_cost_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("Self.formatTokenCost(tokens)"))
@@ -67,7 +67,7 @@ struct ChatMessageViewTokenIconTests {
     /// T63 contract: T55 footer divider preserved.
     @Test func t55_footer_divider_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".overlay(alignment: .top) {"))

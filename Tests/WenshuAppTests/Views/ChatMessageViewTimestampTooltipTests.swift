@@ -2,7 +2,7 @@
 //  ChatMessageViewTimestampTooltipTests.swift · Wenshu · T50-TIMESTAMP-TOOLTIP (2026-09-18)
 //
 //  Verifies the fullTimestampTooltip helper + the .help() tooltip
-//  wiring on the timestamp text in ChatMessageView.
+//  wiring on the timestamp text in ChatMessageFooter.
 //
 
 import Testing
@@ -15,16 +15,16 @@ struct ChatMessageViewTimestampTooltipTests {
     /// T50 contract: source uses .help(Self.fullTimestampTooltip(for:))
     @Test func source_uses_help_tooltip() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains(".help(Self.fullTimestampTooltip(for: message.timestamp))"))
+        #expect(src.contains(".help(Self.fullTimestampTooltip(for: timestamp))"))
     }
 
     /// T50 contract: fullTimestampTooltip function exists + nonisolated.
     @Test func fullTimestampTooltip_helper_exists() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func fullTimestampTooltip(for date: Date) -> String"))
@@ -46,7 +46,7 @@ struct ChatMessageViewTimestampTooltipTests {
             Issue.record("failed to build date")
             return
         }
-        let tooltip = ChatMessageView.fullTimestampTooltip(for: date)
+        let tooltip = ChatMessageFooter.fullTimestampTooltip(for: date)
         // The exact output depends on the system time zone; = we just
         // verify the format shape (= yyyy-MM-dd HH:mm:ss = 19 chars).
         #expect(tooltip.count == 19)
@@ -57,7 +57,7 @@ struct ChatMessageViewTimestampTooltipTests {
     /// T50 contract: T26 hover timestamp logic preserved.
     @Test func t26_hover_timestamp_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("private var timestampDisplayFormat: Date.FormatStyle"))
@@ -69,7 +69,7 @@ struct ChatMessageViewTimestampTooltipTests {
     /// T50 contract: T25 token footer preserved.
     @Test func t25_token_footer_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("Self.formatTokenCount(tokens)"))

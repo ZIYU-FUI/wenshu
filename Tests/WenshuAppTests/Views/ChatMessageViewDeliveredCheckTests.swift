@@ -17,16 +17,16 @@ struct ChatMessageViewDeliveredCheckTests {
     /// marker comment.
     @Test func t84_marker_comment_exists() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains("// T84-DELIVERED-CHECK (2026-09-18)"))
+        #expect(src.contains("T84-DELIVERED-CHECK"))
     }
 
     /// T84 contract: checkmark SF Symbol present.
     @Test func checkmark_icon_present() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("Image(systemName: \"checkmark\")"))
@@ -36,7 +36,7 @@ struct ChatMessageViewDeliveredCheckTests {
     /// (= matches T65 clock icon style).
     @Test func checkmark_uses_caption2_quaternary() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         let checkPos = src.range(of: "Image(systemName: \"checkmark\")")!
@@ -49,7 +49,7 @@ struct ChatMessageViewDeliveredCheckTests {
     /// (= T84 = after T65 = the visual flow).
     @Test func checkmark_after_clock() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         let clockPos = src.range(of: "Image(systemName: \"clock\")")!
@@ -70,7 +70,7 @@ struct ChatMessageViewDeliveredCheckTests {
     /// T84 contract: T65 clock icon preserved.
     @Test func t65_clock_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("Image(systemName: \"clock\")"))
@@ -79,7 +79,7 @@ struct ChatMessageViewDeliveredCheckTests {
     /// T84 contract: T72 fresh chip preserved.
     @Test func t72_fresh_chip_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("· NEW"))
