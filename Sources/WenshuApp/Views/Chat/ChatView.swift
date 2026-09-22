@@ -1849,7 +1849,31 @@ public struct ChatView: View {
                             )
                         }
                         vm.replaceMessages(mapped)
+                        // v1.65-cleanup E3.5-track: now that messages are
+                        // loaded, run the sticky-tracking heuristic once
+                        // with scrollOffsetY = 0 (= the default = at
+                        // bottom = the user is at the latest message).
+                        // Subsequent updates come from the
+                        // .onPreferenceChange listener in the ScrollView
+                        // (= fires on every scroll frame). Without this
+                        // initial call, the sticky overlay never gets
+                        // populated because the .task fires AFTER the
+                        // .onPreferenceChange listener already set up
+                        // (= when the helper first runs, vm.messages is
+                        // still empty; = the sticky stays nil until the
+                        // next scroll event, which might not come for
+                        // minutes).
+                        updateStickyUserMessageID(scrollOffsetY: 0)
                     }
+            }
+
+            // v1.65-cleanup E3.5-track: re-run the sticky helper
+            // whenever the message count changes (= a new AI
+            // reply lands or a new user message is sent; = the
+            // sticky needs to update because the bottom-row
+            // user message is now the latest one).
+            .onChange(of: vm.messages.count) { _, _ in
+                updateStickyUserMessageID(scrollOffsetY: 0)
             }
 
             // v0.35 ticket 003 sub-step 4 + 5: compression status pill + manual compress button.
