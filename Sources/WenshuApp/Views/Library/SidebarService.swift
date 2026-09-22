@@ -187,11 +187,30 @@ final class SidebarService {
                     // disclosure chevron (= leaf-shaped row;
                     // = single-click routes to the category
                     // scope immediately).
+                    //
+                    // Title = directoryName (= "a" / "b" / ... /
+                    // "其它" — the routing key that
+                    // ShellMiddleColumn.previewScope's case-
+                    // insensitive rawValue lookup can resolve
+                    // back to an EntityCategory). DisplayName
+                    // (= the user-facing Chinese label "哲学、
+                    // 宗教") is moved to the subtitle slot so
+                    // the user still sees the Chinese label in
+                    // the sidebar. Without this split, the
+                    // user-facing title carries the routing key
+                    // (= "哲学、宗教") and the routing key
+                    // gets lost; = forwardSelection writes a
+                    // string the previewScope can't resolve to
+                    // a category; = the middle column falls
+                    // back to .referenceScope(nil) = the user
+                    // clicks a category row and sees the full
+                    // overview (= the boss's '分类点击, 卡片
+                    // 没有做筛选' bug).
                     referenceRootChildren.append(SidebarNode(
                         id: Self.stableReferenceCategoryId(key),
                         kind: .referenceCategory,
-                        title: category.displayName,
-                        subtitle: "\(refs.count) 项",
+                        title: category.directoryName,
+                        subtitle: "\(refs.count) 项 · \(category.displayName)",
                         systemImage: category.icon,
                         children: nil
                     ))
@@ -203,6 +222,23 @@ final class SidebarService {
                     // pick the bucket from the sidebar; = the
                     // bucket's contents show in the middle-column
                     // card grid).
+                    //
+                    // Routing: the bucket key ("未分类") is
+                    // stored as the title (= matches the routing
+                    // contract that official categories follow).
+                    // ShellMiddleColumn.previewScope's case-
+                    // insensitive rawValue lookup can't resolve
+                    // "未分类" to an EntityCategory (= no
+                    // EntityCategory carries this label) so the
+                    // previewScope falls through to
+                    // .referenceScope(nil) = the full overview
+                    // (= the user sees ALL references, including
+                    // the bucket's). This is the conservative
+                    // behaviour (= better than hiding the bucket
+                    // = the user can still reach the uncategorized
+                    // row's contents). A future ticket can add a
+                    // dedicated .uncategorizedReference scope for
+                    // narrow filtering.
                     referenceRootChildren.append(SidebarNode(
                         id: Self.stableReferenceCategoryId(key),
                         kind: .referenceCategory,
