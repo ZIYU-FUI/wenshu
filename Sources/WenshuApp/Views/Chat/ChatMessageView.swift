@@ -483,26 +483,11 @@ struct ChatMessageView: View {
                     // Preview directly without a separate reveal
                     // affordance; = the macro-free Mac-side reveal
                     // affordance is dropped, matching hermes真值.)
+                    // C-8a (refactor chat-mvvm-3layer): image
+                    // attachment preview extracted to its own leaf
+                    // view (Views/Chat/ChatMessageAttachmentPreview.swift).
                     if let imagePath = message.imagePath {
-                        if let nsImage = NSImage(contentsOfFile: imagePath) {
-                            Button {
-                                let url = URL(fileURLWithPath: imagePath)
-                                NSWorkspace.shared.open(url)
-                            } label: {
-                                Image(nsImage: nsImage)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(maxWidth: 240, maxHeight: 240)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                                    .padding(.bottom, DesignTokens.chromePaddingMicro)
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            Text(WenshuI18n.t("chat.message.imageMissing"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .padding(.bottom, DesignTokens.chromePaddingMicro)
-                        }
+                        ChatMessageAttachmentPreview(imagePath: imagePath)
                     }
                     // v0.71 P1 batch 2: ChatMessageBodyView (= the
                     // Hermes-style per-part renderer) wraps each part
