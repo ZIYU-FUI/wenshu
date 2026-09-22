@@ -188,31 +188,27 @@ final class SidebarService {
                     // = single-click routes to the category
                     // scope immediately).
                     //
-                    // Title = directoryName (= "a" / "b" / ... /
-                    // "其它" — the routing key that
-                    // ShellMiddleColumn.previewScope's case-
-                    // insensitive rawValue lookup can resolve
-                    // back to an EntityCategory). DisplayName
-                    // (= the user-facing Chinese label "哲学、
-                    // 宗教") is moved to the subtitle slot so
-                    // the user still sees the Chinese label in
-                    // the sidebar. Without this split, the
-                    // user-facing title carries the routing key
-                    // (= "哲学、宗教") and the routing key
-                    // gets lost; = forwardSelection writes a
-                    // string the previewScope can't resolve to
-                    // a category; = the middle column falls
-                    // back to .referenceScope(nil) = the user
-                    // clicks a category row and sees the full
-                    // overview (= the boss's '分类点击, 卡片
-                    // 没有做筛选' bug).
+                    // v1.69p boss 2026-09-22 OOB '资料库分类,
+                    // 现在显示是的一个字母. 不是中文分类名':
+                    // the user-facing title carries the Chinese
+                    // displayName (= what the user reads in the
+                    // sidebar). The routing key (= the
+                    // EntityCategory.directoryName that
+                    // ShellMiddleColumn previewScope's case-
+                    // insensitive rawValue lookup resolves
+                    // back to a category) is stored separately
+                    // in `routingKey` so forwardSelection can
+                    // write the routing key into SidebarItem
+                    // without polluting the user-visible
+                    // title slot.
                     referenceRootChildren.append(SidebarNode(
                         id: Self.stableReferenceCategoryId(key),
                         kind: .referenceCategory,
-                        title: category.directoryName,
-                        subtitle: "\(refs.count) 项 · \(category.displayName)",
+                        title: category.displayName,
+                        subtitle: "\(refs.count) 项",
                         systemImage: category.icon,
-                        children: nil
+                        children: nil,
+                        routingKey: category.directoryName
                     ))
                 } else {
                     // nil-category bucket (= pre-v0.29 references
@@ -245,7 +241,8 @@ final class SidebarService {
                         title: key,
                         subtitle: "\(refs.count) 项",
                         systemImage: "tray.full",
-                        children: nil
+                        children: nil,
+                        routingKey: key
                     ))
                 }
             }

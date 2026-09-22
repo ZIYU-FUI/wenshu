@@ -37,6 +37,19 @@ import Foundation
 /// >= 1 reference (the v0.29 boss 'category folders grow with
 /// the content, instead of being laid out all at once' rule).
 /// The category parent's children are the reference leaves.
+///
+/// v1.69p boss 2026-09-22 OOB '资料库分类, 现在显示是的一个
+/// 字母. 不是中文分类名': the user-facing `title` MUST carry
+/// the Chinese display label (= the user reads the sidebar in
+/// 中文), NOT the routing key. The routing key (= the
+/// EntityCategory.directoryName that ShellMiddleColumn
+/// previewScope's case-insensitive rawValue lookup resolves
+/// to an EntityCategory) is stored in the dedicated
+/// `routingKey` field (= only set for .referenceCategory
+/// rows). `AppleSidebarView.forwardSelection` reads
+/// `routingKey ?? node.title` so the routing contract is
+/// preserved without putting the routing key in the
+/// user-visible title slot.
 struct SidebarNode: Identifiable, Hashable, Sendable {
     let id: UUID
     var kind: Kind
@@ -44,6 +57,18 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
     var subtitle: String?
     var systemImage: String
     var children: [SidebarNode]?
+
+    /// v1.69p boss 2026-09-22 OOB: routing key for sidebar
+    /// selection = the string that survives the round-trip
+    /// from sidebar click → SidebarItem → PreviewScope
+    /// case-insensitive EntityCategory lookup. Set on
+    /// `.referenceCategory` rows to EntityCategory
+    /// .directoryName (= "a" / "b" / ... / "其它" / "未分类").
+    /// Nil for every other Kind (= the existing
+    /// shelf / book / reference rows route via the row id
+    /// or the title respectively; = no separate routing key
+    /// needed).
+    var routingKey: String?
 
     enum Kind: Hashable, Sendable {
         case shelf

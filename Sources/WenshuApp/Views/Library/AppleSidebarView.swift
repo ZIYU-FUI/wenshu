@@ -205,12 +205,21 @@ struct AppleSidebarView: View {
             // root). Selecting it scopes the middle-column card
             // grid to that category.
             //
-            // node.title = EntityCategory.directoryName (= "a" /
-            // "b" / ... / "其它" / "未分类"). ShellMiddleColumn
-            // handles the lowercase → rawValue restoration in
-            // .referenceCategory case (= case-insensitive
-            // lookup with nil-fallback).
-            appState.sidebarSelection = .referenceCategory(node.title)
+            // v1.69p boss 2026-09-22 OOB: read the routing key
+            // (= the EntityCategory.directoryName, stored in
+            // SidebarNode.routingKey during the v1.69j projection;
+            // = lowercase letter for the official 22 cases,
+            // "其它" for .z, "未分类" for pre-v0.29 nil-category
+            // references). The routing key is what
+            // ShellMiddleColumn.previewScope's case-insensitive
+            // EntityCategory(rawValue:) lookup resolves back to
+            // a category — the user-visible title (= "文学") can't
+            // be used directly because no EntityCategory rawValue
+            // is "文学". Falling back to node.title (= the previous
+            // v1.69m behaviour) leaves the routing key in the
+            // user-visible slot (= the boss's '资料库分类, 现在
+            // 显示是的一个字母' complaint).
+            appState.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
         }
     }
 
