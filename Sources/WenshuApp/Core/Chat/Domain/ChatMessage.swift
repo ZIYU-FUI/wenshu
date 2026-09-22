@@ -1,74 +1,90 @@
 //
-//  ChatMessage.swift · Wenshu · refactor chat-mvvm-3layer C-1
+//  ChatMessage.swift · Wenshu · refactor chat-mvvm-3layer C-2
 //
-//  Display-side chat message type (= the "UI-facing" view of one
-//  chat turn). Lives in the business layer because:
-//  - both `ChatViewModel` (business) and `ChatMessageView` (UI)
-//    consume it
-//  - it carries streaming state + parts that are intermediate
-//    between LLM and persistence (= business concern, not UI
-//    decoration)
-//  - the persistence layer has its own leaner type
-//    (`StoredChatMessage` in Core/Chat/ChatDomain.swift) used by
-//    `WSChatRepository`
+//  Glue type that composes a ChatMessageHeader (= cover page) with
+//  a ChatMessageBody (= inner pages). This is the type the rest of
+//  the app reads today; C-8/C-9/C-10 will progressively migrate UI
+//  fields off the forwarders to direct `header` / `body` reads, then
+//  the forwarders go away.
 //
-//  Pre-C-1 history: this type lived at the top of
-//  `Sources/WenshuApp/Views/Chat/ChatView.swift` (= same file as
-//  the SwiftUI view) — physically coupled to UI. Per boss
-//  2026-09-22 directive "目标 UI，业务，数据，三分离" + Apple
-//  SwiftUI MVVM standard (= `@Observable @MainActor` view model
-//  holding domain types; = UI binds via `@Bindable`), domain
-//  types belong in the business layer directory, not the Views
-//  directory.
+//  Pre-C-2 history: ChatMessage was a single 98-line struct holding
+//  all 12 fields. Per boss 2026-09-22 '目标 UI，业务，数据，三分离'
+//  the type was split:
+//  - ChatMessageHeader (= identity)  -> Core/Chat/Domain/ChatMessageHeader.swift
+//  - ChatMessageBody   (= content)   -> Core/Chat/Domain/ChatMessageBody.swift
+//  - ChatMessage       (= composite) -> this file
 //
-//  C-1 scope: PHYSICAL MOVE only. Zero behavior change. The
-//  follow-up commits will:
-//  - C-2 split this into ChatMessageHeader + ChatMessageBody
-//  - C-3 move ChatViewModel to its own file
-//  - C-4-C-6 introduce the ChatRepositoryProtocol seam
+//  Forwarding pattern (= zero UI churn this commit):
+//  - All 12 fields are accessible via the original property names
+//    on ChatMessage itself (= `msg.content`, `msg.parts`,
+//    `msg.imagePath`, etc.). UI code that hasn't migrated yet
+//    still compiles unchanged.
+//  - Forwarders are read-only computed properties for header fields
+//    (= id / role / source / timestamp = immutable post-creation
+//    anyway) and read-write computed properties for body fields
+//    (= content / parts / streamState / etc. = the streaming
+//    pipeline mutates them per turn).
+//  - Mutation through a forwarder (= `msg.parts = [...]`) is
+//    allowed for body fields; it forwards to `self.body.parts = ...`.
+//  - C-8/C-9/C-10 will migrate UI sub-components to direct
+//    `msg.body.xxx` reads. Each migration removes one forwarder.
+//    Final state (= after C-10): zero forwarders, ChatMessage is
+//    a pure composition wrapper with no logic of its own.
+//
+//  StreamState enum moved to ChatMessage (= where callers still
+//  look it up) but its declaration stays as a nested type so
+//  `ChatMessage.StreamState.idle` keeps working.
+//
+//  Equatable / Identifiable / Sendable: synthesized. Both header
+//  and body are Equatable + Sendable value types, so the composite
+//  is too.
 //
 
 import Foundation
 
-/// One chat message: three roles (user / Wenshu / system); Wenshu's internal multi-agent dispatch does not surface as ChatMessage (it goes through the Kanban board)
+/// Composite chat-message type (= header + body). The UI / business
+/// layers consume this; the data layer maps it to StoredChatMessage
+/// (= §11.4 SwiftData row) at the repository boundary.
 public struct ChatMessage: Equatable, Identifiable, Sendable {
-    public let id: UUID
-    public let role: ChatRole
-    public let source: ChatSource
-    /// v0.71 P1 batch 1 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented... port the whole thing from hermes...'):
-    /// streaming parts (= Hermes `parts: ChatMessagePart[]` in
-    /// `lib/chat-messages/types.ts:15`). Each part is a typed content
-    /// block (text / reasoning / tool_use / tool_result). The streaming
-    /// pipeline accumulates LLMBlock events into this array. UI renders
-    /// each part independently (= Hermes `message-parts.tsx`). Backward
-    /// compat: `content` + `thinking` getters derive from this array
-    /// (= existing ChatMessageView still works unchanged).
-    public var parts: [ChatMessagePart]
-    /// v0.71 P1 batch 1: streaming state. hermes uses `message.pending`
-    /// (= bool on ChatMessage); wenshu uses an enum so SwiftUI
-    /// exhaustive-switch renders the right state (idle / streaming /
-    /// sealed / error).
-    public var streamState: StreamState
-    /// Backward-compat: original chat content. Now a computed getter
-    /// (= joined .text parts). Stays public so callers that read
-    /// `content` keep working without changes.
-    public var content: String
-    public let timestamp: Date
-    public var isPlaceholder: Bool
-    public var tokens: Int?    // real LLM API usage.total_tokens (nil if user message or unavailable)
-    public var thinking: String?    // v0.71 P1: also a computed getter (= joined reasoning parts)
-    // CHATIMG-001 (2026-09-07): absolute file URL of an attached
-    // screenshot/image. When non-nil, ChatMessageView renders the image
-    // thumbnail above the text content. The file lives in
-    // `<libraryPath>/cache/chat-uploads/` (= per §11 .ws bundle layout =
-    // cache subfolder holds thumbnails + search index + export temp; this
-    // ticket adds `chat-uploads` as the canonical chat-attachment cache
-    // dir). nil = no image attached. Send-time semantics: the user
-    // message carries the path; LLM send path (per §11.3 wenshu-side
-    // wins) does NOT forward the image bytes to the provider this round
-    // (= out-of-scope for ticket CHATIMG-001; ticket CHATIMG-002 covers
-    // the multimodal upload protocol).
-    public var imagePath: String?
+    public var header: ChatMessageHeader
+    public var body: ChatMessageBody
+
+    public var id: UUID { header.id }
+    public var role: ChatRole { header.role }
+    public var source: ChatSource { header.source }
+    public var timestamp: Date { header.timestamp }
+
+    // Forwarders to body (= read-write; the streaming pipeline
+    // mutates these per turn). Removed in C-8/C-9/C-10 as UI
+    // sub-components migrate to direct `body.xxx` reads.
+    public var parts: [ChatMessagePart] {
+        get { body.parts }
+        set { body.parts = newValue }
+    }
+    public var streamState: StreamState {
+        get { body.streamState }
+        set { body.streamState = newValue }
+    }
+    public var content: String {
+        get { body.content }
+        set { body.content = newValue }
+    }
+    public var isPlaceholder: Bool {
+        get { body.isPlaceholder }
+        set { body.isPlaceholder = newValue }
+    }
+    public var tokens: Int? {
+        get { body.tokens }
+        set { body.tokens = newValue }
+    }
+    public var thinking: String? {
+        get { body.thinking }
+        set { body.thinking = newValue }
+    }
+    public var imagePath: String? {
+        get { body.imagePath }
+        set { body.imagePath = newValue }
+    }
 
     /// v0.71 P1 batch 1: streaming state machine. Mirrors the Hermes
     /// `message.pending` boolean + the lifecycle hooks in
@@ -100,31 +116,28 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
         parts: [ChatMessagePart] = [],
         streamState: StreamState = .idle
     ) {
-        self.id = id
-        self.role = role
-        self.source = source
-        // v0.71 P1 batch 1: parts[] is canonical. content + thinking
-        // are derived getters. init keeps content as a stored field so
-        // callers that pass plain text (= ChatView user message path)
-        // don't have to construct [parts]. The init builds a single
-        // .text part if content is non-empty AND parts[] is empty.
-        if parts.isEmpty && !content.isEmpty {
-            self.parts = [.text(content, timestamp: timestamp.timeIntervalSinceReferenceDate)]
-        } else {
-            self.parts = parts
-        }
-        self.streamState = streamState
-        self.content = content
-        self.timestamp = timestamp
-        self.isPlaceholder = isPlaceholder
-        self.tokens = tokens
-        // If thinking was passed but parts[] is empty (= legacy caller),
-        // synthesize a reasoning part so the streaming UI sees it.
-        if let thinking, !thinking.isEmpty, parts.isEmpty {
-            self.parts = self.parts + [.reasoning(thinking, timestamp: timestamp.timeIntervalSinceReferenceDate)]
-        }
-        self.thinking = thinking
-        self.imagePath = imagePath
+        self.header = ChatMessageHeader(
+            id: id,
+            role: role,
+            source: source,
+            timestamp: timestamp
+        )
+        self.body = ChatMessageBody(
+            content: content,
+            parts: parts,
+            streamState: streamState,
+            isPlaceholder: isPlaceholder,
+            tokens: tokens,
+            thinking: thinking,
+            imagePath: imagePath
+        )
+    }
+
+    /// Convenience initializer for callers that already hold a
+    /// header + body (= e.g. the streaming pipeline after sealing).
+    public init(header: ChatMessageHeader, body: ChatMessageBody) {
+        self.header = header
+        self.body = body
     }
 }
 
