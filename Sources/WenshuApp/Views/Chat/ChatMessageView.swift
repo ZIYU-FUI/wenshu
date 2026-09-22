@@ -43,7 +43,11 @@ struct ChatMessageView: View {
     /// window titlebar case; wenshu uses 80 PT for the floating
     /// input instead). z-index places the sticky bubble above the
     /// transcript content but below the titlebar.
-    var isLatestUser: Bool = false
+    /// Legacy: v1.65-cleanup E3 used this to apply `.padding(.top, 80)
+    /// + .zIndex(40)` for the latest user row; = boss 2026-09-21
+    /// '你把吸顶也取消吧' reverted the sticky behavior; = the parameter
+    /// is accepted by the init (= API compatibility) but no stored
+    /// property is kept.
     /// T24-PLAN-APPROVE (2026-09-18): callback invoked when the user
     /// clicks Approve & Run on a plan card. The closure is provided
     /// by the parent ChatView (= the closure submits the plan's original
@@ -64,7 +68,14 @@ struct ChatMessageView: View {
         onApprovePlan: ((Plan) -> Void)? = nil
     ) {
         self.message = message
-        self.isLatestUser = isLatestUser
+        // legacy: kept for API compatibility with the v1.65-cleanup
+        // sticky-top attempt (= boss 2026-09-21 '你把吸顶也取消吧'
+        // reverted the sticky behavior; = the parameter is no longer
+        // used in the body but external callers still pass it; =
+        // accepting the value here keeps the public surface stable
+        // for the next ticket that may reintroduce sticky in a
+        // different form).
+        _ = isLatestUser
         self.onApprovePlan = onApprovePlan
     }
 
@@ -238,8 +249,8 @@ struct ChatMessageView: View {
         // below plus a `z-index` above the floating input but below the
         // titlebar.
         messageContents
-                    .frame(maxWidth: .infinity, alignment: isOutgoing ? .trailing : .leading)
                     .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
+                    .frame(maxWidth: .infinity, alignment: isOutgoing ? .center : .leading)
                     // v1.65 boss 'B = 试着补一下 sticky 真值':
                     //
                     // Apple SwiftUI on macOS 27 does NOT expose CSS `position:
@@ -308,8 +319,12 @@ struct ChatMessageView: View {
                                         // directly without the overlay, the 80 PT padding
                                         // and zIndex 40 still rescue that older layout
                                         // from floating-input overlap).
-                                        .padding(.top, isOutgoing && isLatestUser ? 80 : 0)
-                                        .zIndex(isOutgoing && isLatestUser ? 40 : 0)
+                                        // legacy: used to apply `.padding(.top, 80) +
+                                        // .zIndex(40)` for the latest user row (= E3
+                                        // sticky-top attempt; = reverted by boss 2026-09-21
+                                        // '你把吸顶也取消吧'). All user rows render
+                                        // normally inside the LazyVStack now (= no
+                                        // padding-top or zIndex override).
             }
 
     /// The row's content (= source label row + body row + footer +
@@ -376,7 +391,14 @@ struct ChatMessageView: View {
                                 .foregroundStyle(.tertiary)
                         }
                     }
-                    .padding(.horizontal, 12)
+                    // v1.65-cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
+                    // dropped the inline `.padding(.horizontal, 12)`
+                    // (= the chat transcript outer `.padding(.horizontal, 10)`
+                    // in ChatView.swift is now the single source of truth
+                    // for chat-column horizontal padding; = maintenance
+                    // = one place to change). Kept the vertical 8 PT
+                    // (= row vertical breathing room; = matches Apple HIG
+                    // py-2 vertical row gap convention).
                     .padding(.vertical, 8)
                     // T87-STREAM-PULSE removed (= 1.6s scale breathing):
                     // hermes真值 `StatusPulse` (= 400 ms opacity pulse
@@ -521,7 +543,12 @@ struct ChatMessageView: View {
                         isStreaming: message.streamState == .streaming || message.isPlaceholder,
                         onApprovePlan: onApprovePlan
                     )
-                    .padding(.horizontal, 12)
+                    // v1.65-cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
+                    // dropped the inline `.padding(.horizontal, 12)` (= L1 in
+                    // ChatView.swift is now the single source of truth for
+                    // chat-column horizontal padding; = maintenance = one place
+                    // to change). Kept the vertical 8 PT (= row vertical breathing
+                    // room; = matches Apple HIG py-2 vertical row gap convention).
                     .padding(.vertical, 8)
                     .wenshuChatHover()
                 }
@@ -691,7 +718,12 @@ struct ChatMessageView: View {
                         }
                     }
                     .padding(.top, 2)
-                    .padding(.leading, 12)
+                    // v1.65-cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
+                    // dropped the inline `.padding(.leading, 12)` (= L1 in
+                    // ChatView.swift is now the single source of truth for
+                    // chat-column horizontal padding; = maintenance = one place
+                    // to change). Kept the vertical 2 PT top (= row separator
+                    // gap; = matches Apple HIG caption2 metadata vertical gap).
                     .frame(maxWidth: .infinity, alignment: .leading)
                     // T53-FOOTER-COMBO-TOOLTIP (2026-09-18): the
                     // entire footer HStack gets a .help()
@@ -727,6 +759,13 @@ struct ChatMessageView: View {
             // the right edge (= the Hermes `ROLE` glyph + flat body
             // pattern; = no right-edge trailing space).
             // L818: extra } removed (= previous HStack wrapper gone).
+            // v1.65-cleanup E5 boss 2026-09-21 '聊天文字，用户和 AI
+            // 回复，都自动拉宽全宽': make messageContents fill the
+            // full chat column width (= the VStack previously was
+            // intrinsic-width = text didn't wrap to the chat column
+            // edge; = now it does). User card gets the same treatment
+            // via the UserGlassCardModifier's .frame(maxWidth: .infinity).
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Outgoing messages are the ones this person sent, which iMessage puts
@@ -795,30 +834,51 @@ private struct UserGlassCardModifier: ViewModifier {
             // more text per row, = matches boss's explicit 10 PT
             // instruction). Vertical padding stays at 6 PT (= unchanged;
             // = compact card height; = matches Apple HIG py-1.5 = 6 PT).
+            // v1.65-cleanup E8 boss 2026-09-21 '改对了，用户说话的框，里面的文字距离框
+            // 10PT。把这个改回来' (= the L1 in ChatView.swift is now 0 PT
+            // = chat transcript content sits flush against the chat
+            // column edge; = the user card L2 inner padding below is
+            // the SOLE source of horizontal padding for user cards; =
+            // user card text ↔ card edge = 10 PT; = preserved per E7).
+            // Vertical 6 PT retained (= card height breathing room).
             content
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                // v1.65-cleanup E3 boss 2026-09-21 '你甚至可以把用户的那个框，
-                // 加上真正的液态玻璃，以示突出' (= the user glass
-                // card previously used Color(nsColor: .underPageBackgroundColor)
-                // = a flat solid tint; = no surface variation; =
-                // visually merged into the chat bg tint). Apply the
-                // real macOS 27 Liquid Glass regular tier
-                // (.regularMaterial) = Apple HIG inspector / popover
-                // surface; = subtle blur + saturation shift over the
-                // chat background; = the user card visibly lifts off
-                // the chat surface (= boss's 'show its prominence'
-                // intent). Border kept at 0.5 PT separator tint at
-                // 0.6 opacity (= unchanged; = edge cue).
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(.regularMaterial)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 0.5)
-                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // v1.65-cleanup E9 boss 2026-09-21 '现在改用户说话的枢，加液态玻璃':
+                // apply the macOS 27 `.glassEffect(.regular)` API
+                // (= the canonical Apple HIG Liquid Glass container; =
+                // blurs + refracts the chat content underneath; = same
+                // surface the chat input row uses at
+                // ChatView.swift:1960). Shape = 12 PT continuous corner
+                // radius rounded-rectangle (= matches the existing card
+                // shape; = Apple HIG popover surface convention).
+                // The `.interactive()` modifier lets the glass respond
+                // to pointer events (= Apple HIG chat input is
+                // interactive; = user card surface mirrors that
+                // affordance). Border dropped (= the glass edge is its
+                // own visual boundary; = matches Apple HIG chat input
+                // row which has no separate border).
+                //
+                // v1.65-cleanup E10 boss 2026-09-21 '液态玻璃的透明度
+                // 跟随系统' (= Apple System Settings > Appearance >
+                // Liquid Glass > translucency slider; = wenshu
+                // user-card glass follows the system slider via the
+                // canonical macOS 27 `Glass.translucency` SwiftUI
+                // environment value (= Apple's canonical 'follow the
+                // system liquid glass setting' API surface; = the
+                // system automatically animates between glass and flat
+                // for the user as they move the slider)). The
+                // `.glassEffect(.regular.interactive())` API already
+                // follows this slider by default (= per
+                // ComponentIndex.md §4.1 'Apple canonical .glassEffect
+                // auto-adapts to system Liquid Glass setting'); = no
+                // manual @Environment read or fallback branch needed
+                // here (= the manual fallback was overengineering =
+                // reverted). The same API is used by the chat input
+                // row at ChatView.swift:1960 (= the canonical Apple
+                // HIG pattern across wenshu).
+                .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         } else {
             content
         }
