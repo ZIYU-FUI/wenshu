@@ -293,27 +293,50 @@ struct AppleSidebarMVVMSplitTests {
                 "ShellMiddleColumn.previewScope MUST do a case-insensitive rawValue lookup")
     }
 
-    @Test("sidebar_service_reference_category_title_is_directoryName")
-    func sidebar_service_reference_category_title_is_directoryName() throws {
-        // v1.69 boss 2026-09-22 OOB '分类点击, 卡片没有做筛选':
-        // category row title MUST be the EntityCategory
-        // directoryName (= the routing key the previewScope
-        // resolves back to a category) NOT the user-facing
-        // displayName (= the Chinese label "文学"). The
-        // previous code put displayName in the title slot; =
-        // forwardSelection wrote `.referenceCategory("文学")`;
-        // = previewScope couldn't resolve "文学" to an
-        // EntityCategory; = fallback to .referenceScope(nil) =
-        // the user clicked a category row and saw the full
-        // overview instead of the filtered set.
+    @Test("sidebar_service_reference_category_title_is_displayName_with_routing_key")
+    func sidebar_service_reference_category_title_is_displayName_with_routing_key() throws {
+        // v1.69 boss 2026-09-22 OOB '资料库分类, 现在显示是
+        // 的一个字母. 不是中文分类名': category row title
+        // MUST be the EntityCategory.displayName (= the
+        // user-facing Chinese label "哲学、宗教", what the
+        // user reads in the sidebar) NOT the routing key.
+        // The routing key (= EntityCategory.directoryName
+        // that previewScope's case-insensitive rawValue
+        // lookup resolves back to a category) lives in the
+        // dedicated `routingKey` field on SidebarNode.
+        //
+        // Why split title vs routingKey (= the v1.69m
+        // inverse of this ticket):
+        //   v1.69m put directoryName in title + displayName
+        //   in subtitle. forwardSelection read node.title →
+        //   routed correctly BUT the sidebar showed "i" /
+        //   "l" / "k" (= boss complaint: '显示是的一个字
+        //   母'). v1.69p fixes the split: displayName in
+        //   title (user-readable); routingKey in dedicated
+        //   field (forwardSelection reads it).
         let src = try String(
             contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarService.swift"),
             encoding: .utf8
         )
-        #expect(src.contains("title: category.directoryName"),
-                "category rows MUST use directoryName as the title (= the routing key)")
-        #expect(src.contains("category.displayName"),
-                "category rows MUST show displayName somewhere (= for the user-facing label)")
+        #expect(src.contains("title: category.displayName"),
+                "category rows MUST use displayName as the title (= the user-facing Chinese label)")
+        #expect(src.contains("routingKey: category.directoryName"),
+                "category rows MUST store directoryName in the dedicated routingKey field (= the routing key)")
+    }
+
+    @Test("sidebar_node_kind_includes_routing_key")
+    func sidebar_node_kind_includes_routing_key() throws {
+        // v1.69p: SidebarNode grows a `routingKey: String?`
+        // field so the user-visible title and the
+        // forwardSelection routing key can diverge (= the
+        // category row shows Chinese label + routes by
+        // EntityCategory directoryName).
+        let src = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarNode.swift"),
+            encoding: .utf8
+        )
+        #expect(src.contains("var routingKey: String?"),
+                "SidebarNode MUST expose routingKey as an optional String field")
     }
 
     @Test("previewPane_shelfScopeView_loads_union_of_books_under_shelf")
