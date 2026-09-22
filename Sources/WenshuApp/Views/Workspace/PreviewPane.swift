@@ -664,8 +664,20 @@ struct PreviewPane: View {
                         referenceScopeView(category: category)
                     case .bookScope(let bookId, folderName: let folderName):
                         bookScopeView(bookId: bookId, folderName: folderName)
-                    case .shelfScope:
-                        shelfScopeView()
+                    case .shelfScope(let shelfId):
+                        // v1.69 boss 2026-09-22 OOB '书架, 就是
+                        // 从这里开始, 测试书架. 这两个目录项可以
+                        // 点击, 但没有在卡片栏加载所有卡片' (=
+                        // clicking a shelf row should load all
+                        // .md cards from every book under that
+                        // shelf, not show an empty-state hint).
+                        // Previous v1.0.0-m1-shell behaviour was
+                        // empty-state (boss 8/31 'shelves are a
+                        // tree level, not a document scope'); =
+                        // boss 9/22 reversed: shelf IS a document
+                        // scope (= the union of every book's
+                        // .md cards under the shelf).
+                        shelfScopeView(shelfId: shelfId)
                     case .empty:
                         emptyScopeView()
                     }
@@ -778,14 +790,38 @@ struct PreviewPane: View {
     }
 
 
-    /// Shelf scope: empty state with hint to drill into a book.
+    /// Shelf scope: union of every book's docs under the shelf.
+    /// v1.69 boss 2026-09-22 OOB '书架, 就是从这里开始, 测试
+    /// 书架. 这两个目录项可以点击, 但没有在卡片栏加载所有
+    /// 卡片' (= the shelf row is a scope, = shows every .md
+    /// card from every book under that shelf; = union of all
+    /// `loadBookDocs(bookId:, folderName: nil)` results filtered
+    /// to books whose `shelfId == shelfId`).
     @ViewBuilder
-    private func shelfScopeView() -> some View {
-        emptyState(
-            icon: "book.pages",
-            titleKey: "preview.empty_state.shelf_empty",
-            bodyKey: "preview.empty.pick_book"
-        )
+    private func shelfScopeView(shelfId: UUID) -> some View {
+        let books = loadBooksInShelf(shelfId: shelfId)
+        let allDocs = books.flatMap { loadBookDocs(bookId: $0.id, folderName: nil) }
+        let filteredDocs = searchFilteredBookDocs(allDocs)
+        return VStack(alignment: .leading, spacing: 0) {
+            if filteredDocs.isEmpty {
+                emptyState(
+                    icon: "books.vertical",
+                    titleKey: "preview.empty_state.shelf_empty",
+                    bodyKey: "preview.empty.shelf_no_books"
+                )
+            } else {
+                GeometryReader { geometry in
+                    ScrollView {
+                        LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
+                            ForEach(filteredDocs) { doc in
+                                Card(source: .bookDoc(doc), onDoubleClick: onDoubleClick)
+                            }
+                        }
+                        .padding(18)
+                    }
+                }
+            }
+        }
     }
 
     /// Empty scope: empty state with hint to select a sidebar item.
@@ -973,6 +1009,19 @@ struct PreviewPane: View {
             NSLog("[wenshu.preview] loadAllEntities failed: %@", String(describing: error))
             return []
         }
+    }
+
+    /// v1.69 boss 2026-09-22 OOB: helper for shelfScopeView.
+    /// Returns the books that live under the given shelf (= the
+    /// books whose `.shelfId` matches). Reads from the same
+    /// BookStore.sidebarLoadAllBooks source the sidebar already
+    /// uses (= single source of truth; = no parallel book list).
+    /// Returns [] (= empty shelf = empty-state card grid) when
+    /// the lookup fails (= disk error) so the caller doesn't
+    /// have to do its own error-handling.
+    private func loadBooksInShelf(shelfId: UUID) -> [Book] {
+        let allBooks = (try? bookStore.sidebarLoadAllBooks()) ?? []
+        return allBooks.filter { $0.shelfId == shelfId }
     }
 
     private func loadBody(for entity: Reference) -> String? {
