@@ -149,7 +149,7 @@ final class SidebarService {
             roots.append(SidebarNode(
                 id: Self.referenceLibraryRootId,
                 kind: .reference,
-                title: "Reference Library",
+                title: WenshuI18n.t("sidebar.reference_library.title"),
                 subtitle: nil,
                 systemImage: "books.vertical",
                 children: nil
