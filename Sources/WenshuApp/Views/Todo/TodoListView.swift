@@ -284,74 +284,72 @@ public struct TodoListView: View {
     /// B-09 + B-13: load items from the scope's todo JSON. The scope
     /// is resolved via `bookStore.scopeDirectory(...)`. See
     /// `KanbanView.reloadFromDisk` for the symmetric flow.
+    /// v1.72 T2c: lift the disk-IO + state-transition logic into
+    /// `TodoOps` (= the stateless business layer at
+    /// `Sources/WenshuApp/Views/Todo/TodoOps.swift`). Per ADR-0009
+    /// (= UI/业务/数据 separation), the View is now a pure consumer:
+    /// it holds the @State (items / newItemTitle / newItemPriority /
+    /// scopeDir / loadError), reads via @Environment for the
+    /// BookStore, and delegates every mutation to TodoOps.
     private func reloadFromDisk() {
-        let dir = bookStore.scopeDirectory(
+        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
+        let result = TodoOps.loadItems(
             bookId: bookStore.selectedBookId,
-            scope: scope
+            scope: scope,
+            resolver: resolver
         )
-        scopeDir = dir
-        guard let dir = dir else {
-            items = []
-            loadError = nil
-            return
-        }
-        let bookId = bookStore.selectedBookId ?? UUID()
-        let store = BookTodoStore(bookId: bookId, directory: dir, scope: scope)
-        do {
-            items = try store.load()
-            loadError = nil
-        } catch {
-            items = []
-            loadError = "\(error)"
-        }
+        items = result.items
+        scopeDir = result.scopeDir
+        loadError = result.loadError
     }
 
     private func addItem() {
-        let trimmed = newItemTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let dir = scopeDir else { return }
-        let bookId = bookStore.selectedBookId ?? UUID()
-        let store = BookTodoStore(bookId: bookId, directory: dir, scope: scope)
-        var next = items
-        next.append(PerBookTodoItem(title: trimmed, status: .pending, priority: newItemPriority))
-        do {
-            try store.save(next)
-            items = next
+        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
+        let result = TodoOps.addItem(
+            bookId: bookStore.selectedBookId,
+            scope: scope,
+            resolver: resolver,
+            title: newItemTitle,
+            priority: newItemPriority,
+            to: items
+        )
+        items = result.savedItems
+        if result.didSave {
+            // SwiftUI-side resets (= inline-create TextField + priority
+            // picker both reset on successful save; = binding resets,
+            // NOT business rules; = stay in the view per ADR-0009).
             newItemTitle = ""
             newItemPriority = .medium
-        } catch {
-            loadError = "保存失败: \(error)"
         }
+        if let err = result.error { loadError = err }
     }
 
     private func updateStatus(item: PerBookTodoItem, to newStatus: TodoStatus) {
-        guard let dir = scopeDir else { return }
-        let bookId = bookStore.selectedBookId ?? UUID()
-        let store = BookTodoStore(bookId: bookId, directory: dir, scope: scope)
-        var next = items
-        guard let idx = next.firstIndex(of: item) else { return }
-        next[idx].status = newStatus
-        next[idx].updatedAt = .now
-        do {
-            try store.save(next)
-            items = next
-        } catch {
-            loadError = "保存失败: \(error)"
-        }
+        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
+        let result = TodoOps.updateStatus(
+            bookId: bookStore.selectedBookId,
+            scope: scope,
+            resolver: resolver,
+            item: item,
+            to: newStatus,
+            in: items
+        )
+        items = result.savedItems
+        if let err = result.error { loadError = err }
     }
 
     private func deleteItem(_ item: PerBookTodoItem) {
-        guard let dir = scopeDir else { return }
-        let bookId = bookStore.selectedBookId ?? UUID()
-        let store = BookTodoStore(bookId: bookId, directory: dir, scope: scope)
-        let next = items.filter { $0.id != item.id }
-        do {
-            try store.save(next)
-            items = next
-        } catch {
-            loadError = "保存失败: \(error)"
-        }
+        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
+        let result = TodoOps.deleteItem(
+            bookId: bookStore.selectedBookId,
+            scope: scope,
+            resolver: resolver,
+            item: item,
+            in: items
+        )
+        items = result.savedItems
+        if let err = result.error { loadError = err }
     }
-
 }
 
 // MARK: - Row
