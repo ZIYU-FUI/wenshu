@@ -23,10 +23,20 @@
 
 import Foundation
 
-/// One row in the macOS 27 sidebar (= shelf root, book, or
-/// reference). The children property is what Apple's
+/// One row in the macOS 27 sidebar (= shelf root, book,
+/// reference category folder, reference leaf, or the synthetic
+/// Reference-Library root). The children property is what Apple's
 /// `List(_, children:)` initializer needs to render disclosure
 /// indicators automatically (= non-nil = parent, nil = leaf).
+///
+/// v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示': adds
+/// the `.referenceCategory` Kind case (= the 22 CLC top-level
+/// categories that auto-classify references). When
+/// SidebarService projects the Reference-Library subtree, it
+/// emits one `.referenceCategory` parent per category that has
+/// >= 1 reference (the v0.29 boss 'category folders grow with
+/// the content, instead of being laid out all at once' rule).
+/// The category parent's children are the reference leaves.
 struct SidebarNode: Identifiable, Hashable, Sendable {
     let id: UUID
     var kind: Kind
@@ -39,5 +49,10 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         case shelf
         case book
         case reference
+        // v1.69 boss 2026-09-22 OOB: reference-library
+        // category parent (= one of 22 CLC top-level categories
+        // = EntityCategory). Children = the references in that
+        // category.
+        case referenceCategory
     }
 }
