@@ -367,43 +367,20 @@ struct ChatMessageView: View {
                 //     REMOVED in this commit (= C1 of the v1.65-cleanup arc;
                 //     = boss 2026-09-21 "多做的，没用的，你就改掉").
                 if message.isPlaceholder {
-                    // v1.65 boss '思考中的那个效果不是 hermes 的效果':
-                    // Hermes真值 (= status.tsx ResponseLoadingIndicator
-                    // + status-pulse.tsx PULSE_DURATION_MS=400 +
-                    // PULSE_PERIOD_MS=5000):
-                    //   - A 3×3 PT rounded-2PT square (`size-3
-                    //     rounded-[2px]`) tinted at text-midground/80.
-                    //   - Animates opacity 1 → 0.5 → 1 over 400 ms
-                    //     ease-in-out; then SLEEPS 5 seconds
-                    //     (= PULSE_PERIOD_MS) before the next pulse.
-                    //     NOT a continuous breathing animation.
-                    //   - Sits inside a StatusRow (= flex self-start
-                    //     = left-aligned with the assistant content).
-                    //   - Followed by hint text + ActivityTimerText.
-                    HStack(spacing: 6) {
+                    // C-8c (refactor chat-mvvm-3layer): placeholder
+                    // row extracted to its own leaf view
+                    // (Views/Chat/ChatMessagePlaceholderRow.swift).
+                    // Contains the StatusPulse + hint text + elapsed
+                    // timer (= hermes 1:1 ResponseLoadingIndicator).
+                    // The pulse slot is generic so StatusPulse can
+                    // stay private to ChatMessageView.swift (=
+                    // hermes 1:1 leaf boundary).
+                    ChatMessagePlaceholderRow(
+                        hintText: message.content,
+                        timestamp: message.timestamp
+                    ) {
                         StatusPulse()
-                        Text(message.content)
-                            .foregroundStyle(.secondary)
-                        TimelineView(.periodic(from: .now, by: 0.5)) { context in
-                            let elapsed = context.date.timeIntervalSince(message.timestamp)
-                            Text(Self.formatElapsed(elapsed))
-                                .font(.system(.caption2, design: .monospaced))
-                                .foregroundStyle(.tertiary)
-                        }
                     }
-                    // v1.65-cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
-                    // dropped the inline `.padding(.horizontal, 12)`
-                    // (= the chat transcript outer `.padding(.horizontal, 10)`
-                    // in ChatView.swift is now the single source of truth
-                    // for chat-column horizontal padding; = maintenance
-                    // = one place to change). Kept the vertical 8 PT
-                    // (= row vertical breathing room; = matches Apple HIG
-                    // py-2 vertical row gap convention).
-                    .padding(.vertical, 8)
-                    // T87-STREAM-PULSE removed (= 1.6s scale breathing):
-                    // hermes真值 `StatusPulse` (= 400 ms opacity pulse
-                    // every 5 s) replaces it. The 1.6 s breathing was
-                    // NOT what hermes does.
                 } else {
                     // v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat
                     // zone isn't implemented... port the whole thing from hermes... The editor uses SM,
