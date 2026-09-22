@@ -240,7 +240,19 @@ public final class ChatViewModel {
     // WenshuApp module, so internal access is sufficient. The class itself
     // stays `public final class` so existing public surface (currentModel,
     // messages, send, etc.) is unchanged.
-    init(conductor: WenshuConductor? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = [], appState: AppState? = nil) {
+    //
+    // C-4 + C-5 (refactor chat-mvvm-3layer): inject ChatRepositoryProtocol
+    // (= the data-layer seam). Default = LiveChatRepository.shared so
+    // existing call sites (= ChatZoneView, ChatView) work unchanged.
+    // Tests pass a fake (= InMemoryChatRepository, future ticket) via
+    // this parameter to avoid touching SwiftData stack.
+    init(
+        conductor: WenshuConductor? = nil,
+        sessionId: String = "default",
+        initialMessages: [ChatMessage] = [],
+        appState: AppState? = nil,
+        repository: ChatRepositoryProtocol = LiveChatRepository.shared
+    ) {
         self.conductor = conductor
         self.sessionId = sessionId
         self.messages = initialMessages
@@ -249,7 +261,15 @@ public final class ChatViewModel {
         // owner. Caller passes the env-injected AppState (= same
         // lifetime as the WindowGroup that owns it).
         self.appState = appState
+        // C-4: data-layer seam. The protocol handles StoredChatMessage
+        // ↔ ChatMessage mapping internally (= business layer speaks
+        // ChatMessage only).
+        self.repository = repository
     }
+
+    /// C-4: the data-layer seam. Defaults to LiveChatRepository.shared
+    /// at init (= production path); tests inject a fake.
+    private let repository: ChatRepositoryProtocol
 
     // CHATBOX-003 (2026-09-04): shared AsyncDelegationRegistry used by
     // the chat spawn delegation flow. The registry actor itself lives
@@ -513,8 +533,10 @@ public final class ChatViewModel {
         let placeholder = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: "AI 思考中…", isPlaceholder: true)
         messages.append(placeholder)
 
-        let userMsgStored = StoredChatMessage(id: userMsg.id.uuidString, source: "user", content: text, timestamp: Date())
-        try? WSChatRepository.shared.append(userMsgStored, sessionId: sessionId)
+        // C-4: route through ChatRepositoryProtocol (= the data-layer
+        // seam). The Live impl owns the StoredChatMessage mapping; =
+        // business layer speaks ChatMessage only.
+        try? await repository.append(userMsg, sessionId: sessionId)
 
         do {
             // v0.34: streaming path = render each text chunk as it
@@ -841,22 +863,35 @@ public final class ChatViewModel {
             if !messages.contains(where: { $0.id == placeholderId }) {
                 messages.append(ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply))
             }
-            let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date(), tokens: replyTokens, thinking: replyThinking?.isEmpty == false ? replyThinking : nil)
-            try? WSChatRepository.shared.append(agentMsgStored, sessionId: sessionId)
+            // C-4: route the agent message through ChatRepositoryProtocol
+            // (= data-layer seam). The Live impl builds the StoredChatMessage
+            // from this ChatMessage (= handles the id-stringification +
+            // empty-thinking-nil-collapse logic).
+            let agentMsg = ChatMessage(
+                id: placeholderId,
+                role: .agent,
+                source: .wenshu,
+                content: reply,
+                timestamp: Date(),
+                tokens: replyTokens,
+                thinking: replyThinking?.isEmpty == false ? replyThinking : nil
+            )
+            try? await repository.append(agentMsg, sessionId: sessionId)
             recomputeContextUsed()
 
             // trigger summary generation (LLM + saveSummary + deleteOldMessages order)
-            // Phase 5 ticket 10a: route through WSChatRepository.shared
-            // (= @MainActor SwiftData wrapper).
+            // C-4: route through ChatRepositoryProtocol (= data-layer seam).
+            // The Live impl hops to MainActor internally (= the protocol
+            // method is async + the caller doesn't need a manual Task wrap
+            // anymore; = was the bug-prone `Task { @MainActor in ... }`
+            // pattern that lost errors silently).
             let verifier = WenshuVerifier()
-            Task { @MainActor in
-                _ = try? await WSChatRepository.shared.summarizeIfNeeded(
-                    sessionId: sessionId,
-                    lastN: 10,
-                    threshold: 20,
-                    verifier: verifier
-                )
-            }
+            try? await repository.summarizeIfNeeded(
+                sessionId: sessionId,
+                lastN: 10,
+                threshold: 20,
+                verifier: verifier
+            )
         } catch {
             // v0.34: route through UserFacingError.from (= single
             // source of truth for raw-error-to-Chinese translation;
@@ -1007,5 +1042,23 @@ public final class ChatViewModel {
     /// replaceMessages: ChatView .task loadcompletereplace (append)
     public func replaceMessages(_ newMessages: [ChatMessage]) {
         self.messages = newMessages
+    }
+
+    /// C-5: load chat history from the data layer (= formerly lived
+    /// inline in ChatView's .task modifier; = business knowledge about
+    /// how to map persisted rows back into ChatMessage belongs here,
+    /// not in the view). Delegates to ChatRepositoryProtocol.loadMessages;
+    /// the Live impl does the StoredChatMessage ↔ ChatMessage mapping.
+    /// Errors are swallowed (= matches the prior `try?` behavior; =
+    /// chat zone still renders, just with empty history).
+    public func loadHistory() async {
+        do {
+            let loaded = try await repository.loadMessages(sessionId: sessionId)
+            self.messages = loaded
+        } catch {
+            // Silent no-op (= matches legacy behavior; = the view
+            // already handles empty messages[] by showing the
+            // empty-state placeholder).
+        }
     }
 }

@@ -455,47 +455,13 @@ public struct ChatView: View {
             // async load history via .task modifier (non-blocking)
             .task {
                 await vm.loadAvailableModels()
-                // Phase 5 ticket 10a: chat history loads via
-                // WSChatRepository.shared (= @MainActor SwiftData wrapper).
-                if let loaded = try? WSChatRepository.shared.loadMessages(sessionId: vm.valueForSessionId()) {
-                        let mapped: [ChatMessage] = loaded.compactMap { stored -> ChatMessage? in
-                            // v0.24 boss acceptance fix: preserve role from stored.source.
-                            // Was: hardcoded .agent (wrong, user messages shown as agent).
-                            // Now: parse source = "user" → .user role, "wenshu" → .agent.
-                            let resolvedRole: ChatRole = (stored.source == "user") ? .user : .agent
-                            // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
-                            // replaced `UUID(uuidString: stored.id) ?? UUID()` (= silent swap
-                            // = data-corruption symptom: phantom user message with a fresh
-                            // UUID) with `parseUUID(_:)` (= throws DecodingError on malformed
-                            // input = visible to caller). Same for ChatSource (=
-                            // drops invalid source instead of silently rewriting to .wenshu).
-                            // The outer `try?` in `loadMessages` already swallows the error,
-                            // so malformed records become a no-op (= the load still completes
-                            // for valid records) instead of polluting the chat with phantom
-                            // messages.
-                            guard let msgID = UUID(uuidString: stored.id),
-                                  let msgSource = ChatSource(rawValue: stored.source) else {
-                                return nil
-                            }
-                            return ChatMessage(
-                                id: msgID,
-                                role: resolvedRole,
-                                source: msgSource,
-                                content: stored.content,
-                                timestamp: stored.timestamp,
-                                tokens: stored.tokens,
-                                // v1.65-cleanup E2 boss 2026-09-21 OOB
-                                // 'AI 思考过程不显示': restore the persisted
-                                // reasoning content. ChatMessage init wraps
-                                // non-empty `thinking` into a single .reasoning
-                                // part (= matches the streaming shape; =
-                                // ChatReasoningPartView renders it visible by
-                                // default per E2).
-                                thinking: stored.thinking
-                            )
-                        }
-                        vm.replaceMessages(mapped)
-                    }
+                // C-5: chat history loads via ChatSessionViewModel.loadHistory()
+                // (= business layer method that goes through the data-layer
+                // ChatRepositoryProtocol seam). UI no longer touches
+                // WSChatRepository directly (= UI shouldn't know about the
+                // persistence shape; = the mapping from StoredChatMessage
+                // to ChatMessage lives in LiveChatRepository).
+                await vm.loadHistory()
             }
 
             // v0.35 ticket 003 sub-step 4 + 5: compression status pill + manual compress button.
