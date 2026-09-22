@@ -268,7 +268,17 @@ struct NavigationSplitShell: View {
             // = no NSTableView = no CoreAutoLayout conflict during
             // window resize). LazySidebarView is in
             // Sources/WenshuApp/Views/Library/LazySidebarView.swift.
-            LazySidebarView()
+            //
+            // v1.68b boss 2026-09-22 OOB 'macOS 27 化' (= the Apple
+            // HIG canonical sidebar per WWDC20 10031) + '回方案 B
+            // 之前是因为别的原因, 记录的有问题' (= the v1.64
+            // NSTableView-resize-crash trade-off is reversed):
+            // replace LazySidebarView with AppleSidebarView (=
+            // macOS 14+ List(.sidebar) over a SidebarNode tree
+            // projection from the existing flat Bookshelf / Book
+            // domain models — boss '数据结构不要有变化' = the
+            // projection lives at view-layer only).
+            AppleSidebarView()
                 // v1.67 boss 2026-09-22 OOB '按 apple 文档示例改
                 // 四列宽度' (= applied DIRECTLY on the
                 // NavigationSplitView sidebar: { ... } closure
