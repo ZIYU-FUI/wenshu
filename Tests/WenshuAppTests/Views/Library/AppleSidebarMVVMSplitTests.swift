@@ -218,6 +218,81 @@ struct AppleSidebarMVVMSplitTests {
                 "SidebarService MUST render 小说正文 folder")
     }
 
+    @Test("sidebar_service_folder_children_carry_X_items_subtitle")
+    func sidebar_service_folder_children_carry_X_items_subtitle() throws {
+        // v1.69 boss 2026-09-22 OOB '上面书架的五目录也可以加':
+        // each of the 5 standard folders (= 世界观 / 角色 /
+        // 章节大纲 / 小说正文 / 小说草稿) renders an "X 项"
+        // subtitle (= the .md file count under that folder),
+        // mirroring the reference-library category row shape.
+        let src = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarService.swift"),
+            encoding: .utf8
+        )
+        #expect(src.contains("loadFolderDocCount"),
+                "SidebarService MUST inject a loadFolderDocCount closure (= the count loader)")
+        #expect(src.contains("\\(count) 项"),
+                        "folderChildren MUST format the count as \"X 项\" (= the same shape the reference-library rows use)")
+    }
+
+    @Test("sidebar_service_reference_library_expands_to_category_rows")
+    func sidebar_service_reference_library_expands_to_category_rows() throws {
+        // v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示':
+        // the Reference-Library root now has children that are
+        // .referenceCategory rows (= one per non-empty CLC bucket).
+        // Individual references are NOT rendered as leaves in the
+        // sidebar (= boss 2026-09-22 '到分类层就够了'): the
+        // category row's children stay nil so the row carries no
+        // disclosure chevron.
+        let src = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarService.swift"),
+            encoding: .utf8
+        )
+        #expect(src.contains("referenceCategoryKey"),
+                "SidebarService MUST bucket references by category")
+        #expect(src.contains("EntityCategoryFromDirectoryName"),
+                "SidebarService MUST map directoryName back to EntityCategory (= for icon + displayName)")
+        #expect(src.contains("referenceRootChildren"),
+                "SidebarService MUST emit category rows as Reference-Library children")
+        #expect(src.contains("kind: .referenceCategory"),
+                "category rows MUST be tagged .referenceCategory (= distinguishes from .reference leaves)")
+    }
+
+    @Test("sidebar_node_kind_includes_referenceCategory")
+    func sidebar_node_kind_includes_referenceCategory() throws {
+        // v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示':
+        // SidebarNode.Kind grows a `.referenceCategory` case so
+        // AppleSidebarView.forwardSelection can route category
+        // row clicks to .referenceCategory(dirName) selection
+        // (= the preview pane narrows to that category).
+        let src = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarNode.swift"),
+            encoding: .utf8
+        )
+        #expect(src.contains("case referenceCategory"),
+                "SidebarNode.Kind MUST have .referenceCategory (= the category row discriminator)")
+    }
+
+    @Test("previewScope_referenceCategory_lookup_is_case_insensitive")
+    func previewScope_referenceCategory_lookup_is_case_insensitive() throws {
+        // v1.69 boss 2026-09-22 OOB: SidebarItem.referenceCategory
+        // carries the EntityCategory.directoryName (= lowercase
+        // letter for the official 22 CLC cases, "其它" for .z,
+        // "未分类" for the nil-bucket fallback). ShellMiddleColumn
+        // previewScope must look the dirName up case-insensitively
+        // (= EntityCategory rawValues are uppercase) so clicking a
+        // category row actually narrows the middle-column card
+        // grid (= the previous case-sensitive lookup fell back
+        // to .referenceScope(nil) = the user saw the full overview
+        // after clicking a category = the boss's bug).
+        let src = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift"),
+            encoding: .utf8
+        )
+        #expect(src.contains(".uppercased()"),
+                "ShellMiddleColumn.previewScope MUST do a case-insensitive rawValue lookup")
+    }
+
     @Test("previewPane_loadBookDocs_handles_folder_scope")
     func previewPane_loadBookDocs_handles_folder_scope() throws {
         let src = try String(
