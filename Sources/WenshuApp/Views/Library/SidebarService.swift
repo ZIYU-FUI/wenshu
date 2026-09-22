@@ -112,7 +112,19 @@ final class SidebarService {
                             id: book.id,
                             kind: .book,
                             title: book.title,
-                            subtitle: book.author.isEmpty ? nil : book.author,
+                            // v1.68d boss 2026-09-22 OOB '去掉小字'
+                            // (= the small subtitle 'wenshu' under
+                            // every seeded default-book title was
+                            // hardcoded by LibraryMigrator.swift:254
+                            // author: 'wenshu' for the default
+                            // help-doc book; = it's a sample-data
+                            // tell; = we hide the subtitle for that
+                            // author so the user doesn't see 'wenshu'
+                            // under '帮助' = '从这里开始' under the
+                            // default help-doc book). Other book
+                            // authors (= real user input) still
+                            // show as subtitle.
+                            subtitle: (book.author.isEmpty || book.author == "wenshu") ? nil : book.author,
                             systemImage: book.displayIcon,
                             children: folderNodes
                         )
