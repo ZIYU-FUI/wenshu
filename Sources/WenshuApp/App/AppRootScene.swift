@@ -100,14 +100,13 @@ struct AppRootScene: Scene {
         // frame; = opt out of restoration so `.defaultSize` always
         // wins).
         //
-        // Note: we DO still persist the `.ws` library path via
-        // `@AppStorage("wenshu.libraryPath")` (= UserDefaults) and
-        // the editor's split-position via
-        // `NSSplitView.autosaveName` (= AppKit-side, separate from
-        // the window frame). Only the WINDOW FRAME restoration is
-        // disabled (= the right choice for a single-window app
-        // with a fixed initial size).
-        .restorationBehavior(.disabled)
+        // Note: wenshu's `.ws` library path persists via
+        // `@AppStorage("wenshu.libraryPath")` (= UserDefaults, separate
+        // from the window frame). The window frame restoration is now
+        // enabled (= the Apple HIG `.automatic` default; = see the
+        // block above introducing the v1.67 restoration policy =
+        // first launch = 1400x980 centered, subsequent launches =
+        // user's last frame).
         // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle
         // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
         // v0.24 fix (Boss 8/25 28th OOB 'use default size' + Apple docs):
@@ -273,12 +272,67 @@ struct AppRootScene: Scene {
         //     = detail gets 600 PT (= its ideal = the boss's
         //     'middle column's default width' expectation).
         //
+        // v1.67 boss 2026-09-22 OOB '宽度 1400, 高度 980':
+        // initial window frame = 1400x980 logical PT (= Apple HIG
+        // default for a 4-column NSV on a 13" laptop). Combined
+        // with `.windowResizability(.contentSize)` below + the
+        // NSV's `.frame(minWidth:maxWidth:minHeight:maxHeight:)`
+        // (= the SwiftUI macOS 13+ canonical window-sizing recipe
+        // per gunbark.dev / swiftwithmajid.com / avdlee swiftui-
+        // agent-skill) = window opens at 1400x980 and is bounded
+        // by the NSV's 1100~1800 PT width + 600~1100 PT height
+        // (= drag stops at the NSV's frame boundaries).
+        .defaultSize(width: 1400, height: 980)
+        // v1.67 boss 2026-09-22 OOB '位置不是屏幕正中': the
+        // defaultSize-only configuration leaves the window's
+        // initial position to system-determined behavior (= the
+        // previous v1.67 launch had the window anchored to the
+        // top-left corner of the screen, NOT centered; = the
+        // boss's screenshot showed x≈0, y≈0). Per Apple HIG
+        // developer.apple.com/documentation/swiftui/view/
+        // defaultposition: '.center: The window is centered in
+        // the visible region of the display that contains it.' =
+        // the canonical Apple recipe for a single-window app
+        // (= wenshu is single-window per the §11 baseline) =
+        // append `.defaultPosition(.center)` after `.defaultSize`.
+        // macOS 13+ (= wenshu target = macOS 27).
+        .defaultPosition(.center)
+        // v1.67 boss 2026-09-22 OOB '默认首次启动 1400 980, 用户可以
+        // 自己设置, 然后就持久化用户的': Apple HIG default restoration
+        // (= `.automatic` = SwiftUI default = persist the window frame
+        // to the system-level `NSWindow Frame <bundleID>` UserDefaults
+        // key on app quit; = read it back on next launch). Per Apple
+        // developer.apple.com/documentation/swiftui/restorationbehavior
+        // '.automatic: The system uses its default behavior for the
+        // scene.' Combined with `.defaultSize(width: 1400, height: 980)`
+        // below (= applies ONLY on first launch when the system has no
+        // saved frame) + `.defaultPosition(.center)` (= applies only
+        // on first launch too) = first launch = 1400x980 centered;
+        // subsequent launches = the user's last frame (size + position).
+        // Replaces `.restorationBehavior(.disabled)` (= the v0.91
+        // setting which forced `.defaultSize` on every launch and
+        // therefore never remembered the user's window preferences).
+        // Note: wenshu is single-window per the §11 baseline; = the
+        // persisted frame is the only window frame; = no multi-window
+        // bookkeeping needed. The `.ws` library path continues to
+        // persist via `@AppStorage("wenshu.libraryPath")` (= separate
+        // from the window frame, as before).
         // Per Apple HIG developer.apple.com/documentation/swiftui/
         // view/windowresizability: 'contentMinSize: The window
         // can't be smaller than its content's minimum size, but
-        // can be larger.' = the right resizability mode for a
-        // window whose ideal content size is larger than its min
-        // (= 4-column NSV; = sidebar+cards+detail+inspector).
+        // can be larger.' = matches the v1.67 boss OOB '把 max
+        // width, max height 取消掉, 其它不动' intent (= the NSV
+        // `.frame(minWidth: 1100, minHeight: 600)` above enforces
+        // the min floor; = the max is unbounded so macOS's
+        // system-level zoom gesture (= double-click on title bar /
+        // click green traffic-light button / choose Window > Zoom)
+        // can fill the window to the display's visibleRect). Note
+        // this combination accepts the v0.97 trade-off: drag past
+        // ~2200 PT may still trigger the
+        // `_postWindowNeedsUpdateConstraints` BPT crash on macOS
+        // 27 (= the original 6-round-history bug); boss has chosen
+        // to accept this trade-off in exchange for the standard
+        // macOS zoom gesture working as expected.
         .windowResizability(.contentMinSize)
         // v0.81 boss 2026-09-10 OOB: the inspector toggle button
         // (= ⌥⌘I = SF Symbols 6 'sidebar-right' icon = the canonical

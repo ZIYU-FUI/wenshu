@@ -269,6 +269,21 @@ struct NavigationSplitShell: View {
             // window resize). LazySidebarView is in
             // Sources/WenshuApp/Views/Library/LazySidebarView.swift.
             LazySidebarView()
+                // v1.67 boss 2026-09-22 OOB '按 apple 文档示例改
+                // 四列宽度' (= applied DIRECTLY on the
+                // NavigationSplitView sidebar: { ... } closure
+                // body, per Apple developer.apple.com/documentation/
+                // swiftui/view/navigationsplitviewcolumnwidth(min:ideal:max:)
+                // official example — modifier on the view INSIDE the
+                // closure, NOT on a child struct body. macOS 27 NSV
+                // honors min/ideal/max on the sidebar column per the
+                // documented SwiftUI 13+ behavior). min 220 = Apple
+                // HIG sidebar minimum (= the inspector button + shelf
+                // header + 1 line of book title fits); ideal 280 =
+                // the canonical 4-column sidebar at 1400 PT window
+                // width; max 360 = above this the sidebar eats too
+                // much space from the detail column.
+                .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 360)
         } content: {
             // v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone
             // layout from the probe (= NavigationSplitView 3 columns
@@ -289,6 +304,25 @@ struct NavigationSplitShell: View {
             // `.navigationSplitViewColumnWidth(min:ideal:max:)`
             // (= canonical Apple default; see comment above).
             ShellMiddleColumn(envAppState: appState, appState: appState)
+                // v1.67 boss 2026-09-22 OOB '按 apple 文档示例改
+                // 四列宽度' (= applied DIRECTLY on the
+                // NavigationSplitView content: { ... } closure
+                // body, per Apple developer.apple.com/documentation/
+                // swiftui/view/navigationsplitviewcolumnwidth(min:ideal:max:)
+                // official example: 'NavigationSplitView { MySidebar
+                // ().navigationSplitViewColumnWidth(...) } contents:
+                // { MyContents().navigationSplitViewColumnWidth(min:
+                // ideal: max:) } detail: { MyDetail() }' — the
+                // modifier is on the view INSIDE the closure, NOT
+                // on a child struct body. macOS 27 NSV honors
+                // min/ideal/max on the content column per the
+                // documented SwiftUI 13+ behavior). min 240 = the
+                // card grid's smallest usable width (= 2 cards
+                // wide at 110 PT each + 8 PT gutter + 16 PT
+                // padding); ideal 320 = 3 cards wide; max 480 =
+                // above this the PreviewPane renders 4+ cards per
+                // row, which crowds the card titles.
+                .navigationSplitViewColumnWidth(min: 240, ideal: 320, max: 480)
         } detail: {
             // Apple HIG detail column = the editor + chat sub-areas
             // in a vertical split (= VSplitView is what Mail uses
@@ -334,6 +368,23 @@ struct NavigationSplitShell: View {
                     set: { newValue in appState.inspectorVisible = newValue }
                 )) {
                     ShellDetailColumn(appState: appState)
+                        // v1.67 boss 2026-09-22 OOB '按 apple 文档示例改
+                        // 四列宽度': inspector column width = 240/280/360
+                        // PT (= min/ideal/max) per Apple developer.apple.
+                        // com/documentation/swiftui/view/
+                        // inspectorcolumnwidth(min:ideal:max:) official
+                        // API. Min 240 = Apple HIG inspector minimum (= a
+                        // single-column inspector with icon + label + 1
+                        // row of content fits); ideal 280 = canonical
+                        // Pages / Notes inspector width; max 360 = above
+                        // this the inspector eats the detail column. NOTE
+                        // modifier is `.inspectorColumnWidth` (= the
+                        // dedicated inspector API), NOT
+                        // `.navigationSplitViewColumnWidth` (= that one
+                        // is for the leading sidebar / content / detail
+                        // columns; = inspector is a separate trailing
+                        // column with its own API per Apple docs).
+                        .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
                 }
         }
         // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
@@ -367,6 +418,47 @@ struct NavigationSplitShell: View {
         // pass with 'No Observable object of type BookStore found').
         // CRITICAL DO NOT REMOVE (= see comment block above).
         .environment(bookStore)
+        // v1.67 boss 2026-09-22 OOB '修复真因，按 apple 文档示例
+        // 写法试一次': apply the SwiftUI macOS 13+ canonical
+        // window-sizing recipe per gunbark.dev / swiftwithmajid.com
+        // / avdlee swiftui-agent-skill references — 'frame(minWidth:
+        // maxWidth:minHeight:maxHeight:) on the content view defines
+        // the content size range; .windowResizability(.contentSize)
+        // makes the window size follow the content's min/max
+        // constraints.' Applied verbatim to NavigationSplitView
+        // (= the content root): minWidth 1100 = 4-column NSV min
+        // sum (sidebar 220 + cards 240 + detail 400 + inspector
+        // 240 = 1100 PT floor; = same as the previous contentMinSize
+        // floor), maxWidth 1800 = below the macOS 27 NSV crash
+        // threshold observed in `WenshuApp-2026-09-22-13*.ips` (=
+        // `_postWindowNeedsUpdateConstraints` BPT trap fires when
+        // NSV's layout pass recomputes at ≥ ~2200 PT window width;
+        // = 1800 PT is the largest width where the layout pass
+        // completes without the exception), minHeight 600 =
+        // 4-column NSV min height (= detail column header + chat
+        // zone + tokens used bar = ~580 PT), maxHeight 1100 =
+        // standard macOS laptop display height ceiling (= above
+        // 1100 PT would require a fullscreen window on a 13"
+        // display, which .contentSize forbids).
+        // v1.67 boss 2026-09-22 OOB '把 max width, max height 取消掉,
+        // 其它不动': keep `minWidth: 1100` + `minHeight: 600` (= the
+        // NSV 4-column min sum floor preserved via
+        // `.windowResizability(.contentMinSize)` below) and STRIP
+        // `maxWidth` + `maxHeight` (= the previous v1.67 ceiling that
+        // disabled macOS's system-level "zoom" gesture = double-click
+        // on the title bar / click the green traffic-light button /
+        // choose Window > Zoom = which macOS performs by setting the
+        // window frame to the display's visibleRect; = per
+        // developer.apple.com/documentation/swiftui/view/
+        // windowresizability 'The window can't be larger than its
+        // content's maximum size when the window's resizability is
+        // contentSize'; = the previous v1.67 `.contentSize` + 1800 PT
+        // maxWidth combo blocked the system zoom gesture from
+        // exceeding the NSV's content max). Switching back to
+        // `.contentMinSize` (= only the min floor enforced; = the
+        // window can grow without bound; = the user's standard macOS
+        // zoom-to-fullscreen gesture is restored).
+        .frame(minWidth: 1100, minHeight: 600)
     }
 }// v1.38 ticket 001 (= real fix per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112):
 // `ShellSidebarColumn` moved to its own file at
