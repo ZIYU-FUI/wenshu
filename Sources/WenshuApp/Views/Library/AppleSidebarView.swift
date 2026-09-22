@@ -95,28 +95,75 @@ struct AppleSidebarView: View {
     /// wenshu continues to read the same value it did under
     /// LazySidebarView).
     ///
-    /// v1.68e boss 2026-09-22 OOB '正常播种五文件夹' (= the sidebar
-    /// tree = shelf → book only; = there are no folder rows to
-    /// promote to .book anymore).
+    /// v1.68f boss 2026-09-22 OOB '帮助和测试小说下面的自动生成的
+    /// 目录没有出现，需要实现' (= the 5 standard folders under
+    /// each book are now visible in the sidebar; = the folder
+    /// rows forward their selection to AppState.sidebarSelection
+    /// AND open the folder in the editor's tab strip).
     private func forwardSelection(_ node: SidebarNode?) {
         guard let node else { return }
         switch node.kind {
         case .shelf:
             appState.sidebarSelection = .shelf(node.id)
         case .book:
-            // Book row → AppState.sidebarSelection (.book(bookId))
-            // AND open the book in the editor's tab strip
-            // (= boss 2026-09-22 OOB '3rd level unclickable' =
-            // sidebar row taps should open the editor, not just
-            // set a sidebar selection mark).
-            appState.sidebarSelection = .book(node.id)
-            openBookInEditor(bookId: node.id)
+            // Determine if this is a real book (top-level row) or a
+            // folder row (child of a book). Folder rows have a
+            // parent in the sidebar tree (= the v1.68f folder
+            // children, = 5 standard folders per book); real books
+            // are children of a shelf. Walk the tree to disambiguate.
+            if let parent = Self.parentBookInfo(for: node.id, in: service?.nodes ?? []) {
+                // Folder row.
+                appState.sidebarSelection = .folder(bookId: parent.bookId, folderName: parent.folderName)
+                openFolderInEditor(bookId: parent.bookId, folderName: parent.folderName)
+            } else {
+                // Real book row.
+                appState.sidebarSelection = .book(node.id)
+                openBookInEditor(bookId: node.id)
+            }
         case .reference:
-            // Reference rows map to .referenceCategory with the row
-            // title (= matches the v1.67 LazySidebarView's
-            // reference-library behavior; = the reference-library
-            // expansion is out of scope for v1.68b).
             appState.sidebarSelection = .referenceCategory(node.title)
+        }
+    }
+
+    /// Walk the sidebar tree to find the parent book + folder name
+    /// for a row id (= returns nil for top-level books, =
+    /// non-nil for folder rows under child books).
+    private static func parentBookInfo(for rowId: UUID, in nodes: [SidebarNode]) -> (bookId: UUID, folderName: String)? {
+        // Walk each top-level shelf. If a shelf's direct child is
+        // the rowId (= top-level book), return nil. If a book's
+        // children contains the rowId (= folder row), return the
+        // book's id + the folder's name (= recovered from the row
+        // title via a reverse lookup against the standard folder
+        // catalog).
+        for root in nodes where root.kind == .shelf {
+            guard let shelfChildren = root.children else { continue }
+            for book in shelfChildren where book.kind == .book {
+                if book.id == rowId { return nil }
+                if let folderChildren = book.children {
+                    for cell in folderChildren where cell.id == rowId {
+                        // Recover the folder name from the title.
+                        let folderName = Self.reverseFolderName(title: cell.title)
+                        return (book.id, folderName)
+                    }
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Map a folder row's display title back to its filesystem
+    /// folder name (= the v1.68f SidebarService.folderCatalog
+    /// is private; = the canonical mapping lives here too; =
+    /// sync this with SidebarService.swift:181-187 if either side
+    /// changes).
+    private static func reverseFolderName(title: String) -> String {
+        switch title {
+        case "世界观":   return "world"
+        case "角色":     return "characters"
+        case "章节大纲": return "outlines"
+        case "小说正文": return "chapters"
+        case "小说草稿": return "drafts"
+        default:         return title
         }
     }
 
@@ -149,6 +196,37 @@ struct AppleSidebarView: View {
             title: nil
         )
         tab.sourceScope = .bookScope(bookId: bookId, folderName: nil)
+        appState.openTabs.append(tab)
+        appState.activeTabId = tab.id
+    }
+
+    /// Open a folder (= the `<book-id>/<folder-name>/` directory's
+    /// first .md file) in the editor's tab strip.
+    ///
+    /// v1.68f: minimal folder-open wiring (= future ticket
+    /// surfaces the folder's content in the editor's tab UI; =
+    /// for now the editor shows a placeholder until the file is
+    /// loaded). Matches the v1.67 LazySidebarView's onSelectFolder
+    /// behavior (= .folder(bookId:, folderName:) on sidebarSelection).
+    private func openFolderInEditor(bookId: UUID, folderName: String) {
+        if let existing = appState.openTabs.first(where: {
+            if case .bookScope(let id, let folder) = $0.sourceScope {
+                return id == bookId && folder == folderName
+            }
+            return false
+        }) {
+            appState.activeTabId = existing.id
+            return
+        }
+        let tab = EditorTab(
+            id: UUID(),
+            documentPath: nil,
+            draft: "",
+            originalBody: "",
+            mode: .edit,
+            title: nil
+        )
+        tab.sourceScope = .bookScope(bookId: bookId, folderName: folderName)
         appState.openTabs.append(tab)
         appState.activeTabId = tab.id
     }

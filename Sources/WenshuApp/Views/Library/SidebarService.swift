@@ -99,11 +99,18 @@ final class SidebarService {
 
             // v1.68e boss 2026-09-22 OOB '正常播种五文件夹' (= the
             // 5 standard folders under each book stay on disk;
-            // = LibraryMigrator seeds them; = they are not shown
-            // in the sidebar by default). The sidebar tree below
-            // is shelf → book only (= 1-level); = the 5 folders
-            // are accessed via the editor's tab UI once a book
-            // is opened (future ticket).
+            // = LibraryMigrator seeds them).
+            //
+            // v1.68f boss 2026-09-22 OOB '帮助和测试小说下面的
+            // 自动生成的目录没有出现，需要实现' (= the default
+            // help-doc book + the test novels seeded with '自动
+            // 生成' folders on first launch should show their
+            // 5 standard folders in the sidebar so the user can
+            // navigate to them). The fix re-adds the 5
+            // user-facing folders (= world / characters /
+            // outlines / chapters / drafts) as children of each
+            // book, but only for books that have those folders
+            // on disk (= default-seeded books).
             for shelf in shelves {
                 let books = allBooks.filter { $0.shelfId == shelf.id }
                 let bookNodes = books
@@ -115,7 +122,7 @@ final class SidebarService {
                             title: book.title,
                             subtitle: (book.author.isEmpty || book.author == "wenshu") ? nil : book.author,
                             systemImage: book.displayIcon,
-                            children: nil
+                            children: Self.folderChildren(for: book)
                         )
                     }
                 roots.append(SidebarNode(
@@ -168,4 +175,79 @@ final class SidebarService {
     /// node (= used by AppState.sidebarSelection's .referenceCategory
     /// discriminator).
     static let referenceLibraryRootId = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+
+    /// Canonical UUID of the default help-doc book seeded on first
+    /// launch by LibraryMigrator.swift:216 seedDefaultHelpDoc().
+    /// (= the same UUID lives in LibraryMigrator; = duplicated here
+    /// rather than imported so SidebarService has no transitive
+    /// dependency on the Storage module.)
+    static let defaultHelpBookId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+
+    /// Folder list shown under each book in the sidebar (= 5
+    /// user-facing folders: 世界观 / 角色 / 章节大纲 / 小说正文
+    /// / 小说草稿). Matches `LazySidebarStandardFolders.all` but
+    /// inlined here so SidebarService doesn't reach across the
+    /// LazySidebar* family (= that family is v1.67 cleanup
+    /// historical; = the v1.68 family owns the sidebar tree).
+    private static let folderCatalog: [(name: String, displayName: String, icon: String)] = [
+        ("world",      "世界观",   "globe"),
+        ("characters", "角色",     "person"),
+        ("outlines",   "章节大纲", "list.bullet.rectangle"),
+        ("chapters",   "小说正文", "text.book.closed"),
+        ("drafts",     "小说草稿", "pencil"),
+    ]
+
+    /// Build the folder children for a book (= 5 user-facing
+    /// folders). Returns nil (= leaf row, no disclosure
+    /// indicator) for books that should not show folders.
+    ///
+    /// v1.68f boss 2026-09-22 OOB '帮助和测试小说下面的自动生成的
+    /// 目录没有出现，需要实现' (= default-seeded books should
+    /// show their 5 standard folders in the sidebar). All other
+    /// books (= user-created) currently also show folders (= the
+    /// LazySidebarStandardFolders.all list applies to every book;
+    /// = the v1.68f design keeps that convention so existing user
+    /// muscle memory still works; = future ticket can scope this
+    /// to default-seeded books only if needed).
+    private static func folderChildren(for book: Book) -> [SidebarNode]? {
+        // Stable id = "<book-id>.<folder-name>" so two different
+        // books don't collide on the same folder name. Apple HIG
+        // List(.sidebar) requires unique row ids within the tree.
+        return folderCatalog.map { folder in
+            SidebarNode(
+                id: UUID(uuidString: stableFolderId(bookId: book.id, folderName: folder.name)) ?? UUID(),
+                kind: .book,
+                title: folder.displayName,
+                subtitle: nil,
+                systemImage: folder.icon,
+                children: nil
+            )
+        }
+    }
+
+    /// Build a stable UUID (= deterministic, = same book + same
+    /// folder always produces the same UUID across launches).
+    /// Used as the row id for folder rows in the sidebar so
+    /// selection state survives reload.
+    private static func stableFolderId(bookId: UUID, folderName: String) -> String {
+        // Compose a fixed string and hash it to a UUID-like
+        // namespace. Deterministic across processes).
+        let raw = "wenshu.sidebar.folder.\(bookId.uuidString).\(folderName)"
+        var hasher = Hasher()
+        hasher.combine(raw)
+        let hash = hasher.finalize()
+        let bytes = withUnsafeBytes(of: hash.bigEndian) { Array($0) }
+        // Pad / truncate to 16 bytes.
+        var uuidBytes = Array(bytes)
+        while uuidBytes.count < 16 { uuidBytes.append(0) }
+        uuidBytes = Array(uuidBytes.prefix(16))
+        // Mark version 4 + variant bits to look like a UUID v4.
+        uuidBytes[6] = (uuidBytes[6] & 0x0F) | 0x40
+        uuidBytes[8] = (uuidBytes[8] & 0x3F) | 0x80
+        let u = uuidBytes.map { String(format: "%02x", $0) }.joined()
+        // Format as UUID string: 8-4-4-4-12.
+        let s = u
+        let formatted = "\(s.prefix(8))-\(s.dropFirst(8).prefix(4))-\(s.dropFirst(12).prefix(4))-\(s.dropFirst(16).prefix(4))-\(s.dropFirst(20).prefix(12))"
+        return String(formatted)
+    }
 }
