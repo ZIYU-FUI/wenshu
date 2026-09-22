@@ -56,34 +56,14 @@ final class SidebarService {
     /// (= `bookStore.referenceStore.loadAllReferences()` in production.)
     private let loadReferences: @MainActor () throws -> [Reference]
 
-    /// Closure that returns the standard 5 sub-folders a book exposes
-    /// in the sidebar (= world / characters / outlines / chapters /
-    /// drafts). The v1.67 LazySidebarView hardcoded this as
-    /// `LazySidebarStandardFolders.all` (= see
-    /// LazySidebarFileOps.swift); we inject it here to avoid a
-    /// dependency cycle (= SidebarService is the data layer for the
-    /// sidebar view, but the standard folders list is owned by the
-    /// business layer's file-ops).
-    private let loadStandardFolders: @MainActor () -> [(name: String, displayName: String, icon: String)]
-
     init(
         loadShelves: @MainActor @escaping () throws -> [Bookshelf],
         loadAllBooks: @MainActor @escaping () throws -> [Book],
-        loadReferences: @MainActor @escaping () throws -> [Reference],
-        // v1.68e boss 2026-09-22 OOB '正常播种五文件夹' (= the 5
-        // seeded standard folders under the default help-doc
-        // book stay on disk; = LibraryMigrator 8/30 OOB seed is
-        // unchanged). This injection point is no longer used by
-        // reload (= the sidebar tree = shelf → book only) but is
-        // retained for downstream callers that still need the
-        // standard-folder list (= LazySidebarFileOps.pendingDeleteChildCount
-        // uses it for cascade-delete counting).
-        loadStandardFolders: @MainActor @escaping () -> [(name: String, displayName: String, icon: String)] = { LazySidebarStandardFolders.all.map { ($0.name, $0.displayName, $0.icon) } }
+        loadReferences: @MainActor @escaping () throws -> [Reference]
     ) {
         self.loadShelves = loadShelves
         self.loadAllBooks = loadAllBooks
         self.loadReferences = loadReferences
-        self.loadStandardFolders = loadStandardFolders
     }
 
     /// Reload the sidebar tree from the data layer. Idempotent
@@ -142,7 +122,12 @@ final class SidebarService {
             // v1.68b boss 2026-09-22 '资料库先不动' (= reference
             // library expansion is out of scope for the v1.68 Apple
             // HIG sidebar rewrite — it has its own rewrite ticket).
-            let referenceNodes = references
+            // The individual reference rows are kept in `let _`
+            // form (= the deduped sorted map) so a future reference-
+            // library expansion ticket can attach them as children
+            // of the synthetic Reference-Library root without
+            // having to re-derive the projection.
+            let _ = references
                 .sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
                 .map { ref in
                     SidebarNode(
