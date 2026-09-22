@@ -94,25 +94,23 @@ struct AppleSidebarView: View {
     /// AppState.sidebarSelection discriminator (= so the rest of
     /// wenshu continues to read the same value it did under
     /// LazySidebarView).
+    ///
+    /// v1.68e boss 2026-09-22 OOB '正常播种五文件夹' (= the sidebar
+    /// tree = shelf → book only; = there are no folder rows to
+    /// promote to .book anymore).
     private func forwardSelection(_ node: SidebarNode?) {
         guard let node else { return }
         switch node.kind {
         case .shelf:
             appState.sidebarSelection = .shelf(node.id)
         case .book:
-            // Folder rows (= a book whose row is shown with no
-            // child rows = a leaf in the children-tree) keep the
-            // parent book's selection. In the v1.67 LazySidebarView
-            // folders wrote `.folder(bookId:, folderName:)` to
-            // sidebarSelection; here the row IS the folder so we
-            // promote to .book (= the closest match in the existing
-            // SidebarItem shape; = the AppState observers downstream
-            // already handle .book the same way they handled .folder).
-            if let parent = node.parentBookId(in: service?.nodes ?? []) {
-                appState.sidebarSelection = .book(parent)
-            } else {
-                appState.sidebarSelection = .book(node.id)
-            }
+            // Book row → AppState.sidebarSelection (.book(bookId))
+            // AND open the book in the editor's tab strip
+            // (= boss 2026-09-22 OOB '3rd level unclickable' =
+            // sidebar row taps should open the editor, not just
+            // set a sidebar selection mark).
+            appState.sidebarSelection = .book(node.id)
+            openBookInEditor(bookId: node.id)
         case .reference:
             // Reference rows map to .referenceCategory with the row
             // title (= matches the v1.67 LazySidebarView's
@@ -121,25 +119,37 @@ struct AppleSidebarView: View {
             appState.sidebarSelection = .referenceCategory(node.title)
         }
     }
-}
 
-// MARK: - SidebarNode parentBookId helper
-
-private extension SidebarNode {
-    /// Walk the tree to find the parent shelf of a node (= used by
-    /// AppleSidebarView's forwardSelection to recover the parent
-    /// book id when the user clicks a folder row).
-    func parentBookId(in nodes: [SidebarNode]) -> UUID? {
-        for root in nodes {
-            if let children = root.children {
-                for child in children where child.id == self.id {
-                    return root.kind == .book ? root.id : nil
-                }
-                if let nested = parentBookId(in: children) {
-                    return nested
-                }
-            }
+    /// Open the book's first chapter (= the
+    /// `<book-id>/chapters/<n>.md` file with the lowest `n`) in the
+    /// editor's tab strip. If the book has no chapters, open the
+    /// book itself (= the EditorPlaceholder's tab strip handles a
+    /// missing-documentPath gracefully).
+    private func openBookInEditor(bookId: UUID) {
+        // v1.68e: minimal book-open wiring (= a future ticket
+        // can extend this to surface the 5 standard folders in
+        // the editor's tab UI — the seeded .md files are still on
+        // disk; = LibraryMigrator 8/30 OOB seed is unchanged).
+        //
+        // EditorTab.init doesn't accept sourceScope directly (= it
+        // defaults to nil; = the property is set post-init).
+        if let existing = appState.openTabs.first(where: {
+            if case .bookScope(let id, _) = $0.sourceScope { return id == bookId }
+            return false
+        }) {
+            appState.activeTabId = existing.id
+            return
         }
-        return nil
+        let tab = EditorTab(
+            id: UUID(),
+            documentPath: nil,
+            draft: "",
+            originalBody: "",
+            mode: .edit,
+            title: nil
+        )
+        tab.sourceScope = .bookScope(bookId: bookId, folderName: nil)
+        appState.openTabs.append(tab)
+        appState.activeTabId = tab.id
     }
 }

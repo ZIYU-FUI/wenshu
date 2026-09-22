@@ -70,6 +70,14 @@ final class SidebarService {
         loadShelves: @MainActor @escaping () throws -> [Bookshelf],
         loadAllBooks: @MainActor @escaping () throws -> [Book],
         loadReferences: @MainActor @escaping () throws -> [Reference],
+        // v1.68e boss 2026-09-22 OOB '正常播种五文件夹' (= the 5
+        // seeded standard folders under the default help-doc
+        // book stay on disk; = LibraryMigrator 8/30 OOB seed is
+        // unchanged). This injection point is no longer used by
+        // reload (= the sidebar tree = shelf → book only) but is
+        // retained for downstream callers that still need the
+        // standard-folder list (= LazySidebarFileOps.pendingDeleteChildCount
+        // uses it for cascade-delete counting).
         loadStandardFolders: @MainActor @escaping () -> [(name: String, displayName: String, icon: String)] = { LazySidebarStandardFolders.all.map { ($0.name, $0.displayName, $0.icon) } }
     ) {
         self.loadShelves = loadShelves
@@ -85,48 +93,29 @@ final class SidebarService {
         do {
             let shelves = try loadShelves()
             let allBooks = (try? loadAllBooks()) ?? []
-            let standardFolders = loadStandardFolders()
             let references = (try? loadReferences()) ?? []
 
             var roots: [SidebarNode] = []
 
-            // Each shelf = one root node with its books as children.
-            // Apple HIG List(.sidebar) renders the disclosure
-            // indicator when children is non-empty.
+            // v1.68e boss 2026-09-22 OOB '正常播种五文件夹' (= the
+            // 5 standard folders under each book stay on disk;
+            // = LibraryMigrator seeds them; = they are not shown
+            // in the sidebar by default). The sidebar tree below
+            // is shelf → book only (= 1-level); = the 5 folders
+            // are accessed via the editor's tab UI once a book
+            // is opened (future ticket).
             for shelf in shelves {
                 let books = allBooks.filter { $0.shelfId == shelf.id }
                 let bookNodes = books
                     .sorted { $0.updatedAt > $1.updatedAt }
                     .map { book -> SidebarNode in
-                        let folderNodes = standardFolders.map { folder in
-                            SidebarNode(
-                                id: UUID(),
-                                kind: .book,
-                                title: folder.displayName,
-                                subtitle: nil,
-                                systemImage: folder.icon,
-                                children: nil
-                            )
-                        }
                         return SidebarNode(
                             id: book.id,
                             kind: .book,
                             title: book.title,
-                            // v1.68d boss 2026-09-22 OOB '去掉小字'
-                            // (= the small subtitle 'wenshu' under
-                            // every seeded default-book title was
-                            // hardcoded by LibraryMigrator.swift:254
-                            // author: 'wenshu' for the default
-                            // help-doc book; = it's a sample-data
-                            // tell; = we hide the subtitle for that
-                            // author so the user doesn't see 'wenshu'
-                            // under '帮助' = '从这里开始' under the
-                            // default help-doc book). Other book
-                            // authors (= real user input) still
-                            // show as subtitle.
                             subtitle: (book.author.isEmpty || book.author == "wenshu") ? nil : book.author,
                             systemImage: book.displayIcon,
-                            children: folderNodes
+                            children: nil
                         )
                     }
                 roots.append(SidebarNode(
