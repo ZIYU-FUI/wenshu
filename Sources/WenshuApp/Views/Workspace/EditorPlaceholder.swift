@@ -147,7 +147,11 @@ struct EditorPlaceholder: View {
                     // edits are thrown away). Cancel any pending auto-save
                     // Task + notify handler with dirty = false (= matches
                     // the post-discard state).
-                    handleDirtyTransition(false)
+                    // v1.70 editor-mvvm T2b: dirty-state machine lives
+                    // in `EditorPersistence.handleDirtyTransition(...)`.
+                    if let tab = activeTab {
+                        EditorPersistence.handleDirtyTransition(false, tab: tab, bookStore: bookStore)
+                    }
                 }
                 Button(WenshuI18n.t("button.continue_edit"), role: .cancel) { }
             } message: {
@@ -292,13 +296,15 @@ struct EditorPlaceholder: View {
                                 appState.editorWordCount = count
                             },
                             // v0.34 B-22: route dirty-state transitions
-                            // (= false→true = user started editing;
-                            // true→false = Cmd+S or auto-save completed).
-                            // The handler runs ONCE per transition (= no
-                            // per-keystroke Task churn; = Apple HIG
-                            // TextEdit / Pages behavior).
+                            // v0.34 B-22: dirty-state machine. Engine fires this once per
+                            // transition (= no per-keystroke Task churn; =
+                            // Apple HIG TextEdit / Pages behavior).
+                            // v1.70 editor-mvvm T2b: dirty-state machine
+                            // lives in `EditorPersistence.handleDirtyTransition(...)`.
                             onDirtyChange: { newDirty in
-                                handleDirtyTransition(newDirty)
+                                if let tab = activeTab {
+                                    EditorPersistence.handleDirtyTransition(newDirty, tab: tab, bookStore: bookStore)
+                                }
                             },
                             // v0.39 ticket 001: pre-built markdown engine
                             // configuration. Built once per active-tab switch
@@ -411,14 +417,18 @@ struct EditorPlaceholder: View {
             // documentPath (nil = placeholder mode; = no-op). The watcher
             // auto-reloads draft when the file changes externally (= agent
             // write, git pull, terminal `echo > file.md`, etc.).
-            // v1.70 editor-mvvm T1b: DispatchSource lifecycle lives in
-            // `EditorFileWatcher` (= extracted in v1.70 T1a). The view
-            // just hands off the active tab + the reload closure.
+            // v1.70 editor-mvvm T2b: `EditorPersistence.reloadFromDisk`
+            // returns the new content + conflict notice (= the
+            // helper is pure; = it doesn't mutate tab fields).
+            // The view writes the results back to the active
+            // tab + updates the word-count badge. This keeps
+            // the disk-IO + state-write paths in lockstep at
+            // the call site (= easy to audit).
             if let tab = activeTab {
                 EditorFileWatcher.start(
                     path: tab.documentPath,
                     tab: tab,
-                    onChange: { [self] in reloadDocumentFromDisk() }
+                    onChange: { [self] in reloadFromDiskAndApply() }
                 )
             }
         }
@@ -532,48 +542,59 @@ struct EditorPlaceholder: View {
     // 027-35 wires real document load), also write to disk (= atomic
     // UTF-8 = Apple HIG file write pattern). Cmd+S hotkey (ticket 10) and
     // Save toolbar button both call this directly.
+    // v1.70 editor-mvvm T2b: disk IO + dirty state machine migrated
+    // to `EditorPersistence`. `saveDraft` is now a 3-line thin call
+    // site (= wire originalBody = draft → write to disk → mark clean).
     private func saveDraft() {
+        guard let tab = activeTab else { return }
         originalBody = draft
-        writeDraftToDisk()
-        handleDirtyTransition(false)
+        // v1.70 editor-mvvm T2b: B-22 dirty-transition cleanup =
+        // mark the document clean (= cancels any pending auto-save
+        // Task via EditorPersistence.handleDirtyTransition(false, ...).
+        // Pass `nil` for bookStore (= the save path already ran with
+        // the right bookStore = the user just Cmd+S = the doc was
+        // either fresh-proposed via Path 2 or had documentPath from
+        // a previous save = no need to re-resolve the proposedPath).
+        // The tab.documentPath mutation (= the auto-bind from
+        // Path 2) only happens inside save(), so any subsequent save
+        // call sees the new path.
+        EditorPersistence.save(tab: tab, bookStore: bookStore)
+        EditorPersistence.handleDirtyTransition(false, tab: tab, bookStore: bookStore)
     }
 
-    // v0.34 B-21 + SMC ticket 003: write the draft to a real
-    // filesystem path. Old flow = /tmp fallback when documentPath
-    // was nil (= dropped real edits). New flow: if the active tab
-    // already has a documentPath, overwrite in place; otherwise
-    // propose a chapters/<uuid>.md path under the active book and
-    // write there (= auto-bind the tab's documentPath so subsequent
-    // saves overwrite the same file).
-    private func writeDraftToDisk() {
-        if let path = documentPath {
-            let url = URL(fileURLWithPath: path)
-            try? draft.write(to: url, atomically: true, encoding: .utf8)
+    // v1.70 editor-mvvm T2b: `EditorPersistence.reloadFromDisk`
+    // returns the new content + conflict notice as a struct (= the
+    // helper is pure). This view-side wrapper writes the results
+    // back to the active tab + updates the word-count badge +
+    // marks the document clean. Called from the EditorFileWatcher's
+    // `onChange` closure (= external FS event → UI reload).
+    private func reloadFromDiskAndApply() {
+        guard let tab = activeTab else { return }
+        guard let result = EditorPersistence.reloadFromDisk(tab: tab) else {
+            // File missing (= transient FS race or editor in placeholder mode).
+            // = silent no-op (= the v0.34 B-23 behavior; = no error UI).
             return
         }
-        if let activeTab = activeTab,
-           let proposed = DraftPersistence.proposedPath(
-            for: activeTab, bookStore: bookStore
-           ) {
-            do {
-                let parent = proposed.deletingLastPathComponent()
-                try FileManager.default.createDirectory(
-                    at: parent, withIntermediateDirectories: true
-                )
-                try DraftPersistence.persist(text: draft, to: proposed)
-                documentPath = proposed.path
-            } catch {
-                #if DEBUG
-                print("[wenshu.editor] chapter save failed: \(error)")
-                #endif
-            }
-            return
+        draft = result.newContent
+        originalBody = result.newContent
+        if let notice = result.conflictNotice {
+            externalChangeNotice = notice
         }
-        let url = URL(fileURLWithPath: "/tmp/wenshu-preview-sample.md")
-        try? draft.write(to: url, atomically: true, encoding: .utf8)
+        // Mark the document clean (= cancels any pending auto-save Task).
+        EditorPersistence.handleDirtyTransition(false, tab: tab, bookStore: bookStore)
+        // Update chrome bottom-bar left (= word count of new content).
+        appState.editorWordCount = WordCounter.count(result.newContent).charactersNoSpaces
     }
 
-    /// SMC ticket 003: handle a preview-mode wiki-link click.
+    // v1.70 editor-mvvm T2b: `writeDraftToDisk()` migrated to
+    // `EditorPersistence.save(tab:bookStore:)`. See
+    // `Sources/WenshuApp/Editor/EditorPersistence.swift` (= the
+    // single owner of the 3 disk-IO paths: existing documentPath,
+    // propose new path + auto-bind, /tmp fallback). The view's
+    // `saveDraft()` (= Cmd+S + Save toolbar button entry point)
+    // is now a thin call site above.
+
+    // v0.34 B-21 + SMC ticket 003: handle a preview-mode wiki-link click.
     /// Looks up the display name in the reference library first
     /// (= library-public entities), then in the active book.
     /// On hit, opens the target as a new tab and switches to it.
@@ -723,104 +744,23 @@ struct EditorPlaceholder: View {
     // `EditorTab` (= the helper writes them; = future inspection
     // hooks can still read them).
 
-    // v0.34 B-23: handle external file change. Apple HIG TextEdit /
-    // Pages / Xcode behavior:
-    //   - clean state (draft == originalBody): silent reload. The user
-    //     has nothing to lose (= no in-progress edits).
-    //   - dirty state (draft != originalBody): save current draft to
-    //     <file>.local-wenshu-conflict-<unix-timestamp>.md (= the user's
-    //     in-progress edits) BEFORE clobbering, then reload, then post
-    //     a notification pointing to the conflict file path.
-    private func reloadDocumentFromDisk() {
-        guard let path = documentPath else { return }
-        let url = URL(fileURLWithPath: path)
-        guard let newContent = try? String(contentsOf: url, encoding: .utf8) else {
-            #if DEBUG
-            print("[wenshu.editor] B-23: failed to read \(path)")
-            #endif
-            return
-        }
-        if isDirty {
-            // Save user's in-progress edits to .local-wenshu-conflict-<ts>.md
-            // (= Apple HIG conflict-backup convention).
-            let timestamp = Int(Date().timeIntervalSince1970)
-            let conflictPath = path + ".local-wenshu-conflict-\(timestamp).md"
-            do {
-                try draft.write(
-                    toFile: conflictPath,
-                    atomically: true,
-                    encoding: .utf8
-                )
-                externalChangeNotice = WenshuI18n.ts("workspace.editor.external_change_saved", conflictPath)
-            } catch {
-                externalChangeNotice = WenshuI18n.t("workspace.editor.external_change_save_failed") + " (" + error.localizedDescription + ")"
-            }
-        }
-        draft = newContent
-        originalBody = newContent
-        // Reset dirty flag → 0 (the document is now consistent with disk).
-        // (= handleDirtyTransition(false) cancels any pending auto-save Task).
-        handleDirtyTransition(false)
-        // Update chrome bottom-bar left (= word count of new content).
-        appState.editorWordCount = WordCounter.count(newContent).charactersNoSpaces
-    }
+    // v1.70 editor-mvvm T2b: `reloadDocumentFromDisk()` migrated to
+    // `EditorPersistence.reloadFromDisk(tab:)` returning a struct
+    // (= the helper is pure; = doesn't mutate tab fields). The
+    // view-side wrapper `reloadFromDiskAndApply()` (= above) is
+    // the `onChange` closure that gets called by `EditorFileWatcher`
+    // (= v1.70 T1a) when an external file change is detected.
+    // It writes the helper's result back to the active tab + updates
+    // the word-count badge + marks the document clean.
 
-    // v0.34 B-22: dirty-state transition handler. Replaces B-21's
-    // triggerAutoSave (= that fired on every keystroke = wasteful
-    // Task creation per char; = boss 9/2 OOB flagged as inefficient).
-    //
-    // Logic (= matches Apple HIG TextEdit / Pages auto-save behavior):
-    //   - dirty = true  (= user started editing after a clean state):
-    //     start ONE 3-second Task. The Task fires `writeDraftToDisk`
-    //     then clears `originalBody` (= makes dirty → false = ends the
-    //     cycle). Subsequent keystrokes within the 3-second window
-    //     just keep `dirty = true` (= no new Task = the existing one
-    //     still fires once).
-    //   - dirty = false (= Cmd+S saved, or auto-save Task fired, or
-    //     discard happened): cancel the pending Task (= no more writes;
-    //     = the document is already saved).
-    //
-    // Result: at most 1 active Task at any time, regardless of typing
-    // speed. Saves exactly once per dirty→clean cycle. No memory churn.
-    private func handleDirtyTransition(_ isDirty: Bool) {
-        if isDirty {
-            // User just started editing (= dirty → true). Start the
-            // 3-second Task. If one was already pending (= e.g. user
-            // typed, waited, saved, typed again quickly), reuse it:
-            // a new Task replaces the old one (= Task.cancel + new
-            // = 1 active Task). Apple HIG Task structured concurrency
-            // handles the lifecycle.
-            if autoSaveTask == nil {
-                autoSaveTask = Task {
-                    // 3-second debounce (= boss 9/2 'auto-save, 3 seconds
-                    // after stopping'). Apple HIG doesn't define a canonical
-                    // duration; = matches macOS TextEdit / Pages default.
-                    try? await Task.sleep(for: .seconds(3))
-                    if !Task.isCancelled {
-                        await MainActor.run {
-                            writeDraftToDisk()
-                            // B-22: after auto-save, mark the document
-                            // as clean (= originalBody = draft = no
-                            // longer dirty). This transitions dirty →
-                            // false → handleDirtyTransition(false)
-                            // → cancels any future Task (= idempotent
-                            // = the just-completed Task won't fire
-                            // again because the state is already
-                            // consistent).
-                            originalBody = draft
-                        }
-                    }
-                    autoSaveTask = nil
-                }
-            }
-        } else {
-            // dirty = false (= user just saved via Cmd+S, OR the
-            // auto-save Task just completed and set originalBody =
-            // draft above). Cancel any pending Task (= no more writes).
-            autoSaveTask?.cancel()
-            autoSaveTask = nil
-        }
-    }
+    // v1.70 editor-mvvm T2b: `handleDirtyTransition(_:)` migrated to
+    // `EditorPersistence.handleDirtyTransition(_:tab:bookStore:)`.
+    // The 3-second debounce Task + cancellation + idempotent cycle
+    // end (= autoSaveTask = nil after firing) live in the helper.
+    // The view's call sites (= discard button + onDirtyChange closure
+    // + reloadFromDiskAndApply wrapper + saveDraft wrapper) are all
+    // 1-liners that hand off to the helper.
+
     // v0.34 B-24: documentPath + autoSaveTask + externalChangeNotice
     // + showDirtyDiscardConfirm are now computed properties (= read/
     // write the active tab's state via AppState). Defined above as

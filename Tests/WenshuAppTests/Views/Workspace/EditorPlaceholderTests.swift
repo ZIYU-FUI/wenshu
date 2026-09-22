@@ -265,24 +265,26 @@ struct EditorPlaceholderTests {
                 "EditorPlaceholder must declare @State var isApplyingParagraphAI (= busy flag)")
     }
 
-    @Test("declares 4 private mutation methods = saveDraft + writeDraftToDisk + reloadDocumentFromDisk + handlePreviewWikiLink + handleEditorWikiLink")
+    @Test("declares 3 private mutation methods = saveDraft + handlePreviewWikiLink + handleEditorWikiLink (= v1.70 T2b)")
     func declaresFiveMutationMethods() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        // v1.70 editor-mvvm T2b: writeDraftToDisk + reloadDocumentFromDisk
+        // + handleDirtyTransition migrated to EditorPersistence (= the
+        // view now has 3 thin call sites + the saveDraft entry point).
         #expect(code.contains("private func saveDraft()"),
                 "EditorPlaceholder must declare saveDraft (= debounced entry point)")
-        #expect(code.contains("private func writeDraftToDisk()"),
-                "EditorPlaceholder must declare writeDraftToDisk (= sync IO write)")
-        #expect(code.contains("private func reloadDocumentFromDisk()"),
-                "EditorPlaceholder must declare reloadDocumentFromDisk (= external-change response)")
         #expect(code.contains("private func handlePreviewWikiLink"),
                 "EditorPlaceholder must declare handlePreviewWikiLink (= preview wikilink tap)")
         #expect(code.contains("private func handleEditorWikiLink"),
                 "EditorPlaceholder must declare handleEditorWikiLink (= editor wikilink tap)")
     }
 
-    @Test("declares 3 lifecycle methods = applyParagraphAI + replaceSelectedText + handleDirtyTransition (= v1.70 T1b)")
+    @Test("declares 2 lifecycle methods = applyParagraphAI + replaceSelectedText (= v1.70 T2b)")
     func declaresLifecycleMethods() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        // v1.70 editor-mvvm T2b: handleDirtyTransition migrated to
+        // EditorPersistence.handleDirtyTransition(_:tab:bookStore:).
+        // The view no longer holds the dirty-state machine.
         // applyParagraphAI is public (= engine bridge), takes EditorTransform parameter.
         #expect(code.contains("func applyParagraphAI(_ transform: EditorTransform)"),
                 "EditorPlaceholder must declare public func applyParagraphAI(_ transform:) (= P2 #19 WIRE-PARAGRAPH-002 engine bridge)")
@@ -291,8 +293,10 @@ struct EditorPlaceholderTests {
         // v1.70 editor-mvvm T1b: `startFileWatcher` + `stopFileWatcher`
         // migrated to `EditorFileWatcher`. The view no longer declares
         // them (= the helper is the single owner of the fd lifecycle).
-        #expect(code.contains("private func handleDirtyTransition(_ isDirty: Bool)"),
-                "EditorPlaceholder must declare handleDirtyTransition (= isDirty state machine)")
+        // v1.70 editor-mvvm T2b: `handleDirtyTransition` migrated to
+        // `EditorPersistence.handleDirtyTransition(_:tab:bookStore:)`.
+        // The view no longer holds the dirty-state machine (= helper is
+        // the single owner of the auto-save Task lifecycle).
     }
 
     @Test("activeTab / activeTabIndex resolve from appState.openTabs (= v0.34 B-24)")
@@ -306,11 +310,24 @@ struct EditorPlaceholderTests {
                 "activeTabIndex must lookup by activeTabId in appState.openTabs")
     }
 
-    @Test("writeDraftToDisk uses atomically: true write option (= data integrity)")
+    @Test("EditorPersistence.save uses atomically: true write option (= data integrity + v1.70 T2b)")
     func writeDraftToDiskUsesAtomicOption() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
-        #expect(code.contains("atomically: true"),
-                "writeDraftToDisk must use atomically: true write option (= prevents half-written file on crash)")
+        // v1.70 editor-mvvm T2b: the disk write migrated to
+        // `EditorPersistence.save(tab:bookStore:)`. The view no longer
+        // holds the disk-write logic. Assert the new helper uses
+        // atomically: true (= prevents half-written file on crash).
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let testsRoot = testFileURL
+            .deletingLastPathComponent()  // Views/Workspace/
+            .deletingLastPathComponent()  // Views/
+            .deletingLastPathComponent()  // WenshuAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repo root
+        let helperPath = testsRoot
+            .appendingPathComponent("Sources/WenshuApp/Editor/EditorPersistence.swift").path
+        let helperSource = try String(contentsOfFile: helperPath, encoding: .utf8)
+        #expect(helperSource.contains("atomically: true"),
+                "EditorPersistence.save must use atomically: true write option (= prevents half-written file on crash)")
     }
 
     @Test("EditorFileWatcher uses DispatchSource.makeFileSystemObjectSource + POSIX open (= B-23 + v1.70 T1b)")
@@ -392,21 +409,32 @@ struct EditorPlaceholderTests {
                 "applyParagraphAI must use defer to reset busy flag (= exception-safe cleanup)")
     }
 
-    @Test("handleDirtyTransition manages autoSaveTask lifecycle (= 3-second debounce)")
+    @Test("EditorPersistence.handleDirtyTransition manages autoSaveTask lifecycle (= 3-second debounce + v1.70 T2b)")
     func handleDirtyTransitionManagesAutoSaveTask() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
-        #expect(code.contains("private func handleDirtyTransition(_ isDirty: Bool)"),
-                "EditorPlaceholder must declare handleDirtyTransition (= state machine)")
+        // v1.70 editor-mvvm T2b: the dirty-state machine migrated to
+        // `EditorPersistence.handleDirtyTransition(_:tab:bookStore:)`.
+        // The view no longer holds it. Assert the helper holds the
+        // 3-second debounce + cancel logic (= boss 9/2 spec).
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let testsRoot = testFileURL
+            .deletingLastPathComponent()  // Views/Workspace/
+            .deletingLastPathComponent()  // Views/
+            .deletingLastPathComponent()  // WenshuAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repo root
+        let helperPath = testsRoot
+            .appendingPathComponent("Sources/WenshuApp/Editor/EditorPersistence.swift").path
+        let helperSource = try String(contentsOfFile: helperPath, encoding: .utf8)
+        #expect(helperSource.contains("handleDirtyTransition"),
+                "EditorPersistence must declare handleDirtyTransition (= state machine)")
         // v0.34 B-22: dirty → start Task (debounced 3s); clean → cancel + nil.
-        // The dirty detection itself (= draft != originalBody) lives on
-        // the computed isDirty property (= not in handleDirtyTransition).
-        #expect(code.contains("if isDirty {"),
+        #expect(helperSource.contains("if isDirty {"),
                 "handleDirtyTransition must branch on isDirty true (= start debounce)")
-        #expect(code.contains("if autoSaveTask == nil {"),
+        #expect(helperSource.contains("if tab.autoSaveTask == nil {"),
                 "handleDirtyTransition must reuse existing Task (= at most 1 active)")
-        #expect(code.contains("Task.sleep(for: .seconds(3))"),
+        #expect(helperSource.contains("Task.sleep(for: .seconds(3))"),
                 "handleDirtyTransition must use 3-second debounce (= boss 9/2 spec)")
-        #expect(code.contains("autoSaveTask?.cancel()"),
+        #expect(helperSource.contains("tab.autoSaveTask?.cancel()"),
                 "handleDirtyTransition false branch must cancel pending Task (= no more writes)")
     }
 
@@ -427,19 +455,21 @@ struct EditorPlaceholderTests {
                 "EditorPlaceholder body must iterate appState.openTabs (= canonical tab list)")
     }
 
-    @Test("reloadDocumentFromDisk fires via EditorFileWatcher's onChange closure (= B-23 + v1.70 T1b)")
+    @Test("reloadFromDiskAndApply fires via EditorFileWatcher's onChange closure (= B-23 + v1.70 T1b + v1.70 T2b)")
     func reloadDocumentFromDiskTriggersOnWriteEvent() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
         // v0.34 B-23: external file change. The trigger is the
         // DispatchSource event handler (= .write + .extend) in
-        // `EditorFileWatcher`, which invokes the `onChange` closure
-        // (= the view's `reloadDocumentFromDisk()`).
-        // v1.70 editor-mvvm T1b: the view passes
-        // `reloadDocumentFromDisk` as the `onChange:` closure when
-        // calling `EditorFileWatcher.start(path:tab:onChange:)`.
+        // `EditorFileWatcher`, which invokes the `onChange` closure.
+        // v1.70 editor-mvvm T1b: the view passes the onChange closure
+        // when calling `EditorFileWatcher.start(path:tab:onChange:)`.
+        // v1.70 editor-mvvm T2b: the onChange closure is now
+        // `reloadFromDiskAndApply()` (= the new thin wrapper that
+        // calls EditorPersistence.reloadFromDisk + writes the result
+        // back to the active tab + updates the word-count badge).
         #expect(code.contains("EditorFileWatcher.start("),
                 "EditorPlaceholder must invoke EditorFileWatcher.start (= DispatchSource hand-off)")
-        #expect(code.contains("reloadDocumentFromDisk()"),
-                "EditorPlaceholder must pass reloadDocumentFromDisk as the onChange closure (= FS event → UI reload)")
+        #expect(code.contains("reloadFromDiskAndApply()"),
+                "EditorPlaceholder must pass reloadFromDiskAndApply as the onChange closure (= FS event → UI reload)")
     }
 }
