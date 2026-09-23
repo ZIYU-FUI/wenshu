@@ -1,5 +1,17 @@
 //
-//  ChatInputBarView.swift · Wenshu · v1.86
+//  ChatInputBarView.swift · Wenshu · v1.90
+//
+//  v1.90 (2026-09-23): boss 'token 计数的那个底栏，需要加上一个背景
+//  色，现在是全透明的，或者说是没有背景的，加上一个背景'. Add
+//  `.background(.bar)` (= Apple HIG sidebar/chrome material; =
+//  translucent + Light/Dark auto-adapts; = same primitive the sidebar
+// 底栏 inherits).
+//
+//  v1.87 (2026-09-23): divider co-located with tokenCountFooter (=
+//  same VStack(spacing: 0) { Divider(); label } pattern as sidebar
+//  L1760 `sidebarBottomNewButton`; = boss '分割线比底栏高了一些' = the
+//  divider used to sit directly below inputRow = visually disconnected
+//  from the footer; = moved into the footer group).
 //
 //  v1.86 (2026-09-23): boss spec = match the sidebar's bottom "+ 新建"
 //  button style/size verbatim. Reference: NewLibraryOutlineView.swift
@@ -147,6 +159,18 @@ struct ChatInputBarView: View {
             .padding(.vertical, 8)
             .padding(.horizontal, 8)
         }
+        // v1.90 (2026-09-23): boss 'token 计数的那个底栏，需要加上一个
+        // 背景色，现在是全透明的，或者说是没有背景的，加上一个背景'.
+        // Use Apple HIG `.bar` material (= the macOS 27 sidebar/chrome
+        // tint; = the same primitive the outer sidebar uses; =
+        // translucent + adapts to Light/Dark mode automatically). The
+        // sidebar底栏 also uses .bar implicitly via its safeAreaInset
+        // (= the sidebar region paints .bar; = the bottom bar inherits
+        // it). Chat column sits on top of the editor background (=
+        // no .bar material by default), so the footer row needs an
+        // explicit .background(.bar) (= one-line addition; = matches
+        // Apple HIG side-bar-bottom-accessory surface convention).
+        .background(.bar)
     }
 
     /// 30,000 token compression threshold (= matches the old
