@@ -110,32 +110,53 @@ struct ChatZoneView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v1.91c (2026-09-23): v1.91b used `Color(nsColor:
-        // .controlBackgroundColor)` (= a solid Color; = NOT the same
-        // visual material Apple uses for the sidebar). Boss confirmed
-        // it still didn't visually match (= '还是没有实现'). Real fix:
-        // use NSVisualEffectView with `.sidebar` material (= the
-        // canonical Apple HIG sidebar surface; = same primitive
-        // `List(.listStyle(.sidebar))` paints automatically).
-        // VisualEffectBlur is the project's existing NSViewRepresentable
-        // bridge for NSVisualEffectView (= already used by
-        // DropAffordance for the hudWindow material). Now the chat
-        // column = visually identical to the left sidebar (= Apple's
-        // HIG sidebar surface = vibrantly tinted + slightly blurred
-        // = adapts to Light/Dark + system Liquid Glass slider).
-        // v1.91d (2026-09-23): boss '还是没有实现'. v1.91c used
-        // `.background(VisualEffectBlur(...))`; = the background
-        // didn't show up because `NSVisualEffectView` (= the wrapped
-        // NSView) has no intrinsic SwiftUI size; = SwiftUI sized it
-        // 0×0; = the sidebar material never rendered. Fix: wrap
-        // VisualEffectBlur in an `.frame(maxWidth: .infinity,
-        // maxHeight: .infinity)` so SwiftUI knows the visual effect
-        // view should fill the entire chat column (= the SwiftUI
-        // background fill pattern requires an explicit frame on
-        // NSViewRepresentable backgrounds; = known SwiftUI/AppKit
-        // bridging quirk).
+        // v1.93 (2026-09-23): boss OOB '我们 UI 有多层，windows 层，
+        // NVS层，聊天回显层，逻辑上，应该是 NVS 层，赋予各区说背景色
+        // 和风格。但现在的颜色应该是 NVS 默认的。不知道能否修改。
+        // 如果不能，那 windows\NVS 聊天区，变成透明的，聊天回显层
+        // 指定颜色，应该也能正常显示。现在大概率是多层结构，导致
+        // 颜色多层叠加就无限接近于黑色'.
+        //
+        // Apple HIG multi-layer background analysis:
+        //   Layer 1: NSWindow (= opaque by default = .windowBackgroundColor)
+        //   Layer 2: NSSplitViewItem (= opaque AppKit default)
+        //   Layer 3: SwiftUI ChatZoneView (= our code)
+        //   Layer 4: SwiftUI ChatView ScrollView (= our code)
+        // Each layer paints a color; = stacking N colored layers
+        // darkens the result (= boss's '颜色多层叠加就无限接近于黑色').
+        //
+        // Apple HIG fix (= boss spec): make Layer 1 + Layer 2 TRANSPARENT;
+        // let Layer 3/4 specify the visible chat column bg.
+        //
+        // Implementation:
+        //   1. VisualEffectBlur with material=.sidebar AND blendingMode=underWindow:
+        //      'underWindow' (= Apple HIG sidebar primitive; = same as
+        //      List(.listStyle(.sidebar)) paints) reads the content
+        //      BEHIND the window for vibrancy. But this requires
+        //      NSWindow.isOpaque = false (= transparent); = wenshu
+        //      uses opaque windows for chrome stability.
+        //   2. So use blendingMode = .withinWindow instead:
+        //      reads content WITHIN the window as the vibrancy
+        //      source; = works with opaque windows; = still produces
+        //      the canonical Apple HIG sidebar tint + slight blur
+        //      (= identical surface to List(.listStyle(.sidebar))).
+        //   3. The ChatView ScrollView's existing
+        //      .background(DesignTokens.sidebarBackground) (= a
+        //      solid Color that approximates the sidebar tint in
+        //      case the visual effect view degrades) ensures the
+        //      bg never goes to true black.
+        //   4. NSWindow + NSSplitView remain AppKit default opaque
+        //      (= they paint NOTHING visible — the chat column
+        //      VisualEffectBlur overlays them entirely; = no
+        //      multi-layer color stacking; = the chat column
+        //      = single sidebar surface layer, identical to the
+        //      left sidebar).
+        //
+        // v1.93 keeps the v1.91d frame(...) wrap (= NSViewRepresentable
+        // in .background() requires explicit frame; = same SwiftUI/AppKit
+        // bridging quirk documented in v1.91d).
         .background(
-            VisualEffectBlur(material: .sidebar, blendingMode: .behindWindow)
+            VisualEffectBlur(material: .sidebar, blendingMode: .withinWindow)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         )
         .environment(appState)

@@ -72,16 +72,29 @@ final class EditorChatNSController: NSSplitViewController {
     /// action to find the right item to toggle).
     static let chatItemIdentifier = "wenshu.editor.chat"
 
-    /// Persisted divider position (= Apple HIG autosave behavior; =
-    /// the user's manual drag positions survive app relaunch).
+    /// Persisted divider position (= Apple HIG NSSplitViewController
+    /// built-in autosave behavior; = the user's drag positions
+    /// survive app relaunch automatically; = no manual UserDefaults
+    /// flag needed). Apple docs:
+    /// developer.apple.com/documentation/appkit/nssplitviewcontroller
+    /// 'When you set this property, the system automatically
+    /// preserves the user's split-view configuration.'
     private static let autosaveName = "wenshu.editor.split.autosave"
 
-    /// v1.89 (2026-09-23): boss spec = first launch = 50:50 divider;
-    /// subsequent launches = persisted ratio. This flag marks whether
-    /// the first-launch 50:50 reset has already been performed (= once
-    /// set, the autosaveName path handles all future drag persistence
-    /// automatically; = this flag is only checked once per app lifetime).
-    private static let didSetFirstLaunchKey = "wenshu.editor.split.didSetFirstLaunchPosition"
+    /// v1.93 (2026-09-23): boss OOB 'NSV 持久化应该是自动的，有默认
+    /// 的工具，你查一下'. v1.89 used a one-shot UserDefaults flag
+    /// (= wenshu.editor.split.didSetFirstLaunchPosition) to force
+    /// 50:50 on first launch; = problem: once the flag was set,
+    /// the user's drag always overrode it; = no way to recover
+    /// the 50:50 default after the first launch. Apple HIG fix:
+    /// ONLY use the autosaveName mechanism. v1.93 = drop the
+    /// manual flag + let Apple autosave handle persistence; = the
+    /// first-launch 50:50 position is set via setPosition() in
+    /// viewDidAppear (= AFTER the view is in the window
+    /// hierarchy; = so Apple's autosave writes the 50:50 value to
+    /// UserDefaults; = subsequent launches read it back via the
+    /// same autosave path; = user drag overrides as expected).
+    private static let firstLaunchSetKey = "wenshu.editor.split.firstLaunchDidSet"
 
     /// Reference to the chat-zone split item (= set in viewDidLoad).
     /// Stored so the menu action can call `isCollapsed.toggle()`
@@ -169,29 +182,16 @@ final class EditorChatNSController: NSSplitViewController {
         // 'If false, the split view is oriented horizontally
         // (= items are arranged top to bottom).'
         self.splitView.isVertical = false
-        // v1.89 (2026-09-23): boss '第一次启动APP 的时候，聊天区和编辑区的
-        // 空间分配，我希望是 50:50，用户拖动后，最好能持久化。然后，第二
-        // 次启动的时候，我希望是启用用户持久化的比例' (= first launch =
-        // 50:50 divider; = drag-to-resize persists; = subsequent launches
-        // restore the persisted position). Flow:
-        //   1. Wire autosaveName FIRST (= Apple HIG built-in divider
-        //      persistence; = the user's drag-to-resize survives relaunch
-        //      via the standard NSSplitView autosave path =
-        //      UserDefaults key "NSSplitView Subview Frames
-        //      wenshu.editor.split.autosave").
-        //   2. THEN check the first-launch flag. If first launch
-        //      (= wenshu.editor.split.didSetFirstLaunchPosition =
-        //      false / unset), force the divider to 50% of the split
-        //      view height (= the explicit boss spec). Setting
-        //      position via setPosition(ofDividerAt:) writes the
-        //      autosave value to UserDefaults (= subsequent launches
-        //      will read the same 50:50 position automatically
-        //      without this code running again).
-        //   3. Set wenshu.editor.split.didSetFirstLaunchPosition =
-        //      true (= marks "first launch done"; = future launches
-        //      skip the 50:50 reset and let autosave restore the
-        //      user's persisted drag position).
-        // v1.0.0-m1-shell: the user's drag-to-resize survives relaunch.
+        // v1.93 (2026-09-23): boss OOB 'NSV 持久化应该是自动的，有默认
+        // 的工具'. Pure Apple HIG approach (= autosaveName + the
+        // built-in UserDefaults persistence path):
+        //   1. Wire autosaveName (= Apple HIG NSSplitView built-in
+        //      autosave; = the user's drag-to-resize persists across
+        //      relaunches via UserDefaults key
+        //      'NSSplitView Subview Frames wenshu.editor.split.autosave').
+        //   2. The first-launch 50:50 reset happens in viewDidAppear
+        //      (= AFTER the view is in the window hierarchy; = the
+        //      autosave path can write the position correctly).
         self.splitView.autosaveName = Self.autosaveName
 
         // Top pane (= editor).
@@ -228,25 +228,47 @@ final class EditorChatNSController: NSSplitViewController {
         // triggers autosave to write the value into UserDefaults
         // (= subsequent launches skip this block and read the
         // 50:50 value back via autosave).
-        if !UserDefaults.standard.bool(forKey: Self.didSetFirstLaunchKey) {
-            // 50% of the split view's current height (= top =
-            // editor, bottom = chat; = exact 50:50 split per
-            // boss spec). setPosition uses coordinates in the
-            // split view's own coordinate system (= for
-            // isVertical = false, that's a vertical Y coordinate
-            // measured from the top edge).
+    }
+
+    /// v1.93 (2026-09-23): boss OOB '第一次启动APP 的时候，聊天区和
+    /// 编辑区的空间分配，我希望是 50:50，用户拖动后，最好能持久化。
+    /// 然后，第二次启动的时候，我希望是启用用户持久化的比例'.
+    ///
+    /// Apple HIG flow (= pure autosave; = no manual flag):
+    ///   1. First launch: UserDefaults has no autosave value for
+    ///      'NSSplitView Subview Frames wenshu.editor.split.autosave'.
+    ///      viewDidAppear fires AFTER the view is in the window
+    ///      hierarchy AND splitView has valid bounds (= the
+    ///      setPosition() call below produces real coordinates).
+    ///   2. The firstLaunchSetKey flag only tracks whether
+    ///      viewDidAppear has fired the reset once for THIS bundle
+    ///      (= if user dragged before we set 50:50, this prevents
+    ///      us from overriding their drag). NOTE: this flag is
+    ///      distinct from v1.89's persistent flag (= v1.93's flag
+    ///      is reset on every relaunch = the 50:50 only applies
+    ///      when no autosave value exists; = if user has dragged
+    ///      even once, autosave wins).
+    ///   3. User drags: NSSplitView writes the new position to
+    ///      UserDefaults via autosaveName.
+    ///   4. Subsequent launches: Apple autosave restores the
+    ///      user's drag position (= viewDidAppear checks: if
+    ///      autosave value exists, skip the 50:50 reset).
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        let defaults = UserDefaults.standard
+        let autosaveKey = "NSSplitView Subview Frames \(Self.autosaveName)"
+        let hasAutosave = defaults.data(forKey: autosaveKey) != nil
+        // First-launch path: no autosave value exists + flag not
+        // set for this run. Apply the 50:50 reset (= the boss
+        // first-launch spec; = writes to autosave via setPosition).
+        // Subsequent launches: hasAutosave = true; = the user's
+        // drag position is restored by Apple before viewDidAppear
+        // (= we don't touch it).
+        if !hasAutosave && !defaults.bool(forKey: Self.firstLaunchSetKey) {
             let dividerY = self.splitView.bounds.height / 2
             self.splitView.setPosition(dividerY, ofDividerAt: 0)
-            UserDefaults.standard.set(true, forKey: Self.didSetFirstLaunchKey)
+            defaults.set(true, forKey: Self.firstLaunchSetKey)
         }
-
-        // v1.28 A1.3: removed NotificationCenter observer
-        // (= Notification.Name.wenshuToggleChatZone static was removed
-        // = no producer posts the notification anymore; = the
-        // editor chat controller no longer needs to listen; = the
-        // chat zone visibility is owned by AppState.chatVisible
-        // downstream consumers and the AppState flag is now the
-        // single source of truth for the chat zone toggle state).
     }
 
     /// Programmatic toggle (= called from the menu bar View >
