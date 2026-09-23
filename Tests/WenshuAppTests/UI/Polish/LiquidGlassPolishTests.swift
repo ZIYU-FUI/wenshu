@@ -11,7 +11,7 @@
 //      rejected).
 //
 // POLISH-LIQUIDGLASS-001 = TopBar                  (= RegionTabBar.swift)
-// POLISH-LIQUIDGLASS-002 = Sidebar                 (= NewLibraryOutlineView.swift)
+// POLISH-LIQUIDGLASS-002 = Sidebar                 (= AppleSidebarView.swift)
 // POLISH-LIQUIDGLASS-003 = Editor + StatusBar      (= WorkspaceView.swift + RegionTabBar.swift, shared file above)
 // POLISH-LIQUIDGLASS-004 = sheets                  (= CommandPaletteView.swift + BookEditorSheet.swift)
 // POLISH-LIQUIDGLASS-005 = popovers                (= BacklinksPanel.swift)
@@ -34,7 +34,7 @@ struct LiquidGlassPolishTests {
         // - WorkspaceView.swift: uses `.background(Color.white)` /
         //   `.background(.ultraThinMaterial)` / `.background { Color.clear }`
         //   instead (= boss 2026-09-07 real-device decisions; not glassEffect).
-        // - NewLibraryOutlineView.swift: uses Apple native `.listStyle(.sidebar)`
+        // - AppleSidebarView.swift: uses Apple native `.listStyle(.sidebar)`
         //   (= Apple owns the styling per HIG; no custom view body to apply
         //   .background to; same rationale as POLISH-LIQUIDGLASS-005).
         // - BacklinksPanel.swift: uses `.background { Color.clear }` per

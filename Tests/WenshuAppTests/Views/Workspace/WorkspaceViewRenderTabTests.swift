@@ -42,7 +42,7 @@ struct WorkspaceViewRenderTabTests {
         #expect(source.contains("case .projectSidebar:"),
                 "must have .projectSidebar case (= canonical left-rail zone)")
         // The Bookshelf tab with book-open Lucide icon (= per v0.28
-        // Boss UX round 43 fix that wrapped NewLibraryOutlineView in
+        // Boss UX round 43 fix that wrapped the pre-v1.69e NewLibraryOutlineView in
         // ZoneContentView for Y alignment).
         #expect(source.contains("ZoneContentView(zoneSlug: \"projectSidebar\""),
                 ".projectSidebar must render ZoneContentView with zoneSlug='projectSidebar'")

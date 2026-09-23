@@ -1,35 +1,37 @@
-// SidebarZoneHeaderButtons.swift · Wenshu · v1.69
+// SidebarZoneHeaderButtons.swift · Wenshu · v1.69d
 //
-// v1.69 sidebar MVVM cleanup (= boss 2026-09-22 OOB '老的文件没
-// 删, UI/业务/数据没分离的删掉'): extracted from
-// NewLibraryOutlineView.swift (the v0.30 legacy 2520-LOC sidebar
-// that packed 8 mixed concerns into one file).
+// v1.69d sidebar MVVM cleanup (= boss 2026-09-22 OOB '老的文件没
+// 删, UI/业务/数据没分离的删掉'): extracted from the deleted
+// NewLibraryOutlineView.swift (the pre-v1.69e 2466-LOC legacy
+// sidebar that packed 8 mixed concerns into one file).
 //
 // The trailing zone header (= 'New' + 'Import' icon buttons) was
 // the chrome that lived on the old sidebar's `zoneHeaderButtons`
 // computed view. Used by:
 //   - WorkspaceView's legacy `case .projectSidebar` render
-//     (= LayoutEditMode split layout zone that is on the sunset path;
+//     (= LayoutEditMode split layout zone on the sunset path;
 //     NavigationSplitShell's AppleSidebarView has its own bottom
 //     '+' button via AppleSidebarBottomNewButton).
-//   - ZoneModuleView's `case .projectSidebar` (= the legacy 6-zone
-//     zone body = the same path as WorkspaceView's).
+//   - ZoneModuleView's `case .projectSidebar` (= the legacy
+//     6-zone zone body = same path as WorkspaceView's).
 //
 // Lives in its own file (= no domain data, no SwiftUI state
 // beyond local hover) so the chrome can be unit-tested in
-// isolation (= matches the v1.68b AppleSidebarView MVVM split:
-// data = SidebarItem, business = SidebarService, view =
-// AppleSidebarView + SidebarRowView + AppleSidebarBottomNewButton
-// + this file).
+// isolation. MVVM split:
+//   - data       = SidebarItem
+//   - business   = SidebarService
+//   - view       = AppleSidebarView + SidebarRowView +
+//                  AppleSidebarBottomNewButton + this file.
 
 import SwiftUI
 
-/// NewLibraryOutlineView's `zoneHeaderButtons` (= the trailing
-/// 'New' + 'Import' icon HStack that sat in the
-/// ZoneContentView trailing slot). Same content as the v0.30
-/// legacy implementation (= SF Symbols icon buttons + hover
-/// tint via system `.buttonStyle(.borderless)`). Both buttons
-/// post to AppState/NotificationCenter (= the canonical SwiftUI
+/// Trailing 'New' + 'Import' icon HStack that sat in the
+/// ZoneContentView trailing slot (= preserved from the
+/// pre-v1.69e legacy NewLibraryOutlineView.zoneHeaderButtons).
+/// Same content as the v0.30 legacy implementation (= SF Symbols
+/// icon buttons + hover tint via system
+/// `.buttonStyle(.borderless)`). Both buttons post to
+/// AppState/NotificationCenter (= the canonical SwiftUI
 /// side-effect surface; = the rest of the app observes via
 /// `.onChange(of:)` / `.onReceive`).
 ///

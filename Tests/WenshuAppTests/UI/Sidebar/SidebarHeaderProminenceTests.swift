@@ -13,7 +13,7 @@
 // when screenshot tests are unavailable).
 //
 // v1.69 sidebar MVVM cleanup: target file path updated from
-// NewLibraryOutlineView.swift to AppleSidebarView.swift (= the
+// AppleSidebarView.swift (= was NewLibraryOutlineView.swift pre-v1.69e) (= the
 // v1.68b MVVM-split sidebar that is now the production sidebar).
 // Same Apple-HIG-default invariant = no .headerProminence(.increased)
 // and no manual .padding(.top, ...) on the section header.

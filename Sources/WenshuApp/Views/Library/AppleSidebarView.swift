@@ -1,35 +1,56 @@
-// AppleSidebarView.swift · Wenshu · v1.68b
+// AppleSidebarView.swift · Wenshu · v1.69y boss 2026-09-22 OOB
 //
 // macOS 27 Apple HIG sidebar (= List(data, children:) +
-// .listStyle(.sidebar)). Replaces the v1.64–v1.67
-// LazySidebarView's hand-rolled LazyVStack of Button rows +
-// manual .padding(.leading) + manual chevron + manual hover.
+// .listStyle(.sidebar)). The canonical sidebar surface for
+// the wenshu NavigationSplitView shell.
 //
-// Boss 2026-09-22 OOB '回方案 B 之前是因为别的原因, 记录的有问题' +
-// 'macOS 27 化' (= the v1.64 NSTableView-resize-crash trade-off that
-// produced LazySidebarView is reversed; = the sidebar that
-// v1.68b = the Apple HIG canonical sidebar per WWDC20 10031).
+// v1.69 arc (= 27 commits v1.69a → v1.69bb per AGENTS.md):
+//   - v1.68b: initial Apple HIG rewrite replacing the v1.64-v1.67
+//     hand-rolled LazySidebarView (= SwiftUI List(.sidebar)).
+//   - v1.69a-e: MVVM cleanup (= extract SidebarItem, BottomNewButton,
+//     ZoneHeaderButtons to focused files; = drop 9 LazySidebar*
+//     dead files + NewLibraryOutlineView 2466-LOC legacy).
+//   - v1.69i-l: reference-library auto-classification (= CLC 22
+//     top-level categories).
+//   - v1.69m-n-q: BUG fixes (= routingKey field, shelfScopeView
+//     union-of-cards, bookDocsGrid reuse).
+//   - v1.69x: NSHostingView constraint loop fix (= stable SHA1
+//     BookDoc.id + cached shelf books + .task(id:) dispatch).
+//   - v1.69y: restore sidebar create + rename + context menu that
+//     v1.69e had `git rm`-deleted (= 4 sheets in SidebarSheets.swift,
+//     1 builder + 2 ViewModifier wrappers in SidebarContextMenu.swift,
+//     create/delete/rename business layer in SidebarService.swift).
+//   - v1.69aa-bb: UI polish (= centered '书架' title bar + Divider
+//     above List; = Divider row between shelves and the reference
+//     library root).
 //
 // What lives here:
-//   - the SwiftUI view tree (= List(sidebarService.nodes,
-//     children: \.children) + .listStyle(.sidebar)).
-//   - the SidebarService holder (= @State + .task { service.reload() }).
-//   - the selection binding (= forwards into AppState.sidebarSelection
-//     so the rest of wenshu continues to read the same selection it
-//     did before).
+//   - the SwiftUI view tree (= VStack { title + Divider + List(
+//     sidebarService.nodes, children: \.children, selection: ...)
+//     + .listStyle(.sidebar) }).
+//   - the SidebarService holder (@State + .task { service.reload() }).
+//   - the selection binding (forwards into AppState.sidebarSelection
+//     so the rest of wenshu continues to read the same value it did
+//     before the split).
+//   - 4 sheet modifiers (= .sheet(isPresented:) × 3 for
+//     NewChoiceSheet / NewShelfSheet / NewBookSheet + .sheet(item:)
+//     for RenameItemSheet) + 1 .alert for delete confirmation.
+//   - 2 context-menu modifiers (= EmptyAreaContextMenu +
+//     SidebarRowContextMenu wrapping SidebarContextMenuBuilder).
 //
 // What does NOT live here:
-//   - row rendering (= the List does it via SwiftUI for macOS 14+).
-//   - file ops (= LazySidebarFileOps).
-//   - state persistence (= LazySidebarState).
-//   - data helpers (= LazySidebarData).
-//   - the v1.67 LazySidebarView (= replaced; = the v1.68b is a new
-//     view, not a refactor of the v1.67 file).
+//   - the sheet bodies (= SidebarSheets.swift).
+//   - the context-menu factory (= SidebarContextMenu.swift).
+//   - business logic (= SidebarService.swift handles create/delete/
+//     rename + on-disk file IO + validation + reserved-name guards).
+//   - row rendering (= the List + SidebarRowView handle it; =
+//     SwiftUI macOS 14+ does the disclosure indicator + selection
+//     tint + hover highlight; = the divider row is rendered as
+//     a Divider when node.kind == .divider).
 //
-// v1.68b differs from the reverted v1.68a (= same architecture, =
-// the boss accepted this but rejected the rest of the v1.68a patch
-// because it leaked changes into LibraryStores / BookStore.init /
-// 12 test fixtures — none of those are touched here).
+// This file is the canonical SwiftUI sidebar surface post-MVVM
+// (= the same architecture that v1.68b established, with the
+// 4 sheets + context-menu + business methods restored in v1.69y).
 
 import SwiftUI
 
@@ -46,10 +67,11 @@ struct AppleSidebarView: View {
     @State private var selectedNode: SidebarNode?
 
     // v1.69y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复':
-    // the create/rename/delete sheets that used to live on
-    // NewLibraryOutlineView (= deleted in v1.69e). Each sheet's
-    // `isPresented` boolean is local @State on this sidebar body
-    // (= flips via .onChange(of: appState.{choice,newShelf,newBook}
+    // the create/rename/delete sheets that live in
+    // SidebarSheets.swift (recovered from the deleted v1.69e
+    // NewLibraryOutlineView). Each sheet's `isPresented`
+    // boolean is local @State on this sidebar body (= flips
+    // via .onChange(of: appState.{choice,newShelf,newBook}
     // RequestCount) so the toolbar Menu's New buttons and the
     // sidebar's own New buttons can all flip the same shared
     // counter; = the sidebar body observes and presents).
@@ -59,9 +81,9 @@ struct AppleSidebarView: View {
     @State private var renaming: SidebarRenamingTarget?
     @State private var pendingDelete: SidebarPendingDelete?
 
-    /// v1.69y: set of selected `SidebarItem` (= mirrors
-    /// NewLibraryOutlineView's `Set<SidebarItem>` selection;
-    /// = macOS 14+ `.contextMenu(forSelectionType:)` reads
+    /// v1.69y: set of selected `SidebarItem` (= mirrors the
+    /// legacy NewLibraryOutlineView's `Set<SidebarItem>` selection
+    /// pattern; = macOS 14+ `.contextMenu(forSelectionType:)` reads
     /// from the `List(selection:)` binding; = we forward the
     /// current sidebarSelection into this set for the context
     /// menu builder).
@@ -106,8 +128,10 @@ struct AppleSidebarView: View {
                 // `.contextMenu` modifier on the List covers
                 // right-clicks on empty sidebar area (= shows
                 // the single "New" entry that triggers the
-                // choice sheet; = the legacy
-                // NewLibraryOutlineView empty-area behavior).
+                // choice sheet; = the pre-v1.69e legacy
+                // NewLibraryOutlineView empty-area behavior
+                // preserved via the same EmptyAreaContextMenu
+                // ViewModifier).
                 // The closure is tiny (= single Button) so the
                 // type-checker handles it inline; = the heavy
                 // closure lives in `contextMenuHandler`.
@@ -227,7 +251,7 @@ struct AppleSidebarView: View {
         // wire up the 3 request counters (= `choiceRequestCount`
         // + `newShelfRequestCount` + `newBookRequestCount`) to
         // flip the matching sheet's `isPresented` @State. Mirrors
-        // the v1.0.0-m1 legacy NewLibraryOutlineView's
+        // the pre-v1.69e legacy NewLibraryOutlineView's
         // `.onChange(of: appState.*RequestCount)` blocks (= same
         // pattern = the toolbar Menu's New buttons flip the
         // counters; = the sidebar body observes and presents).
@@ -278,8 +302,9 @@ struct AppleSidebarView: View {
         }
         .sheet(isPresented: $showNewBookSheet) {
             // v1.69y: pre-resolve target shelf from current
-            // sidebarSelection (= mirrors legacy NewLibraryOutlineView.
-            // resolveNewBookTargetShelf).
+            // sidebarSelection (= mirrors the legacy NewLibraryOutlineView.
+            // resolveNewBookTargetShelf pattern; = the same logic
+            // now lives in `SidebarService.targetShelfForNewBook(...)`).
             let target = service?.targetShelfForNewBook(currentSelection: appState.sidebarSelection)
                 ?? service?.defaultShelfTarget() ?? (id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!, name: WenshuI18n.t("library.default.shelf_name"))
             NewBookSheet(
@@ -420,8 +445,9 @@ struct AppleSidebarView: View {
 
     /// Map the user-clicked sidebar row to the corresponding
     /// AppState.sidebarSelection discriminator (= so the rest of
-    /// wenshu continues to read the same value it did under
-    /// LazySidebarView).
+    /// wenshu continues to read the same value it did before
+    /// the v1.69 MVVM split (= when SidebarItem still lived
+    /// inline inside NewLibraryOutlineView)).
     ///
     /// v1.68f boss 2026-09-22 OOB '帮助和测试小说下面的自动生成的
     /// 目录没有出现，需要实现' (= the 5 standard folders under
@@ -584,8 +610,9 @@ struct AppleSidebarView: View {
     /// v1.68f: minimal folder-open wiring (= future ticket
     /// surfaces the folder's content in the editor's tab UI; =
     /// for now the editor shows a placeholder until the file is
-    /// loaded). Matches the v1.67 LazySidebarView's onSelectFolder
-    /// behavior (= .folder(bookId:, folderName:) on sidebarSelection).
+    /// loaded). Matches the legacy v1.67 LazySidebarView's
+    /// onSelectFolder behavior (= .folder(bookId:, folderName:)
+    /// on sidebarSelection) preserved through the MVVM split.
     private func openFolderInEditor(bookId: UUID, folderName: String) {
         if let existing = appState.openTabs.first(where: {
             if case .bookScope(let id, let folder) = $0.sourceScope {

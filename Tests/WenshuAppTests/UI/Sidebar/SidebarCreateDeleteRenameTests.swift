@@ -82,7 +82,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
         // The `.sheet(item: $renaming)` and `.alert(presenting:)`
         // modifiers need Identifiable target types (= `Side...`
         // here to avoid clashing with the legacy enum names in
-        // NewLibraryOutlineView.swift before v1.69e).
+        // NewLibraryOutlineView.swift pre-v1.69e (= see the
         XCTAssertTrue(
             body.contains("SidebarRenamingTarget") || body.contains("SidebarPendingDelete"),
             "SidebarSheets.swift must define SidebarRenamingTarget + SidebarPendingDelete state types"

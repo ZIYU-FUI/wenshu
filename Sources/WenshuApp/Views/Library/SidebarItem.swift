@@ -1,18 +1,18 @@
-// SidebarItem.swift · Wenshu · v1.69
+// SidebarItem.swift · Wenshu · v1.69c
 //
-// v1.69 sidebar MVVM cleanup (= boss 2026-09-22 OOB '老的文件没
-// 删, UI/业务/数据没分离的删掉'): extracted from
-// NewLibraryOutlineView.swift (the v0.30 legacy sidebar that
-// packed 2520 LOC of view body + selection handling + state
+// v1.69c sidebar MVVM cleanup (= boss 2026-09-22 OOB '老的文件没
+// 删, UI/业务/数据没分离的删掉'): extracted from the deleted
+// NewLibraryOutlineView.swift (the pre-v1.69e 2466-LOC legacy
+// sidebar that packed view body + selection handling + state
 // persistence + business logic into one file).
 //
 // SidebarItem is the data model (= a Hashable + Codable enum
-// that identifies one row in the sidebar tree = the union of all
-// selectable rows: shelf / book / folder / reference category).
-// Lives in its own file (= no SwiftUI import) so:
+// that identifies one row in the sidebar tree = the union of
+// all selectable rows: shelf / book / folder / reference
+// category). Lives in its own file (= no SwiftUI import) so:
 //   - PreviewPane / WorkspaceView / ShellMiddleColumn can read
-//     the same SidebarItem without importing the legacy sidebar
-//     view (= clean module boundary).
+//     the same SidebarItem without importing the sidebar view
+//     (= clean module boundary).
 //   - AppState.sidebarSelection (= the Codable property in
 //     AppState.swift) persists the selection via the Codable
 //     conformance here.

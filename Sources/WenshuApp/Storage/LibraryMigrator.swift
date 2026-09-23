@@ -524,8 +524,9 @@ struct LibraryMigrator: Sendable {
         )
 
         // =================================================================
-        // Preserve original chapters.json (= NewLibraryOutlineView surfaces
-        // book folders including chapters/ in the sidebar tree). Default
+        // Preserve original chapters.json (= AppleSidebarView surfaces
+        // book folders including chapters/ in the sidebar tree via
+        // SidebarService's 5-folder standard set). Default
         // chapter = feature module overview (= was Start Here). Updated to point to
         // the new help-doc.
         // =================================================================

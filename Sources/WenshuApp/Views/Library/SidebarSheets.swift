@@ -1,26 +1,44 @@
 //
 //  SidebarSheets.swift · Wenshu · v1.69y boss 2026-09-23 OOB
 //
-//  Restores the create + rename sheets that were deleted when
-//  NewLibraryOutlineView.swift (2466 LOC) was removed in v1.69e
-//  (= the MVVM sidebar-split commit). The Apple HIG canonical
-//  path for sidebar "new" workflows = `.sheet(item:)` triggered
-//  by a `appState.choiceRequestCount` observer (= the toolbar
-//  Menu's New buttons all flip the same shared counter, the
-//  sidebar body observes via `.onChange(of:)`, and presents the
-//  appropriate sheet).
+//  Sheet bodies for the sidebar's create + rename flows.
+//  Restored from the deleted NewLibraryOutlineView.swift
+//  (2466 LOC) after v1.69e `git rm`'d it without re-wiring
+//  (= per boss 2026-09-23 OOB '需要你把新建功能，右边菜单等恢复').
 //
-//  Each sheet in this file is a focused View (= accepts a small
-//  set of inputs + an `onSave` closure + optional `onCancel`).
-//  No sheet reads SidebarService or BookStore directly (= the
-//  caller passes in availableShelves, targetShelfName, etc.) =
-//  sheets are unit-testable in isolation (= the v1.69y ticket
-//  adds a source-level SidebarCreateDeleteRenameTests to verify
-//  the public API).
+//  Sheets defined here:
+//    - NewChoiceSheet  : picker card sheet (shelf vs book)
+//                        shown after the bottom "+" button or
+//                        empty-area right-click "New".
+//    - NewShelfSheet   : name input + reserved/duplicate guards.
+//    - NewBookSheet    : title + author + SF Symbols 6 icon picker
+//                        + target-shelf picker; = reused 80 SF
+//                        Symbols from Apple's macOS 27 icon set.
+//    - RenameItemSheet : shared by shelf + book rename; = takes
+//                        SidebarRenamingTarget (= kind + id +
+//                        originalName); = validates uniqueness.
 //
-//  SidebarContextMenu.swift (next file in this ticket) hosts
-//  the right-click menu builder = the .contextMenu(forSelectionType:)
-//  Apple macOS HIG canonical hook.
+//  State types (= Identifiable for .sheet(item:) targeting):
+//    - SidebarRenamingTarget (= consumed by .sheet(item: $renaming))
+//    - SidebarPendingDelete  (= consumed by .alert(presenting:))
+//
+//  What does NOT live here:
+//    - business logic (= SidebarService handles the persistence
+//      write + validation + reserved-name guards).
+//    - sheet presentation wiring (= AppleSidebarView wires the
+//      .sheet / .alert modifiers + the AppState.*RequestCount
+//      counters that flip them).
+//
+//  Each sheet is a focused View (= accepts a small set of inputs
+//  + an `onSave` closure + optional `onCancel`). No sheet reads
+//  SidebarService or BookStore directly (= the parent View
+//  passes already-resolved data + a save closure that calls
+//  SidebarService on the parent's behalf). This keeps each sheet
+//  testable in isolation (= input + closure = deterministic).
+//
+//  SidebarContextMenu.swift (= next file in the v1.69y arc)
+//  hosts the right-click menu builder = the
+//  .contextMenu(forSelectionType:) Apple HIG canonical hook.
 //
 
 import SwiftUI
@@ -32,7 +50,7 @@ import UniformTypeIdentifiers
 /// v1.69y boss 2026-09-23 OOB: pending deletion (= shows the
 /// "Are you sure?" `.alert` before the destructive
 /// `SidebarService.deleteShelf(id:)` / `deleteBook(id:)`
-/// fires). Mirrors the v1.0.0-m1 legacy NewLibraryOutlineView's
+/// fires). Mirrors the pre-v1.69e legacy NewLibraryOutlineView's
 /// `PendingDelete` (= same shape; = Identifiable so
 /// `.alert(item:)` presents by id).
 struct SidebarPendingDelete: Identifiable, Equatable {
@@ -65,7 +83,7 @@ struct SidebarRenamingTarget: Identifiable, Equatable {
 /// workflow (= "what do you want to create?"). On pick, fires
 /// `onCreate(.shelf)` or `onCreate(.book)` (= the caller
 /// observes and flips the next sheet's `isPresented` binding).
-/// Mirrors the v1.0.0-m1 legacy NewLibraryOutlineView's
+/// Mirrors the pre-v1.69e legacy NewLibraryOutlineView's
 /// `NewChoiceSheet` (= same UX: two large tappable cards).
 struct NewChoiceSheet: View {
     enum Choice: Equatable { case shelf, book }

@@ -37,7 +37,8 @@ final class SidebarService {
     private(set) var nodes: [SidebarNode] = []
 
     /// Last reload error (= surfaced in the sidebar's error footer
-    /// = the previous v1.67 LazySidebarView's `loadError` semantics).
+    /// = the loadError semantics the v1.67 LazySidebarView
+    /// preserved before the v1.69 MVVM split).
     private(set) var loadError: String?
 
     /// Closure that returns all shelves from the data layer.
@@ -47,7 +48,8 @@ final class SidebarService {
     /// Closure that returns all books in the library.
     /// (= `bookStore.sidebarLoadAllBooks()` in production.) The
     /// sidebar (not the data layer) groups them by shelf via
-    /// `Book.shelfId` (= the v1.67 LazySidebarView pattern).
+    /// `Book.shelfId` (= the pre-v1.69 pattern preserved through
+    /// the MVVM split).
     /// v1.68b boss 2026-09-22 '数据结构不要有变化' = no per-shelf
     /// loader (= the existing flat BookStore API stays).
     private let loadAllBooks: @MainActor () throws -> [Book]
@@ -483,19 +485,29 @@ final class SidebarService {
 
 // MARK: - v1.69y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复'
 //
-//  Restores the create + delete + rename business logic that was
-//  deleted when NewLibraryOutlineView.swift (2466 LOC) was
-//  removed in v1.69e (= the MVVM sidebar-split commit). The
-//  view-layer wiring lives in AppleSidebarView (UI: sheets +
-//  contextMenu + alert). This extension holds the persistence
-//  surface (= where the on-disk write happens; = the only
-//  place that touches FileManager + JSONEncoder/Decoder for the
-//  sidebar's create/delete/rename operations).
+//  Create + delete + rename business layer for the sidebar.
+//  Restored from the deleted NewLibraryOutlineView.swift
+//  (2466 LOC) after v1.69e `git rm`'d it without re-wiring
+//  (= per boss 2026-09-23 OOB '需要你把新建功能，右边菜单等恢复').
 //
-//  The error type is a simple enum with LocalizedError
-//  (= the v1.0.0-m1 legacy ShelfError / ShelfDeleteError pair
-//  merged into one with all cases; = the same set of reserved
-//  + duplicate + cannot-delete-default guards).
+//  What lives here:
+//   - persistence surface (= FileManager + JSONEncoder/Decoder
+//     for shelvesRoot/, books/<bookId>/book.json, shelf.json).
+//   - reserved-name guard (= rejects "资料库" / "Reference Library"
+//     pre-v0.26 system-shelf names; = boss 2026-09-20 OOB).
+//   - default-shelf-delete guard (= shelf 00000000-... cannot be
+//     deleted; = Reference Library is immutable).
+//   - duplicate-name validation for create + rename.
+//
+//  What does NOT live here:
+//   - UI (= sheets in SidebarSheets.swift + context menu in
+//     SidebarContextMenu.swift + alert + sheet wiring in
+//     AppleSidebarView.swift).
+//
+//  Error type = one enum with LocalizedError (= the v1.0.0-m1
+//  legacy ShelfError / ShelfDeleteError pair merged into one
+//  with all cases; = same set of reserved + duplicate +
+//  cannot-delete-default guards preserved verbatim).
 extension SidebarService {
     /// v1.69y: domain error for the create / delete / rename
     /// operations (= LocalizedError so the caller can present

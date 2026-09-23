@@ -267,7 +267,7 @@ enum AuxTask: String, CaseIterable, Identifiable {
 
 /// Zone slot enum (= 6 named cases, one per functional module in
 /// the new framework). Used by WorkspaceView's renderTabByKind to
-/// dispatch to the right view (= projectSidebar → NewLibraryOutlineView,
+/// dispatch to the right view (= projectSidebar → AppleSidebarView,
 /// projectPreview → EntityPreviewPane, editor → editor, etc.).
 /// v0.10.3 split chatSidebar + chatDialogue 2, aiChat.
 enum ZoneSlot {
@@ -281,10 +281,13 @@ enum ZoneSlot {
 
 // MARK: - Library outline (sidebar)
 //
-// v1.69 sidebar MVVM cleanup: LibraryOutlineViewContent was a
-// v0.27 wiring wrapper that rendered NewLibraryOutlineView (the
-// old legacy sidebar). Both are removed: the sidebar surface in
-// production lives in NavigationSplitShell.swift (= AppleSidebarView
-// = the v1.68b MVVM-split sidebar). No replacement needed here.
+// v1.69 sidebar MVVM cleanup: `LibraryOutlineViewContent` was a
+// v0.27 wiring wrapper that rendered the pre-v1.69e legacy
+// `NewLibraryOutlineView` (the 2466-LOC mega-file sidebar).
+// Both are removed in v1.69e (= commit 6bd3eb7f); = the sidebar
+// surface in production lives in NavigationSplitShell.swift
+// (= AppleSidebarView = the v1.68b Apple HIG List(.sidebar) +
+// post-v1.69 split sheets/context-menu/business files). No
+// replacement needed here.
 
 

@@ -177,7 +177,10 @@ struct NavigationSplitShell: View {
             // init-parameter wrapper (= the columnWidth modifier
             // sees the wrapper's nominal type instead of the
             // underlying List). Drop the wrapper for now and
-            // inline `NewLibraryOutlineView()` with the modifier.
+            // inline `AppleSidebarView()` with the modifier.
+            // (= post-v1.69: the pre-v1.69e `NewLibraryOutlineView`
+            // was extracted to `AppleSidebarView.swift`; = the
+            // inline reference below uses the new file.)
             // ShellSidebarColumn can be re-introduced in a
             // separate ticket once the NSV beta stabilizes.
             // v0.97 boss 2026-09-10 OOB 'NSV probe was working fine before':
@@ -260,14 +263,15 @@ struct NavigationSplitShell: View {
             // canonical column ranges (~140 / ~200 / detail natural).
             // v1.64 boss 2026-09-18 'sidebar has a real problem —
             // Apple API has other methods, not necessarily outline
-            // tree': switch from NewLibraryOutlineView() (= List(
-            // .sidebar) = NSTableView = NSTableRowData NSLayout
-            // Constraint conflict on window resize per
+            // tree': switch from the pre-v1.69e NewLibraryOutlineView
+            // (= List(.sidebar) = NSTableView = NSTableRowData
+            // NSLayout Constraint conflict on window resize per
             // WenshuApp-2026-09-18-143621.ips) to LazySidebarView
-            // (= pure-SwiftUI ScrollView + LazyVStack + Button rows;
-            // = no NSTableView = no CoreAutoLayout conflict during
-            // window resize). LazySidebarView is in
-            // Sources/WenshuApp/Views/Library/LazySidebarView.swift.
+            // (= pure-SwiftUI ScrollView + LazyVStack + Button
+            // rows; = no NSTableView = no CoreAutoLayout conflict
+            // during window resize). LazySidebarView was removed
+            // in v1.69b (= also `git rm`-deleted alongside
+            // NewLibraryOutlineView in v1.69e).
             //
             // v1.68b boss 2026-09-22 OOB 'macOS 27 化' (= the Apple
             // HIG canonical sidebar per WWDC20 10031) + '回方案 B
@@ -474,10 +478,11 @@ struct NavigationSplitShell: View {
 // `ShellSidebarColumn` moved to its own file at
 // `Sources/WenshuApp/UI/Layout/ShellSidebarColumn.swift`. The struct
 // block (= 29 lines including the `// MARK: - Sidebar column` header
-// + the Apple HIG sidebar rationale + the NewLibraryOutlineView body)
-// is removed here so the same name no longer compiles twice.
-// Same module = no new import needed for the consumer
-// (= NavigationSplitShell instantiates ShellSidebarColumn directly).
+// + the Apple HIG sidebar rationale + the post-v1.69
+// AppleSidebarView body) is removed here so the same name no
+// longer compiles twice. Same module = no new import needed
+// for the consumer (= NavigationSplitShell instantiates
+// ShellSidebarColumn directly).
 
 /// v0.40 boss 2026-09-08 OOB 'directory tree top bar is also missing': scope selector
 /// for the sidebar top tab bar. 2 cases map to the existing
@@ -487,11 +492,12 @@ struct NavigationSplitShell: View {
 /// future ticket can promote to AppState for cross-zone read).
 /// Note: defined as a top-level enum (= used by both
 /// NavigationSplitShell's PaneTabBar items AND
-/// NewLibraryOutlineView's body filter; = placed here in the
+/// AppleSidebarView's body filter; = placed here in the
 /// NavigationSplitShell file = only NavigationSplitShell
 /// imports it). The actual filtering logic lives in
-/// NewLibraryOutlineView (= the enum travels to the leaf as
-/// an init parameter).
+/// AppleSidebarView (= the enum travels to the leaf as
+/// an init parameter; = post-v1.69 MVVM split moved the enum
+/// to its own file at `SidebarItem.swift`).
 
 // MARK: - Content column (= 2 vertical sub-areas)
 

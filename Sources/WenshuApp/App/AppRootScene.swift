@@ -389,8 +389,10 @@ struct AppRootScene: Scene {
                 // 8/27 standing rule 'a new feature should appear
                 // everywhere = synced', this Menu mirrors the toolbar '+'
                 // Menu (= /). Both sub-items post a
-                // NotificationCenter event that NewLibraryOutlineView
-                // listens for and triggers the matching sheet.
+                // NotificationCenter event that the post-v1.69
+                // sidebar observes (= AppleSidebarView flips the
+                // matching AppState request counter → .sheet(item:)
+                // presents the matching sheet from SidebarSheets.swift).
                 // v1.0.0-m1-shell boss 2026-09-10 OOB '⌘N opens a new Wenshu document': the
                 // previous `.keyboardShortcut("n", modifiers:
                 // .command)` was attached to the OUTER Menu (= a

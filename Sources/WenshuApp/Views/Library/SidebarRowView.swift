@@ -82,8 +82,9 @@ struct SidebarRowView: View {
                 }
                 Spacer(minLength: 4)
             }
-            // macOS 27 standard sidebar row height (= matches the
-            // v1.75 fix the LazySidebarView had — = 30 PT chrome row).
+            // macOS 27 standard sidebar row height (= 30 PT
+            // chrome row; = the same value the v1.67
+            // LazySidebarView used pre-MVVM-split).
             .frame(height: DesignTokens.chromeHeight)
         }
     }

@@ -1,34 +1,48 @@
 //
 //  SidebarContextMenu.swift · Wenshu · v1.69y boss 2026-09-23 OOB
 //
-//  Restores the right-click context menu that was deleted when
-//  NewLibraryOutlineView.swift (2466 LOC) was removed in v1.69e
-//  (= the MVVM sidebar-split commit).
+//  Right-click context menu for the sidebar. Restored from the
+//  deleted NewLibraryOutlineView.swift (2466 LOC) after v1.69e
+//  `git rm`'d it without re-wiring (= per boss 2026-09-23 OOB
+//  '需要你把新建功能，右边菜单等恢复').
 //
-//  Apple HIG canonical: macOS 14+ SwiftUI
-//  `.contextMenu(forSelectionType:menuItems:primaryAction:)`
-//  (= dispatches per-row when the user right-clicks a selected
-//  item; = the closure receives the current `Set<ID>` of the
-//  sidebar selection; = returns `[MenuElement]` of buttons / labels).
+//  Apple HIG canonical hook = macOS 14+ SwiftUI
+//  `.contextMenu(forSelectionType:menu:)` (= per-row when the
+//  user right-clicks a selected item; = closure receives the
+//  current `Set<I>` of the sidebar selection; = returns
+//  View hierarchy of buttons / labels).
 //
-//  v1.69y behavior (= matches the v1.0.0-m1 legacy
+//  v1.69y behavior (= matches the pre-v1.69e legacy
 //  NewLibraryOutlineView.contextMenuForSelection):
 //   - single shelf selected: "New Book Here" + "Rename" + "Delete"
-//   - single book selected: "Rename" + "Delete"
-//   - multi-select: batch "Delete" (= destructive role)
-//   - empty selection: EmptyView (= the empty-area right-click
-//     path is handled by a separate plain `.contextMenu` on the
-//     List body in AppleSidebarView itself; = macOS 26
-//     `.contextMenu(forSelectionType:)` does not fire on empty
-//     area hits; = same workaround the legacy code used)
+//   - single book selected:  "Rename" + "Delete"
+//   - multi-select:           batch "Delete" (= destructive role)
+//   - empty selection:        EmptyView
+//
+//  Empty-area right-click (= right-click in the sidebar body
+//  outside any row) uses a separate plain `.contextMenu` on the
+//  List (= `EmptyAreaContextMenu` wrapper; = shows the single
+//  "New" entry that triggers the choice sheet).
+//
+//  Files here:
+//   - SidebarContextMenuBuilder (= static builders; = no @State;
+//     = takes the selection + available shelves + callbacks as
+//     input; = returns AnyView).
+//   - EmptyAreaContextMenu (= ViewModifier wrapping `.contextMenu`
+//     for the List body; = fires on empty-area right-clicks that
+//     `.contextMenu(forSelectionType:)` does not catch).
+//   - SidebarRowContextMenu (= ViewModifier wrapping
+//     `.contextMenu(forSelectionType:menu:)`; = keeps the
+//     modifier chain shallow enough for the SwiftUI type-checker
+//     to handle the inline closure).
 //
 
 import SwiftUI
 
 // MARK: - SidebarContextMenuBuilder
 
-/// v1.69y: static helpers that build the [MenuElement] for a
-/// given sidebar selection (= mirrors the v1.0.0-m1 legacy
+/// v1.69y: static helpers that build the menu View tree for a
+/// given sidebar selection (= mirrors the pre-v1.69e legacy
 /// NewLibraryOutlineView.contextMenuForSelection). All actions
 /// delegate to caller-provided closures (= the AppleSidebarView
 /// body observes `appState.*RequestCount` and flips its own
