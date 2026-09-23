@@ -242,153 +242,104 @@ struct ZoneModuleView: View {
     /// compat with the v0.34 callers that haven't migrated yet).
     /// For the new PreviewPane callers (the post-fix wiring), the
     /// source is always supplied.
+    ///
+    /// v1.74 cardopen-dedupe: thin wrapper over `CardOpenOps` (=
+    /// the dedup + EditorTab + activeTabId mutation shared with
+    /// WorkspaceView + ShellMiddleColumn). The reference-scope +
+    /// bookDoc-deferred path delegates to `CardOpenOps
+    /// .computeCardTriad`; the book-scope file-scan (= walk
+    /// shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md)
+    /// stays in the View because it's specific to ZoneModuleView
+    /// (= ticket 027-35 will replace it). The shared tail
+    /// (= dedup + tab creation + activeTabId mutation) delegates
+    /// to `CardOpenOps.openTab`.
     private func openCardInEditor(source: CardSource? = nil) {
-        let (path, content, title): (String?, String, String)
-        switch previewScope {
-        case .referenceScope(let category):
-            let entities = (try? bookStore.referenceStore.loadAllReferences()) ?? []
-            let filtered = entities.filter { entity in
-                entity.layer == .layerEntities
-                    && (category == nil || entity.category == category)
-            }
-            // BOSS 9/8 fix: if the caller (= PreviewPane) passed
-            // the actually-clicked CardSource, use its entity
-            // (= correct card). Otherwise fall back to filtered.first
-            // (= legacy behavior for callers that don't pass source).
-            let pickedReference: Reference? = {
-                if case .reference(let r) = source { return r }
-                return filtered.first
-            }()
-            if let first = pickedReference {
-                let body = bookStore.referenceStore.loadReferenceBody(id: first.id) ?? first.summary
-                path = nil
-                content = body
-                title = first.title
-            } else {
-                path = nil; content = ""
-                title = category?.displayName ?? WenshuI18n.t("tab.title.reference_library")
-            }
+        // Step 1 = resolve the triad. Reference-scope uses
+        // CardOpenOps (= shared with WorkspaceView / ShellMiddleColumn);
+        // book-scope uses this view's local file-scan (= walk the
+        // 8 standard folders for the first .md; = same as before).
+        let scope = previewScope
+        let triad: CardOpenOps.CardTriad
+        switch scope {
+        case .referenceScope:
+            // Delegate (= shared code path with WorkspaceView).
+            triad = CardOpenOps.computeCardTriad(
+                source: source,
+                previewScope: scope,
+                bookStore: bookStore
+            )
         case .bookScope(let bookId, let folderName):
-            // BOSS 9/8 fix: if the caller passed a .bookDoc source,
-            // use its doc (= correct book doc).
+            // Local file-scan (= not shared with WorkspaceView or
+            // ShellMiddleColumn; = preserved verbatim per ticket
+            // 027-35's deferred plan to lift into a workspace-
+            // level BookDocLoader service).
             if case .bookDoc(let doc) = source {
-                // BookDoc doesn't carry an absolute path (= only
-                // fileName + folderName per PreviewPane L159).
-                // path = nil (= PreviewPane's own loadBookDocs owns
-                // the path resolution; = ticket 027-35 will lift
-                // BookDocLoader into a shared service that returns
-                // the absolute path).
-                path = nil
-                content = doc.summary
-                title = doc.title
+                triad = CardOpenOps.CardTriad(path: nil, content: doc.summary, title: doc.title)
             } else {
-                // Walk shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md.
-                // Mirrors PreviewPane.loadBookDocs (= same logic; = ticket
-                // 027-35 will lift into a shared BookDocLoader service).
-                let shelvesRoot = bookStore.stores.shelvesRoot
-                let bookDirs: [URL] = {
-                    guard let shelfDirs = try? FileManager.default.contentsOfDirectory(
-                        at: shelvesRoot,
-                        includingPropertiesForKeys: nil,
-                        options: [.skipsHiddenFiles]
-                    ) else { return [] }
-                    return shelfDirs.compactMap { shelfDir in
-                        let candidate = shelfDir
-                            .appendingPathComponent("books")
-                            .appendingPathComponent(bookId.uuidString)
-                        return FileManager.default.fileExists(atPath: candidate.path)
-                            ? candidate
-                            : nil
-                    }
-                }()
-                guard let bookDir = bookDirs.first else {
-                    path = nil; content = ""; title = "book-doc"
-                    break
-                }
-                // Determine which folders to scan.
-                let folders: [String] = {
-                    if let folderName {
-                        return [folderName]
-                    }
-                    // Default = scan all 8 standard folders (= same as
-                    // PreviewPane.loadBookDocs default).
-                    return [
-                        "world", "characters", "outlines", "chapters",
-                        "drafts", "sessions", "foreshadowing", "placeholders"
-                    ]
-                }()
-            // Find the FIRST .md file (= v0.34 placeholder; = ticket
-            // 027-35 will wire to the SPECIFIC card the user double-
-            // clicked).
-            var foundPath: URL?
-            var foundBody: String = ""
-            var foundTitle: String = ""
-            for folder in folders {
-                let dirURL = bookDir.appendingPathComponent(folder)
-                guard let entries = try? FileManager.default.contentsOfDirectory(
-                    at: dirURL,
-                    includingPropertiesForKeys: nil,
-                    options: [.skipsHiddenFiles]
-                ) else { continue }
-                if let first = entries.first(where: { $0.pathExtension == "md" }) {
-                    foundPath = first
-                    foundBody = (try? String(contentsOf: first, encoding: .utf8)) ?? ""
-                    foundTitle = first.deletingPathExtension().lastPathComponent
-                    break
-                }
-            }
-            path = foundPath?.path
-            content = foundBody
-            title = foundTitle
+                triad = scanFirstBookDoc(bookId: bookId, folderName: folderName)
             }
         case .shelfScope, .empty:
-            path = nil; content = ""; title = ""
+            triad = CardOpenOps.CardTriad(path: nil, content: "", title: "")
         }
-
-        guard !content.isEmpty else { return }
-
-        // Duplicate-tab check (= same logic as WorkspaceView's).
-        let fingerprint = String(content.prefix(200))
-        if let existingIdx = appState.openTabs.firstIndex(where: {
-            String($0.originalBody.prefix(200)) == fingerprint
-        }) {
-            appState.activeTabId = appState.openTabs[existingIdx].id
-            return
-        }
-
-        // Open new tab.
-        let newTab = EditorTab(
-            id: UUID(),
-            documentPath: path,
-            draft: content,
-            originalBody: content,
-            mode: .preview,
-            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab title didn't go to the document name bug':
-            // pass title so tab strip shows the real card name.
-            title: title.isEmpty ? nil : title
+        _ = CardOpenOps.openTab(
+            triad: triad,
+            previewScope: scope,
+            appState: appState
         )
-        // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
-        // card': capture sourceScope on ZoneModuleView's
-        // openCardInEditor too (= same restore behavior as
-        // WorkspaceView's openCardInEditor).
-        newTab.sourceScope = previewScope
-        // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
-        // the old tab; second double-click fails'): the previous implementation tried
-        // to be smart (= replace the active tab if clean; append a new
-        // tab if dirty; = Safari "reuse clean tab" behavior). That was
-        // the wrong call: boss expected a real multi-tab = each
-        // double-click creates a NEW tab page (= the active placeholder
-        // tab stays as the first tab; = new tab is appended; = no
-        // replacement of the active tab).
-        //
-        // v0.34 B-26-FIX: always append (= Safari tab strip behavior).
-        // Duplicate-tab detection (boss 9/3 follow-up: 'check whether an existing tab
-        // already opened the current MD') happens earlier in this function (= the
-        // fingerprint check that switches to the existing tab if the
-        // .md body matches an already-open tab). = no replacement
-        // behavior; = no "second click fails" race.
-        appState.openTabs.append(newTab)
-        appState.activeTabId = newTab.id
+    }
+
+    /// Local book-doc scan (= unchanged from the pre-v1.74 inline
+    /// implementation; = see the v0.34 B-25-followup doc comment
+    /// on `openCardInEditor` above for the full history). Walks
+    /// `shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md` and
+    /// picks the FIRST .md (= v0.34 placeholder; = ticket 027-35
+    /// will wire to the SPECIFIC card the user double-clicked).
+    private func scanFirstBookDoc(bookId: UUID, folderName: String?) -> CardOpenOps.CardTriad {
+        let shelvesRoot = bookStore.stores.shelvesRoot
+        let bookDirs: [URL] = {
+            guard let shelfDirs = try? FileManager.default.contentsOfDirectory(
+                at: shelvesRoot,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            ) else { return [] }
+            return shelfDirs.compactMap { shelfDir in
+                let candidate = shelfDir
+                    .appendingPathComponent("books")
+                    .appendingPathComponent(bookId.uuidString)
+                return FileManager.default.fileExists(atPath: candidate.path)
+                    ? candidate
+                    : nil
+            }
+        }()
+        guard let bookDir = bookDirs.first else {
+            return CardOpenOps.CardTriad(path: nil, content: "", title: "book-doc")
+        }
+        let folders: [String] = {
+            if let folderName { return [folderName] }
+            // Default = scan all 8 standard folders (= same as
+            // PreviewPane.loadBookDocs default).
+            return [
+                "world", "characters", "outlines", "chapters",
+                "drafts", "sessions", "foreshadowing", "placeholders"
+            ]
+        }()
+        for folder in folders {
+            let dirURL = bookDir.appendingPathComponent(folder)
+            guard let entries = try? FileManager.default.contentsOfDirectory(
+                at: dirURL,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            ) else { continue }
+            if let first = entries.first(where: { $0.pathExtension == "md" }) {
+                let body = (try? String(contentsOf: first, encoding: .utf8)) ?? ""
+                return CardOpenOps.CardTriad(
+                    path: first.path,
+                    content: body,
+                    title: first.deletingPathExtension().lastPathComponent
+                )
+            }
+        }
+        return CardOpenOps.CardTriad(path: nil, content: "", title: "book-doc")
     }
 
 }
