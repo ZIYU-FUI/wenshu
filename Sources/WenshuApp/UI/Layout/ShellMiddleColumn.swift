@@ -226,80 +226,25 @@ struct ShellMiddleColumn: View {
     // content) is preserved (= the boss 9/3 OOB Safari-style
     // 'switch to existing tab if same .md already open' behavior
     // still applies; = no duplicate tabs).
+    //
+    /// v1.74 cardopen-dedupe: thin wrapper over `CardOpenOps` (=
+    /// the dedup + EditorTab + activeTabId mutation shared with
+    /// WorkspaceView + ZoneModuleView). Same `mode = .edit` per
+    /// ShellMiddleColumn's specific UX (= WenshuMarkdownEditor's
+    /// editable NSTextView from the start).
     private func openCardInEditor(source: CardSource?) {
         let scope = previewScope()
-        let (path, content, title): (String?, String, String)
-        switch scope {
-        case .referenceScope(let category):
-            // Mirror WorkspaceView.openCardInEditor's reference-scope
-            // logic. Use the actually-clicked card's Reference if the
-            // caller passed one (= BOSS 9/8 'clicking Dufu card
-            // opens tab with wrong name' fix); fall back to
-            // filtered.first otherwise.
-            let entities: [Reference] = (try? bookStore?.referenceStore.loadAllReferences()) ?? []
-            let filtered = entities.filter { entity in
-                entity.layer == .layerEntities
-                    && (category == nil || entity.category == category)
-            }
-            let picked: Reference? = {
-                if case .reference(let r) = source { return r }
-                return filtered.first
-            }()
-            if let first = picked {
-                let body = bookStore?.referenceStore.loadReferenceBody(id: first.id) ?? first.summary
-                path = nil
-                content = body
-                title = first.title
-            } else {
-                path = nil; content = ""; title = category?.displayName ?? WenshuI18n.t("tab.title.reference_library")
-            }
-        case .bookScope:
-            // Deferred to ticket 027-35 for absolute path resolution.
-            if case .bookDoc(let doc) = source {
-                path = nil
-                content = doc.summary
-                title = doc.title
-            } else {
-                path = nil; content = ""; title = "book-doc"
-            }
-        case .shelfScope, .empty:
-            path = nil; content = ""; title = ""
-        }
-
-        // No content = silent no-op per boss 9/3 feedback.
-        guard !content.isEmpty else { return }
-
-        // Duplicate-tab fingerprint check (= Safari behavior).
-        let fingerprint = String(content.prefix(200))
-        if let existingIdx = envAppState.openTabs.firstIndex(where: {
-            String($0.originalBody.prefix(200)) == fingerprint
-        }) {
-            envAppState.activeTabId = envAppState.openTabs[existingIdx].id
-            return
-        }
-
-        // Open as new tab. mode = .edit per boss's 'opening a document means
-        // edit state' directive (= the WenshuMarkdownEditor editable
-        // surface from the start; = no separate preview step).
-        //
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the tab title didn't go to the document
-        // name' bug': pass the entity / book-doc title (= 'Battle of Red Cliffs' etc.)
-        // so the tab strip shows the real name instead of the
-        // 'preview-sample' placeholder. The title fallback chain in
-        // EditorPlaceholder.tabDisplayTitle uses basename first
-        // (= still wins once documentPath lands), then `title`
-        // (= new), then 'preview-sample' (= old fallback).
-        let newTab = EditorTab(
-            id: UUID(),
-            documentPath: path,
-            draft: content,
-            originalBody: content,
-            mode: .edit,
-            title: title.isEmpty ? nil : title
+        let triad = CardOpenOps.computeCardTriad(
+            source: source,
+            previewScope: scope,
+            bookStore: bookStore
         )
-        newTab.sourceScope = scope
-        envAppState.openTabs.append(newTab)
-        envAppState.activeTabId = newTab.id
+        _ = CardOpenOps.openTab(
+            triad: triad,
+            previewScope: scope,
+            appState: envAppState,
+            mode: .edit
+        )
     }
 
     var body: some View {
