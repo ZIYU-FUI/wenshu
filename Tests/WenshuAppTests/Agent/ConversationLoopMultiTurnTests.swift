@@ -66,9 +66,15 @@ struct ConversationLoopMultiTurnTests {
     }
 
     /// T3 contract: when the assistant returns .toolUse then on the
-    /// next LLM call returns .text, the loop MUST emit a
-    /// "[wenshu.agent] turn 2/10" marker (= ChatView's ChatTurnProgress
-    /// button surfaces this).
+    /// next LLM call returns .text, the loop MUST iterate (= 2
+    /// LLM calls total; = the loop must keep going as long as the
+    /// assistant message contains .toolUse blocks).
+    /// v2.00 (2026-09-23): the `[wenshu.agent] turn 2/10` marker
+    /// assertion was dropped (= marker emission deleted as dead
+    /// plumbing; = ChatTurnProgress.swift was removed in v1.83).
+    /// The multi-turn loop behavior is still exercised below; =
+    /// the test now asserts on the connector's call count (= 2)
+    /// rather than on a streamCallback marker.
     @Test func runTurn_continues_until_no_tool_use() async throws {
         actor CallCount {
             var n = 0
@@ -76,6 +82,7 @@ struct ConversationLoopMultiTurnTests {
                 n += 1
                 return n
             }
+            func snapshot() -> Int { n }
         }
         let counter = CallCount()
         struct TwoTurnConnector: LLMConnector {
@@ -119,8 +126,14 @@ struct ConversationLoopMultiTurnTests {
             tools: ["echo_tool": EchoTool()],
             streamCallback: cb
         )
+        // The connector was called twice (= 1 initial + 1 follow-up
+        // because the first reply had a .toolUse block).
+        let callCount = await counter.snapshot()
+        #expect(callCount == 2, "expected 2 LLM calls (= loop must iterate on toolUse); got \(callCount)")
+        // And no turn-marker is in the stream (= the dead marker
+        // emission is gone).
         let captured = await sink.snapshot()
-        let turnMarkers = captured.filter { $0.contains("wenshu.agent") && $0.contains("turn 2/10") }
-        #expect(!turnMarkers.isEmpty, "expected turn 2/10 marker; got \(captured)")
+        let turnMarkers = captured.filter { $0.contains("wenshu.agent") && $0.contains("turn") }
+        #expect(turnMarkers.isEmpty, "no turn marker; got \(turnMarkers)")
     }
 }

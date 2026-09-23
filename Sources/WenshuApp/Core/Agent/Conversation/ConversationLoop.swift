@@ -428,23 +428,19 @@ public actor ConversationLoop {
                 // T3-MULTI-TURN-LOOP (2026-09-18): wrap the tool dispatch
                 // + LLM re-prompt in a `while` (= keep going as long as
                 // the assistant message contains .toolUse blocks; cap
-                // at maxAgentTurns to prevent runaway loops). Each
-                // iteration increments a turn counter and emits a
-                // `.text` block carrying the counter (= ChatView's
-                // ChatTurnProgress button reads this to render
-                // "agent turn N/10").
+                // at maxAgentTurns to prevent runaway loops).
                 let maxAgentTurns = 10
                 var turnCount = 1  // first LLM call = turn 1
                 while let assistant = result.messages.last,
                       assistant.blocks.contains(where: { if case .toolUse = $0 { return true } else { return false } }),
                       turnCount < maxAgentTurns {
                     turnCount += 1
-                    // Emit turn-counter as a .text block (= ChatView
-                    // picks it up via streamCallback; ChatTurnProgress
-                    // button filters on this marker).
-                    if let streamCallback {
-                        await streamCallback(.text("[wenshu.agent] turn \(turnCount)/\(maxAgentTurns)"))
-                    }
+                    // v2.00 (2026-09-23): dead `[wenshu.agent] turn N/M`
+                    // marker emission removed (= ChatTurnProgress.swift
+                    // deleted in v1.83; = no view consumes the marker).
+                    // The loop counter is still kept internally (= it
+                    // bounds the while condition); = only the user-visible
+                    // marker is dropped.
                     // WIRE-AGENT-006 step 6: "Executing tools".
                     await progressTracker.setStep(
                         id: progressEntry.id,
