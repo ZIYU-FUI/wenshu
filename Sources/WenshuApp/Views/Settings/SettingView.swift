@@ -179,8 +179,16 @@ struct SettingView: View {
         .task { refreshProviderStatus() }
     }
 
+    /// v1.72 T3c: lift the keychain + fetcher + expansion logic into
+    /// `SettingsOps` (= the stateless business layer at
+    /// `Sources/WenshuApp/Views/Settings/SettingsOps.swift`). Per
+    /// ADR-0009 (= UI/业务/数据 separation), the View is now a pure
+    /// consumer: it holds the @State (liveModelIds / isLoadingModels /
+    /// providersWithKeys / apiExpandedProviders / providerSearchText
+    /// / apiDraftKey / apiError), and delegates every mutation to
+    /// SettingsOps.
     private func refreshProviderStatus() {
-        providersWithKeys = Set(ProviderKeychain.listProvidersWithKeys())
+        providersWithKeys = SettingsOps.refreshProviderStatus(keychain: ProviderKeychain.backend)
     }
 
     /// v1.28 B2.1.7: deleted `selectProvider(_:)` (= verify-dead
@@ -198,9 +206,11 @@ struct SettingView: View {
         guard !isLoadingModels else { return }
         isLoadingModels = true
         defer { isLoadingModels = false }
-        let key = ProviderKeychain.loadKeySync(for: currentProvider) ?? ""
-        let ids = await ProviderFetcher.loadModelIds(provider: currentProvider, apiKey: key)
-        await MainActor.run { self.liveModelIds = ids }
+        liveModelIds = await SettingsOps.reloadModels(
+            provider: currentProvider,
+            keychain: ProviderKeychain.backend,
+            fetcher: ProviderFetcherAdapter()
+        )
     }
 
     private var generalTab: some View {
@@ -301,10 +311,14 @@ struct SettingView: View {
     }
 
     private func toggleExpand(p: Provider) {
-        if apiExpandedProviders.contains(p.slug) {
-            apiExpandedProviders.remove(p.slug)
-        } else {
-            apiExpandedProviders.insert(p.slug)
+        // v1.72 T3c: delegate the expansion set toggle to
+        // SettingsOps (= the stateless business layer). The
+        // SwiftUI-side reset (= apiDraftKey = currentDraftPreview(...)
+        // on expand + apiError = nil) stays in the View per ADR-0009
+        // (= binding assignments, not business rules).
+        let wasExpanded = apiExpandedProviders.contains(p.slug)
+        apiExpandedProviders = SettingsOps.toggleExpansion(provider: p, in: apiExpandedProviders)
+        if !wasExpanded {
             apiDraftKey = currentDraftPreview(for: p)
             apiError = nil
         }
@@ -372,29 +386,31 @@ struct SettingView: View {
     }
 
     private func keyPrefix12(for provider: Provider) -> String {
-        guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else { return "" }
-        return String(key.prefix(12))
+        SettingsOps.keyPrefix12(provider: provider, keychain: ProviderKeychain.backend)
     }
 
     private func saveApiKey(for provider: Provider) {
-        let trimmed = apiDraftKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        do {
-            try ProviderKeychain.saveKeySync(trimmed, for: provider)
-            apiDraftKey = ""
-            apiError = nil
-            apiExpandedProviders.remove(provider.slug)
-            refreshProviderStatus()
-            // v0.24 bossverificationfix: notify ChatZoneView (and other listeners) that
-            // the keychain changed so they can refresh their model pickers without
-            // requiring an app restart.
+        let result = SettingsOps.saveApiKey(
+            provider: provider,
+            draft: apiDraftKey,
+            keychain: ProviderKeychain.backend
+        )
+        if result.shouldClearDraft { apiDraftKey = "" }
+        if result.shouldCollapse { apiExpandedProviders.remove(provider.slug) }
+        if result.shouldNotify {
+            // v0.24 bossverificationfix: notify ChatZoneView (and other
+            // listeners) that the keychain changed so they can refresh
+            // their model pickers without requiring an app restart.
             NotificationCenter.default.post(
                 name: .wenshuProviderKeychainChanged,
                 object: nil,
                 userInfo: ["slug": provider.slug]
             )
-        } catch {
-            apiError = WenshuI18n.ts("settings.provider.save_failed_message", error.localizedDescription)
+        }
+        if let err = result.error { apiError = err }
+        if result.didSave {
+            apiError = nil
+            refreshProviderStatus()
         }
     }
 
