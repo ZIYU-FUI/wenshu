@@ -490,6 +490,16 @@ struct AppleSidebarView: View {
             // user-visible slot (= the boss's '资料库分类, 现在
             // 显示是的一个字母' complaint).
             appState.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
+        case .divider:
+            // v1.69bb boss 2026-09-23 OOB '现在把资料库上面也
+            // 加一条分割线': divider rows are non-interactive;
+            // = the user can never select a divider (= it's
+            // pure chrome between sections). Forwarding a
+            // sidebarSelection here would corrupt the
+            // .referenceCategory discriminator (= the divider
+            // sentinel has no EntityCategory mapping). Simply
+            // no-op so the previous selection stays put.
+            break
         }
     }
 

@@ -21,25 +21,6 @@ struct SidebarRowView: View {
     let node: SidebarNode
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: node.systemImage)
-                .frame(width: 18)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(node.title)
-                    .font(.body)
-                    .lineLimit(1)
-                if let subtitle = node.subtitle {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            Spacer(minLength: 4)
-        }
-        // macOS 27 standard sidebar row height (= matches the
-        // v1.75 fix the LazySidebarView had — = 30 PT chrome row).
-        .frame(height: DesignTokens.chromeHeight)
         // v1.69 sidebar fix (= boss 2026-09-22 OOB
         // '现在目录树还是点不了'): the macOS sidebar List bundled
         // with the `List(data, children:selection:rowContent:)`
@@ -64,6 +45,46 @@ struct SidebarRowView: View {
         // https://stackoverflow.com/questions/58785044/swiftui-sidebar-list-does-not-register-first-click
         // (= the same class of bug; the .tag fix here is the
         // canonical workaround).
-        .tag(node)
+        rowContent.tag(node)
+    }
+
+    /// v1.69bb boss 2026-09-23 OOB '现在把资料库上面也加一条
+    /// 分割线': the row body (= split out so the
+    /// `.divider` kind can return a different View type without
+    /// breaking the `.tag(node)` modifier chain on the parent
+    /// View). The `.tag(node)` modifier is applied on the result
+    /// in `body` (= uniform regardless of node kind; = the
+    /// divider row is still selectable on id so the OutlineGroup
+    /// selection bridge stays consistent).
+    @ViewBuilder
+    private var rowContent: some View {
+        // The `.divider` kind renders as a pure horizontal line
+        // (= no icon, no title, no subtitle; = just a Divider +
+        // small vertical breathing room). Apple HIG section
+        // separator idiom.
+        if node.kind == .divider {
+            Divider()
+                .padding(.vertical, 4)
+        } else {
+            HStack(spacing: 6) {
+                Image(systemName: node.systemImage)
+                    .frame(width: 18)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(node.title)
+                        .font(.body)
+                        .lineLimit(1)
+                    if let subtitle = node.subtitle {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 4)
+            }
+            // macOS 27 standard sidebar row height (= matches the
+            // v1.75 fix the LazySidebarView had — = 30 PT chrome row).
+            .frame(height: DesignTokens.chromeHeight)
+        }
     }
 }

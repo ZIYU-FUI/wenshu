@@ -275,6 +275,23 @@ final class SidebarService {
                     ))
                 }
             }
+            // v1.69bb boss 2026-09-23 OOB '现在把资料库上面也
+            // 加一条分割线': insert a non-interactive divider
+            // row between the user shelves (= `roots` collected
+            // from bookStore.sidebarLoadShelves) and the
+            // reference library root (= synthetic `reference`
+            // kind). The Divider is rendered by SidebarRowView
+            // when `node.kind == .divider` (= it has no row
+            // chrome; = just a horizontal line; = Apple HIG
+            // section separator).
+            roots.append(SidebarNode(
+                id: Self.dividerSentinelId,
+                kind: .divider,
+                title: "",
+                subtitle: nil,
+                systemImage: "",
+                children: nil
+            ))
             roots.append(SidebarNode(
                 id: Self.referenceLibraryRootId,
                 kind: .reference,
@@ -296,6 +313,15 @@ final class SidebarService {
     /// node (= used by AppState.sidebarSelection's .referenceCategory
     /// discriminator).
     static let referenceLibraryRootId = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+
+    /// v1.69bb boss 2026-09-23 OOB '现在把资料库上面也加一条
+    /// 分割线': sentinel UUID for the divider row inserted
+    /// between user shelves and the reference library root.
+    /// (= a different sentinel than referenceLibraryRootId so
+    /// the divider never accidentally collides with selection
+    /// state; = UUID is irrelevant to UX = just a unique
+    /// identity for SwiftUI's diff machinery).
+    static let dividerSentinelId = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
 
     /// Canonical UUID of the default help-doc book seeded on first
     /// launch by LibraryMigrator.swift:216 seedDefaultHelpDoc().

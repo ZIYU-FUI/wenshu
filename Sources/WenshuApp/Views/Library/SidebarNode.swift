@@ -79,5 +79,13 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         // = EntityCategory). Children = the references in that
         // category.
         case referenceCategory
+        // v1.69bb boss 2026-09-23 OOB '现在把资料库上面也加一条
+        // 分割线': non-interactive row that renders a horizontal
+        // Divider (= the Apple HIG section separator idiom;
+        // = same role as the section header divider at the
+        // top of the sidebar). Inserted between the shelves
+        // (= user shelves) and the reference library (= the
+        // synthetic `reference` root node) by SidebarService.
+        case divider
     }
 }
