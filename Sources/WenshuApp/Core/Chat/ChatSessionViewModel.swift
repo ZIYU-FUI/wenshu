@@ -943,8 +943,14 @@ public final class ChatViewModel {
         // HermesGoals.swift's GoalsManager.persistGoal requires the
         // directory to be writable (= tests use the same temp-scoped
         // pattern; see HermesGoalsTests.makeTempPersistenceDir).
-        let persistenceDirectory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("WenshuGoals-\(UUID().uuidString)", isDirectory: true)
+        // v1.98 (2026-09-23): boss '业务层不许摸基础设施'.
+        // The FileManager.default.temporaryDirectory call moves
+        // into HermesGoals.swift's `temporaryGoalsDirectory(prefix:)`
+        // helper (= data-layer concern). Here we call the helper
+        // instead of FileManager directly.
+        let persistenceDirectory = GoalsManager.temporaryGoalsDirectory(
+            prefix: "WenshuGoals"
+        )
 
         let manager = GoalsManager(
             mainConnector: mainConnector,
