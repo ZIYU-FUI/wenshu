@@ -201,6 +201,17 @@ public enum DesignTokens {
     /// Replaces `.foregroundStyle(.tertiary)` in 16 files.
     public static let statusForeground: HierarchicalShapeStyle = .tertiary
 
+    /// v1.91 (2026-09-23): boss '聊天区的，文字回显层，是否可以变成左栏
+    /// 的颜色参数' (= 'the chat transcript layer should use the left
+    /// sidebar's color parameters'). The Apple HIG sidebar background
+    /// (= NSColor.controlBackgroundColor; = the primitive that
+    /// `List(...).listStyle(.sidebar)` paints on macOS 14+) is the
+    /// canonical sidebar color. This token gives every wenshu surface
+    /// that wants to match the sidebar one parameter (= token-driven
+    /// color = Light/Dark mode + future Apple default updates = 1-line
+    /// change instead of N).
+    public static let sidebarBackground: Color = Color(nsColor: .controlBackgroundColor)
+
     /// v1.28 A1.7: System message surface fill (= 15% red opacity on
     /// Apple accent red; = the canonical warning banner background
     /// for chat error / system messages; = replaces the band-aid

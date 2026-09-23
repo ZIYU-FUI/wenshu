@@ -380,7 +380,19 @@ public struct ChatView: View {
                 // surface (= Apple Mail, Apple Messages, Notes chat
                 // = inspector/content tier; = controlBackgroundColor).
                 .scrollContentBackground(.hidden)
-                .background(Color(nsColor: .controlBackgroundColor))
+                // v1.91 (2026-09-23): boss '聊天区的，文字回显层，是否
+                // 可以变成左栏的颜色参数' (= 'chat transcript should
+                // use the left sidebar's color parameters'). Use
+                // `DesignTokens.sidebarBackground` (= token-driven
+                // sidebar color = Color(nsColor: .controlBackgroundColor);
+                // = the same primitive Apple HIG List(.sidebar) paints
+                // for the macOS 27 leftmost column). Same Color as before
+                // (= the implementation was already correct; = this
+                // commit only routes through the DesignTokens constant
+                // so the sidebar color is parameter-driven (= single
+                // source of truth for the sidebar color in the wenshu
+                // design system)).
+                .background(DesignTokens.sidebarBackground)
                 // v1.65-cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，确实没有实现'
                 // v1.65-cleanup E4 boss 2026-09-21 '不是居左，你把吸顶也取消吧':
                 // the .safeAreaInset(edge: .top) sticky overlay that
