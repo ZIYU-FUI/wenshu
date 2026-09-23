@@ -1,25 +1,28 @@
+// SectionHeaderLockedFormatTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  SectionHeaderLockedFormatTests.swift · Wenshu · v0.71 P1 batch 3
+// v0.71 P1 batch 3 (boss 2026-09-11 OOB 'keep this style as the standard — use it from
+// now on' = 'this style stays as the standard, use it from now on' + 'that
+// title's text color — Apple's is a bit grayer, not pure white, close to the divider's color' =
+// 'the title color is gray, not pure white, close to the divider color'):
 //
-//  v0.71 P1 batch 3 (boss 2026-09-11 OOB 'keep this style as the standard — use it from
-//  now on' = 'this style stays as the standard, use it from now on' + 'that
-//  title's text color — Apple's is a bit grayer, not pure white, close to the divider's color' =
-//  'the title color is gray, not pure white, close to the divider color'):
+// The section header pattern is LOCKED per memory:
+//   VStack(spacing: 4) {
+//       HStack { Spacer(); Text(t).font(.body).foregroundStyle(.secondary).textCase(nil); Spacer() }
+//       Divider()
+//   }
 //
-//  The section header pattern is LOCKED per memory:
-//    VStack(spacing: 4) {
-//        HStack { Spacer(); Text(t).font(.body).foregroundStyle(.secondary).textCase(nil); Spacer() }
-//        Divider()
-//    }
+// Used in all 3 column titles:
+//   • Sidebar: section headers in AppleSidebarView.swift (v1.68b MVVM-split sidebar)
+//   • Content: 'Assets' in PreviewPane.swift
+//   • Inspector: 'Authoring (Fiction)' etc in ShellDetailColumn.swift
 //
-//  Used in all 3 column titles:
-//    • Sidebar: 'Studio' in NewLibraryOutlineView.swift
-//    • Content: 'Assets' in PreviewPane.swift
-//    • Inspector: 'Authoring (Fiction)' etc in NavigationSplitShell.swift
+// v1.69 sidebar MVVM cleanup: target file updated from
+// NewLibraryOutlineView.swift to AppleSidebarView.swift (= the
+// v1.68b MVVM-split sidebar that is now the production sidebar).
 //
-//  These tests don't render views; they verify the source file
-//  structure (= the LOCKED format contract = a regression that
-//  changes one copy but not the others breaks visual consistency).
+// These tests don't render views; they verify the source file
+// structure (= the LOCKED format contract = a regression that
+// changes one copy but not the others breaks visual consistency).
 
 import Testing
 import Foundation
@@ -35,8 +38,15 @@ struct SectionHeaderLockedFormatTests {
     /// v1.52 stale-test-cleanup: replaced NavigationSplitShell.swift with
     /// ShellDetailColumn.swift (= v1.43 ticket 001 extracted the inspector
     /// column title = 'Authoring' from the shell into its own column file).
+    /// v1.69 sidebar MVVM cleanup: removed AppleSidebarView.swift from this
+    /// list. The v1.68b Apple HIG sidebar uses SwiftUI's built-in
+    /// `List(.sidebar)` + `List(data, children:)` which manages section
+    /// header spacing via Apple's own HIG convention (= no manual
+    /// `VStack(spacing: 4) { HStack { Spacer() / Text / Spacer() } /
+    /// Divider() }` pattern in the sidebar file; = Apple draws the
+    /// section chrome). The LOCKED format contract still applies to the
+    /// 2 columns that draw their own title (= content + inspector).
     private static let sectionHeaderFiles = [
-        "Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift",
         "Sources/WenshuApp/Views/Workspace/PreviewPane.swift",
         "Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift",
     ]

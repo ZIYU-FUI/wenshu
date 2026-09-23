@@ -101,14 +101,8 @@ struct ZoneModuleView: View {
             // sidebarSelection binding to NewLibraryOutlineView so
             // the sidebar click → preview pane scope works.
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(NewLibraryOutlineView(
-                    selectedEntityCategory: $selectedEntityCategory,
-                    selectedEntity: $selectedEntity
-                ))),
-            ], trailingButton: AnyView(NewLibraryOutlineView(
-                selectedEntityCategory: .constant(nil),
-                selectedEntity: .constant(nil)
-            ).zoneHeaderButtons))
+                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(AppleSidebarView())),
+            ], trailingButton: AnyView(SidebarZoneHeaderButtons()))
 
         case .projectPreview:
             // Old 6-zone projectPreview = 2 tabs (Preview / Map).
