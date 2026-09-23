@@ -17,7 +17,7 @@
 // - `nil` selection → `.empty`
 //
 // Behavior testing skipped (= SidebarSelection is internal to
-// NewLibraryOutlineView; = source-level is the right altitude).
+// AppleSidebarView; = source-level is the right altitude).
 
 import SwiftUI
 import Testing

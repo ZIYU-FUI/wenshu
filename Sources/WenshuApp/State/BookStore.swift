@@ -63,7 +63,7 @@ final class BookStore: @unchecked Sendable {
     /// bind to `books.count` instead of running an inline
     /// `FileManager.contentsOfDirectory` scan at render time.
     /// Sorted by `createdAt` ascending (= matches the order the
-    /// `NewLibraryOutlineView` shows them).
+    /// post-v1.69 sidebar shows them via SidebarService).
     ///
     /// Initialized empty; the caller (= `LibraryRootView`'s
     /// layout shell) calls `reloadAllBooks()` once at launch.
@@ -201,10 +201,11 @@ struct ReferenceLibrary: Sendable {
 
 // MARK: - v0.32 sidebar inline-storage consolidation
 //
-// Moved from `NewLibraryOutlineView.swift` (= inline FileManager +
-// JSONDecoder + JSONEncoder calls duplicated the storage adapter
-// logic in two places). These methods are the canonical place to
-// ask the sidebar / outline views for shelf / book CRUD. Views
+// Moved from the pre-v1.69e `NewLibraryOutlineView.swift`
+// (= inline FileManager + JSONDecoder + JSONEncoder calls
+// duplicated the storage adapter logic in two places). These
+// methods are the canonical place to ask the sidebar / outline
+// views for shelf / book CRUD. Views
 // never touch FileManager directly.
 
 extension BookStore {

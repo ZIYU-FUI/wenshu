@@ -22,9 +22,9 @@ import SwiftUI
 /// Per boss 2026-09-10 'visual 5 columns' + 'the cards zone goes in middle-left, that's wrong,
 /// we don't need that red-box area': the middle column carries exactly 1 zone
 /// (PreviewPane = the card grid). The previously rendered bottom
-/// outline sub-area (= NewLibraryOutlineView = the same
-/// directory tree the sidebar uses) is removed (= the outline
-/// is the sidebar's job; duplicating it in the middle column
+/// outline sub-area (= the pre-v1.69e NewLibraryOutlineView =
+/// the same directory tree the sidebar uses) is removed (= the
+/// outline is the sidebar's job; duplicating it in the middle column
 /// is noise).
 ///
 /// Boss 2026-09-10 'remove the tab, keep just the cards content — and since the image picker isn't implemented anyway, just remove it too for now':
@@ -142,9 +142,9 @@ struct ShellMiddleColumn: View {
     /// PreviewScope. The case-mismatch bug (sidebar wrote lowercase
     /// directoryName 'b' but entities JSON stored uppercase
     /// rawValue 'B') was fixed at the sidebar tag + onChange lookup
-    /// sites (= see NewLibraryOutlineView.swift line ~525 for the
-    /// `.tag(SidebarItem.referenceCategory(category.rawValue))`
-    /// site + line ~745 for the `appState.sidebarSelection =
+    /// sites (= see AppleSidebarView.swift line ~`SidebarItem
+    /// .referenceCategory` case for the `.tag(node)` site + the
+    /// corresponding `appState.sidebarSelection =
     /// .referenceCategory(cat.directoryName)` write site;
     /// v0.71 P1 batch 9 dual-axis followup: lines were ~501 / ~721
     /// before the v0.34 + v0.40 refactors that added per-category
@@ -166,7 +166,28 @@ struct ShellMiddleColumn: View {
         case .referenceLibraryRoot:
             return .referenceScope(nil)
         case .referenceCategory(let dirName):
-            return .referenceScope(EntityCategory(rawValue: dirName))
+            // v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示':
+            // SidebarItem.referenceCategory(directoryName) carries the
+            // EntityCategory.directoryName (= lowercase letter for the
+            // official 22 CLC cases, "其它" for the .z fallback, "未分类"
+            // for pre-v0.29 nil-category references). EntityCategory
+            // rawValues are uppercase letters (= "A" .. "Z"), so a
+            // case-insensitive lookup restores the canonical form.
+            //
+            // Previous behavior (= v1.0.0-m1-shell): the rawValue
+            // lookup was case-sensitive, so a lowercase dirName
+            // produced nil → fall-back to .referenceScope(nil) = the
+            // user picked a category but the middle column showed the
+            // full overview (= the boss's 'click category → still
+            // shows all entities' bug).
+            if let raw = EntityCategory(rawValue: dirName) {
+                return .referenceScope(raw)
+            }
+            let upper = dirName.uppercased()
+            if let raw = EntityCategory(rawValue: upper) {
+                return .referenceScope(raw)
+            }
+            return .referenceScope(nil)
         case .book(let bookId):
             return .bookScope(bookId: bookId, folderName: nil)
         case .shelf(let shelfId):

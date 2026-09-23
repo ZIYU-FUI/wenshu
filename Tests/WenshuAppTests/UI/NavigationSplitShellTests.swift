@@ -80,7 +80,7 @@ final class NavigationSplitShellTests: XCTestCase {
 
     /// M2 (= this commit): swap M1's ShellPlaceholder for the
     /// real wenshu zone views. Acceptance = body assembly
-    /// without throwing (= the 6 real zone views: NewLibraryOutlineView,
+    /// without throwing (= the 6 real zone views: AppleSidebarView,
     /// ZoneModuleView(projectPreview), EditorPlaceholder, ChatView,
     /// ZoneModuleView(specializedTools), ZoneModuleView(aiDynamic))
     /// all wire up cleanly to the NavigationSplitView 3-column

@@ -308,7 +308,8 @@ struct WorkspaceView: View {
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.34 boss 2026-09-02 OOB: sidebar selection persistence
-            // moved to NewLibraryOutlineView's unified SidebarState.
+            // moved to AppleSidebarView (post-v1.69 MVVM split; =
+            // unified with AppState.sidebarSelection's didSet writer).
             // WorkspaceView no longer owns any @AppStorage key for
             // sidebar state — single source of truth lives where the
             // sidebar renders.
@@ -387,28 +388,33 @@ struct WorkspaceView: View {
     private func renderTabByKind(_ kind: TabKind) -> some View {
         switch kind {
         case .projectSidebar:
-            // v0.28 followup Boss UX round 43 (Boss 2026-08-29 OOB
-            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-            // = sidebar's top chrome (= "Bookshelf" tab + New/Import buttons
-            // inside NewLibraryOutlineView) was at a different Y than
-            // Preview/Editor/Tools (= which use ZoneContentView with
-            // RegionTabBar = 30 PT tall)). Fix = wrap NewLibraryOutlineView
-            // in ZoneContentView (= 1 "Bookshelf" tab + trailing New/Import
-            // buttons via zoneHeaderButtons). Now sidebar uses the same
-            // canonical 30 PT RegionTabBar as the other 3 general
-            // panes (= identical Y position for all 4 top tab bars).
+            // v0.28 followup Boss UX round 43 (= the sidebar's
+            // top chrome sat at a different Y than Preview/Editor/
+            // Tools which use ZoneContentView with a 30 PT
+            // RegionTabBar). Fix = wrap the (legacy) sidebar in
+            // ZoneContentView (= 1 "Bookshelf" tab + trailing
+            // New/Import buttons via the legacy
+            // `zoneHeaderButtons` computed view). Now sidebar
+            // uses the canonical 30 PT RegionTabBar (= identical
+            // Y position for all 4 top tab bars).
             //
-            // NewLibraryOutlineView still needs to be inside the tab
-            // content slot (not above/around the tab bar) so its tree
-            // outline is the "Bookshelf" tab's content.
+            // v1.69: the legacy `NewLibraryOutlineView` was
+            // extracted to focused files (= AppleSidebarView +
+            // SidebarSheets + SidebarContextMenu + SidebarService +
+            // SidebarItem + SidebarRowView + SidebarZoneHeaderButtons
+            // + AppleSidebarBottomNewButton). The tab content
+            // slot is now `AppleSidebarView()`; = the
+            // SidebarZoneHeaderButtons trailing slot still
+            // ships for backwards compat with the LayoutEditMode
+            // 6-zone layout (= sunset path; = NavigationSplitShell
+            // owns the canonical sidebar bottom '+' button via
+            // AppleSidebarBottomNewButton).
+            //
             // v0.30: pass bindings so sidebar selection → preview pane.
             // The trailingButton uses the default-init (doesn't drive preview).
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(NewLibraryOutlineView(
-                    selectedEntityCategory: $selectedEntityCategory,
-                    selectedEntity: $selectedEntity
-                ))),
-            ], trailingButton: AnyView(NewLibraryOutlineView().zoneHeaderButtons))
+                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(AppleSidebarView())),
+            ], trailingButton: AnyView(SidebarZoneHeaderButtons()))
         case .projectPreview:
             // v0.28 followup Boss UX round 45 (Boss 2026-08-29 OOB
             // 'top and bottom bars are not aligned' = Preview/Tools were using old

@@ -1,17 +1,22 @@
+// SidebarHeaderProminenceTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  SidebarHeaderProminenceTests.swift · Wenshu · v0.71 P1 batch 3
+// v0.71 P1 batch 3 (boss 2026-09-12 OOB 'sidebar column, test bookshelf, divider,
+// reference library — is there spacing between these controls that we added by hand; if so, revert to default'):
+// code-level verification (= no UI render) that the sidebar's
+// section header doesn't use the non-Apple-default `.headerProminence
+// (.increased)` modifier (= the Apple HIG default is .standard = no
+// modifier; = the previous commit removed .headerProminence(.increased)
+// to revert to the Apple-default ~22 PT inter-section gap).
 //
-//  v0.71 P1 batch 3 (boss 2026-09-12 OOB 'sidebar column, test bookshelf, divider,
-//  reference library — is there spacing between these controls that we added by hand; if so, revert to default'):
-//  code-level verification (= no UI render) that the sidebar's
-//  section header doesn't use the non-Apple-default `.headerProminence
-//  (.increased)` modifier (= the Apple HIG default is .standard = no
-//  modifier; = the previous commit removed .headerProminence(.increased)
-//  to revert to the Apple-default ~22 PT inter-section gap).
+// These tests don't render the view; they verify the SOURCE file
+// structure (= the canonical 'code-level verification' discipline
+// when screenshot tests are unavailable).
 //
-//  These tests don't render the view; they verify the SOURCE file
-//  structure (= the canonical 'code-level verification' discipline
-//  when screenshot tests are unavailable).
+// v1.69 sidebar MVVM cleanup: target file path updated from
+// AppleSidebarView.swift (= was NewLibraryOutlineView.swift pre-v1.69e) (= the
+// v1.68b MVVM-split sidebar that is now the production sidebar).
+// Same Apple-HIG-default invariant = no .headerProminence(.increased)
+// and no manual .padding(.top, ...) on the section header.
 
 import Testing
 import Foundation
@@ -20,7 +25,7 @@ import Foundation
 struct SidebarHeaderProminenceTests {
 
     private static let sidebarSourceURL = URL(
-        fileURLWithPath: "Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift"
+        fileURLWithPath: "Sources/WenshuApp/Views/Library/AppleSidebarView.swift"
     )
 
     private static func loadSidebarSource() throws -> String {
@@ -48,7 +53,7 @@ struct SidebarHeaderProminenceTests {
         }.joined(separator: "\n")
         #expect(
             !strippedSrc.contains(".headerProminence(.increased)"),
-            "NewLibraryOutlineView MUST NOT use .headerProminence(.increased) (= Apple HIG default = .standard)"
+            "AppleSidebarView MUST NOT use .headerProminence(.increased) (= Apple HIG default = .standard)"
         )
     }
 
@@ -71,7 +76,7 @@ struct SidebarHeaderProminenceTests {
         for token in nonDefaults {
             #expect(
                 !strippedSrc.contains(token),
-                "NewLibraryOutlineView MUST NOT use \(token) (= non-Apple-default)"
+                "AppleSidebarView MUST NOT use \(token) (= non-Apple-default)"
             )
         }
     }

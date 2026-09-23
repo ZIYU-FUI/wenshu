@@ -67,7 +67,7 @@ struct BookCountStatusTests {
         // Stage a shelf dir + a shelf object so sidebarSaveBook can
         // write the book.json (= sidebarSaveBook creates the
         // bookDir under `<shelvesRoot>/<shelfId>/books/<bookId>/`
-        // — we mirror the same pattern NewLibraryOutlineView uses).
+        // — we mirror the same pattern AppleSidebarView uses).
         let shelvesRoot = tmpRoot.appendingPathComponent("shelves", isDirectory: true)
         let shelf = Bookshelf(name: "Test Shelf")
         let shelfDir = shelvesRoot.appendingPathComponent(shelf.id.uuidString, isDirectory: true)

@@ -322,7 +322,7 @@ public actor BookManager {
     /// shelfId. When the filter is nil, returns every book.
     ///
     /// Sort = `createdAt` ascending (= oldest first; matches the
-    /// canonical wenshu-side order in `NewLibraryOutlineView` /
+    /// canonical wenshu-side order in `AppleSidebarView` (= post-v1.69 sidebar MVVM split) — the legacy
     /// `BookStore.sidebarLoadAllBooks`).
     public func listBooks(shelfId: UUID? = nil) async throws -> [BookDescriptor] {
         let books = bookStore.books

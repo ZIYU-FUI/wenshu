@@ -4,7 +4,7 @@
 // (= adopted = global @Observable + @Environment injection).
 // This file centralizes cross-zone UI state (formerly scattered
 // as @Binding across 4 view layers = WorkspaceView -> PaneRenderer
-// -> TabContentDispatcher -> ZoneModuleView -> NewLibraryOutlineView,
+// -> TabContentDispatcher -> ZoneModuleView -> AppleSidebarView,
 // per commit d845fe9c9).
 //
 // Why a global @Observable (= per Apple Observation framework,
@@ -94,7 +94,7 @@ var sidebarSelection: SidebarItem? = nil {
             // back to UserDefaults on launch (= pure read-side
             // migration). Encoded as JSON via the existing Codable
             // conformance (= SidebarItem: Hashable, Codable, declared
-            // at NewLibraryOutlineView.swift:61).
+            // in its own file `SidebarItem.swift` post-v1.69c split).
             //
             // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
             // added duplicate-write guard (= same pattern as

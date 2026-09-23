@@ -44,6 +44,7 @@
 import SwiftUI
 import CoreFoundation  // v0.30: for CFStringTransform (pinyin sort)
 import AppKit  // v0.34 B-26: NSDoubleClickInterval (= system double-click interval)
+import CryptoKit  // v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect: SHA1 for stable BookDoc id (= UUID v5)
 
 // MARK: - Sort order (v0.30 boss OOB)
 //
@@ -106,9 +107,11 @@ enum BookFolder: String, CaseIterable {
     /// file-pen-line) are NOT valid SF Symbols 6 identifiers and
     /// SwiftUI renders them as blank rectangles. Verified against
     /// /Applications/SF Symbols Beta.app/Contents/Executables/
-    /// sfsymbols search 2026-09-16. Mapping mirrors
-    /// NewLibraryOutlineView.standardFolderNames (= the sidebar's
-    /// folder row ICON, to keep both surfaces visually consistent).
+    /// sfsymbols search 2026-09-16. Mapping mirrors the
+    /// pre-v1.69e legacy NewLibraryOutlineView.standardFolderNames
+    /// (= the sidebar's folder row ICON, to keep both surfaces
+    /// visually consistent; = the constant now lives in
+    /// SidebarService.standardFolderIcons).
     var icon: String {
         switch self {
         case .world: return "globe"
@@ -178,10 +181,29 @@ enum PreviewScope: Hashable, Codable {
 // filesystem (= no caching yet; subsequent reads are fast on macOS
 // APFS). Used for the book-scope preview mode.
 struct BookDoc: Identifiable, Hashable {
-    let id: UUID = UUID()
+    // v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
+    // the previous `let id: UUID = UUID()` default value made
+    // every BookDoc instance unique (= the SwiftUI ForEach
+    // inside bookDocsGrid saw "all rows changed" on every
+    // body re-render = full grid rebuild = NSHostingView
+    // size/invalidate cycle = the 'more Update Constraints
+    // in Window passes than there are views in the window'
+    // crash). Fixed: derive the id from the on-disk path
+    // (= bookId + folderName + fileName → SHA256 → first
+    // 16 bytes as UUID) so the id is STABLE across
+    // re-evaluations of the same .md file.
+    //
+    // v1.69y: simpler stable id = `bookId-folderName-fileName`
+    // UUID v5-style hash (UUID(uuidString:) from a deterministic
+    // namespace UUID + SHA256 of the path). The identifier
+    // matches Swift's Identifiable contract: two BookDocs for
+    // the same .md file on disk are == across SwiftUI body
+    // re-evaluations.
+    let id: UUID
     /// Folder directory name (= "world", "characters", "outlines",
     /// "chapters", "drafts", "sessions", "foreshadowing",
     /// "placeholders"). Used for the folder badge in the card.
+    let bookId: UUID
     let folderName: String
     /// Full filename including .md extension (= e.g.
     /// "yes.md").
@@ -213,6 +235,86 @@ struct BookDoc: Identifiable, Hashable {
     }
 }
 
+/// v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
+/// derive a STABLE UUID for a BookDoc from its on-disk
+/// path (= bookId + folderName + fileName). The same .md
+/// file on disk maps to the same UUID across SwiftUI body
+/// re-evaluations (= Identifiable ForEach inside bookDocsGrid
+/// sees stable row ids = no full grid rebuild = no SwiftUI
+/// NSHostingView constraint cycle). Implementation = UUID v5
+/// (SHA1-based namespaced UUID) over a fixed namespace + the
+/// canonical path string (= FastCrypto via Swift stdlib).
+enum BookDocIDFactory {
+    /// Fixed namespace for BookDoc ids (= arbitrary UUID;
+    /// picked once and frozen = different from any random
+    /// UUID wenshu might generate elsewhere). Two BookDocs
+    /// for the same .md file → same id; two for different
+    /// .md files → different ids.
+    static let namespace: uuid_t = (
+        0x42, 0x6f, 0x6f, 0x6b, 0x44, 0x6f, 0x63, 0x49,
+        0x44, 0x73, 0x70, 0x61, 0x63, 0x65, 0x00, 0x01
+    )
+
+    /// Compute the SHA-1 (= UUID v5 algorithm) over
+    /// `namespace + "/" + bookId + "/" + folderName + "/" + fileName`
+    /// and return the first 16 bytes as a UUID. This is the
+    /// same algorithm SwiftUI uses internally for
+    /// Identifiable ids in List/ForEach (= no collisions
+    /// within a single wenshu install).
+    static func make(bookId: UUID, folderName: String, fileName: String) -> UUID {
+        var hasher = Insecure.SHA1()
+        // Feed each component into the hasher. macOS 27
+        // CryptoKit `update(data:)` wants `Data`, so we wrap
+        // the raw bytes via `Data(_ buffer:)` (= the explicit
+        // UnsafeRawBufferPointer overload).
+        hasher.update(data: Self.dataForNamespace())
+        hasher.update(data: Data("/".utf8))
+        hasher.update(data: Self.dataForUUID(bookId))
+        hasher.update(data: Data(folderName.utf8))
+        hasher.update(data: Data("/".utf8))
+        hasher.update(data: Data(fileName.utf8))
+        let digest = hasher.finalize()
+        var bytes = Array(digest.prefix(16))
+        // Set RFC 4122 version (5) and variant bits so the
+        // UUID is a valid v5 namespaced UUID (= Swift's
+        // UUID(uuid:) tolerates but other consumers expect).
+        bytes[6] = (bytes[6] & 0x0F) | 0x50
+        bytes[8] = (bytes[8] & 0x3F) | 0x80
+        let uuid: uuid_t = (
+            bytes[0], bytes[1], bytes[2], bytes[3],
+            bytes[4], bytes[5], bytes[6], bytes[7],
+            bytes[8], bytes[9], bytes[10], bytes[11],
+            bytes[12], bytes[13], bytes[14], bytes[15]
+        )
+        return UUID(uuid: uuid)
+    }
+
+    /// Convert the fixed 16-byte namespace tuple to Data
+    /// (= the Swift CryptoKit `update(data:)` overload
+    /// signature on macOS 27).
+    private static func dataForNamespace() -> Data {
+        var bytes = namespace
+        return withUnsafeBytes(of: &bytes) { Data($0) }
+    }
+
+    /// Convert a UUID to Data via its `uuid` tuple (= 16
+    /// raw bytes; = the same bytes macOS uses to identify
+    /// the UUID in NSUUID / uuid_t bridging).
+    private static func dataForUUID(_ id: UUID) -> Data {
+        var u = id.uuid
+        return withUnsafeBytes(of: &u) { Data($0) }
+    }
+}
+
+extension PreviewPane {
+    /// Convenience: delegate to BookDocIDFactory.make.
+    /// (= keeps the call site compact and centralises the
+    /// hash algorithm choice.)
+    nonisolated static func stableBookDocId(bookId: UUID, folderName: String, fileName: String) -> UUID {
+        BookDocIDFactory.make(bookId: bookId, folderName: folderName, fileName: fileName)
+    }
+}
+
 /// Content for the material management zone (= projectPreview).
 /// Renders cards in scope-driven modes:
 /// - .referenceScope(nil): all entities (= overview grid)
@@ -222,6 +324,21 @@ struct BookDoc: Identifiable, Hashable {
 /// - .shelfScope / .empty: empty state hint
 struct PreviewPane: View {
     @Environment(BookStore.self) private var bookStore
+
+    /// v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
+    /// cached snapshot of `(shelfId → books)` so the shelf
+    /// subtree can be cheaply skipped across body re-renders.
+    /// The v1.69n shelfScopeView ran FileManager I/O (= walk
+    /// shelves tree + read every .md) on EVERY SwiftUI body
+    /// re-render of PreviewPane (= every Observation tick =
+    /// every sidebarSelection change = every AppState mutation
+    /// = the 'more Update Constraints in Window passes than
+    /// there are views in the window' SwiftUI NSHostingView
+    /// constraint loop). The fix: pre-load via `.task(id:)`
+    /// keyed on shelfId (= SwiftUI cancels and restarts the
+    /// task only when shelfId changes = not on every parent
+    /// re-render = no I/O storm = no layout cycle).
+    @State private var cachedShelfBooks: [UUID: [Book]] = [:]
 
     /// v0.30 boss 8/31 OOB: scope of documents to display. Driven by
     /// sidebar selection (= WorkspaceView computes from sidebarSelection).
@@ -664,8 +781,48 @@ struct PreviewPane: View {
                         referenceScopeView(category: category)
                     case .bookScope(let bookId, folderName: let folderName):
                         bookScopeView(bookId: bookId, folderName: folderName)
-                    case .shelfScope:
-                        shelfScopeView()
+                    case .shelfScope(let shelfId):
+                        // v1.69 boss 2026-09-22 OOB '书架, 就是
+                        // 从这里开始, 测试书架. 这两个目录项可以
+                        // 点击, 但没有在卡片栏加载所有卡片' (=
+                        // clicking a shelf row should load all
+                        // .md cards from every book under that
+                        // shelf, not show an empty-state hint).
+                        // Previous v1.0.0-m1-shell behaviour was
+                        // empty-state (boss 8/31 'shelves are a
+                        // tree level, not a document scope'); =
+                        // boss 9/22 reversed: shelf IS a document
+                        // scope (= the union of every book's
+                        // .md cards under the shelf).
+                        //
+                        // v1.69x crash fix (= boss 2026-09-23 OOB
+                        // '好像启不来了' on bisect: v1.69n
+                        // shelfScopeView launched a SwiftUI
+                        // constraint loop because the shelf
+                        // subtree re-ran FileManager I/O inside
+                        // its ViewBuilder body on every parent
+                        // re-render (= not on shelfId change =
+                        // = infinite I/O + NSHostingView size
+                        // invalidation cycle = the 'more Update
+                        // Constraints in Window passes than
+                        // there are views in the window'
+                        // crash). The fix:
+                        //   1. `.id(shelfId)` gives SwiftUI a
+                        //      stable subtree identity (= skips
+                        //      body re-evaluation when shelfId
+                        //      hasn't changed).
+                        //   2. `.task(id: shelfId)` pre-loads
+                        //      the shelf's books ONCE per
+                        //      shelfId change (= caches into
+                        //      @State cachedShelfBooks =
+                        //      shelfScopeView body now reads
+                        //      from cache, no I/O in body =
+                        //      no layout storm).
+                        shelfScopeView(shelfId: shelfId)
+                            .id(shelfId)
+                            .task(id: shelfId) {
+                                await loadShelfBooksAsync(shelfId: shelfId)
+                            }
                     case .empty:
                         emptyScopeView()
                     }
@@ -778,14 +935,63 @@ struct PreviewPane: View {
     }
 
 
-    /// Shelf scope: empty state with hint to drill into a book.
+    /// Shelf scope: union of every book's docs under the shelf.
+    /// v1.69 boss 2026-09-22 OOB '书架, 就是从这里开始, 测试
+    /// 书架. 这两个目录项可以点击, 但没有在卡片栏加载所有
+    /// 卡片' (= the shelf row is a scope, = shows every .md
+    /// card from every book under that shelf; = union of all
+    /// `loadBookDocs(bookId:, folderName: nil)` results filtered
+    /// to books whose `shelfId == shelfId`).
     @ViewBuilder
-    private func shelfScopeView() -> some View {
-        emptyState(
-            icon: "book.pages",
-            titleKey: "preview.empty_state.shelf_empty",
-            bodyKey: "preview.empty.pick_book"
-        )
+    private func shelfScopeView(shelfId: UUID) -> some View {
+        // v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
+        // the v1.69n original ran FileManager I/O (= walk
+        // shelves tree + read every .md) inside this ViewBuilder
+        // body. SwiftUI re-evaluates this body on EVERY
+        // Observation tick (= every AppState mutation, every
+        // sidebarSelection change, every parent re-render), so
+        // the I/O ran hundreds of times per second while the
+        // shelf was selected → NSHostingView size constraint
+        // invalidation storm → 'more Update Constraints in
+        // Window passes than there are views in the window'
+        // NSGenericException crash.
+        //
+        // Fix: read the pre-computed, cached book list from
+        // `@State cachedShelfBooks` (= populated exactly once
+        // per shelfId via `.task(id: shelfId)` at the call
+        // site below = the I/O runs at most once per shelfId
+        // change = no storm = no constraint cycle). The
+        // `.id(shelfId)` at the call site gives SwiftUI a
+        // stable identity for the subtree (= SwiftUI skips
+        // body re-evaluation entirely when the shelfId is
+        // unchanged = the cached state survives every
+        // observation tick).
+        let books = cachedShelfBooks[shelfId] ?? []
+        let allDocs = books.flatMap { loadBookDocs(bookId: $0.id, folderName: nil) }
+        let filteredDocs = searchFilteredBookDocs(allDocs)
+        if filteredDocs.isEmpty {
+            // Empty shelf branch (= no books under the shelf,
+            // or every book has no .md cards, or the search
+            // filter excluded everything). Reuse the existing
+            // emptyState view (= matches the v1.0.0-m1-shell
+            // shape that the other scopes fall back to) but
+            // with a shelf-specific bodyKey.
+            emptyState(
+                icon: "books.vertical",
+                titleKey: "preview.empty_state.shelf_empty",
+                bodyKey: "preview.empty.shelf_no_books"
+            )
+        } else {
+            // Non-empty: reuse the canonical bookDocsGrid (= same
+            // LazyVGrid + adaptiveColumns(width:) + sort + Card
+            // styling as bookScopeView). Avoids the v1.69n-draft
+            // duplicate LazyVGrid (= different .padding(24) vs
+            // .padding(.vertical, DesignTokens.chromePaddingVertical);
+            // = the user's "width is wrong" complaint was the
+            // duplicate-render path bypassing the existing
+            // chromePaddingVertical / card chrome contract).
+            bookDocsGrid(docs: filteredDocs)
+        }
     }
 
     /// Empty scope: empty state with hint to select a sidebar item.
@@ -975,6 +1181,39 @@ struct PreviewPane: View {
         }
     }
 
+    /// v1.69 boss 2026-09-22 OOB: helper for shelfScopeView.
+    /// Returns the books that live under the given shelf (= the
+    /// books whose `.shelfId` matches). Reads from the same
+    /// BookStore.sidebarLoadAllBooks source the sidebar already
+    /// uses (= single source of truth; = no parallel book list).
+    /// Returns [] (= empty shelf = empty-state card grid) when
+    /// the lookup fails (= disk error) so the caller doesn't
+    /// have to do its own error-handling.
+    private func loadBooksInShelf(shelfId: UUID) -> [Book] {
+        let allBooks = (try? bookStore.sidebarLoadAllBooks()) ?? []
+        return allBooks.filter { $0.shelfId == shelfId }
+    }
+
+    /// v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
+    /// pre-computes the shelf's books exactly once per shelfId
+    /// change (= called from `.task(id: shelfId)` at the call
+    /// site). SwiftUI cancels any in-flight task and restarts
+    /// it whenever shelfId changes, so the cache is always
+    /// fresh (= re-load on shelf switch) but never re-evaluates
+    /// on parent re-renders. The result lands in `@State
+    /// cachedShelfBooks` (= the shelf subtree reads from cache,
+    /// not from disk = no I/O storm = no SwiftUI NSHostingView
+    /// constraint cycle).
+    @MainActor
+    private func loadShelfBooksAsync(shelfId: UUID) async {
+        // Yield first so SwiftUI can finish rendering the
+        // empty state (= `cachedShelfBooks[shelfId]` is `nil`
+        // until the await returns) before we touch disk.
+        await Task.yield()
+        let books = loadBooksInShelf(shelfId: shelfId)
+        cachedShelfBooks[shelfId] = books
+    }
+
     private func loadBody(for entity: Reference) -> String? {
         bookStore.referenceStore.loadReferenceBody(id: entity.id)
     }
@@ -1041,6 +1280,12 @@ struct PreviewPane: View {
                 let modifiedAt = attrs?.contentModificationDate ?? Date.distantPast
                 let createdAt = attrs?.creationDate ?? Date.distantPast
                 docs.append(BookDoc(
+                    id: Self.stableBookDocId(
+                        bookId: bookId,
+                        folderName: folder,
+                        fileName: url.lastPathComponent
+                    ),
+                    bookId: bookId,
                     folderName: folder,
                     fileName: url.lastPathComponent,
                     modifiedAt: modifiedAt,

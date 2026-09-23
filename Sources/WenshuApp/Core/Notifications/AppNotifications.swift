@@ -38,8 +38,8 @@ enum AppCommands: String, CaseIterable {
     case toggleZone = "com.wenshu.toggleZone"
 
     /// Request to create a new book. Posted by the zone-header new-icon
-    /// button (= NewLibraryOutlineView trailing slot). Consumed by
-    /// NewLibraryOutlineView body (= real view hierarchy).
+    /// button (= AppleSidebarView bottom slot via AppleSidebarBottomNewButton). Consumed by
+    /// AppleSidebarView body (= real view hierarchy; = .sheet(item:) renders the actual sheets).
     case newBookRequested = "com.wenshu.newBookRequested"
 
     /// Request to create a new shelf (= see newBookRequest).
@@ -50,7 +50,7 @@ enum AppCommands: String, CaseIterable {
 
     /// Request to present the NewChoiceSheet (= new project / new book /
     /// new shelf picker). Posted by zone-header buttons, consumed by
-    /// NewLibraryOutlineView body. v0.30 boss 8/31 OOB #2 'popupmenurestore'
+    /// AppleSidebarView body. v0.30 boss 8/31 OOB #2 'popupmenurestore'
     /// tracks this notification's lifecycle.
     case choiceRequested = "com.wenshu.choiceRequested"
 

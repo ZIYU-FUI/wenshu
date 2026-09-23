@@ -95,20 +95,16 @@ struct ZoneModuleView: View {
     var body: some View {
         switch zoneSlot {
         case .projectSidebar:
-            // Old 6-zone projectSidebar = 1 tab (Bookshelf, with book-open icon)
-            // + trailingButton (New + Import = NewLibraryOutlineView.zoneHeaderButtons).
+            // Old 6-zone projectSidebar = 1 tab (Bookshelf, with
+            // book-open icon) + trailingButton (New + Import =
+            // preserved from the pre-v1.69e legacy
+            // NewLibraryOutlineView.zoneHeaderButtons).
             // v0.30 boss 8/31 OOB: ZoneModuleView forwards its
-            // sidebarSelection binding to NewLibraryOutlineView so
+            // sidebarSelection binding to AppleSidebarView so
             // the sidebar click → preview pane scope works.
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(NewLibraryOutlineView(
-                    selectedEntityCategory: $selectedEntityCategory,
-                    selectedEntity: $selectedEntity
-                ))),
-            ], trailingButton: AnyView(NewLibraryOutlineView(
-                selectedEntityCategory: .constant(nil),
-                selectedEntity: .constant(nil)
-            ).zoneHeaderButtons))
+                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(AppleSidebarView())),
+            ], trailingButton: AnyView(SidebarZoneHeaderButtons()))
 
         case .projectPreview:
             // Old 6-zone projectPreview = 2 tabs (Preview / Map).
