@@ -183,19 +183,6 @@ struct ChatInputBarView: View {
     /// which ConversationCompression kicks in for summarization).
     private let tokenCompressionContextThreshold: Int = 30_000
 
-    /// "1234" / "1.2k" / "12.3k" / "1.2M" — local helper for the
-    /// token count footer label.
-    private func formatCompactTokenCount(_ count: Int) -> String {
-        if count < 1_000 { return "\(count)" }
-        if count < 10_000 {
-            return String(format: "%.1fk", Double(count) / 1_000.0)
-        }
-        if count < 1_000_000 {
-            return "\(count / 1_000)k"
-        }
-        return String(format: "%.1fM", Double(count) / 1_000_000.0)
-    }
-
     /// Percentage of compression threshold used (= integer 0-100+).
     private var percentOfThreshold: Int {
         Int((Double(vm.contextUsed) / Double(max(tokenCompressionContextThreshold, 1))) * 100)
@@ -295,9 +282,12 @@ struct ChatInputBarView: View {
 
     private var agentPathButton: some View {
         GlassIconButton(systemName: "sparkles", help: "Agent path") {
-            // Display-only indicator (= no action; = reads
-            // vm.activeAgentPath via the reactive @Observable
-            // pipeline; = no explicit callback needed here).
+            // v2.03 (2026-09-23): display-only indicator (= no action).
+            // Code-review finding #14 flagged a stale comment that
+            // referenced a non-existent `vm.activeAgentPath` property
+            // (= no such field on ChatViewModel). Replace with the
+            // honest statement (= the button is decorative; = no
+            // current reactive value to bind).
         }
     }
 
@@ -330,7 +320,7 @@ struct ChatInputBarView: View {
     /// uses ⌘↩ for newline if ever needed).
     private var textField: some View {
         TextField(
-            WenshuI18n.t("auto2.chatview.l858.h59940148"),
+            WenshuI18n.t("chat.input.placeholder"),
             text: $vm.inputText,
             axis: .horizontal
         )
