@@ -68,13 +68,35 @@ final class SidebarService {
         loadShelves: @MainActor @escaping () throws -> [Bookshelf],
         loadAllBooks: @MainActor @escaping () throws -> [Book],
         loadReferences: @MainActor @escaping () throws -> [Reference],
-        loadFolderDocCount: @MainActor @escaping (UUID, String) -> Int = { _, _ in 0 }
+        loadFolderDocCount: @MainActor @escaping (UUID, String) -> Int = { _, _ in 0 },
+        bookStore: BookStore? = nil
     ) {
         self.loadShelves = loadShelves
         self.loadAllBooks = loadAllBooks
         self.loadReferences = loadReferences
         self.loadFolderDocCount = loadFolderDocCount
+        // v1.69y: optional bookStore reference (= used by
+        // create/delete/rename on the persistence layer; =
+        // shelvesRoot + per-shelf per-book paths live on bookStore.
+        // = nil for unit-test SidebarService instances that
+        // only exercise `nodes()` tree building).
+        self.bookStore = bookStore
     }
+
+    /// v1.69y: optional BookStore reference (= injected at
+    /// AppleSidebarView's .task block; = nil for unit-test
+    /// instances that only test the read-side tree building).
+    private let bookStore: BookStore?
+
+    /// v1.69y: latest cached shelves (= populated by `reload()`
+    /// from `loadShelves()`; = read by createShelf / renameShelf
+    /// for name validation).
+    private(set) var shelves: [Bookshelf] = []
+
+    /// v1.69y: latest cached books (= populated by `reload()`
+    /// from `loadAllBooks()`; = read by createBook / renameBook
+    /// for title validation).
+    private(set) var books: [Book] = []
 
     /// Reload the sidebar tree from the data layer. Idempotent
     /// (= the previous tree is replaced wholesale; = no partial-
@@ -84,6 +106,13 @@ final class SidebarService {
             let shelves = try loadShelves()
             let allBooks = (try? loadAllBooks()) ?? []
             let references = (try? loadReferences()) ?? []
+
+            // v1.69y: cache the latest shelves + books (= the
+            // create / rename / delete business methods read
+            // these for duplicate-name validation; = avoids
+            // refetching on every UI event).
+            self.shelves = shelves
+            self.books = allBooks
 
             var roots: [SidebarNode] = []
 
@@ -423,5 +452,328 @@ final class SidebarService {
         let u = uuidBytes.map { String(format: "%02x", $0) }.joined()
         let formatted = "\(u.prefix(8))-\(u.dropFirst(8).prefix(4))-\(u.dropFirst(12).prefix(4))-\(u.dropFirst(16).prefix(4))-\(u.dropFirst(20).prefix(12))"
         return UUID(uuidString: formatted) ?? UUID()
+    }
+}
+
+// MARK: - v1.69y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复'
+//
+//  Restores the create + delete + rename business logic that was
+//  deleted when NewLibraryOutlineView.swift (2466 LOC) was
+//  removed in v1.69e (= the MVVM sidebar-split commit). The
+//  view-layer wiring lives in AppleSidebarView (UI: sheets +
+//  contextMenu + alert). This extension holds the persistence
+//  surface (= where the on-disk write happens; = the only
+//  place that touches FileManager + JSONEncoder/Decoder for the
+//  sidebar's create/delete/rename operations).
+//
+//  The error type is a simple enum with LocalizedError
+//  (= the v1.0.0-m1 legacy ShelfError / ShelfDeleteError pair
+//  merged into one with all cases; = the same set of reserved
+//  + duplicate + cannot-delete-default guards).
+extension SidebarService {
+    /// v1.69y: domain error for the create / delete / rename
+    /// operations (= LocalizedError so the caller can present
+    /// the message in a SwiftUI `.alert(item:)`).
+    enum MutationError: LocalizedError, Equatable {
+        case cannotDeleteDefault
+        case duplicateName(String)
+        case reservedName(String)
+        case bookNotFound
+        case shelfNotFound
+
+        var errorDescription: String? {
+            switch self {
+            case .cannotDeleteDefault:
+                return WenshuI18n.t("sidebar_service_error_cannot_delete_default")
+            case .duplicateName(let name):
+                return WenshuI18n.t("new_shelf_sheet_duplicate_error")
+                    .replacingOccurrences(of: "%@", with: name)
+            case .reservedName(let name):
+                return WenshuI18n.t("new_shelf_sheet_reserved_error")
+                    .replacingOccurrences(of: "%@", with: name)
+            case .bookNotFound:
+                return WenshuI18n.t("sidebar_service_error_book_not_found")
+            case .shelfNotFound:
+                return WenshuI18n.t("sidebar_service_error_shelf_not_found")
+            }
+        }
+    }
+
+    /// v1.69y: reserved shelf / book names (= the reference library
+    /// uses `资料库` as its display name; = reusing that name for
+    /// a user shelf would shadow the reference root; = same set
+    /// the legacy NewLibraryOutlineView.renameShelf enforced).
+    static let reservedNames: Set<String> = [
+        WenshuI18n.t("library.sidebar.reference_root"),
+        "资料库", "参考库", "reference library"
+    ]
+
+    /// v1.69y: list all shelf display names (= for duplicate-name
+    /// validation in NewShelfSheet + RenameItemSheet).
+    /// Caller passes the cached `shelves` from SidebarService.
+    func existingShelfNames() -> [String] {
+        shelves.map { $0.name }
+    }
+
+    /// v1.69y: list all book titles (= for duplicate-name
+    /// validation in RenameItemSheet; = the legacy
+    /// NewLibraryOutlineView.renameBook logic).
+    func existingBookTitles() -> [String] {
+        books.map { $0.title }
+    }
+
+    /// v1.69y: create a new shelf on disk (= shelves/<uuid>/shelf.json
+    /// + standard 8 book folders + empty kanban.json + todo.json).
+    /// Returns the new shelf's UUID on success (= the caller
+    /// updates `shelves` + `sidebarSelection` + calls `reload()`).
+    @discardableResult
+    func createShelf(name: String) throws -> UUID {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if Self.reservedNames.contains(where: { trimmed.caseInsensitiveCompare($0) == .orderedSame }) {
+            throw MutationError.reservedName(trimmed)
+        }
+        if existingShelfNames().contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            throw MutationError.duplicateName(trimmed)
+        }
+        let shelfId = UUID()
+        guard let shelvesRoot = bookStore?.stores.shelvesRoot else {
+            throw MutationError.shelfNotFound
+        }
+        let shelfDir = shelvesRoot
+            .appendingPathComponent(shelfId.uuidString, isDirectory: true)
+        let fm = FileManager.default
+        try fm.createDirectory(at: shelfDir, withIntermediateDirectories: true)
+        let now = Date()
+        let shelf = Bookshelf(id: shelfId, name: trimmed, createdAt: now, updatedAt: now)
+        let data = try JSONEncoder().encode(shelf)
+        try data.write(to: shelfDir.appendingPathComponent("shelf.json"))
+        return shelfId
+    }
+
+    /// v1.69y: create a new book on disk (= shelves/<shelf>/books/<book-uuid>/
+    /// with 8 standard folders + book.json + kanban.json + todo.json).
+    /// Mirrors the v0.29 LibraryBootstrapper per-book setup pattern.
+    /// Returns the new book's UUID on success.
+    @discardableResult
+    func createBook(input: NewBookSheet.NewBookInput) throws -> UUID {
+        let trimmedTitle = input.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedTitle.isEmpty {
+            throw MutationError.bookNotFound  // signal empty title (= use this case)
+        }
+        if existingBookTitles().contains(where: { $0.caseInsensitiveCompare(trimmedTitle) == .orderedSame }) {
+            throw MutationError.duplicateName(trimmedTitle)
+        }
+        let bookId = UUID()
+        guard let shelvesRoot = bookStore?.stores.shelvesRoot else {
+            throw MutationError.bookNotFound
+        }
+        let bookDir = shelvesRoot
+            .appendingPathComponent(input.shelfId.uuidString, isDirectory: true)
+            .appendingPathComponent("books", isDirectory: true)
+            .appendingPathComponent(bookId.uuidString, isDirectory: true)
+        let fm = FileManager.default
+        try fm.createDirectory(at: bookDir, withIntermediateDirectories: true)
+        let now = Date()
+        let standardFolders = [
+            "world", "characters", "outlines", "chapters",
+            "drafts", "sessions", "foreshadowing", "placeholders"
+        ]
+        for folder in standardFolders {
+            try fm.createDirectory(
+                at: bookDir.appendingPathComponent(folder, isDirectory: true),
+                withIntermediateDirectories: true
+            )
+        }
+        // Empty kanban + todo JSON.
+        for dataFile in ["kanban.json", "todo.json"] {
+            try Data("[]".utf8).write(to: bookDir.appendingPathComponent(dataFile))
+        }
+        // Book metadata.
+        let book = Book(
+            id: bookId,
+            title: trimmedTitle,
+            author: input.author.trimmingCharacters(in: .whitespacesAndNewlines),
+            shelfId: input.shelfId
+        )
+        let data = try JSONEncoder().encode(book)
+        try data.write(to: bookDir.appendingPathComponent("book.json"))
+        return bookId
+    }
+
+    /// v1.69y: delete a shelf on disk (= shelves/<uuid>/).
+    /// The default shelf (`00000000-0000-0000-0000-000000000000`)
+    /// cannot be deleted (= the legacy ShelfDeleteError
+    /// guard; = boss OOB 'Reference Library cannot be deleted').
+    func deleteShelf(id: UUID) throws {
+        guard id.uuidString != "00000000-0000-0000-0000-000000000000" else {
+            throw MutationError.cannotDeleteDefault
+        }
+        guard let shelvesRoot = bookStore?.stores.shelvesRoot else {
+            throw MutationError.shelfNotFound
+        }
+        let shelfDir = shelvesRoot
+            .appendingPathComponent(id.uuidString, isDirectory: true)
+        if FileManager.default.fileExists(atPath: shelfDir.path) {
+            try FileManager.default.removeItem(at: shelfDir)
+        }
+    }
+
+    /// v1.69y: delete a single book on disk (= shelves/<shelf>/books/<book-uuid>/).
+    /// Silently no-op if the book is not on disk (= the legacy
+    /// NewLibraryOutlineView.deleteBook behavior).
+    func deleteBook(id: UUID) throws {
+        guard let shelvesRoot = bookStore?.stores.shelvesRoot else {
+            throw MutationError.bookNotFound
+        }
+        // Find the shelf that contains the book (= walk shelves to
+        // find the dir containing shelves/<shelf>/books/<bookId>).
+        let fm = FileManager.default
+        guard let shelfDirs = try? fm.contentsOfDirectory(
+            at: shelvesRoot,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else { return }
+        for shelfDir in shelfDirs {
+            let bookDir = shelfDir
+                .appendingPathComponent("books")
+                .appendingPathComponent(id.uuidString, isDirectory: true)
+            if fm.fileExists(atPath: bookDir.path) {
+                try fm.removeItem(at: bookDir)
+                return
+            }
+        }
+        // Book not on disk = silent no-op (= matches legacy).
+    }
+
+    /// v1.69y: rename a shelf (= rewrites shelf.json with the
+    /// new name). The directory name (= UUID) is preserved (= the
+    /// shelf's identity is stable per Apple HIG document-based app).
+    func renameShelf(id: UUID, newName: String) throws {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if Self.reservedNames.contains(where: { trimmed.caseInsensitiveCompare($0) == .orderedSame }) {
+            throw MutationError.reservedName(trimmed)
+        }
+        let others = existingShelfNames().filter { name in
+            guard let shelf = self.shelves.first(where: { $0.name == name }) else {
+                return true  // skip self if name lookup fails
+            }
+            return shelf.id != id
+        }
+        if others.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            throw MutationError.duplicateName(trimmed)
+        }
+        guard let shelvesRoot = bookStore?.stores.shelvesRoot else {
+            throw MutationError.shelfNotFound
+        }
+        let shelfDir = shelvesRoot
+            .appendingPathComponent(id.uuidString, isDirectory: true)
+        let shelfJSONURL = shelfDir.appendingPathComponent("shelf.json")
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: shelfJSONURL.path),
+              let data = try? Data(contentsOf: shelfJSONURL),
+              var existing = try? JSONDecoder().decode(Bookshelf.self, from: data)
+        else { throw MutationError.shelfNotFound }
+        existing.name = trimmed
+        existing.updatedAt = Date()
+        let updated = try JSONEncoder().encode(existing)
+        try updated.write(to: shelfJSONURL)
+    }
+
+    /// v1.69y: rename a book (= rewrites book.json with the new
+    /// title). The directory name (= UUID) is preserved (= the
+    /// book's identity is stable per Apple HIG document-based app).
+    func renameBook(id: UUID, newTitle: String) throws {
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            throw MutationError.bookNotFound
+        }
+        let others = existingBookTitles().filter { title in
+            guard let book = self.books.first(where: { $0.title == title }) else {
+                return true
+            }
+            return book.id != id
+        }
+        if others.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            throw MutationError.duplicateName(trimmed)
+        }
+        guard let shelvesRoot = bookStore?.stores.shelvesRoot else {
+            throw MutationError.bookNotFound
+        }
+        let fm = FileManager.default
+        guard let shelfDirs = try? fm.contentsOfDirectory(
+            at: shelvesRoot,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else { throw MutationError.bookNotFound }
+        for shelfDir in shelfDirs {
+            let bookJSONURL = shelfDir
+                .appendingPathComponent("books")
+                .appendingPathComponent(id.uuidString, isDirectory: true)
+                .appendingPathComponent("book.json")
+            if fm.fileExists(atPath: bookJSONURL.path),
+               let data = try? Data(contentsOf: bookJSONURL),
+               var existing = try? JSONDecoder().decode(Book.self, from: data) {
+                existing.title = trimmed
+                existing.updatedAt = Date()
+                let updated = try JSONEncoder().encode(existing)
+                try updated.write(to: bookJSONURL)
+                return
+            }
+        }
+        throw MutationError.bookNotFound
+    }
+
+    // MARK: v1.69y: picker / state query helpers (= consumed by
+    // AppleSidebarView when presenting NewBookSheet /
+    // RenameItemSheet; = pure reads of the current SidebarService
+    // state).
+
+    /// v1.69y: list of (id, name) for the shelf picker in
+    /// NewBookSheet (= the user picks which shelf a new book
+    /// goes into).
+    func availableShelvesForPicker() -> [(id: UUID, name: String)] {
+        shelves.map { ($0.id, $0.name) }
+    }
+
+    /// v1.69y: resolve the target shelf for a new book (= the
+    /// current sidebarSelection if it's a shelf, else fallback
+    /// to the default shelf). Mirrors the v1.0.0-m1 legacy
+    /// NewLibraryOutlineView.resolveNewBookTargetShelf.
+    func targetShelfForNewBook(currentSelection: SidebarItem?) -> (id: UUID, name: String)? {
+        if case .shelf(let id) = currentSelection,
+           let shelf = shelves.first(where: { $0.id == id }) {
+            return (shelf.id, shelf.name)
+        }
+        if case .book(let id) = currentSelection,
+           let book = books.first(where: { $0.id == id }),
+           let shelf = shelves.first(where: { $0.id == book.shelfId }) {
+            return (shelf.id, shelf.name)
+        }
+        return defaultShelfTarget()
+    }
+
+    /// v1.69y: fallback target shelf (= the default all-zeros
+    /// shelf; = first-launch enable).
+    func defaultShelfTarget() -> (id: UUID, name: String)? {
+        let defaultId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
+        if let shelf = shelves.first(where: { $0.id == defaultId }) {
+            return (shelf.id, shelf.name)
+        }
+        // First-launch fallback: no shelves on disk yet.
+        return (defaultId, WenshuI18n.t("library.default.shelf_name"))
+    }
+
+    /// v1.69y: shelf names excluding the one with `id` (= for
+    /// duplicate-name validation in RenameItemSheet when the
+    /// user is renaming a shelf).
+    func otherShelfNames(excluding id: UUID) -> [String] {
+        shelves.filter { $0.id != id }.map { $0.name }
+    }
+
+    /// v1.69y: book titles excluding the one with `id` (= for
+    /// duplicate-title validation in RenameItemSheet when the
+    /// user is renaming a book).
+    func otherBookTitles(excluding id: UUID) -> [String] {
+        books.filter { $0.id != id }.map { $0.title }
     }
 }
