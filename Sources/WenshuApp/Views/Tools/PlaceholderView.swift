@@ -394,7 +394,7 @@ public struct PlaceholderView: View {
         !scanChapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    // MARK: - Async actions
+    // MARK: - Helpers (= view-only glue: calls PlaceholderOps, assigns @State)
 
     private func ensureScanner() -> PlaceholderScanner {
         if let scanner { return scanner }
@@ -404,91 +404,78 @@ public struct PlaceholderView: View {
     }
 
     private func reload() async {
-        guard let bookId = activeBookId else {
+        guard activeBookId != nil else {
             rows = []
             return
         }
         loadingState = .loading
         let actor = ensureScanner()
-        do {
-            let loadedRows = try await actor.list(bookId: bookId, status: filterStatus)
-            rows = loadedRows
+        let result = await PlaceholderOps.reload(
+            scanner: actor,
+            bookId: activeBookId,
+            filterStatus: filterStatus
+        )
+        rows = result.rows
+        if let error = result.error {
+            loadingState = .failed(error)
+            errorText = error
+        } else {
             loadingState = .loaded
-        } catch {
-            loadingState = .failed(error.localizedDescription)
-            errorText = error.localizedDescription
         }
     }
 
     private func addPlaceholder() async {
-        guard let bookId = activeBookId else { return }
+        guard activeBookId != nil else { return }
         let actor = ensureScanner()
-        let trimmedChapter = draftChapterText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedPattern = draftPattern.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedContext = draftContext.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let chapterId = UUID(uuidString: trimmedChapter),
-              !trimmedPattern.isEmpty else { return }
-        let lineNumber = Int(draftLineText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
-        let row = Placeholder(
-            bookId: bookId,
-            chapterId: chapterId,
-            lineNumber: lineNumber,
-            context: trimmedContext,
-            pattern: trimmedPattern,
+        let result = await PlaceholderOps.addPlaceholder(
+            scanner: actor,
+            bookId: activeBookId,
+            chapterIdText: draftChapterText,
+            lineText: draftLineText,
+            context: draftContext,
+            pattern: draftPattern,
             status: draftStatus
         )
-        do {
-            try await actor.add(row)
-            // Reset draft state on success.
+        if result.didSave {
+            // SwiftUI-side reset (= inline-create form fields clear
+            // on successful save; = binding resets, NOT business
+            // rules, = stays in the view per ADR-0009).
             draftChapterText = ""
             draftLineText = ""
             draftContext = ""
             draftPattern = ""
             draftStatus = .open
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
         }
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func resolvePlaceholder(_ row: Placeholder) async {
         let actor = ensureScanner()
-        do {
-            try await actor.resolve(id: row.id)
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
-        }
+        let result = await PlaceholderOps.resolvePlaceholder(scanner: actor, row: row)
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func abandonPlaceholder(_ row: Placeholder) async {
         let actor = ensureScanner()
-        do {
-            try await actor.abandon(id: row.id)
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
-        }
+        let result = await PlaceholderOps.abandonPlaceholder(scanner: actor, row: row)
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func reopenPlaceholder(_ row: Placeholder) async {
         let actor = ensureScanner()
-        do {
-            try await actor.reopen(id: row.id)
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
-        }
+        let result = await PlaceholderOps.reopenPlaceholder(scanner: actor, row: row)
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func removePlaceholder(_ row: Placeholder) async {
         let actor = ensureScanner()
-        do {
-            try await actor.remove(id: row.id)
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
-        }
+        let result = await PlaceholderOps.removePlaceholder(scanner: actor, row: row)
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func runScan() async {
@@ -501,21 +488,21 @@ public struct PlaceholderView: View {
         // chapter id, and distinct books never collide.
         let scanChapterId = Self.scratchChapterId(for: bookId)
         let actor = ensureScanner()
-        do {
-            let added = try await actor.scanAndAdd(
-                chapterText: scanChapterText,
-                bookId: bookId,
-                chapterId: scanChapterId
-            )
-            lastScanCount = added.count
+        let result = await PlaceholderOps.runScan(
+            scanner: actor,
+            bookId: bookId,
+            chapterText: scanChapterText,
+            chapterId: scanChapterId
+        )
+        if result.didScan {
+            lastScanCount = result.addedCount
             // Wipe the pasted text on success (= keep the
             // panel tidy; the rows now live in the persisted
             // list).
             scanChapterText = ""
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
         }
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     /// Deterministic chapter id used for paste-and-scan flows
