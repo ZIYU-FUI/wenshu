@@ -108,7 +108,9 @@ struct ZoneContentView: View {
         //
         // all 4 inspector pages' per-page tab strip (= the
         // ZoneContentView is reused for each page; = the tabs
-        // array is replaced by `filteredToolsForCurrentPage`;
+        // array is replaced by `InspectorPage.tools` (= v1.71b
+        // business-layer extraction from the inline tuple that
+        // previously lived in ShellDetailColumn.filteredToolsForCurrentPage;
         // = the control auto-renders whatever tabs the
         // inspector page supplies; = the boss's directive is
         // satisfied with a single-line change).
