@@ -101,13 +101,33 @@ struct ChatViewMuteShortcutTests {
 
     /// T96 contract: HStack invariant preserved.
     @Test func hstack_invariant_preserved() throws {
-        let src = try String(
+        // v1.81 (2026-09-23): boss's 3-layer refactor hoists the chat input
+        // row out of ChatView.swift into ChatInputBarView.swift (= the top
+        // layer; = the user-interactive controls). The hidden Button("Mute all sounds") Button
+        // (= a hidden keyboard-shortcut Button outside the visible input
+        // row HStack) stays in ChatView.swift (= the keyboard-shortcut
+        // block lives as a sibling of ScrollViewReader, not inside the
+        // input row). The invariant (= Button("Mute all sounds") Button is OUTSIDE the
+        // input row HStack) is now distributed across two files; = this
+        // test verifies both halves exist (= .frame(minHeight: 30) is
+        // only in ChatInputBarView; = Button("Mute all sounds") is only in ChatView).
+        let inputBarSrc = try String(
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            encoding: .utf8
+        )
+        let chatViewSrc = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
             encoding: .utf8
         )
-        let mutePos = src.range(of: "Button(\"Mute all sounds\")")!
-        let hstackClosePos = src.range(of: ".frame(minHeight: 30)")!.lowerBound
-        #expect(mutePos.lowerBound > hstackClosePos)
+        // The input row HStack's minimum height pin (= .frame(minHeight: 30))
+        // lives ONLY in the top-layer ChatInputBarView.
+        #expect(inputBarSrc.contains(".frame(minHeight: 30)"))
+        #expect(!chatViewSrc.contains(".frame(minHeight: 30)"))
+        // The Button("Mute all sounds") keyboard shortcut Button lives ONLY in
+        // ChatView (= the keyboard shortcut block is a sibling of
+        // ScrollViewReader; = not inside the input row).
+        #expect(chatViewSrc.contains("Button(\"Mute all sounds\")"))
+        #expect(!inputBarSrc.contains("Button(\"Mute all sounds\")"))
     }
 
     /// T67 contract: ⌘. cancel streaming shortcut preserved

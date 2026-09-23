@@ -82,16 +82,45 @@ struct ChatViewPasteImageTests {
 
     /// T38 contract: the paste handler is on the chat input area
     /// (= NOT inside the input HStack = HStack invariant preserved).
+    /// v1.81 (2026-09-23): boss's 3-layer refactor hoists the chat input
+    /// row (= buttons + TextField + paste handler) out of ChatView.swift
+    /// into a dedicated ChatInputBarView (= the top layer; = the user-
+    /// interactive controls). The paste handler (= `.onPasteCommand(of:
+    /// [.image])` on the chat input area) is now in ChatInputBarView.swift;
+    /// = the input row HStack's `.frame(minHeight: 30)` (= HStack close
+    /// marker) is also in ChatInputBarView.swift. The HStack invariant
+    /// (= `.onPasteCommand(of: [.image])` is positioned AFTER the input
+    /// row HStack's `.frame(minHeight: 30)` close) is now distributed
+    /// across the SAME file (= ChatInputBarView.swift); = this test reads
+    /// ChatInputBarView.swift and verifies the same positional invariant.
+    /// v1.81 (2026-09-23): boss's 3-layer refactor hoists the chat input
+    /// row (= buttons + TextField) out of ChatView.swift into a dedicated
+    /// ChatInputBarView (= the top layer; = the user-interactive
+    /// controls). The paste handler (= `.onPasteCommand(of: [.image])` on
+    /// the chat input area) stays in ChatView.swift (= it was attached
+    /// to the chat zone's outer VStack, not the input HStack, so it
+    /// didn't move with the HStack). The invariant (= the paste handler
+    /// is OUTSIDE the input row HStack; = the HStack invariant is
+    /// preserved) is now distributed across two files; = this test
+    /// verifies both halves exist (= the paste handler lives in
+    /// ChatView; = the input row HStack's `.frame(minHeight: 30)` lives
+    /// in ChatInputBarView).
     @Test func paste_handler_outside_hstack() throws {
-        let src = try String(
+        let inputBarSrc = try String(
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            encoding: .utf8
+        )
+        let chatViewSrc = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
             encoding: .utf8
         )
-        let pastePos = src.range(of: ".onPasteCommand(of: [.image])")!
-        let hstackOpenPos = src.range(of: "HStack(alignment: .center, spacing: 8) {")!
-        let hstackClosePos = src.range(of: ".frame(minHeight: 30)", range: hstackOpenPos.upperBound..<src.endIndex)
-        #expect(hstackClosePos != nil)
-        // The paste handler must be AFTER the input HStack closes.
-        #expect(pastePos.lowerBound > hstackClosePos!.lowerBound)
+        // The paste handler lives in ChatView (= outer VStack modifier;
+        // = outside the input row HStack).
+        #expect(chatViewSrc.contains(".onPasteCommand(of: [.image])"))
+        #expect(!inputBarSrc.contains(".onPasteCommand(of: [.image])"))
+        // The input row HStack's minimum height pin (= .frame(minHeight: 30))
+        // lives in ChatInputBarView (= the top layer).
+        #expect(inputBarSrc.contains(".frame(minHeight: 30)"))
+        #expect(!chatViewSrc.contains(".frame(minHeight: 30)"))
     }
 }

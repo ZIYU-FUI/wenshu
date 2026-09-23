@@ -452,6 +452,35 @@ public struct ChatView: View {
                     }
                 }
             }
+                // v1.81 boss 2026-09-23 '聊天区我认为就两层，加上 NSV 框架，也就是三层
+                // 顶层 = 按钮 对话框 按钮，的那一组和用户交互的控件。
+                // 中层 = 回显用户和 AI 的对话内容。
+                // 底层 = NSV 框架': the chat input bar (= buttons + textfield +
+                // attachment preview chip) is hoisted to its OWN SwiftUI view
+                // (ChatInputBarView = Sources/WenshuApp/Views/Chat/ChatInputBarView.swift)
+                // and floats over the chat ScrollView via .safeAreaInset(edge: .bottom)
+                // (= Apple HIG Messages / Slack / Xcode 16 pattern; = the input bar
+                // is OUTSIDE the scroll viewport; = the chat content scrolls behind
+                // the fixed input bar). This replaces the pre-v1.81 inline
+                // `VStack { ScrollView; input VStack }` (= 2 sibling layers at the
+                // body level) with the canonical 3-layer split per boss:
+                //   1. 顶层 = this safeAreaInset's ChatInputBarView
+                //   2. 中层 = this ScrollView (chat content)
+                //   3. 底层 = NavigationSplitShell + EditorChatNSController
+                // (= the NSSplitView framework; = unchanged).
+                //
+                // MVVM compliance per AGENTS.md §11.1 + §11.3 (= boss's hard rule):
+                // ChatInputBarView is UI-only (= no FileManager / no UserDefaults
+                // reads; = no business logic; = all actions delegate to the
+                // injected ChatViewModel; = no StoredChatMessage touched).
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    ChatInputBarView(
+                        vm: vm,
+                        inputFocused: $inputFocused,
+                        hasUsableKey: hasUsableKey,
+                        showingImageImporter: $showingImageImporter
+                    )
+                }
             // async load history via .task modifier (non-blocking)
             .task {
                 await vm.loadAvailableModels()
@@ -468,481 +497,21 @@ public struct ChatView: View {
             // Per spec §6.4 UI mapping: 🟨 half-visible pill + 🟥 must-UI button.
             ChatViewCompressionRow(vm: vm)
 
-            // v1.74 boss 2026-09-18 'chat panel has a line at the top':
-            // removed the Divider() that was here (= the macOS 27
-            // hairline = the line boss saw crossing the top of the
-            // chat input panel). The chat input panel now sits flush
-            // against the chat history above (= Apple Messages /
-            // Slack pattern; = the floating panel handles its own
-            // visual boundary via the .glassEffect + .clipShape).
-            //
-            // Input box + send button (Apple HIG SwiftUI ground truth)
-            // v0.25.1 (= ticket 030 chat send button 8 PT textfield
-            // top padding + button vertical center alignment):
-            // owner 2026-08-26 OOB 'add 8 PT spacing above the chat text field' =
-            // add 8 PT gap between the Divider above and the
-            // TextField (= textfield top padding = 8 PT, so the
-            // input area has visual breathing room from the divider
-            // line). Implementation: HStack(spacing: 8) reverted to
-            // baseline (= boss corrected ticket 030's HStack 8→16
-            // change as wrong, = the gap is ABOVE the textfield not
-            // between textfield and send button), TextField gains
-            // .padding(.top, LayoutTokens.chromePaddingLarge) (= LayoutTokens value = 8 PT per v0.28 Apple HIG basis; DesignTokens canonical chromePaddingLarge = 16 PT is the newer per-region value (= legacy alias kept here for backward compat). Gap above the textfield,
-            // = the actual boss OOB intent).
-            // v0.25.1 (= ticket 031 chat send button vertical
-            // center alignment): owner 2026-08-26 OOB 'button
-            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-            // buttonchangein progress' = with the 8 PT
-            // top padding on TextField, the TextField's effective
-            // top edge shifted down 8 PT (= 24 PT height + 8 PT top
-            // padding = 32 PT total box). The send button's default
-            // HStack alignment = .top (= button top edge aligns with
-            // the TextField's top edge, which is now 8 PT below the
-            // original position). Fix = change HStack alignment to
-            // .center (= button vertically centered relative to the
-            // full TextField + padding box).
-            // v0.25.1 (= ticket 032 chat textfield height = 32 PT):
-            // owner 2026-08-26 OOB 'match the text field and button heights
-            // both same as the button' = make the textfield visual height
-            // match the send button height (= 32 PT). Current = textfield
-            // visual height 24 PT (= SwiftUI default TextField with
-            // .roundedBorder). Button height = ~32 PT (with .padding).
-            // Fix = add .frame(height: DesignTokens.toolbarBandHeight) on the TextField (= textfield
-            // visual height now matches button = both 32 PT). The 8 PT
-            // top padding preserved (= 8 PT gap above textfield per
-            // ticket 030) so total TextField + padding box = 40 PT
-            // (= 8 PT gap + 32 PT textfield visual).
-            // v0.25.1 (= ticket 033 chat send button BOTTOM
-            // alignment): owner 2026-08-26 OOB 'still not aligned, button and
-            // text field bottom-aligned' = the previous ticket 031's .center
-            // alignment still didn't match. Boss corrected again:
-            // button should be aligned to the BOTTOM of the textfield
-            // (= .bottom alignment, not .center). The button's
-            // bottom edge aligns with the textfield's bottom edge
-            // (Apple HIG toolbar convention: action button at
-            // baseline of input field).
-            // v0.25.1 (= ticket 033 followup 2: chat send button
-            // CENTER alignment — boss corrected AGAIN): owner
-            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-            // 2026-08-26 OOB 'still wrong, use text field + button center-align'
-            // = after 3 alignment attempts (.center, .bottom,
-            // .bottom + height 32), the actual visual boss wants
-            // is .center alignment. The earlier ticket 031's
-            // .center was correct on alignment but the button's
-            // height wasn't pinned (= 40 PT, vs textfield 32 PT),
-            // so visually the .center alignment didn't look right
-            // because the button was already too tall. Now with
-            // ticket 033 followup's .frame(height: DesignTokens.toolbarBandHeight) pinning the
-            // button to 32 PT (= matches textfield), boss confirmed
-            // .center alignment is the right behavior.
-            // v0.25.1 (= ticket 033 final 2: chat send button
-            // HORIZONTAL alignment = drop the 8 PT top padding +
-            // drop the .frame(height: DesignTokens.toolbarBandHeight) textfield pin + drop the
-            // .frame(height: DesignTokens.toolbarBandHeight) button pin — owner 2026-08-26 OOB
-            // 'still wrong, it is horizontal center' = the 4 previous attempts all
-            // tried to vertically align the textfield with the button,
-            // but the actual visual boss wants is HORIZONTAL center
-            // alignment (= the .center alignment already does this,
-            // = but with 8 PT top padding + .frame(height: DesignTokens.toolbarBandHeight) the
-            // textfield is offset down 8 PT + extended to 32 PT,
-            // = making the visual center NOT match the button).
-            // The right fix = drop the 8 PT top padding (= 0 PT
-            // padding = textfield is its natural 24 PT height) AND
-            // drop the .frame(height: DesignTokens.toolbarBandHeight) on both textfield and
-            // button (= let each take its natural default height;
-            // SwiftUI TextField with .roundedBorder = 24 PT, Button
-            // with .borderedProminent = ~40 PT). With the 8 PT
-            // padding dropped + height pins dropped, the HStack
-            // .center alignment = both elements centered at the
-            // natural height axis. But 'horizontal center' = horizontal
-            // center, = the user wants the textfield + button to
-            // share the same VERTICAL center line (= each element's
-            // vertical center on the same y = the HStack .center
-            // alignment IS the answer, but with natural heights,
-            // not forced 32 PT).
-            // Final approach (= this ticket 033 final 2):
-            // 1. drop .padding(.top, LayoutTokens.chromePaddingLarge) on TextField (= LayoutTokens value = 8 PT per v0.28 Apple HIG basis; DesignTokens canonical chromePaddingLarge = 16 PT is the newer per-region value (= legacy alias kept here for backward compat). Boss OOB
-            //    interpreted 'horizontal center' as 'remove my 8 PT top
-            //    padding that's making the visual center off').
-            // 2. drop .frame(height: DesignTokens.toolbarBandHeight) on TextField (= use natural
-            //    TextField height = 24 PT).
-            // 3. drop .frame(height: DesignTokens.toolbarBandHeight) on Button (= use natural
-            //    Button height = ~40 PT).
-            // 4. KEEP HStack(alignment: .center, spacing: 8) (= the
-            //    alignment that boss has been trying to tell us to
-            //    use all along, = vertical center between the two
-            //    elements at their natural heights).
-            // v0.25.1 (= ticket 034 final 3): owner 2026-08-26 OOB
-            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-            // = 8 PT OUTER top margin on the chat input HStack
-            // (= between the Divider above and the HStack that
-            // contains the textfield + button). The textfield +
-            // button are offset down 8 PT as a group (= the
-            // 8 PT margin is OUTSIDE the textfield, NOT inside
-            // = no inner padding on the textfield itself).
-            // v0.28 followup Boss UX round 20: HStack(alignment: .center,
-            // spacing: 8) with .padding(.top, DesignTokens.chromePaddingLarge) (= 16 PT outer top
-            // margin applied to the entire HStack, = both TextField
-            // and Send button offset down 16 PT together = no
-            // misalignment). Per Apple HIG for chat input rows in
-            // Messages / Slack, TextField and Send button should be
-            // vertically centered at the SAME baseline. Both are
-            // 24 PT tall (= TextField.frame(height: DesignTokens.iconLargeSize) + Button
-            // .controlSize(.regular)), and HStack(alignment: .center)
-            // centers them vertically at the HStack midline.
-            //
-            // v0.28 followup Boss UX round 25 (Boss 2026-08-29 OOB
-            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-            // HStack alignment from .center → .bottom so the Send
-            // button stays anchored at the bottom of the chat input
-            // row even as the TextField grows from 24 PT (= 1 line) to
-            // up to 80 PT (= 4 lines). Per Apple HIG canonical chat
-            // input row in Messages / Slack, the Send button is bottom-
-            // anchored (= never floats) while the textfield expands
-            // upward. This is the same pattern as Apple's chat input
-            // everywhere on macOS 26 Tahoe.
-            // CHATIMG-001 (2026-09-07): the chat input is wrapped in a
-            // VStack so a small attachment preview chip can sit above
-            // the HStack (= Apple Messages / Slack attachment preview
-            // pattern). The chip renders only when
-            // `vm.attachedImagePath != nil`. The HStack itself is
-            // unchanged (= paperclip button + TextField + Send +
-            // Goal button + the same outer paddings).
-            // v1.69 boss 2026-09-18 'chat textfield, walk Apple API
-            // official mode, macOS 27 style, make it a floating
-            // panel': wrap the entire input VStack (= attachment
-            // preview chip + input row HStack) in macOS 27
-            // .glassEffect(.bar, in: RoundedRectangle(cornerRadius:
-            // 14)) (= the SwiftUI macOS 27 Liquid Glass floating
-            // panel material; = same translucent + tinted + soft
-            // shadow look as Apple Messages / Slack / Xcode 16
-            // chat input). Per developer.apple.com/documentation/
-            // swiftui/view/glasseffect(_:), the .bar material tier
-            // matches the system toolbar style (= exactly the
-            // floating chrome look we want for the bottom chat
-            // input bar). The TextField inside still grows from
-            // 30 PT (1 line) up to 4 lines via .lineLimit(1...4) +
-            // .frame(minHeight: 30) (= unchanged auto-grow behavior;
-            // = macOS 27 standard chat input pattern = the panel
-            // container stretches while the textfield inside it
-            // expands upward; = the Send button stays bottom-
-            // anchored via HStack(alignment: .bottom)).
-            VStack(alignment: .leading, spacing: 4) {
-                if let imagePath = vm.attachedImagePath {
-                    // Attachment preview chip: small thumbnail + a
-                    // ✕ button to clear the draft. Sized to fit the
-                    // chat input row width (= bounded by outer
-                    // horizontal padding via the parent's
-                    // .padding(.horizontal, ...) below).
-                    ChatAttachmentPreviewChip(imagePath: imagePath) {
-                        vm.clearAttachedImage()
-                    }
-                }
-            // v1.70 boss 2026-09-18 "the 3 buttons don't sit on
-            // the same row as the textfield, looks ugly" +
-            // "default 2-3 lines height": split the chat input
-            // into a 2-row layout (= Apple Messages / Slack
-            // pattern; = TextField on its own row that auto-
-            // grows from a 72 PT baseline up to 4 lines via
-            // .lineLimit(1...4); = the 3 buttons attach / send
-            // / goal on a fixed 30 PT bottom row below it
-            // that stays put while the textfield expands).
-            VStack(alignment: .leading, spacing: 6) {
-                // TextField row (= the expanding editor surface;
-                // = defaults to 72 PT = ~3 lines of 13 PT font
-                // before the user types; = grows up to 4 lines
-                // via .lineLimit(1...4); = Apple Messages /
-                // Slack pattern).
-                // v0.24 boss acceptance fix (2026-08-24): placeholder shows different text based on key state.
-                // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first'.
-                // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
-                // owner 2026-08-26 OOB 'chat zone chatbutton
-                // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-                // send chat 8 PT ' =
-                // 1) replace SF paperplane.fill (= Apple Send ICON) with
-                //    Lucide .send (= paper plane icon, same visual
-                //    metaphor as SF paperplane but Lucide outline style
-                //    for consistency with the rest of the project per
-                //    ticket 005+).
-                // 2) add 8 PT horizontal padding to the textfield (= text
-                //    has 8 PT of breathing room from the rounded border,
-                //    = Apple HIG TextField default padding is 4 PT, owner
-                //    wants 12 PT effective = 4 + 8).
-                // 3) increase HStack(spacing: 8) to HStack(spacing: 16)
-                //    per owner spec 'add 8 PT spacing above the chat text field' = add 8 PT
-                //    additional gap between textfield and send button
-                //    (= boss wants more visual breathing room between
-                //    textfield and send button than current 8 PT).
-                TextField(WenshuI18n.t("auto2.chatview.l858.h59940148"),
-                          text: $vm.inputText, axis: .vertical)
-                    .lineLimit(1...4)
-                    // v1.71 boss 2026-09-18 'textfield needs to be 3 lines
-                    // tall by default'. Place .frame(minHeight: 64) AFTER
-                    // .lineLimit(1...4) so SwiftUI honors the minimum
-                    // (= the empty-state default height = 64 PT = ~2
-                    // lines of 13 PT font + padding = comfortable
-                    // multi-line default). The previous v1.71 first
-                    // attempt set .frame(minHeight: 96) (= ~3 lines)
-                    // but boss said it was 'a bit too tall' and asked
-                    // for 64 PT (= the canonical Apple Messages empty-
-                    // state chat input height per WWDC 2023). The
-                    // .lineLimit(1...4) range stays (= auto-grow
-                    // ceiling at 4 lines = 128 PT).
-                    .frame(minHeight: 64)
-                    // v0.40 boss 9/7 OOB ', shouldchat zonedialog
-                    // . hint, should /help ': the slash-
-                    // command hint (= "/create-book My new novel")
-                    // lives here as the .help() tooltip (= macOS
-                    // NSHelpManager on hover; = Apple HIG canonical
-                    // "explainer tooltip" pattern). Previously was a
-                    // top banner above the workspace (= visual noise,
-                    // = boss wants the chat zone to be the SOLE
-                    // input surface for slash commands; = hint
-                    // moved to non-intrusive tooltip here).
-                    .help(WenshuI18n.t("chat.input.help"))
-                    // v0.28 followup Boss UX round 27 (Boss 2026-08-29
-                    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-                    // .multilineTextAlignment(.leading) + the default
-                    // .leading-to-trailing text flow makes the text
-                    // top-aligned by default (= text sits at the top
-                    // of the 30 PT frame, not centered). To match the
-                    // Send button's centered visual position (= button
-                    // label is centered within the 30 PT capsule),
-                    // use no special alignment (= SwiftUI TextField
-                    // axis: .vertical centers content by default
-                    // within the .frame(minHeight: 72)  // v1.70 default 2-3 lines: 72 PT = ~3 lines of 13 PT font bounds).
-                    // v0.24 boss acceptance fix: disable when no key configured.
-                    .disabled(!hasUsableKey)
-                    .focused($inputFocused)
-                    .onSubmit { Task { await vm.routeInput() } }
-                    // T18-SLASH-AUTOCOMPLETE (2026-09-18): inline slash
-                    // command popup (= Hermes-style autocomplete). Appears
-                    // above the TextField when the user types `/`. Filter
-                    // rows = commands whose name starts with the typed
-                    // prefix (= case-insensitive). Tap a row -> fill
-                    // vm.inputText with `/commandName ` (= trailing space
-                    // = user can immediately type the remainder).
-                    //
-                    // The overlay uses .topLeading alignment (= sits
-                    // flush against the TextField top edge with 8 PT
-                    // inset = the standard autocomplete popup pattern).
-                    // The popup is bound to vm.inputText via the engine
-                    // (= re-evaluates on every keystroke).
-                    //
-                    // Hidden when no slash prefix OR no matching rows.
-                    // Apple HIG: no custom chrome; = uses .regularMaterial
-                    // + .quaternary border (= same as the chat input panel).
-                    .overlay(alignment: .topLeading) {
-                        let prefix = ChatSlashCommandAutocompleteEngine.prefixFromInput(vm.inputText)
-                        let rows = ChatSlashCommandAutocompleteEngine.filter(
-                            prefix: prefix,
-                            allCommands: SkillAdapter.hubCommands
-                        )
-                        if ChatSlashCommandAutocompleteEngine.shouldShow(input: vm.inputText) {
-                            ChatSlashCommandAutocomplete(
-                                rows: rows,
-                                onSelect: { row in
-                                    vm.inputText = "/\(row.name) "
-                                }
-                            )
-                            .padding(.top, -8)
-                            .offset(y: -4)
-                        }
-                    }
-                    // v1.54 chat-input-disabled-key-check: removed the
-                    // `.onChange(of: vm.currentModel)` blur/focus dance.
-                    // The old code toggled `inputFocused` based on
-                    // whether `wenshu.llm.model` had a value (= which
-                    // was the same broken signal as `hasUsableKey`
-                    // pre-fix; = a user who saved a key but had not
-                    // picked a specific model would lose focus on the
-                    // input even though the LLM was reachable). Now
-                    // `hasUsableKey` reads the keychain directly, so
-                    // model selection no longer drives input focus.
-                    // User focus is preserved across model picks.
-                    // v0.25.1 (= ticket 034 chat textfield 1 PT focus
-                    // ring): owner 2026-08-26 OOB 'when the text field is focused this
-                    // blue outline is too thick — change to 1PT and try' = SwiftUI
-                    // TextField .roundedBorder style has a default
-                    // focus ring ~2-3 PT thick. Boss wants the focus
-                    // ring thinned to 1 PT. Fix = override the default
-                    // .roundedBorder style with a custom rounded
-                    // border using .textFieldStyle(.plain) (= removes
-                    // system focus ring) + add a conditional
-                    // RoundedRectangle stroke (lineWidth: 1) on focus.
-                    // v0.25.1 (= ticket 035 chat textfield placeholder
-                    // color + position): owner 2026-08-26 OOB 'input
-                    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-                    // message... hint defaultyes
-                    // color ' = the placeholder text
-                    // 'inputmessage...' currently looks too bright (= high
-                    // contrast, = looks like real text) and is in
-                    // the wrong position (= too far left, no left
-                    // padding). Per Apple HIG (developer.apple.com/
-                    // design/human-interface-guidelines/color +
-                    // developer.apple.com/design/human-interface-
-                    // guidelines/components/selection-and-input/
-                    // text-fields), the placeholder text color
-                    // should be `placeholderTextColor` (= semantic
-                    // = .gray in SwiftUI = systemGray), and the
-                    // position should be left-aligned with 12 PT
-                    // horizontal padding (= Apple HIG text field
-                    // default). Fix = add .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                    // to the TextField (= Apple HIG default 12 PT
-                    // horizontal padding), and add a subtle
-                    // Color.gray.opacity(0.1) background (= so the
-                    // textfield is visually a 'control' surface, not
-                    // a transparent overlay, = the placeholder text
-                    // naturally appears in the secondary color
-                    // without being too bright). The 1 PT focus
-                    // ring (ticket 034) + 8 PT outer top margin
-                    // (ticket 034 final 3) preserved.
-                    .textFieldStyle(.plain)
-                    // v0.28 followup Boss UX round 25 (Boss 2026-08-29
-                    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-                    // the textfield now has 2 height modes:
-                    //
-                    // 1. EMPTY STATE (= no text): .frame(minHeight: 72)  // v1.70 default 2-3 lines: 72 PT = ~3 lines of 13 PT font
-                    //    (= matches the Send button at 30 PT so the
-                    //    two controls look like the same height when
-                    //    there's no text — per Apple HIG canonical
-                    //    chat input row in Messages / Mail). Without
-                    //    this, the textfield's natural height (= ~22
-                    //    PT = font 13 PT + auto-padding) is visually
-                    //    shorter than the button (= 24 PT controlSize
-                    //    regular + 30 PT frame = 30 PT visual).
-                    //
-                    // 2. TYPING STATE (= text growing past 1 line):
-                    //    no max height pin so the textfield auto-
-                    //    grows from 30 PT (1 line) up to 4 lines via
-                    //    .lineLimit(1...4). The Send button stays
-                    //    bottom-anchored via HStack(alignment: .bottom).
-                    //
-                    // Why .frame(minHeight: 72)  // v1.70 default 2-3 lines: 72 PT = ~3 lines of 13 PT font and not .frame(height: LayoutTokens.chromeControlHeight):
-                    // - .frame(height: LayoutTokens.chromeControlHeight) PIN the textfield to 30 PT
-                    //   (= LayoutTokens value = 30 PT per v0.28 Apple HIG basis; DesignTokens canonical toolbarBandHeight = 32 PT is the newer canonical).
-                    //   regardless of content (= would block the auto-grow
-                    //   from round 25).
-                    // - .frame(minHeight: 72)  // v1.70 default 2-3 lines: 72 PT = ~3 lines of 13 PT font ONLY enforces a minimum
-                    //   (= textfield starts at 30 PT when empty, but
-                    //   can grow larger when content is multi-line).
-                    //
-                    // v0.28 followup Boss UX round 27 (Boss 2026-08-29
-                    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-                    // unified both empty-state heights at 30 PT
-                    // (= matches kZoneToolbarHeight = canonical chrome
-                    // height across the app).
-                    //
-                    // v0.25.1 (= ticket 037): was pinned to 24 PT per
-                    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-                    // boss OOB 'is the text field not 32 now, no matter what
-                    // change to match the text field height' = at the time, the textfield
-                    // visual was 24 PT (= 1 line) so boss wanted to
-                    // match the button height.
-                    // v1.64 boss 2026-09-20 'place current code in wenshu':
-                    // Apple Messages Liquid Glass chat input pattern.
-                    // 1. Drop the .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                    //    (= was padding the textfield inside the panel
-                    //    chrome = the old panel-style chat input). Apple
-                    //    Messages renders the textfield as a self-contained
-                    //    capsule with internal padding = the .glassEffect
-                    //    capsule provides the visible boundary.
-                    // 2. Drop the .overlay RoundedRectangle focus ring (=
-                    //    Apple Messages has no focus ring = the glass
-                    //    capsule is the only chrome).
-                    // 3. Add .glassEffect(.regular.interactive(), in: Capsule())
-                    //    (= the Apple macOS 27 Liquid Glass capsule = blurs
-                    //    + refracts the content underneath = the canonical
-                    //    Apple Messages chrome).
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    // v1.64 Apple macOS 27 Liquid Glass: turns the
-                    // textfield into a real glass capsule that blurs
-                    // + refracts the chat history underneath. The
-                    // glass IS the visible boundary (= no border, no
-                    // focus ring). Function unchanged: textfield
-                    // auto-grow, placeholder, slash-command
-                    // autocomplete, disabled state — all preserved.
-                    .glassEffect(.regular.interactive(), in: Capsule())
-                // v1.28 C3.4.7: extract leaked Send button modifiers (.buttonStyle
-                // + .controlSize + .frame + .disabled + v0.28/v0.61 boss OOB comments)
-                // from ChatView into ChatSendButton.swift (= the C3.4.4 commit
-                // missed these modifiers, = they were still chained off the
-                // ChatSendButton(vm: vm) call site; = per boss '做好清理' principle,
-                // this amendment closes the gap).
-
-                // Button row (= fixed 30 PT height; = 3 buttons
-                // spread across the row width; = Attach on
-                // the left, Send + Goal on the right; =
-                // HStack(alignment: .center) so buttons stay
-                // vertically centered regardless of the
-                // textfield's current height).
-// T0-PATH-VISIBLE (2026-09-18): new indicator button placed immediately
-                // after ChatAttachButton (= per boss OOB '加按钮就在附件上传
-                // 按钮后面先加'). HStack layout otherwise unchanged (= Spacer,
-                // Send, Goal all stay in place).
-                //
-                // T3-MULTI-TURN-LOOP (2026-09-18): turn counter button
-                // placed immediately after ChatAgentPathIndicator (= the
-                // order matches worktree commit history: T0 -> T3).
-                // HStack layout otherwise unchanged.
-                HStack(alignment: .center, spacing: 8) {
-                    // v1.64f boss 2026-09-20 'apply the prototype to
-                    // wenshu directly': replace the v1.64 6-button
-                    // chat input HStack with the canonical Apple macOS 27
-                    // NSButton(bezelStyle: .glass) buttons via the new
-                    // GlassIconButton NSViewRepresentable (= the same
-                    // chrome Apple's NSToolbar uses for its toolbar items
-                    // per developer.apple.com/documentation/appkit/nsbutton/
-                    // bezelstyle-swift.enum/glass).
-                    //
-                    // Order per boss 2026-09-20 '3 buttons + textfield +
-                    // 2 buttons' (= the canonical Apple Messages chat
-                    // input layout). No Spacer (= buttons + textfield
-                    // pack flush into a single HStack row).
-                    //
-                    // SubAgentTag is rendered conditionally (= empty view
-                    // when no sub-agent is running = HStack spacing absorbs
-                    // it = no visible orphan gap).
-                    //
-                    // Stub action closures = real wiring lives in follow-
-                    // up tickets (= each button's original SwiftUI helper
-                    // file ChatAttachButton.swift / ChatSendButton.swift /
-                    // etc. will be migrated to wire to GlassIconButton
-                    // actions in v1.64f-ticket-3+).
-                    //
-                    // LEFT: 3 state indicators
-                    GlassIconButton(systemName: "paperclip", help: "附件") {
-                        // ChatAttachButton action (file picker)
-                        showingImageImporter = true
-                    }
-                    GlassIconButton(systemName: "sparkles", help: "Agent path") {
-                        // ChatAgentPathIndicator action
-                    }
-                    GlassIconButton(systemName: "arrow.triangle.2.circlepath", help: "Turn counter") {
-                        // ChatTurnProgress action (display-only)
-                    }
-                    // Sub-agent tag = conditional (hidden when no sub-agent)
-                    if vm.activeSubAgentName != nil {
-                        GlassIconButton(systemName: "person.crop.circle", help: vm.activeSubAgentName ?? "Sub-agent") {
-                            // ChatSubAgentTag action
-                        }
-                    }
-
-                    Spacer(minLength: 8)
-
-                    // RIGHT: 2 action buttons
-                    GlassIconButton(systemName: "paperplane", help: "发送") {
-                        Task { await vm.routeInput() }
-                    }
-                    GlassIconButton(systemName: "scope", help: "目标 (⌘⇧G)") {
-                        Task { await vm.startLongRunningGoal() }
-                    }
-                    .keyboardShortcut("g", modifiers: [.command, .shift])
-                }
-                .frame(minHeight: 30)
-            }
-            }   // CHATIMG-001 (2026-09-07): close inner VStack (preview chip + HStack)
+            // v1.81 boss 2026-09-23 '聊天区我认为就两层，加上 NSV 框架，也就是三层':
+            // the chat input row (formerly an inline `VStack` here, with
+            // .glassEffect + .overlay + .shadow floating-panel chrome) is
+            // hoisted to ChatInputBarView (= Sources/WenshuApp/Views/Chat/
+            // ChatInputBarView.swift) and floats over the ScrollView via
+            // .safeAreaInset(edge: .bottom) (= Apple HIG Messages / Slack
+            // pattern). The 159-line obsolete comment block removed here
+            // (= pre-v1.81 'inline floating panel' design notes: ticket
+            // 030-034 alignment history, .glassEffect material tier notes,
+            // CHATIMG-001 attachment-preview-chip notes, and the v0.28
+            // followup Boss UX round 20/25 alignment notes) is preserved
+            // in git history (= the comments described code that has
+            // since been deleted; = no longer relevant; = recovered
+            // via `git log -p Sources/WenshuApp/Views/Chat/ChatView.swift`
+            // if needed for archaeology).
             // T37-KEYBOARD-SHORTCUTS (2026-09-18): two hidden Buttons that
             // register app-level keyboard shortcuts without changing the
             // visible HStack layout. The Buttons are .frame(width: 0, height: 0)

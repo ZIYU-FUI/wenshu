@@ -138,10 +138,14 @@ public enum DesignTokens {
     public static let chromePaddingPickerItem: CGFloat = 10
     public static let chromePaddingHero: CGFloat = 20
 
-    /// Chat input outer bottom margin (= 10 PT). Apple HIG standard for
-    /// chat input row bottom inset (= Messages / Mail / Xcode).
-    /// Replaces inline `.padding(.bottom, DesignTokens.chromePaddingChatBottom)`.
-    public static let chromePaddingChatBottom: CGFloat = 10
+    /// Chat input outer bottom margin. Boss OOB 2026-09-22 '距底 30PT'
+    /// then revised 2026-09-23 '现在太高，导致底部距离太远': reduced
+    /// back to 12 PT (= the canonical Apple Messages chat input bottom
+    /// inset on macOS; = the chat input sits 12 PT above the window's
+    /// bottom edge = the same inset Apple Mail / Apple Notes use for
+    /// their bottom toolbars). Replaces inline
+    /// `.padding(.bottom, DesignTokens.chromePaddingChatBottom)`.
+    public static let chromePaddingChatBottom: CGFloat = 12
 
     /// Floating edit-mode indicator chip horizontal padding (= 10 PT).
     /// Apple HIG standard for floating chip / badge layout.

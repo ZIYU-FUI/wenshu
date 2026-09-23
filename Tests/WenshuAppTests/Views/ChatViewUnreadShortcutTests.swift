@@ -92,12 +92,32 @@ struct ChatViewUnreadShortcutTests {
 
     /// T108 contract: HStack invariant preserved.
     @Test func hstack_invariant_preserved() throws {
-        let src = try String(
+        // v1.81 (2026-09-23): boss's 3-layer refactor hoists the chat input
+        // row out of ChatView.swift into ChatInputBarView.swift (= the top
+        // layer; = the user-interactive controls). The hidden Button("Jump to unread") Button
+        // (= a hidden keyboard-shortcut Button outside the visible input
+        // row HStack) stays in ChatView.swift (= the keyboard-shortcut
+        // block lives as a sibling of ScrollViewReader, not inside the
+        // input row). The invariant (= Button("Jump to unread") Button is OUTSIDE the
+        // input row HStack) is now distributed across two files; = this
+        // test verifies both halves exist (= .frame(minHeight: 30) is
+        // only in ChatInputBarView; = Button("Jump to unread") is only in ChatView).
+        let inputBarSrc = try String(
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            encoding: .utf8
+        )
+        let chatViewSrc = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
             encoding: .utf8
         )
-        let unreadPos = src.range(of: "Button(\"Jump to unread\")")!
-        let hstackClosePos = src.range(of: ".frame(minHeight: 30)")!.lowerBound
-        #expect(unreadPos.lowerBound > hstackClosePos)
+        // The input row HStack's minimum height pin (= .frame(minHeight: 30))
+        // lives ONLY in the top-layer ChatInputBarView.
+        #expect(inputBarSrc.contains(".frame(minHeight: 30)"))
+        #expect(!chatViewSrc.contains(".frame(minHeight: 30)"))
+        // The Button("Jump to unread") keyboard shortcut Button lives ONLY in
+        // ChatView (= the keyboard shortcut block is a sibling of
+        // ScrollViewReader; = not inside the input row).
+        #expect(chatViewSrc.contains("Button(\"Jump to unread\")"))
+        #expect(!inputBarSrc.contains("Button(\"Jump to unread\")"))
     }
 }
