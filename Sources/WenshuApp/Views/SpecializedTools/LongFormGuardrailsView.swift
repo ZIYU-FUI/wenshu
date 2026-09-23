@@ -376,15 +376,15 @@ struct LongFormGuardrailsView: View {
     // MARK: - Async actions
 
     private func reload() async {
-        guard let bookId = activeBookId else { return }
+        guard activeBookId != nil else { return }
         loadingState = .loading
         let actor = await ensureManager()
-        do {
-            let rows = try await actor.loadGuardrails(for: bookId)
-            guardrails = rows
+        let result = await LongFormGuardrailsOps.reload(manager: actor, bookId: activeBookId)
+        guardrails = result.rows
+        if let err = result.error {
+            loadingState = .failed(err)
+        } else if result.didLoad {
             loadingState = .loaded
-        } catch {
-            loadingState = .failed(error.localizedDescription)
         }
     }
 
@@ -396,55 +396,53 @@ struct LongFormGuardrailsView: View {
     }
 
     private func autoDerive() async {
-        guard let bookId = activeBookId else { return }
         let actor = await ensureManager()
-        // Wipe existing rows first (= auto-derive replaces).
-        for row in guardrails {
-            try? await actor.remove(id: row.id, from: bookId)
-        }
-        let derived = await actor.extractConstraints(from: "(no book context supplied)")
-        for row in derived {
-            try? await actor.add(row, to: bookId)
+        let result = await LongFormGuardrailsOps.autoDerive(manager: actor, bookId: activeBookId)
+        if let err = result.error {
+            loadingState = .failed(err)
         }
         await reload()
     }
 
     private func removeRow(_ row: LongFormGuardrail) async {
-        guard let bookId = activeBookId else { return }
         let actor = await ensureManager()
-        try? await actor.remove(id: row.id, from: bookId)
+        _ = await LongFormGuardrailsOps.removeRow(manager: actor, bookId: activeBookId, row: row)
         await reload()
     }
 
     private func saveDraft() async {
-        guard let bookId = activeBookId else { return }
         let actor = await ensureManager()
-        let row = LongFormGuardrail(
+        let result = await LongFormGuardrailsOps.saveDraft(
+            manager: actor,
+            bookId: activeBookId,
             kind: draftKind,
-            source: .bookContext,
-            enforce: draftEnforcement,
-            name: draftName.trimmingCharacters(in: .whitespacesAndNewlines),
-            description: draftDescription.trimmingCharacters(in: .whitespacesAndNewlines),
-            isAutoDerived: false
+            enforcement: draftEnforcement,
+            name: draftName,
+            description: draftDescription
         )
-        try? await actor.add(row, to: bookId)
-        draftName = ""
-        draftDescription = ""
-        showAddSheet = false
-        await reload()
+        if result.didSave {
+            draftName = ""
+            draftDescription = ""
+            showAddSheet = false
+            await reload()
+        } else if let err = result.error {
+            loadingState = .failed(err)
+        }
     }
 
     private func runCheck() async {
-        guard let bookId = activeBookId else { return }
+        guard activeBookId != nil else { return }
         let actor = await ensureManager()
         lastCheckStatus = .running
-        do {
-            let violations = try await actor.check(checkText, against: guardrails)
-            lastViolations = violations
-            let hasCritical = violations.contains { $0.severity == .critical }
-            lastCheckStatus = .done(count: violations.count, hasCritical: hasCritical)
-            _ = bookId
-        } catch {
+        let result = await LongFormGuardrailsOps.runCheck(
+            manager: actor,
+            guardrails: guardrails,
+            checkText: checkText
+        )
+        lastViolations = result.violations
+        if result.didRun {
+            lastCheckStatus = .done(count: result.violations.count, hasCritical: result.hasCritical)
+        } else {
             lastCheckStatus = .done(count: 0, hasCritical: false)
         }
     }
