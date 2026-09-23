@@ -485,9 +485,9 @@ public struct ChatView: View {
                 await vm.loadHistory()
             }
 
-            // v1.83: ChatViewCompressionRow now lives in ChatInputBarView
-            // (= first element of the single HStack per boss v1.82 spec).
-            // (= was a sibling here before the 3-layer UI split.)
+            // v1.84 (2026-09-23): boss dropped the compression pill entirely
+            // (= ChatViewCompressionRow deleted in this commit; = no
+            // token-usage chrome inside the chat column).
 
             // v1.83: chat input bar (= the top layer of the
             // 3-layer UI split per boss v1.81 spec) floats over this

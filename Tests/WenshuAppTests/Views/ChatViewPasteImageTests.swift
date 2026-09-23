@@ -49,17 +49,19 @@ struct ChatViewPasteImageTests {
         #expect(src.contains("vm.attachImage(at:"))
     }
 
-    /// T38 contract: the paste handler is on the same outer VStack
-    /// (= sibling of the .fileImporter). Both should be near each
-    /// other in source order (= both attached to the same VStack).
+    /// T38 contract: the paste handler is in the chat input area (= on
+    /// the same view as the file picker; = both belong to the input row).
+    /// v1.83 (2026-09-23): boss's 3-layer refactor moves both
+    /// .onPasteCommand + .fileImporter from ChatView into ChatInputBarView
+    /// (= the top layer = input controls). The T38 contract now
+    /// asserts co-location in ChatInputBarView (= they sit on the
+    /// same input row HStack; = within 5,000 chars of source order).
     @Test func paste_handler_is_on_outer_vstack() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
             encoding: .utf8
         )
-        // Find ALL occurrences of "fileImporter(" (not just first); the
-        // fileImporter CALL SITE is on the outer VStack near the paste
-        // handler. Comment mentions elsewhere in the file don't count.
+        // Find the .fileImporter( call site (= modifier on input row).
         let callPattern = ".fileImporter(\n"
         guard let callSiteRange = src.range(of: callPattern) else {
             Issue.record("no .fileImporter( call site found")
@@ -74,7 +76,10 @@ struct ChatViewPasteImageTests {
             to: callSiteRange.lowerBound
         )
         let gap = abs(pasteOffset - importerOffset)
-        #expect(gap < 5_000, "paste handler should be near fileImporter call (= same outer VStack); gap = \(gap)")
+        // v1.83: paste handler is now inside the private
+        // ImagePasteModifier (= wraps TextField); = ~140 lines below
+        // the fileImporter call (= ~5,000 chars); = relaxed from 5_000.
+        #expect(gap < 10_000, "paste handler should be near fileImporter call (= same input row); gap = \(gap)")
     }
 
     /// T38 contract: existing image affordances (fileImporter +

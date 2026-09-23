@@ -1,17 +1,22 @@
 //
-//  ChatInputBarView.swift · Wenshu · v1.83
+//  ChatInputBarView.swift · Wenshu · v1.84
 //
-//  v1.83 boss 2026-09-23 '你不光要拆，还需要重写代码。我建议你就重构
-//  代码，别嫌麻烦，反正只是改 UI，不是改功能' (= 'don't just split,
-//  you need to rewrite the code. I suggest you refactor it; = it's
-//  only UI, not function').
+//  v1.84 boss 2026-09-23 '我红框部分的删除不要了，保留底栏的' (= 'delete
+//  what I marked in the red box; keep the bottom bar'): drop the
+//  token-usage pill (= the leftmost vertical text + the bottom-row
+//  "0 tokens used + 压缩" = the red-box content). Add a divider
+//  hairline below the input row (= visual rhythm only; =
+//  matches the Apple HIG sidebar-bottom-accessory separator that
+//  NewLibraryOutlineView.swift L1776 uses above its "+ 新建" button;
+//  = boss 2026-09-23 '既然你加了底栏，可以参考左栏的底部的新建。
+//  有一条分割线。也参考一下高度，这样软件整体看起来更协调').
+//  No interactive bottom control (= no "+ 新对话" button; = boss 2026-09-23
+//  '不要延展我说的话，我没有要做新建会话的需求。我是说样式参考左栏的新建').
 //
-//  v1.81 + v1.82 were extraction (= moved inline VStack to a new file)
-//  + single-row layout (= 6-element HStack). v1.83 is the actual
-//  rewrite (= clean Apple Messages chat input pattern; = no v0.x
-//  history baggage; = no dead abstraction classes; = just the
-//  spec 老板 gave: 1 token压缩 + 2 buttons + 1 输入框 + 3 buttons,
-//  = 10PT gaps, 30PT 距底).
+//  v1.81 + v1.82 = extraction (move inline VStack → a new file) +
+//  single-row HStack. v1.83 = clean rewrite (drop v0.x baggage +
+//  delete 6 dead helper SwiftUI View files). v1.84 = simplify +
+//  add divider below the input row (= visual rhythm only).
 //
 //  Dead helper classes deleted (= no production caller):
 //    - ChatAttachButton.swift (= replaced by inline GlassIconButton)
@@ -50,10 +55,23 @@ struct ChatInputBarView: View {
     @Binding var isDropTargeted: Bool
 
     var body: some View {
+        // v1.84 (2026-09-23): boss spec = chat column bottom = single
+        // input row (this file's inputRow) + a divider hairline below
+        // it (= the Apple HIG sidebar-bottom-accessory separator;
+        // = the same primitive NewLibraryOutlineView.swift uses above
+        // its "+ 新建" button; = visual rhythm only, no interactive
+        // control here; = boss 2026-09-23 '既然你加了底栏，可以参考
+        // 左栏的底部的新建。有一条分割线。也参考一下高度，这样软件
+        // 整体看起来更协调').
         VStack(alignment: .leading, spacing: 4) {
             attachmentPreviewChip
 
             inputRow
+
+            // Divider directly below the input row (= the sidebar
+            // pattern: NewLibraryOutlineView L1776 `Divider()` sits
+            // at the top of its safeAreaInset = same rhythm here).
+            Divider()
         }
     }
 
@@ -84,9 +102,11 @@ struct ChatInputBarView: View {
     ///   6. 按钮 (scope = long-running goal, ⌘⇧G)
     ///   7. 按钮 (paperplane = send, ⌘↩)
     private var inputRow: some View {
+        // v1.84 (2026-09-23): boss's 2nd rewrite pass (= drop the
+        // compression pill from the input HStack; = the spec for
+        // this column is just buttons + TextField + buttons; = no
+        // token-usage chrome inside the editor).
         HStack(alignment: .center, spacing: 10) {
-            ChatViewCompressionRow(vm: vm)
-
             attachButton
             agentPathButton
 
