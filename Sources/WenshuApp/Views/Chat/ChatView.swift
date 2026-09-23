@@ -1,5 +1,24 @@
+//  ChatView.swift · Wenshu · v1.92
 //
-//  ChatView.swift · Wenshu · v0.20 ticket 01 (Agent chat in lower-left zone)
+//  v1.92 (2026-09-23): boss '用户说话的那个框，像 hermes 一样，实现吸
+//  顶。让用户知道 AI 回复的是哪个问题' (= implement hermes-style sticky
+//  top for the user bubble). Use `LazyVStack(pinnedViews:
+//  [.sectionHeaders])` (= the macOS 27 SwiftUI equivalent of CSS
+//  `position: sticky; top: 0`; = continuous sticky; = scrolls WITH
+//  content). Group messages into "turns" (= user message + its
+//  following assistant replies) via `ChatTurn` struct; = render each
+//  turn as a Section where the user bubble is the pinned header. When
+//  user scrolls down through history, the most recent user bubble
+//  pins at top (= the boss's "see which question AI is replying to"
+//  affordance). Replaces v1.65-cleanup E3's `.safeAreaInset(edge:
+//  .top)` sticky overlay attempt (= that was a discrete scrollTo(.top)
+//  on new user message; = jarring; = reverted by boss 2026-09-21
+//  '把吸顶也取消吧').
+//
+//  v1.91 (2026-09-23): chat transcript background routed through
+//  DesignTokens.sidebarBackground token (= single source of truth
+//  for sidebar color in the wenshu design system).
+//
 //
 //  Wire the lower-left zone to a real chat UI + Agent conversation (port of hermes 35-skill chat ground truth).
 //  Boss 2026-08-19 evening decision "first implement the chat zone, that is the lower-left area, support Agent conversation".
@@ -204,6 +223,57 @@ public struct ChatView: View {
         return bookStore
     }
 
+    /// v1.92 (2026-09-23): boss '用户说话的那个框，像 hermes 一样，
+    /// 实现吸顶。让用户知道 AI 回复的是哪个问题'. Group messages
+    /// into "turns" for `LazyVStack(pinnedViews: [.sectionHeaders])`
+    /// (= the macOS 27 SwiftUI equivalent of CSS `position: sticky;
+    /// top: 0`). Each turn = (userMessage, replies[] where replies =
+    /// all subsequent assistant/placeholder messages until the next
+    /// user message). The userMessage is rendered as the Section's
+    /// header (= pinned to the scroll viewport top while its replies
+    /// scroll underneath). When the user reaches the most recent turn,
+    /// the latest user bubble pins at the top (= the boss's "see
+    /// which question AI is replying to" affordance).
+    private var turns: [ChatTurn] {
+        var result: [ChatTurn] = []
+        for msg in vm.messages {
+            if msg.source == .user {
+                result.append(ChatTurn(userMessage: msg, replies: []))
+            } else {
+                if result.isEmpty {
+                    result.append(ChatTurn(userMessage: nil, replies: [msg]))
+                } else {
+                    result[result.count - 1].replies.append(msg)
+                }
+            }
+        }
+        return result
+    }
+
+    /// Render the Section header (= the user bubble OR nothing if
+    /// this turn has no user message = opening greeting).
+    @ViewBuilder
+    private func turnHeader(for turn: ChatTurn) -> some View {
+        if let userMsg = turn.userMessage {
+            ChatMessageView(
+                message: userMsg,
+                isLatestUser: vm.messages.last(where: { $0.source == .user })?.id == userMsg.id,
+                onApprovePlan: { plan in
+                    vm.inputText = plan.query
+                    Task { await vm.send() }
+                }
+            )
+            .id(userMsg.id)
+            // v1.92: section header needs `.background()` to mask
+            // replies scrolling underneath (= boss spec "像 hermes
+            // 一样" = hermes uses `bg-(--background)` on the sticky
+            // user-message). Use DesignTokens.sidebarBackground (=
+            // transcript) so the pinned user bubble blends
+            // seamlessly with the scroll viewport background.
+            .background(DesignTokens.sidebarBackground)
+        }
+    }
+
     public var body: some View {
         // v0.24 boss acceptance fix: listen for global defocus notification.
         // Boss 8/24 feedback: 'clicking other areas, the textfield still keeps focus'.
@@ -236,42 +306,39 @@ public struct ChatView: View {
             // / char ≈ 72 chars per line, in the right band.
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(Array(vm.messages.enumerated()), id: \.element.id) { index, msg in
-                            // v0.57: a bubble needs to know where it sits in
-                            // a run of consecutive messages from one author,
-                            // because iMessage only tails the last one and
-                            // squares the corners facing a neighbour.
-                            //
-                            // v1.65-cleanup D2 boss 2026-09-21 '昨天/明天/周五
-                            // the hermes transcript has no day-divider header':
-                            // the wenshu-side ChatMessageDayDivider
-                            // (= "Today" / "Yesterday" / weekday + date header)
-                            // was deleted (= see AGENTS.md §11.7e). Hermes
-                            // 真值 distinguishes turns by foreground color
-                            // + container presence alone (= no day bucket
-                            // header in transcript; = per boss 2026-09-21
-                            // OOB '我看 hermes 没有').
-                            // The first message (= index == 0) ALSO shows a
-                            // header so the user knows when this chat
-                            // started.
-                            // v1.65 boss 'all 1:1 hermes真值': compute
-                            // the latest user message id (= the row
-                            // that gets the sticky-top treatment per
-                            // hermes user-message.tsx:46 `sticky z-40`).
-                            // Hermes does this client-side per render
-                            // (= walking the messages array). We do
-                            // the same here (= O(n) per render, n =
-                            // transcript size, = cheap).
-                            ChatMessageView(
-                                message: msg,
-                                isLatestUser: false,
-                                onApprovePlan: { plan in
-                                    vm.inputText = plan.query
-                                    Task { await vm.send() }
+                    // v1.92 (2026-09-23): boss '用户说话的那个框，像
+                    // hermes 一样，实现吸顶。让用户知道 AI 回复的是哪
+                    // 个问题' (= implement sticky-top for the user bubble
+                    // like hermes; = so the user can see which question
+                    // the AI is replying to when they scroll). Use
+                    // `LazyVStack(pinnedViews: [.sectionHeaders])` (= the
+                    // macOS 27 SwiftUI equivalent of CSS
+                    // `position: sticky; top: 0`; = continuous sticky,
+                    // scrolls WITH content = no jarring yank). Group
+                    // messages into "turns" (= user message + its
+                    // following assistant reply + any placeholders).
+                    // Each turn's user bubble is the Section.header
+                    // (= pinned to the scroll viewport top). When user
+                    // scrolls down, the most recent user bubble pins at
+                    // top (= the boss's desired "let me see which
+                    // question AI is replying to" affordance). When user
+                    // scrolls up, older user bubbles pass through (= CSS
+                    // sticky semantics).
+                    LazyVStack(alignment: .leading, spacing: 8, pinnedViews: [.sectionHeaders]) {
+                        ForEach(turns) { turn in
+                            Section(header: turnHeader(for: turn)) {
+                                ForEach(turn.replies) { reply in
+                                    ChatMessageView(
+                                        message: reply,
+                                        isLatestUser: false,
+                                        onApprovePlan: { plan in
+                                            vm.inputText = plan.query
+                                            Task { await vm.send() }
+                                        }
+                                    )
+                                    .id(reply.id)
                                 }
-                            )
-                            .id(msg.id)
+                            }
                         }
                     }
                     .padding(DesignTokens.chromePaddingVertical)
@@ -1295,4 +1362,27 @@ public struct ChatView: View {
             inputFocused = false
         }
     }
+}
+
+
+// MARK: - v1.92 ChatTurn (= unit of grouping for sticky-top user bubbles)
+
+/// Boss 2026-09-23 '用户说话的那个框，像 hermes 一样，实现吸顶' (=
+/// make the user bubble sticky like hermes). Each ChatTurn groups one
+/// user message (= the Section.header that pins to the scroll viewport
+/// top via `LazyVStack(pinnedViews: [.sectionHeaders])`) with all
+/// following assistant/placeholder messages (= the Section.content
+/// that scrolls underneath). The turn structure mirrors hermes
+/// `apps/desktop/src/components/assistant-ui/thread/user-message.tsx:46`
+/// `sticky top-0 z-40` (= continuous position:sticky; = no jarring
+/// yank when a new user message lands).
+///
+/// `userMessage == nil` covers the opening greeting case (= the first
+/// transcript entry may be a placeholder like "随时开写" with no
+/// preceding user message; = we still want it rendered in scroll order;
+/// = it just has no sticky header).
+struct ChatTurn: Identifiable {
+    let id = UUID()
+    let userMessage: ChatMessage?
+    var replies: [ChatMessage]
 }
