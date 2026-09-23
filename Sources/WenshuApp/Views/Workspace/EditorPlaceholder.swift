@@ -109,23 +109,50 @@ struct EditorPlaceholder: View {
             // when tabs overflow. = no formatting toolbar / no save
             // button (= the per-tab formatting + save hotkey move to
             // the new tab-bar layout as boss decides).
+            // v1.73 tab strip — boss 2026-09-23 OOB '当前打开的 teb,
+            // 应该是全宽的 teb. 能显示文件名和 X 按钮. 要不要我点不到':
+            // only the ACTIVE tab is shown in the strip (= full-width
+            // title + close X). Inactive tabs are hidden (= openTabs
+            // stays in AppState for state; = sidebar drives the
+            // switch-back path; = this matches Safari's "single tab"
+            // feel on a one-tab window).
+            //
+            // X button = small xmark Button next to the title (= fires
+            // appState.closeTab which handles dirty flush + remove +
+            // focus follow). We avoid sibling Button nesting inside the
+            // active title Button (= which earlier triggered a SwiftUI
+            // Update-Constraints infinite loop on macOS 27 Liquid Glass).
             HStack(spacing: 0) {
-                ForEach(appState.openTabs) { tab in
-                    let title = EditorTab.displayTitle(tab)
-                    let isActive = (tab.id == appState.activeTabId)
-                    Button(action: { appState.activeTabId = tab.id }) {
-                        Text(title)
-                            .font(DesignTokens.tabTitleFont.weight(isActive ? .semibold : .regular))
-                            .foregroundStyle(isActive ? Color.accentColor : .secondary)
-                            .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                            .frame(height: DesignTokens.paneTabHotArea)
-                            .background(
-                                Rectangle()
-                                    .fill(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
-                            )
+                if let active = appState.openTabs.first(where: { $0.id == appState.activeTabId })
+                    ?? appState.openTabs.first {
+                    let title = EditorTab.displayTitle(active)
+                    // Active tab title = plain Text (= no Button; =
+                    // the active tab is not interactive itself; =
+                    // clicking the title is a no-op and would only
+                    // add a focus ring + accessibility label that
+                    // screen readers would announce as a control).
+                    Text(title)
+                        .font(DesignTokens.tabTitleFont.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, DesignTokens.chromePaddingMedium)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: DesignTokens.paneTabHotArea)
+                        .background(
+                            Rectangle()
+                                .fill(Color.accentColor.opacity(0.12))
+                        )
+                        .help(title)
+
+                    Button(action: {
+                        appState.closeTab(id: active.id, bookStore: bookStore)
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 18, height: 18)
                     }
                     .buttonStyle(.plain)
-                    .help(title)
+                    .help(WenshuI18n.t("workspace.editor.close_tab_tooltip"))
                 }
             }
             // v0.34 ticket 09: dirty-discard confirm dialog. Shown when
@@ -138,19 +165,18 @@ struct EditorPlaceholder: View {
                 set: { self.showDirtyDiscardConfirm = $0 }
             )) {
                 Button(WenshuI18n.t("workspace.editor.dirty_discard_button"), role: .destructive) {
-                    // Discard: clear draft + reset to originalBody + close.
-                    // Today = no-op beyond resetting state (= ticket 027-35
-                    // wires real document close).
-                    draft = originalBody
-                    documentPath = nil
-                    // v0.34 B-22: discard = no more writes ever (= the
-                    // edits are thrown away). Cancel any pending auto-save
-                    // Task + notify handler with dirty = false (= matches
-                    // the post-discard state).
-                    // v1.70 editor-mvvm T2b: dirty-state machine lives
-                    // in `EditorPersistence.handleDirtyTransition(...)`.
+                    // v1.73 tab close button: discard = close the tab
+                    // (= auto-save guarantee: dirty drafts are
+                    // thrown away because they explicitly chose
+                    // 'Discard' in the confirm). closeTab handles
+                    // cancel pending Task + stop watcher + skip the
+                    // dirty-flush (since draft will be reset below).
                     if let tab = activeTab {
-                        EditorPersistence.handleDirtyTransition(false, tab: tab, bookStore: bookStore)
+                        // Reset draft so closeTab's
+                        // 'draft != originalBody' check is false (=
+                        // we throw away the edits, NOT save them).
+                        tab.draft = tab.originalBody
+                        appState.closeTab(id: tab.id, bookStore: bookStore)
                     }
                 }
                 Button(WenshuI18n.t("button.continue_edit"), role: .cancel) { }

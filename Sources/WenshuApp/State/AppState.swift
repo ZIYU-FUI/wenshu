@@ -362,6 +362,80 @@ var sidebarSelection: SidebarItem? = nil {
         activeTabId = openTabs[0].id
     }
 
+    // v1.73 tab close button (= boss 2026-09-22 OOB 'TEB 没有叉,
+    // 导致文档只能打开关不掉' + '需要加 X, 同时确保自动保存有用'):
+    // the business entry point for the new X button on the editor
+    // tab strip (= closes one tab by id; = flushes dirty drafts
+    // synchronously so closing doesn't lose pending edits).
+    //
+    // Auto-save guarantee (= per boss spec '确保自动保存有用'):
+    // - dirty tab + pending auto-save Task (= 3-second debounce
+    //   mid-flight): cancel the Task (= prevents it from resuming
+    //   on a deleted tab = potential crash + stale write) + flush
+    //   the draft synchronously via EditorPersistence.save (= no
+    //   lost edits).
+    // - dirty tab + no pending Task: sync save (= same path).
+    // - clean tab: no save needed; just remove + stop watcher.
+    //
+    // After remove: if openTabs ends up empty, re-inject the
+    // welcome tab (= matches the ensureWelcomeTabIfEmpty invariant;
+    // = tab strip stays visible at all times). If the closed tab
+    // was active, pick a neighbor: next tab preferred; = fall back
+    // to previous; = fall back to the welcome tab if empty.
+    //
+    // BookStore is passed in (= the same pattern as
+    // EditorPersistence.save); = AppState itself doesn't hold a
+    // BookStore (the view layer does via @Environment).
+    func closeTab(id: UUID, bookStore: BookStore?) {
+        guard let idx = openTabs.firstIndex(where: { $0.id == id }) else {
+            // Unknown id (= stale UI; = safe to ignore).
+            return
+        }
+        let tab = openTabs[idx]
+
+        // 1. Cancel any pending auto-save Task on this tab (= prevents
+        // Task.resume on a deleted tab; = prevents the Task from
+        // writing to a stale slot).
+        tab.autoSaveTask?.cancel()
+        tab.autoSaveTask = nil
+
+        // 2. Stop the file watcher (= v1.70 T1a EditorFileWatcher;
+        // = prevents zombie DispatchSource holding the fd).
+        EditorFileWatcher.stop(tab: tab)
+
+        // 3. Flush the dirty draft synchronously if needed (= the
+        // boss's '确保自动保存有用' invariant). clean tabs compare
+        // equal so the EditorPersistence.save is skipped (= idempotent).
+        if tab.draft != tab.originalBody {
+            EditorPersistence.save(tab: tab, bookStore: bookStore)
+            // After sync save, mark the tab clean (= no further writes
+            // will happen; = the doc is consistent on disk).
+            tab.originalBody = tab.draft
+        }
+
+        // 4. Remove the tab (= didSet triggers persistOpenTabs; =
+        // UserDefaults write is automatic).
+        openTabs.remove(at: idx)
+
+        // 5. If the closed tab was active, pick a neighbor.
+        if activeTabId == id {
+            if openTabs.isEmpty {
+                // All tabs closed = re-inject welcome (= tab strip
+                // stays visible per the welcomeTab invariant).
+                let welcome = welcomeTab
+                openTabs.append(welcome)
+                activeTabId = welcome.id
+            } else if idx < openTabs.count {
+                // Closed a non-last tab = next tab in the list wins.
+                activeTabId = openTabs[idx].id
+            } else {
+                // Closed the last tab in the list = previous (now
+                // last) tab wins (= Safari / Chrome convention).
+                activeTabId = openTabs[idx - 1].id
+            }
+        }
+    }
+
     // v0.40 apple-001 Q3 surgical: hoist `LayoutEditMode` (= the
     // ⌘⇧\ layout-edit hotkey state) from WorkspaceView-local
     // `@State private var editMode = LayoutEditMode()` into AppState
