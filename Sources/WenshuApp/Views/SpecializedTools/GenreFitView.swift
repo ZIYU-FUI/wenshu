@@ -267,18 +267,18 @@ struct GenreFitView: View {
     }
 
     private func runAnalyze() async {
-        ensureAnalyzer()
-        guard let analyzer = analyzer else { return }
+        GenreFitOps.ensureAnalyzer(analyzer: &analyzer)
         status = .running
-        let text = chapterText
-        let genre = selectedGenre
-        do {
-            let newReport = try await analyzer.analyze(chapterText: text, genre: genre)
-            report = newReport
+        let result = await GenreFitOps.runAnalyze(
+            analyzer: analyzer,
+            chapterText: chapterText,
+            genre: selectedGenre
+        )
+        report = result.report
+        if result.didRun {
             status = .idle
-        } catch {
-            status = .failed(error.localizedDescription)
-            report = nil
+        } else if let err = result.error {
+            status = .failed(err)
         }
     }
 }
