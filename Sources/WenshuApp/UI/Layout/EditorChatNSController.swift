@@ -166,6 +166,26 @@ final class EditorChatNSController: NSSplitViewController {
         // Apple-standard 1 PT hairline; = matches Pages / Numbers /
         // Keynote).
         self.splitView.dividerStyle = .thin
+        // v1.95 (2026-09-23): boss '聊天区背景颜色没有实现' OOB follow-up.
+        // Pure Apple HIG approach (= let NSSplitView + NSSplitViewItem
+        // be transparent; = ChatZoneView provides its own background
+        // via SwiftUI's `.background(DesignTokens.sidebarBackground)`).
+        // Without this, NSVisualEffectView bleeds through (= the
+        // gradient boss saw in v1.93b-v1.93h).
+        //
+        // Apple HIG rationale (developer.apple.com/documentation/appkit/nssplitview):
+        // NSSplitView by default paints a backgroundColor under both
+        // panes (= the "behind the chrome" color). When set to
+        // `.clear`, the SwiftUI-hosted content's own background
+        // shows through (= no more gradient bleed).
+        //
+        // NSSplitView is an NSView subclass; = `wantsLayer` and the
+        // layer's CGColor are how we make the split view composite
+        // correctly with SwiftUI children above (= otherwise macOS
+        // draws the content over the parent NSWindow's opaque bg and
+        // the chat zone stays black regardless of SwiftUI's bg modifier).
+        self.splitView.wantsLayer = true
+        self.splitView.layer?.backgroundColor = NSColor.clear.cgColor
         // v1.0.0-m1-shell boss 2026-09-10 OOB 'It's a left/right layout, can we switch it to top/bottom?':
         // switch the split view to vertical layout (= editor on top,
         // chat on bottom; = top-to-bottom stack). NSSplitView's
@@ -265,10 +285,37 @@ final class EditorChatNSController: NSSplitViewController {
         // drag position is restored by Apple before viewDidAppear
         // (= we don't touch it).
         if !hasAutosave && !defaults.bool(forKey: Self.firstLaunchSetKey) {
-            let dividerY = self.splitView.bounds.height / 2
-            self.splitView.setPosition(dividerY, ofDividerAt: 0)
+            applyFiftyFiftyFirstLaunch()
             defaults.set(true, forKey: Self.firstLaunchSetKey)
         }
+    }
+
+    /// v1.95 (2026-09-23): boss '50:50 又丢了'.
+    /// In viewDidAppear, splitView.bounds.height isn't final yet
+    /// (= macOS is still mid layout pass; = setPosition uses an
+    /// off-by-N height). Move the actual setPosition to
+    /// viewDidLayout, which fires once bounds are real (and any layout
+    /// pass is done). Apple's canonical order is
+    /// viewWillLayout -> layoutSubviews -> viewDidLayout; = the
+    /// splitView now has its final height here.
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        let defaults = UserDefaults.standard
+        let autosaveKey = "NSSplitView Subview Frames \(Self.autosaveName)"
+        let hasAutosave = defaults.data(forKey: autosaveKey) != nil
+        if !hasAutosave && defaults.bool(forKey: Self.firstLaunchSetKey) {
+            // We already tried to set 50:50 in viewDidAppear (=
+            // the flag is set) but it didn't take (= bounds were
+            // off). Retry now that bounds are final.
+            applyFiftyFiftyFirstLaunch()
+        }
+    }
+
+    /// v1.95: do the actual 50:50 setPosition (split out so both
+    /// viewDidAppear and viewDidLayout can call it).
+    private func applyFiftyFiftyFirstLaunch() {
+        let dividerY = self.splitView.bounds.height / 2
+        self.splitView.setPosition(dividerY, ofDividerAt: 0)
     }
 
     /// Programmatic toggle (= called from the menu bar View >

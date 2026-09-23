@@ -145,12 +145,20 @@ struct ChatInputBarView: View {
             HStack(spacing: 6) {
                 if vm.contextUsed >= tokenCompressionContextThreshold {
                     // Over-threshold warning (orange).
-                    Text("\(formatCompactTokenCount(vm.contextUsed)) / \(formatCompactTokenCount(tokenCompressionContextThreshold)) tokens (\(percentOfThreshold)%)")
+                    // v1.95 (2026-09-23): localized.
+                    // en: "%d / %d tokens (%d%%)" / zh-Hans: "已使用 %d / %d tokens（%d%%）".
+                    Text(WenshuI18n.tf("chat.input.tokens_used.over_threshold",
+                                       vm.contextUsed,
+                                       tokenCompressionContextThreshold,
+                                       percentOfThreshold))
                         .font(.callout)
                         .foregroundStyle(.orange)
                 } else {
                     // Below threshold (quiet secondary).
-                    Text("\(formatCompactTokenCount(vm.contextUsed)) tokens used")
+                    // v1.95 (2026-09-23): boss '上下文用量的文字改中文'.
+                    // en: "%d tokens used" / zh-Hans: "已使用 %d tokens".
+                    Text(WenshuI18n.tf("chat.input.tokens_used",
+                                       vm.contextUsed))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

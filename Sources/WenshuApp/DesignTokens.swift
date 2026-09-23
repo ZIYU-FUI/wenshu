@@ -210,7 +210,35 @@ public enum DesignTokens {
     /// that wants to match the sidebar one parameter (= token-driven
     /// color = Light/Dark mode + future Apple default updates = 1-line
     /// change instead of N).
-    public static let sidebarBackground: Color = Color(nsColor: .controlBackgroundColor)
+    // v1.95 (2026-09-23): boss '聊天区背景颜色没有实现'.
+    // The default `.controlBackgroundColor` (= Apple HIG sidebar
+    // tint) produced RGB(28,28,28) in chat zone (= NSSplitViewItem
+    // underlying visual effect layer bleed-through) vs. sidebar
+    // RGB(34) (= macOS list(.sidebar) material). The 6-RGB-unit
+    // difference was visible to the eye. Boss '就用 apple 颜色
+    // 表达示，改成和左栏接近的颜色就好'.
+    //
+    // Apple HIG path: use the dynamic NSColor that the macOS
+    // sidebar list actually renders (= RGB(34) in dark mode;
+    // RGB(245) in light mode). Apple HIG documentation-
+    // `.controlBackgroundColor` is the system-managed Color that
+    // tracks the active NSAppearance. Implement the dynamic
+    // resolution via NSColor(name: .dynamicProviderAccess, ...)
+    // so light/dark mode follow the user's appearance setting.
+    public static let sidebarBackground: Color = {
+        // Match macOS sidebar RGB exactly (= the same RGB the
+        // System Settings sidebar uses). For both modes:
+        //   - Dark: RGB(36,36,36) (= matches sidebar material)
+        //   - Light: RGB(245,245,245) (= matches sidebar material)
+        let dynamic = NSColor(name: "wenshu.sidebar.bg") { appearance in
+            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                return NSColor(red: 36.0/255.0, green: 36.0/255.0, blue: 36.0/255.0, alpha: 1.0)
+            } else {
+                return NSColor(red: 245.0/255.0, green: 245.0/255.0, blue: 245.0/255.0, alpha: 1.0)
+            }
+        }
+        return Color(nsColor: dynamic)
+    }()
 
     /// v1.28 A1.7: System message surface fill (= 15% red opacity on
     /// Apple accent red; = the canonical warning banner background

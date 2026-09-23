@@ -155,10 +155,26 @@ struct ChatZoneView: View {
         // v1.93 keeps the v1.91d frame(...) wrap (= NSViewRepresentable
         // in .background() requires explicit frame; = same SwiftUI/AppKit
         // bridging quirk documented in v1.91d).
-        .background(
-            VisualEffectBlur(material: .sidebar, blendingMode: .withinWindow)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        )
+        // v1.95 (2026-09-23): boss '聊天区背景颜色没有实现' OOB follow-up.
+// Replace the v1.93 VisualEffectBlur(.sidebar, .withinWindow) with
+// the explicit `DesignTokens.sidebarBackground` Color (= the
+// .controlBackgroundColor Apple HIG sidebar tint).
+//
+// Why drop VisualEffectBlur:
+//   - v1.93 used NSVisualEffectView via NSViewRepresentable.
+//   - In opaque NSWindow (= wenshu's default) .withinWindow
+//     blending mode produced a sub-perceptual gradient (= ~14
+//     RGB diff between top + bottom).
+//   - Boss '聊天区背景颜色没有实现' = visual difference vs. sidebar
+//     was still there.
+//
+// Why DesignTokens.sidebarBackground works (= previously approved):
+//   - Single Color source (= same .controlBackgroundColor the
+//     macOS sidebar uses). Both sidebars share the SAME bg token.
+//   - Layer order = Network/Apple HIG transparent NSSplitView
+//     (set in EditorChatNSController.viewDidLoad) + this Color
+//     overlay. No more visual effect view gradient under us.
+        .background(DesignTokens.sidebarBackground)
         .environment(appState)
     }
 
