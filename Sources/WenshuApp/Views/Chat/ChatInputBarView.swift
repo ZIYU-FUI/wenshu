@@ -231,17 +231,23 @@ struct ChatInputBarView: View {
     ///   6. 按钮 (scope = long-running goal, ⌘⇧G)
     ///   7. 按钮 (paperplane = send, ⌘↩)
     private var inputRow: some View {
-        // v1.84 (2026-09-23): boss's 2nd rewrite pass (= drop the
-        // compression pill from the input HStack; = the spec for
-        // this column is just buttons + TextField + buttons; = no
-        // token-usage chrome inside the editor).
+        // v1.96 (2026-09-23): boss '10PT｜按钮｜10PT｜按钮｜10PT｜按钮｜10PT｜聊天框
+        // （自动拉宽）｜10PT｜按钮｜10PT｜按钮｜10PT' OOB. Apple Messages
+        // 3-left + 2-right layout (= info/options left, action right;
+        // = the canonical chat input row spec).
+        //
+        // Layout (= 5 buttons + 1 fill text field; = all gaps 10 PT):
+        //   [📎 attach] [✨ agentPath] [🔄 turnCounter] [TextField fill] [🎯 goal] [✈️ send]
+        //    10  10  10  ...auto-fill...  10  10
         HStack(alignment: .center, spacing: 10) {
             attachButton
             agentPathButton
+            turnCounterButton
 
             textField
+                .frame(maxWidth: .infinity)
+                .layoutPriority(1)
 
-            turnCounterButton
             goalButton
             sendButton
         }
@@ -333,7 +339,13 @@ struct ChatInputBarView: View {
         )
         .lineLimit(1)
         .textFieldStyle(.plain)
-        .frame(minHeight: 44, maxHeight: 44)
+        // v1.97 (2026-09-23): boss '输入消息...距离聊天框左边需要加个 10PT'.
+        // Apple Messages chat input pattern: the placeholder /
+        // typed text starts 10 PT from the inner-left of the
+        // capsule (= the SF Symbol icons in macOS Messages chat
+        // input are followed by the same padding to the text).
+        .padding(.leading, 10)
+        .frame(minHeight: 36, maxHeight: 36)
         .frame(maxWidth: .infinity)
         .disabled(!hasUsableKey)
         .focused(inputFocused)

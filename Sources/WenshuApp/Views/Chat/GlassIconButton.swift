@@ -59,16 +59,35 @@ struct GlassIconButton: NSViewRepresentable {
         button.action = #selector(Coordinator.tap(_:))
         button.toolTip = help
         button.contentTintColor = NSColor.labelColor
-        // Pin the button height to 32 PT (= Apple HIG chat input tap
-        // target). Without this, SwiftUI NSViewRepresentable lets
-        // NSButton size to its intrinsic content (= ~120 PT = the
-        // giant-circle bug fixed in v1.64g).
-        button.translatesAutoresizingMaskIntoConstraints = true
+        // Pin the button size to 36 PT (= boss 2026-09-23 '按钮文本框的高度，
+        // 统一一下，改成 36'). Apple HIG NSButton with bezelStyle=.glass
+        // is constrained by its BEZEL'S intrinsicContentSize (= ~28 PT
+        // for the glass bezel). Height-only heightAnchor alone is
+        // ignored: the button's intrinsic size wins, and SwiftUI sees
+        // a ~28-32 PT button.
+//
+// Apple HIG-correct approach for a fixed-size NSButton in SwiftUI:
+//   1. Set translatesAutoresizingMaskIntoConstraints = false
+//      (= the button respects constraints; = no autoresizing mask)
+//   2. Pin both width AND height with explicit constraints
+//      (= SwiftUI no longer falls back to intrinsicContentSize)
+//   3. Set content hugging/compression resistance to .required
+//      (= SwiftUI prefers the explicit constraints over the bezel
+//      intrinsic size).
+//
+// The width = height (= circle). 36 PT diameter (= matches
+// TextField height in ChatInputBarView line 342).
+        button.translatesAutoresizingMaskIntoConstraints = false
         button.setContentHuggingPriority(.required, for: .vertical)
+        button.setContentHuggingPriority(.required, for: .horizontal)
         button.setContentCompressionResistancePriority(.required, for: .vertical)
-        let heightConstraint = button.heightAnchor.constraint(equalToConstant: 32)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        let heightConstraint = button.heightAnchor.constraint(equalToConstant: 36)
         heightConstraint.priority = .required
         heightConstraint.isActive = true
+        let widthConstraint = button.widthAnchor.constraint(equalToConstant: 36)
+        widthConstraint.priority = .required
+        widthConstraint.isActive = true
         return button
     }
 
