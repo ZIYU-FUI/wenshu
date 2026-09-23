@@ -160,116 +160,23 @@ struct WorkspaceView: View {
     /// = when nil, falls back to the old `filtered.first` behavior).
     /// For the new PreviewPane callers (the post-fix wiring), the
     /// source is always supplied.
+    ///
+    /// v1.74 cardopen-dedupe: thin wrapper over `CardOpenOps` (=
+    /// the dedup + EditorTab + activeTabId mutation shared with
+    /// ZoneModuleView + ShellMiddleColumn). Mirrors the inline
+    /// helper that previously lived here verbatim (= the 3 views
+    /// had a copy of the same body).
     private func openCardInEditor(source: CardSource? = nil) {
-        // The closure body was already in WorkspaceView; the
-        // signature just gains a `source:` parameter. No body
-        // change here.
-        let (path, content, title): (String?, String, String)
-        switch previewScope {
-        case .referenceScope(let category):
-            let entities = (try? bookStore.referenceStore.loadAllReferences()) ?? []
-            let filtered = entities.filter { entity in
-                entity.layer == .layerEntities
-                    && (category == nil || entity.category == category)
-            }
-            // BOSS 9/8 fix: if the caller (= PreviewPane) passed
-            // the actually-clicked CardSource, use its entity
-            // (= correct card). Otherwise fall back to filtered.first
-            // (= legacy behavior for callers that don't pass source).
-            let pickedReference: Reference? = {
-                if case .reference(let r) = source { return r }
-                return filtered.first
-            }()
-            if let first = pickedReference {
-                let body = bookStore.referenceStore.loadReferenceBody(id: first.id) ?? first.summary
-                path = nil  // reference is library-public; ticket 027-35 will resolve
-                content = body
-                title = first.title
-            } else {
-                path = nil; content = ""; title = category?.displayName ?? WenshuI18n.t("tab.title.reference_library")
-            }
-        case .bookScope:
-            // Deferred to ticket 027-35: PreviewPane's private
-            // loadBookDocs helper is the source of truth for bookDoc
-            // discovery; = WorkspaceView doesn't share it. v0.34
-            // fallback = silent no-op (= no .alert, no popup = user
-            // feedback comes from PreviewPane being empty).
-            // BOSS 9/8 fix: if the caller passed a .bookDoc source,
-            // use its doc (= correct book doc).
-            if case .bookDoc(let doc) = source {
-                // BookDoc doesn't carry an absolute path (= only
-                // fileName + folderName per PreviewPane L159).
-                // path = nil (= PreviewPane's own loadBookDocs owns
-                // the path resolution; = ticket 027-35 will lift
-                // BookDocLoader into a shared service that returns
-                // the absolute path).
-                path = nil
-                // PreviewPane.loadBookDocs (= L764) returns docs
-                // with .summary as the only body content (= real
-                // .md body loading is deferred to ticket 027-35;
-                // = the previous behavior was silent no-op).
-                // Use .summary here (= matches the fallback that
-                // loadReferenceBody → first.summary already uses for
-                // reference docs).
-                content = doc.summary
-                title = doc.title
-            } else {
-                path = nil; content = ""; title = "book-doc"
-            }
-        case .shelfScope, .empty:
-            path = nil; content = ""; title = ""
-        }
-
-        // No content (= no reference in scope OR bookDoc deferred).
-        // Silent no-op per boss 9/3 feedback (= no .alert noise).
-        guard !content.isEmpty else { return }
-
-        // Duplicate-tab check (= boss 9/3 OOB core requirement).
-        // If any existing tab's `originalBody` (= the on-disk content
-        // = canonical identity, more stable than draft which can be
-        // dirty) matches our new content, switch to that tab instead
-        // of opening a duplicate. Safari behavior.
-        //
-        // Content fingerprint = first 200 chars (= fast; = sufficient
-        // since the chance of two distinct .md files sharing the
-        // first 200 chars is negligible).
-        let fingerprint = String(content.prefix(200))
-        if let existingIdx = appState.openTabs.firstIndex(where: {
-            String($0.originalBody.prefix(200)) == fingerprint
-        }) {
-            appState.activeTabId = appState.openTabs[existingIdx].id
-            // (No edit / no new tab — reuse the existing one.)
-            return
-        }
-
-        // No duplicate. Open as new tab (= reuse current tab if clean,
-        // otherwise append).
-        let newTab = EditorTab(
-            id: UUID(),
-            documentPath: path,
-            draft: content,
-            originalBody: content,
-            mode: .preview,
-            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab title didn't go to the document name bug':
-            // pass title so tab strip shows the real card name
-            // instead of 'preview-sample'.
-            title: title.isEmpty ? nil : title
+        let triad = CardOpenOps.computeCardTriad(
+            source: source,
+            previewScope: previewScope,
+            bookStore: bookStore
         )
-        // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
-        // card': capture the scope where this doc was opened
-        // from (= drives sidebar selection + preview cards on
-        // restore). = .referenceScope(cat) for library refs,
-        // = .bookScope(bookId, folder) for book docs, etc.
-        newTab.sourceScope = previewScope
-        // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
-        // the old tab'): always append a new tab (= Safari multi-tab strip
-        // behavior). Duplicate-tab detection (= the fingerprint check
-        // earlier in this function) handles the "switch to existing
-        // tab if same .md is open" case (= boss 9/3 'check whether an existing tab
-        // already opened the current MD'). = no replacement of the active tab;
-        // = no "second click fails" race.
-        appState.openTabs.append(newTab)
-        appState.activeTabId = newTab.id
+        _ = CardOpenOps.openTab(
+            triad: triad,
+            previewScope: previewScope,
+            appState: appState
+        )
     }
 
     var body: some View {
