@@ -176,6 +176,12 @@ public enum DesignTokens {
     /// naming, now generic for ALL pane tabs).
     public static let paneTabHotArea: CGFloat = 28
 
+    /// v1.73 tab close button (= X) hit area (= 16×16 PT, Apple HIG
+    /// inline-control minimum). Sits inside the 28 PT tab hot area,
+    /// right of the title (= Safari/Chrome/Terminal convention).
+    /// Smaller than the title button because the xmark glyph is 9 PT.
+    public static let tabCloseHitArea: CGFloat = 16
+
     /// Per-pane tab icon size (= 18×18 PT, fits within 28 PT hot area).
     public static let tabIconSize: CGFloat = 18
 

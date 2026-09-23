@@ -151,10 +151,10 @@ struct EditorPlaceholderTests {
         // Safari-style tab strip ONLY (= no formatting toolbar).
         #expect(editorPlaceholderSection.contains("VStack(spacing: 0) {"),
                 "EditorPlaceholder body must wrap tab strip + content in VStack(spacing: 0)")
-        #expect(editorPlaceholderSection.contains("HStack(spacing: 0) {"),
+        #expect(editorPlaceholderSection.contains("HStack(spacing: 0)"),
                 "EditorPlaceholder body must render tab strip with HStack(spacing: 0)")
-        #expect(editorPlaceholderSection.contains("ForEach(appState.openTabs)"),
-                "EditorPlaceholder body must iterate over openTabs")
+        #expect(editorPlaceholderSection.contains("if let active = appState.openTabs.first"),
+                "EditorPlaceholder body must locate the active tab via openTabs.first(= v1.73 full-width active-only design)")
     }
 
     @Test("body shows dirty-discard confirm alert on close-with-unsaved-changes")
@@ -451,8 +451,17 @@ struct EditorPlaceholderTests {
         // v0.34 B-24: EditorPlaceholder reads/writes the ACTIVE tab via
         // computed properties (= single source of truth). The body must
         // iterate over appState.openTabs (= the canonical tab list).
-        #expect(code.contains("ForEach(appState.openTabs)"),
-                "EditorPlaceholder body must iterate appState.openTabs (= canonical tab list)")
+        // v1.73 tab-strip redesign (= boss OOB): only the active tab is
+        // rendered (= Safari single-tab feel); = the body locates it
+        // via openTabs.first(where:) rather than ForEach over the full
+        // list. This assertion accepts either v1.0.0-m1 (= ForEach) or
+        // v1.73 (= active-only first) per the per-revision spec.
+        let iteratesAllTabs = code.contains("ForEach(appState.openTabs, id: \\.id)")
+            || code.contains("ForEach(appState.openTabs)")
+        let locatesActiveTab = code.contains("if let active = appState.openTabs.first")
+            || code.contains("first(where: { $0.id == appState.activeTabId })")
+        #expect(iteratesAllTabs || locatesActiveTab,
+                "EditorPlaceholder body must either iterate openTabs (= pre-v1.73 ForEach) or locate the active tab via openTabs.first(where:) (= v1.73 active-only)")
     }
 
     @Test("reloadFromDiskAndApply fires via EditorFileWatcher's onChange closure (= B-23 + v1.70 T1b + v1.70 T2b)")
@@ -471,5 +480,25 @@ struct EditorPlaceholderTests {
                 "EditorPlaceholder must invoke EditorFileWatcher.start (= DispatchSource hand-off)")
         #expect(code.contains("reloadFromDiskAndApply()"),
                 "EditorPlaceholder must pass reloadFromDiskAndApply as the onChange closure (= FS event → UI reload)")
+    }
+
+    // MARK: - v1.73 tab close button
+
+    @Test("v1.73 tab strip renders an xmark close button per tab (= TEB X OOB)")
+    func tabStripRendersXmarkCloseButton() throws {
+        // Source-level (= the X button is a pure view artifact;
+        // = no behavior is asserted here beyond its presence).
+        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        #expect(code.contains("Image(systemName: \"xmark\")"),
+                "v1.73 tab strip must render an xmark (= the X close button per boss OOB)")
+        #expect(code.contains("appState.closeTab(id: active.id"),
+                "v1.73 X button action must call appState.closeTab(= the business method that flushes dirty + removes + focuses; = uses 'active.id' = the v1.73 active-only design)")
+    }
+
+    @Test("v1.73 dirty-discard confirm now delegates to closeTab (= auto-save + remove via single path)")
+    func dirtyDiscardHandlerCallsCloseTab() throws {
+        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        #expect(code.contains("closeTab(id: tab.id, bookStore: bookStore)"),
+                "v1.73 dirty-discard handler must call appState.closeTab (= replaces the legacy draft-reset path)")
     }
 }
