@@ -415,70 +415,74 @@ struct BookSettingConstraintsView: View {
     }
 
     private func reload() async {
-        guard let bookId = activeBookId else { return }
+        guard activeBookId != nil else { return }
         status = .loading
         let actor = ensureTracker()
-        do {
-            constraints = try await actor.list(bookId: bookId)
+        let result = await BookSettingConstraintsOps.reload(
+            manager: actor,
+            bookId: activeBookId
+        )
+        constraints = result.constraints
+        if let err = result.error {
+            errorText = err
+            status = .failed(err)
+        } else if result.didLoad {
             status = .loaded
-        } catch {
-            errorText = error.localizedDescription
-            status = .failed(error.localizedDescription)
+        } else {
+            status = .idle
         }
     }
 
     private func addConstraint() async {
-        guard let bookId = activeBookId else { return }
-        let title = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty else { return }
+        guard activeBookId != nil else { return }
         let actor = ensureTracker()
-        let resolvedAppliesTo: UUID?
-        if draftScope.supportsAppliesTo {
-            resolvedAppliesTo = resolveAppliesToUUID()
-        } else {
-            resolvedAppliesTo = nil
-        }
-        let constraint = BookSettingConstraint(
-            bookId: bookId,
-            title: title,
-            description: draftDescription.trimmingCharacters(in: .whitespacesAndNewlines),
+        let resolvedAppliesTo: UUID? = draftScope.supportsAppliesTo ? resolveAppliesToUUID() : nil
+        let result = await BookSettingConstraintsOps.addConstraint(
+            manager: actor,
+            bookId: activeBookId,
+            title: draftTitle,
+            description: draftDescription,
             severity: draftSeverity,
             scope: draftScope,
             appliesToId: resolvedAppliesTo,
             forbiddenPatterns: parsePatterns()
         )
-        do {
-            try await actor.add(constraint)
-            // Reset draft state.
+        if result.didSave {
             draftTitle = ""
             draftDescription = ""
             draftAppliesToText = ""
             draftPatternsText = ""
             await reload()
-        } catch {
-            errorText = error.localizedDescription
+        } else if let err = result.error {
+            errorText = err
         }
     }
 
     private func removeConstraint(_ constraint: BookSettingConstraint) async {
         let actor = ensureTracker()
-        do {
-            try await actor.remove(id: constraint.id)
+        let result = await BookSettingConstraintsOps.removeConstraint(
+            manager: actor,
+            constraint: constraint
+        )
+        if result.didSave {
             await reload()
-        } catch {
-            errorText = error.localizedDescription
+        } else if let err = result.error {
+            errorText = err
         }
     }
 
     private func runCheck() async {
-        guard let bookId = activeBookId else { return }
+        guard activeBookId != nil else { return }
         let actor = ensureTracker()
-        do {
-            violations = try await actor.check(chapterText: chapterText, bookId: bookId)
-            hasChecked = true
-        } catch {
-            errorText = error.localizedDescription
-            violations = []
+        let result = await BookSettingConstraintsOps.runCheck(
+            manager: actor,
+            bookId: activeBookId,
+            chapterText: chapterText
+        )
+        violations = result.violations
+        hasChecked = result.didRun
+        if let err = result.error {
+            errorText = err
         }
     }
 }
