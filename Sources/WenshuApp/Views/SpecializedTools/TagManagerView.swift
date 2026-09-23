@@ -490,23 +490,15 @@ struct TagManagerView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Helpers (= view-only glue: calls TagManagerOps, assigns @State)
 
     private func tagLabel(for tagId: UUID) -> String {
         tags.first { $0.id == tagId }?.label ?? tagId.uuidString.prefix(8) + "…"
     }
 
-    /// Resolve the entity UUID from the apply-row text. Returns
-    /// nil when the text is empty / malformed (= keeps the Apply
-    /// button disabled per `canApply`).
-    private func resolveApplyTargetUUID() -> UUID? {
-        let trimmed = draftApplyTargetIdText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return UUID(uuidString: trimmed)
-    }
-
-    // MARK: - Async actions
-
+    /// Lazily construct (= or fetch) the `TagManager` actor for the
+    /// active book (= held in @State so SwiftUI keeps the identity
+    /// across re-renders).
     private func ensureManager() -> TagManager {
         if let manager { return manager }
         let new = TagManager(bookStore: bookStore)
@@ -515,101 +507,88 @@ struct TagManagerView: View {
     }
 
     private func reload() async {
-        guard let bookId = activeBookId else { return }
+        guard activeBookId != nil else { return }
         status = .loading
         let actor = ensureManager()
+        let result = await TagManagerOps.reload(manager: actor, bookId: activeBookId)
+        tags = result.tags
+        applications = result.applications
+        cloud = result.cloud
         // Default pickers to the first tag (when any).
         if draftApplyTagId == nil { draftApplyTagId = tags.first?.id }
         if draftFilterTagId == nil { draftFilterTagId = tags.first?.id }
-        do {
-            tags = try await actor.listTags(bookId: bookId)
-            applications = try await actor.applications(bookId: bookId)
-            cloud = try await actor.tagCloud(bookId: bookId)
-            await runFilter()
+        if let error = result.error {
+            errorText = error
+            status = .failed(error)
+        } else {
             status = .loaded
-        } catch {
-            errorText = error.localizedDescription
-            status = .failed(error.localizedDescription)
         }
+        await runFilter()
     }
 
     private func runFilter() async {
-        guard let bookId = activeBookId,
-              let tagId = draftFilterTagId,
-              tagId != UUID() else {
+        guard manager != nil else {
             filterMatches = []
             return
         }
         let actor = ensureManager()
-        do {
-            filterMatches = try await actor.filterByTag(
-                bookId: bookId,
-                tagId: tagId,
-                target: draftFilterTarget
-            )
-        } catch {
-            errorText = error.localizedDescription
-            filterMatches = []
-        }
+        let result = await TagManagerOps.runFilter(
+            manager: actor,
+            bookId: activeBookId,
+            tagId: draftFilterTagId,
+            target: draftFilterTarget
+        )
+        filterMatches = result.matches
+        if let error = result.error { errorText = error }
     }
 
     private func addTag() async {
-        guard let bookId = activeBookId else { return }
-        let trimmed = draftLabel.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard activeBookId != nil else { return }
         let actor = ensureManager()
-        let tag = Tag(
-            bookId: bookId,
-            label: trimmed,
+        let result = await TagManagerOps.addTag(
+            manager: actor,
+            bookId: activeBookId,
+            label: draftLabel,
             category: draftCategory
         )
-        do {
-            try await actor.addTag(tag)
+        if result.didSave {
+            // SwiftUI-side reset (= inline-create TextField clears on
+            // successful save; = a binding reset, NOT a business
+            // rule, = stays in the view per ADR-0009).
             draftLabel = ""
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
         }
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func removeTag(_ tag: Tag) async {
         let actor = ensureManager()
-        do {
-            try await actor.removeTag(id: tag.id)
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
-        }
+        let result = await TagManagerOps.removeTag(manager: actor, tag: tag)
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func applyTag() async {
-        guard let bookId = activeBookId,
-              let tagId = draftApplyTagId,
-              tagId != UUID(),
-              let targetId = resolveApplyTargetUUID() else { return }
+        guard activeBookId != nil else { return }
         let actor = ensureManager()
-        let application = TagApplication(
-            bookId: bookId,
-            tagId: tagId,
+        let result = await TagManagerOps.applyTag(
+            manager: actor,
+            bookId: activeBookId,
+            tagId: draftApplyTagId,
             target: draftApplyTarget,
-            targetId: targetId
+            targetIdText: draftApplyTargetIdText
         )
-        do {
-            try await actor.apply(application)
+        if result.didSave {
             draftApplyTargetIdText = ""
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
         }
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func unapply(_ application: TagApplication) async {
         let actor = ensureManager()
-        do {
-            try await actor.unapply(id: application.id)
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
-        }
+        let result = await TagManagerOps.unapply(manager: actor, application: application)
+        if let error = result.error { errorText = error }
+        await reload()
     }
 }
