@@ -403,7 +403,7 @@ struct CharacterLifecycleView: View {
         return UUID(uuidString: trimmed)
     }
 
-    // MARK: - Async actions
+    // MARK: - Helpers (= view-only glue: calls CharacterLifecycleOps, assigns @State)
 
     private func ensureTracker() -> CharacterLifecycleTracker {
         if let tracker { return tracker }
@@ -413,72 +413,89 @@ struct CharacterLifecycleView: View {
     }
 
     private func reload() async {
-        guard let bookId = activeBookId else { return }
+        guard activeBookId != nil else { return }
         status = .loading
-        let actor = ensureTracker()
-        // Load characters from the per-book character store
-        // (= single source of truth for character metadata).
-        // Forgiving on missing / corrupt store: empty array.
-        characters = (try? bookStore.characterStore.loadCharacters()) ?? []
-        // Reset picker defaults to the first character.
+        let actor = ensureManagerOrNil()
+        let result = await CharacterLifecycleOps.reload(
+            manager: actor,
+            bookId: activeBookId,
+            bookStore: bookStore
+        )
+        characters = result.characters
+        // Default picker selections to the first character (when any).
         if draftCharacterId == nil { draftCharacterId = characters.first?.id }
         if selectedCharacterId == nil { selectedCharacterId = characters.first?.id }
-        do {
-            events = try await actor.list(bookId: bookId)
-            contradictions = try await actor.contradictions(bookId: bookId)
-            await reloadTimeline()
+        events = result.events
+        contradictions = result.contradictions
+        if let err = result.error {
+            errorText = err
+            status = .failed(err)
+        } else if result.didLoad {
             status = .loaded
-        } catch {
-            errorText = error.localizedDescription
-            status = .failed(error.localizedDescription)
         }
+        await reloadTimeline()
     }
 
     private func reloadTimeline() async {
-        guard let bookId = activeBookId,
-              let characterId = selectedCharacterId,
-              characterId != UUID() else {
-            timelineRows = []
-            return
-        }
-        let actor = ensureTracker()
-        do {
-            timelineRows = try await actor.timeline(bookId: bookId, characterId: characterId)
-        } catch {
-            errorText = error.localizedDescription
-            timelineRows = []
-        }
+        let actor = ensureManagerOrNil()
+        let result = await CharacterLifecycleOps.reloadTimeline(
+            manager: actor,
+            bookId: activeBookId,
+            characterId: selectedCharacterId
+        )
+        timelineRows = result.rows
+        if let err = result.error { errorText = err }
     }
 
     private func addEvent() async {
-        guard let bookId = activeBookId,
-              let characterId = draftCharacterId,
-              characterId != UUID() else { return }
-        let actor = ensureTracker()
-        let event = LifecycleEvent(
-            bookId: bookId,
-            characterId: characterId,
+        let actor = ensureManagerOrNil()
+        let result = await CharacterLifecycleOps.addEvent(
+            manager: actor,
+            bookId: activeBookId,
+            characterId: draftCharacterId,
             stage: draftStage,
-            chapterId: resolveChapterUUID(),
+            chapterUUIDText: draftChapterUUIDText,
             excerpt: draftExcerpt
         )
-        do {
-            try await actor.add(event)
+        if let err = result.error {
+            errorText = err
+            return
+        }
+        if result.didSave {
             draftExcerpt = ""
             draftChapterUUIDText = ""
             await reload()
-        } catch {
-            errorText = error.localizedDescription
         }
     }
 
     private func removeEvent(_ event: LifecycleEvent) async {
-        let actor = ensureTracker()
-        do {
-            try await actor.remove(id: event.id)
-            await reload()
-        } catch {
-            errorText = error.localizedDescription
+        let actor = ensureManagerOrNil()
+        let result = await CharacterLifecycleOps.removeEvent(
+            manager: actor,
+            event: event
+        )
+        if let err = result.error {
+            errorText = err
+            return
         }
+        if result.didSave {
+            await reload()
+        }
+    }
+
+    /// Returns the actor (= from @State tracker) if constructed; = nil
+    /// before the first .task fires. View glue does not construct the
+    /// actor (= that happens lazily in the first call site; = Ops
+    /// itself takes optional actor per v1.74 TagManagerOps precedent).
+    private func ensureManagerOrNil() -> CharacterLifecycleTracker? {
+        if let tracker { return tracker }
+        // Build it here so the Ops call gets a real actor (the
+        // View-only `ensureTracker` was deleted in T1c). The first
+        // call after launch (= .task) is the one that pays the
+        // construction cost; = subsequent calls reuse the @State
+        // identity.
+        let new = CharacterLifecycleTracker(bookStore: bookStore)
+        tracker = new
+        return new
     }
 }
