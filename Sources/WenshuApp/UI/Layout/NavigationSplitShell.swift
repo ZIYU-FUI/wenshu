@@ -608,6 +608,59 @@ enum InspectorPage: Hashable, CaseIterable {
         case .projectManagement:    return "folder.badge.gearshape"  // SF Symbols 6 folder + gear
         }
     }
+
+    // v1.71b right column MVVM split (= ticket 02 of the v1.71
+    // 修正 arc, per boss 2026-09-22 OOB 'UI 业务 数据分离，符合苹果
+    // 的 MVVM'). Per Q244 §3.1 + §5.2 (wenshu MVVM audit pattern):
+    // the page→tools routing was previously inlined in
+    // ShellDetailColumn.filteredToolsForCurrentPage (lines 131-173
+    // of v1.43 ticket 001) as a switch + Set construction
+    // (= business logic inside the View, violating the canonical
+    // Apple MVVM layering). Now the page enum owns the routing as
+    // a computed property — page 跟它的 3 tools 绑一起 = single
+    // source of truth (新增 page 只改 enum 一个地方).
+    //
+    // 修正前 switch 在 ShellDetailColumn L131-173 用 Set<String>
+    // (= i18n key 集合) 做 filter; 修正后 switch 直接返回
+    // [InspectorTool] (= 类型安全, 不可能 key 字符串 typo). The 4
+    // page → 3 tool mappings mirror the v1.0.0-m1-shell boss OOB
+    // 'three per page, split into four pages, show them all' 真值.
+    var tools: [InspectorTool] {
+        switch self {
+        case .authoringFiction:
+            // Page 1 = Authoring + Plot / Placeholder / Foreshadowing
+            // (= structural / plot tracking tools).
+            return [
+                InspectorCatalog.foreshadowing,
+                InspectorCatalog.placeholder,
+                InspectorCatalog.plotThread
+            ]
+        case .authoringStyle:
+            // Page 2 = Authoring + Style / Experience / Genre
+            // (= readability / style reference tools).
+            return [
+                InspectorCatalog.longForm,
+                InspectorCatalog.readerExperience,
+                InspectorCatalog.genreFit
+            ]
+        case .authoringCharacters:
+            // Page 3 = Authoring + Characters / Relationships / Emotion
+            // (= character-driven analysis tools).
+            return [
+                InspectorCatalog.characterRelationships,
+                InspectorCatalog.characterLifecycle,
+                InspectorCatalog.emotionCurve
+            ]
+        case .projectManagement:
+            // Page 4 = Project Management + Ideas / Tags / Book Settings
+            // (= cross-document project scaffolding).
+            return [
+                InspectorCatalog.ideaLibrary,
+                InspectorCatalog.tagManager,
+                InspectorCatalog.bookSettingConstraints
+            ]
+        }
+    }
 }
 
 enum InspectorContent: Hashable, CaseIterable {

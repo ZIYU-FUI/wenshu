@@ -83,95 +83,15 @@ struct ShellDetailColumn: View {
     /// tools themselves are hosted by ZoneContentView (=
     /// .specializedTools with a per-tab `currentTab` selection).
     ///
-    /// `filteredToolsForCurrentPage` returns the array of
-    /// (label, icon, content) tuples for the active page (= the
-    /// 2-3 tools the user wants visible on this page). The
-    /// underlying ZoneContentView renders a segmented Picker over
-    /// these tabs (= the 2-tab page Picker is already in the
-    /// toolbar; = the 2-3 tab per-tool Picker is inside the
-    /// column body, above the tool content).
-    private var filteredToolsForCurrentPage: [(label: String, icon: String, content: AnyView)] {
-        // v1.0.0-m1-shell boss 2026-09-16 OOB 'ICON 丢失还是没有彻底解决':
-        // these tab icons were Lucide kebab-case names (= git-fork /
-        // square-dashed / shield-check / git-branch / book-marked /
-        // activity / users / book-lock) that rendered as blank
-        // rectangles after the v1.0.0-m1-shell Lucide -> SF Symbols
-        // 6 migration. Mapped to verified SF Symbols 6 names per
-        // /Applications/SF Symbols Beta.app/Contents/Executables/
-        // sfsymbols search 2026-09-16. Mapping:
-        //   git-fork      -> arrow.triangle.branch
-        //   square-dashed -> square.dashed (dot.case form)
-        //   shield-check  -> checkmark.shield
-        //   git-branch    -> arrow.triangle.branch (= same as git-fork;
-        //                    page routing prevents both rendering at once)
-        //   book-marked   -> bookmark
-        //   activity      -> waveform.path.ecg
-        //   users         -> person.2
-        //   book-lock     -> book.closed (visual metaphor)
-        let allTools: [(label: String, icon: String, content: AnyView)] = [
-            (WenshuI18n.t("tab.title.foreshadowing"),      "arrow.triangle.branch", AnyView(ForeshadowingView())),
-            (WenshuI18n.t("tab.title.placeholder"),        "square.dashed",        AnyView(PlaceholderView())),
-            (WenshuI18n.t("tab.title.long_form"),           "checkmark.shield",     AnyView(LongFormGuardrailsView())),
-            (WenshuI18n.t("tab.title.reader_experience"),   "sparkles",             AnyView(ReaderExperienceView())),
-            (WenshuI18n.t("tab.title.plot_thread"),         "arrow.triangle.branch", AnyView(PlotThreadView())),
-            // v1.0.0-m1-shell boss 2026-09-12 OOB 'the 12-tab view's localization is incomplete':
-            // these 7 hardcoded English labels bypassed i18n
-            // lookup; = the rendered tabs displayed raw English
-            // even on zh-Hans systems; = migrate them through
-            // WenshuI18n.t() so the new tab.title.* keys (= added
-            // in the previous commit) resolve correctly.
-            (WenshuI18n.t("tab.title.genre_fit"),            "bookmark",             AnyView(GenreFitView())),
-            (WenshuI18n.t("tab.title.emotion_curve"),        "waveform.path.ecg",    AnyView(EmotionCurveView())),
-            (WenshuI18n.t("tab.title.character_relationships"), "person.2",          AnyView(CharacterRelationshipsView())),
-            (WenshuI18n.t("tab.title.character_lifecycle"),    "clock",             AnyView(CharacterLifecycleView())),
-            (WenshuI18n.t("tab.title.tag_manager"),           "tag",                AnyView(TagManagerView())),
-            (WenshuI18n.t("tab.title.idea_library"),          "lightbulb",          AnyView(IdeaLibraryView())),
-            (WenshuI18n.t("tab.title.book_setting_constraints"), "book.closed",     AnyView(BookSettingConstraintsView())),
-        ]
-        let perPageLabels: Set<String> = {
-            switch appState.inspectorPage {
-            case .authoringFiction:
-                // v1.0.0-m1-shell boss 2026-09-11 OOB 'three per page,
-                // split into four pages, show them all': Page 1 = Authoring +
-                // Plot / Placeholder / Foreshadowing = the structural / plot
-                // tracking tools.
-                return [
-                    WenshuI18n.t("tab.title.foreshadowing"),
-                    WenshuI18n.t("tab.title.placeholder"),
-                    WenshuI18n.t("tab.title.plot_thread"),
-                ]
-            case .authoringStyle:
-                // Page 2 = Authoring + Style / Experience / Genre = the
-                // readability / style reference tools.
-                // v1.0.0-m1-shell boss 2026-09-12 OOB 'the 12-tab view's
-                // localization is incomplete': use WenshuI18n.t() (= same value
-                // as the allTools entry above) so the Set
-                // membership check below correctly filters the
-                // 3 tabs for this page.
-                return [
-                    WenshuI18n.t("tab.title.long_form"),
-                    WenshuI18n.t("tab.title.reader_experience"),
-                    WenshuI18n.t("tab.title.genre_fit"),
-                ]
-            case .authoringCharacters:
-                // Page 3 = Authoring + Characters / Relationships / Emotion = the
-                // character-driven analysis tools.
-                return [
-                    WenshuI18n.t("tab.title.character_relationships"),
-                    WenshuI18n.t("tab.title.character_lifecycle"),
-                    WenshuI18n.t("tab.title.emotion_curve"),
-                ]
-            case .projectManagement:
-                // Page 4 = Project Management + Ideas / Tags / Book Settings =
-                // the cross-document project scaffolding.
-                return [
-                    WenshuI18n.t("tab.title.idea_library"),
-                    WenshuI18n.t("tab.title.tag_manager"),
-                    WenshuI18n.t("tab.title.book_setting_constraints"),
-                ]
-            }
-        }()
-        return allTools.filter { perPageLabels.contains($0.label) }
+    /// v1.71c right column MVVM split (= ticket 03 contract phase).
+    /// Per boss 2026-09-22 OOB 'UI 业务 数据分离，符合苹果的 MVVM'.
+    /// 修正前这里有 83 行 inline tuple + switch (= 业务 + 数据混
+    /// View, 违反 Q244 UI/业务/数据分离 范式). 修正后 page → tools
+    /// 改走 InspectorPage.tools (= ticket 02 新增) + InspectorCatalog
+    /// (= ticket 01 新建). View 端只做 1 行派生 + tuple 适配 (=
+    /// view-side-effect, Q245 §3 留在 view 不抽).
+    private var toolsForCurrentPage: [InspectorTool] {
+        appState.inspectorPage.tools
     }
 
     var body: some View {
@@ -298,7 +218,7 @@ struct ShellDetailColumn: View {
             // inspector pattern).
             ZoneContentView(
                 zoneSlug: "specializedTools",
-                tabs: filteredToolsForCurrentPage
+                tabs: toolsForCurrentPage.map { (label: $0.title, icon: $0.icon, content: $0.view()) }
             )
             .frame(maxWidth: .infinity)
             // v1.76 boss 2026-09-18 'left + right columns need default
