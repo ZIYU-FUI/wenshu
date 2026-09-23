@@ -1,4 +1,16 @@
-// EditorChatNSController.swift · Wenshu · v1.0.0-m1-shell
+// EditorChatNSController.swift · Wenshu · v1.89
+//
+// v1.89 (2026-09-23): boss spec = first launch = 50:50 divider;
+// drag-to-resize persists; = subsequent launches restore persisted
+// ratio. Implementation:
+//   - Apple HIG NSSplitView autosaveName handles drag persistence
+//     (= writes divider position to UserDefaults on every drag; =
+//     reads it back on next launch).
+//   - New flag `wenshu.editor.split.didSetFirstLaunchPosition` gates
+//     a one-shot setPosition(ofDividerAt:0) to 50% of splitView
+//     height (= the boss spec); = once the flag is set, the block
+//     never runs again and autosaveName handles all future positions.
+//
 //
 // Native AppKit split container for the wenshu editor column.
 //
@@ -63,6 +75,13 @@ final class EditorChatNSController: NSSplitViewController {
     /// Persisted divider position (= Apple HIG autosave behavior; =
     /// the user's manual drag positions survive app relaunch).
     private static let autosaveName = "wenshu.editor.split.autosave"
+
+    /// v1.89 (2026-09-23): boss spec = first launch = 50:50 divider;
+    /// subsequent launches = persisted ratio. This flag marks whether
+    /// the first-launch 50:50 reset has already been performed (= once
+    /// set, the autosaveName path handles all future drag persistence
+    /// automatically; = this flag is only checked once per app lifetime).
+    private static let didSetFirstLaunchKey = "wenshu.editor.split.didSetFirstLaunchPosition"
 
     /// Reference to the chat-zone split item (= set in viewDidLoad).
     /// Stored so the menu action can call `isCollapsed.toggle()`
@@ -150,8 +169,29 @@ final class EditorChatNSController: NSSplitViewController {
         // 'If false, the split view is oriented horizontally
         // (= items are arranged top to bottom).'
         self.splitView.isVertical = false
-        // Autosave the divider position (= Apple HIG default
-        // behavior; = the user's drag-to-resize survives relaunch).
+        // v1.89 (2026-09-23): boss '第一次启动APP 的时候，聊天区和编辑区的
+        // 空间分配，我希望是 50:50，用户拖动后，最好能持久化。然后，第二
+        // 次启动的时候，我希望是启用用户持久化的比例' (= first launch =
+        // 50:50 divider; = drag-to-resize persists; = subsequent launches
+        // restore the persisted position). Flow:
+        //   1. Wire autosaveName FIRST (= Apple HIG built-in divider
+        //      persistence; = the user's drag-to-resize survives relaunch
+        //      via the standard NSSplitView autosave path =
+        //      UserDefaults key "NSSplitView Subview Frames
+        //      wenshu.editor.split.autosave").
+        //   2. THEN check the first-launch flag. If first launch
+        //      (= wenshu.editor.split.didSetFirstLaunchPosition =
+        //      false / unset), force the divider to 50% of the split
+        //      view height (= the explicit boss spec). Setting
+        //      position via setPosition(ofDividerAt:) writes the
+        //      autosave value to UserDefaults (= subsequent launches
+        //      will read the same 50:50 position automatically
+        //      without this code running again).
+        //   3. Set wenshu.editor.split.didSetFirstLaunchPosition =
+        //      true (= marks "first launch done"; = future launches
+        //      skip the 50:50 reset and let autosave restore the
+        //      user's persisted drag position).
+        // v1.0.0-m1-shell: the user's drag-to-resize survives relaunch.
         self.splitView.autosaveName = Self.autosaveName
 
         // Top pane (= editor).
@@ -175,6 +215,30 @@ final class EditorChatNSController: NSSplitViewController {
         chatItemLocal.minimumThickness = 100
         addSplitViewItem(chatItemLocal)
         self.chatItem = chatItemLocal
+
+        // v1.89 (2026-09-23): boss spec = first launch = 50:50 divider;
+        // subsequent launches = persisted ratio (= Apple HIG
+        // NSSplitView autosave path handles the persistence; = this
+        // block only runs on the user's very first launch ever).
+        //
+        // Order matters: must run AFTER autosaveName is wired AND
+        // AFTER addSplitViewItem has added both panes (= so the
+        // divider index 0 (= the divider between editor and chat)
+        // is valid for setPosition(ofDividerAt:)). setPosition
+        // triggers autosave to write the value into UserDefaults
+        // (= subsequent launches skip this block and read the
+        // 50:50 value back via autosave).
+        if !UserDefaults.standard.bool(forKey: Self.didSetFirstLaunchKey) {
+            // 50% of the split view's current height (= top =
+            // editor, bottom = chat; = exact 50:50 split per
+            // boss spec). setPosition uses coordinates in the
+            // split view's own coordinate system (= for
+            // isVertical = false, that's a vertical Y coordinate
+            // measured from the top edge).
+            let dividerY = self.splitView.bounds.height / 2
+            self.splitView.setPosition(dividerY, ofDividerAt: 0)
+            UserDefaults.standard.set(true, forKey: Self.didSetFirstLaunchKey)
+        }
 
         // v1.28 A1.3: removed NotificationCenter observer
         // (= Notification.Name.wenshuToggleChatZone static was removed
