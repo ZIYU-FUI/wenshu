@@ -1,26 +1,27 @@
 //
-//  ChatInputBarView.swift · Wenshu · v1.85
+//  ChatInputBarView.swift · Wenshu · v1.86
 //
-//  v1.85 boss 2026-09-23 '那个 token 计数的底栏没有了，刚你写出来过，
-//  挺好的。写回来吧' + '那个压缩按钮，你去确认了吗，自动触发压缩，
-//  还是手动。如果可以自动，那个按钮就不用写回来了':
-//    - Restore the token-usage bottom bar (= "0 tokens used" / orange
-//      warning when over threshold = live context budget indicator;
-//      = matches the Apple Mail attachment-size badge).
-//    - Do NOT restore the manual compress button (= ConversationLoop.swift:512
-//      runs ConversationCompression.historyAfterCompression on every turn
-//      = automatic compression; = no production caller for manualTrigger
-//      anymore; = the button was dead code before v1.84 deleted it).
+//  v1.86 (2026-09-23): boss spec = match the sidebar's bottom "+ 新建"
+//  button style/size verbatim. Reference: NewLibraryOutlineView.swift
+//  L1760 `sidebarBottomNewButton`. Changes to the tokenCountFooter:
+//    - .footnote → .callout        (= sidebar's exact text size)
+//    - .padding(.horizontal, 10) → 8 (= sidebar's exact padding)
+//    - +.padding(.vertical, 8)     (= sidebar's exact vertical padding)
+//    - Spacer() → .frame(maxWidth: .infinity, alignment: .leading)
+//                                 (= sidebar's exact alignment primitive)
+//    - HStack spacing 8 → 6        (= sidebar's exact icon-text gap)
+//  Boss 2026-09-23 '样式，尺寸照抄就好' (= 'just copy the style and
+//  size from the sidebar').
+//
+//  v1.85 (2026-09-23): restored the token-usage bottom bar (= boss
+//  2026-09-23 '那个 token 计数的底栏没有了，刚你写出来过，挺好的。
+//  写回来吧'). Did NOT restore the manual compress button (= confirmed
+//  automatic via ConversationLoop.swift:512; = boss 2026-09-23 '如果
+//  可以自动，那个按钮就不用写回来了').
 //
 //  v1.84 (2026-09-23): boss spec = chat column bottom = single input row +
-//  divider hairline (= Apple HIG sidebar-bottom-accessory separator; = matches
-//  NewLibraryOutlineView L1776 above its "+ 新建" button; = visual rhythm
-//  only). Boss 2026-09-23 '既然你加了底栏，可以参考左栏的底部的新建。
-//  有一条分割线。也参考一下高度'.
-//
-//  v1.83 = clean rewrite (drop v0.x baggage + delete 6 dead helper
-//  SwiftUI View files). v1.82 = single-row HStack extraction. v1.81 =
-//  3-layer UI split (extraction only).
+//  divider hairline (= Apple HIG sidebar-bottom-accessory separator).
+//  v1.83 = clean rewrite. v1.82 = single-row HStack. v1.81 = 3-layer split.
 //
 //  Dead helper classes deleted (= no production caller):
 //    - ChatAttachButton.swift (= replaced by inline GlassIconButton)
@@ -109,27 +110,45 @@ struct ChatInputBarView: View {
     ///   2. Below threshold   → "N tokens used" in `.secondary` tone
     ///   3. Over threshold    → "N / M tokens (P%)" in `.orange` tone
     private var tokenCountFooter: some View {
+        // v1.86 (2026-09-23): boss spec = match the sidebar's bottom
+        // "+ 新建" button style/size verbatim (= boss '样式，尺寸照抄
+        // 就好' = 'just copy the style and size from the sidebar').
+        // Reference: NewLibraryOutlineView.swift L1760 `sidebarBottomNewButton`.
+        // Same primitives (= Apple HIG sidebar-bottom-accessory pattern):
+        //   - Divider above
+        //   - HStack(spacing: 6) for label (= just the Text here; = the
+        //     "+ 新建" button has `Image + Text`; = we have no action
+        //     button = just the text label)
+        //   - Text.font(.callout) (= NOT .footnote; = matches the
+        //     sidebar's exact text size)
+        //   - .frame(maxWidth: .infinity, alignment: .leading) (= the
+        //     sidebar uses Spacer() implicitly via the .leading frame;
+        //     = no Spacer() needed here)
+        //   - .padding(.vertical, 8) + .padding(.horizontal, 8)
+        //     (= same 8 PT all-around padding the sidebar uses; = no
+        //     10 PT mismatch)
+        //   - .foregroundStyle(.secondary) for the below-threshold label
+        //     (= matches sidebar Image + .secondary; = the orange over-
+        //     threshold branch keeps its warning tone).
         // v1.85: T33-ALWAYS-SHOW-COMPRESSION behavior — always visible
-        // (= the user always knows how much room they have, even when
-        // the chat is empty = the badge still shows "0 tokens used";
-        // = matches the Apple Mail attachment-size badge = always
-        // visible = the user always knows how much room they have).
-        HStack(spacing: 8) {
+        // (= matches Apple Mail attachment-size badge = the user always
+        // knows how much room they have).
+        HStack(spacing: 6) {
             if vm.contextUsed >= tokenCompressionContextThreshold {
                 // Over-threshold warning (orange).
                 Text("\(formatCompactTokenCount(vm.contextUsed)) / \(formatCompactTokenCount(tokenCompressionContextThreshold)) tokens (\(percentOfThreshold)%)")
-                    .font(.footnote)
+                    .font(.callout)
                     .foregroundStyle(.orange)
             } else {
                 // Below threshold (quiet secondary).
                 Text("\(formatCompactTokenCount(vm.contextUsed)) tokens used")
-                    .font(.footnote)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
-            Spacer()
         }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
     }
 
     /// 30,000 token compression threshold (= matches the old
