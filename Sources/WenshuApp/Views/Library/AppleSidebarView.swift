@@ -70,15 +70,35 @@ struct AppleSidebarView: View {
     var body: some View {
         Group {
             if let service {
-                let sidebarList = List(
-                    service.nodes,
-                    children: \.children,
-                    selection: $selectedNode
-                ) { node in
-                    SidebarRowView(node: node)
-                }
-                sidebarList
-                .listStyle(.sidebar)
+                VStack(spacing: 0) {
+                    // v1.69aa boss 2026-09-23 OOB 'UI 上补点东西，
+                    // 原本顶部是有一个标题，加一个分割线的，像中左栏一样':
+                    // restore the column title bar (= preview
+                    // pane uses the same pattern; see PreviewPane
+                    // L610-627 = HStack { Spacer; Text("...") ;
+                    // Spacer } + Divider). The text uses
+                    // `.secondary` (= Apple HIG section header
+                    // color) so it sits visually behind the row
+                    // labels below (= same Apple Mail / Notes /
+                    // Finder section header idiom).
+                    HStack {
+                        Spacer()
+                        Text(WenshuI18n.t("sidebar.column.title"))
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .textCase(nil)
+                        Spacer()
+                    }
+                    Divider()
+                    let sidebarList = List(
+                        service.nodes,
+                        children: \.children,
+                        selection: $selectedNode
+                    ) { node in
+                        SidebarRowView(node: node)
+                    }
+                    sidebarList
+                    .listStyle(.sidebar)
                 // v1.69y: empty-area right-click (= the
                 // `.contextMenu(forSelectionType:menuItems:)`
                 // hook below does NOT route empty-area hits; =
@@ -137,6 +157,7 @@ struct AppleSidebarView: View {
                 .onChange(of: selectedNode) { _, newValue in
                     forwardSelection(newValue)
                 }
+                }  // end VStack(spacing: 0) { title + Divider + List }
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
