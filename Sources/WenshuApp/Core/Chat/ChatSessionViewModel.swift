@@ -296,6 +296,16 @@ public final class ChatViewModel {
         appState?.llmModel = id
     }
 
+    /// v1.99 (2026-09-23): boss 'UI 层不许直接调数据层'.
+    /// Sets the canonical 'wenshu.settingsTab' to 'providerApi' so
+    /// the Settings window opens on the LLM Connector pane. The
+    /// canonical pattern (= the @AppStorage mirror in Settings reads
+    /// from UserDefaults) is unchanged; = the write moves here from
+    /// `ChatZoneView` (= UI layer) into the business layer.
+    public func openSettingsToProviderApi() {
+        UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
+    }
+
     public func loadAvailableModels() async {
         // v0.24 boss acceptance fix (2026-08-24): use multi-provider discovery.
         // Was: fallback to WenshuLLMModel.allCases (3 MiniMax-only cases).

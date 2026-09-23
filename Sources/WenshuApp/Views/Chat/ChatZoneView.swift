@@ -99,10 +99,12 @@ struct ChatZoneView: View {
                     EmptyView()
                 } else {
                     ChatHelpTextOverlay {
-                        // canonical 'jump to providerApi tab on open
-                        // Settings' pattern: UserDefaults IS the source
-                        // of truth that @AppStorage reads from.
-                        UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
+                        // v1.99 (2026-09-23): boss 'UI 层不许直接调数据层'.
+                        // Move the UserDefaults write into the business
+                        // layer (= `ChatSessionViewModel.openSettingsToProviderApi`)
+                        // so the UI only triggers the side-effect (= opens
+                        // Settings) and doesn't own the storage write.
+                        vm.openSettingsToProviderApi()
                         WenshuAppDelegate.openSettings?()
                     }
                     .allowsHitTesting(true)
