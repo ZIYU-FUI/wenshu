@@ -387,54 +387,50 @@ public struct ForeshadowingView: View {
         }
         loadingState = .loading
         let actor = ensureTracker()
-        do {
-            // Pull rows + stale in parallel.
-            async let rowsTask = actor.list(bookId: bookId, status: filterStatus)
-            async let staleTask = actor.staleForeshadowings(bookId: bookId)
-            let (loadedRows, loadedStale) = try await (rowsTask, staleTask)
-            rows = loadedRows
-            staleRows = loadedStale
+        let result = await ForeshadowingOps.reload(
+            manager: actor,
+            bookId: bookId,
+            filterStatus: filterStatus
+        )
+        rows = result.rows
+        staleRows = result.staleRows
+        if let err = result.error {
+            loadingState = .failed(err)
+            errorText = err
+        } else if result.didLoad {
             loadingState = .loaded
-        } catch {
-            loadingState = .failed(error.localizedDescription)
-            errorText = error.localizedDescription
         }
     }
 
     private func addForeshadowing() async {
-        guard let bookId = activeBookId else { return }
+        guard activeBookId != nil else { return }
         let actor = ensureTracker()
-        let trimmedTitle = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else { return }
-        let trimmedExcerpt = draftSetupExcerpt.trimmingCharacters(in: .whitespacesAndNewlines)
-        let setupChapterId = UUID(uuidString: draftSetupChapterText.trimmingCharacters(in: .whitespacesAndNewlines))
-        let row = Foreshadowing(
-            bookId: bookId,
-            title: trimmedTitle,
-            setupChapterId: setupChapterId,
-            setupExcerpt: trimmedExcerpt,
+        let result = await ForeshadowingOps.addForeshadowing(
+            manager: actor,
+            bookId: activeBookId,
+            title: draftTitle,
+            setupChapterIdText: draftSetupChapterText,
+            setupExcerpt: draftSetupExcerpt,
             status: draftStatus
         )
-        do {
-            try await actor.add(row)
-            // Reset draft state on success.
+        if result.didSave {
             draftTitle = ""
             draftSetupChapterText = ""
             draftSetupExcerpt = ""
             draftStatus = .setup
             await reload()
-        } catch {
-            errorText = error.localizedDescription
+        } else if let err = result.error {
+            errorText = err
         }
     }
 
     private func removeForeshadowing(_ row: Foreshadowing) async {
         let actor = ensureTracker()
-        do {
-            try await actor.remove(id: row.id)
+        let result = await ForeshadowingOps.removeForeshadowing(manager: actor, row: row)
+        if result.didSave {
             await reload()
-        } catch {
-            errorText = error.localizedDescription
+        } else if let err = result.error {
+            errorText = err
         }
     }
 }
