@@ -74,7 +74,7 @@ struct NewChoiceSheet: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Text(WenshuI18n.t("auto2.newlibraryoutlineview.l1560.h95494717"))
+            Text(WenshuI18n.t("new_choice_sheet_title"))
                 .font(.title2.weight(.semibold))
                 .padding(.top, 16)
             HStack(spacing: 16) {
