@@ -1,4 +1,14 @@
-// ChatZoneView.swift · Wenshu · v0.40 apple-001 phase 3 ticket 4b
+// ChatZoneView.swift · Wenshu · v1.91b
+//
+// v1.91b (2026-09-23): boss '聊天区的，文字回显层，是否可以变成左栏
+// 的颜色参数。没有实现，是不是被限制了，是不是 NSV 框架里限制了，
+// 你参数加的位置没有生效'. v1.91 added `.background(DesignTokens.
+// sidebarBackground)` to ChatView's inner ScrollView; = that only
+// paints the ScrollView's content area, NOT the visible chat column
+// chrome around it (= the outer VStack + the NSSplitViewItem's AppKit
+// container). Move the background to this outer VStack (= the view
+// that actually fills the chat column's visible bounds). Same token,
+// correct layer.
 //
 // Extracted from App.swift (formerly inline `struct ChatZoneView: View`)
 // per Apple HIG = one view per file.
@@ -100,6 +110,19 @@ struct ChatZoneView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // v1.91b (2026-09-23): boss '聊天区的，文字回显层，是否可以变成
+        // 左栏的颜色参数。没有实现，是不是被限制了，是不是 NSV 框架
+        // 里限制了，你参数加的位置没有生效' (= v1.91 was set on
+        // ChatView's ScrollView; = didn't work because the visible
+        // chat column background is painted by ChatZoneView's outer
+        // VStack + NSSplitViewItem's AppKit container; = ChatView's
+        // ScrollView background only paints the scroll content area,
+        // NOT the surrounding chat column chrome; = need the bg on
+        // THIS outer VStack to actually repaint the visible chat
+        // column). Now the entire chat zone fills with
+        // DesignTokens.sidebarBackground (= same primitive sidebar
+        // uses; = boss's spec satisfied).
+        .background(DesignTokens.sidebarBackground)
         .environment(appState)
     }
 
