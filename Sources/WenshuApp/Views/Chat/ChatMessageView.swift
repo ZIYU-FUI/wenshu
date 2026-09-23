@@ -125,6 +125,17 @@ struct ChatMessageView: View {
         messageContents
                     .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
                     .frame(maxWidth: .infinity, alignment: isOutgoing ? .center : .leading)
+                    // v1.88 (2026-09-23): boss '聊天回显区里 AI 回复的
+                    // 文字，现在居左右 10PT，我需要改成 20PT，只改 AI
+                    // 回复的文字，其它的不动'. AI rows get a 20 PT
+                    // horizontal padding (= formerly 0 PT; = boss read the
+                    // existing flat layout as "10 PT"; = the macOS 27
+                    // chat column edge to the AI text). User rows pass
+                    // through (= their glass-card L2 inner padding in
+                    // UserGlassCardModifier is the SOLE source of user
+                    // horizontal padding; = unchanged per the "其它不
+                    // 动" instruction).
+                    .padding(.horizontal, isOutgoing ? 0 : 20)
                     // v1.65 boss 'B = 试着补一下 sticky 真值':
                     //
                     // Apple SwiftUI on macOS 27 does NOT expose CSS `position:
