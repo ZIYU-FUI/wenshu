@@ -283,7 +283,7 @@ enum ZoneSlot {
 //
 // v1.69 sidebar MVVM cleanup: `LibraryOutlineViewContent` was a
 // v0.27 wiring wrapper that rendered the pre-v1.69e legacy
-// `NewLibraryOutlineView` (the 2466-LOC mega-file sidebar).
+// `NewLibraryOutlineView` (the 2366-LOC mega-file sidebar).
 // Both are removed in v1.69e (= commit 6bd3eb7f); = the sidebar
 // surface in production lives in NavigationSplitShell.swift
 // (= AppleSidebarView = the v1.68b Apple HIG List(.sidebar) +

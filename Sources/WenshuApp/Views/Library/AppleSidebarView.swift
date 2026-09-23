@@ -9,7 +9,7 @@
 //     hand-rolled LazySidebarView (= SwiftUI List(.sidebar)).
 //   - v1.69a-e: MVVM cleanup (= extract SidebarItem, BottomNewButton,
 //     ZoneHeaderButtons to focused files; = drop 9 LazySidebar*
-//     dead files + NewLibraryOutlineView 2466-LOC legacy).
+//     dead files + NewLibraryOutlineView 2366-LOC legacy).
 //   - v1.69i-l: reference-library auto-classification (= CLC 22
 //     top-level categories).
 //   - v1.69m-n-q: BUG fixes (= routingKey field, shelfScopeView

@@ -2,7 +2,7 @@
 //
 // v1.69c sidebar MVVM cleanup (= boss 2026-09-22 OOB '老的文件没
 // 删, UI/业务/数据没分离的删掉'): extracted from the deleted
-// NewLibraryOutlineView.swift (the pre-v1.69e 2466-LOC legacy
+// NewLibraryOutlineView.swift (the pre-v1.69e 2366-LOC legacy
 // sidebar that packed view body + selection handling + state
 // persistence + business logic into one file).
 //

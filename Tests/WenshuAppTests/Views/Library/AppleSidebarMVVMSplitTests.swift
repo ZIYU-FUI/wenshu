@@ -83,7 +83,7 @@ struct AppleSidebarMVVMSplitTests {
         let oldFile = Self.repoPath("Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift")
         let oldExt = Self.repoPath("Sources/WenshuApp/Views/Library/NewLibraryOutlineView+DisclosureState.swift")
         #expect(!FileManager.default.fileExists(atPath: oldFile),
-                "NewLibraryOutlineView.swift MUST be removed in v1.69 (= the legacy 2466-LOC sidebar that did not follow MVVM)")
+                "NewLibraryOutlineView.swift MUST be removed in v1.69 (= the legacy 2366-LOC sidebar that did not follow MVVM)")
         #expect(!FileManager.default.fileExists(atPath: oldExt),
                 "NewLibraryOutlineView+DisclosureState.swift MUST be removed in v1.69 (= the legacy sidebar extension)")
 

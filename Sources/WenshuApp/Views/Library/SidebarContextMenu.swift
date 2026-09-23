@@ -2,7 +2,7 @@
 //  SidebarContextMenu.swift · Wenshu · v1.69y boss 2026-09-23 OOB
 //
 //  Right-click context menu for the sidebar. Restored from the
-//  deleted NewLibraryOutlineView.swift (2466 LOC) after v1.69e
+//  deleted NewLibraryOutlineView.swift (2366 LOC) after v1.69e
 //  `git rm`'d it without re-wiring (= per boss 2026-09-23 OOB
 //  '需要你把新建功能，右边菜单等恢复').
 //
