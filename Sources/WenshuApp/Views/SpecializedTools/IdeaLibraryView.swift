@@ -544,118 +544,111 @@ struct IdeaLibraryView: View {
         }
     }
 
-    // MARK: - Actions
+    // MARK: - Helpers (= view-only glue: calls IdeaLibraryOps, assigns @State)
+
+    /// Lazily construct (= or fetch) the `IdeaLibrary` actor for
+    /// the active book (= held in @State so SwiftUI keeps the
+    /// identity across re-renders).
+    private func ensureLibrary() -> IdeaLibrary {
+        if let library { return library }
+        let new = IdeaLibrary(bookStore: bookStore)
+        library = new
+        return new
+    }
 
     private func addIdea() async {
-        guard let library, let bookId = activeBookId else { return }
-        let trimmedTitle = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else {
-            errorText = "Title is empty."
-            return
-        }
-        let trimmedDescription = draftDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-        let tagList = draftTagsText
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        let idea = Idea(
-            bookId: bookId,
-            title: trimmedTitle,
-            description: trimmedDescription,
+        guard activeBookId != nil else { return }
+        let actor = ensureLibrary()
+        let result = await IdeaLibraryOps.addIdea(
+            library: actor,
+            bookId: activeBookId,
+            title: draftTitle,
+            description: draftDescription,
             status: draftStatus,
-            tags: tagList
+            tagsText: draftTagsText
         )
-        do {
-            try await library.add(idea)
+        if result.didSave {
+            // SwiftUI-side reset (= inline-create form fields clear
+            // on successful save; = binding resets, NOT business
+            // rules, = stays in the view per ADR-0009).
             draftTitle = ""
             draftDescription = ""
             draftTagsText = ""
             draftStatus = .seedling
             errorText = nil
-            await reload()
-        } catch {
-            errorText = "Add failed: \(error.localizedDescription)"
         }
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func removeIdea(_ idea: Idea) async {
-        guard let library else { return }
-        do {
-            try await library.remove(id: idea.id)
-            await reload()
-        } catch {
-            errorText = "Remove failed: \(error.localizedDescription)"
-        }
+        let actor = ensureLibrary()
+        let result = await IdeaLibraryOps.removeIdea(library: actor, idea: idea)
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func linkIdea() async {
-        guard let library,
-              let ideaId = draftLinkIdeaId,
-              let targetId = UUID(uuidString: draftLinkTargetIdText.trimmingCharacters(in: .whitespacesAndNewlines))
-        else { return }
-        let link = IdeaLink(
+        let actor = ensureLibrary()
+        let result = await IdeaLibraryOps.linkIdea(
+            library: actor,
+            ideaId: draftLinkIdeaId,
             target: draftLinkTarget,
-            targetId: targetId,
+            targetIdText: draftLinkTargetIdText,
             context: draftLinkContext
         )
-        do {
-            try await library.link(ideaId: ideaId, link: link)
+        if result.didSave {
             draftLinkTargetIdText = ""
             draftLinkContext = ""
             errorText = nil
-            await reload()
-        } catch {
-            errorText = "Link failed: \(error.localizedDescription)"
         }
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func unlinkIdea(ideaId: UUID, link: IdeaLink) async {
-        guard let library else { return }
-        do {
-            try await library.unlink(ideaId: ideaId, link: link)
-            await reload()
-        } catch {
-            errorText = "Unlink failed: \(error.localizedDescription)"
-        }
+        let actor = ensureLibrary()
+        let result = await IdeaLibraryOps.unlinkIdea(
+            library: actor,
+            ideaId: ideaId,
+            link: link
+        )
+        if let error = result.error { errorText = error }
+        await reload()
     }
 
     private func runSuggest() async {
-        guard let library, let bookId = activeBookId else { return }
-        do {
-            suggestions = try await library.suggest(bookId: bookId, context: draftSuggestContext)
-        } catch {
-            suggestions = []
-            errorText = "Suggest failed: \(error.localizedDescription)"
-        }
+        guard activeBookId != nil else { return }
+        let actor = ensureLibrary()
+        let result = await IdeaLibraryOps.runSuggest(
+            library: actor,
+            bookId: activeBookId,
+            context: draftSuggestContext
+        )
+        suggestions = result.suggestions
+        if let error = result.error { errorText = error }
     }
 
     private func reload() async {
-        guard let bookId = activeBookId else {
+        guard activeBookId != nil else {
             status = .idle
             ideas = []
             return
         }
-        if library == nil {
-            library = IdeaLibrary(bookStore: bookStore)
-        }
-        guard let library else { return }
+        let actor = ensureLibrary()
         status = .loading
-        do {
-            let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-            let trimmedTag = draftFilterTag.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmedSearch.isEmpty {
-                ideas = try await library.search(bookId: bookId, query: trimmedSearch)
-            } else {
-                ideas = try await library.list(
-                    bookId: bookId,
-                    status: draftFilterStatus,
-                    tag: trimmedTag.isEmpty ? nil : trimmedTag
-                )
-            }
+        let result = await IdeaLibraryOps.reload(
+            library: actor,
+            bookId: activeBookId,
+            searchText: searchText,
+            filterStatus: draftFilterStatus,
+            filterTag: draftFilterTag
+        )
+        ideas = result.ideas
+        if let error = result.error {
+            status = .failed(error)
+        } else {
             status = .loaded
-        } catch {
-            ideas = []
-            status = .failed(error.localizedDescription)
         }
     }
 }
