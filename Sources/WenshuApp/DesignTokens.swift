@@ -176,6 +176,17 @@ public enum DesignTokens {
     /// naming, now generic for ALL pane tabs).
     public static let paneTabHotArea: CGFloat = 28
 
+    /// v1.73d tab close button (= X) glyph font size (= 10 PT,
+    /// .semibold weight). Matches SF Symbol `xmark` rendered at
+    /// 18 PT frame for finger-target parity with the 28 PT paneTab.
+    public static let tabCloseGlyphFontSize: CGFloat = 10
+
+    /// v1.73d tab close button (= X) hit area (= 18×18 PT). Apple HIG
+    /// inline-control minimum is 16 PT (= 44 PT Apple HIG = finger-target);
+    /// 18 PT is a compromise that fits inside `paneTabHotArea` (= 28 PT)
+    /// without padding artifacts (= Safari/Chrome/Terminal convention).
+    public static let tabCloseFrameSize: CGFloat = 18
+
     /// Per-pane tab icon size (= 18×18 PT, fits within 28 PT hot area).
     public static let tabIconSize: CGFloat = 18
 

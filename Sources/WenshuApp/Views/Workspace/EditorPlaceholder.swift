@@ -147,9 +147,12 @@ struct EditorPlaceholder: View {
                         appState.closeTab(id: active.id, bookStore: bookStore)
                     }) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.system(
+                                size: DesignTokens.tabCloseGlyphFontSize,
+                                weight: .semibold))
                             .foregroundStyle(.secondary)
-                            .frame(width: 18, height: 18)
+                            .frame(width: DesignTokens.tabCloseFrameSize,
+                                   height: DesignTokens.tabCloseFrameSize)
                     }
                     .buttonStyle(.plain)
                     .help(WenshuI18n.t("workspace.editor.close_tab_tooltip"))
