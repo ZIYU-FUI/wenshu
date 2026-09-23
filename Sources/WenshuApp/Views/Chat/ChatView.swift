@@ -47,6 +47,14 @@ public struct ChatView: View {
     // CHATIMG-001 (2026-09-07): toggles the .fileImporter sheet when the
     // user clicks the paperclip button. Bound to .fileImporter(isPresented:)
     // on the input HStack per Apple HIG SwiftUI fileImporter pattern.
+    //
+    // v1.83 (2026-09-23): boss's 3-layer UI split. The state for the
+    // input row's file picker + drop highlight are forwarded through
+    // ChatInputBarView (= the top layer; = user-interactive controls).
+    // ChatView owns the @State; = ChatInputBarView receives a Binding
+    // (= standard SwiftUI parent-child state plumbing). The actual
+    // .fileImporter + .dropDestination + drop-highlight overlay all
+    // live on the input row itself (= ChatInputBarView body).
     @State private var showingImageImporter: Bool = false
     /// True while a drag is hovering the input row, so the row can show a
     /// drop highlight. Apple's .dropDestination reports this for free.
@@ -452,33 +460,17 @@ public struct ChatView: View {
                     }
                 }
             }
-                // v1.81 boss 2026-09-23 '聊天区我认为就两层，加上 NSV 框架，也就是三层
-                // 顶层 = 按钮 对话框 按钮，的那一组和用户交互的控件。
-                // 中层 = 回显用户和 AI 的对话内容。
-                // 底层 = NSV 框架': the chat input bar (= buttons + textfield +
-                // attachment preview chip) is hoisted to its OWN SwiftUI view
-                // (ChatInputBarView = Sources/WenshuApp/Views/Chat/ChatInputBarView.swift)
-                // and floats over the chat ScrollView via .safeAreaInset(edge: .bottom)
-                // (= Apple HIG Messages / Slack / Xcode 16 pattern; = the input bar
-                // is OUTSIDE the scroll viewport; = the chat content scrolls behind
-                // the fixed input bar). This replaces the pre-v1.81 inline
-                // `VStack { ScrollView; input VStack }` (= 2 sibling layers at the
-                // body level) with the canonical 3-layer split per boss:
-                //   1. 顶层 = this safeAreaInset's ChatInputBarView
-                //   2. 中层 = this ScrollView (chat content)
-                //   3. 底层 = NavigationSplitShell + EditorChatNSController
-                // (= the NSSplitView framework; = unchanged).
-                //
-                // MVVM compliance per AGENTS.md §11.1 + §11.3 (= boss's hard rule):
-                // ChatInputBarView is UI-only (= no FileManager / no UserDefaults
-                // reads; = no business logic; = all actions delegate to the
-                // injected ChatViewModel; = no StoredChatMessage touched).
+            // v1.83: chat input bar (= the top layer of the
+            // 3-layer UI split per boss v1.81 spec) floats over this
+            // ScrollView via .safeAreaInset(edge: .bottom); = Apple HIG
+            // Messages / Slack chat input pattern.
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     ChatInputBarView(
                         vm: vm,
                         inputFocused: $inputFocused,
                         hasUsableKey: hasUsableKey,
-                        showingImageImporter: $showingImageImporter
+                        showingImageImporter: $showingImageImporter,
+                        isDropTargeted: $isDropTargeted
                     )
                 }
             // async load history via .task modifier (non-blocking)
@@ -493,25 +485,14 @@ public struct ChatView: View {
                 await vm.loadHistory()
             }
 
-            // v0.35 ticket 003 sub-step 4 + 5: compression status pill + manual compress button.
-            // Per spec §6.4 UI mapping: 🟨 half-visible pill + 🟥 must-UI button.
-            ChatViewCompressionRow(vm: vm)
+            // v1.83: ChatViewCompressionRow now lives in ChatInputBarView
+            // (= first element of the single HStack per boss v1.82 spec).
+            // (= was a sibling here before the 3-layer UI split.)
 
-            // v1.81 boss 2026-09-23 '聊天区我认为就两层，加上 NSV 框架，也就是三层':
-            // the chat input row (formerly an inline `VStack` here, with
-            // .glassEffect + .overlay + .shadow floating-panel chrome) is
-            // hoisted to ChatInputBarView (= Sources/WenshuApp/Views/Chat/
-            // ChatInputBarView.swift) and floats over the ScrollView via
-            // .safeAreaInset(edge: .bottom) (= Apple HIG Messages / Slack
-            // pattern). The 159-line obsolete comment block removed here
-            // (= pre-v1.81 'inline floating panel' design notes: ticket
-            // 030-034 alignment history, .glassEffect material tier notes,
-            // CHATIMG-001 attachment-preview-chip notes, and the v0.28
-            // followup Boss UX round 20/25 alignment notes) is preserved
-            // in git history (= the comments described code that has
-            // since been deleted; = no longer relevant; = recovered
-            // via `git log -p Sources/WenshuApp/Views/Chat/ChatView.swift`
-            // if needed for archaeology).
+            // v1.83: chat input bar (= the top layer of the
+            // 3-layer UI split per boss v1.81 spec) floats over this
+            // ScrollView via .safeAreaInset(edge: .bottom); = Apple HIG
+            // Messages / Slack chat input pattern.
             // T37-KEYBOARD-SHORTCUTS (2026-09-18): two hidden Buttons that
             // register app-level keyboard shortcuts without changing the
             // visible HStack layout. The Buttons are .frame(width: 0, height: 0)
@@ -1294,183 +1275,12 @@ public struct ChatView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
-            // v0.28 followup Boss UX round 20: 16 PT outer top margin
-            // moved from .padding(.top, DesignTokens.chromePaddingLarge) on the button (= was
-            // misaligning the button with TextField) to the HStack
-            // (= both TextField and Send button offset down 16 PT
-            // together, no misalignment). HStack(alignment: .center)
-            // vertically centers both 24 PT controls at the HStack
-            // midline (= Apple HIG canonical for chat input rows).
-            .padding(.top, DesignTokens.chromePaddingLarge)
-            .padding(.horizontal, DesignTokens.chromePaddingLeading)
-            // v0.28 followup Boss UX round 22 (Boss 2026-08-29 OOB
-            // bottom margin (= both TextField + Send button offset up
-            // 10 PT from the bottom edge of the chat pane = not flush
-            // against the bottom = Apple HIG canonical for chat input
-            // rows = matches the Apple Messages / Slack / Mail Compose
-            // chat input layout where the input row has breathing
-            // room from the window bottom edge).
-            .padding(.bottom, DesignTokens.chromePaddingChatBottom)
-            // CHATIMG-001 (2026-09-07): file importer for the
-            // paperclip button. Bound on the outer VStack (= sibling
-            // to the input HStack) per Apple HIG SwiftUI
-            // .fileImporter pattern. allowedContentTypes = image
-            // UTType set (= png + jpeg + gif + heic = common
-            // screenshot formats). On pick, the source URL is handed
-            // to ChatViewModel.attachImage(at:) which copies it into
-            // the library's cache/chat-uploads/ dir and sets
-            // attachedImagePath.
-            //
-            // T38-PASTE-IMAGE (2026-09-18): add .onPasteCommand(of:)
-            // so the user can ⌘V an image from clipboard (= matches
-            // Apple Messages + Slack + Discord behavior). The
-            // pasted NSItemProvider is saved to a temp .png file
-            // (= sandbox needs an actual file on disk for
-            // vm.attachImage(at:) which uses file coordination;
-            // = clipboard binary in-memory isn't addressable here).
-            // The temp file is then handed to vm.attachImage(at:)
-            // (= same code path as dropDestination + fileImporter).
-            .onPasteCommand(of: [.image]) { providers in
-                guard let provider = providers.first else { return }
-                _ = provider.loadObject(ofClass: NSImage.self) { item, error in
-                    guard let image = item as? NSImage,
-                          let tiff = image.tiffRepresentation,
-                          let bitmap = NSBitmapImageRep(data: tiff),
-                          let pngData = bitmap.representation(using: .png, properties: [:])
-                    else { return }
-                    let tempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("wenshu-paste-\(UUID().uuidString).png")
-                    do {
-                        try pngData.write(to: tempURL)
-                        // C-6: attachImage is now async (= routes through
-                        // ChatRepositoryProtocol.copyChatUpload in the
-                        // data layer). Hop to MainActor explicitly.
-                        Task { @MainActor in
-                            _ = await vm.attachImage(at: tempURL)
-                        }
-                    } catch {
-                        // ignore write failures (= sandbox / disk full)
-                    }
-                }
-            }
-            .fileImporter(
-                isPresented: $showingImageImporter,
-                allowedContentTypes: [.image, .png, .jpeg, .gif, .heic],
-                allowsMultipleSelection: false
-            ) { result in
-                switch result {
-                case .success(let urls):
-                    if let url = urls.first {
-                        // C-6: attachImage is now async. Wrap in a Task
-                        // to fire-and-forget the data-layer copy.
-                        Task { @MainActor in
-                            _ = await vm.attachImage(at: url)
-                        }
-                    }
-                case .failure:
-                    break   // user cancelled or sandbox denial; ignore
-                }
-            }
-            // v0.55 boss OOB 'use the ones we have not used yet': accept
-            // images dropped onto the input row, which is the same thing
-            // the paperclip does through .fileImporter. .dropDestination is
-            // Apple's typed drop API, so the row only lights up for payloads
-            // it can actually take.
-            .dropDestination(for: URL.self) { urls, _ in
-                guard let url = urls.first else { return false }
-                // C-6: attachImage is now async (= routes through the
-                // data layer). .dropDestination's action closure is
-                // sync (= returns Bool for whether to accept the drop),
-                // so we fire-and-forget the async copy and report true
-                // (= accept the drop; = the actual copy happens in the
-                // background; = the preview chip appears once it lands).
-                Task { @MainActor in
-                    _ = await vm.attachImage(at: url)
-                }
-                return true
-            } isTargeted: { targeted in
-                isDropTargeted = targeted
-            }
-            .overlay {
-                if isDropTargeted {
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.accentColor, lineWidth: 2)
-                        .allowsHitTesting(false)
-                }
-            }
-            .animation(.snappy, value: isDropTargeted)
-            // v1.59 boss 2026-09-20 'chat input was a floating panel,
-            // change style only not function, restore floating panel':
-            // v1.69 wrote the panel with macOS 27 .glassEffect
-            // (.regular, in: RoundedRectangle(cornerRadius: 14))
-            // (= the canonical Liquid Glass floating panel API per
-            // developer.apple.com/documentation/swiftui/view/
-            // glasseffect). On the boss's runtime it renders as a
-            // flat dark surface that blends into the chat column
-            // (= the panel no longer reads as a floating panel =
-            // looks like an ordinary bottom-attached row). Restore
-            // the floating look with an explicit `.background`
-            // (= `.regularMaterial` = the canonical translucent
-            // material Apple uses for its floating panels in
-            // Messages / Notes / Mail per developer.apple.com/
-            // design/human-interface-guidelines/materials) +
-            // `.shadow` (= the soft drop shadow that signals
-            // "this surface is elevated above the content behind
-            // it" = Apple HIG floating chrome). RoundedRectangle
-            // (cornerRadius: 14) = Apple HIG toolbar corner radius
-            // (= matches the system Messages / Slack chat input).
-            // Function unchanged: textfield auto-grow 1-4 lines,
-            // attach / send / goal buttons, drag-drop upload, slash
-            // command autocomplete, attachment preview chip, focus
-            // management, paste-image — all preserved per boss OOB
-            // '只改样式不改功能'.
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(.regularMaterial)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    // v1.59 boss 2026-09-20: 1 PT hairline
-                    // stroke around the floating panel so the
-                    // panel boundary reads as a distinct surface
-                    // even on backgrounds where .regularMaterial
-                    // blends with the column color. `.quaternary`
-                    // (= the macOS 27 HierarchicalShapeStyle
-                    // quaternary tier) = a neutral light gray
-                    // (= no accent tint = no visible "line" the
-                    // way .separator was = matches the Apple
-                    // Messages panel boundary).
-                    .strokeBorder(AnyShapeStyle(.quaternary), lineWidth: 1)
-            )
-            .shadow(
-                color: Color.black.opacity(0.28),
-                radius: 12,
-                x: 0,
-                y: -2
-            )
-            // v1.59 boss 2026-09-20: outer padding around the
-            // floating panel expanded from 8 PT (v1.69) to 12 PT
-            // to match the Apple Messages reference (= boss
-            // shared the Messages screenshot on 2026-09-20: the
-            // floating input bar has ~12 PT of horizontal and
-            // bottom margin from the chat column edges, and
-            // ~12-14 PT of top margin from the chat history
-            // above = the panel "floats" rather than touching
-            // any column edge). Adds 4 PT of breathing room on
-            // every side of the panel vs the v1.69 8 PT
-            // padding.
-            .padding(.horizontal, 12)
-            .padding(.bottom, 12)
-            .padding(.top, 12)
         }
-        // v0.24 boss acceptance fix (2026-08-24): help text DIRECTLY below input box.
-        // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first. Click Settings'
-        // v0.24 boss acceptance fix: help text moved to ChatZoneView as centered overlay
-        // (was: bottom of ChatView, not centered per boss 8/24 feedback).
-        EmptyView()
-        // Boss 8/24 feedback: 'clicking other areas, the text field still keeps focus'.
-.onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
-    inputFocused = false
-}
+        // Defocus the TextField when a notification arrives (= user clicked
+        // elsewhere on the chat column; = Boss 8/24 'clicking other areas,
+        // the text field still keeps focus').
+        .onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
+            inputFocused = false
+        }
     }
 }

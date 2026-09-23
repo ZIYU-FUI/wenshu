@@ -18,8 +18,13 @@ struct ChatViewPasteImageTests {
     /// T38 contract: ChatView source uses .onPasteCommand(of: [.image])
     /// (= the SwiftUI native paste handler for image UTType).
     @Test func source_uses_onPasteCommand_image() throws {
+        // v1.83 (2026-09-23): boss's 3-layer refactor moves the paste
+        // handler (= image-paste attach) from ChatView (the middle
+        // layer = chat content) into ChatInputBarView (the top layer
+        // = user-interactive input controls). The handler reads
+        // ChatInputBarView.swift.
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".onPasteCommand(of: [.image])"))
@@ -28,8 +33,9 @@ struct ChatViewPasteImageTests {
     /// T38 contract: the handler extracts a NSImage, converts to PNG,
     /// writes to a temp file, then hands the URL to vm.attachImage.
     @Test func handler_writes_temp_png_and_calls_attachImage() throws {
+        // v1.83: same handler relocation (= ChatView → ChatInputBarView).
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
             encoding: .utf8
         )
         #expect(src.contains("NSImage.self"))
@@ -37,7 +43,10 @@ struct ChatViewPasteImageTests {
         #expect(src.contains("NSBitmapImageRep"))
         #expect(src.contains("representation(using: .png"))
         #expect(src.contains("FileManager.default.temporaryDirectory"))
-        #expect(src.contains("vm.attachImage(at: tempURL)"))
+        // v1.83: paste handler now invokes vm.attachImage via the
+        // ImagePasteModifier's onAttach closure (= the call sits one
+        // closure inside; = the literal is `vm.attachImage(at: url)`).
+        #expect(src.contains("vm.attachImage(at:"))
     }
 
     /// T38 contract: the paste handler is on the same outer VStack
@@ -71,8 +80,11 @@ struct ChatViewPasteImageTests {
     /// T38 contract: existing image affordances (fileImporter +
     /// dropDestination) are preserved (= no regression).
     @Test func existing_image_paths_preserved() throws {
+        // v1.83 (2026-09-23): .fileImporter + .dropDestination
+        // moved from ChatView (= the middle layer) into ChatInputBarView
+        // (= the top layer). Both now live on the input row.
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".fileImporter("))
@@ -93,18 +105,20 @@ struct ChatViewPasteImageTests {
     /// row HStack's `.frame(minHeight: 30)` close) is now distributed
     /// across the SAME file (= ChatInputBarView.swift); = this test reads
     /// ChatInputBarView.swift and verifies the same positional invariant.
-    /// v1.81 (2026-09-23): boss's 3-layer refactor hoists the chat input
-    /// row (= buttons + TextField) out of ChatView.swift into a dedicated
-    /// ChatInputBarView (= the top layer; = the user-interactive
-    /// controls). The paste handler (= `.onPasteCommand(of: [.image])` on
-    /// the chat input area) stays in ChatView.swift (= it was attached
-    /// to the chat zone's outer VStack, not the input HStack, so it
-    /// didn't move with the HStack). The invariant (= the paste handler
-    /// is OUTSIDE the input row HStack; = the HStack invariant is
-    /// preserved) is now distributed across two files; = this test
-    /// verifies both halves exist (= the paste handler lives in
-    /// ChatView; = the input row HStack's `.frame(minHeight: 30)` lives
-    /// in ChatInputBarView).
+/// v1.83 (2026-09-23): boss's 3-layer refactor rewrites the chat input
+    /// row. The paste handler (= `.onPasteCommand(of: [.image])`) is now
+    /// attached to the TextField inside ChatInputBarView (= wrapped in
+    /// the ImagePasteModifier modifier; = the paste target IS the
+    /// TextField; = not the chat zone's outer VStack anymore). The
+    /// invariant (= the paste handler is on the chat input area; =
+    /// outside the message bubbles in the ScrollView; = lives on the
+    /// TextField inside the top-layer ChatInputBarView) is preserved
+    /// via the new file layout; = this test verifies both:
+    ///   1. .onPasteCommand(of: [.image]) exists in ChatInputBarView
+    ///      (= on the TextField via ImagePasteModifier)
+    ///   2. ChatView (= the chat zone's middle layer) doesn't have a
+    ///      competing paste handler; = the paste handler is owned by
+    ///      the top layer only.
     @Test func paste_handler_outside_hstack() throws {
         let inputBarSrc = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
@@ -114,13 +128,13 @@ struct ChatViewPasteImageTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
             encoding: .utf8
         )
-        // The paste handler lives in ChatView (= outer VStack modifier;
-        // = outside the input row HStack).
-        #expect(chatViewSrc.contains(".onPasteCommand(of: [.image])"))
-        #expect(!inputBarSrc.contains(".onPasteCommand(of: [.image])"))
-        // The input row HStack's minimum height pin (= .frame(minHeight: 30))
+        // The paste handler lives in ChatInputBarView (= on the
+        // TextField via ImagePasteModifier; = top layer).
+        #expect(inputBarSrc.contains(".onPasteCommand(of: [.image])"))
+        #expect(!chatViewSrc.contains(".onPasteCommand(of: [.image])"))
+        // The input row HStack's minimum height pin (= .frame(minHeight: 44); = boss v1.76 spec: input height = 44PT = match button height)
         // lives in ChatInputBarView (= the top layer).
-        #expect(inputBarSrc.contains(".frame(minHeight: 30)"))
-        #expect(!chatViewSrc.contains(".frame(minHeight: 30)"))
+        #expect(inputBarSrc.contains(".frame(minHeight: 44, maxHeight: 44)"))
+        #expect(!chatViewSrc.contains(".frame(minHeight: 44, maxHeight: 44)"))
     }
 }

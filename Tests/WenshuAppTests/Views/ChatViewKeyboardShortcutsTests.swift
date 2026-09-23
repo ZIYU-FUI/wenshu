@@ -83,21 +83,22 @@ struct ChatViewKeyboardShortcutsTests {
     /// HStack is unchanged; = the new Buttons are AFTER the
     /// closing `}` of the HStack).
     @Test func hstack_invariant_preserved() throws {
-        // v1.81 (2026-09-23): boss's 3-layer refactor hoists the chat input
-        // row (= buttons + TextField) out of ChatView.swift into a
-        // dedicated ChatInputBarView (= the top layer; = the user-
-        // interactive controls). The hidden buttons (= ⌘K Focus input +
-        // other ⌘K/⌘L/etc. keyboard shortcuts) stay in ChatView.swift (= a
-        // sibling of ScrollViewReader, not inside the input row). The
-        // HStack invariant (= the input row HStack opens at
-        // `HStack(alignment: .center, spacing: 8)` and the hidden `Focus
-        // input` Button is positioned AFTER the HStack opens) is now
-        // distributed across two files; = this test reads both files to
-        // verify the cross-file invariant (= the input row HStack exists
-        // in ChatInputBarView; = the Focus input Button exists in
-        // ChatView; = the Focus input Button's source position is after
-        // the input row HStack in source order, which means it sits
-        // outside the input row visually).
+        // v1.83 (2026-09-23): boss's 3-layer refactor rewrites the chat input
+        // row (= buttons + TextField) into a dedicated ChatInputBarView
+        // (= the top layer; = the user-interactive controls). The hidden
+        // buttons (= ⌘K Focus input + other ⌘K/⌘L/etc. keyboard
+        // shortcuts) stay in ChatView.swift (= a sibling of
+        // ScrollViewReader, not inside the input row). The HStack
+        // invariant (= the input row HStack opens at
+        // `HStack(alignment: .center, spacing: 10)` (= per boss v1.82
+        // spec '1.token 压缩 2.10PT，按钮、10PT，...')) and the hidden
+        // `Focus input` Button is positioned AFTER the HStack opens) is
+        // now distributed across two files; = this test reads both
+        // files to verify the cross-file invariant (= the input row
+        // HStack exists in ChatInputBarView; = the Focus input Button
+        // exists in ChatView; = the Focus input Button's source
+        // position is after the input row HStack in source order,
+        // which means it sits outside the input row visually).
         let inputBarSrc = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
             encoding: .utf8
@@ -110,8 +111,9 @@ struct ChatViewKeyboardShortcutsTests {
         // shortcut block is a sibling of ScrollViewReader).
         #expect(chatViewSrc.contains("Button(\"Focus input\")"))
         #expect(!inputBarSrc.contains("Button(\"Focus input\")"))
-        // The input row HStack lives in ChatInputBarView (= the top layer).
-        #expect(inputBarSrc.contains("HStack(alignment: .center, spacing: 8) {"))
-        #expect(!chatViewSrc.contains("HStack(alignment: .center, spacing: 8) {"))
+        // The input row HStack lives in ChatInputBarView (= the top layer;
+        // = boss v1.82 spec 'spacing: 10' = 10PT between every element).
+        #expect(inputBarSrc.contains("HStack(alignment: .center, spacing: 10) {"))
+        #expect(!chatViewSrc.contains("HStack(alignment: .center, spacing: 10) {"))
     }
 }

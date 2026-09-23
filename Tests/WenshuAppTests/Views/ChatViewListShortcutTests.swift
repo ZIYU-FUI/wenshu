@@ -94,7 +94,7 @@ struct ChatViewListShortcutTests {
         // block lives as a sibling of ScrollViewReader, not inside the
         // input row). The invariant (= Button("Wrap selection in bullet list") Button is OUTSIDE the
         // input row HStack) is now distributed across two files; = this
-        // test verifies both halves exist (= .frame(minHeight: 30) is
+        // test verifies both halves exist (= .frame(minHeight: 44) is
         // only in ChatInputBarView; = Button("Wrap selection in bullet list") is only in ChatView).
         let inputBarSrc = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
@@ -104,10 +104,10 @@ struct ChatViewListShortcutTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
             encoding: .utf8
         )
-        // The input row HStack's minimum height pin (= .frame(minHeight: 30))
+        // The input row HStack's minimum height pin (= .frame(minHeight: 44); = boss v1.76 spec: input height = 44PT = match button height)
         // lives ONLY in the top-layer ChatInputBarView.
-        #expect(inputBarSrc.contains(".frame(minHeight: 30)"))
-        #expect(!chatViewSrc.contains(".frame(minHeight: 30)"))
+        #expect(inputBarSrc.contains(".frame(minHeight: 44, maxHeight: 44)"))
+        #expect(!chatViewSrc.contains(".frame(minHeight: 44, maxHeight: 44)"))
         // The Button("Wrap selection in bullet list") keyboard shortcut Button lives ONLY in
         // ChatView (= the keyboard shortcut block is a sibling of
         // ScrollViewReader; = not inside the input row).

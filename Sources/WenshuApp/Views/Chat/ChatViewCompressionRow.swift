@@ -86,6 +86,8 @@ public struct ChatViewCompressionRow: View {
                             .regularMaterial,
                             in: Capsule()
                         )
+                        .lineLimit(1)
+                        .fixedSize()
                 } else if vm.contextUsed >= contextCompressionThreshold {
                     // Threshold warning (= orange style).
                     // T31-CONTEXT-PERCENTAGE (2026-09-18): the text now
@@ -94,17 +96,30 @@ public struct ChatViewCompressionRow: View {
                     // pre-T31 format was just "💡 N tokens used"; = the
                     // user can see at a glance how close they are to the
                     // 30k compression threshold.
+                    //
+                    // v1.83: .lineLimit(1) + .fixedSize() (= the
+                    // single horizontal input row per boss v1.82 spec).
                     Text(ChatViewCompressionRowFormatter.formatContextUsage(vm.contextUsed, threshold: contextCompressionThreshold))
                     .font(DesignTokens.statusFont)
                     .foregroundStyle(.orange)
+                    .lineLimit(1)
+                    .fixedSize()
                 } else {
                     // T33-ALWAYS-SHOW-COMPRESSION (2026-09-18): below the
                     // threshold, show a quiet "N tokens used" label in
                     // .secondary tone (= the user always sees the live
                     // context budget, not just the orange warning).
+                    //
+                    // v1.83 (2026-09-23): .lineLimit(1) + .fixedSize()
+                    // (= the pill text must stay on a single horizontal
+                    // line inside ChatInputBarView's HStack; = per boss
+                    // v1.82 spec '1.token 压缩' = the first element of
+                    // the single input row).
                     Text(ChatViewCompressionRowFormatter.formatCompactTokenCount(vm.contextUsed) + " tokens used")
                     .font(DesignTokens.statusFont)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
                 }
                 Spacer()
                 Button {
