@@ -126,20 +126,22 @@ struct EditorPlaceholder: View {
                 if let active = appState.openTabs.first(where: { $0.id == appState.activeTabId })
                     ?? appState.openTabs.first {
                     let title = EditorTab.displayTitle(active)
-                    Button(action: { /* active = this; = no-op */ }) {
-                        Text(title)
-                            .font(DesignTokens.tabTitleFont.weight(.semibold))
-                            .foregroundStyle(Color.accentColor)
-                            .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .frame(height: DesignTokens.paneTabHotArea)
-                            .background(
-                                Rectangle()
-                                    .fill(Color.accentColor.opacity(0.12))
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .help(title)
+                    // Active tab title = plain Text (= no Button; =
+                    // the active tab is not interactive itself; =
+                    // clicking the title is a no-op and would only
+                    // add a focus ring + accessibility label that
+                    // screen readers would announce as a control).
+                    Text(title)
+                        .font(DesignTokens.tabTitleFont.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, DesignTokens.chromePaddingMedium)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: DesignTokens.paneTabHotArea)
+                        .background(
+                            Rectangle()
+                                .fill(Color.accentColor.opacity(0.12))
+                        )
+                        .help(title)
 
                     Button(action: {
                         appState.closeTab(id: active.id, bookStore: bookStore)
