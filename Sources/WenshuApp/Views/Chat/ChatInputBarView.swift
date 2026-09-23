@@ -109,9 +109,7 @@ struct ChatInputBarView: View {
     /// Visual-only footer (= no action button; = the auto-trigger path
     /// via ConversationLoop.swift:512 handles compression on every turn;
     /// = no manual trigger wired). Three states:
-    ///   1. No messages        → not rendered (= matches old ChatViewCompressionRow
-    ///                              pattern from T33-ALWAYS-SHOW-COMPRESSION
-    ///                              but re-thought: only show when there's
+    ///   1. No messages        → not rendered (= only show when there's
     ///                              something to count; = the empty state
     ///                              is silence not a confusing "0 tokens")
     ///   2. Below threshold   → "N tokens used" in `.secondary` tone
@@ -181,13 +179,12 @@ struct ChatInputBarView: View {
         .background(.bar)
     }
 
-    /// 30,000 token compression threshold (= matches the old
-    /// ChatViewCompressionRow.swift private constant; = the budget at
+    /// 30,000 token compression threshold (= the budget at
     /// which ConversationCompression kicks in for summarization).
     private let tokenCompressionContextThreshold: Int = 30_000
 
-    /// "1234" / "1.2k" / "12.3k" / "1.2M" (= matches the old
-    /// ChatViewCompressionRowFormatter.formatCompactTokenCount helper).
+    /// "1234" / "1.2k" / "12.3k" / "1.2M" — local helper for the
+    /// token count footer label.
     private func formatCompactTokenCount(_ count: Int) -> String {
         if count < 1_000 { return "\(count)" }
         if count < 10_000 {

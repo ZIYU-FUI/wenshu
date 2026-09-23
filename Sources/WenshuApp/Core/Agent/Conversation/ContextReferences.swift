@@ -23,8 +23,8 @@
 // the user may want to navigate back to the original source file
 // (= e.g. a character description in `world/` or `characters/` folder).
 // ContextReferences maintains a LLMMessage.id → file URL mapping that
-// survives compression (= the ChatViewCompressionRow preserves id per
-// ticket 003 sub-step 5; this map preserves the original source).
+// survives compression (= the chat transcript's id-based lookup
+// preserves the original source across compression).
 //
 //  Per ADR-0011 (deterministic compression policy) + ADR-0009 (wenshu-side
 //  wins), ContextReferences is a pure data layer (= no LLM calls, no
