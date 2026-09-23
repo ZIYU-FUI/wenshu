@@ -110,19 +110,34 @@ struct ChatZoneView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v1.91b (2026-09-23): boss '聊天区的，文字回显层，是否可以变成
-        // 左栏的颜色参数。没有实现，是不是被限制了，是不是 NSV 框架
-        // 里限制了，你参数加的位置没有生效' (= v1.91 was set on
-        // ChatView's ScrollView; = didn't work because the visible
-        // chat column background is painted by ChatZoneView's outer
-        // VStack + NSSplitViewItem's AppKit container; = ChatView's
-        // ScrollView background only paints the scroll content area,
-        // NOT the surrounding chat column chrome; = need the bg on
-        // THIS outer VStack to actually repaint the visible chat
-        // column). Now the entire chat zone fills with
-        // DesignTokens.sidebarBackground (= same primitive sidebar
-        // uses; = boss's spec satisfied).
-        .background(DesignTokens.sidebarBackground)
+        // v1.91c (2026-09-23): v1.91b used `Color(nsColor:
+        // .controlBackgroundColor)` (= a solid Color; = NOT the same
+        // visual material Apple uses for the sidebar). Boss confirmed
+        // it still didn't visually match (= '还是没有实现'). Real fix:
+        // use NSVisualEffectView with `.sidebar` material (= the
+        // canonical Apple HIG sidebar surface; = same primitive
+        // `List(.listStyle(.sidebar))` paints automatically).
+        // VisualEffectBlur is the project's existing NSViewRepresentable
+        // bridge for NSVisualEffectView (= already used by
+        // DropAffordance for the hudWindow material). Now the chat
+        // column = visually identical to the left sidebar (= Apple's
+        // HIG sidebar surface = vibrantly tinted + slightly blurred
+        // = adapts to Light/Dark + system Liquid Glass slider).
+        // v1.91d (2026-09-23): boss '还是没有实现'. v1.91c used
+        // `.background(VisualEffectBlur(...))`; = the background
+        // didn't show up because `NSVisualEffectView` (= the wrapped
+        // NSView) has no intrinsic SwiftUI size; = SwiftUI sized it
+        // 0×0; = the sidebar material never rendered. Fix: wrap
+        // VisualEffectBlur in an `.frame(maxWidth: .infinity,
+        // maxHeight: .infinity)` so SwiftUI knows the visual effect
+        // view should fill the entire chat column (= the SwiftUI
+        // background fill pattern requires an explicit frame on
+        // NSViewRepresentable backgrounds; = known SwiftUI/AppKit
+        // bridging quirk).
+        .background(
+            VisualEffectBlur(material: .sidebar, blendingMode: .behindWindow)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        )
         .environment(appState)
     }
 
