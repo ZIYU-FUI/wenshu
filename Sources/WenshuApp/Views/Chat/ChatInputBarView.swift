@@ -84,11 +84,6 @@ struct ChatInputBarView: View {
 
             inputRow
 
-            // Divider directly below the input row (= the sidebar
-            // pattern: NewLibraryOutlineView L1776 `Divider()` sits
-            // at the top of its safeAreaInset = same rhythm here).
-            Divider()
-
             tokenCountFooter
         }
     }
@@ -133,22 +128,25 @@ struct ChatInputBarView: View {
         // v1.85: T33-ALWAYS-SHOW-COMPRESSION behavior — always visible
         // (= matches Apple Mail attachment-size badge = the user always
         // knows how much room they have).
-        HStack(spacing: 6) {
-            if vm.contextUsed >= tokenCompressionContextThreshold {
-                // Over-threshold warning (orange).
-                Text("\(formatCompactTokenCount(vm.contextUsed)) / \(formatCompactTokenCount(tokenCompressionContextThreshold)) tokens (\(percentOfThreshold)%)")
-                    .font(.callout)
-                    .foregroundStyle(.orange)
-            } else {
-                // Below threshold (quiet secondary).
-                Text("\(formatCompactTokenCount(vm.contextUsed)) tokens used")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 6) {
+                if vm.contextUsed >= tokenCompressionContextThreshold {
+                    // Over-threshold warning (orange).
+                    Text("\(formatCompactTokenCount(vm.contextUsed)) / \(formatCompactTokenCount(tokenCompressionContextThreshold)) tokens (\(percentOfThreshold)%)")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                } else {
+                    // Below threshold (quiet secondary).
+                    Text("\(formatCompactTokenCount(vm.contextUsed)) tokens used")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 8)
-        .padding(.horizontal, 8)
     }
 
     /// 30,000 token compression threshold (= matches the old
