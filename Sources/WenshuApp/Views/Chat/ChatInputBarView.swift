@@ -1,22 +1,26 @@
 //
-//  ChatInputBarView.swift · Wenshu · v1.84
+//  ChatInputBarView.swift · Wenshu · v1.85
 //
-//  v1.84 boss 2026-09-23 '我红框部分的删除不要了，保留底栏的' (= 'delete
-//  what I marked in the red box; keep the bottom bar'): drop the
-//  token-usage pill (= the leftmost vertical text + the bottom-row
-//  "0 tokens used + 压缩" = the red-box content). Add a divider
-//  hairline below the input row (= visual rhythm only; =
-//  matches the Apple HIG sidebar-bottom-accessory separator that
-//  NewLibraryOutlineView.swift L1776 uses above its "+ 新建" button;
-//  = boss 2026-09-23 '既然你加了底栏，可以参考左栏的底部的新建。
-//  有一条分割线。也参考一下高度，这样软件整体看起来更协调').
-//  No interactive bottom control (= no "+ 新对话" button; = boss 2026-09-23
-//  '不要延展我说的话，我没有要做新建会话的需求。我是说样式参考左栏的新建').
+//  v1.85 boss 2026-09-23 '那个 token 计数的底栏没有了，刚你写出来过，
+//  挺好的。写回来吧' + '那个压缩按钮，你去确认了吗，自动触发压缩，
+//  还是手动。如果可以自动，那个按钮就不用写回来了':
+//    - Restore the token-usage bottom bar (= "0 tokens used" / orange
+//      warning when over threshold = live context budget indicator;
+//      = matches the Apple Mail attachment-size badge).
+//    - Do NOT restore the manual compress button (= ConversationLoop.swift:512
+//      runs ConversationCompression.historyAfterCompression on every turn
+//      = automatic compression; = no production caller for manualTrigger
+//      anymore; = the button was dead code before v1.84 deleted it).
 //
-//  v1.81 + v1.82 = extraction (move inline VStack → a new file) +
-//  single-row HStack. v1.83 = clean rewrite (drop v0.x baggage +
-//  delete 6 dead helper SwiftUI View files). v1.84 = simplify +
-//  add divider below the input row (= visual rhythm only).
+//  v1.84 (2026-09-23): boss spec = chat column bottom = single input row +
+//  divider hairline (= Apple HIG sidebar-bottom-accessory separator; = matches
+//  NewLibraryOutlineView L1776 above its "+ 新建" button; = visual rhythm
+//  only). Boss 2026-09-23 '既然你加了底栏，可以参考左栏的底部的新建。
+//  有一条分割线。也参考一下高度'.
+//
+//  v1.83 = clean rewrite (drop v0.x baggage + delete 6 dead helper
+//  SwiftUI View files). v1.82 = single-row HStack extraction. v1.81 =
+//  3-layer UI split (extraction only).
 //
 //  Dead helper classes deleted (= no production caller):
 //    - ChatAttachButton.swift (= replaced by inline GlassIconButton)
@@ -55,14 +59,25 @@ struct ChatInputBarView: View {
     @Binding var isDropTargeted: Bool
 
     var body: some View {
-        // v1.84 (2026-09-23): boss spec = chat column bottom = single
-        // input row (this file's inputRow) + a divider hairline below
-        // it (= the Apple HIG sidebar-bottom-accessory separator;
-        // = the same primitive NewLibraryOutlineView.swift uses above
-        // its "+ 新建" button; = visual rhythm only, no interactive
-        // control here; = boss 2026-09-23 '既然你加了底栏，可以参考
-        // 左栏的底部的新建。有一条分割线。也参考一下高度，这样软件
-        // 整体看起来更协调').
+        // v1.85 (2026-09-23): boss restored the token-usage bottom bar
+        // (= boss 2026-09-23 '那个 token 计数的底栏没有了，刚你写出来过，
+        // 挺好的。写回来吧'). Manual compress button is NOT restored
+        // (= ConversationLoop.swift:512 runs ConversationCompression.
+        // historyAfterCompression on every turn = automatic compression;
+        // = no production caller for manualTrigger anymore; = boss
+        // 2026-09-23 '那个压缩按钮，你去确认了吗，自动触发压缩，还是手动。
+        // 如果可以自动，那个按钮就不用写回来了').
+        //
+        // Structure (top to bottom):
+        //   1. attachmentPreviewChip (= conditional; = nothing when no image)
+        //   2. inputRow              (= single horizontal HStack with
+        //                              paperclip + sparkles + 输入框 +
+        //                              ⌃ + 🎯 + ✈️)
+        //   3. Divider               (= sidebar-bottom-accessory separator;
+        //                              = matches NewLibraryOutlineView L1776)
+        //   4. tokenCountFooter      (= "0 tokens used" / "N tokens used" /
+        //                              orange warning when over threshold;
+        //                              = visual only; = no action button)
         VStack(alignment: .leading, spacing: 4) {
             attachmentPreviewChip
 
@@ -72,7 +87,72 @@ struct ChatInputBarView: View {
             // pattern: NewLibraryOutlineView L1776 `Divider()` sits
             // at the top of its safeAreaInset = same rhythm here).
             Divider()
+
+            tokenCountFooter
         }
+    }
+
+    // MARK: - Token count footer (= visual only)
+
+    /// Token-usage bottom bar (= "N tokens used" = live context budget
+    /// indicator; = matches the Apple Mail attachment-size badge = always
+    /// visible = the user always knows how much room they have).
+    ///
+    /// Visual-only footer (= no action button; = the auto-trigger path
+    /// via ConversationLoop.swift:512 handles compression on every turn;
+    /// = no manual trigger wired). Three states:
+    ///   1. No messages        → not rendered (= matches old ChatViewCompressionRow
+    ///                              pattern from T33-ALWAYS-SHOW-COMPRESSION
+    ///                              but re-thought: only show when there's
+    ///                              something to count; = the empty state
+    ///                              is silence not a confusing "0 tokens")
+    ///   2. Below threshold   → "N tokens used" in `.secondary` tone
+    ///   3. Over threshold    → "N / M tokens (P%)" in `.orange` tone
+    private var tokenCountFooter: some View {
+        // v1.85: T33-ALWAYS-SHOW-COMPRESSION behavior — always visible
+        // (= the user always knows how much room they have, even when
+        // the chat is empty = the badge still shows "0 tokens used";
+        // = matches the Apple Mail attachment-size badge = always
+        // visible = the user always knows how much room they have).
+        HStack(spacing: 8) {
+            if vm.contextUsed >= tokenCompressionContextThreshold {
+                // Over-threshold warning (orange).
+                Text("\(formatCompactTokenCount(vm.contextUsed)) / \(formatCompactTokenCount(tokenCompressionContextThreshold)) tokens (\(percentOfThreshold)%)")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            } else {
+                // Below threshold (quiet secondary).
+                Text("\(formatCompactTokenCount(vm.contextUsed)) tokens used")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        .padding(.bottom, 8)
+    }
+
+    /// 30,000 token compression threshold (= matches the old
+    /// ChatViewCompressionRow.swift private constant; = the budget at
+    /// which ConversationCompression kicks in for summarization).
+    private let tokenCompressionContextThreshold: Int = 30_000
+
+    /// "1234" / "1.2k" / "12.3k" / "1.2M" (= matches the old
+    /// ChatViewCompressionRowFormatter.formatCompactTokenCount helper).
+    private func formatCompactTokenCount(_ count: Int) -> String {
+        if count < 1_000 { return "\(count)" }
+        if count < 10_000 {
+            return String(format: "%.1fk", Double(count) / 1_000.0)
+        }
+        if count < 1_000_000 {
+            return "\(count / 1_000)k"
+        }
+        return String(format: "%.1fM", Double(count) / 1_000_000.0)
+    }
+
+    /// Percentage of compression threshold used (= integer 0-100+).
+    private var percentOfThreshold: Int {
+        Int((Double(vm.contextUsed) / Double(max(tokenCompressionContextThreshold, 1))) * 100)
     }
 
     // MARK: - Attachment preview chip
