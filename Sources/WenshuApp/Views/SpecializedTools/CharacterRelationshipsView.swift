@@ -325,7 +325,7 @@ struct CharacterRelationshipsView: View {
     }
 
     private func reload() async {
-        guard let bookId = activeBookId else { return }
+        guard activeBookId != nil else { return }
         status = .loading
         let actor = ensureTracker()
         // Load characters from the per-book character store
@@ -336,46 +336,49 @@ struct CharacterRelationshipsView: View {
         // (= convenience for empty state).
         if draftFromId == nil { draftFromId = characters.first?.id }
         if draftToId == nil { draftToId = characters.dropFirst().first?.id }
-        do {
-            relationships = try await actor.list(bookId: bookId)
-            inconsistencies = try await actor.inconsistencies(bookId: bookId)
+        let result = await CharacterRelationshipsOps.reload(
+            manager: actor,
+            bookId: activeBookId
+        )
+        relationships = result.relationships
+        inconsistencies = result.inconsistencies
+        if let err = result.error {
+            errorText = err
+            status = .failed(err)
+        } else if result.didLoad {
             status = .loaded
-        } catch {
-            errorText = error.localizedDescription
-            status = .failed(error.localizedDescription)
         }
     }
 
     private func addRelationship() async {
-        guard let bookId = activeBookId,
-              let from = draftFromId,
-              let to = draftToId,
-              from != to else { return }
         let actor = ensureTracker()
-        let row = CharacterRelationship(
-            bookId: bookId,
-            fromCharacterId: from,
-            toCharacterId: to,
+        let result = await CharacterRelationshipsOps.addRelationship(
+            manager: actor,
+            bookId: activeBookId,
+            fromCharacterId: draftFromId,
+            toCharacterId: draftToId,
             kind: draftKind,
             description: draftDescription
         )
-        do {
-            try await actor.add(row)
+        if result.didSave {
             draftDescription = ""
             await reload()
-        } catch {
-            errorText = error.localizedDescription
+        } else if let err = result.error {
+            errorText = err
         }
     }
 
     private func removeRelationship(_ row: CharacterRelationship) async {
-        guard let bookId = activeBookId else { return }
         let actor = ensureTracker()
-        do {
-            try await actor.remove(id: row.id, from: bookId)
+        let result = await CharacterRelationshipsOps.removeRelationship(
+            manager: actor,
+            bookId: activeBookId,
+            row: row
+        )
+        if result.didSave {
             await reload()
-        } catch {
-            errorText = error.localizedDescription
+        } else if let err = result.error {
+            errorText = err
         }
     }
 }
