@@ -435,7 +435,7 @@ enum InspectorContent: Hashable, CaseIterable {
     }
 }
 
-/// v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
+/// Kanban and Todo get their own dedicated windows (= 2 separate windows via AppKit's `openWindow`):
 /// Window IDs for the dedicated secondary scenes (= the SwiftUI
 /// macOS 14+ `WindowGroup(id:)` accepts an `id` parameter that
 /// `openWindow(id:)` resolves; = the canonical way to open
@@ -444,10 +444,9 @@ enum InspectorContent: Hashable, CaseIterable {
 /// windows per Pages / Numbers / Keynote's independent document
 /// windows pattern).
 ///
-/// v1.0.0-m1-shell boss 2026-09-11 OOB (followup observation in
-/// cua AX tree dump): macOS 27 Tahoe's WindowGroup id-routing has
-/// a special case for IDs that match the legacy Preferences/
-/// Settings ID space (= e.g. IDs containing 'preferences' /
+/// macOS 27 Tahoe's WindowGroup id-routing has a special case for IDs
+/// that match the legacy Preferences/Settings ID space (= e.g. IDs
+/// containing 'preferences' /
 /// 'setting' / 'pref' tokens get routed to the system's
 /// SettingsEnvironmentCapturer scene instead of opening a new
 /// window). The IDs here use short opaque tokens (= 'wenshu-kanban'

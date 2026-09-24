@@ -109,7 +109,7 @@ extension View {
 }
 
 // MARK: - Section styles (STYLES-001 2026-09-07) were deleted in
-// the v1.27 Q99 dead-code sweep (= 0 production refs for either
+// 0 production refs (= dead-code sweep confirmed neither wrapper
 // SectionTypography enum or sectionTypographyStyle extension;
 // = Apple canonical .font(.title/.body/.caption) used directly in
 // each zone, so the indirection added no value). The remaining

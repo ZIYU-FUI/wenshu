@@ -1,11 +1,11 @@
-// InspectorCatalog.swift · Wenshu · v1.71a ticket 001
+// InspectorCatalog.swift · Wenshu
 //
 // Per Q244 §3.1 + §5.2 (wenshu MVVM audit pattern): right column's
 // shell widget catalog + page routing were inlined in
 // ShellDetailColumn.filteredToolsForCurrentPage (= business + data
 // inside the View, violating the canonical Apple MVVM layering).
 //
-// This commit (v1.71a) extracts the DATA layer to a new file.
+// Extracts the DATA layer to a new file (= the static catalog of InspectorPage metadata).
 // Tickets 02 (InspectorPage.tools = business layer) and 03
 // (ShellDetailColumn 切到新 API + 删旧 inline) follow.
 //

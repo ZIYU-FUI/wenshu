@@ -2,7 +2,7 @@
 //  EmptyStateView.swift
 //  wenshu
 //
-//  v1.0.0-m1-shell: unified empty-state component (= single source
+// Unified empty-state component (= single source
 //  of truth for every "no content" zone in the wenshu workspace).
 //  All 12 specialized tool tabs use this component via
 //  `EmptyStateView(icon:title:body:)` (= same visual treatment

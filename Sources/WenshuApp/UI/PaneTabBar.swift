@@ -197,7 +197,7 @@ struct PaneTabItem: Identifiable, Sendable {
     }
 }
 
-// MARK: - PaneTrailingIconButton (v0.34 boss 2026-09-02 OOB)
+// MARK: - PaneTrailingIconButton
 //
 // Canonical trailing-button helper used by `PaneTabBar.trailing` slots
 // (= editor's expand/shrink + chat's archive button are both this pattern).

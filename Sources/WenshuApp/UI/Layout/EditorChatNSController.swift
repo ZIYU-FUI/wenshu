@@ -78,7 +78,7 @@ final class EditorChatNSController: NSSplitViewController {
     /// preserves the user's split-view configuration.'
     private static let autosaveName = "wenshu.editor.split.autosave"
 
-    /// v1.93 followup: previously used a one-shot UserDefaults flag
+    /// Previously used a one-shot UserDefaults flag
     /// (= wenshu.editor.split.didSetFirstLaunchPosition) to force
     /// 50:50 on first launch; = problem: once the flag was set,
     /// the user's drag always overrode it; = no way to recover
@@ -133,7 +133,7 @@ final class EditorChatNSController: NSSplitViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
-    /// v0.71 P1 batch 4 dual-axis audit fix: required
+    /// dual-axis audit fix: required
     /// `init?(coder:)` is a non-isolated context (= Objective-C
     /// bridging requirement) and was calling `super.init`
     /// (= MainActor-isolated from `NSViewController`) without an
@@ -328,7 +328,7 @@ final class EditorChatNSController: NSSplitViewController {
     /// / expand animates per NSSplitView's standard animation.
     /// This is the canonical Apple HIG Keynote speaker-notes API.
     func toggleChatZone() {
-        // v0.71 P1 batch 7 dual-axis followup: added NSLog when
+        // dual-axis followup: added NSLog when
         // chatItem is nil (= was a silent no-op before; = the menu
         // can fire before viewDidLoad runs in a cold launch race;
         // = logging makes the misfire visible for diagnostics

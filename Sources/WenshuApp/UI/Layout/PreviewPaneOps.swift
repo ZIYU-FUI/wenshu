@@ -1,5 +1,5 @@
 //
-//  PreviewPaneOps.swift · Wenshu · v1.75 preview-pane-mvvm T1b
+//  PreviewPaneOps.swift · Wenshu
 //
 //  Reference-card data loading + sorting business layer, extracted from
 //  PreviewPane (= the largest P0 view listed in

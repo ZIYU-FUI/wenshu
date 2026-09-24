@@ -77,7 +77,7 @@ import Foundation
 /// Stateless business layer for opening a card in the editor.
 /// Lifts the duplicated openCardInEditor (= 3 verbatim copies
 /// across WorkspaceView / ZoneModuleView / ShellMiddleColumn) into
-/// a single shared function per the v1.74 UI/业务/数据 separation
+/// single shared function (= UI / business logic / data separation
 /// audit (= ADR-0009).
 @MainActor
 enum CardOpenOps {
@@ -218,7 +218,7 @@ enum CardOpenOps {
     /// 3. Otherwise, create `EditorTab(id: UUID(), documentPath:
     ///    triad.path, draft: triad.content, originalBody:
     ///    triad.content, mode: .preview, title: triad.title.isEmpty
-    ///    ? nil : triad.title)` (= v1.0.0-m1-shell boss 2026-09-12
+    ///    ? nil : triad.title)` (=
     ///    OOB 'tab title didn't go to the document name bug' =
     ///    pass title so tab strip shows the real card name instead
     ///    of 'preview-sample') + set `newTab.sourceScope =
