@@ -577,31 +577,11 @@ struct AppleSidebarView: View {
     /// book itself (= the EditorPlaceholder's tab strip handles a
     /// missing-documentPath gracefully).
     private func openBookInEditor(bookId: UUID) {
-        // v1.68e: minimal book-open wiring (= a future ticket
-        // can extend this to surface the 5 standard folders in
-        // the editor's tab UI — the seeded .md files are still on
-        // disk; = LibraryMigrator 8/30 OOB seed is unchanged).
-        //
-        // EditorTab.init doesn't accept sourceScope directly (= it
-        // defaults to nil; = the property is set post-init).
-        if let existing = appState.openTabs.first(where: {
-            if case .bookScope(let id, _) = $0.sourceScope { return id == bookId }
-            return false
-        }) {
-            appState.activeTabId = existing.id
-            return
+        let result = SidebarOpenOps.openBookInEditor(appState: appState, bookId: bookId)
+        if let id = result.openedTabId {
+            _ = id  // caller already wired; = explicit no-op to silence unused-let warnings.
         }
-        let tab = EditorTab(
-            id: UUID(),
-            documentPath: nil,
-            draft: "",
-            originalBody: "",
-            mode: .edit,
-            title: nil
-        )
-        tab.sourceScope = .bookScope(bookId: bookId, folderName: nil)
-        appState.openTabs.append(tab)
-        appState.activeTabId = tab.id
+        // didSwitchExistingTab: caller can no-op (= AppState.activeTabId set in Ops).
     }
 
     /// Open a folder (= the `<book-id>/<folder-name>/` directory's
@@ -614,25 +594,13 @@ struct AppleSidebarView: View {
     /// onSelectFolder behavior (= .folder(bookId:, folderName:)
     /// on sidebarSelection) preserved through the MVVM split.
     private func openFolderInEditor(bookId: UUID, folderName: String) {
-        if let existing = appState.openTabs.first(where: {
-            if case .bookScope(let id, let folder) = $0.sourceScope {
-                return id == bookId && folder == folderName
-            }
-            return false
-        }) {
-            appState.activeTabId = existing.id
-            return
-        }
-        let tab = EditorTab(
-            id: UUID(),
-            documentPath: nil,
-            draft: "",
-            originalBody: "",
-            mode: .edit,
-            title: nil
+        let result = SidebarOpenOps.openFolderInEditor(
+            appState: appState,
+            bookId: bookId,
+            folderName: folderName
         )
-        tab.sourceScope = .bookScope(bookId: bookId, folderName: folderName)
-        appState.openTabs.append(tab)
-        appState.activeTabId = tab.id
+        if let id = result.openedTabId {
+            _ = id
+        }
     }
 }
