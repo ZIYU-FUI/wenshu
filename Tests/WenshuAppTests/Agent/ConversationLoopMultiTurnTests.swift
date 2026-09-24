@@ -69,7 +69,7 @@ struct ConversationLoopMultiTurnTests {
     /// next LLM call returns .text, the loop MUST iterate (= 2
     /// LLM calls total; = the loop must keep going as long as the
     /// assistant message contains .toolUse blocks).
-    /// v2.00 (2026-09-23): the `[wenshu.agent] turn 2/10` marker
+    /// [wenshu.agent] turn 2/10` marker
     /// assertion was dropped (= marker emission deleted as dead
     /// plumbing; = ChatTurnProgress.swift was removed in v1.83).
     /// The multi-turn loop behavior is still exercised below; =

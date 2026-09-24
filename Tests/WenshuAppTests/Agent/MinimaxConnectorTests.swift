@@ -16,7 +16,7 @@
 //    4. Throw on non-2xx HTTP status (= transport error)
 //    5. Throw on malformed JSON (= decode error)
 //
-//  v0.35 sub-step 7 of 8 for ticket 001.
+// 
 //
 
 import Testing

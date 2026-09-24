@@ -155,7 +155,7 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
     public override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     public override func startLoading() {
-        // v1.17 ticket 001 (= per Q34 5.2 + Q173 ponytail + Q186):
+        // 
         // per-test isolated stub routing. If `self` is an instance
         // of a runtime-generated URLProtocol subclass (= produced by
         // `makeIsolatedStub()` in v1.16), route the request to the
@@ -211,13 +211,13 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         // `URLProtocolStub.stub?.lastRequest` get the framework's request,
         // not the unused local stub instance.
         URLProtocolStub.stub = self
-        // v1.12 ticket 001 (= per Q34 5.2): prefer the per-task TaskLocal
+        // 
         // stub (= if set via withStubForTesting); = fall back to the
         // global registeredSnapshot otherwise (= backward compatible with
         // tests that use the register() pattern).
         let taskLocalRegistered = URLProtocolStub._taskLocalRegisteredSnapshot
         let globalRegistered = URLProtocolStub.registeredSnapshot
-        // v1.12 ticket 001 (= per Q34 5.2): prefer the per-task TaskLocal
+        // 
         // stub (= if set via withStubForTesting); = fall back to the
         // global registeredSnapshot otherwise (= backward compatible with
         // tests that use the register() pattern).

@@ -8,7 +8,7 @@
 //  3. ContextReferences actor add/remove/lookup round-trips
 //  4. ContextReferencesBuilder pure function deterministic output
 //
-//  Per boss cadence '1 RULE 1 commit' + Z contract test pattern.
+// 
 //
 
 import Testing

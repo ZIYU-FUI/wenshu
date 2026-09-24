@@ -10,7 +10,7 @@
 //    3. empty input → no-op, no message appended, no skill invocation
 //    4. slash command that throws (e.g. unknown skill) → falls through to send()
 //
-//  v0.40 CHATBOX-001 acceptance: 4 tests. swift test --filter ChatInputRouting
+// swift test --filter ChatInputRouting
 //
 
 import Testing
@@ -20,7 +20,7 @@ import Foundation
 @Suite("CHATBOX-001 — ChatView ↔ SkillAdapter routing")
 struct ChatInputRoutingTests {
 
-    /// CHATBOX-001 #1: explicit slash command → SkillAdapter.parseAndInvoke
+    /// 
     /// (= no LLM call). Verifies that the input is consumed by the skill path
     /// AND that a system ChatMessage records the skill result.
     @Test("routeInput_slashCommand_invokesSkill")
@@ -48,7 +48,7 @@ struct ChatInputRoutingTests {
         #expect(userMsgs.count <= 1)
     }
 
-    /// CHATBOX-001 #2: plain text (no slash) → falls through to existing
+    /// 
     /// send() path. We assert by observing that the input is consumed and
     /// a user ChatMessage was added.
     @Test("routeInput_plainText_sendsToLLM")
@@ -67,7 +67,7 @@ struct ChatInputRoutingTests {
         #expect(userMsgs.count >= 1)
     }
 
-    /// CHATBOX-001 #3: empty input → no-op (no message, no skill, no LLM).
+    /// 
     @Test("routeInput_empty_doesNothing")
     @MainActor
     func testRouteInput_empty_doesNothing() async {
@@ -83,7 +83,7 @@ struct ChatInputRoutingTests {
         #expect(vm.isSending == false)
     }
 
-    /// CHATBOX-001 #4: slash command that fails (= unknown skill name) →
+    /// 
     /// falls through to the existing send() path (= graceful degradation).
     /// Verifies the slash path throws on parseAndInvoke and the message
     /// still reaches the LLM.

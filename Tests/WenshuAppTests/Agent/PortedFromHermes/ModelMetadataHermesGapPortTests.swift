@@ -130,7 +130,7 @@ final class ModelMetadataHermesGapPortTests: XCTestCase {
     // MARK: -- H7.2 spec check (= hermes line-range citations in source)
 
     func testEstimateRequestContextTokens_documentedAsHermesPort() {
-        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        // 
         guard let source = HermesGapPortTestHelpers.readSource(
             relativeToTest: #filePath,
             sourceFileName: "ModelMetadata.swift"

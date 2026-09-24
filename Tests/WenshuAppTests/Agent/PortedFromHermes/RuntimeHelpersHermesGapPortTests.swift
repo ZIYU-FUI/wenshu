@@ -179,7 +179,7 @@ final class RuntimeHelpersHermesGapPortTests: XCTestCase {
         // Pure spec check: the source file MUST contain the
         // hermes-port marker + line-range citation per the
         // spec §3.1 contract.
-        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        // 
         guard let source = HermesGapPortTestHelpers.readSource(
             relativeToTest: #filePath,
             sourceFileName: "RuntimeHelpers.swift"

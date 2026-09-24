@@ -156,7 +156,7 @@ final class AgentInitHermesGapPortTests: XCTestCase {
     // MARK: -- Spec check
 
     func testSourceFile_documentedAsHermesPort() {
-        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe,
+        // ,
         // the v0.35-era #file substitution breaks under 'swift test' (= build
         // dir flattens source tree). Use the shared helper to walk up to the
         // wenshu root and resolve the canonical Agent/ subpath.

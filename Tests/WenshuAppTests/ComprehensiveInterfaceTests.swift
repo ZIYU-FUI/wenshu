@@ -15,7 +15,7 @@
 //  - error case test
 //  - thread-safety test (= for actors)
 //
-// Per boss cadence '1 RULE 1 commit' + PO 6 method.
+// 
 //  Total: ~80 test cases across 20 interfaces.
 //
 

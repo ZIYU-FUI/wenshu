@@ -68,7 +68,7 @@ struct ChatViewModelDefaultModelTests {
             .appendingPathComponent("Sources/WenshuApp/Views/Chat/ChatZoneView.swift")
         let chatZoneView = try? String(contentsOf: chatZoneViewURL, encoding: .utf8)
         #expect(chatZoneView != nil, "ChatZoneView.swift must be readable at \(chatZoneViewURL.path)")
-        // v0.91 ticket 001 (Q34 step 4 atomic verification):
+        // 
         // the v0.24 boss fix was applied at App.swift line 1281 = `@AppStorage("wenshu.llm.model") private var currentModel: String = ""`.
         // v0.40 apple-001 phase 3 ticket 4b moved that property into AppState.llmModel (= the canonical source of truth). The previous test was checking ChatZoneView.swift for the old @AppStorage pattern (= the v0.24 boss fix comment), which is now a no-op (= the property is computed via appState.llmModel).
         //
@@ -123,7 +123,7 @@ struct ChatViewModelDefaultModelTests {
 
     @Test("Keychain -34018 handling: graceful error (not generic Swift error)")
     func testKeychainError34018() {
-        // v0.91 ticket 001 (Q34 step 4 atomic verification):
+        // 
         // the v0.24 boss fix was supposed to add -34018 (= errSecMissingEntitlement)
         // graceful handling to ProviderKeychain.swift. After v0.84 ticket 001
         // (= extracted KeychainOps), the Security framework glue (= and
@@ -136,7 +136,7 @@ struct ChatViewModelDefaultModelTests {
         // exists in the canonical Security-glue location (= KeychainOps.swift),
         // not the pre-v0.84 ProviderKeychain.swift location.
         //
-        // v0.91 ticket 001 (Q34 step 4 atomic verification):
+        // 
         // The hardcoded absolute path previously pointed at the main
         // checkout (= /Volumes/ANAN/Engineering/wenshu/Sources/...) =
         // = the test verified the main repo's KeychainOps.swift even

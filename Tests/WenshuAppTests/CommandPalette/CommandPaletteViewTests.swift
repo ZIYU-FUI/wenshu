@@ -15,7 +15,7 @@
 //       .wenshuShowCommandPalette (= verifies the App.swift wiring
 //       posts the right notification)
 //
-//  v0.40 CHATBOX-002 acceptance: 5 tests. swift test --filter CommandPalette
+// swift test --filter CommandPalette
 //
 
 import Testing
@@ -26,7 +26,7 @@ import AppKit
 @Suite("CHATBOX-002 — ⌘K command palette")
 struct CommandPaletteViewTests {
 
-    /// CHATBOX-002 #1: register → allItems returns the item.
+    /// 
     @Test("register item appears in allItems list")
     func testRegister_itemAppearsInList() async {
         let registry = CommandPaletteRegistry()
@@ -45,7 +45,7 @@ struct CommandPaletteViewTests {
         #expect(all.first?.title == "Test Skill")
     }
 
-    /// CHATBOX-002 #2: query filters by title substring.
+    /// 
     @Test("filter query matches title substring")
     func testFilter_queryMatches() async {
         let registry = CommandPaletteRegistry()
@@ -67,7 +67,7 @@ struct CommandPaletteViewTests {
         #expect(matched.first?.id == "help")
     }
 
-    /// CHATBOX-002 #3: empty query returns ALL items (= no filter).
+    /// 
     @Test("filter empty query returns all items")
     func testFilter_emptyQueryReturnsAll() async {
         let registry = CommandPaletteRegistry()
@@ -83,7 +83,7 @@ struct CommandPaletteViewTests {
         #expect(whitespace.count == 3)
     }
 
-    /// CHATBOX-002 #4: invoke round-trip — verify the enum cases
+    /// 
     /// preserve their payloads (= invokeSkill carries skillName + args;
     /// navigateTo carries destination; etc.). This is the wire-level
     /// contract for CommandPaletteController.dispatch → subscribers.
@@ -116,7 +116,7 @@ struct CommandPaletteViewTests {
         #expect(customAction != .custom(name: "other_hook"))
     }
 
-    /// CHATBOX-002 #5: ⌘K menu item posts .wenshuShowCommandPalette
+    /// 
     /// (= verifies App.swift ⌘K wiring routes through the NotificationCenter
     /// bridge so the SwiftUI sheet can react). We assert by posting the
     /// notification ourselves and listening for it (= same round-trip

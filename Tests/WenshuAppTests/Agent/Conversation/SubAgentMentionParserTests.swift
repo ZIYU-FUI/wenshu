@@ -13,7 +13,7 @@
 //       / @writerly (no boundary) all return nil / unmatched
 //    6. testAvailableSlugs_includesCommonSubAgents — 5 wenshu slugs
 //
-//  v0.40 CHATBOX-003 acceptance: 6 tests. swift test --filter SubAgentMentionParser
+// swift test --filter SubAgentMentionParser
 //
 
 import Testing
@@ -23,7 +23,7 @@ import Foundation
 @Suite("CHATBOX-003 — @-mention subagent parser")
 struct SubAgentMentionParserTests {
 
-    /// CHATBOX-003 #1: single mention parses to a ParsedMention with
+    /// 
     /// the slug and task.
     @Test("parse single @mention returns ParsedMention")
     func testParse_singleMention() {
@@ -33,7 +33,7 @@ struct SubAgentMentionParserTests {
         #expect(parsed?.task == "draft chapter 3")
     }
 
-    /// CHATBOX-003 #2: plain text (= no @-mention) returns nil.
+    /// 
     @Test("parse plain text returns nil")
     func testParse_noMention_returnsNil() {
         #expect(SubAgentMentionParser.parse("hello world") == nil)
@@ -41,7 +41,7 @@ struct SubAgentMentionParserTests {
         #expect(SubAgentMentionParser.parse("") == nil)
     }
 
-    /// CHATBOX-003 #3: multiple mentions in one input return multiple
+    /// 
     /// ParsedMentions (= the user can dispatch a writer + a reviewer
     /// in one message).
     @Test("parseAll returns multiple mentions")
@@ -56,7 +56,7 @@ struct SubAgentMentionParserTests {
         #expect(parsed[1].task == "find references for it")
     }
 
-    /// CHATBOX-003 #4: the exact spec example = `@writer draft chapter 1`.
+    /// 
     @Test("parse @writer draft chapter 1 (spec example)")
     func testParse_syntax_atWriterDraftChapter() {
         let parsed = SubAgentMentionParser.parse("@writer draft chapter 1")
@@ -65,7 +65,7 @@ struct SubAgentMentionParserTests {
         #expect(parsed?.task == "draft chapter 1")
     }
 
-    /// CHATBOX-003 #5: invalid syntax returns nil (= unknown slug, wrong
+    /// 
     /// case, missing task, longer slug that contains a known one as
     /// prefix but isn't a separate identity).
     @Test("parse invalid syntax returns nil or unmatched")
@@ -87,7 +87,7 @@ struct SubAgentMentionParserTests {
         #expect(longer == nil)
     }
 
-    /// CHATBOX-003 #6: availableSlugs includes the 5 wenshu sub-agents
+    /// 
     /// (= hermes has "editor" / "reviewer" too, but wenshu does not —
     /// per AGENTS.md §11.3 wenshu-side-wins, only the 5 wenshu
     /// sub-agents are recognized).

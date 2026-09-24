@@ -16,7 +16,7 @@
 //  4. AnthropicStreamingWireup.connect() returns AsyncStream
 //     (= consumer receives chunks when EventSource fires)
 //
-//  Per boss cadence '1 RULE 1 commit', this is one test file = one commit.
+// 
 //
 
 import Testing

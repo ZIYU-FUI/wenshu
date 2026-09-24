@@ -1,7 +1,7 @@
 //
 //  StreamingPartsTests.swift · Wenshu · v0.71 P1 batch 1+2
 //
-//  v0.71 P1 batch 1+2 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented...
+// 't implemented...
 //  port the whole thing from hermes... The editor uses SM, the third-party Markdown editor we brought in'):
 //  code-level (= no UI / no screenshot) verification of the new
 //  streaming parts pipeline. Tests cover:
@@ -304,7 +304,7 @@ struct StreamingPartsTests {
 
     // MARK: - Hermes streaming simulation
 
-    /// v0.71 P1 batch 1+2: simulate the Hermes streaming pipeline
+    /// simulate the Hermes streaming pipeline
     /// (= a turn that produces 1 .text chunk + 1 .tool_use + 1
     /// .tool_result + final sealed state). The accumulated
     /// parts[] is exactly what the Hermes

@@ -26,7 +26,7 @@ struct RuntimeCWDDisplayChipTests {
     @Test("RuntimeCWD: displayLabel returns 'Unset' when no library + no override")
     func displayLabelUnset() async {
 
-        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        // 
         let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
         let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
         defer {
@@ -56,7 +56,7 @@ struct RuntimeCWDDisplayChipTests {
     @Test("RuntimeCWD: displayLabel shows 'Library:' prefix when library path is set")
     func displayLabelLibrary() async {
 
-        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        // 
         let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
         let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
         defer {
@@ -91,7 +91,7 @@ struct RuntimeCWDDisplayChipTests {
     @Test("RuntimeCWD: displayLabel shows 'Override:' prefix when override is set")
     func displayLabelOverride() async {
 
-        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        // 
         let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
         let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
         defer {
@@ -125,7 +125,7 @@ struct RuntimeCWDDisplayChipTests {
     @Test("RuntimeCWD: setCWD override takes precedence over library path")
     func setCWDOverride() async throws {
 
-        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        // 
         let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
         let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
         defer {
@@ -171,7 +171,7 @@ struct RuntimeCWDDisplayChipTests {
     @Test("RuntimeCWD: resolve(relativePath) uses current CWD")
     func resolveRelativePath() async throws {
 
-        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        // 
         let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
         let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
         defer {
@@ -213,7 +213,7 @@ struct RuntimeCWDDisplayChipTests {
     @Test("RuntimeCWD: setCWD posts runtimeCWDDidChange notification")
     func setCWDPostsNotification() async throws {
 
-        // v1.08 ticket 001 (= per Q34 5.4 fix root cause): capture the previous RuntimeCWD UserDefaults state at test start, then defer restoring it. This ensures each test starts with the state left by the previous test (= true hermetic isolation) and ends with the same state (= the next test is unaffected).
+        // 
         let prevLibraryPath = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey)
         let prevCwdOverride = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey)
         defer {

@@ -183,7 +183,7 @@ final class MessageContentHermesGapPortTests: XCTestCase {
     // MARK: -- Spec check
 
     func testSourceFile_documentedAsHermesPort() {
-        // v1.57 stale-helper: per wenshu-stale-test-cleanup Class A recipe.
+        // 
         guard let source = HermesGapPortTestHelpers.readSource(
             relativeToTest: #filePath,
             sourceFileName: "MessageContent.swift"

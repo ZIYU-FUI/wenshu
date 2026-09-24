@@ -8,7 +8,7 @@
 // don't' + '1 RULE 1 commit'.
 //
 //  Safe scope (= not v0.34 in-flight) = Background/ files are
-//  v0.36 ticket 016 (= my work). Tests are additive coverage.
+// 
 //
 
 import Testing

@@ -50,7 +50,7 @@ struct ChatPartViewStyleTests {
     /// pattern. Verified by string-matching source (= lightweight
     /// smoke check; = canonical style audit).
     ///
-    /// v1.83 chat-mvvm-3layer C-9a refactor: each part view now lives
+    /// each part view now lives
     /// in its own file (= 1-view-1-file per Apple HIG; previously all
     /// 4 were crammed in `ChatPartView.swift`). The padding-token
     /// spec is now per-file: block-level parts (reasoning / toolUse /

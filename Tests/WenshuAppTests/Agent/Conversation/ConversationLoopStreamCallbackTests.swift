@@ -1,7 +1,7 @@
 //
 //  ConversationLoopStreamCallbackTests.swift · Wenshu · v0.71 P1 batch 1+2
 //
-//  v0.71 P1 batch 1+2 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented...
+// 't implemented...
 //  port the whole thing from hermes... The editor uses SM, the third-party Markdown editor we brought in'):
 //  code-level verification of the streamCallback parameter added
 //  to ConversationLoop.runTurn (= Hermes streaming pattern). The
@@ -41,7 +41,7 @@ struct ConversationLoopStreamCallbackTests {
 
     // MARK: - streamCallback is optional (back-compat)
 
-    /// v0.71 P1 batch 1+2: every existing call site passes nil
+    /// every existing call site passes nil
     /// for streamCallback (= the v0.34 / v0.39 / v0.40 callers
     /// never supplied one; = the new parameter must default
     /// to nil and produce the same output).
@@ -57,7 +57,7 @@ struct ConversationLoopStreamCallbackTests {
 
     // MARK: - streamCallback fires per text block
 
-    /// v0.71 P1 batch 1+2: a simple text-only LLM call (= the
+    /// a simple text-only LLM call (= the
     /// happy path) fires the streamCallback with one .text
     /// block (= the Hermes `message.delta` event payload).
     /// Verify the callback is invoked, the block is the
@@ -98,7 +98,7 @@ struct ConversationLoopStreamCallbackTests {
 
     // MARK: - streamCallback fires per thinking block
 
-    /// v0.71 P1 batch 1+2: an LLM that emits a .thinking block
+    /// an LLM that emits a .thinking block
     /// (= CoT narration) fires the streamCallback with the
     /// .thinking case. The accumulator captures it (= the
     /// streaming UI renders the folded "▾ Thought" disclosure).
@@ -133,7 +133,7 @@ struct ConversationLoopStreamCallbackTests {
 
     // MARK: - streamCallback fires per toolUse + toolResult
 
-    /// v0.71 P1 batch 1+2: the tool-use round-trip (= Hermes'
+    /// the tool-use round-trip (= Hermes'
     /// `tool.start` + `tool.complete` event chain) fires both
     /// the .toolUse and the .toolResult (= the streaming UI
     /// transitions the tool card from "running" to "complete").
@@ -179,7 +179,7 @@ struct ConversationLoopStreamCallbackTests {
 
     // MARK: - streamCallback ordering = Hermes in-order delivery
 
-    /// v0.71 P1 batch 1+2: the blocks are delivered in
+    /// the blocks are delivered in
     /// turn order (= .text chunks interleaved; = the Hermes
     /// `mutateStream` appends to the trailing .text part =
     /// preserves the canonical "chunk N before chunk N+1"
@@ -243,7 +243,7 @@ final class StreamCallbackAccumulator: @unchecked Sendable {
 
 // MARK: - Test helpers
 
-/// v0.71 P1 batch 1+2: a temp-path helper (= avoids sharing the
+/// a temp-path helper (= avoids sharing the
 /// /tmp root between tests = each test gets its own kanban.sqlite /
 /// chat.sqlite). Mirrors WenshuConductorE2ETests.tmpPath.
 private func tmpPath(_ name: String) -> String {

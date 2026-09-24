@@ -11,7 +11,7 @@
 //  Safe scope: this test file only USES ChatMessage/ChatRole/ChatMessageBridge
 //  from existing v0.35+ work; it does NOT modify any source files. Per boss
 // cadence ' + ' v0.34 ship sequence', ChatView.swift is
-//  v0.34 in-flight and is NOT modified.
+// 
 //
 
 import Testing
@@ -172,7 +172,7 @@ struct ChatMessageBridgeDeepTests {
 
     @Test("ChatMessage: Equatable")
     func chatMessageEquatable() {
-        // v0.94 ticket 001 (Q34 step 4 atomic verification):
+        // 
         // the previous test passed `content: "x"` and relied on the
         // ChatMessage init to synthesize an internal `.text` ChatMessagePart.
         // Each call to `.text()` creates a fresh UUID (= via

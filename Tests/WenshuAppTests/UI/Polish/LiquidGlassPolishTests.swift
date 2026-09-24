@@ -24,7 +24,7 @@ struct LiquidGlassPolishTests {
 
     @Test("All 5 polish surfaces (.glassEffect(.regular)) are wired into production views")
     func testAllFivePolishSurfacesWired() {
-        // v0.92 ticket 001 (Q34 step 4 atomic verification):
+        // 
         // the previous test listed 6 files expecting `.glassEffect(.regular)`,
         // but real-device testing on 2026-09-07 removed some of these
         // (= boss OOB) and the codebase evolved:
