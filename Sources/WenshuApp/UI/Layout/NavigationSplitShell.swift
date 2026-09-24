@@ -136,129 +136,99 @@ struct NavigationSplitShell: View {
             // / ~200 content / detail natural; = Mail / Notes /
             // Finder ship with the same defaults).
             AppleSidebarView()
-                // v1.67 boss 2026-09-22 OOB '按 apple 文档示例改
-                // 四列宽度' (= applied DIRECTLY on the
-                // NavigationSplitView sidebar: { ... } closure
-                // body, per Apple developer.apple.com/documentation/
-                // swiftui/view/navigationsplitviewcolumnwidth(min:ideal:max:)
-                // official example — modifier on the view INSIDE the
-                // closure, NOT on a child struct body. macOS 27 NSV
-                // honors min/ideal/max on the sidebar column per the
-                // documented SwiftUI 13+ behavior). min 220 = Apple
-                // HIG sidebar minimum (= the inspector button + shelf
-                // header + 1 line of book title fits); ideal 280 =
-                // the canonical 4-column sidebar at 1400 PT window
-                // width; max 360 = above this the sidebar eats too
-                // much space from the detail column.
+                // Applied DIRECTLY on the NavigationSplitView
+                // sidebar: { ... } closure body, per Apple's
+                // navigationSplitViewColumnWidth(min:ideal:max:)
+                // official example (modifier on the view INSIDE
+                // the closure, NOT on a child struct body).
+                // macOS 27 NSV honors min/ideal/max on the sidebar
+                // column per the documented SwiftUI 13+ behavior.
+                // min 220 = Apple HIG sidebar minimum (= inspector
+                // button + shelf header + 1 line of book title
+                // fits); ideal 280 = the canonical 4-column sidebar
+                // at 1400 PT window width; max 360 = above this the
+                // sidebar eats too much space from the detail column.
                 .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 360)
         } content: {
-            // v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone
-            // layout from the probe (= NavigationSplitView 3 columns
-            // + .inspector() + VSplitView in the detail +
-            // .safeAreaInset on the sidebar)': the middle column
-            // (= the section between sidebar and detail) is the
-            // outline + cards band, exactly as in the probe's
-            // ContentZone. The probe measured window = 1449, sidebar
-            // = 240, content = 280, detail = 648 with this layout.
-            // v1.27 component-architecture (2026-09-17): now passes
-            // `envAppState:` (= the @Bindable / @Environment entry
-            // declared on ShellMiddleColumn) in addition to the
-            // existing `appState:` shim. Both point to the same
-            // instance (= wenshu's NSA framework convention; =
-            // see ShellMiddleColumn L57-72 for the @Bindable +
-            // `let appState` parallel-ownership pattern).
-            // macOS 27 doc-alignment (audit ticket 4): strip
-            // `.navigationSplitViewColumnWidth(min:ideal:max:)`
-            // (= canonical Apple default; see comment above).
+            // Middle column (= the section between sidebar and detail)
+            // = the outline + cards band. The probe measured window
+            // = 1449, sidebar = 240, content = 280, detail = 648 with
+            // this layout.
+            //
+            // Now passes `envAppState:` (= the @Bindable /
+            // @Environment entry declared on ShellMiddleColumn) in
+            // addition to the existing `appState:` shim. Both point
+            // to the same instance (= wenshu's NSA framework
+            // convention; = see ShellMiddleColumn L57-72 for the
+            // @Bindable + `let appState` parallel-ownership pattern).
             ShellMiddleColumn(envAppState: appState, appState: appState, shell: shell, workspaceUI: workspaceUI)
-                // v1.67 boss 2026-09-22 OOB '按 apple 文档示例改
-                // 四列宽度' (= applied DIRECTLY on the
-                // NavigationSplitView content: { ... } closure
-                // body, per Apple developer.apple.com/documentation/
-                // swiftui/view/navigationsplitviewcolumnwidth(min:ideal:max:)
-                // official example: 'NavigationSplitView { MySidebar
-                // ().navigationSplitViewColumnWidth(...) } contents:
-                // { MyContents().navigationSplitViewColumnWidth(min:
-                // ideal: max:) } detail: { MyDetail() }' — the
-                // modifier is on the view INSIDE the closure, NOT
-                // on a child struct body. macOS 27 NSV honors
-                // min/ideal/max on the content column per the
-                // documented SwiftUI 13+ behavior). min 240 = the
-                // card grid's smallest usable width (= 2 cards
-                // wide at 110 PT each + 8 PT gutter + 16 PT
-                // padding); ideal 320 = 3 cards wide; max 480 =
-                // above this the PreviewPane renders 4+ cards per
-                // row, which crowds the card titles.
+                // Applied DIRECTLY on the NavigationSplitView content:
+                // { ... } closure body, per Apple's official example:
+                // modifier is on the view INSIDE the closure, NOT on
+                // a child struct body. macOS 27 NSV honors min/ideal/
+                // max on the content column. min 240 = the card grid's
+                // smallest usable width (= 2 cards wide at 110 PT
+                // each + 8 PT gutter + 16 PT padding); ideal 320 = 3
+                // cards wide; max 480 = above this the PreviewPane
+                // renders 4+ cards per row, which crowds the card titles.
                 .navigationSplitViewColumnWidth(min: 240, ideal: 320, max: 480)
         } detail: {
             // Apple HIG detail column = the editor + chat sub-areas
             // in a vertical split (= VSplitView is what Mail uses
-            // for inbox/message inside the same column; the probe
-            // also uses VSplitView in the detail).
+            // for inbox/message inside the same column).
             //
-            // v0.48 boss 2026-09-09 OOB 'in the Apple office apps the
-            // right column is the same color as the left one': the
-            // trailing panel is now an Apple inspector, not a third
-            // NavigationSplitView column.
-            //
-            // Measured on this machine: a 3-column NavigationSplitView
-            // paints sidebar 40/255 but detail 34/255, because detail is
-            // a CONTENT column (Apple's own 3-column sample shows the
-            // same 48 vs 34 split). Pages/Keynote/Numbers do not use a
-            // third column for their format panel — they use an
-            // inspector, which carries the sidebar material. The 3-
-            // column NSV + inspector pattern is the canonical Apple
-            // 6-zone layout (= the probe confirms window = 1449
-            // with this exact combination).
-            // macOS 27 doc-alignment (audit ticket 4): strip
-            // `.navigationSplitViewColumnWidth(min:ideal:max:)`
-            // (= canonical Apple default; see comment above).
+            // Trailing panel is an Apple inspector, not a third
+            // NavigationSplitView column. Measured: a 3-column
+            // NavigationSplitView paints sidebar 40/255 but detail
+            // 34/255, because detail is a CONTENT column (Apple's
+            // own 3-column sample shows the same 48 vs 34 split).
+            // Pages/Keynote/Numbers do not use a third column for
+            // their format panel — they use an inspector, which
+            // carries the sidebar material. The 3-column NSV +
+            // inspector pattern is the canonical Apple 6-zone
+            // layout (= the probe confirms window = 1449 with this
+            // exact combination).
             ShellContentColumn(appState: appState, bookStore: bookStore, library: library)
-                // v1.0.0-m1-shell boss 2026-09-10 OOB 'Keynote and the three office apps
-                // all use this same logic': wire the inspector's `isPresented` to
-                // a real `Binding<Bool>` (= `appState.inspectorVisible`)
-                // so the inspector can collapse (= user drags the
+                // Wire the inspector's `isPresented` to a real
+                // `Binding<Bool>` (= `shell.inspectorVisible`) so
+                // the inspector can collapse (= user drags the
                 // right-column divider past the left edge) and
                 // reopen (= the toolbar toggle button sets the
                 // binding to true). This is the canonical Apple
                 // HIG behavior for `.inspector(isPresented:)` per
-                // WWDC23-10161: 'Inspectors can collapse by default,
-                // but they aren't resizable by default. We can change
-                // it with .inspectorColumnWidth. We can also add a
-                // toolbar button to toggle the presented property.'
-                // macOS 27 doc-alignment (audit ticket 4): strip
-                // `.inspectorColumnWidth(min:ideal:max:)` (= canonical
-                // Apple default for inspector; matches Mail / Notes /
-                // Reminders / Pages inspector width).
+                // WWDC23-10161: 'Inspectors can collapse by
+                // default, but they aren't resizable by default. We
+                // can change it with .inspectorColumnWidth. We can
+                // also add a toolbar button to toggle the
+                // presented property.'
                 .inspector(isPresented: Binding(
                     get: { shell.inspectorVisible },
                     set: { newValue in shell.inspectorVisible = newValue }
                 )) {
                     ShellDetailColumn(appState: appState, shell: shell)
-                        // v1.67 boss 2026-09-22 OOB '按 apple 文档示例改
-                        // 四列宽度': inspector column width = 240/280/360
-                        // PT (= min/ideal/max) per Apple developer.apple.
-                        // com/documentation/swiftui/view/
-                        // inspectorcolumnwidth(min:ideal:max:) official
-                        // API. Min 240 = Apple HIG inspector minimum (= a
-                        // single-column inspector with icon + label + 1
-                        // row of content fits); ideal 280 = canonical
-                        // Pages / Notes inspector width; max 360 = above
-                        // this the inspector eats the detail column. NOTE
-                        // modifier is `.inspectorColumnWidth` (= the
-                        // dedicated inspector API), NOT
-                        // `.navigationSplitViewColumnWidth` (= that one
-                        // is for the leading sidebar / content / detail
-                        // columns; = inspector is a separate trailing
-                        // column with its own API per Apple docs).
+                        // Inspector column width = 240/280/360 PT
+                        // (= min/ideal/max) per Apple's
+                        // inspectorColumnWidth(min:ideal:max:)
+                        // official API. Min 240 = Apple HIG inspector
+                        // minimum; ideal 280 = canonical Pages /
+                        // Notes inspector width; max 360 = above
+                        // this the inspector eats the detail
+                        // column. NOTE: modifier is
+                        // `.inspectorColumnWidth` (= the dedicated
+                        // inspector API), NOT
+                        // `.navigationSplitViewColumnWidth` (= that
+                        // one is for the leading sidebar / content
+                        // / detail columns; = inspector is a
+                        // separate trailing column with its own API
+                        // per Apple docs).
                         .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
                 }
         }
-        // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
-        // removed .thinColumnDividers() (= AppKit KVC hack that set
-        // NSSplitView.dividerColor = .clear + dividerStyle = .thin).
-        // That is not an Apple SwiftUI API; macOS 27 NavigationSplitView
-        // owns its own column separation. Default-first = no interop.
+        // Default-first column separation: no interop (= the
+        // .thinColumnDividers() AppKit KVC hack that set
+        // NSSplitView.dividerColor = .clear + dividerStyle = .thin
+        // is not an Apple SwiftUI API; = macOS 27
+        // NavigationSplitView owns its own column separation).
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject appState at
         // the NavigationSplitView root (= SwiftUI's internal
         // layout engine reads @Environment values during
