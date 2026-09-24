@@ -370,10 +370,9 @@ enum InspectorPage: Hashable, CaseIterable {
 
     var icon: String {
         switch self {
-        // v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
-        // migrated to outline glyphs (= the canonical Apple HIG
-        // form for the Liquid Glass 3rd-generation design language).
-        // The .fill variant (= solid color glyph) is reserved for
+        // Outline glyphs (= the canonical Apple HIG form for
+        // the Liquid Glass 3rd-generation design language). The
+        // .fill variant (= solid color glyph) is reserved for
         // status indicators (= error / success badges); tool tab
         // chrome should use outline glyphs throughout.
         case .authoringFiction:     return "book.pages"      // SF Symbols 6 outline
@@ -383,22 +382,12 @@ enum InspectorPage: Hashable, CaseIterable {
         }
     }
 
-    // v1.71b right column MVVM split (= ticket 02 of the v1.71
-    // 修正 arc, per boss 2026-09-22 OOB 'UI 业务 数据分离，符合苹果
-    // 的 MVVM'). Per Q244 §3.1 + §5.2 (wenshu MVVM audit pattern):
-    // the page→tools routing was previously inlined in
-    // ShellDetailColumn.filteredToolsForCurrentPage (lines 131-173
-    // of v1.43 ticket 001) as a switch + Set construction
-    // (= business logic inside the View, violating the canonical
-    // Apple MVVM layering). Now the page enum owns the routing as
-    // a computed property — page 跟它的 3 tools 绑一起 = single
+    // Page→tools routing. The page enum owns the routing as a
+    // computed property — page 跟它的 3 tools 绑一起 = single
     // source of truth (新增 page 只改 enum 一个地方).
     //
-    // 修正前 switch 在 ShellDetailColumn L131-173 用 Set<String>
-    // (= i18n key 集合) 做 filter; 修正后 switch 直接返回
-    // [InspectorTool] (= 类型安全, 不可能 key 字符串 typo). The 4
-    // page → 3 tool mappings mirror the v1.0.0-m1-shell boss OOB
-    // 'three per page, split into four pages, show them all' 真值.
+    // The 4 page → 3 tool mappings are the canonical
+    // authoritative layout.
     var tools: [InspectorTool] {
         switch self {
         case .authoringFiction:
@@ -473,19 +462,10 @@ enum WindowID {
 
 
 
-// v1.36 ticket 001 (= real fix per Q34 5.4 + Q173 ponytail + Q186 + Q112):
-// `ShellPlaceholder` moved to its own file at
-// `Sources/WenshuApp/UI/Layout/ShellPlaceholder.swift` (= v1.34 ticket 001
-// extraction). The struct block (= 22 lines including the legacy
-// `// MARK: - Placeholder view` header + the long ContentUnavailableView
-// rationale block) is removed here so the same name no longer compiles twice.
-//
-// Per Q34 5.2: the extraction was botched (= v1.34 created the new file but
-// left the legacy declaration in place; = main failed to compile with
-// `invalid redeclaration of 'ShellPlaceholder'`). v1.36 finishes the
-// extraction by removing the legacy block from NavigationSplitShell.swift.
-//
-// Per Q57: the legacy `ShellPlaceholder` body (Apple HIG rationale block +
-// ContentUnavailableView wrapper) lives verbatim in the new file (= no
-// behavior change; = pure refactor = 1 file 1 commit).
+// `ShellPlaceholder` lives at
+// `Sources/WenshuApp/UI/Layout/ShellPlaceholder.swift`. The
+// inline struct block (= 22 lines including the legacy
+// `// MARK: - Placeholder view` header + the long
+// ContentUnavailableView rationale block) was removed here so
+// the same name no longer compiles twice.
 
