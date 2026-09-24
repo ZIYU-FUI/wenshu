@@ -6,15 +6,11 @@
 //
 // Each entry is stored as a `.md` file under
 // `books/<book-uuid>/world/<entry-uuid>.md`. The JSON file
-// `books/<book-uuid>/world/world.json` (= ticket 004's
-// FileSystemWorldStore) holds the index: `[WorldEntry]` with id +
-// structured fields. The .md body holds the free-form world lore.
+// `books/<book-uuid>/world/world.json` holds the index:
+// `[WorldEntry]` with id + structured fields. The .md body holds the
+// free-form world lore.
 //
-// v0.26 FCP library replica spec at
-// `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 001.
-//
-// Owner 8/15 15:55: 'needok,, refactor
-// '. The shape of WorldEntry is locked by the spec + the contract
+// The shape of WorldEntry is locked by the spec + the contract
 // tests in ticket 023.
 
 import Foundation
@@ -23,8 +19,7 @@ import Foundation
 /// Apple HIG: enum cases match user-visible mental categories (= a
 /// user typing world-building thinks "this is a place" / "this is an
 /// event" / "this is an object" — not "this is a row of untyped text").
-/// v0.27+ may add `magic` / `language` / `religion` etc. (= extensible
-/// via standard Swift Codable enum case addition).
+/// Extensible via standard Swift Codable enum case addition.
 enum WorldEntryType: String, CaseIterable, Codable, Sendable {
     case geography
     case lore
@@ -33,7 +28,7 @@ enum WorldEntryType: String, CaseIterable, Codable, Sendable {
     case other
 
     /// Chinese display label for the card section header. Matches
-    /// wenshu design vocabulary (= boss 8/25 'UI in progress').
+    /// wenshu design vocabulary.
     var displayName: String {
         switch self {
         case .geography: return "地理"
@@ -46,10 +41,8 @@ enum WorldEntryType: String, CaseIterable, Codable, Sendable {
 
     /// SF Symbol name for the card icon. Apple HIG: SF Symbol carries
     /// the visual weight (= wenshu MD files have no thumbnail).
-    /// v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
-    /// all entity-type icons use outline glyphs (= the canonical
-    /// Apple HIG form for the Liquid Glass 3rd-generation design
-    /// language).
+    /// Outline icons everywhere (= canonical Apple HIG form for the
+    /// Liquid Glass 3rd-generation design language).
     var icon: String {
         switch self {
         case .geography: return "map"
@@ -68,8 +61,7 @@ enum WorldEntryType: String, CaseIterable, Codable, Sendable {
 ///
 /// The full lore text lives in the .md body (= free-form markdown
 /// the user writes). This struct holds the structured metadata used
-/// for the second-column card grid (= file 001 / boss 8/26 'card
-/// yes').
+/// for the second-column card grid.
 struct WorldEntry: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
 
@@ -87,16 +79,16 @@ struct WorldEntry: Identifiable, Hashable, Codable, Sendable {
     /// convention).
     var name: String
 
-    /// One-line summary shown on the card (= 8/26 'cardyes
-    /// '). Optional: explicit frontmatter `summary`
-    /// field overrides auto-extracted first ~100 chars of the .md body.
+    /// One-line summary shown on the card. Optional: explicit
+    /// frontmatter `summary` field overrides auto-extracted first
+    /// ~100 chars of the .md body.
     var summary: String
 
-    /// Optional cross-references to other entities (= 8/26
-    /// '@<type>.<name>' syntax). Resolved at load time by ticket 007
-    /// `Document.refIds` parser. Stored as plain UUIDs here (= not
-    /// `@<type>.<name>` strings) so SwiftUI can directly dereference
-    /// them for "characters in this chapter" UI.
+    /// Optional cross-references to other entities (= '@<type>.<name>'
+    /// syntax). Resolved at load time by the `Document.refIds` parser.
+    /// Stored as plain UUIDs here (= not `@<type>.<name>` strings) so
+    /// SwiftUI can directly dereference them for "characters in this
+    /// chapter" UI.
     var characterRefIds: [UUID]
 
     let createdAt: Date
