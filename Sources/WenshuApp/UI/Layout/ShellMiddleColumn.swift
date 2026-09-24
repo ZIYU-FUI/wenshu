@@ -1,31 +1,24 @@
-// ShellMiddleColumn.swift · Wenshu · v1.42 ticket 001
+// ShellMiddleColumn.swift · Wenshu
 //
-// Extracted from NavigationSplitShell.swift (= v1.0.0-m1-shell boss OOB).
+// Extracted from `NavigationSplitShell.swift`. Apple HIG content
+// column (= 1 zone: the card grid) for the macOS 27
+// NavigationSplitView shell. The 26-line Apple HIG doc + the
+// 410-line SwiftUI body (= card grid wrapper + sort toolbar)
+// move verbatim. 0 behavior change.
 //
-// Per boss OOB 2026-09-16 '按优先级推' + '自己一口气推完' (= keep
-// pushing until done). v1.34 + v1.38 + v1.39 + v1.42 (= this ticket)
-// continue the NavigationSplitShell split pattern. ShellMiddleColumn
-// (= 440 NLOC = the largest sibling = the Apple HIG middle column
-// hosting the card grid + the toolbar) is extracted verbatim.
-//
-// Per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112: extract
-// ShellMiddleColumn to its own file. The 26-line Apple HIG doc + the
-// 410-line SwiftUI body (= card grid wrapper + sort toolbar) move
-// verbatim. 0 behavior change.
-//
-// Out of scope (= explicit, future ticket v1.43):
-// - ShellDetailColumn (= 471 NLOC)
+// Out of scope (= future ticket):
+// - ShellDetailColumn
 
 import SwiftUI
 
 /// Apple HIG content column (= 1 zone: the card grid).
-/// Per boss 2026-09-10 'visual 5 columns' + 'the cards zone goes in middle-left, that's wrong,
-/// we don't need that red-box area': the middle column carries exactly 1 zone
-/// (PreviewPane = the card grid). The previously rendered bottom
-/// outline sub-area (= the pre-v1.69e NewLibraryOutlineView =
-/// the same directory tree the sidebar uses) is removed (= the
-/// outline is the sidebar's job; duplicating it in the middle column
-/// is noise).
+/// Cards zone is middle-right (= the Apple 5-zone pattern, not 6);
+/// = per the 'visual 5 columns' design directive. The middle
+/// column carries exactly 1 zone (PreviewPane = the card grid).
+/// The previously rendered bottom outline sub-area (= the pre-v1.69e
+/// NewLibraryOutlineView = the same directory tree the sidebar uses)
+/// is removed (= the outline is the sidebar's job; duplicating it in
+/// the middle column is noise).
 ///
 /// Boss 2026-09-10 'remove the tab, keep just the cards content — and since the image picker isn't implemented anyway, just remove it too for now':
 /// the sidebar bottom card zone (= previously ZoneContentView
