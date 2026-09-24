@@ -153,90 +153,78 @@ struct ShellDetailColumn: View {
             // without the 10 PT insets; = now consistent with the
             // other 3 column headers).
             SectionHeader(title: shell.inspectorPage.localizedTitle)
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
-            // and switch to Apple-standard expressions — find an approximate value': remove the custom
-            // top inset (= `chromePaddingSectionTop` = 18 PT) and the
-            // custom bottom inset (= 4 PT) on the right column's
-            // section header. The right column is the inspector
-            // detail column of a NavigationSplitView; = Apple HIG
-            // macOS 27 default inspector column rhythm places the
-            // section header at the natural SwiftUI default top
-            // margin (= NO custom padding required; = the canonical
-            // Pages / Numbers inspector pattern). Per the verbatim
-            // port discipline, the ZoneContentView wrapper's
-            // `.padding(.top, 4)` (= 4 PT gap below the Divider)
-            // is also removed in the same commit (= the boss's
+            // Remove the custom top inset (= `chromePaddingSectionTop`
+            // = 18 PT) and the custom bottom inset (= 4 PT) on the
+            // right column's section header. The right column is
+            // the inspector detail column of a NavigationSplitView;
+            // = Apple HIG macOS 27 default inspector column rhythm
+            // places the section header at the natural SwiftUI
+            // default top margin (= NO custom padding required; =
+            // the canonical Pages / Numbers inspector pattern). The
+            // ZoneContentView wrapper's `.padding(.top, 4)` (= 4
+            // PT gap below the Divider) is also removed (= the
             // 'all custom padding' directive covers it).
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'between the title and the tab bar,
-            // it's 4pt short': per the boss's request, ADD 4 PT of
-            // vertical breathing room between the section's
-            // Divider (= end of the title block) and the tab
-            // strip. The title block already has `.padding(.top,
-            // 4)` (= 4 PT gap between the title text and its own
-            // Divider) and `.padding(.bottom, 4)` (= 4 PT gap
-            // between the Divider and the next sibling). The boss
-            // wants the SAME 8 PT visual rhythm Apple HIG uses
-            // between the section header and the section content
-            // (= Pages / Numbers / Keynote inspector pattern;
-            // = the Divider sits 4 PT below the title; = the
-            // content below the Divider starts 8 PT below the
+            // Per the design ask, ADD 4 PT of vertical breathing
+            // room between the section's Divider (= end of the
+            // title block) and the tab strip. The title block
+            // already has `.padding(.top, 4)` (= 4 PT gap between
+            // the title text and its own Divider) and `.padding
+            // (.bottom, 4)` (= 4 PT gap between the Divider and the
+            // next sibling). The SAME 8 PT visual rhythm Apple HIG
+            // uses between the section header and the section
+            // content (= Pages / Numbers / Keynote inspector
+            // pattern; = the Divider sits 4 PT below the title; =
+            // the content below the Divider starts 8 PT below the
             // Divider; = the total title→content gap is 12 PT,
-            // not 8 PT, matching the canonical Apple HIG inspector
-            // rhythm).
+            // matching the canonical Apple HIG inspector rhythm).
             //
             // Implementation: add `.padding(.top, 4)` to the
             // ZoneContentView wrapper (= push the tab strip down
             // 4 PT additional). Combined with the title block's
             // existing `.padding(.bottom, 4)` (= 4 PT), the
-            // divider-to-tabs gap is now 8 PT (= boss's spec).
+            // divider-to-tabs gap is now 8 PT (= the spec).
             //
-            // Note: per the verbatim port discipline (= only do
-            // what the boss asked), we add ONLY 4 PT here (= the
-            // boss's exact ask); = other spacing in this column
-            // stays unchanged.
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
-            // and switch to Apple-standard expressions — find an approximate value': remove the custom
-            // top inset (= 4 PT) on the ZoneContentView wrapper
-            // below. The wrapper sits below the section Divider in
-            // a vertical VStack; = Apple HIG macOS 27 default
-            // inspector rhythm places the per-page tab strip at
-            // the natural SwiftUI default spacing (= NO custom
-            // padding required; = the canonical Pages / Numbers
-            // inspector pattern).
+            // Per the verbatim port discipline (= only do what was
+            // asked), we add ONLY 4 PT here; = other spacing in
+            // this column stays unchanged.
+            //
+            // Remove the custom top inset (= 4 PT) on the
+            // ZoneContentView wrapper below. The wrapper sits below
+            // the section Divider in a vertical VStack; = Apple HIG
+            // macOS 27 default inspector rhythm places the per-page
+            // tab strip at the natural SwiftUI default spacing (=
+            // NO custom padding required; = the canonical Pages /
+            // Numbers inspector pattern).
             ZoneContentView(
                 zoneSlug: "specializedTools",
                 tabs: toolsForCurrentPage.map { (label: $0.title, icon: $0.icon, content: $0.view()) }
             )
             .frame(maxWidth: .infinity)
-            // v1.76 boss 2026-09-18 'left + right columns need default
-            // inner padding matching the chat zone': add horizontal
-            // padding to the right column (= 8 PT Apple HIG
-            // canonical inline content inset via
+            // Add horizontal padding to the right column (= 8 PT
+            // Apple HIG canonical inline content inset via
             // DesignTokens.chromePaddingLeading; = matches the
             // sidebar's outer padding added in this commit; =
             // matches the chat history's content rhythm).
             .padding(.horizontal, DesignTokens.chromePaddingLeading)
         }
         .toolbar {
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'wrong position for the button — by default
-            // it should be at the far right': place the toggle button AFTER the
-            // 3-tab Picker in the toolbar (= SwiftUI renders
-            // multiple .primaryAction items in declaration order;
-            // = the toggle button is the last declared =
-            // rightmost). Per Apple's ToolbarItemPlacement docs:
-            // '.primaryAction: An item that represents the primary
-            // action of the toolbar, typically positioned at the
-            // trailing edge.' = Keynote / Pages / Numbers also put
-            // the right-panel toggle at the trailing edge.
+            // Place the toggle button AFTER the 3-tab Picker in the
+            // toolbar (= SwiftUI renders multiple .primaryAction
+            // items in declaration order; = the toggle button is
+            // the last declared = rightmost). Per Apple's
+            // ToolbarItemPlacement docs: '.primaryAction: An item
+            // that represents the primary action of the toolbar,
+            // typically positioned at the trailing edge.' =
+            // Keynote / Pages / Numbers also put the right-panel
+            // toggle at the trailing edge.
             //
             // The toggle button is ALWAYS visible (= even when the
             // inspector is collapsed, the toolbar still shows the
             // button; = the user can re-open the inspector at any
             // time; = matches Keynote / Pages / Numbers).
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'OK then, in the right column
-            // put the four-page switcher in Trailing, aligned right' (the canonical ask):
+            // The 4-page switcher sits in Trailing, aligned right:
             // the 4-page Picker goes in the TRAILING area
             // (= ToolbarItem(placement: .primaryAction)) = the
             // boss's reference screenshot shows the iOS-style
