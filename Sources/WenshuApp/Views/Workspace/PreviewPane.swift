@@ -609,24 +609,15 @@ struct PreviewPane: View {
             //   always there but the title was missing; = adding
             //   the title above the search bar fixes the visual
             //   alignment in both states).
-            VStack(spacing: 4) {
-                HStack {
-                    Spacer()
-                    Text(WenshuI18n.t("preview.column.title"))
-                        .font(.body)
-                        // v1.0.0-m1-shell boss 2026-09-10 OOB 'that title
-                        // text color — Apple's is a bit grayer, not pure white,
-                        // and close to the divider's color': section header
-                        // text uses `.secondary` (= same as the
-                        // sidebar's 'Studio' header; = same Apple HIG
-                        // pattern; = format identical across all
-                        // wenshu section headers; = NO pure white).
-                        .foregroundStyle(.secondary)
-                        .textCase(nil)
-                    Spacer()
-                }
-                Divider()
-            }
+            // v1.77 boss 2026-09-24 OOB '抽成一个组件, 10 PT /
+            // 文字 / 4 PT / 分割线 / 10 PT, Apple HIG 数字表达':
+            // lift the preview column title bar to the shared
+            // SectionHeader component (= also used by AppleSidebarView
+            // '书架' header; = same Apple HIG Mail / Notes / Finder
+            // section-header idiom; = SectionHeader owns the 10 PT /
+            // 4 PT / 10 PT insets; = PreviewPane no longer hardcodes
+            // the geometry here).
+            SectionHeader(title: WenshuI18n.t("preview.column.title"))
             // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
             // and switch to Apple-standard expressions — find an approximate value': remove the custom
             // top inset (= `chromePaddingSectionTop` = 18 PT) and the

@@ -96,6 +96,17 @@ public enum DesignTokens {
     /// `.padding(.top, DesignTokens.chromePaddingSectionTop)`).
     public static let chromePaddingSectionTop: CGFloat = 18
 
+    /// SectionHeader column-header top inset (= 10 PT).
+    /// Used by SectionHeader (= 10 PT inset / centered text / 4 PT gap /
+    /// divider / 10 PT inset pattern at the top of every column).
+    public static let chromePaddingSectionHeaderTop: CGFloat = 10
+
+    /// SectionHeader column-header bottom inset (= 10 PT).
+    public static let chromePaddingSectionHeaderBottom: CGFloat = 10
+
+    /// SectionHeader text-to-divider gap (= 4 PT).
+    public static let chromePaddingSectionHeaderGap: CGFloat = 4
+
     /// Per-pane chrome micro padding (= 4 PT). Used for tight inset inside
     /// chrome chrome (= icon-picker cells, tab handles, divider label gaps).
     /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingMicro)`.

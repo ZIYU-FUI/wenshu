@@ -46,6 +46,16 @@ struct EditorPlaceholder: View {
     /// without the .md extension; = boss 9/3 OOB 'no .md extension either'). Placeholder tab = 'preview-sample' (= no .md extension,
     /// = no path = render the short placeholder name).
     ///
+    /// v1.77 SectionHeader title source (= 10 PT / text / 4 PT /
+    /// divider / 10 PT column-header pattern; = falls back to the
+    /// 'editor.empty.title' string when no tab is open).
+    private var editorSectionTitle: String {
+        if let active = appState.openTabs.first(where: { $0.id == appState.activeTabId })
+            ?? appState.openTabs.first {
+            return EditorTab.displayTitle(active)
+        }
+        return WenshuI18n.t("editor.empty.title")
+    }
     @Environment(AppState.self) private var appState
     // v0.39 ticket 001: WenshuEditorServicesFactory.make needs
     // referenceLibraryRoot + active book root. Both come from
@@ -122,41 +132,36 @@ struct EditorPlaceholder: View {
             // focus follow). We avoid sibling Button nesting inside the
             // active title Button (= which earlier triggered a SwiftUI
             // Update-Constraints infinite loop on macOS 27 Liquid Glass).
+            // v1.77 boss 2026-09-24 OOB '抽成一个组件, 10 PT /
+            // 文字 / 4 PT / 分割线 / 10 PT, Apple HIG 数字表达':
+            // the editor column title bar uses the shared
+            // SectionHeader component (= also used by
+            // AppleSidebarView '书架' header and PreviewPane
+            // '素材' header; = same Apple HIG Mail / Notes /
+            // Finder section-header idiom; = SectionHeader
+            // owns the 10 PT / 4 PT / 10 PT insets). The
+            // v1.73 close-X button stays inline next to the
+            // title (= Safari-style tab close affordance; =
+            // preserved across the v1.77 refactor).
             HStack(spacing: 0) {
-                if let active = appState.openTabs.first(where: { $0.id == appState.activeTabId })
-                    ?? appState.openTabs.first {
-                    let title = EditorTab.displayTitle(active)
-                    // Active tab title = plain Text (= no Button; =
-                    // the active tab is not interactive itself; =
-                    // clicking the title is a no-op and would only
-                    // add a focus ring + accessibility label that
-                    // screen readers would announce as a control).
-                    Text(title)
-                        .font(DesignTokens.tabTitleFont.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
-                        .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .frame(height: DesignTokens.paneTabHotArea)
-                        .background(
-                            Rectangle()
-                                .fill(Color.accentColor.opacity(0.12))
-                        )
-                        .help(title)
-
-                    Button(action: {
+                SectionHeader(title: editorSectionTitle)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button(action: {
+                    if let active = appState.openTabs.first(where: { $0.id == appState.activeTabId })
+                        ?? appState.openTabs.first {
                         appState.closeTab(id: active.id, bookStore: bookStore)
-                    }) {
-                        Image(systemName: "xmark")
-                            .font(.system(
-                                size: DesignTokens.tabCloseGlyphFontSize,
-                                weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: DesignTokens.tabCloseFrameSize,
-                                   height: DesignTokens.tabCloseFrameSize)
                     }
-                    .buttonStyle(.plain)
-                    .help(WenshuI18n.t("workspace.editor.close_tab_tooltip"))
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(
+                            size: DesignTokens.tabCloseGlyphFontSize,
+                            weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: DesignTokens.tabCloseFrameSize,
+                               height: DesignTokens.tabCloseFrameSize)
                 }
+                .buttonStyle(.plain)
+                .help(WenshuI18n.t("workspace.editor.close_tab_tooltip"))
             }
             // v0.34 ticket 09: dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG

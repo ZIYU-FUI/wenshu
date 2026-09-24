@@ -93,25 +93,14 @@ struct AppleSidebarView: View {
         Group {
             if let service {
                 VStack(spacing: 0) {
-                    // v1.69aa boss 2026-09-23 OOB 'UI 上补点东西，
-                    // 原本顶部是有一个标题，加一个分割线的，像中左栏一样':
-                    // restore the column title bar (= preview
-                    // pane uses the same pattern; see PreviewPane
-                    // L610-627 = HStack { Spacer; Text("...") ;
-                    // Spacer } + Divider). The text uses
-                    // `.secondary` (= Apple HIG section header
-                    // color) so it sits visually behind the row
-                    // labels below (= same Apple Mail / Notes /
-                    // Finder section header idiom).
-                    HStack {
-                        Spacer()
-                        Text(WenshuI18n.t("sidebar.column.title"))
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .textCase(nil)
-                        Spacer()
-                    }
-                    Divider()
+                    // v1.77 boss 2026-09-24 OOB '抽成一个组件, 10 PT /
+                    // 文字 / 4 PT / 分割线 / 10 PT, Apple HIG 数字表达':
+                    // lift the sidebar column title bar to the
+                    // shared SectionHeader component (= also used by
+                    // PreviewPane '素材' header; = same 10 PT / text /
+                    // 4 PT gap / divider / 10 PT inset Apple HIG
+                    // Mail / Notes / Finder section-header idiom).
+                    SectionHeader(title: WenshuI18n.t("sidebar.column.title"))
                     let sidebarList = List(
                         service.nodes,
                         children: \.children,
