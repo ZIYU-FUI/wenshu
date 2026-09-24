@@ -481,13 +481,13 @@ struct AppRootScene: Scene {
             // v1.28 A1.3: the NSNotification dispatch was removed
             // (= EditorChatNSController listener deleted in this
             // commit; = only the AppState flag flip remains; = the
-            // chat zone visibility is owned by AppState.chatVisible
+            // chat zone visibility is owned by ShellState.chatVisible
             // downstream consumers). Toggle still binds the flag.
             CommandGroup(after: .toolbar) {
                 Toggle(WenshuI18n.t("menu.view.show_chat_zone"), isOn: Binding(
-                    get: { appState.chatVisible },
+                    get: { shell.chatVisible },
                     set: { newValue in
-                        appState.chatVisible = newValue
+                        shell.chatVisible = newValue
                     }
                 ))
                 .keyboardShortcut("k", modifiers: [.command, .option])

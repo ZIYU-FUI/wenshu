@@ -388,10 +388,10 @@ struct NavigationSplitShell: View {
                 // Apple default for inspector; matches Mail / Notes /
                 // Reminders / Pages inspector width).
                 .inspector(isPresented: Binding(
-                    get: { appState.inspectorVisible },
-                    set: { newValue in appState.inspectorVisible = newValue }
+                    get: { shell.inspectorVisible },
+                    set: { newValue in shell.inspectorVisible = newValue }
                 )) {
-                    ShellDetailColumn(appState: appState)
+                    ShellDetailColumn(appState: appState, shell: shell)
                         // v1.67 boss 2026-09-22 OOB '按 apple 文档示例改
                         // 四列宽度': inspector column width = 240/280/360
                         // PT (= min/ideal/max) per Apple developer.apple.

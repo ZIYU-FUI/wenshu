@@ -46,7 +46,7 @@ struct ShellDetailColumn: View {
     // v1.27 component-architecture (2026-09-17): changed from
     // `let appState: AppState` (= plain let; = no binding syntax)
     // to `@Bindable var appState: AppState` (= the @Observable
-    // binding wrapper; = allows `$appState.inspectorPage` syntax
+    // binding wrapper; = allows `$shell.inspectorPage` syntax
     // in Picker / Toggle etc.; = single source of truth for
     // inspectorPage, not duplicated @State).
     //
@@ -54,6 +54,11 @@ struct ShellDetailColumn: View {
     //   "To create a binding to a property of an Observable object,
     //    declare a `@Bindable` variable in your View."
     @Bindable var appState: AppState
+    // P2-06 (audit 2026-09-24): inspectorPage + inspectorVisible
+    // moved to ShellState. The `@Bindable var shell` is the
+    // entry the Picker / Toggle / button read+write
+    // (= `$shell.inspectorPage` / `shell.inspectorVisible.toggle()`).
+    @Bindable var shell: ShellState
 
     // v1.27 component-architecture (2026-09-17): inspectorPage
     // promoted from `@State private var` (= column-local, ephemeral,
@@ -62,7 +67,7 @@ struct ShellDetailColumn: View {
     // truth; = survives shell lifecycle changes; = future
     // inspector pane embeds can read the same value).
     //
-    // Access pattern: `$appState.inspectorPage` (= appState is
+    // Access pattern: `$shell.inspectorPage` (= appState is
     // @Observable + injected via init parameter from
     // NavigationSplitShell L306).
 
@@ -91,7 +96,7 @@ struct ShellDetailColumn: View {
     /// (= ticket 01 新建). View 端只做 1 行派生 + tuple 适配 (=
     /// view-side-effect, Q245 §3 留在 view 不抽).
     private var toolsForCurrentPage: [InspectorTool] {
-        appState.inspectorPage.tools
+        shell.inspectorPage.tools
     }
 
     var body: some View {
@@ -119,7 +124,7 @@ struct ShellDetailColumn: View {
         // boundaries): `inspectorPage` is `@State` on
         // ShellDetailColumn; = ToolbarItem(placement: .primaryAction)
         // inside the same view's `.toolbar` block can bind
-        // directly to `$appState.inspectorPage`; = the state change in
+        // directly to `$shell.inspectorPage`; = the state change in
         // the toolbar Picker propagates to the body below via
         // SwiftUI's normal state binding; = no env-chain work
         // needed (= the binding is local to ShellDetailColumn).
@@ -168,7 +173,7 @@ struct ShellDetailColumn: View {
             // HStack + Divider was the same pattern (= just
             // without the 10 PT insets; = now consistent with the
             // other 3 column headers).
-            SectionHeader(title: appState.inspectorPage.localizedTitle)
+            SectionHeader(title: shell.inspectorPage.localizedTitle)
             // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
             // and switch to Apple-standard expressions — find an approximate value': remove the custom
             // top inset (= `chromePaddingSectionTop` = 18 PT) and the
@@ -297,7 +302,7 @@ struct ShellDetailColumn: View {
             // revert: `inspectorPage` is `@State` on
             // ShellDetailColumn; = ToolbarItem(placement: .primaryAction)
             // inside the same view's `.toolbar` block can bind
-            // directly to `$appState.inspectorPage`; = the state change in
+            // directly to `$shell.inspectorPage`; = the state change in
             // the toolbar Picker propagates to the inspector
             // body via SwiftUI's normal state binding; = no
             // env-chain work needed (= the binding is local to
@@ -328,7 +333,7 @@ struct ShellDetailColumn: View {
 // saw in their iOS reference screenshot earlier; = the
 // canonical Apple HIG toolbar style).
 ToolbarItem(placement: .primaryAction) {
-                Picker("Inspector Page", selection: $appState.inspectorPage) {
+                Picker("Inspector Page", selection: $shell.inspectorPage) {
                     ForEach(InspectorPage.allCases, id: \.self) { page in
                         Label {
                             Text(page.localizedTitle)
@@ -373,12 +378,12 @@ ToolbarItem(placement: .primaryAction) {
             // items into one ToolbarItemGroup.
             ToolbarItemGroup(placement: .principal) {
                 Button {
-                    appState.inspectorVisible.toggle()
+                    shell.inspectorVisible.toggle()
                 } label: {
                     Label {
                         Text(WenshuI18n.t("inspector.toggle.button"))
                     } icon: {
-                        Image(systemName: appState.inspectorVisible ? "sidebar-right" : "sidebar.left")
+                        Image(systemName: shell.inspectorVisible ? "sidebar-right" : "sidebar.left")
                     }
                 }
                 .help(WenshuI18n.t("inspector.toggle.help"))

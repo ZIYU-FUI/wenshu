@@ -72,71 +72,7 @@ final class AppState {
     // needed. Callers now read `shell.sidebarSelection` (= via
     // `@Environment(ShellState.self)` injected at AppRootScene).
 
-    // v1.0.0-m1-shell boss 2026-09-10 OOB 'Keynote + Pages + Numbers
-    // all three office apps use this logic' (= 'Keynote / Pages / Numbers all use the same
-    // inspector toggle logic'): the user can drag the right-column
-    // divider to close the inspector, and clicking the right
-    // content toggle in the top-right toolbar reopens the inspector
-    // AND restores the previous content. This is the canonical
-    // Apple HIG behavior for `.inspector(isPresented:)` per Apple's
-    // WWDC23-10161 documentation: 'Inspectors can collapse by
-    // default, but they aren't resizable by default. We can change
-    // it with .inspectorColumnWidth. We can also add a toolbar
-    // button to toggle the presented property.'
-    //
-    // Was previously removed by commit 5ad064686 (the boss's
-    // earlier directive that 'Apple Pages/Keynote don't show a
-    // inspector toggle button' = incorrect; = the toolbar toggle
-    // button IS the Keynote/Pages/Numbers pattern for the
-    // "presenter notes" / inspector reopen action; = per WWDC23).
-    var inspectorVisible: Bool = true
-
-    // v1.0.0-m1-shell boss 2026-09-10 OOB 'NSV default, the chat
-    // zone area can be shown/hidden but the function is in the menu bar,
-    // no dedicated button. I need to make this area toggleable now,
-    // menu bar first, whether to add a button later is TBD':
-    // the chat zone (= the bottom half of the detail column =
-    // hosted by an `NSSplitViewItem` inside
-    // `EditorChatNSController`) has a Show/Hide toggle that lives
-    // in the macOS menu bar (= Apple HIG canonical pattern for
-    // View > Show/Hide {Pane Name} menu items; = NO toolbar
-    // button today; = matches the boss's 'menu bar first, whether to
-    // add a button later is TBD' directive).
-    //
-    // When `chatVisible = true`, the chat zone NSSplitViewItem is
-    // visible (= editor + chat zone = 50/50 detail column).
-    // When `chatVisible = false`, the NSSplitViewItem.isCollapsed
-    // = true (= the editor fills the full detail column; =
-    // matches Keynote's 'presenter notes' Show/Hide behavior).
-    var chatVisible: Bool = true
-
-    // v1.27 component-architecture (2026-09-17): column-local state
-    // promotion (= boss OOB '在新框架下, 哪些没有同成组件, 要抽好').
-    //
-    // These two states were previously `@State private var` inside
-    // ShellMiddleColumn / ShellDetailColumn respectively. That
-    // was wrong because:
-    //   1. Multiple columns had their own @State for the same
-    //      semantic value (= previewSortOrder existed in both
-    //      ShellMiddleColumn and WorkspaceView = three independent
-    //      copies that drifted = 'change sort in middle column,
-    //      workspace preview stayed default order').
-    //   2. Column-local state survives only the column's view
-    //      identity = collapse-then-expand resets the sort = user
-    //      surprise.
-    //   3. NSA framework's column shell is supposed to be a thin
-    //      routing layer (= NavigationSplitShell + 4 Shell*Column);
-    //      = column body should not own app-wide session state.
-    //
-    // Lives on AppState (= the @Observable SwiftUI state; = the same
-    // pattern as `sidebarSelection`, `inspectorVisible`, `chatVisible`).
-    //
-    // NOT persisted to UserDefaults yet (= column-local state is
-    // ephemeral; = matches the boss's 'should disappear on restart'
-    // expectation; = future ticket can add persistence via
-    // didSet + Codable if needed).
     var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
-    var inspectorPage: InspectorPage = .authoringFiction
 
     // v1.0.0-m1-shell boss 2026-09-10 OOB 'the sidebar tree syntax does not match
     // Apple API': 3 sheet-request triggers moved from
