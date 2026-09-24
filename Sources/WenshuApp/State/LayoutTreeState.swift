@@ -34,7 +34,7 @@ struct TabID: Codable, Equatable, Hashable {
     init(_ raw: UUID = UUID()) { self.raw = raw }
 }
 
-/// SplitDirection — v0.27 enum kept; v2 reads it as `Orientation`.
+/// SplitDirection — kept; v2 reads it as `Orientation`.
 enum SplitDirection: String, Codable {
     /// Pane is to the LEFT or RIGHT of its sibling (= horizontal axis = 'row' in v2).
     case horizontal
@@ -105,9 +105,9 @@ struct TabSpec: Codable, Equatable, Identifiable {
 /// Absent is the third value and the default: AUTO, where the strip's
 /// presence is a pure function of what the zone currently holds.
 ///
-/// Replaces the v0.27 LayoutTreeState's flat-pane `tabIDs` array; this
-/// is the user's deliberate choice (= absent = auto; only the user
-/// writes `tabStrip`; everything else asks AUTO).
+/// Replaces the flat-pane `tabIDs` array; this is the user's
+/// deliberate choice (= absent = auto; only the user writes
+/// `tabStrip`; everything else asks AUTO).
 enum TabStripMode: String, Codable {
     case always
     case never
@@ -509,12 +509,12 @@ func movePanes(
         return movePane(root, paneId: ids[0], target: target)
     }
     let lead = ids[0]
-    // v0.71 P1 batch 11: replaced the previous `working!` (= audit's
-    // LOW smell; = force-unwrap inside a loop that may exit early on
-    // removePane failure) with explicit `guard let pending` (= the
-    // loop-local name is `pending` to avoid shadowing the outer
-    // `current` var; = pending is the in-loop current value before
-    // removePane, then re-assigned to the outer current).
+    // Replaced the previous `working!` (= force-unwrap inside a loop
+    // that may exit early on removePane failure) with explicit
+    // `guard let pending` (= the loop-local name is `pending` to
+    // avoid shadowing the outer `current` var; = pending is the
+    // in-loop current value before removePane, then re-assigned to
+    // the outer current).
     var current: LayoutNode? = root
     for id in ids {
         guard let pending = current else { return root }
@@ -777,7 +777,6 @@ func isLayoutNode(_ value: Any) -> Bool {
 /// field allows schema migrations (= on breaking schema changes,
 /// bump version and migrate in LayoutTreeStore.load).
 ///
-/// v2 (= v0.28 ticket 028-003): backed by a recursive split tree
 /// (`root`) per the hermes `LayoutNode` model. Pane metadata (frame,
 /// minWidth, idealWidth, flex) lives in `panes` (= keyed by PaneID),
 /// and tabs (= which view a pane renders) live in `tabs` (= keyed by
@@ -796,7 +795,6 @@ struct LayoutTreeState: Codable, Equatable {
     /// Schema version (= current = 2).
     var version: Int
 
-    /// v0.30 ticket 04 (= future-framework feature flag): opt-in to
     /// the Apple-native NSSplitView path (= PaneLayout + PaneSplitHost
     /// + PaneNSController) instead of the legacy hand-rolled PaneRenderer.
     ///
@@ -828,7 +826,7 @@ struct LayoutTreeState: Codable, Equatable {
     /// Apple canonical). M1 = build the shell skeleton (= new
     /// `NavigationSplitShell.swift` = outer VSplitView + two
     /// NavigationSplitView); M2-M5 = migrate zone content (= subsequent
-    /// tickets).
+    /// work items).
     ///
     /// Marked `Optional` (= Codable back-compat for old persisted JSON).
     var useThreeColumnSplit: Bool? = nil
@@ -879,20 +877,17 @@ private func walkRoot(_ node: LayoutNode) -> [LayoutNode] {
 ///
 /// Persisted to UserDefaults under `wenshu.workspace.presets`. The
 /// `Default` preset (= isBuiltIn = true) is the FCP Browser 3-pane
-/// layout per the v0.28 free-layout boss (b/II). It is recreated
-/// on demand; user cannot delete it.
+/// layout. It is recreated on demand; user cannot delete it.
 struct LayoutPreset: Codable, Equatable, Identifiable {
     var id: UUID
     var name: String
     var workspace: LayoutTreeState
     var isBuiltIn: Bool
 
-    /// Stable UUIDs for the 4 builtin presets (= ticket 028-005
-    /// §"Acceptance criteria" = 'each preset has a stable UUID per
-    /// app install'). Generated once here and reused forever; this
-    /// keeps UserDefaults round-trips stable across launches.
-    /// v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
-    /// replaced the previous `UUID(uuidString: "...")!` (= compile-
+    /// Stable UUIDs for the 4 builtin presets. Generated once here
+    /// and reused forever; this keeps UserDefaults round-trips
+    /// stable across launches.
+    /// Replaced the previous `UUID(uuidString: "...")!` (= compile-
     /// time-literal force-unwraps that read as crash vectors) with
     /// the `UUID.literal("...")` helper (= a preconditionFailure
     /// pattern; = the literal UUID strings are guaranteed-valid at
@@ -903,10 +898,9 @@ struct LayoutPreset: Codable, Equatable, Identifiable {
     static let builtinQuadID = UUID.literal("00000000-0000-0000-0000-000000000004")
 
     static func builtinDefault(_ workspace: LayoutTreeState) -> LayoutPreset {
-        // v0.71 P1 batch 10: translated the legacy localized string "Default" (which originally rendered in Chinese as 'Default') → "Default" (= AGENTS.md §11
-        // English-only rule; = the builtin preset name should be in
-        // English and the localized version comes from the i18n layer
-        // when shown to the user).
+        // Translated the legacy localized string "Default" → "Default"
+        // (= the builtin preset name is in English; the localized
+        // version comes from the i18n layer when shown to the user).
         LayoutPreset(id: builtinDefaultID, name: "Default", workspace: workspace, isBuiltIn: true)
     }
 }
