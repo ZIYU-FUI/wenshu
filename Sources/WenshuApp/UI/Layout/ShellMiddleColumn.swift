@@ -500,6 +500,27 @@ struct ShellMiddleColumn: View {
                     )
                 )
             )
+            // v1.84 boss 2026-09-24 OOB '素材栏加 10PT 内边距':
+            // the column-level horizontal inset (= 10 PT
+            // chromePaddingContentHorizontal = the PreviewPane
+            // content gutter token from v1.83). This single
+            // VStack-level padding replaces the per-child horizontal
+            // paddings the search field + card grid used in v1.83
+            // (= which the boss caught as '10 + 10 就过多了'; =
+            // single source of truth for the PreviewPane
+            // horizontal gutter = no double padding).
+            //
+            // v1.84b followup: the v1.84 commit body claim that
+            // this padding is wired (= the body commit message
+            // + the ShellMiddleColumn doc comment above both
+            // described the column-level padding as 'applied'),
+            // but the actual code change only DELETED the inner
+            // per-child horizontal paddings (= search field +
+            // cards) without adding the VStack-level padding.
+            // Net effect: the column-level inset never landed
+            // and the boss's '素材栏的内边距 10PT 没有生效' was
+            // exactly right. This patch is the missing half.
         }
+        .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
     }
 }
