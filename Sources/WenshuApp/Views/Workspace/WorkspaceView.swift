@@ -64,6 +64,10 @@ struct WorkspaceView: View {
     // unrelated state (= openTabs / llmModel / etc.).
     @Bindable var shell: ShellState
 
+    // P2-06 (audit 2026-09-24): previewSortOrder + editMode
+    // moved to WorkspaceUIState (= column-local UI state).
+    @Bindable var workspaceUI: WorkspaceUIState
+
     // v0.34 boss 2026-09-02 OOB 'sidebar + preview should share one unified persistence interface':
     // Sidebar selection persistence moved into NewLibraryOutlineView's
     // unified SidebarState (= single AppStorage key 'wenshu.sidebarState').
@@ -124,7 +128,7 @@ struct WorkspaceView: View {
     /// no extra plumbing). Per-window ownership is preserved by
     /// AppState's per-window `@State` on `WenshuApp` (= each
     /// WindowGroup instance still has its own edit-mode boolean).
-    private var editMode: LayoutEditMode { appState.editMode }
+    private var editMode: LayoutEditMode { workspaceUI.editMode }
 
     /// The flat list of panes (= rendered as a horizontal HStack).
     /// The root split direction (= vertical) is applied at the
@@ -233,8 +237,8 @@ struct WorkspaceView: View {
                 // the top-right corner when edit mode is on; the
                 // user can click it to toggle off, or press ⌘⇧\).
                 if editMode.isEnabled {
-                    @Bindable var bindableAppState = appState
-                    EditModeBadge(isEnabled: $bindableAppState.editMode.isEnabled)
+                    @Bindable var bindableWorkspaceUI = workspaceUI
+                    EditModeBadge(isEnabled: $bindableWorkspaceUI.editMode.isEnabled)
                         .padding(DesignTokens.chromePaddingVertical)
                 }
             }
@@ -388,7 +392,7 @@ struct WorkspaceView: View {
                         // so it opens THIS card (= not the topmost one).
                         openCardInEditor(source: source)
                     },
-                    previewSortOrder: $appState.previewSortOrder
+                    previewSortOrder: $workspaceUI.previewSortOrder
                 ))),
                 (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ], trailingButton: AnyView(
@@ -396,7 +400,7 @@ struct WorkspaceView: View {
                 // ▼ replace with list-ordered icon'. The sort menu button
                 // shows [sort rule text (dim)] + [list-ordered icon
                 // (tint)] = icon right-aligned within the trailing button.
-                PreviewSortMenuButton(sortOrder: $appState.previewSortOrder)
+                PreviewSortMenuButton(sortOrder: $workspaceUI.previewSortOrder)
             ))
         case .editor:
             // v0.28 followup Boss UX round 43: switch from

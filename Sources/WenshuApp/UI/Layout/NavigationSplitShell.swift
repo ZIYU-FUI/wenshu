@@ -94,6 +94,11 @@ struct NavigationSplitShell: View {
     // previewScope() function reads). Same lifetime as
     // WorkspaceView's owner; = passed by reference.
     var shell: ShellState
+    // P2-06 (audit 2026-09-24): column-local UI state. Threaded
+    // into ShellMiddleColumn (= the @Bindable entry the
+    // PreviewPane binding reads). Same lifetime as
+    // WorkspaceView's owner; = passed by reference.
+    var workspaceUI: WorkspaceUIState
     /// Optional BookStore for env injection (= descendants
     /// like ForeshadowingView / PlaceholderView / PreviewPane
     /// read BookStore from env via @Environment(BookStore.self)).
@@ -327,7 +332,7 @@ struct NavigationSplitShell: View {
             // macOS 27 doc-alignment (audit ticket 4): strip
             // `.navigationSplitViewColumnWidth(min:ideal:max:)`
             // (= canonical Apple default; see comment above).
-            ShellMiddleColumn(envAppState: appState, appState: appState, shell: shell)
+            ShellMiddleColumn(envAppState: appState, appState: appState, shell: shell, workspaceUI: workspaceUI)
                 // v1.67 boss 2026-09-22 OOB '按 apple 文档示例改
                 // 四列宽度' (= applied DIRECTLY on the
                 // NavigationSplitView content: { ... } closure

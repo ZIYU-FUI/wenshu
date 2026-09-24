@@ -95,8 +95,9 @@ final class NavigationSplitShellTests: XCTestCase {
     func testNavigationSplitShellAssembles() throws {
         let appState = AppState()
         let shell = ShellState()
+        let workspaceUI = WorkspaceUIState()
         XCTAssertNoThrow(
-            NavigationSplitShell(appState: appState, shell: shell),
+            NavigationSplitShell(appState: appState, shell: shell, workspaceUI: workspaceUI),
             "NavigationSplitShell body MUST assemble without throwing (= the 6 real wenshu zone views are correctly wired per M2 spec)."
         )
     }

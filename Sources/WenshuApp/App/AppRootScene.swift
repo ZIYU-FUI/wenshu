@@ -41,6 +41,11 @@ struct AppRootScene: Scene {
     /// (= WindowGroup content + Settings scene); = the 2
     /// injection sites stay parallel.
     let shell: ShellState
+    /// P2-06 (audit 2026-09-24): column-local UI state. Split
+    /// out from AppState. Injected via `.environment(workspaceUI)`
+    /// at every scene root (= WindowGroup content + Settings scene);
+    /// = the 2 injection sites stay parallel.
+    let workspaceUI: WorkspaceUIState
     let repositories: WSRepositoryContainer
 
     // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
@@ -76,6 +81,7 @@ struct AppRootScene: Scene {
             LibraryRootView(library: library, appearanceMode: appearanceMode)
                 .environment(appState)
                 .environment(shell)
+                .environment(workspaceUI)
                 .environment(repositories)
         }
         // v1.0.0-m1-shell boss 2026-09-10 OOB 'persistence after opening a .ws,

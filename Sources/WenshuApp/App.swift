@@ -216,6 +216,12 @@ struct WenshuApp: App {
     /// AppState.
     @State private var shell = ShellState()
 
+    /// P2-06 (audit 2026-09-24): column-local UI state (= preview
+    /// sort order + layout edit mode). Split out from AppState.
+    /// Injected via `.environment(workspaceUI)` at the AppRootScene
+    /// root. Same per-window @State pattern.
+    @State private var workspaceUI = WorkspaceUIState()
+
     /// v0.72 SwiftData migration: WSRepositoryContainer holds the 9
     /// `@MainActor @Observable` SwiftData repositories (= `chat`,
     /// `todo`, `kanban`, ...). Per `WSRepositoryContainer.swift:18-21`,
@@ -239,6 +245,7 @@ struct WenshuApp: App {
             appearanceMode: $appearanceMode,
             appState: appState,
             shell: shell,
+            workspaceUI: workspaceUI,
             repositories: repositories
         )
     }

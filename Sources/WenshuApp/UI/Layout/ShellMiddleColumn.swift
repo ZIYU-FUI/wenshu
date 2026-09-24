@@ -74,6 +74,10 @@ struct ShellMiddleColumn: View {
     // `shell` (= the @Bindable Observable instance = observation
     // tracking on every body render).
     @Bindable var shell: ShellState
+    // P2-06 (audit 2026-09-24): previewSortOrder moved to
+    // WorkspaceUIState. The card grid's `previewSortOrder` binding
+    // (= passed to PreviewPane) reads via `workspaceUI`.
+    @Bindable var workspaceUI: WorkspaceUIState
     // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
     // openCardInEditor needs BookStore.referenceStore to load
     // reference bodies for double-clicked cards (= the same env
@@ -397,7 +401,7 @@ struct ShellMiddleColumn: View {
                 onDoubleClick: { source in
                     openCardInEditor(source: source)
                 },
-                previewSortOrder: $envAppState.previewSortOrder,
+                previewSortOrder: $workspaceUI.previewSortOrder,
                 searchQuery: Binding<String?>(
                     get: { envAppState.searchText },
                     set: { newValue in envAppState.searchText = newValue ?? "" }

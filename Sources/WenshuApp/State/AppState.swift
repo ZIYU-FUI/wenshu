@@ -72,7 +72,12 @@ final class AppState {
     // needed. Callers now read `shell.sidebarSelection` (= via
     // `@Environment(ShellState.self)` injected at AppRootScene).
 
-    var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
+    // previewSortOrder + editMode moved to WorkspaceUIState.swift
+    // (= P2-06 split batch 3 = column-local UI state; = bundled
+    // because both share the same lifecycle + reset semantics).
+    // Lives on AppState no longer (= the column-local UI scope is
+    // a separate concern from cross-zone state + openTabs +
+    // llmModel = the only remaining AppState contents).
 
     // v1.0.0-m1-shell boss 2026-09-10 OOB 'the sidebar tree syntax does not match
     // Apple API': 3 sheet-request triggers moved from
@@ -280,22 +285,14 @@ final class AppState {
         }
     }
 
-    // v0.40 apple-001 Q3 surgical: hoist `LayoutEditMode` (= the
-    // ⌘⇧\ layout-edit hotkey state) from WorkspaceView-local
-    // `@State private var editMode = LayoutEditMode()` into AppState
-    // so all workspace descendants share one instance (= single
-    // source of truth for the layout edit on/off boolean). The class
-    // is already @Observable + @MainActor (= Apple-native Observation
-    // framework) so injecting via the existing `.environment(appState)`
-    // chain (= added in v0.30) is the canonical path. WorkspaceView
-    // now reads `appState.editMode` via @Environment instead of owning
-    // its own instance; = the `WindowGroup` content tree has exactly
-    // one `editMode` instance (per-window) and any sibling view that
-    // needs to gate drag gestures reads the same one. `var` (not
-    // `let`) so descendants can take a `Binding<Bool>` via
-    // `@Bindable` (= the EditModeBadge / EditModeHotkey consumers
-    // need a writable binding to toggle the on/off boolean).
-    var editMode = LayoutEditMode()
+    // editMode moved to WorkspaceUIState.swift (= P2-06 split
+    // batch 3; = bundled with previewSortOrder because both
+    // are column-local UI state with the same lifecycle).
+    // Previously: a LayoutEditMode @Observable class instance
+    // (= Apple Observation framework; = shared across workspace
+    // descendants via @Bindable; = ⌘⇧\ hotkey in
+    // EditModeHotkey.swift toggled `appState.editMode`).
+    // Now: same lifecycle, just lives on WorkspaceUIState.
 
     // B-05: wenshu.llm.model centralization. Single owner of the
     // active LLM model id (= was previously scattered as 4 separate
