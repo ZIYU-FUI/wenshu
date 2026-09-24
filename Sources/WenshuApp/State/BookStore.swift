@@ -435,22 +435,17 @@ public enum StandardBookFolder: String, CaseIterable, Sendable, Codable {
     case foreshadowing
     case placeholders
 
-    /// Filesystem directory name (= matches `LibraryBootstrapper`).
-    public var folderName: String { rawValue }
+    /// Filesystem directory name (= derives from BookFolderCatalog
+    /// = the SSOT for id → directoryName mapping).
+    public var folderName: String {
+        BookFolderCatalog.spec(for: rawValue)?.directoryName ?? rawValue
+    }
 
-    /// User-facing label (Chinese — matches the rest of the DynamicZone
-    /// chrome per boss cadence).
+    /// User-facing Chinese label (= derives from BookFolderCatalog
+    /// = the SSOT for id → cardDisplayName mapping; = the Kanban
+    /// / Todo scope picker shows this label per folder).
     public var displayName: String {
-        switch self {
-        case .world: return "世界观"
-        case .characters: return "角色"
-        case .outlines: return "大纲"
-        case .chapters: return "章节"
-        case .drafts: return "草稿"
-        case .sessions: return "会话"
-        case .foreshadowing: return "伏笔"
-        case .placeholders: return "占位"
-        }
+        BookFolderCatalog.spec(for: rawValue)?.cardDisplayName ?? rawValue
     }
 }
 
