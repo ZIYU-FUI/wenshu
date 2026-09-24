@@ -3,15 +3,13 @@
 //
 //  Shared mock LLMConnector for unit tests with scripted tool_use support.
 //
-// v0.37 enhancement (= per cadence 'resume' + 'PO execute,
-// don't' + 'when done, verify visual and frontend flow together' + '1 RULE 1 commit'):
-//  MockLLMConnector now supports scripted responses that emit tool_use
-//  blocks. The v0.36 version only echoed text. The v0.37 version supports:
+// MockLLMConnector now supports scripted responses that emit tool_use
+// blocks. The default version echoes text. This version supports:
 //
 //  1. Echo response (default) — echoes the last user message
 //  2. Scripted response — returns a configured sequence of LLMResponses,
 //     each containing the next LLMBlock (= text, thinking, toolUse,
-//     toolResult). Used by ticket 018 sub-step 3 real agent dispatch tests.
+//     toolResult).
 //  3. Tool dispatch — when a toolUse block is received, the mock can
 //     be configured to call ToolExecutor inline and append toolResults
 //     before returning the final response.
