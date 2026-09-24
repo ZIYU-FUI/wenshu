@@ -21,7 +21,6 @@ struct WSRepositoryContainerTests {
         _ = repoContainer.bookmark
         _ = repoContainer.kanban
         _ = repoContainer.link
-        _ = repoContainer.book
         _ = repoContainer.providerKey
         _ = repoContainer.preference
         #expect(true)  // reach here = no crash
