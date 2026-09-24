@@ -1,13 +1,10 @@
 //
 //  Persistence/Repositories/WSMemoryRepository.swift · Wenshu · v0.72 SwiftData migration Phase 2
 //
-//  Migration commit 22 of 42: WSMemoryRepository.
-//  Per AGENTS.md §11.4 + .scratch/2026-09-13-swiftdata-migration-spec.md.
+//  Thin wrapper that exposes the same public API as the prior
+//  MemoryStore actor (= hermes mem0 port).
 //
-//  Thin wrapper that exposes the same public API as MemoryStore actor
-//  (= v0.18 ticket 01 SQLite long-term memory, hermes mem0 port).
-//
-//  Public API (preserved 1:1 from old MemoryStore actor):
+//  Public API (preserved 1:1):
 //    - add(userId:content:) throws -> Memory
 //    - search(userId:query:limit:) throws -> [Memory]
 //    - get(memoryId:) throws -> Memory?
@@ -18,11 +15,10 @@
 //    - purgeOlderThan(userId:retentionDays:) throws -> Int
 //
 //  Implementation: SwiftData @Model WSMemory → Memory struct (= the
-//  old Domain.Memory type, = unchanged).
+//  canonical Domain.Memory type, unchanged).
 //
-//  Phase 5 ticket 8 deleted MemoryStore.swift; = WSMemoryRepository
-//  is now the sole canonical memory persistence (= @MainActor
-//  SwiftData wrapper for WSMemory @Model class).
+//  WSMemoryRepository is the canonical memory persistence
+//  (@MainActor SwiftData wrapper for WSMemory @Model class).
 
 import Foundation
 import SwiftData
