@@ -52,7 +52,7 @@ struct AppRootScene: Scene {
         // with .windowToolbarStyle(.unified, showsTitle: false) below for
         // canonical Apple HIG API to hide title slot in unified chrome.
         WindowGroup("") {
-            // M8.1: dropped CommandPaletteHost + SettingsEnvironmentCapturer
+            // dropped CommandPaletteHost + SettingsEnvironmentCapturer
             // wrappers (= 2 non-Apple-canonical layers between
             // WindowGroup and the root content view). Per Apple
             // canonical 4-layer architecture:

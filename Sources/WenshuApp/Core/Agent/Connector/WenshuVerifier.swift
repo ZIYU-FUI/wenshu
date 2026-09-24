@@ -42,7 +42,7 @@ struct WenshuLLMRequest: Codable, Sendable {
 // Anthropic-compatible content blocks include text / thinking (CoT) / tool_use variants
 
 // minimax-cn M2.7 returns thinking blocks before text (chain-of-thought pattern)
-// M3 returns plain text blocks. JSONDecoder keyed container used to hardcode-require "text" key
+// returns plain text blocks. JSONDecoder keyed container used to hardcode-require "text" key
 // in content[0] → M2.7 thinking block throws DecodingError.keyNotFound.
 enum WenshuLLMBlock: Codable, Sendable, Equatable {
     case text(String)

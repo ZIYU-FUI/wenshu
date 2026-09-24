@@ -33,7 +33,7 @@
 //       the configured skills section (= hermes preprocess_skill_content
 //       L128-144).
 //
-// M6-19 refactor + HERMES-PARTIAL-016 (2026-09-04).
+// refactor + HERMES-PARTIAL-016 (2026-09-04).
 //
 
 import Foundation
