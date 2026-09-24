@@ -2,8 +2,8 @@
 //
 // Domain model for a single reference (= one piece of research material
 // inside the library's ReferenceLibrary). Library-public (= shelf-shared,
-// reusable across all books; boss 2026-08-26 OOB clarification:
-// 'can' = a single research source can back many books).
+// reusable across all books; a single research source can back many
+// books).
 //
 // Each reference is stored as a `.md` file under
 // `<.ws>/reference-library/<layer>/<ref-uuid>.md` where <layer> is one of
@@ -11,16 +11,16 @@
 //
 // v0.26 ships only `raw/` (user imports) + `entities/` (user-facing, the
 // only visible layer). `abstracts/` + `indexes/` are LLM-derived layers
-// for v0.27+ (= LLM-driven entity extraction).
+// (= LLM-driven entity extraction from chat).
 //
-// ReferenceStore protocol (ticket 006) handles the read / write of the
-// `.md` body + JSON sidecar per layer.
+// ReferenceStore protocol handles the read / write of the `.md` body +
+// JSON sidecar per layer.
 
 import Foundation
 
 /// LLM Wiki layer (= where in the 4-layer ReferenceLibrary hierarchy this
 /// reference lives). v0.26 supports raw + entities; abstracts + indexes
-/// land in v0.27+ (= LLM-driven extraction from chat).
+/// are LLM-derived.
 enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
     case layerRaw
     case layerEntities
@@ -38,7 +38,7 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Chinese display label (= boss 8/25 'UI in progress').
+    /// Chinese display label.
     var displayName: String {
         switch self {
         case .layerRaw:       return "原始资料"
@@ -50,16 +50,11 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
 
     /// Whether this layer is user-facing (= visible in the UI).
     ///
-    /// v0.29 boss 2026-08-30 OOB 'filedirectoryyes, userneed
-    /// . ': `.layerRaw` (= original source files = user
-    /// doesn't need to browse these directly = they're for LLM ingestion)
-    /// is now NOT user-facing. `.layerEntities` remains user-facing.
-    /// `.layerAbstracts` + `.layerIndexes` are LLM-derived (= already
-    /// hidden per their semantic nature).
-    ///
-    /// v0.26 historical: only `.layerRaw` + `.layerEntities` were
-    /// user-facing; `.layerAbstracts` + `.layerIndexes` LLM-derived.
-    /// v0.29: `.layerRaw` also LLM-only (= user browses entities instead).
+    /// `.layerRaw` (= original source files = user doesn't need to
+    /// browse these directly = they're for LLM ingestion) is NOT
+    /// user-facing. `.layerEntities` remains user-facing.
+    /// `.layerAbstracts` + `.layerIndexes` are LLM-derived (= hidden
+    /// per their semantic nature).
     var isUserFacing: Bool {
         switch self {
         case .layerEntities: return true
@@ -68,11 +63,8 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
     }
 
     /// SF Symbols 6 icon name (= for direct SF Symbol lookup via
-    /// Image(systemName:)). v1.0.0-m1-shell boss 2026-09-15 OOB
-    /// 'remove Lucide, use SF Symbols 6 with palette rendering':
-    /// replaces Lucide icon names with SF Symbols 6 equivalents.
-    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline uniformly':
-    /// all layers return outline (= non-.fill) icons.
+    /// Image(systemName:)). All layers return outline (= non-.fill)
+    /// icons.
     var icon: String {
         switch self {
         case .layerRaw:       return "tray.and.arrow.down"   // = raw inbox
@@ -109,9 +101,9 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// subdirectory under `reference-library/`.
     var layer: ReferenceLayer
 
-    /// v0.29 boss 2026-08-30 OOB: library-taxonomy category (= assigned
-    /// at save time by `EntityClassifier`). Optional for backward
-    /// compatibility (= legacy raw materials may not have a category).
+    /// Library-taxonomy category (= assigned at save time by
+    /// `EntityClassifier`). Optional for backward compatibility
+    /// (= legacy raw materials may not have a category).
     var category: EntityCategory?
 
     /// Optional 2nd-level subcategory code (= e.g. "I2" for "in progress").
@@ -119,22 +111,22 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// Optional (= most entities fit in the top-level bucket).
     var subcategory: String?
 
-    /// v0.30 boss 2026-08-30 OOB: entity-type (= orthogonal to category).
-    /// 9 cases (= character / location / event / concept / artifact /
-    /// organization / era / work / other). The FIRST explicit
-    /// entity-definition rule wenshu has (= previous versions relied
-    /// on hermes Python's 4 regex surface-form rules, not semantic
-    /// type). Defaults to .other for legacy entities (= Codable migration).
+    /// Entity-type (= orthogonal to category). 9 cases (= character /
+    /// location / event / concept / artifact / organization / era /
+    /// work / other). The first explicit entity-definition rule
+    /// wenshu has; = previous versions relied on hermes Python's 4
+    /// regex surface-form rules, not semantic type. Defaults to
+    /// `.other` for legacy entities (= Codable migration).
     ///
-    /// v0.30 custom Codable: accepts BOTH string ("character") AND integer
-    /// (= 1) representations on decode. The seed-script writes integers
-    /// (= matches EntityType.promptNumber for LLM output). String form
-    /// remains supported for human-readable JSON files.
+    /// Custom Codable: accepts BOTH string ("character") AND integer
+    /// representations on decode. The seed-script writes integers
+    /// (= matches `EntityType.promptNumber` for LLM output). String
+    /// form remains supported for human-readable JSON files.
     var entityType: EntityType
 
-    // MARK: - v0.30 Codable migration: entityType fallback to .other
-    //
-    // Legacy entities.json (pre-v0.30) doesn't have entityType field.
+    // MARK: - entityType Codable migration: fallback to .other
+
+    // Legacy entities.json (pre-entityType) doesn't have the field.
     // Strict Codable would fail decoding (= "Key 'entityType' not found").
     // Custom init(from:) provides a graceful migration path: missing
     // entityType → .other (= safe default; user can re-classify later
@@ -198,8 +190,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         try c.encode(updatedAt, forKey: .updatedAt)
     }
 
-    /// One-line summary shown on the card (= boss 8/26 'cardyes
-    /// ').
+    /// One-line summary shown on the card.
     var summary: String
 
     /// Optional cross-references to other entities (= where this
@@ -253,7 +244,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         "\(id.uuidString).md"
     }
 
-    /// Full on-disk path. v0.29: entities live at
+    /// Full on-disk path. Entities live at
     /// `reference-library/entities/<category>/<uuid>.md` (= category
     /// subdirectory). Raw materials stay flat at
     /// `reference-library/raw/<uuid>.md`. Other layers flat.
