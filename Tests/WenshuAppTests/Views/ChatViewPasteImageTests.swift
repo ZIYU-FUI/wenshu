@@ -137,9 +137,9 @@ struct ChatViewPasteImageTests {
         // TextField via ImagePasteModifier; = top layer).
         #expect(inputBarSrc.contains(".onPasteCommand(of: [.image])"))
         #expect(!chatViewSrc.contains(".onPasteCommand(of: [.image])"))
-        // The input row HStack's minimum height pin (= .frame(minHeight: 44); = boss v1.76 spec: input height = 44PT = match button height)
+        // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives in ChatInputBarView (= the top layer).
-        #expect(inputBarSrc.contains(".frame(minHeight: 44, maxHeight: 44)"))
-        #expect(!chatViewSrc.contains(".frame(minHeight: 44, maxHeight: 44)"))
+        #expect(inputBarSrc.contains(".frame(minHeight: 36, maxHeight: 36)"))
+        #expect(!chatViewSrc.contains(".frame(minHeight: 36, maxHeight: 36)"))
     }
 }

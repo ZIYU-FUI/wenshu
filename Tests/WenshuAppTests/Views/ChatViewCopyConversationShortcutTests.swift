@@ -108,7 +108,7 @@ struct ChatViewCopyConversationShortcutTests {
         // block lives as a sibling of ScrollViewReader, not inside the
         // input row). The invariant (= Button("Copy conversation") Button is OUTSIDE the
         // input row HStack) is now distributed across two files; = this
-        // test verifies both halves exist (= .frame(minHeight: 44) is
+        // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Copy conversation") is only in ChatView).
         let inputBarSrc = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
@@ -118,10 +118,10 @@ struct ChatViewCopyConversationShortcutTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
             encoding: .utf8
         )
-        // The input row HStack's minimum height pin (= .frame(minHeight: 44); = boss v1.76 spec: input height = 44PT = match button height)
+        // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
-        #expect(inputBarSrc.contains(".frame(minHeight: 44, maxHeight: 44)"))
-        #expect(!chatViewSrc.contains(".frame(minHeight: 44, maxHeight: 44)"))
+        #expect(inputBarSrc.contains(".frame(minHeight: 36, maxHeight: 36)"))
+        #expect(!chatViewSrc.contains(".frame(minHeight: 36, maxHeight: 36)"))
         // The Button("Copy conversation") keyboard shortcut Button lives ONLY in
         // ChatView (= the keyboard shortcut block is a sibling of
         // ScrollViewReader; = not inside the input row).
