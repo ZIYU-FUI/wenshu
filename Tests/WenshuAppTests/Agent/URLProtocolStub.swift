@@ -1,14 +1,10 @@
 //
-//  URLProtocolStub.swift · Wenshu · v0.36 ship packet
-//                      · TICKET-HERMES-GAP-002 followup
+//  URLProtocolStub.swift · Wenshu
 //
 //  Shared URLProtocol stub for HTTP interceptor tests (= OpenAIConnector,
 //  GeminiNativeConnector, etc.).
 //
-// v0.36 fix (= per cadence 'fix pre-existing tests'):
-//  URLProtocolStub was previously referenced from multiple test files
-//  (= OpenAIConnectorTests + GeminiNativeConnectorTests) but never
-//  defined. Promoting it to a shared test file in WenshuAppTests target.
+// URLProtocolStub is now a shared test file in WenshuAppTests target.
 //
 //  TICKET-HERMES-GAP-002 followup:
 //  URLSession instantiates a fresh URLProtocolStub per request (= the test's
