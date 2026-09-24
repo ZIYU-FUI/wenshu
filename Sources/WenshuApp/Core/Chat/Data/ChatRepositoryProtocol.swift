@@ -46,23 +46,37 @@ public protocol ChatRepositoryProtocol: Sendable {
     /// Append one chat message to the given session. Silent no-op
     /// (= `try?` + no throw visible to caller) is the convention —
     /// persistence failures should not crash the chat pipeline.
-    func append(_ message: ChatMessage, sessionId: String) async throws
+    ///
+    /// v1.79 chat-by-book: bookID is Optional. Callers MUST pass the
+    /// current WenshuLibrary.selectedBookId so the message lands in
+    /// the correct scope. nil = global un-attached (= legacy behavior;
+    /// = used for onboarding-before-book-selection chats).
+    func append(_ message: ChatMessage, sessionId: String, bookID: String?) async throws
 
     /// Load the full history of one session, oldest first.
     /// Returns an empty array (= not throw) when the session is
     /// new or the store is unavailable — callers render the empty
     /// state directly.
-    func loadMessages(sessionId: String) async throws -> [ChatMessage]
+    ///
+    /// v1.79 chat-by-book: bookID is Optional. Pass the current book id
+    /// to filter to in-scope messages; nil = legacy "load everything
+    /// in this session regardless of book scope" behavior.
+    func loadMessages(sessionId: String, bookID: String?) async throws -> [ChatMessage]
 
     /// Trigger LLM-driven summarization (= hermes `ConversationCompression`)
     /// when the history grows past `threshold` (= in turns). The
     /// `verifier` is the LLM verifier (= same one used by the chat
     /// pipeline) — the repository doesn't own the LLM client.
+    ///
+    /// v1.79 chat-by-book: bookID is Optional (= scope of the
+    /// summarization pipeline; = messages outside the scope are not
+    /// counted toward the threshold).
     func summarizeIfNeeded(
         sessionId: String,
         lastN: Int,
         threshold: Int,
-        verifier: WenshuVerifier
+        verifier: WenshuVerifier,
+        bookID: String?
     ) async throws
 
     /// C-6: copy a user-picked chat attachment (e.g. a screenshot

@@ -535,7 +535,15 @@ public final class ChatViewModel {
         // C-4: route through ChatRepositoryProtocol (= the data-layer
         // seam). The Live impl owns the StoredChatMessage mapping; =
         // business layer speaks ChatMessage only.
-        try? await repository.append(userMsg, sessionId: sessionId)
+        // v1.79 chat-by-book: bookID = nil at this call site. The
+        // ChatSessionViewModel.append path is invoked from user-typed
+        // messages that have not yet been associated with a session
+        // (= the session id is the AppState.sharedConductor session,
+        // which is the "global un-attached" default until T5 wires
+        // the live selectedBookId). The data layer still accepts nil
+        // (= matches the global un-attached scope; = the next T5
+        // commit will replace nil with WenshuLibrary.shared.selectedBookId).
+        try? await repository.append(userMsg, sessionId: sessionId, bookID: nil)
 
         do {
             // v0.34: streaming path = render each text chunk as it
@@ -845,7 +853,7 @@ public final class ChatViewModel {
                 tokens: replyTokens,
                 thinking: replyThinking?.isEmpty == false ? replyThinking : nil
             )
-            try? await repository.append(agentMsg, sessionId: sessionId)
+            try? await repository.append(agentMsg, sessionId: sessionId, bookID: nil)
             recomputeContextUsed()
 
             // trigger summary generation (LLM + saveSummary + deleteOldMessages order)
@@ -854,12 +862,15 @@ public final class ChatViewModel {
             // method is async + the caller doesn't need a manual Task wrap
             // anymore; = was the bug-prone `Task { @MainActor in ... }`
             // pattern that lost errors silently).
+            // v1.79 chat-by-book: bookID = nil placeholder (= T5 wires
+            // WenshuLibrary.shared.selectedBookId in the next commit).
             let verifier = WenshuVerifier()
             try? await repository.summarizeIfNeeded(
                 sessionId: sessionId,
                 lastN: 10,
                 threshold: 20,
-                verifier: verifier
+                verifier: verifier,
+                bookID: nil
             )
         } catch {
             // v0.34: route through UserFacingError.from (= single
@@ -1026,9 +1037,12 @@ public final class ChatViewModel {
     /// the Live impl does the StoredChatMessage ↔ ChatMessage mapping.
     /// Errors are swallowed (= matches the prior `try?` behavior; =
     /// chat zone still renders, just with empty history).
+    ///
+    /// v1.79 chat-by-book: bookID = nil placeholder (= T5 wires
+    /// WenshuLibrary.shared.selectedBookId in the next commit).
     public func loadHistory() async {
         do {
-            let loaded = try await repository.loadMessages(sessionId: sessionId)
+            let loaded = try await repository.loadMessages(sessionId: sessionId, bookID: nil)
             self.messages = loaded
         } catch {
             // Silent no-op (= matches legacy behavior; = the view
