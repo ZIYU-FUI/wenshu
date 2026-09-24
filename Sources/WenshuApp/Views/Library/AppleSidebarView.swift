@@ -63,6 +63,11 @@ struct AppleSidebarView: View {
     // stays for cross-zone state that lives elsewhere on
     // AppState (= openTabs / llmModel / etc.).
     @Environment(ShellState.self) private var shell
+    // P2-06 (audit 2026-09-24): sheet-request counters moved to
+    // SheetRequestState (= fire-and-forget triggers; = toolbar
+    // Menu / sidebar bottom button / zone-header button all
+    // increment; the sidebar body observes and presents).
+    @Environment(SheetRequestState.self) private var sheetRequests
 
     /// SidebarService owns the tree (= data + business logic;
     /// = SwiftUI doesn't see it; = the List renders it).
@@ -132,7 +137,7 @@ struct AppleSidebarView: View {
                 // closure lives in `contextMenuHandler`.
                 .modifier(EmptyAreaContextMenu(
                     newLabel: WenshuI18n.t("sidebar_context_menu_new"),
-                    action: { appState.choiceRequestCount += 1 }
+                    action: { sheetRequests.choice += 1 }
                 ))
                 // v1.69y: right-click on selected rows (= Apple
                 // HIG canonical macOS 14+ contextMenu hook).
@@ -184,7 +189,7 @@ struct AppleSidebarView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             AppleSidebarBottomNewButton {
-                appState.choiceRequestCount += 1
+                sheetRequests.choice += 1
             }
         }
         .task {
@@ -250,13 +255,13 @@ struct AppleSidebarView: View {
         // `.onChange(of: appState.*RequestCount)` blocks (= same
         // pattern = the toolbar Menu's New buttons flip the
         // counters; = the sidebar body observes and presents).
-        .onChange(of: appState.choiceRequestCount) { _, _ in
+        .onChange(of: sheetRequests.choice) { _, _ in
             showNewChoiceSheet = true
         }
-        .onChange(of: appState.newShelfRequestCount) { _, _ in
+        .onChange(of: sheetRequests.newShelf) { _, _ in
             showNewShelfSheet = true
         }
-        .onChange(of: appState.newBookRequestCount) { _, _ in
+        .onChange(of: sheetRequests.newBook) { _, _ in
             showNewBookSheet = true
         }
         // v1.69y: the create/rename/delete sheets. Each presents
@@ -271,9 +276,9 @@ struct AppleSidebarView: View {
                     showNewChoiceSheet = false
                     switch choice {
                     case .shelf:
-                        appState.newShelfRequestCount += 1
+                        sheetRequests.newShelf += 1
                     case .book:
-                        appState.newBookRequestCount += 1
+                        sheetRequests.newBook += 1
                     }
                 },
                 onCancel: { showNewChoiceSheet = false }
@@ -398,7 +403,7 @@ struct AppleSidebarView: View {
             availableShelves: shelves,
             onNewBookHere: { shelfId in
                 shell.sidebarSelection = .shelf(shelfId)
-                appState.newBookRequestCount += 1
+                sheetRequests.newBook += 1
             },
             onRenameShelf: { shelfId, _ in
                 if let shelf = service.shelves.first(where: { $0.id == shelfId }) {

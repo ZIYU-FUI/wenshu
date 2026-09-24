@@ -96,9 +96,12 @@ final class AppState {
     // the sidebar body observes via .onChange(of: appState.
     // newBookRequestCount) and flips its local showNewBookSheet.
     // Same approach for newShelfRequestCount + choiceRequestCount.
-    var newBookRequestCount: Int = 0
-    var newShelfRequestCount: Int = 0
-    var choiceRequestCount: Int = 0
+    // 3 sheet-request triggers (= newBook / newShelf / choice)
+    // moved to SheetRequestState.swift (= P2-06 split batch 4).
+    // The counters are fire-and-forget triggers (= toolbar Menu
+    // bumps the counter = sidebar body observes .onChange and
+    // flips its local @State showXSheet). Same pattern in 3
+    // places, all bundled on SheetRequestState.
 
     // v1.0.0-m1-shell boss 2026-09-10 OOB 'global search': promote
     // the search text to AppState (= a single source of truth

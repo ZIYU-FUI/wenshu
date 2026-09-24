@@ -222,6 +222,12 @@ struct WenshuApp: App {
     /// root. Same per-window @State pattern.
     @State private var workspaceUI = WorkspaceUIState()
 
+    /// P2-06 (audit 2026-09-24): sheet-request trigger counters
+    /// (= newBook / newShelf / choice). Split out from AppState.
+    /// Injected via `.environment(sheetRequests)` at the AppRootScene
+    /// root.
+    @State private var sheetRequests = SheetRequestState()
+
     /// v0.72 SwiftData migration: WSRepositoryContainer holds the 9
     /// `@MainActor @Observable` SwiftData repositories (= `chat`,
     /// `todo`, `kanban`, ...). Per `WSRepositoryContainer.swift:18-21`,
@@ -246,6 +252,7 @@ struct WenshuApp: App {
             appState: appState,
             shell: shell,
             workspaceUI: workspaceUI,
+            sheetRequests: sheetRequests,
             repositories: repositories
         )
     }

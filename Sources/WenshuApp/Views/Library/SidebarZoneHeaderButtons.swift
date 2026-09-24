@@ -42,17 +42,22 @@ import SwiftUI
 ///   `.buttonStyle(.borderless)`.
 struct SidebarZoneHeaderButtons: View {
     @Environment(AppState.self) private var appState
+    // P2-06 (audit 2026-09-24): sheet-request counters moved to
+    // SheetRequestState. The "+" button increments `choice` to
+    // trigger the choice sheet via .onChange in the parent
+    // (= AppleSidebarView observes sheetRequests.choice).
+    @Environment(SheetRequestState.self) private var sheetRequests
 
     var body: some View {
         HStack(spacing: 0) {
             // New plain Button (= tap increments
-            // appState.choiceRequestCount; consumed by the sidebar
+            // sheetRequests.choice; consumed by the sidebar
             // body listener which presents NewChoiceSheet).
             SidebarZoneHeaderIconButton(
                 iconName: "square-plus",
                     help: "New"
                 ) {
-                    appState.choiceRequestCount += 1
+                    sheetRequests.choice += 1
                 }
             // Import plain Button (= tap directly fires
             // .wenshuImportRequested notification; consumed by the
