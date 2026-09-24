@@ -1,20 +1,13 @@
-// ShellContentColumn.swift · Wenshu · v1.39 ticket 001
+// ShellContentColumn.swift · Wenshu
 //
-// Extracted from NavigationSplitShell.swift.
+// Extracted from `NavigationSplitShell.swift`. Continues the
+// split with ShellContentColumn (= the detail column hosting
+// editor + chat via EditorChatSplitHost = NSSplitViewController
+// wrapper).
 //
-// v1.38 extracted ShellSidebarColumn (= 34 NLOC). v1.39 (= this ticket)
-// continues the NavigationSplitShell split with ShellContentColumn
-// (= 80 NLOC = the detail column hosting editor + chat via
-// EditorChatSplitHost = NSSplitViewController wrapper).
-//
-// Per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112: extract
-// ShellContentColumn (= the column hosting the editor + chat split).
-// The struct + the 70-line Apple HIG rationale move verbatim.
-// 0 behavior change.
-//
-// Out of scope (= explicit, future tickets):
-// - ShellMiddleColumn (= 446 NLOC; = next extract)
-// - ShellDetailColumn (= ~590 NLOC)
+// Out of scope (= future tickets):
+// - ShellMiddleColumn (= the next extract)
+// - ShellDetailColumn
 
 import SwiftUI
 
@@ -22,34 +15,31 @@ import SwiftUI
 
 struct ShellContentColumn: View {
     let appState: AppState
-    // pass BookStore through to EditorChatSplitHost (= the editor
+    // Pass BookStore through to EditorChatSplitHost (= the editor
     // pane's EditorPlaceholder needs bookStore for
     // WenshuEditorServicesFactory = builds the engine's
     // WikiLinkResolver + ImageProvider against the active book
     // root).
     let bookStore: BookStore?
-    // v1.79 chat-by-book: thread WenshuLibrary through to
-    // EditorChatSplitHost so ChatZoneView can observe
-    // library.selectedBookId (= the canonical source for the
-    // user's active book; = see WenshuLibrary.swift L74/L78/
-    // L198/L218-L219/L224 for all selectedBookId mutation sites).
+    // Thread WenshuLibrary through to EditorChatSplitHost so
+    // ChatZoneView can observe library.selectedBookId (= the
+    // canonical source for the user's active book).
     let library: WenshuLibrary?
 
     var body: some View {
         // Per Apple's HIG split-views documentation
         // (developer.apple.com/design/human-interface-guidelines/
-        // split-views): "Keynote in macOS uses split view panes to
-        // present the slide navigator, the presenter notes, and
-        // the inspector pane in areas that surround the main slide
-        // canvas. For developer guidance, see VSplitView and
-        // HSplitView." = the canonical Apple HIG 'middle column' (= detail
-        // column = editor on top + chat on bottom) pattern is
-        // VSplitView.
+        // split-views): "Keynote in macOS uses split view panes
+        // to present the slide navigator, the presenter notes,
+        // and the inspector pane in areas that surround the main
+        // slide canvas." = the canonical Apple HIG 'middle column'
+        // (= detail column = editor on top + chat on bottom)
+        // pattern is VSplitView.
         //
         // Two .frame(maxWidth: .infinity, maxHeight: .infinity)
         // modifiers on the direct children (= EditorPlaceholder +
-        // ChatZoneView) = commit f1b56bfc8 fix; = both children
-        // fill the VSplitView slot (= no content-sized shrinkage).
+        // ChatZoneView) = both children fill the VSplitView slot
+        // (= no content-sized shrinkage).
         //
         // The .navigationSplitViewColumnWidth(min: 400, ideal: 600,
         // max: 900) is applied DIRECTLY on the ShellContentColumn
@@ -57,7 +47,7 @@ struct ShellContentColumn: View {
         // detail: closure) per Apple docs: 'You can specify a
         // different modifier in each column. The navigation split
         // view does its best to accommodate the preferences that
-        // you specify'. = the NSV honors the 400/600/900 detail
+        // you specify'. The NSV honors the 400/600/900 detail
         // column width even with VSplitView inside.
         //
         // Apple HIG note: the chat zone may also collapse to zero
@@ -83,14 +73,12 @@ struct ShellContentColumn: View {
         // The .navigationSplitViewColumnWidth(min: 400, ideal: 600,
         // max: 900) is applied DIRECTLY on the ShellContentColumn
         // (= the view that lives inside NavigationSplitView's
-        // detail: closure) per Apple docs: 'You can specify a
-        // different modifier in each column. The navigation split
-        // view does its best to accommodate the preferences that
-        // you specify'. = the NSV honors the 400/600/900 detail
-        // column width even with NSSplitViewController inside.
+        // detail: closure) per Apple docs: the NSV honors the
+        // 400/600/900 detail column width even with
+        // NSSplitViewController inside.
         EditorChatSplitHost(
             conductor: WenshuAppDelegate.sharedConductor,
-            // thread AppState + BookStore through the SwiftUI →
+            // Thread AppState + BookStore through the SwiftUI →
             // AppKit boundary (= NSViewControllerRepresentable)
             // so the editor pane's EditorPlaceholder can read
             // appState.openTabs + activeTabId + bookStore for
