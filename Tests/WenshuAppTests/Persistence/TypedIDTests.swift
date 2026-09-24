@@ -112,4 +112,40 @@ struct TypedIDTests {
         let roundTripped = BookID(rawValue: loaded[0].bookID ?? "")
         #expect(roundTripped == bookID)
     }
+
+    @Test("SwiftData #Predicate macro accepts BookID via .rawValue lift (= the Q46 stop-rule workaround)")
+    @MainActor
+    func predicateMacroAcceptsBookIDViaRawValueLift() throws {
+        // The SwiftData #Predicate macro rejects function calls (= e.g.
+        // `bookID.rawValue`) inside the closure body. The fix (= per
+        // P2-02 commit 16 Q46 stop-rule activation) is to lift the
+        // brand wrapper's raw value into a local `let` binding
+        // OUTSIDE the predicate closure, then capture the local let
+        // by reference inside the predicate.
+        //
+        // This test verifies the lift works end to end (= if a future
+        // sweep regresses the lift, this test fails to compile).
+        let schema = Schema([WSSession.self])
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: [config])
+        let context = ModelContext(container)
+
+        let bookA = BookID(rawValue: "book-A-predicate-test")
+        let bookB = BookID(rawValue: "book-B-predicate-test")
+        let bookC = BookID(rawValue: "book-C-predicate-test")
+        context.insert(WSSession(sessionID: "sess-A", bookID: bookA.rawValue))
+        context.insert(WSSession(sessionID: "sess-B", bookID: bookB.rawValue))
+        context.insert(WSSession(sessionID: "sess-C", bookID: bookC.rawValue))
+        try context.save()
+
+        // Filter for one specific bookID using the lift pattern.
+        let bookIDRaw = bookB.rawValue
+        let descriptor = FetchDescriptor<WSSession>(
+            predicate: #Predicate { $0.bookID == bookIDRaw }
+        )
+        let matched = try context.fetch(descriptor)
+        #expect(matched.count == 1)
+        #expect(matched[0].sessionID == "sess-B")
+        #expect(BookID(rawValue: matched[0].bookID ?? "") == bookB)
+    }
 }
