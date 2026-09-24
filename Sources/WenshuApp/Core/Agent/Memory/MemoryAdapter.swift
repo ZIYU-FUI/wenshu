@@ -51,8 +51,14 @@ public final class MemoryAdapter {
     private let defaults: UserDefaults
     private let defaultUserId: String = "default"
 
-    public init(defaults: UserDefaults = .standard) {
+    /// P1-01 (audit 2026-09-24): inject WSMemoryRepository via init;
+    /// fall back to .shared. Same pattern as WenshuConductor +
+    /// MemoryManager + WSMemoryProvider.
+    private let memory: WSMemoryRepository
+
+    public init(defaults: UserDefaults = .standard, memory: WSMemoryRepository? = nil) {
         self.defaults = defaults
+        self.memory = memory ?? .shared
     }
 
     public var isEnabled: Bool {
@@ -84,11 +90,11 @@ public final class MemoryAdapter {
     public func setRetentionDays(_ days: Int) -> Int {
         let clamped = min(max(days, 7), 365)
         defaults.set(clamped, forKey: DefaultsKey.retentionDays)
-        return (try? WSMemoryRepository.shared.purgeOlderThan(userId: defaultUserId, retentionDays: clamped)) ?? 0
+        return (try? memory.purgeOlderThan(userId: defaultUserId, retentionDays: clamped)) ?? 0
     }
 
     public func recentEntries(limit: Int = 20) -> [MemoryEntry] {
-        let rows = (try? WSMemoryRepository.shared.listRecent(userId: defaultUserId, limit: limit)) ?? []
+        let rows = (try? memory.listRecent(userId: defaultUserId, limit: limit)) ?? []
         return rows.map { row in
             MemoryEntry(
                 id: row.memoryId,
