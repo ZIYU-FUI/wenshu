@@ -1,6 +1,6 @@
 //
 //  AsyncDelegation.swift · Wenshu · v0.23 ticket 013.010 (hermes gap 9)
-//                          + HERMES-PARTIAL-018 wire-up (2026-09-04)
+//                          + wenshu port wire-up (2026-09-04)
 //
 // 
 // Source: Gythub.com/NosResearch/hermes-agent/blob/main/tools/async delegation.py
@@ -274,7 +274,7 @@ actor AsyncDelegationRegistry {
         }
     }
 
-    // MARK: - Progress stream (HERMES-PARTIAL-018 wire-up)
+    // MARK: - Progress stream (wenshu port wire-up)
 
     /// Await the next progress event (= hermes completion-queue pop).
     /// Multiple subscribers are NOT supported; one waiter at a time
@@ -313,7 +313,7 @@ actor AsyncDelegationRegistry {
     }
 }
 
-// MARK: - Delegate entry (HERMES-PARTIAL-018 wire-up)
+// MARK: - Delegate entry (wenshu port wire-up)
 
 /// Public delegate entry (= hermes `delegate_task(goal, context, tasks, ...)`).
 ///
