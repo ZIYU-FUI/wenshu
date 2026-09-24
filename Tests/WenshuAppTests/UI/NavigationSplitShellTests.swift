@@ -32,7 +32,7 @@ import XCTest
 @MainActor
 final class NavigationSplitShellTests: XCTestCase {
 
-    /// M1 spec §2.3: default `false` (= PaneSplitHost path
+    /// 
     /// per the "legacy path" rule). If this ever flips
     /// to `true` by accident, existing users will see the new
     /// 3-column shell (= a breaking UX change = must ship as a
@@ -95,7 +95,7 @@ final class NavigationSplitShellTests: XCTestCase {
         )
     }
 
-    /// M2 (= this commit): swap M1's ShellPlaceholder for the
+    /// 
     /// real wenshu zone views. Acceptance = body assembly
     /// without throwing (= the 6 real zone views: AppleSidebarView,
     /// ZoneModuleView(projectPreview), EditorPlaceholder, ChatView,
@@ -104,7 +104,7 @@ final class NavigationSplitShellTests: XCTestCase {
     /// shell without SwiftUI constraint cycles (= boss 9/8's
     /// 'can, ').
     ///
-    /// M2 smoke test = shell assembles without throwing; =
+    /// 
     /// this test only needs AppState (= BookStore requires a
     /// stores argument that the test infrastructure doesn't
     /// provide; = the shell's behavior is identical with a

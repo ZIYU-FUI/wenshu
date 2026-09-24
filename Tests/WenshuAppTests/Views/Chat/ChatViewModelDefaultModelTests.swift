@@ -53,7 +53,7 @@ struct ChatViewModelDefaultModelTests {
             .appendingPathComponent("Sources/WenshuApp/Views/Settings/SettingView.swift")
         let settingView = try? String(contentsOf: settingViewURL, encoding: .utf8)
         #expect(settingView != nil, "SettingView.swift must be readable at \(settingViewURL.path)")
-        // v0.24 bossverificationfix line: SettingView.swift has @AppStorage("wenshu.llm.model") default = "" (NOT WenshuLLMModel.m3.rawValue).
+        // 
         let hasEmptyDefault = settingView!.contains("@AppStorage(\"wenshu.llm.model\") private var llmModel: String = \"\"")
         #expect(hasEmptyDefault, "SettingView.swift llmModel default must be '' (v0.24 boss fix)")
     }
@@ -70,7 +70,7 @@ struct ChatViewModelDefaultModelTests {
         #expect(chatZoneView != nil, "ChatZoneView.swift must be readable at \(chatZoneViewURL.path)")
         // 
         // the v0.24 boss fix was applied at App.swift line 1281 = `@AppStorage("wenshu.llm.model") private var currentModel: String = ""`.
-        // v0.40 apple-001 phase 3 ticket 4b moved that property into AppState.llmModel (= the canonical source of truth). The previous test was checking ChatZoneView.swift for the old @AppStorage pattern (= the v0.24 boss fix comment), which is now a no-op (= the property is computed via appState.llmModel).
+        // 
         //
         // Fix: verify the canonical source-of-truth (= AppState.llmModel) carries the empty-string default. We strip comments to avoid false positives (= the v0.24 comment in SettingView.swift line 57-67 mentions the literal `@AppStorage("wenshu.llm.model")` as historical reference).
         let appStateURL = URL(fileURLWithPath: cwd)

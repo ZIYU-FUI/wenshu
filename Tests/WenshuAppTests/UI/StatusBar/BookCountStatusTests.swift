@@ -1,6 +1,6 @@
 // BookCountStatusTests.swift · Wenshu () · B-07 015.019
 //
-// Boss 2026-09-04 OOB ': the sidebar bottom status bar's
+// 
 // ": N" must reflect the actual library book count (=
 // `BookStore.books.count`) and stay reactive across add / remove.
 //

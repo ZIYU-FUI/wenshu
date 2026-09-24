@@ -4,7 +4,7 @@
 //  Verifies the hermes真值 `StatusPulse` (= status-pulse.tsx
 //  PULSE_DURATION_MS=400 + PULSE_PERIOD_MS=5000) replaces the
 //  previous T87-STREAM-PULSE scale+opacity breathing animation.
-//  boss 2026-09-21 '思考中的那个效果不是 hermes 的效果':
+// 
 //  the wenshu placeholder indicator now matches hermes真值
 //  1:1 (= 3×3 PT rounded-2 square, opacity pulse 400 ms every
 //  5 s; = NOT a continuous breathing animation).

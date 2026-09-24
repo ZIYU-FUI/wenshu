@@ -38,7 +38,7 @@ struct LiquidGlassPolishTests {
         //   (= Apple owns the styling per HIG; no custom view body to apply
         //   .background to; same rationale as POLISH-LIQUIDGLASS-005).
         // - BacklinksPanel.swift: uses `.background { Color.clear }` per
-        //   boss 2026-09-07 real-device test (= removed .glassEffect).
+        // 
         //
         // The 2 surfaces that ARE wired with `.glassEffect(.regular)` in
         // production code (= CommandPaletteView, BookEditorSheet) remain.

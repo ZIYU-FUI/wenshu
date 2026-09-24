@@ -1,6 +1,6 @@
 // AppleSidebarMVVMSplitTests.swift · Wenshu · v1.69
 //
-// v1.69 sidebar MVVM cleanup: end-to-end source-level verification
+// 
 // that the new MVVM-split sidebar stack
 // (= AppleSidebarView + SidebarService + SidebarNode + SidebarItem)
 // is correctly wired together (= the boss 2026-09-22 OOB requirement
