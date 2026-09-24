@@ -442,50 +442,45 @@ struct ShellMiddleColumn: View {
                         .controlSize(.regular)
                         .textFieldStyle(.plain)
                     }
-                    // v1.85c boss 2026-09-24 OOB '搜索栏边框, 距离素材栏
-                    // 的左右 10PT 的编辑没有, 需要加': the search
-                    // field HStack now owns its own 10 PT horizontal
-                    // OUTER padding (= the gutter between the search
-                    // field's RoundedRectangle background and the
-                    // column edges). The padding is applied AFTER
-                    // `.background(...)` in the modifier chain (= the
-                    // padding wraps the background + content together
-                    // = the background now stands 10 PT away from
-                    // each column edge = the user-specified visual
-                    // inset that v1.92's column-level padding was
-                    // supposed to provide but never landed).
-                    //
-                    // v1.85c boss 2026-09-24 OOB '用六的': the
+                    // v1.85d boss 2026-09-24 OOB '总高 = 22 PT
+                    // (controlSize .regular) + 6 PT × 2 = 34 PT,
+                    // 这个需要再改, 还是得 8PT, 6 不够': the
                     // search field INNER vertical padding is
-                    // chromePaddingSmall (= 6 PT) on each side =
-                    // 12 PT total vertical breathing room between
+                    // chromePaddingMedium (= 8 PT) on each side =
+                    // 16 PT total vertical breathing room between
                     // the icon / TextField and the RoundedRectangle
                     // background top / bottom edges. Boss
-                    // experimented with 8 PT (= '上下各 8PT, 试
-                    // 一下') and switched to 6 PT (= '用六的').
-                    // Per boss's standing rule: use Apple HIG
-                    // semantic expressions (= chromePaddingSmall)
-                    // instead of hardcoded numbers.
+                    // experimented with 6 PT (= '用六的') and
+                    // decided 8 PT (= '还是得 8PT') = the rect
+                    // needs more vertical room = the
+                    // chromePaddingSmall (= 6 PT) was visually
+                    // cramped.
                     //
-                    // Modifier order matters: HStack content →
-                    // .padding(.vertical, 6) → .frame(maxWidth:
-                    // .infinity) → .background(RoundedRectangle) →
-                    // .padding(.horizontal, 10). The outer
-                    // .padding(.horizontal, 10) wraps both the
-                    // background AND the frame so the background
-                    // shrinks 10 PT from each column edge (= the
-                    // rect no longer fills the column from edge to
-                    // edge). The inner .padding(.vertical, 6)
-                    // operates between the content (icon +
-                    // TextField) and the background (= the content
-                    // sits 6 PT from the rect top + bottom edges).
-                    .padding(.vertical, DesignTokens.chromePaddingSmall)
+                    // v1.85d boss 2026-09-24 OOB '搜索框的边框
+                    // 左右距离素材栏栏边的间距没有生效': the
+                    // outer .padding(.horizontal, 10) modifier
+                    // was placed AFTER .background(...) in the
+                    // v1.85c chain (= HStack content → padding
+                    // .vertical → frame → background → padding
+                    // .horizontal). The SwiftUI layout system
+                    // honors that order, but the background fills
+                    // the parent's maxWidth regardless (= the
+                    // padding wraps the framed view but the
+                    // background is drawn at maxWidth). v1.85d
+                    // re-orders: HStack content → padding
+                    // .horizontal → padding .vertical → frame
+                    // → background. The padding now sits INSIDE
+                    // the frame (= the padded view reports a size
+                    // = maxWidth; = the background then draws on
+                    // the padded view = the background now stands
+                    // 10 PT away from each column edge).
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, DesignTokens.chromePaddingVertical)
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     )
-                    .padding(.horizontal, 10)
                     // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
                     // spacing between it and the first card — is there a hand-written padding, and if
                     // so, drop it': drop the manual `.padding(.vertical,
