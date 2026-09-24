@@ -1,5 +1,5 @@
 //
-//  Persistence/WSManifestTests.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSManifestTests.swift · Wenshu
 //
 //  Test commit 1: WSManifest = first @Model class (= simplest, no relationships).
 //  Validates that the SwiftData build pipeline works end-to-end:

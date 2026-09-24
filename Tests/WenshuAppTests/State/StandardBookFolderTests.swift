@@ -2,7 +2,7 @@
 //  StandardBookFolderTests.swift
 //  wenshu
 //
-//  v1.81 SSOT derivation tests (= verify
+//  SSOT derivation tests (= verify
 //  BookStore.StandardBookFolder.folderName / displayName derive
 //  from BookFolderCatalog; = the canonical source).
 //

@@ -1,12 +1,8 @@
 //
-//  TodoListViewRefRuntimeSmokeTests.swift · Wenshu · v0.93 ticket 007
+//  TodoListViewRefRuntimeSmokeTests.swift · Wenshu
 //
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
-//
-// 
-//  v1.46 ticket 001 established this pattern (= runtime smoke tests
-//  that reference the primary type at runtime to satisfy repowise).
 //
 //  This file complements (= does NOT replace) the source-level
 //  structural tests in TodoListViewTests.swift (= v0.93 ticket 004):

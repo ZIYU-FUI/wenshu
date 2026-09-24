@@ -1,5 +1,5 @@
 //
-//  Persistence/WSMemoryTests.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSMemoryTests.swift · Wenshu
 //
 //  Test commit 2: WSMemory @Model (= memories table from MemoryStore.swift).
 // 
