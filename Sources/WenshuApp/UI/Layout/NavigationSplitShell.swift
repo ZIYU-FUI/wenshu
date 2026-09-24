@@ -229,83 +229,50 @@ struct NavigationSplitShell: View {
         // NSSplitView.dividerColor = .clear + dividerStyle = .thin
         // is not an Apple SwiftUI API; = macOS 27
         // NavigationSplitView owns its own column separation).
-        // CHATZONE-CRASH-FIX (2026-09-08): re-inject appState at
-        // the NavigationSplitView root (= SwiftUI's internal
-        // layout engine reads @Environment values during
-        // NavigationSplitCoordinator.makeSplitViewController
-        // to compute column min sizes; = the engine needs appState
-        // in env even though no column body reads it directly).
-        // Without this re-injection, the env chain fails at
-        // _FlexFrameLayout.sizeThatFits (= EnvironmentValues
-        // subscript crashes with 'No Observable object of type
-        // AppState found' during view layout pass).
-        // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
-        // redundant injection is benign (per the audit's own conclusion)
-        // but the design relies on multiple re-injection sites: if one
-        // is dropped during a future refactor, env-chain failures will
-        // surface at the layout pass. Marked CRITICAL DO NOT REMOVE in
-        // the comment block so future contributors don't try to
-        // "clean up" the apparent redundancy.
+        // Re-inject appState at the NavigationSplitView root
+        // (= SwiftUI's internal layout engine reads @Environment
+        // values during NavigationSplitCoordinator.makeSplit
+        // ViewController to compute column min sizes; = the engine
+        // needs appState in env even though no column body reads
+        // it directly). Without this re-injection, the env chain
+        // fails at _FlexFrameLayout.sizeThatFits (= Environment
+        // Values subscript crashes with 'No Observable object of
+        // type AppState found' during view layout pass).
+        //
+        // Redundant injection is benign (= per the dual-axis
+        // audit's own conclusion) but the design relies on
+        // multiple re-injection sites: if one is dropped during
+        // a future refactor, env-chain failures will surface at
+        // the layout pass.
         .environment(appState)
-        // CHATZONE-CRASH-FIX part 2: also re-inject bookStore if
-        // available (= descendants read BookStore from env via
-        // @Environment(BookStore.self) = ForeshadowingView /
-        // PlaceholderView / PreviewPane / WorkspaceView. Without
-        // this re-injection, the env chain fails at the layout
-        // pass with 'No Observable object of type BookStore found').
-        // CRITICAL DO NOT REMOVE (= see comment block above).
+        // Also re-inject bookStore if available (= descendants
+        // read BookStore from env via @Environment(BookStore.self)
+        // = ForeshadowingView / PlaceholderView / PreviewPane /
+        // WorkspaceView. Without this re-injection, the env chain
+        // fails at the layout pass with 'No Observable object of
+        // type BookStore found').
         .environment(bookStore)
-        // v1.67 boss 2026-09-22 OOB '修复真因，按 apple 文档示例
-        // 写法试一次': apply the SwiftUI macOS 13+ canonical
-        // window-sizing recipe per gunbark.dev / swiftwithmajid.com
-        // / avdlee swiftui-agent-skill references — 'frame(minWidth:
-        // maxWidth:minHeight:maxHeight:) on the content view defines
-        // the content size range; .windowResizability(.contentSize)
-        // makes the window size follow the content's min/max
-        // constraints.' Applied verbatim to NavigationSplitView
-        // (= the content root): minWidth 1100 = 4-column NSV min
-        // sum (sidebar 220 + cards 240 + detail 400 + inspector
-        // 240 = 1100 PT floor; = same as the previous contentMinSize
-        // floor), maxWidth 1800 = below the macOS 27 NSV crash
-        // threshold observed in `WenshuApp-2026-09-22-13*.ips` (=
-        // `_postWindowNeedsUpdateConstraints` BPT trap fires when
-        // NSV's layout pass recomputes at ≥ ~2200 PT window width;
-        // = 1800 PT is the largest width where the layout pass
-        // completes without the exception), minHeight 600 =
-        // 4-column NSV min height (= detail column header + chat
-        // zone + tokens used bar = ~580 PT), maxHeight 1100 =
-        // standard macOS laptop display height ceiling (= above
-        // 1100 PT would require a fullscreen window on a 13"
-        // display, which .contentSize forbids).
-        // v1.67 boss 2026-09-22 OOB '把 max width, max height 取消掉,
-        // 其它不动': keep `minWidth: 1100` + `minHeight: 600` (= the
-        // NSV 4-column min sum floor preserved via
-        // `.windowResizability(.contentMinSize)` below) and STRIP
-        // `maxWidth` + `maxHeight` (= the previous v1.67 ceiling that
-        // disabled macOS's system-level "zoom" gesture = double-click
-        // on the title bar / click the green traffic-light button /
-        // choose Window > Zoom = which macOS performs by setting the
-        // window frame to the display's visibleRect; = per
-        // developer.apple.com/documentation/swiftui/view/
-        // windowresizability 'The window can't be larger than its
-        // content's maximum size when the window's resizability is
-        // contentSize'; = the previous v1.67 `.contentSize` + 1800 PT
-        // maxWidth combo blocked the system zoom gesture from
-        // exceeding the NSV's content max). Switching back to
-        // `.contentMinSize` (= only the min floor enforced; = the
-        // window can grow without bound; = the user's standard macOS
-        // zoom-to-fullscreen gesture is restored).
+        // SwiftUI macOS 13+ canonical window-sizing recipe per
+        // gunbark.dev / swiftwithmajid.com / avdlee swiftui-agent-
+        // skill references — 'frame(minWidth:maxWidth:minHeight:
+        // maxHeight:) on the content view defines the content size
+        // range; .windowResizability(.contentSize) makes the window
+        // size follow the content's min/max constraints.' Applied
+        // verbatim to NavigationSplitView (= the content root):
+        // minWidth 1100 = 4-column NSV min sum (sidebar 220 +
+        // cards 240 + detail 400 + inspector 240 = 1100 PT floor;
+        // = same as the previous contentMinSize floor),
+        // minHeight 600 = 4-column NSV min height (= detail column
+        // header + chat zone + tokens used bar = ~580 PT).
+        //
+        // Only the min floor is enforced (= the window can grow
+        // without bound; = the user's standard macOS
+        // zoom-to-fullscreen gesture is restored; = setting max
+        // values here would forbid the system zoom gesture from
+        // exceeding the content max).
         .frame(minWidth: 1100, minHeight: 600)
     }
-}// v1.38 ticket 001 (= real fix per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112):
-// `ShellSidebarColumn` moved to its own file at
-// `Sources/WenshuApp/UI/Layout/ShellSidebarColumn.swift`. The struct
-// block (= 29 lines including the `// MARK: - Sidebar column` header
-// + the Apple HIG sidebar rationale + the post-v1.69
-// AppleSidebarView body) is removed here so the same name no
-// longer compiles twice. Same module = no new import needed
-// for the consumer (= NavigationSplitShell instantiates
-// ShellSidebarColumn directly).
+}
 
 /// v0.40 boss 2026-09-08 OOB 'directory tree top bar is also missing': scope selector
 /// for the sidebar top tab bar. 2 cases map to the existing
