@@ -35,7 +35,7 @@
 |-------|------|---------|------------------|
 | Language | Swift | 6.4+ | Apple native. SwiftUI 6 covers all 3 platforms. |
 | Desktop | SwiftUI | macOS 14+ (`.macOS(.v27)` single platform per 老板 8/18 拍) | Same code, 3-platform struct, macOS-first target. |
-| Data store | SwiftData | Apple framework (= Apple-recommended; = replaced CoreData in v0.72 per AGENTS.md §11.4) | Cross-Apple, single-file, actor-friendly. |
+| Data store | SwiftData | Apple framework (= Apple-recommended; = replaced CoreData in v0.72 per AGENTS.md §11.4; = v1.79 chat-by-book row-level split per AGENTS.md §11.11 + docs/agents/v1.79-chat-by-book-row-split.md) | Cross-Apple, single-file, actor-friendly. |
 | Concurrency | Swift Concurrency | Swift 5.5+ | actor serialization + Task async + AsyncSequence streaming. |
 | LLM connector layer | 7 profiles (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn) | BYOK, provider-agnostic | Per AGENTS.md §11.2. minimax cn is one of 7 connectors (Anthropic-compatible). |
 | Streaming | URLSession + self-built SSE parser | — | byte-level accumulation, event type classification. |
