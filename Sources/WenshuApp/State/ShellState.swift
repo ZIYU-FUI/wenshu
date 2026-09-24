@@ -153,7 +153,7 @@ final class ShellState {
         // wrapper semantics; = didSet is suppressed during init).
         // So this read is purely load-side (= no UserDefaults
         // write during launch = no extra disk churn).
-        if let data = UserDefaults.standard.data(forKey: Self.sidebarSelectionKey),
+        if let data = UserDefaultsStore.shared.data(forKey: .sidebarSelection),
            let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data) {
             self.sidebarSelection = decoded
         }
