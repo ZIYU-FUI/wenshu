@@ -183,9 +183,12 @@ public struct ChatView: View {
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier()
         let tools = WenshuConductor.buildToolsSync(from: ToolRegistry.shared)
-        // Phase 5 ticket 6: KanbanStore actor removed from conductor entirely.
-        // Conductor reads/writes kanban via WSKanbanRepository.shared
-        // (= @MainActor SwiftData wrapper). No kanbanStore param needed.
+        // P1-01 (audit 2026-09-24): kanban / chat writes route through
+        // the conductor's injected `WSRepositoryContainer` (= falls back
+        // to `.shared` for callers that don't inject; this static
+        // factory is such a caller — the production caller in
+        // `ChatViewModel` constructs the conductor through a different
+        // path and explicitly passes `repositories`).
         return WenshuConductor(
             runtime: runtime,
             verifier: verifier,

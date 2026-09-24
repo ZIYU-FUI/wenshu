@@ -43,6 +43,17 @@ public actor WenshuConductor {
     private var skillRegistryBootstrapped: Bool = false
     /// h10: agent toolkit dispatch (FileTools + ProcessTools + WebTools + VisionTools).
     /// Tools are stateless structs, no bootstrap needed.
+
+    /// v0.72 Phase 6 (WIRE-P1-01): P1-01 audit fix. The conductor reads
+    /// / writes kanban + chat persistence (= formerly via
+    /// `WSKanbanRepository.shared` / `WSChatRepository.shared` static
+    /// singletons). Inject the @MainActor-isolated
+    /// `WSRepositoryContainer` (= matches the Phase 6 protocol
+    /// pattern that `LiveChatRepository` already implements for
+    /// chat). Falls back to `.shared` (= the v0.72 global
+    /// singleton) when the caller does not pass a container; =
+    /// every existing test + ChatView call site keeps working.
+    private let repositories: WSRepositoryContainer
     /// See .scratch/2026-08-22-frontend-integration/issues/h10-tools-frontend.md.
     private let fileTools: FileTools = FileTools()
     private let webTools: WebTools = WebTools()
@@ -76,7 +87,8 @@ public actor WenshuConductor {
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
         skillRegistry: SkillRegistry? = nil,
-        tools: [String: any Tool] = [:]
+        tools: [String: any Tool] = [:],
+        repositories: WSRepositoryContainer? = nil
     ) {
         // P0 #1 (WIRE-AGENT-001): chain to the new init with no connector
         // (= legacy callers = the loop path is a no-op short-circuit and
@@ -89,15 +101,17 @@ public actor WenshuConductor {
         // Phase 5 ticket 2: kanbanStore param was removed entirely from
         // both init signatures (= ticket 6 also deleted the KanbanStore
         // actor; = there is no kanbanStore arg to pass). KanbanStore
-        // persistence is now exclusively via WSKanbanRepository.shared
-        // (= @MainActor SwiftData wrapper).
+        // persistence is now exclusively via `repositories.kanban`
+        /// (= @MainActor SwiftData wrapper via WSRepositoryContainer;
+        /// = .shared fallback when nil).
         self.init(
             runtime: runtime,
             verifier: verifier,
             skillRegistry: skillRegistry,
             connector: nil,
             loopRuntime: nil,
-            tools: tools
+            tools: tools,
+            repositories: repositories
         )
     }
 
@@ -127,7 +141,8 @@ public actor WenshuConductor {
         skillRegistry: SkillRegistry? = nil,
         connector: (any LLMConnector)? = nil,
         loopRuntime: RuntimeHelpers? = nil,
-        tools: [String: any Tool] = [:]
+        tools: [String: any Tool] = [:],
+        repositories: WSRepositoryContainer? = nil
     ) {
         self.runtime = runtime
         self.verifier = verifier
@@ -139,6 +154,20 @@ public actor WenshuConductor {
         // ConversationLoop.runTurn(...tools:). Default = empty so
         // every existing call site compiles unchanged.
         self.tools = tools
+        // P1-01 fix: prefer the injected WSRepositoryContainer; fall
+        // back to a deferred-resolved `.shared` singleton (= preserves
+        // every existing call site that does not pass a container yet).
+        // The fallback is wrapped in `MainActor.assumeIsolated` because
+        // `WSRepositoryContainer.shared` is @MainActor-isolated (= Swift
+        // 6 strict-concurrency requirement). Every production caller
+        // already constructs the conductor from the @MainActor context
+        // (= ChatView + App.swift), so this never crosses actor
+        // boundaries at runtime.
+        if let repositories {
+            self.repositories = repositories
+        } else {
+            self.repositories = MainActor.assumeIsolated { WSRepositoryContainer.shared }
+        }
         // Bootstrap deferred to first handle() call (Swift actor init cannot await).
     }
 
@@ -324,14 +353,14 @@ public actor WenshuConductor {
         // Step 1: write 1 conductor parent task to WSKanbanRepository (= legacy
         // parity: same Kanban behaviour as the legacy path).
         let added = await MainActor.run { () -> KanbanTask? in
-            try? WSKanbanRepository.shared.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
+            try? self.repositories.kanban.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
         }
         if let task = added {
             // Mark done after the loop attempt (= best-effort; matches
             // the legacy code path exactly).
             Task {
                 await MainActor.run {
-                    _ = try? WSKanbanRepository.shared.transition(id: task.id, to: .done)
+                    _ = try? self.repositories.kanban.transition(id: task.id, to: .done)
                 }
             }
         }
@@ -428,7 +457,7 @@ public actor WenshuConductor {
         // actor). MainActor.run is not throwing (= the inner try? is the
         // only error sink), so we can drop the do/catch.
         let conductorTask: KanbanTask? = await MainActor.run {
-            try? WSKanbanRepository.shared.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
+            try? self.repositories.kanban.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
         }
 
         // v0.21 ticket 34: accumulate all LLM API real usage (intent classify + sub-agent LLM calls + synthesis)
@@ -480,7 +509,7 @@ public actor WenshuConductor {
             var tasks: [(name: String, kanbanTaskId: String?)] = []
             for agentName in selectedAgents {
                 let kTask = await MainActor.run {
-                    try? WSKanbanRepository.shared.add(title: "\(agentName): \(userMessage.prefix(30))", status: .running)
+                    try? self.repositories.kanban.add(title: "\(agentName): \(userMessage.prefix(30))", status: .running)
                 }
                 tasks.append((name: agentName, kanbanTaskId: kTask?.id))
             }
@@ -528,7 +557,7 @@ public actor WenshuConductor {
             for (_, kanbanId) in tasks where !isCancelled {
                 if let id = kanbanId {
                     await MainActor.run {
-                        _ = try? WSKanbanRepository.shared.transition(id: id, to: .done)
+                        _ = try? self.repositories.kanban.transition(id: id, to: .done)
                     }
                 }
             }
@@ -546,7 +575,7 @@ public actor WenshuConductor {
                     completedAt: Date(),
                     resultSummary: summary
                 )
-                _ = await MainActor.run { try? WSChatRepository.shared.recordSubAgentRun(run, sessionId: "default") }
+                _ = await MainActor.run { try? self.repositories.chat.recordSubAgentRun(run, sessionId: "default") }
             }
             // v0.23 ticket 002: Auditor runs if Writer or Analyst in selection.
             let needsAudit = selectedAgents.contains("writer") || selectedAgents.contains("analyst")
@@ -608,7 +637,7 @@ public actor WenshuConductor {
             // v0.23 audit #014 fix: don't write kanban state if cancelled.
             if !Task.isCancelled {
                 await MainActor.run {
-                    _ = try? WSKanbanRepository.shared.transition(id: conductorTask.id, to: .done)
+                    _ = try? self.repositories.kanban.transition(id: conductorTask.id, to: .done)
                 }
             }
         }
