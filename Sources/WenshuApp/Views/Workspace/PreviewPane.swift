@@ -903,7 +903,18 @@ struct PreviewPane: View {
             // card needed). Keep leading + bottom padding (= 8 PT)
             // so cards still have breathing room from the column
             // edges (= Apple HIG 8-point grid for inline content).
-            .padding(.horizontal, 8)
+            //
+            // v1.83 boss 2026-09-24 OOB '整搜索栏左右两边没有间距
+            // ... 素材栏没有内边距, 需要加 10PT': the cards' left
+            // + right padding switches from 8 PT (= hand-written
+            // magic number, = a long-standing inline number that
+            // drifted from the search field's 8 PT horizontal
+            // padding) to 10 PT (= chromePaddingContentHorizontal
+            // = the canonical PreviewPane content gutter; = same
+            // value the search field now uses after v1.83; = one
+            // gutter = one source = no horizontal drift between
+            // search field and card grid).
+            .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
             .padding(.bottom, 8)
                 }
             // v1.79 boss 2026-09-24 OOB '点击 sidebar 后卡片出现，

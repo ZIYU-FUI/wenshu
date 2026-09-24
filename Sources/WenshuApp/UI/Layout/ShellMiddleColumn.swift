@@ -407,7 +407,25 @@ struct ShellMiddleColumn: View {
                         .controlSize(.regular)
                         .textFieldStyle(.plain)
                     }
-                    .padding(.horizontal, DesignTokens.zoneContentInset)
+                    // v1.83 boss 2026-09-24 OOB '素材栏的搜索栏没有
+                    // 加内间距, 需要加, 让整个搜索栏的高度高一些' +
+                    // '整搜索栏左右两边没有间距... 素材栏没有内
+                    // 边距, 需要加 10PT': horizontal padding switches
+                    // from 8 PT (= zoneContentInset) to 10 PT
+                    // (= chromePaddingContentHorizontal = the
+                    // canonical PreviewPane content gutter; = the
+                    // user-specified value matching the cards'
+                    // horizontal padding in bookDocsGrid). Add
+                    // vertical padding 6 PT (= chromePaddingSmall)
+                    // inside the HStack so the icon + TextField sit
+                    // with breathing room above and below (= the
+                    // overall search field height grows from the
+                    // baseline 22 PT controlSize(.regular) to
+                    // ~34 PT, = the user's '搜索栏高度高一些' goal
+                    // without hard-coding a frame height = Apple
+                    // semantic expression).
+                    .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
+                    .padding(.vertical, DesignTokens.chromePaddingSmall)
                     // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
                     // spacing between it and the first card — is there a hand-written padding, and if
                     // so, drop it': drop the manual `.padding(.vertical,

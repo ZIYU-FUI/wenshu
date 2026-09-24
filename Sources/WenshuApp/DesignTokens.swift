@@ -114,6 +114,22 @@ public enum DesignTokens {
     public static let chromePaddingNano: CGFloat = 2
     public static let chromePaddingPico: CGFloat = 1
 
+    /// v1.83 boss 2026-09-24 OOB '素材栏的搜索栏没有加内间距, 需要
+    /// 加 10PT' + '整搜索栏左右两边没有间距... 素材栏没有内边距,
+    /// 需要加 10PT': horizontal content-area padding (= 10 PT)
+    /// for the middle-column PreviewPane (= where the search
+    /// field + card grid live). This is the canonical left + right
+    /// inset for any horizontally-flowing content inside the
+    /// PreviewPane column; = replaces the previous inline
+    /// `.padding(.horizontal, 8)` (= hand-written magic number
+    /// that drifted from the search field's horizontal padding
+    /// for several months). 10 PT = the Apple HIG macOS 27
+    /// standard content-area gutter (= the same value as
+    /// chromePaddingSectionHeaderTop / Bottom = the column-edge
+    /// to first-content rhythm; = the user's '符合 Apple
+    /// 内边距表达' intent).
+    public static let chromePaddingContentHorizontal: CGFloat = 10
+
     /// Per-pane chrome small padding (= 6 PT). Used for status bar hover,
     /// tight text padding inside chips, badge interior gaps.
     /// Replaces inline `.padding(.vertical, DesignTokens.chromePaddingSmall)`.
