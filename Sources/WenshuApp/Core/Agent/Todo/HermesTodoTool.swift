@@ -1,15 +1,12 @@
 //
-//  HermesTodoTool.swift · Wenshu · HERMES-SUBSYSTEM-4 (ticket 026 step 4)
+//  HermesTodoTool.swift · Wenshu
 //
-// (todo) FULL 1:1 port of /Volumes/ANAN/.hermes/tools/
-//  todo_tool.py (330 LOC). This is the LLM internal planning list (= the
+//  Full 1:1 port of /Volumes/ANAN/.hermes/tools/
+//  todo_tool.py. This is the LLM internal planning list (= the
 //  agent's scratchpad that lives on AIAgent and is re-injected after
 //  context compression). NOT the wenshu-side user-facing persisted
 //  todo (= TodoStore.swift / BookTodoStore.swift), which is kept intact
-//  per boss wenshu-side-wins pattern.
-//
-// Boss 2026-09-04 OOB: 'Subsystem 4 -- hermes todo, hermes' (=
-//  override earlier SKIP, AGENTS.md §11.3 default = port hermes as-is).
+//  per the wenshu-side-wins pattern.
 //
 //  ------------------------------------------------------------------------
 //  Divergence vs. earlier ticket draft (= §4.1 hermes inventory says
