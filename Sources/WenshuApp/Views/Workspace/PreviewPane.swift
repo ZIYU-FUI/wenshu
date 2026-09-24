@@ -80,25 +80,18 @@ enum BookFolder: String, CaseIterable {
     case foreshadowing
     case placeholders
 
-    /// On-disk directory name (= matches rawValue; lowercase English
-    /// kebab-style for filesystem portability).
-    var directoryName: String { rawValue }
+    /// On-disk directory name (= matches BookFolderCatalog spec;
+    /// = SSOT for filesystem → id mapping).
+    var directoryName: String {
+        BookFolderCatalog.spec(for: rawValue)?.directoryName ?? rawValue
+    }
 
-    /// Display name shown in card folder badge. Maps to the 5 sidebar
-    /// folder labels where they overlap (= worldview / characters / chapter outline /
-    /// novel body / novel drafts) and uses a Chinese label for the 3
-    /// sidebar-hidden folders (= sessions / foreshadowing / placeholders).
+    /// Display name shown in card folder badge (= short Chinese
+    /// label = e.g. '章节' for chapters = fits the card grid
+    /// cell width). Maps from BookFolderCatalog.cardDisplayName
+    /// (= SSOT).
     var displayName: String {
-        switch self {
-        case .world: return "世界观"
-        case .characters: return "角色"
-        case .outlines: return "章节大纲"
-        case .chapters: return "小说正文"
-        case .drafts: return "小说草稿"
-        case .sessions: return "会话"
-        case .foreshadowing: return "伏笔"
-        case .placeholders: return "占位符"
-        }
+        BookFolderCatalog.spec(for: rawValue)?.cardDisplayName ?? rawValue
     }
 
     /// v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use
@@ -110,34 +103,21 @@ enum BookFolder: String, CaseIterable {
     /// sfsymbols search 2026-09-16. Mapping mirrors the
     /// pre-v1.69e legacy NewLibraryOutlineView.standardFolderNames
     /// (= the sidebar's folder row ICON, to keep both surfaces
-    /// visually consistent; = the constant now lives in
-    /// SidebarService.standardFolderIcons).
-    /// v1.80 boss 2026-09-24 OOB '替换目录树 和 卡片的 ICON, = 角色
-    /// 换为 person.crop.circle, 章节大纲 换为 bookmark.circle,
-    /// 小说正文 换为 book.closed.circle, 小说草稿 换为 book.circle':
-    /// these 4 folder icons match the SidebarService.folderCatalog
-    /// values (= one entity = one icon rule = the same glyph at the
-    /// sidebar row AND the PreviewPane card row). World keeps 'globe'
-    /// (= not in the boss's replacement list). Sessions /
-    /// foreshadowing / placeholders keep their previous values (= sidebar-
-    /// hidden internal folders, not in the boss's replacement list).
-    /// Q112 SSOT note: the SidebarService folderCatalog and this
-    /// enum are two parallel sources of truth for the same 5 user-
-    /// facing folder icons (= a known duplication; = a future SSOT
-    /// ticket can merge them by promoting the BookFolder enum into
-    /// the canonical source and making SidebarService a thin map
-    /// over it; = out of v1.80 scope = Q112 1-ticket-1-source rule).
+    /// visually consistent).
+    ///
+    /// v1.81 (= card SSOT consolidation): the icon / displayName
+    /// / directoryName values derive from BookFolderCatalog
+    /// (= the canonical source). BookFolder stays as the enum type
+    /// (= caller-visible type signature unchanged) but its three
+    /// computed properties are now thin lookups into the catalog.
+    /// To rename / re-icon a folder, edit the matching
+    /// BookFolderSpec in BookFolderCatalog.swift and the PreviewPane
+    /// picks up the new values automatically. The "file-text"
+    /// fallback for unknown folderName (= from .bookDoc(let d):
+    /// d.folderName) keeps the card rendering safe if a future
+    /// Document references a folder that the enum does not know.
     var icon: String {
-        switch self {
-        case .world: return "globe"
-        case .characters: return "person.crop.circle"
-        case .outlines: return "bookmark.circle"
-        case .chapters: return "book.closed.circle"
-        case .drafts: return "book.circle"
-        case .sessions: return "message-square"
-        case .foreshadowing: return "git-fork"
-        case .placeholders: return "square.dashed"
-        }
+        BookFolderCatalog.spec(for: rawValue)?.icon ?? "file-text"
     }
 }
 
