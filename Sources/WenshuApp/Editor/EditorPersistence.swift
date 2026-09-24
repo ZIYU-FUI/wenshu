@@ -1,16 +1,11 @@
 //
-//  EditorPersistence.swift · Wenshu · v1.70 editor-mvvm T2a
+//  EditorPersistence.swift · Wenshu
 //
-//  Extracted from `EditorPlaceholder.swift` (= v0.34 B-21 + B-22 +
-// + SMC ticket 003 disk IO + auto-save + conflict-backup).
-//  Lives at the module's Editor layer (= the same layer as
-//  `DraftPersistence`, `WikiLinkNavigation`, `EditorFileWatcher`).
+//  Extracted from `EditorPlaceholder.swift`. Lives at the
+//  module's Editor layer (= the same layer as `DraftPersistence`,
+//  `WikiLinkNavigation`, `EditorFileWatcher`).
 //
-//  Per boss 2026-09-22 OOB '拆完功能' (= the split is done; = verify
-//  the functionality) + the v1.68 sidebar UI/业务/数据分离
-//  precedent (= the NavigationSplitShell sibling splits in v1.38-v1.43
-//  each moved one responsibility out of the wrapper view into its
-//  own file). The disk-IO + auto-save-task lifecycle is one
+//  The disk-IO + auto-save-task lifecycle is one
 //  responsibility (= save → reload → dirty state machine). The
 //  DispatchSource watcher is a separate responsibility (= lives
 //  in EditorFileWatcher from T1a).

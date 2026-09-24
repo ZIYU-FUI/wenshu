@@ -1,16 +1,11 @@
 //
-//  EditorFileWatcher.swift · Wenshu · v1.70 editor-mvvm T1a
+//  EditorFileWatcher.swift · Wenshu
 //
-//  Extracted from `EditorPlaceholder.swift` (= v0.34 B-23 inline
-//  `startFileWatcher()` + `stopFileWatcher()`). Lives at the
+//  Extracted from `EditorPlaceholder.swift`. Lives at the
 //  module's Editor layer (= the same layer as `DraftPersistence`,
 //  `WikiLinkNavigation`, `EditorActions`).
 //
-//  Per boss 2026-09-22 OOB '拆完功能' (= the split is done; = verify
-//  the functionality) + the v1.68 sidebar v1.68 UI/业务/数据分离
-//  precedent (= the NavigationSplitShell sibling splits in v1.38-v1.43
-//  each moved one responsibility out of the wrapper view into its
-//  own file). The DispatchSource wrapper is one responsibility
+//  The DispatchSource wrapper is one responsibility
 //  (= it owns the fd + the DispatchSource lifecycle for a single
 //  file path); = it does NOT own save / load / reload semantics.
 //  Those split out as EditorPersistence (T2) + EditorNavigation (T3)
