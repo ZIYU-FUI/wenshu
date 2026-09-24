@@ -349,7 +349,7 @@ final class ChatViewModel {
     /// from UserDefaults) is unchanged; = the write moves here from
     /// `ChatZoneView` (= UI layer) into the business layer.
     func openSettingsToProviderApi() {
-        UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
+        UserDefaultsStore.shared.setString("providerApi", forKey: .settingsTab)
     }
 
     func loadAvailableModels() async {
