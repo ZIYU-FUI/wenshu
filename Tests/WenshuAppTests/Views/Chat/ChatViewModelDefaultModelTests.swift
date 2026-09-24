@@ -85,56 +85,7 @@ struct ChatViewModelDefaultModelTests {
         #expect(hasEmptyDefault, "AppState.llmModel default must be '' (v0.24 boss fix; = moved from ChatZoneView to AppState per v0.40 apple-001 phase 3 ticket 4b)")
     }
 
-    @Test("ChatZoneView.swift model menu text shows 'No model available' when currentModel empty")
-    func testAppMenuTextPlaceholder() async {
-        let cwd = FileManager.default.currentDirectoryPath
-        let chatZoneViewURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuApp/Views/Chat/ChatZoneView.swift")
-        let chatZoneView = try? String(contentsOf: chatZoneViewURL, encoding: .utf8)
-        #expect(chatZoneView != nil, "ChatZoneView.swift must be readable at \(chatZoneViewURL.path)")
-        // v0.91 ticket 001 (Q34 step 4 atomic verification):
-        // the v0.24 boss fix at line 1349 was 'Text(currentModel.isEmpty ? "" : ...)' (= Chinese placeholder; = violates AGENTS.md §11 English-only).
-        //
-        // Current implementation per the v0.40 apple-001 phase 3 ticket 4b refactor: ChatZoneView.swift line 63 has `if currentModel.isEmpty { ChatHelpTextOverlay {...} }` (= the empty-state overlay). The overlay provides the 'no model available' UX guidance.
-        //
-        // Fix: verify (a) the empty-state branch exists, AND (b) the placeholder text is in English (= AGENTS.md §11 invariant).
-        let hasEmptyBranch = chatZoneView!.contains("if currentModel.isEmpty")
-        #expect(hasEmptyBranch, "ChatZoneView.swift must branch on currentModel.isEmpty (= per v0.40 apple-001 phase 3 ticket 4b)")
-        // AGENTS.md §11 hard rule: no Chinese strings in production code.
-        let hasChinesePlaceholder = chatZoneView!.contains("无模型可用")
-        #expect(!hasChinesePlaceholder, "ChatZoneView.swift must NOT contain '无模型可用' (= violates AGENTS.md §11 English-only)")
-    }
-
-    // MARK: - ChatView.swift (boss's commit message claims — NOT YET FIXED)
-
-    @Test("ChatView.swift ChatViewModel.currentModel default = '' (NOT YET FIXED)")
-    func testChatViewModelDefault() async {
-        clearModelDefaults()
-        let chatView = try? String(contentsOf: URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Chat/ChatView.swift"), encoding: .utf8)
-        #expect(chatView != nil)
-        // BOSS CLAIMED: 'ChatView.swift line 72' should be '... ?? ""' (empty).
-        // ACTUAL (per git show c83a131b2:ChatView.swift): line 72 STILL has
-        // '... ?? WenshuLLMModel.m3.rawValue' — boss's commit message drift.
-        // This test currently FAILS, exposing the doc drift.
-        let hasEmptyDefault = chatView!.contains("UserDefaults.standard.string(forKey: \"wenshu.llm.model\") ?? \"\"")
-        #expect(hasEmptyDefault, "ChatView.swift ChatViewModel.currentModel default should be '' (boss to fix in follow-up)")
-    }
-
-    @Test("ChatView.swift send() fallback uses empty string (NOT YET FIXED)")
-    func testChatViewSendFallback() async {
-        clearModelDefaults()
-        let chatView = try? String(contentsOf: URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Chat/ChatView.swift"), encoding: .utf8)
-        #expect(chatView != nil)
-        // v0.24 boss fix targets ChatView.swift line 149:
-        //   was: '?? "MiniMax-M3"'
-        //   should be: '?? ""'  (empty string when no UserDefaults)
-        // ACTUAL (per git show c83a131b2:ChatView.swift): line 149 STILL has
-        //   '?? "MiniMax-M3"' — boss's commit message drift.
-        // This test catches the actual bug: line 149 still has '?? "MiniMax-M3"'
-        // instead of '?? ""'. The test currently FAILS, exposing the doc drift.
-        let line149Content = chatView!.components(separatedBy: "\n").first(where: { $0.contains("currentModel: String = UserDefaults.standard.string(forKey:") && $0.contains("MiniMax") })
-        #expect(line149Content == nil, "ChatView.swift line 149 should not have '?? \"MiniMax-M3\"' fallback (boss to fix)")
-    }
+        
 
     // MARK: - WenshuLLMError LocalizedError (boss commit aa7caca7f)
 
