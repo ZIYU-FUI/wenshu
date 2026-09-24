@@ -16,7 +16,7 @@
 //    - text-only request/response (= no tool_use yet, lands in ticket 004)
 //    - streaming not yet wired (= SSEClient.swift path continues in ticket 004)
 //
-//  Ticket 004 will generalize this to a full AnthropicConnector (= cache
+//  future ticket will generalize this to a full AnthropicConnector (= cache
 //  markers, thinking blocks, tool_use round-trip, streaming). For sub-step 7
 //  the goal is end-to-end TB-B verification: wenshu can talk to minimax cn
 //  via the LLMConnector protocol.
