@@ -4,16 +4,21 @@
 //  Smoke tests for the M1 NavigationSplitShell = the macOS 27
 //  Apple-native 3-column shell (per developer.apple.com/documentation/
 //  swiftui/navigationsplitview). Activated by
-//  `AppState.useThreeColumnSplit` (= default `false` = the
-//  PaneSplitHost path is unchanged).
+//  `LayoutTreeState.useThreeColumnSplit` (= default `nil`/off =
+//  PaneSplitHost path = zero regression per M1 spec §2.3).
 //
 //  These tests verify:
 //  1. ShellPlaceholder constructs (= reusable placeholder view
 //     does not crash).
-//  2. AppState.useThreeColumnSplit default = `false` (= M1 spec
-//     §2.3 "default off = zero regression risk").
+//  2. LayoutTreeState.useThreeColumnSplit default = `nil` (= M1
+//     spec §2.3 "default off = zero regression risk").
 //  3. Setting flag = true via the @Observable binding does not
 //     throw (= SwiftUI view construction is valid).
+//
+//  P2-06 audit (2026-09-24): the canonical owner of the flag is
+//  LayoutTreeState (= Codable + CodableBackCompat Optional).
+//  AppState used to have a dead mirror (= no production caller); =
+//  removed.
 //
 //  Acceptance per M1 spec §2.3:
 //  - swift test --filter NavigationSplitShellTests PASS (= 3 tests)
@@ -32,11 +37,16 @@ final class NavigationSplitShellTests: XCTestCase {
     /// to `true` by accident, existing users will see the new
     /// 3-column shell (= a breaking UX change = must ship as a
     /// major version bump + migration guide).
-    func testUseThreeColumnSplitDefaultIsFalse() throws {
-        let appState = AppState()
-        XCTAssertFalse(
-            appState.useThreeColumnSplit,
-            "AppState.useThreeColumnSplit MUST default to false (= 老 PaneSplitHost 路径 unchanged = zero regression per M1 spec §2.3). Changing this default requires boss sign-off (= a major version bump)."
+    func testUseThreeColumnSplitDefaultIsNil() throws {
+        let tree = LayoutTreeState(
+            root: makeGroup(panes: []),
+            panes: [],
+            tabs: [],
+            version: 2
+        )
+        XCTAssertNil(
+            tree.useThreeColumnSplit,
+            "LayoutTreeState.useThreeColumnSplit MUST default to nil (= PaneSplitHost path = zero regression per M1 spec §2.3). Changing this default requires boss sign-off (= a major version bump)."
         )
     }
 
@@ -64,17 +74,24 @@ final class NavigationSplitShellTests: XCTestCase {
     /// (= the flag is a simple @Observable Bool, = must remain
     /// settable + re-readable cleanly).
     func testUseThreeColumnSplitCanBeToggled() throws {
-        let appState = AppState()
-        XCTAssertFalse(appState.useThreeColumnSplit)
-        appState.useThreeColumnSplit = true
-        XCTAssertTrue(
-            appState.useThreeColumnSplit,
-            "AppState.useThreeColumnSplit MUST be settable (= the user toggle wires via UserDefaults `wenshu.useThreeColumnSplit` key in M2)."
+        var tree = LayoutTreeState(
+            root: makeGroup(panes: []),
+            panes: [],
+            tabs: [],
+            version: 2
         )
-        appState.useThreeColumnSplit = false
-        XCTAssertFalse(
-            appState.useThreeColumnSplit,
-            "AppState.useThreeColumnSplit MUST round-trip back to false (= toggling off restores the 老 PaneSplitHost path = no stale state)."
+        XCTAssertNil(tree.useThreeColumnSplit)
+        tree.useThreeColumnSplit = true
+        XCTAssertEqual(
+            tree.useThreeColumnSplit,
+            true,
+            "LayoutTreeState.useThreeColumnSplit MUST be settable (= the user toggle wires via UserDefaults `wenshu.useThreeColumnSplit` key in M2)."
+        )
+        tree.useThreeColumnSplit = false
+        XCTAssertEqual(
+            tree.useThreeColumnSplit,
+            false,
+            "LayoutTreeState.useThreeColumnSplit MUST round-trip back to false (= toggling off restores the PaneSplitHost path = no stale state)."
         )
     }
 

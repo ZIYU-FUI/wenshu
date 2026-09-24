@@ -47,23 +47,21 @@ final class AppState {
     /// `NavigationSplitView` = the canonical Apple HIG pattern
     /// per developer.apple.com/documentation/swiftui/navigationsplitview).
     ///
-    /// Default `false` = existing users see ZERO behavior change
-    /// on app upgrade (= `PaneSplitHost` path unchanged per the
-    /// spec's "legacy path" rule).
-    ///
-    /// Set via:
-    ///   defaults write com.wenshu.app wenshu.useThreeColumnSplit -bool true
-    /// Reset via:
-    ///   defaults delete com.wenshu.app wenshu.useThreeColumnSplit
-    ///
-    /// Lives on `AppState` (= the @Observable SwiftUI state; = read
-    /// directly by `WorkspaceView.body` for the flag branch) NOT on
-    /// `LayoutTreeState` (= the Codable workspace tree; = reserved
-    /// for per-pane state like divider positions + column widths). The
-    /// two states serve different scopes:
-    /// - `AppState.useThreeColumnSplit` (= global = app-wide shell choice)
-    /// - `LayoutTreeState.*` (= per-pane = divider positions, weights, collapsed flags)
-    var useThreeColumnSplit: Bool = false
+    // useThreeColumnSplit was here (= a leftover "global @Observable
+    // mirror" before LayoutTreeState owned the activation gate).
+    // Per P2-06 audit (2026-09-24): removed because:
+    // - 0 production callers in the runtime (= NavigationSplitShell
+    //   reads LayoutTreeState.useThreeColumnSplit, not AppState's).
+    // - Persistence is unchanged (= UserDefaults key
+    //   "wenshu.useThreeColumnSplit" is still owned by LayoutTreeState).
+    // - AppState no longer needs this field; = the canonical home is
+    //   LayoutTreeState.swift:834.
+    //
+    // The flag's behaviour (= which user setting activates the
+    // Apple 3-column shell) is owned by LayoutTreeState; = this
+    // AppState mirror was dead since the v1.29 M1 shell arc
+    // (= LayoutTreeState absorbed the role). The mirror lingered
+    // only as a user-toggle surface (= defaulted to false).
 
     // Sidebar tree selection moved to ShellState.swift (= P2-06
     // split). Drives Preview pane scope. Persisted to the same
@@ -317,26 +315,10 @@ final class AppState {
     }
 
     init() {
-        // M1-shell (2026-09-08): seed `useThreeColumnSplit` from
-        // UserDefaults at app launch. Without this read, the flag
-        // stays at its hard-coded default (= `false`) and the
-        // user's `defaults write` call has no effect (= the
-        // NavigationSplitShell path never activates).
-        //
-        // Set via:
-        //   defaults write com.wenshu.app wenshu.useThreeColumnSplit -bool true
-        // Reset via:
-        //   defaults delete com.wenshu.app wenshu.useThreeColumnSplit
-        //
-        // Mirrors the pattern already used for `llmModel` (= the
-        // property's default `false` is correct for a fresh launch
-        // and for users who never set the flag; = the UserDefaults
-        // read only fires if the key actually exists).
-        if UserDefaults.standard.object(forKey: "wenshu.useThreeColumnSplit") != nil {
-            self.useThreeColumnSplit = UserDefaults.standard.bool(
-                forKey: "wenshu.useThreeColumnSplit"
-            )
-        }
+        // useThreeColumnSplit seed block removed (= P2-06 audit 2026-09-24):
+        // AppState no longer owns this flag. LayoutTreeState owns the
+        // canonical flag (= Codable + UserDefaults-backed). The seed
+        // lives in LayoutTreeState's own init.
         // B-05: seed from the existing UserDefaults value. didSet is
         // not called during init (= Swift property wrapper semantics),
         // so this assignment does NOT trigger a write back to
