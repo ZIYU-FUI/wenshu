@@ -1,12 +1,9 @@
 // InspectorCatalog.swift · Wenshu · v1.71a ticket 001
 //
-// Per boss 2026-09-22 OOB 'UI 业务 数据分离，符合苹果的 MVVM' (= the
-// other zones have done UI / 业务 / 数据 分离; the right column
-// also needs to match). Per Q244 §3.1 + §5.2 (wenshu MVVM audit
-// pattern): right column's shell widget catalog + page routing were
-// inlined in ShellDetailColumn.filteredToolsForCurrentPage (=
-// business + data inside the View, violating the canonical Apple
-// MVVM layering).
+// Per Q244 §3.1 + §5.2 (wenshu MVVM audit pattern): right column's
+// shell widget catalog + page routing were inlined in
+// ShellDetailColumn.filteredToolsForCurrentPage (= business + data
+// inside the View, violating the canonical Apple MVVM layering).
 //
 // This commit (v1.71a) extracts the DATA layer to a new file.
 // Tickets 02 (InspectorPage.tools = business layer) and 03
@@ -16,13 +13,11 @@
 // static (= catalog 12 条不变, no @Observable needed; = pure data
 // + business definitions, not state).
 //
-// Per boss 2026-09-16 OOB 'ICON 丢失还是没有彻底解决': the 12 SF
-// Symbols 6 icons are the verified names per /Applications/SF
-// Symbols Beta.app/Contents/Executables/sfsymbols search 2026-09-16
-// (= post Lucide → SF Symbols 6 migration真值).
+// The 12 SF Symbols 6 icons are the verified names per
+// /Applications/SF Symbols Beta.app/Contents/Executables/sfsymbols
+// search 2026-09-16 (= post Lucide → SF Symbols 6 migration真值).
 //
-// Per boss 2026-09-18 '所有 ICON，都不要 .fill': outline glyphs only
-// (= no .fill variant in any catalog entry).
+// Outline glyphs only (= no .fill variant in any catalog entry).
 //
 // Per Q57 + Q112 + Q186: extract InspectorCatalog to its own file.
 // 1 file per ticket, atomic commit, no behavior change in this
@@ -43,10 +38,10 @@ import SwiftUI
 /// etc. on every body re-render). View construction is deferred to
 /// `view()` call time (= one instantiation per render, not 12).
 ///
-/// `id` is the i18n key (= boss 9/12 真值 `tab.title.X` keys). It
-/// doubles as the unique identifier for Hashable / Identifiable and
-/// the lookup key for `WenshuI18n.t(_:)` (= title is the resolved
-/// localized string).
+/// `id` is the i18n key (= `tab.title.X` keys). It
+    /// doubles as the unique identifier for Hashable / Identifiable and
+    /// the lookup key for `WenshuI18n.t(_:)` (= title is the resolved
+    /// localized string).
 ///
 /// Per Q244 §5.2 service-style extraction (不动 SoT, 业务从 View 抽走):
 /// InspectorTool is a value type, Sendable, stateless, owned by
@@ -69,16 +64,13 @@ public struct InspectorTool: Identifiable, Hashable, Sendable {
 /// Right column specializedTools zone = data layer (single source of
 /// truth for the 12 tool definitions).
 ///
-/// Per Q244 §3.1 + boss 2026-09-22 OOB: this replaces the inline
-/// tuple array that previously lived in
-/// `ShellDetailColumn.filteredToolsForCurrentPage` (lines 111-130,
-/// deleted in ticket 03). The 12 entries mirror the 12 specialized
-/// tool views under `Views/Tools/` + `Views/SpecializedTools/`.
+/// Per Q244 §3.1: this replaces the inline tuple array that previously
+/// lived in `ShellDetailColumn.filteredToolsForCurrentPage` (lines
+/// 111-130, deleted in ticket 03). The 12 entries mirror the 12
+/// specialized tool views under `Views/Tools/` + `Views/SpecializedTools/`.
 public enum InspectorCatalog {
-    // v1.71a — 12 specialized tools, derived from the original inline
-    // tuple in ShellDetailColumn.swift:111-130 (= v1.0.0-m1-shell
-    // boss OOB 'three per page, split into four pages, show them all'
-    // + 'the 12-tab view's localization is incomplete'真值).
+    // 12 specialized tools, derived from the original inline
+    // tuple in ShellDetailColumn.swift:111-130.
 
     public static let foreshadowing = InspectorTool(
         id: "tab.title.foreshadowing",
