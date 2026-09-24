@@ -1,9 +1,4 @@
-// SectionHeaderLockedFormatTests.swift · Wenshu · v0.71 P1 batch 3
-//
-// 
-// now on' = 'this style stays as the standard, use it from now on' + 'that
-// title's text color — Apple's is a bit grayer, not pure white, close to the divider's color' =
-// 'the title color is gray, not pure white, close to the divider color'):
+// SectionHeaderLockedFormatTests.swift · Wenshu
 //
 // The section header pattern is LOCKED per memory:
 //   VStack(spacing: 4) {
@@ -12,13 +7,9 @@
 //   }
 //
 // Used in all 3 column titles:
-//   • Sidebar: section headers in AppleSidebarView.swift (v1.68b MVVM-split sidebar)
+//   • Sidebar: section headers in AppleSidebarView.swift
 //   • Content: 'Assets' in PreviewPane.swift
 //   • Inspector: 'Authoring (Fiction)' etc in ShellDetailColumn.swift
-//
-// v1.69 sidebar MVVM cleanup: target file updated from
-// AppleSidebarView.swift (= was NewLibraryOutlineView.swift pre-v1.69e) (= the
-// v1.68b MVVM-split sidebar that is now the production sidebar).
 //
 // These tests don't render views; they verify the source file
 // structure (= the LOCKED format contract = a regression that
@@ -35,11 +26,7 @@ struct SectionHeaderLockedFormatTests {
     /// section header format (= VStack(spacing: 4) { HStack { Spacer();
     /// Text(...).font(.body).foregroundStyle(.secondary).textCase(nil);
     /// Spacer() }; Divider() }).
-    /// v1.52 stale-test-cleanup: replaced NavigationSplitShell.swift with
-    /// ShellDetailColumn.swift (= v1.43 ticket 001 extracted the inspector
-    /// column title = 'Authoring' from the shell into its own column file).
-    /// v1.69 sidebar MVVM cleanup: removed AppleSidebarView.swift from this
-    /// list. The v1.68b Apple HIG sidebar uses SwiftUI's built-in
+    /// The sidebar column uses SwiftUI's built-in
     /// `List(.sidebar)` + `List(data, children:)` which manages section
     /// header spacing via Apple's own HIG convention (= no manual
     /// `VStack(spacing: 4) { HStack { Spacer() / Text / Spacer() } /

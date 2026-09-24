@@ -1,8 +1,5 @@
-// SidebarHeaderProminenceTests.swift · Wenshu · v0.71 P1 batch 3
+// SidebarHeaderProminenceTests.swift · Wenshu
 //
-// 
-// reference library — is there spacing between these controls that we added by hand; if so, revert to default'):
-// code-level verification (= no UI render) that the sidebar's
 // section header doesn't use the non-Apple-default `.headerProminence
 // (.increased)` modifier (= the Apple HIG default is .standard = no
 // modifier; = the previous commit removed .headerProminence(.increased)
@@ -12,12 +9,6 @@
 // structure (= the canonical 'code-level verification' discipline
 // when screenshot tests are unavailable).
 //
-// v1.69 sidebar MVVM cleanup: target file path updated from
-// AppleSidebarView.swift (= was NewLibraryOutlineView.swift pre-v1.69e) (= the
-// v1.68b MVVM-split sidebar that is now the production sidebar).
-// Same Apple-HIG-default invariant = no .headerProminence(.increased)
-// and no manual .padding(.top, ...) on the section header.
-
 import Testing
 import Foundation
 
@@ -35,8 +26,7 @@ struct SidebarHeaderProminenceTests {
         )
     }
 
-    /// boss 9/12 OOB 'sidebar column, test bookshelf, divider, reference library... if any were changed,
-    /// revert to default': the sidebar MUST NOT use .headerProminence(.increased)
+    /// The sidebar MUST NOT use .headerProminence(.increased)
     /// (= a non-Apple-default modifier that adds ~36 PT of inter-
     /// section gap; = Apple HIG default = .standard = no modifier;
     /// = the previous fix removed it; = this test prevents re-introduction).

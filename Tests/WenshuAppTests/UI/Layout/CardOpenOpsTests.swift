@@ -1,16 +1,12 @@
 //
-//  CardOpenOpsTests.swift · Wenshu · v1.74 cardopen-dedupe T2a
+//  CardOpenOpsTests.swift · Wenshu
 //
 //  Behavior + source-level tests for `CardOpenOps` (= the
 //  stateless enum extracted from the 3 verbatim copies of
 //  `openCardInEditor` in WorkspaceView / ZoneModuleView /
 //  ShellMiddleColumn).
 //
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= the
-//  audit at .scratch/2026-09-23-mvvm-audit/spec.md §2.6 / §2.7
-//  / §2.11 = the verbatim duplication of `openCardInEditor(source:)`
-//  across 3 view files = the canonical dedupe opportunity that
-//  combines MVVM split + DRY). The shared tail (= dedup check +
+//  The shared tail (= dedup check +
 //  EditorTab construction + appState.openTabs.append +
 //  activeTabId mutation) was duplicated 3x (= ~50 LOC × 3 views
 //  = ~150 LOC of verbatim code). The reference-scope filter +
