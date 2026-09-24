@@ -1,11 +1,9 @@
-// SidebarNode.swift · Wenshu · v1.68b
+// SidebarNode.swift · Wenshu
 //
 // Tree data model for the macOS 27 Apple HIG sidebar
 // (= List(data, children: \.children) + .listStyle(.sidebar)).
 //
-// Boss 2026-09-22 OOB '数据结构不要有变化' (= don't mutate the
-// existing Bookshelf / Book / Reference / Document domain models):
-// the wenshu domain models are flat (= no `var children: [Self]?`),
+// The wenshu domain models are flat (= no `var children: [Self]?`),
 // so Apple's List(_, children: \.children) initializer (= which
 // requires each row's children to be a `[Self]?` on the row's
 // own type) cannot be wired up directly.
