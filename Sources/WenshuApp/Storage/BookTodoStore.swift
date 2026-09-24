@@ -1,14 +1,11 @@
-// BookTodoStore.swift · Wenshu () · v0.26 (FCP library replica) + B-13
+// BookTodoStore.swift · Wenshu
 //
-// Per-(book × scope) todo JSON store (= spec v5 ticket 026 + B-13 scope
-// unification). Replaces v0.25.x app-level TodoStore (SQLite) with a
+// Per-(book × scope) todo JSON store. Replaces v0.25.x app-level TodoStore (SQLite) with a
 // per-book JSON file (books/<book-id>/todo.json).
 //
-// Per boss 2026-08-26 OOB: 'todo ... ' (= todo
-//,). v0.26 starts with empty per-book
-// JSON files (per LibraryBootstrapper).
+// v0.26 starts with empty per-book JSON files (per LibraryBootstrapper).
 //
-// (= boss 2026-09-04 OOB): scope picker lets the user target one of
+// The scope picker lets the user target one of
 // 8 standard sub-folders inside the active book, the book root, or the
 // reference library. The scope is a view filter, not a data-layer
 // change: each scope variant writes to a different JSON file in the

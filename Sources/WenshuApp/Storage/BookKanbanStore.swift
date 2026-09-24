@@ -1,14 +1,11 @@
-// BookKanbanStore.swift · Wenshu () · v0.26 (FCP library replica) + B-13
+// BookKanbanStore.swift · Wenshu
 //
-// Per-(book × scope) kanban JSON store (= spec v5 ticket 026 + B-13 scope
-// unification). Replaces v0.25.x app-level KanbanStore (SQLite) with a
+// Per-(book × scope) kanban JSON store. Replaces v0.25.x app-level KanbanStore (SQLite) with a
 // per-book JSON file (books/<book-id>/kanban.json).
 //
-// Per boss 2026-08-26 OOB: 'kanban ... ' (= kanban
-//,). v0.26 starts with empty per-book
-// JSON files (per LibraryBootstrapper).
+// v0.26 starts with empty per-book JSON files (per LibraryBootstrapper).
 //
-// (= boss 2026-09-04 OOB): scope picker lets the user target one of
+// The scope picker lets the user target one of
 // 8 standard sub-folders inside the active book (= `chapters/`,
 // `world/`, ...), the book root, or the reference library. The scope is
 // a view filter, not a data-layer change: each scope variant writes to a
