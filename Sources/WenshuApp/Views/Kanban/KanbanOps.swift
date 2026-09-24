@@ -1,13 +1,10 @@
 //
-//  KanbanOps.swift · Wenshu · v1.72 settings-kanban-todo-mvvm T1b
+//  KanbanOps.swift · Wenshu
 //
 //  Per-book kanban business layer, extracted from KanbanView.
-//
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= UI /
-//  业务 / 数据 separation audit) + ADR-0009 + the v1.70 editor-mvvm
-//  precedent (= EditorFileWatcher / EditorPersistence /
-//  WikiLinkNavigation = stateless enums with @MainActor static funcs):
-//  KanbanView currently owns the business logic for the per-book
+//  Mirrors the EditorFileWatcher / EditorPersistence /
+//  WikiLinkNavigation template (= stateless enums with @MainActor
+//  static funcs): KanbanView currently owns the business logic for the per-book
 //  kanban board. reloadFromDisk / addTicket / updateStatus /
 //  deleteTicket are private methods on the View, and the tickets
 //  array sits in @State on the View (= coupling UI to data in the

@@ -1,18 +1,15 @@
 //
-//  CharacterLifecycleOps.swift · Wenshu · v1.75 character-lifecycle-mvvm T1b
+//  CharacterLifecycleOps.swift · Wenshu
 //
 //  Per-book character lifecycle business layer, extracted from
-//  CharacterLifecycleView (= the P0 view listed in
-//  .scratch/2026-09-23-mvvm-audit/spec.md §9.2 row 1; = 483 LOC
-//  with 5 inline async funcs that delegate to the
+//  CharacterLifecycleView (= 5 inline async funcs that delegate to the
 //  CharacterLifecycleTracker actor in Core/Agent/Specialized/
-//  CharacterLifecycleTools.swift L287).
+//  CharacterLifecycleTools.swift).
 //
 //  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= the
-// /v1.71/v1.72/v1.74 arcs have done UI / 业务 / 数据 分离
-//  for editor / right-column / settings-kanban-todo / tagmanager-
+//  per editor / right-column / settings-kanban-todo / tagmanager-
 //  placeholder-idealibrary / cardopen-dedupe; = CharacterLifecycleView
-//  is the next P0 split per the §9 extended audit on 2026-09-23).
+//  is the next P0 split per the §9 extended audit.
 //
 //  Public surface (= 4 entry points + 4 Result types):
 //    - reload(manager:bookId:bookStore:) -> LoadResult
