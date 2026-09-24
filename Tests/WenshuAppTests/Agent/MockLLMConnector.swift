@@ -1,5 +1,5 @@
 //
-//  MockLLMConnector.swift · Wenshu · v0.37 Batch 2.1 sub-step 2
+//  MockLLMConnector.swift · Wenshu
 //
 //  Shared mock LLMConnector for unit tests with scripted tool_use support.
 //
