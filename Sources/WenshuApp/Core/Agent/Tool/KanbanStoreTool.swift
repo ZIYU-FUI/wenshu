@@ -27,7 +27,7 @@
 //                             task store; KanbanTools is the action
 //                             dispatcher that mutates it)
 //
-//    Per boss wenshu-side-wins pattern (= KanbanTools.swift header
+// Wenshu-side-wins pattern (= KanbanTools.swift header
 //    line 9-10), KanbanTools already routes every action through
 //    the canonical wenshu-side KanbanStore. This adapter is the
 //    Tool-protocol-facing entry point (= JSON in, JSON out) that

@@ -1,7 +1,7 @@
 //
 //  AgentProgressTracker.swift · Wenshu · v0.41 WIRE-AGENT-006
 //
-//  P2 #21 wire progress (boss 2026-09-04 OOB 'wire progress from
+// Wire progress from
 //  ConversationLoop into OpenBox so user sees step-by-step feedback').
 //
 //  Library-level (= global, not per-book) progress tracker. Stores

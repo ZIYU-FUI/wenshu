@@ -40,7 +40,7 @@
 
 import Foundation
 
-/// v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone...'):
+///
 /// reference-type accumulator for the streaming LLMBlock callback.
 /// Required because the callback is `@Sendable` (= can fire from
 /// any actor; = Swift 6 forbids capturing `var` local state). Each
@@ -111,7 +111,7 @@ final class ChatViewModel {
     var attachedImagePath: String?
     var isSending: Bool = false
     var lastError: String?
-    // boss 'check split, check dead code'.
+    // 'check split, check dead code'.
     // Removed dead `activeSubAgentName` + `currentAgentTurn`
     // fields (= T4-SUBAGENT-UI + T8-CHATVIEWMODEL-WIRE) —
     // these were read by ChatSubAgentTag + ChatTurnProgress
@@ -179,12 +179,12 @@ final class ChatViewModel {
     // so every read below resolves to the same source of truth, and
     // `switchModel(_:)` writes back to AppState (= triggers the
     // AppState didSet → UserDefaults round-trip).
-    // v0.24 boss acceptance fix (2026-08-24): default empty string when no provider key
+    // Default empty string when no provider key
     // configured (not "MiniMax-M3" which implies a minimax-cn provider is
     // selected even when user has no key). UI shows "no model available" placeholder
     // when this is empty.
     private let appState: AppState?
-    // v0.24 boss acceptance fix follow-up (= `ChatViewModelDefaultModelTests`):
+    // Follow-up (= `ChatViewModelDefaultModelTests`):
     // when no AppState is injected (= standalone ChatViewModel initialised
     // without the app-wide environment), the model id must also default to
     // empty string read directly from UserDefaults so the left-bottom model
@@ -200,7 +200,7 @@ final class ChatViewModel {
     }
     var availableModels: [String] = []
     var contextUsed: Int = 0
-        // v0.24 boss acceptance fix (Boss 8/25 OOB 'minimax m3 is not 1MB context window?
+        // 'minimax m3 is not 1MB context window?
         // you set 131k'): minimax-cn M3 context window = 1_000_000 tokens per official
         // docs (https://www.minimax.io/models/text/m3 = '1M Context';
         // max output 512K). Empirical limit on public anthropic-compatible endpoint
@@ -215,12 +215,12 @@ final class ChatViewModel {
     // Chat persistence lives
     // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper). All
     // view-side append/load/summarize calls go through the shared repo.
-    // v0.24 boss acceptance fix (Boss 8/25 OOB ticket 015.014 + F2 cleanup): @MainActor
+    // `@MainActor`
     // isolation replaces nonisolated(unsafe) for Swift 6 concurrency safety.
     // Mutable so archive flow can replace.
     @MainActor private var sessionId: String
 
-    // v1.79 chat-by-book: current scope bookID for all persistence calls.
+    // Current scope bookID for all persistence calls.
     // nil = global un-attached (= the pre-v1.79 default; = used when no
     // book is selected, e.g. onboarding-before-book-selection chats).
     // The view layer is expected to call setCurrentBookID(_:) when the
@@ -232,7 +232,7 @@ final class ChatViewModel {
     // P2-02 audit (2026-09-24): BookID brand wrapper.
     @MainActor internal var currentBookID: BookID?
 
-    /// v1.79 chat-by-book: update the active scope (= called by the view
+    /// Update the active scope (= called by the view
     /// layer when the user picks a different book). Refreshes the in-memory
     /// session id (= per-book session) and reloads history. No-op if the
     /// bookID is unchanged.
@@ -272,7 +272,7 @@ final class ChatViewModel {
         bookID: BookID? = nil
     ) {
         self.conductor = conductor
-        // v1.79 chat-by-book: per-book session id when bookID is set
+        // Per-book session id when bookID is set
         // (= the SwiftData store keys sessions by sessionID; = a unique
         // per-book session id keeps chat rows cleanly partitioned).
         self.sessionId = Self.makeSessionID(for: bookID, fallback: sessionId)
@@ -289,7 +289,7 @@ final class ChatViewModel {
         self.repository = repository
     }
 
-    /// v1.79 chat-by-book: build a per-book session id. Returns
+    /// Build a per-book session id. Returns
     /// `book:<id>:default` when scoped to a book; otherwise returns the
     /// caller-supplied fallback (= the global session id).
     ///
@@ -319,7 +319,7 @@ final class ChatViewModel {
     // to observe spawns). Using the free `delegate(...)` function with
     // this shared registry avoids touching AsyncDelegation.swift (= out
     // of CHATBOX-003 allowlist).
-    // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+    //
     // `nonisolated(unsafe)` is required because `AsyncDelegationRegistry`
     // is an actor type (= its initializer must run on the actor's
     // serial executor; = Swift does not allow actors to be referenced
@@ -343,7 +343,7 @@ final class ChatViewModel {
         appState?.llmModel = id
     }
 
-    /// boss 'UI 层不许直接调数据层'.
+    /// 'UI 层不许直接调数据层'.
     /// Sets the canonical 'wenshu.settingsTab' to 'providerApi' so
     /// the Settings window opens on the LLM Connector pane. The
     /// canonical pattern (= the @AppStorage mirror in Settings reads
@@ -354,7 +354,7 @@ final class ChatViewModel {
     }
 
     func loadAvailableModels() async {
-        // v0.24 boss acceptance fix (2026-08-24): use multi-provider discovery.
+        // Use multi-provider discovery.
         // Was: fallback to WenshuLLMModel.allCases (3 MiniMax-only cases).
         // Now: query all configured providers via AvailableModelsDiscovery,
         // sectioned by provider per ticket 011 spec.
@@ -604,7 +604,7 @@ final class ChatViewModel {
             var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
             if let conductor = conductor {
-                // v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone...'):
+                //
                 // conductor path now also streams (= Hermes pattern).
                 // The same streaming switch below (= the one used for
                 // direct-verifier path) handles LLMBlock events from
@@ -614,7 +614,7 @@ final class ChatViewModel {
                 // same way regardless of which conductor / verifier
                 // emitted the event.
                 //
-                // v0.71 P1 batch 2 (Sendable closure caveat): the
+                // The
                 // streamCallback is `@Sendable` (= can be invoked from
                 // any actor = the ConversationLoop runs on a separate
                 // actor). Local `var` captured by a `@Sendable`
@@ -626,7 +626,7 @@ final class ChatViewModel {
                 // serial with respect to the owning actor so the
                 // class reference IS thread-safe here).
                 let accumulator = StreamingAccumulator()
-                // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+                //
                 // track all in-flight streaming-update Tasks so the
                 // post-await final mutation can wait for them (= avoids
                 // the race where a late-arriving `Task { @MainActor in
@@ -659,7 +659,7 @@ final class ChatViewModel {
                         // [wenshu.agent] turn markers, both of which are
                         // no longer emitted per the matching deletion in
                         // ConversationLoop + WenshuConductor).
-                        // v0.71 P1 batch 2 (MainActor isolation): the
+                        // The
                         // streamCallback fires from ConversationLoop
                         // actor (= NOT main actor = the `messages`
                         // array mutation below must dispatch to
@@ -718,7 +718,7 @@ final class ChatViewModel {
                 reply = result.reply
                 replyThinking = result.thinking ?? accumulator.thinking
                 replyTokens = result.totalTokens
-                // v0.71 P1 batch 2: mark the conductor's bubble as
+                // Mark the conductor's bubble as
                 // sealed (= Hermes `pending: false` flip after
                 // `message.complete`). Replace placeholder with the
                 // final message.
@@ -736,7 +736,7 @@ final class ChatViewModel {
                     )
                 }
             } else {
-                // v0.34 streaming path: render each text chunk as
+                // Render each text chunk as
                 // it arrives (= user sees incremental text, not a
                 // 5-10s wait for the full reply).
                 let verifier = WenshuVerifier()
@@ -746,7 +746,7 @@ final class ChatViewModel {
                     model: currentModel
                 )
                 var buffer = ""
-                // v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone...'):
+                //
                 // accumulate every LLMBlock into `parts[]` (= Hermes
                 // `parts: ChatMessagePart[]`); the streaming UI renders
                 // each part independently. We still mirror text into
@@ -761,7 +761,7 @@ final class ChatViewModel {
                     switch block {
                     case .text(let chunk):
                         buffer += chunk
-                        // v0.71 P1: append into the trailing .text
+                        // Append into the trailing .text
                         // part (= create one on first chunk); mirrors
                         // Hermes `appendAssistantTextPart`.
                         if case .text(let last) = streamingParts.last?.kind {
@@ -788,7 +788,7 @@ final class ChatViewModel {
                     case .thinking(let text, _):
                         streamingThinking += text
                         replyThinking = streamingThinking
-                        // v0.71 P1: append into the trailing .reasoning
+                        // Append into the trailing .reasoning
                         // part (= Hermes `appendReasoningPart`).
                         if case .reasoning(let last) = streamingParts.last?.kind {
                             streamingParts[streamingParts.count - 1] = .reasoning(last + text)
@@ -808,7 +808,7 @@ final class ChatViewModel {
                             )
                         }
                     case .toolUse(let id, let name, let input):
-                        // v0.71 P1 batch 2: tool_use events now
+                        // `tool_use` events now
                         // append a `toolUse` part (= batch 1 left
                         // them as NSLog only). The streaming UI will
                         // render this as a collapsible card in
@@ -830,7 +830,7 @@ final class ChatViewModel {
                             )
                         }
                     case .unknown:
-                        // v0.71 P1 batch 2: WenshuVerifier.streamChat
+                        // `WenshuVerifier.streamChat`
                         // (= the direct-verifier streaming source
                         // in this branch) emits a 4-case WenshuLLMBlock
                         // enum with `.unknown(type, raw)` when the
@@ -853,7 +853,7 @@ final class ChatViewModel {
                         break
                         }
                 }
-                // v0.71 P1 batch 2: mark the message as sealed (= the
+                // Mark the message as sealed (= the
                 // stream has ended; = Hermes `pending: false` flip
                 // after `message.complete`). Future UI uses
                 // `streamState == .sealed` to fade out the streaming
@@ -916,7 +916,7 @@ final class ChatViewModel {
             // = replaces the prior ad-hoc "Error: \(localizedDescription)"
             // which showed the raw English NSError text to the user).
             //
-            // v0.40 boss 9/7 OOB 'hint, usermust minimax
+            // 'hint, usermust minimax
             // key, generalhint': pass `nil` as the context
             // (NOT `currentModel`). The previous `context: currentModel`
             // interpolated the model name (= "MiniMax-M3") as the
@@ -971,7 +971,7 @@ final class ChatViewModel {
         // HermesGoals.swift's GoalsManager.persistGoal requires the
         // directory to be writable (= tests use the same temp-scoped
         // pattern; see HermesGoalsTests.makeTempPersistenceDir).
-        // boss '业务层不许摸基础设施'.
+        // '业务层不许摸基础设施'.
         // The FileManager.default.temporaryDirectory call moves
         // into HermesGoals.swift's `temporaryGoalsDirectory(prefix:)`
         // helper (= data-layer concern). Here we call the helper
@@ -1036,7 +1036,7 @@ final class ChatViewModel {
     }
 
     /// clear: clear all messages
-    /// v0.24 boss acceptance fix (Boss 8/25 OOB ticket 015.014): archive current
+    /// Archive current
     /// session + context (= reset messages + contextUsed), generate new
     /// sessionId, persist new session for future writes. Boss spec: 'start a
     /// brand new session. Reload the context'.
@@ -1076,7 +1076,7 @@ final class ChatViewModel {
     /// Errors are swallowed (= matches the prior `try?` behavior; =
     /// chat zone still renders, just with empty history).
     ///
-    /// v1.79 chat-by-book: scoped by `currentBookID` (= set by
+    /// Scoped by `currentBookID` (= set by
     /// setCurrentBookID; = nil = global un-attached).
     func loadHistory() async {
         do {
