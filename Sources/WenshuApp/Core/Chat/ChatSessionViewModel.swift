@@ -317,8 +317,7 @@ final class ChatViewModel {
     // property) so every ChatViewModel instance routes through the same
     // registry (= callers can subscribe to AsyncDelegationRegistry.next()
     // to observe spawns). Using the free `delegate(...)` function with
-    // this shared registry avoids touching AsyncDelegation.swift (= out
-    // of CHATBOX-003 allowlist).
+    // this shared registry avoids touching AsyncDelegation.swift.
     //
     // `nonisolated(unsafe)` is required because `AsyncDelegationRegistry`
     // is an actor type (= its initializer must run on the actor's
@@ -1057,10 +1056,7 @@ final class ChatViewModel {
         lastError = nil
     }
 
-    /// valueForSessionId: used by ChatView .task to load history
-    /// (= was `valueForStore` returning a chat store instance;
-    /// = Phase 5 ticket 10a replaced that with a direct
-    /// `WSChatRepository.shared.loadMessages` call inside the view).
+    /// valueForSessionId: used by ChatView .task to load history.
     func valueForSessionId() -> String { sessionId }  // @MainActor-isolated helper
 
     /// replaceMessages: ChatView .task loadcompletereplace (append)
