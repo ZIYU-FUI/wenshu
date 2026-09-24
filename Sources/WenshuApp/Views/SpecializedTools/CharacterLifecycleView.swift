@@ -405,17 +405,10 @@ struct CharacterLifecycleView: View {
 
     // MARK: - Helpers (= view-only glue: calls CharacterLifecycleOps, assigns @State)
 
-    private func ensureTracker() -> CharacterLifecycleTracker {
-        if let tracker { return tracker }
-        let new = CharacterLifecycleTracker(bookStore: bookStore)
-        tracker = new
-        return new
-    }
-
     private func reload() async {
         guard activeBookId != nil else { return }
         status = .loading
-        let actor = ensureManagerOrNil()
+        let actor = ensureTracker()
         let result = await CharacterLifecycleOps.reload(
             manager: actor,
             bookId: activeBookId,
@@ -437,7 +430,7 @@ struct CharacterLifecycleView: View {
     }
 
     private func reloadTimeline() async {
-        let actor = ensureManagerOrNil()
+        let actor = ensureTracker()
         let result = await CharacterLifecycleOps.reloadTimeline(
             manager: actor,
             bookId: activeBookId,
@@ -448,7 +441,7 @@ struct CharacterLifecycleView: View {
     }
 
     private func addEvent() async {
-        let actor = ensureManagerOrNil()
+        let actor = ensureTracker()
         let result = await CharacterLifecycleOps.addEvent(
             manager: actor,
             bookId: activeBookId,
@@ -469,7 +462,7 @@ struct CharacterLifecycleView: View {
     }
 
     private func removeEvent(_ event: LifecycleEvent) async {
-        let actor = ensureManagerOrNil()
+        let actor = ensureTracker()
         let result = await CharacterLifecycleOps.removeEvent(
             manager: actor,
             event: event
@@ -484,16 +477,17 @@ struct CharacterLifecycleView: View {
     }
 
     /// Returns the actor (= from @State tracker) if constructed; = nil
-    /// before the first .task fires. View glue does not construct the
-    /// actor (= that happens lazily in the first call site; = Ops
-    /// itself takes optional actor per v1.74 TagManagerOps precedent).
-    private func ensureManagerOrNil() -> CharacterLifecycleTracker? {
+        /// before the first .task fires. View glue does not construct the
+        /// actor (= that happens lazily in the first call site; = Ops
+        /// itself takes optional actor per v1.74 TagManagerOps precedent).
+        /// Renamed from `ensureManagerOrNil` (= v1.76 spec-fix arc;
+    /// = spec §9.2 row 1 lists one helper = `ensureTracker`).
+    private func ensureTracker() -> CharacterLifecycleTracker? {
         if let tracker { return tracker }
-        // Build it here so the Ops call gets a real actor (the
-        // View-only `ensureTracker` was deleted in T1c). The first
-        // call after launch (= .task) is the one that pays the
+        // Build it here so the Ops call gets a real actor (= the
+        // first call after launch is the one that pays the
         // construction cost; = subsequent calls reuse the @State
-        // identity.
+        // identity).
         let new = CharacterLifecycleTracker(bookStore: bookStore)
         tracker = new
         return new
