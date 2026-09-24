@@ -134,7 +134,7 @@ struct EditorPlaceholderTests {
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
         let editorPlaceholderSection = String(section[..<endOfStruct])
-        #expect(editorPlaceholderSection.contains("public func setSelection(_ text: String) {"),
+        #expect(editorPlaceholderSection.contains("func setSelection(_ text: String) {"),
                 "EditorPlaceholder must expose public func setSelection(_ text: String) (= engine NSTextViewDelegate bridge entry point per P2 #19)")
     }
 

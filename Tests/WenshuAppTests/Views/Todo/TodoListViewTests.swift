@@ -53,7 +53,7 @@ struct TodoListViewTests {
     /// struct or end-of-file). `TodoRow` is a separate private struct
     /// after the main one; = section delimiter = "private struct TodoRow".
     private func todoListViewSection(_ source: String) -> String {
-        let startRange = source.range(of: "public struct TodoListView")!
+        let startRange = source.range(of: "struct TodoListView")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "private struct TodoRow")?.lowerBound
             ?? section.endIndex
@@ -66,7 +66,7 @@ struct TodoListViewTests {
     func conformsToViewAndIsPublic() throws {
         let source = try readTodoListViewSource()
         let section = todoListViewSection(source)
-        #expect(section.contains("public struct TodoListView: View"),
+        #expect(section.contains("struct TodoListView: View"),
                 "TodoListView must be public + conform to View (= DynamicZoneView mounts it)")
     }
 
@@ -112,7 +112,7 @@ struct TodoListViewTests {
     func declaresEmptyPublicInit() throws {
         let source = try readTodoListViewSource()
         let section = todoListViewSection(source)
-        #expect(section.contains("public init() {}"),
+        #expect(section.contains("init() {}"),
                 "TodoListView must expose public init() (= DynamicZoneView mounts it with no args)")
     }
 

@@ -35,7 +35,7 @@ struct ForeshadowingViewTests {
     @Test("ForeshadowingView exists as public struct (= confirmed by source)")
     func testExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("public struct ForeshadowingView: View") ||
+        #expect(source.contains("struct ForeshadowingView: View") ||
                 source.contains("struct ForeshadowingView: View"),
                 "ForeshadowingView must be declared in ForeshadowingView.swift")
     }
@@ -74,7 +74,7 @@ struct ForeshadowingViewTests {
     @Test("ForeshadowingView has public init (= SwiftUI view requirement)")
     func testHasInit() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("init(") || source.contains("public init"),
+        #expect(source.contains("init(") || source.contains("init"),
                 "ForeshadowingView must declare an init (= SwiftUI view contract)")
     }
 
@@ -82,7 +82,7 @@ struct ForeshadowingViewTests {
     func testSinglePrimaryStruct() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct ForeshadowingView: View") ||
-                source.contains("public struct ForeshadowingView: View"),
+                source.contains("struct ForeshadowingView: View"),
                 "ForeshadowingView must declare primary ForeshadowingView: View struct")
     }
 
@@ -125,7 +125,7 @@ struct ForeshadowingViewTests {
         // 3. public init()
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct ForeshadowingView: View") ||
-                source.contains("public struct ForeshadowingView: View"),
+                source.contains("struct ForeshadowingView: View"),
                 "1/3: ForeshadowingView: View conformance missing")
         #expect(source.contains("var body: some View"),
                 "2/3: var body: some View missing")

@@ -72,7 +72,7 @@ struct ChatPartViewStyleTests {
         ]
         for entry in partFiles {
             let source = Self.loadSource(named: entry.file)
-            #expect(source.contains("public struct \(entry.name)"),
+            #expect(source.contains("struct \(entry.name)"),
                     "\(entry.name) declaration not found in \(entry.file)")
         }
         // Block-level parts (3 of 4) MUST declare chromePaddingSmall

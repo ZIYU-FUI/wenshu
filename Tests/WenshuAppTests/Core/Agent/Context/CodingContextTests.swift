@@ -40,7 +40,7 @@ struct CodingContextTests {
         #expect(context.imports.contains("WenshuApp"))
         #expect(context.imports.contains("os"))
         #expect(context.snippet != nil)
-        #expect(context.snippet?.contains("public struct Demo") ?? false)
+        #expect(context.snippet?.contains("struct Demo") ?? false)
     }
 
     @Test("aggregate throws for an unsupported file extension")

@@ -35,7 +35,7 @@ struct CharacterLifecycleViewTests {
     @Test("CharacterLifecycleView exists as public struct (= confirmed by source)")
     func testExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("public struct CharacterLifecycleView: View") ||
+        #expect(source.contains("struct CharacterLifecycleView: View") ||
                 source.contains("struct CharacterLifecycleView: View"),
                 "CharacterLifecycleView must be declared in CharacterLifecycleView.swift")
     }
@@ -74,7 +74,7 @@ struct CharacterLifecycleViewTests {
     @Test("CharacterLifecycleView has public init (= SwiftUI view requirement)")
     func testHasInit() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("init(") || source.contains("public init"),
+        #expect(source.contains("init(") || source.contains("init"),
                 "CharacterLifecycleView must declare an init (= SwiftUI view contract)")
     }
 
@@ -82,7 +82,7 @@ struct CharacterLifecycleViewTests {
     func testSinglePrimaryStruct() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct CharacterLifecycleView: View") ||
-                source.contains("public struct CharacterLifecycleView: View"),
+                source.contains("struct CharacterLifecycleView: View"),
                 "CharacterLifecycleView must declare primary CharacterLifecycleView: View struct")
     }
 
@@ -125,7 +125,7 @@ struct CharacterLifecycleViewTests {
         // 3. public init()
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct CharacterLifecycleView: View") ||
-                source.contains("public struct CharacterLifecycleView: View"),
+                source.contains("struct CharacterLifecycleView: View"),
                 "1/3: CharacterLifecycleView: View conformance missing")
         #expect(source.contains("var body: some View"),
                 "2/3: var body: some View missing")

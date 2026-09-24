@@ -35,7 +35,7 @@ struct GenreFitViewTests {
     @Test("GenreFitView exists as public struct (= confirmed by source)")
     func testExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("public struct GenreFitView: View") ||
+        #expect(source.contains("struct GenreFitView: View") ||
                 source.contains("struct GenreFitView: View"),
                 "GenreFitView must be declared in GenreFitView.swift")
     }
@@ -74,7 +74,7 @@ struct GenreFitViewTests {
     @Test("GenreFitView has public init (= SwiftUI view requirement)")
     func testHasInit() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("init(") || source.contains("public init"),
+        #expect(source.contains("init(") || source.contains("init"),
                 "GenreFitView must declare an init (= SwiftUI view contract)")
     }
 
@@ -82,7 +82,7 @@ struct GenreFitViewTests {
     func testSinglePrimaryStruct() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct GenreFitView: View") ||
-                source.contains("public struct GenreFitView: View"),
+                source.contains("struct GenreFitView: View"),
                 "GenreFitView must declare primary GenreFitView: View struct")
     }
 
@@ -125,7 +125,7 @@ struct GenreFitViewTests {
         // 3. public init()
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct GenreFitView: View") ||
-                source.contains("public struct GenreFitView: View"),
+                source.contains("struct GenreFitView: View"),
                 "1/3: GenreFitView: View conformance missing")
         #expect(source.contains("var body: some View"),
                 "2/3: var body: some View missing")

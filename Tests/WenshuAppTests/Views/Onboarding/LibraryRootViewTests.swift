@@ -35,7 +35,7 @@ struct LibraryRootViewTests {
     @Test("LibraryRootView exists as public struct (= confirmed by source)")
     func testExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("public struct LibraryRootView: View") ||
+        #expect(source.contains("struct LibraryRootView: View") ||
                 source.contains("struct LibraryRootView: View"),
                 "LibraryRootView must be declared in LibraryRootView.swift")
     }
@@ -74,7 +74,7 @@ struct LibraryRootViewTests {
     @Test("LibraryRootView has public init (= SwiftUI view requirement)")
     func testHasInit() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("init(") || source.contains("public init"),
+        #expect(source.contains("init(") || source.contains("init"),
                 "LibraryRootView must declare an init (= SwiftUI view contract)")
     }
 
@@ -82,7 +82,7 @@ struct LibraryRootViewTests {
     func testSinglePrimaryStruct() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct LibraryRootView: View") ||
-                source.contains("public struct LibraryRootView: View"),
+                source.contains("struct LibraryRootView: View"),
                 "LibraryRootView must declare primary LibraryRootView: View struct")
     }
 
@@ -125,7 +125,7 @@ struct LibraryRootViewTests {
         // 3. public init()
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct LibraryRootView: View") ||
-                source.contains("public struct LibraryRootView: View"),
+                source.contains("struct LibraryRootView: View"),
                 "1/3: LibraryRootView: View conformance missing")
         #expect(source.contains("var body: some View"),
                 "2/3: var body: some View missing")

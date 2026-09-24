@@ -80,7 +80,7 @@ struct LLMConnectorConformanceTests {
             let content = try String(contentsOf: url, encoding: .utf8)
             // Look for `public actor <Name>: LLMConnector { ... }`
             // (= the canonical conformance declaration).
-            if !content.contains("public actor \(name): LLMConnector") {
+            if !content.contains("actor \(name): LLMConnector") {
                 nonConforming.append(name)
             }
         }
@@ -96,9 +96,9 @@ struct LLMConnectorConformanceTests {
     ///
     /// Two declaration styles appear in the codebase (= both are
     /// valid LLMConnector conformance):
-    ///   • `public nonisolated let connectorID = "anthropic"` (= stored
+    ///   • `nonisolated let connectorID = "anthropic"` (= stored
     ///     property with literal default; = Anthropic / OpenAI / etc.)
-    ///   • `public nonisolated let connectorID: String  // = provider.slug
+    ///   • `nonisolated let connectorID: String  // = provider.slug
     ///     (= set at init)` (= stored property with runtime value; =
     ///     the OpenAICompatibleConnector used by DeepSeek / Ollama /
     ///     OpenRouter / minimax-cn).

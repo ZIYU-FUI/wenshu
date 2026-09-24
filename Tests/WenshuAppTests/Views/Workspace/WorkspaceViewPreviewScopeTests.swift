@@ -112,7 +112,7 @@ struct WorkspaceViewPreviewScopeTests {
     func nilSelectionCase() throws {
         let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("guard let item = appState.sidebarSelection else { return .empty }"),
+        #expect(source.contains("guard let item = shell.sidebarSelection else { return .empty }"),
                 "nil selection must return .empty (= 'no selection' default)")
     }
 }

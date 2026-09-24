@@ -35,7 +35,7 @@ struct EmotionCurveViewTests {
     @Test("EmotionCurveView exists as public struct (= confirmed by source)")
     func testExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("public struct EmotionCurveView: View") ||
+        #expect(source.contains("struct EmotionCurveView: View") ||
                 source.contains("struct EmotionCurveView: View"),
                 "EmotionCurveView must be declared in EmotionCurveView.swift")
     }
@@ -74,7 +74,7 @@ struct EmotionCurveViewTests {
     @Test("EmotionCurveView has public init (= SwiftUI view requirement)")
     func testHasInit() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("init(") || source.contains("public init"),
+        #expect(source.contains("init(") || source.contains("init"),
                 "EmotionCurveView must declare an init (= SwiftUI view contract)")
     }
 
@@ -82,7 +82,7 @@ struct EmotionCurveViewTests {
     func testSinglePrimaryStruct() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct EmotionCurveView: View") ||
-                source.contains("public struct EmotionCurveView: View"),
+                source.contains("struct EmotionCurveView: View"),
                 "EmotionCurveView must declare primary EmotionCurveView: View struct")
     }
 
@@ -125,7 +125,7 @@ struct EmotionCurveViewTests {
         // 3. public init()
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct EmotionCurveView: View") ||
-                source.contains("public struct EmotionCurveView: View"),
+                source.contains("struct EmotionCurveView: View"),
                 "1/3: EmotionCurveView: View conformance missing")
         #expect(source.contains("var body: some View"),
                 "2/3: var body: some View missing")

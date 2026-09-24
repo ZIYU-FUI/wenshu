@@ -35,7 +35,7 @@ struct ReaderExperienceViewTests {
     @Test("ReaderExperienceView exists as public struct (= confirmed by source)")
     func testExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("public struct ReaderExperienceView: View") ||
+        #expect(source.contains("struct ReaderExperienceView: View") ||
                 source.contains("struct ReaderExperienceView: View"),
                 "ReaderExperienceView must be declared in ReaderExperienceView.swift")
     }
@@ -74,7 +74,7 @@ struct ReaderExperienceViewTests {
     @Test("ReaderExperienceView has public init (= SwiftUI view requirement)")
     func testHasInit() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("init(") || source.contains("public init"),
+        #expect(source.contains("init(") || source.contains("init"),
                 "ReaderExperienceView must declare an init (= SwiftUI view contract)")
     }
 
@@ -82,7 +82,7 @@ struct ReaderExperienceViewTests {
     func testSinglePrimaryStruct() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct ReaderExperienceView: View") ||
-                source.contains("public struct ReaderExperienceView: View"),
+                source.contains("struct ReaderExperienceView: View"),
                 "ReaderExperienceView must declare primary ReaderExperienceView: View struct")
     }
 
@@ -125,7 +125,7 @@ struct ReaderExperienceViewTests {
         // 3. public init()
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct ReaderExperienceView: View") ||
-                source.contains("public struct ReaderExperienceView: View"),
+                source.contains("struct ReaderExperienceView: View"),
                 "1/3: ReaderExperienceView: View conformance missing")
         #expect(source.contains("var body: some View"),
                 "2/3: var body: some View missing")

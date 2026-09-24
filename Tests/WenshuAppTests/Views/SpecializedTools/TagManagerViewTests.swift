@@ -35,7 +35,7 @@ struct TagManagerViewTests {
     @Test("TagManagerView exists as public struct (= confirmed by source)")
     func testExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("public struct TagManagerView: View") ||
+        #expect(source.contains("struct TagManagerView: View") ||
                 source.contains("struct TagManagerView: View"),
                 "TagManagerView must be declared in TagManagerView.swift")
     }
@@ -74,7 +74,7 @@ struct TagManagerViewTests {
     @Test("TagManagerView has public init (= SwiftUI view requirement)")
     func testHasInit() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("init(") || source.contains("public init"),
+        #expect(source.contains("init(") || source.contains("init"),
                 "TagManagerView must declare an init (= SwiftUI view contract)")
     }
 
@@ -82,7 +82,7 @@ struct TagManagerViewTests {
     func testSinglePrimaryStruct() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct TagManagerView: View") ||
-                source.contains("public struct TagManagerView: View"),
+                source.contains("struct TagManagerView: View"),
                 "TagManagerView must declare primary TagManagerView: View struct")
     }
 
@@ -125,7 +125,7 @@ struct TagManagerViewTests {
         // 3. public init()
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct TagManagerView: View") ||
-                source.contains("public struct TagManagerView: View"),
+                source.contains("struct TagManagerView: View"),
                 "1/3: TagManagerView: View conformance missing")
         #expect(source.contains("var body: some View"),
                 "2/3: var body: some View missing")

@@ -197,7 +197,7 @@ struct AppleSidebarMVVMSplitTests {
         // → PreviewPane.bookScopeView → loadBookDocs(folderName:)).
         #expect(src.contains(".folder(bookId: parent.bookId, folderName: parent.folderName)"),
                 "AppleSidebarView MUST forward folder selection as .folder(bookId:, folderName:) (= the canonical chain to cards)")
-        #expect(src.contains("appState.sidebarSelection = .folder"),
+        #expect(src.contains("shell.sidebarSelection = .folder"),
                 "AppleSidebarView MUST write the folder selection to appState.sidebarSelection")
     }
 

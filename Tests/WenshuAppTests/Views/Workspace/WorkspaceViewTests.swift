@@ -74,18 +74,17 @@ struct WorkspaceViewTests {
         #expect(codeRegion.contains("@State private var selectedEntity: Reference? = nil"),
                 "must declare selectedEntity state (= v0.30 detail card view)")
 
-        // Per v0.40 apple-001 Q3 surgical: `previewSortOrder` was hoisted
-        // from WorkspaceView's @State (= per-window copy) to AppState.previewSortOrder
-        // (= the canonical singleton per window via WenshuApp's @State wrapping).
-        // The acceptance that WorkspaceView reads `appState.previewSortOrder`
-        // (= not its own @State) is verified by inspecting AppState.swift.
-        let appStateURL = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/State/AppState.swift"
-        let appState = try String(contentsOfFile: appStateURL, encoding: .utf8)
-        let appStateCode = appState.components(separatedBy: "\n").filter {
-            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
-        }.joined(separator: "\n")
-        #expect(appStateCode.contains("var previewSortOrder: EntitySortOrder = .pinyinFirstLetter"),
-                "AppState MUST own previewSortOrder (= v0.40 apple-001 Q3 hoist from WorkspaceView)")
+        // P2-06 (audit 2026-09-24): previewSortOrder was hoisted from
+                // WorkspaceView's @State to its own @Observable WorkspaceUIState class
+                // (= per-window @State on App.swift). The acceptance is that
+                // WorkspaceView reads `workspaceUI.previewSortOrder` (= not AppState).
+                let workspaceUIStatePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/State/WorkspaceUIState.swift"
+                let workspaceUIState = try String(contentsOfFile: workspaceUIStatePath, encoding: .utf8)
+                let workspaceUIStateCode = workspaceUIState.components(separatedBy: "\n").filter {
+                    !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
+                }.joined(separator: "\n")
+                #expect(workspaceUIStateCode.contains("var previewSortOrder: EntitySortOrder = .pinyinFirstLetter"),
+                        "WorkspaceUIState MUST own previewSortOrder (= P2-06 hoist from per-view @State to per-window @Observable WorkspaceUIState)")
     }
 
     @Test("reads AppState + BookStore from environment (= per boss 2026-08-27 + v0.34 audit)")
@@ -111,8 +110,8 @@ struct WorkspaceViewTests {
     func editModeFromAppState() throws {
         let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("private var editMode: LayoutEditMode { appState.editMode }"),
-                "editMode must read from appState.editMode (= v0.40 hoisted decision; = all workspace descendants share one source)")
+        #expect(source.contains("private var editMode: LayoutEditMode { workspaceUI.editMode }"),
+                "editMode must read from workspaceUI.editMode (= P2-06 hoisted decision; = all workspace descendants share one source)")
     }
 
     @Test("DEFERRED header documents the v0.77 spec decision (= not dead code per Q57)")

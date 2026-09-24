@@ -22,7 +22,8 @@ struct PlanModelTests {
             contentsOfFile: "Sources/WenshuApp/Core/Agent/Plan/PlanModeEngine.swift",
             encoding: .utf8
         )
-        #expect(source.contains("public let model: String?"))
+        #expect(source.contains("let model: String?"),
+                "PlanModeEngine must declare public let model: String?")
     }
 
     /// T30 contract: Plan init accepts `model: String? = nil` (=

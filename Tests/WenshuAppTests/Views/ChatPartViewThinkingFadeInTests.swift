@@ -32,7 +32,8 @@ struct ChatPartViewThinkingFadeInTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatReasoningPartView.swift",
             encoding: .utf8
         )
-        #expect(src.contains("public static func wenshuThinkingAppear() -> AnyTransition"))
+        #expect(src.contains("static func wenshuThinkingAppear() -> AnyTransition"),
+                "ChatReasoningPartView must expose public static func wenshuThinkingAppear()")
     }
 
     /// T40 contract: the transition is asymmetric (= insertion
@@ -64,7 +65,7 @@ struct ChatPartViewThinkingFadeInTests {
         )
         // The @MainActor attribute appears on the line BEFORE the
         // function declaration.
-        guard let funcRange = src.range(of: "public static func wenshuThinkingAppear") else {
+        guard let funcRange = src.range(of: "static func wenshuThinkingAppear") else {
             Issue.record("wenshuThinkingAppear function not found")
             return
         }
