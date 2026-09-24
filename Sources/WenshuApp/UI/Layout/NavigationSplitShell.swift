@@ -274,9 +274,8 @@ struct NavigationSplitShell: View {
     }
 }
 
-/// v0.40 boss 2026-09-08 OOB 'directory tree top bar is also missing': scope selector
-/// for the sidebar top tab bar. 2 cases map to the existing
-/// top-level grouping (= = per-shelf books; = =
+/// Scope selector for the sidebar top tab bar. 2 cases map to
+/// the existing top-level grouping (= per-shelf books; =
 /// reference library per EntityCategory). View-local @State in
 /// ShellSidebarColumn (= no AppState migration needed for M1; =
 /// future ticket can promote to AppState for cross-zone read).
@@ -285,9 +284,9 @@ struct NavigationSplitShell: View {
 /// AppleSidebarView's body filter; = placed here in the
 /// NavigationSplitShell file = only NavigationSplitShell
 /// imports it). The actual filtering logic lives in
-/// AppleSidebarView (= the enum travels to the leaf as
-/// an init parameter; = post-v1.69 MVVM split moved the enum
-/// to its own file at `SidebarItem.swift`).
+/// AppleSidebarView (= the enum travels to the leaf as an init
+/// parameter; = post-v1.69 MVVM split moved the enum to its own
+/// file at `SidebarItem.swift`).
 
 // MARK: - Content column (= 2 vertical sub-areas)
 
