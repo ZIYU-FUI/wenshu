@@ -1,9 +1,8 @@
 // DropAffordance.swift · Wenshu () · v0.28 followup TKT-028-021
 //
-// Boss 2026-08-29 OOB ' hermes app, user' = port the
-// drop affordance + drag visuals from Hermes Desktop verbatim (= dashed
-// 2 PT rounded sheet, backdrop-blur 2 PX on LIVE drop only, 200ms
-// fade-in animation, NSCursor.dragLink on drag start).
+// Port the drop affordance + drag visuals from Hermes Desktop verbatim
+// (= dashed 2 PT rounded sheet, backdrop-blur 2 PX on LIVE drop only,
+// 200ms fade-in animation, NSCursor.dragLink on drag start).
 //
 // SOURCE (= Hermes verbatim port):
 // /Volumes/ANAN/.hermes/hermes-agent/apps/desktop/src/components/ui/drop-affordance.tsx
