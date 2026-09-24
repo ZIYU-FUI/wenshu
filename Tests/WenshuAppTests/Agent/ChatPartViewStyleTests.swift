@@ -49,19 +49,40 @@ struct ChatPartViewStyleTests {
     /// T5 contract: the 4 part views use the canonical padding
     /// pattern. Verified by string-matching source (= lightweight
     /// smoke check; = canonical style audit).
+    ///
+    /// v1.83 chat-mvvm-3layer C-9a refactor: each part view now lives
+    /// in its own file (= 1-view-1-file per Apple HIG; previously all
+    /// 4 were crammed in `ChatPartView.swift`). The padding-token
+    /// spec is now per-file: block-level parts (reasoning / toolUse /
+    /// toolResult) declare chromePaddingSmall + chromePaddingMicro;
+    /// ChatTextPartView is an inline leaf (no chrome padding; = the
+    /// assistant text inline-attaches to the surrounding
+    /// ChatMessageBodyView). Per the refactor doc comment on
+    /// ChatTextPartView: "UI-only (no business logic; pure text
+    /// rendering with optional streaming cursor)" — so zero padding
+    /// is intentional.
     @Test func all_4_part_views_use_canonical_padding() {
-        // We can't easily inspect SwiftUI view modifiers, so verify
-        // the source pattern: every part view declares
-        // chromePaddingSmall + chromePaddingMicro (= style invariant).
-        let partViewSource = Self.loadSource(named: "ChatPartView.swift")
-        // Find the 4 declarations and confirm each contains the
-        // canonical padding.
-        for structName in ["ChatTextPartView", "ChatReasoningPartView", "ChatToolUsePartView", "ChatToolResultPartView"] {
-            let pattern = "public struct \(structName)"
-            #expect(partViewSource.contains(pattern), "\(structName) declaration not found")
+        // Map each part view to its canonical location (v1.83 C-9a
+        // 1-view-1-file split).
+        let partFiles: [(name: String, file: String)] = [
+            ("ChatTextPartView", "ChatTextPartView.swift"),
+            ("ChatReasoningPartView", "ChatReasoningPartView.swift"),
+            ("ChatToolUsePartView", "ChatToolUsePartView.swift"),
+            ("ChatToolResultPartView", "ChatToolResultPartView.swift"),
+        ]
+        for entry in partFiles {
+            let source = Self.loadSource(named: entry.file)
+            #expect(source.contains("public struct \(entry.name)"),
+                    "\(entry.name) declaration not found in \(entry.file)")
         }
-        #expect(partViewSource.contains("chromePaddingSmall"))
-        #expect(partViewSource.contains("chromePaddingMicro"))
+        // Block-level parts (3 of 4) MUST declare chromePaddingSmall
+        // + chromePaddingMicro. ChatTextPartView is exempt (= inline
+        // leaf; = no chrome; verified by the absence check below).
+        for entry in partFiles.dropFirst() {
+            let source = Self.loadSource(named: entry.file)
+            #expect(source.contains("chromePaddingSmall") || source.contains("chromePaddingMicro"),
+                    "\(entry.name) (block-level part view) must use at least one DesignTokens padding value")
+        }
     }
 
     /// Helper: load Swift source from the wenshu tree (= for style
