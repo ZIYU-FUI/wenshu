@@ -135,4 +135,64 @@ struct DocumentTests {
         #expect(decoded.category == .setting)
         #expect(decoded.byteSize == 4096)
     }
+
+    // MARK: - DocumentCrossRefParser (v1.80 health-ticket 1)
+
+    @Test("DocumentCrossRefParser.parse extracts English-prefix @-refs from markdown")
+    func parserExtractsEnglishPrefix() {
+        let md = "Hero meets @character.zhangsan at @world.rainycity, with @reference.primer1 attached."
+        let refs = DocumentCrossRefParser.parse(md)
+        #expect(refs.count == 3)
+        #expect(refs.contains(where: { $0.kind == .character && $0.name == "zhangsan" }))
+        #expect(refs.contains(where: { $0.kind == .world && $0.name == "rainycity" }))
+        #expect(refs.contains(where: { $0.kind == .reference && $0.name == "primer1" }))
+    }
+
+    @Test("DocumentCrossRefParser.parse maps Chinese prefix @-refs to DocumentRefKind")
+    func parserAcceptsChinesePrefix() {
+        let md = "@角色.林夕 遇到 @世界观.雨城, with @资料.笔记1"
+        let refs = DocumentCrossRefParser.parse(md)
+        #expect(refs.contains(where: { $0.kind == .character && $0.name == "林夕" }))
+        #expect(refs.contains(where: { $0.kind == .world && $0.name == "雨城" }))
+        #expect(refs.contains(where: { $0.kind == .reference && $0.name == "笔记1" }))
+    }
+
+    @Test("DocumentCrossRefParser.parse dedupes repeat refs of the same kind+name")
+    func parserDedupesRepeatedRefs() {
+        let md = "@character.zhangsan walks past. Then @character.zhangsan returns."
+        let refs = DocumentCrossRefParser.parse(md)
+        #expect(refs.count == 1)
+        #expect(refs.first?.kind == .character)
+        #expect(refs.first?.name == "zhangsan")
+    }
+
+    @Test("DocumentCrossRefParser.resolve maps parsed names to UUID arrays, silently skips unresolved")
+    func parserResolveMapsToUuidArrays() {
+        let refs: [(kind: DocumentRefKind, name: String)] = [
+            (.character, "zhangsan"),
+            (.world, "rainycity"),
+            (.character, "ghost-person-no-uuid"),
+        ]
+        let charLookup = ["zhangsan": UUID()]
+        let worldLookup = ["rainycity": UUID()]
+        let refLookup: [String: UUID] = [:]
+        let resolved = DocumentCrossRefParser.resolve(
+            refs,
+            characterLookup: charLookup,
+            worldLookup: worldLookup,
+            referenceLookup: refLookup
+        )
+        #expect(resolved.characterRefIds.count == 1)
+        #expect(resolved.worldRefIds.count == 1)
+        #expect(resolved.referenceRefIds.isEmpty)
+    }
+
+    @Test("DocumentCrossRefParser.parse skips refs with unknown prefix (= kindFromRaw returns nil)")
+    func parserSkipsUnknownPrefix() {
+        let md = "@unknown.foo and @character.zhangsan"
+        let refs = DocumentCrossRefParser.parse(md)
+        #expect(refs.count == 1)
+        #expect(refs.first?.kind == .character)
+        #expect(refs.first?.name == "zhangsan")
+    }
 }
