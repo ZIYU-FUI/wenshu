@@ -468,3 +468,12 @@ public final class WSBookRepository {
 public enum WSBookRepositoryError: Error {
     case notFound
 }
+
+extension WSBookRepositoryError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .notFound:
+            return "Book not found."
+        }
+    }
+}

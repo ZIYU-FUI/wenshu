@@ -84,3 +84,16 @@ public enum SSLGuardError: Error, Sendable, Equatable {
     /// Cert chain could not be validated.
     case invalidCertChain
 }
+
+extension SSLGuardError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .insecureURL:
+            return "The URL is not HTTPS. Connect only to secure endpoints."
+        case .selfSignedCert:
+            return "Encountered a self-signed certificate."
+        case .invalidCertChain:
+            return "The certificate chain could not be validated."
+        }
+    }
+}

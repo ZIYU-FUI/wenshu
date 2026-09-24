@@ -138,3 +138,12 @@ public struct BackupTools: Sendable {
 public enum BackupError: Error {
     case sourceNotFound(path: String)
 }
+
+extension BackupError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .sourceNotFound(let path):
+            return "Backup source not found: \(path)"
+        }
+    }
+}

@@ -133,3 +133,12 @@ extension WebTools {
         }
     }()
 }
+
+extension WebToolsError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .invalidURL(let url):
+            return "Invalid URL: \(url)"
+        }
+    }
+}

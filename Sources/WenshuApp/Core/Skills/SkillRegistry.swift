@@ -171,3 +171,12 @@ public actor SkillRegistry {
 public enum SkillRegistryError: Error {
     case notFound(name: String)
 }
+
+extension SkillRegistryError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .notFound(let name):
+            return "Skill not found: \(name)"
+        }
+    }
+}

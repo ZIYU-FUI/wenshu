@@ -193,3 +193,14 @@ extension VisionTools {
         }
     }()
 }
+
+extension VisionToolsError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .imageLoadFailed(let path):
+            return "Failed to load image at: \(path)"
+        case .platformNotSupported:
+            return "Vision framework is not supported on this platform."
+        }
+    }
+}

@@ -160,3 +160,12 @@ public final class WSKanbanRepository {
 public enum WSKanbanRepositoryError: Error {
     case notFound
 }
+
+extension WSKanbanRepositoryError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .notFound:
+            return "Kanban task not found."
+        }
+    }
+}

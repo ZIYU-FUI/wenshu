@@ -104,3 +104,14 @@ public enum AgentRuntimeError: Error {
     case agentNotFound(name: String)
     case delegateFailed(agentName: String, error: String)
 }
+
+extension AgentRuntimeError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .agentNotFound(let name):
+            return "Agent not found: \(name)"
+        case .delegateFailed(let agentName, let error):
+            return "Agent \(agentName) delegation failed: \(error)"
+        }
+    }
+}

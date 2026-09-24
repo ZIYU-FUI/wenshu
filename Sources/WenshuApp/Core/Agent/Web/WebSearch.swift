@@ -154,3 +154,16 @@ public enum WebSearchError: Error, Sendable, Equatable {
     /// `emptyResults` (= "tried but got nothing back").
     case providerFailure(name: String, underlying: String)
 }
+
+extension WebSearchError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .noProvidersConfigured:
+            return "No web search providers are configured."
+        case .emptyResults(let providerName):
+            return "Provider \(providerName) returned no results."
+        case .providerFailure(let name, let underlying):
+            return "Provider \(name) failed: \(underlying)"
+        }
+    }
+}

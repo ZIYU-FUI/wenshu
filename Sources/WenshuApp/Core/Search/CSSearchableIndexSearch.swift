@@ -354,3 +354,16 @@ public enum TokenOverlapRanking {
         return String(body.prefix(contextChars * 2))
     }
 }
+
+extension CSSearchStoreError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .indexUnavailable(let reason):
+            return "Search index unavailable: \(reason)"
+        case .queryFailed(let reason):
+            return "Search query failed: \(reason)"
+        case .docMirrorUnavailable(let reason):
+            return "Document mirror unavailable: \(reason)"
+        }
+    }
+}

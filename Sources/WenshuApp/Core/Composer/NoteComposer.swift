@@ -101,3 +101,18 @@ public enum NoteComposer {
         return (first + "\n\n" + middle, middle + "\n\n" + second)
     }
 }
+
+extension ComposerError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .sourceNotFound(let docId):
+            return "Source document not found: \(docId)"
+        case .targetNotFound(let docId):
+            return "Target document not found: \(docId)"
+        case .invalidRange(let startLine, let endLine):
+            return "Invalid line range: \(startLine)-\(endLine)"
+        case .emptyContent(let docId):
+            return "Document \(docId) has no content to compose."
+        }
+    }
+}

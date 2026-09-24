@@ -149,3 +149,12 @@ public final class WSMemoryRepository {
 public enum WSMemoryRepositoryError: Error {
     case notFound
 }
+
+extension WSMemoryRepositoryError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .notFound:
+            return "Memory entry not found."
+        }
+    }
+}

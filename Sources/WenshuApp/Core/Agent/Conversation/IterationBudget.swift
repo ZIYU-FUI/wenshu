@@ -71,3 +71,14 @@ public enum IterationBudgetError: Error, Sendable, Equatable {
     case maxIterationsReached
     case maxTokensReached
 }
+
+extension IterationBudgetError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .maxIterationsReached:
+            return "Maximum iteration count reached."
+        case .maxTokensReached:
+            return "Maximum token budget reached."
+        }
+    }
+}

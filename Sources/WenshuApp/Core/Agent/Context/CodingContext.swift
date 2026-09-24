@@ -169,3 +169,14 @@ public enum CodingContextError: Error, Sendable, Equatable {
     case fileNotFound(path: String)
     case unsupportedExtension(path: String)
 }
+
+extension CodingContextError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .fileNotFound(let path):
+            return "Coding context file not found: \(path)"
+        case .unsupportedExtension(let path):
+            return "Unsupported file extension: \(path)"
+        }
+    }
+}

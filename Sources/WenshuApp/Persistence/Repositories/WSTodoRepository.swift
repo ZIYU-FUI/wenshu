@@ -136,3 +136,12 @@ public final class WSTodoRepository {
 public enum WSTodoRepositoryError: Error {
     case notFound
 }
+
+extension WSTodoRepositoryError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .notFound:
+            return "Todo not found."
+        }
+    }
+}

@@ -450,3 +450,12 @@ public final class WSChatRepository {
 public enum WSChatRepositoryError: Error, Equatable {
     case sessionNotFoundForBookScope(sessionID: String, bookID: String)
 }
+
+extension WSChatRepositoryError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .sessionNotFoundForBookScope(let sessionID, let bookID):
+            return "Chat session \(sessionID) not found for book \(bookID)."
+        }
+    }
+}
