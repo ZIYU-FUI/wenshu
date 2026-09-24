@@ -7,19 +7,15 @@
 //
 // Each character is stored as a `.md` file under
 // `books/<book-uuid>/characters/<char-uuid>.md`. The JSON file
-// `books/<book-uuid>/characters/characters.json` (= ticket 005's
-// FileSystemCharacterStore) holds the index: `[Character]` with id +
-// structured fields. The .md body holds the free-form character
-// biography / personality / backstory.
-//
-// v0.26 FCP library replica spec at
-// `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 002.
+// `books/<book-uuid>/characters/characters.json` holds the index:
+// `[Character]` with id + structured fields. The .md body holds the
+// free-form character biography / personality / backstory.
 
 import Foundation
 
 /// Character role (= narrative POV function inside the book). Drives
 /// color coding in the editor (= Apple HIG: roles are color-coded
-/// per the FCP Role pattern that boss 8/26 OOB references).
+/// per the FCP Role pattern).
 /// Five cases cover the most common narrative POV positions:
 /// protagonist, antagonist, supporting, narrator, other.
 enum CharacterRole: String, CaseIterable, Codable, Sendable {
@@ -42,8 +38,8 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
 
     /// Hex color string (= ARGB without alpha prefix). Drives the
     /// color coding in the editor when this character is referenced
-    /// (= per FCP Role color pattern). v0.26 uses fixed colors; v0.27+
-    /// can let the user customize per character.
+    /// (= per FCP Role color pattern). All colors match Apple system
+    /// colors (= red / orange / green / gray / purple).
     var colorHex: String {
         switch self {
         case .protagonist: return "#FF3B30"  // Apple system red
@@ -54,11 +50,9 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// SF Symbol name for the card icon.
-    /// v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
-    /// all entity-type icons use outline glyphs (= the canonical
-    /// Apple HIG form for the Liquid Glass 3rd-generation design
-    /// language).
+    /// SF Symbol name for the card icon. Outline icons everywhere
+    /// (= the canonical Apple HIG form for the Liquid Glass 3rd-
+    /// generation design language).
     var icon: String {
         switch self {
         case .protagonist: return "person"
@@ -77,8 +71,7 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
 ///
 /// The full biography lives in the .md body (= free-form markdown
 /// the user writes). This struct holds the structured metadata used
-/// for the second-column card grid (= boss 8/26 'cardyes
-/// ').
+/// for the second-column card grid.
 struct Character: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
 
@@ -99,8 +92,7 @@ struct Character: Identifiable, Hashable, Codable, Sendable {
     /// b c status). Drives the card's secondary line.
     var arc: String?
 
-    /// One-line summary shown on the card (= boss 8/26 'cardyes
-    /// ').
+    /// One-line summary shown on the card.
     var summary: String
 
     /// Optional cross-references to other entities:
