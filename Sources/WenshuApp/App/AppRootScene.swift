@@ -33,7 +33,6 @@ struct AppRootScene: Scene {
     let sheetRequests: SheetRequestState
     let repositories: WSRepositoryContainer
 
-    // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
     // the kanban + todo Windows each construct their own BookStore /
     // Kanban / Todo persistence from the shared `library` URL
     // (= SwiftData-backed via WSKanbanRepository / WSTodoRepository;
@@ -48,7 +47,6 @@ struct AppRootScene: Scene {
     // the shared on-disk JSON files).
 
     var body: some Scene {
-        // v0.24 fix (Boss 8/25 17th OOB 'hide Wenshu title'): WindowGroup
         // title set to empty string (= no NSWindow title shown). Combined
         // with .windowToolbarStyle(.unified, showsTitle: false) below for
         // canonical Apple HIG API to hide title slot in unified chrome.
@@ -87,7 +85,6 @@ struct AppRootScene: Scene {
         // handles + window chrome = ~2205 PT), overriding
         // defaultSize entirely.
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'compute each column's initial size using the minimum':
         // `.windowResizability(.contentMinSize)` (= the current
         // setting) makes the initial window = the sum of every
         // column's MIN width (= sidebar 220 + cards 240 + detail
@@ -114,7 +111,6 @@ struct AppRootScene: Scene {
         // `.contentSize` actually DOES honour the outer frame as
         // the intrinsic content size).
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'the middle column's default width doesn't
         // have it — write it in, seems like it needs to be patched': the `.contentSize` resizability
         // was making the window size = NavigationSplitView's
         // intrinsic content size (= the sum of each column's
@@ -209,7 +205,6 @@ struct AppRootScene: Scene {
         // button writes the same property NavigationSplitShell
         // binds into `.inspector(isPresented:)`.
         .commands {
-            // Boss 2026-09-10 OOB "Apple default": drop InspectorCommands().
             // NSV .inspector(isPresented:) modifier already renders a
             // column-header chevron for inspector visibility; the
             // duplicated View > Inspector menu item (⌥⌘I) was a
@@ -238,7 +233,6 @@ struct AppRootScene: Scene {
             // automatically when the App has a Settings scene (= no
             // custom CommandGroup required).
             //
-            // Boss 2026-09-10 OOB "drop menu items": ⌘K Command Palette
             // was a hermes parity carryover from v0.40. Restore the
             // macOS-default File > New behavior (= ⌘N for new
             // document) by removing the .newItem replacement.
@@ -256,7 +250,6 @@ struct AppRootScene: Scene {
                 // sidebar observes (= AppleSidebarView flips the
                 // matching AppState request counter → .sheet(item:)
                 // presents the matching sheet from SidebarSheets.swift).
-                // v1.0.0-m1-shell boss 2026-09-10 OOB '⌘N opens a new Wenshu document': the
                 // previous `.keyboardShortcut("n", modifiers:
                 // .command)` was attached to the OUTER Menu (= a
                 // scene-level Menu = the File menu's "New Project"
@@ -310,7 +303,6 @@ struct AppRootScene: Scene {
                 Button(WenshuI18n.t("menu.edit.redo"), action: {})
                     .keyboardShortcut("Z", modifiers: [.command, .shift])
             }
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'NSV is the default; the chat zone
             // is a zone that can be shown/hidden, but the toggle lives in the menu bar, there is no dedicated
             // button — the menu-bar entry comes first, whether to add a button later, we'll investigate': the View
             // menu (= Apple's canonical menu for pane visibility
@@ -360,7 +352,6 @@ struct AppRootScene: Scene {
         .environment(appState)
         .environment(shell)
         .environment(repositories)
-        // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
         // add 2 dedicated `Window` scenes (= the SwiftUI macOS
         // 13+ API for SINGLE-INSTANCE independent windows; = the
         // canonical Apple pattern for an 'always one' panel
@@ -384,7 +375,6 @@ struct AppRootScene: Scene {
         // is matched against the Window's accessibility
         // identifier (= see the `.accessibilityIdentifier` below).
         //
-        // v1.0.0-m1-shell boss 2026-09-11 OOB followup (= observation
         // from the cua AX tree dump + the macOS 27 Tahoe routing
         // observed in earlier debug output): WindowGroup IDs must
         // avoid the legacy Preferences / Settings ID namespace
@@ -393,7 +383,6 @@ struct AppRootScene: Scene {
         // new window). 'wenshu-kanban' / 'wenshu-todo' use
         // short opaque tokens that avoid that namespace
         // collision.
-        // v1.0.0-m1-shell boss 2026-09-11 OOB 'what I said about multi-instance and
         // what you said — are those the same thing? What I mean is: main window, Settings, Kanban, Todo,
         // can all appear on screen at the same time, but each window has to be unique, the Kanban button
         // can only toggle the Kanban window open/closed, not open multiple Kanban windows': my previous
@@ -425,7 +414,6 @@ struct AppRootScene: Scene {
         // the existing kanban window to front if it exists, or
         // creates one if it doesn't (= the toggle semantics).
         //
-        // v1.0.0-m1-shell boss 2026-09-11 OOB 'for Kanban, Settings, Todo
         // windows instances, the window size needs to auto-fit the content, no need to set
         // a fixed size': per Apple HIG `Window` (= single-instance)
         // sizes itself to the view's intrinsic content size
