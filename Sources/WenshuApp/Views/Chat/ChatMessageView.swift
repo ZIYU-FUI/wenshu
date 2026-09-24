@@ -24,8 +24,7 @@ import SwiftUI
 /// One chat-message view (Apple HIG ground truth)
 struct ChatMessageView: View {
     let message: ChatMessage
-    /// v1.65 boss 2026-09-21 'all 1:1 hermes真值, 文字回显就按
-    /// hermes 的方式走': true when this row is the most recent
+    /// True when this row is the most recent
     /// user (= .user source) message in the transcript. Hermes
     /// (`user-message.tsx:30-55` `StickyHumanMessageContainer`)
     /// pins the latest user bubble to the top of the scroll
@@ -237,8 +236,7 @@ struct ChatMessageView: View {
         // the left (= inner alignment); = matches iMessage +
         // Slack + hermes真值 user-message.tsx).
         VStack(alignment: .leading, spacing: 4) {
-                // boss 2026-09-21 "just refer to HERMES, do 1:1; drop
-                // wenshu-side source label + icon chrome that HERMES doesn't have":
+                // wenshu-side source label + icon chrome (= not in hermes):
                 //   - user-message.tsx:240-585 (= full UserMessage scan) renders
                 //     the user text with NO source label, NO avatar/icon, NO
                 //     role text — only `UserMessageText` (= pure markdown) +
@@ -466,8 +464,7 @@ struct ChatMessageView: View {
 /// Activates only on outgoing (= user) messages; on assistant rows the
 /// modifier is a pass-through (= no visual change from MC1's flat
 /// self-start text).
-/// v1.65-cleanup C2 boss 2026-09-21 'just refer to HERMES, do 1:1;
-/// drop the wenshu-side chrome': the user bubble surface now uses
+/// Drop the wenshu-side chrome: the user bubble surface now uses
 /// hermes真值 `bg-DT-USER-BUBBLE` semantics (= Apple semantic
 /// `Color(nsColor: .controlBackgroundColor)`) instead of the
 /// previous Liquid Glass `.regularMaterial` (= too heavy vs
@@ -564,8 +561,7 @@ private struct UserGlassCardModifier: ViewModifier {
 // MARK: - Hermes真值 user bubble surface per `apps/desktop/src/components/
 
 
-// boss '思考中的那个效果不是 hermes 的效果': StatusPulse
-// (= hermes真值 `.tsx status-pulse.tsx` PULSE_DURATION_MS=400 +
+// StatusPulse (= hermes真值 `.tsx status-pulse.tsx` PULSE_DURATION_MS=400 +
 // PULSE_PERIOD_MS=5000).
 //
 // 1:1 visual (= a small 3×3 PT rounded-2PT square that opacity-
