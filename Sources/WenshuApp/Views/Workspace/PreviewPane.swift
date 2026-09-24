@@ -1166,19 +1166,11 @@ struct PreviewPane: View {
     // MARK: - Data loading
 
     private func loadAllEntities() -> [Reference] {
-        // v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
-        // replaced the silent `try?` with explicit do/catch that logs
-        // the failure (= audit concern: user cannot distinguish "no
-        // entities" from "permission denied" on disk errors). The
-        // graceful-degradation behavior (= empty array returned on
-        // error) is preserved; = the NSLog is dev-only diagnostics.
-        do {
-            let allRefs = try bookStore.referenceStore.loadAllReferences()
-            return allRefs.filter { $0.layer == .layerEntities }
-        } catch {
-            NSLog("[wenshu.preview] loadAllEntities failed: %@", String(describing: error))
-            return []
+        let result = PreviewPaneOps.loadAllEntities(bookStore: bookStore)
+        if let err = result.error {
+            NSLog("[wenshu.preview] loadAllEntities failed: %@", err)
         }
+        return result.entities
     }
 
     /// v1.69 boss 2026-09-22 OOB: helper for shelfScopeView.
@@ -1190,8 +1182,7 @@ struct PreviewPane: View {
     /// the lookup fails (= disk error) so the caller doesn't
     /// have to do its own error-handling.
     private func loadBooksInShelf(shelfId: UUID) -> [Book] {
-        let allBooks = (try? bookStore.sidebarLoadAllBooks()) ?? []
-        return allBooks.filter { $0.shelfId == shelfId }
+        return PreviewPaneOps.loadBooksInShelf(bookStore: bookStore, shelfId: shelfId).books
     }
 
     /// v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
@@ -1206,16 +1197,12 @@ struct PreviewPane: View {
     /// constraint cycle).
     @MainActor
     private func loadShelfBooksAsync(shelfId: UUID) async {
-        // Yield first so SwiftUI can finish rendering the
-        // empty state (= `cachedShelfBooks[shelfId]` is `nil`
-        // until the await returns) before we touch disk.
-        await Task.yield()
-        let books = loadBooksInShelf(shelfId: shelfId)
-        cachedShelfBooks[shelfId] = books
+        let result = await PreviewPaneOps.loadShelfBooksAsync(bookStore: bookStore, shelfId: shelfId)
+        cachedShelfBooks[shelfId] = result.books
     }
 
     private func loadBody(for entity: Reference) -> String? {
-        bookStore.referenceStore.loadReferenceBody(id: entity.id)
+        return PreviewPaneOps.loadBody(bookStore: bookStore, for: entity).body
     }
 
     /// v0.30 boss 8/31 OOB: load .md files from a book folder on the
@@ -1227,74 +1214,7 @@ struct PreviewPane: View {
     /// silently skipped so a single bad folder doesn't break the
     /// whole view (= partial load is more useful than nothing).
     private func loadBookDocs(bookId: UUID, folderName: String?) -> [BookDoc] {
-        // Walk shelves root to find which shelf this bookId lives in.
-        // Layout = shelves/<shelf-uuid>/books/<book-uuid>/...
-        let shelvesRoot = bookStore.stores.shelvesRoot
-        guard FileManager.default.fileExists(atPath: shelvesRoot.path) else {
-            return []
-        }
-        let bookDirs: [URL]
-        if let shelfDirs = try? FileManager.default.contentsOfDirectory(
-            at: shelvesRoot,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) {
-            bookDirs = shelfDirs.compactMap { shelfDir in
-                let candidate = shelfDir
-                    .appendingPathComponent("books")
-                    .appendingPathComponent(bookId.uuidString)
-                return FileManager.default.fileExists(atPath: candidate.path)
-                    ? candidate
-                    : nil
-            }
-        } else {
-            bookDirs = []
-        }
-        guard let bookDir = bookDirs.first else { return [] }
-
-        // Determine which folders to scan.
-        let folders: [String]
-        if let folderName {
-            folders = [folderName]
-        } else {
-            folders = BookFolder.allCases.map(\.directoryName)
-        }
-
-        var docs: [BookDoc] = []
-        for folder in folders {
-            let dir = bookDir.appendingPathComponent(folder)
-            guard let entries = try? FileManager.default.contentsOfDirectory(
-                at: dir,
-                includingPropertiesForKeys: [
-                    URLResourceKey.contentModificationDateKey,
-                    URLResourceKey.creationDateKey
-                ],
-                options: [.skipsHiddenFiles]
-            ) else { continue }
-            for url in entries where url.pathExtension == "md" {
-                let body = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-                let attrs = try? url.resourceValues(forKeys: [
-                    URLResourceKey.contentModificationDateKey,
-                    URLResourceKey.creationDateKey
-                ])
-                let modifiedAt = attrs?.contentModificationDate ?? Date.distantPast
-                let createdAt = attrs?.creationDate ?? Date.distantPast
-                docs.append(BookDoc(
-                    id: Self.stableBookDocId(
-                        bookId: bookId,
-                        folderName: folder,
-                        fileName: url.lastPathComponent
-                    ),
-                    bookId: bookId,
-                    folderName: folder,
-                    fileName: url.lastPathComponent,
-                    modifiedAt: modifiedAt,
-                    createdAt: createdAt,
-                    body: body
-                ))
-            }
-        }
-        return docs
+        return PreviewPaneOps.loadBookDocs(bookStore: bookStore, bookId: bookId, folderName: folderName).docs
     }
 
     /// Sort book docs by the current sort order (= same menu as entity
@@ -1302,29 +1222,7 @@ struct PreviewPane: View {
     /// defaults to .pinyinFirstLetter so docs in Chinese filenames
     /// also flow alphabetically.
     private func sortBookDocs(_ docs: [BookDoc], by order: EntitySortOrder) -> [BookDoc] {
-        switch order {
-        case .pinyinFirstLetter:
-            return docs.sorted { lhs, rhs in
-                let lKey = pinyinFirstLetter(lhs.title)
-                let rKey = pinyinFirstLetter(rhs.title)
-                if lKey != rKey { return lKey < rKey }
-                return lhs.fileName < rhs.fileName
-            }
-        case .createdAt:
-            return docs.sorted { lhs, rhs in
-                if lhs.createdAt != rhs.createdAt {
-                    return lhs.createdAt > rhs.createdAt
-                }
-                return lhs.fileName < rhs.fileName
-            }
-        case .modifiedAt:
-            return docs.sorted { lhs, rhs in
-                if lhs.modifiedAt != rhs.modifiedAt {
-                    return lhs.modifiedAt > rhs.modifiedAt
-                }
-                return lhs.fileName < rhs.fileName
-            }
-        }
+        return PreviewPaneOps.sortBookDocs(docs, by: order)
     }
 
     /// Sort entities by the selected sort order (= boss 8/30 OOB).
@@ -1332,36 +1230,7 @@ struct PreviewPane: View {
     /// id as the tiebreaker (= prevents visual shuffle on re-render
     /// when entities have equal sort keys).
     private func sortEntities(_ entities: [Reference], by order: EntitySortOrder) -> [Reference] {
-        switch order {
-        case .pinyinFirstLetter:
-            // Sort by pinyin first letter of title (= boss default).
-            // Uses CFStringTransform to convert Chinese to latinized
-            // pinyin, then strips diacritics, then uses first letter.
-            return entities.sorted { lhs, rhs in
-                let lKey = pinyinFirstLetter(lhs.title)
-                let rKey = pinyinFirstLetter(rhs.title)
-                if lKey != rKey { return lKey < rKey }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
-        case .createdAt:
-            // Newest first.
-            return entities.sorted { lhs, rhs in
-                if lhs.createdAt != rhs.createdAt {
-                    return lhs.createdAt > rhs.createdAt
-                }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
-        case .modifiedAt:
-            // Most recently modified first.
-            return entities.sorted { lhs, rhs in
-                let lMod = lhs.updatedAt
-                let rMod = rhs.updatedAt
-                if lMod != rMod {
-                    return lMod > rMod
-                }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
-        }
+        return PreviewPaneOps.sortEntities(entities, by: order)
     }
 
     /// Flat LazyVGrid for book docs (= same visual style as entity
