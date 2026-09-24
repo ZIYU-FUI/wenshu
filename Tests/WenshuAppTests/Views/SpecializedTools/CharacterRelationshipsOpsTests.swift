@@ -5,7 +5,7 @@
 //  (= the stateless enum extracted from CharacterRelationshipsView;
 //  = the P0 view listed in .scratch/2026-09-23-mvvm-audit/spec.md §9).
 //
-//  Coverage (= 11 tests):
+//  Coverage (= 12 tests):
 //    1.  fileExistsAtCanonicalPath
 //    2.  reload returns empty LoadResult when manager is nil
 //    3.  reload returns empty LoadResult when bookId is nil
@@ -15,8 +15,9 @@
 //    7.  addRelationship returns didSave=false when to is nil
 //    8.  addRelationship returns didSave=false when from == to
 //    9.  removeRelationship returns didSave=false when manager is nil
-//    10. sourceHasThreePublicStaticFuncs marker
-//    11. sourceIsStatelessEnum marker
+//    10. removeRelationship returns didSave=false when bookId is nil
+//    11. sourceHasThreePublicStaticFuncs marker
+//    12. sourceIsStatelessEnum marker
 //
 
 import Foundation
@@ -148,6 +149,27 @@ struct CharacterRelationshipsOpsTests {
         let r = await CharacterRelationshipsOps.removeRelationship(
             manager: nil,
             bookId: UUID(),
+            row: row
+        )
+        #expect(r.didSave == false)
+        #expect(r.error != nil)
+    }
+
+    @Test("removeRelationship returns didSave=false when bookId is nil")
+    func removeRelationshipIgnoresNilBookId() async {
+        // Mirrors the manager-nil test above but with a non-nil
+        // manager placeholder (= still nil-actor at runtime) and
+        // a nil bookId, so the bookId guard is the one exercised.
+        let row = CharacterRelationship(
+            bookId: UUID(),
+            fromCharacterId: UUID(),
+            toCharacterId: UUID(),
+            kind: .rival,
+            description: "former classmates"
+        )
+        let r = await CharacterRelationshipsOps.removeRelationship(
+            manager: nil,
+            bookId: nil,
             row: row
         )
         #expect(r.didSave == false)
