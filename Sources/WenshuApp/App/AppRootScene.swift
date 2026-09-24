@@ -34,6 +34,7 @@ struct AppRootScene: Scene {
     let library: WenshuLibrary
     @Binding var appearanceMode: AppearanceMode
     let appState: AppState
+    let repositories: WSRepositoryContainer
 
     // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
     // the kanban + todo Windows each construct their own BookStore /
@@ -67,6 +68,7 @@ struct AppRootScene: Scene {
             // view layers total = Apple canonical).
             LibraryRootView(library: library, appearanceMode: appearanceMode)
                 .environment(appState)
+                .environment(repositories)
         }
         // v1.0.0-m1-shell boss 2026-09-10 OOB 'persistence after opening a .ws,
         // no idea why, but it disappears, the last N times I had to manually re-open the .ws library every time':
@@ -495,6 +497,7 @@ struct AppRootScene: Scene {
         // because the Settings scene had no `.environment(appState)`
         // modifier (= only the WindowGroup's content view had one).
         .environment(appState)
+        .environment(repositories)
         // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
         // add 2 dedicated `Window` scenes (= the SwiftUI macOS
         // 13+ API for SINGLE-INSTANCE independent windows; = the

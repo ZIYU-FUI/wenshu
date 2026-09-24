@@ -202,6 +202,15 @@ struct WenshuApp: App {
     /// Descendants read it via `@Environment(AppState.self) var appState`.
     @State private var appState = AppState()
 
+    /// v0.72 SwiftData migration: WSRepositoryContainer holds the 9
+    /// `@MainActor @Observable` SwiftData repositories (= `chat`,
+    /// `todo`, `kanban`, ...). Per `WSRepositoryContainer.swift:18-21`,
+    /// Views should pull repos via `@Environment(WSRepositoryContainer.self)`,
+    /// never `WSKanbanRepository.shared` etc. (= the `.shared` static
+    /// singletons exist for legacy call sites only; see the comment
+    /// at `WSRepositoryContainer.swift:50-55`).
+    @State private var repositories = WSRepositoryContainer()
+
     var body: some Scene {
         // v0.40 apple-001 phase 1 Q1 slice 2: Scene composition (= WindowGroup +
         // .commands + Settings) is now in AppRootScene. WenshuApp stays as the
@@ -214,7 +223,8 @@ struct WenshuApp: App {
         AppRootScene(
             library: library,
             appearanceMode: $appearanceMode,
-            appState: appState
+            appState: appState,
+            repositories: repositories
         )
     }
 }

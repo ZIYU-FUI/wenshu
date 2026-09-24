@@ -13,6 +13,7 @@ import SwiftUI
 public struct SubAgentProgressView: View {
     @State private var tasks: [KanbanTask] = []
     @State private var refreshTrigger: Int = 0
+    @Environment(WSRepositoryContainer.self) private var repositories: WSRepositoryContainer
 
     public init() {}
 
@@ -72,7 +73,7 @@ public struct SubAgentProgressView: View {
     }
 
     private func refreshTasks() {
-        tasks = (try? WSKanbanRepository.shared.list()) ?? []
+        tasks = (try? repositories.kanban.list()) ?? []
     }
 
     private var runningCount: Int {
