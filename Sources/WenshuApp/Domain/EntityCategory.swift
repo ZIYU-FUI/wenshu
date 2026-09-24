@@ -1,14 +1,6 @@
 // Sources/WenshuApp/Domain/EntityCategory.swift
 //
-// v0.29 boss 2026-08-30 OOB 'entity folders in the reference library,
-// I think we cannot just display the entities directly, the user will not
-// understand what they mean. Entities need to be organized into multiple
-// folders by category, and here we display these category folders
-// directly, e.g., history, science, and similar categories. You can refer
-// to the library classification system, this single rule auto-classifies
-// entities':
-//
-// = Library taxonomy for entity classification. Based on the Chinese
+// Library taxonomy for entity classification. Based on the Chinese
 // Library Classification (CLC) 5th edition, simplified
 // to 22 top-level categories. Each Reference entity (= character,
 // location, organization, event, item from the research library) is
@@ -32,9 +24,8 @@
 //   icon (= dot.case like 'books.vertical') + subcategories
 //   (= 2nd level for finer classification, e.g. "I Literature" → "I1 Literary theory",
 //   "I2 Chinese literature", "I3 Foreign literature")
-// - Categories are created INCREMENTALLY (= boss OOB: "category folders
-//   grow with the content, instead of being laid out all at once") = sidebar only shows categories that
-//   have at least 1 entity. Empty categories = hidden from sidebar.
+// - Categories are created INCREMENTALLY: sidebar only shows categories
+//   that have at least 1 entity. Empty categories = hidden from sidebar.
 
 import Foundation
 
@@ -43,11 +34,11 @@ import Foundation
 /// Used by `Reference.category` (= the field added in v0.29) to
 /// organize research entities into library-taxonomy folders.
 ///
-/// v0.29 incremental display rule (= boss OOB): only categories with
-/// >= 1 entity are visible in the sidebar. Empty categories are
-/// hidden. New categories are added to the sidebar automatically as
-/// entities are added to them (= the UI calls `EntityClassifier`
-/// on save which sets the category, and the sidebar reloads).
+/// Incremental display rule: only categories with >= 1 entity are
+/// visible in the sidebar. Empty categories are hidden. New
+/// categories are added to the sidebar automatically as entities
+/// are added to them (= the UI calls `EntityClassifier` on save
+/// which sets the category, and the sidebar reloads).
 public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
     // MARK: - 22 top-level categories (CLC 5th edition, simplified)
 
@@ -72,11 +63,11 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
     case u = "U"  // Transportation
     case v = "V"  // Aviation, Aerospace
     case x = "X"  // Environmental Sciences, Safety Sciences
-    case z = "Z"  // Other (= catch-all fallback category, v0.30 boss 8/31)
+    case z = "Z"  // Other (= catch-all fallback category)
 
     public var id: String { rawValue }
 
-    /// Chinese display name (= boss 8/25 'UI all-Chinese' carve-out).
+    /// Chinese display name.
     /// E.g. "I" → "Literature", "K" → "History, Geography".
     public var displayName: String {
         switch self {
@@ -147,10 +138,9 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
         }
     }
 
-    /// SF Symbols 6 icon name for sidebar folder display.
-    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline (= no .fill)
-    /// uniformly': all categories return outline (= non-.fill) icons
-    /// for visual consistency across the sidebar.
+    /// SF Symbols 6 icon name for sidebar folder display. All
+    /// categories return outline (= non-.fill) icons for visual
+    /// consistency across the sidebar.
     public var icon: String {
         switch self {
         case .a: return "books.vertical"           // classics (= SF Symbols 6 book stack, outline)
@@ -174,12 +164,6 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
         case .u: return "truck.box"                // transportation
         case .v: return "airplane"                 // aerospace
         case .x: return "leaf"                     // environment (= fallback; SF Symbols 6 has no leaf.arrow.down.circle equivalent that matches this semantic)
-        // v0.30 boss 8/31 OOB: 'the "Other" category has no ICON, it needs one'.
-        // Changed from "library" (= too generic; suggests "reference
-        // library" not "fallback bucket") to "tray.full" (= an
-        // unboxed package = uncategorized material waiting to be
-        // sorted). The icon now visually conveys 'miscellaneous
-        // catch-all' instead of 'main reference library'.
         case .z: return "tray.full"                // Other (= catch-all)
         }
     }
@@ -191,9 +175,10 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
     /// in the top-level bucket). Subcategory is OPTIONAL in Reference
     /// (= Reference.subcategory = String? = e.g. "I2" or nil).
     ///
-    /// Boss OOB: keep taxonomy simple (= 22 top-level is enough for
-    /// v0.29; subcategories are pre-defined here for future use but
-    /// not enforced).
+    /// Subcategory is OPTIONAL in Reference (= Reference.subcategory
+    /// = String? = e.g. "I2" or nil). Subcategories are pre-defined
+    /// here for future use but not enforced (= 22 top-level is the
+    /// canonical classification depth).
     public var subcategories: [(code: String, displayName: String)] {
         switch self {
         case .a: return [("A1", "马列经典"), ("A2", "毛邓思想")]
