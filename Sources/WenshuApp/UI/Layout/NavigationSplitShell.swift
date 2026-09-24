@@ -291,64 +291,48 @@ struct NavigationSplitShell: View {
 
 // MARK: - Content column (= 2 vertical sub-areas)
 
-// v1.42 ticket 001 (= real fix per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112):
-// `ShellMiddleColumn` moved to its own file at
-// `Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift`. The struct
-// block (= 466 lines including the `/// Apple HIG content column`
-// doc + the 440-line body) is removed here so the same name no
-// longer compiles twice. Same module = no new import needed for the
-// consumer (= NavigationSplitShell instantiates ShellMiddleColumn
-// directly).
+// `ShellMiddleColumn` lives at
+// `Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift`. The
+// inline struct block (= 466 lines including the `/// Apple
+// HIG content column` doc + the 440-line body) was extracted so
+// the same name no longer compiles twice. Same module = no new
+// import needed for the consumer (= NavigationSplitShell
+// instantiates ShellMiddleColumn directly).
 
+// `ShellContentColumn` lives at
+// `Sources/WenshuApp/UI/Layout/ShellContentColumn.swift`. The
+// inline struct block (= 80 lines including the `// MARK: -
+// Detail column` header + the 70-line Apple HIG split-views
+// rationale + the EditorChatSplitHost body) was extracted so the
+// same name no longer compiles twice. Same module = no new
+// import needed for the consumer (= NavigationSplitShell
+// instantiates ShellContentColumn directly).
 
+// `ShellDetailColumn` lives at
+// `Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift`. The
+// inline struct block (= 494 lines including the `/// Apple
+// HIG detail column` doc + the 450-line body) was extracted so
+// the same name no longer compiles twice. Same module = no new
+// import needed for the consumer (= NavigationSplitShell
+// instantiates ShellDetailColumn directly).
 
-
-// v1.39 ticket 001 (= real fix per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112):
-// `ShellContentColumn` moved to its own file at
-// `Sources/WenshuApp/UI/Layout/ShellContentColumn.swift`. The struct
-// block (= 80 lines including the `// MARK: - Detail column` header
-// + the 70-line Apple HIG split-views rationale + the
-// EditorChatSplitHost body) is removed here so the same name no
-// longer compiles twice.
-// Same module = no new import needed for the consumer
-// (= NavigationSplitShell instantiates ShellContentColumn directly).
-
-
-// v1.43 ticket 001 (= real fix per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112):
-// `ShellDetailColumn` moved to its own file at
-// `Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift`. The struct
-// block (= 494 lines including the `/// Apple HIG detail column` doc
-// + the 450-line body) is removed here so the same name no longer
-// compiles twice. Same module = no new import needed for the
-// consumer (= NavigationSplitShell instantiates ShellDetailColumn
-// directly). This completes the NavigationSplitShell sibling split
-// arc (= 4 of 4 siblings extracted).
-
-
-
-/// v1.0.0-m1-shell boss 2026-09-11 OOB 'split into two pages: Foreshadowing, Placeholder
-/// — right column's first page; Long-form Guardrails, Reader Experience, Plot Threads — right column's second page':
-/// the inspector column (= the rightmost NSV column) was
-/// previously 1 page with 5 RadioButton tabs (= Foreshadowing / Placeholder /
-/// Long-form Guardrails / Reader Experience / Plot Threads = 5 specialized tools fighting
-/// for a ~240-360 PT-wide column; = the tab labels overflow
-/// horizontally; = the body is cramped on every page). Per
-/// Apple HIG 'Inspector' (developer.apple.com/design/
-/// human-interface-guidelines/inspector) the inspector
-/// surface is best organized as a **paged layout** when
-/// there are more than 3 unrelated content types (= each
-/// page = a distinct, deep tool surface; = the user picks
-/// a page with the segmented control and gets the full
-/// column width for the chosen page's content; = no per-tab
-/// horizontal scrolling).
+/// Inspector column (= the rightmost NSV column) was
+/// previously 1 page with 5 RadioButton tabs (= Foreshadowing /
+/// Placeholder / Long-form Guardrails / Reader Experience / Plot
+/// Threads = 5 specialized tools fighting for a ~240-360
+/// PT-wide column; = the tab labels overflow horizontally; =
+/// the body is cramped on every page). Per Apple HIG
+/// 'Inspector' (developer.apple.com/design/human-interface-
+/// guidelines/inspector) the inspector surface is best
+/// organized as a **paged layout** when there are more than 3
+/// unrelated content types (= each page = a distinct, deep
+/// tool surface; = the user picks a page with the segmented
+/// control and gets the full column width for the chosen
+/// page's content; = no per-tab horizontal scrolling).
 ///
-/// v1.0.0-m1-shell boss 2026-09-11 OOB 'three per page, split into four pages, show them
-/// all — show them now, I'll decide later how to organize them': expand
-/// from 2 pages / 5 tools (= .authoring / .craft) to **4 pages
-/// × 3 tools = 12 tools** (= every tool in the specializedTools
-/// zone gets a page; = the user wants to see all 12 in the
-/// toolbar picker; = the actual page→tool mapping is provisional
-/// and the boss will reassign tools to pages later).
+/// 4 pages × 3 tools = 12 tools (= every tool in the
+/// specializedTools zone gets a page; = the actual page→tool
+/// mapping is provisional).
 ///
 /// Page 1 (= .authoringFiction) = Authoring, with Plot / Characters / Worldbuilding:
 ///   - Foreshadowing
