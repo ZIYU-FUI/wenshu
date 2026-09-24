@@ -30,7 +30,9 @@ struct UserDefaultsStoreTests {
     }
 
     init() {
-        resetDefaults()
+        // No global reset at suite init (= parallel suites may rely on
+        // shared wenshu.* state being intact). Each @Test calls
+        // resetDefaults() at entry.
     }
 
     // MARK: - String
