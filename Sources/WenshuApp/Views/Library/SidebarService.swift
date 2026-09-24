@@ -1,13 +1,11 @@
-// SidebarService.swift · Wenshu · v1.68b
+// SidebarService.swift · Wenshu
 //
 // Loads the wenshu sidebar tree from the existing data layer (= flat
 // Bookshelf / Book / Reference) and projects it into the SidebarNode
 // tree that the macOS 27 Apple HIG `List(_, children:)` initializer
 // needs.
 //
-// Boss 2026-09-22 OOB '数据结构不要有变化' (= don't mutate the
-// existing Bookshelf / Book / Reference / Document domain models):
-// the projection lives at view-layer (= inside the sidebar's own
+// The projection lives at view-layer (= inside the sidebar's own
 // state object) — = the domain models stay flat (= the rest of
 // wenshu continues to use them as before).
 //
