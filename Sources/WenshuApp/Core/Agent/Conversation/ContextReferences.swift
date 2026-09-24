@@ -1,6 +1,6 @@
 //
 //  ContextReferences.swift · Wenshu · v0.36 ticket 014 sub-step 2
-//  + HERMES-PARTIAL-014 (2026-09-04).
+// .
 //
 //  DEFERRED (v0.73 spec decision):
 //  This 1:1 port of hermes context_references.py (598 LOC) is
@@ -45,7 +45,7 @@
 //      _expand_folder_reference + _expand_git_reference: turn the
 //      target token into the actual file contents).
 //
-// sub-step 2 of 2 for ticket 014 + HERMES-PARTIAL-014 (2026-09-04).
+// sub-step 2 of 2 for ticket 014.
 //
 
 import Foundation
@@ -85,7 +85,7 @@ enum ContextReferenceKind: String, Sendable, Equatable, Codable {
 /// Bidirectional index of ContextReferences.
 /// Lookup O(1) by messageID; reverse lookup O(N) by source file path.
 ///
-/// HERMES-PARTIAL-014: persisted to disk (= JSON file at the per-session
+/// wenshu port: persisted to disk (= JSON file at the per-session
 /// reference-store path) so the map survives session reset; sessions that
 /// reference the same source file share a graph node across sessions.
 actor ContextReferences {
