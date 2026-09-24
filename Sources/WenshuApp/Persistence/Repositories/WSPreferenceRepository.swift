@@ -18,15 +18,15 @@ import Foundation
 import SwiftData
 
 @MainActor
-public final class WSPreferenceRepository {
+final class WSPreferenceRepository {
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
+    init(container: ModelContainer = WSPersistenceContainer.shared) {
         self.container = container
     }
 
-    public func set(key: String, value: String) throws {
+    func set(key: String, value: String) throws {
         let descriptor = FetchDescriptor<WSPreference>(
             predicate: #Predicate { $0.key == key }
         )
@@ -39,14 +39,14 @@ public final class WSPreferenceRepository {
         try context.save()
     }
 
-    public func get(key: String) throws -> String? {
+    func get(key: String) throws -> String? {
         let descriptor = FetchDescriptor<WSPreference>(
             predicate: #Predicate { $0.key == key }
         )
         return try context.fetch(descriptor).first?.value
     }
 
-    public func remove(key: String) throws {
+    func remove(key: String) throws {
         let descriptor = FetchDescriptor<WSPreference>(
             predicate: #Predicate { $0.key == key }
         )
@@ -56,7 +56,7 @@ public final class WSPreferenceRepository {
         }
     }
 
-    public func allKeys() throws -> [String] {
+    func allKeys() throws -> [String] {
         let descriptor = FetchDescriptor<WSPreference>(
             sortBy: [SortDescriptor(\.key)]
         )

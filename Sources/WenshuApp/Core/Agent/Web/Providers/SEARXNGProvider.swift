@@ -16,17 +16,17 @@
 
 import Foundation
 
-public struct SEARXNGProvider: WebSearchProvider, Sendable {
+struct SEARXNGProvider: WebSearchProvider, Sendable {
 
-    public let name: String = "searxng"
+    let name: String = "searxng"
 
-    public init(endpointURL: URL? = nil) {
+    init(endpointURL: URL? = nil) {
         self.endpointURL = endpointURL
     }
 
     private let endpointURL: URL?
 
-    public func search(query: String, limit: Int) async throws -> [WebSearchResult] {
+    func search(query: String, limit: Int) async throws -> [WebSearchResult] {
         guard let endpointURL else {
             return []
         }

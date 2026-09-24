@@ -13,9 +13,9 @@
 import Foundation
 
 /// 5 sub-agent identities, each a domain expert dispatched by WenshuConductor.
-public enum SubAgentIdentity {
+enum SubAgentIdentity {
     /// Sub-agent name enum. String rawValue used for intent classify and dispatch.
-    public enum Name: String, CaseIterable, Sendable {
+    enum Name: String, CaseIterable, Sendable {
         case researcher
         case writer
         case analyst
@@ -24,7 +24,7 @@ public enum SubAgentIdentity {
     }
 
     /// Per-sub-agent system prompt. Prepended to sub-agent LLM call (independent context).
-    public static func systemPrompt(name: Name) -> String {
+    static func systemPrompt(name: Name) -> String {
         let base: String
         switch name {
         case .researcher: base = researcherPrompt
@@ -40,7 +40,7 @@ public enum SubAgentIdentity {
     /// Per-sub-agent tool list. Forwarded to WenshuConductor.invokeTool dispatch.
     /// v0.23 ticket 012: removed "memory" from archivist (hermes parity — sub-agents
     /// never write to shared memory; only main agent has memory access via post-turn sync).
-    public static func tools(name: Name) -> [String] {
+    static func tools(name: Name) -> [String] {
         switch name {
         case .researcher: return ["search", "web", "linkgraph"]
         case .writer: return ["composer", "template", "wordcount"]
@@ -51,7 +51,7 @@ public enum SubAgentIdentity {
     }
 
     /// User-facing display name (Chinese for ChatView debug / future UI).
-    public static func displayName(name: Name) -> String {
+    static func displayName(name: Name) -> String {
         switch name {
         case .researcher: return "Researcher (检索专家)"
         case .writer: return "Writer (写作专家)"

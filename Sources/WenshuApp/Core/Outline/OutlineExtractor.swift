@@ -9,14 +9,14 @@
 import Foundation
 
 /// 1 outline entry = 1 heading
-public struct OutlineItem: Equatable, Sendable, Identifiable {
-    public var id: String       // line content hash (or line+title combination)
-    public var level: Int       // 1-6 (H1-H6)
-    public var title: String    // heading text (after stripping # prefix)
-    public var line: Int        // 0-indexed line number
-    public var offset: Int      // character offset within the content
+struct OutlineItem: Equatable, Sendable, Identifiable {
+    var id: String       // line content hash (or line+title combination)
+    var level: Int       // 1-6 (H1-H6)
+    var title: String    // heading text (after stripping # prefix)
+    var line: Int        // 0-indexed line number
+    var offset: Int      // character offset within the content
 
-    public init(id: String, level: Int, title: String, line: Int, offset: Int) {
+    init(id: String, level: Int, title: String, line: Int, offset: Int) {
         self.id = id
         self.level = level
         self.title = title
@@ -27,7 +27,7 @@ public struct OutlineItem: Equatable, Sendable, Identifiable {
 
 /// OutlineExtractor: static utility that parses markdown headings (H1-H6)
 /// Aligned with Obsidian Outline plugin ground truth
-public enum OutlineExtractor {
+enum OutlineExtractor {
     /// Markdown heading regex: 1-6 leading # + space + heading text
     /// Apple HIG: NSRegularExpression
     private static let pattern: NSRegularExpression = {
@@ -38,7 +38,7 @@ public enum OutlineExtractor {
     }()
 
     /// Parse markdown content, extract all headings
-    public static func extract(_ content: String) -> [OutlineItem] {
+    static func extract(_ content: String) -> [OutlineItem] {
         var items: [OutlineItem] = []
         let lines = content.components(separatedBy: "\n")
 
@@ -73,7 +73,7 @@ public enum OutlineExtractor {
     /// Convert outline items to tree structure (parent → children)
     /// Algorithm: maintain a stack, root also goes on stack.
     /// Apple HIG: OutlineNode uses class references so children append takes effect immediately.
-    public static func tree(from items: [OutlineItem]) -> [OutlineNode] {
+    static func tree(from items: [OutlineItem]) -> [OutlineNode] {
         var stack: [OutlineNode] = []  // current parent chain (stack), root also pushed
 
         for item in items {
@@ -107,18 +107,18 @@ public enum OutlineExtractor {
 ///
 /// Swift HIG: struct is a value type — after copy, mutations do not affect other copies.
 /// Tree structures need reference semantics, so we use class. Equatable / Hashable / Sendable use NSObject subclassing.
-public final class OutlineNode: NSObject, @unchecked Sendable {
-    public let item: OutlineItem
-    public var children: [OutlineNode]
-    public var id: String { item.id }
+final class OutlineNode: NSObject, @unchecked Sendable {
+    let item: OutlineItem
+    var children: [OutlineNode]
+    var id: String { item.id }
 
-    public init(item: OutlineItem, children: [OutlineNode] = []) {
+    init(item: OutlineItem, children: [OutlineNode] = []) {
         self.item = item
         self.children = children
         super.init()
     }
 
-    public static func == (lhs: OutlineNode, rhs: OutlineNode) -> Bool {
+    static func == (lhs: OutlineNode, rhs: OutlineNode) -> Bool {
         lhs.id == rhs.id
     }
 }

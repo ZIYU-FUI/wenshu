@@ -17,7 +17,7 @@
 
 import Foundation
 
-public enum RetryUtils {
+enum RetryUtils {
 
     /// Per-attempt jitter source. Exposed so tests can inject a deterministic
     /// generator; default = `SystemRandomNumberGenerator` (thread-safe, no
@@ -37,7 +37,7 @@ public enum RetryUtils {
     ///   - base: base delay in seconds (= exponent start).
     ///   - cap: hard ceiling on the delay.
     /// - Returns: delay in seconds.
-    public static func backoffDelay(
+    static func backoffDelay(
         attempt: Int,
         base: TimeInterval = 1.0,
         cap: TimeInterval = 60.0
@@ -65,7 +65,7 @@ public enum RetryUtils {
     ///   - operation: the async operation to run.
     /// - Returns: the operation's result on first success.
     /// - Throws: the last error after exhausting retries.
-    public static func withRetry<T: Sendable>(
+    static func withRetry<T: Sendable>(
         maxAttempts: Int = 3,
         base: TimeInterval = 1.0,
         cap: TimeInterval = 60.0,
@@ -99,7 +99,7 @@ public enum RetryUtils {
     /// - Note: callers that need provider-specific policy (e.g. honoring
     ///   `retryAfterSeconds` directly instead of the exponential schedule)
     ///   should compose their own `withRetry` invocation.
-    public static func withClassifierRetry<T: Sendable>(
+    static func withClassifierRetry<T: Sendable>(
         maxAttempts: Int = 3,
         base: TimeInterval = 1.0,
         cap: TimeInterval = 60.0,
@@ -148,19 +148,19 @@ public enum RetryUtils {
     /// Long-backoff schedule for Z.AI Coding Plan overload 429s (= hermes
     /// `_ZAI_CODING_OVERLOAD_LONG_BACKOFF` at
     /// `agent/retry_utils.py` L25).
-    public static let zaiCodingOverloadLongBackoff: [TimeInterval] =
+    static let zaiCodingOverloadLongBackoff: [TimeInterval] =
         [30.0, 60.0, 90.0, 120.0]
 
     /// Number of initial short retries before the adaptive long-backoff
     /// tier kicks in (= hermes `_ZAI_CODING_OVERLOAD_SHORT_ATTEMPTS` at
     /// `agent/retry_utils.py` L31).
-    public static let zaiCodingOverloadShortAttempts: Int = 3
+    static let zaiCodingOverloadShortAttempts: Int = 3
 
     /// Best-effort flattened provider-error text for retry classification
     /// (= hermes `_error_text` at `agent/retry_utils.py` L82-L88).
     ///
     /// Pure function (= no side effects; = hermes equivalent).
-    public static func retryErrorText(_ error: Any) -> String {
+    static func retryErrorText(_ error: Any) -> String {
         let parts: [Any?] = [
             error,
             // Mirror hermes's `getattr(error, "message", None)` etc.
@@ -176,7 +176,7 @@ public enum RetryUtils {
     /// 1305 and message "The service may be temporarily overloaded...".
     /// Treat only that narrow shape specially so ordinary quota/billing
     /// 429s still fail fast through the existing classifier.
-    public static func isZaiCodingOverloadError(
+    static func isZaiCodingOverloadError(
         baseURL: String?,
         model: String?,
         statusCode: Int?,
@@ -208,7 +208,7 @@ public enum RetryUtils {
     /// number. Returns `(waitSeconds, reasonLabel)` where `reasonLabel`
     /// is suitable for status/log decoration when a provider-specific
     /// policy fired.
-    public static func adaptiveRateLimitBackoff(
+    static func adaptiveRateLimitBackoff(
         attempt: Int,
         baseURL: String?,
         model: String?,
@@ -252,7 +252,7 @@ public enum RetryUtils {
     /// runs BEFORE the attempt's backoff is computed); = the ceiling must
     /// sit one past the final long-backoff entry for every long tier to
     /// actually execute.
-    public static func zaiCodingOverloadRetryCeiling(
+    static func zaiCodingOverloadRetryCeiling(
         shortAttempts: Int = zaiCodingOverloadShortAttempts
     ) -> Int {
         return shortAttempts + zaiCodingOverloadLongBackoff.count + 1

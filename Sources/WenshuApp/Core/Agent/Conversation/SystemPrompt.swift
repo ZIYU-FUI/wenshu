@@ -47,10 +47,10 @@
 
 import Foundation
 
-public enum SystemPrompt {
+enum SystemPrompt {
 
     /// Per-provider guidance block (= hermes per-model operational guidance).
-    public enum ProviderGuidance: String, Sendable, CaseIterable {
+    enum ProviderGuidance: String, Sendable, CaseIterable {
         case anthropic
         case openai
         case google
@@ -60,7 +60,7 @@ public enum SystemPrompt {
         case minimaxCn = "minimax-cn"
         case unknown
 
-        public init(providerSlug: String) {
+        init(providerSlug: String) {
             switch providerSlug {
             case "anthropic": self = .anthropic
             case "openai", "openai-codex": self = .openai
@@ -75,7 +75,7 @@ public enum SystemPrompt {
     }
 
     /// Per-locale override (= hermes DEFAULT_AGENT_IDENTITY language table).
-    public enum Locale: String, Sendable, CaseIterable {
+    enum Locale: String, Sendable, CaseIterable {
         case english = "en"
         case chinese = "zh"
         case japanese = "ja"
@@ -84,7 +84,7 @@ public enum SystemPrompt {
         case german = "de"
         case spanish = "es"
 
-        public init(languageCode: String) {
+        init(languageCode: String) {
             let lc = languageCode.lowercased()
             switch lc {
             case "en", "en-us", "en-gb": self = .english
@@ -99,7 +99,7 @@ public enum SystemPrompt {
         }
 
         /// Native name (= for system-prompt language match).
-        public var nativeName: String {
+        var nativeName: String {
             switch self {
             case .english: return "English"
             case .chinese: return "中文"
@@ -113,21 +113,21 @@ public enum SystemPrompt {
     }
 
     /// Options for buildParts.
-    public struct BuildOptions: Sendable {
-        public var ephemeralHint: String
-        public var callerMessage: String?
-        public var provider: ProviderGuidance
-        public var locale: Locale
-        public var memoryGuidance: Bool
-        public var sessionSearchGuidance: Bool
-        public var skillGuidance: Bool
-        public var kanbanGuidance: String?
-        public var parallelToolGuidance: Bool
-        public var taskCompletionGuidance: Bool
-        public var userName: String?
-        public var bookTitle: String?
+    struct BuildOptions: Sendable {
+        var ephemeralHint: String
+        var callerMessage: String?
+        var provider: ProviderGuidance
+        var locale: Locale
+        var memoryGuidance: Bool
+        var sessionSearchGuidance: Bool
+        var skillGuidance: Bool
+        var kanbanGuidance: String?
+        var parallelToolGuidance: Bool
+        var taskCompletionGuidance: Bool
+        var userName: String?
+        var bookTitle: String?
 
-        public init(
+        init(
             ephemeralHint: String = "",
             callerMessage: String? = nil,
             provider: ProviderGuidance = .unknown,
@@ -167,7 +167,7 @@ public enum SystemPrompt {
     ///   - bookTitle: Optional book title (= included in stable tier).
     /// - Returns: Concatenated system prompt string (= ready to be passed
     ///   to LLMCallOptions.systemPrompt).
-    public static func build(
+    static func build(
         ephemeralHint: String,
         callerMessage: String? = nil,
         userName: String? = nil,
@@ -195,7 +195,7 @@ public enum SystemPrompt {
     /// - Returns: Dict with key "stable" (= byte-stable system identity) and
     ///   optional "dynamic" key (= ephemeral hint rendered through
     ///   PromptBuilder.composeDynamicTier).
-    public static func buildParts(
+    static func buildParts(
         ephemeralHint: String,
         callerMessage: String? = nil,
         userName: String? = nil,
@@ -218,7 +218,7 @@ public enum SystemPrompt {
     /// * ``dynamic``  — caller-supplied system message + ephemeral hint.
     /// * ``context``  — context files (AGENTS.md, .cursorrules, etc.)
     ///   and locale-specific identity. (Empty by default in wenshu.)
-    public static func buildParts(options: BuildOptions) -> [String: String] {
+    static func buildParts(options: BuildOptions) -> [String: String] {
         var parts: [String: String] = [:]
 
         // Stable tier (= byte-stable across all turns in a session)

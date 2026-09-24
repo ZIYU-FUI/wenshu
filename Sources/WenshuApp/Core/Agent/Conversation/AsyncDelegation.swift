@@ -46,7 +46,7 @@
 import Foundation
 
 /// State of a background delegation.
-public enum BackgroundDelegationState: String, Codable, Sendable {
+enum BackgroundDelegationState: String, Codable, Sendable {
     case pending
     case running
     case completed
@@ -56,14 +56,14 @@ public enum BackgroundDelegationState: String, Codable, Sendable {
 
 /// Handle for a background sub-agent delegation.
 /// Mirrors hermes delegation record.
-public struct BackgroundDelegationHandle: Sendable, Equatable {
-    public let id: String
-    public let agentName: String
-    public let userMessage: String
-    public var state: BackgroundDelegationState
-    public let startedAt: Date
-    public var completedAt: Date?
-    public var result: String?
+struct BackgroundDelegationHandle: Sendable, Equatable {
+    let id: String
+    let agentName: String
+    let userMessage: String
+    var state: BackgroundDelegationState
+    let startedAt: Date
+    var completedAt: Date?
+    var result: String?
     /// v0.74 ticket 004: parallel source-of-truth identifier into
     /// `AgentLifecycleTracker.shared` (= Option B in
     /// `AgentLifecycleTrackerDesign.md`). Set via
@@ -71,9 +71,9 @@ public struct BackgroundDelegationHandle: Sendable, Equatable {
     /// immediately after `registerSpawn(...)`. Nil = no tracker record
     /// (= for handles created before v0.74 or in tests that don't
     /// exercise the tracker path).
-    public var trackerSpawnID: UUID?
+    var trackerSpawnID: UUID?
 
-    public init(
+    init(
         id: String = UUID().uuidString,
         agentName: String,
         userMessage: String,
@@ -101,12 +101,12 @@ public struct BackgroundDelegationHandle: Sendable, Equatable {
 /// hermes surfaces as `summary` in the JSON envelope). The `metadata`
 /// carries the keys the parent agent cares about: timing, lifecycle
 /// status, sub-agent name.
-public struct AsyncDelegationResult: Sendable, Equatable {
-    public let handle: BackgroundDelegationHandle
-    public let summary: String
-    public let metadata: [String: String]
+struct AsyncDelegationResult: Sendable, Equatable {
+    let handle: BackgroundDelegationHandle
+    let summary: String
+    let metadata: [String: String]
 
-    public init(
+    init(
         handle: BackgroundDelegationHandle,
         summary: String,
         metadata: [String: String] = [:]
@@ -124,13 +124,13 @@ public struct AsyncDelegationResult: Sendable, Equatable {
 /// stream see: spawn → running → done (or failed) → cleared. The `state`
 /// transitions match BackgroundDelegationHandle.state so subscribers can
 /// switch on a single enum.
-public struct AsyncDelegationProgress: Sendable, Equatable {
-    public let handleID: String
-    public let agentName: String
-    public let state: BackgroundDelegationState
-    public let detail: String?
+struct AsyncDelegationProgress: Sendable, Equatable {
+    let handleID: String
+    let agentName: String
+    let state: BackgroundDelegationState
+    let detail: String?
 
-    public init(
+    init(
         handleID: String,
         agentName: String,
         state: BackgroundDelegationState,
@@ -145,12 +145,12 @@ public struct AsyncDelegationProgress: Sendable, Equatable {
 
 /// Errors thrown by `delegate(...)` (= hermes `delegate_task` error
 /// envelope, simplified).
-public enum AsyncDelegationError: Error, LocalizedError, Sendable {
+enum AsyncDelegationError: Error, LocalizedError, Sendable {
     case permissionDenied(tool: String, agent: String, reason: String)
     case unknownSubAgent(name: String)
     case contextInvalid(key: String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .permissionDenied(let tool, let agent, let reason):
             return "AsyncDelegation: sub-agent '\(agent)' may not call '\(tool)' — \(reason)"
@@ -164,7 +164,7 @@ public enum AsyncDelegationError: Error, LocalizedError, Sendable {
 
 /// AsyncDelegationRegistry: tracks background delegations.
 /// Mirrors hermes _records (delegation_id → record dict) + completion queue.
-public actor AsyncDelegationRegistry {
+actor AsyncDelegationRegistry {
     private var records: [String: BackgroundDelegationHandle] = [:]
     private let maxRetained: Int = 50            // hermes _MAX_RETAINED_COMPLETED
     private let durableRetentionSeconds: TimeInterval = 7 * 24 * 60 * 60  // hermes 7 days
@@ -177,7 +177,7 @@ public actor AsyncDelegationRegistry {
     private var progressWaiters: [CheckedContinuation<AsyncDelegationProgress, Never>] = []
 
     /// Register a new background delegation.
-    public func register(handle: BackgroundDelegationHandle) {
+    func register(handle: BackgroundDelegationHandle) {
         records[handle.id] = handle
     }
 
@@ -186,36 +186,36 @@ public actor AsyncDelegationRegistry {
     /// `tracker.registerSpawn(...)` so the terminal-status path
     /// (`markCompleted` / `markFailed`) can route the tracker record back
     /// (= no orphan tracker records).
-    public func attachTrackerSpawnID(handleID: String, spawnID: UUID) {
+    func attachTrackerSpawnID(handleID: String, spawnID: UUID) {
         guard var handle = records[handleID] else { return }
         handle.trackerSpawnID = spawnID
         records[handleID] = handle
     }
 
     /// Update an existing handle (e.g. state transition).
-    public func update(_ handle: BackgroundDelegationHandle) {
+    func update(_ handle: BackgroundDelegationHandle) {
         records[handle.id] = handle
     }
 
     /// Get a handle by id.
-    public func get(id: String) -> BackgroundDelegationHandle? {
+    func get(id: String) -> BackgroundDelegationHandle? {
         return records[id]
     }
 
     /// List all running delegations (state == .running).
-    public func runningDelegations() -> [BackgroundDelegationHandle] {
+    func runningDelegations() -> [BackgroundDelegationHandle] {
         return records.values.filter { $0.state == .running || $0.state == .pending }
     }
 
     /// List recent completed delegations (FIFO, max maxRetained).
-    public func recentCompleted() -> [BackgroundDelegationHandle] {
+    func recentCompleted() -> [BackgroundDelegationHandle] {
         return completionQueue
             .compactMap { records[$0] }
             .filter { $0.state == .completed || $0.state == .failed }
     }
 
     /// Mark a delegation as completed (called when sub-agent finishes).
-    public func markCompleted(id: String, result: String) {
+    func markCompleted(id: String, result: String) {
         guard var handle = records[id] else { return }
         handle.state = .completed
         handle.completedAt = Date()
@@ -242,7 +242,7 @@ public actor AsyncDelegationRegistry {
     }
 
     /// Mark a delegation as failed.
-    public func markFailed(id: String, error: String) {
+    func markFailed(id: String, error: String) {
         guard var handle = records[id] else { return }
         handle.state = .failed
         handle.completedAt = Date()
@@ -262,7 +262,7 @@ public actor AsyncDelegationRegistry {
     }
 
     /// Cleanup old records beyond retention period.
-    public func cleanup() {
+    func cleanup() {
         let now = Date()
         let cutoff = now.addingTimeInterval(-durableRetentionSeconds)
         records = records.filter { _, handle in
@@ -280,7 +280,7 @@ public actor AsyncDelegationRegistry {
     /// Multiple subscribers are NOT supported; one waiter at a time
     /// (= matches hermes' single-consumer pattern for the per-child
     /// progress callback).
-    public func next() async -> AsyncDelegationProgress {
+    func next() async -> AsyncDelegationProgress {
         if !pendingProgress.isEmpty {
             return pendingProgress.removeFirst()
         }
@@ -290,7 +290,7 @@ public actor AsyncDelegationRegistry {
     }
 
     /// Snapshot of currently pending progress events (= for tests).
-    public var pendingProgressSnapshot: [AsyncDelegationProgress] {
+    var pendingProgressSnapshot: [AsyncDelegationProgress] {
         pendingProgress
     }
 
@@ -299,7 +299,7 @@ public actor AsyncDelegationRegistry {
     /// still emit their own events via the private `emit`). Routes
     /// through the same waiter-or-queue logic as the terminal emits
     /// so live subscribers see the `.pending` event without delay.
-    public func emitProgress(_ progress: AsyncDelegationProgress) {
+    func emitProgress(_ progress: AsyncDelegationProgress) {
         emit(progress)
     }
 
@@ -349,7 +349,7 @@ public actor AsyncDelegationRegistry {
 /// - Returns: AsyncDelegationResult wrapping the registered handle plus
 ///   an empty summary (= the parent fills the summary after invoking
 ///   the sub-agent and reports back via `markCompleted`).
-public func delegate(
+func delegate(
     subagentProfile: String,
     task: String,
     context: [String: String] = [:],

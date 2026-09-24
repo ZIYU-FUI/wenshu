@@ -27,22 +27,22 @@ import Foundation
 /// holds the canonical row; WSChatRepository converts between the
 /// two at the repository boundary (= the View layer speaks
 /// StoredChatMessage; = the persistence layer speaks WSChatMessage).
-public struct StoredChatMessage: Equatable, Sendable {
-    public let id: String
-    public let source: String
-    public let content: String
-    public let timestamp: Date
+struct StoredChatMessage: Equatable, Sendable {
+    let id: String
+    let source: String
+    let content: String
+    let timestamp: Date
     /// v0.21 ticket 34: real LLM API usage.total_tokens
     /// (= nil if not available; = legacy actor preserved this field).
-    public let tokens: Int?
+    let tokens: Int?
     // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示': persisted
     // reasoning content for round-trip restore. nil = no thinking
     // (= user message, or pre-v1.65-cleanup assistant message); = non-nil
     // for assistant messages that streamed .reasoning parts during the
     // turn. Mirrors WSChatMessage.thinking on the SwiftData side.
-    public let thinking: String?
+    let thinking: String?
 
-    public init(
+    init(
         id: String,
         source: String,
         content: String,
@@ -64,16 +64,16 @@ public struct StoredChatMessage: Equatable, Sendable {
 /// The WSSubAgentRun SwiftData @Model (= Persistence/WSSubAgentRun.swift)
 /// holds the canonical row; WSChatRepository converts between the two
 /// at the repository boundary.
-public struct SubAgentRun: Equatable, Sendable {
-    public let id: String
-    public let agentName: String
-    public let title: String
-    public let status: SubAgentRunStatus
-    public let startedAt: Date
-    public let completedAt: Date?
-    public let resultSummary: String?
+struct SubAgentRun: Equatable, Sendable {
+    let id: String
+    let agentName: String
+    let title: String
+    let status: SubAgentRunStatus
+    let startedAt: Date
+    let completedAt: Date?
+    let resultSummary: String?
 
-    public init(
+    init(
         id: String,
         agentName: String,
         title: String,
@@ -93,7 +93,7 @@ public struct SubAgentRun: Equatable, Sendable {
 }
 
 /// SubAgentRunStatus: lifecycle state for one sub-agent run.
-public enum SubAgentRunStatus: String, Codable, Sendable, CaseIterable {
+enum SubAgentRunStatus: String, Codable, Sendable, CaseIterable {
     case running
     case done
     case failed

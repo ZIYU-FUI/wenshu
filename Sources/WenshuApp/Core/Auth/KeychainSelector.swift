@@ -30,7 +30,7 @@ import Foundation
 /// Pure-function selector over an array of `AuthKey` candidates. No state,
 /// no side effects (= apart from the `transition(_:to:error:)` helper which
 /// mutates its inout argument only).
-public enum KeychainSelector {
+enum KeychainSelector {
 
     // MARK: - Scoring
 
@@ -48,7 +48,7 @@ public enum KeychainSelector {
     /// large-but-finite penalty so a future round-robin / least-used strategy
     /// (= not in v0.40; hermes has it via STRATEGY_ROUND_ROBIN) can still rank
     /// between cold keys.
-    public static func score(_ key: AuthKey, now: Date = Date()) -> Int {
+    static func score(_ key: AuthKey, now: Date = Date()) -> Int {
         // Permanent-out states never get picked.
         if key.status.isPermanentlyOut { return Int.max }
 
@@ -74,7 +74,7 @@ public enum KeychainSelector {
 
     /// Pick the best key from a candidate list. Returns nil when every key
     /// is permanently out (= all `.authFailed` / `.disabled`).
-    public static func pick(from keys: [AuthKey], now: Date = Date()) -> AuthKey? {
+    static func pick(from keys: [AuthKey], now: Date = Date()) -> AuthKey? {
         guard !keys.isEmpty else { return nil }
         var best: AuthKey? = nil
         var bestScore = Int.max
@@ -93,7 +93,7 @@ public enum KeychainSelector {
 
     /// True if the key is eligible to be sent a request right now.
     /// (= not permanently out AND cooldown elapsed.)
-    public static func isValid(_ key: AuthKey, now: Date = Date()) -> Bool {
+    static func isValid(_ key: AuthKey, now: Date = Date()) -> Bool {
         if key.status.isPermanentlyOut { return false }
         if let until = key.cooldownUntil, until > now { return false }
         return true
@@ -114,7 +114,7 @@ public enum KeychainSelector {
     ///   - .networkError: sets short cooldown (= 10s).
     ///   - .quotaExhausted: sets 24h cooldown.
     ///   - .disabled: clears cooldownUntil + lastError.
-    public static func transition(
+    static func transition(
         _ key: inout AuthKey,
         to newStatus: AuthKeyStatus,
         error: String? = nil,

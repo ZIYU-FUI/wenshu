@@ -94,13 +94,13 @@ import Foundation
 ///
 /// Invariant: identical inputs produce byte-identical output (= cache hit
 /// on subsequent calls within the same session).
-public struct PromptBuilder: Sendable {
-    public let stableTier: String
-    public let dynamicTier: String
+struct PromptBuilder: Sendable {
+    let stableTier: String
+    let dynamicTier: String
 
     /// Build a PromptBuilder from explicit tiers (= the canonical
     /// construction path used by ConversationLoop + SystemPrompt).
-    public init(stableTier: String, dynamicTier: String) {
+    init(stableTier: String, dynamicTier: String) {
         self.stableTier = stableTier
         self.dynamicTier = dynamicTier
     }
@@ -132,7 +132,7 @@ public struct PromptBuilder: Sendable {
     ///   - ephemeralHint: Per-turn hint (= back-compat with the v0.35
     ///     `"Context: {ephemeralHint}"` literal; preserved as a final
     ///     section in the dynamic tier when non-empty).
-    public init(
+    init(
         systemPrompt: SystemPrompt.Type = SystemPrompt.self,
         contextBundle: ContextEngine.ContextBundle,
         memories: [MemoryAdapter.MemoryEntry],
@@ -153,12 +153,12 @@ public struct PromptBuilder: Sendable {
     }
 
     /// Stable tier only (= for tests / callers that want just the prefix).
-    public static func stableTierOnly() -> String {
+    static func stableTierOnly() -> String {
         SystemPrompt.stableTier()
     }
 
     /// Dynamic tier only (= for tests / callers that want just the suffix).
-    public static func dynamicTier(
+    static func dynamicTier(
         contextBundle: ContextEngine.ContextBundle,
         memories: [MemoryAdapter.MemoryEntry],
         skills: [SkillAdapter.Skill],
@@ -188,7 +188,7 @@ public struct PromptBuilder: Sendable {
     ///
     /// Returned as `[[String: Any]]` (= JSON-serializable shape that
     /// RequestHelpers can splice directly into the request body).
-    public func buildAnthropicSystem() -> [[String: Any]] {
+    func buildAnthropicSystem() -> [[String: Any]] {
         var blocks: [[String: Any]] = []
 
         if !stableTier.isEmpty {
@@ -222,7 +222,7 @@ public struct PromptBuilder: Sendable {
     ///
     /// Returned as `[String: Any]` = `{role: "system", content: "..."}`
     /// for direct splice into the OpenAI messages list.
-    public func buildOpenAISystem() -> [String: Any] {
+    func buildOpenAISystem() -> [String: Any] {
         var sections: [String] = []
         if !stableTier.isEmpty {
             sections.append(stableTier)
@@ -242,7 +242,7 @@ public struct PromptBuilder: Sendable {
     /// Gemini takes the system prompt as a single string (= NOT structured
     /// like Anthropic, NOT a message like OpenAI). Same separator as
     /// OpenAI for parity.
-    public func buildGeminiSystemInstruction() -> String {
+    func buildGeminiSystemInstruction() -> String {
         var sections: [String] = []
         if !stableTier.isEmpty {
             sections.append(stableTier)
@@ -255,7 +255,7 @@ public struct PromptBuilder: Sendable {
 
     /// Byte-stable joined prompt (= back-compat with v0.35
     /// `SystemPrompt.build` callers; same separator as OpenAI/Gemini).
-    public var joinedPrompt: String {
+    var joinedPrompt: String {
         buildGeminiSystemInstruction()
     }
 }
@@ -351,7 +351,7 @@ extension PromptBuilder {
     /// SkillAdapter already calls SkillRegistry.load which handles
     /// frontmatter parse + frontmatter-level filtering). The rendering
     /// below is the post-cache, post-filter summary.
-    public static func formatSkillsSummary(_ skills: [SkillAdapter.Skill]) -> String {
+    static func formatSkillsSummary(_ skills: [SkillAdapter.Skill]) -> String {
         let enabled = skills.filter { $0.enabled }
         if enabled.isEmpty {
             return ""
@@ -379,7 +379,7 @@ extension PromptBuilder {
     ///   - WSL / Termux hints (= wenshu is macOS-only)
     ///   - Config-driven environment_hint (= wenshu has no `config.yaml`
     ///     in the agent runtime path; that's a hermes-CLI-only concept)
-    public static func buildEnvironmentHints(
+    static func buildEnvironmentHints(
         hostOS: String = "macOS",
         hostVersion: String = "",
         userHome: String = NSHomeDirectory(),
@@ -401,7 +401,7 @@ extension PromptBuilder {
     /// models rarely truncate a project doc, while small-context models
     /// stay at the historical 20K floor. ~4 chars/token heuristic +
     /// 6% window slice, with a 20K floor and 500K ceiling.
-    public static func dynamicContextFileMaxChars(contextLength: Int?) -> Int {
+    static func dynamicContextFileMaxChars(contextLength: Int?) -> Int {
         let floor = 20_000
         let ceiling = 500_000
         guard let ctx = contextLength, ctx > 0 else {
@@ -433,7 +433,7 @@ extension PromptBuilder {
     /// When wenshu later adds a content-file injection path (= e.g.
     /// .ws library outline import or character-note import), this
     /// method becomes the single hook for threat-pattern scanning.
-    public static func scanContextContent(_ content: String, filename: String) -> String {
+    static func scanContextContent(_ content: String, filename: String) -> String {
         // Placeholder: future wenshu ticket will wire in threat-pattern
         // library (mirroring hermes `tools.threat_patterns.scan_for_threats`).
         _ = filename
@@ -452,7 +452,7 @@ extension PromptBuilder {
     /// arrives mid-turn (= the only role-alternation-safe slot is the
     /// end of a tool result; a bare "User guidance:" line gets refused
     /// as suspected prompt injection by some models).
-    public static func formatSteerMarker(_ steerText: String) -> String {
+    static func formatSteerMarker(_ steerText: String) -> String {
         let open = "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered mid-turn; not tool output]"
         let close = "[/OUT-OF-BAND USER MESSAGE]"
         return "\n\n\(open)\n\(steerText)\n\(close)"
@@ -467,7 +467,7 @@ extension PromptBuilder {
     ///
     /// Wenshu-side: returns the macOS variant (= wenshu is macOS-only
     /// per AGENTS.md §11.2; no Windows/Linux branching needed).
-    public static func computerUseGuidance(osName: String = "macOS") -> String {
+    static func computerUseGuidance(osName: String = "macOS") -> String {
         return """
         # Computer Use (\(osName) background control)
 
@@ -496,7 +496,7 @@ extension PromptBuilder {
     /// `CONTEXT_TRUNCATE_HEAD_RATIO` (70%) of the cap, then the last
     /// `CONTEXT_TRUNCATE_TAIL_RATIO` (20%), with an ellipsis marker
     /// between them. No-op when content is already under the cap.
-    public static func truncateContent(
+    static func truncateContent(
         _ content: String,
         filename: String,
         contextLength: Int? = nil
@@ -528,7 +528,7 @@ extension PromptBuilder {
     /// function and the dynamic-tier composition is per-turn hot path.
     /// Duplicating the 12-LOC rendering logic is cheaper than awaiting
     /// an actor call per turn.
-    public static func renderContextBundle(_ bundle: ContextEngine.ContextBundle) -> String {
+    static func renderContextBundle(_ bundle: ContextEngine.ContextBundle) -> String {
         var sections: [String] = []
         if !bundle.memories.isEmpty {
             let memoryLines = bundle.memories.map { "- [\($0.source)] \($0.snippet)" }.joined(separator: "\n")
@@ -555,7 +555,7 @@ extension PromptBuilder {
     /// Wenshu-side: returns the wenshu-flavored identity (= delegates to
     /// SystemPrompt.stableTier() which is the canonical source per the
     /// v0.35 ticket 002 sub-step 2 stable-tier design).
-    public static func defaultIdentity() -> String {
+    static func defaultIdentity() -> String {
         SystemPrompt.stableTier()
     }
 
@@ -564,7 +564,7 @@ extension PromptBuilder {
     /// Wenshu-side: returns the wenshu help text pointing at the AGENTS.md
     /// (= wenshu's authoritative reference). Empty stub for now; full
     /// text lands when the wenshu help-system ticket ships.
-    public static var helpGuidance: String {
+    static var helpGuidance: String {
         return """
         You run on Wenshu (a long-form novel authoring tool for macOS).
         When the user needs help with Wenshu itself — configuring, using,
@@ -619,7 +619,7 @@ extension PromptBuilder {
     ///     to a single names-only line (= posturing for non-coding context).
     /// - Returns: the rendered skill-index system-prompt block
     ///   (= empty string when no skills directory exists).
-    public static func buildSkillsSystemPrompt(
+    static func buildSkillsSystemPrompt(
         availableTools: Set<String>? = nil,
         availableToolsets: Set<String>? = nil,
         compactCategories: Set<String>? = nil,
@@ -694,7 +694,7 @@ extension PromptBuilder {
     ///     Nous-managed tools, so the check is moot).
     /// - Returns: empty string (= wenshu-side decision = no Nous
     ///   subscription prompt block).
-    public static func buildNousSubscriptionPrompt(
+    static func buildNousSubscriptionPrompt(
         validToolNames: Set<String>? = nil,
     ) -> String {
         // Wenshu-side: explicit empty return (= no Nous subscription
@@ -727,7 +727,7 @@ extension PromptBuilder {
     /// - Returns: the rendered context-files prompt block (= empty
     ///   when AGENTS.md is absent or shorter than the truncation
     ///   threshold).
-    public static func buildContextFilesPrompt(
+    static func buildContextFilesPrompt(
         cwdPath: String = FileManager.default.currentDirectoryPath,
         contextLength: Int? = nil,
     ) -> String {
@@ -789,7 +789,7 @@ extension PromptBuilder {
     ///
     /// - Returns: a wenshu-flavored environment-hint string (= empty
     ///   when on a non-macOS platform).
-    public static func buildEnvironmentHints() -> String {
+    static func buildEnvironmentHints() -> String {
         // Wenshu-side wins: hermes probes a remote backend cache and
         // builds a multi-line block; wenshu is single-platform macOS
         // and just emits the platform + stack bullets.
@@ -817,7 +817,7 @@ extension PromptBuilder {
     ///
     /// - Parameter clearSnapshot: when true, also delete the disk
     ///   snapshot file (= `.skills_prompt_snapshot.json`).
-    public static func clearSkillsSystemPromptCache(
+    static func clearSkillsSystemPromptCache(
         clearSnapshot: Bool = false,
     ) {
         PromptBuilderCaches.skillsPromptCache.removeAllObjects()
@@ -837,7 +837,7 @@ extension PromptBuilder {
     ///
     /// - Returns: list of truncation-warning strings (= empty when
     ///   no truncations happened since last drain).
-    public static func drainTruncationWarnings() -> [String] {
+    static func drainTruncationWarnings() -> [String] {
         PromptBuilderCaches.truncationWarningsDrain()
     }
 }

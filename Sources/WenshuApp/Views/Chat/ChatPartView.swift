@@ -58,7 +58,7 @@ struct ChatMessageBodyView: View {
     /// actual approve-reinvoke path.
     let onApprovePlan: ((Plan) -> Void)?
 
-    public init(
+    init(
         message: ChatMessage,
         isOutgoing: Bool,
         isStreaming: Bool = false,

@@ -49,8 +49,8 @@ import MarkdownEngine
 // it (= a title + body + a target type so the host knows which
 // zone to render in).
 
-public struct WikiLinkNavigationResult: Equatable, Sendable {
-    public enum Source: Equatable, Sendable {
+struct WikiLinkNavigationResult: Equatable, Sendable {
+    enum Source: Equatable, Sendable {
         /// The link target matched a reference-library entity
         /// (= wenshu's library-public LLM Wiki layer; = the body
         /// comes from reference-library/entities/<id>.md).
@@ -59,18 +59,18 @@ public struct WikiLinkNavigationResult: Equatable, Sendable {
         /// book's chapters/<uuid>.md file).
         case bookChapter(bookId: UUID)
     }
-    public let title: String
-    public let body: String
-    public let source: Source
+    let title: String
+    let body: String
+    let source: Source
 
-    public init(title: String, body: String, source: Source) {
+    init(title: String, body: String, source: Source) {
         self.title = title
         self.body = body
         self.source = source
     }
 }
 
-public enum WikiLinkNavigation {
+enum WikiLinkNavigation {
 
     /// Resolve a `[[Name]]` click. Search order:
     /// 1. Reference library entities (= library-public; = the
@@ -170,7 +170,7 @@ public enum WikiLinkNavigation {
 //   3. On a fresh placeholder tab (no book), keep the existing
 //      /tmp fallback (= no library = no real path to write to).
 
-public enum DraftPersistence {
+enum DraftPersistence {
 
     /// Compute the path the draft should be written to. Returns nil
     /// when no path can be derived (= no active book, no book
@@ -207,7 +207,7 @@ public enum DraftPersistence {
     /// Write `text` to `url` atomically (= Apple HIG document
     /// write pattern). Throws on failure (= host can surface an
     /// alert / log).
-    public static func persist(text: String, to url: URL) throws {
+    static func persist(text: String, to url: URL) throws {
         try text.write(to: url, atomically: true, encoding: .utf8)
     }
 }
@@ -231,13 +231,13 @@ public enum DraftPersistence {
 //     text directly — the engine applies the formatting inside
 //     its own NSTextView, with proper undo + selection restore).
 
-public final class MarkdownEditorBusBridge {
+final class MarkdownEditorBusBridge {
     private let bus: MarkdownEditorBus
     private var observers: [NSObjectProtocol] = []
-    public let format: FormatDispatcher
-    public let findReplace: FindReplaceDispatcher
+    let format: FormatDispatcher
+    let findReplace: FindReplaceDispatcher
 
-    public init(bus: MarkdownEditorBus) {
+    init(bus: MarkdownEditorBus) {
         self.bus = bus
         self.format = FormatDispatcher(bus: bus)
         self.findReplace = FindReplaceDispatcher(bus: bus)
@@ -261,20 +261,20 @@ public final class MarkdownEditorBusBridge {
 // and applies the action inside its own NSTextView (= undo + 
 // selection restore are owned by the engine).
 
-public struct FormatDispatcher {
-    public let bus: MarkdownEditorBus
-    public init(bus: MarkdownEditorBus) { self.bus = bus }
-    public func applyBold() {
+struct FormatDispatcher {
+    let bus: MarkdownEditorBus
+    init(bus: MarkdownEditorBus) { self.bus = bus }
+    func applyBold() {
         guard let name = bus.applyBoldRequest else { return }
         NotificationCenter.default.post(name: name, object: nil)
     }
 }
 
-public struct FindReplaceDispatcher {
-    public let bus: MarkdownEditorBus
-    public init(bus: MarkdownEditorBus) { self.bus = bus }
+struct FindReplaceDispatcher {
+    let bus: MarkdownEditorBus
+    init(bus: MarkdownEditorBus) { self.bus = bus }
 
-    public func runFind(query: String, currentIndex: Int? = nil) {
+    func runFind(query: String, currentIndex: Int? = nil) {
         guard let name = bus.findQuery else { return }
         var info: [AnyHashable: Any] = ["query": query]
         if let currentIndex = currentIndex {
@@ -286,7 +286,7 @@ public struct FindReplaceDispatcher {
         )
     }
 
-    public func replaceCurrent(
+    func replaceCurrent(
         query: String, replacement: String, currentIndex: Int? = nil
     ) {
         guard let name = bus.replaceCurrent else { return }
@@ -303,7 +303,7 @@ public struct FindReplaceDispatcher {
         )
     }
 
-    public func replaceAll(query: String, replacement: String) {
+    func replaceAll(query: String, replacement: String) {
         guard let name = bus.replaceAll else { return }
         NotificationCenter.default.post(
             name: name, object: nil,

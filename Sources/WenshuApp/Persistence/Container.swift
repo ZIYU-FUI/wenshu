@@ -57,9 +57,9 @@ import SwiftData
 
 /// Singleton ModelContainer (= held by AppState).
 /// Initialization is lazy (= defer until first access).
-public enum WSPersistenceContainer {
+enum WSPersistenceContainer {
     /// Schema listing all 23 @Model classes (= generated below)
-    public static let schema = Schema([
+    static let schema = Schema([
         // Tier 1: leaf entities (= no relationships)
         WSManifest.self,
         WSMemory.self,
@@ -91,7 +91,7 @@ public enum WSPersistenceContainer {
     /// The shared ModelContainer (= lazily initialized on first access).
     /// Uses the application's Application Support directory (=
     /// macOS-recommended location for app data; = backed up via Time Machine).
-    public static let shared: ModelContainer = {
+    static let shared: ModelContainer = {
         let config = ModelConfiguration(
             "WenshuStore",
             schema: schema,
@@ -122,7 +122,7 @@ public enum WSPersistenceContainer {
     /// Test-only in-memory container (= never touches disk).
     /// Used by PersistenceTests suites.
     @MainActor
-    public static func makeInMemoryContainer() throws -> ModelContainer {
+    static func makeInMemoryContainer() throws -> ModelContainer {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: [config])
     }
@@ -135,7 +135,7 @@ public enum WSPersistenceContainer {
     /// directly are unaffected. Callers that switch to `current` (= the
     /// new resolver) automatically pick up the warehouse path when set.
     @MainActor
-    public private(set) static var activeWarehouseContainer: ModelContainer?
+    private(set) static var activeWarehouseContainer: ModelContainer?
 
     /// Activate the warehouse container (= call once at app launch from
     /// WenshuAppDelegate.applicationDidFinishLaunching). Setting this
@@ -146,7 +146,7 @@ public enum WSPersistenceContainer {
     /// (= silently fall back to `shared`). Caller (= WenshuAppDelegate) is
     /// responsible for logging the failure.
     @MainActor
-    public static func activateWarehouseContainer(_ container: ModelContainer?) {
+    static func activateWarehouseContainer(_ container: ModelContainer?) {
         activeWarehouseContainer = container
     }
 
@@ -162,7 +162,7 @@ public enum WSPersistenceContainer {
     /// chat/kanban/toDo/memory/bookmark/workspace data flows exclusively
     /// through the warehouse container (= per boss 8/25 OOB).
     @MainActor
-    public static var current: ModelContainer {
+    static var current: ModelContainer {
         activeWarehouseContainer ?? shared
     }
 
@@ -187,7 +187,7 @@ public enum WSPersistenceContainer {
     /// Throws if SwiftData cannot create the container (= e.g. disk full,
     /// permissions denied, corrupted store).
     @MainActor
-    public static func makeContainer(
+    static func makeContainer(
         at url: URL,
         name: String? = nil,
         readOnly: Bool = false
@@ -218,7 +218,7 @@ public enum WSPersistenceContainer {
     /// Caller is responsible for catching + logging the warehouse failure
     /// (= so user sees a non-fatal warning instead of silent fallback).
     @MainActor
-    public static func makeContainerForWarehouse(_ warehouseURL: URL?) throws -> ModelContainer {
+    static func makeContainerForWarehouse(_ warehouseURL: URL?) throws -> ModelContainer {
         if let warehouseURL {
             let storeURL = warehouseURL.appendingPathComponent("WenshuStore.store")
             do {

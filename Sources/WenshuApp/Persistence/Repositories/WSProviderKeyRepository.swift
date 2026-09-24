@@ -19,15 +19,15 @@ import Foundation
 import SwiftData
 
 @MainActor
-public final class WSProviderKeyRepository {
+final class WSProviderKeyRepository {
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
+    init(container: ModelContainer = WSPersistenceContainer.shared) {
         self.container = container
     }
 
-    public func saveMetadata(slug: String, encryptedKey: Data) throws {
+    func saveMetadata(slug: String, encryptedKey: Data) throws {
         let descriptor = FetchDescriptor<WSProviderKey>(
             predicate: #Predicate { $0.providerSlug == slug }
         )
@@ -40,21 +40,21 @@ public final class WSProviderKeyRepository {
         try context.save()
     }
 
-    public func loadEncryptedKey(slug: String) throws -> Data? {
+    func loadEncryptedKey(slug: String) throws -> Data? {
         let descriptor = FetchDescriptor<WSProviderKey>(
             predicate: #Predicate { $0.providerSlug == slug }
         )
         return try context.fetch(descriptor).first?.encryptedKey
     }
 
-    public func listProviders() throws -> [String] {
+    func listProviders() throws -> [String] {
         let descriptor = FetchDescriptor<WSProviderKey>(
             sortBy: [SortDescriptor(\.providerSlug)]
         )
         return try context.fetch(descriptor).map { $0.providerSlug }
     }
 
-    public func deleteMetadata(slug: String) throws {
+    func deleteMetadata(slug: String) throws {
         let descriptor = FetchDescriptor<WSProviderKey>(
             predicate: #Predicate { $0.providerSlug == slug }
         )

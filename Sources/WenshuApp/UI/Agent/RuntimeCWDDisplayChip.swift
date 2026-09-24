@@ -30,11 +30,11 @@ struct RuntimeCWDDisplayChip: View {
 
     private let runtimeCWD: RuntimeCWD
 
-    public init(runtimeCWD: RuntimeCWD = RuntimeCWD()) {
+    init(runtimeCWD: RuntimeCWD = RuntimeCWD()) {
         self.runtimeCWD = runtimeCWD
     }
 
-    public var body: some View {
+    var body: some View {
         HStack(spacing: DesignTokens.chromePaddingMicro) {
             Image(systemName: "folder").font(.system(size: 16, weight: .regular))
                 .font(DesignTokens.runtimeCwdChipFont)

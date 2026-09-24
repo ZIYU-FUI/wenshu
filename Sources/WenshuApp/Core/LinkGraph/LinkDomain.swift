@@ -13,15 +13,15 @@
 
 import Foundation
 
-public struct Link: Equatable, Sendable {
-    public let sourceDocId: String
-    public let targetRef: String
-    public let targetDocId: String?
-    public let line: Int
-    public let offset: Int
-    public let createdAt: Date
+struct Link: Equatable, Sendable {
+    let sourceDocId: String
+    let targetRef: String
+    let targetDocId: String?
+    let line: Int
+    let offset: Int
+    let createdAt: Date
 
-    public init(sourceDocId: String, targetRef: String, targetDocId: String?, line: Int, offset: Int, createdAt: Date = Date()) {
+    init(sourceDocId: String, targetRef: String, targetDocId: String?, line: Int, offset: Int, createdAt: Date = Date()) {
         self.sourceDocId = sourceDocId
         self.targetRef = targetRef
         self.targetDocId = targetDocId

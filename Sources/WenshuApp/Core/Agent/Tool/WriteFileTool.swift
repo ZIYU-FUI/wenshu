@@ -17,10 +17,10 @@
 
 import Foundation
 
-public struct WriteFileTool: Tool, Sendable {
-    public init() {}
+struct WriteFileTool: Tool, Sendable {
+    init() {}
 
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         // Parse input JSON via ToolInputParser (= single source of truth per
         // Standard-axis S3 Duplicated Code smell).
         let dict = try ToolInputParser.parseDictionary(input: input)
@@ -52,7 +52,7 @@ extension WriteFileTool {
     /// `tools/registry.py` `register()` 1:1). Fires once at first
     /// type access; the underlying `Task` schedules the async
     /// `register(...)` call off the init thread.
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "WriteFile",

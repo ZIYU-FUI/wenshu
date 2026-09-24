@@ -20,7 +20,7 @@ import Foundation
 
 /// Background task display state (= per spec §3.1 L227-231).
 /// Finite state machine = idle -> running -> success | error | cancelled.
-public enum DisplayState: Sendable, Equatable, Codable {
+enum DisplayState: Sendable, Equatable, Codable {
     case idle
     case running(progress: Double)  // 0.0 to 1.0
     case success(message: String?)
@@ -28,7 +28,7 @@ public enum DisplayState: Sendable, Equatable, Codable {
     case cancelled
 
     /// True if the state represents 'in progress' (= UI shows spinner).
-    public var isInProgress: Bool {
+    var isInProgress: Bool {
         switch self {
             case .running: return true
             default: return false
@@ -37,7 +37,7 @@ public enum DisplayState: Sendable, Equatable, Codable {
 
     /// True if the state represents 'terminal' (= UI shows result, no
     /// further updates expected).
-    public var isTerminal: Bool {
+    var isTerminal: Bool {
         switch self {
             case .success, .error, .cancelled: return true
             case .idle, .running: return false
@@ -45,7 +45,7 @@ public enum DisplayState: Sendable, Equatable, Codable {
     }
 
     /// Display label for UI (= per spec §6.4 status bar pattern).
-    public var displayLabel: String {
+    var displayLabel: String {
         switch self {
             case .idle: return "Ready"
             case .running(let progress):
@@ -61,7 +61,7 @@ public enum DisplayState: Sendable, Equatable, Codable {
     }
 
     /// SF Symbol icon name for UI (= per spec §6.4 status bar pattern).
-    public var systemImageName: String {
+    var systemImageName: String {
         switch self {
             case .idle: return "circle"
             case .running: return "arrow.triangle.2.circlepath"
@@ -78,7 +78,7 @@ public enum DisplayState: Sendable, Equatable, Codable {
     }
 
     /// Valid state transitions (= guard against illegal jumps).
-    public func canTransition(to next: DisplayState) -> Bool {
+    func canTransition(to next: DisplayState) -> Bool {
         switch (self, next) {
             case (.idle, .running): return true
             case (.running, .success): return true
@@ -96,12 +96,12 @@ public enum DisplayState: Sendable, Equatable, Codable {
 /// DisplayStateMachine = single source of truth for a background task's
 /// current display state. Per ADR-0011 (= pure data, no LLM calls), this
 /// is a struct (= value type, thread-safe by default in Swift 6).
-public struct DisplayStateMachine: Sendable {
-    public private(set) var state: DisplayState
-    public let taskName: String
-    public let startedAt: Date
+struct DisplayStateMachine: Sendable {
+    private(set) var state: DisplayState
+    let taskName: String
+    let startedAt: Date
 
-    public init(taskName: String, state: DisplayState = .idle) {
+    init(taskName: String, state: DisplayState = .idle) {
         self.taskName = taskName
         self.state = state
         self.startedAt = Date()
@@ -116,12 +116,12 @@ public struct DisplayStateMachine: Sendable {
     /// instances (= nanoseconds apart). Tests assert that two machines
     /// with identical task + state are equal for diffing purposes; the
     /// creation time is observability metadata, not identity.
-    public static func == (lhs: DisplayStateMachine, rhs: DisplayStateMachine) -> Bool {
+    static func == (lhs: DisplayStateMachine, rhs: DisplayStateMachine) -> Bool {
         return lhs.state == rhs.state && lhs.taskName == rhs.taskName
     }
 
     /// Transition to a new state (= throws on illegal transition).
-    public mutating func transition(to next: DisplayState) throws {
+    mutating func transition(to next: DisplayState) throws {
         guard state.canTransition(to: next) else {
             throw DisplayStateError.illegalTransition(
                 from: state,
@@ -146,7 +146,7 @@ public struct DisplayStateMachine: Sendable {
     /// When the machine is in `.idle`, this performs a normal transition
     /// to `.running(progress:)`. From any terminal state, callers must
     /// `.reset()` first.
-    public mutating func updateProgress(_ progress: Double) throws {
+    mutating func updateProgress(_ progress: Double) throws {
         let clamped = max(0.0, min(1.0, progress))
         if case .running = state {
             // Already running — replace progress directly. Skipping the
@@ -162,31 +162,31 @@ public struct DisplayStateMachine: Sendable {
     }
 
     /// Convenience: mark success (= optional message).
-    public mutating func markSuccess(message: String? = nil) throws {
+    mutating func markSuccess(message: String? = nil) throws {
         try transition(to: .success(message: message))
     }
 
     /// Convenience: mark error.
-    public mutating func markError(_ message: String) throws {
+    mutating func markError(_ message: String) throws {
         try transition(to: .error(message: message))
     }
 
     /// Convenience: mark cancelled.
-    public mutating func markCancelled() throws {
+    mutating func markCancelled() throws {
         try transition(to: .cancelled)
     }
 
     /// Reset to idle (= for next task instance).
-    public mutating func reset() {
+    mutating func reset() {
         state = .idle
     }
 }
 
 /// DisplayStateMachine errors.
-public enum DisplayStateError: Error, LocalizedError {
+enum DisplayStateError: Error, LocalizedError {
     case illegalTransition(from: DisplayState, to: DisplayState, taskName: String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
             case .illegalTransition(let from, let to, let task):
                 return "DisplayStateMachine '\(task)': illegal transition from \(from.displayLabel) to \(to.displayLabel)"

@@ -15,53 +15,53 @@ enum SkillAdapterError: Error {
     case unknownSkill(name: String)
 }
 
-public actor SkillAdapter {
-    public static let shared = SkillAdapter()
+actor SkillAdapter {
+    static let shared = SkillAdapter()
 
-    public enum DefaultsKey {
-        public static func skillEnabled(_ name: String) -> String {
+    enum DefaultsKey {
+        static func skillEnabled(_ name: String) -> String {
             return "wenshu.skills.enabled.\(name)"
         }
     }
 
     private nonisolated(unsafe) let defaults: UserDefaults
 
-    public init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }
 
-    public struct Skill: Sendable, Equatable, Identifiable {
-        public let name: String
-        public let description: String
-        public let enabled: Bool
-        public var id: String { name }
+    struct Skill: Sendable, Equatable, Identifiable {
+        let name: String
+        let description: String
+        let enabled: Bool
+        var id: String { name }
     }
 
-    public struct HubCommandResult: Sendable, Equatable {
-        public let command: String
-        public let success: Bool
-        public let output: String
+    struct HubCommandResult: Sendable, Equatable {
+        let command: String
+        let success: Bool
+        let output: String
 
-        public init(command: String, success: Bool, output: String) {
+        init(command: String, success: Bool, output: String) {
             self.command = command
             self.success = success
             self.output = output
         }
     }
 
-    public struct HubCommand: Sendable, Equatable {
-        public let name: String
-        public let description: String
-        public let category: String
+    struct HubCommand: Sendable, Equatable {
+        let name: String
+        let description: String
+        let category: String
 
-        public init(name: String, description: String, category: String) {
+        init(name: String, description: String, category: String) {
             self.name = name
             self.description = description
             self.category = category
         }
     }
 
-    public static let hubCommands: [HubCommand] = [
+    static let hubCommands: [HubCommand] = [
         HubCommand(name: "help", description: "Show available slash commands", category: "writing"),
         HubCommand(name: "review", description: "Review chapter", category: "writing"),
         HubCommand(name: "rewrite", description: "Rewrite passage", category: "writing"),
@@ -110,9 +110,9 @@ public actor SkillAdapter {
         HubCommand(name: "cron", description: "Manage scheduled cron jobs", category: "ops")
     ]
 
-    public init() { self.init(defaults: .standard) }
+    init() { self.init(defaults: .standard) }
 
-    public func listSkills() async -> [Skill] {
+    func listSkills() async -> [Skill] {
         let registry = SkillRegistry()
         let names: [String]
         do {
@@ -133,21 +133,21 @@ public actor SkillAdapter {
         return skills
     }
 
-    public nonisolated func isSkillEnabled(name: String) -> Bool {
+    nonisolated func isSkillEnabled(name: String) -> Bool {
         let key = DefaultsKey.skillEnabled(name)
         if defaults.object(forKey: key) == nil { return true }
         return defaults.bool(forKey: key)
     }
 
-    public nonisolated func currentEnabled(name: String) -> Bool {
+    nonisolated func currentEnabled(name: String) -> Bool {
         return isSkillEnabled(name: name)
     }
 
-    public nonisolated func setEnabled(name: String, enabled: Bool) {
+    nonisolated func setEnabled(name: String, enabled: Bool) {
         defaults.set(enabled, forKey: DefaultsKey.skillEnabled(name))
     }
 
-    public func invoke(name: String, input: String = "") async throws -> String {
+    func invoke(name: String, input: String = "") async throws -> String {
         _ = input
         // Per `MemorySkillOAuthTests.SkillAdapter.invoke: throws for unknown
         // skill` Z contract: invoking a skill that is NOT registered in
@@ -174,16 +174,16 @@ public actor SkillAdapter {
         return "[stub: invoked \(name) — real skill execution lands in v0.41+. The current output above is a placeholder.]"
     }
 
-    public struct ParsedInvocation: Sendable, Equatable {
-        public let skillName: String
-        public let remainder: String
-        public let result: String
-        public let source: Source
-        public enum Source: String, Sendable, Equatable {
+    struct ParsedInvocation: Sendable, Equatable {
+        let skillName: String
+        let remainder: String
+        let result: String
+        let source: Source
+        enum Source: String, Sendable, Equatable {
             case slashCommand
             case keywordMatch
         }
-        public init(skillName: String, remainder: String, result: String, source: Source) {
+        init(skillName: String, remainder: String, result: String, source: Source) {
             self.skillName = skillName
             self.remainder = remainder
             self.result = result
@@ -191,7 +191,7 @@ public actor SkillAdapter {
         }
     }
 
-    public func parseAndInvoke(_ input: String, contextFiles: [String] = []) async throws -> ParsedInvocation {
+    func parseAndInvoke(_ input: String, contextFiles: [String] = []) async throws -> ParsedInvocation {
         if let slash = Self.parseSlashCommand(input) {
             let result = try await invoke(name: slash.skillName, input: slash.remainder)
             return ParsedInvocation(
@@ -213,7 +213,7 @@ public actor SkillAdapter {
         throw SkillAdapterError.noMatch(input)
     }
 
-    public static func parseSlashCommand(_ message: String) -> (skillName: String, remainder: String)? {
+    static func parseSlashCommand(_ message: String) -> (skillName: String, remainder: String)? {
         guard message.hasPrefix("/") else { return nil }
         let trimmed = message.dropFirst()
         let parts = trimmed.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
@@ -222,7 +222,7 @@ public actor SkillAdapter {
         return (skillName, remainder)
     }
 
-    public func routeInput(_ input: String, contextFiles: [String] = []) async throws -> (skillName: String, remainder: String) {
+    func routeInput(_ input: String, contextFiles: [String] = []) async throws -> (skillName: String, remainder: String) {
         if let match = await SkillKeywordMatcher.shared.match(input: input, contextFiles: contextFiles) {
             return (match.skillName, input)
         }
@@ -230,19 +230,19 @@ public actor SkillAdapter {
         throw SkillAdapterError.noMatch(input)
     }
 
-    public static func hubCommand(named name: String) -> HubCommand? {
+    static func hubCommand(named name: String) -> HubCommand? {
         return hubCommands.first { $0.name == name }
     }
 
-    public static func hubCommands(in category: String) -> [HubCommand] {
+    static func hubCommands(in category: String) -> [HubCommand] {
         return hubCommands.filter { $0.category == category }
     }
 
-    public static var hubCategories: [String] {
+    static var hubCategories: [String] {
         return Array(Set(hubCommands.map { $0.category })).sorted()
     }
 
-    public func dispatch(command: String, input: String = "") async -> HubCommandResult {
+    func dispatch(command: String, input: String = "") async -> HubCommandResult {
         guard let cmd = Self.hubCommand(named: command) else {
             return HubCommandResult(
                 command: command,

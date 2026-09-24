@@ -64,7 +64,7 @@ import Foundation
 /// Severities are intentionally ordered so the picker renders
 /// from strictest (= `.hard`) to most lenient (= `.preference`)
 /// without having to re-read the source module.
-public enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
+enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// Absolutely cannot be violated (= magic system laws,
     /// physical laws, hard continuity rules).
     case hard
@@ -74,10 +74,10 @@ public enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identif
     /// Nice-to-have style preference (= tone / voice target).
     case preference
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Human-readable English label (= for the picker / list rows).
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .hard:        return "Hard"
         case .soft:        return "Soft"
@@ -89,7 +89,7 @@ public enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identif
     /// Image(systemName:) directly in the SpecializedToolsView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .hard:        return "exclamationmark.shield"  // Lucide 'shield-alert'
         case .soft:        return "shield"                  // Lucide 'shield'
@@ -103,7 +103,7 @@ public enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identif
 /// The 4 scopes a constraint can apply to. Each case maps 1:1
 /// to a value in hermes's
 /// `agent/specialized/book_setting_constraints.py::SCOPE_TABLE`.
-public enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
+enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// Applies to entire world (= physics, magic system).
     case world
     /// Applies to a specific character (= abilities, traits).
@@ -113,10 +113,10 @@ public enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiab
     /// Applies to writing style (= POV, tense, vocabulary).
     case style
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Human-readable English label (= for the picker).
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .world:       return "World"
         case .character:   return "Character"
@@ -129,7 +129,7 @@ public enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiab
     /// Image(systemName:) directly in the SpecializedToolsView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .world:       return "globe"                       // Lucide 'globe'
         case .character:   return "person"                      // Lucide 'user'
@@ -141,7 +141,7 @@ public enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiab
     /// Whether this scope supports a non-nil `appliesToId` (= a
     /// specific character or plot). World + style do NOT require
     /// an appliesToId.
-    public var supportsAppliesTo: Bool {
+    var supportsAppliesTo: Bool {
         switch self {
         case .character, .plot: return true
         case .world, .style:    return false
@@ -154,43 +154,43 @@ public enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiab
 /// A single worldbuilding constraint for one book. Persisted
 /// as one entry in the per-book `setting-constraints.json`
 /// sidecar.
-public struct BookSettingConstraint: Sendable, Codable, Equatable, Identifiable {
+struct BookSettingConstraint: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for add / update /
     /// remove / check lookups; never re-used even across books).
-    public let id: UUID
+    let id: UUID
 
     /// Owning book (= the actor resolves the on-disk sidecar
     /// through this id).
-    public let bookId: UUID
+    let bookId: UUID
 
     /// Short title (= e.g. "Magic requires eye contact").
-    public let title: String
+    let title: String
 
     /// 2-3 sentences explaining the rule (= surfaced in the
     /// violations list and the picker tooltip).
-    public let description: String
+    let description: String
 
     /// How strictly this rule is held (= see ConstraintSeverity).
-    public let severity: ConstraintSeverity
+    let severity: ConstraintSeverity
 
     /// What surface the rule applies to (= see ConstraintScope).
-    public let scope: ConstraintScope
+    let scope: ConstraintScope
 
     /// Optional target id (= the character or plot the constraint
     /// applies to). Nil for world + style scopes (= they apply
     /// universally).
-    public let appliesToId: UUID?
+    let appliesToId: UUID?
 
     /// Regex or literal phrases that violate this constraint.
     /// Empty = no forbidden patterns (= description-level rule
     /// only; = still useful for soft / preference severities).
-    public let forbiddenPatterns: [String]
+    let forbiddenPatterns: [String]
 
     /// Creation timestamp (= `Date.now` at add time).
-    public let createdAt: Date
+    let createdAt: Date
 
-    public init(
+    init(
         id: UUID = UUID(),
         bookId: UUID,
         title: String,
@@ -221,40 +221,40 @@ public struct BookSettingConstraint: Sendable, Codable, Equatable, Identifiable 
 /// The actor emits one row per forbidden-pattern hit (= the
 /// caller can render them inline with the matched snippet for
 /// the writer to fix).
-public struct ConstraintViolation: Sendable, Codable, Equatable, Identifiable {
+struct ConstraintViolation: Sendable, Codable, Equatable, Identifiable {
 
     /// Synthetic identifier (= constraintId + line number +
     /// matchedText hash) so SwiftUI lists can iterate without
     /// duplicate-key collisions on repeated matches.
-    public let id: UUID
+    let id: UUID
 
     /// Constraint id (= the rule that triggered this violation).
-    public let constraintId: UUID
+    let constraintId: UUID
 
     /// Constraint title (= copied at violation time so the UI
     /// can render it without dereferencing the constraint).
-    public let title: String
+    let title: String
 
     /// Severity of the rule (= hard / soft / preference).
-    public let severity: ConstraintSeverity
+    let severity: ConstraintSeverity
 
     /// Scope of the rule (= world / character / plot / style).
-    public let scope: ConstraintScope
+    let scope: ConstraintScope
 
     /// The actual text that triggered the violation (= first
     /// 80 chars of the matched region, suffixed with "…" when
     /// truncated).
-    public let matchedText: String
+    let matchedText: String
 
     /// 1-indexed line number where the match was found (= nil
     /// when the text does not contain any newlines or the match
     /// was on the first logical line).
-    public let lineNumber: Int?
+    let lineNumber: Int?
 
     /// Suggested fix (= e.g. "Rewrite to maintain eye contact").
-    public let suggestion: String
+    let suggestion: String
 
-    public init(
+    init(
         id: UUID = UUID(),
         constraintId: UUID,
         title: String,
@@ -301,11 +301,11 @@ struct BookSettingConstraintsSidecar: Codable, Sendable, Equatable {
 /// BookProjectConfigStore / BookTodoStore / LongFormGuardrails /
 /// CharacterRelationshipTracker / CharacterLifecycleTracker error
 /// conventions (= a LocalizedError per case).
-public enum BookSettingConstraintsError: Error, LocalizedError, Sendable, Equatable {
+enum BookSettingConstraintsError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case constraintNotFound(id: UUID)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .bookDirectoryNotFound(let id):
             return "BookSettingConstraints: book directory not found for id \(id.uuidString)"
@@ -364,7 +364,7 @@ actor BookSettingConstraints {
     ///   - Idempotent on `id`: re-adding with the same id replaces
     ///     the existing row (= matches `BookKanbanStore` upsert
     ///     policy + the CharacterRelationshipTracker add path).
-    public func add(_ constraint: BookSettingConstraint) async throws {
+    func add(_ constraint: BookSettingConstraint) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: constraint.bookId)
         // Replace if a row with the same id already exists.
         if let idx = sidecar.constraints.firstIndex(where: { $0.id == constraint.id }) {
@@ -380,7 +380,7 @@ actor BookSettingConstraints {
     /// Update an existing constraint (= matches by id). Throws
     /// `.constraintNotFound` when the id is unknown for the
     /// supplied book.
-    public func update(_ constraint: BookSettingConstraint) async throws {
+    func update(_ constraint: BookSettingConstraint) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: constraint.bookId)
         guard let idx = sidecar.constraints.firstIndex(where: { $0.id == constraint.id }) else {
             throw BookSettingConstraintsError.constraintNotFound(id: constraint.id)
@@ -395,7 +395,7 @@ actor BookSettingConstraints {
     /// owning book (= the caller does not always supply a
     /// bookId; we look it up from the cached sidecars first,
     /// then fall back to scanning shelvesRoot).
-    public func remove(id: UUID) async throws {
+    func remove(id: UUID) async throws {
         // Cache hit (= the view loaded constraints first via
         // `list(...)`, then calls `remove(id:)`).
         for (bookId, sidecar) in cache where sidecar.constraints.contains(where: { $0.id == id }) {
@@ -422,7 +422,7 @@ actor BookSettingConstraints {
 
     /// All constraints in a book (= filterable by severity /
     /// scope). When all filters are nil, returns every row.
-    public func list(
+    func list(
         bookId: UUID,
         severity: ConstraintSeverity? = nil,
         scope: ConstraintScope? = nil
@@ -469,7 +469,7 @@ actor BookSettingConstraints {
     /// Returns zero or more `ConstraintViolation` rows; = empty
     /// when no forbidden pattern matches (= common for early
     /// drafts).
-    public func check(
+    func check(
         chapterText: String,
         bookId: UUID
     ) async throws -> [ConstraintViolation] {

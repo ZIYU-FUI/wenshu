@@ -17,7 +17,7 @@
 import Foundation
 
 /// Kanban task status (= hermes kanban state machine: new → triage → ready → running → blocked → review → done; = wenshu also adds .failed per v0.23 ticket 013.003)
-public enum KanbanStatus: String, Codable, Sendable, CaseIterable {
+enum KanbanStatus: String, Codable, Sendable, CaseIterable {
     case new
     case triage
     case ready
@@ -31,24 +31,24 @@ public enum KanbanStatus: String, Codable, Sendable, CaseIterable {
 /// Kanban task
 /// v0.23 ticket 013.003: extended with hermes-style metadata
 /// (priority / assignee / started_at / completed_at / model_override).
-public struct KanbanTask: Equatable, Sendable {
-    public let id: String
-    public var title: String
-    public var status: KanbanStatus
-    public let createdAt: Date
-    public var updatedAt: Date
+struct KanbanTask: Equatable, Sendable {
+    let id: String
+    var title: String
+    var status: KanbanStatus
+    let createdAt: Date
+    var updatedAt: Date
     /// v0.23 ticket 013.003: priority (0 = low, 5 = normal, 10 = urgent).
-    public var priority: Int
+    var priority: Int
     /// v0.23 ticket 013.003: assignee agent name (e.g. "writer", "researcher", "wenshu-conductor").
-    public var assignee: String?
+    var assignee: String?
     /// v0.23 ticket 013.003: when task started running.
-    public var startedAt: Date?
+    var startedAt: Date?
     /// v0.23 ticket 013.003: when task completed/failed.
-    public var completedAt: Date?
+    var completedAt: Date?
     /// v0.23 ticket 013.003: model used for this task (e.g. "MiniMax-M3", "claude-3.7-sonnet").
-    public var modelOverride: String?
+    var modelOverride: String?
 
-    public init(
+    init(
         id: String = UUID().uuidString,
         title: String,
         status: KanbanStatus = .new,

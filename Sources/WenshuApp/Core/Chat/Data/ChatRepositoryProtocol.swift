@@ -42,7 +42,7 @@ import Foundation
 
 /// Data-layer seam for chat persistence. Implementers handle the
 /// concrete storage (SwiftData, in-memory fake, remote backend, …).
-public protocol ChatRepositoryProtocol: Sendable {
+protocol ChatRepositoryProtocol: Sendable {
     /// Append one chat message to the given session. Silent no-op
     /// (= `try?` + no throw visible to caller) is the convention —
     /// persistence failures should not crash the chat pipeline.

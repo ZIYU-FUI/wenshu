@@ -53,13 +53,13 @@ import Foundation
 /// A single source reference for a message in the conversation context.
 /// Records the origin file path (= .md inside `.ws` library per wenshu §11)
 /// and optional section anchor (= `#heading` for direct navigation).
-public struct ContextReference: Sendable, Equatable, Codable {
-    public let messageID: UUID          // = ChatMessage.id (UUID)
-    public let sourceFile: URL          // absolute path to source .md file
-    public let sectionAnchor: String?   // optional #anchor for in-file nav
-    public let excerpt: String?         // optional text excerpt from source
+struct ContextReference: Sendable, Equatable, Codable {
+    let messageID: UUID          // = ChatMessage.id (UUID)
+    let sourceFile: URL          // absolute path to source .md file
+    let sectionAnchor: String?   // optional #anchor for in-file nav
+    let excerpt: String?         // optional text excerpt from source
 
-    public init(
+    init(
         messageID: UUID,
         sourceFile: URL,
         sectionAnchor: String? = nil,
@@ -74,7 +74,7 @@ public struct ContextReference: Sendable, Equatable, Codable {
 
 /// Reference kind for parse-context-references (= hermes context_references.py
 /// @-reference surface: @file:/path, @folder:/path, @git:branch:path, @url:URL).
-public enum ContextReferenceKind: String, Sendable, Equatable, Codable {
+enum ContextReferenceKind: String, Sendable, Equatable, Codable {
     case file
     case folder
     case git
@@ -88,7 +88,7 @@ public enum ContextReferenceKind: String, Sendable, Equatable, Codable {
 /// HERMES-PARTIAL-014: persisted to disk (= JSON file at the per-session
 /// reference-store path) so the map survives session reset; sessions that
 /// reference the same source file share a graph node across sessions.
-public actor ContextReferences {
+actor ContextReferences {
 
     private var byID: [UUID: ContextReference] = [:]
     private var byFile: [URL: Set<UUID>] = [:]
@@ -99,7 +99,7 @@ public actor ContextReferences {
     /// Persistence path (= JSON file loaded at init).
     private var persistencePath: URL?
 
-    public init(persistencePath: URL? = nil) {
+    init(persistencePath: URL? = nil) {
         self.persistencePath = persistencePath
         // Attempt to load from disk (= hermes on-disk persistence).
         if let path = persistencePath,
@@ -121,7 +121,7 @@ public actor ContextReferences {
     }
 
     /// Add a new reference (= caller is message-construction path).
-    public func add(_ reference: ContextReference, session: String = "default") {
+    func add(_ reference: ContextReference, session: String = "default") {
         byID[reference.messageID] = reference
         byFile[reference.sourceFile, default: []].insert(reference.messageID)
         bySession[session, default: []].insert(reference.messageID)
@@ -129,7 +129,7 @@ public actor ContextReferences {
     }
 
     /// Remove a reference (= called when message is removed from context).
-    public func remove(messageID: UUID) {
+    func remove(messageID: UUID) {
         guard let ref = byID.removeValue(forKey: messageID) else { return }
         byFile[ref.sourceFile]?.remove(messageID)
         if byFile[ref.sourceFile]?.isEmpty == true {
@@ -147,33 +147,33 @@ public actor ContextReferences {
     }
 
     /// Lookup reference by messageID (= O(1)).
-    public func reference(for messageID: UUID) -> ContextReference? {
+    func reference(for messageID: UUID) -> ContextReference? {
         return byID[messageID]
     }
 
     /// Reverse lookup: all message IDs referencing a given source file
     /// (= O(1) for the set, O(N) to enumerate).
-    public func messageIDs(for sourceFile: URL) -> Set<UUID> {
+    func messageIDs(for sourceFile: URL) -> Set<UUID> {
         return byFile[sourceFile] ?? []
     }
 
     /// All sessions that reference a given source file (= cross-session graph lookup).
-    public func sessions(for sourceFile: URL) -> Set<String> {
+    func sessions(for sourceFile: URL) -> Set<String> {
         return byFileToSession[sourceFile] ?? []
     }
 
     /// Total reference count (= for diagnostics + UI).
-    public var count: Int {
+    var count: Int {
         return byID.count
     }
 
     /// All references (= sorted by messageID for stable UI display).
-    public var allReferences: [ContextReference] {
+    var allReferences: [ContextReference] {
         return byID.values.sorted { $0.messageID.uuidString < $1.messageID.uuidString }
     }
 
     /// Clear all references (= called on session reset).
-    public func clear() {
+    func clear() {
         byID.removeAll()
         byFile.removeAll()
         bySession.removeAll()
@@ -181,7 +181,7 @@ public actor ContextReferences {
     }
 
     /// Persist to disk (= hermes on-disk persistence).
-    public func persist() throws {
+    func persist() throws {
         guard let path = persistencePath else { return }
         let state = PersistedState(
             references: Array(byID.values),
@@ -201,10 +201,10 @@ public actor ContextReferences {
 /// Pure function (= deterministic) that builds initial ContextReferences
 /// from a list of LLMMessage + their source file metadata. Used at session
 /// startup (= reads filesystem metadata, populates actor).
-public enum ContextReferencesBuilder {
+enum ContextReferencesBuilder {
 
     /// Build ContextReference entries from paired (message, sourceFile) list.
-    public static func build(
+    static func build(
         pairs: [(messageID: UUID, sourceFile: URL, sectionAnchor: String?, excerpt: String?)],
         session: String = "default"
     ) -> [ContextReference] {
@@ -227,14 +227,14 @@ public enum ContextReferencesBuilder {
 ///   @folder:/path/to/folder
 ///   @git:branch:/path/to/file.md
 ///   @url:https://example.com/doc
-public enum ContextReferenceParser {
+enum ContextReferenceParser {
     /// Pattern matches @<kind>:<value> where value is a non-whitespace run.
     private static let pattern = NSRegularExpression.literal(#"@(file|folder|git|url):(\S+)"#,
         options: []
     )
 
     /// Parse @-references from a user message.
-    public static func parse(_ message: String) -> [ContextReference] {
+    static func parse(_ message: String) -> [ContextReference] {
         guard !message.isEmpty else { return [] }
         let ns = message as NSString
         let range = NSRange(location: 0, length: ns.length)
@@ -261,7 +261,7 @@ public enum ContextReferenceParser {
 
     /// Classify a reference kind from a target string (= hermes
     /// _parse_file_reference_value helper).
-    public static func kind(for target: String) -> ContextReferenceKind {
+    static func kind(for target: String) -> ContextReferenceKind {
         if target.hasPrefix("http://") || target.hasPrefix("https://") {
             return .url
         }

@@ -24,17 +24,17 @@ import Foundation
 /// OAuth 2.0 flow state for a single provider.
 /// One instance per (user, provider) pair; lives across multiple
 /// authorization attempts (= uses refresh token to silently rotate).
-public actor OAuthFlow {
+actor OAuthFlow {
 
-    public let provider: Provider
-    public let authorizationEndpoint: URL
-    public let tokenEndpoint: URL
-    public let redirectURI: URL
-    public let clientID: String
-    public let scopes: [String]
+    let provider: Provider
+    let authorizationEndpoint: URL
+    let tokenEndpoint: URL
+    let redirectURI: URL
+    let clientID: String
+    let scopes: [String]
     private let session: URLSession
 
-    public init(
+    init(
         provider: Provider,
         authorizationEndpoint: URL,
         tokenEndpoint: URL,
@@ -55,7 +55,7 @@ public actor OAuthFlow {
     /// Generate the user-facing authorization URL.
     /// User opens this URL in their browser, completes OAuth, gets
     /// redirected back to redirectURI with `code` query parameter.
-    public func authorizationURL(state: String, codeChallenge: String) -> URL {
+    func authorizationURL(state: String, codeChallenge: String) -> URL {
         var components = URLComponents(url: authorizationEndpoint, resolvingAgainstBaseURL: false)
         components?.queryItems = [
             URLQueryItem(name: "response_type", value: "code"),
@@ -73,7 +73,7 @@ public actor OAuthFlow {
     /// Exchange authorization code for access + refresh tokens.
     /// Returns ProviderKeychainMetadata (= persisted by caller via
     /// ProviderKeychain.saveMetadata).
-    public func exchangeCodeForTokens(
+    func exchangeCodeForTokens(
         code: String,
         codeVerifier: String
     ) async throws -> ProviderKeychainMetadata {
@@ -102,7 +102,7 @@ public actor OAuthFlow {
 
     /// Use refresh token to silently rotate access token (= happens in
     /// background after access token expires; user does not see this).
-    public func refreshTokens(refreshToken: String) async throws -> ProviderKeychainMetadata {
+    func refreshTokens(refreshToken: String) async throws -> ProviderKeychainMetadata {
         var request = URLRequest(url: tokenEndpoint)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -149,7 +149,7 @@ public actor OAuthFlow {
     // MARK: - PKCE helpers (= RFC 7636)
 
     /// Generate a cryptographically-random PKCE code_verifier (= 43-128 chars).
-    public static func generateCodeVerifier() -> String {
+    static func generateCodeVerifier() -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         return Data(bytes).base64URLEncodedString()
@@ -158,7 +158,7 @@ public actor OAuthFlow {
     /// Compute PKCE code_challenge from code_verifier (= SHA256 + base64url).
     /// Empty verifier yields empty challenge (= edge case: skip PKCE when
     /// verifier absent; matches the test contract `codeChallenge(for: "") == ""`).
-    public static func codeChallenge(for verifier: String) -> String {
+    static func codeChallenge(for verifier: String) -> String {
         if verifier.isEmpty { return "" }
         guard let data = verifier.data(using: .ascii) else { return "" }
         var hash = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
@@ -170,12 +170,12 @@ public actor OAuthFlow {
 }
 
 /// OAuth-specific errors (= separate from LLMConnectorError for clarity).
-public enum OAuthError: Error, LocalizedError {
+enum OAuthError: Error, LocalizedError {
     case invalidResponse
     case invalidJSON
     case httpStatus(Int)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
             case .invalidResponse: return "OAuth server returned invalid response"
             case .invalidJSON: return "OAuth server returned malformed JSON"

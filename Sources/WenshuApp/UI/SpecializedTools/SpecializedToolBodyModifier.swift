@@ -36,7 +36,7 @@ import SwiftUI
 extension View {
     /// v1.28 C3.7.1: wrap a SpecializedTool view body in the canonical
     /// chromePadding + if-activeBookId-is-nil-else-contentBody pattern.
-    public func specializedToolBody(
+    func specializedToolBody(
         activeBookId: UUID?,
         @ViewBuilder emptyContent: () -> some View,
         @ViewBuilder mainContent: () -> some View

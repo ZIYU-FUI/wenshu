@@ -13,13 +13,13 @@
 
 import Foundation
 
-public struct ManualCompressionFeedback: Sendable, Equatable {
-    public let headline: String
-    public let tokenLine: String
-    public let note: String?
-    public let isNoOp: Bool
+struct ManualCompressionFeedback: Sendable, Equatable {
+    let headline: String
+    let tokenLine: String
+    let note: String?
+    let isNoOp: Bool
 
-    public init(headline: String, tokenLine: String, note: String? = nil, isNoOp: Bool = false) {
+    init(headline: String, tokenLine: String, note: String? = nil, isNoOp: Bool = false) {
         self.headline = headline
         self.tokenLine = tokenLine
         self.note = note
@@ -27,11 +27,11 @@ public struct ManualCompressionFeedback: Sendable, Equatable {
     }
 }
 
-public actor ManualCompressionFeedbackRunner {
+actor ManualCompressionFeedbackRunner {
 
     private let compression: ConversationCompression
 
-    public init(compression: ConversationCompression) {
+    init(compression: ConversationCompression) {
         self.compression = compression
     }
 
@@ -41,7 +41,7 @@ public actor ManualCompressionFeedbackRunner {
     /// it is folded into the system message so the next turn sees a
     /// custom-tailored compression context (= hermes lets the user
     /// steer what the compressor should prioritise).
-    public func triggerManualCompression(
+    func triggerManualCompression(
         messages: [LLMMessage],
         systemMessage: String,
         customPrompt: String? = nil

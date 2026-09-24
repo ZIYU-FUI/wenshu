@@ -11,25 +11,25 @@ private let subtleSurfaceAlpha: CGFloat = 0.05
 
 struct MemorySettingsView: View {
     @AppStorage(MemoryAdapter.DefaultsKey.enabled)
-    public var isMemoryEnabled: Bool = true
+    var isMemoryEnabled: Bool = true
 
     @AppStorage(MemoryAdapter.DefaultsKey.scope)
-    public var scopeRaw: String = MemoryScope.perBook.rawValue
+    var scopeRaw: String = MemoryScope.perBook.rawValue
 
     @AppStorage(MemoryAdapter.DefaultsKey.retentionDays)
-    public var retentionDays: Int = 90
+    var retentionDays: Int = 90
 
-    @State public var recentEntries: [MemoryAdapter.MemoryEntry] = []
-    @State public var isLoadingEntries: Bool = false
-    @State public var lastPurgeCount: Int = 0
+    @State var recentEntries: [MemoryAdapter.MemoryEntry] = []
+    @State var isLoadingEntries: Bool = false
+    @State var lastPurgeCount: Int = 0
 
-    public init() {}
+    init() {}
 
-    public var scope: MemoryScope {
+    var scope: MemoryScope {
         MemoryScope(rawValue: scopeRaw) ?? .perBook
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             Text(WenshuI18n.t("settings.memory.title"))
                 .font(.headline)

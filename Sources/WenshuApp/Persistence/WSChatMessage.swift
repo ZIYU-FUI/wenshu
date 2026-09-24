@@ -15,8 +15,8 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSChatMessage {
-    @Attribute(.unique) public var id: String
+final class WSChatMessage {
+    @Attribute(.unique) var id: String
     /// FK to WSSession.sessionID (= string FK, = legacy)
     var sessionID: String
     // v1.79 chat-by-book row-level split (boss 2026-09-24 OOB):

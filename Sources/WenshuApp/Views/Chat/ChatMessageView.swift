@@ -62,7 +62,7 @@ struct ChatMessageView: View {
     /// date; = Apple Messages hover affordance).
     @State private var isTimestampHovered: Bool = false
 
-    public init(
+    init(
         message: ChatMessage,
         isLatestUser: Bool = false,
         onApprovePlan: ((Plan) -> Void)? = nil

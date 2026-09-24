@@ -15,7 +15,7 @@ import Foundation
 
 /// DocumentIndex: map doc name (filename / display name) to doc_id (UUID)
 /// BacklinkResolver uses it to resolve `[[name]]` → target_doc_id
-public protocol DocumentIndexing: Sendable {
+protocol DocumentIndexing: Sendable {
     /// Given a doc display name (e.g. "Lin Daiyu"), return doc_id (may be empty, because [[new name]] has no existing doc yet)
     func docId(forName name: String) async -> String?
     /// To doc id, get a display name (reverse, render the panel)
@@ -23,14 +23,14 @@ public protocol DocumentIndexing: Sendable {
 }
 
 /// BacklinkResolver: async-coordinates Markdown parse + WSLinkRepository insert
-public actor BacklinkResolver {
+actor BacklinkResolver {
     /// SwiftData-backed link repository (= phase 3 WSLinkRepository).
     /// Default = .shared (= production path); tests inject an in-memory
     /// instance to avoid clobbering shared WSPersistenceContainer.
     private let repository: WSLinkRepository
     private let documentIndex: DocumentIndexing
 
-    public init(repository: WSLinkRepository, documentIndex: DocumentIndexing) {
+    init(repository: WSLinkRepository, documentIndex: DocumentIndexing) {
         self.repository = repository
         self.documentIndex = documentIndex
     }
@@ -40,12 +40,12 @@ public actor BacklinkResolver {
     /// Production callers (= none currently exist) use this; tests
     /// inject a per-test WSLinkRepository with in-memory ModelContainer.
     @MainActor
-    public static func defaultInstance(documentIndex: DocumentIndexing) -> BacklinkResolver {
+    static func defaultInstance(documentIndex: DocumentIndexing) -> BacklinkResolver {
         BacklinkResolver(repository: .shared, documentIndex: documentIndex)
     }
 
     /// Parse markdown content, clear old links for sourceDocId, batch insert new links
-    public func resolve(content: String, sourceDocId: String) async throws {
+    func resolve(content: String, sourceDocId: String) async throws {
         let parsed = InternalLinkParser.parse(content)
         let repository = self.repository
         // Clear old links (when document is rewritten)
@@ -70,7 +70,7 @@ public actor BacklinkResolver {
     }
 
     /// Reverse query: given docId, return all backlinks (source link list referencing it)
-    public func backlinks(forDocId docId: String) async throws -> [Link] {
+    func backlinks(forDocId docId: String) async throws -> [Link] {
         let repository = self.repository
         // 1) First reverse-search by docId (target already resolved links)
         let resolved = try await MainActor.run {
@@ -90,7 +90,7 @@ public actor BacklinkResolver {
     }
 
     /// Reverse query: given display name (filename), return all backlinks
-    public func backlinks(forName name: String) async throws -> [Link] {
+    func backlinks(forName name: String) async throws -> [Link] {
         let repository = self.repository
         return try await MainActor.run {
             try repository.searchBackward(targetRef: name)
@@ -98,7 +98,7 @@ public actor BacklinkResolver {
     }
 
     /// Forward query: given sourceDocId, return all targets it references (Outgoing links)
-    public func forwardLinks(forDocId docId: String) async throws -> [Link] {
+    func forwardLinks(forDocId docId: String) async throws -> [Link] {
         let repository = self.repository
         return try await MainActor.run {
             try repository.searchForward(sourceDocId: docId)

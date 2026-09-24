@@ -41,21 +41,21 @@ import Foundation
 
 /// Minimal in-memory representation of a SkillBundle YAML file.
 /// (= matches the hermes YAML subset — flat scalars + 2 arrays only.)
-public struct SkillBundleYAML: Sendable, Equatable {
-    public let id: String
-    public let name: String
-    public let skillIDs: [String]
-    public let dependencies: [String]
+struct SkillBundleYAML: Sendable, Equatable {
+    let id: String
+    let name: String
+    let skillIDs: [String]
+    let dependencies: [String]
 }
 
 /// Errors thrown by `SkillBundlesYAMLDiscovery`.
-public enum SkillBundlesYAMLDiscoveryError: Error, LocalizedError, Sendable {
+enum SkillBundlesYAMLDiscoveryError: Error, LocalizedError, Sendable {
     case directoryNotFound(URL)
     case missingField(String)
     case duplicateID(String)
     case malformedYAML(file: URL, reason: String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .directoryNotFound(let url):
             return "SkillBundles directory not found: \(url.path)"
@@ -88,11 +88,11 @@ public enum SkillBundlesYAMLDiscoveryError: Error, LocalizedError, Sendable {
 ///     from: nil  // = use default directory
 /// )
 /// ```
-public enum SkillBundlesYAMLDiscovery {
+enum SkillBundlesYAMLDiscovery {
 
     /// Resolve the default SkillBundles directory.
     /// Order: env var override → Application Support → ~/.wenshu fallback.
-    public static func defaultDirectory() -> URL {
+    static func defaultDirectory() -> URL {
         if let override = ProcessInfo.processInfo.environment["WENSHU_BUNDLES_DIR"],
            !override.isEmpty
         {
@@ -119,7 +119,7 @@ public enum SkillBundlesYAMLDiscovery {
     /// Discover YAML files at `from` (= nil = use `defaultDirectory()`)
     /// and register each into `bundles`. Returns the number registered.
     /// Returns 0 (= no-op) if directory doesn't exist (= first-launch UX).
-    public static func discover(
+    static func discover(
         into bundles: SkillBundles,
         from directory: URL? = nil
     ) async -> Int {
@@ -181,7 +181,7 @@ public enum SkillBundlesYAMLDiscovery {
     ///
     /// This is intentional (= matches the hermes YAML subset; = avoids
     /// adding a YAML library per AGENTS.md §11.1).
-    public static func parseYAML(at url: URL) throws -> SkillBundleYAML {
+    static func parseYAML(at url: URL) throws -> SkillBundleYAML {
         let content: String
         do {
             content = try String(contentsOf: url, encoding: .utf8)
@@ -194,7 +194,7 @@ public enum SkillBundlesYAMLDiscovery {
     }
 
     /// Parse YAML content from a string (= lets tests skip filesystem).
-    public static func parseYAMLString(
+    static func parseYAMLString(
         _ content: String,
         sourceFile: URL? = nil
     ) throws -> SkillBundleYAML {

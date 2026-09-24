@@ -11,14 +11,14 @@
 import Foundation
 
 /// File entry (hermes list)
-public struct FileEntry: Equatable, Sendable {
-    public let path: String
-    public let name: String
-    public let isDirectory: Bool
-    public let size: Int64
-    public let modifiedAt: Date?
+struct FileEntry: Equatable, Sendable {
+    let path: String
+    let name: String
+    let isDirectory: Bool
+    let size: Int64
+    let modifiedAt: Date?
 
-    public init(path: String, name: String, isDirectory: Bool, size: Int64, modifiedAt: Date?) {
+    init(path: String, name: String, isDirectory: Bool, size: Int64, modifiedAt: Date?) {
         self.path = path
         self.name = name
         self.isDirectory = isDirectory
@@ -28,20 +28,20 @@ public struct FileEntry: Equatable, Sendable {
 }
 
 /// Patch 1 (hermes patch)
-public struct PatchHunk: Sendable {
-    public let oldText: String
-    public let newText: String
-    public init(oldText: String, newText: String) {
+struct PatchHunk: Sendable {
+    let oldText: String
+    let newText: String
+    init(oldText: String, newText: String) {
         self.oldText = oldText
         self.newText = newText
     }
 }
 
 /// FileToolError: errors thrown by FileTools (v0.23 ticket 008: path guard).
-public enum FileToolError: Error, LocalizedError {
+enum FileToolError: Error, LocalizedError {
     case pathDenied(path: String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .pathDenied(let path):
             return "path denied (boss 8/23 拍: 用户不可通过聊天改系统): \(path)"
@@ -50,15 +50,15 @@ public enum FileToolError: Error, LocalizedError {
 }
 
 /// FileTools: local file ops
-public struct FileTools: Tool, Sendable {
-    public init() {}
+struct FileTools: Tool, Sendable {
+    init() {}
 
     /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): parse the
     /// JSON input envelope and dispatch to the existing methods
     /// (= read / list / search / write / patch). Mirrors the
     /// `WenshuConductor.invokeTool(name: "file", ...)` switch
     /// semantics; the legacy path remains for backward compat.
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         // Empty / whitespace input = blank parse; mirror the
         // `WenshuConductor.invokeTool` convention of treating
         // blank input as a no-op (returns "" so the LLM sees a
@@ -94,7 +94,7 @@ public struct FileTools: Tool, Sendable {
     /// Uses (path as NSString).standardizingPath to normalize symlinks / . / ..
     /// v0.23 ticket 013.002: hermes _is_blocked_device parity.
     /// Also blocks /dev/* + /proc/* (memory/environ leaks) + symlink hops.
-    public func pathDenied(_ path: String) -> Bool {
+    func pathDenied(_ path: String) -> Bool {
         let std = (path as NSString).standardizingPath
 
         // v0.23 ticket 013.002: hermes _is_blocked_device_path parity.
@@ -125,7 +125,7 @@ public struct FileTools: Tool, Sendable {
 
     /// isBlockedDevice: hermes `_is_blocked_device_path` parity.
     /// Block /dev/stdin + /proc/* secrets (can leak env / memory layout).
-    public func isBlockedDevice(_ path: String) -> Bool {
+    func isBlockedDevice(_ path: String) -> Bool {
         // /dev/stdin, /dev/zero, /dev/random, etc. — can hang reads or expose data.
         if path.hasPrefix("/dev/") {
             return true
@@ -152,7 +152,7 @@ public struct FileTools: Tool, Sendable {
     /// pathHasBlockedSymlink: hermes symlink-hop defense (boss 8/23 security).
     /// Resolves symlinks and verifies no hop leads to a blocked device.
     /// Returns true if ANY hop in the chain points to /dev/* or /proc/*.
-    public func pathHasBlockedSymlink(_ path: String) -> Bool {
+    func pathHasBlockedSymlink(_ path: String) -> Bool {
         let url = URL(fileURLWithPath: path)
         // Resolve symlinks iteratively. macOS realpath equivalent.
         var current = url
@@ -169,13 +169,13 @@ public struct FileTools: Tool, Sendable {
     }
 
     /// read: file
-    public func read(path: String) throws -> String {
+    func read(path: String) throws -> String {
         try String(contentsOfFile: path, encoding: .utf8)
     }
 
     /// write: file (, Apple: .atomicWrite)
     /// v0.23 ticket 008: path guard rejects deny-list paths.
-    public func write(path: String, content: String) throws {
+    func write(path: String, content: String) throws {
         if pathDenied(path) { throw FileToolError.pathDenied(path: path) }
         let url = URL(fileURLWithPath: path)
         try content.write(to: url, atomically: true, encoding: .utf8)
@@ -183,7 +183,7 @@ public struct FileTools: Tool, Sendable {
 
     /// patch: 1 replace (hermes patch 1)
     /// v0.23 ticket 008: path guard rejects deny-list paths.
-    public func patch(path: String, hunk: PatchHunk) throws {
+    func patch(path: String, hunk: PatchHunk) throws {
         if pathDenied(path) { throw FileToolError.pathDenied(path: path) }
         let original = try read(path: path)
         guard original.contains(hunk.oldText) else {
@@ -194,7 +194,7 @@ public struct FileTools: Tool, Sendable {
     }
 
     /// search: directorysearch
-    public func search(rootDir: String, pattern: String, fileExtension: String? = nil) throws -> [String] {
+    func search(rootDir: String, pattern: String, fileExtension: String? = nil) throws -> [String] {
         var results: [String] = []
         let fm = FileManager.default
         let rootURL = URL(fileURLWithPath: rootDir, isDirectory: true)
@@ -216,7 +216,7 @@ public struct FileTools: Tool, Sendable {
     }
 
     /// list: directory
-    public func list(path: String) throws -> [FileEntry] {
+    func list(path: String) throws -> [FileEntry] {
         let url = URL(fileURLWithPath: path, isDirectory: true)
         let contents = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey])
         return contents.compactMap { fileURL in
@@ -230,7 +230,7 @@ public struct FileTools: Tool, Sendable {
     }
 }
 
-public enum FileToolsError: Error {
+enum FileToolsError: Error {
     case patchNotFound(path: String, oldText: String)
 }
 
@@ -248,7 +248,7 @@ extension FileTools {
     /// uses the same FileTools instance via its private property;
     /// this registration only adds the schema + handler lookup in
     /// ToolRegistry.shared.
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "file",

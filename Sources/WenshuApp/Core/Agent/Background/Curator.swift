@@ -23,20 +23,20 @@
 import Foundation
 
 /// One entry in a CurationReport (= a specific recommendation).
-public struct CurationFinding: Sendable, Equatable, Codable, Identifiable {
-    public let id: UUID
-    public let entityID: String           // = MemoryEntry.id
-    public let entityTitle: String
-    public let kind: Kind
-    public let description: String
+struct CurationFinding: Sendable, Equatable, Codable, Identifiable {
+    let id: UUID
+    let entityID: String           // = MemoryEntry.id
+    let entityTitle: String
+    let kind: Kind
+    let description: String
 
-    public enum Kind: String, Sendable, Equatable, Codable {
+    enum Kind: String, Sendable, Equatable, Codable {
         case duplicate   // similar to another entity (= merge candidate)
         case stale       // not accessed in N days (= archive candidate)
         case orphan      // no cross-references (= delete candidate)
     }
 
-    public init(
+    init(
         id: UUID = UUID(),
         entityID: String,
         entityTitle: String,
@@ -52,13 +52,13 @@ public struct CurationFinding: Sendable, Equatable, Codable, Identifiable {
 }
 
 /// Full curation report (= advisory only = per-entity findings + metadata).
-public struct CurationReport: Sendable, Equatable, Codable {
-    public let id: UUID
-    public let generatedAt: Date
-    public let findings: [CurationFinding]
-    public let totalEntitiesScanned: Int
+struct CurationReport: Sendable, Equatable, Codable {
+    let id: UUID
+    let generatedAt: Date
+    let findings: [CurationFinding]
+    let totalEntitiesScanned: Int
 
-    public init(
+    init(
         id: UUID = UUID(),
         generatedAt: Date = Date(),
         findings: [CurationFinding],
@@ -70,22 +70,22 @@ public struct CurationReport: Sendable, Equatable, Codable {
         self.totalEntitiesScanned = totalEntitiesScanned
     }
 
-    public var duplicatesCount: Int { findings.filter { $0.kind == .duplicate }.count }
-    public var staleCount: Int { findings.filter { $0.kind == .stale }.count }
-    public var orphansCount: Int { findings.filter { $0.kind == .orphan }.count }
+    var duplicatesCount: Int { findings.filter { $0.kind == .duplicate }.count }
+    var staleCount: Int { findings.filter { $0.kind == .stale }.count }
+    var orphansCount: Int { findings.filter { $0.kind == .orphan }.count }
 }
 
 /// Pure-data curator (= no actor = pure functions over input data).
 /// Callers invoke `curate(entities:)` to produce a CurationReport.
 /// Per ADR-0011 (= no LLM calls), this is pure data analysis.
-public enum Curator {
+enum Curator {
 
     /// Configuration for the curator (= thresholds for findings).
-    public struct Config: Sendable, Equatable, Codable {
-        public let staleThresholdDays: Int       // default 90
-        public let duplicateSimilarityThreshold: Double  // default 0.85
+    struct Config: Sendable, Equatable, Codable {
+        let staleThresholdDays: Int       // default 90
+        let duplicateSimilarityThreshold: Double  // default 0.85
 
-        public init(
+        init(
             staleThresholdDays: Int = 90,
             duplicateSimilarityThreshold: Double = 0.85
         ) {
@@ -95,14 +95,14 @@ public enum Curator {
     }
 
     /// Entity input (= subset of MemoryEntry fields relevant to curation).
-    public struct Entity: Sendable, Equatable, Codable {
-        public let id: String
-        public let title: String
-        public let snippet: String
-        public let lastAccessedAt: Date?
-        public let crossReferenceCount: Int
+    struct Entity: Sendable, Equatable, Codable {
+        let id: String
+        let title: String
+        let snippet: String
+        let lastAccessedAt: Date?
+        let crossReferenceCount: Int
 
-        public init(
+        init(
             id: String,
             title: String,
             snippet: String,
@@ -118,7 +118,9 @@ public enum Curator {
     }
 
     /// Run curation analysis on entities.
-    public static func curate(entities: [Entity], config: Config = Config()) -> CurationReport {
+    // P2-07 audit (2026-09-24): internal (= Config is internal; =
+        // the function's contract is intra-package anyway).
+        static func curate(entities: [Entity], config: Config = Config()) -> CurationReport {
         var findings: [CurationFinding] = []
         let now = Date()
         let staleCutoff = now.addingTimeInterval(-Double(config.staleThresholdDays) * 24 * 3600)

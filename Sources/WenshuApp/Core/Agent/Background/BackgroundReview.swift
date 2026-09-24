@@ -22,7 +22,7 @@
 import Foundation
 
 /// Type of background proposal (= what kind of change is being proposed).
-public enum ProposalKind: String, Sendable, Equatable, Codable {
+enum ProposalKind: String, Sendable, Equatable, Codable {
     case entityCreation       // create new reference-library entity
     case entityUpdate         // modify existing entity
     case entityDeletion       // remove entity
@@ -33,7 +33,7 @@ public enum ProposalKind: String, Sendable, Equatable, Codable {
 }
 
 /// Status of a background proposal (= where it is in the approval lifecycle).
-public enum ProposalStatus: String, Sendable, Equatable, Codable {
+enum ProposalStatus: String, Sendable, Equatable, Codable {
     case pending
     case approved
     case rejected
@@ -42,17 +42,17 @@ public enum ProposalStatus: String, Sendable, Equatable, Codable {
 }
 
 /// A single background proposal (= candidate change awaiting review).
-public struct BackgroundProposal: Sendable, Equatable, Codable, Identifiable {
-    public let id: UUID
-    public let kind: ProposalKind
-    public let title: String
-    public let description: String
-    public let proposedChanges: [String]  // = list of file paths / entity refs
-    public let submittedAt: Date
-    public var status: ProposalStatus
-    public var decidedAt: Date?
+struct BackgroundProposal: Sendable, Equatable, Codable, Identifiable {
+    let id: UUID
+    let kind: ProposalKind
+    let title: String
+    let description: String
+    let proposedChanges: [String]  // = list of file paths / entity refs
+    let submittedAt: Date
+    var status: ProposalStatus
+    var decidedAt: Date?
 
-    public init(
+    init(
         id: UUID = UUID(),
         kind: ProposalKind,
         title: String,
@@ -75,33 +75,33 @@ public struct BackgroundProposal: Sendable, Equatable, Codable, Identifiable {
 /// BackgroundReview actor (= thread-safe pending proposal queue).
 /// Per ADR-0009 (= wenshu-side wins, no duplicate approval engine;
 /// delegates to existing wenshu approval flow via Notification).
-public actor BackgroundReview {
+actor BackgroundReview {
 
     private var pending: [UUID: BackgroundProposal] = [:]
     private var decided: [BackgroundProposal] = []
     private let maxPendingAge: TimeInterval = 7 * 24 * 3600  // 7 days
     private let maxDecidedHistory: Int = 100
 
-    public init() {}
+    init() {}
 
     /// Submit a new proposal (= background task calls this when it
     /// wants to make a change the user should review).
-    public func submit(_ proposal: BackgroundProposal) {
+    func submit(_ proposal: BackgroundProposal) {
         pending[proposal.id] = proposal
     }
 
     /// Get all pending proposals (= UI calls this to show the review list).
-    public func allPending() -> [BackgroundProposal] {
+    func allPending() -> [BackgroundProposal] {
         return Array(pending.values).sorted { $0.submittedAt < $1.submittedAt }
     }
 
     /// Get recent decided history (= UI shows last N decisions).
-    public func recentDecided(limit: Int = 50) -> [BackgroundProposal] {
+    func recentDecided(limit: Int = 50) -> [BackgroundProposal] {
         return Array(decided.suffix(limit)).sorted { $0.decidedAt ?? Date.distantPast > $1.decidedAt ?? Date.distantPast }
     }
 
     /// Approve a proposal (= user clicked Approve in UI).
-    public func approve(_ proposalID: UUID) throws {
+    func approve(_ proposalID: UUID) throws {
         guard var proposal = pending[proposalID] else {
             throw BackgroundReviewError.proposalNotFound(id: proposalID)
         }
@@ -113,7 +113,7 @@ public actor BackgroundReview {
     }
 
     /// Reject a proposal (= user clicked Reject in UI).
-    public func reject(_ proposalID: UUID) throws {
+    func reject(_ proposalID: UUID) throws {
         guard var proposal = pending[proposalID] else {
             throw BackgroundReviewError.proposalNotFound(id: proposalID)
         }
@@ -131,15 +131,15 @@ public actor BackgroundReview {
     }
 
     /// Pending count (= for UI badge).
-    public var pendingCount: Int {
+    var pendingCount: Int {
         return pending.count
     }
 }
 
-public enum BackgroundReviewError: Error, LocalizedError {
+enum BackgroundReviewError: Error, LocalizedError {
     case proposalNotFound(id: UUID)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
             case .proposalNotFound(let id):
                 return "BackgroundProposal \(id) not found (= may have been decided already)"

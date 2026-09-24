@@ -87,7 +87,7 @@ import Foundation
 /// The 5 reader-experience analyzers (= matches the task spec
 /// verbatim). Each case maps 1:1 to a Python tool in hermes's
 /// `agent/specialized/reader_experience.py`.
-public enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Identifiable {
+enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Identifiable {
     /// Emotional intensity curve across the chapter.
     case tension
     /// Scene density (= dialogue vs. prose ratio).
@@ -100,10 +100,10 @@ public enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Ident
     /// Resolves an earlier foreshadowed setup.
     case payoffDetector
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Display label for the SwiftUI tab.
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .tension:               return "Tension"
         case .pacing:                return "Pacing"
@@ -114,7 +114,7 @@ public enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Ident
     }
 
     /// One-sentence hint shown next to the picker.
-    public var hint: String {
+    var hint: String {
         switch self {
         case .tension:
             return "Emotional intensity curve (= 0..1, higher = steeper escalation)."
@@ -133,7 +133,7 @@ public enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Ident
     /// Image(systemName:) directly in the ReaderExperienceView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .tension:               return "waveform.path.ecg"           // Lucide 'activity'
         case .pacing:                return "gauge.with.dots.needle.bottom.50percent"  // Lucide 'gauge'
@@ -146,25 +146,25 @@ public enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Ident
 
 /// A single evidence span inside the chapter text. The view layer
 /// renders highlights inline (= matched text + the offset range).
-public struct ReaderExperienceHighlight: Sendable, Codable, Equatable, Hashable {
+struct ReaderExperienceHighlight: Sendable, Codable, Equatable, Hashable {
     /// Character offset into the chapter (= 0-based; Swift String
     /// uses CharacterView distances; we persist the UTF-8 offset so
     /// callers can re-locate the span regardless of grapheme breaks).
-    public let utf8Offset: Int
+    let utf8Offset: Int
 
     /// Length of the matched span in UTF-8 bytes.
-    public let utf8Length: Int
+    let utf8Length: Int
 
     /// The matched substring (= the chapter slice this highlight
     /// refers to).
-    public let text: String
+    let text: String
 
     /// Short label (= e.g. "setup", "callback", "question",
     /// "dialogue line", "stress peak"). The view uses this as the
     /// badge text.
-    public let label: String
+    let label: String
 
-    public init(utf8Offset: Int, utf8Length: Int, text: String, label: String) {
+    init(utf8Offset: Int, utf8Length: Int, text: String, label: String) {
         self.utf8Offset = utf8Offset
         self.utf8Length = utf8Length
         self.text = text
@@ -175,33 +175,33 @@ public struct ReaderExperienceHighlight: Sendable, Codable, Equatable, Hashable 
 /// One actionable hint for the writer (= "add more dialogue here",
 /// "raise stakes in paragraph 3", etc.). The score on the parent
 /// report supplies the context.
-public struct ReaderExperienceSuggestion: Sendable, Codable, Equatable, Hashable {
-    public let text: String
+struct ReaderExperienceSuggestion: Sendable, Codable, Equatable, Hashable {
+    let text: String
 
-    public init(text: String) {
+    init(text: String) {
         self.text = text
     }
 }
 
 /// The analyzer output (= matches the task spec verbatim).
-public struct ReaderExperienceReport: Sendable, Codable, Equatable {
-    public let kind: ReaderExperienceKind
+struct ReaderExperienceReport: Sendable, Codable, Equatable {
+    let kind: ReaderExperienceKind
     /// Normalized score in 0..1. The semantics differ per kind
     /// (= see ReaderExperienceKind.hint for the human-readable
     /// meaning). For cliffhanger + payoffDetector the score is
     /// effectively binary (= 0 = not detected, 1 = detected); we
     /// still expose it as 0..1 for UI uniformity.
-    public let score: Double
+    let score: Double
     /// Evidence spans (= the strings the analyzer matched).
-    public let highlights: [ReaderExperienceHighlight]
+    let highlights: [ReaderExperienceHighlight]
     /// Writer-facing suggestions.
-    public let suggestions: [ReaderExperienceSuggestion]
+    let suggestions: [ReaderExperienceSuggestion]
     /// Human-readable summary (= a one-paragraph description of
     /// what the analyzer found). The view renders this above the
     /// highlights list.
-    public let summary: String
+    let summary: String
 
-    public init(
+    init(
         kind: ReaderExperienceKind,
         score: Double,
         highlights: [ReaderExperienceHighlight] = [],
@@ -221,11 +221,11 @@ public struct ReaderExperienceReport: Sendable, Codable, Equatable {
 /// Errors thrown by `ReaderExperienceAnalyzer`. The 2 cases mirror
 /// the long_form_guardrails convention (= a LocalizedError for
 /// each case; = no `fatalError` paths).
-public enum ReaderExperienceAnalyzerError: Error, LocalizedError, Sendable, Equatable {
+enum ReaderExperienceAnalyzerError: Error, LocalizedError, Sendable, Equatable {
     case emptyChapter
     case unsupportedKind(String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .emptyChapter:
             return "ReaderExperienceAnalyzer: chapter text is empty."
@@ -252,7 +252,7 @@ public enum ReaderExperienceAnalyzerError: Error, LocalizedError, Sendable, Equa
 /// caller having to wire it explicitly). For now the parameter is
 /// accepted but not read (= so the init signature matches the
 /// task spec verbatim; the actor remains trivially testable).
-public actor ReaderExperienceAnalyzer {
+actor ReaderExperienceAnalyzer {
     /// Reserved for future payoffDetector integration (= reading
     /// the per-book foreshadowing catalog from disk).
     private let bookStore: BookStore?
@@ -286,7 +286,7 @@ public actor ReaderExperienceAnalyzer {
     ///   `.unsupportedKind` if the raw value is not one of the 5
     ///   known kinds (= defensive — should never fire in practice
     ///   since the enum is exhaustive).
-    public func analyze(
+    func analyze(
         chapterText: String,
         kind: ReaderExperienceKind
     ) async throws -> ReaderExperienceReport {

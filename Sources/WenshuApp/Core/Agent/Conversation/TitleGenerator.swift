@@ -14,11 +14,11 @@
 
 import Foundation
 
-public enum TitleGenerator {
+enum TitleGenerator {
 
     /// Heuristic title (= first 6 words + ellipsis if truncated).
     /// Pure function — no LLM call, deterministic, offline.
-    public static func heuristicTitle(from message: String) -> String {
+    static func heuristicTitle(from message: String) -> String {
         let cleaned = message
             .replacingOccurrences(of: "\n", with: " ")
             .components(separatedBy: .whitespaces)
@@ -34,7 +34,7 @@ public enum TitleGenerator {
     /// falls back to the heuristic title (= hermes pattern: if the
     /// auxiliary LLM call fails or is not configured, the session gets
     /// a heuristic title rather than NULL).
-    public static func llmTitle(
+    static func llmTitle(
         from message: String,
         connector: (any LLMConnector)?
     ) async throws -> String {

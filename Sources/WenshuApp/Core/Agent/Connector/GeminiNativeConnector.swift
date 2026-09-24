@@ -23,16 +23,16 @@
 
 import Foundation
 
-public actor GeminiNativeConnector: LLMConnector {
-    public nonisolated let connectorID = "gemini"
+actor GeminiNativeConnector: LLMConnector {
+    nonisolated let connectorID = "gemini"
 
     private let session: URLSession
 
-    public init(session: URLSession = .shared) {
+    init(session: URLSession = .shared) {
         self.session = session
     }
 
-    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: .gemini)
 
         guard !credentials.apiKey.isEmpty else {
@@ -96,7 +96,7 @@ public actor GeminiNativeConnector: LLMConnector {
     ///
     /// Empty-key path: synthetic errorStream so ChatView surfaces
     /// the auth failure.
-    public nonisolated func stream(
+    nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {

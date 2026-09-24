@@ -18,20 +18,20 @@ import Foundation
 #warning("wenshu.WenshuVerifier: ProviderKeychain metadata is sqlite-backed; = migrate to WSProviderKeyRepository in future ticket")
 
 /// minimax-cn ground-truth probe (Anthropic-compatible protocol)
-public struct WenshuLLMMessage: Codable, Sendable {
-    public let role: String
-    public let content: String
-    public init(role: String, content: String) {
+struct WenshuLLMMessage: Codable, Sendable {
+    let role: String
+    let content: String
+    init(role: String, content: String) {
         self.role = role
         self.content = content
     }
 }
 
-public struct WenshuLLMRequest: Codable, Sendable {
-    public let model: String
-    public let max_tokens: Int
-    public let messages: [WenshuLLMMessage]
-    public init(model: String, max_tokens: Int, messages: [WenshuLLMMessage]) {
+struct WenshuLLMRequest: Codable, Sendable {
+    let model: String
+    let max_tokens: Int
+    let messages: [WenshuLLMMessage]
+    init(model: String, max_tokens: Int, messages: [WenshuLLMMessage]) {
         self.model = model
         self.max_tokens = max_tokens
         self.messages = messages
@@ -44,7 +44,7 @@ public struct WenshuLLMRequest: Codable, Sendable {
 // minimax-cn M2.7 returns thinking blocks before text (chain-of-thought pattern)
 // M3 returns plain text blocks. JSONDecoder keyed container used to hardcode-require "text" key
 // in content[0] → M2.7 thinking block throws DecodingError.keyNotFound.
-public enum WenshuLLMBlock: Codable, Sendable, Equatable {
+enum WenshuLLMBlock: Codable, Sendable, Equatable {
     case text(String)
     case thinking(text: String, signature: String?)
     case toolUse(id: String, name: String, input: String)
@@ -54,7 +54,7 @@ public enum WenshuLLMBlock: Codable, Sendable, Equatable {
         case type, text, thinking, signature, id, name, input
     }
 
-    public init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let type = (try? c.decode(String.self, forKey: .type)) ?? "unknown"
         switch type {
@@ -76,7 +76,7 @@ public enum WenshuLLMBlock: Codable, Sendable, Equatable {
         }
     }
 
-    public func encode(to encoder: Encoder) throws {
+    func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         switch self {
         case .text(let s):
@@ -97,7 +97,7 @@ public enum WenshuLLMBlock: Codable, Sendable, Equatable {
     }
 
     /// Extract user-visible text (text blocks concatenated). Thinking blocks are not surfaced here; they go through ChatMessage.thinking
-    public var displayText: String {
+    var displayText: String {
         switch self {
         case .text(let s): return s
         case .thinking: return ""
@@ -107,7 +107,7 @@ public enum WenshuLLMBlock: Codable, Sendable, Equatable {
     }
 
     /// Extract thinking content (CoT pattern, Apple HIG footnote)
-    public var thinkingText: String? {
+    var thinkingText: String? {
         if case .thinking(let s, _) = self { return s }
         return nil
     }
@@ -115,14 +115,14 @@ public enum WenshuLLMBlock: Codable, Sendable, Equatable {
 
 // v0.21 ticket 34: real LLM API usage (Apple Anthropic protocol)
 // { "usage": { "input_tokens": N, "output_tokens": N, "cache_creation_input_tokens": N, "cache_read_input_tokens": N } }
-public struct WenshuLLMUsage: Codable, Sendable, Equatable {
-    public let input_tokens: Int
-    public let output_tokens: Int
-    public let cache_creation_input_tokens: Int?
-    public let cache_read_input_tokens: Int?
-    public var total_tokens: Int { input_tokens + output_tokens }
+struct WenshuLLMUsage: Codable, Sendable, Equatable {
+    let input_tokens: Int
+    let output_tokens: Int
+    let cache_creation_input_tokens: Int?
+    let cache_read_input_tokens: Int?
+    var total_tokens: Int { input_tokens + output_tokens }
 
-    public init(
+    init(
         input_tokens: Int,
         output_tokens: Int,
         cache_creation_input_tokens: Int? = nil,
@@ -135,15 +135,15 @@ public struct WenshuLLMUsage: Codable, Sendable, Equatable {
     }
 }
 
-public struct WenshuLLMResponse: Codable, Sendable {
-    public let id: String
-    public let model: String
-    public let role: String
-    public let content: [WenshuLLMBlock]   // v0.21 ticket 39: union decode (text / thinking / tool_use)
-    public let stop_reason: String?
-    public let usage: WenshuLLMUsage?
+struct WenshuLLMResponse: Codable, Sendable {
+    let id: String
+    let model: String
+    let role: String
+    let content: [WenshuLLMBlock]   // v0.21 ticket 39: union decode (text / thinking / tool_use)
+    let stop_reason: String?
+    let usage: WenshuLLMUsage?
 
-    public init(id: String, model: String, role: String, content: [WenshuLLMBlock], stop_reason: String? = nil, usage: WenshuLLMUsage? = nil) {
+    init(id: String, model: String, role: String, content: [WenshuLLMBlock], stop_reason: String? = nil, usage: WenshuLLMUsage? = nil) {
         self.id = id
         self.model = model
         self.role = role
@@ -154,10 +154,10 @@ public struct WenshuLLMResponse: Codable, Sendable {
 }
 
 /// WenshuVerifier: ground-truth probe for wenshu AgentProtocol against the minimax-cn API
-public actor WenshuVerifier {
+actor WenshuVerifier {
     /// System prompt injected on every LLM request. English-only rule + forbidden-vocab list + allowed-token clarification.
     /// Source of truth for wenshu pollution-defense. See .scratch/2026-08-22-pollution-mitigation/.
-    public static let systemPromptEnglishOnly: String = """
+    static let systemPromptEnglishOnly: String = """
     You are an assistant for the wenshu project (English-only output). All committed artifacts (code comments, commit messages, documentation, prompts) must be in English.
 
     Forbidden vocabulary — NEVER emit under any circumstance, even in quoted text, example snippets, or hypothetical scenarios:
@@ -177,7 +177,7 @@ public actor WenshuVerifier {
     /// protocol to terminate generation on any forbidden token match.
     /// DO NOT use for long-output calls (chapter drafts) — would terminate
     /// the entire generation on first match, catastrophic for novel writing.
-    public static let shortOutputStopSequences: [String] = [
+    static let shortOutputStopSequences: [String] = [
         "修真", "渡劫", "筑基", "返虚", "结丹", "金丹",
         "元婴", "飞升", "天劫", "雷劫", "心魔", "魔障",
     ]
@@ -188,7 +188,7 @@ public actor WenshuVerifier {
     /// They are resolved PER LLM CALL via resolveCredentials() — boss 8/23 decision:
     /// when the user switches model/key, main + sub-agents must switch together,
     /// otherwise mismatch deadlock.
-    public init(baseURL: String? = nil, apiKey: String? = nil, model: WenshuLLMModel = .m3) {
+    init(baseURL: String? = nil, apiKey: String? = nil, model: WenshuLLMModel = .m3) {
         // model is the only captured value (it binds to verifier behavior, unlike credentials which are Settings-config).
         // apiKey / baseURL remain override-only parameters (for testing); default = nil → resolveCredentials() goes through UserDefaults + Keychain.
         _ = baseURL  // unused; resolveCredentials() handles via UserDefaults + ProviderCatalog
@@ -197,10 +197,10 @@ public actor WenshuVerifier {
     }
 
     /// Resolved credentials struct.
-    public struct ResolvedCredentials: Sendable {
-        public let apiKey: String
-        public let baseURL: String
-        public let providerSlug: String
+    struct ResolvedCredentials: Sendable {
+        let apiKey: String
+        let baseURL: String
+        let providerSlug: String
     }
 
     /// resolveCredentials: read provider slug from UserDefaults + key from Keychain.
@@ -214,7 +214,7 @@ public actor WenshuVerifier {
     ///   2. Look up provider in ProviderCatalog
     ///   3. Load key from AppleKeychain for that provider slug
     ///   4. Return (apiKey, baseURL, providerSlug)
-    public nonisolated func resolveCredentials(model overrideModel: WenshuLLMModel? = nil) throws -> ResolvedCredentials {
+    nonisolated func resolveCredentials(model overrideModel: WenshuLLMModel? = nil) throws -> ResolvedCredentials {
         let modelEnum = overrideModel ?? WenshuLLMModel(rawValue: model) ?? .m3
         // 1. Provider slug: UserDefaults override (if any), else model.providerSlug.
         // NOTE: key name 'wenshu.llm.provider' matches @AppStorage in
@@ -254,7 +254,7 @@ public actor WenshuVerifier {
     }
 
     /// ping: simple 1-message ground-truth probe
-    public func ping() async throws -> WenshuLLMResponse {
+    func ping() async throws -> WenshuLLMResponse {
         let request = WenshuLLMRequest(
             model: model,
             max_tokens: 50,
@@ -264,7 +264,7 @@ public actor WenshuVerifier {
     }
 
     /// chat: 1-message user-content ground-truth probe (v0.21 ticket 03 fallback; AgentProtocol LLM failure routes here through ChatViewModel)
-    public func chat(_ text: String) async throws -> WenshuLLMResponse {
+    func chat(_ text: String) async throws -> WenshuLLMResponse {
         let request = WenshuLLMRequest(
             model: model,
             max_tokens: 1024,
@@ -276,7 +276,7 @@ public actor WenshuVerifier {
     /// v0.21 ticket 38: chat overload that takes model at call time
     /// (boss 2026-08-22 feedback "switched the AI but it did not actually switch" — original chat() used self.model from init = hardcoded)
     /// This overload lets ChatViewModel pass current model from UserDefaults at call time
-    public func chat(_ text: String, model overrideModel: String) async throws -> WenshuLLMResponse {
+    func chat(_ text: String, model overrideModel: String) async throws -> WenshuLLMResponse {
         let request = WenshuLLMRequest(
             model: overrideModel,
             max_tokens: 1024,
@@ -288,7 +288,7 @@ public actor WenshuVerifier {
     /// v0.22 ticket 001 (Wenshu agent base identity): chat overload that takes an explicit system prompt.
     /// Used by WenshuConductor to prepend the agent identity (WenshuConductorIdentity.systemPrompt).
     /// Default model = self.model (conductor uses runtime model).
-    public func chat(_ text: String, system: String, model overrideModel: String? = nil) async throws -> WenshuLLMResponse {
+    func chat(_ text: String, system: String, model overrideModel: String? = nil) async throws -> WenshuLLMResponse {
         let request = WenshuLLMRequest(
             model: overrideModel ?? model,
             max_tokens: 1024,
@@ -301,7 +301,7 @@ public actor WenshuVerifier {
     /// `extraSystemPrompt` is appended after the built-in English-only constant.
     /// The Anthropic-compatible request body always carries `systemPromptEnglishOnly` as the first system segment.
     /// `outputKind` controls whether `stop_sequences` is attached (short outputs only).
-    public func send(
+    func send(
         request: WenshuLLMRequest,
         outputKind: OutputKind = .chat,
         extraSystemPrompt: String? = nil
@@ -370,7 +370,7 @@ public actor WenshuVerifier {
     ///
     /// v0.35 ticket 001 sub-step 8 (= TB-B tracer-bullet). Existing send()
     /// below remains the production path until all call sites migrate.
-    public func sendViaMinimaxConnector(
+    func sendViaMinimaxConnector(
         request: WenshuLLMRequest,
         outputKind: OutputKind = .chat,
         extraSystemPrompt: String? = nil
@@ -456,7 +456,7 @@ public actor WenshuVerifier {
     /// Cancellation: drop the AsyncThrowingStream (= the URLSession
     /// bytes task is automatically cancelled; partial chunks are
     /// discarded).
-    public nonisolated func streamChat(
+    nonisolated func streamChat(
         _ text: String,
         system: String,
         model overrideModel: String? = nil
@@ -542,12 +542,12 @@ public actor WenshuVerifier {
     }
 }
 
-public enum WenshuLLMError: Error, LocalizedError {
+enum WenshuLLMError: Error, LocalizedError {
     case missingAPIKey
     case invalidBaseURL(url: String)
     case httpError(statusCode: Int, body: String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .missingAPIKey:
             return "API key 未配置. 请在 Settings → Provider 配置 API key."

@@ -49,16 +49,16 @@ import Foundation
 /// (= the streaming UI only re-renders the new part + the surrounding
 /// shell; = same perf strategy as Hermes's `parts: ChatMessagePart[]`
 /// + `React.memo` boundary).
-public struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
-    public let id: UUID
-    public let kind: Kind
+struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
+    let id: UUID
+    let kind: Kind
     /// Unix seconds when this part began (= hermes TimelinePartMetadata.timestamp).
-    public let timestamp: TimeInterval?
+    let timestamp: TimeInterval?
     /// Unix seconds when this part stopped streaming (= hermes
     /// TimelinePartMetadata.completedAt). nil while still streaming.
-    public let completedAt: TimeInterval?
+    let completedAt: TimeInterval?
 
-    public enum Kind: Equatable, Hashable, Sendable {
+    enum Kind: Equatable, Hashable, Sendable {
         /// Plain text fragment (= multiple per message when the agent
         /// emits text-then-tool-then-text). Mirrors hermes `text` type.
         case text(String)
@@ -84,40 +84,40 @@ public struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
         case plan(Plan)
     }
 
-    public struct ToolUsePart: Equatable, Hashable, Sendable {
-        public let id: String                 // hermes `tool_call_id`
-        public let name: String                // hermes `name`
-        public let args: String                // JSON-encoded args (= hermes args_text)
-        public let context: String?           // hermes `context` (optional)
-        public var status: Status              // mutable so streaming UI updates in place
-        public var result: String?            // result text when status = .complete / .error
-        public var errorMessage: String?       // populated when status = .error
-        public var durationSeconds: Double?  // hermes duration_s
+    struct ToolUsePart: Equatable, Hashable, Sendable {
+        let id: String                 // hermes `tool_call_id`
+        let name: String                // hermes `name`
+        let args: String                // JSON-encoded args (= hermes args_text)
+        let context: String?           // hermes `context` (optional)
+        var status: Status              // mutable so streaming UI updates in place
+        var result: String?            // result text when status = .complete / .error
+        var errorMessage: String?       // populated when status = .error
+        var durationSeconds: Double?  // hermes duration_s
 
-        public enum Status: String, Equatable, Hashable, Sendable {
+        enum Status: String, Equatable, Hashable, Sendable {
             case running    // tool.start received, no tool.complete yet
             case complete   // tool.complete with success
             case error      // tool.complete with error
         }
     }
 
-    public struct ToolResultPart: Equatable, Hashable, Sendable {
-        public let toolUseID: String   // hermes `tool_use_id`
-        public let content: String     // result content
-        public let isError: Bool       // hermes `is_error`
+    struct ToolResultPart: Equatable, Hashable, Sendable {
+        let toolUseID: String   // hermes `tool_use_id`
+        let content: String     // result content
+        let isError: Bool       // hermes `is_error`
     }
 
     // MARK: - Factory helpers (= mirror hermes parts.ts:5-9)
 
-    public static func text(_ s: String, timestamp: TimeInterval? = nil) -> ChatMessagePart {
+    static func text(_ s: String, timestamp: TimeInterval? = nil) -> ChatMessagePart {
         ChatMessagePart(id: UUID(), kind: .text(s), timestamp: timestamp, completedAt: nil)
     }
 
-    public static func reasoning(_ s: String, timestamp: TimeInterval? = nil) -> ChatMessagePart {
+    static func reasoning(_ s: String, timestamp: TimeInterval? = nil) -> ChatMessagePart {
         ChatMessagePart(id: UUID(), kind: .reasoning(s), timestamp: timestamp, completedAt: nil)
     }
 
-    public static func toolUse(
+    static func toolUse(
         id: String,
         name: String,
         args: String,
@@ -135,7 +135,7 @@ public struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
         )
     }
 
-    public static func toolResult(
+    static func toolResult(
         toolUseID: String,
         content: String,
         isError: Bool,
@@ -151,7 +151,7 @@ public struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
 
     /// T22 factory: build a plan part (= /plan <query> result =
     /// numbered plan from PlanModeEngine).
-    public static func plan(_ plan: Plan, timestamp: TimeInterval? = nil) -> ChatMessagePart {
+    static func plan(_ plan: Plan, timestamp: TimeInterval? = nil) -> ChatMessagePart {
         ChatMessagePart(
             id: UUID(),
             kind: .plan(plan),
@@ -166,7 +166,7 @@ extension ChatMessagePart {
     /// joins all .text parts in order). Used by `ChatMessage.text`
     /// computed property and the streaming pipeline's
     /// "accumulated buffer" before `message.complete`.
-    public static func joinedText(_ parts: [ChatMessagePart]) -> String {
+    static func joinedText(_ parts: [ChatMessagePart]) -> String {
         parts.compactMap { part in
             if case let .text(s) = part.kind { return s }
             return nil
@@ -175,7 +175,7 @@ extension ChatMessagePart {
 
     /// Concatenated reasoning content (= first `.reasoning` part;
     /// hermes only has one reasoning per turn in the typical case).
-    public static func joinedReasoning(_ parts: [ChatMessagePart]) -> String? {
+    static func joinedReasoning(_ parts: [ChatMessagePart]) -> String? {
         for part in parts {
             if case let .reasoning(s) = part.kind { return s }
         }
@@ -186,7 +186,7 @@ extension ChatMessagePart {
     /// may carry at most one plan per Hermes' plan-mode convention).
     /// Returns nil when no plan part exists (= the caller decides
     /// how to render the non-plan fallback).
-    public static func joinedPlan(_ parts: [ChatMessagePart]) -> Plan? {
+    static func joinedPlan(_ parts: [ChatMessagePart]) -> Plan? {
         for part in parts {
             if case let .plan(p) = part.kind { return p }
         }

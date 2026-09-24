@@ -30,7 +30,7 @@ import SwiftUI
 /// dividers, tab metrics (= Wenshu per-region UI). Use these constants
 /// instead of inline numbers (= ComponentIndex.md Level 1.1).
 @MainActor
-public enum DesignTokens {
+enum DesignTokens {
     // MARK: - Chrome dimensions
 
     /// Per-pane chrome height (= 30 PT, matches Apple HIG canonical toolbar).
@@ -38,7 +38,7 @@ public enum DesignTokens {
     /// bottomBar, ZoneContentTabBar, DynamicZoneTabBar. The chat zone's
     /// tab bar is rendered via a direct PaneTabBar call inside
     /// TabContentDispatcher.aiChat (= since v0.34, no separate wrapper).
-    public static let chromeHeight: CGFloat = 30
+    static let chromeHeight: CGFloat = 30
 
     /// ZONE-INSET-002 (2026-09-07): canonical zone-content inset
     /// (= 8 PT on all 4 sides per Apple HIG) applied by
@@ -64,7 +64,7 @@ public enum DesignTokens {
     /// Was 18 PT in a prior OOB (= boss 9/8 'that value is too
     /// wide; the Apple API default spacing isn't PT, it's a
     /// semantic name'; = the semantic name is '.small' = 8 PT).
-    public static let zoneContentInset: CGFloat = 8
+    static let zoneContentInset: CGFloat = 8
 
     /// Per-pane chrome horizontal leading padding.
     /// Apple HIG canonical value = 8 PT (= matches SwiftUI's
@@ -73,16 +73,16 @@ public enum DesignTokens {
     /// in a prior OOB (= boss 9/8 'that value is too wide; the
     /// Apple API default spacing isn't PT, it's a semantic name';
     /// = the semantic name is '.small' = 8 PT).
-    public static let chromePaddingLeading: CGFloat = 8
+    static let chromePaddingLeading: CGFloat = 8
 
     /// Per-pane chrome horizontal trailing padding.
     /// Apple HIG canonical value = 8 PT (= matches leading).
-    public static let chromePaddingTrailing: CGFloat = 8
+    static let chromePaddingTrailing: CGFloat = 8
 
     /// Per-pane chrome vertical padding (= 8 PT, Apple HIG standard for
     /// vertically-centered 13 PT text + 18 PT icon). Replaces previous
     /// chromePaddingMedium (5) + chromePaddingLarge (6) (= inconsistent).
-    public static let chromePaddingVertical: CGFloat = 8
+    static let chromePaddingVertical: CGFloat = 8
 
     /// v1.0.0-m1-shell boss 2026-09-11 OOB 'left, middle-left, right — three columns'
     /// title, give it one Apple-standard expression of top spacing, roughly 18pt
@@ -94,25 +94,25 @@ public enum DesignTokens {
     /// Apple HIG 'padding-from-edge-to-content' convention; =
     /// semantic name chosen for readability when applied as
     /// `.padding(.top, DesignTokens.chromePaddingSectionTop)`).
-    public static let chromePaddingSectionTop: CGFloat = 18
+    static let chromePaddingSectionTop: CGFloat = 18
 
     /// SectionHeader column-header top inset (= 10 PT).
     /// Used by SectionHeader (= 10 PT inset / centered text / 4 PT gap /
     /// divider / 10 PT inset pattern at the top of every column).
-    public static let chromePaddingSectionHeaderTop: CGFloat = 10
+    static let chromePaddingSectionHeaderTop: CGFloat = 10
 
     /// SectionHeader column-header bottom inset (= 10 PT).
-    public static let chromePaddingSectionHeaderBottom: CGFloat = 10
+    static let chromePaddingSectionHeaderBottom: CGFloat = 10
 
     /// SectionHeader text-to-divider gap (= 4 PT).
-    public static let chromePaddingSectionHeaderGap: CGFloat = 4
+    static let chromePaddingSectionHeaderGap: CGFloat = 4
 
     /// Per-pane chrome micro padding (= 4 PT). Used for tight inset inside
     /// chrome chrome (= icon-picker cells, tab handles, divider label gaps).
     /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingMicro)`.
-    public static let chromePaddingMicro: CGFloat = 4
-    public static let chromePaddingNano: CGFloat = 2
-    public static let chromePaddingPico: CGFloat = 1
+    static let chromePaddingMicro: CGFloat = 4
+    static let chromePaddingNano: CGFloat = 2
+    static let chromePaddingPico: CGFloat = 1
 
     /// v1.83 boss 2026-09-24 OOB '素材栏的搜索栏没有加内间距, 需要
     /// 加 10PT' + '整搜索栏左右两边没有间距... 素材栏没有内边距,
@@ -128,12 +128,12 @@ public enum DesignTokens {
     /// chromePaddingSectionHeaderTop / Bottom = the column-edge
     /// to first-content rhythm; = the user's '符合 Apple
     /// 内边距表达' intent).
-    public static let chromePaddingContentHorizontal: CGFloat = 10
+    static let chromePaddingContentHorizontal: CGFloat = 10
 
     /// Per-pane chrome small padding (= 6 PT). Used for status bar hover,
     /// tight text padding inside chips, badge interior gaps.
     /// Replaces inline `.padding(.vertical, DesignTokens.chromePaddingSmall)`.
-    public static let chromePaddingSmall: CGFloat = 6
+    static let chromePaddingSmall: CGFloat = 6
 
     /// Per-pane chrome extra-small padding (= 5 PT, Apple HIG bullet/chip
     /// baseline alignment standard). Used for bullet-to-text baseline gap
@@ -142,28 +142,28 @@ public enum DesignTokens {
     /// chromePaddingSmall = 6 because chip text is caption2 = smaller).
     /// Replaces inline `.padding(.horizontal/.top, 5)` in
     /// BookSettingConstraintsView + EmotionCurveView + GenreFitView.
-    public static let chromePaddingXS: CGFloat = 5
+    static let chromePaddingXS: CGFloat = 5
 
     /// Per-pane chrome medium padding (= 12 PT). Apple HIG standard for
     /// bordered content rows (= chat input, popup buttons, picker rows).
     /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingMedium)`.
-    public static let chromePaddingMedium: CGFloat = 12
+    static let chromePaddingMedium: CGFloat = 12
 
     /// Per-pane chrome large padding (= 16 PT). Apple HIG standard for
     /// stacked section separators (= onboarding body, Settings rows).
     /// Replaces inline `.padding(.top, DesignTokens.chromePaddingLarge)`.
-    public static let chromePaddingLarge: CGFloat = 16
+    static let chromePaddingLarge: CGFloat = 16
 
     /// Per-pane chrome extra-large padding (= 24 PT). Used only for
     /// onboarding hero text block (= one-time welcome layout).
     /// Replaces inline `.padding(.horizontal, 24)`.
-    public static let chromePaddingXLarge: CGFloat = 24
+    static let chromePaddingXLarge: CGFloat = 24
 
     /// Settings segmented picker leading inset (= 14 PT). Apple HIG
     /// standard for inline picker alignment inside Settings rows.
     /// Replaces inline `.padding(.leading, 14)`.
-    public static let chromePaddingPickerItem: CGFloat = 10
-    public static let chromePaddingHero: CGFloat = 20
+    static let chromePaddingPickerItem: CGFloat = 10
+    static let chromePaddingHero: CGFloat = 20
 
     /// Chat input outer bottom margin. Boss OOB 2026-09-22 '距底 30PT'
     /// then revised 2026-09-23 '现在太高，导致底部距离太远': reduced
@@ -172,17 +172,17 @@ public enum DesignTokens {
     /// bottom edge = the same inset Apple Mail / Apple Notes use for
     /// their bottom toolbars). Replaces inline
     /// `.padding(.bottom, DesignTokens.chromePaddingChatBottom)`.
-    public static let chromePaddingChatBottom: CGFloat = 12
+    static let chromePaddingChatBottom: CGFloat = 12
 
     /// Floating edit-mode indicator chip horizontal padding (= 10 PT).
     /// Apple HIG standard for floating chip / badge layout.
     /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingChatBottom)`.
-    public static let chromePaddingChipHorizontal: CGFloat = 10
+    static let chromePaddingChipHorizontal: CGFloat = 10
 
     /// Hotkey chip micro vertical padding (= 1 PT). Apple HIG standard
     /// for inline keyboard-shortcut chip inside toolbar labels.
     /// Replaces inline `.padding(.vertical, 1)`.
-    public static let chromePaddingHotkeyVertical: CGFloat = 1
+    static let chromePaddingHotkeyVertical: CGFloat = 1
 
     /// Toolbar / statusbar cluster internal icon-to-icon gap (= 4 PT).
     /// Apple HIG canonical (= developer.apple.com/design/human-interface-
@@ -193,7 +193,7 @@ public enum DesignTokens {
     /// 0 = not Apple HIG, but Apple HStack requires a value; using
     /// `0` was a self-rolled non-canonical choice = zero spacing
     /// = buttons snapped together = Apple HIG violation).
-    public static let chromePaddingClusterGap: CGFloat = 4
+    static let chromePaddingClusterGap: CGFloat = 4
 
     // MARK: - Tab metrics
 
@@ -201,43 +201,43 @@ public enum DesignTokens {
     /// canonical small toolbar button size.
     /// **Renamed from** `DesignTokens.paneTabHotArea` (= was chat-specific
     /// naming, now generic for ALL pane tabs).
-    public static let paneTabHotArea: CGFloat = 28
+    static let paneTabHotArea: CGFloat = 28
 
     /// v1.73d tab close button (= X) glyph font size (= 10 PT,
     /// .semibold weight). Matches SF Symbol `xmark` rendered at
     /// 18 PT frame for finger-target parity with the 28 PT paneTab.
-    public static let tabCloseGlyphFontSize: CGFloat = 10
+    static let tabCloseGlyphFontSize: CGFloat = 10
 
     /// v1.73d tab close button (= X) hit area (= 18×18 PT). Apple HIG
     /// inline-control minimum is 16 PT (= 44 PT Apple HIG = finger-target);
     /// 18 PT is a compromise that fits inside `paneTabHotArea` (= 28 PT)
     /// without padding artifacts (= Safari/Chrome/Terminal convention).
-    public static let tabCloseFrameSize: CGFloat = 18
+    static let tabCloseFrameSize: CGFloat = 18
 
     /// Per-pane tab icon size (= 18×18 PT, fits within 28 PT hot area).
-    public static let tabIconSize: CGFloat = 18
+    static let tabIconSize: CGFloat = 18
 
     /// Per-pane tab selected-state underline height (= 1 PT, Apple HIG
     /// standard for tab bar selected indicator). The line is rendered
     /// with `.clipShape(Capsule())` for fully rounded ends (= two
     /// round caps on both sides, per boss 2026-08-30 OOB ', ').
-    public static let tabUnderlineHeight: CGFloat = 1
+    static let tabUnderlineHeight: CGFloat = 1
 
     // MARK: - Dividers
 
     /// 1 PT hairline divider height (= Apple HIG standard for tab bar /
     /// status bar bottom divider + splitter).
-    public static let dividerHeight: CGFloat = 1
+    static let dividerHeight: CGFloat = 1
 
     // MARK: - Status bar text
 
     /// Status bar font (= 13 PT, Apple HIG secondary text). Replaces
     /// `.font(.system(size: 13))` in 10 files.
-    public static let statusFont: Font = .system(size: 13)
+    static let statusFont: Font = .system(size: 13)
 
     /// Status bar foreground (= Apple HIG `.tertiary` HierarchicalShapeStyle).
     /// Replaces `.foregroundStyle(.tertiary)` in 16 files.
-    public static let statusForeground: HierarchicalShapeStyle = .tertiary
+    static let statusForeground: HierarchicalShapeStyle = .tertiary
 
     /// v1.91 (2026-09-23): boss '聊天区的，文字回显层，是否可以变成左栏
     /// 的颜色参数' (= 'the chat transcript layer should use the left
@@ -263,7 +263,7 @@ public enum DesignTokens {
     // tracks the active NSAppearance. Implement the dynamic
     // resolution via NSColor(name: .dynamicProviderAccess, ...)
     // so light/dark mode follow the user's appearance setting.
-    public static let sidebarBackground: Color = {
+    static let sidebarBackground: Color = {
         // Match macOS sidebar RGB exactly (= the same RGB the
         // System Settings sidebar uses). For both modes:
         //   - Dark: RGB(36,36,36) (= matches sidebar material)
@@ -286,7 +286,7 @@ public enum DesignTokens {
     /// one-off 4th branch in bubbleFill; = data-driven now via
     /// token lookup). Apple HIG: warning fills should be token-
     /// based, not literal, so dark/light adjustments are 1-stop.
-    public static let systemMessageFill: Color = Color.red.opacity(0.15)
+    static let systemMessageFill: Color = Color.red.opacity(0.15)
 
     // MARK: - Surface metrics (Apple HIG, v0.35 +1)
 
@@ -294,7 +294,7 @@ public enum DesignTokens {
     /// Replaces file-scope `cardCornerRadius: CGFloat = 8` in
     /// ConnectorProfileRow + MemorySettingsView + SkillsSettingsView.
     /// Round style = `.continuous` (Apple HIG 13+ corner style).
-    public static let surfaceCornerRadiusCard: CGFloat = 8
+    static let surfaceCornerRadiusCard: CGFloat = 8
 
     /// v1.28 A1.8: Chat bubble horizontal padding (= 12 PT; = the
     /// iMessage-style bubble internal padding measured against
@@ -303,65 +303,65 @@ public enum DesignTokens {
     /// per v1.27 component audit). Distinct from `zoneContentInset = 8`
     /// (= the zone-level grid inset); = bubble internal padding is
     /// larger because the bubble itself adds visual weight.
-    public static let bubblePaddingHorizontal: CGFloat = 12
+    static let bubblePaddingHorizontal: CGFloat = 12
     /// v1.28 A1.9: Layout picker chrome width (= 416 PT; = 26rem
     /// at 16 PT/rem; = replaces inline `26 * 16` at LayoutEditBar:56
     /// + LayoutPicker:156 (= the comment-encoded magic constant
     /// pair). Per v1.27 component audit: the arithmetic was the
     /// only documentation for the picker column; = data-driven now
     /// so future picker redesign is 1-stop.
-    public static let layoutPickerWidth: CGFloat = 416
+    static let layoutPickerWidth: CGFloat = 416
 
 
     /// Badge surface corner radius (= 8 PT, Apple HIG capsule-style
     /// badge standard). Replaces file-scope `badgeCornerRadius: CGFloat = 8`
     /// in ConnectorProfileRow.
-    public static let surfaceCornerRadiusBadge: CGFloat = 8
+    static let surfaceCornerRadiusBadge: CGFloat = 8
 
     /// Small-chip corner radius (= 3 PT, Apple HIG small-chip standard;
     /// same value as `smallChipCornerRadius` in 3 files before H2 fix).
     /// `.continuous` round style for macOS 27+ smooth corners.
-    public static let surfaceCornerRadiusSmallChip: CGFloat = 3
+    static let surfaceCornerRadiusSmallChip: CGFloat = 3
 
     /// Form field label column width (= 60 PT, Apple HIG inline form
     /// label standard). Replaces file-scope `labelWidth: CGFloat = 60`
     /// in ConnectorAuthField.
-    public static let formLabelWidth: CGFloat = 60
+    static let formLabelWidth: CGFloat = 60
 
     /// Settings row label column width (= 80 PT, Apple HIG settings row
     /// label standard = 80 PT accommodates Chinese 4-char label).
     /// Replaces file-scope `rowLabelWidth: CGFloat = 80` in
     /// MemorySettingsView.
-    public static let settingsRowLabelWidth: CGFloat = 80
+    static let settingsRowLabelWidth: CGFloat = 80
 
     /// Settings row vertical gap (= 8 PT, Apple HIG settings row standard).
     /// Replaces file-scope `rowSpacing: CGFloat = 8` in ConnectorProfileRow.
-    public static let settingsRowSpacing: CGFloat = 8
+    static let settingsRowSpacing: CGFloat = 8
 
     /// Active surface tint alpha (= 0.2, Apple HIG subtle accent overlay).
     /// Replaces file-scope `activeBadgeAlpha: CGFloat = 0.2` in
     /// ConnectorProfileRow.
-    public static let surfaceActiveTintAlpha: CGFloat = 0.2
+    static let surfaceActiveTintAlpha: CGFloat = 0.2
 
     /// Inactive border tint alpha (= 0.2, Apple HIG subtle border).
     /// Replaces file-scope `inactiveStrokeAlpha: CGFloat = 0.2` in
     /// ConnectorProfileRow.
-    public static let surfaceInactiveBorderAlpha: CGFloat = 0.2
+    static let surfaceInactiveBorderAlpha: CGFloat = 0.2
 
     /// Active border width (= 2 PT, Apple HIG emphasized border for
     /// selected/active state). Replaces file-scope `activeStrokeWidth:
     /// CGFloat = 2` in ConnectorProfileRow.
-    public static let surfaceActiveBorderWidth: CGFloat = 2
+    static let surfaceActiveBorderWidth: CGFloat = 2
 
     /// Inactive border width (= 1 PT, Apple HIG standard border). Replaces
     /// file-scope `inactiveStrokeWidth: CGFloat = 1` in ConnectorProfileRow.
-    public static let surfaceInactiveBorderWidth: CGFloat = 1
+    static let surfaceInactiveBorderWidth: CGFloat = 1
 
     /// Badge interior vertical padding (= 2 PT, Apple HIG tight badge
     /// standard; smaller than chromePaddingMicro because badge text is
     /// caption-sized). Replaces inline `.padding(.vertical, 2)` in
     /// ConnectorProfileRow.
-    public static let badgePaddingVertical: CGFloat = 2
+    static let badgePaddingVertical: CGFloat = 2
 
     // v0.40 apple-001 Q8 batch 1 site: max height for the Memory +
     // Skills settings lists (= 200 PT = the 4-row Mac App Store
@@ -369,14 +369,14 @@ public enum DesignTokens {
     // picker, and a description; beyond this the view should scroll).
     // Shared between `MemorySettingsView` and `SkillsSettingsView`
     // (the 2 Settings panes that previously hard-coded the value).
-    public static let settingsListMaxHeight: CGFloat = 200
+    static let settingsListMaxHeight: CGFloat = 200
 
     // v0.40 apple-001 Q8 batch 2 site: font size for the runtime CWD
     // display chip (= `.system(size: 11)` = macOS standard secondary
     // caption = 1 step smaller than body for status-bar meta text).
     // The status-bar font is already \`statusFont\` above; this is
     // a sibling token for the runtime chip's smaller size.
-    public static let runtimeCwdChipFont: Font = .system(size: 11)
+    static let runtimeCwdChipFont: Font = .system(size: 11)
 
     // v0.40 apple-001 Q8 batch 3 site: monospaced hotkey combo label
     // font (= .system(size: 12, design: .monospaced) = the 12 PT
@@ -386,7 +386,7 @@ public enum DesignTokens {
     // for all keyboard shortcut glyph rendering (= ensures ⌘⇧E
     // and ⌘⇧H have the same width across labels; = gives the
     // chrome a uniform visual rhythm).
-    public static let hotkeyComboFont: Font = .system(size: 12, design: .monospaced)
+    static let hotkeyComboFont: Font = .system(size: 12, design: .monospaced)
 
     // v0.40 apple-001 iron-rule-6 batch 1 site: sub-agent progress
     // card corner radius (= 6 PT, Apple HIG small card standard; = smaller
@@ -394,7 +394,7 @@ public enum DesignTokens {
     // progress card is a transient notification card pattern, = not a
     // full surface). Replaces inline `.cornerRadius(6)` in
     // SubAgentProgressView.
-    public static let surfaceCornerRadiusProgressCard: CGFloat = 6
+    static let surfaceCornerRadiusProgressCard: CGFloat = 6
 
     // v0.40 apple-001 iron-rule-6 batch 2 site: tab title font
     // (= .system(size: 12, design: .monospaced) = monospaced tab
@@ -405,7 +405,7 @@ public enum DesignTokens {
     // Apple HIG: tab labels use monospaced for stable character
     // width (= ensures Chinese + Latin + emoji all line up at the
     // same horizontal position in the tab strip).
-    public static let tabTitleFont: Font = .system(size: 12, design: .monospaced)
+    static let tabTitleFont: Font = .system(size: 12, design: .monospaced)
 
     // MARK: - Frame metrics (v0.40 apple-001 iron-rule-6 batch 5)
     //
@@ -417,11 +417,11 @@ public enum DesignTokens {
 
     /// Standard small icon size (= 16 PT, macOS standard toolbar icon size).
     /// Replaces `.frame(width: DesignTokens.iconStandardSize)` in 6 sites.
-    public static let iconStandardSize: CGFloat = 16
+    static let iconStandardSize: CGFloat = 16
 
     /// Large icon size (= 24 PT, macOS standard navigation icon size).
     /// Replaces `.frame(width: DesignTokens.iconLargeSize, height: DesignTokens.iconLargeSize)` in 1 site.
-    public static let iconLargeSize: CGFloat = 24
+    static let iconLargeSize: CGFloat = 24
 
     /// CHROME-ARCH-001 (2026-09-07): small icon size (= 14 PT)
     /// used by the chrome top bar (= zone identity icon + trailing
@@ -430,19 +430,19 @@ public enum DesignTokens {
     /// inline `.frame(width: 14, height: 14)` in the chrome
     /// stylesheet file (= iron-rule 6 = no magic numbers in view
     /// code).
-    public static let iconSmall: CGFloat = 14
+    static let iconSmall: CGFloat = 14
 
     /// Extra-small indicator size (= 8 PT, Apple HIG status indicator
     /// dot standard). Replaces `.frame(width: DesignTokens.indicatorSizeSmall, height: DesignTokens.indicatorSizeSmall)` in 1 site.
-    public static let indicatorSizeSmall: CGFloat = 8
+    static let indicatorSizeSmall: CGFloat = 8
 
     /// Tiny bullet size (= 6 PT, Apple HIG bullet indicator standard).
     /// Replaces `.frame(width: DesignTokens.bulletSizeTiny, height: DesignTokens.bulletSizeTiny)` in 2 sites.
-    public static let bulletSizeTiny: CGFloat = 6
+    static let bulletSizeTiny: CGFloat = 6
 
     /// Small bullet size (= 14 PT, Apple HIG inline bullet icon size).
     /// Replaces `.frame(width: DesignTokens.bulletSizeSmall, height: DesignTokens.bulletSizeSmall)` in 1 site.
-    public static let bulletSizeSmall: CGFloat = 14
+    static let bulletSizeSmall: CGFloat = 14
 
     /// Empty-state icon size (= 76 PT, 2× the default ContentUnavailableView
     /// 38 PT). v1.0.0-m1-shell boss 2026-09-12 OOB 'while you're at it, double the size of the empty-state
@@ -450,91 +450,91 @@ public enum DesignTokens {
     /// raw `.frame(width: 76, height: 76)` in EmptyStateView.swift.
     /// Single source of truth for ALL empty-state icon sizes (= no
     /// other callers at v0.71 = single owner).
-    public static let emptyStateIconSize: CGFloat = 76
+    static let emptyStateIconSize: CGFloat = 76
 
     /// Empty-state icon→title gap (= 22 PT, Apple HIG standard
     /// ContentUnavailableView sample measured value). v1.0.0-m1-shell
     /// EmptyStateView.swift uses this for the icon→title vertical
     /// spacing. Single source of truth (= single owner at v0.71).
-    public static let chromePaddingEmptyStateGap: CGFloat = 22
+    static let chromePaddingEmptyStateGap: CGFloat = 22
 
     /// Sub-agent icon button size (= 22 PT, Apple HIG compact icon
     /// button standard). Replaces `.frame(width: DesignTokens.iconButtonSmall, height: DesignTokens.iconButtonSmall)`.
-    public static let iconButtonSmall: CGFloat = 22
+    static let iconButtonSmall: CGFloat = 22
 
     /// Compact toolbar button size (= 40 PT, Apple HIG compact button
     /// hit area). Replaces `.frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)` in 2 sites.
-    public static let toolbarButtonCompact: CGFloat = 40
+    static let toolbarButtonCompact: CGFloat = 40
 
     /// Medium surface size (= 56 PT, Apple HIG medium card surface
     /// standard). Replaces `.frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)` in 2 sites.
-    public static let surfaceSizeMedium: CGFloat = 56
+    static let surfaceSizeMedium: CGFloat = 56
 
     /// List row avatar size (= 64 PT, Apple HIG list row thumbnail
     /// standard). Replaces `.frame(width: DesignTokens.avatarSize)`.
-    public static let avatarSize: CGFloat = 64
+    static let avatarSize: CGFloat = 64
 
     /// Chat input minimum width (= 80 PT, Apple HIG chat input column
     /// minimum). Replaces `.frame(width: DesignTokens.chatInputMinWidth)`.
-    public static let chatInputMinWidth: CGFloat = 80
+    static let chatInputMinWidth: CGFloat = 80
 
     /// Zone editor sidebar width (= 140 PT, Apple HIG sidebar zone
     /// picker width). Replaces `.frame(width: DesignTokens.zoneEditorWidth)` + `.frame(height: DesignTokens.zoneEditorWidth)`.
-    public static let zoneEditorWidth: CGFloat = 140
+    static let zoneEditorWidth: CGFloat = 140
 
     /// Sub-progress detail height (= 100 PT, Apple HIG detail panel
     /// min-height standard). Replaces `.frame(height: DesignTokens.panelMinHeight)`.
-    public static let panelMinHeight: CGFloat = 100
+    static let panelMinHeight: CGFloat = 100
 
     /// Card preview height (= 180 PT, Apple HIG card preview standard).
     /// Replaces `.frame(height: DesignTokens.cardPreviewHeight)`.
-    public static let cardPreviewHeight: CGFloat = 180
+    static let cardPreviewHeight: CGFloat = 180
 
     /// Toolbar band height (= 32 PT, Apple HIG toolbar band standard
     /// for secondary toolbars). Replaces `.frame(height: DesignTokens.toolbarBandHeight)` +
     /// `.frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)` in 2 sites.
-    public static let toolbarBandHeight: CGFloat = 32
+    static let toolbarBandHeight: CGFloat = 32
 
     /// Wide surface height (= 320 PT, Apple HIG popover max-height
     /// standard). Replaces `.frame(height: DesignTokens.popoverMaxHeight)` in 2 sites.
-    public static let popoverMaxHeight: CGFloat = 320
+    static let popoverMaxHeight: CGFloat = 320
 
     /// Popover compact size (= 320x280, Apple HIG small popover
     /// standard). Replaces `.frame(width: DesignTokens.popoverCompactSize.width, height: DesignTokens.popoverCompactSize.height)`.
-    public static let popoverCompactSize: CGSize = CGSize(width: 320, height: 280)
+    static let popoverCompactSize: CGSize = CGSize(width: 320, height: 280)
 
     /// Chip avatar size (= 110x80, Apple HIG chip avatar standard).
     /// Replaces `.frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)` in 2 sites.
-    public static let chipAvatarSize: CGSize = CGSize(width: 110, height: 80)
+    static let chipAvatarSize: CGSize = CGSize(width: 110, height: 80)
 
     /// List row banner size (= 240x32, Apple HIG inline banner
     /// standard). Replaces `.frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)`.
-    public static let bannerInlineSize: CGSize = CGSize(width: 240, height: 32)
+    static let bannerInlineSize: CGSize = CGSize(width: 240, height: 32)
 
     /// Square cover thumbnail (= 192x192, Apple HIG book cover
     /// thumbnail standard). Replaces `.frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)`.
-    public static let coverThumbnailSize: CGFloat = 192
+    static let coverThumbnailSize: CGFloat = 192
 
     /// Settings sheet size (= 600x480, Apple HIG settings window
     /// standard). Replaces `.frame(width: DesignTokens.settingViewSheetSize.width, height: DesignTokens.settingViewSheetSize.height)`.
-    public static let settingViewSheetSize: CGSize = CGSize(width: 600, height: 480)
+    static let settingViewSheetSize: CGSize = CGSize(width: 600, height: 480)
 
     /// Settings import/export sheet size (= 600x400, Apple HIG
     /// import/export window standard). Replaces `.frame(width: 600,
     /// height: 400)`.
-    public static let settingIOsheetSize: CGSize = CGSize(width: 600, height: 400)
+    static let settingIOsheetSize: CGSize = CGSize(width: 600, height: 400)
 
     /// Guardrail sheet width (= 360 PT, Apple HIG modal sheet width
     /// for guardrail dialogs). Replaces `.frame(width: DesignTokens.guardrailSheetWidth)`.
-    public static let guardrailSheetWidth: CGFloat = 360
+    static let guardrailSheetWidth: CGFloat = 360
 
     /// Form column width (= 120 PT, Apple HIG form column minimum
     /// for label + value layout). Replaces `.frame(width: DesignTokens.formColumnWidth)`.
-    public static let formColumnWidth: CGFloat = 120
+    static let formColumnWidth: CGFloat = 120
 
     /// Sidebar width (= 200 PT, Apple HIG narrow sidebar standard).
     /// Replaces `.frame(width: DesignTokens.sidebarNarrowWidth)`.
-    public static let sidebarNarrowWidth: CGFloat = 200
+    static let sidebarNarrowWidth: CGFloat = 200
 
     // MARK: - v0.71 P1 batch 4: full-project dual-axis audit
     //

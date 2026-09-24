@@ -8,7 +8,7 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSSession {
+final class WSSession {
     @Attribute(.unique) var sessionID: String
     var title: String?
     var createdAt: Date

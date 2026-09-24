@@ -61,7 +61,7 @@ import Foundation
 /// foreshadowing between any two states directly without an
 /// enforced linear order; = matches the Python implementation's
 /// "free-form transitions" behavior).
-public enum ForeshadowingStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
+enum ForeshadowingStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// The foreshadowing has just been set up (= no hints yet).
     case open
     /// The setup is recorded (= the user has explicitly tagged
@@ -79,10 +79,10 @@ public enum ForeshadowingStatus: String, Sendable, Codable, CaseIterable, Identi
     /// but no longer considered for the active book).
     case abandoned
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Human-readable English label (= for the picker / list rows).
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .open:            return "Open"
         case .setup:           return "Setup"
@@ -97,7 +97,7 @@ public enum ForeshadowingStatus: String, Sendable, Codable, CaseIterable, Identi
     /// Image(systemName:) directly in the ForeshadowingView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .open:            return "circle"             // Lucide 'circle'
         case .setup:           return "arrow.triangle.branch"  // Lucide 'git-fork'
@@ -111,7 +111,7 @@ public enum ForeshadowingStatus: String, Sendable, Codable, CaseIterable, Identi
     /// Terminal statuses that mean the foreshadowing is no
     /// longer "in flight" (= the writer does not need to act on
     /// it again).
-    public var isTerminal: Bool {
+    var isTerminal: Bool {
         switch self {
         case .paidOff, .abandoned: return true
         case .open, .setup, .hinting, .nearlyPaidOff: return false
@@ -137,45 +137,45 @@ public enum ForeshadowingStatus: String, Sendable, Codable, CaseIterable, Identi
 ///
 /// When `payoffChapterId` is non-nil, the foreshadowing is a
 /// complete setup-recall pair.
-public struct Foreshadowing: Sendable, Codable, Equatable, Identifiable {
+struct Foreshadowing: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for add / update /
     /// remove lookups; never re-used even across books).
-    public let id: UUID
+    let id: UUID
 
     /// Owning book (= the actor resolves the on-disk sidecar
     /// through this id).
-    public let bookId: UUID
+    let bookId: UUID
 
     /// Short, human-readable label (= e.g. "The silver dagger").
     /// Whitespace-trimmed at construction time so empty /
     /// whitespace-only titles are rejected by the actor's
     /// `add` / `update` methods.
-    public let title: String
+    let title: String
 
     /// Chapter id where the setup appears (= non-nil once the
     /// user has tagged the setup chapter).
-    public let setupChapterId: UUID?
+    let setupChapterId: UUID?
 
     /// Short excerpt of the setup text. Trimmed at construction
     /// time.
-    public let setupExcerpt: String
+    let setupExcerpt: String
 
     /// Chapter id where the payoff appears (= nil until the
     /// payoff is written).
-    public let payoffChapterId: UUID?
+    let payoffChapterId: UUID?
 
     /// Short excerpt of the payoff text (= nil until the payoff
     /// is written).
-    public let payoffExcerpt: String?
+    let payoffExcerpt: String?
 
     /// Lifecycle status (= see ForeshadowingStatus).
-    public let status: ForeshadowingStatus
+    let status: ForeshadowingStatus
 
     /// Creation timestamp (= `Date.now` at add time).
-    public let createdAt: Date
+    let createdAt: Date
 
-    public init(
+    init(
         id: UUID = UUID(),
         bookId: UUID,
         title: String,
@@ -228,11 +228,11 @@ struct ForeshadowingSidecar: Codable, Sendable, Equatable {
 /// Errors thrown by `ForeshadowingTracker`. Mirrors the
 /// TagManager / CharacterLifecycleTracker / IdeaLibrary error
 /// conventions (= a LocalizedError per case).
-public enum ForeshadowingTrackerError: Error, LocalizedError, Sendable, Equatable {
+enum ForeshadowingTrackerError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case foreshadowingNotFound(id: UUID)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .bookDirectoryNotFound(let id):
             return "ForeshadowingTracker: book directory not found for id \(id.uuidString)"
@@ -265,7 +265,7 @@ public enum ForeshadowingTrackerError: Error, LocalizedError, Sendable, Equatabl
 ///     `.bookDirectoryNotFound`.
 ///   - Empty / whitespace-only titles are rejected silently on
 ///     `add` / `update` (= no row is persisted).
-public actor ForeshadowingTracker {
+actor ForeshadowingTracker {
 
     /// Sidecar on-disk filename (= parallel to
     /// `kanban.json` / `todo.json` / `tags.json` / `ideas.json`
@@ -297,7 +297,7 @@ public actor ForeshadowingTracker {
     ///   - Empty / whitespace-only titles are rejected silently
     ///     (= no row is persisted; matches the tag manager's
     ///     strict policy on empty labels).
-    public func add(_ foreshadowing: Foreshadowing) async throws {
+    func add(_ foreshadowing: Foreshadowing) async throws {
         guard !foreshadowing.title.isEmpty else { return }
         var sidecar = try await loadOrCreateSidecar(bookId: foreshadowing.bookId)
         if let idx = sidecar.foreshadowings.firstIndex(where: { $0.id == foreshadowing.id }) {
@@ -319,7 +319,7 @@ public actor ForeshadowingTracker {
     ///     same id exists for any cached book.
     ///   - Empty / whitespace-only titles are rejected silently
     ///     (= no row is persisted).
-    public func update(_ foreshadowing: Foreshadowing) async throws {
+    func update(_ foreshadowing: Foreshadowing) async throws {
         guard !foreshadowing.title.isEmpty else { return }
         // Load the sidecar (= warms the cache for the owning
         // book) BEFORE the existence check.
@@ -336,7 +336,7 @@ public actor ForeshadowingTracker {
     /// Remove a foreshadowing by id. Throws
     /// `.foreshadowingNotFound` when the id is unknown for any
     /// cached book.
-    public func remove(id: UUID) async throws {
+    func remove(id: UUID) async throws {
         if let bookId = try await getBookId(for: id) {
             var sidecar = try await loadOrCreateSidecar(bookId: bookId)
             guard let idx = sidecar.foreshadowings.firstIndex(where: { $0.id == id }) else {
@@ -355,7 +355,7 @@ public actor ForeshadowingTracker {
 
     /// All foreshadowings in a book, filterable by status. When
     /// the filter is nil, returns every row.
-    public func list(
+    func list(
         bookId: UUID,
         status: ForeshadowingStatus? = nil
     ) async throws -> [Foreshadowing] {
@@ -379,7 +379,7 @@ public actor ForeshadowingTracker {
     /// Single-foreshadowing lookup by id. Returns `nil` (= NOT
     /// throws) when the id is unknown for any cached book (=
     /// matches the view layer's "optional row" idiom).
-    public func get(id: UUID) async throws -> Foreshadowing? {
+    func get(id: UUID) async throws -> Foreshadowing? {
         guard let bookId = try await getBookId(for: id) else { return nil }
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         return sidecar.foreshadowings.first { $0.id == id }
@@ -402,7 +402,7 @@ public actor ForeshadowingTracker {
     ///
     /// Returns rows matching all 3 conditions, sorted oldest
     /// first.
-    public func staleForeshadowings(
+    func staleForeshadowings(
         bookId: UUID,
         maxChaptersWithoutPayoff: Int = 10
     ) async throws -> [Foreshadowing] {
@@ -439,7 +439,7 @@ public actor ForeshadowingTracker {
     ///
     /// Stable, pure (= no I/O, no actor state reads beyond the
     /// supplied arguments). Safe to call from any caller.
-    public func payoffDistance(
+    func payoffDistance(
         _ foreshadowing: Foreshadowing,
         allChapterIds: [UUID]
     ) async throws -> Int? {
@@ -463,7 +463,7 @@ public actor ForeshadowingTracker {
     /// a complete pair, just one that has been resolved).
     /// Sorted by payoff chapter index in `allChapterIds`
     /// (= oldest payoff first), then by title.
-    public func setupRecallPairs(
+    func setupRecallPairs(
         bookId: UUID,
         allChapterIds: [UUID]
     ) async throws -> [Foreshadowing] {

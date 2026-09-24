@@ -52,7 +52,7 @@ import Foundation
 /// a coarse narrative position (= `introduced` < `active` <
 /// `wounded` < `dead` < `resurrected`) without having to re-read
 /// the source module.
-public enum LifecycleStage: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
+enum LifecycleStage: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// Character is born / created (= canon first appearance).
     case born
     /// Character is introduced to the reader (= first page
@@ -76,10 +76,10 @@ public enum LifecycleStage: String, Sendable, Codable, CaseIterable, Identifiabl
     /// = a soft form of "absent" that signals no return).
     case retired
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Human-readable English label (= for the picker / list rows).
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .born:         return "Born"
         case .introduced:   return "Introduced"
@@ -96,7 +96,7 @@ public enum LifecycleStage: String, Sendable, Codable, CaseIterable, Identifiabl
     /// Image(systemName:) directly in the CharacterLifecycleView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .born:         return "figure.and.child.holdinghands"  // Lucide 'baby'
         case .introduced:   return "person.badge.plus"              // Lucide 'user-plus'
@@ -112,7 +112,7 @@ public enum LifecycleStage: String, Sendable, Codable, CaseIterable, Identifiabl
     /// Whether this stage signals terminal-state for the
     /// contradiction detector (= no further non-resurrected /
     /// non-retired events should follow).
-    public var isTerminal: Bool {
+    var isTerminal: Bool {
         switch self {
         case .dead, .retired: return true
         case .born, .introduced, .active, .absent, .wounded, .resurrected: return false
@@ -125,42 +125,42 @@ public enum LifecycleStage: String, Sendable, Codable, CaseIterable, Identifiabl
 /// A single lifecycle event for one character in a book.
 /// Persisted as one entry in the per-book
 /// `character-lifecycle.json` sidecar.
-public struct LifecycleEvent: Sendable, Codable, Equatable, Identifiable {
+struct LifecycleEvent: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for add / remove /
     /// timeline / contradiction lookups; never re-used even across
     /// books).
-    public let id: UUID
+    let id: UUID
 
     /// Owning book (= the actor resolves the on-disk sidecar
     /// through this id).
-    public let bookId: UUID
+    let bookId: UUID
 
     /// Character id (= mirrors `Character.id` from
     /// `Sources/WenshuApp/Domain/Character.swift`; the actor does
     /// NOT need to dereference this to a name; = the view layer's
     /// responsibility).
-    public let characterId: UUID
+    let characterId: UUID
 
     /// Lifecycle stage for this event.
-    public let stage: LifecycleStage
+    let stage: LifecycleStage
 
     /// Chapter where this event was observed (= optional; nil =
     /// observed outside of any specific chapter, e.g. "born in a
     /// backstory prologue the user wants to track before chapter
     /// 1"). When set, the timeline sorts by this id (= stable
     /// since the chapter ids are stable per-book).
-    public let chapterId: UUID?
+    let chapterId: UUID?
 
     /// Exact quote (= up to a paragraph; = surfaced verbatim in
     /// the SwiftUI list row so the writer can confirm the
     /// observation without re-reading the chapter).
-    public let excerpt: String
+    let excerpt: String
 
     /// Creation timestamp (= `Date.now` at add time).
-    public let createdAt: Date
+    let createdAt: Date
 
-    public init(
+    init(
         id: UUID = UUID(),
         bookId: UUID,
         characterId: UUID,
@@ -189,21 +189,21 @@ public struct LifecycleEvent: Sendable, Codable, Equatable, Identifiable {
 /// The actor emits one row per conflicting character, with the
 /// first / second events listed in `conflictingEvents` (= the
 /// caller can render the order in the UI).
-public struct LifecycleContradiction: Sendable, Codable, Equatable {
+struct LifecycleContradiction: Sendable, Codable, Equatable {
 
     /// Character id (= the contradictory character).
-    public let characterId: UUID
+    let characterId: UUID
 
     /// Human-readable one-line description (= e.g. "Character
     /// A is 'dead' in chapter 5 but 'active' in chapter 8").
     /// Suitable for direct UI display.
-    public let conflictDescription: String
+    let conflictDescription: String
 
     /// The two events that trigger the contradiction (= sorted by
     /// `createdAt` so the order is stable for tests + UI).
-    public let conflictingEvents: [LifecycleEvent]
+    let conflictingEvents: [LifecycleEvent]
 
-    public init(
+    init(
         characterId: UUID,
         conflictDescription: String,
         conflictingEvents: [LifecycleEvent]
@@ -244,11 +244,11 @@ struct CharacterLifecycleSidecar: Codable, Sendable, Equatable {
 /// BookProjectConfigStore / BookTodoStore / LongFormGuardrails /
 /// CharacterRelationshipTracker error conventions (= a
 /// LocalizedError per case).
-public enum CharacterLifecycleTrackerError: Error, LocalizedError, Sendable, Equatable {
+enum CharacterLifecycleTrackerError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case eventNotFound(id: UUID)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .bookDirectoryNotFound(let id):
             return "CharacterLifecycleTracker: book directory not found for id \(id.uuidString)"
@@ -309,7 +309,7 @@ actor CharacterLifecycleTracker {
     ///   - Idempotent on `id`: re-adding with the same id replaces
     ///     the existing row (= matches `BookKanbanStore` upsert
     ///     policy).
-    public func add(_ event: LifecycleEvent) async throws {
+    func add(_ event: LifecycleEvent) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: event.bookId)
         // Replace if a row with the same id already exists.
         if let idx = sidecar.events.firstIndex(where: { $0.id == event.id }) {
@@ -324,7 +324,7 @@ actor CharacterLifecycleTracker {
 
     /// All events in a book (= filterable by character / chapter
     /// / stage). When all filters are nil, returns every row.
-    public func list(
+    func list(
         bookId: UUID,
         characterId: UUID? = nil,
         chapterId: UUID? = nil,
@@ -346,7 +346,7 @@ actor CharacterLifecycleTracker {
 
     /// Remove an event by id. Throws `.eventNotFound` when the id
     /// is unknown for the supplied book.
-    public func remove(id: UUID) async throws {
+    func remove(id: UUID) async throws {
         // Walk the cache to find the owning book (= the caller did
         // not supply bookId; we look it up from the cached
         // sidecars). If nothing matches the id we still need to
@@ -386,7 +386,7 @@ actor CharacterLifecycleTracker {
     /// that need a specific chapter ordering should add events
     /// in chapter order (= events get monotonically increasing
     /// createdAt timestamps).
-    public func timeline(bookId: UUID, characterId: UUID) async throws -> [LifecycleEvent] {
+    func timeline(bookId: UUID, characterId: UUID) async throws -> [LifecycleEvent] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         let filtered = sidecar.events.filter { $0.characterId == characterId }
         return filtered.sorted { lhs, rhs in
@@ -403,7 +403,7 @@ actor CharacterLifecycleTracker {
     /// Returns zero or more `LifecycleContradiction` rows; = empty
     /// when no character triggers the heuristic (= common for
     /// early-draft books).
-    public func contradictions(bookId: UUID) async throws -> [LifecycleContradiction] {
+    func contradictions(bookId: UUID) async throws -> [LifecycleContradiction] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         // Group events by character.
         var perCharacter: [UUID: [LifecycleEvent]] = [:]

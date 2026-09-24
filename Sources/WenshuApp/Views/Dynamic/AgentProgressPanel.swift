@@ -53,7 +53,7 @@ struct AgentProgressPanel: View {
     /// defaults to `.shared`).
     private let tracker: AgentProgressTracker
 
-    public init(tracker: AgentProgressTracker = .shared) {
+    init(tracker: AgentProgressTracker = .shared) {
         self.tracker = tracker
     }
 

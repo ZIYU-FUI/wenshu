@@ -40,7 +40,7 @@ struct ChatMessageThinkingDisclosure<Label: View>: View {
     @Binding var isExpanded: Bool
     @ViewBuilder let collapsedLabel: Label
 
-    public init(
+    init(
         thinking: String,
         isExpanded: Binding<Bool>,
         @ViewBuilder collapsedLabel: () -> Label

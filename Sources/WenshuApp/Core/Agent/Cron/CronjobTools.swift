@@ -48,16 +48,16 @@ import Foundation
 
 /// LLM-facing cron job management tool. Thin facade over wenshu's existing
 /// CronjobStore that exposes the action dispatcher the chat surface uses.
-public actor CronjobTools {
+actor CronjobTools {
     private let store: CronjobStore
 
-    public init(store: CronjobStore = CronjobStore()) {
+    init(store: CronjobStore = CronjobStore()) {
         self.store = store
     }
 
     // MARK: - Action enum (= hermes cronjob action strings)
 
-    public enum Action: String, Sendable, CaseIterable {
+    enum Action: String, Sendable, CaseIterable {
         case create
         case list
         case get
@@ -71,27 +71,27 @@ public actor CronjobTools {
 
     // MARK: - Action params
 
-    public struct CronJobParams: Sendable {
-        public var jobId: String?
-        public var prompt: String?
-        public var schedule: String?
-        public var name: String?
-        public var `repeat`: Int?
-        public var deliver: String?
-        public var skill: String?
-        public var skills: [String]?
-        public var model: String?
-        public var provider: String?
-        public var baseURL: String?
-        public var reason: String?
-        public var script: String?
-        public var contextFrom: [String]?
-        public var enabledToolsets: [String]?
-        public var workdir: String?
-        public var noAgent: Bool?
-        public var attachToSession: Bool?
+    struct CronJobParams: Sendable {
+        var jobId: String?
+        var prompt: String?
+        var schedule: String?
+        var name: String?
+        var `repeat`: Int?
+        var deliver: String?
+        var skill: String?
+        var skills: [String]?
+        var model: String?
+        var provider: String?
+        var baseURL: String?
+        var reason: String?
+        var script: String?
+        var contextFrom: [String]?
+        var enabledToolsets: [String]?
+        var workdir: String?
+        var noAgent: Bool?
+        var attachToSession: Bool?
 
-        public init(
+        init(
             jobId: String? = nil,
             prompt: String? = nil,
             schedule: String? = nil,
@@ -133,12 +133,12 @@ public actor CronjobTools {
     }
 
     /// Tool result (= hermes tool_error / tool_ok return shape).
-    public struct CronToolResult: Sendable, Equatable {
-        public let success: Bool
-        public let output: String
-        public let data: [String: String]
+    struct CronToolResult: Sendable, Equatable {
+        let success: Bool
+        let output: String
+        let data: [String: String]
 
-        public init(success: Bool, output: String, data: [String: String] = [:]) {
+        init(success: Bool, output: String, data: [String: String] = [:]) {
             self.success = success
             self.output = output
             self.data = data
@@ -148,7 +148,10 @@ public actor CronjobTools {
     // MARK: - Main dispatcher (= hermes cronjob entry)
 
     /// Unified cron job management tool (= hermes cronjob(action:...) entry).
-    public func cronjob(action: String, params: CronJobParams = CronJobParams()) async -> CronToolResult {
+    // P2-07 audit (2026-09-24): internal (= CronJobParams is internal;
+        // = default-arg would not compile in a public method signature;
+        // = the method's contract is intra-package anyway).
+        func cronjob(action: String, params: CronJobParams = CronJobParams()) async -> CronToolResult {
         guard let act = Action(rawValue: action.lowercased()) else {
             return CronToolResult(
                 success: false,

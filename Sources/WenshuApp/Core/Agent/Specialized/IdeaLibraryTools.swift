@@ -59,7 +59,7 @@ import Foundation
 /// ideas between any two states directly without an enforced
 /// linear order; = matches the Python implementation's
 /// "free-form transitions" behavior).
-public enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
+enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// The idea is a raw spark (= 1-2 sentences, no elaboration).
     case seedling
     /// The idea is being elaborated (= has 1+ paragraphs of
@@ -74,10 +74,10 @@ public enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, E
     /// longer considered for the active book).
     case discarded
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Human-readable English label (= for the picker / list rows).
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .seedling:    return "Seedling"
         case .developing:  return "Developing"
@@ -91,7 +91,7 @@ public enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, E
     /// Image(systemName:) directly in the IdeaLibraryView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .seedling:    return "leaf"               // Lucide 'sprout'
         case .developing:  return "leaf"               // Lucide 'leaf'
@@ -112,15 +112,15 @@ public enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, E
 /// tickets already model (= chapter / character / plot-thread).
 /// The actor never dereferences the target id to its underlying
 /// entity (= view-layer responsibility).
-public enum IdeaLinkTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
+enum IdeaLinkTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     case chapter
     case character
     case plotThread
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Human-readable English label (= for the picker / list rows).
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .chapter:     return "Chapter"
         case .character:   return "Character"
@@ -132,7 +132,7 @@ public enum IdeaLinkTarget: String, Sendable, Codable, CaseIterable, Identifiabl
     /// Image(systemName:) directly in the IdeaLibraryView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .chapter:     return "book.pages"                  // Lucide 'book-open'
         case .character:   return "person"                      // Lucide 'user'
@@ -150,26 +150,26 @@ public enum IdeaLinkTarget: String, Sendable, Codable, CaseIterable, Identifiabl
 /// appears (= e.g. "Chapter 7 opening — protagonist sees her
 /// reflection in the lake for the first time"). Free-form,
 /// user-authored.
-public struct IdeaLink: Sendable, Codable, Equatable, Identifiable {
+struct IdeaLink: Sendable, Codable, Equatable, Identifiable {
     /// Stable identifier (= used by the actor for unlink + dedupe;
     /// never re-used even across books).
-    public let id: UUID
+    let id: UUID
 
     /// What kind of entity the idea is linked to (= chapter /
     /// character / plot-thread).
-    public let target: IdeaLinkTarget
+    let target: IdeaLinkTarget
 
     /// The entity id the idea is linked to. Interpretation
     /// depends on `target` (= chapterId / characterId /
     /// plotThreadId).
-    public let targetId: UUID
+    let targetId: UUID
 
     /// 1-sentence description of where the idea appears in the
     /// linked entity (= e.g. "Chapter 7 opening"). Trimmed at
     /// construction time.
-    public let context: String
+    let context: String
 
-    public init(
+    init(
         id: UUID = UUID(),
         target: IdeaLinkTarget,
         targetId: UUID,
@@ -186,48 +186,48 @@ public struct IdeaLink: Sendable, Codable, Equatable, Identifiable {
 
 /// A single idea in the per-book library. Persisted as one entry
 /// in the per-book `ideas.json` sidecar.
-public struct Idea: Sendable, Codable, Equatable, Identifiable {
+struct Idea: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for add / update /
     /// remove / link / search lookups; never re-used even across
     /// books).
-    public let id: UUID
+    let id: UUID
 
     /// Owning book (= the actor resolves the on-disk sidecar
     /// through this id).
-    public let bookId: UUID
+    let bookId: UUID
 
     /// Short, human-readable label (= e.g. "The Mirror Motif").
     /// Whitespace-trimmed at construction time so empty /
     /// whitespace-only titles are rejected by the actor's
     /// `add` / `update` methods.
-    public let title: String
+    let title: String
 
     /// 2-3 sentence description of the idea. Trimmed at
     /// construction time.
-    public let description: String
+    let description: String
 
     /// Lifecycle status (= seedling / developing / mature /
     /// planted / discarded).
-    public let status: IdeaStatus
+    let status: IdeaStatus
 
     /// Free-form, user-supplied labels (= e.g. "mirror",
     /// "water", "recognition"). Whitespace-trimmed at construction
     /// time.
-    public let tags: [String]
+    let tags: [String]
 
     /// Where this idea has been planted (= chapter / character /
     /// plot-thread triples + 1-sentence context).
-    public let links: [IdeaLink]
+    let links: [IdeaLink]
 
     /// Creation timestamp (= `Date.now` at add time).
-    public let createdAt: Date
+    let createdAt: Date
 
     /// Last update timestamp (= `Date.now` at update time; = the
     /// actor bumps this on every `update`).
-    public let updatedAt: Date
+    let updatedAt: Date
 
-    public init(
+    init(
         id: UUID = UUID(),
         bookId: UUID,
         title: String,
@@ -297,11 +297,11 @@ struct IdeaLibrarySidecar: Codable, Sendable, Equatable {
 /// TagManager / CharacterLifecycleTracker /
 /// CharacterRelationshipTracker error conventions (= a
 /// LocalizedError per case).
-public enum IdeaLibraryError: Error, LocalizedError, Sendable, Equatable {
+enum IdeaLibraryError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case ideaNotFound(id: UUID)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .bookDirectoryNotFound(let id):
             return "IdeaLibrary: book directory not found for id \(id.uuidString)"
@@ -365,7 +365,7 @@ actor IdeaLibrary {
     ///   - Empty / whitespace-only titles are rejected silently
     ///     (= no row is persisted; matches the tag manager's
     ///     strict policy on empty labels).
-    public func add(_ idea: Idea) async throws {
+    func add(_ idea: Idea) async throws {
         guard !idea.title.isEmpty else { return }
         var sidecar = try await loadOrCreateSidecar(bookId: idea.bookId)
         // Replace if a row with the same id already exists.
@@ -389,7 +389,7 @@ actor IdeaLibrary {
     ///     exists for any cached book.
     ///   - Empty / whitespace-only titles are rejected silently
     ///     (= no row is persisted).
-    public func update(_ idea: Idea) async throws {
+    func update(_ idea: Idea) async throws {
         guard !idea.title.isEmpty else { return }
         // Load the sidecar (= warms the cache for the owning
         // book) BEFORE the existence check, so the check sees
@@ -425,7 +425,7 @@ actor IdeaLibrary {
     /// Side effect: the idea's links are dropped with it (= the
     /// links lived inline on the idea, so there is no cascade
     /// table to clean up).
-    public func remove(id: UUID) async throws {
+    func remove(id: UUID) async throws {
         // Cold-cache: we have no bookId, so walk every cached
         // sidecar first; if no match, scan the disk by attempting
         // to load sidecars for known books. Since callers always
@@ -450,7 +450,7 @@ actor IdeaLibrary {
 
     /// All ideas in a book, filterable by status and / or tag.
     /// When both filters are nil, returns every row.
-    public func list(
+    func list(
         bookId: UUID,
         status: IdeaStatus? = nil,
         tag: String? = nil
@@ -478,7 +478,7 @@ actor IdeaLibrary {
     /// title OR description contains the query (= empty query
     /// returns every row; = matches the typical "live filter"
     /// UX).
-    public func search(bookId: UUID, query: String) async throws -> [Idea] {
+    func search(bookId: UUID, query: String) async throws -> [Idea] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !needle.isEmpty else {
@@ -500,7 +500,7 @@ actor IdeaLibrary {
     /// Single-idea lookup by id. Returns `nil` (= NOT throws)
     /// when the id is unknown for any cached book (= matches the
     /// view layer's "optional row" idiom).
-    public func get(id: UUID) async throws -> Idea? {
+    func get(id: UUID) async throws -> Idea? {
         guard let bookId = try await getBookId(for: id) else { return nil }
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         return sidecar.ideas.first { $0.id == id }
@@ -517,7 +517,7 @@ actor IdeaLibrary {
     ///     link replaces it (= so users can update the context
     ///     sentence without accumulating duplicates).
     ///   - Throws `.ideaNotFound` if no idea with that id exists.
-    public func link(ideaId: UUID, link: IdeaLink) async throws {
+    func link(ideaId: UUID, link: IdeaLink) async throws {
         // The caller always supplies `bookId` via the
         // `link.bookId` (= which we'll trust; but the spec
         // requires we look up by ideaId). We resolve the owning
@@ -582,7 +582,7 @@ actor IdeaLibrary {
     /// Unlink an idea from an entity (= remove the matching
     /// link from the idea's `links` array). No-op (= no throw) if
     /// the idea has no matching link.
-    public func unlink(ideaId: UUID, link: IdeaLink) async throws {
+    func unlink(ideaId: UUID, link: IdeaLink) async throws {
         guard let bookId = try await getBookId(for: ideaId) else {
             throw IdeaLibraryError.ideaNotFound(id: ideaId)
         }
@@ -628,7 +628,7 @@ actor IdeaLibrary {
     ///
     /// Stable order: score descending, then updatedAt
     /// descending.
-    public func suggest(bookId: UUID, context: String) async throws -> [Idea] {
+    func suggest(bookId: UUID, context: String) async throws -> [Idea] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         let keywords = IdeaLibrary.tokenize(context)
         guard !keywords.isEmpty else { return [] }

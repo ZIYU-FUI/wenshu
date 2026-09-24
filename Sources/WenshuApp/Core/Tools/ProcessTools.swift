@@ -21,12 +21,12 @@ private final class MutableBox<T>: @unchecked Sendable {
 }
 
 /// Process
-public struct ProcessResult: Equatable, Sendable {
-    public let exitCode: Int32
-    public let stdout: String
-    public let stderr: String
+struct ProcessResult: Equatable, Sendable {
+    let exitCode: Int32
+    let stdout: String
+    let stderr: String
 
-    public init(exitCode: Int32, stdout: String, stderr: String) {
+    init(exitCode: Int32, stdout: String, stderr: String) {
         self.exitCode = exitCode
         self.stdout = stdout
         self.stderr = stderr
@@ -34,11 +34,11 @@ public struct ProcessResult: Equatable, Sendable {
 }
 
 /// ProcessToolError: errors thrown by ProcessTools (v0.23 ticket 008: chat-triggered shell deny).
-public enum ProcessToolError: Error, LocalizedError {
+enum ProcessToolError: Error, LocalizedError {
     case chatShellDenied(command: String)
     case readOnlyDenied(command: String, reason: String)  // v0.23 ticket 013.011
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .chatShellDenied(let cmd):
             return "shell access blocked (boss 8/23 拍: 用户不可通过聊天改系统): \(cmd)"
@@ -49,15 +49,15 @@ public enum ProcessToolError: Error, LocalizedError {
 }
 
 /// ProcessTools: local process ops
-public struct ProcessTools: Tool, Sendable {
-    public init() {}
+struct ProcessTools: Tool, Sendable {
+    init() {}
 
     /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): shell
     /// execution via the existing ProcessTools surface. Mirrors
     /// `WenshuConductor.invokeTool(name: "process", ...)` which
     /// is deny-all (= chat-triggered shell blocked per boss 8/23
     /// rule: user cannot change system via chat).
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         // Deny-all for chat-triggered shell (= matches the legacy
         // `WenshuConductor.invokeTool("process")` behavior). Read-only
         // commands flow through the dedicated `runReadOnlyShell` path
@@ -70,7 +70,7 @@ public struct ProcessTools: Tool, Sendable {
     /// runShell: v0.23 ticket 008.002: blocked from chat path by default (boss 8/23).
     /// Use wenshu-devtool CLI for legitimate shell access.
     /// v0.23 ticket 013.011: read-only commands are now allowed via `runReadOnlyShell`.
-    public func runShell(_ command: String, workingDirectory: String? = nil) throws -> ProcessResult {
+    func runShell(_ command: String, workingDirectory: String? = nil) throws -> ProcessResult {
         throw ProcessToolError.chatShellDenied(command: command)
     }
 
@@ -81,7 +81,7 @@ public struct ProcessTools: Tool, Sendable {
     /// - Whitelist: command must start with one of `readOnlyCommands`.
     /// - Reject: anything that contains dangerous chars (;, &&, |, >, <, `, $).
     /// - Reject: path arguments that match FileTools.pathDenied (security).
-    public func runReadOnlyShell(_ command: String, workingDirectory: String? = nil) throws -> ProcessResult {
+    func runReadOnlyShell(_ command: String, workingDirectory: String? = nil) throws -> ProcessResult {
         // Strip leading/trailing whitespace.
         let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines)
         // Check command starts with a whitelisted prefix.
@@ -116,7 +116,7 @@ public struct ProcessTools: Tool, Sendable {
 
     /// v0.23 ticket 013.011: read-only command whitelist.
     /// Mirrors hermes read-only shell command safety pattern.
-    public static let readOnlyCommands: Set<String> = [
+    static let readOnlyCommands: Set<String> = [
         "ls",      // list directory
         "cat",     // read file
         "head",    // read file head
@@ -141,7 +141,7 @@ public struct ProcessTools: Tool, Sendable {
     /// The read happens on a background dispatch queue while the main
     /// thread waits for termination; once the process exits both buffers
     /// are closed and the read completes.
-    public func run(executable: String, arguments: [String] = [], workingDirectory: String? = nil) throws -> ProcessResult {
+    func run(executable: String, arguments: [String] = [], workingDirectory: String? = nil) throws -> ProcessResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
@@ -198,7 +198,7 @@ public struct ProcessTools: Tool, Sendable {
     /// (stub below replaced by the deny-only runShell earlier in this file.)
 
     /// isRunning: process yesno (Apple Process)
-    public func isRunning(processID: Int32) -> Bool {
+    func isRunning(processID: Int32) -> Bool {
         kill(processID, 0) == 0
     }
 }
@@ -217,7 +217,7 @@ extension ProcessTools {
     /// so the LLM knows the tool name exists and that it is
     /// permanently blocked from chat; use wenshu-devtool CLI for
     /// legitimate shell access.
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "process",

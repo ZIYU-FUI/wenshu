@@ -47,14 +47,14 @@ import Foundation
 
 /// Maximum inline-shell output (= hermes `_INLINE_SHELL_MAX_OUTPUT`
 /// at `agent/skill_preprocessing.py` L20 = 4000 chars).
-public let inlineShellMaxOutput = 4000
+let inlineShellMaxOutput = 4000
 
 /// Matches `${HERMES_SKILL_DIR}` / `${HERMES_SESSION_ID}` tokens
 /// in SKILL.md (= hermes `_SKILL_TEMPLATE_RE` at L13).
 ///
 /// Tokens that don't resolve (= e.g. `${HERMES_SESSION_ID}` with
 /// no session) are left as-is so the user can debug them.
-public let skillTemplateVarRegex = try! NSRegularExpression(
+let skillTemplateVarRegex = try! NSRegularExpression(
     pattern: #"\$\{(HERMES_SKILL_DIR|HERMES_SESSION_ID)\}"#
 )
 
@@ -64,7 +64,7 @@ public let skillTemplateVarRegex = try! NSRegularExpression(
 /// Non-greedy, single-line only -- no newlines inside the
 /// backticks. Matches empty snippets too (= `!```) per the
 /// hermes `expand_inline_shell` L106-L124 contract.
-public let inlineShellRegex = try! NSRegularExpression(
+let inlineShellRegex = try! NSRegularExpression(
     pattern: #"!`([^`\n]*)`"#
 )
 
@@ -78,7 +78,7 @@ public let inlineShellRegex = try! NSRegularExpression(
 /// config.yaml. Returns an empty dict as the best-effort
 /// fallback (= matches hermes's `return {}` fallback when
 /// config can't be loaded).
-public func loadSkillsConfig() -> [String: Any] {
+func loadSkillsConfig() -> [String: Any] {
     // Wenshu-side wins: best-effort load from .ws bundle config.
     // The actual .ws plist parsing is a future ticket (= per
     // AGENTS.md §11 .ws bundle = per-book container; = skill
@@ -93,7 +93,7 @@ public func loadSkillsConfig() -> [String: Any] {
 /// Only substitutes tokens for which a concrete value is
 /// available -- unresolved tokens are left in place so the
 /// author can spot them.
-public func substituteTemplateVars(
+func substituteTemplateVars(
     content: String,
     skillDir: URL?,
     sessionID: String?
@@ -158,7 +158,7 @@ public func substituteTemplateVars(
 ///     synchronous /bin/bash invocation.
 /// - Returns: The command stdout (= trimmed), or an error
 ///   marker on failure.
-public func runInlineShell(
+func runInlineShell(
     command: String,
     cwd: URL?,
     timeout: Int,
@@ -210,13 +210,13 @@ public func runInlineShell(
 
 /// Result of an inline-shell execution (= hermes
 /// `subprocess.CompletedProcess` shape).
-public struct InlineShellResult: Sendable {
-    public let stdout: String
-    public let stderr: String
-    public let exitCode: Int32
-    public let timedOut: Bool
+struct InlineShellResult: Sendable {
+    let stdout: String
+    let stderr: String
+    let exitCode: Int32
+    let timedOut: Bool
 
-    public init(stdout: String, stderr: String, exitCode: Int32, timedOut: Bool = false) {
+    init(stdout: String, stderr: String, exitCode: Int32, timedOut: Bool = false) {
         self.stdout = stdout
         self.stderr = stderr
         self.exitCode = exitCode
@@ -249,7 +249,7 @@ private func formatInlineShellResult(
 /// Runs each snippet with the skill directory as CWD so
 /// relative paths in the snippet work the way the author
 /// expects.
-public func expandInlineShell(
+func expandInlineShell(
     content: String,
     skillDir: URL?,
     timeout: Int,
@@ -298,7 +298,7 @@ public func expandInlineShell(
 /// - `template_vars` (= default true): enable `${HERMES_*}` substitution
 /// - `inline_shell` (= default false): enable ``!`cmd`` `` substitution
 /// - `inline_shell_timeout` (= default 10): inline-shell timeout in seconds
-public func preprocessSkillContent(
+func preprocessSkillContent(
     content: String,
     skillDir: URL?,
     sessionID: String? = nil,

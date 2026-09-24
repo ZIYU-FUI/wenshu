@@ -11,14 +11,14 @@
 import Foundation
 
 /// Backup metadata truth
-public struct BackupMetadata: Equatable, Sendable {
-    public let id: String
-    public let sourcePath: String
-    public let archivePath: String
-    public let size: Int64
-    public let createdAt: Date
+struct BackupMetadata: Equatable, Sendable {
+    let id: String
+    let sourcePath: String
+    let archivePath: String
+    let size: Int64
+    let createdAt: Date
 
-    public init(id: String, sourcePath: String, archivePath: String, size: Int64, createdAt: Date) {
+    init(id: String, sourcePath: String, archivePath: String, size: Int64, createdAt: Date) {
         self.id = id
         self.sourcePath = sourcePath
         self.archivePath = archivePath
@@ -28,12 +28,12 @@ public struct BackupMetadata: Equatable, Sendable {
 }
 
 /// Backup (wenshu backup)
-public struct BackupTools: Sendable {
-    public init() {}
+struct BackupTools: Sendable {
+    init() {}
 
     /// backup: createdirectory ZIP backup
     ///: ZIP, .tar.gz not ok (Apple tar), change NSFileCoordinator + copydirectorybackupdirectory
-    public func backup(sourceDir: String, backupDir: String? = nil) throws -> BackupMetadata {
+    func backup(sourceDir: String, backupDir: String? = nil) throws -> BackupMetadata {
         let fm = FileManager.default
         let sourceURL = URL(fileURLWithPath: sourceDir, isDirectory: true)
         guard fm.fileExists(atPath: sourceURL.path) else {
@@ -63,7 +63,7 @@ public struct BackupTools: Sendable {
     }
 
     /// list: backup
-    public func list(backupDir: String? = nil) throws -> [BackupMetadata] {
+    func list(backupDir: String? = nil) throws -> [BackupMetadata] {
         let fm = FileManager.default
         let destDir: URL
         if let backupDir = backupDir {
@@ -89,7 +89,7 @@ public struct BackupTools: Sendable {
     }
 
     /// restore: backuprestore (copy)
-    public func restore(backupName: String, to destDir: String, backupDir: String? = nil) throws {
+    func restore(backupName: String, to destDir: String, backupDir: String? = nil) throws {
         let fm = FileManager.default
         let destRoot: URL
         if let backupDir = backupDir {
@@ -105,7 +105,7 @@ public struct BackupTools: Sendable {
     }
 
     /// delete: 1 backup
-    public func delete(backupName: String, backupDir: String? = nil) throws {
+    func delete(backupName: String, backupDir: String? = nil) throws {
         let fm = FileManager.default
         let destRoot: URL
         if let backupDir = backupDir {
@@ -135,12 +135,12 @@ public struct BackupTools: Sendable {
     }
 }
 
-public enum BackupError: Error {
+enum BackupError: Error {
     case sourceNotFound(path: String)
 }
 
 extension BackupError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .sourceNotFound(let path):
             return "Backup source not found: \(path)"

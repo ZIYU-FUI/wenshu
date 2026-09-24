@@ -20,12 +20,12 @@ import AppKit
 #endif
 
 /// (hermes vision_analyze text field)
-public struct VisionTextResult: Equatable, Sendable {
-    public let text: String
-    public let confidence: Float
-    public let boundingBox: CGRect
+struct VisionTextResult: Equatable, Sendable {
+    let text: String
+    let confidence: Float
+    let boundingBox: CGRect
 
-    public init(text: String, confidence: Float, boundingBox: CGRect) {
+    init(text: String, confidence: Float, boundingBox: CGRect) {
         self.text = text
         self.confidence = confidence
         self.boundingBox = boundingBox
@@ -33,26 +33,26 @@ public struct VisionTextResult: Equatable, Sendable {
 }
 
 /// (hermes vision_analyze classifications field)
-public struct VisionClassification: Equatable, Sendable {
-    public let identifier: String
-    public let confidence: Float
+struct VisionClassification: Equatable, Sendable {
+    let identifier: String
+    let confidence: Float
 
-    public init(identifier: String, confidence: Float) {
+    init(identifier: String, confidence: Float) {
         self.identifier = identifier
         self.confidence = confidence
     }
 }
 
 /// VisionTools: local vision (Vision framework)
-public struct VisionTools: Tool, Sendable {
-    public init() {}
+struct VisionTools: Tool, Sendable {
+    init() {}
 
     /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): parse the
     /// JSON input envelope and dispatch to the existing methods
     /// (= recognizeText / classify). Mirrors the
     /// `WenshuConductor.invokeTool(name: "vision", ...)` switch
     /// semantics.
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         // Empty / whitespace input = treat as default text recognition.
         // (= matches the legacy `WenshuConductor.invokeTool("vision")`
         // behavior of using the input string verbatim as the image path.)
@@ -84,7 +84,7 @@ public struct VisionTools: Tool, Sendable {
     }
 
     /// recognizeText: (VNRecognizeTextRequest)
-    public func recognizeText(imagePath: String) async throws -> [VisionTextResult] {
+    func recognizeText(imagePath: String) async throws -> [VisionTextResult] {
         #if canImport(Vision) && canImport(AppKit)
         guard let image = NSImage(contentsOfFile: imagePath),
               let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
@@ -122,7 +122,7 @@ public struct VisionTools: Tool, Sendable {
     }
 
     /// classify: (VNClassifyImageRequest)
-    public func classify(imagePath: String, limit: Int = 5) async throws -> [VisionClassification] {
+    func classify(imagePath: String, limit: Int = 5) async throws -> [VisionClassification] {
         #if canImport(Vision) && canImport(AppKit)
         guard let image = NSImage(contentsOfFile: imagePath),
               let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
@@ -153,7 +153,7 @@ public struct VisionTools: Tool, Sendable {
     }
 }
 
-public enum VisionToolsError: Error {
+enum VisionToolsError: Error {
     case imageLoadFailed(path: String)
     case platformNotSupported
 }
@@ -165,7 +165,7 @@ extension VisionTools {
     /// `tools/registry.py` `register()` 1:1). Fires once at first
     /// type access; the underlying `Task` schedules the async
     /// `register(...)` call off the init thread.
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "vision",
@@ -195,7 +195,7 @@ extension VisionTools {
 }
 
 extension VisionToolsError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .imageLoadFailed(let path):
             return "Failed to load image at: \(path)"

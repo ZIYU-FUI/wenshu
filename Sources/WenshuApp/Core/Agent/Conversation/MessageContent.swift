@@ -13,11 +13,11 @@
 
 import Foundation
 
-public enum MessageContent {
+enum MessageContent {
 
     /// Canonicalize a block list: drop empty .text("") blocks,
     /// preserve all other blocks in order.
-    public static func canonicalize(_ blocks: [LLMBlock]) -> [LLMBlock] {
+    static func canonicalize(_ blocks: [LLMBlock]) -> [LLMBlock] {
         blocks.filter { block in
             switch block {
             case .text(let s):
@@ -35,7 +35,7 @@ public enum MessageContent {
     /// Coalesce adjacent .text blocks into one. Non-text blocks (= thinking,
     /// tool_use, tool_result) are NEVER coalesced (= they carry structured
     /// semantics that must be preserved).
-    public static func coalesceAdjacentText(_ blocks: [LLMBlock]) -> [LLMBlock] {
+    static func coalesceAdjacentText(_ blocks: [LLMBlock]) -> [LLMBlock] {
         var result: [LLMBlock] = []
         for block in blocks {
             if case .text(let s) = block {
@@ -167,7 +167,7 @@ public enum MessageContent {
     ///     (= default "\n"; = hermes default).
     /// - Returns: The extracted visible text (= never nil;
     ///   = empty string for unrecoverable content).
-    public static func flattenMessageText(
+    static func flattenMessageText(
         _ content: Any,
         sep: String = "\n"
     ) -> String {

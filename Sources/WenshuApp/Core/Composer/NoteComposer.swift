@@ -10,7 +10,7 @@
 import Foundation
 
 /// Composer error
-public enum ComposerError: Error, Equatable {
+enum ComposerError: Error, Equatable {
     case sourceNotFound(docId: String)
     case targetNotFound(docId: String)
     case invalidRange(startLine: Int, endLine: Int)
@@ -21,14 +21,14 @@ public enum ComposerError: Error, Equatable {
 ///
 ///: autorewrite markdown content [[old_name]] / [[old_name|alias]] → [[new_name]] / [[new_name|alias]]
 /// Apple HIG: NSRegularExpression replace [[wikilink]]
-public enum NoteComposer {
+enum NoteComposer {
 
     // MARK: - Rename
 
     /// rename note (doc_name + content)
     /// - renameautorewrite source content [[old_name]] → [[new_name]] (alias)
     /// - → (DocumentIndexing update)
-    public static func rename(oldName: String, newName: String, content: String) -> String {
+    static func rename(oldName: String, newName: String, content: String) -> String {
         return rewriteWikilinks(replacing: oldName, with: newName, in: content)
     }
 
@@ -37,7 +37,7 @@ public enum NoteComposer {
     /// merge note → 1 note
     ///: source contents, in progressok, source [[source_name]] linkrewrite [[target_name]]
     /// Apple HIG: NSRegularExpression rewrite
-    public static func merge(
+    static func merge(
         targetName: String,
         sourceContents: [(name: String, content: String)]
     ) -> String {
@@ -81,7 +81,7 @@ public enum NoteComposer {
     // MARK: - Split
     /// split note (ok)
     /// Apple HIG: String.components(separatedBy: \n)
-    public static func split(
+    static func split(
         content: String,
         startLine: Int,
         endLine: Int
@@ -101,7 +101,7 @@ public enum NoteComposer {
 }
 
 extension ComposerError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .sourceNotFound(let docId):
             return "Source document not found: \(docId)"

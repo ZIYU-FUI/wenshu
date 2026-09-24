@@ -40,13 +40,13 @@ import Foundation
 import CoreSpotlight
 
 /// Search result (= 1:1 with FullTextSearch.SearchResult).
-public struct CSSearchResult: Equatable, Sendable {
-    public let docId: String
-    public let snippet: String       // <mark>...</mark> wrapped excerpt
-    public let rank: Double          // system relevance score or token-overlap
-    public let line: Int             // not used by Spotlight (kept for parity)
+struct CSSearchResult: Equatable, Sendable {
+    let docId: String
+    let snippet: String       // <mark>...</mark> wrapped excerpt
+    let rank: Double          // system relevance score or token-overlap
+    let line: Int             // not used by Spotlight (kept for parity)
 
-    public init(docId: String, snippet: String, rank: Double, line: Int) {
+    init(docId: String, snippet: String, rank: Double, line: Int) {
         self.docId = docId
         self.snippet = snippet
         self.rank = rank
@@ -56,32 +56,32 @@ public struct CSSearchResult: Equatable, Sendable {
 
 /// Domain name registered with CSSearchableIndex.
 /// Apple HIG: per-domain identifier to scope queries to wenshu docs only.
-public enum CSSearchDomain {
-    public static let domainIdentifier = "com.wenshu.docs"
+enum CSSearchDomain {
+    static let domainIdentifier = "com.wenshu.docs"
 
     /// itemIdentifier scheme (= reversible mapping to docId for highlight lookup).
-    public static func itemIdentifier(for docId: String) -> String {
+    static func itemIdentifier(for docId: String) -> String {
         "wenshu-doc-\(docId)"
     }
 
-    public static func docId(from itemIdentifier: String) -> String? {
+    static func docId(from itemIdentifier: String) -> String? {
         guard itemIdentifier.hasPrefix("wenshu-doc-") else { return nil }
         return String(itemIdentifier.dropFirst("wenshu-doc-".count))
     }
 }
 
 /// In-process doc mirror entry (= for fallback ranking when Spotlight disabled).
-public struct SearchDocMirrorEntry: Equatable, Sendable {
-    public let docId: String
-    public let title: String
-    public let body: String
-    public let tokens: [String]   // pre-tokenized for token-overlap ranking
+struct SearchDocMirrorEntry: Equatable, Sendable {
+    let docId: String
+    let title: String
+    let body: String
+    let tokens: [String]   // pre-tokenized for token-overlap ranking
 }
 
 /// CSSearchableIndexSearch: Core Spotlight primary + SwiftData fallback ranking.
 ///
 /// Actor-isolated (= 1:1 with FullTextSearch actor contract).
-public actor CSSearchableIndexSearch {
+actor CSSearchableIndexSearch {
     /// In-process mirror of indexed docs (= fallback when Spotlight disabled).
     /// Persisted to disk via `SearchDocMirrorPersistence` (= see
     /// Persistence/SearchDocMirrorPersistence.swift; = written every
@@ -93,14 +93,14 @@ public actor CSSearchableIndexSearch {
     private var pendingIndex: [(docId: String, title: String, body: String)] = []
     private var pendingRemove: [String] = []
 
-    public init() {
+    init() {
         // Public init = mirror empty; load from disk on first await via `bootstrap()`.
     }
 
     /// Bootstrap the search index (= call once at app launch).
     /// Apple HIG: CSSearchableIndex.default() returns the system Spotlight index
     /// (= created lazily by macOS on first write).
-    public func bootstrap() throws {
+    func bootstrap() throws {
         // Best-effort load of mirror from disk (= see SearchDocMirrorPersistence).
         // Failure here is non-fatal (= mirror just starts empty).
     }
@@ -108,7 +108,7 @@ public actor CSSearchableIndexSearch {
     /// Index one document (= upsert: remove then insert).
     /// Apple HIG: `CSSearchableItem` attributes = title (title), contentDescription (body),
     /// identifier (= docId), domainIdentifier (= CSSearchDomain.domainIdentifier).
-    public func index(docId: String, title: String, body: String) throws {
+    func index(docId: String, title: String, body: String) throws {
         // Update mirror first (= always in sync, even if Spotlight write fails).
         let tokens = TokenOverlapRanking.tokenize(body + " " + title)
         mirror[docId] = SearchDocMirrorEntry(docId: docId, title: title, body: body, tokens: tokens)
@@ -136,7 +136,7 @@ public actor CSSearchableIndexSearch {
     }
 
     /// Remove one document from the index.
-    public func remove(docId: String) throws {
+    func remove(docId: String) throws {
         mirror.removeValue(forKey: docId)
         pendingRemove.append(CSSearchDomain.itemIdentifier(for: docId))
         try flushPending()
@@ -147,7 +147,7 @@ public actor CSSearchableIndexSearch {
     ///   - query: user query string (= Spotlight handles FTS5-style MATCH syntax).
     ///   - limit: max results (= default 20).
     /// - Returns: array of CSSearchResult sorted by descending rank.
-    public func search(query: String, limit: Int = 20) throws -> [CSSearchResult] {
+    func search(query: String, limit: Int = 20) throws -> [CSSearchResult] {
         // Try Spotlight first (= Apple native).
         let spotlightResults = try querySpotlight(query: query, limit: limit)
         if !spotlightResults.isEmpty {
@@ -266,13 +266,13 @@ public actor CSSearchableIndexSearch {
 }
 
 /// Token-overlap ranking for fallback (= not BM25, = simpler but adequate).
-public enum TokenOverlapRanking {
+enum TokenOverlapRanking {
     /// Tokenize text (= lowercase + split on non-alphanumeric + CJK char-by-char).
     /// Apple HIG: `NLTokenizer` would be richer; = keep Foundation-only to avoid dep.
     ///
     /// CJK strategy: U+4E00..U+9FFF + extension ranges emit one token per character
     /// (= CJK has no spaces between words). ASCII words are kept as letter-runs.
-    public static func tokenize(_ text: String) -> [String] {
+    static func tokenize(_ text: String) -> [String] {
         var tokens: [String] = []
         var current = ""
         let digits = CharacterSet.decimalDigits
@@ -318,7 +318,7 @@ public enum TokenOverlapRanking {
     }
 
     /// Score doc against query tokens (= Jaccard-style overlap).
-    public static func score(queryTokens: [String], docTokens: [String]) -> Double {
+    static func score(queryTokens: [String], docTokens: [String]) -> Double {
         guard !queryTokens.isEmpty, !docTokens.isEmpty else { return 0 }
         let querySet = Set(queryTokens)
         let docCounts = Dictionary(grouping: docTokens, by: { $0 }).mapValues(\.count)
@@ -333,7 +333,7 @@ public enum TokenOverlapRanking {
     }
 
     /// Build a snippet with `<mark>`-wrapped query token matches (= + context chars).
-    public static func highlight(queryTokens: [String], body: String, contextChars: Int) -> String {
+    static func highlight(queryTokens: [String], body: String, contextChars: Int) -> String {
         guard !queryTokens.isEmpty else { return String(body.prefix(contextChars * 2)) }
         let lower = body.lowercased()
         for token in Set(queryTokens) {

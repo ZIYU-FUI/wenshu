@@ -43,7 +43,7 @@ import Foundation
 /// Wenshu-side wins: the wenshu FileTools surface uses these
 /// exact canonical names (= `FileTools.writeFile` + 
 /// `FileTools.patchFile` in `Core/Tools/FileTools.swift`).
-public let fileMutatingToolNames: Set<String> = ["write_file", "patch"]
+let fileMutatingToolNames: Set<String> = ["write_file", "patch"]
 
 // MARK: - Public API
 
@@ -63,7 +63,7 @@ public let fileMutatingToolNames: Set<String> = ["write_file", "patch"]
 ///
 /// Wenshu-side wins: tool names are wenshu's canonical names
 /// (= match the names registered in `Core/Tools/FileTools.swift`).
-public func fileMutationResultLanded(toolName: String, result: Any) -> Bool {
+func fileMutationResultLanded(toolName: String, result: Any) -> Bool {
     guard fileMutatingToolNames.contains(toolName) else {
         return false
     }

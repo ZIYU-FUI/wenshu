@@ -14,17 +14,17 @@
 
 import Foundation
 
-public protocol Tool: Sendable {
+protocol Tool: Sendable {
     func execute(input: String) async throws -> String
 }
 
 /// Errors thrown by Tool.execute or ToolExecutor dispatch.
-public enum ToolExecutorError: Error, LocalizedError, Sendable {
+enum ToolExecutorError: Error, LocalizedError, Sendable {
     case toolNotFound(name: String)
     case toolFailed(name: String, underlying: String)
     case invalidInput(name: String, reason: String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .toolNotFound(let n):
             return String(format: "Tool '%@' not found in registry.", n)

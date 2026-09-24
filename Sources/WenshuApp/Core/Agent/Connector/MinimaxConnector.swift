@@ -35,18 +35,18 @@
 
 import Foundation
 
-public actor MinimaxConnector: LLMConnector {
-    public nonisolated let connectorID = "minimax-cn"
+actor MinimaxConnector: LLMConnector {
+    nonisolated let connectorID = "minimax-cn"
 
     private let session: URLSession
     private let useCacheControl: Bool
 
-    public init(session: URLSession = .shared, useCacheControl: Bool = true) {
+    init(session: URLSession = .shared, useCacheControl: Bool = true) {
         self.session = session
         self.useCacheControl = useCacheControl
     }
 
-    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: .minimaxCn)
 
         guard !credentials.apiKey.isEmpty else {

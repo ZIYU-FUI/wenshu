@@ -27,22 +27,22 @@
 import Foundation
 
 @MainActor
-public final class MemoryAdapter {
-    public struct MemoryEntry: Sendable, Equatable, Identifiable {
-        public let id: String
-        public let source: String
-        public let snippet: String
-        public let relevanceScore: Double
-        public var idString: String { id }
+final class MemoryAdapter {
+    struct MemoryEntry: Sendable, Equatable, Identifiable {
+        let id: String
+        let source: String
+        let snippet: String
+        let relevanceScore: Double
+        var idString: String { id }
     }
 
-    public enum DefaultsKey {
-        public static let enabled = "wenshu.memory.enabled"
-        public static let scope = "wenshu.memory.scope"
-        public static let retentionDays = "wenshu.memory.retentionDays"
+    enum DefaultsKey {
+        static let enabled = "wenshu.memory.enabled"
+        static let scope = "wenshu.memory.scope"
+        static let retentionDays = "wenshu.memory.retentionDays"
     }
 
-    public enum MemoryScope: String, CaseIterable, Sendable {
+    enum MemoryScope: String, CaseIterable, Sendable {
         case perBook
         case global
         case libraryPublic
@@ -56,44 +56,44 @@ public final class MemoryAdapter {
     /// MemoryManager + WSMemoryProvider.
     private let memory: WSMemoryRepository
 
-    public init(defaults: UserDefaults = .standard, memory: WSMemoryRepository? = nil) {
+    init(defaults: UserDefaults = .standard, memory: WSMemoryRepository? = nil) {
         self.defaults = defaults
         self.memory = memory ?? .shared
     }
 
-    public var isEnabled: Bool {
+    var isEnabled: Bool {
         if defaults.object(forKey: DefaultsKey.enabled) == nil { return true }
         return defaults.bool(forKey: DefaultsKey.enabled)
     }
 
-    public var scope: MemoryScope {
+    var scope: MemoryScope {
         guard let raw = defaults.string(forKey: DefaultsKey.scope),
               let parsed = MemoryScope(rawValue: raw)
         else { return .perBook }
         return parsed
     }
 
-    public var retentionDays: Int {
+    var retentionDays: Int {
         if defaults.object(forKey: DefaultsKey.retentionDays) == nil { return 90 }
         let stored = defaults.integer(forKey: DefaultsKey.retentionDays)
         return min(max(stored, 7), 365)
     }
 
-    public func setEnabled(_ enabled: Bool) {
+    func setEnabled(_ enabled: Bool) {
         defaults.set(enabled, forKey: DefaultsKey.enabled)
     }
 
-    public func setScope(_ scope: MemoryScope) {
+    func setScope(_ scope: MemoryScope) {
         defaults.set(scope.rawValue, forKey: DefaultsKey.scope)
     }
 
-    public func setRetentionDays(_ days: Int) -> Int {
+    func setRetentionDays(_ days: Int) -> Int {
         let clamped = min(max(days, 7), 365)
         defaults.set(clamped, forKey: DefaultsKey.retentionDays)
         return (try? memory.purgeOlderThan(userId: defaultUserId, retentionDays: clamped)) ?? 0
     }
 
-    public func recentEntries(limit: Int = 20) -> [MemoryEntry] {
+    func recentEntries(limit: Int = 20) -> [MemoryEntry] {
         let rows = (try? memory.listRecent(userId: defaultUserId, limit: limit)) ?? []
         return rows.map { row in
             MemoryEntry(
@@ -105,14 +105,14 @@ public final class MemoryAdapter {
         }
     }
 
-    public func retrieve(forUserMessage userMessage: String, bookId: String? = nil) -> [MemoryEntry] {
+    func retrieve(forUserMessage userMessage: String, bookId: String? = nil) -> [MemoryEntry] {
         _ = bookId
         _ = userMessage
         guard isEnabled else { return [] }
         return []
     }
 
-    public func write(snippet: String, source: String, bookId: String? = nil) {
+    func write(snippet: String, source: String, bookId: String? = nil) {
         _ = bookId
         _ = snippet
         _ = source

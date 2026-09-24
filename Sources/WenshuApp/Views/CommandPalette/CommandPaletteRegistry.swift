@@ -42,7 +42,7 @@ struct CommandPaletteItem: Identifiable, Hashable, Sendable {
     /// paths (= .openSettings, .navigate, NotificationCenter post, etc.).
     let action: CommandPaletteAction
 
-    public init(
+    init(
         id: String,
         title: String,
         subtitle: String? = nil,
@@ -87,7 +87,7 @@ enum CommandPaletteAction: Sendable, Equatable, Hashable {
     /// The name is a string tag the SwiftUI layer can dispatch on.
     case custom(name: String)
 
-    public static func == (lhs: CommandPaletteAction, rhs: CommandPaletteAction) -> Bool {
+    static func == (lhs: CommandPaletteAction, rhs: CommandPaletteAction) -> Bool {
         switch (lhs, rhs) {
         case let (.invokeSkill(a1, a2), .invokeSkill(b1, b2)):
             return a1 == b1 && a2 == b2
@@ -140,15 +140,15 @@ enum CommandPaletteAction: Sendable, Equatable, Hashable {
 /// every parameter and return type (= CommandPaletteItem is Sendable,
 /// its action enum is Sendable). Closures-as-action would require
 /// `@Sendable` + main-actor hop + lose the type-safety enum gives.
-public actor CommandPaletteRegistry {
+actor CommandPaletteRegistry {
     /// Process-wide singleton (= same pattern as SkillKeywordMatcher.shared;
     /// the App.swift ⌘K menu posts to this; ChatView / Settings views
     /// observe it via SwiftUI .sheet binding).
-    public static let shared = CommandPaletteRegistry()
+    static let shared = CommandPaletteRegistry()
 
     private var items: [String: CommandPaletteItem] = [:]
 
-    public init() {}
+    init() {}
 
     /// Register an item. If the id is already taken, the new item wins
     /// (= same precedence as hermes slash_registry.register: latest

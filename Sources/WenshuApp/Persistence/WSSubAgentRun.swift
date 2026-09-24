@@ -10,8 +10,8 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSSubAgentRun {
-    @Attribute(.unique) public var id: String
+final class WSSubAgentRun {
+    @Attribute(.unique) var id: String
     /// FK to WSSession.sessionID (= string FK)
     var sessionID: String
     var taskDescription: String

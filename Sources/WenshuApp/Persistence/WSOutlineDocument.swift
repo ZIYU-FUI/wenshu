@@ -19,8 +19,8 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSOutlineDocument {
-    @Attribute(.unique) public var id: String
+final class WSOutlineDocument {
+    @Attribute(.unique) var id: String
     /// FK to WSBook.id
     var bookID: String
     /// Title shown in the card (= may differ from filename)

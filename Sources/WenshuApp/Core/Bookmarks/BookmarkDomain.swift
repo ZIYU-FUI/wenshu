@@ -23,13 +23,13 @@ import Foundation
 /// Domain type preserved 1:1 from the old BookmarkStore actor
 /// (= id + docId + label + createdAt). SwiftData persistence in
 /// WSBookmark + WSBookmarkRepository.
-public struct Bookmark: Equatable, Sendable, Identifiable {
-    public var id: String
-    public var docId: String
-    public var label: String
-    public var createdAt: Date
+struct Bookmark: Equatable, Sendable, Identifiable {
+    var id: String
+    var docId: String
+    var label: String
+    var createdAt: Date
 
-    public init(
+    init(
         id: String = UUID().uuidString,
         docId: String,
         label: String,

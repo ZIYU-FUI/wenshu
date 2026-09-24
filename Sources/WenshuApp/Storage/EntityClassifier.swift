@@ -46,12 +46,12 @@ import Foundation
 /// The LLM pass is opt-in (= boss can set `useLLMFallback = false` in
 /// Settings to force keyword-only classification = no LLM cost).
 struct EntityClassifier: Sendable {
-    public init() {}
+    init() {}
 
     /// Optional LLM callback (= signature matches WenshuConductor's
     /// chat completion). When nil, only keyword pass is used (= the
     /// default = keyword-only mode for offline + free use).
-    public typealias LLMCallback = @Sendable (String) async throws -> String
+    typealias LLMCallback = @Sendable (String) async throws -> String
 
     /// Classify a reference (= title + summary + body) into an
     /// EntityCategory. Always returns a category (= falls back to .z
@@ -226,7 +226,7 @@ struct EntityClassifier: Sendable {
     ///
     /// For ambiguous entities (= e.g. "" = politics K/D or
     /// history K), the LLM pass is the tie-breaker.
-    public static let keywords: [EntityCategory: [String]] = [
+    static let keywords: [EntityCategory: [String]] = [
         // A- Marx Lenin Mao Zedong Deng.
         .a: ["马克思", "列宁", "毛泽东", "邓小平", "共产主义", "社会主义", "共产党宣言", "资本论", "mao", "lenin", "marx", "communism"],
         // B — Philosophy, Religion

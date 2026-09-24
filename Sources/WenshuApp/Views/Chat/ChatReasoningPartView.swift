@@ -38,7 +38,7 @@ struct ChatReasoningPartView: View {
     // can collapse it manually via the disclosure chevron.
     @State private var isExpanded: Bool = true
 
-    public init(text: String, isRunning: Bool = false) {
+    init(text: String, isRunning: Bool = false) {
         self.text = text
         self.isRunning = isRunning
     }
@@ -115,7 +115,7 @@ extension AnyTransition {
     /// @MainActor-isolated (= it is only ever called from SwiftUI
     /// view bodies which run on the main actor).
     @MainActor
-    public static func wenshuThinkingAppear() -> AnyTransition {
+    static func wenshuThinkingAppear() -> AnyTransition {
         .asymmetric(
             insertion: .opacity.combined(with: .move(edge: .top)),
             removal: .opacity

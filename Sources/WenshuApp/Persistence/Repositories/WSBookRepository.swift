@@ -40,24 +40,24 @@ import Foundation
 import SwiftData
 
 @MainActor
-public final class WSBookRepository {
+final class WSBookRepository {
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
+    init(container: ModelContainer = WSPersistenceContainer.shared) {
         self.container = container
     }
 
     // MARK: - Shelves
 
-    public func listShelves() throws -> [WSBookShelf] {
+    func listShelves() throws -> [WSBookShelf] {
         let descriptor = FetchDescriptor<WSBookShelf>(
             sortBy: [SortDescriptor(\.position), SortDescriptor(\.createdAt)]
         )
         return try context.fetch(descriptor)
     }
 
-    public func getShelf(id: String) throws -> WSBookShelf? {
+    func getShelf(id: String) throws -> WSBookShelf? {
         let descriptor = FetchDescriptor<WSBookShelf>(
             predicate: #Predicate { $0.id == id }
         )
@@ -65,14 +65,14 @@ public final class WSBookRepository {
     }
 
     @discardableResult
-    public func createShelf(name: String, position: Int = 0) throws -> WSBookShelf {
+    func createShelf(name: String, position: Int = 0) throws -> WSBookShelf {
         let shelf = WSBookShelf(id: UUID().uuidString, name: name, position: position)
         context.insert(shelf)
         try context.save()
         return shelf
     }
 
-    public func renameShelf(id: String, to newName: String) throws {
+    func renameShelf(id: String, to newName: String) throws {
         guard let shelf = try getShelf(id: id) else {
             throw WSBookRepositoryError.notFound
         }
@@ -81,7 +81,7 @@ public final class WSBookRepository {
         try context.save()
     }
 
-    public func deleteShelf(id: String) throws {
+    func deleteShelf(id: String) throws {
         guard let shelf = try getShelf(id: id) else { return }
         context.delete(shelf)
         try context.save()
@@ -89,7 +89,7 @@ public final class WSBookRepository {
 
     // MARK: - Books
 
-    public func listBooks(shelfID: String? = nil) throws -> [WSBook] {
+    func listBooks(shelfID: String? = nil) throws -> [WSBook] {
         let descriptor: FetchDescriptor<WSBook>
         if let shelfID = shelfID {
             descriptor = FetchDescriptor<WSBook>(
@@ -104,7 +104,7 @@ public final class WSBookRepository {
         return try context.fetch(descriptor)
     }
 
-    public func getBook(id: String) throws -> WSBook? {
+    func getBook(id: String) throws -> WSBook? {
         let descriptor = FetchDescriptor<WSBook>(
             predicate: #Predicate { $0.id == id }
         )
@@ -112,7 +112,7 @@ public final class WSBookRepository {
     }
 
     @discardableResult
-    public func createBook(
+    func createBook(
         title: String,
         shelfID: String? = nil,
         idea: String? = nil,
@@ -130,7 +130,7 @@ public final class WSBookRepository {
         return book
     }
 
-    public func updateBook(
+    func updateBook(
         id: String,
         title: String? = nil,
         idea: String? = nil,
@@ -146,7 +146,7 @@ public final class WSBookRepository {
         try context.save()
     }
 
-    public func deleteBook(id: String) throws {
+    func deleteBook(id: String) throws {
         guard let book = try getBook(id: id) else { return }
         context.delete(book)
         try context.save()
@@ -154,7 +154,7 @@ public final class WSBookRepository {
 
     // MARK: - Chapters
 
-    public func listChapters(bookID: String) throws -> [WSChapter] {
+    func listChapters(bookID: String) throws -> [WSChapter] {
         let descriptor = FetchDescriptor<WSChapter>(
             predicate: #Predicate { $0.bookID == bookID },
             sortBy: [SortDescriptor(\.position)]
@@ -163,14 +163,14 @@ public final class WSBookRepository {
     }
 
     @discardableResult
-    public func createChapter(bookID: String, title: String, position: Int, status: String = "draft") throws -> WSChapter {
+    func createChapter(bookID: String, title: String, position: Int, status: String = "draft") throws -> WSChapter {
         let chapter = WSChapter(id: UUID().uuidString, bookID: bookID, title: title, position: position, status: status)
         context.insert(chapter)
         try context.save()
         return chapter
     }
 
-    public func updateChapterWordCount(id: String, wordCount: Int) throws {
+    func updateChapterWordCount(id: String, wordCount: Int) throws {
         let descriptor = FetchDescriptor<WSChapter>(
             predicate: #Predicate { $0.id == id }
         )
@@ -182,7 +182,7 @@ public final class WSBookRepository {
         try context.save()
     }
 
-    public func setChapterStatus(id: String, status: String) throws {
+    func setChapterStatus(id: String, status: String) throws {
         let descriptor = FetchDescriptor<WSChapter>(
             predicate: #Predicate { $0.id == id }
         )
@@ -194,7 +194,7 @@ public final class WSBookRepository {
         try context.save()
     }
 
-    public func deleteChapter(id: String) throws {
+    func deleteChapter(id: String) throws {
         let descriptor = FetchDescriptor<WSChapter>(
             predicate: #Predicate { $0.id == id }
         )
@@ -206,7 +206,7 @@ public final class WSBookRepository {
 
     // MARK: - Outline
 
-    public func listOutlineNodes(chapterID: String, parentID: String? = nil) throws -> [WSOutlineNode] {
+    func listOutlineNodes(chapterID: String, parentID: String? = nil) throws -> [WSOutlineNode] {
         let descriptor: FetchDescriptor<WSOutlineNode>
         if let parentID = parentID {
             descriptor = FetchDescriptor<WSOutlineNode>(
@@ -227,7 +227,7 @@ public final class WSBookRepository {
     }
 
     @discardableResult
-    public func createOutlineNode(chapterID: String, title: String, lineNumber: Int? = nil, parentID: String? = nil) throws -> WSOutlineNode {
+    func createOutlineNode(chapterID: String, title: String, lineNumber: Int? = nil, parentID: String? = nil) throws -> WSOutlineNode {
         let node = WSOutlineNode(
             id: UUID().uuidString,
             chapterID: chapterID,
@@ -240,7 +240,7 @@ public final class WSBookRepository {
         return node
     }
 
-    public func deleteOutlineNode(id: String) throws {
+    func deleteOutlineNode(id: String) throws {
         let descriptor = FetchDescriptor<WSOutlineNode>(
             predicate: #Predicate { $0.id == id }
         )
@@ -252,7 +252,7 @@ public final class WSBookRepository {
 
     // MARK: - Characters
 
-    public func listCharacters(bookID: String) throws -> [WSCharacter] {
+    func listCharacters(bookID: String) throws -> [WSCharacter] {
         let descriptor = FetchDescriptor<WSCharacter>(
             predicate: #Predicate { $0.bookID == bookID },
             sortBy: [SortDescriptor(\.name)]
@@ -261,7 +261,7 @@ public final class WSBookRepository {
     }
 
     @discardableResult
-    public func createCharacter(bookID: String, name: String, role: String = "other", summary: String = "") throws -> WSCharacter {
+    func createCharacter(bookID: String, name: String, role: String = "other", summary: String = "") throws -> WSCharacter {
         let character = WSCharacter(
             id: UUID().uuidString,
             bookID: bookID,
@@ -274,7 +274,7 @@ public final class WSBookRepository {
         return character
     }
 
-    public func deleteCharacter(id: String) throws {
+    func deleteCharacter(id: String) throws {
         let descriptor = FetchDescriptor<WSCharacter>(
             predicate: #Predicate { $0.id == id }
         )
@@ -286,7 +286,7 @@ public final class WSBookRepository {
 
     // MARK: - Worlds
 
-    public func listWorlds(bookID: String) throws -> [WSWorld] {
+    func listWorlds(bookID: String) throws -> [WSWorld] {
         let descriptor = FetchDescriptor<WSWorld>(
             predicate: #Predicate { $0.bookID == bookID },
             sortBy: [SortDescriptor(\.name)]
@@ -295,7 +295,7 @@ public final class WSBookRepository {
     }
 
     @discardableResult
-    public func createWorld(bookID: String, name: String, type: String = "other", summary: String = "") throws -> WSWorld {
+    func createWorld(bookID: String, name: String, type: String = "other", summary: String = "") throws -> WSWorld {
         let world = WSWorld(
             id: UUID().uuidString,
             bookID: bookID,
@@ -308,7 +308,7 @@ public final class WSBookRepository {
         return world
     }
 
-    public func deleteWorld(id: String) throws {
+    func deleteWorld(id: String) throws {
         let descriptor = FetchDescriptor<WSWorld>(
             predicate: #Predicate { $0.id == id }
         )
@@ -320,7 +320,7 @@ public final class WSBookRepository {
 
     // MARK: - Foreshadowing
 
-    public func listForeshadowings(bookID: String) throws -> [WSForeshadowing] {
+    func listForeshadowings(bookID: String) throws -> [WSForeshadowing] {
         let descriptor = FetchDescriptor<WSForeshadowing>(
             predicate: #Predicate { $0.bookID == bookID },
             sortBy: [SortDescriptor(\.createdAt)]
@@ -329,7 +329,7 @@ public final class WSBookRepository {
     }
 
     @discardableResult
-    public func createForeshadowing(
+    func createForeshadowing(
         bookID: String,
         title: String,
         foreshadowType: String = "plot",
@@ -349,7 +349,7 @@ public final class WSBookRepository {
         return f
     }
 
-    public func recallForeshadowing(id: String, recallChapterID: String) throws {
+    func recallForeshadowing(id: String, recallChapterID: String) throws {
         let descriptor = FetchDescriptor<WSForeshadowing>(
             predicate: #Predicate { $0.id == id }
         )
@@ -362,7 +362,7 @@ public final class WSBookRepository {
         try context.save()
     }
 
-    public func deleteForeshadowing(id: String) throws {
+    func deleteForeshadowing(id: String) throws {
         let descriptor = FetchDescriptor<WSForeshadowing>(
             predicate: #Predicate { $0.id == id }
         )
@@ -374,7 +374,7 @@ public final class WSBookRepository {
 
     // MARK: - Placeholders
 
-    public func listPlaceholders(bookID: String) throws -> [WSPlaceholder] {
+    func listPlaceholders(bookID: String) throws -> [WSPlaceholder] {
         let descriptor = FetchDescriptor<WSPlaceholder>(
             predicate: #Predicate { $0.bookID == bookID },
             sortBy: [SortDescriptor(\.lineNumber)]
@@ -383,7 +383,7 @@ public final class WSBookRepository {
     }
 
     @discardableResult
-    public func createPlaceholder(bookID: String, chapterID: String, lineNumber: Int, pattern: String, contextText: String = "") throws -> WSPlaceholder {
+    func createPlaceholder(bookID: String, chapterID: String, lineNumber: Int, pattern: String, contextText: String = "") throws -> WSPlaceholder {
         let p = WSPlaceholder(
             id: UUID().uuidString,
             bookID: bookID,
@@ -397,7 +397,7 @@ public final class WSBookRepository {
         return p
     }
 
-    public func resolvePlaceholder(id: String) throws {
+    func resolvePlaceholder(id: String) throws {
         let descriptor = FetchDescriptor<WSPlaceholder>(
             predicate: #Predicate { $0.id == id }
         )
@@ -409,7 +409,7 @@ public final class WSBookRepository {
         try context.save()
     }
 
-    public func deletePlaceholder(id: String) throws {
+    func deletePlaceholder(id: String) throws {
         let descriptor = FetchDescriptor<WSPlaceholder>(
             predicate: #Predicate { $0.id == id }
         )
@@ -421,7 +421,7 @@ public final class WSBookRepository {
 
     // MARK: - Outline Documents
 
-    public func listOutlineDocuments(bookID: String) throws -> [WSOutlineDocument] {
+    func listOutlineDocuments(bookID: String) throws -> [WSOutlineDocument] {
         let descriptor = FetchDescriptor<WSOutlineDocument>(
             predicate: #Predicate { $0.bookID == bookID },
             sortBy: [SortDescriptor(\.filename)]
@@ -430,7 +430,7 @@ public final class WSBookRepository {
     }
 
     @discardableResult
-    public func createOutlineDocument(bookID: String, title: String, filename: String, byteSize: Int = 0) throws -> WSOutlineDocument {
+    func createOutlineDocument(bookID: String, title: String, filename: String, byteSize: Int = 0) throws -> WSOutlineDocument {
         let doc = WSOutlineDocument(
             id: UUID().uuidString,
             bookID: bookID,
@@ -443,7 +443,7 @@ public final class WSBookRepository {
         return doc
     }
 
-    public func syncOutlineDocument(id: String, title: String, byteSize: Int, summaryExcerpt: String?) throws {
+    func syncOutlineDocument(id: String, title: String, byteSize: Int, summaryExcerpt: String?) throws {
         let descriptor = FetchDescriptor<WSOutlineDocument>(
             predicate: #Predicate { $0.id == id }
         )
@@ -454,7 +454,7 @@ public final class WSBookRepository {
         try context.save()
     }
 
-    public func deleteOutlineDocument(id: String) throws {
+    func deleteOutlineDocument(id: String) throws {
         let descriptor = FetchDescriptor<WSOutlineDocument>(
             predicate: #Predicate { $0.id == id }
         )
@@ -465,12 +465,12 @@ public final class WSBookRepository {
     }
 }
 
-public enum WSBookRepositoryError: Error {
+enum WSBookRepositoryError: Error {
     case notFound
 }
 
 extension WSBookRepositoryError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .notFound:
             return "Book not found."

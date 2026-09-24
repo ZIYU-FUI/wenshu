@@ -50,13 +50,13 @@ import Foundation
 /// Mirrors the OpenAI `function` tool shape: name + description +
 /// input properties + required-field list. `inputSchema` keys = property
 /// names, values = `ToolRegistrySchemaProperty`.
-public struct ToolRegistrySchema: Sendable, Equatable {
-    public let name: String
-    public let description: String
-    public let inputSchema: [String: ToolRegistrySchemaProperty]
-    public let required: [String]
+struct ToolRegistrySchema: Sendable, Equatable {
+    let name: String
+    let description: String
+    let inputSchema: [String: ToolRegistrySchemaProperty]
+    let required: [String]
 
-    public init(
+    init(
         name: String,
         description: String,
         inputSchema: [String: ToolRegistrySchemaProperty] = [:],
@@ -70,7 +70,7 @@ public struct ToolRegistrySchema: Sendable, Equatable {
 
     /// Render to a JSON-compatible dictionary (= hermes
     /// `schema_with_name` in `get_definitions`).
-    public func toJSON() -> [String: Any] {
+    func toJSON() -> [String: Any] {
         var props: [String: Any] = [:]
         for (key, prop) in inputSchema {
             props[key] = prop.toJSON()
@@ -98,10 +98,10 @@ public struct ToolRegistrySchema: Sendable, Equatable {
 /// `type` = "string" | "number" | "boolean" | "array" | "object".
 /// `enumValues` populated only when the value is a closed enum
 /// (= hermes uses `enum` arrays in JSON Schema).
-public struct ToolRegistrySchemaProperty: Sendable, Codable, Equatable {
-    public let type: String
-    public let description: String
-    public let enumValues: [String]?
+struct ToolRegistrySchemaProperty: Sendable, Codable, Equatable {
+    let type: String
+    let description: String
+    let enumValues: [String]?
 
     enum CodingKeys: String, CodingKey {
         case type
@@ -109,7 +109,7 @@ public struct ToolRegistrySchemaProperty: Sendable, Codable, Equatable {
         case enumValues = "enum"
     }
 
-    public init(
+    init(
         type: String,
         description: String,
         enumValues: [String]? = nil
@@ -120,7 +120,7 @@ public struct ToolRegistrySchemaProperty: Sendable, Codable, Equatable {
     }
 
     /// Render to a JSON-compatible dictionary.
-    public func toJSON() -> [String: Any] {
+    func toJSON() -> [String: Any] {
         var json: [String: Any] = [
             "type": type,
             "description": description
@@ -143,25 +143,25 @@ public struct ToolRegistrySchemaProperty: Sendable, Codable, Equatable {
 /// `dynamic_schema_overrides` (= Python-specific dynamic re-binding;
 /// Swift actor model makes this simpler: re-register with the new
 /// schema if config changes).
-public struct ToolEntry: Sendable {
-    public let name: String
-    public let toolset: String
-    public let schema: ToolRegistrySchema
+struct ToolEntry: Sendable {
+    let name: String
+    let toolset: String
+    let schema: ToolRegistrySchema
     /// Stable identifier for the handler slot (= `ObjectIdentifier` of
     /// the internal `HandlerBox` holding the `any Tool` instance). Use
     /// `registry.getHandler(name:)` to retrieve the live handler.
-    public let handlerID: ObjectIdentifier
+    let handlerID: ObjectIdentifier
     /// Optional availability check (= hermes `check_fn`). When
     /// `nil`, the tool is always available. When set, called
     /// synchronously at `getDefinitions` time.
-    public let checkFn: (@Sendable () -> Bool)?
-    public let requiresEnv: [String]
-    public let isAsync: Bool
-    public let description: String
-    public let emoji: String
-    public let maxResultSizeChars: Int?
+    let checkFn: (@Sendable () -> Bool)?
+    let requiresEnv: [String]
+    let isAsync: Bool
+    let description: String
+    let emoji: String
+    let maxResultSizeChars: Int?
 
-    public init(
+    init(
         name: String,
         toolset: String,
         schema: ToolRegistrySchema,
@@ -189,7 +189,7 @@ public struct ToolEntry: Sendable {
     /// synthesized). Excludes `checkFn` from comparison (= hermes
     /// treats two entries with the same metadata as equal regardless
     /// of the check callable identity).
-    public static func == (lhs: ToolEntry, rhs: ToolEntry) -> Bool {
+    static func == (lhs: ToolEntry, rhs: ToolEntry) -> Bool {
         lhs.name == rhs.name
             && lhs.toolset == rhs.toolset
             && lhs.schema == rhs.schema
@@ -253,13 +253,13 @@ private final class HandlerBoxIdentity: Sendable {}
 /// mutation (= `register`, `deregister`, `clear`). External callers
 /// can key their memoization on `generation()` (= equivalent of hermes
 /// cache invalidation on registry mutation).
-public actor ToolRegistry {
+actor ToolRegistry {
 
     /// Module-level singleton (= hermes `registry = ToolRegistry()`).
     /// Access also starts the production tool bootstraps. Swift static
     /// properties are lazy, so merely linking the tool files does not
     /// execute their registration initializers.
-    public nonisolated static var shared: ToolRegistry {
+    nonisolated static var shared: ToolRegistry {
         let registry = sharedStorage
         _ = ProductionToolRegistryBootstrap.start
         return registry
@@ -300,7 +300,7 @@ public actor ToolRegistry {
 
     // MARK: - Init
 
-    public init() {}
+    init() {}
 
     // MARK: - Register (= hermes `register()` L356-448)
 
@@ -311,7 +311,7 @@ public actor ToolRegistry {
     /// existing built-in tool implementation. Without it, registrations
     /// that would shadow an existing tool from a different toolset are
     /// rejected to prevent accidental overwrites.
-    public func register(
+    func register(
         name: String,
         toolset: String,
         schema: ToolRegistrySchema,
@@ -376,7 +376,7 @@ public actor ToolRegistry {
     /// pattern; = the wrapper schedules the async call off the init
     /// thread; = collapse each call site from 8-line `Task { ... }`
     /// to 1-line `Task { await registerTool(...) }`).
-    public func registerTool(
+    func registerTool(
         name: String,
         toolset: String,
         schema: ToolRegistrySchema,
@@ -394,7 +394,7 @@ public actor ToolRegistry {
         )
     }
 
-    public func lastRegisterError() -> String? { _lastRegisterError }
+    func lastRegisterError() -> String? { _lastRegisterError }
 
     // MARK: - Deregister (= hermes `deregister()` L450-515)
 
@@ -402,7 +402,7 @@ public actor ToolRegistry {
     ///
     /// Bumps the generation counter on success. No-op when the tool is
     /// not registered.
-    public func deregister(name: String) {
+    func deregister(name: String) {
         guard let entry = _tools[name] else { return }
         _tools.removeValue(forKey: name)
         // Drop the handler box if no other tool still references it.
@@ -422,7 +422,7 @@ public actor ToolRegistry {
     /// Only tools whose `checkFn` returns `true` (or have no `checkFn`)
     /// are included. Output is sorted by tool name (= hermes
     /// `sorted(tool_names)`).
-    public func getDefinitions(toolNames: Set<String>) -> [ToolRegistrySchema] {
+    func getDefinitions(toolNames: Set<String>) -> [ToolRegistrySchema] {
         var result: [ToolRegistrySchema] = []
         let sortedNames = toolNames.sorted()
         for name in sortedNames {
@@ -438,7 +438,7 @@ public actor ToolRegistry {
     // MARK: - Dispatch (= hermes `dispatch()` query helpers)
 
     /// Return the registered `Tool` handler for the given name, or nil.
-    public func getHandler(name: String) -> (any Tool)? {
+    func getHandler(name: String) -> (any Tool)? {
         guard let entry = _tools[name],
               let box = _handlers[entry.handlerID]
         else { return nil }
@@ -447,7 +447,7 @@ public actor ToolRegistry {
 
     /// Return the registered `ToolEntry` for the given name, or nil
     /// (= hermes `get_entry()`).
-    public func getEntry(name: String) -> ToolEntry? {
+    func getEntry(name: String) -> ToolEntry? {
         _tools[name]
     }
 
@@ -455,13 +455,13 @@ public actor ToolRegistry {
 
     /// Sorted list of all registered tool names (= hermes
     /// `get_all_tool_names()`).
-    public func getAllToolNames() -> [String] {
+    func getAllToolNames() -> [String] {
         _tools.keys.sorted()
     }
 
     /// Emoji for a given tool, or `default` if unset (= hermes
     /// `get_emoji()`).
-    public func getEmoji(name: String, default defaultEmoji: String = "⚡") -> String {
+    func getEmoji(name: String, default defaultEmoji: String = "⚡") -> String {
         guard let entry = _tools[name] else { return defaultEmoji }
         return entry.emoji.isEmpty ? defaultEmoji : entry.emoji
     }
@@ -470,7 +470,7 @@ public actor ToolRegistry {
 
     /// Drop all registrations (= testing convenience; hermes equivalent
     /// achieved via `registry._tools.clear()`).
-    public func clear() {
+    func clear() {
         _tools.removeAll()
         _handlers.removeAll()
         _lastRegisterError = nil
@@ -480,12 +480,12 @@ public actor ToolRegistry {
     /// Current mutation generation (= hermes `_generation`).
     /// External callers can key memoization on this (= cache is valid
     /// while generation is unchanged).
-    public func generation() -> Int {
+    func generation() -> Int {
         _generation
     }
 
     /// Total number of registered tools (= hermes `len(_tools)`).
-    public func count() -> Int {
+    func count() -> Int {
         _tools.count
     }
 }

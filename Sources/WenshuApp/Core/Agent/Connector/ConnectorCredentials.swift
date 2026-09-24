@@ -27,15 +27,15 @@ import Foundation
 // WSProviderKeyRepository.
 #warning("wenshu.connector-credentials: metadata load is sqlite-backed; = migrate to WSProviderKeyRepository in future ticket")
 
-public struct ConnectorCredentials: Sendable {
-    public let provider: Provider
-    public let apiKey: String
-    public let baseURL: String
+struct ConnectorCredentials: Sendable {
+    let provider: Provider
+    let apiKey: String
+    let baseURL: String
     /// v0.36 ticket 012: rotation metadata (= expiry + OAuth tokens).
     /// nil if metadata not yet loaded (= fresh key, no rotation tracking).
-    public let metadata: ProviderKeychainMetadata?
+    let metadata: ProviderKeychainMetadata?
 
-    public init(
+    init(
         provider: Provider,
         apiKey: String,
         baseURL: String,
@@ -57,7 +57,7 @@ public struct ConnectorCredentials: Sendable {
     ///   - provider: The connector profile (= Provider enum from Core/Provider).
     /// - Returns: ConnectorCredentials with apiKey from Keychain (= "" for
     ///   no-auth providers like Ollama) and baseURL from Provider.defaultBaseURL.
-    public static func resolve(for provider: Provider) -> ConnectorCredentials {
+    static func resolve(for provider: Provider) -> ConnectorCredentials {
         let key: String
         // Ollama = local, no auth (= per AGENTS.md §11.2 P1 row "Ollama | None (local)")
         if provider.slug == "ollama" {
@@ -77,14 +77,14 @@ public struct ConnectorCredentials: Sendable {
 
     /// True if credentials have rotation metadata AND metadata is expired.
     /// Caller should trigger OAuth refresh before using these credentials.
-    public var needsRotation: Bool {
+    var needsRotation: Bool {
         guard let metadata else { return false }
         return metadata.isExpired && metadata.isOAuth
     }
 
     /// True if credentials are ready to use for an LLM call.
     /// (= have a non-empty apiKey, or no auth required like Ollama).
-    public var isReady: Bool {
+    var isReady: Bool {
         if provider.slug == "ollama" { return true }
         return !apiKey.isEmpty
     }

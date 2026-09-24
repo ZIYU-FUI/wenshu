@@ -60,31 +60,31 @@ import SwiftUI
 @MainActor
 struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
     /// Tab items to display.
-    public let items: [Item]
+    let items: [Item]
 
     /// KeyPath to extract the tab's String id (= used for selection binding).
-    public let idKeyPath: KeyPath<Item, String>
+    let idKeyPath: KeyPath<Item, String>
 
     /// KeyPath to extract the tab's SF Symbols 6 icon name
     /// (= canonical Apple SF Symbol identifier, e.g. "books.vertical").
-    public let iconKeyPath: KeyPath<Item, String>
+    let iconKeyPath: KeyPath<Item, String>
 
     /// KeyPath to extract the tab's accessibility label.
-    public let labelKeyPath: KeyPath<Item, String>
+    let labelKeyPath: KeyPath<Item, String>
 
     /// Currently selected tab id (= drives `PaneIconTab.isSelected`).
-    @Binding public var selection: String
+    @Binding var selection: String
 
     /// SwiftUI namespace for the matchedGeometryEffect underline.
-    public let namespace: Namespace.ID
+    let namespace: Namespace.ID
 
     /// matchedGeometryEffect ID for the underline rectangle.
-    public let namespaceID: String
+    let namespaceID: String
 
     /// Optional trailing buttons (= rendered at rightmost edge with Spacer).
-    @ViewBuilder public let trailing: () -> Trailing
+    @ViewBuilder let trailing: () -> Trailing
 
-    public init(
+    init(
         items: [Item],
         idKeyPath: KeyPath<Item, String>,
         iconKeyPath: KeyPath<Item, String>,
@@ -105,7 +105,7 @@ struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
     }
 
     /// Convenience initializer for `PaneTabItem` (= the most common item type).
-    public init(
+    init(
         items: [PaneTabItem],
         selection: Binding<String>,
         namespace: Namespace.ID,
@@ -124,7 +124,7 @@ struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
         )
     }
 
-    public var body: some View {
+    var body: some View {
         // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
         // RegionTabBar wrapper (= per Plan A = the tab bar = PaneTabBar
         // = is the direct content = no chrome wrapper above). The
@@ -190,11 +190,11 @@ struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
 /// Convenience value type for `PaneTabBar` items (= used when caller
 /// doesn't have a custom Identifiable type).
 struct PaneTabItem: Identifiable, Sendable {
-    public let id: String
-    public let icon: String
-    public let label: String
+    let id: String
+    let icon: String
+    let label: String
 
-    public init(id: String, icon: String, label: String) {
+    init(id: String, icon: String, label: String) {
         self.id = id
         self.icon = icon
         self.label = label
@@ -217,17 +217,17 @@ struct PaneTabItem: Identifiable, Sendable {
 // the wrapper was deleted in v0.34).
 @MainActor
 struct PaneTrailingIconButton: View {
-    public let icon: String
-    public let tooltip: String
-    public let action: () -> Void
+    let icon: String
+    let tooltip: String
+    let action: () -> Void
 
-    public init(icon: String, tooltip: String, action: @escaping () -> Void) {
+    init(icon: String, tooltip: String, action: @escaping () -> Void) {
         self.icon = icon
         self.tooltip = tooltip
         self.action = action
     }
 
-    public var body: some View {
+    var body: some View {
         Button(action: action) {
             Color.clear
                 .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)

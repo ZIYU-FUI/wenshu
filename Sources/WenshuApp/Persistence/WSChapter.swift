@@ -10,8 +10,8 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSChapter {
-    @Attribute(.unique) public var id: String
+final class WSChapter {
+    @Attribute(.unique) var id: String
     /// FK to WSBook.id
     var bookID: String
     var title: String

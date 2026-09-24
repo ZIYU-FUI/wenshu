@@ -25,18 +25,18 @@ import Foundation
 /// One step in a plan. Backend-agnostic (= the engine parses the
 /// LLM response into these structs regardless of which provider
 /// generated the text).
-public struct PlanStep: Equatable, Sendable, Hashable, Codable {
+struct PlanStep: Equatable, Sendable, Hashable, Codable {
     /// 1-based index (Hermes uses 1-based numbering for plan
     /// steps; = matches the markdown source `1. ... 2. ...`).
-    public let index: Int
+    let index: Int
     /// Short title for the step (= the line BEFORE the colon,
     /// or the first sentence if no colon).
-    public let title: String
+    let title: String
     /// Detailed description (= everything after the title on
     /// the first line + any continuation lines).
-    public let detail: String
+    let detail: String
 
-    public init(index: Int, title: String, detail: String) {
+    init(index: Int, title: String, detail: String) {
         self.index = index
         self.title = title
         self.detail = detail
@@ -44,21 +44,21 @@ public struct PlanStep: Equatable, Sendable, Hashable, Codable {
 
     /// One-line display label for the step (= the title; = with
     /// the 1-based index prefixed when shown in a numbered list).
-    public var displayLabel: String {
+    var displayLabel: String {
         return "\(index). \(title)"
     }
 }
 
 /// Result of `/plan <query>` = the full plan structure.
-public struct Plan: Equatable, Sendable, Hashable, Codable {
+struct Plan: Equatable, Sendable, Hashable, Codable {
     /// Original user query that triggered the plan.
-    public let query: String
+    let query: String
     /// Ordered list of steps (= 1-based).
-    public let steps: [PlanStep]
+    let steps: [PlanStep]
     /// The connector that produced this plan (= cached for
     /// debugging + future approval UI = which provider generated
     /// the plan).
-    public let connectorID: String
+    let connectorID: String
     /// T30-PLAN-MODEL (2026-09-18): the LLM model id that produced
     /// the plan (= e.g. "claude-sonnet-4-20250514" = the model
     /// row in Provider.defaultModels). Surfaced in the plan card
@@ -67,12 +67,12 @@ public struct Plan: Equatable, Sendable, Hashable, Codable {
     /// because older serialized plans (= T20a) may not have it;
     /// = the renderer falls back to the connector-only display
     /// when model is nil.
-    public let model: String?
+    let model: String?
     /// When the plan was generated (= for staleness checks in
     /// future UI work).
-    public let createdAt: Date
+    let createdAt: Date
 
-    public init(
+    init(
         query: String,
         steps: [PlanStep],
         connectorID: String,
@@ -88,13 +88,13 @@ public struct Plan: Equatable, Sendable, Hashable, Codable {
 }
 
 /// Errors thrown by PlanModeEngine.
-public enum PlanModeError: LocalizedError, Sendable {
+enum PlanModeError: LocalizedError, Sendable {
     case missingConnector
     case planParseFailed(rawResponse: String)
     case planEmpty(query: String)
     case transport(underlying: String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .missingConnector:
             return "No LLM connector available (= configure a provider in Settings → LLM Connector)."
@@ -128,12 +128,12 @@ public enum PlanModeError: LocalizedError, Sendable {
 /// "**" + bold + indentation are tolerated). A failed parse
 /// (= zero numbered lines found) returns `nil`; = the caller
 /// raises `PlanModeError.planParseFailed`.
-public enum PlanModeParser {
+enum PlanModeParser {
 
     /// Parse a raw LLM response into a `Plan` (= query = the
     /// user's original query, steps = parsed steps). Returns
     /// nil if no numbered steps were found.
-    public static func parse(
+    static func parse(
         response raw: String,
         query: String,
         connectorID: String,
@@ -151,7 +151,7 @@ public enum PlanModeParser {
 
     /// Lower-level parser (= only the steps list). Public for
     /// test coverage.
-    public static func parseSteps(_ raw: String) -> [PlanStep] {
+    static func parseSteps(_ raw: String) -> [PlanStep] {
         var steps: [PlanStep] = []
         let lines = raw.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         var currentIndex: Int?
@@ -242,12 +242,12 @@ public enum PlanModeParser {
 /// (= a Sendable / actor-isolated type). Sendable closure
 /// callbacks use the same pattern as the rest of wenshu agent
 /// code (= hermes-port Z contract).
-public actor PlanModeEngine {
+actor PlanModeEngine {
 
     private let connector: any LLMConnector
     private let model: String
 
-    public init(connector: any LLMConnector, model: String) {
+    init(connector: any LLMConnector, model: String) {
         self.connector = connector
         self.model = model
     }
@@ -256,7 +256,7 @@ public actor PlanModeEngine {
     /// (= no tool execution). Public so tests can assert the
     /// exact prompt text (= keeps the engine's contract
     /// verifiable without making a network call).
-    public static let planSystemPrompt: String = """
+    static let planSystemPrompt: String = """
         You are in PLAN MODE. Respond with a numbered list of steps
         (= use 1. 2. 3. format). Do NOT call tools. Do NOT execute
         anything. Only describe the steps the assistant would take
@@ -270,7 +270,7 @@ public actor PlanModeEngine {
     /// Run `/plan <query>` against the active connector. Returns
     /// a parsed `Plan` (= numbered steps) or throws `PlanModeError`.
     /// Does NOT execute tools (= plan mode only).
-    public func run(query: String) async throws -> Plan {
+    func run(query: String) async throws -> Plan {
         guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw PlanModeError.planEmpty(query: query)
         }

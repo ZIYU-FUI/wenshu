@@ -75,7 +75,7 @@ struct PaneSizeContribution: Equatable, Codable, Sendable {
     var minHeight: CGFloat?
     var maxHeight: CGFloat?
 
-    public init(
+    init(
         width: CGFloat? = nil,
         height: CGFloat? = nil,
         minWidth: CGFloat? = nil,
@@ -172,7 +172,7 @@ struct PaneFrameMode: Equatable, Codable, Sendable {
     var flex: CGFloat            // weight (= 1.0 default)
     var maxWidth: CGFloat?       // max along primary axis (= row)
 
-    public init(
+    init(
         mode: TrackKind = .flex,
         size: CGFloat? = nil,
         minWidth: CGFloat? = nil,

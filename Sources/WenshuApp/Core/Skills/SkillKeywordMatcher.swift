@@ -17,25 +17,25 @@
 
 import Foundation
 
-public struct SkillKeyword: Sendable, Codable, Equatable, Hashable {
-    public let skillName: String
-    public let primaryKeyword: String
-    public let aliases: [String]
-    public let fileTypeTriggers: [String]
-    public let contextPatterns: [String]
-    public let priority: Int
-    public init(skillName: String, primaryKeyword: String, aliases: [String] = [], fileTypeTriggers: [String] = [], contextPatterns: [String] = [], priority: Int = 50) {
+struct SkillKeyword: Sendable, Codable, Equatable, Hashable {
+    let skillName: String
+    let primaryKeyword: String
+    let aliases: [String]
+    let fileTypeTriggers: [String]
+    let contextPatterns: [String]
+    let priority: Int
+    init(skillName: String, primaryKeyword: String, aliases: [String] = [], fileTypeTriggers: [String] = [], contextPatterns: [String] = [], priority: Int = 50) {
         self.skillName = skillName; self.primaryKeyword = primaryKeyword; self.aliases = aliases
         self.fileTypeTriggers = fileTypeTriggers; self.contextPatterns = contextPatterns; self.priority = priority
     }
 }
 
-public actor SkillKeywordMatcher {
-    public static let shared = SkillKeywordMatcher()
+actor SkillKeywordMatcher {
+    static let shared = SkillKeywordMatcher()
     private var keywords: [String: SkillKeyword] = [:]
-    public init() {}
-    public func register(_ keyword: SkillKeyword) { keywords[keyword.skillName] = keyword }
-    public func match(input: String, contextFiles: [String] = []) -> SkillKeyword? {
+    init() {}
+    func register(_ keyword: SkillKeyword) { keywords[keyword.skillName] = keyword }
+    func match(input: String, contextFiles: [String] = []) -> SkillKeyword? {
         let text = input.lowercased()
         // HERMES-AGENT-SMC-READYNESS (v0.41 M1 fix): score each
         // candidate by specificity AND earliest occurrence. Without

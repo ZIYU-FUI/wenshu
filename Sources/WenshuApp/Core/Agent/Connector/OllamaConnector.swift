@@ -21,16 +21,16 @@
 
 import Foundation
 
-public actor OllamaConnector: LLMConnector {
-    public nonisolated let connectorID = "ollama"
+actor OllamaConnector: LLMConnector {
+    nonisolated let connectorID = "ollama"
 
     private let delegate: OpenAICompatibleConnector
 
-    public init(session: URLSession = .shared) {
+    init(session: URLSession = .shared) {
         self.delegate = OpenAICompatibleConnector(provider: .ollama, session: session)
     }
 
-    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         try await delegate.send(messages: messages, options: options)
     }
 }

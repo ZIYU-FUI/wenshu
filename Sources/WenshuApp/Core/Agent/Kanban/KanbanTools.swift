@@ -42,14 +42,14 @@ import Foundation
 /// @MainActor; = Phase 5 ticket 6 deleted Core/Kanban/KanbanStore.swift
 /// which used raw sqlite3) that exposes the action dispatcher the
 /// chat surface uses.
-public actor KanbanTools {
+actor KanbanTools {
     private let store: WSKanbanRepository
     // v0.72 Q99 MED followup: removed the dead sharedPlaceholder cache
     // (= init always falls through to WSKanbanRepository.shared; = the
     // cache check never returns a hit after the SwiftData migration).
     // This eliminates the nonisolated(unsafe) mutable static var.
 
-    public init(store: WSKanbanRepository? = nil) {
+    init(store: WSKanbanRepository? = nil) {
         // Tests can pass an explicit store; otherwise we lazily build one
         // (= throws on init so we cache a fallback to /tmp/kanban-test.db).
         if let store = store {
@@ -68,7 +68,7 @@ public actor KanbanTools {
 
     // MARK: - Action enum (= hermes kanban_tools.py handle_* functions)
 
-    public enum Action: String, Sendable, CaseIterable {
+    enum Action: String, Sendable, CaseIterable {
         case show
         case list
         case create
@@ -83,24 +83,24 @@ public actor KanbanTools {
 
     // MARK: - Action params
 
-    public struct KanbanParams: Sendable {
-        public var taskId: String?
-        public var title: String?
-        public var body: String?
-        public var status: String?
-        public var assignee: String?
-        public var tenant: String?
-        public var priority: Int?
-        public var modelOverride: String?
-        public var comment: String?
-        public var reason: String?
-        public var limit: Int?
-        public var includeArchived: Bool?
-        public var parentId: String?
-        public var childId: String?
-        public var newStatus: String?
+    struct KanbanParams: Sendable {
+        var taskId: String?
+        var title: String?
+        var body: String?
+        var status: String?
+        var assignee: String?
+        var tenant: String?
+        var priority: Int?
+        var modelOverride: String?
+        var comment: String?
+        var reason: String?
+        var limit: Int?
+        var includeArchived: Bool?
+        var parentId: String?
+        var childId: String?
+        var newStatus: String?
 
-        public init(
+        init(
             taskId: String? = nil,
             title: String? = nil,
             body: String? = nil,
@@ -136,12 +136,12 @@ public actor KanbanTools {
     }
 
     /// Tool result (= hermes tool_error / tool_ok return shape).
-    public struct KanbanToolResult: Sendable, Equatable {
-        public let success: Bool
-        public let output: String
-        public let data: [String: String]
+    struct KanbanToolResult: Sendable, Equatable {
+        let success: Bool
+        let output: String
+        let data: [String: String]
 
-        public init(success: Bool, output: String, data: [String: String] = [:]) {
+        init(success: Bool, output: String, data: [String: String] = [:]) {
             self.success = success
             self.output = output
             self.data = data
@@ -151,7 +151,10 @@ public actor KanbanTools {
     // MARK: - Main dispatcher (= hermes kanban entry)
 
     /// Unified kanban tool dispatcher (= hermes kanban(action:...) entry).
-    public func kanban(action: String, params: KanbanParams = KanbanParams()) async -> KanbanToolResult {
+    // P2-07 audit (2026-09-24): internal (= KanbanParams is internal;
+        // = default-arg would not compile in a public method signature;
+        // = the method's contract is intra-package anyway).
+        func kanban(action: String, params: KanbanParams = KanbanParams()) async -> KanbanToolResult {
         guard let act = Action(rawValue: action.lowercased()) else {
             return KanbanToolResult(
                 success: false,

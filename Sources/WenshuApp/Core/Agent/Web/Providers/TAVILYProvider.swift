@@ -16,17 +16,17 @@
 
 import Foundation
 
-public struct TAVILYProvider: WebSearchProvider, Sendable {
+struct TAVILYProvider: WebSearchProvider, Sendable {
 
-    public let name: String = "tavily"
+    let name: String = "tavily"
 
-    public init(apiKey: String? = nil) {
+    init(apiKey: String? = nil) {
         self.apiKey = apiKey
     }
 
     private let apiKey: String?
 
-    public func search(query: String, limit: Int) async throws -> [WebSearchResult] {
+    func search(query: String, limit: Int) async throws -> [WebSearchResult] {
         guard let apiKey, !apiKey.isEmpty else {
             return []
         }

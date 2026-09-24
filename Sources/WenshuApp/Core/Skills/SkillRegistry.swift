@@ -21,25 +21,25 @@
 import Foundation
 
 /// Skill frontmatter (YAML: SKILL.md file)
-public struct SkillFrontmatter: Equatable, Sendable {
-    public let name: String
-    public let description: String
+struct SkillFrontmatter: Equatable, Sendable {
+    let name: String
+    let description: String
 
-    public init(name: String, description: String) {
+    init(name: String, description: String) {
         self.name = name
         self.description = description
     }
 }
 
 /// Skill: name + frontmatter + body + files (linked_files)
-public struct Skill: Equatable, Sendable {
-    public let name: String
-    public let path: URL
-    public let frontmatter: SkillFrontmatter
-    public let body: String
-    public let linkedFiles: [URL]
+struct Skill: Equatable, Sendable {
+    let name: String
+    let path: URL
+    let frontmatter: SkillFrontmatter
+    let body: String
+    let linkedFiles: [URL]
 
-    public init(name: String, path: URL, frontmatter: SkillFrontmatter, body: String, linkedFiles: [URL]) {
+    init(name: String, path: URL, frontmatter: SkillFrontmatter, body: String, linkedFiles: [URL]) {
         self.name = name
         self.path = path
         self.frontmatter = frontmatter
@@ -49,11 +49,11 @@ public struct Skill: Equatable, Sendable {
 }
 
 /// SkillRegistry: + local SKILL.md file
-public actor SkillRegistry {
+actor SkillRegistry {
     /// skill directory (default wenshu Sources/WenshuCore/Skills/, override testdirectory)
     private let rootDir: URL
 
-    public init(rootDir: URL? = nil) {
+    init(rootDir: URL? = nil) {
         if let rootDir = rootDir {
             self.rootDir = rootDir
         } else {
@@ -69,7 +69,7 @@ public actor SkillRegistry {
     }
 
     /// list: rootDir SKILL.md, return skill names
-    public func list() throws -> [String] {
+    func list() throws -> [String] {
         guard FileManager.default.fileExists(atPath: rootDir.path) else { return [] }
         let contents = try FileManager.default.contentsOfDirectory(at: rootDir, includingPropertiesForKeys: [.isDirectoryKey])
         return contents.compactMap { entry -> String? in
@@ -82,7 +82,7 @@ public actor SkillRegistry {
     }
 
     /// load: 1 skill, parse frontmatter + body
-    public func load(name: String) throws -> Skill? {
+    func load(name: String) throws -> Skill? {
         let skillDir = rootDir.appendingPathComponent(name, isDirectory: true)
         let skillFile = skillDir.appendingPathComponent("SKILL.md")
         guard FileManager.default.fileExists(atPath: skillFile.path) else { return nil }
@@ -93,7 +93,7 @@ public actor SkillRegistry {
     }
 
     /// invoke: invoke (frontmatter + body, 35 do_* hub)
-    public func invoke(name: String, input: String = "") throws -> String {
+    func invoke(name: String, input: String = "") throws -> String {
         guard let skill = try load(name: name) else {
             throw SkillRegistryError.notFound(name: name)
         }
@@ -167,12 +167,12 @@ public actor SkillRegistry {
 }
 
 /// SkillRegistry error
-public enum SkillRegistryError: Error {
+enum SkillRegistryError: Error {
     case notFound(name: String)
 }
 
 extension SkillRegistryError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .notFound(let name):
             return "Skill not found: \(name)"

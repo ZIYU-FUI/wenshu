@@ -20,18 +20,18 @@
 
 import Foundation
 
-public struct LLMMessage: Sendable, Equatable {
-    public let role: Role
-    public let blocks: [LLMBlock]
-    public var cacheControl: [String: String]?
+struct LLMMessage: Sendable, Equatable {
+    let role: Role
+    let blocks: [LLMBlock]
+    var cacheControl: [String: String]?
 
-    public init(role: Role, blocks: [LLMBlock], cacheControl: [String: String]? = nil) {
+    init(role: Role, blocks: [LLMBlock], cacheControl: [String: String]? = nil) {
         self.role = role
         self.blocks = blocks
         self.cacheControl = cacheControl
     }
 
-    public enum Role: String, Sendable, Codable, Equatable {
+    enum Role: String, Sendable, Codable, Equatable {
         case user
         case assistant
         case tool
@@ -40,23 +40,23 @@ public struct LLMMessage: Sendable, Equatable {
     // MARK: - Convenience initializers
 
     /// Build a single-text user message.
-    public static func user(_ text: String) -> LLMMessage {
+    static func user(_ text: String) -> LLMMessage {
         LLMMessage(role: .user, blocks: [.text(text)])
     }
 
     /// Build a single-text assistant message.
-    public static func assistant(_ text: String) -> LLMMessage {
+    static func assistant(_ text: String) -> LLMMessage {
         LLMMessage(role: .assistant, blocks: [.text(text)])
     }
 
     /// Build a tool result message.
-    public static func toolResult(toolUseID: String, output: String) -> LLMMessage {
+    static func toolResult(toolUseID: String, output: String) -> LLMMessage {
         LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: toolUseID, output: output)])
     }
 
     /// Extract plain text from message blocks (= convenience for callers
     /// that don't need to inspect thinking / tool_use separately).
-    public var plainText: String {
+    var plainText: String {
         blocks.compactMap { block in
             if case .text(let s) = block { return s } else { return nil }
         }.joined(separator: "")

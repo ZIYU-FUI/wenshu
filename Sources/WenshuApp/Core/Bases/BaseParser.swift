@@ -11,11 +11,11 @@ import Foundation
 /// Base view type (Obsidian Bases §view-types)
 
 /// Base formula property (Obsidian Bases §formulas)
-public struct BaseFormula: Codable, Equatable, Sendable {
-    public var name: String
-    public var expression: String
+struct BaseFormula: Codable, Equatable, Sendable {
+    var name: String
+    var expression: String
 
-    public init(name: String, expression: String) {
+    init(name: String, expression: String) {
         self.name = name
         self.expression = expression
     }
@@ -23,11 +23,11 @@ public struct BaseFormula: Codable, Equatable, Sendable {
 
 /// Base document (Obsidian Bases .base YAML file 1:1,)
 /// Apple HIG: Codable (BaseFilter, simple String)
-public struct BaseDocument: Codable, Equatable, Sendable {
-    public var formulas: [BaseFormula]
-    public var viewCount: Int  // views groupsize (parsing skip)
+struct BaseDocument: Codable, Equatable, Sendable {
+    var formulas: [BaseFormula]
+    var viewCount: Int  // views groupsize (parsing skip)
 
-    public init(formulas: [BaseFormula] = [], viewCount: Int = 0) {
+    init(formulas: [BaseFormula] = [], viewCount: Int = 0) {
         self.formulas = formulas
         self.viewCount = viewCount
     }
@@ -35,11 +35,11 @@ public struct BaseDocument: Codable, Equatable, Sendable {
 
 /// BaseParser: YAML (Obsidian .base)
 /// Apple HIG: Foundation String
-public enum BaseParser {
+enum BaseParser {
 
     /// .base YAML
     /// formulas (top-level key: value, nested key: value), views
-    public static func parse(_ content: String) throws -> BaseDocument {
+    static func parse(_ content: String) throws -> BaseDocument {
         var formulas: [BaseFormula] = []
         var viewCount = 0
         var inFormulas = false
@@ -73,7 +73,7 @@ public enum BaseParser {
     }
 
     /// Encoding to String (test)
-    public static func encode(_ document: BaseDocument) -> String {
+    static func encode(_ document: BaseDocument) -> String {
         var lines: [String] = []
         if !document.formulas.isEmpty {
             lines.append("formulas:")

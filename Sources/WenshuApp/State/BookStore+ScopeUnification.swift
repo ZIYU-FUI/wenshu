@@ -83,7 +83,7 @@ enum TaskScope: Hashable, Identifiable, Sendable {
 
     /// All 8 standard sub-folder scopes (= the entries the picker
     /// shows between "" and "" when a book is active).
-    public static func folderScopes() -> [TaskScope] {
+    static func folderScopes() -> [TaskScope] {
         StandardBookFolder.allCases.map { .folder($0) }
     }
 }

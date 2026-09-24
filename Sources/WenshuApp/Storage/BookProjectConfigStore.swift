@@ -59,7 +59,7 @@ struct BookProjectConfig: Codable, Sendable, Equatable {
     var todoEnabled: Bool
     var updatedAt: Date
 
-    public init(
+    init(
         bookId: UUID,
         autosaveCadenceSeconds: Int = 60,
         defaultChapterTemplate: String = "",
@@ -83,11 +83,11 @@ struct BookProjectConfig: Codable, Sendable, Equatable {
 /// forgiving (= missing shelves dir, missing book folder, or
 /// multiple matches = first match wins + log nothing — the
 /// canonical Wenshu invariant is one book in one shelf).
-public actor BookProjectConfigStore {
+actor BookProjectConfigStore {
     private let projectRoot: URL
     private let fileManager: FileManager
 
-    public init(projectRoot: URL, fileManager: FileManager = .default) {
+    init(projectRoot: URL, fileManager: FileManager = .default) {
         self.projectRoot = projectRoot
         self.fileManager = fileManager
     }

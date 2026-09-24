@@ -37,16 +37,16 @@ import EventSource
 /// payloads). Wraps EventSource (= mattt/EventSource 1.5.1) and yields
 /// raw `data:` strings (= JSON decoding happens in
 /// OpenAIChunkToLLMBlockConverter).
-public actor OpenAIStreamingWireup {
+actor OpenAIStreamingWireup {
 
     private var eventSource: EventSource?
     private var continuation: AsyncStream<String>.Continuation?
 
-    public init() {}
+    init() {}
 
     /// Connect to an OpenAI-compatible streaming endpoint and yield raw
     /// `data:` payloads (= one EventSource.Event per SSE message).
-    public func connect(request: URLRequest) -> AsyncStream<String> {
+    func connect(request: URLRequest) -> AsyncStream<String> {
         AsyncStream { continuation in
             self.continuation = continuation
             let eventSource = EventSource(request: request)
@@ -99,7 +99,7 @@ public actor OpenAIStreamingWireup {
         close()
     }
 
-    public func close() {
+    func close() {
         let source = eventSource
         eventSource = nil
         continuation = nil
@@ -109,11 +109,11 @@ public actor OpenAIStreamingWireup {
 
 // MARK: - Convenience factory (= single entry point for OpenAICompatibleConnector)
 
-public enum OpenAIStreamingWireupFactory {
+enum OpenAIStreamingWireupFactory {
 
     /// Build a streaming URLRequest and wire it up (= returns AsyncStream of
     /// raw `data:` payloads; = JSON decoding is the consumer's job).
-    public static func streamingStream(
+    static func streamingStream(
         credentials: ConnectorCredentials,
         model: String,
         maxTokens: Int,
@@ -147,7 +147,7 @@ public enum OpenAIStreamingWireupFactory {
     /// Pure URLRequest builder (= extracted for Sendable capture in factory).
     /// `bearerToken` is separate from `credentials.apiKey` because Ollama
     /// (= no-auth local provider) sends no Authorization header.
-    public static func buildRequest(
+    static func buildRequest(
         credentials: ConnectorCredentials,
         model: String,
         maxTokens: Int,

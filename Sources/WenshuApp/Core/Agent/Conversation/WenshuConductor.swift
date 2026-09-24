@@ -30,7 +30,7 @@ import Foundation
 // Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
 
 /// Wenshu orchestrator (actor thread-safe, consistent with AgentRuntime / WSKanbanRepository / WSMemoryRepository).
-public actor WenshuConductor {
+actor WenshuConductor {
     private let runtime: AgentRuntime
     private let verifier: WenshuVerifier
     /// Long-term memory persistence for agent (now SwiftData-backed via WSMemoryRepository
@@ -83,7 +83,7 @@ public actor WenshuConductor {
     /// call site without modification.
     private let tools: [String: any Tool]
 
-    public init(
+    init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
         skillRegistry: SkillRegistry? = nil,
@@ -135,7 +135,7 @@ public actor WenshuConductor {
     /// `runtime` is optional and passed to ConversationLoop for
     /// deterministic-test injection (= ticket v0.36 ticket 014). When nil,
     /// ConversationLoop falls back to a fresh RuntimeHelpers() actor.
-    public init(
+    init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
         skillRegistry: SkillRegistry? = nil,
@@ -187,14 +187,14 @@ public actor WenshuConductor {
     }
 
     /// h02: invoke a wenshu local skill. Returns "" if registry unavailable or skill not found.
-    public func invokeSkill(name: String, input: String = "") async -> String {
+    func invokeSkill(name: String, input: String = "") async -> String {
         await ensureSkillRegistryBootstrapped()
         guard let registry = skillRegistry else { return "" }
         return (try? await registry.invoke(name: name, input: input)) ?? ""
     }
 
     /// h02: list available skills (for agent context). Returns [] if registry unavailable.
-    public func availableSkills() async -> [String] {
+    func availableSkills() async -> [String] {
         await ensureSkillRegistryBootstrapped()
         guard let registry = skillRegistry else { return [] }
         return (try? await registry.list()) ?? []
@@ -206,7 +206,7 @@ public actor WenshuConductor {
     /// - web: input = URL → returns extracted markdown
     /// - vision: input = image path → returns recognized text
     /// - av: input = text → speaks aloud (fire-and-forget)
-    public func invokeTool(name: String, input: String, caller: AgentCaller = .main) async -> String {
+    func invokeTool(name: String, input: String, caller: AgentCaller = .main) async -> String {
         // v0.23 ticket 012: hermes DELEGATE_BLOCKED_TOOLS parity (boss 8/23 said).
         // Sub-agents cannot call delegate_task / clarify / send_message / cronjob (any op).
         // Sub-agents can call memory but only for read ops (no add/delete).
@@ -279,7 +279,7 @@ public actor WenshuConductor {
     /// (= tests, summarizeIfNeeded's verifier path, future batch
     /// consumers) still get the `(reply, tokens, thinking)` tuple without
     /// the streaming side-effect.
-    public func handle(
+    func handle(
         userMessage: String,
         sessionId: String,
         model: String,
@@ -692,7 +692,7 @@ public actor WenshuConductor {
     ///
     /// Kept in declaration order so the test fixture and the ChatView
     /// wiring agree on the set (= deterministic diff).
-    public static let defaultToolNames: [String] = [
+    static let defaultToolNames: [String] = [
         "ParagraphAI",      // Core/Agent/Tool/ParagraphAITool.swift
         "ReadFile",         // Core/Agent/Tool/ReadFileTool.swift
         "WriteFile",        // Core/Agent/Tool/WriteFileTool.swift
@@ -715,7 +715,7 @@ public actor WenshuConductor {
     /// blocks that run off the init thread (= the module-load
     /// pattern from MIGRATE-TOOLREGISTRY-002); a brief wait covers
     /// the scheduling jitter.
-    public static let toolRegistryWaitTimeoutMs: UInt64 = 250
+    static let toolRegistryWaitTimeoutMs: UInt64 = 250
 
     /// Build the conductor's tool registry from `ToolRegistry.shared`
     /// (= hermes single-source-of-truth pattern; replaces the per-
@@ -740,7 +740,7 @@ public actor WenshuConductor {
     ///    `defaultToolNames` (= the hermes behavior).
     /// 3. Return the dict. Order is not significant (= dict keys
     ///    are unordered) but the set is deterministic.
-    public static func buildTools(from registry: ToolRegistry) async -> [String: any Tool] {
+    static func buildTools(from registry: ToolRegistry) async -> [String: any Tool] {
         // Step 1: brief warmup window. Registrations are fire-and-forget
         // `Task { await registry.register(...) }` blocks at module load (=
         // MIGRATE-TOOLREGISTRY-002); a short settle window absorbs
@@ -776,7 +776,7 @@ public actor WenshuConductor {
     /// MIGRATE-TOOLREGISTRY-002); a short sleep absorbs scheduling
     /// jitter without waiting for a specific count (= which would
     /// time out in tests where not all 12 tool files are linked).
-    public static let toolRegistryWarmupMs: UInt64 = 50
+    static let toolRegistryWarmupMs: UInt64 = 50
 
     /// Synchronous bridge to `buildTools(from:)` for callers that
     /// cannot await (= SwiftUI `View.init` is sync; the ChatView
@@ -803,7 +803,7 @@ public actor WenshuConductor {
     /// Recommended production pattern: call `await
     /// WenshuConductor.prewarmToolCache()` from `App.swift` startup
     /// before any ChatView.init fires.
-    public static func buildToolsSync(from registry: ToolRegistry) -> [String: any Tool] {
+    static func buildToolsSync(from registry: ToolRegistry) -> [String: any Tool] {
         // Hot path: cache hit (= NSLock-guarded sync read = nanoseconds).
         if let cached = Self.toolCache.cachedTools {
             return cached
@@ -916,7 +916,7 @@ public actor WenshuConductor {
     ///
     /// Returns the populated tools dict (= useful for callers that want
     /// to assert the cache is warm). Async + cooperative-pool-safe.
-    public static func prewarmToolCache(from registry: ToolRegistry = .shared) async -> [String: any Tool] {
+    static func prewarmToolCache(from registry: ToolRegistry = .shared) async -> [String: any Tool] {
         let tools = await buildTools(from: registry)
         Self.toolCache.cachedTools = tools
         return tools

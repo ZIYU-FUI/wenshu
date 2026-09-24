@@ -28,11 +28,11 @@ import Foundation
 
 /// Seeds SkillKeywordMatcher.shared with the existing wenshu skill
 /// keywords (= per the audit recommendation).
-public enum SkillKeywordRegistryBootstrap {
+enum SkillKeywordRegistryBootstrap {
 
     /// Populate the matcher. Safe to call multiple times (= the
     /// matcher's `register(_:)` is upsert-by-skillName).
-    public static func seed() async {
+    static func seed() async {
         let keywords: [SkillKeyword] = SkillAdapter.hubCommands.map { cmd in
             SkillKeyword(
                 skillName: cmd.name,

@@ -58,7 +58,7 @@ import Foundation
 /// Categories are intentionally orthogonal (= the same label can
 /// be reused across categories only by an explicit user choice;
 /// the actor does not auto-dedupe across categories).
-public enum TagCategory: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
+enum TagCategory: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// A thematic label (= e.g. "redemption", "coming-of-age").
     case theme
     /// A recurring narrative motif (= e.g. "the broken mirror",
@@ -72,10 +72,10 @@ public enum TagCategory: String, Sendable, Codable, CaseIterable, Identifiable, 
     /// A pacing anchor (= e.g. "midpoint", "act-break-2").
     case pacingMarker
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Human-readable English label (= for the picker / list rows).
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .theme:         return "Theme"
         case .motif:         return "Motif"
@@ -89,7 +89,7 @@ public enum TagCategory: String, Sendable, Codable, CaseIterable, Identifiable, 
     /// Image(systemName:) directly in the TagManagerView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .theme:         return "bookmark"          // Lucide 'bookmark'
         case .motif:         return "repeat"            // Lucide 'repeat'
@@ -110,16 +110,16 @@ public enum TagCategory: String, Sendable, Codable, CaseIterable, Identifiable, 
 /// tickets already model (= chapter / character / scene /
 /// plot-thread). The actor never dereferences the target id to
 /// its underlying entity (= view-layer responsibility).
-public enum TagTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
+enum TagTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     case chapter
     case character
     case scene
     case plotThread
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Human-readable English label (= for the picker / list rows).
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .chapter:     return "Chapter"
         case .character:   return "Character"
@@ -132,7 +132,7 @@ public enum TagTarget: String, Sendable, Codable, CaseIterable, Identifiable, Eq
     /// Image(systemName:) directly in the TagManagerView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .chapter:     return "book.pages"                  // Lucide 'book-open'
         case .character:   return "person"                      // Lucide 'user'
@@ -147,29 +147,29 @@ public enum TagTarget: String, Sendable, Codable, CaseIterable, Identifiable, Eq
 /// A single tag definition (= a label + category + book
 /// ownership). Persisted as one entry in the per-book `tags.json`
 /// sidecar.
-public struct Tag: Sendable, Codable, Equatable, Identifiable {
+struct Tag: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for add / remove /
     /// cloud / filter lookups; never re-used even across books).
-    public let id: UUID
+    let id: UUID
 
     /// Owning book (= the actor resolves the on-disk sidecar
     /// through this id).
-    public let bookId: UUID
+    let bookId: UUID
 
     /// Short, human-readable label (= e.g. "redemption",
     /// "the withered oak"). Whitespace-trimmed at construction
     /// time so empty / whitespace-only labels are rejected.
-    public let label: String
+    let label: String
 
     /// Category bucket (= theme / motif / trope / symbol /
     /// pacing-marker).
-    public let category: TagCategory
+    let category: TagCategory
 
     /// Creation timestamp (= `Date.now` at add time).
-    public let createdAt: Date
+    let createdAt: Date
 
-    public init(
+    init(
         id: UUID = UUID(),
         bookId: UUID,
         label: String,
@@ -195,33 +195,33 @@ public struct Tag: Sendable, Codable, Equatable, Identifiable {
 /// A single tag application (= a tag attached to an entity of a
 /// specific target kind). Persisted as one entry in the per-book
 /// `tags.json` sidecar.
-public struct TagApplication: Sendable, Codable, Equatable, Identifiable {
+struct TagApplication: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for unapply +
     /// filter lookups; never re-used even across books).
-    public let id: UUID
+    let id: UUID
 
     /// Owning book (= the actor resolves the on-disk sidecar
     /// through this id).
-    public let bookId: UUID
+    let bookId: UUID
 
     /// The tag being applied (= resolves to a `Tag` row in the
     /// same sidecar).
-    public let tagId: UUID
+    let tagId: UUID
 
     /// What kind of entity the tag is attached to (= chapter /
     /// character / scene / plot-thread).
-    public let target: TagTarget
+    let target: TagTarget
 
     /// The entity id the tag is attached to. Interpretation
     /// depends on `target` (= chapterId / characterId / sceneId /
     /// plotThreadId).
-    public let targetId: UUID
+    let targetId: UUID
 
     /// When the tag was applied (= `Date.now` at apply time).
-    public let appliedAt: Date
+    let appliedAt: Date
 
-    public init(
+    init(
         id: UUID = UUID(),
         bookId: UUID,
         tagId: UUID,
@@ -242,19 +242,19 @@ public struct TagApplication: Sendable, Codable, Equatable, Identifiable {
 
 /// One entry in a tag cloud: the tag itself + the number of
 /// distinct applications across the book.
-public struct TagCloudEntry: Sendable, Codable, Equatable, Identifiable {
+struct TagCloudEntry: Sendable, Codable, Equatable, Identifiable {
 
     /// Tag (= re-exported for the cloud row).
-    public let tag: Tag
+    let tag: Tag
 
     /// Count of applications for this tag in the owning book.
-    public let count: Int
+    let count: Int
 
     /// Convenience id (= delegates to `tag.id` so cloud rows are
     /// `Identifiable` in SwiftUI lists).
-    public var id: UUID { tag.id }
+    var id: UUID { tag.id }
 
-    public init(tag: Tag, count: Int) {
+    init(tag: Tag, count: Int) {
         self.tag = tag
         self.count = count
     }
@@ -294,12 +294,12 @@ struct TagManagerSidecar: Codable, Sendable, Equatable {
 /// BookProjectConfigStore / BookTodoStore /
 /// CharacterLifecycleTracker / CharacterRelationshipTracker
 /// error conventions (= a LocalizedError per case).
-public enum TagManagerError: Error, LocalizedError, Sendable, Equatable {
+enum TagManagerError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case tagNotFound(id: UUID)
     case applicationNotFound(id: UUID)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .bookDirectoryNotFound(let id):
             return "TagManager: book directory not found for id \(id.uuidString)"
@@ -366,7 +366,7 @@ actor TagManager {
     ///     "excerpt may be empty but the rest of the row is
     ///     mandatory" policy but stricter — empty labels cannot
     ///     render usefully in the UI).
-    public func addTag(_ tag: Tag) async throws {
+    func addTag(_ tag: Tag) async throws {
         guard !tag.label.isEmpty else { return }
         var sidecar = try await loadOrCreateSidecar(bookId: tag.bookId)
         // Replace if a row with the same id already exists.
@@ -382,7 +382,7 @@ actor TagManager {
 
     /// All tags in a book (= filterable by category). When
     /// `category` is nil, returns every row.
-    public func listTags(
+    func listTags(
         bookId: UUID,
         category: TagCategory? = nil
     ) async throws -> [Tag] {
@@ -406,7 +406,7 @@ actor TagManager {
     /// Side effect: any applications referencing the removed tag
     /// are ALSO removed (= cascade delete, matches hermes's
     /// Python implementation per the design contract).
-    public func removeTag(id: UUID) async throws {
+    func removeTag(id: UUID) async throws {
         var owningBookId: UUID?
         for (bookId, sidecar) in cache where sidecar.tags.contains(where: { $0.id == id }) {
             owningBookId = bookId
@@ -439,7 +439,7 @@ actor TagManager {
     ///     exist for the owning book (= otherwise throws
     ///     `.tagNotFound` so the UI never gets an orphan
     ///     application row).
-    public func apply(_ application: TagApplication) async throws {
+    func apply(_ application: TagApplication) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: application.bookId)
         guard sidecar.tags.contains(where: { $0.id == application.tagId }) else {
             throw TagManagerError.tagNotFound(id: application.tagId)
@@ -456,7 +456,7 @@ actor TagManager {
 
     /// Remove an application by id. Throws `.applicationNotFound`
     /// when the id is unknown for any cached book.
-    public func unapply(id: UUID) async throws {
+    func unapply(id: UUID) async throws {
         var owningBookId: UUID?
         for (bookId, sidecar) in cache where sidecar.applications.contains(where: { $0.id == id }) {
             owningBookId = bookId
@@ -477,7 +477,7 @@ actor TagManager {
 
     /// List applications in a book (= filterable by target and /
     /// or tag). When both filters are nil, returns every row.
-    public func applications(
+    func applications(
         bookId: UUID,
         target: TagTarget? = nil,
         tagId: UUID? = nil
@@ -504,7 +504,7 @@ actor TagManager {
     ///
     /// Returns zero rows when the book has no tags OR no
     /// applications.
-    public func tagCloud(bookId: UUID) async throws -> [TagCloudEntry] {
+    func tagCloud(bookId: UUID) async throws -> [TagCloudEntry] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         // Group applications by tagId, then count distinct
         // (target, targetId) pairs.
@@ -532,7 +532,7 @@ actor TagManager {
     ///
     /// Returns an empty array when no matches exist or when the
     /// tag has zero applications.
-    public func filterByTag(
+    func filterByTag(
         bookId: UUID,
         tagId: UUID,
         target: TagTarget

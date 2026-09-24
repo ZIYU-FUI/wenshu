@@ -48,15 +48,15 @@ import SwiftUI
 /// `InspectorCatalog`. View layer never constructs these directly —
 /// it consumes them via `InspectorPage.tools`.
 struct InspectorTool: Identifiable, Hashable, Sendable {
-    public let id: String
-    public let icon: String
-    public let title: String
-    public let view: @MainActor () -> AnyView
+    let id: String
+    let icon: String
+    let title: String
+    let view: @MainActor () -> AnyView
 
-    public static func == (lhs: InspectorTool, rhs: InspectorTool) -> Bool {
+    static func == (lhs: InspectorTool, rhs: InspectorTool) -> Bool {
         lhs.id == rhs.id
     }
-    public func hash(into hasher: inout Hasher) {
+    func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
 }
@@ -72,84 +72,84 @@ enum InspectorCatalog {
     // 12 specialized tools, derived from the original inline
     // tuple in ShellDetailColumn.swift:111-130.
 
-    public static let foreshadowing = InspectorTool(
+    static let foreshadowing = InspectorTool(
         id: "tab.title.foreshadowing",
         icon: "arrow.triangle.branch",
         title: WenshuI18n.t("tab.title.foreshadowing"),
         view: { AnyView(ForeshadowingView()) }
     )
 
-    public static let placeholder = InspectorTool(
+    static let placeholder = InspectorTool(
         id: "tab.title.placeholder",
         icon: "square.dashed",
         title: WenshuI18n.t("tab.title.placeholder"),
         view: { AnyView(PlaceholderView()) }
     )
 
-    public static let longForm = InspectorTool(
+    static let longForm = InspectorTool(
         id: "tab.title.long_form",
         icon: "checkmark.shield",
         title: WenshuI18n.t("tab.title.long_form"),
         view: { AnyView(LongFormGuardrailsView()) }
     )
 
-    public static let readerExperience = InspectorTool(
+    static let readerExperience = InspectorTool(
         id: "tab.title.reader_experience",
         icon: "sparkles",
         title: WenshuI18n.t("tab.title.reader_experience"),
         view: { AnyView(ReaderExperienceView()) }
     )
 
-    public static let plotThread = InspectorTool(
+    static let plotThread = InspectorTool(
         id: "tab.title.plot_thread",
         icon: "arrow.triangle.branch",
         title: WenshuI18n.t("tab.title.plot_thread"),
         view: { AnyView(PlotThreadView()) }
     )
 
-    public static let genreFit = InspectorTool(
+    static let genreFit = InspectorTool(
         id: "tab.title.genre_fit",
         icon: "bookmark",
         title: WenshuI18n.t("tab.title.genre_fit"),
         view: { AnyView(GenreFitView()) }
     )
 
-    public static let emotionCurve = InspectorTool(
+    static let emotionCurve = InspectorTool(
         id: "tab.title.emotion_curve",
         icon: "waveform.path.ecg",
         title: WenshuI18n.t("tab.title.emotion_curve"),
         view: { AnyView(EmotionCurveView()) }
     )
 
-    public static let characterRelationships = InspectorTool(
+    static let characterRelationships = InspectorTool(
         id: "tab.title.character_relationships",
         icon: "person.2",
         title: WenshuI18n.t("tab.title.character_relationships"),
         view: { AnyView(CharacterRelationshipsView()) }
     )
 
-    public static let characterLifecycle = InspectorTool(
+    static let characterLifecycle = InspectorTool(
         id: "tab.title.character_lifecycle",
         icon: "clock",
         title: WenshuI18n.t("tab.title.character_lifecycle"),
         view: { AnyView(CharacterLifecycleView()) }
     )
 
-    public static let tagManager = InspectorTool(
+    static let tagManager = InspectorTool(
         id: "tab.title.tag_manager",
         icon: "tag",
         title: WenshuI18n.t("tab.title.tag_manager"),
         view: { AnyView(TagManagerView()) }
     )
 
-    public static let ideaLibrary = InspectorTool(
+    static let ideaLibrary = InspectorTool(
         id: "tab.title.idea_library",
         icon: "lightbulb",
         title: WenshuI18n.t("tab.title.idea_library"),
         view: { AnyView(IdeaLibraryView()) }
     )
 
-    public static let bookSettingConstraints = InspectorTool(
+    static let bookSettingConstraints = InspectorTool(
         id: "tab.title.book_setting_constraints",
         icon: "book.closed",
         title: WenshuI18n.t("tab.title.book_setting_constraints"),
@@ -160,7 +160,7 @@ enum InspectorCatalog {
     /// `InspectorPage.tools` (= business layer routing) to return the
     /// 3 tools per page. Used by ticket 04 tests for catalog
     /// completeness assertions (= `count == 12` + unique IDs).
-    public static let allTools: [InspectorTool] = [
+    static let allTools: [InspectorTool] = [
         InspectorCatalog.foreshadowing,
         InspectorCatalog.placeholder,
         InspectorCatalog.longForm,

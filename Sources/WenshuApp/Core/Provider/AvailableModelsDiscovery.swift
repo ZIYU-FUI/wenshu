@@ -14,11 +14,11 @@ import Foundation
 
 /// One provider's available models (filtered by Keychain presence).
 /// Boss 8/23: provider key show provider defaultModels.
-public struct AvailableProviderModels: Sendable, Equatable {
-    public let provider: Provider
-    public let models: [String]
+struct AvailableProviderModels: Sendable, Equatable {
+    let provider: Provider
+    let models: [String]
 
-    public init(provider: Provider, models: [String]) {
+    init(provider: Provider, models: [String]) {
         self.provider = provider
         self.models = models
     }
@@ -26,12 +26,12 @@ public struct AvailableProviderModels: Sendable, Equatable {
 
 /// Discover providers that have keys configured + their defaultModels.
 /// Scans `Provider.all` (curated list of 11 providers) and filters by Keychain presence.
-public enum AvailableModelsDiscovery {
+enum AvailableModelsDiscovery {
 
     /// loadFromKeychain: returns providers with non-empty Keychain keys + their defaultModels.
     /// Returns empty array if no providers are configured (e.g. fresh install).
     /// Sync (AppleKeychainStore.loadKeySync is sync). Caller wraps in async if needed.
-    public static func loadFromKeychain() -> [AvailableProviderModels] {
+    static func loadFromKeychain() -> [AvailableProviderModels] {
         // v0.28 followup: use the shared ProviderKeychain backend (= respects
         // setBackendForTesting for dev/cua verify) instead of constructing
         // a fresh AppleKeychainStore (which would always hit the real

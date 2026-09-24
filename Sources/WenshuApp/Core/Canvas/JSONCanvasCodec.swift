@@ -20,26 +20,26 @@ import Foundation
 /// - url: type=link
 /// - label:, show
 /// - color: (1-6 / hex)
-public struct CanvasNode: Codable, Equatable, Sendable, Identifiable {
-    public var id: String
-    public var type: NodeType
-    public var x: Double
-    public var y: Double
-    public var width: Double
-    public var height: Double
-    public var text: String?
-    public var file: String?
-    public var url: String?
-    public var label: String?
-    public var color: String?
+struct CanvasNode: Codable, Equatable, Sendable, Identifiable {
+    var id: String
+    var type: NodeType
+    var x: Double
+    var y: Double
+    var width: Double
+    var height: Double
+    var text: String?
+    var file: String?
+    var url: String?
+    var label: String?
+    var color: String?
 
-    public enum NodeType: String, Codable, Sendable {
+    enum NodeType: String, Codable, Sendable {
         case text
         case file
         case link
     }
 
-    public init(id: String, type: NodeType, x: Double, y: Double, width: Double, height: Double, text: String? = nil, file: String? = nil, url: String? = nil, label: String? = nil, color: String? = nil) {
+    init(id: String, type: NodeType, x: Double, y: Double, width: Double, height: Double, text: String? = nil, file: String? = nil, url: String? = nil, label: String? = nil, color: String? = nil) {
         self.id = id
         self.type = type
         self.x = x
@@ -63,26 +63,26 @@ public struct CanvasNode: Codable, Equatable, Sendable, Identifiable {
 /// - fromEnd / toEnd: none / arrow ()
 /// - label:
 /// - color:
-public struct CanvasEdge: Codable, Equatable, Sendable, Identifiable {
-    public var id: String
-    public var fromNode: String
-    public var toNode: String
-    public var fromSide: Side?
-    public var toSide: Side?
-    public var fromEnd: End?
-    public var toEnd: End?
-    public var label: String?
-    public var color: String?
+struct CanvasEdge: Codable, Equatable, Sendable, Identifiable {
+    var id: String
+    var fromNode: String
+    var toNode: String
+    var fromSide: Side?
+    var toSide: Side?
+    var fromEnd: End?
+    var toEnd: End?
+    var label: String?
+    var color: String?
 
-    public enum Side: String, Codable, Sendable {
+    enum Side: String, Codable, Sendable {
         case top, right, bottom, left, none
     }
 
-    public enum End: String, Codable, Sendable {
+    enum End: String, Codable, Sendable {
         case none, arrow
     }
 
-    public init(id: String, fromNode: String, toNode: String, fromSide: Side? = nil, toSide: Side? = nil, fromEnd: End? = nil, toEnd: End? = nil, label: String? = nil, color: String? = nil) {
+    init(id: String, fromNode: String, toNode: String, fromSide: Side? = nil, toSide: Side? = nil, fromEnd: End? = nil, toEnd: End? = nil, label: String? = nil, color: String? = nil) {
         self.id = id
         self.fromNode = fromNode
         self.toNode = toNode
@@ -98,11 +98,11 @@ public struct CanvasEdge: Codable, Equatable, Sendable, Identifiable {
 // MARK: - Document
 
 /// JSON Canvas document (spec §document)
-public struct CanvasDocument: Codable, Equatable, Sendable {
-    public var nodes: [CanvasNode]
-    public var edges: [CanvasEdge]
+struct CanvasDocument: Codable, Equatable, Sendable {
+    var nodes: [CanvasNode]
+    var edges: [CanvasEdge]
 
-    public init(nodes: [CanvasNode] = [], edges: [CanvasEdge] = []) {
+    init(nodes: [CanvasNode] = [], edges: [CanvasEdge] = []) {
         self.nodes = nodes
         self.edges = edges
     }
@@ -112,14 +112,14 @@ public struct CanvasDocument: Codable, Equatable, Sendable {
 
 /// JSONCanvasCodec: 1:1 decode JSON Canvas file (.canvas)
 /// Apple HIG: Foundation JSONEncoder/JSONDecoder, snake_case spec
-public enum JSONCanvasCodec {
-    public enum CodecError: Error, Equatable {
+enum JSONCanvasCodec {
+    enum CodecError: Error, Equatable {
         case encodingFailed(String)
         case decodingFailed(String)
     }
 
     /// encoding CanvasDocument → Data (.canvas file)
-    public static func encode(_ document: CanvasDocument) throws -> Data {
+    static func encode(_ document: CanvasDocument) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]  // Obsidian output
         do {
@@ -130,7 +130,7 @@ public enum JSONCanvasCodec {
     }
 
     /// decode Data → CanvasDocument
-    public static func decode(_ data: Data) throws -> CanvasDocument {
+    static func decode(_ data: Data) throws -> CanvasDocument {
         let decoder = JSONDecoder()
         do {
             return try decoder.decode(CanvasDocument.self, from: data)
@@ -140,7 +140,7 @@ public enum JSONCanvasCodec {
     }
 
     /// Decoding from String
-    public static func decode(_ string: String) throws -> CanvasDocument {
+    static func decode(_ string: String) throws -> CanvasDocument {
         guard let data = string.data(using: .utf8) else {
             throw CodecError.decodingFailed("not utf8")
         }
@@ -148,7 +148,7 @@ public enum JSONCanvasCodec {
     }
 
     /// Encoding to String
-    public static func encodeToString(_ document: CanvasDocument) throws -> String {
+    static func encodeToString(_ document: CanvasDocument) throws -> String {
         let data = try encode(document)
         guard let s = String(data: data, encoding: .utf8) else {
             throw CodecError.encodingFailed("not utf8")

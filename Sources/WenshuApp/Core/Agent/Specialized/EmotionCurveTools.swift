@@ -57,20 +57,20 @@ import Foundation
 /// valence: -1.0 (fully negative) .. +1.0 (fully positive). A
 /// zero score means the window had no positive or negative
 /// lexicon hits at all (= neutral).
-public struct EmotionWindow: Sendable, Codable, Equatable, Identifiable {
+struct EmotionWindow: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier. Each window owns a UUID so SwiftUI's
     /// `ForEach` can iterate over `[EmotionWindow]` directly
     /// without needing a separate `id` key path.
-    public let id: UUID
+    let id: UUID
 
     /// Zero-based window index (= 0..N-1 for the chapter).
-    public let index: Int
+    let index: Int
 
     /// The window's text slice. The slice is taken verbatim from
     /// the chapter (= no transformation; = preserves markdown /
     /// smart quotes / em-dashes if present).
-    public let text: String
+    let text: String
 
     /// Lexicon-derived emotional valence: -1.0 .. +1.0.
     ///
@@ -82,19 +82,19 @@ public struct EmotionWindow: Sendable, Codable, Equatable, Identifiable {
     /// all (= either no positive + no negative, or perfectly
     /// balanced positive and negative). The score is rounded to
     /// 4 decimal places for stable display.
-    public let score: Double
+    let score: Double
 
     /// Character offset in the chapter where the window starts.
     /// Equals `index * windowSize` (= the simple equal-window
     /// strategy); `startOffset == 0` for window 0.
-    public let startOffset: Int
+    let startOffset: Int
 
     /// Character offset in the chapter where the window ends
     /// (= exclusive). For the final window this clamps to the
     /// chapter's total length.
-    public let endOffset: Int
+    let endOffset: Int
 
-    public init(
+    init(
         id: UUID = UUID(),
         index: Int,
         text: String,
@@ -113,40 +113,40 @@ public struct EmotionWindow: Sendable, Codable, Equatable, Identifiable {
 }
 
 /// The analyzer output (= matches the task spec verbatim).
-public struct EmotionCurveReport: Sendable, Codable, Equatable {
+struct EmotionCurveReport: Sendable, Codable, Equatable {
 
     /// Per-window sentiment scores (= length == window count;
     /// `windows[i].score` is the valence for window i).
-    public let windows: [EmotionWindow]
+    let windows: [EmotionWindow]
 
     /// Mean of `windows[*].score`. Negative = overall sad /
     /// dark; positive = overall uplifting / hopeful; near zero
     /// = neutral.
-    public let overallScore: Double
+    let overallScore: Double
 
     /// Standard deviation of `windows[*].score`. A high
     /// volatility value means the chapter has extreme swings
     /// between windows (= e.g. a sad opening that pivots to a
     /// happy climax). Low volatility = consistent tone.
-    public let volatility: Double
+    let volatility: Double
 
     /// Indices of windows that the analyzer classified as "flat
     /// spots" (= the window has a near-zero score AND its
     /// neighbor scores are also near zero; = the chapter goes
     /// uniformly neutral at this point, which usually signals a
     /// boring stretch).
-    public let flatSpots: [Int]
+    let flatSpots: [Int]
 
     /// Indices of windows where the curve should "lift" (= the
     /// analyzer recommends injecting a sentiment change to
     /// break the flat spot OR to amplify an arc).
-    public let suggestedLifts: [Int]
+    let suggestedLifts: [Int]
 
     /// One-sentence overall pacing feedback. Generated from the
     /// overall score + volatility + flat-spot count.
-    public let pacingHint: String
+    let pacingHint: String
 
-    public init(
+    init(
         windows: [EmotionWindow],
         overallScore: Double,
         volatility: Double,
@@ -167,7 +167,7 @@ public struct EmotionCurveReport: Sendable, Codable, Equatable {
     /// Equatable conformance that ignores per-window `UUID`s
     /// (= two windows with the same content should compare equal
     /// for testing purposes).
-    public static func == (lhs: EmotionCurveReport, rhs: EmotionCurveReport) -> Bool {
+    static func == (lhs: EmotionCurveReport, rhs: EmotionCurveReport) -> Bool {
         let lhsWindows = lhs.windows.map { WindowForEquality(index: $0.index, text: $0.text, score: $0.score, startOffset: $0.startOffset, endOffset: $0.endOffset) }
         let rhsWindows = rhs.windows.map { WindowForEquality(index: $0.index, text: $0.text, score: $0.score, startOffset: $0.startOffset, endOffset: $0.endOffset) }
         return lhsWindows == rhsWindows
@@ -192,11 +192,11 @@ public struct EmotionCurveReport: Sendable, Codable, Equatable {
 /// Errors thrown by `EmotionCurveAnalyzer`. The two cases mirror
 /// the reader_experience / plot_thread / genre_fit convention
 /// (= a LocalizedError for each case; = no `fatalError` paths).
-public enum EmotionCurveAnalyzerError: Error, LocalizedError, Sendable, Equatable {
+enum EmotionCurveAnalyzerError: Error, LocalizedError, Sendable, Equatable {
     case emptyChapter
     case invalidWindowCount(Int)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .emptyChapter:
             return "EmotionCurveAnalyzer: chapter text is empty."
@@ -222,11 +222,11 @@ public enum EmotionCurveAnalyzerError: Error, LocalizedError, Sendable, Equatabl
 /// reader_experience + plot_thread + genre_fit + editor_tools
 /// pattern (= Swift 6 strict concurrency; no shared mutable
 /// state across the SpecializedTools pane + chat loop callers).
-public actor EmotionCurveAnalyzer {
+actor EmotionCurveAnalyzer {
 
     /// Default window count (= mirrors the hermes Python
     /// default of 10 windows per chapter).
-    public static let defaultWindowCount = 10
+    static let defaultWindowCount = 10
 
     /// Lower bound on a "flat" score. Windows whose absolute
     /// score is below this threshold AND whose neighbors are
@@ -282,7 +282,7 @@ public actor EmotionCurveAnalyzer {
     /// analyzer is fully deterministic and offline-capable; =
     /// mirrors ReaderExperienceAnalyzer / PlotThreadAnalyzer /
     /// GenreFitAnalyzer).
-    public init() {
+    init() {
         self.positive = EmotionCurveAnalyzer.positiveLexicon
         self.negative = EmotionCurveAnalyzer.negativeLexicon
     }
@@ -302,7 +302,7 @@ public actor EmotionCurveAnalyzer {
     ///   suggested-lift indices + 1-sentence pacing hint.
     /// - Throws: `.emptyChapter` if the input is blank;
     ///   `.invalidWindowCount` if `windowCount < 1`.
-    public func analyze(
+    func analyze(
         chapterText: String,
         windowCount: Int = EmotionCurveAnalyzer.defaultWindowCount
     ) async throws -> EmotionCurveReport {

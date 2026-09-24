@@ -54,7 +54,7 @@ import Foundation
 /// tool_use/tool_result blocks, OpenAI flattens blocks to joined
 /// string). Any future deviation requires its own connector-specific
 /// helper (= no silent unification across providers).
-public enum RequestHelpers {
+enum RequestHelpers {
 
     // MARK: - Anthropic native (= ticket 004)
 
@@ -70,7 +70,7 @@ public enum RequestHelpers {
     ///   - systemPrompt: optional system prompt (= top-level `system`
     ///     with structured dict shape + cache_control marker)
     /// - Returns: JSON-encoded request body Data
-    public static func buildAnthropicRequest(
+    static func buildAnthropicRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
@@ -178,7 +178,7 @@ public enum RequestHelpers {
     /// 3 variants the pre-refactor `AnthropicConnector` decoded).
     /// Shared with `MinimaxConnector` (= Minimax's HTTP API returns the
     /// same Anthropic-compatible wire shape on the response side).
-    public static func decodeAnthropicResponse(
+    static func decodeAnthropicResponse(
         data: Data,
         model: String,
         providerID: String
@@ -259,7 +259,7 @@ public enum RequestHelpers {
     ///      (= MinimaxConnector sub-step 7 is text-only).
     /// Per-message `cache_control` markers are preserved (= the 4
     /// breakpoints from `PromptCaching.applyCacheControl`).
-    public static func buildMinimaxRequest(
+    static func buildMinimaxRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
@@ -302,7 +302,7 @@ public enum RequestHelpers {
     ///   - systemPrompt: optional system prompt (= prepended as a
     ///     `role:"system"` message; empty / nil = no system message)
     /// - Returns: JSON-encoded request body Data
-    public static func buildOpenAIRequest(
+    static func buildOpenAIRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
@@ -363,7 +363,7 @@ public enum RequestHelpers {
     /// Decode an OpenAI-format JSON response into an `LLMResponse`.
     /// Shared between `OpenAIConnector` + `OpenAICompatibleConnector`.
     /// Stop reason mapping: `"length"` -> `.maxTokens`, else `.endTurn`.
-    public static func decodeOpenAIResponse(
+    static func decodeOpenAIResponse(
         data: Data,
         model: String,
         providerID: String
@@ -415,7 +415,7 @@ public enum RequestHelpers {
     ///   - systemPrompt: optional system prompt (= top-level
     ///     `systemInstruction` field; empty / nil = no systemInstruction)
     /// - Returns: JSON-encoded request body Data
-    public static func buildGeminiRequest(
+    static func buildGeminiRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
@@ -478,7 +478,7 @@ public enum RequestHelpers {
 
     /// Decode a Gemini-format JSON response into an `LLMResponse`.
     /// Maps `candidates[0].content.parts[].text` to a single text block.
-    public static func decodeGeminiResponse(
+    static func decodeGeminiResponse(
         data: Data,
         model: String,
         providerID: String

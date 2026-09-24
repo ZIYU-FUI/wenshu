@@ -21,21 +21,21 @@
 
 import Foundation
 
-public struct EXAProvider: WebSearchProvider, Sendable {
+struct EXAProvider: WebSearchProvider, Sendable {
 
-    public let name: String = "exa"
+    let name: String = "exa"
 
     /// Designated init. Reads the API key from `ProviderKeychain`
     /// (= AGENTS.md §11). If the key is absent, the provider returns
     /// empty results (= signals "not configured" without throwing).
-    public init(apiKey: String? = nil) {
+    init(apiKey: String? = nil) {
         self.apiKey = apiKey
     }
 
     /// Stored API key. `nil` = not configured (= stub behavior).
     private let apiKey: String?
 
-    public func search(query: String, limit: Int) async throws -> [WebSearchResult] {
+    func search(query: String, limit: Int) async throws -> [WebSearchResult] {
         // Stub: API key not yet populated by the user (= common dev state).
         // Returning empty triggers the WebSearch actor's rotation logic
         // (= try next provider) without surfacing an error to the LLM.

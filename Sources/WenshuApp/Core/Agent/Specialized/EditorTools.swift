@@ -68,7 +68,7 @@ import Foundation
 /// The 6 paragraph-level editor transformations (= matches the
 /// task spec verbatim). Each case maps 1:1 to a Python transform
 /// in hermes's `agent/editing/editor_tools.py`.
-public enum EditorTransform: String, Sendable, Codable, CaseIterable, Identifiable {
+enum EditorTransform: String, Sendable, Codable, CaseIterable, Identifiable {
     /// Make text longer; add concrete detail / supporting ideas;
     /// keep voice.
     case expand
@@ -86,10 +86,10 @@ public enum EditorTransform: String, Sendable, Codable, CaseIterable, Identifiab
     /// without changing the plot.
     case dramatize
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Display label for the SwiftUI tool palette.
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .expand:     return "Expand"
         case .shorten:    return "Shorten"
@@ -101,7 +101,7 @@ public enum EditorTransform: String, Sendable, Codable, CaseIterable, Identifiab
     }
 
     /// One-sentence hint shown next to the picker.
-    public var hint: String {
+    var hint: String {
         switch self {
         case .expand:
             return "Make this longer; add concrete detail and supporting ideas while keeping the voice."
@@ -122,7 +122,7 @@ public enum EditorTransform: String, Sendable, Codable, CaseIterable, Identifiab
     /// Image(systemName:) directly in the EditorTools
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .expand:     return "arrow.up.left.and.arrow.down.right"  // Lucide 'chevrons-out'
         case .shorten:    return "arrow.down.right.and.arrow.up.left"  // Lucide 'chevrons-in'
@@ -138,7 +138,7 @@ public enum EditorTransform: String, Sendable, Codable, CaseIterable, Identifiab
 /// toward. `neutral` is included so the LLM can be asked to strip
 /// tonal coloring (= useful when the source text already reads
 /// editorial-neutral and the user wants to confirm that).
-public enum TargetTone: String, Sendable, Codable, CaseIterable, Identifiable {
+enum TargetTone: String, Sendable, Codable, CaseIterable, Identifiable {
     /// Polished, distant, third-person; typical of formal essays
     /// and journalism.
     case formal
@@ -155,10 +155,10 @@ public enum TargetTone: String, Sendable, Codable, CaseIterable, Identifiable {
     /// toward any of the other four.
     case neutral
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Display label for the SwiftUI tone picker.
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .formal:   return "Formal"
         case .casual:   return "Casual"
@@ -199,16 +199,16 @@ public enum TargetTone: String, Sendable, Codable, CaseIterable, Identifiable {
 ///      callback that consumes `promptPrefix(...)` and feeds it
 ///      to the model), the actor is already the right place to
 ///      hold a per-book rate limiter or a cached LLM client.
-public actor EditorTransformTools {
+actor EditorTransformTools {
 
-    public init() {}
+    init() {}
 
     // MARK: - Public API
 
     /// All available transformations (= the 6 cases of
     /// `EditorTransform`). Used by the tool palette UI to
     /// enumerate the buttons.
-    public func availableTransforms() async -> [EditorTransform] {
+    func availableTransforms() async -> [EditorTransform] {
         EditorTransform.allCases
     }
 
@@ -226,7 +226,7 @@ public actor EditorTransformTools {
     ///   - targetTone: required for `.shiftTone`; ignored
     ///     otherwise.
     /// - Returns: the LLM-facing prompt prefix. Always non-empty.
-    public func promptPrefix(
+    func promptPrefix(
         for transform: EditorTransform,
         targetTone: TargetTone? = nil
     ) async -> String {
@@ -259,7 +259,7 @@ public actor EditorTransformTools {
     /// The description is intentionally short (= one line) so the
     /// tool picker remains scannable; the longer `hint` lives on
     /// `EditorTransform` for the detail view.
-    public func toolDescription(for transform: EditorTransform) async -> String {
+    func toolDescription(for transform: EditorTransform) async -> String {
         switch transform {
         case .expand:     return "Make the paragraph longer; add concrete detail."
         case .shorten:    return "Condense to about half the length."
@@ -278,7 +278,7 @@ public actor EditorTransformTools {
     /// The defaults are picked so the chat-loop caller can
     /// resolve "user said 'rewrite this' with no further
     /// instruction" without an extra round-trip.
-    public func defaultTone(for transform: EditorTransform) async -> TargetTone? {
+    func defaultTone(for transform: EditorTransform) async -> TargetTone? {
         switch transform {
         case .shiftTone:  return .formal
         case .dramatize:  return .literary

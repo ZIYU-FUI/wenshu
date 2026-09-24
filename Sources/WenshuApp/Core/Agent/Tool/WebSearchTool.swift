@@ -32,20 +32,20 @@ import Foundation
 /// from v0.73 ticket 001). The LLM sends `{"action": "search", "query": "..."}`
 /// and receives a JSON envelope `{"ok": true, "results": [...]}`. Errors
 /// come back as `{"ok": false, "error": "..."}`.
-public final class WebSearchTool: Tool, @unchecked Sendable {
+final class WebSearchTool: Tool, @unchecked Sendable {
 
     /// Module-singleton (= matches `SkillBundlesTool.shared` pattern).
-    public static let shared = WebSearchTool()
+    static let shared = WebSearchTool()
 
     private let engine: WebSearch
 
     /// Designated init (= allows tests to inject a `WebSearch` with
     /// custom provider list).
-    public init(engine: WebSearch = WebSearch.shared) {
+    init(engine: WebSearch = WebSearch.shared) {
         self.engine = engine
     }
 
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         let payload = parseJSON(input)
         let action = (payload["action"] as? String ?? "").lowercased()
 
@@ -170,7 +170,7 @@ public final class WebSearchTool: Tool, @unchecked Sendable {
 extension WebSearchTool {
 
     /// Module-load registration with `ToolRegistry.shared`. Idempotent.
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "web_search",

@@ -25,8 +25,8 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSBook {
-    @Attribute(.unique) public var id: String
+final class WSBook {
+    @Attribute(.unique) var id: String
     var title: String
     var idea: String?
     var length: Int?

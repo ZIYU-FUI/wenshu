@@ -128,7 +128,7 @@ enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, Hashable
 
     /// Reverse lookup: prompt number → entity type.
     /// Returns `.other` (= safe default) if number is out of range.
-    public static func fromPromptNumber(_ n: Int) -> EntityType {
+    static func fromPromptNumber(_ n: Int) -> EntityType {
         switch n {
         case 1: return .character
         case 2: return .location

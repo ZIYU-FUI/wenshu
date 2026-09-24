@@ -13,7 +13,7 @@
 
 import Foundation
 
-public enum TodoStatus: String, Codable, Sendable, CaseIterable {
+enum TodoStatus: String, Codable, Sendable, CaseIterable {
     case pending
     case inProgress = "in_progress"
     case completed
@@ -21,7 +21,7 @@ public enum TodoStatus: String, Codable, Sendable, CaseIterable {
 }
 
 /// Todo
-public enum TodoPriority: Int, Codable, Sendable, CaseIterable {
+enum TodoPriority: Int, Codable, Sendable, CaseIterable {
     case low = 0
     case medium = 1
     case high = 2
@@ -29,16 +29,16 @@ public enum TodoPriority: Int, Codable, Sendable, CaseIterable {
 }
 
 /// Todo
-public struct TodoItem: Equatable, Sendable {
-    public let id: String
-    public var title: String
-    public var status: TodoStatus
-    public var priority: TodoPriority
-    public var dueDate: Date?
-    public let createdAt: Date
-    public var updatedAt: Date
+struct TodoItem: Equatable, Sendable {
+    let id: String
+    var title: String
+    var status: TodoStatus
+    var priority: TodoPriority
+    var dueDate: Date?
+    let createdAt: Date
+    var updatedAt: Date
 
-    public init(id: String = UUID().uuidString, title: String, status: TodoStatus = .pending, priority: TodoPriority = .medium, dueDate: Date? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(id: String = UUID().uuidString, title: String, status: TodoStatus = .pending, priority: TodoPriority = .medium, dueDate: Date? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.title = title
         self.status = status

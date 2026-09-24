@@ -49,7 +49,7 @@ final class CommandPaletteModel {
 
     private let registry: CommandPaletteRegistry
 
-    public init(registry: CommandPaletteRegistry = .shared) {
+    init(registry: CommandPaletteRegistry = .shared) {
         self.registry = registry
     }
 
@@ -110,7 +110,7 @@ struct CommandPaletteView: View {
     @State private var model: CommandPaletteModel
     @FocusState private var queryFocused: Bool
 
-    public init(model: CommandPaletteModel = CommandPaletteModel()) {
+    init(model: CommandPaletteModel = CommandPaletteModel()) {
         _model = State(initialValue: model)
     }
 
@@ -300,14 +300,14 @@ private struct CommandPaletteRow: View {
 @MainActor
 enum CommandPaletteController {
     /// Show the palette (= ⌘K handler).
-    public static func show() {
+    static func show() {
         NotificationCenter.default.post(name: .wenshuShowCommandPalette, object: nil)
     }
 
     /// Dispatch a palette action (= the SwiftUI sheet calls this when
     /// the user invokes an item). Routes through NotificationCenter so
     /// the right subsystem can react.
-    public static func dispatch(action: CommandPaletteAction) {
+    static func dispatch(action: CommandPaletteAction) {
         switch action {
         case let .invokeSkill(skillName, args):
             // CHATBOX-001 wire-up: post a NotificationCenter event the

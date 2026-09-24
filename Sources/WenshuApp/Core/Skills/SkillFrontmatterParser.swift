@@ -38,16 +38,16 @@
 
 import Foundation
 
-public enum SkillFrontmatterParser {
+enum SkillFrontmatterParser {
 
     // MARK: - Skills config (= hermes load_skills_config L25-36)
 
-    public struct SkillsConfig: Sendable, Equatable {
-        public var templateVars: Bool
-        public var inlineShell: Bool
-        public var inlineShellTimeout: Int
+    struct SkillsConfig: Sendable, Equatable {
+        var templateVars: Bool
+        var inlineShell: Bool
+        var inlineShellTimeout: Int
 
-        public init(
+        init(
             templateVars: Bool = true,
             inlineShell: Bool = false,
             inlineShellTimeout: Int = 10
@@ -59,11 +59,11 @@ public enum SkillFrontmatterParser {
 
         /// Default config (= hermes load_skills_config fallback when
         /// config.yaml has no `skills` section).
-        public static let `default` = SkillsConfig()
+        static let `default` = SkillsConfig()
 
         /// Load from a YAML-like dictionary (= hermes load_skills_config
         /// reads `cfg.get('skills')` and treats the result as a dict).
-        public init(fromDict dict: [String: Any]?) {
+        init(fromDict dict: [String: Any]?) {
             self.templateVars = (dict?["template_vars"] as? Bool) ?? true
             self.inlineShell = (dict?["inline_shell"] as? Bool) ?? false
             self.inlineShellTimeout = (dict?["inline_shell_timeout"] as? Int) ?? 10
@@ -76,7 +76,7 @@ public enum SkillFrontmatterParser {
     /// content. Only substitutes tokens for which a concrete value is
     /// available; unresolved tokens are left in place so the author
     /// can spot them.
-    public static func substituteTemplateVars(
+    static func substituteTemplateVars(
         _ content: String,
         skillDir: String? = nil,
         sessionId: String? = nil
@@ -107,7 +107,7 @@ public enum SkillFrontmatterParser {
     /// Replace every !`cmd` snippet in `content` with its stdout.
     /// Runs each snippet with the skill directory as CWD so relative
     /// paths in the snippet work the way the author expects.
-    public static func expandInlineShell(
+    static func expandInlineShell(
         _ content: String,
         skillDir: String? = nil,
         timeout: Int = 10
@@ -202,7 +202,7 @@ public enum SkillFrontmatterParser {
     // MARK: - Combined preprocessor (= hermes preprocess_skill_content)
 
     /// Apply configured SKILL.md template + inline-shell preprocessing.
-    public static func preprocessSkillContent(
+    static func preprocessSkillContent(
         _ content: String,
         skillDir: String? = nil,
         sessionId: String? = nil,

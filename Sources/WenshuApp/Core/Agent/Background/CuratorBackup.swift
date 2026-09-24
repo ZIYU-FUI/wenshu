@@ -17,14 +17,14 @@
 
 import Foundation
 
-public actor CuratorBackup {
+actor CuratorBackup {
 
     private let backupRoot: URL
     private let fileManager: FileManager
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
 
-    public init(backupRoot: URL, fileManager: FileManager = .default) {
+    init(backupRoot: URL, fileManager: FileManager = .default) {
         self.backupRoot = backupRoot
         self.fileManager = fileManager
         let encoder = JSONEncoder()
@@ -40,7 +40,7 @@ public actor CuratorBackup {
     /// the curator's configuration (= hermes saveBackup captures the
     /// curator's last-run-at pointer + bundled-manifest marker, etc).
     /// Returns the destination URL.
-    public func saveBackup(curatorConfig: Curator.Config) async throws -> URL {
+    func saveBackup(curatorConfig: Curator.Config) async throws -> URL {
         try ensureBackupRootExists()
         let id = Self.makeSnapshotID()
         let dest = backupRoot.appendingPathComponent("\(id).json")
@@ -58,7 +58,7 @@ public actor CuratorBackup {
 
     /// Restore the most recent backup (= the hermes restore_from_latest_backup
     /// pattern). Returns the snapshot if one exists; otherwise nil.
-    public func restoreFromLatestBackup() async throws -> CuratorBackupSnapshot? {
+    func restoreFromLatestBackup() async throws -> CuratorBackupSnapshot? {
         let backups = try await listAvailableBackups()
         guard let latest = backups.first else { return nil }
         let data = try Data(contentsOf: latest)
@@ -66,7 +66,7 @@ public actor CuratorBackup {
     }
 
     /// List all available backups, newest first.
-    public func listAvailableBackups() async throws -> [URL] {
+    func listAvailableBackups() async throws -> [URL] {
         guard fileManager.fileExists(atPath: backupRoot.path) else { return [] }
         let entries = try fileManager.contentsOfDirectory(
             at: backupRoot,
@@ -104,13 +104,13 @@ public actor CuratorBackup {
 
 // MARK: - Snapshot
 
-public struct CuratorBackupSnapshot: Sendable, Equatable, Codable {
-    public let id: String
-    public let createdAt: Date
-    public let config: Curator.Config
-    public let report: CurationReport
+struct CuratorBackupSnapshot: Sendable, Equatable, Codable {
+    let id: String
+    let createdAt: Date
+    let config: Curator.Config
+    let report: CurationReport
 
-    public init(
+    init(
         id: String,
         createdAt: Date,
         config: Curator.Config,

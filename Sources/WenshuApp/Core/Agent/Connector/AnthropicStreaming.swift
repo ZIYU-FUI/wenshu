@@ -17,8 +17,8 @@ import EventSource
 /// Anthropic streams events with type="content_block_start" /
 /// "content_block_delta" / "content_block_stop" / "message_delta" /
 /// "message_stop".
-public struct AnthropicStreamingChunk: Sendable {
-    public enum Kind: Sendable {
+struct AnthropicStreamingChunk: Sendable {
+    enum Kind: Sendable {
         case contentBlockStart(blockType: String, blockIndex: Int, toolId: String?, toolName: String?)
         case contentBlockDelta(blockIndex: Int, textDelta: String?, inputDelta: String?, thinkingDelta: String?)
         case contentBlockStop(blockIndex: Int)
@@ -28,14 +28,14 @@ public struct AnthropicStreamingChunk: Sendable {
         case unknown(String)
     }
 
-    public let kind: Kind
+    let kind: Kind
 }
 
 /// Decode one Anthropic SSE event payload into a structured chunk.
 /// Uses JSONSerialization (= Apple Foundation; wenshu §11 hard rule).
-public enum AnthropicSSEDecoder {
+enum AnthropicSSEDecoder {
 
-    public static func decode(event: String, data: String) -> AnthropicStreamingChunk? {
+    static func decode(event: String, data: String) -> AnthropicStreamingChunk? {
         // For events that carry no JSON payload (= message_stop, ping), the
         // empty `data` arg is intentional and we should NOT gate on
         // JSONSerialization failure (= otherwise these events return nil

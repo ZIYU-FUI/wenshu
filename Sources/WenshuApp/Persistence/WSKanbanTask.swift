@@ -15,8 +15,8 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSKanbanTask {
-    @Attribute(.unique) public var id: String
+final class WSKanbanTask {
+    @Attribute(.unique) var id: String
     var title: String
     /// Status string (= matches KanbanStatus enum rawValues: .new / .triage /
     ///  .ready / .running / .blocked / .review / .done / .failed; = 8 cases per

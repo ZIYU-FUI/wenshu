@@ -56,7 +56,7 @@ import Foundation
 /// Maximum number of skills that can be stacked in a single
 /// user message (= hermes `_MAX_STACKED_SKILLS` at
 /// `agent/skill_commands.py` L55).
-public let maxStackedSkills = 8
+let maxStackedSkills = 8
 
 // MARK: - Public API
 
@@ -83,7 +83,7 @@ public let maxStackedSkills = 8
 /// - Returns: The matching ``/slug`` key (= with the
 ///   underscore-from-hyphen conversion applied), or nil if no
 ///   match.
-public func resolveSkillCommandKey(
+func resolveSkillCommandKey(
     _ command: String,
     availableKeys: Set<String>
 ) -> String? {
@@ -112,7 +112,7 @@ public func resolveSkillCommandKey(
 /// - Returns: A tuple of `(extra_cmd_keys, remaining_instruction)`
 ///   where `extra_cmd_keys` are canonical ``/slug`` keys from
 ///   `resolveSkillCommandKey`.
-public func splitStackedSkillCommands(
+func splitStackedSkillCommands(
     _ rest: String,
     availableKeys: Set<String>
 ) -> (extra: [String], remaining: String) {

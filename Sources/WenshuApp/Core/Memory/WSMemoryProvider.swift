@@ -62,7 +62,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
     /// and `MemoryManager.memory`.
     private let memory: WSMemoryRepository
 
-    public init(slug: String = "swiftdata-memory", isEnabled: Bool = true, memory: WSMemoryRepository? = nil) {
+    init(slug: String = "swiftdata-memory", isEnabled: Bool = true, memory: WSMemoryRepository? = nil) {
         self.slug = slug
         self.isEnabled = isEnabled
         if let memory {

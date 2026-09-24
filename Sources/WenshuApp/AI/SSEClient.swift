@@ -28,28 +28,28 @@
 import Foundation
 
 /// A single Server-Sent Event parsed from a streaming HTTP response.
-public struct SSEEvent: Sendable {
+struct SSEEvent: Sendable {
     /// Event name (= "message" for default / unnamed; "error" for
     /// stream-level errors; provider-specific names for tool calls
     /// etc.). Empty string if the server omitted `event:` line.
-    public let event: String
+    let event: String
 
     /// Event data payload (= single-line or multi-line joined with
     /// '\n' per W3C SSE spec). Empty string if the server omitted
     /// `data:` line.
-    public let data: String
+    let data: String
 }
 
 /// SSE client = URLSession.bytes consumer that parses the W3C SSE
 /// wire format. Supports both Anthropic Messages API and OpenAI
 /// Chat Completions streaming (= both use the same SSE envelope).
-public actor SSEClient {
+actor SSEClient {
     let url: URL
     var headers: [String: String]
     private var session: URLSession
     private var task: Task<Void, Never>?
 
-    public init(url: URL, headers: [String: String] = [:], session: URLSession = .shared) {
+    init(url: URL, headers: [String: String] = [:], session: URLSession = .shared) {
         self.url = url
         self.headers = headers
         self.session = session
@@ -58,7 +58,7 @@ public actor SSEClient {
     /// Stream SSE events. Caller `break`s out of the loop to cancel
     /// (= partial events are dropped; URLSession.bytes task is
     /// automatically cancelled when the iterator is deallocated).
-    public func stream() -> AsyncThrowingStream<SSEEvent, Error> {
+    func stream() -> AsyncThrowingStream<SSEEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -126,7 +126,7 @@ public actor SSEClient {
 
     /// Cancel the current stream (= closes the URLSession bytes
     /// task + finishes the continuation).
-    public func cancel() {
+    func cancel() {
         task?.cancel()
     }
 }

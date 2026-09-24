@@ -9,13 +9,13 @@
 import Foundation
 
 /// 1 Internal Link = Parsing Results
-public struct InternalLink: Equatable, Sendable {
-    public let text: String           // show ([[name|alias]] yes alias)
-    public let target: String         // ref ([[name]] [[name|alias]] yes name)
-    public let line: Int              // source markdown ok (0-indexed)
-    public let offset: Int            // source markdown offset
+struct InternalLink: Equatable, Sendable {
+    let text: String           // show ([[name|alias]] yes alias)
+    let target: String         // ref ([[name]] [[name|alias]] yes name)
+    let line: Int              // source markdown ok (0-indexed)
+    let offset: Int            // source markdown offset
 
-    public init(text: String, target: String, line: Int, offset: Int) {
+    init(text: String, target: String, line: Int, offset: Int) {
         self.text = text
         self.target = target
         self.line = line
@@ -25,7 +25,7 @@ public struct InternalLink: Equatable, Sendable {
 
 /// InternalLinkParser: Markdown `[[name]]` / `[[name|alias]]`
 /// Obsidian wikilink format 1:1, SilverBullet page ref
-public enum InternalLinkParser {
+enum InternalLinkParser {
     /// ok `[[name]]` `[[name|alias]]`
     ///: `[[` + `]` + `]]`, in progress `|` target / alias
     /// Apple HIG: NSRegularExpression Markdown
@@ -38,7 +38,7 @@ public enum InternalLinkParser {
     }()
 
     /// 1 markdown content, link
-    public static func parse(_ content: String) -> [InternalLink] {
+    static func parse(_ content: String) -> [InternalLink] {
         var results: [InternalLink] = []
         let nsContent = content as NSString
         let fullRange = NSRange(location: 0, length: nsContent.length)

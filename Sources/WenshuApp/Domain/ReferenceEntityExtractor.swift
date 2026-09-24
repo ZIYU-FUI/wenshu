@@ -34,7 +34,7 @@ import Foundation
 
 struct ReferenceEntityExtractor: Sendable {
 
-    public init() {}
+    init() {}
 
     // MARK: - Regex patterns (hermes verbatim)
 

@@ -29,15 +29,15 @@ import SwiftUI
 /// 4 PT gap, hairline divider, 10 PT inset below. The canonical column-top
 /// chrome in macOS Mail / Notes / Finder section-header idiom.
 struct SectionHeader: View {
-    public let title: String
-    public let showsDivider: Bool
+    let title: String
+    let showsDivider: Bool
 
-    public init(title: String, showsDivider: Bool = true) {
+    init(title: String, showsDivider: Bool = true) {
         self.title = title
         self.showsDivider = showsDivider
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(spacing: DesignTokens.chromePaddingSectionHeaderGap) {
             // 10 PT top inset (= previous chromePaddingSectionTop = 18 was
             // the old value; = boss 2026-09-24 OOB reduced to 10 for the

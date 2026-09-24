@@ -25,14 +25,14 @@ import Foundation
 
 /// Per-component token accounting for a conversation context.
 /// Reported by ContextEngine.breakdown() (= thin facade over Core/Memory/*).
-public struct ContextBreakdown: Sendable, Codable {
-    public let systemTokens: Int
-    public let recentCachedTokens: Int     // last 3 non-system (= cacheable)
-    public let olderTokens: Int            // everything else
-    public let totalTokens: Int
-    public let timestamp: Date
+struct ContextBreakdown: Sendable, Codable {
+    let systemTokens: Int
+    let recentCachedTokens: Int     // last 3 non-system (= cacheable)
+    let olderTokens: Int            // everything else
+    let totalTokens: Int
+    let timestamp: Date
 
-    public init(
+    init(
         systemTokens: Int,
         recentCachedTokens: Int,
         olderTokens: Int,
@@ -55,7 +55,7 @@ public struct ContextBreakdown: Sendable, Codable {
     /// expects them to be `==`). The `totalTokens` field is also
     /// recomputed from the components, so it does not need a separate
     /// equality check (= guarded by the `init` invariant).
-    public static func == (lhs: ContextBreakdown, rhs: ContextBreakdown) -> Bool {
+    static func == (lhs: ContextBreakdown, rhs: ContextBreakdown) -> Bool {
         return lhs.systemTokens == rhs.systemTokens
             && lhs.recentCachedTokens == rhs.recentCachedTokens
             && lhs.olderTokens == rhs.olderTokens
@@ -63,25 +63,25 @@ public struct ContextBreakdown: Sendable, Codable {
     }
 
     /// Fraction of total tokens occupied by system message (= 0.0 to 1.0).
-    public var systemFraction: Double {
+    var systemFraction: Double {
         guard totalTokens > 0 else { return 0 }
         return Double(systemTokens) / Double(totalTokens)
     }
 
     /// Fraction occupied by recent 3 (= cacheable per ADR-0010).
-    public var recentCachedFraction: Double {
+    var recentCachedFraction: Double {
         guard totalTokens > 0 else { return 0 }
         return Double(recentCachedTokens) / Double(totalTokens)
     }
 
     /// Fraction occupied by older compressed messages.
-    public var olderFraction: Double {
+    var olderFraction: Double {
         guard totalTokens > 0 else { return 0 }
         return Double(olderTokens) / Double(totalTokens)
     }
 
     /// Human-readable summary (= for chat UI display).
-    public var summary: String {
+    var summary: String {
         return String(
             format: "system: %d tokens (%.0f%%)\nrecent 3 cached: %d tokens (%.0f%%)\nolder: %d tokens (%.0f%%)",
             systemTokens, systemFraction * 100,
@@ -94,7 +94,7 @@ public struct ContextBreakdown: Sendable, Codable {
 /// Pure function (= deterministic) that partitions [LLMMessage] into the
 /// three ContextBreakdown components. Respects PromptCaching 4-breakpoint
 /// invariant (= system message + last 3 non-system = cacheable).
-public enum ContextBreakdownAnalyzer {
+enum ContextBreakdownAnalyzer {
 
     /// Rough character-count estimate for the system prompt.
     /// (= 4 chars per token heuristic, ceil-divided; same convention as
@@ -136,7 +136,12 @@ public enum ContextBreakdownAnalyzer {
     ///     general-purpose ceiling-based estimate (= e.g. for UI display).
     ///   - cachedBreakpointsCount: how many trailing non-system messages are
     ///     cacheable (= 3 per ADR-0010 PromptCaching invariant)
-    public static func breakdown(
+    // P2-07 audit (2026-09-24): internal (= TokenEstimator and
+        // CharacterBasedTokenEstimator are internal; = default-arg
+        // `CharacterBasedTokenEstimator()` would not compile in a
+        // public method signature; = the function's contract is
+        // intra-package anyway).
+        static func breakdown(
         messages: [LLMMessage],
         systemPrompt: String,
         estimator: TokenEstimator = CharacterBasedTokenEstimator(),

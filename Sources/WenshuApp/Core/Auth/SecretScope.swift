@@ -43,7 +43,7 @@ import Foundation
 ///
 /// All sources must be `Sendable` (= passes across actor boundaries
 /// under the project's Swift 6 strict-concurrency model).
-public protocol SecretSource: Sendable {
+protocol SecretSource: Sendable {
     /// Read a secret by name. Returns `nil` when this source has no
     /// value for that name (= caller should try the next source).
     func read(name: String) async throws -> String?
@@ -54,10 +54,10 @@ public protocol SecretSource: Sendable {
 /// Source backed by the process environment (= `ProcessInfo.processInfo.environment`).
 /// Matches hermes `secret_scope.get_secret` step 1 / step 3 fallback
 /// ("read `os.environ`").
-public struct EnvVarSource: SecretSource {
-    public init() {}
+struct EnvVarSource: SecretSource {
+    init() {}
 
-    public func read(name: String) async throws -> String? {
+    func read(name: String) async throws -> String? {
         ProcessInfo.processInfo.environment[name]
     }
 }
@@ -75,16 +75,16 @@ public struct EnvVarSource: SecretSource {
 /// `~/.hermes/profiles/<slug>/.env`; wenshu stores them under the Apple
 /// Keychain account `AppleKeychainStore.service / <slug>.api.key`
 /// (= see `ProviderKeychain.swift` for the canonical key layout).
-public struct KeychainSource: SecretSource {
+struct KeychainSource: SecretSource {
     /// Provider identifier (= `Provider.slug`, e.g. `"anthropic"`).
     /// Resolved via `Provider.by(slug:)` against the static catalog.
-    public let providerSlug: String
+    let providerSlug: String
 
-    public init(providerSlug: String) {
+    init(providerSlug: String) {
         self.providerSlug = providerSlug
     }
 
-    public func read(name: String) async throws -> String? {
+    func read(name: String) async throws -> String? {
         // Route through the existing `ProviderKeychain` shim (= Apple
         // Security in production, in-memory dict in tests). We do NOT
         // re-implement SecItemCopyMatching here (= wenshu-side wins).
@@ -106,29 +106,29 @@ public struct KeychainSource: SecretSource {
 /// Default `SecretScope()` = empty chain = every `resolve(name:)`
 /// returns `nil`. Callers register sources via `register(_:)` before
 /// calling `resolve`.
-public actor SecretScope {
+actor SecretScope {
     private var sources: [SecretSource] = []
 
-    public init() {}
+    init() {}
 
     /// Append a source to the chain. Duplicate types are allowed
     /// (= caller's responsibility to deduplicate if needed).
-    public func register(_ source: SecretSource) {
+    func register(_ source: SecretSource) {
         sources.append(source)
     }
 
     /// Snapshot of currently-registered sources, in registration order.
-    public var current: [SecretSource] { sources }
+    var current: [SecretSource] { sources }
 
     /// Clear all sources (= useful for tests + hot reload).
-    public func unregisterAll() {
+    func unregisterAll() {
         sources.removeAll()
     }
 
     /// Walk the chain and return the first non-nil value.
     /// Returns `nil` when no source has the name (= hermes `default=nil`
     /// behavior in single-profile / non-multiplex mode).
-    public func resolve(name: String) async throws -> String? {
+    func resolve(name: String) async throws -> String? {
         for source in sources {
             if let value = try await source.read(name: name) {
                 return value
@@ -139,7 +139,7 @@ public actor SecretScope {
 
     /// Convenience: resolve with a fallback default (= hermes
     /// `get_secret(name, default=...)` shape).
-    public func resolve(name: String, default defaultValue: String) async throws -> String {
+    func resolve(name: String, default defaultValue: String) async throws -> String {
         try await resolve(name: name) ?? defaultValue
     }
 }
@@ -197,7 +197,7 @@ extension SecretScope {
     ///   - HERMES_KANBAN_* → (omitted; = wenshu uses kanban at wenshu
     ///     level not hermes level; = covered by _wenshuGlobalEnvPrefixes)
     ///   - HERMES_TELEGRAM_* → (omitted; = no telegram in wenshu)
-    public static let wenshuGlobalEnvExact: Set<String> = [
+    static let wenshuGlobalEnvExact: Set<String> = [
         // Wenshu runtime / deployment
         "WENSHU_HOME", "WENSHU_REDACT_SECRETS",
         // OS / interpreter
@@ -208,7 +208,7 @@ extension SecretScope {
     /// Genuinely-global env-var prefixes per wenshu-side wins
     /// (= hermes `_GLOBAL_ENV_PREFIXES` at
     /// `agent/secret_scope.py` L111-L115).
-    public static let wenshuGlobalEnvPrefixes: [String] = [
+    static let wenshuGlobalEnvPrefixes: [String] = [
         "TERMINAL_",  // terminal/sandbox backend settings
     ]
 
@@ -217,7 +217,7 @@ extension SecretScope {
     /// `agent/secret_scope.py` L117-L121).
     ///
     /// Pure function (= no side effects; = hermes equivalent).
-    public static func isGlobalEnv(_ name: String) -> Bool {
+    static func isGlobalEnv(_ name: String) -> Bool {
         if wenshuGlobalEnvExact.contains(name) {
             return true
         }
@@ -241,7 +241,7 @@ extension SecretScope {
     /// - Parameter envPath: path to the `.env` file.
     /// - Returns: parsed dict (= empty when file is missing or
     ///   unreadable; = matches hermes safe-default semantics).
-    public static func loadEnvFile(_ envPath: URL) -> [String: String] {
+    static func loadEnvFile(_ envPath: URL) -> [String: String] {
         var secrets: [String: String] = [:]
         guard let text = try? String(contentsOf: envPath, encoding: .utf8) else {
             return secrets
@@ -285,7 +285,7 @@ extension SecretScope {
     /// (= `SecretScope.resolve` reads those from
     /// `ProcessInfo.processInfo.environment` directly via `EnvVarSource`;
     /// = matches hermes L207-L208 = "Global vars intentionally NOT copied").
-    public static func buildProfileSecretScope(
+    static func buildProfileSecretScope(
         wenshuHome: URL
     ) -> [String: String] {
         let envPath = wenshuHome.appendingPathComponent(".env")

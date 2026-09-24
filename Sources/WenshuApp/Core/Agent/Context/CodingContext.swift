@@ -16,14 +16,14 @@ import Foundation
 
 // MARK: - Context value
 
-public struct CodingContext: Sendable, Equatable {
-    public let language: String
-    public let filePath: String?
-    public let snippet: String?
-    public let imports: [String]
-    public let recentEdits: [String]
+struct CodingContext: Sendable, Equatable {
+    let language: String
+    let filePath: String?
+    let snippet: String?
+    let imports: [String]
+    let recentEdits: [String]
 
-    public init(
+    init(
         language: String,
         filePath: String? = nil,
         snippet: String? = nil,
@@ -40,16 +40,16 @@ public struct CodingContext: Sendable, Equatable {
 
 // MARK: - Aggregator
 
-public actor CodingContextAggregator {
+actor CodingContextAggregator {
 
-    public init() {}
+    init() {}
 
     /// Build a CodingContext for the given file path. Reads the file from
     /// disk, detects the language from the extension, extracts imports,
     /// and returns the snippet. Mirrors hermes coding_context.aggregate()
     /// without the project-root / git-repo detection (= that lives in
     /// wenshu's canonical PromptCaching surface for the coding posture).
-    public func aggregate(for filePath: String) async throws -> CodingContext {
+    func aggregate(for filePath: String) async throws -> CodingContext {
         let url = URL(fileURLWithPath: filePath)
         let fm = FileManager.default
         guard fm.fileExists(atPath: url.path) else {
@@ -165,13 +165,13 @@ public actor CodingContextAggregator {
 
 // MARK: - Errors
 
-public enum CodingContextError: Error, Sendable, Equatable {
+enum CodingContextError: Error, Sendable, Equatable {
     case fileNotFound(path: String)
     case unsupportedExtension(path: String)
 }
 
 extension CodingContextError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .fileNotFound(let path):
             return "Coding context file not found: \(path)"

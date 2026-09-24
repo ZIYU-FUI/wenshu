@@ -23,17 +23,17 @@ import Foundation
 /// Each provider type has a canonical key name (= e.g. `EXAProvider` reads
 /// from "exa_api_key"). The key name is what we look up in the user
 /// config store (= UserDefaults for now; AppleKeychain in future ticket).
-public enum WebSearchConfigurator {
+enum WebSearchConfigurator {
 
     /// The set of provider names (= EXA / TAVILY / BRAVE / PARALLEL / SEARXNG)
     /// that this configurator knows how to build.
-    public static let supportedProviders: [String] = [
+    static let supportedProviders: [String] = [
         "exa", "tavily", "brave", "parallel", "searxng"
     ]
 
     /// Returns the canonical API key name for a given provider name.
     /// (= "exa" → "exa_api_key")
-    public static func searchAPIKeyName(for providerName: String) -> String? {
+    static func searchAPIKeyName(for providerName: String) -> String? {
         switch providerName {
         case "exa": return "exa_api_key"
         case "tavily": return "tavily_api_key"
@@ -46,7 +46,7 @@ public enum WebSearchConfigurator {
 
     /// The UserDefaults key prefix for web search API keys.
     /// (= the user-config keys are stored under "wenshu.search.<provider_name>").
-    public static let userDefaultsKeyPrefix = "wenshu.search."
+    static let userDefaultsKeyPrefix = "wenshu.search."
 
     /// Read API keys from `SearchAPIKeychain` (= Apple Keychain in production
     /// per AGENTS.md §11; = InMemorySearchKeychainStore in tests via
@@ -57,7 +57,7 @@ public enum WebSearchConfigurator {
     /// SearchAPIKeychain (= Apple Keychain) and the UserDefaults entry
     /// is deleted. The migration runs once per key on first access; = after
     /// the first launch the UserDefaults entries are empty.
-    public static func configuredEngine() -> WebSearch {
+    static func configuredEngine() -> WebSearch {
         let providers: [any WebSearchProvider] = supportedProviders.compactMap { name in
             guard let keyName = searchAPIKeyName(for: name) else {
                 // SEARXNG: needs endpoint URL, not API key
@@ -98,7 +98,7 @@ public enum WebSearchConfigurator {
     /// have a configured API key in the SearchAPIKeychain.
     /// Used for UI affordances (= show the user which providers are enabled
     /// without exposing the key).
-    public static func searchAPIKeysEnabled() -> Set<String> {
+    static func searchAPIKeysEnabled() -> Set<String> {
         let configured = SearchAPIKeychain.listConfiguredProviders()
         var enabled: Set<String> = []
         for name in supportedProviders {

@@ -23,15 +23,15 @@ import Foundation
 import SwiftData
 
 @MainActor
-public final class WSKanbanRepository {
+final class WSKanbanRepository {
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
+    init(container: ModelContainer = WSPersistenceContainer.shared) {
         self.container = container
     }
 
-    public func add(
+    func add(
         title: String,
         status: KanbanStatus = .new,
         priority: Int = 5,
@@ -72,7 +72,7 @@ public final class WSKanbanRepository {
         )
     }
 
-    public func transition(id: String, to newStatus: KanbanStatus) throws {
+    func transition(id: String, to newStatus: KanbanStatus) throws {
         let descriptor = FetchDescriptor<WSKanbanTask>(
             predicate: #Predicate { $0.id == id }
         )
@@ -97,14 +97,14 @@ public final class WSKanbanRepository {
         try context.save()
     }
 
-    public func get(id: String) throws -> KanbanTask? {
+    func get(id: String) throws -> KanbanTask? {
         let descriptor = FetchDescriptor<WSKanbanTask>(
             predicate: #Predicate { $0.id == id }
         )
         return try context.fetch(descriptor).first.map { mapToDomain(model: $0) }
     }
 
-    public func list(status: KanbanStatus? = nil) throws -> [KanbanTask] {
+    func list(status: KanbanStatus? = nil) throws -> [KanbanTask] {
         let descriptor: FetchDescriptor<WSKanbanTask>
         if let status = status {
             descriptor = FetchDescriptor<WSKanbanTask>(
@@ -119,7 +119,7 @@ public final class WSKanbanRepository {
         return try context.fetch(descriptor).map { mapToDomain(model: $0) }
     }
 
-    public func delete(id: String) throws {
+    func delete(id: String) throws {
         let descriptor = FetchDescriptor<WSKanbanTask>(
             predicate: #Predicate { $0.id == id }
         )
@@ -129,7 +129,7 @@ public final class WSKanbanRepository {
         }
     }
 
-    public func count(status: KanbanStatus? = nil) throws -> Int {
+    func count(status: KanbanStatus? = nil) throws -> Int {
         let descriptor: FetchDescriptor<WSKanbanTask>
         if let status = status {
             descriptor = FetchDescriptor<WSKanbanTask>(
@@ -157,12 +157,12 @@ public final class WSKanbanRepository {
     }
 }
 
-public enum WSKanbanRepositoryError: Error {
+enum WSKanbanRepositoryError: Error {
     case notFound
 }
 
 extension WSKanbanRepositoryError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .notFound:
             return "Kanban task not found."

@@ -14,13 +14,13 @@
 import Foundation
 
 /// Result of a prefetch operation.
-public enum PrefetchResult: Sendable, Equatable {
+enum PrefetchResult: Sendable, Equatable {
     case empty                          // no relevant memories found
     case prefetched(memories: [Memory], totalChars: Int)
 }
 
 /// Result of a sync operation.
-public enum SyncResult: Sendable, Equatable {
+enum SyncResult: Sendable, Equatable {
     case synced(writtenCount: Int, totalChars: Int)
     case stagedForApproval              // hermes write-gate stage
     case blocked(reason: String)         // hermes write-gate block
@@ -28,7 +28,7 @@ public enum SyncResult: Sendable, Equatable {
 
 /// MemoryManager: orchestrates pre-turn prefetch + post-turn sync for WenshuConductor.
 /// Mirrors hermes agent/memory_manager.py pattern.
-public actor MemoryManager {
+actor MemoryManager {
     /// Phase 5 ticket 4: `store` is now optional. When nil (= default),
     /// the actor delegates reads/writes to WSMemoryRepository.shared
     /// (= the @MainActor SwiftData wrapper for the `WSMemory` @Model).
@@ -44,7 +44,7 @@ public actor MemoryManager {
     /// same MainActor.assumeIsolated wrapping).
     private let memory: WSMemoryRepository
 
-    public init(maxCharBudget: Int = 2200, memory: WSMemoryRepository? = nil) {
+    init(maxCharBudget: Int = 2200, memory: WSMemoryRepository? = nil) {
         self.maxCharBudget = maxCharBudget
         // .shared is @MainActor-isolated; actor bodies are not. assumeIsolated
         // (= safe at runtime because every production caller constructs
@@ -55,7 +55,7 @@ public actor MemoryManager {
     /// prefetch: pre-turn — load relevant memories based on user message.
     /// hermes equivalent: `prefetch_all(user_message) → Dict[str, str]`.
     /// Simple keyword-match (no embeddings yet — v0.24+).
-    public func prefetch(userMessage: String) async -> PrefetchResult {
+    func prefetch(userMessage: String) async -> PrefetchResult {
         let memories = await searchMemory(userId: "default", query: userMessage, limit: 10)
         guard !memories.isEmpty else {
             return .empty
@@ -77,7 +77,7 @@ public actor MemoryManager {
     /// the up-to-N ceiling without rebuilding the char budget.
     /// hermes parity: same signature shape as `prefetch_all(user_message)`
     /// with a caller-supplied top-K.
-    public func prefetch(userMessage: String, limit: Int) async -> PrefetchResult {
+    func prefetch(userMessage: String, limit: Int) async -> PrefetchResult {
         guard limit > 0 else { return .empty }
         let memories = await searchMemory(userId: "default", query: userMessage, limit: limit)
         guard !memories.isEmpty else {
@@ -99,7 +99,7 @@ public actor MemoryManager {
     /// decides its own truncation policy (= ticket-009 baseline).
     /// Limit defaults to 20 to match the ContextEngine "up to 20
     /// relevant memory items" surface documented in the ticket spec.
-    public func fetch(limit: Int = 20) async -> [Memory] {
+    func fetch(limit: Int = 20) async -> [Memory] {
         guard limit > 0 else { return [] }
         return await searchMemory(userId: "default", query: "", limit: limit)
     }
@@ -107,7 +107,7 @@ public actor MemoryManager {
     /// sync: post-turn — persist assistant's response (or important info from turn).
     /// hermes equivalent: `sync_all(user_msg, assistant_response)`.
     /// Goes through MemoryWriteGate (ticket 013.001) per hermes _apply_write_gate.
-    public func sync(userMessage: String, assistantResponse: String) async -> SyncResult {
+    func sync(userMessage: String, assistantResponse: String) async -> SyncResult {
         // Combine user + assistant for memory write (hermes does the same).
         let content = "user: \(userMessage.prefix(200))\nassistant: \(assistantResponse.prefix(200))"
         let decision = MemoryWriteGate.evaluateAdd(content: content)
@@ -130,7 +130,7 @@ public actor MemoryManager {
     /// in detached task, result stored for next call.
     private var prefetchedForNextTurn: PrefetchResult?
 
-    public func queuePrefetch(userMessage: String) {
+    func queuePrefetch(userMessage: String) {
         let budget = maxCharBudget
         Task.detached {
             let result = await self.prefetchInBackground(
@@ -142,7 +142,7 @@ public actor MemoryManager {
     }
 
     /// Take the queued prefetch result (called at next turn start).
-    public func takeQueuedPrefetch() -> PrefetchResult? {
+    func takeQueuedPrefetch() -> PrefetchResult? {
         let result = prefetchedForNextTurn
         prefetchedForNextTurn = nil
         return result

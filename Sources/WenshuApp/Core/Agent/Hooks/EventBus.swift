@@ -1,7 +1,7 @@
 import Foundation
 
 /// Events emitted by the agent runtime.
-public enum AgentEvent: Sendable {
+enum AgentEvent: Sendable {
     case chatSessionStarted(sessionId: UUID, userId: UUID?)
     case chatSessionEnded(sessionId: UUID)
     case llmRequestStarted(request: LLMRequest, provider: String)
@@ -32,27 +32,27 @@ public enum AgentEvent: Sendable {
     case goalFailed(goalId: UUID, reason: String)
 }
 
-public struct EventFilter: Hashable, Sendable {
-    public let category: String
-    public let specificKind: String?
-    public init(category: String, specificKind: String? = nil) {
+struct EventFilter: Hashable, Sendable {
+    let category: String
+    let specificKind: String?
+    init(category: String, specificKind: String? = nil) {
         self.category = category; self.specificKind = specificKind
     }
 }
 
-public protocol AgentEventHandler: Sendable {
+protocol AgentEventHandler: Sendable {
     var eventFilter: Set<EventFilter> { get }
     func handle(_ event: AgentEvent) async
     var handlerName: String { get }
 }
 
-public actor EventBus {
-    public static let shared = EventBus()
+actor EventBus {
+    static let shared = EventBus()
     private var handlers: [String: any AgentEventHandler] = [:]
-    public init() {}
-    public func register(_ handler: any AgentEventHandler) { handlers[handler.handlerName] = handler }
-    public func unregister(_ name: String) { handlers.removeValue(forKey: name) }
-    public func publish(_ event: AgentEvent) async {
+    init() {}
+    func register(_ handler: any AgentEventHandler) { handlers[handler.handlerName] = handler }
+    func unregister(_ name: String) { handlers.removeValue(forKey: name) }
+    func publish(_ event: AgentEvent) async {
         let filter = Self.filter(for: event)
         let selected = handlers.values.filter { handler in
             handler.eventFilter.contains(filter) || handler.eventFilter.contains(where: { $0.category == filter.category && $0.specificKind == nil })
@@ -88,7 +88,7 @@ private extension Mirror {
 
 // MARK: - Async stream API
 
-public extension EventBus {
+extension EventBus {
     /// Async stream of all events matching the given categories.
     /// Use `.kanban` for kanban events, `.subAgent` for sub-agent lifecycle, etc.
     /// `nonisolated` because the AsyncStream construction itself is non-actor (= the

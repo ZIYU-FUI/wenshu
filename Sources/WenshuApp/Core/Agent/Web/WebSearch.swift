@@ -22,13 +22,13 @@ import Foundation
 
 // MARK: - Result
 
-public struct WebSearchResult: Sendable, Codable, Equatable {
-    public let title: String
-    public let snippet: String
-    public let url: URL
-    public let publishedAt: Date?
+struct WebSearchResult: Sendable, Codable, Equatable {
+    let title: String
+    let snippet: String
+    let url: URL
+    let publishedAt: Date?
 
-    public init(title: String, snippet: String, url: URL, publishedAt: Date? = nil) {
+    init(title: String, snippet: String, url: URL, publishedAt: Date? = nil) {
         self.title = title
         self.snippet = snippet
         self.url = url
@@ -38,14 +38,14 @@ public struct WebSearchResult: Sendable, Codable, Equatable {
 
 // MARK: - Provider protocol
 
-public protocol WebSearchProvider: Sendable {
+protocol WebSearchProvider: Sendable {
     var name: String { get }
     func search(query: String, limit: Int) async throws -> [WebSearchResult]
 }
 
 // MARK: - Actor
 
-public actor WebSearch {
+actor WebSearch {
     /// Canonical module-singleton with an empty provider list
     /// (= matches the `SkillBundles.shared` pattern from v0.73 ticket 001).
     /// Added in v0.74 ticket 002 so the LLM-facing `WebSearchTool`
@@ -56,11 +56,11 @@ public actor WebSearch {
     /// SEARXNG = the 5 provider types from `Core/Agent/Web/Providers/`),
     /// a future ticket will swap this singleton's empty provider list for
     /// a populated one (= per AGENTS.md §11, keys come from ProviderKeychain).
-    public static let shared: WebSearch = WebSearch(providers: [])
+    static let shared: WebSearch = WebSearch(providers: [])
 
     private let providers: [any WebSearchProvider]
 
-    public init(providers: [any WebSearchProvider]) {
+    init(providers: [any WebSearchProvider]) {
         self.providers = providers
     }
 
@@ -68,7 +68,7 @@ public actor WebSearch {
     /// provider in order and returns the first non-empty result set. If
     /// every provider fails, throws the last collected error so callers
     /// can surface a single actionable message.
-    public func search(query: String, limit: Int = 10) async throws -> [WebSearchResult] {
+    func search(query: String, limit: Int = 10) async throws -> [WebSearchResult] {
         guard !providers.isEmpty else {
             throw WebSearchError.noProvidersConfigured
         }
@@ -94,7 +94,7 @@ public actor WebSearch {
     /// results and synthesizes a ResearchReport. No LLM call (= pure local
     /// aggregation from snippets + titles). Sufficient for the wenshu
     /// internal-infrastructure use case.
-    public func research(query: String, limit: Int = 5) async throws -> ResearchReport {
+    func research(query: String, limit: Int = 5) async throws -> ResearchReport {
         let sources = try await search(query: query, limit: limit)
         let summary = Self.summarize(query: query, sources: sources)
         return ResearchReport(
@@ -127,13 +127,13 @@ public actor WebSearch {
 
 // MARK: - Report
 
-public struct ResearchReport: Sendable, Equatable {
-    public let query: String
-    public let sources: [WebSearchResult]
-    public let summary: String
-    public let generatedAt: Date
+struct ResearchReport: Sendable, Equatable {
+    let query: String
+    let sources: [WebSearchResult]
+    let summary: String
+    let generatedAt: Date
 
-    public init(query: String, sources: [WebSearchResult], summary: String, generatedAt: Date) {
+    init(query: String, sources: [WebSearchResult], summary: String, generatedAt: Date) {
         self.query = query
         self.sources = sources
         self.summary = summary
@@ -143,7 +143,7 @@ public struct ResearchReport: Sendable, Equatable {
 
 // MARK: - Errors
 
-public enum WebSearchError: Error, Sendable, Equatable {
+enum WebSearchError: Error, Sendable, Equatable {
     case noProvidersConfigured
     case emptyResults(providerName: String)
     /// A specific provider's HTTP call failed (= non-2xx, parse error,
@@ -156,7 +156,7 @@ public enum WebSearchError: Error, Sendable, Equatable {
 }
 
 extension WebSearchError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .noProvidersConfigured:
             return "No web search providers are configured."

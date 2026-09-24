@@ -22,16 +22,16 @@
 
 import Foundation
 
-public actor DeepSeekConnector: LLMConnector {
-    public nonisolated let connectorID = "deepseek"
+actor DeepSeekConnector: LLMConnector {
+    nonisolated let connectorID = "deepseek"
 
     private let delegate: OpenAICompatibleConnector
 
-    public init(session: URLSession = .shared) {
+    init(session: URLSession = .shared) {
         self.delegate = OpenAICompatibleConnector(provider: .deepseek, session: session)
     }
 
-    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         try await delegate.send(messages: messages, options: options)
     }
 }

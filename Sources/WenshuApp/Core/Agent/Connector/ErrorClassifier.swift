@@ -19,7 +19,7 @@ import Foundation
 /// Error category (= single source of truth for user-facing error messages
 /// + retry policy). Use these categories instead of raw error types
 /// (= URLSession errors, decoding errors, HTTP status codes).
-public enum LLMErrorCategory: String, Sendable, Equatable, Codable, CaseIterable {
+enum LLMErrorCategory: String, Sendable, Equatable, Codable, CaseIterable {
     /// 429 Too Many Requests (= provider rate limit hit; back off + retry).
     case rateLimit
     /// 401 Unauthorized / 403 Forbidden (= API key invalid or scope issue).
@@ -39,14 +39,14 @@ public enum LLMErrorCategory: String, Sendable, Equatable, Codable, CaseIterable
 }
 
 /// Classified error (= category + raw underlying + optional user message).
-public struct ClassifiedLLMError: Error, Sendable, Equatable {
-    public let category: LLMErrorCategory
-    public let underlying: String
-    public let userMessage: String
-    public let isRetryable: Bool
-    public let retryAfterSeconds: Int?
+struct ClassifiedLLMError: Error, Sendable, Equatable {
+    let category: LLMErrorCategory
+    let underlying: String
+    let userMessage: String
+    let isRetryable: Bool
+    let retryAfterSeconds: Int?
 
-    public init(
+    init(
         category: LLMErrorCategory,
         underlying: String,
         userMessage: String,
@@ -63,14 +63,14 @@ public struct ClassifiedLLMError: Error, Sendable, Equatable {
 
 /// Classify any Error from LLMConnector.send() into LLMErrorCategory.
 /// Inspects URLResponse status code + underlying message keywords.
-public enum ErrorClassifier {
+enum ErrorClassifier {
 
     /// Classify an error into ClassifiedLLMError.
     /// - Parameters:
     ///   - error: the error thrown by LLMConnector.send
     ///   - httpResponse: optional HTTPURLResponse (= if available from URLSession)
     /// - Returns: ClassifiedLLMError with category + user-facing message
-    public static func classify(
+    static func classify(
         error: Error,
         httpResponse: HTTPURLResponse? = nil
     ) -> ClassifiedLLMError {
@@ -163,12 +163,12 @@ public enum ErrorClassifier {
 /// after a thrown `LLMConnectorError`. Default behaviour (= no
 /// classifier) is "fail fast" (= never retry); ConversationLoop injects
 /// an instance that respects the LLMErrorCategory.isRetryable mapping.
-public enum LLMConnectorErrorClassifier {
+enum LLMConnectorErrorClassifier {
 
     /// True when the error is classified as transient (= retryable).
     /// The mapping matches `ErrorClassifier.classify(...)`'s
     /// `isRetryable` flag for the underlying categories.
-    public static func isTransient(_ error: LLMConnectorError) -> Bool {
+    static func isTransient(_ error: LLMConnectorError) -> Bool {
         switch error {
         case .transport(let provider, let statusCode, _):
             // 429 (rate limit) + 5xx (server error) = retryable.

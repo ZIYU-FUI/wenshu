@@ -31,19 +31,19 @@ import os
 private let wenshuRotationLogger = Logger(subsystem: "org.wenshu.auth", category: "rotation")
 
 /// Auto-rotation policy (= configurable knobs for the wrapper).
-public struct AutoRotationPolicy: Sendable, Codable, Equatable {
+struct AutoRotationPolicy: Sendable, Codable, Equatable {
     /// Rotate on 429 (= rate-limit). Default true.
-    public var rotateOn429: Bool
+    var rotateOn429: Bool
     /// Rotate on 503 (= server error). Default true.
-    public var rotateOn503: Bool
+    var rotateOn503: Bool
     /// Rotate on auth error (= 401/403). Default true.
-    public var rotateOnAuthError: Bool
+    var rotateOnAuthError: Bool
     /// Max rotations (= attempts past the initial send) before throwing.
-    public var maxRotations: Int
+    var maxRotations: Int
     /// Cooldown after rate-limit (= hermes default = 60s).
-    public var rateLimitCooldownSeconds: TimeInterval
+    var rateLimitCooldownSeconds: TimeInterval
 
-    public init(
+    init(
         rotateOn429: Bool = true,
         rotateOn503: Bool = true,
         rotateOnAuthError: Bool = true,
@@ -60,7 +60,7 @@ public struct AutoRotationPolicy: Sendable, Codable, Equatable {
 
 // MARK: - Errors
 
-public enum AutoRotationError: Error, LocalizedError, Sendable, Equatable {
+enum AutoRotationError: Error, LocalizedError, Sendable, Equatable {
     /// Initial send + all rotations failed.
     case exhausted(provider: String, attempts: Int, lastError: String)
     /// No more keys in the pool to rotate to (= pool exhausted).
@@ -69,7 +69,7 @@ public enum AutoRotationError: Error, LocalizedError, Sendable, Equatable {
     /// surface the error rather than retry.
     case nonRetryable(statusCode: Int)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .exhausted(let p, let n, let e):
             return "AutoRotation exhausted for '\(p)' after \(n) attempts: \(e)"
@@ -98,10 +98,10 @@ public enum AutoRotationError: Error, LocalizedError, Sendable, Equatable {
 /// AuthKey ok on success (= so this wrapper doesn't need direct access
 /// to AuthPool's markOk internals — though it CAN call them when the
 /// closure opts into the `(keyId)` parameter).
-public struct AutoRotationSendContext: Sendable {
-    public let provider: String
-    public let keyId: UUID?
-    public init(provider: String, keyId: UUID? = nil) {
+struct AutoRotationSendContext: Sendable {
+    let provider: String
+    let keyId: UUID?
+    init(provider: String, keyId: UUID? = nil) {
         self.provider = provider
         self.keyId = keyId
     }
@@ -122,7 +122,7 @@ public struct AutoRotationSendContext: Sendable {
 /// `primaryConnector` is kept for callers that want to bypass rotation
 /// (= e.g. for "best-effort, no retries" paths). It's not used by
 /// `send(request:)`; rotation is driven by `performSend`.
-public actor AutoRotatingConnector {
+actor AutoRotatingConnector {
 
     private let pool: AuthPool
     private let policy: AutoRotationPolicy
@@ -137,7 +137,7 @@ public actor AutoRotatingConnector {
     /// first, rotate only after primary fails").
     private let _primaryConnector: (any LLMConnector)?
 
-    public init(
+    init(
         primaryConnector: (any LLMConnector)? = nil,
         pool: AuthPool,
         policy: AutoRotationPolicy = .init(),
@@ -155,7 +155,7 @@ public actor AutoRotatingConnector {
     /// Send the request, rotating through the AuthPool on transient errors.
     /// The active provider is inferred from the first usable key in the
     /// pool (= hermes-style: pick the best key, use its provider).
-    public func send(request: DispatchRequest) async throws -> LLMResponse {
+    func send(request: DispatchRequest) async throws -> LLMResponse {
         // Pick initial key (= defines the provider we're targeting).
         let allKeys = await pool.allKeys()
         guard let firstOk = allKeys.first(where: { KeychainSelector.isValid($0) }) else {
@@ -172,7 +172,7 @@ public actor AutoRotatingConnector {
 
     /// Send targeting a specific provider (= bypasses initial-key inference).
     /// Useful when the caller already knows which provider to use.
-    public func send(
+    func send(
         request: DispatchRequest,
         provider: String
     ) async throws -> LLMResponse {
@@ -314,14 +314,14 @@ public actor AutoRotatingConnector {
 /// rotation decisions. Mirrors `LLMConnectorErrorClassifier.isTransient` +
 /// `ErrorClassifier.classify` so the wrapper can decide whether to rotate
 /// without duplicating the HTTP-status-code-to-category mapping.
-public enum ClassifiedLLMErrorPolicy {
-    public struct Snapshot: Sendable, Equatable {
-        public let statusCode: Int?
-        public let category: LLMErrorCategory
-        public let userMessage: String
+enum ClassifiedLLMErrorPolicy {
+    struct Snapshot: Sendable, Equatable {
+        let statusCode: Int?
+        let category: LLMErrorCategory
+        let userMessage: String
     }
 
-    public static func classify(error: Error) -> Snapshot {
+    static func classify(error: Error) -> Snapshot {
         // First, try to extract an LLMConnectorError (= wenshu's standard
         // connector-thrown error = HTTP status + body).
         if let connectorErr = error as? LLMConnectorError {

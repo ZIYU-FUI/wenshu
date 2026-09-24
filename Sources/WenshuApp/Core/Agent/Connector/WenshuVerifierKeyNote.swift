@@ -25,7 +25,7 @@ extension WenshuVerifier {
     /// v0.23 ticket 009: static documentation comment for single-key contract.
     /// No code behavior change — existing API surface already enforces
     /// single-verifier per conductor, single-apiKey per verifier.
-    public static let singleKeyContractNote: String = """
+    static let singleKeyContractNote: String = """
     WenshuVerifier = 1 instance per WenshuConductor.
     WenshuConductor = 1 instance per app launch.
     WenshuVerifier.apiKey = 1 key (sourced from Keychain at init).

@@ -11,13 +11,13 @@
 import SwiftUI
 
 struct MemoryRetrievalPanel: View {
-    @State public var entries: [MemoryAdapter.MemoryEntry]
+    @State var entries: [MemoryAdapter.MemoryEntry]
 
-    public init(entries: [MemoryAdapter.MemoryEntry] = []) {
+    init(entries: [MemoryAdapter.MemoryEntry] = []) {
         self._entries = State(initialValue: entries)
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Image(systemName: "brain").font(.system(size: 16, weight: .regular))

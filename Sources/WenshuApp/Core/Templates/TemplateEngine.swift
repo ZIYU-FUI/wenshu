@@ -10,7 +10,7 @@
 import Foundation
 
 /// 1 token = {{token}} placeholder in the template
-public enum TemplateToken: Equatable, Sendable {
+enum TemplateToken: Equatable, Sendable {
     case date(format: String)         // {{date}} / {{date:YYYY-MM-DD}} / {{date:YYYYMMDD}}
     case time(format: String)         // {{time}} / {{time:HH:mm}}
     case title                       // {{title}} (new note default name)
@@ -43,13 +43,13 @@ public enum TemplateToken: Equatable, Sendable {
 }
 
 /// Template variable context (for replaceTokens use)
-public struct TemplateContext: Sendable {
-    public let title: String           // new note title
-    public let author: String          // author (default "anonymous")
-    public let now: Date               // current time (default Date())
-    public let custom: [String: String]  // user-defined variables
+struct TemplateContext: Sendable {
+    let title: String           // new note title
+    let author: String          // author (default "anonymous")
+    let now: Date               // current time (default Date())
+    let custom: [String: String]  // user-defined variables
 
-    public init(title: String = "Untitled", author: String = "anonymous", now: Date = Date(), custom: [String: String] = [:]) {
+    init(title: String = "Untitled", author: String = "anonymous", now: Date = Date(), custom: [String: String] = [:]) {
         self.title = title
         self.author = author
         self.now = now
@@ -59,10 +59,10 @@ public struct TemplateContext: Sendable {
 
 /// TemplateEngine: template file + token substitution
 /// 1:1 with Obsidian Templates plugin ground truth, borrows SilverBullet Space Lua
-public enum TemplateEngine {
+enum TemplateEngine {
 
     /// Replace all {{token}} placeholders in the template
-    public static func render(_ template: String, context: TemplateContext) -> String {
+    static func render(_ template: String, context: TemplateContext) -> String {
         var result = template
         // 1. Process {{date}} / {{date:format}}
         result = replaceDateTokens(result, context: context)

@@ -29,7 +29,7 @@
 
 import Foundation
 
-public enum PromptCaching {
+enum PromptCaching {
 
     /// Apply system_and_3 caching strategy (= 4 cache_control breakpoints:
     /// system prompt + last 3 non-system messages, all at the same TTL).
@@ -45,7 +45,7 @@ public enum PromptCaching {
     ///   last 3 non-system messages (= does NOT mutate the input).
     ///   The systemPrompt is returned as a separate field on the result
     ///   (= callers wire it into the Anthropic `system` field at send time).
-    public static func applyCacheControl(
+    static func applyCacheControl(
         messages: [LLMMessage],
         systemPrompt: String,
         ttl: String = "5m"
@@ -153,12 +153,12 @@ public enum PromptCaching {
     }
 
     /// True if message has a cache_control marker.
-    public static func hasCacheControl(_ message: LLMMessage) -> Bool {
+    static func hasCacheControl(_ message: LLMMessage) -> Bool {
         message.cacheControl != nil
     }
 
     /// Extract cache_control marker from message (= returns nil if absent).
-    public static func extractCacheControl(_ message: LLMMessage) -> [String: String]? {
+    static func extractCacheControl(_ message: LLMMessage) -> [String: String]? {
         message.cacheControl
     }
 }

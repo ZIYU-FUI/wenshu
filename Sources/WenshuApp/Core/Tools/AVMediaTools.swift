@@ -16,14 +16,14 @@ import AVFoundation
 /// TTS (hermes tts)
 
 /// AVMediaTools: local AV media (AVSpeechSynthesizer)
-public struct AVMediaTools: Tool, Sendable {
-    public init() {}
+struct AVMediaTools: Tool, Sendable {
+    init() {}
 
     /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): parse the
     /// JSON input envelope and dispatch to `speak(text:)`. Mirrors
     /// `WenshuConductor.invokeTool(name: "av", ...)` which uses the
     /// input string verbatim as the text to speak.
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return "" }
         // Try to parse JSON envelope (= {"text": "..."}); fall back to
@@ -39,7 +39,7 @@ public struct AVMediaTools: Tool, Sendable {
     }
 
     /// speak: (fire-and-forget, wait)
-    public func speak(text: String, voice: String = "zh-CN", rate: Float = 0.5) {
+    func speak(text: String, voice: String = "zh-CN", rate: Float = 0.5) {
         #if canImport(AVFoundation)
         let synthesizer = AVSpeechSynthesizer()
         let utterance = AVSpeechUtterance(string: text)
@@ -51,13 +51,13 @@ public struct AVMediaTools: Tool, Sendable {
 
     /// estimateDuration: (,)
     ///: / (in progress ~3-5 /, default 4 /)
-    public func estimateDuration(text: String, rate: Float = 0.5) -> TimeInterval {
+    func estimateDuration(text: String, rate: Float = 0.5) -> TimeInterval {
         let charactersPerSecond = 4.0 * Double(rate / 0.5)
         return TimeInterval(Double(text.count) / charactersPerSecond)
     }
 
     /// availableVoices:
-    public func availableVoices(languagePrefix: String? = nil) -> [String] {
+    func availableVoices(languagePrefix: String? = nil) -> [String] {
         #if canImport(AVFoundation)
         let voices = AVSpeechSynthesisVoice.speechVoices()
         let filtered = languagePrefix.map { prefix in
@@ -82,7 +82,7 @@ extension AVMediaTools {
     /// `tools/registry.py` `register()` 1:1). Fires once at first
     /// type access; the underlying `Task` schedules the async
     /// `register(...)` call off the init thread.
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "av",

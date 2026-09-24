@@ -70,7 +70,7 @@ struct TodoListView: View {
     /// active scope has no on-disk directory.
     @State private var scopeDir: URL? = nil
 
-    public init() {}
+    init() {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

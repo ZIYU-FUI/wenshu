@@ -46,23 +46,23 @@
 
 import Foundation
 
-public struct ParagraphAITool: Tool, Sendable {
+struct ParagraphAITool: Tool, Sendable {
 
     /// Shared singleton (= ChatViewModel registers this with the
     /// conductor at construction time). The tool holds a
     /// reference to a single `EditorTransformTools` actor so
     /// every call site hits the same in-process prompt registry.
-    public static let shared = ParagraphAITool(
+    static let shared = ParagraphAITool(
         editorTools: EditorTransformTools()
     )
 
     private let editorTools: EditorTransformTools
 
-    public init(editorTools: EditorTransformTools) {
+    init(editorTools: EditorTransformTools) {
         self.editorTools = editorTools
     }
 
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         // Parse input JSON. Stub contract: {"text": "...", "mode": "..."}
         // The real port accepts {"text": "...", "action": "...",
         // "tone": "..."} (= matches the LLM tool_use shape the
@@ -173,7 +173,7 @@ extension ParagraphAITool {
     /// Registration is idempotent (= the registry silently replaces
     /// a same-toolset re-registration; the override-protection logic
     /// in ToolRegistry blocks accidental cross-toolset shadowing).
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "ParagraphAI",

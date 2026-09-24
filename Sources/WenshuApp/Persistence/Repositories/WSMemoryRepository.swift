@@ -28,15 +28,15 @@ import Foundation
 import SwiftData
 
 @MainActor
-public final class WSMemoryRepository {
+final class WSMemoryRepository {
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
+    init(container: ModelContainer = WSPersistenceContainer.shared) {
         self.container = container
     }
 
-    public func add(userId: String, content: String) throws -> Memory {
+    func add(userId: String, content: String) throws -> Memory {
         let memoryID = UUID().uuidString
         let model = WSMemory(memoryID: memoryID, userID: userId, content: content)
         context.insert(model)
@@ -50,7 +50,7 @@ public final class WSMemoryRepository {
         )
     }
 
-    public func get(memoryId: String) throws -> Memory? {
+    func get(memoryId: String) throws -> Memory? {
         let descriptor = FetchDescriptor<WSMemory>(
             predicate: #Predicate { $0.memoryID == memoryId }
         )
@@ -65,7 +65,7 @@ public final class WSMemoryRepository {
         }
     }
 
-    public func search(userId: String, query: String, limit: Int = 10) throws -> [Memory] {
+    func search(userId: String, query: String, limit: Int = 10) throws -> [Memory] {
         let descriptor = FetchDescriptor<WSMemory>(
             predicate: #Predicate { mem in
                 mem.userID == userId && mem.content.localizedStandardContains(query)
@@ -83,7 +83,7 @@ public final class WSMemoryRepository {
         }
     }
 
-    public func update(memoryId: String, content: String) throws {
+    func update(memoryId: String, content: String) throws {
         let descriptor = FetchDescriptor<WSMemory>(
             predicate: #Predicate { $0.memoryID == memoryId }
         )
@@ -94,7 +94,7 @@ public final class WSMemoryRepository {
         try context.save()
     }
 
-    public func delete(memoryId: String) throws {
+    func delete(memoryId: String) throws {
         let descriptor = FetchDescriptor<WSMemory>(
             predicate: #Predicate { $0.memoryID == memoryId }
         )
@@ -104,14 +104,14 @@ public final class WSMemoryRepository {
         }
     }
 
-    public func count(userId: String) throws -> Int {
+    func count(userId: String) throws -> Int {
         let descriptor = FetchDescriptor<WSMemory>(
             predicate: #Predicate { $0.userID == userId }
         )
         return try context.fetchCount(descriptor)
     }
 
-    public func listRecent(userId: String, limit: Int = 20) throws -> [Memory] {
+    func listRecent(userId: String, limit: Int = 20) throws -> [Memory] {
         let descriptor = FetchDescriptor<WSMemory>(
             predicate: #Predicate { $0.userID == userId },
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
@@ -127,7 +127,7 @@ public final class WSMemoryRepository {
         }
     }
 
-    public func purgeOlderThan(userId: String, retentionDays: Int) throws -> Int {
+    func purgeOlderThan(userId: String, retentionDays: Int) throws -> Int {
         let cutoff = Date().addingTimeInterval(-Double(retentionDays) * 86400)
         let descriptor = FetchDescriptor<WSMemory>(
             predicate: #Predicate { mem in
@@ -146,12 +146,12 @@ public final class WSMemoryRepository {
 /// Repository-specific error (= distinct from the pre-Phase-5
 /// MemoryStore actor error; = Phase 3
 /// switch will require call sites to handle this error type).
-public enum WSMemoryRepositoryError: Error {
+enum WSMemoryRepositoryError: Error {
     case notFound
 }
 
 extension WSMemoryRepositoryError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .notFound:
             return "Memory entry not found."

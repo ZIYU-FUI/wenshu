@@ -65,35 +65,35 @@ import Foundation
 /// updatedAt) that the LLM does not need to touch. BookManager
 /// translates between the two shapes (= LLM ↔ wenshu-side canonical
 /// state).
-public struct BookDescriptor: Sendable, Codable, Equatable, Identifiable {
+struct BookDescriptor: Sendable, Codable, Equatable, Identifiable {
     /// Stable identifier (= used by the actor for create / rename /
     /// delete lookups; never re-used even across shelves).
-    public let id: UUID
+    let id: UUID
 
     /// User-visible title. Whitespace-trimmed at construction time
     /// so empty / whitespace-only titles are rejected by the
     /// actor's create / rename methods.
-    public let title: String
+    let title: String
 
     /// Author name (= user-set; defaults to library owner = empty
     /// string for now). Mirrors Book.author.
-    public let author: String
+    let author: String
 
     /// Owning bookshelf id.
-    public let shelfId: UUID
+    let shelfId: UUID
 
     /// Optional 1-2 sentence summary. Optional (= the LLM may
     /// leave it blank). Mirrors Book.idea (= the LLM-facing
     /// alias for the same field).
-    public let description: String
+    let description: String
 
     /// Creation timestamp (= `Date.now` at create time).
-    public let createdAt: Date
+    let createdAt: Date
 
     /// Last edit timestamp (= set on create + updated on rename).
-    public let lastEditedAt: Date
+    let lastEditedAt: Date
 
-    public init(
+    init(
         id: UUID,
         title: String,
         author: String,
@@ -118,7 +118,7 @@ public struct BookDescriptor: Sendable, Codable, Equatable, Identifiable {
 /// case maps 1:1 to a method on the actor (= create / rename /
 /// delete / list / show). Serialized as a lowercase string for
 /// the JSON input envelope (= e.g. `"action": "create"`).
-public enum BookManagerAction: String, Sendable, Codable, CaseIterable, Equatable {
+enum BookManagerAction: String, Sendable, Codable, CaseIterable, Equatable {
     /// Create a new book under a shelf.
     case create
     /// Rename an existing book.
@@ -136,7 +136,7 @@ public enum BookManagerAction: String, Sendable, Codable, CaseIterable, Equatabl
 /// Errors thrown by `BookManager`. Mirrors the ForeshadowingTracker
 /// / IdeaLibrary / BookSettingConstraints error conventions (=
 /// a LocalizedError per case).
-public enum BookManagerError: Error, LocalizedError, Sendable, Equatable {
+enum BookManagerError: Error, LocalizedError, Sendable, Equatable {
     /// Title was empty / whitespace-only after trimming.
     case emptyTitle
     /// The shelfId was not present in BookStore.shelves (= the LLM
@@ -152,7 +152,7 @@ public enum BookManagerError: Error, LocalizedError, Sendable, Equatable {
     /// Underlying BookStore threw (= surfaced verbatim).
     case underlying(String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .emptyTitle:
             return "BookManager: title was empty or whitespace-only."
@@ -198,7 +198,7 @@ public enum BookManagerError: Error, LocalizedError, Sendable, Equatable {
 ///   - Unknown shelfId on create = throws `.shelfNotFound`.
 ///   - Unknown bookId on rename / delete / show = throws
 ///     `.bookNotFound`.
-public actor BookManager {
+actor BookManager {
 
     private let bookStore: BookStore
 
@@ -223,7 +223,7 @@ public actor BookManager {
     ///     (= canonical wenshu-side persistence + side-effects on
     ///     BookStore.books).
     ///   - Returns the descriptor (= freshly created).
-    public func createBook(
+    func createBook(
         title: String,
         shelfId: UUID,
         description: String = ""
@@ -271,7 +271,7 @@ public actor BookManager {
     ///     (= upsert policy = preserves shelfId + createdAt).
     ///   - `Book.updatedAt` is bumped (= the
     ///     BookDescriptor.lastEditedAt reflects this).
-    public func renameBook(id: UUID, newTitle: String) async throws {
+    func renameBook(id: UUID, newTitle: String) async throws {
         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             throw BookManagerError.emptyTitle
@@ -304,7 +304,7 @@ public actor BookManager {
     ///   - The book is removed through `BookStore.sidebarDeleteBook`
     ///     (= canonical wenshu-side deletion + side-effects on
     ///     BookStore.books).
-    public func deleteBook(id: UUID) async throws {
+    func deleteBook(id: UUID) async throws {
         let books = await MainActor.run { bookStore.books }
         guard books.contains(where: { $0.id == id }) else {
             throw BookManagerError.bookNotFound(bookId: id)
@@ -324,7 +324,7 @@ public actor BookManager {
     /// Sort = `createdAt` ascending (= oldest first; matches the
     /// canonical wenshu-side order in `AppleSidebarView` (= post-v1.69 sidebar MVVM split) — the legacy
     /// `BookStore.sidebarLoadAllBooks`).
-    public func listBooks(shelfId: UUID? = nil) async throws -> [BookDescriptor] {
+    func listBooks(shelfId: UUID? = nil) async throws -> [BookDescriptor] {
         let books = await MainActor.run { bookStore.books }
         let filtered = books.filter { book in
             shelfId.map { $0 == book.shelfId } ?? true
@@ -346,7 +346,7 @@ public actor BookManager {
     /// Get book details by id. Returns `nil` (= NOT throws) when
     /// the id is unknown (= matches the view layer's "optional
     /// row" idiom).
-    public func showBook(id: UUID) async throws -> BookDescriptor? {
+    func showBook(id: UUID) async throws -> BookDescriptor? {
         guard let book: Book? = await MainActor.run(body: { bookStore.books.first(where: { $0.id == id }) }) else {
             return nil
         }
@@ -384,7 +384,7 @@ public actor BookManager {
     ///     "books": [ ... BookDescriptor ... ]?, // present on list
     ///     "error": "<String>"?                  // present on ok=false
     ///   }
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         let envelope: [String: Any]
         do {
             guard let data = input.data(using: .utf8),
@@ -569,9 +569,9 @@ public actor BookManager {
 /// Lets the LLM create / rename / delete / list / show books via
 /// the chat surface (= matches the canonical wenshu-side library
 /// state through BookStore).
-public actor BookManagerTool: Tool {
-    public let name = "book_manager"
-    public let description = "Create / rename / delete / list / show books (= canonical wenshu-side library state)."
+actor BookManagerTool: Tool {
+    let name = "book_manager"
+    let description = "Create / rename / delete / list / show books (= canonical wenshu-side library state)."
 
     /// Shared singleton for ToolRegistry bootstrap (= lazy-init
     /// fallback BookStore under /tmp so module-load registration
@@ -588,7 +588,7 @@ public actor BookManagerTool: Tool {
     /// (= nonisolated context). The closure runs synchronously at
     /// first access, before any concurrency becomes relevant, so the
     /// unsafe escape hatch is safe here.
-    public nonisolated static let shared: BookManagerTool = {
+    nonisolated static let shared: BookManagerTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-books-\(UUID().uuidString)", isDirectory: true)
         // v1.28 B2.10: surface createDirectory failures via NSLog (= was silent `try?`).
         do {
@@ -622,11 +622,11 @@ public actor BookManagerTool: Tool {
 
     private let manager: BookManager
 
-    public init(manager: BookManager) {
+    init(manager: BookManager) {
         self.manager = manager
     }
 
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         try await manager.execute(input: input)
     }
 }
@@ -638,7 +638,7 @@ extension BookManagerTool {
     /// `tools/registry.py` `register()` 1:1). Fires once at first
     /// type access; the underlying `Task` schedules the async
     /// `register(...)` call off the init thread.
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "book_manager",

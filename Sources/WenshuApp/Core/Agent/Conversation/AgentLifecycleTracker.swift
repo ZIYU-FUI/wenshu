@@ -144,7 +144,7 @@ final class AgentLifecycleTracker: @unchecked Sendable {
     /// safety for the records dict. Same pattern as `KanbanStoreTool.shared`
     /// (= Swift 6 compiler warning is suppressed at the call site; = safe
     /// because all state mutations go through the queue).
-    public nonisolated static let shared = AgentLifecycleTracker()
+    nonisolated static let shared = AgentLifecycleTracker()
 
     // MARK: - Configuration
 
@@ -317,16 +317,16 @@ struct AgentInitDefaults: Sendable, Hashable {
 /// Per-step bootstrap status (= hermes agent_init.py init_agent performs
 /// ~60 setup steps; we expose the bootstrap result as a typed bag so the
 /// caller can introspect what loaded and what didn't).
-public struct bootstrapStatus: Sendable, Equatable {
-    public let configLoaded: Bool
-    public let credentialsResolved: Bool
-    public let skillRegistryLoaded: Bool
-    public let memoryLoaded: Bool
-    public let contextEngineLoaded: Bool
-    public let systemPromptComposed: Bool
-    public let failedSteps: [String]
+struct bootstrapStatus: Sendable, Equatable {
+    let configLoaded: Bool
+    let credentialsResolved: Bool
+    let skillRegistryLoaded: Bool
+    let memoryLoaded: Bool
+    let contextEngineLoaded: Bool
+    let systemPromptComposed: Bool
+    let failedSteps: [String]
 
-    public init(
+    init(
         configLoaded: Bool = false,
         credentialsResolved: Bool = false,
         skillRegistryLoaded: Bool = false,
@@ -345,7 +345,7 @@ public struct bootstrapStatus: Sendable, Equatable {
     }
 
     /// All bootstrap steps completed without failures.
-    public var isComplete: Bool {
+    var isComplete: Bool {
         return configLoaded
             && credentialsResolved
             && skillRegistryLoaded
@@ -366,15 +366,15 @@ public struct bootstrapStatus: Sendable, Equatable {
 ///   NOT recorded in failedSteps (= "no-op" sentinel; default + .noop).
 /// - Hook throws any other error               → step left unloaded AND
 ///   appended to failedSteps as "step: <error>".
-public struct BootstrapHooks: Sendable {
-    public var loadConfig: @Sendable () throws -> Void
-    public var resolveCredentials: @Sendable () throws -> Void
-    public var loadSkillRegistry: @Sendable () throws -> Void
-    public var loadMemory: @Sendable () throws -> Void
-    public var loadContextEngine: @Sendable () throws -> Void
-    public var composeSystemPrompt: @Sendable () throws -> Void
+struct BootstrapHooks: Sendable {
+    var loadConfig: @Sendable () throws -> Void
+    var resolveCredentials: @Sendable () throws -> Void
+    var loadSkillRegistry: @Sendable () throws -> Void
+    var loadMemory: @Sendable () throws -> Void
+    var loadContextEngine: @Sendable () throws -> Void
+    var composeSystemPrompt: @Sendable () throws -> Void
 
-    public init(
+    init(
         loadConfig: @escaping @Sendable () throws -> Void = BootstrapHooks._skipped,
         resolveCredentials: @escaping @Sendable () throws -> Void = BootstrapHooks._skipped,
         loadSkillRegistry: @escaping @Sendable () throws -> Void = BootstrapHooks._skipped,
@@ -393,16 +393,16 @@ public struct BootstrapHooks: Sendable {
     /// Sentinel no-op closure that throws `BootstrapStepSkipped` so the
     /// bootstrapper can tell it apart from "the hook did real work and
     /// succeeded" (= plain `{}` literal which returns normally).
-    public static let _skipped: @Sendable () throws -> Void = {
+    static let _skipped: @Sendable () throws -> Void = {
         throw BootstrapStepSkipped()
     }
 
     /// Default no-op hooks (= for tests; mark every step as "skipped, not
     /// loaded, not failed").
-    public static let noop = BootstrapHooks()
+    static let noop = BootstrapHooks()
 
     /// Successful hooks (= mark each step as completed; for tests).
-    public static let success = BootstrapHooks(
+    static let success = BootstrapHooks(
         loadConfig: {},
         resolveCredentials: {},
         loadSkillRegistry: {},
@@ -416,7 +416,7 @@ public struct BootstrapHooks: Sendable {
 /// bootstrapper recognises this error type and treats the corresponding
 /// step as "skipped silently" (= step unloaded, but NOT recorded in
 /// failedSteps). Any other thrown error is treated as a real failure.
-public struct BootstrapStepSkipped: Error, Sendable, Equatable {}
+struct BootstrapStepSkipped: Error, Sendable, Equatable {}
 
 /// Bootstrap driver. Runs the 6-step init_agent surface (= hermes
 /// agent_init.py bootstrap = load config + credentials + skill registry +
@@ -428,10 +428,10 @@ public struct BootstrapStepSkipped: Error, Sendable, Equatable {}
 /// bootstrap). The wenshu-side-wins surface is a thin driver that calls
 /// each step in order; the heavy lifting lives in the caller-provided
 /// hooks (= testable + import-cycle-free).
-public actor AgentBootstrapper {
+actor AgentBootstrapper {
     private let hooks: BootstrapHooks
 
-    public init(hooks: BootstrapHooks = .noop) {
+    init(hooks: BootstrapHooks = .noop) {
         self.hooks = hooks
     }
 
@@ -445,7 +445,7 @@ public actor AgentBootstrapper {
     ///   recorded in failedSteps (= "skipped silently").
     /// - Hook throws any other error          → step left unloaded AND
     ///   appended to failedSteps as "<step>: <error>".
-    public func bootstrap() async -> bootstrapStatus {
+    func bootstrap() async -> bootstrapStatus {
         var status = bootstrapStatus()
         var failed: [String] = []
 

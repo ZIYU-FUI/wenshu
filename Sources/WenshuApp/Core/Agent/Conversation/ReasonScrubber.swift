@@ -20,7 +20,7 @@
 
 import Foundation
 
-public enum ReasonScrubber {
+enum ReasonScrubber {
 
     // MARK: - Tag variants (= hermes think_scrubber._OPEN_TAG_NAMES)
 
@@ -38,7 +38,7 @@ public enum ReasonScrubber {
     /// Strip every reasoning/thinking block from the input. Returns the
     /// remaining visible text (= collapses whitespace around the block
     /// so the output reads as continuous prose).
-    public static func scrub(_ text: String) -> String {
+    static func scrub(_ text: String) -> String {
         guard !text.isEmpty else { return text }
         var result = text
         for tag in openTags {
@@ -54,7 +54,7 @@ public enum ReasonScrubber {
     /// Same as scrub(), but emits a short marker `[reasoning: <tag>]` in
     /// place of each block — useful for internal logs where you want to
     /// see that reasoning occurred without exposing its raw content.
-    public static func scrubPreservingIntent(_ text: String) -> String {
+    static func scrubPreservingIntent(_ text: String) -> String {
         guard !text.isEmpty else { return text }
         var result = text
         for tag in openTags {

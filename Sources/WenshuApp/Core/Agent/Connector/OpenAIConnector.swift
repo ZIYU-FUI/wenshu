@@ -25,16 +25,16 @@ import Foundation
 
 // MARK: - OpenAI native
 
-public actor OpenAIConnector: LLMConnector {
-    public nonisolated let connectorID = "openai"
+actor OpenAIConnector: LLMConnector {
+    nonisolated let connectorID = "openai"
 
     private let session: URLSession
 
-    public init(session: URLSession = .shared) {
+    init(session: URLSession = .shared) {
         self.session = session
     }
 
-    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: .openaiCodex)
 
         guard !credentials.apiKey.isEmpty else {
@@ -79,19 +79,19 @@ public actor OpenAIConnector: LLMConnector {
 
 // MARK: - OpenAI-compatible (minimax cn / DeepSeek / Ollama / OpenRouter)
 
-public actor OpenAICompatibleConnector: LLMConnector {
-    public nonisolated let connectorID: String  // = provider.slug (set at init)
+actor OpenAICompatibleConnector: LLMConnector {
+    nonisolated let connectorID: String  // = provider.slug (set at init)
 
     private let session: URLSession
     private let provider: Provider
 
-    public init(provider: Provider, session: URLSession = .shared) {
+    init(provider: Provider, session: URLSession = .shared) {
         self.provider = provider
         self.session = session
         self.connectorID = provider.slug
     }
 
-    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: provider)
 
         guard !credentials.apiKey.isEmpty || provider.slug == "ollama" else {
@@ -159,7 +159,7 @@ public actor OpenAICompatibleConnector: LLMConnector {
     ///
     /// Empty-key path (= no API key for non-Ollama): synthetic
     /// errorStream so ChatView surfaces the failure.
-    public nonisolated func stream(
+    nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {

@@ -55,19 +55,19 @@
 
 import Foundation
 
-public actor ToolExecutor {
+actor ToolExecutor {
 
     // MARK: - Public state (= hermes dispatch-layer plumbing)
 
     /// Lifecycle hook chain (= TICKET-HERMES-GAP-004). Default = empty
     /// (= `firePreToolCall` / `firePostToolCall` are no-ops on an empty
     /// registry). Inject hooks via `init(hookChain:)`.
-    public let hookChain: ShellHookChain
+    let hookChain: ShellHookChain
 
     /// Dispatch hook chain (= TICKET-HERMES-GAP-008). Default = empty
     /// (= `firePreDispatch` / `firePostDispatch` are no-ops on an empty
     /// registry). Inject hooks via `init(hookChain:dispatchHookChain:)`.
-    public let dispatchHookChain: ToolDispatchHookChain
+    let dispatchHookChain: ToolDispatchHookChain
 
     // MARK: - HERMES-PARTIAL-003 dispatch helpers (6 helpers)
 
@@ -75,40 +75,40 @@ public actor ToolExecutor {
     /// SubAgentPermissions parity). Invoked BEFORE `tool.execute(input:)`.
     /// Return `nil` to allow; return a non-nil string to deny (= the
     /// string becomes the tool result output).
-    public let permissionGate: @Sendable (String, String) -> String?
+    let permissionGate: @Sendable (String, String) -> String?
 
     /// Output truncator (= hermes tool_result_storage.enforce_turn_budget).
     /// Invoked AFTER `tool.execute(input:)`, BEFORE post hooks fire.
     /// Return the (possibly truncated) output string.
-    public let outputTruncator: @Sendable (String, String) -> String
+    let outputTruncator: @Sendable (String, String) -> String
 
     /// Error classifier (= hermes tool_result_classification). Invoked
     /// when `tool.execute(input:)` throws. Return a classification
     /// string for observability.
-    public let errorClassifier: @Sendable (String, Error) -> String
+    let errorClassifier: @Sendable (String, Error) -> String
 
     /// Result formatter (= hermes make_tool_result_message). Invoked
     /// AFTER output truncator + post-dispatch validator. Returns the
     /// formatted tool output (= the string that ends up in the
     /// `.toolResult` LLMBlock).
-    public let resultFormatter: @Sendable (String, String) -> String
+    let resultFormatter: @Sendable (String, String) -> String
 
     /// Pre-dispatch validator (= hermes
     /// `_apply_tool_request_middleware_for_agent` L247). Returns the
     /// (possibly transformed) input dictionary. Throws to abort.
-    public let preDispatchValidator: @Sendable (String, [String: String]) async throws -> [String: String]
+    let preDispatchValidator: @Sendable (String, [String: String]) async throws -> [String: String]
 
     /// Post-dispatch validator (= hermes
     /// `_run_agent_tool_execution_middleware` L274). Invoked AFTER
     /// the tool returns, BEFORE post hooks fire. Throws to abort.
-    public let postDispatchValidator: @Sendable (String, String) async throws -> String
+    let postDispatchValidator: @Sendable (String, String) async throws -> String
 
     // MARK: - Init
 
     /// Initializer accepting the optional pre-configured hook chains
     /// + 6 HERMES-PARTIAL-003 dispatch helpers. Defaults preserve
     /// pre-HERMES-PARTIAL-003 behavior.
-    public init(
+    init(
         hookChain: ShellHookChain = ShellHookChain(),
         dispatchHookChain: ToolDispatchHookChain = ToolDispatchHookChain(),
         permissionGate: @escaping @Sendable (String, String) -> String? = ToolExecutor.defaultPermissionGate,
@@ -131,22 +131,22 @@ public actor ToolExecutor {
     // MARK: - Default helper closures (= hermes-equivalent fallbacks)
 
     /// Default permission gate: allow all.
-    public static let defaultPermissionGate: @Sendable (String, String) -> String? = { _, _ in nil }
+    static let defaultPermissionGate: @Sendable (String, String) -> String? = { _, _ in nil }
 
     /// Default output truncator: no-op.
-    public static let defaultOutputTruncator: @Sendable (String, String) -> String = { output, _ in output }
+    static let defaultOutputTruncator: @Sendable (String, String) -> String = { output, _ in output }
 
     /// Default error classifier: classify everything as "internal".
-    public static let defaultErrorClassifier: @Sendable (String, Error) -> String = { _, _ in "internal" }
+    static let defaultErrorClassifier: @Sendable (String, Error) -> String = { _, _ in "internal" }
 
     /// Default result formatter: identity.
-    public static let defaultResultFormatter: @Sendable (String, String) -> String = { output, _ in output }
+    static let defaultResultFormatter: @Sendable (String, String) -> String = { output, _ in output }
 
     /// Default pre-dispatch validator: identity.
-    public static let defaultPreDispatchValidator: @Sendable (String, [String: String]) async throws -> [String: String] = { _, input in input }
+    static let defaultPreDispatchValidator: @Sendable (String, [String: String]) async throws -> [String: String] = { _, input in input }
 
     /// Default post-dispatch validator: identity.
-    public static let defaultPostDispatchValidator: @Sendable (String, String) async throws -> String = { _, output in output }
+    static let defaultPostDispatchValidator: @Sendable (String, String) async throws -> String = { _, output in output }
 
     // MARK: - Sequential execution
 
@@ -158,7 +158,7 @@ public actor ToolExecutor {
     /// UI cards (ChatToolUsePartView / ChatToolResultPartView) because
     /// the blocks stayed inside ConversationResult.blocks[] without
     /// a per-block notification.
-    public func executeSequential(
+    func executeSequential(
         assistantMessage: LLMMessage,
         messages: inout [LLMMessage],
         taskId: String,
@@ -266,7 +266,7 @@ public actor ToolExecutor {
 
     /// Run tool_use blocks concurrently (= all in parallel via TaskGroup).
     /// T2-TOOL-UI (2026-09-18): same streamCallback wiring as executeSequential.
-    public func executeConcurrent(
+    func executeConcurrent(
         assistantMessage: LLMMessage,
         messages: inout [LLMMessage],
         taskId: String,
@@ -394,7 +394,7 @@ public actor ToolExecutor {
     // MARK: - Lookup
 
     /// Look up a tool by name from the registry.
-    public func lookupTool(name: String, registry: [String: any Tool]) -> (any Tool)? {
+    func lookupTool(name: String, registry: [String: any Tool]) -> (any Tool)? {
         registry[name]
     }
 }
@@ -468,7 +468,7 @@ extension ToolExecutor {
     /// preserves hermes's API shape for API parity but
     /// returns false in practice (= wenshu RuntimeErrors
     /// don't carry this signature).
-    public static func isInterpreterShutdownSubmitError(_ error: Error) -> Bool {
+    static func isInterpreterShutdownSubmitError(_ error: Error) -> Bool {
         let message = String(describing: error)
         return message.contains("cannot schedule new futures after interpreter shutdown")
     }
@@ -486,7 +486,7 @@ extension ToolExecutor {
     ///   "status": "cancelled"
     /// }
     /// ```
-    public static func cancelledToolResultJSON(reason: String = "user interrupt") -> String {
+    static func cancelledToolResultJSON(reason: String = "user interrupt") -> String {
         let dict: [String: Any] = [
             "error": "Tool execution cancelled by \(reason)",
             "status": "cancelled",

@@ -19,11 +19,11 @@
 
 import Foundation
 
-public actor ConversationCompression {
+actor ConversationCompression {
 
     private let compressor: ContextCompressor
 
-    public init(compressor: ContextCompressor? = nil) {
+    init(compressor: ContextCompressor? = nil) {
         self.compressor = compressor ?? ContextCompressor(
             policy: ContextCompressor.Policy(keepRecentTurns: .max)
         )
@@ -47,7 +47,7 @@ public actor ConversationCompression {
     ///   if no compression needed). Caller can detect "compression
     ///   happened" via `result.0.count < messages.count`.
     ///
-    public func historyAfterCompression(
+    func historyAfterCompression(
         messages: [LLMMessage],
         systemMessage: String
     ) async -> (messages: [LLMMessage], systemMessage: String) {
@@ -56,7 +56,7 @@ public actor ConversationCompression {
 
     /// Manual compression trigger (= user clicks "Compress and continue"
     /// button in ChatView). Returns the new compressed history.
-    public func manualTrigger(
+    func manualTrigger(
         messages: [LLMMessage],
         systemMessage: String
     ) async -> (messages: [LLMMessage], systemMessage: String) {
@@ -168,7 +168,7 @@ extension ConversationCompression {
     ///   - compressed: The post-compression transcript
     ///     (= mutated in place to ensure a user turn is
     ///     present at the end).
-    public func ensureCompressedHasUserTurn(
+    func ensureCompressedHasUserTurn(
         originalMessages: [LLMMessage],
         compressed: inout [LLMMessage]
     ) {

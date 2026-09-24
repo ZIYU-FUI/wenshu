@@ -23,7 +23,7 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSManifest {
+final class WSManifest {
     @Attribute(.unique) var workspaceUUID: UUID
     var schemaVersion: Int
     var createdAt: Date

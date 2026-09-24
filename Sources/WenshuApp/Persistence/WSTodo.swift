@@ -16,8 +16,8 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSTodo {
-    @Attribute(.unique) public var id: String
+final class WSTodo {
+    @Attribute(.unique) var id: String
     var title: String
     /// Status string (= wenshu-native values: "new" / "in_progress" /
     /// "done" / "cancelled"; = does NOT match hermes TodoStatus enum names

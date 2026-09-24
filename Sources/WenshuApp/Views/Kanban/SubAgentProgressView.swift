@@ -15,7 +15,7 @@ struct SubAgentProgressView: View {
     @State private var refreshTrigger: Int = 0
     @Environment(WSRepositoryContainer.self) private var repositories: WSRepositoryContainer
 
-    public init() {}
+    init() {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

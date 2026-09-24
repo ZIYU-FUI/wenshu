@@ -12,19 +12,19 @@
 
 import Foundation
 
-public enum GoalsJudgment: Sendable, Equatable {
+enum GoalsJudgment: Sendable, Equatable {
     case done(reason: String)
     case continue_(reason: String)
     case failed(reason: String)
 }
 
-public struct GoalsWork: Sendable, Equatable, Codable {
-    public let goal: String
-    public var work: String
-    public var iterations: Int
-    public var context: [String]
+struct GoalsWork: Sendable, Equatable, Codable {
+    let goal: String
+    var work: String
+    var iterations: Int
+    var context: [String]
 
-    public init(goal: String, work: String = "", iterations: Int = 0, context: [String] = []) {
+    init(goal: String, work: String = "", iterations: Int = 0, context: [String] = []) {
         self.goal = goal
         self.work = work
         self.iterations = iterations
@@ -32,14 +32,14 @@ public struct GoalsWork: Sendable, Equatable, Codable {
     }
 }
 
-public struct GoalsRunResult: Sendable, Equatable {
-    public let finalWork: String
-    public let iterations: Int
-    public let judgment: GoalsJudgment
-    public let auxiliaryUsages: [LLMUsage]
-    public let mainUsages: [LLMUsage]
+struct GoalsRunResult: Sendable, Equatable {
+    let finalWork: String
+    let iterations: Int
+    let judgment: GoalsJudgment
+    let auxiliaryUsages: [LLMUsage]
+    let mainUsages: [LLMUsage]
 
-    public init(finalWork: String, iterations: Int, judgment: GoalsJudgment,
+    init(finalWork: String, iterations: Int, judgment: GoalsJudgment,
                 auxiliaryUsages: [LLMUsage], mainUsages: [LLMUsage]) {
         self.finalWork = finalWork
         self.iterations = iterations
@@ -49,7 +49,7 @@ public struct GoalsRunResult: Sendable, Equatable {
     }
 }
 
-public actor GoalsManager {
+actor GoalsManager {
     private let mainConnector: any LLMConnector
     private let auxiliaryConnector: any LLMConnector
     private let runtime: RuntimeHelpers
@@ -57,7 +57,7 @@ public actor GoalsManager {
     private let persistenceDirectory: URL
     private var persisted: [UUID: GoalsWork] = [:]
 
-    public init(mainConnector: any LLMConnector,
+    init(mainConnector: any LLMConnector,
                 auxiliaryConnector: any LLMConnector,
                 runtime: RuntimeHelpers,
                 maxIterations: Int = 10,
@@ -77,7 +77,7 @@ public actor GoalsManager {
     /// that need a session-scoped temp persistence dir without
     /// touching `FileManager` directly (= business layer cannot
     /// touch `FileManager`; = data-layer concern lives here).
-    public static func temporaryGoalsDirectory(prefix: String) -> URL {
+    static func temporaryGoalsDirectory(prefix: String) -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent("\(prefix)-\(UUID().uuidString)", isDirectory: true)
     }
@@ -88,12 +88,12 @@ public actor GoalsManager {
     /// is passed to `init` (= the FileManager call is data-layer
     /// concern; = the caller in `Core/Chat/ChatSessionViewModel`
     /// no longer touches `FileManager` directly).
-    public static func applicationSupportGoalsDirectory() -> URL {
+    static func applicationSupportGoalsDirectory() -> URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Wenshu/Goals", isDirectory: true)
     }
 
-    public func runGoal(_ goal: String) async throws -> GoalsRunResult {
+    func runGoal(_ goal: String) async throws -> GoalsRunResult {
         let cleanGoal = goal.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanGoal.isEmpty else { throw GoalsError.emptyGoal }
         var work = ""
@@ -123,7 +123,7 @@ public actor GoalsManager {
                               auxiliaryUsages: auxiliaryUsages, mainUsages: mainUsages)
     }
 
-    public func persistGoal(_ goalId: UUID, work: GoalsWork) throws {
+    func persistGoal(_ goalId: UUID, work: GoalsWork) throws {
         try FileManager.default.createDirectory(at: persistenceDirectory, withIntermediateDirectories: true)
         let url = persistenceDirectory.appendingPathComponent("\(goalId.uuidString).json")
         let data = try JSONEncoder().encode(work)
@@ -131,13 +131,13 @@ public actor GoalsManager {
         persisted[goalId] = work
     }
 
-    public func loadGoal(_ goalId: UUID) throws -> GoalsWork? {
+    func loadGoal(_ goalId: UUID) throws -> GoalsWork? {
         let url = persistenceDirectory.appendingPathComponent("\(goalId.uuidString).json")
         guard FileManager.default.fileExists(atPath: url.path) else { return persisted[goalId] }
         return try JSONDecoder().decode(GoalsWork.self, from: Data(contentsOf: url))
     }
 
-    public func judge(work: String, goal: String) async throws -> GoalsJudgment {
+    func judge(work: String, goal: String) async throws -> GoalsJudgment {
         let response = try await send(prompt: judgePrompt(work: work, goal: goal), connector: auxiliaryConnector)
         let raw = response.blocks.map(\.textValue).joined().trimmingCharacters(in: .whitespacesAndNewlines)
         return parseJudgment(raw)
@@ -179,7 +179,7 @@ public actor GoalsManager {
     }
 }
 
-public enum GoalsError: Error, LocalizedError, Sendable {
+enum GoalsError: Error, LocalizedError, Sendable {
     case emptyGoal
-    public var errorDescription: String? { "Goal text must not be empty." }
+    var errorDescription: String? { "Goal text must not be empty." }
 }

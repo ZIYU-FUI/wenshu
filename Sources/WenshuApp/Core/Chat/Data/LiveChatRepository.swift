@@ -33,7 +33,7 @@ import SwiftData
 /// WSChatRepository.shared hop to MainActor (= the SwiftData
 /// wrapper's isolation); the only stored reference is the
 /// global singleton lookup (= trivially Sendable).
-public final class LiveChatRepository: ChatRepositoryProtocol, @unchecked Sendable {
+final class LiveChatRepository: ChatRepositoryProtocol, @unchecked Sendable {
 /// Optional override (= nil in production). When set, every forwarder
 /// uses this container instead of WSChatRepository.shared (= shared
 /// always uses WSPersistenceContainer.shared = the global store).
@@ -46,7 +46,7 @@ private let containerOverride: ModelContainer?
 /// container exists below (= LiveChatRepository(container:)) so
 /// unit tests can isolate the Live adapter against a per-test
 /// in-memory container without polluting the shared singleton.
-public init() {
+init() {
     self.containerOverride = nil
 }
 
@@ -59,7 +59,7 @@ public init() {
 /// @unchecked Sendable: holds no mutable state. The custom
 /// container reference is read-only; all writes go through the
 /// WSChatRepository wrapper which is @MainActor-isolated.
-public init(container: ModelContainer) {
+init(container: ModelContainer) {
     self.containerOverride = container
 }
 
@@ -80,21 +80,21 @@ public init(container: ModelContainer) {
         return WSChatRepository.shared
     }
 
-    public func append(_ message: ChatMessage, sessionId: String, bookID: String?) async throws {
+    func append(_ message: ChatMessage, sessionId: String, bookID: String?) async throws {
         let stored = Self.makeStored(from: message)
         try await Self.runOnMainActor {
             try self.repository(bookID: bookID).append(stored, sessionId: sessionId, bookID: bookID)
         }
     }
 
-    public func loadMessages(sessionId: String, bookID: String?) async throws -> [ChatMessage] {
+    func loadMessages(sessionId: String, bookID: String?) async throws -> [ChatMessage] {
         let stored: [StoredChatMessage] = try await Self.runOnMainActor {
             try self.repository(bookID: bookID).loadMessages(sessionId: sessionId, bookID: bookID)
         }
         return stored.compactMap(Self.makeDomain(from:))
     }
 
-    public func summarizeIfNeeded(
+    func summarizeIfNeeded(
         sessionId: String,
         lastN: Int,
         threshold: Int,
@@ -129,7 +129,7 @@ public init(container: ModelContainer) {
     //   - directory creation (cache/chat-uploads/)
     //   - unique filename via UUID
     //   - FileManager.copyItem call
-    public func copyChatUpload(sourceURL: URL, intoLibraryAt path: String) async throws -> String? {
+    func copyChatUpload(sourceURL: URL, intoLibraryAt path: String) async throws -> String? {
         let fm = FileManager.default
         let ext = sourceURL.pathExtension.lowercased()
         guard ["png", "jpg", "jpeg", "gif", "heic"].contains(ext) else { return nil }
@@ -232,5 +232,5 @@ public init(container: ModelContainer) {
 extension LiveChatRepository {
     /// Shared singleton (= `@unchecked Sendable`; = safe because
     /// the class holds no mutable state).
-    public static let shared = LiveChatRepository()
+    static let shared = LiveChatRepository()
 }

@@ -37,32 +37,32 @@ import Foundation
 import SwiftData
 
 @MainActor
-public final class WSChatRepository {
+final class WSChatRepository {
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
+    init(container: ModelContainer = WSPersistenceContainer.shared) {
         self.container = container
     }
 
     // MARK: - Sessions
 
     @discardableResult
-    public func createSession(sessionID: String, title: String? = nil, bookID: String? = nil) throws -> WSSession {
+    func createSession(sessionID: String, title: String? = nil, bookID: String? = nil) throws -> WSSession {
         let session = WSSession(sessionID: sessionID, title: title, bookID: bookID)
         context.insert(session)
         try context.save()
         return session
     }
 
-    public func getSession(sessionID: String, bookID: String? = nil) throws -> WSSession? {
+    func getSession(sessionID: String, bookID: String? = nil) throws -> WSSession? {
         let descriptor = FetchDescriptor<WSSession>(
             predicate: Self.sessionPredicate(sessionID: sessionID, bookID: bookID)
         )
         return try context.fetch(descriptor).first
     }
 
-    public func listSessions(includeArchived: Bool = false, bookID: String? = nil) throws -> [WSSession] {
+    func listSessions(includeArchived: Bool = false, bookID: String? = nil) throws -> [WSSession] {
         let descriptor: FetchDescriptor<WSSession>
         if includeArchived {
             descriptor = FetchDescriptor<WSSession>(
@@ -83,7 +83,7 @@ public final class WSChatRepository {
 
     // MARK: - Messages
 
-    public func loadMessages(sessionId: String, bookID: String? = nil) throws -> [StoredChatMessage] {
+    func loadMessages(sessionId: String, bookID: String? = nil) throws -> [StoredChatMessage] {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID),
             sortBy: [SortDescriptor(\.position)]
@@ -104,7 +104,7 @@ public final class WSChatRepository {
         }
     }
 
-    public func append(_ message: StoredChatMessage, sessionId: String, bookID: String? = nil) throws {
+    func append(_ message: StoredChatMessage, sessionId: String, bookID: String? = nil) throws {
         // Ensure the target session exists under the requested book scope.
         // If no session exists yet (= first message of a new chat per book),
         // create it automatically (= the chat pipeline should not have to
@@ -155,7 +155,7 @@ public final class WSChatRepository {
         try context.save()
     }
 
-    public func clear(sessionId: String, bookID: String? = nil) throws {
+    func clear(sessionId: String, bookID: String? = nil) throws {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID)
         )
@@ -175,7 +175,7 @@ public final class WSChatRepository {
     /// batches all writes in a single `save()` (= the deleted actor's
     /// custom `transact` wrapper is no longer needed because SwiftData
     /// uses an internal Core Data transaction per save).
-    public func deleteOldMessages(sessionId: String, beforeTimestamp: Date, bookID: String? = nil) throws {
+    func deleteOldMessages(sessionId: String, beforeTimestamp: Date, bookID: String? = nil) throws {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.combinedChatPredicate(
                 sessionId: sessionId,
@@ -196,7 +196,7 @@ public final class WSChatRepository {
     /// helper. Returns the timestamp below which messages should be
     /// summarised (= the (count - keepLastN)-th message's timestamp).
     /// Returns nil if no summarization is needed (= count <= keepLastN).
-    public func summaryCutoffTimestamp(sessionId: String, keepLastN: Int, bookID: String? = nil) throws -> Date? {
+    func summaryCutoffTimestamp(sessionId: String, keepLastN: Int, bookID: String? = nil) throws -> Date? {
         let total = try count(sessionId: sessionId, bookID: bookID)
         guard total > keepLastN else { return nil }
         let offset = total - keepLastN
@@ -215,7 +215,7 @@ public final class WSChatRepository {
     /// (= v0.72 SwiftData migration; replaces the deleted ChatSessionStore actor)
     /// helper. Returns the pre-cutoff messages (= those to be summarised)
     /// in ASC timestamp order (= matches the deleted actor's spec).
-    public func messagesBeforeCutoff(sessionId: String, cutoff: Date, bookID: String? = nil) throws -> [StoredChatMessage] {
+    func messagesBeforeCutoff(sessionId: String, cutoff: Date, bookID: String? = nil) throws -> [StoredChatMessage] {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.combinedChatPredicate(
                 sessionId: sessionId,
@@ -247,7 +247,7 @@ public final class WSChatRepository {
     /// pre-cutoff originals (= non-transactional because SwiftData
     /// batches all writes in a single `save()` call).
     @MainActor
-    public func summarizeIfNeeded(
+    func summarizeIfNeeded(
         sessionId: String,
         lastN: Int = 10,
         threshold: Int = 20,
@@ -281,7 +281,7 @@ public final class WSChatRepository {
         return true
     }
 
-    public func count(sessionId: String, bookID: String? = nil) throws -> Int {
+    func count(sessionId: String, bookID: String? = nil) throws -> Int {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID)
         )
@@ -290,14 +290,14 @@ public final class WSChatRepository {
 
     // MARK: - Summary
 
-    public func loadSummary(sessionId: String, bookID: String? = nil) throws -> String? {
+    func loadSummary(sessionId: String, bookID: String? = nil) throws -> String? {
         let descriptor = FetchDescriptor<WSSummary>(
             predicate: Self.summaryPredicate(sessionId: sessionId, bookID: bookID)
         )
         return try context.fetch(descriptor).first?.summary
     }
 
-    public func saveSummary(_ summary: String, sessionId: String, lastMessageId: String, bookID: String? = nil) throws {
+    func saveSummary(_ summary: String, sessionId: String, lastMessageId: String, bookID: String? = nil) throws {
         let descriptor = FetchDescriptor<WSSummary>(
             predicate: Self.summaryPredicate(sessionId: sessionId, bookID: bookID)
         )
@@ -323,7 +323,7 @@ public final class WSChatRepository {
 
     // MARK: - SubAgentRuns
 
-    public func loadSubAgentRuns(sessionId: String, bookID: String? = nil) throws -> [SubAgentRun] {
+    func loadSubAgentRuns(sessionId: String, bookID: String? = nil) throws -> [SubAgentRun] {
         let descriptor = FetchDescriptor<WSSubAgentRun>(
             predicate: Self.subAgentRunPredicate(sessionId: sessionId, bookID: bookID),
             sortBy: [SortDescriptor(\.startedAt)]
@@ -341,7 +341,7 @@ public final class WSChatRepository {
         }
     }
 
-    public func recordSubAgentRun(_ run: SubAgentRun, sessionId: String, bookID: String? = nil) throws {
+    func recordSubAgentRun(_ run: SubAgentRun, sessionId: String, bookID: String? = nil) throws {
         let model = WSSubAgentRun(
             id: run.id,
             sessionID: sessionId,
@@ -355,7 +355,7 @@ public final class WSChatRepository {
     }
 
     /// Save current context (= for callers that mutate model state outside the repo).
-    public func saveContextTrick() throws {
+    func saveContextTrick() throws {
         try context.save()
     }
 
@@ -447,12 +447,12 @@ public final class WSChatRepository {
 /// Currently only the cross-scope guard (= append/load against a sessionID
 /// that doesn't exist under the requested book scope). Adding more cases
 /// here as the chat pipeline evolves; = keep the public API minimal.
-public enum WSChatRepositoryError: Error, Equatable {
+enum WSChatRepositoryError: Error, Equatable {
     case sessionNotFoundForBookScope(sessionID: String, bookID: String)
 }
 
 extension WSChatRepositoryError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .sessionNotFoundForBookScope(let sessionID, let bookID):
             return "Chat session \(sessionID) not found for book \(bookID)."

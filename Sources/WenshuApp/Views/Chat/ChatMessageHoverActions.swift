@@ -26,7 +26,7 @@ struct ChatMessageHoverActions: View {
     let content: String
     @State private var isHovering: Bool = false
 
-    public init(content: String) {
+    init(content: String) {
         self.content = content
     }
 
@@ -83,7 +83,7 @@ struct ChatMessageHoverActions: View {
 /// on a chat message (= the parent view observes this notification
 /// and wires the actual deletion logic).
 extension Notification.Name {
-    public static let wenshuChatMessageDeleteRequested = Notification.Name("wenshu.chat.message.deleteRequested")
+    static let wenshuChatMessageDeleteRequested = Notification.Name("wenshu.chat.message.deleteRequested")
 }
 
 /// View modifier that wires the hover state (= a `View` extension

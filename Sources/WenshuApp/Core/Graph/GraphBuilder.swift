@@ -10,14 +10,14 @@
 import Foundation
 
 /// Graph node (1 note)
-public struct GraphNode: Equatable, Sendable, Identifiable {
-    public var id: String       // docId
-    public var label: String    // display name (from DocumentIndexing)
-    public var x: Double        // layout (force-directed output)
-    public var y: Double
-    public var links: Int        // link count (degree)
+struct GraphNode: Equatable, Sendable, Identifiable {
+    var id: String       // docId
+    var label: String    // display name (from DocumentIndexing)
+    var x: Double        // layout (force-directed output)
+    var y: Double
+    var links: Int        // link count (degree)
 
-    public init(id: String, label: String, x: Double = 0, y: Double = 0, links: Int = 0) {
+    init(id: String, label: String, x: Double = 0, y: Double = 0, links: Int = 0) {
         self.id = id
         self.label = label
         self.x = x
@@ -27,12 +27,12 @@ public struct GraphNode: Equatable, Sendable, Identifiable {
 }
 
 /// Graph edge (1 [[source → target]] link)
-public struct GraphEdge: Equatable, Sendable, Identifiable {
-    public var id: String       // id
-    public var sourceId: String // source docId
-    public var targetId: String // target docId (resolved)
+struct GraphEdge: Equatable, Sendable, Identifiable {
+    var id: String       // id
+    var sourceId: String // source docId
+    var targetId: String // target docId (resolved)
 
-    public init(id: String, sourceId: String, targetId: String) {
+    init(id: String, sourceId: String, targetId: String) {
         self.id = id
         self.sourceId = sourceId
         self.targetId = targetId
@@ -40,11 +40,11 @@ public struct GraphEdge: Equatable, Sendable, Identifiable {
 }
 
 /// Graph: whole graph (nodes + edges)
-public struct Graph: Equatable, Sendable {
-    public var nodes: [GraphNode]
-    public var edges: [GraphEdge]
+struct Graph: Equatable, Sendable {
+    var nodes: [GraphNode]
+    var edges: [GraphEdge]
 
-    public init(nodes: [GraphNode] = [], edges: [GraphEdge] = []) {
+    init(nodes: [GraphNode] = [], edges: [GraphEdge] = []) {
         self.nodes = nodes
         self.edges = edges
     }
@@ -52,12 +52,12 @@ public struct Graph: Equatable, Sendable {
 
 /// GraphBuilder: build graph from LinkIndex + DocumentIndexing + force-directed layout
 /// Apple HIG: simple spring force, consistent with Apple HIG physics simulation
-public enum GraphBuilder {
+enum GraphBuilder {
 
     /// Build graph (nodes + edges)
     /// - Get all links from LinkIndex (resolved target_doc_id)
     /// - Collect doc_ids as nodes, compute degree
-    public static func build(
+    static func build(
         links: [Link],
         documentIndex: DocumentIndexing
     ) async -> Graph {
@@ -100,7 +100,7 @@ public enum GraphBuilder {
     /// - Exclusion: nodes with distance < threshold repel each other
     /// - Attraction: connected nodes with distance > threshold pull toward each other
     /// - Center gravity: nodes are pulled toward the center
-    public static func layout(_ graph: Graph, iterations: Int = 50) -> Graph {
+    static func layout(_ graph: Graph, iterations: Int = 50) -> Graph {
         var nodes = graph.nodes
         guard nodes.count > 1 else { return graph }
 
@@ -192,7 +192,7 @@ public enum GraphBuilder {
     }
 
     /// Local Graph: given current docId, get 1-hop / 2-hop subgraph
-    public static func localGraph(fullGraph: Graph, centerId: String, depth: Int = 1) -> Graph {
+    static func localGraph(fullGraph: Graph, centerId: String, depth: Int = 1) -> Graph {
         guard depth >= 1 else { return Graph() }
 
         var visited = Set<String>([centerId])

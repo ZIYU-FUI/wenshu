@@ -22,15 +22,15 @@ import Foundation
 import SwiftData
 
 @MainActor
-public final class WSBookmarkRepository {
+final class WSBookmarkRepository {
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
+    init(container: ModelContainer = WSPersistenceContainer.shared) {
         self.container = container
     }
 
-    public func add(_ bookmark: Bookmark) throws {
+    func add(_ bookmark: Bookmark) throws {
         let model = WSBookmark(
             id: bookmark.id,
             title: bookmark.label,
@@ -40,7 +40,7 @@ public final class WSBookmarkRepository {
         try context.save()
     }
 
-    public func remove(id: String) throws {
+    func remove(id: String) throws {
         let descriptor = FetchDescriptor<WSBookmark>(
             predicate: #Predicate { $0.id == id }
         )
@@ -50,7 +50,7 @@ public final class WSBookmarkRepository {
         }
     }
 
-    public func list() throws -> [Bookmark] {
+    func list() throws -> [Bookmark] {
         let descriptor = FetchDescriptor<WSBookmark>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )

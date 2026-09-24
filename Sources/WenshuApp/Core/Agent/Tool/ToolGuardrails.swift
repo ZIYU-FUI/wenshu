@@ -24,49 +24,49 @@ import Foundation
 /// Maximum input size for any single tool invocation (= 1 MB).
 /// Prevents memory exhaustion from malicious or buggy callers
 /// (= hermes tool_guardrails.py enforces similar limit).
-public let toolGuardrailsMaxInputBytes: Int = 1_048_576  // 1 MB
+let toolGuardrailsMaxInputBytes: Int = 1_048_576  // 1 MB
 
 /// Tool name whitelist (= enforce known tools only).
 /// Actor (= Swift 6 strict-concurrency-safe mutable global).
-public actor ToolNameWhitelist {
-    public private(set) var names: Set<String> = []
+actor ToolNameWhitelist {
+    private(set) var names: Set<String> = []
 
-    public init() {}
+    init() {}
 
-    public func set(_ names: Set<String>) {
+    func set(_ names: Set<String>) {
         self.names = names
     }
 
-    public func contains(_ name: String) -> Bool {
+    func contains(_ name: String) -> Bool {
         return names.contains(name)
     }
 
-    public var isEmpty: Bool { names.isEmpty }
+    var isEmpty: Bool { names.isEmpty }
 }
 
 /// Global singleton (= process-wide whitelist, configured by app startup).
-public let toolNameWhitelist = ToolNameWhitelist()
+let toolNameWhitelist = ToolNameWhitelist()
 
 /// Pre-tool guardrail result.
-public struct ToolGuardrailsResult: Sendable, Equatable {
-    public let passed: Bool
-    public let reason: String?
+struct ToolGuardrailsResult: Sendable, Equatable {
+    let passed: Bool
+    let reason: String?
 
-    public static let pass = ToolGuardrailsResult(passed: true, reason: nil)
-    public static func failure(reason: String) -> ToolGuardrailsResult {
+    static let pass = ToolGuardrailsResult(passed: true, reason: nil)
+    static func failure(reason: String) -> ToolGuardrailsResult {
         return ToolGuardrailsResult(passed: false, reason: reason)
     }
 }
 
 /// Pre-tool check helper (= static functions for stateless guardrail logic).
-public enum ToolGuardrails {
+enum ToolGuardrails {
 
     /// Pre-tool check (= validates path + name + input size).
     /// - Parameters:
     ///   - tool: Tool protocol conformer
     ///   - input: tool input JSON
     /// - Returns: ToolGuardrailsResult indicating pass / fail
-    public static func check<T: Tool>(tool: T, input: String) async -> ToolGuardrailsResult {
+    static func check<T: Tool>(tool: T, input: String) async -> ToolGuardrailsResult {
         // 1. Input size cap (= prevent memory exhaustion)
         let inputBytes = input.utf8.count
         guard inputBytes <= toolGuardrailsMaxInputBytes else {
@@ -114,7 +114,7 @@ public enum ToolGuardrails {
 
 /// Optional protocol for tools that need custom path validation
 /// (= in addition to FileTools.pathDenied default sandbox check).
-public protocol PathGuarding: Tool {
+protocol PathGuarding: Tool {
     /// Validate a candidate path (= return nil if OK, error string if blocked).
     func validatePath(_ path: String) -> String?
 }

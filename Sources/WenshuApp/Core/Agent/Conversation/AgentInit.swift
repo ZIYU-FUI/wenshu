@@ -66,11 +66,11 @@ import Foundation
 ///   or gpt-5.3-codex-spark model with a higher per-model
 ///   threshold), this is `{"model", "from", "to"}` so the
 ///   UI can show the one-time notice; otherwise nil.
-public struct CompressionThresholdResult: Sendable, Equatable {
-    public let effectiveThreshold: Double
-    public let autoraiseNotice: AutoraiseNotice?
+struct CompressionThresholdResult: Sendable, Equatable {
+    let effectiveThreshold: Double
+    let autoraiseNotice: AutoraiseNotice?
 
-    public init(
+    init(
         effectiveThreshold: Double,
         autoraiseNotice: AutoraiseNotice? = nil
     ) {
@@ -81,12 +81,12 @@ public struct CompressionThresholdResult: Sendable, Equatable {
 
 /// Codex autoraise notice (= hermes dict shape at
 /// `agent/agent_init.py` L114-L118).
-public struct AutoraiseNotice: Sendable, Equatable {
-    public let model: String?
-    public let from: Double
-    public let to: Double
+struct AutoraiseNotice: Sendable, Equatable {
+    let model: String?
+    let from: Double
+    let to: Double
 
-    public init(model: String?, from: Double, to: Double) {
+    init(model: String?, from: Double, to: Double) {
         self.model = model
         self.from = from
         self.to = to
@@ -124,7 +124,7 @@ public struct AutoraiseNotice: Sendable, Equatable {
 /// and contradict the feature's purpose (= use more of
 /// the window). Other overrides (= e.g. Arcee Trinity)
 /// keep their existing unconditional behavior.
-public func resolveCompressionThreshold(
+func resolveCompressionThreshold(
     globalThreshold: Double,
     modelThreshold: Double?,
     model: String? = nil,
@@ -157,7 +157,7 @@ public func resolveCompressionThreshold(
 ///
 /// - Returns: The trimmed value with any trailing slash
 ///   removed, or empty string for non-string inputs.
-public func normalizedCustomBaseURL(_ value: Any) -> String {
+func normalizedCustomBaseURL(_ value: Any) -> String {
     guard let str = value as? String else { return "" }
     return str.trimmingCharacters(in: .whitespaces)
         .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
@@ -176,7 +176,7 @@ public func normalizedCustomBaseURL(_ value: Any) -> String {
 /// - Returns: true when the entry's `model` matches the
 ///   agent model (= or when the entry has no `model` field
 ///   = the entry is wildcard).
-public func customProviderModelMatches(
+func customProviderModelMatches(
     agentModel: String,
     entry: [String: Any]
 ) -> Bool {

@@ -12,17 +12,17 @@
 
 import Foundation
 
-public struct RedactionRule: Sendable, Equatable {
-    public let pattern: String  // regex
-    public let replacement: String
+struct RedactionRule: Sendable, Equatable {
+    let pattern: String  // regex
+    let replacement: String
 
-    public init(pattern: String, replacement: String) {
+    init(pattern: String, replacement: String) {
         self.pattern = pattern
         self.replacement = replacement
     }
 }
 
-public struct Redactor: Sendable {
+struct Redactor: Sendable {
 
     private let rules: [CompiledRule]
 
@@ -35,7 +35,7 @@ public struct Redactor: Sendable {
         let replacement: String
     }
 
-    public init(rules: [RedactionRule] = Redactor.defaultRules) {
+    init(rules: [RedactionRule] = Redactor.defaultRules) {
         self.rules = rules.compactMap { rule in
             guard let compiled = try? Regex<AnyRegexOutput>(rule.pattern) else {
                 return nil
@@ -48,7 +48,7 @@ public struct Redactor: Sendable {
     /// invalid regex patterns are skipped at init time (rather than
     /// thrown at redact-time) so a single broken rule never breaks
     /// the whole redactor.
-    public func redact(_ text: String) -> String {
+    func redact(_ text: String) -> String {
         var result = text
         for rule in rules {
             result = replaceAll(in: result, rule: rule)
@@ -80,7 +80,7 @@ public struct Redactor: Sendable {
     }
 }
 
-public extension Redactor {
+extension Redactor {
     static let defaultRules: [RedactionRule] = [
         // Email addresses
         RedactionRule(

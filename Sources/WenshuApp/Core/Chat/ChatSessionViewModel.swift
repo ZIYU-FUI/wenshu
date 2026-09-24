@@ -100,17 +100,17 @@ final class StreamingAccumulator: @unchecked Sendable {
 /// ChatViewModel: state management (Apple Observable + WSChatRepository + WenshuConductor)
 @MainActor
 @Observable
-public final class ChatViewModel {
-    public var messages: [ChatMessage] = []
-    public var inputText: String = ""
+final class ChatViewModel {
+    var messages: [ChatMessage] = []
+    var inputText: String = ""
     // CHATIMG-001 (2026-09-07): absolute path of an image the user
     // attached via the chat input row's paperclip button (= draft
     // state). When non-nil, a small preview chip is rendered above
     // the TextField; on send the path is moved into the ChatMessage
     // and the draft is cleared. nil = no pending image.
-    public var attachedImagePath: String?
-    public var isSending: Bool = false
-    public var lastError: String?
+    var attachedImagePath: String?
+    var isSending: Bool = false
+    var lastError: String?
     // v2.00 (2026-09-23): boss 'check split, check dead code'.
     // Removed dead `activeSubAgentName` + `currentAgentTurn`
     // fields (= T4-SUBAGENT-UI + T8-CHATVIEWMODEL-WIRE) —
@@ -121,13 +121,13 @@ public final class ChatViewModel {
     // marker emission (= ConversationLoop + WenshuConductor) and
     // marker-parsing block below are also removed.
     // v2.00 retention (= keep cancelRequested):
-    public var cancelRequested: Bool = false
+    var cancelRequested: Bool = false
     /// T67-MUTE-SHORTCUT (2026-09-18): ⌘. handler (= cancel
     /// the currently-streaming assistant reply). Sets the
     /// cancelRequested flag (= ConversationLoop polls this
     /// flag per-block to stop mid-stream). Silent no-op when
     /// nothing is streaming.
-    public func cancelStreaming() {
+    func cancelStreaming() {
         cancelRequested = true
     }
 
@@ -150,7 +150,7 @@ public final class ChatViewModel {
     /// directory creation + FileManager.copyItem lives in
     /// LiveChatRepository.
     @discardableResult
-    public func attachImage(at sourceURL: URL) async -> Bool {
+    func attachImage(at sourceURL: URL) async -> Bool {
         // Config lookup (= business layer reads app config from
         // UserDefaults; = not data-layer IO; = OK to keep here).
         let libraryPath = UserDefaults.standard.string(forKey: "wenshu.libraryPath") ?? ""
@@ -168,7 +168,7 @@ public final class ChatViewModel {
     /// CHATIMG-001: clear the pending image draft (= called when
     /// the user clicks the small ✕ on the preview chip, or after
     /// send).
-    public func clearAttachedImage() {
+    func clearAttachedImage() {
         attachedImagePath = nil
     }
     // B-05: wenshu.llm.model centralization. The model id was
@@ -194,12 +194,12 @@ public final class ChatViewModel {
     // file (= v0.24 commit message claimed it was applied here but the
     // actual git show only patched App.swift = doc drift that the test
     // now locks down).
-    public var currentModel: String {
+    var currentModel: String {
         if let appState { return appState.llmModel }
         return UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
     }
-    public var availableModels: [String] = []
-    public var contextUsed: Int = 0
+    var availableModels: [String] = []
+    var contextUsed: Int = 0
         // v0.24 boss acceptance fix (Boss 8/25 OOB 'minimax m3 is not 1MB context window?
         // you set 131k'): minimax-cn M3 context window = 1_000_000 tokens per official
         // docs (https://www.minimax.io/models/text/m3 = '1M Context';
@@ -209,7 +209,7 @@ public final class ChatViewModel {
         // matches docs; actual API may reject >512K (vendor issue, not wenshu).
         // Note: Live API /v1/models does NOT return context_length field (= no API
         // to query per Boss 8/25 'no API to fetch from, right?' = boss confirmed no API).
-    public var contextMax: Int = 1_000_000
+    var contextMax: Int = 1_000_000
 
     private let conductor: WenshuConductor?
     // Chat persistence lives
@@ -238,7 +238,7 @@ public final class ChatViewModel {
     /// layer when the user picks a different book). Refreshes the in-memory
     /// session id (= per-book session) and reloads history. No-op if the
     /// bookID is unchanged.
-    public func setCurrentBookID(_ bookID: String?) {
+    func setCurrentBookID(_ bookID: String?) {
         if currentBookID == bookID { return }
         currentBookID = bookID
         // Per-book session id: same key prefix + bookID suffix so the
@@ -338,7 +338,7 @@ public final class ChatViewModel {
     //    methods require `await`.
     nonisolated static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
 
-    public func switchModel(_ id: String) {
+    func switchModel(_ id: String) {
         // B-05: write to the canonical owner (= AppState.llmModel),
         // which then mirrors to UserDefaults via its didSet. No raw
         // UserDefaults call here (= single owner maintained).
@@ -351,11 +351,11 @@ public final class ChatViewModel {
     /// canonical pattern (= the @AppStorage mirror in Settings reads
     /// from UserDefaults) is unchanged; = the write moves here from
     /// `ChatZoneView` (= UI layer) into the business layer.
-    public func openSettingsToProviderApi() {
+    func openSettingsToProviderApi() {
         UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
     }
 
-    public func loadAvailableModels() async {
+    func loadAvailableModels() async {
         // v0.24 boss acceptance fix (2026-08-24): use multi-provider discovery.
         // Was: fallback to WenshuLLMModel.allCases (3 MiniMax-only cases).
         // Now: query all configured providers via AvailableModelsDiscovery,
@@ -381,7 +381,7 @@ public final class ChatViewModel {
     }
 
     /// recomputeContextUsed: sum of all agent message tokens (real LLM API usage, replaces chars/4 heuristic)
-    public func recomputeContextUsed() {
+    func recomputeContextUsed() {
         contextUsed = messages.compactMap { $0.tokens }.reduce(0, +)
         // trace: ChatViewModel.contextUsed accumulation
         NSLog("[wenshu.context] sum tokens after recompute: %d (messages=%d)", contextUsed, messages.count)
@@ -393,7 +393,7 @@ public final class ChatViewModel {
     /// through to `send()`. Empty input is a no-op. Slash input that fails
     /// (= parseAndInvoke throws) also falls through to `send()` for graceful
     /// degradation (= unknown skill name should still reach the LLM).
-    public func routeInput() async {
+    func routeInput() async {
         let input = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return }
 
@@ -562,7 +562,7 @@ public final class ChatViewModel {
     }
 
     /// send: send message → Wenshu main agent synthesis
-    public func send() async {
+    func send() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         // CHATIMG-001 (2026-09-07): allow image-only sends (= an
         // attached screenshot with no text is still a valid send; the
@@ -952,7 +952,7 @@ public final class ChatViewModel {
     /// - non-empty input → spawn GoalsManager + runGoal in background
     /// - clears the input draft on entry
     /// - appends a system ChatMessage on start + completion / failure
-    public func startLongRunningGoal() async {
+    func startLongRunningGoal() async {
         let goal = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !goal.isEmpty else { return }
 
@@ -1042,7 +1042,7 @@ public final class ChatViewModel {
     /// session + context (= reset messages + contextUsed), generate new
     /// sessionId, persist new session for future writes. Boss spec: 'start a
     /// brand new session. Reload the context'.
-    public func startNewSession() {
+    func startNewSession() {
         // 1. Clear in-memory state (= visual reset).
         messages = []
         contextUsed = 0
@@ -1054,7 +1054,7 @@ public final class ChatViewModel {
               sessionId, messages.count, contextUsed)
     }
 
-    public func clear() {
+    func clear() {
         messages.removeAll()
         lastError = nil
     }
@@ -1063,10 +1063,10 @@ public final class ChatViewModel {
     /// (= was `valueForStore` returning a chat store instance;
     /// = Phase 5 ticket 10a replaced that with a direct
     /// `WSChatRepository.shared.loadMessages` call inside the view).
-    public func valueForSessionId() -> String { sessionId }  // v0.24 bossverificationfix (F2): @MainActor-isolated with sessionId
+    func valueForSessionId() -> String { sessionId }  // v0.24 bossverificationfix (F2): @MainActor-isolated with sessionId
 
     /// replaceMessages: ChatView .task loadcompletereplace (append)
-    public func replaceMessages(_ newMessages: [ChatMessage]) {
+    func replaceMessages(_ newMessages: [ChatMessage]) {
         self.messages = newMessages
     }
 
@@ -1080,7 +1080,7 @@ public final class ChatViewModel {
     ///
     /// v1.79 chat-by-book: scoped by `currentBookID` (= set by
     /// setCurrentBookID; = nil = global un-attached).
-    public func loadHistory() async {
+    func loadHistory() async {
         do {
             let loaded = try await repository.loadMessages(sessionId: sessionId, bookID: currentBookID)
             self.messages = loaded

@@ -59,12 +59,12 @@ import Foundation
 ///
 /// Mirrors hermes' `Dict[str, Any]` return shape (= final response +
 /// full message history + taskId for tracing + telemetry).
-public struct ConversationResult: Sendable {
-    public let response: LLMResponse
-    public var messages: [LLMMessage]
-    public let taskId: String
+struct ConversationResult: Sendable {
+    let response: LLMResponse
+    var messages: [LLMMessage]
+    let taskId: String
 
-    public init(response: LLMResponse, messages: [LLMMessage], taskId: String) {
+    init(response: LLMResponse, messages: [LLMMessage], taskId: String) {
         self.response = response
         self.messages = messages
         self.taskId = taskId
@@ -76,7 +76,7 @@ public struct ConversationResult: Sendable {
 ///
 /// Drives one user turn through the LLMConnector (= active connector
 /// profile per Settings → LLM Connector pane) and returns the result.
-public actor ConversationLoop {
+actor ConversationLoop {
 
     private let connector: any LLMConnector
     private let systemPrompt: String?
@@ -116,7 +116,7 @@ public actor ConversationLoop {
     ///     When nil, `AgentProgressTracker.noop` is used (= zero overhead; no
     ///     progress events emitted). Pass a shared instance to surface step-
     ///     by-step feedback in the OpenBox panel during a turn.
-    public init(
+    init(
         connection: any LLMConnector,
         systemPrompt: String? = nil,
         runtime: RuntimeHelpers? = nil,
@@ -141,7 +141,7 @@ public actor ConversationLoop {
     /// Legacy initializer (= preserved for backward compat with callers
     /// that built the loop before HERMES-PARTIAL-001). Delegates to the
     /// HERMES-PARTIAL-001 init with default hook chain + compression actor.
-    public init(
+    init(
         connector: any LLMConnector,
         systemPrompt: String? = nil,
         runtime: RuntimeHelpers? = nil
@@ -180,7 +180,7 @@ public actor ConversationLoop {
     /// `mockTime` set; production gets `Date()` from the default runtime).
     /// Public so downstream modules (= TurnFinalizer, ContextCompressor)
     /// can call the loop's clock instead of touching `Date()` directly.
-    public func now() async -> Date {
+    func now() async -> Date {
         await runtime.now()
     }
     /// Run a complete conversation turn (= hermes run_conversation L523-L546).
@@ -212,7 +212,7 @@ public actor ConversationLoop {
     /// - Returns: ConversationResult with final response + full message
     ///   history (= user + assistant) + taskId for tracing.
     /// - Throws: LLMConnectorError on transport / auth / provider failure.
-    public func runConversation(
+    func runConversation(
         userMessage: String,
         systemMessage: String? = nil,
         conversationHistory: [LLMMessage]? = nil,
@@ -341,7 +341,7 @@ public actor ConversationLoop {
     ///   - streamCallback: Optional callback for streaming responses.
     /// - Returns: ConversationResult with final response + full message
     ///   history + taskId.
-    public func runTurn(
+    func runTurn(
         userMessage: String,
         systemMessage: String? = nil,
         conversationHistory: [LLMMessage] = [],
@@ -711,11 +711,11 @@ public actor ConversationLoop {
 /// Deferred to v2 per spec §14 (= "MOA (Mixture-of-Agents ensemble) —
 /// deferred to v2"). Stub type present so ConversationLoop.runConversation
 /// 9-param signature is hermes-compatible from day 1.
-public struct MOAConfig: Sendable {
-    public let advisorCount: Int
-    public let aggregatorModel: String
+struct MOAConfig: Sendable {
+    let advisorCount: Int
+    let aggregatorModel: String
 
-    public init(advisorCount: Int, aggregatorModel: String) {
+    init(advisorCount: Int, aggregatorModel: String) {
         self.advisorCount = advisorCount
         self.aggregatorModel = aggregatorModel
     }

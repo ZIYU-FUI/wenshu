@@ -25,15 +25,15 @@
 
 import Foundation
 
-public actor ContextCompressor {
+actor ContextCompressor {
 
     /// Compression policy (= deterministic, no LLM).
-    public struct Policy: Sendable {
-        public let keepRecentTurns: Int  // last N messages to preserve verbatim
-        public let maxTokens: Int         // stop early if estimated token count fits
-        public let summaryTemplate: String // text for the synthesized summary message
+    struct Policy: Sendable {
+        let keepRecentTurns: Int  // last N messages to preserve verbatim
+        let maxTokens: Int         // stop early if estimated token count fits
+        let summaryTemplate: String // text for the synthesized summary message
 
-        public init(
+        init(
             keepRecentTurns: Int = 8,
             maxTokens: Int = 30_000,
             summaryTemplate: String = "[Earlier conversation summarized: %d turns omitted to fit context budget.]"
@@ -47,7 +47,7 @@ public actor ContextCompressor {
     private let policy: Policy
     private let tokenEstimator: TokenEstimator
 
-    public init(
+    init(
         policy: Policy = Policy(),
         tokenEstimator: TokenEstimator = CharacterBasedTokenEstimator()
     ) {
@@ -72,7 +72,7 @@ public actor ContextCompressor {
     ///   `ConversationCompression.manualTrigger` for the manual path,
     ///   which builds a more aggressive compressor with a low
     ///   `maxTokens` to force the rewrite regardless of history size).
-    public func compressContext(
+    func compressContext(
         messages: [LLMMessage],
         systemMessage: String
     ) -> (messages: [LLMMessage], systemMessage: String) {
@@ -112,16 +112,16 @@ public actor ContextCompressor {
 }
 
 /// Token estimator protocol (= pluggable; default = character-based).
-public protocol TokenEstimator: Sendable {
+protocol TokenEstimator: Sendable {
     func estimate(_ message: LLMMessage) -> Int
 }
 
 /// Character-based token estimator (= rough heuristic: 4 chars per token,
 /// matching hermes `estimate_messages_tokens_rough`).
-public struct CharacterBasedTokenEstimator: TokenEstimator, Sendable {
-    public init() {}
+struct CharacterBasedTokenEstimator: TokenEstimator, Sendable {
+    init() {}
 
-    public func estimate(_ message: LLMMessage) -> Int {
+    func estimate(_ message: LLMMessage) -> Int {
         let totalChars = message.blocks.reduce(into: 0) { sum, block in
             switch block {
             case .text(let s): sum += s.count

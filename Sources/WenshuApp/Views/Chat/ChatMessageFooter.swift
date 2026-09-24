@@ -48,7 +48,7 @@ struct ChatMessageFooter: View {
     /// hover state independently).
     @Binding var isTimestampHovered: Bool
 
-    public init(
+    init(
         timestamp: Date,
         tokens: Int?,
         isSealed: Bool,

@@ -33,7 +33,7 @@ import Foundation
 /// for raw wenshu errors). Conforms to `LocalizedError` (= Apple
 /// canonical pattern) so SwiftUI/UIKit auto-renders
 /// `.localizedDescription` in alerts / banners / form validation.
-public enum UserFacingError: Error, LocalizedError {
+enum UserFacingError: Error, LocalizedError {
     case networkFailure(underlying: String? = nil)
     case apiKeyMissing(provider: String)
     case apiKeyInvalid(provider: String)
@@ -47,7 +47,7 @@ public enum UserFacingError: Error, LocalizedError {
     case timeout(operation: String, seconds: Double? = nil)
     case unknown(underlying: String? = nil)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .networkFailure:
             // Not user-actionable (= retry after a moment
@@ -137,7 +137,7 @@ public enum UserFacingError: Error, LocalizedError {
     ///
     /// Caller-side (= e.g. `ChatView`) consumes via:
     ///   `let userMsg = UserFacingError.from(rawError).errorDescription`
-    public static func from(_ raw: Error, context provider: String? = nil) -> UserFacingError {
+    static func from(_ raw: Error, context provider: String? = nil) -> UserFacingError {
         if let wenshu = raw as? WenshuLLMError {
             switch wenshu {
             case .missingAPIKey:

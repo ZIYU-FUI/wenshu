@@ -58,7 +58,7 @@ extension View {
     ///   pattern since macOS 10.15; .hoverEffect is visionOS-only
     ///   (= no-op on macOS, so .onHover is the only Apple option on
     ///   this platform).
-    public func hoverWash() -> some View {
+    func hoverWash() -> some View {
         modifier(HoverWashModifier())
     }
 }

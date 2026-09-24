@@ -45,43 +45,43 @@ import Foundation
 /// Composite chat-message type (= header + body). The UI / business
 /// layers consume this; the data layer maps it to StoredChatMessage
 /// (= §11.4 SwiftData row) at the repository boundary.
-public struct ChatMessage: Equatable, Identifiable, Sendable {
-    public var header: ChatMessageHeader
-    public var body: ChatMessageBody
+struct ChatMessage: Equatable, Identifiable, Sendable {
+    var header: ChatMessageHeader
+    var body: ChatMessageBody
 
-    public var id: UUID { header.id }
-    public var role: ChatRole { header.role }
-    public var source: ChatSource { header.source }
-    public var timestamp: Date { header.timestamp }
+    var id: UUID { header.id }
+    var role: ChatRole { header.role }
+    var source: ChatSource { header.source }
+    var timestamp: Date { header.timestamp }
 
     // Forwarders to body (= read-write; the streaming pipeline
     // mutates these per turn). Removed in C-8/C-9/C-10 as UI
     // sub-components migrate to direct `body.xxx` reads.
-    public var parts: [ChatMessagePart] {
+    var parts: [ChatMessagePart] {
         get { body.parts }
         set { body.parts = newValue }
     }
-    public var streamState: StreamState {
+    var streamState: StreamState {
         get { body.streamState }
         set { body.streamState = newValue }
     }
-    public var content: String {
+    var content: String {
         get { body.content }
         set { body.content = newValue }
     }
-    public var isPlaceholder: Bool {
+    var isPlaceholder: Bool {
         get { body.isPlaceholder }
         set { body.isPlaceholder = newValue }
     }
-    public var tokens: Int? {
+    var tokens: Int? {
         get { body.tokens }
         set { body.tokens = newValue }
     }
-    public var thinking: String? {
+    var thinking: String? {
         get { body.thinking }
         set { body.thinking = newValue }
     }
-    public var imagePath: String? {
+    var imagePath: String? {
         get { body.imagePath }
         set { body.imagePath = newValue }
     }
@@ -90,14 +90,14 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
     /// `message.pending` boolean + the lifecycle hooks in
     /// `use-message-stream/index.ts` (`mutateStream` decides when
     /// to seal a pending bubble into a permanent one).
-    public enum StreamState: String, Equatable, Sendable {
+    enum StreamState: String, Equatable, Sendable {
         case idle             // not yet streaming (= legacy ChatMessage)
         case streaming        // actively receiving LLMBlock events
         case sealed           // stream.complete fired; content is final
         case error            // stream terminated with error
     }
 
-    public init(
+    init(
         id: UUID = UUID(),
         role: ChatRole,
         source: ChatSource = .wenshu,
@@ -135,21 +135,21 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
 
     /// Convenience initializer for callers that already hold a
     /// header + body (= e.g. the streaming pipeline after sealing).
-    public init(header: ChatMessageHeader, body: ChatMessageBody) {
+    init(header: ChatMessageHeader, body: ChatMessageBody) {
         self.header = header
         self.body = body
     }
 }
 
 /// Chat role ground truth (compatible with v0.20 ticket 01; actual display uses source)
-public enum ChatRole: String, Equatable, Sendable {
+enum ChatRole: String, Equatable, Sendable {
     case user
     case agent
     case system
 }
 
 /// Message source ground truth (user = sent by the user / wenshu = Wenshu's reply / system = system error). Wenshu's internal multi-agent dispatch results do not show as ChatMessage; they go through the WSKanbanRepository board (= Phase 5 ticket 6 deleted KanbanStore actor).
-public enum ChatSource: String, Equatable, Sendable, Codable {
+enum ChatSource: String, Equatable, Sendable, Codable {
     case user
     case wenshu
     case system

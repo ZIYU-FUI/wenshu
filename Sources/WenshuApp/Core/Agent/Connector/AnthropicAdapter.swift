@@ -37,11 +37,11 @@
 
 import Foundation
 
-public enum AnthropicAdapter {
+enum AnthropicAdapter {
 
     /// Wire-format content block (= hermes L1812+ _convert_anthropic_content_block).
     /// One of: text / thinking / redacted_thinking / image / document / tool_use / tool_result.
-    public enum ContentBlock: Sendable, Equatable {
+    enum ContentBlock: Sendable, Equatable {
         case text(String)
         case thinking(text: String, signature: String?)
         case redacted_thinking(data: String)
@@ -50,19 +50,19 @@ public enum AnthropicAdapter {
         case toolUse(id: String, name: String, input: String)
         case toolResult(toolUseID: String, content: [ContentBlock], isError: Bool)
 
-        public struct ImageSource: Sendable, Equatable {
-            public enum Kind: Sendable, Equatable { case base64, url }
-            public let kind: Kind
-            public let mediaType: String
-            public let data: String
-            public init(kind: Kind, mediaType: String, data: String) {
+        struct ImageSource: Sendable, Equatable {
+            enum Kind: Sendable, Equatable { case base64, url }
+            let kind: Kind
+            let mediaType: String
+            let data: String
+            init(kind: Kind, mediaType: String, data: String) {
                 self.kind = kind
                 self.mediaType = mediaType
                 self.data = data
             }
 
             /// JSON shape for the Anthropic request body.
-            public var asJSON: [String: Any] {
+            var asJSON: [String: Any] {
                 switch kind {
                 case .base64:
                     return ["type": "base64", "media_type": mediaType, "data": data]
@@ -72,18 +72,18 @@ public enum AnthropicAdapter {
             }
         }
 
-        public struct DocumentSource: Sendable, Equatable {
-            public enum Kind: Sendable, Equatable { case base64, url }
-            public let kind: Kind
-            public let mediaType: String
-            public let data: String
-            public init(kind: Kind, mediaType: String, data: String) {
+        struct DocumentSource: Sendable, Equatable {
+            enum Kind: Sendable, Equatable { case base64, url }
+            let kind: Kind
+            let mediaType: String
+            let data: String
+            init(kind: Kind, mediaType: String, data: String) {
                 self.kind = kind
                 self.mediaType = mediaType
                 self.data = data
             }
 
-            public var asJSON: [String: Any] {
+            var asJSON: [String: Any] {
                 switch kind {
                 case .base64:
                     return ["type": "base64", "media_type": mediaType, "data": data]
@@ -101,7 +101,7 @@ public enum AnthropicAdapter {
         }
 
         /// JSON shape for the Anthropic request body.
-        public var asJSON: [String: Any] {
+        var asJSON: [String: Any] {
             switch self {
             case .text(let s):
                 return ["type": "text", "text": s]
@@ -130,7 +130,7 @@ public enum AnthropicAdapter {
 
     /// Convert an OpenAI-style image URL / data URL into an Anthropic
     /// image source (= hermes _image_source_from_openai_url L1699-1730).
-    public static func imageSourceFromOpenAIURL(_ url: String) -> ContentBlock.ImageSource {
+    static func imageSourceFromOpenAIURL(_ url: String) -> ContentBlock.ImageSource {
         if url.hasPrefix("data:") {
             // data:<mediatype>[;base64],<data>
             // Strip the optional ";base64" payload encoding hint so the
@@ -167,7 +167,7 @@ public enum AnthropicAdapter {
     ///     → Anthropic thinking block with signature.
     ///   - {"role": "assistant", "content": [{"type": "redacted_thinking", "data": "..."}]}
     ///     → Anthropic redacted_thinking block with data.
-    public static func convertOpenAIMessagesToAnthropic(_ messages: [[String: Any]]) -> [[String: Any]] {
+    static func convertOpenAIMessagesToAnthropic(_ messages: [[String: Any]]) -> [[String: Any]] {
         var out: [[String: Any]] = []
         for m in messages {
             guard let role = m["role"] as? String else { continue }
@@ -293,22 +293,22 @@ public enum AnthropicAdapter {
     /// through verbatim; on parse-back we re-emit a .thinking case with
     /// the data folded into the signature so it survives in our LLMBlock
     /// enum.
-    public static func propagateRedactedThinking(data: String) -> (text: String, signature: String) {
+    static func propagateRedactedThinking(data: String) -> (text: String, signature: String) {
         return (text: "", signature: "redacted:" + data)
     }
     /// Check whether a model is Claude-family (= hermes _is_claude_model).
-    public static func isClaudeModel(_ model: String?) -> Bool {
+    static func isClaudeModel(_ model: String?) -> Bool {
         guard let m = model?.lowercased() else { return false }
         return m.hasPrefix("claude-") || m.hasPrefix("claude_") || m.contains("claude")
     }
 
     /// Whether a model supports adaptive thinking (= hermes _supports_adaptive_thinking).
-    public static func supportsAdaptiveThinking(_ model: String) -> Bool {
+    static func supportsAdaptiveThinking(_ model: String) -> Bool {
         let m = model.lowercased()
         return m.contains("opus-4") || m.contains("sonnet-4")
     }
     /// Get Anthropic max-output for a model (= hermes _get_anthropic_max_output).
-    public static func maxOutputTokens(for model: String) -> Int {
+    static func maxOutputTokens(for model: String) -> Int {
         let m = model.lowercased()
         if m.contains("opus-4") { return 32_000 }
         if m.contains("sonnet-4") { return 64_000 }

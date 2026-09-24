@@ -16,9 +16,9 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSLink {
+final class WSLink {
     /// Composite key: "<sourceDocID>:<line>:<targetRef>" (= unique per source doc + line + target; = Phase 5 ticket 5 fix)
-    @Attribute(.unique) public var id: String
+    @Attribute(.unique) var id: String
     var sourceDocID: String
     var targetRef: String
     var targetDocID: String?

@@ -26,31 +26,31 @@
 
 import Foundation
 
-public struct WenshuModelCatalog: Sendable, Equatable {
-    public let provider: Provider
-    public let models: [ModelInfo]
+struct WenshuModelCatalog: Sendable, Equatable {
+    let provider: Provider
+    let models: [ModelInfo]
 
-    public init(provider: Provider, models: [ModelInfo]? = nil) {
+    init(provider: Provider, models: [ModelInfo]? = nil) {
         self.provider = provider
         self.models = models ?? WenshuModelCatalog.defaultModelsForProvider(provider)
     }
 
     /// Per-model metadata (= hermes _extract_pricing + _extract_context_length
     /// + the per-model feature flags).
-    public struct ModelInfo: Sendable, Equatable, Identifiable {
-        public let id: String
-        public let displayName: String
-        public let contextWindow: Int  // tokens (= 0 = unknown)
-        public let maxOutputTokens: Int
+    struct ModelInfo: Sendable, Equatable, Identifiable {
+        let id: String
+        let displayName: String
+        let contextWindow: Int  // tokens (= 0 = unknown)
+        let maxOutputTokens: Int
 
         /// Per-million-token pricing (= hermes _extract_pricing).
-        public let pricing: Pricing?
+        let pricing: Pricing?
         /// Feature flags (= hermes capability matrix).
-        public let features: Features
+        let features: Features
 
-        public var idString: String { id }
+        var idString: String { id }
 
-        public init(
+        init(
             id: String,
             displayName: String,
             contextWindow: Int,
@@ -68,19 +68,19 @@ public struct WenshuModelCatalog: Sendable, Equatable {
     }
 
     /// Pricing per million tokens (= hermes _extract_pricing).
-    public struct Pricing: Sendable, Equatable {
-        public let inputPerMTok: Double       // $ / 1M input tokens
-        public let cachedInputPerMTok: Double?  // $ / 1M cached input (Anthropic prompt caching)
-        public let outputPerMTok: Double      // $ / 1M output tokens
+    struct Pricing: Sendable, Equatable {
+        let inputPerMTok: Double       // $ / 1M input tokens
+        let cachedInputPerMTok: Double?  // $ / 1M cached input (Anthropic prompt caching)
+        let outputPerMTok: Double      // $ / 1M output tokens
 
-        public init(inputPerMTok: Double, cachedInputPerMTok: Double? = nil, outputPerMTok: Double) {
+        init(inputPerMTok: Double, cachedInputPerMTok: Double? = nil, outputPerMTok: Double) {
             self.inputPerMTok = inputPerMTok
             self.cachedInputPerMTok = cachedInputPerMTok
             self.outputPerMTok = outputPerMTok
         }
 
         /// Compute cost for a request (= hermes cost math).
-        public func cost(inputTokens: Int, outputTokens: Int, cachedTokens: Int = 0) -> Double {
+        func cost(inputTokens: Int, outputTokens: Int, cachedTokens: Int = 0) -> Double {
             let uncachedInput = max(inputTokens - cachedTokens, 0)
             let inputCost = Double(uncachedInput) / 1_000_000.0 * inputPerMTok
             let cachedCost: Double
@@ -95,33 +95,33 @@ public struct WenshuModelCatalog: Sendable, Equatable {
     }
 
     /// Per-model feature matrix (= hermes _supports_* helpers).
-    public struct Features: Sendable, Equatable, OptionSet {
-        public let rawValue: Int
-        public init(rawValue: Int) { self.rawValue = rawValue }
+    struct Features: Sendable, Equatable, OptionSet {
+        let rawValue: Int
+        init(rawValue: Int) { self.rawValue = rawValue }
 
-        public static let vision          = Features(rawValue: 1 << 0)
-        public static let tools           = Features(rawValue: 1 << 1)
-        public static let streaming       = Features(rawValue: 1 << 2)
-        public static let reasoning       = Features(rawValue: 1 << 3)
-        public static let adaptiveThinking = Features(rawValue: 1 << 4)
-        public static let promptCaching   = Features(rawValue: 1 << 5)
-        public static let documents       = Features(rawValue: 1 << 6)  // PDF / txt input
-        public static let images          = Features(rawValue: 1 << 7)  // image input
-        public static let redactedThinking = Features(rawValue: 1 << 8)
+        static let vision          = Features(rawValue: 1 << 0)
+        static let tools           = Features(rawValue: 1 << 1)
+        static let streaming       = Features(rawValue: 1 << 2)
+        static let reasoning       = Features(rawValue: 1 << 3)
+        static let adaptiveThinking = Features(rawValue: 1 << 4)
+        static let promptCaching   = Features(rawValue: 1 << 5)
+        static let documents       = Features(rawValue: 1 << 6)  // PDF / txt input
+        static let images          = Features(rawValue: 1 << 7)  // image input
+        static let redactedThinking = Features(rawValue: 1 << 8)
 
-        public static let `default`: Features = [.tools, .streaming]
-        public static let claude: Features = [
+        static let `default`: Features = [.tools, .streaming]
+        static let claude: Features = [
             .vision, .tools, .streaming, .reasoning,
             .adaptiveThinking, .promptCaching, .documents, .images, .redactedThinking
         ]
-        public static let gpt: Features = [.vision, .tools, .streaming, .reasoning, .images]
-        public static let gemini: Features = [.vision, .tools, .streaming, .images, .documents]
-        public static let deepseek: Features = [.tools, .streaming, .reasoning]
-        public static let localOllama: Features = [.tools, .streaming]
+        static let gpt: Features = [.vision, .tools, .streaming, .reasoning, .images]
+        static let gemini: Features = [.vision, .tools, .streaming, .images, .documents]
+        static let deepseek: Features = [.tools, .streaming, .reasoning]
+        static let localOllama: Features = [.tools, .streaming]
     }
 
     /// All 7 connector profiles' model catalogs (= AGENTS.md §11.2).
-    public static let allProfiles: [WenshuModelCatalog] = [
+    static let allProfiles: [WenshuModelCatalog] = [
         WenshuModelCatalog(provider: .anthropic),
         WenshuModelCatalog(provider: .openaiCodex),
         WenshuModelCatalog(provider: .minimaxCn),
@@ -132,7 +132,7 @@ public struct WenshuModelCatalog: Sendable, Equatable {
     ]
 
     /// Default model catalog per provider (= pulled from Provider.defaultModels).
-    public static func defaultModelsForProvider(_ provider: Provider) -> [ModelInfo] {
+    static func defaultModelsForProvider(_ provider: Provider) -> [ModelInfo] {
         provider.defaultModels.map { modelId in
             ModelInfo(
                 id: modelId,
@@ -242,7 +242,7 @@ public struct WenshuModelCatalog: Sendable, Equatable {
     /// Per-model context-window lookup (= hermes get_model_context_length L1886-2296).
     /// Returns the token count for a specific model id (= overrides the
     /// per-provider default).
-    public static func contextWindow(for modelId: String) -> Int {
+    static func contextWindow(for modelId: String) -> Int {
         let m = modelId.lowercased()
         if m.contains("opus-4") { return 200_000 }
         if m.contains("sonnet-4") { return 200_000 }
@@ -263,7 +263,7 @@ public struct WenshuModelCatalog: Sendable, Equatable {
     }
 
     /// Per-model pricing lookup (= hermes _extract_pricing).
-    public static func pricing(for modelId: String) -> Pricing? {
+    static func pricing(for modelId: String) -> Pricing? {
         for catalog in allProfiles {
             for model in catalog.models where model.id == modelId {
                 return model.pricing
@@ -273,7 +273,7 @@ public struct WenshuModelCatalog: Sendable, Equatable {
     }
 
     /// Per-model feature flags lookup (= hermes _supports_* helpers).
-    public static func features(for modelId: String) -> Features {
+    static func features(for modelId: String) -> Features {
         for catalog in allProfiles {
             for model in catalog.models where model.id == modelId {
                 return model.features
@@ -283,43 +283,43 @@ public struct WenshuModelCatalog: Sendable, Equatable {
     }
 
     /// Supports vision (= image input)?
-    public static func supportsVision(_ modelId: String) -> Bool {
+    static func supportsVision(_ modelId: String) -> Bool {
         features(for: modelId).contains(.vision) || features(for: modelId).contains(.images)
     }
 
     /// Supports tools?
-    public static func supportsTools(_ modelId: String) -> Bool {
+    static func supportsTools(_ modelId: String) -> Bool {
         features(for: modelId).contains(.tools)
     }
 
     /// Supports streaming?
-    public static func supportsStreaming(_ modelId: String) -> Bool {
+    static func supportsStreaming(_ modelId: String) -> Bool {
         features(for: modelId).contains(.streaming)
     }
 
     /// Supports reasoning / extended thinking?
-    public static func supportsReasoning(_ modelId: String) -> Bool {
+    static func supportsReasoning(_ modelId: String) -> Bool {
         features(for: modelId).contains(.reasoning)
     }
 
     /// Supports adaptive thinking (= opus-4 / sonnet-4).
-    public static func supportsAdaptiveThinking(_ modelId: String) -> Bool {
+    static func supportsAdaptiveThinking(_ modelId: String) -> Bool {
         features(for: modelId).contains(.adaptiveThinking)
     }
 
     /// Supports prompt caching (= Anthropic / DeepSeek-style).
-    public static func supportsPromptCaching(_ modelId: String) -> Bool {
+    static func supportsPromptCaching(_ modelId: String) -> Bool {
         features(for: modelId).contains(.promptCaching)
     }
 
     /// Estimate rough token count for text (= hermes estimate_tokens_rough).
-    public static func estimateTokensRough(_ text: String) -> Int {
+    static func estimateTokensRough(_ text: String) -> Int {
         // ~4 chars per token heuristic.
         return text.count / 4
     }
 
     /// Estimate rough token count for a message list (= hermes estimate_messages_tokens_rough).
-    public static func estimateMessagesTokensRough(_ messages: [LLMMessage]) -> Int {
+    static func estimateMessagesTokensRough(_ messages: [LLMMessage]) -> Int {
         var total = 0
         for m in messages {
             for block in m.blocks {
@@ -370,7 +370,7 @@ public struct WenshuModelCatalog: Sendable, Equatable {
     ///   2. dict with ``messages`` -> Chat Completions (+ ``tools`` if present)
     ///   3. dict with ``input`` -> Responses API (+ ``instructions``/``tools``)
     ///   4. any other dict -> fall back to summing string values
-    public static func estimateRequestContextTokens(_ apiPayload: Any) -> Int {
+    static func estimateRequestContextTokens(_ apiPayload: Any) -> Int {
         func chars(_ value: Any) -> Int {
             if value is NSNull { return 0 }
             if let s = value as? String { return s.count }
@@ -488,7 +488,7 @@ extension WenshuModelCatalog {
     /// - Returns: The parsed context limit, or nil if no
     ///   reasonable value was found (= outside the
     ///   `1024 <= limit <= 10_000_000` sanity range).
-    public static func parseContextLimitFromError(_ errorMessage: String) -> Int? {
+    static func parseContextLimitFromError(_ errorMessage: String) -> Int? {
         let errorLower = errorMessage.lowercased()
 
         // The 7 hermes regex patterns (= L1076-L1084).
@@ -557,7 +557,7 @@ extension WenshuModelCatalog {
     ///     that are not actually lower than current).
     /// - Returns: The lower limit (= parsed_limit if
     ///   `< currentContextLength`), or nil otherwise.
-    public static func getContextLengthFromProviderError(
+    static func getContextLengthFromProviderError(
         errorMessage: String,
         currentContextLength: Int
     ) -> Int? {
@@ -584,7 +584,7 @@ extension WenshuModelCatalog {
     ///   - errorMessage: The error message to parse.
     /// - Returns: The parsed output cap, or nil if no
     ///   reasonable value was found.
-    public static func parseAvailableOutputTokensFromError(
+    static func parseAvailableOutputTokensFromError(
         _ errorMessage: String
     ) -> Int? {
         let errorLower = errorMessage.lowercased()

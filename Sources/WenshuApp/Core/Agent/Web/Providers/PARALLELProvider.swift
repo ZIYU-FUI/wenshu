@@ -15,17 +15,17 @@
 
 import Foundation
 
-public struct PARALLELProvider: WebSearchProvider, Sendable {
+struct PARALLELProvider: WebSearchProvider, Sendable {
 
-    public let name: String = "parallel"
+    let name: String = "parallel"
 
-    public init(apiKey: String? = nil) {
+    init(apiKey: String? = nil) {
         self.apiKey = apiKey
     }
 
     private let apiKey: String?
 
-    public func search(query: String, limit: Int) async throws -> [WebSearchResult] {
+    func search(query: String, limit: Int) async throws -> [WebSearchResult] {
         guard let apiKey, !apiKey.isEmpty else {
             return []
         }

@@ -9,14 +9,14 @@ private let smallChipCornerRadius: CGFloat = 3
 private let subtleSurfaceAlpha: CGFloat = 0.05
 
 struct SkillsSettingsView: View {
-    public let skills: [SkillAdapter.Skill]
-    @State public var slashCommandBuffer: String = ""
+    let skills: [SkillAdapter.Skill]
+    @State var slashCommandBuffer: String = ""
 
-    public init(skills: [SkillAdapter.Skill] = []) {
+    init(skills: [SkillAdapter.Skill] = []) {
         self.skills = skills
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             Text(WenshuI18n.t("settings.skills.title"))
                 .font(.headline)
@@ -68,15 +68,15 @@ struct SkillsSettingsView: View {
 }
 
 struct SkillRow: View {
-    public let skill: SkillAdapter.Skill
+    let skill: SkillAdapter.Skill
     @State private var isEnabled: Bool
 
-    public init(skill: SkillAdapter.Skill) {
+    init(skill: SkillAdapter.Skill) {
         self.skill = skill
         self._isEnabled = State(initialValue: SkillAdapter().currentEnabled(name: skill.name))
     }
 
-    public var body: some View {
+    var body: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(WenshuI18n.t("b5.skillssettingsview.l80.h81170225"))

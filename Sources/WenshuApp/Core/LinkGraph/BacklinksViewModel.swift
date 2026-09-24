@@ -8,22 +8,22 @@ import Foundation
 /// BacklinksViewModel: @MainActor Observable (= no SwiftUI import; SwiftUI-free per A1.1)
 @MainActor
 @Observable
-public final class BacklinksViewModel {
-    public private(set) var docId: String = ""
-    public private(set) var backlinks: [Link] = []
-    public private(set) var isLoading: Bool = false
-    public private(set) var error: String? = nil
+final class BacklinksViewModel {
+    private(set) var docId: String = ""
+    private(set) var backlinks: [Link] = []
+    private(set) var isLoading: Bool = false
+    private(set) var error: String? = nil
 
     private let resolver: BacklinkResolver?
     private let documentIndex: DocumentIndexing?
 
-    public init(resolver: BacklinkResolver? = nil, documentIndex: DocumentIndexing? = nil) {
+    init(resolver: BacklinkResolver? = nil, documentIndex: DocumentIndexing? = nil) {
         self.resolver = resolver
         self.documentIndex = documentIndex
     }
 
     /// load docId backlinks
-    public func load(docId: String) async {
+    func load(docId: String) async {
         self.docId = docId
         self.isLoading = true
         self.error = nil

@@ -13,14 +13,14 @@
 
 import Foundation
 
-public struct Memory: Equatable, Sendable {
-    public let userId: String
-    public let memoryId: String
-    public var content: String
-    public let createdAt: Date
-    public var updatedAt: Date
+struct Memory: Equatable, Sendable {
+    let userId: String
+    let memoryId: String
+    var content: String
+    let createdAt: Date
+    var updatedAt: Date
 
-    public init(userId: String, memoryId: String = UUID().uuidString, content: String, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(userId: String, memoryId: String = UUID().uuidString, content: String, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.userId = userId
         self.memoryId = memoryId
         self.content = content

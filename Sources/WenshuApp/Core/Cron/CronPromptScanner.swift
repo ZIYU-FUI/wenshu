@@ -17,7 +17,7 @@
 import Foundation
 
 /// Result of a cron prompt injection scan.
-public enum CronPromptScanResult: Sendable, Equatable {
+enum CronPromptScanResult: Sendable, Equatable {
     /// Prompt is clean — proceed.
     case clean
     /// Found injection characters — block and surface reason.
@@ -28,7 +28,7 @@ public enum CronPromptScanResult: Sendable, Equatable {
 
 /// Scanner for invisible-unicode + emoji ZWJ prompt injection vectors.
 /// Mirrors hermes _scan_cron_prompt + _check_invisible_unicode.
-public enum CronPromptScanner {
+enum CronPromptScanner {
 
     /// Invisible / control characters that are common LLM prompt injection vectors.
     /// Source: hermes _check_invisible_unicode — ZWJ, RLO, RTL, zero-width chars.
@@ -55,7 +55,7 @@ public enum CronPromptScanner {
 
     /// Scan a cron prompt for invisible unicode characters.
     /// - Returns: .clean / .blocked(reason) / .suspicious(warning).
-    public static func scan(_ prompt: String) -> CronPromptScanResult {
+    static func scan(_ prompt: String) -> CronPromptScanResult {
         // Iterate unicodeScalars (NOT Characters) to avoid grapheme clustering
         // (ZWJ + adjacent chars form 1 grapheme cluster → invisible in for-char loop).
         var foundInvisible: [Unicode.Scalar] = []

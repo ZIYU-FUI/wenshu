@@ -47,7 +47,7 @@
 
 import Foundation
 
-public struct TodoStoreTool: Tool, Sendable {
+struct TodoStoreTool: Tool, Sendable {
 
     /// Shared singleton for ToolRegistry bootstrap (= lazy in-memory
     /// HermesTodoTool + a fresh fallback TodoStore on first access).
@@ -71,7 +71,7 @@ public struct TodoStoreTool: Tool, Sendable {
     /// singleton from a MainActor context. Production path runs
     /// after `WenshuAppDelegate.applicationDidFinishLaunching` so the
     /// trap never fires.
-    public nonisolated static let shared: TodoStoreTool = {
+    nonisolated static let shared: TodoStoreTool = {
         MainActor.assumeIsolated {
             TodoStoreTool(
                 hermesTodo: HermesTodoTool(store: HermesTodoStore()),
@@ -83,11 +83,11 @@ public struct TodoStoreTool: Tool, Sendable {
 
     /// Tool name (matches HermesTodoSchema.name = "todo"; ToolExecutor
     /// routes one tool_use block to one Tool by name).
-    public let name = "todo"
+    let name = "todo"
 
     /// Human-readable description (baked into the tool schema at
     /// prompt-build time so the LLM sees it cached as static context).
-    public let description = """
+    let description = """
     Manage the Todo items for the current session. Actions: \
     create / list / update / complete / remove. Each action mirrors \
     the canonical WSTodoRepository.shared (= Apple SwiftData) = and the hermes \
@@ -98,14 +98,14 @@ public struct TodoStoreTool: Tool, Sendable {
     private let hermesTodo: HermesTodoTool
     private let todoRepository: WSTodoRepository
 
-    public init(hermesTodo: HermesTodoTool, todoRepository: WSTodoRepository) {
+    init(hermesTodo: HermesTodoTool, todoRepository: WSTodoRepository) {
         self.hermesTodo = hermesTodo
         self.todoRepository = todoRepository
     }
 
     // MARK: - Tool conformance
 
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         // Step 1: parse input via the single-source-of-truth parser
         // (= S3 parity with HermesTodoTool / ReadFileTool / etc.).
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -372,7 +372,7 @@ extension TodoStoreTool {
     /// a same-toolset re-registration. Cross-toolset shadowing is
     /// blocked unless `override=true` (= matches hermes
     /// `tools/registry.py` override-protection semantics).
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "todo",

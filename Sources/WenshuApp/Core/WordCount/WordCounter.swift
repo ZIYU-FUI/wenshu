@@ -9,15 +9,15 @@
 import Foundation
 
 /// WordCount: (Obsidian Word count 1:1)
-public struct WordCount: Equatable, Sendable {
-    public let words: Int           // word
-    public let characters: Int      // ()
-    public let charactersNoSpaces: Int  // ()
-    public let chineseChars: Int    // in progress (CJK)
-    public let sentences: Int       //
-    public let paragraphs: Int     //
+struct WordCount: Equatable, Sendable {
+    let words: Int           // word
+    let characters: Int      // ()
+    let charactersNoSpaces: Int  // ()
+    let chineseChars: Int    // in progress (CJK)
+    let sentences: Int       //
+    let paragraphs: Int     //
 
-    public init(words: Int, characters: Int, charactersNoSpaces: Int, chineseChars: Int, sentences: Int, paragraphs: Int) {
+    init(words: Int, characters: Int, charactersNoSpaces: Int, chineseChars: Int, sentences: Int, paragraphs: Int) {
         self.words = words
         self.characters = characters
         self.charactersNoSpaces = charactersNoSpaces
@@ -29,10 +29,10 @@ public struct WordCount: Equatable, Sendable {
 
 /// WordCounter:
 /// Obsidian Word count plugin ok (https://obsidian.md/help/plugins/word-count)
-public enum WordCounter {
+enum WordCounter {
 
     /// markdown content
-    public static func count(_ content: String) -> WordCount {
+    static func count(_ content: String) -> WordCount {
         var words = 0
         var chineseChars = 0
         // 1. word (.byWords) — ASCII / word (CJK word)

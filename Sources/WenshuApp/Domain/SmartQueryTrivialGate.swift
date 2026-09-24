@@ -40,7 +40,7 @@ import Foundation
 /// rewrite entirely).
 struct SmartQueryTrivialGate: Sendable {
 
-    public init() {}
+    init() {}
 
     // MARK: - Limits (hermes verbatim)
 

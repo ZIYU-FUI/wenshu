@@ -41,7 +41,7 @@ struct ChatMessageAttachmentPreview: View {
     /// Absolute path to the image file (= from ChatMessage.imagePath).
     let imagePath: String
 
-    public init(imagePath: String) {
+    init(imagePath: String) {
         self.imagePath = imagePath
     }
 

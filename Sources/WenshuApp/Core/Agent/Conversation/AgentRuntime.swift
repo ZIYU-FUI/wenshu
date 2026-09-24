@@ -11,12 +11,12 @@
 import Foundation
 
 /// Agent registerinfo (hermes delegation card)
-public struct AgentRegistration: Sendable {
-    public let name: String
-    public let card: AgentCard
-    public let process: AgentProtocol
+struct AgentRegistration: Sendable {
+    let name: String
+    let card: AgentCard
+    let process: AgentProtocol
 
-    public init(name: String, card: AgentCard, process: AgentProtocol) {
+    init(name: String, card: AgentCard, process: AgentProtocol) {
         self.name = name
         self.card = card
         self.process = process
@@ -24,15 +24,15 @@ public struct AgentRegistration: Sendable {
 }
 
 /// AgentRuntime: agent registry + delegateTask
-public actor AgentRuntime {
+actor AgentRuntime {
     private var agents: [String: AgentRegistration] = [:]
     /// defaultlocal agent (wenshu)
     private var mainAgent: AgentRegistration?
 
-    public init() {}
+    init() {}
 
     /// register: register 1 agent
-    public func register(_ agent: AgentRegistration) {
+    func register(_ agent: AgentRegistration) {
         agents[agent.name] = agent
         if mainAgent == nil {
             mainAgent = agent
@@ -40,28 +40,28 @@ public actor AgentRuntime {
     }
 
     /// unregister: log out 1 agent
-    public func unregister(name: String) {
+    func unregister(name: String) {
         agents.removeValue(forKey: name)
     }
 
     /// list: agent names
-    public func list() -> [String] {
+    func list() -> [String] {
         Array(agents.keys).sorted()
     }
 
     /// resolve: 1 agent (name)
-    public func resolve(name: String) -> AgentRegistration? {
+    func resolve(name: String) -> AgentRegistration? {
         agents[name]
     }
 
     /// main: default agent
-    public func main() -> AgentRegistration? {
+    func main() -> AgentRegistration? {
         mainAgent
     }
 
     /// delegateTask: task 1 agent (hermes delegation.py delegate_task)
     ///: A2A message/send + wait reply
-    public func delegateTask(to agentName: String, content: String, fromAgent: String = "main") async throws -> AgentTask {
+    func delegateTask(to agentName: String, content: String, fromAgent: String = "main") async throws -> AgentTask {
         guard let agent = agents[agentName] else {
             throw AgentRuntimeError.agentNotFound(name: agentName)
         }
@@ -85,7 +85,7 @@ public actor AgentRuntime {
     }
 
     /// broadcast: agent (hermes delegation swarm)
-    public func broadcast(content: String, fromAgent: String = "main") async -> [String: Result<AgentTask, Error>] {
+    func broadcast(content: String, fromAgent: String = "main") async -> [String: Result<AgentTask, Error>] {
         var results: [String: Result<AgentTask, Error>] = [:]
         for name in agents.keys {
             do {
@@ -100,13 +100,13 @@ public actor AgentRuntime {
 }
 
 /// AgentRuntime error
-public enum AgentRuntimeError: Error {
+enum AgentRuntimeError: Error {
     case agentNotFound(name: String)
     case delegateFailed(agentName: String, error: String)
 }
 
 extension AgentRuntimeError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .agentNotFound(let name):
             return "Agent not found: \(name)"

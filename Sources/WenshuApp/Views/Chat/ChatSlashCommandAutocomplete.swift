@@ -28,7 +28,7 @@ struct ChatSlashCommandRow: Identifiable, Equatable, Sendable {
     let description: String
     let category: String
 
-    public init(command: SkillAdapter.HubCommand) {
+    init(command: SkillAdapter.HubCommand) {
         self.id = command.name
         self.name = command.name
         self.description = command.description
@@ -60,7 +60,7 @@ enum ChatSlashCommandAutocompleteEngine {
     /// - Parameter allCommands: full hub commands list to filter.
     /// - Parameter maxResults: cap on returned rows (= default 8;
     ///   = visible rows fit on a 4-line list at 13 PT).
-    public static func filter(
+    static func filter(
         prefix: String,
         allCommands: [SkillAdapter.HubCommand],
         maxResults: Int = 8
@@ -82,14 +82,14 @@ enum ChatSlashCommandAutocompleteEngine {
     /// current input text (= popup appears when the input is a
     /// slash-prefix and there are matching commands).
     /// - Parameter input: full textfield contents (= e.g. "/rev").
-    public static func shouldShow(input: String) -> Bool {
+    static func shouldShow(input: String) -> Bool {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.hasPrefix("/")
             && !trimmed.contains(" ")  // show only when no args yet
     }
 
     /// Extract the prefix after `/` (= e.g. "/rev" -> "rev").
-    public static func prefixFromInput(_ input: String) -> String {
+    static func prefixFromInput(_ input: String) -> String {
         guard input.hasPrefix("/") else { return "" }
         return String(input.dropFirst())
     }
@@ -103,7 +103,7 @@ struct ChatSlashCommandAutocomplete: View {
     let rows: [ChatSlashCommandRow]
     let onSelect: (ChatSlashCommandRow) -> Void
 
-    public init(
+    init(
         rows: [ChatSlashCommandRow],
         onSelect: @escaping (ChatSlashCommandRow) -> Void
     ) {

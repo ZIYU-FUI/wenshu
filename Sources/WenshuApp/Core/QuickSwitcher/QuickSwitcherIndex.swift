@@ -10,13 +10,13 @@
 import Foundation
 
 /// 1 search (note)
-public struct SwitcherItem: Equatable, Sendable, Identifiable {
-    public var id: String          // docId docId:sectionId
-    public var title: String        // show
-    public var subtitle: String?    // title (path /)
-    public var score: Int           // fuzzy match score ()
+struct SwitcherItem: Equatable, Sendable, Identifiable {
+    var id: String          // docId docId:sectionId
+    var title: String        // show
+    var subtitle: String?    // title (path /)
+    var score: Int           // fuzzy match score ()
 
-    public init(id: String, title: String, subtitle: String? = nil, score: Int = 0) {
+    init(id: String, title: String, subtitle: String? = nil, score: Int = 0) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
@@ -25,12 +25,12 @@ public struct SwitcherItem: Equatable, Sendable, Identifiable {
 }
 
 /// QuickSwitcherIndex: fuzzy search
-public enum QuickSwitcherIndex {
+enum QuickSwitcherIndex {
 
     /// Fuzzy match: query text (size),
     ///: > > Include matching
     /// Apple HIG: Foundation NSString.caseInsensitiveCompare
-    public static func fuzzyScore(query: String, text: String) -> Int? {
+    static func fuzzyScore(query: String, text: String) -> Int? {
         guard !query.isEmpty else { return 0 }
         let lowerQ = query.lowercased()
         let lowerT = text.lowercased()
@@ -96,7 +96,7 @@ public enum QuickSwitcherIndex {
     }
 
     /// search items
-    public static func search(query: String, in items: [SwitcherItem], limit: Int = 20) -> [SwitcherItem] {
+    static func search(query: String, in items: [SwitcherItem], limit: Int = 20) -> [SwitcherItem] {
         guard !query.isEmpty else { return [] }
         let scored = items.compactMap { item -> SwitcherItem? in
             // title + subtitle merge

@@ -23,18 +23,18 @@
 
 import Foundation
 
-public actor AnthropicConnector: LLMConnector {
-    public nonisolated let connectorID = "anthropic"
+actor AnthropicConnector: LLMConnector {
+    nonisolated let connectorID = "anthropic"
 
     private let session: URLSession
     private let useCacheControl: Bool
 
-    public init(session: URLSession = .shared, useCacheControl: Bool = true) {
+    init(session: URLSession = .shared, useCacheControl: Bool = true) {
         self.session = session
         self.useCacheControl = useCacheControl
     }
 
-    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: .anthropic)
 
         guard !credentials.apiKey.isEmpty else {
@@ -116,7 +116,7 @@ public actor AnthropicConnector: LLMConnector {
     /// safe to read from any actor context). The default
     /// implementation in LLMConnector extension is also nonisolated,
     /// so this override matches.
-    public nonisolated func stream(
+    nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {

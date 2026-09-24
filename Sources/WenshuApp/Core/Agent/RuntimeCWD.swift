@@ -24,18 +24,18 @@ import Foundation
 /// Default = wenshu library path (= UserDefaults wenshu.libraryPath per
 /// AGENTS.md §11). Override via Settings → Library Properties → "Set as
 /// runtime CWD" or programmatically via `setCWD(_:)`.
-public actor RuntimeCWD {
+actor RuntimeCWD {
 
     /// Default library path key (= AGENTS.md §11 baseline).
-    public static let libraryPathKey = "wenshu.libraryPath"
+    static let libraryPathKey = "wenshu.libraryPath"
 
     /// CWD override key (= when set, takes precedence over library path).
-    public static let cwdOverrideKey = "wenshu.runtimeCWD"
+    static let cwdOverrideKey = "wenshu.runtimeCWD"
 
     private var cwdOverride: URL?
     private let libraryPathFallback: URL?
 
-    public init() {
+    init() {
         // Read library path from UserDefaults at init time.
         if let path = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey) {
             self.libraryPathFallback = URL(fileURLWithPath: path)
@@ -51,12 +51,12 @@ public actor RuntimeCWD {
     }
 
     /// Current working directory (= override > library path > nil).
-    public func currentCWD() -> URL? {
+    func currentCWD() -> URL? {
         return cwdOverride ?? libraryPathFallback
     }
 
     /// Explicit override (= programmatic; persists to UserDefaults).
-    public func setCWD(_ url: URL?) {
+    func setCWD(_ url: URL?) {
         cwdOverride = url
         if let url {
             UserDefaults.standard.set(url.path, forKey: RuntimeCWD.cwdOverrideKey)
@@ -70,7 +70,7 @@ public actor RuntimeCWD {
     }
 
     /// Reset to library path (= clears override).
-    public func resetToLibraryPath() {
+    func resetToLibraryPath() {
         setCWD(nil)
     }
 
@@ -80,7 +80,7 @@ public actor RuntimeCWD {
     /// - Returns: absolute URL (= relativePath unchanged if absolute;
     ///   resolved against currentCWD if relative; nil if CWD is unset
     ///   and the path is relative).
-    public func resolve(relativePath: String) -> URL? {
+    func resolve(relativePath: String) -> URL? {
         if relativePath.hasPrefix("/") {
             return URL(fileURLWithPath: relativePath)
         }
@@ -95,7 +95,7 @@ public actor RuntimeCWD {
 
     /// CWD display label (= for UI: "Library: /Users/.../ws" or
     /// "Override: /tmp/work" or "Unset").
-    public func displayLabel() -> String {
+    func displayLabel() -> String {
         if let override = cwdOverride {
             return "Override: \(override.path)"
         }

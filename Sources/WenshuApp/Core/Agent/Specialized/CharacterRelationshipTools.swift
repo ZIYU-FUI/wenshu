@@ -51,7 +51,7 @@ import Foundation
 /// The 8 relationship kinds the tracker knows how to model.
 /// Each case maps 1:1 to a value in hermes's
 /// `agent/specialized/character_relationships.py::KIND_TABLE`.
-public enum RelationshipKind: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
+enum RelationshipKind: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// Allied / on the same side.
     case ally
     /// Direct competitor / foil.
@@ -69,10 +69,10 @@ public enum RelationshipKind: String, Sendable, Codable, CaseIterable, Identifia
     /// Acquaintance = known to each other but no declared arc.
     case acquaintance
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Human-readable English label (= for the picker / list rows).
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .ally:          return "Ally"
         case .rival:         return "Rival"
@@ -89,7 +89,7 @@ public enum RelationshipKind: String, Sendable, Codable, CaseIterable, Identifia
     /// Image(systemName:) directly in the CharacterRelationshipsView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .ally:          return "hand.raised"              // Lucide 'handshake'
         case .rival:         return "swords"                   // Lucide 'swords'
@@ -108,50 +108,50 @@ public enum RelationshipKind: String, Sendable, Codable, CaseIterable, Identifia
 /// A single typed relationship between two characters in a book.
 /// Persisted as one entry in the per-book
 /// `character-relationships.json` sidecar.
-public struct CharacterRelationship: Sendable, Codable, Equatable, Identifiable {
+struct CharacterRelationship: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for add / remove /
     /// graph + inconsistency lookups; never re-used even across
     /// books).
-    public let id: UUID
+    let id: UUID
 
     /// Owning book (= the actor resolves the on-disk sidecar
     /// through this id).
-    public let bookId: UUID
+    let bookId: UUID
 
     /// Source character id.
-    public let fromCharacterId: UUID
+    let fromCharacterId: UUID
 
     /// Target character id.
-    public let toCharacterId: UUID
+    let toCharacterId: UUID
 
     /// Edge kind.
-    public var kind: RelationshipKind
+    var kind: RelationshipKind
 
     /// Chapter where this relationship was first established
     /// (= optional; nil = declared outside of any specific
     /// chapter, = used by the arc-suggester as a "neutral"
     /// baseline).
-    public var establishedInChapterId: UUID?
+    var establishedInChapterId: UUID?
 
     /// One-sentence context describing the relationship
     /// (= surfaced in the SwiftUI list row).
-    public var description: String
+    var description: String
 
     /// = true when both directions of the pair exist (= A→B and
     /// B→A). The actor flips this flag on every add / update to
     /// keep the value consistent without forcing the user to
     /// author two rows.
-    public var isMutual: Bool
+    var isMutual: Bool
 
     /// Creation timestamp (= `Date.now` at add time).
-    public let createdAt: Date
+    let createdAt: Date
 
     /// Last-modified timestamp (= updated by the actor on
     /// every `update(_:)` call).
-    public var updatedAt: Date
+    var updatedAt: Date
 
-    public init(
+    init(
         id: UUID = UUID(),
         bookId: UUID,
         fromCharacterId: UUID,
@@ -182,25 +182,25 @@ public struct CharacterRelationship: Sendable, Codable, Equatable, Identifiable 
 /// conflicting kinds (= e.g. A is both `ally` AND `enemy` of B).
 /// The actor emits one row per conflicting pair (= the
 /// `conflictingKinds` array lists the kind set).
-public struct RelationshipInconsistency: Sendable, Codable, Equatable {
+struct RelationshipInconsistency: Sendable, Codable, Equatable {
     /// Source character id (= canonical ordering: smaller UUID
     /// sorts first; the actor normalizes both sides so the
     /// output is symmetric).
-    public let fromCharacterId: UUID
+    let fromCharacterId: UUID
 
     /// Target character id.
-    public let toCharacterId: UUID
+    let toCharacterId: UUID
 
     /// The set of kinds the actor detected for this pair
     /// (= always >= 2 entries; = 1 entry means the pair is
     /// consistent and the row would not be emitted).
-    public let conflictingKinds: [RelationshipKind]
+    let conflictingKinds: [RelationshipKind]
 
     /// Human-readable one-line description (= e.g. "A is both
     /// 'ally' and 'enemy' of B"). Suitable for direct UI display.
-    public let message: String
+    let message: String
 
-    public init(
+    init(
         fromCharacterId: UUID,
         toCharacterId: UUID,
         conflictingKinds: [RelationshipKind],
@@ -221,35 +221,35 @@ public struct RelationshipInconsistency: Sendable, Codable, Equatable {
 /// `characterIds` is the set of characters that participate in at
 /// least one relationship (= nodes). `edges` is the directed edge
 /// list (= one row per `CharacterRelationship`).
-public struct RelationshipGraph: Sendable, Codable, Equatable {
+struct RelationshipGraph: Sendable, Codable, Equatable {
 
     /// Graph nodes (= the character ids that appear in at least
     /// one edge; = sorted for stable display + tests).
-    public let characterIds: [UUID]
+    let characterIds: [UUID]
 
     /// Graph edges (= typed + weighted rows). Weight is the
     /// edge's "strength" in 0.0 .. 1.0 (= derived from
     /// `RelationshipKind`; = the view can render thicker lines
     /// for stronger kinds).
-    public let edges: [RelationshipEdge]
+    let edges: [RelationshipEdge]
 
-    public struct RelationshipEdge: Sendable, Codable, Equatable {
+    struct RelationshipEdge: Sendable, Codable, Equatable {
 
         /// Source character id.
-        public let fromId: UUID
+        let fromId: UUID
 
         /// Target character id.
-        public let toId: UUID
+        let toId: UUID
 
         /// Edge kind.
-        public let kind: RelationshipKind
+        let kind: RelationshipKind
 
         /// Edge weight in 0.0 .. 1.0. The actor computes it from
         /// `RelationshipKind` via `weight(for:)`; = a fixed
         /// per-kind scalar so the graph is deterministic.
-        public let weight: Double
+        let weight: Double
 
-        public init(
+        init(
             fromId: UUID,
             toId: UUID,
             kind: RelationshipKind,
@@ -262,7 +262,7 @@ public struct RelationshipGraph: Sendable, Codable, Equatable {
         }
     }
 
-    public init(characterIds: [UUID], edges: [RelationshipEdge]) {
+    init(characterIds: [UUID], edges: [RelationshipEdge]) {
         self.characterIds = characterIds.sorted { $0.uuidString < $1.uuidString }
         self.edges = edges
     }
@@ -273,15 +273,15 @@ public struct RelationshipGraph: Sendable, Codable, Equatable {
 /// A relationship-arc suggestion (= emitted by `suggestArcs(...)`
 /// when two characters are declared in chapter 1 as one kind but
 /// never evolve across the timeline).
-public struct RelationshipArcSuggestion: Sendable, Codable, Equatable, Identifiable {
-    public let id: UUID
-    public let fromCharacterId: UUID
-    public let toCharacterId: UUID
-    public let firstKind: RelationshipKind
-    public let chapterCount: Int
-    public let message: String
+struct RelationshipArcSuggestion: Sendable, Codable, Equatable, Identifiable {
+    let id: UUID
+    let fromCharacterId: UUID
+    let toCharacterId: UUID
+    let firstKind: RelationshipKind
+    let chapterCount: Int
+    let message: String
 
-    public init(
+    init(
         id: UUID = UUID(),
         fromCharacterId: UUID,
         toCharacterId: UUID,
@@ -323,12 +323,12 @@ struct CharacterRelationshipSidecar: Codable, Sendable, Equatable {
 /// Errors thrown by `CharacterRelationshipTracker`. Mirrors the
 /// BookProjectConfigStore / BookTodoStore / LongFormGuardrails
 /// error conventions (= a LocalizedError per case).
-public enum CharacterRelationshipTrackerError: Error, LocalizedError, Sendable, Equatable {
+enum CharacterRelationshipTrackerError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case relationshipNotFound(id: UUID)
     case selfRelationship(id: UUID)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .bookDirectoryNotFound(let id):
             return "CharacterRelationshipTracker: book directory not found for id \(id.uuidString)"
@@ -393,7 +393,7 @@ actor CharacterRelationshipTracker {
     ///   - Idempotent on `id`: re-adding with the same id replaces
     ///     the existing row (= matches `BookKanbanStore` upsert
     ///     policy).
-    public func add(_ relationship: CharacterRelationship) async throws {
+    func add(_ relationship: CharacterRelationship) async throws {
         guard relationship.fromCharacterId != relationship.toCharacterId else {
             throw CharacterRelationshipTrackerError.selfRelationship(id: relationship.id)
         }
@@ -444,7 +444,7 @@ actor CharacterRelationshipTracker {
     ///
     /// Re-runs the `isMutual` auto-flip after the update so the
     /// flag stays consistent.
-    public func update(_ relationship: CharacterRelationship) async throws {
+    func update(_ relationship: CharacterRelationship) async throws {
         guard relationship.fromCharacterId != relationship.toCharacterId else {
             throw CharacterRelationshipTrackerError.selfRelationship(id: relationship.id)
         }
@@ -486,7 +486,7 @@ actor CharacterRelationshipTracker {
 
     /// Remove a relationship by id. Throws `.relationshipNotFound`
     /// when the id is unknown for the supplied book.
-    public func remove(id: UUID, from bookId: UUID) async throws {
+    func remove(id: UUID, from bookId: UUID) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: bookId)
         guard let idx = sidecar.relationships.firstIndex(where: { $0.id == id }) else {
             throw CharacterRelationshipTrackerError.relationshipNotFound(id: id)
@@ -518,7 +518,7 @@ actor CharacterRelationshipTracker {
     /// All relationships in a book (= filterable by kind +
     /// character). When both filters are nil, returns every row.
     /// The character filter matches either side of the edge.
-    public func list(
+    func list(
         bookId: UUID,
         kind: RelationshipKind? = nil,
         characterId: UUID? = nil
@@ -541,7 +541,7 @@ actor CharacterRelationshipTracker {
 
     /// Build a relationship graph (= nodes = characters with at
     /// least one edge; edges = typed + weighted rows).
-    public func graph(bookId: UUID) async throws -> RelationshipGraph {
+    func graph(bookId: UUID) async throws -> RelationshipGraph {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         var characterSet: Set<UUID> = []
         var edges: [RelationshipGraph.RelationshipEdge] = []
@@ -567,7 +567,7 @@ actor CharacterRelationshipTracker {
     /// `enemy`). Returns one `RelationshipInconsistency` per
     /// conflicting pair; = the caller can render the list in
     /// the SpecializedTools pane.
-    public func inconsistencies(bookId: UUID) async throws -> [RelationshipInconsistency] {
+    func inconsistencies(bookId: UUID) async throws -> [RelationshipInconsistency] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         // Group rows by canonical (= from < to) pair id.
         var pairKinds: [PairKey: Set<RelationshipKind>] = [:]
@@ -615,7 +615,7 @@ actor CharacterRelationshipTracker {
     ///
     /// Returns zero or more suggestions; = empty when no pair
     /// meets the threshold (= common for early-draft books).
-    public func suggestArcs(
+    func suggestArcs(
         bookId: UUID,
         stagnantChapterThreshold: Int = 3
     ) async throws -> [RelationshipArcSuggestion] {
@@ -728,7 +728,7 @@ actor CharacterRelationshipTracker {
     /// emotional intensity (= the view can render thicker lines
     /// for stronger kinds). Centralized here so tests can
     /// reference the canonical values.
-    public static func weight(for kind: RelationshipKind) -> Double {
+    static func weight(for kind: RelationshipKind) -> Double {
         switch kind {
         case .acquaintance: return 0.1
         case .neutral:      return 0.2

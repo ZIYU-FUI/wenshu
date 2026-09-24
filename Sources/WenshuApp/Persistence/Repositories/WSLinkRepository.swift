@@ -23,15 +23,15 @@ import Foundation
 import SwiftData
 
 @MainActor
-public final class WSLinkRepository {
+final class WSLinkRepository {
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
+    init(container: ModelContainer = WSPersistenceContainer.shared) {
         self.container = container
     }
 
-    public func add(_ link: Link) throws {
+    func add(_ link: Link) throws {
         // Composite id must match WSLink.init (= sourceDocID + line + targetRef; =
         // Phase 5 ticket 5 added targetRef so 2 [[name]] links on same line
         // don't collide). Lookup using truncated id here would miss the
@@ -58,7 +58,7 @@ public final class WSLinkRepository {
         try context.save()
     }
 
-    public func removeAll(sourceDocId: String) throws {
+    func removeAll(sourceDocId: String) throws {
         let descriptor = FetchDescriptor<WSLink>(
             predicate: #Predicate { $0.sourceDocID == sourceDocId }
         )
@@ -69,7 +69,7 @@ public final class WSLinkRepository {
         try context.save()
     }
 
-    public func searchForward(sourceDocId: String) throws -> [Link] {
+    func searchForward(sourceDocId: String) throws -> [Link] {
         let descriptor = FetchDescriptor<WSLink>(
             predicate: #Predicate { $0.sourceDocID == sourceDocId },
             sortBy: [SortDescriptor(\.line)]
@@ -86,7 +86,7 @@ public final class WSLinkRepository {
         }
     }
 
-    public func searchBackward(targetRef: String) throws -> [Link] {
+    func searchBackward(targetRef: String) throws -> [Link] {
         let descriptor = FetchDescriptor<WSLink>(
             predicate: #Predicate { $0.targetRef == targetRef },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
@@ -94,7 +94,7 @@ public final class WSLinkRepository {
         return try context.fetch(descriptor).map { mapToDomain(model: $0) }
     }
 
-    public func searchBackward(targetDocId: String) throws -> [Link] {
+    func searchBackward(targetDocId: String) throws -> [Link] {
         let descriptor = FetchDescriptor<WSLink>(
             predicate: #Predicate { $0.targetDocID == targetDocId },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]

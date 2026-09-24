@@ -1,23 +1,23 @@
 // PlotThreadTools.swift · Wenshu · P1 ticket #8
 import Foundation
 
-public enum PlotThreadStatus: String, Sendable, Codable, CaseIterable {
+enum PlotThreadStatus: String, Sendable, Codable, CaseIterable {
     case open, developing, resolved, abandoned
 }
 
-public struct PlotThread: Sendable, Codable, Equatable, Identifiable {
-    public let id: UUID
-    public let bookId: UUID
-    public let title: String
-    public let status: PlotThreadStatus
-    public let introducedIn: UUID?
-    public let lastReferencedIn: UUID?
-    public let description: String
-    public let setupExcerpt: String
-    public let payoffExcerpt: String?
-    public let createdAt: Date
+struct PlotThread: Sendable, Codable, Equatable, Identifiable {
+    let id: UUID
+    let bookId: UUID
+    let title: String
+    let status: PlotThreadStatus
+    let introducedIn: UUID?
+    let lastReferencedIn: UUID?
+    let description: String
+    let setupExcerpt: String
+    let payoffExcerpt: String?
+    let createdAt: Date
 
-    public init(id: UUID = UUID(), bookId: UUID, title: String, status: PlotThreadStatus = .open,
+    init(id: UUID = UUID(), bookId: UUID, title: String, status: PlotThreadStatus = .open,
                 introducedIn: UUID? = nil, lastReferencedIn: UUID? = nil, description: String = "",
                 setupExcerpt: String = "", payoffExcerpt: String? = nil, createdAt: Date = .now) {
         self.id = id; self.bookId = bookId; self.title = title; self.status = status
@@ -27,7 +27,7 @@ public struct PlotThread: Sendable, Codable, Equatable, Identifiable {
     }
 }
 
-public actor PlotThreadTracker {
+actor PlotThreadTracker {
     private let store: BookProjectConfigStore
     private var threads: [UUID: [PlotThread]] = [:]
 
@@ -35,23 +35,23 @@ public actor PlotThreadTracker {
         self.store = BookProjectConfigStore(projectRoot: bookStore.stores.referenceLibraryRoot.deletingLastPathComponent())
     }
 
-    public init(projectRoot: URL) { self.store = BookProjectConfigStore(projectRoot: projectRoot) }
+    init(projectRoot: URL) { self.store = BookProjectConfigStore(projectRoot: projectRoot) }
 
-    public func add(_ thread: PlotThread) async throws {
+    func add(_ thread: PlotThread) async throws {
         var values = try await load(bookId: thread.bookId)
         values.removeAll { $0.id == thread.id }
         values.append(thread)
         try await save(values, bookId: thread.bookId)
     }
 
-    public func update(_ thread: PlotThread) async throws {
+    func update(_ thread: PlotThread) async throws {
         var values = try await load(bookId: thread.bookId)
         guard let index = values.firstIndex(where: { $0.id == thread.id }) else { return }
         values[index] = thread
         try await save(values, bookId: thread.bookId)
     }
 
-    public func remove(id: UUID) async throws {
+    func remove(id: UUID) async throws {
         for bookId in threads.keys {
             let values = try await load(bookId: bookId)
             let filtered = values.filter { $0.id != id }
@@ -59,12 +59,12 @@ public actor PlotThreadTracker {
         }
     }
 
-    public func list(bookId: UUID, status: PlotThreadStatus? = nil) async throws -> [PlotThread] {
+    func list(bookId: UUID, status: PlotThreadStatus? = nil) async throws -> [PlotThread] {
         let values = try await load(bookId: bookId)
         return values.filter { status == nil || $0.status == status }.sorted { $0.createdAt < $1.createdAt }
     }
 
-    public func staleThreads(bookId: UUID) async throws -> [PlotThread] {
+    func staleThreads(bookId: UUID) async throws -> [PlotThread] {
         let values = try await load(bookId: bookId)
         let chapters = values.compactMap(\.introducedIn)
         let recent = Set(chapters.suffix(3))
@@ -87,7 +87,7 @@ public actor PlotThreadTracker {
             }
     }
 
-    public func recyclingMap(bookId: UUID) async throws -> [UUID: [UUID]] {
+    func recyclingMap(bookId: UUID) async throws -> [UUID: [UUID]] {
         let values = try await load(bookId: bookId)
         var result: [UUID: [UUID]] = [:]
         for thread in values {

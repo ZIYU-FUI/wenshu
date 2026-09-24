@@ -23,12 +23,12 @@
 
 import Foundation
 
-public enum MessageSanitization {
+enum MessageSanitization {
 
     // MARK: - C0 control-character strip (= existing sub-step 4 surface)
 
     /// Strip C0 control characters from text (= preserve newlines).
-    public static func sanitizeText(_ text: String) -> String {
+    static func sanitizeText(_ text: String) -> String {
         let scalars = text.unicodeScalars.filter { scalar in
             let v = scalar.value
             return !(v < 0x20 && v != 0x0A && v != 0x0D) && v != 0x7F
@@ -37,7 +37,7 @@ public enum MessageSanitization {
     }
 
     /// Sanitize a list of messages (= in-place replacement of text blocks).
-    public static func sanitize(_ messages: [LLMMessage]) -> [LLMMessage] {
+    static func sanitize(_ messages: [LLMMessage]) -> [LLMMessage] {
         messages.map { msg in
             let sanitizedBlocks = msg.blocks.map { block -> LLMBlock in
                 switch block {
@@ -63,7 +63,7 @@ public enum MessageSanitization {
     /// get rejected by strict providers. We filter out lone high/low
     /// surrogates while preserving valid surrogate pairs (i.e. real
     /// characters in supplementary planes).
-    public static func sanitizeSurrogates(_ text: String) -> String {
+    static func sanitizeSurrogates(_ text: String) -> String {
         var out = String()
         out.reserveCapacity(text.count)
         let scalars = text.unicodeScalars
@@ -105,7 +105,7 @@ public enum MessageSanitization {
     /// the common llama.cpp case where models emit literal \t / \n / \r
     /// inside JSON strings — strict-mode JSON parsers reject these but
     /// many providers' tool-arg validators do too.
-    public static func escapeInvalidCharsInJSONStrings(_ raw: String) -> String {
+    static func escapeInvalidCharsInJSONStrings(_ raw: String) -> String {
         var out = String()
         out.reserveCapacity(raw.count)
         var inString = false
@@ -157,7 +157,7 @@ public enum MessageSanitization {
     /// "invalid tool call arguments". This function applies common repairs;
     /// if all fail it returns `"{}"` so the request succeeds (better than
     /// crashing the session).
-    public static func repairToolCallArguments(_ rawArgs: String, toolName: String = "?") -> String {
+    static func repairToolCallArguments(_ rawArgs: String, toolName: String = "?") -> String {
         let raw = rawArgs.trimmingCharacters(in: .whitespacesAndNewlines)
         if raw.isEmpty {
             return "{}"
@@ -251,7 +251,7 @@ public enum MessageSanitization {
     /// (Gemini, Claude) reject ``tool → user`` alternation and hallucinate a
     /// continuation of the user's message. We close the gap with a synthetic
     /// assistant message so the persisted transcript is a valid alternation.
-    public static func closeInterruptedToolSequence(
+    static func closeInterruptedToolSequence(
         _ messages: [LLMMessage],
         fallbackResponse: LLMResponse? = nil
     ) -> [LLMMessage] {
@@ -277,7 +277,7 @@ public enum MessageSanitization {
     /// Used for tool-call argument sanitization to avoid downstream encoding
     /// bugs in providers that don't handle UTF-8 well. Anything outside ASCII
     /// printable + standard whitespace is replaced with `?`.
-    public static func stripNonASCII(_ text: String) -> String {
+    static func stripNonASCII(_ text: String) -> String {
         var out = String()
         out.reserveCapacity(text.count)
         for scalar in text.unicodeScalars {
@@ -296,7 +296,7 @@ public enum MessageSanitization {
     /// Drop trailing empty-response scaffolding (= hermes pattern from
     /// turn_finalizer). Some recovery paths emit empty assistant turns at
     /// the tail; rewind them so the next turn doesn't replay them.
-    public static func dropTrailingEmptyResponseScaffolding(_ messages: [LLMMessage]) -> [LLMMessage] {
+    static func dropTrailingEmptyResponseScaffolding(_ messages: [LLMMessage]) -> [LLMMessage] {
         var out = messages
         while let last = out.last {
             if case .assistant = last.role {
@@ -323,7 +323,7 @@ public enum MessageSanitization {
     ///   3. repairToolCallArguments on every .toolUse block
     ///   4. closeInterruptedToolSequence if needed
     ///   5. dropTrailingEmptyResponseScaffolding
-    public static func sanitizeAll(_ messages: [LLMMessage]) -> [LLMMessage] {
+    static func sanitizeAll(_ messages: [LLMMessage]) -> [LLMMessage] {
         var out = messages.map { msg -> LLMMessage in
             let sanitizedBlocks = msg.blocks.map { block -> LLMBlock in
                 switch block {

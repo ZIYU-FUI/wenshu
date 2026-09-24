@@ -15,14 +15,14 @@
 
 import Foundation
 
-public actor IterationBudget {
+actor IterationBudget {
 
     private let maxIterations: Int
     private let maxTokens: Int?
     private var iterationsUsed: Int
     private var tokensUsed: Int
 
-    public init(maxIterations: Int, maxTokens: Int? = nil) {
+    init(maxIterations: Int, maxTokens: Int? = nil) {
         precondition(maxIterations > 0, "maxIterations must be positive")
         if let maxTokens {
             precondition(maxTokens > 0, "maxTokens must be positive when set")
@@ -34,7 +34,7 @@ public actor IterationBudget {
     }
 
     /// Record one iteration consumed. Throws when the budget is exhausted.
-    public func recordIteration() async throws {
+    func recordIteration() async throws {
         guard iterationsUsed < maxIterations else {
             throw IterationBudgetError.maxIterationsReached
         }
@@ -43,7 +43,7 @@ public actor IterationBudget {
 
     /// Record tokens consumed (= token-budget tracker). Throws when the
     /// token budget is exhausted.
-    public func recordTokensUsed(_ tokens: Int) async throws {
+    func recordTokensUsed(_ tokens: Int) async throws {
         precondition(tokens >= 0, "tokens must be non-negative")
         if let maxTokens {
             guard tokensUsed + tokens <= maxTokens else {
@@ -53,13 +53,13 @@ public actor IterationBudget {
         tokensUsed += tokens
     }
 
-    public var iterationsRemaining: Int {
+    var iterationsRemaining: Int {
         get async {
             max(0, maxIterations - iterationsUsed)
         }
     }
 
-    public var tokensRemaining: Int? {
+    var tokensRemaining: Int? {
         get async {
             guard let maxTokens else { return nil }
             return max(0, maxTokens - tokensUsed)
@@ -67,13 +67,13 @@ public actor IterationBudget {
     }
 }
 
-public enum IterationBudgetError: Error, Sendable, Equatable {
+enum IterationBudgetError: Error, Sendable, Equatable {
     case maxIterationsReached
     case maxTokensReached
 }
 
 extension IterationBudgetError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .maxIterationsReached:
             return "Maximum iteration count reached."

@@ -2,12 +2,12 @@
 
 import Foundation
 
-public enum ProviderCatalog {
-    public static func defaultModels(for slug: String) -> [String] {
+enum ProviderCatalog {
+    static func defaultModels(for slug: String) -> [String] {
         Provider.by(slug: slug)?.defaultModels ?? []
     }
 
-    public static func provider(slug: String) -> Provider {
+    static func provider(slug: String) -> Provider {
         Provider.by(slug: slug) ?? .minimaxCn
     }
 

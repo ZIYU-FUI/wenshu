@@ -20,7 +20,7 @@ struct ChatToolResultPartView: View {
 
     @State private var isExpanded: Bool = false
 
-    public init(toolResult: ChatMessagePart.ToolResultPart, isOutgoing: Bool) {
+    init(toolResult: ChatMessagePart.ToolResultPart, isOutgoing: Bool) {
         self.toolResult = toolResult
         self.isOutgoing = isOutgoing
     }

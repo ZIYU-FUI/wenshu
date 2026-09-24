@@ -17,14 +17,14 @@
 
 import Foundation
 
-public struct LLMResponse: Sendable, Equatable {
-    public let id: String
-    public let model: String
-    public let blocks: [LLMBlock]
-    public let stopReason: StopReason
-    public let usage: LLMUsage
+struct LLMResponse: Sendable, Equatable {
+    let id: String
+    let model: String
+    let blocks: [LLMBlock]
+    let stopReason: StopReason
+    let usage: LLMUsage
 
-    public init(
+    init(
         id: String,
         model: String,
         blocks: [LLMBlock],
@@ -38,7 +38,7 @@ public struct LLMResponse: Sendable, Equatable {
         self.usage = usage
     }
 
-    public enum StopReason: String, Sendable, Equatable, Codable {
+    enum StopReason: String, Sendable, Equatable, Codable {
         case endTurn = "end_turn"
         case toolUse = "tool_use"
         case maxTokens = "max_tokens"
@@ -47,22 +47,22 @@ public struct LLMResponse: Sendable, Equatable {
     }
 }
 
-public struct LLMUsage: Sendable, Equatable {
-    public let inputTokens: Int
-    public let outputTokens: Int
+struct LLMUsage: Sendable, Equatable {
+    let inputTokens: Int
+    let outputTokens: Int
 
-    public init(inputTokens: Int, outputTokens: Int) {
+    init(inputTokens: Int, outputTokens: Int) {
         self.inputTokens = inputTokens
         self.outputTokens = outputTokens
     }
 
-    public var totalTokens: Int { inputTokens + outputTokens }
+    var totalTokens: Int { inputTokens + outputTokens }
 }
 
 /// Cross-connector content block (= used by both LLMResponse.blocks and
 /// LLMConnector streaming callbacks). 4 variants per Anthropic Messages
 /// API content blocks pattern: text / thinking / tool_use / tool_result.
-public enum LLMBlock: Sendable, Equatable {
+enum LLMBlock: Sendable, Equatable {
     case text(String)
     case thinking(text: String, signature: String?)
     case toolUse(id: String, name: String, input: String)
@@ -72,7 +72,7 @@ public enum LLMBlock: Sendable, Equatable {
     /// Replaces the case .text / .toolUse / .toolResult switch repeated
     /// in 5+ connector / tool files (= Standards-axis S5 Repeated
     /// Switches smell). Polymorphic dispatch via Dictionary subscript.
-    public var asJSONObject: [String: Any] {
+    var asJSONObject: [String: Any] {
         switch self {
             case let .text(s):
                 return ["type": "text", "text": s]
@@ -90,7 +90,7 @@ public enum LLMBlock: Sendable, Equatable {
     /// Extract text content for display (= concatenation across text cases).
     /// Replaces case .text { $0 } / case .thinking { $0.text } etc. in
     /// 5+ files. Used by ChatMessageBridge.textContent + display paths.
-    public var textValue: String {
+    var textValue: String {
         switch self {
             case let .text(s): return s
             case let .thinking(text, _): return text

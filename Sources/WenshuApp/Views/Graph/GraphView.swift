@@ -14,7 +14,7 @@ struct GraphView: View {
     @State private var isLoading: Bool = false
     @State private var error: String? = nil
 
-    public init() {}
+    init() {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {

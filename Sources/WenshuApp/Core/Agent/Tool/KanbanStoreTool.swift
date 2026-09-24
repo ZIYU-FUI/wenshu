@@ -68,7 +68,7 @@
 
 import Foundation
 
-public struct KanbanStoreTool: Tool, Sendable {
+struct KanbanStoreTool: Tool, Sendable {
 
     /// Shared singleton for ToolRegistry bootstrap (= lazy in-memory
     /// KanbanTools wrapping a fresh fallback KanbanStore on first
@@ -94,7 +94,7 @@ public struct KanbanStoreTool: Tool, Sendable {
     /// (= `KanbanStoreTool._registryBootstrap`) runs after
     /// `WenshuAppDelegate.applicationDidFinishLaunching` (= main
     /// thread) so the trap never fires in production.
-    public nonisolated static let shared: KanbanStoreTool = KanbanStoreTool(kanbanTools: KanbanTools())
+    nonisolated static let shared: KanbanStoreTool = KanbanStoreTool(kanbanTools: KanbanTools())
 
     /// Tool name. ToolExecutor routes one tool_use block to one Tool
     /// by name (= matches the convention other wenshu tools use:
@@ -102,11 +102,11 @@ public struct KanbanStoreTool: Tool, Sendable {
     /// we use the bare noun "kanban" because that's the verb the LLM
     /// writes in its `kanban_create` / `kanban_list` calls and
     /// matches the wenshu-kanban user-facing surface name).
-    public let name = "kanban"
+    let name = "kanban"
 
     /// Human-readable description (baked into the tool schema at
     /// prompt-build time so the LLM sees it cached as static context).
-    public let description = """
+    let description = """
     Manage Kanban tickets in the current book. Actions: create / \
     list / show / complete / block / unblock / transition. Each \
     action mirrors the canonical wenshu-side KanbanStore (= SQLite, \
@@ -119,13 +119,13 @@ public struct KanbanStoreTool: Tool, Sendable {
 
     private let kanbanTools: KanbanTools
 
-    public init(kanbanTools: KanbanTools) {
+    init(kanbanTools: KanbanTools) {
         self.kanbanTools = kanbanTools
     }
 
     // MARK: - Tool conformance
 
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         // Step 1: parse input via the single-source-of-truth parser
         // (= S3 parity with TodoStoreTool / ReadFileTool / etc.).
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -297,7 +297,7 @@ extension KanbanStoreTool {
     ///
     /// Idempotent: same-toolset re-registration silently replaces;
     /// cross-toolset shadowing is blocked unless `override=true`.
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "kanban",

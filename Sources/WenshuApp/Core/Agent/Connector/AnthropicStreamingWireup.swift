@@ -27,19 +27,19 @@ import EventSource
 /// Anthropic SSE streaming wire-up (= AsyncStream producer).
 /// Wraps EventSource (= mattt/EventSource 1.5.1) and yields
 /// AnthropicStreamingChunk via AnthropicSSEDecoder.
-public actor AnthropicStreamingWireup {
+actor AnthropicStreamingWireup {
 
     private var eventSource: EventSource?
     private var continuation: AsyncStream<AnthropicStreamingChunk>.Continuation?
 
-    public init() {}
+    init() {}
 
     /// Connect to Anthropic Messages API streaming endpoint and yield decoded chunks.
     /// - Parameters:
     ///   - request: URLRequest (= AnthropicStreamingRequest.buildRequest output)
     /// - Returns: AsyncStream of AnthropicStreamingChunk (= consumer terminates
     ///   the stream by calling onTermination handler).
-    public func connect(request: URLRequest) -> AsyncStream<AnthropicStreamingChunk> {
+    func connect(request: URLRequest) -> AsyncStream<AnthropicStreamingChunk> {
         AsyncStream { continuation in
             self.continuation = continuation
             let eventSource = EventSource(request: request)
@@ -102,7 +102,7 @@ public actor AnthropicStreamingWireup {
     }
 
     /// Public close (= Swift 6 actor-isolated).
-    public func close() {
+    func close() {
         // eventSource.close() is on a third-party actor (mattt/EventSource);
         // needs await even though we just want synchronous-style cleanup.
         // We avoid blocking by firing-and-forgetting; cleanup completes
@@ -116,7 +116,7 @@ public actor AnthropicStreamingWireup {
 
 // MARK: - Convenience factory (= single entry point for AnthropicConnector)
 
-public enum AnthropicStreamingWireupFactory {
+enum AnthropicStreamingWireupFactory {
 
     /// Build a streaming URLRequest and wire it up (= returns AsyncStream).
     /// - Parameters:
@@ -126,7 +126,7 @@ public enum AnthropicStreamingWireupFactory {
     ///   - systemPrompt: top-level system prompt
     ///   - messages: conversation history
     /// - Returns: AsyncStream of AnthropicStreamingChunk
-    public static func streamingStream(
+    static func streamingStream(
         credentials: ConnectorCredentials,
         model: String,
         maxTokens: Int,
@@ -158,7 +158,7 @@ public enum AnthropicStreamingWireupFactory {
     }
 
     /// Pure URLRequest builder (= extracted for Sendable capture in factory).
-    public static func buildRequest(
+    static func buildRequest(
         credentials: ConnectorCredentials,
         model: String,
         maxTokens: Int,

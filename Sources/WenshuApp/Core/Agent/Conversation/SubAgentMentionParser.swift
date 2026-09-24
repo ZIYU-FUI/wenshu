@@ -32,19 +32,19 @@ import Foundation
 /// Pure data layer (= sync, no actor isolation). The ChatViewModel
 /// consumes the parser's output to spawn sub-agents via
 /// AsyncDelegation.
-public enum SubAgentMentionParser {
+enum SubAgentMentionParser {
 
     /// Single parsed mention (= one `@slug <task>` segment).
-    public struct ParsedMention: Sendable, Equatable {
+    struct ParsedMention: Sendable, Equatable {
         /// Sub-agent slug (= e.g. "writer" / "researcher" / "analyst").
         /// Matches SubAgentIdentity.Name rawValue.
-        public let subagentSlug: String
+        let subagentSlug: String
 
         /// The task text (= everything after `@slug` up to the next
         /// `@slug` mention or end of input).
-        public let task: String
+        let task: String
 
-        public init(subagentSlug: String, task: String) {
+        init(subagentSlug: String, task: String) {
             self.subagentSlug = subagentSlug
             self.task = task
         }
@@ -55,7 +55,7 @@ public enum SubAgentMentionParser {
     /// has "editor" / "reviewer" too, but wenshu does not — per
     /// AGENTS.md §11.3 wenshu-side-wins, only the 5 wenshu sub-agents
     /// are recognized).
-    public static let availableSlugs: [String] = SubAgentIdentity.Name.allCases
+    static let availableSlugs: [String] = SubAgentIdentity.Name.allCases
         .map { $0.rawValue }
         .sorted()
 
@@ -68,7 +68,7 @@ public enum SubAgentMentionParser {
     /// `availableSlugs` and `<task>` is everything after the slug until
     /// end-of-input OR the next valid `@<slug>` mention (= same rule
     /// as hermes' mention parser).
-    public static func parse(_ input: String) -> ParsedMention? {
+    static func parse(_ input: String) -> ParsedMention? {
         let mentions = parseAll(input)
         return mentions.first
     }
@@ -83,7 +83,7 @@ public enum SubAgentMentionParser {
     ///
     /// Returns an empty array if no mentions found (= caller falls
     /// through to the LLM path). Order matches the order in input.
-    public static func parseAll(_ input: String) -> [ParsedMention] {
+    static func parseAll(_ input: String) -> [ParsedMention] {
         let slugs = availableSlugs
         guard !slugs.isEmpty else { return [] }
         // Build a word-boundary regex that matches @slug followed by

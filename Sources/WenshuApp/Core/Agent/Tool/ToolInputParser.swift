@@ -13,14 +13,14 @@
 import Foundation
 
 /// Parses tool input JSON (= e.g. `{"path": "/absolute/path"}`).
-public enum ToolInputParser {
+enum ToolInputParser {
 
-    public enum ParseError: Error, CustomStringConvertible {
+    enum ParseError: Error, CustomStringConvertible {
         case invalidJSON(String)
         case missingKey(String)
         case wrongType(key: String, expected: String, got: String)
 
-        public var description: String {
+        var description: String {
             switch self {
                 case .invalidJSON(let s): return "invalid JSON: \(s)"
                 case .missingKey(let k): return "missing key: \(k)"
@@ -32,7 +32,7 @@ public enum ToolInputParser {
 
     /// Parse input string into JSON dictionary. Throws ParseError if
     /// input is not a valid JSON object (= any other JSON shape).
-    public static func parseDictionary(input: String) throws -> [String: Any] {
+    static func parseDictionary(input: String) throws -> [String: Any] {
         guard let data = input.data(using: .utf8) else {
             throw ParseError.invalidJSON(input)
         }
@@ -52,7 +52,7 @@ public enum ToolInputParser {
     }
 
     /// Extract String value for key. Throws if key missing or value not String.
-    public static func requireString(_ dict: [String: Any], _ key: String) throws -> String {
+    static func requireString(_ dict: [String: Any], _ key: String) throws -> String {
         guard let value = dict[key] else {
             throw ParseError.missingKey(key)
         }
@@ -63,7 +63,7 @@ public enum ToolInputParser {
     }
 
     /// Extract optional String value (= returns nil if missing).
-    public static func optionalString(_ dict: [String: Any], _ key: String) throws -> String? {
+    static func optionalString(_ dict: [String: Any], _ key: String) throws -> String? {
         guard let value = dict[key] else { return nil }
         guard let s = value as? String else {
             throw ParseError.wrongType(key: key, expected: "String", got: String(describing: type(of: value)))

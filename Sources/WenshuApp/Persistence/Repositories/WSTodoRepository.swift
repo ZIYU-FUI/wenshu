@@ -23,19 +23,19 @@ import Foundation
 import SwiftData
 
 @MainActor
-public final class WSTodoRepository {
+final class WSTodoRepository {
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
+    init(container: ModelContainer = WSPersistenceContainer.shared) {
         self.container = container
     }
 
-    public func add(title: String, priority: TodoPriority = .medium, dueDate: Date? = nil) throws -> TodoItem {
+    func add(title: String, priority: TodoPriority = .medium, dueDate: Date? = nil) throws -> TodoItem {
         return try add(id: UUID().uuidString, title: title, priority: priority, dueDate: dueDate)
     }
 
-    public func add(id: String, title: String, priority: TodoPriority = .medium, dueDate: Date? = nil) throws -> TodoItem {
+    func add(id: String, title: String, priority: TodoPriority = .medium, dueDate: Date? = nil) throws -> TodoItem {
         let model = WSTodo(id: id, title: title)
         model.status = TodoStatus.pending.rawValue
         model.priority = priority.rawValue
@@ -53,7 +53,7 @@ public final class WSTodoRepository {
         )
     }
 
-    public func setStatus(id: String, status: TodoStatus) throws {
+    func setStatus(id: String, status: TodoStatus) throws {
         let descriptor = FetchDescriptor<WSTodo>(
             predicate: #Predicate { $0.id == id }
         )
@@ -64,7 +64,7 @@ public final class WSTodoRepository {
         try context.save()
     }
 
-    public func get(id: String) throws -> TodoItem? {
+    func get(id: String) throws -> TodoItem? {
         let descriptor = FetchDescriptor<WSTodo>(
             predicate: #Predicate { $0.id == id }
         )
@@ -81,7 +81,7 @@ public final class WSTodoRepository {
         }
     }
 
-    public func list(status: TodoStatus? = nil, orderByPriority: Bool = true) throws -> [TodoItem] {
+    func list(status: TodoStatus? = nil, orderByPriority: Bool = true) throws -> [TodoItem] {
         let descriptor: FetchDescriptor<WSTodo>
         if let status = status {
             descriptor = FetchDescriptor<WSTodo>(
@@ -110,7 +110,7 @@ public final class WSTodoRepository {
         }
     }
 
-    public func delete(id: String) throws {
+    func delete(id: String) throws {
         let descriptor = FetchDescriptor<WSTodo>(
             predicate: #Predicate { $0.id == id }
         )
@@ -120,7 +120,7 @@ public final class WSTodoRepository {
         }
     }
 
-    public func count(status: TodoStatus? = nil) throws -> Int {
+    func count(status: TodoStatus? = nil) throws -> Int {
         let descriptor: FetchDescriptor<WSTodo>
         if let status = status {
             descriptor = FetchDescriptor<WSTodo>(
@@ -133,12 +133,12 @@ public final class WSTodoRepository {
     }
 }
 
-public enum WSTodoRepositoryError: Error {
+enum WSTodoRepositoryError: Error {
     case notFound
 }
 
 extension WSTodoRepositoryError: LocalizedError {
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .notFound:
             return "Todo not found."

@@ -89,7 +89,7 @@ import Foundation
 // MARK: - Module-level bounds (= mirrors todo_tool.py module header)
 
 /// Valid status values for todo items (= mirrors Python `VALID_STATUSES`).
-public enum HermesTodoStatus: String, Codable, Sendable, CaseIterable {
+enum HermesTodoStatus: String, Codable, Sendable, CaseIterable {
     case pending
     case inProgress = "in_progress"
     case completed
@@ -99,7 +99,7 @@ public enum HermesTodoStatus: String, Codable, Sendable, CaseIterable {
     /// re-injection block. Completed / cancelled items are skipped
     /// (= otherwise the model re-does finished work after compression,
     /// see Python `format_for_injection`).
-    public var isActive: Bool {
+    var isActive: Bool {
         switch self {
         case .pending, .inProgress: return true
         case .completed, .cancelled: return false
@@ -107,7 +107,7 @@ public enum HermesTodoStatus: String, Codable, Sendable, CaseIterable {
     }
 
     /// Compact marker shown in `formatForInjection` output.
-    public var injectionMarker: String {
+    var injectionMarker: String {
         switch self {
         case .completed:  return "[x]"
         case .inProgress: return "[>]"
@@ -120,23 +120,23 @@ public enum HermesTodoStatus: String, Codable, Sendable, CaseIterable {
 /// Upper bound on a single todo item's content (= mirrors
 /// `MAX_TODO_CONTENT_CHARS`). A single huge item would otherwise
 /// inflate the post-compression re-injection block without bound.
-public let maxTodoContentChars = 4_000
+let maxTodoContentChars = 4_000
 
 /// Upper bound on the total todo list size (= mirrors
 /// `MAX_TODO_ITEMS`). List order is priority, so truncation keeps the
 /// head (= highest-priority items).
-public let maxTodoItems = 256
+let maxTodoItems = 256
 
 /// Upper bound on a single todo tool-result payload accepted during
 /// history hydration (= mirrors `MAX_TODO_RESULT_CHARS`). The
 /// gateway/API server replays caller-supplied conversation history to
 /// rebuild the store, so an oversized forged result is dropped before
 /// it is parsed and re-injected (see Python comment).
-public let maxTodoResultChars = 512_000
+let maxTodoResultChars = 512_000
 
 /// Marker appended to truncated todo content (= mirrors Python
 /// `_TRUNCATION_MARKER`).
-public let truncationMarker = "… [truncated]"
+let truncationMarker = "… [truncated]"
 
 // MARK: - HermesTodoItem (= mirrors Python {_id, _content, _status} dict)
 
@@ -145,12 +145,12 @@ public let truncationMarker = "… [truncated]"
 /// Mirrors the python dict (`{id, content, status}`). Pure value type
 /// for `Sendable` / `Codable` round-trips; the owning actor /
 /// `HermesTodoSessionStore` is responsible for mutation.
-public struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
-    public var id: String
-    public var content: String
-    public var status: HermesTodoStatus
+struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
+    var id: String
+    var content: String
+    var status: HermesTodoStatus
 
-    public init(id: String, content: String, status: HermesTodoStatus) {
+    init(id: String, content: String, status: HermesTodoStatus) {
         self.id = id
         self.content = content
         self.status = status
@@ -158,7 +158,7 @@ public struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
 
     /// Convenience initializer from the python dict shape (= accepts
     /// Any for parity with the LLM-supplied tool input).
-    public init(fromAny raw: Any) {
+    init(fromAny raw: Any) {
         if let d = raw as? [String: Any] {
             self.id = HermesTodoItem.stringValue(d["id"]) ?? "?"
             self.content = HermesTodoStore.capContent(HermesTodoItem.stringValue(d["content"]) ?? "")
@@ -178,7 +178,7 @@ public struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
 
     /// `[id, content, status]` ordered tuple (= mirrors the python
     /// dict shape for JSON serialization).
-    public func asOrderedDict() -> [String: String] {
+    func asOrderedDict() -> [String: String] {
         [
             "id": id,
             "content": content,
@@ -197,7 +197,7 @@ public struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
 ///   - id: unique string identifier (agent-chosen)
 ///   - content: task description
 ///   - status: pending | in_progress | completed | cancelled
-public final class HermesTodoStore: @unchecked Sendable {
+final class HermesTodoStore: @unchecked Sendable {
     /// Serial queue protecting `items`. We use a serial queue (not a
     /// concurrent barrier queue) because the public surface mixes
     /// read + write on the same `items` storage from multiple call
@@ -214,7 +214,7 @@ public final class HermesTodoStore: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.wenshu.HermesTodoStore")
     private var items: [HermesTodoItem]
 
-    public init(items: [HermesTodoItem] = []) {
+    init(items: [HermesTodoItem] = []) {
         self.items = items
     }
 
@@ -225,7 +225,7 @@ public final class HermesTodoStore: @unchecked Sendable {
     /// - `merge=false` (default): replace the entire list.
     /// - `merge=true`: update existing items by id and append new ones.
     @discardableResult
-    public func write(todos: [HermesTodoItem], merge: Bool = false) -> [HermesTodoItem] {
+    func write(todos: [HermesTodoItem], merge: Bool = false) -> [HermesTodoItem] {
         return queue.sync {
             if !merge {
                 // Replace mode: new list entirely.
@@ -292,12 +292,12 @@ public final class HermesTodoStore: @unchecked Sendable {
     // MARK: - read (= mirrors Python `TodoStore.read`)
 
     /// Return a copy of the current list.
-    public func read() -> [HermesTodoItem] {
+    func read() -> [HermesTodoItem] {
         return queue.sync { items }
     }
 
     /// Whether the list has any items (= mirrors `has_items`).
-    public func hasItems() -> Bool {
+    func hasItems() -> Bool {
         return queue.sync { !items.isEmpty }
     }
 
@@ -309,7 +309,7 @@ public final class HermesTodoStore: @unchecked Sendable {
     /// message history, or nil if the list has no active items
     /// (= completed / cancelled items are skipped, otherwise the
     /// model re-does finished work after compression).
-    public func formatForInjection() -> String? {
+    func formatForInjection() -> String? {
         let snapshot = queue.sync { items }
         let activeItems = snapshot.filter { $0.status.isActive }
         guard !activeItems.isEmpty else { return nil }
@@ -326,7 +326,7 @@ public final class HermesTodoStore: @unchecked Sendable {
 
     /// Validate and normalize a todo item. Returns a clean item with
     /// sane defaults (= mirrors Python `_validate`).
-    public static func validate(_ raw: HermesTodoItem) -> HermesTodoItem {
+    static func validate(_ raw: HermesTodoItem) -> HermesTodoItem {
         var id = raw.id.trimmingCharacters(in: .whitespacesAndNewlines)
         if id.isEmpty { id = "?" }
 
@@ -349,7 +349,7 @@ public final class HermesTodoStore: @unchecked Sendable {
 
     /// Truncate oversized todo content to `maxTodoContentChars`
         /// (= mirrors Python `_cap_content`).
-    public static func capContent(_ content: String) -> String {
+    static func capContent(_ content: String) -> String {
         if content.count > maxTodoContentChars {
             let keep = maxTodoContentChars - truncationMarker.count
             let head = String(content.prefix(keep))
@@ -360,7 +360,7 @@ public final class HermesTodoStore: @unchecked Sendable {
 
     /// Collapse duplicate ids, keeping the last occurrence in its
         /// position (= mirrors Python `_dedupe_by_id`).
-    public static func dedupeByID(_ todos: [HermesTodoItem]) -> [HermesTodoItem] {
+    static func dedupeByID(_ todos: [HermesTodoItem]) -> [HermesTodoItem] {
         var lastIndex: [String: Int] = [:]
         for (i, item) in todos.enumerated() {
             let key = item.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -376,24 +376,24 @@ public final class HermesTodoStore: @unchecked Sendable {
 
 /// Result payload returned by `todoTool` -- mirrors the python
 /// `json.dumps({...})` output.
-public struct HermesTodoToolResult: Codable, Sendable, Equatable {
-    public var todos: [HermesTodoItem]
-    public var summary: HermesTodoSummary
+struct HermesTodoToolResult: Codable, Sendable, Equatable {
+    var todos: [HermesTodoItem]
+    var summary: HermesTodoSummary
 
-    public init(todos: [HermesTodoItem], summary: HermesTodoSummary) {
+    init(todos: [HermesTodoItem], summary: HermesTodoSummary) {
         self.todos = todos
         self.summary = summary
     }
 }
 
-public struct HermesTodoSummary: Codable, Sendable, Equatable {
-    public var total: Int
-    public var pending: Int
-    public var inProgress: Int
-    public var completed: Int
-    public var cancelled: Int
+struct HermesTodoSummary: Codable, Sendable, Equatable {
+    var total: Int
+    var pending: Int
+    var inProgress: Int
+    var completed: Int
+    var cancelled: Int
 
-    public init(total: Int, pending: Int, inProgress: Int, completed: Int, cancelled: Int) {
+    init(total: Int, pending: Int, inProgress: Int, completed: Int, cancelled: Int) {
         self.total = total
         self.pending = pending
         self.inProgress = inProgress
@@ -409,7 +409,7 @@ public struct HermesTodoSummary: Codable, Sendable, Equatable {
 /// - `store`: the `HermesTodoStore` instance from the session.
 ///
 /// Returns a JSON-encoded `HermesTodoToolResult`.
-public func hermesTodoTool(
+func hermesTodoTool(
     todos: [HermesTodoItem]? = nil,
     merge: Bool = false,
     store: HermesTodoStore
@@ -434,7 +434,7 @@ public func hermesTodoTool(
 
 /// Convenience: throw `ToolExecutorError` on failure (= mirrors
 /// Python `tool_error` registry return).
-public func hermesTodoToolJSONString(
+func hermesTodoToolJSONString(
     todos: [HermesTodoItem]? = nil,
     merge: Bool = false,
     store: HermesTodoStore
@@ -460,7 +460,7 @@ public func hermesTodoToolJSONString(
 ///   }
 ///
 /// Output: JSON-encoded `HermesTodoToolResult`.
-public struct HermesTodoTool: Tool, Sendable {
+struct HermesTodoTool: Tool, Sendable {
     /// Shared singleton for ToolRegistry bootstrap (= lazy in-memory
     /// HermesTodoStore; no filesystem side effect at module load).
     /// Used by the MIGRATE-TOOLREGISTRY-002 module-load registration
@@ -476,15 +476,15 @@ public struct HermesTodoTool: Tool, Sendable {
     // (= WSTodo / WSTodoRepository is the canonical wenshu persistence).
     // = no plan to migrate HermesTodoStore to SwiftData per
     // HermesTodoTool.swift L87 #warning.
-    public nonisolated static let shared: HermesTodoTool = HermesTodoTool(store: HermesTodoStore())
+    nonisolated static let shared: HermesTodoTool = HermesTodoTool(store: HermesTodoStore())
 
     private let store: HermesTodoStore
 
-    public init(store: HermesTodoStore) {
+    init(store: HermesTodoStore) {
         self.store = store
     }
 
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         // Empty input == read (= mirrors Python "omit todos to read").
         let parsed: [String: Any]
         if input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -536,7 +536,7 @@ extension HermesTodoTool {
     /// HermesTodoTool is the hermes-side state machine (= LLM scratchpad).
     /// The `todo_hermes` registration name keeps it distinct from the
     /// wenshu-side TodoStoreTool `todo` (= same domain, different layer).
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "todo_hermes",
@@ -578,10 +578,10 @@ extension HermesTodoTool {
 /// Python `TODO_SCHEMA`). Behavioral guidance is baked into the
 /// description so it's part of the static tool schema (cached, never
 /// changes mid-conversation).
-public enum HermesTodoSchema {
-    public static let name = "todo"
+enum HermesTodoSchema {
+    static let name = "todo"
 
-    public static let description = """
+    static let description = """
     Manage your task list for the current session. Use for complex tasks \
     with 3+ steps or when the user provides multiple tasks. \
     Call with no parameters to read the current list.
@@ -604,7 +604,7 @@ public enum HermesTodoSchema {
     // schema dictionary (= never mutated after init); Swift 6's strict
     // concurrency checker still flags `[String: Any]` as non-Sendable
     // even on a static let.
-    public nonisolated(unsafe) static let parametersSchema: [String: Any] = [
+    nonisolated(unsafe) static let parametersSchema: [String: Any] = [
         "type": "object",
         "properties": [
             "todos": [
@@ -651,19 +651,19 @@ public enum HermesTodoSchema {
 /// re-injecting after context compression).
 ///
 /// File: `<session-dir>/hermes-todo.json`
-public struct HermesTodoSessionStore: Sendable {
-    public let sessionDirectory: URL
+struct HermesTodoSessionStore: Sendable {
+    let sessionDirectory: URL
 
-    public init(sessionDirectory: URL) {
+    init(sessionDirectory: URL) {
         self.sessionDirectory = sessionDirectory
     }
 
-    public var jsonURL: URL {
+    var jsonURL: URL {
         sessionDirectory.appendingPathComponent("hermes-todo.json")
     }
 
     /// Load the persisted todo list (= or an empty store if no file).
-    public func load() throws -> HermesTodoStore {
+    func load() throws -> HermesTodoStore {
         let url = jsonURL
         guard FileManager.default.fileExists(atPath: url.path) else {
             return HermesTodoStore()
@@ -675,7 +675,7 @@ public struct HermesTodoSessionStore: Sendable {
     }
 
     /// Save the current todo list atomically.
-    public func save(_ store: HermesTodoStore) throws {
+    func save(_ store: HermesTodoStore) throws {
         let items = store.read()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -689,7 +689,7 @@ public struct HermesTodoSessionStore: Sendable {
 
     /// Export the full current todo state as a JSON string (= for
         /// context injection payloads).
-    public func exportJSON(_ store: HermesTodoStore) throws -> String {
+    func exportJSON(_ store: HermesTodoStore) throws -> String {
         let items = store.read()
         let result = HermesTodoToolResult(
             todos: items,

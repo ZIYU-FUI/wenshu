@@ -17,15 +17,15 @@
 import Foundation
 
 /// Memory char budget configuration (hermes parity).
-public struct MemoryBudget: Sendable {
+struct MemoryBudget: Sendable {
     /// General memory char limit (hermes default = 2200).
-    public var memoryCharLimit: Int = 2200
+    var memoryCharLimit: Int = 2200
     /// User profile char limit (hermes default = 1375).
-    public var userCharLimit: Int = 1375
+    var userCharLimit: Int = 1375
     /// Max consolidation failure retries per turn (hermes default = 3).
-    public var maxConsolidationFailuresPerTurn: Int = 3
+    var maxConsolidationFailuresPerTurn: Int = 3
 
-    public init(
+    init(
         memoryCharLimit: Int = 2200,
         userCharLimit: Int = 1375,
         maxConsolidationFailuresPerTurn: Int = 3
@@ -37,7 +37,7 @@ public struct MemoryBudget: Sendable {
 }
 
 /// Result of a consolidation attempt.
-public enum ConsolidationResult: Sendable, Equatable {
+enum ConsolidationResult: Sendable, Equatable {
     /// Memory within budget, no action needed.
     case withinBudget
     /// Consolidated: some entries merged/dropped, new total within budget.
@@ -48,24 +48,24 @@ public enum ConsolidationResult: Sendable, Equatable {
 
 /// MemoryConsolidator: enforces char budget via consolidation.
 /// Hermes-equivalent of `_consolidation_failure` + `_MAX_CONSOLIDATION_FAILURES_PER_TURN`.
-public actor MemoryConsolidator {
+actor MemoryConsolidator {
     private let budget: MemoryBudget
     private var consolidationFailures: Int = 0
 
-    public init(budget: MemoryBudget = MemoryBudget()) {
+    init(budget: MemoryBudget = MemoryBudget()) {
         self.budget = budget
     }
 
     /// Reset the per-turn consolidation-failure counter.
     /// Call at turn start (hermes `reset_consolidation_failures()`).
-    public func resetConsolidationFailures() {
+    func resetConsolidationFailures() {
         consolidationFailures = 0
     }
 
     /// Check current memory total + budget + consolidate if needed.
     /// - Parameter entries: current memory entries (strings).
     /// - Returns: ConsolidationResult with outcome.
-    public func checkAndConsolidate(entries: [String]) -> ConsolidationResult {
+    func checkAndConsolidate(entries: [String]) -> ConsolidationResult {
         let total = entries.reduce(0) { $0 + $1.count }
         guard total > budget.memoryCharLimit else {
             // Within budget — reset failure counter (success).
@@ -109,7 +109,7 @@ public actor MemoryConsolidator {
     }
 
     /// Get current failure counter (for diagnostics / tests).
-    public func currentFailureCount() -> Int {
+    func currentFailureCount() -> Int {
         return consolidationFailures
     }
 }

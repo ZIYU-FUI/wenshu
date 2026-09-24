@@ -26,18 +26,18 @@ import SwiftData
 /// transient view data or simple CRUD wrappers).
 @MainActor
 @Observable
-public final class WSRepositoryContainer {
-    public let memory: WSMemoryRepository
-    public let chat: WSChatRepository
-    public let todo: WSTodoRepository
-    public let bookmark: WSBookmarkRepository
-    public let kanban: WSKanbanRepository
-    public let link: WSLinkRepository
-    public let book: WSBookRepository
-    public let providerKey: WSProviderKeyRepository
-    public let preference: WSPreferenceRepository
+final class WSRepositoryContainer {
+    let memory: WSMemoryRepository
+    let chat: WSChatRepository
+    let todo: WSTodoRepository
+    let bookmark: WSBookmarkRepository
+    let kanban: WSKanbanRepository
+    let link: WSLinkRepository
+    let book: WSBookRepository
+    let providerKey: WSProviderKeyRepository
+    let preference: WSPreferenceRepository
 
-    public init(container: ModelContainer = WSPersistenceContainer.current) {
+    init(container: ModelContainer = WSPersistenceContainer.current) {
         self.memory = WSMemoryRepository(container: container)
         self.chat = WSChatRepository(container: container)
         self.todo = WSTodoRepository(container: container)
@@ -49,7 +49,7 @@ public final class WSRepositoryContainer {
         self.preference = WSPreferenceRepository(container: container)
     }
 
-    public static let shared: WSRepositoryContainer = {
+    static let shared: WSRepositoryContainer = {
         MainActor.assumeIsolated {
             WSRepositoryContainer()
         }
@@ -59,29 +59,29 @@ public final class WSRepositoryContainer {
 // MARK: - Per-Repository singletons (= for call sites that want only one repo)
 
 extension WSMemoryRepository {
-    @MainActor public static let shared = WSMemoryRepository()
+    @MainActor static let shared = WSMemoryRepository()
 }
 extension WSChatRepository {
-    @MainActor public static let shared = WSChatRepository()
+    @MainActor static let shared = WSChatRepository()
 }
 extension WSTodoRepository {
-    @MainActor public static let shared = WSTodoRepository()
+    @MainActor static let shared = WSTodoRepository()
 }
 extension WSBookmarkRepository {
-    @MainActor public static let shared = WSBookmarkRepository()
+    @MainActor static let shared = WSBookmarkRepository()
 }
 extension WSKanbanRepository {
-    @MainActor public static let shared = WSKanbanRepository()
+    @MainActor static let shared = WSKanbanRepository()
 }
 extension WSLinkRepository {
-    @MainActor public static let shared = WSLinkRepository()
+    @MainActor static let shared = WSLinkRepository()
 }
 extension WSBookRepository {
-    @MainActor public static let shared = WSBookRepository()
+    @MainActor static let shared = WSBookRepository()
 }
 extension WSProviderKeyRepository {
-    @MainActor public static let shared = WSProviderKeyRepository()
+    @MainActor static let shared = WSProviderKeyRepository()
 }
 extension WSPreferenceRepository {
-    @MainActor public static let shared = WSPreferenceRepository()
+    @MainActor static let shared = WSPreferenceRepository()
 }

@@ -41,13 +41,13 @@ import Foundation
 /// `skillIDs` = the skills directly referenced by this bundle.
 /// `dependencies` = other bundle IDs this bundle depends on
 /// (= transitive resolution is computed by `SkillBundles.dependencies`).
-public struct SkillBundle: Sendable, Equatable, Identifiable, Codable {
-    public let id: String
-    public let name: String
-    public let skillIDs: [String]
-    public let dependencies: [String]
+struct SkillBundle: Sendable, Equatable, Identifiable, Codable {
+    let id: String
+    let name: String
+    let skillIDs: [String]
+    let dependencies: [String]
 
-    public init(
+    init(
         id: String,
         name: String,
         skillIDs: [String],
@@ -71,38 +71,38 @@ public struct SkillBundle: Sendable, Equatable, Identifiable, Codable {
 /// `SkillBundles.shared` is the canonical module-singleton (= hermes
 /// `_bundles_state` module-level dict). Use the designated init when
 /// you need an isolated registry (= tests, hot reload).
-public actor SkillBundles {
+actor SkillBundles {
     /// Canonical module-singleton (= matches hermes `_bundles_state`).
     /// Added in v0.73 ticket 001 to give the LLM-facing SkillBundlesTool
     /// (= `Core/Agent/Tool/SkillBundlesTool.swift`) a stable registry handle
     /// without leaking actor internals.
-    public static let shared: SkillBundles = SkillBundles()
+    static let shared: SkillBundles = SkillBundles()
 
     private var bundles: [String: SkillBundle] = [:]
 
-    public init() {}
+    init() {}
 
     /// Register a bundle. Re-registering the same id overwrites the
     /// previous value (= matches hermes `scan_bundles` "later wins").
-    public func register(_ bundle: SkillBundle) {
+    func register(_ bundle: SkillBundle) {
         bundles[bundle.id] = bundle
     }
 
     /// Remove a bundle by id. No-op when the id is unknown.
-    public func unregister(id: String) {
+    func unregister(id: String) {
         bundles.removeValue(forKey: id)
     }
 
     /// Clear every registered bundle (= useful for tests + hot reload).
-    public func unregisterAll() {
+    func unregisterAll() {
         bundles.removeAll()
     }
 
     /// Snapshot of currently-registered bundles, in registration order.
-    public var current: [SkillBundle] { Array(bundles.values) }
+    var current: [SkillBundle] { Array(bundles.values) }
 
     /// Look up a single bundle by id (= nil when not registered).
-    public func bundle(id: String) -> SkillBundle? {
+    func bundle(id: String) -> SkillBundle? {
         bundles[id]
     }
 
@@ -112,7 +112,7 @@ public actor SkillBundles {
     /// Throws `SkillBundlesError.bundleNotFound` when the id is not
     /// registered. Cycles are tolerated (= each bundle's skillIDs is
     /// added once; we deduplicate by `Set` membership).
-    public func resolve(bundleID: String) async throws -> [String] {
+    func resolve(bundleID: String) async throws -> [String] {
         guard let root = bundles[bundleID] else {
             throw SkillBundlesError.bundleNotFound(id: bundleID)
         }
@@ -143,7 +143,7 @@ public actor SkillBundles {
     ///
     /// Throws `SkillBundlesError.bundleNotFound` when the id is not
     /// registered. Cycles are tolerated (= visited set short-circuits).
-    public func dependencies(bundleID: String) async throws -> [String] {
+    func dependencies(bundleID: String) async throws -> [String] {
         guard bundles[bundleID] != nil else {
             throw SkillBundlesError.bundleNotFound(id: bundleID)
         }
@@ -167,11 +167,11 @@ public actor SkillBundles {
 
 // MARK: - Errors
 
-public enum SkillBundlesError: Error, LocalizedError, Sendable {
+enum SkillBundlesError: Error, LocalizedError, Sendable {
     case bundleNotFound(id: String)
     case cycleDetected(participating: [String])
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .bundleNotFound(let id):
             return "SkillBundle '\(id)' not found in registry."
@@ -234,7 +234,7 @@ extension SkillBundles {
     /// underscores with hyphens, strips any non `[a-z0-9-]` chars,
     /// collapses consecutive hyphens, strips leading/trailing
     /// hyphens).
-    public static func slugify(_ name: String) -> String {
+    static func slugify(_ name: String) -> String {
         var cmd = name.lowercased()
             .replacingOccurrences(of: " ", with: "-")
             .replacingOccurrences(of: "_", with: "-")
@@ -265,7 +265,7 @@ extension SkillBundles {
     /// - Throws: `ValueError` (= wenshu maps to `SkillBundlesError`/
     ///   would be re-thrown via `try?` in callers) when the name
     ///   normalizes to an empty slug.
-    public static func bundlePath(for name: String) throws -> URL {
+    static func bundlePath(for name: String) throws -> URL {
         let slug = slugify(name)
         guard !slug.isEmpty else {
             // Hermese raises `ValueError`; = wenshu-side wins maps
@@ -291,7 +291,7 @@ extension SkillBundles {
     /// discover the YAML files; = hermes uses raw `pathlib.glob`.
     ///
     /// Returns: the number of bundles successfully registered.
-    public func scanBundles(
+    func scanBundles(
         directory: URL? = nil
     ) async -> Int {
         let dir = directory ?? SkillBundlesYAMLDiscovery.defaultDirectory()
@@ -306,7 +306,7 @@ extension SkillBundles {
     ///
     /// Returns: a `ReloadDiff` struct with `added` / `removed` /
     /// `unchanged` / `total` counts (= matches hermes dict shape).
-    public func reloadBundles(
+    func reloadBundles(
         directory: URL? = nil
     ) async -> ReloadDiff {
         let beforeIds = Set(self.current.map { $0.id })
@@ -331,13 +331,13 @@ extension SkillBundles {
 /// we use plain `Set<String>` for `added` / `removed` / `unchanged`
 /// (= the bundle ID = file slug) + a `total` Int (= hermes has the
 /// same shape but with name+description strings inside).
-public struct ReloadDiff: Sendable, Equatable {
-    public let added: [String]
-    public let removed: [String]
-    public let unchanged: [String]
-    public let total: Int
+struct ReloadDiff: Sendable, Equatable {
+    let added: [String]
+    let removed: [String]
+    let unchanged: [String]
+    let total: Int
 
-    public init(added: [String], removed: [String], unchanged: [String], total: Int) {
+    init(added: [String], removed: [String], unchanged: [String], total: Int) {
         self.added = added
         self.removed = removed
         self.unchanged = unchanged

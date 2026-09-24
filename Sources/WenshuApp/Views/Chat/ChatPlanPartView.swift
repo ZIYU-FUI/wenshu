@@ -38,7 +38,7 @@ struct ChatPlanPartView: View {
 
     @State private var isExpanded: Bool = true
 
-    public init(plan: Plan, onApprove: @escaping (Plan) -> Void) {
+    init(plan: Plan, onApprove: @escaping (Plan) -> Void) {
         self.plan = plan
         self.onApprove = onApprove
     }

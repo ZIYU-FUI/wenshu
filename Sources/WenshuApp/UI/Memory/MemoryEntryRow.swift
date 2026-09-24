@@ -21,15 +21,15 @@
 import SwiftUI
 
 struct MemoryEntryRow: View {
-    public let entry: MemoryAdapter.MemoryEntry
-    public let compact: Bool
+    let entry: MemoryAdapter.MemoryEntry
+    let compact: Bool
 
-    public init(entry: MemoryAdapter.MemoryEntry, compact: Bool = false) {
+    init(entry: MemoryAdapter.MemoryEntry, compact: Bool = false) {
         self.entry = entry
         self.compact = compact
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             Text(entry.snippet)
                 .font(compact ? .caption2 : .caption)

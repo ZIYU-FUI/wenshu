@@ -107,7 +107,7 @@ struct EmptyStateView: View {
     let titleView: AnyView?
 
     /// Plain-text title init (= the common case).
-    public init(icon: String, title: String, body: String) {
+    init(icon: String, title: String, body: String) {
         self.icon = icon
         self.titleText = title
         self.detail = body  // stored property renamed to avoid
@@ -119,7 +119,7 @@ struct EmptyStateView: View {
     /// Custom-title-view init (= for chat empty state where the
     /// title contains an inline link / Button as part of the
     /// sentence).
-    public init<V: View>(
+    init<V: View>(
         icon: String,
         titleView: V,
         body: String
@@ -130,7 +130,7 @@ struct EmptyStateView: View {
         self.titleView = AnyView(titleView)
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(spacing: 0) {
             // 2x icon size (= 76 PT) + thinnest stroke (= .thin weight =
             // the canonical macOS 27 inspector / empty-state icon

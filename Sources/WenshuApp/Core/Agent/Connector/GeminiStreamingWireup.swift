@@ -25,13 +25,13 @@ import EventSource
 /// `GeminiStreamingChunk` events. The caller (= connector.stream)
 /// forwards each chunk to `GeminiChunkToLLMBlockConverter.convert(...)`
 /// to produce LLMBlocks for ChatView.
-public final class GeminiStreamingConnection: @unchecked Sendable {
+final class GeminiStreamingConnection: @unchecked Sendable {
     private var eventSource: EventSource?
 
     /// Build the EventSource request for streamGenerateContent and
     /// return the connection. Caller invokes `start(handler:)` to
     /// actually open the connection.
-    public static func makeConnection(
+    static func makeConnection(
         apiKey: String,
         model: String,
         maxTokens: Int?,
@@ -110,12 +110,12 @@ public final class GeminiStreamingConnection: @unchecked Sendable {
 
 /// Factory for opening Gemini streaming connections and
 /// exposing the chunks as an AsyncStream<GeminiStreamingChunk>.
-public enum GeminiStreamingWireupFactory {
+enum GeminiStreamingWireupFactory {
 
     /// Open a Gemini SSE connection and yield parsed chunks.
     /// Returns an AsyncStream that finishes when the connection
     /// closes (= including on error).
-    public static func streamingStream(
+    static func streamingStream(
         apiKey: String,
         model: String,
         maxTokens: Int? = nil,

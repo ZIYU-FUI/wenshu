@@ -17,14 +17,14 @@ import Foundation
 /// Bounded ring buffer for tree history. Cap = 50 entries (= matches
 /// hermes `undoStack` cap). When full, oldest entry is dropped.
 final class TreeHistory: @unchecked Sendable {
-    public static let defaultCap: Int = 50
+    static let defaultCap: Int = 50
 
     private let cap: Int
     private var entries: [LayoutNode] = []
     private var redoEntries: [LayoutNode] = []
     private let lock = NSLock()
 
-    public init(cap: Int = TreeHistory.defaultCap) {
+    init(cap: Int = TreeHistory.defaultCap) {
         self.cap = cap
     }
 

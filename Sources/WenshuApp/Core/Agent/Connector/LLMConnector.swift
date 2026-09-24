@@ -35,7 +35,7 @@ import Foundation
 /// / GeminiNativeConnector / etc.) implement the cross-connector wire format
 /// mapping. Callers (= ConversationLoop, ToolExecutor, WenshuVerifier) depend
 /// only on this protocol.
-public protocol LLMConnector: Sendable {
+protocol LLMConnector: Sendable {
     /// Identifier for the active connector (= e.g. "anthropic", "openai-codex",
     /// "minimax-cn", "gemini", "deepseek", "ollama", "openrouter").
     var connectorID: String { get }
@@ -69,7 +69,7 @@ extension LLMConnector {
     /// Default stream implementation: calls send(...), then yields
     /// each block from the response. Connectors with native streaming
     /// override this.
-    public func stream(
+    func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {
@@ -94,18 +94,18 @@ extension LLMConnector {
 }
 
 /// Per-call options for `LLMConnector.send`.
-public struct LLMCallOptions: Sendable {
-    public let model: String
-    public let maxTokens: Int
-    public let systemPrompt: String?
-    public let temperature: Double?
+struct LLMCallOptions: Sendable {
+    let model: String
+    let maxTokens: Int
+    let systemPrompt: String?
+    let temperature: Double?
     /// Reasoning effort level from `wenshu.llm.reasoningEffort` (= user setting).
     /// Values: "low" / "medium" / "high" / "xhigh" / "max". nil = connector uses provider default.
     /// v0.71 cleanup batch 4: wired from SettingView picker through to connector adapters
     /// (= Anthropic thinking budget_tokens, OpenAI reasoning_effort, Gemini thinkingBudget).
-    public let reasoningEffort: String?
+    let reasoningEffort: String?
 
-    public init(
+    init(
             model: String,
             maxTokens: Int = 1024,
             systemPrompt: String? = nil,
@@ -121,14 +121,14 @@ public struct LLMCallOptions: Sendable {
 }
 
 /// Errors thrown by `LLMConnector.send`.
-public enum LLMConnectorError: Error, LocalizedError, Sendable {
+enum LLMConnectorError: Error, LocalizedError, Sendable {
     case missingAPIKey(provider: String)
     case transport(provider: String, statusCode: Int, body: String)
     case decode(provider: String, underlying: String)
     case unsupportedProvider(slug: String)
     case streamingFailed(provider: String)  // v0.36 ticket 004 sub-step 4
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .missingAPIKey(let p):
             return "Missing API key for provider '\(p)'."

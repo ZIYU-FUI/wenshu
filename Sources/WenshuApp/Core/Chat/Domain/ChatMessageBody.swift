@@ -31,7 +31,7 @@ import Foundation
 
 /// The inner pages of one chat turn (= content + streaming state +
 /// attachments). Mutated during streaming; sealed on stream.complete.
-public struct ChatMessageBody: Equatable, Sendable {
+struct ChatMessageBody: Equatable, Sendable {
     /// v0.71 P1 batch 1 (boss 2026-09-12 OOB 'streaming output in the
     /// chat zone isn't implemented... port the whole thing from
     /// hermes...'): streaming parts (= Hermes `parts: ChatMessagePart[]`
@@ -41,19 +41,19 @@ public struct ChatMessageBody: Equatable, Sendable {
     /// each part independently (= Hermes `message-parts.tsx`). Backward
     /// compat: `content` + `thinking` getters derive from this array
     /// (= existing ChatMessageView still works unchanged).
-    public var parts: [ChatMessagePart]
+    var parts: [ChatMessagePart]
     /// v0.71 P1 batch 1: streaming state. hermes uses `message.pending`
     /// (= bool on ChatMessage); wenshu uses an enum so SwiftUI
     /// exhaustive-switch renders the right state (idle / streaming /
     /// sealed / error).
-    public var streamState: ChatMessage.StreamState
+    var streamState: ChatMessage.StreamState
     /// Backward-compat: original chat content. Now a computed getter
     /// (= joined .text parts). Stays public so callers that read
     /// `content` keep working without changes.
-    public var content: String
-    public var isPlaceholder: Bool
-    public var tokens: Int?    // real LLM API usage.total_tokens (nil if user message or unavailable)
-    public var thinking: String?    // v0.71 P1: also a computed getter (= joined reasoning parts)
+    var content: String
+    var isPlaceholder: Bool
+    var tokens: Int?    // real LLM API usage.total_tokens (nil if user message or unavailable)
+    var thinking: String?    // v0.71 P1: also a computed getter (= joined reasoning parts)
     // CHATIMG-001 (2026-09-07): absolute file URL of an attached
     // screenshot/image. When non-nil, ChatMessageView renders the image
     // thumbnail above the text content. The file lives in
@@ -65,9 +65,9 @@ public struct ChatMessageBody: Equatable, Sendable {
     // wins) does NOT forward the image bytes to the provider this round
     // (= out-of-scope for ticket CHATIMG-001; ticket CHATIMG-002 covers
     // the multimodal upload protocol).
-    public var imagePath: String?
+    var imagePath: String?
 
-    public init(
+    init(
         content: String,
         parts: [ChatMessagePart] = [],
         streamState: ChatMessage.StreamState = .idle,

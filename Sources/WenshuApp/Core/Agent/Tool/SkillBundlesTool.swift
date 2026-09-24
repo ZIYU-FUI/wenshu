@@ -35,21 +35,21 @@ import Foundation
 /// the LLM sends `{"action": "list"}` and receives a JSON envelope
 /// `{"ok": true, "bundles": [...]}`. Errors come back as
 /// `{"ok": false, "error": "..."}` (= matches `KanbanStoreTool`).
-public final class SkillBundlesTool: Tool, @unchecked Sendable {
+final class SkillBundlesTool: Tool, @unchecked Sendable {
 
     /// Module-singleton (= matches `KanbanStoreTool.shared` pattern).
     /// The actor is its own singleton; `SkillBundles.shared` is the
     /// hermes-port surface from TICKET-HERMES-GAP-006.
-    public static let shared = SkillBundlesTool()
+    static let shared = SkillBundlesTool()
 
     private let registry: SkillBundles
 
     /// Designated init (= allows tests to inject a private `SkillBundles`).
-    public init(registry: SkillBundles = SkillBundles.shared) {
+    init(registry: SkillBundles = SkillBundles.shared) {
         self.registry = registry
     }
 
-    public func execute(input: String) async throws -> String {
+    func execute(input: String) async throws -> String {
         let payload = parseJSON(input)
         let action = (payload["action"] as? String ?? "").lowercased()
 
@@ -206,7 +206,7 @@ extension SkillBundlesTool {
     ///
     /// Idempotent: same-toolset re-registration silently replaces;
     /// cross-toolset shadowing is blocked unless `override=true`.
-    public static let _registryBootstrap: Void = {
+    static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
                 name: "skill_bundles",

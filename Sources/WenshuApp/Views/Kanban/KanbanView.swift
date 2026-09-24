@@ -59,7 +59,7 @@ struct KanbanView: View {
     /// per-book scope, OR the library is not bootstrapped).
     @State private var scopeDir: URL? = nil
 
-    public init() {}
+    init() {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

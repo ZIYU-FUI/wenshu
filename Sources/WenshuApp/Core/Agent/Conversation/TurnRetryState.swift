@@ -14,29 +14,29 @@
 
 import Foundation
 
-public struct TurnRetryState: Sendable {
-    public let maxAttempts: Int
-    public private(set) var attemptNumber: Int
+struct TurnRetryState: Sendable {
+    let maxAttempts: Int
+    private(set) var attemptNumber: Int
 
-    public init(maxAttempts: Int, attemptNumber: Int = 0) {
+    init(maxAttempts: Int, attemptNumber: Int = 0) {
         self.maxAttempts = max(1, maxAttempts)
         // maxAttempts counts attempts; initial state has consumed none.
         self.attemptNumber = attemptNumber
     }
 
-    public var canRetry: Bool {
+    var canRetry: Bool {
         attemptNumber < maxAttempts
     }
 
-    public var remainingAttempts: Int {
+    var remainingAttempts: Int {
         max(0, maxAttempts - attemptNumber)
     }
 
-    public mutating func recordAttempt() {
+    mutating func recordAttempt() {
         attemptNumber += 1
     }
 
-    public mutating func reset() {
+    mutating func reset() {
         attemptNumber = 0
     }
 }

@@ -33,19 +33,19 @@ private let wenshuFallbackLogger = Logger(subsystem: "org.wenshu.auth", category
 // MARK: - Chain model
 
 /// Ordered list of providers to try (= hermes `FallbackChain`).
-public struct FallbackChain: Sendable, Codable, Equatable {
+struct FallbackChain: Sendable, Codable, Equatable {
     /// `providers[0]` = primary; `providers[1...]` = fallbacks in order.
-    public let providers: [String]
+    let providers: [String]
 
-    public init(providers: [String]) {
+    init(providers: [String]) {
         self.providers = providers
     }
 
     /// True when there are no providers in the chain (= invalid).
-    public var isEmpty: Bool { providers.isEmpty }
+    var isEmpty: Bool { providers.isEmpty }
 
     /// Look up the position of a provider in the chain. Returns nil if absent.
-    public func index(of provider: String) -> Int? {
+    func index(of provider: String) -> Int? {
         providers.firstIndex(of: provider)
     }
 }
@@ -59,17 +59,17 @@ public struct FallbackChain: Sendable, Codable, Equatable {
 /// (= the hook-side placeholder type). This dispatch-side type is named
 /// `DispatchRequest` to avoid the public-API collision (= AGENTS.md
 /// hard rule: don't remove existing public surface).
-public struct DispatchRequest: Sendable {
-    public let messages: [LLMMessage]
-    public let options: LLMCallOptions
+struct DispatchRequest: Sendable {
+    let messages: [LLMMessage]
+    let options: LLMCallOptions
 
-    public init(messages: [LLMMessage], options: LLMCallOptions) {
+    init(messages: [LLMMessage], options: LLMCallOptions) {
         self.messages = messages
         self.options = options
     }
 
     /// Convenience: build a single-text user request.
-    public static func user(
+    static func user(
         _ text: String,
         model: String,
         maxTokens: Int = 4096,
@@ -89,17 +89,17 @@ public struct DispatchRequest: Sendable {
 }
 
 /// Successful execution outcome (= returned by `execute(_:chain:)`).
-public struct FallbackExecutionResult: Sendable, Equatable {
+struct FallbackExecutionResult: Sendable, Equatable {
     /// The successful response.
-    public let response: LLMResponse
+    let response: LLMResponse
     /// Provider slug that produced the response (= member of the chain).
-    public let provider: String
+    let provider: String
     /// Index in `chain.providers` (= 0 = primary, 1+ = fallback).
-    public let providerIndex: Int
+    let providerIndex: Int
     /// Number of attempts (= 1 = primary succeeded on first try).
-    public let attempts: Int
+    let attempts: Int
 
-    public init(
+    init(
         response: LLMResponse,
         provider: String,
         providerIndex: Int,
@@ -114,7 +114,7 @@ public struct FallbackExecutionResult: Sendable, Equatable {
 
 // MARK: - Errors
 
-public enum FallbackChainError: Error, LocalizedError, Sendable, Equatable {
+enum FallbackChainError: Error, LocalizedError, Sendable, Equatable {
     /// The chain had zero providers (= caller misconfiguration).
     case emptyChain
     /// Every provider in the chain failed (= one entry per attempted provider).
@@ -122,7 +122,7 @@ public enum FallbackChainError: Error, LocalizedError, Sendable, Equatable {
     /// No usable key was available for a specific provider in the chain.
     case noUsableKey(provider: String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .emptyChain:
             return "FallbackChain has no providers."
@@ -137,11 +137,11 @@ public enum FallbackChainError: Error, LocalizedError, Sendable, Equatable {
     }
 
     /// One entry per attempted provider (= mirrors hermes' attempt log).
-    public struct FailedAttempt: Sendable, Equatable {
-        public let provider: String
-        public let providerIndex: Int
-        public let error: String
-        public init(provider: String, providerIndex: Int, error: String) {
+    struct FailedAttempt: Sendable, Equatable {
+        let provider: String
+        let providerIndex: Int
+        let error: String
+        init(provider: String, providerIndex: Int, error: String) {
             self.provider = provider
             self.providerIndex = providerIndex
             self.error = error
@@ -153,11 +153,11 @@ public enum FallbackChainError: Error, LocalizedError, Sendable, Equatable {
 
 /// Resolved bundle (= connector + api key string for the active key).
 /// `apiKey` is "" for no-auth providers (= Ollama).
-public struct ResolvedConnector: Sendable {
-    public let connector: any LLMConnector
-    public let apiKey: String
-    public let keyId: UUID?       // optional AuthKey id (= for markOk / markFailed)
-    public init(connector: any LLMConnector, apiKey: String, keyId: UUID? = nil) {
+struct ResolvedConnector: Sendable {
+    let connector: any LLMConnector
+    let apiKey: String
+    let keyId: UUID?       // optional AuthKey id (= for markOk / markFailed)
+    init(connector: any LLMConnector, apiKey: String, keyId: UUID? = nil) {
         self.connector = connector
         self.apiKey = apiKey
         self.keyId = keyId
@@ -173,7 +173,7 @@ public struct ResolvedConnector: Sendable {
 /// without re-implementing any auth logic. The resolver is the place where
 /// production wiring lands in a follow-up ticket (= ticket 013 per the
 /// integration gap analysis).
-public protocol FallbackConnectorResolver: Sendable {
+protocol FallbackConnectorResolver: Sendable {
     /// Resolve the connector + credentials for a provider slug.
     /// Returns nil if the provider is not registered (= caller should skip
     /// or fail depending on the executor variant).
@@ -189,13 +189,13 @@ public protocol FallbackConnectorResolver: Sendable {
 /// Per-provider timeout enforced; on per-provider failure, advance to next
 /// provider in the chain. After every provider fails, throw
 /// `FallbackChainError.allFailed`.
-public actor FallbackChainExecutor {
+actor FallbackChainExecutor {
 
     private let pool: AuthPool
     private let resolver: any FallbackConnectorResolver
     private let timeoutPerProvider: TimeInterval
 
-    public init(
+    init(
         pool: AuthPool,
         resolver: any FallbackConnectorResolver,
         timeoutPerProvider: TimeInterval = 30
@@ -209,7 +209,7 @@ public actor FallbackChainExecutor {
     /// response + which provider/index produced it + how many attempts ran.
     /// Throws `FallbackChainError.emptyChain` if the chain is empty.
     /// Throws `FallbackChainError.allFailed(attempts:)` if every provider fails.
-    public func execute(
+    func execute(
         request: DispatchRequest,
         chain: FallbackChain
     ) async throws -> FallbackExecutionResult {
@@ -249,7 +249,7 @@ public actor FallbackChainExecutor {
     /// Strict variant: throw the FIRST per-provider error (= primary failed,
     /// no fallback tried). Used when callers want explicit primary-first
     /// semantics (= e.g. when the chain is "primary only").
-    public func executeOrThrow(
+    func executeOrThrow(
         request: DispatchRequest,
         chain: FallbackChain
     ) async throws -> LLMResponse {

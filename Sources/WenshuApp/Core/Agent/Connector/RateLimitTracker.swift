@@ -19,14 +19,14 @@ import Foundation
 
 /// Per-provider rate limit configuration.
 /// Used by RateLimitTracker to compute request budget.
-public struct ProviderRateLimit: Sendable, Equatable, Codable {
-    public let providerSlug: String
+struct ProviderRateLimit: Sendable, Equatable, Codable {
+    let providerSlug: String
     /// Maximum requests per minute (= provider's documented limit).
-    public let requestsPerMinute: Int
+    let requestsPerMinute: Int
     /// Maximum tokens per minute (= some providers enforce token budgets).
-    public let tokensPerMinute: Int?
+    let tokensPerMinute: Int?
 
-    public init(
+    init(
         providerSlug: String,
         requestsPerMinute: Int,
         tokensPerMinute: Int? = nil
@@ -39,7 +39,7 @@ public struct ProviderRateLimit: Sendable, Equatable, Codable {
     /// Default rate limits per provider (= from §11.2 LLM connector profiles).
     /// Conservative values; user can override via Settings if provider
     /// allows higher quota.
-    public static let defaults: [String: ProviderRateLimit] = [
+    static let defaults: [String: ProviderRateLimit] = [
         "minimax-cn": ProviderRateLimit(providerSlug: "minimax-cn", requestsPerMinute: 60),
         "anthropic":  ProviderRateLimit(providerSlug: "anthropic",  requestsPerMinute: 60),
         "openai":     ProviderRateLimit(providerSlug: "openai",     requestsPerMinute: 60),
@@ -52,7 +52,7 @@ public struct ProviderRateLimit: Sendable, Equatable, Codable {
 
 /// Tracks recent requests per provider (= sliding 60-second window).
 /// Actor (= thread-safe under Swift 6 strict concurrency).
-public actor RateLimitTracker {
+actor RateLimitTracker {
 
     private struct RequestRecord {
         let timestamp: Date
@@ -74,16 +74,16 @@ public actor RateLimitTracker {
     /// for providers that never recorded a request).
     private var postClear: Set<String> = []
 
-    public init() {}
+    init() {}
 
     /// Override default rate limit for a provider (= user-configured via Settings).
-    public func setLimit(_ limit: ProviderRateLimit) {
+    func setLimit(_ limit: ProviderRateLimit) {
         providerLimits[limit.providerSlug] = limit
     }
 
     /// Record a request (= call BEFORE sending LLM call).
     /// Returns remaining budget (= nil if no limit configured).
-    public func recordRequest(
+    func recordRequest(
         providerSlug: String,
         tokenCount: Int = 0
     ) -> RateLimitBudget? {
@@ -134,7 +134,7 @@ public actor RateLimitTracker {
     /// tracker would emit a full-budget snapshot for every provider
     /// that had `setLimit(_:)` called before `clear()` (= exactly the
     /// residual-budget ambiguity the Z contract forbids).
-    public func currentBudget(providerSlug: String) -> RateLimitBudget? {
+    func currentBudget(providerSlug: String) -> RateLimitBudget? {
         // Post-clear sentinel takes precedence over the limit entry.
         if postClear.contains(providerSlug) { return nil }
 
@@ -167,7 +167,7 @@ public actor RateLimitTracker {
     /// activity). The `providerLimits` dict is preserved so the
     /// post-clear `recordRequest` continues to emit a budget (= the
     /// limit configuration survives the reset).
-    public func clear() {
+    func clear() {
         records.removeAll()
         postClear = Set(providerLimits.keys)
     }
@@ -177,7 +177,7 @@ public actor RateLimitTracker {
     /// Marks only `providerSlug` as `postClear`. Other providers
     /// continue reporting their existing budgets (= no cross-provider
     /// reset triggered).
-    public func clear(providerSlug: String) {
+    func clear(providerSlug: String) {
         records.removeValue(forKey: providerSlug)
         if providerLimits[providerSlug] != nil {
             postClear.insert(providerSlug)
@@ -195,7 +195,7 @@ public actor RateLimitTracker {
     ///   - operation: the async LLM call.
     /// - Returns: the operation's result on first success.
     /// - Throws: the last error after exhausting retries (= e.g. a final 429).
-    public func performWithRetry<T: Sendable>(
+    func performWithRetry<T: Sendable>(
         providerSlug: String,
         maxAttempts: Int = 3,
         base: TimeInterval = 1.0,
@@ -218,13 +218,13 @@ public actor RateLimitTracker {
 }
 
 /// Current budget snapshot (= returned by RateLimitTracker).
-public struct RateLimitBudget: Sendable, Equatable {
-    public let providerSlug: String
-    public let requestsRemaining: Int
-    public let tokensRemaining: Int?
-    public let isExhausted: Bool
+struct RateLimitBudget: Sendable, Equatable {
+    let providerSlug: String
+    let requestsRemaining: Int
+    let tokensRemaining: Int?
+    let isExhausted: Bool
 
-    public init(
+    init(
         providerSlug: String,
         requestsRemaining: Int,
         tokensRemaining: Int?,

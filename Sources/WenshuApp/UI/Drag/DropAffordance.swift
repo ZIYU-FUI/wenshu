@@ -58,7 +58,7 @@ struct DropSheet: View {
     let cornerRadius: CGFloat
     let borderWidth: CGFloat
 
-    public init(
+    init(
         active: Bool,
         autoHide: Bool = false,
         startedAt: Date = Date(),
@@ -73,7 +73,7 @@ struct DropSheet: View {
     }
 
     /// Computed alpha (= matches hermes `getAnimationAlpha(startedAtMs, nowMs, autoHide)`).
-    public static func animationAlpha(startedAt: Date, now: Date = Date(), autoHide: Bool) -> Double {
+    static func animationAlpha(startedAt: Date, now: Date = Date(), autoHide: Bool) -> Double {
         let elapsedMs = now.timeIntervalSince(startedAt) * 1000
         if autoHide && elapsedMs > Double(kFlashZonesDurationMillis) {
             return 0
@@ -83,7 +83,7 @@ struct DropSheet: View {
         return min(max(raw, 0.001), 1.0)
     }
 
-    public var body: some View {
+    var body: some View {
         // Use TimelineView for smooth alpha animation (= matches Hermes
         // requestAnimationFrame loop).
         TimelineView(.animation) { context in
@@ -124,7 +124,7 @@ struct VisualEffectBlur: NSViewRepresentable {
     let material: NSVisualEffectView.Material
     let blendingMode: NSVisualEffectView.BlendingMode
 
-    public init(
+    init(
         material: NSVisualEffectView.Material = .hudWindow,
         blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
     ) {
@@ -132,14 +132,14 @@ struct VisualEffectBlur: NSViewRepresentable {
         self.blendingMode = blendingMode
     }
 
-    public func makeNSView(context: Context) -> NSVisualEffectView {
+    func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = material
         view.blendingMode = blendingMode
         return view
     }
 
-    public func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
         nsView.material = material
         nsView.blendingMode = blendingMode
     }
@@ -154,14 +154,14 @@ struct VisualEffectBlur: NSViewRepresentable {
 final class DragSession {
     private var previousCursor: NSCursor?
 
-    public init() {}
+    init() {}
 
-    public func begin() {
+    func begin() {
         previousCursor = NSCursor.current
         NSCursor.dragLink.push()
     }
 
-    public func end() {
+    func end() {
         if previousCursor != nil {
             NSCursor.pop()
             previousCursor = nil
@@ -178,7 +178,7 @@ struct DragCursorModifier: ViewModifier {
     let cursor: NSCursor
     @State private var isHover: Bool = false
 
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
         content
             .onHover { hover in
                 isHover = hover
@@ -199,7 +199,7 @@ struct DragCursorModifier: ViewModifier {
 extension View {
     /// Show a `NSCursor.dragLink` cursor on hover (= matches hermes
     /// drag affordance on tab strip + zone targets).
-    public func dragCursor() -> some View {
+    func dragCursor() -> some View {
         modifier(DragCursorModifier(cursor: .dragLink))
     }
 }

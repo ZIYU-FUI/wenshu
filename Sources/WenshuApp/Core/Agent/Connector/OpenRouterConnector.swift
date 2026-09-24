@@ -21,16 +21,16 @@
 
 import Foundation
 
-public actor OpenRouterConnector: LLMConnector {
-    public nonisolated let connectorID = "openrouter"
+actor OpenRouterConnector: LLMConnector {
+    nonisolated let connectorID = "openrouter"
 
     private let delegate: OpenAICompatibleConnector
 
-    public init(session: URLSession = .shared) {
+    init(session: URLSession = .shared) {
         self.delegate = OpenAICompatibleConnector(provider: .openrouter, session: session)
     }
 
-    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         try await delegate.send(messages: messages, options: options)
     }
 }

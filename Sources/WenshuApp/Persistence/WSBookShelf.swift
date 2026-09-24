@@ -13,8 +13,8 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSBookShelf {
-    @Attribute(.unique) public var id: String
+final class WSBookShelf {
+    @Attribute(.unique) var id: String
     var name: String
     /// Sort position within library (= for ordering in sidebar)
     var position: Int

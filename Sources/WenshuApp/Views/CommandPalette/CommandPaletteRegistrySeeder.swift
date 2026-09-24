@@ -36,7 +36,7 @@ import Foundation
 enum CommandPaletteRegistrySeeder {
 
     /// Populate the registry. Safe to call multiple times.
-    public static func seed() async {
+    static func seed() async {
         var items: [CommandPaletteItem] = []
         items.append(contentsOf: hubCommandItems())
         items.append(contentsOf: subAgentItems())

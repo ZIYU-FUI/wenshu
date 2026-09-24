@@ -31,13 +31,13 @@ import Foundation
 
 /// The cover page of one chat turn (= identity + provenance).
 /// Immutable after creation.
-public struct ChatMessageHeader: Equatable, Sendable, Hashable {
-    public let id: UUID
-    public let role: ChatRole
-    public let source: ChatSource
-    public let timestamp: Date
+struct ChatMessageHeader: Equatable, Sendable, Hashable {
+    let id: UUID
+    let role: ChatRole
+    let source: ChatSource
+    let timestamp: Date
 
-    public init(
+    init(
         id: UUID = UUID(),
         role: ChatRole,
         source: ChatSource = .wenshu,

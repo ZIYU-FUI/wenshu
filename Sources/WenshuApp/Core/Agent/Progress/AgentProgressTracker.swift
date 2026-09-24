@@ -52,25 +52,25 @@ import Foundation
 /// session. `stepNumber` is 1-based; `totalSteps` is the constant
 /// 8 (= see file header step catalog). `etaSeconds` is an estimate
 /// (= nil = unknown; positive = estimated remaining seconds).
-public struct AgentProgressEntry: Sendable, Codable, Equatable, Identifiable {
-    public let id: UUID
-    public let sessionId: String
-    public var label: String
-    public var stepNumber: Int
-    public let totalSteps: Int
-    public var etaSeconds: Int?
-    public var status: Status
-    public let createdAt: Date
-    public var updatedAt: Date
+struct AgentProgressEntry: Sendable, Codable, Equatable, Identifiable {
+    let id: UUID
+    let sessionId: String
+    var label: String
+    var stepNumber: Int
+    let totalSteps: Int
+    var etaSeconds: Int?
+    var status: Status
+    let createdAt: Date
+    var updatedAt: Date
 
-    public enum Status: String, Sendable, Codable {
+    enum Status: String, Sendable, Codable {
         case running
         case succeeded
         case failed
         case cancelled
     }
 
-    public init(
+    init(
         id: UUID = UUID(),
         sessionId: String,
         label: String,
@@ -109,15 +109,15 @@ public struct AgentProgressEntry: Sendable, Codable, Equatable, Identifiable {
 /// want progress emitted (= WenshuConductor, future tickets) pass
 /// `AgentProgressTracker.shared` to `ConversationLoop(...progressTracker:)`;
 /// callers that don't care (= unit tests) pass `.noop`.
-public actor AgentProgressTracker {
+actor AgentProgressTracker {
 
     /// Shared singleton for the wenshu process (= WIRE-OPENBOX-001).
     /// The OpenBox panel reads from this; the agent writes to this.
-    public static let shared: AgentProgressTracker = AgentProgressTracker()
+    static let shared: AgentProgressTracker = AgentProgressTracker()
 
     /// Default constant for the standard 7-step wenshu conversation
     /// turn (= matches ConversationLoop.runTurn hook order).
-    public static let standardStepCount: Int = 7
+    static let standardStepCount: Int = 7
 
     /// All entries keyed by entry id. `list(sessionId:)` filters
     /// by `entry.sessionId`.
@@ -130,14 +130,14 @@ public actor AgentProgressTracker {
 
     /// No-op singleton. Use when ConversationLoop doesn't need
     /// real progress emission (= e.g. unit tests that don't care).
-    public static let noop: AgentProgressTracker = AgentProgressTracker()
+    static let noop: AgentProgressTracker = AgentProgressTracker()
 
-    public init() {}
+    init() {}
 
     /// Start a new progress entry for `sessionId`. Returns the
     /// created entry so callers can capture the `id` for later
     /// `advance()` / `complete()` / `cancel()` calls.
-    public func start(
+    func start(
         sessionId: String,
         label: String,
         totalSteps: Int = AgentProgressTracker.standardStepCount
@@ -161,7 +161,7 @@ public actor AgentProgressTracker {
     /// Advance `entry` to the next step (label = new step label,
     /// stepNumber bumps by 1). Sets ETA to nil (= caller can
     /// override per-step; e.g. step 4 "Calling LLM" sets ETA > 0).
-    public func advance(id: UUID, label: String) async {
+    func advance(id: UUID, label: String) async {
         guard var entry = entries[id] else { return }
         entry.stepNumber = min(entry.stepNumber + 1, entry.totalSteps)
         entry.label = label
@@ -172,7 +172,7 @@ public actor AgentProgressTracker {
 
     /// Set a custom step number (= e.g. when a step is skipped or
     /// the loop jumps). Also updates label + ETA.
-    public func setStep(id: UUID, stepNumber: Int, label: String, etaSeconds: Int? = nil) async {
+    func setStep(id: UUID, stepNumber: Int, label: String, etaSeconds: Int? = nil) async {
         guard var entry = entries[id] else { return }
         entry.stepNumber = max(1, min(stepNumber, entry.totalSteps))
         entry.label = label
@@ -184,7 +184,7 @@ public actor AgentProgressTracker {
     /// Mark `entry` as complete (= default status = .succeeded).
     /// After this call, `current(sessionId:)` will skip the entry
     /// (= status != .running).
-    public func complete(
+    func complete(
         id: UUID,
         status: AgentProgressEntry.Status = .succeeded
     ) async {
@@ -198,12 +198,12 @@ public actor AgentProgressTracker {
     /// preserved for caller clarity (= the OpenBox panel treats
     /// .cancelled the same as .failed visually, but the API lets
     /// callers distinguish intent at the call site).
-    public func cancel(id: UUID) async {
+    func cancel(id: UUID) async {
         await complete(id: id, status: .cancelled)
     }
 
     /// List all entries for a session, in insertion order.
-    public func list(sessionId: String) async -> [AgentProgressEntry] {
+    func list(sessionId: String) async -> [AgentProgressEntry] {
         let ids = sessionOrder[sessionId] ?? []
         return ids.compactMap { entries[$0] }
     }
@@ -211,7 +211,7 @@ public actor AgentProgressTracker {
     /// Return the most-recent running entry for a session, OR nil
     /// if no running entry exists (= turn finished, cancelled, or
     /// session never started a turn on this tracker).
-    public func current(sessionId: String) async -> AgentProgressEntry? {
+    func current(sessionId: String) async -> AgentProgressEntry? {
         let ids = sessionOrder[sessionId] ?? []
         // Walk from the end (= most-recent insertion first); return
         // the first entry with status == .running.
@@ -232,7 +232,7 @@ public actor AgentProgressTracker {
     /// recent session first), then each session's ids in reverse
     /// (= most-recent entry first). Returns the first running
     /// entry found, OR nil if no entry is currently running.
-    public func currentLatestRunning() async -> AgentProgressEntry? {
+    func currentLatestRunning() async -> AgentProgressEntry? {
         // Walk sessions in REVERSE insertion order (= most recently
         // created session first). Sessions are stored in a dictionary
         // so we collect + reverse-sort them by their first-seen id.

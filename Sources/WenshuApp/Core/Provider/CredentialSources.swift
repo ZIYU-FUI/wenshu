@@ -64,12 +64,12 @@ import Foundation
 /// - `suppress`: Whether to call `suppressCredentialSource` after
 ///   cleanup so future `loadPool` calls skip this source. Default
 ///   true (= almost every source needs this to stay sticky).
-public struct RemovalResult: Sendable {
-    public var cleaned: [String]
-    public var hints: [String]
-    public var suppress: Bool
+struct RemovalResult: Sendable {
+    var cleaned: [String]
+    var hints: [String]
+    var suppress: Bool
 
-    public init(
+    init(
         cleaned: [String] = [],
         hints: [String] = [],
         suppress: Bool = true
@@ -79,7 +79,7 @@ public struct RemovalResult: Sendable {
         self.suppress = suppress
     }
 
-    public static let identity = RemovalResult()
+    static let identity = RemovalResult()
 }
 
 // MARK: - RemovalStep
@@ -103,14 +103,14 @@ public struct RemovalResult: Sendable {
 ///   user.
 /// - `description`: One-line human-readable description for docs /
 ///   tests.
-public struct RemovalStep: Sendable {
-    public let provider: String
-    public let sourceID: String
-    public let removeFn: @Sendable (String, RemovedEntry) -> RemovalResult
-    public let matchFn: (@Sendable (String) -> Bool)?
-    public let description: String
+struct RemovalStep: Sendable {
+    let provider: String
+    let sourceID: String
+    let removeFn: @Sendable (String, RemovedEntry) -> RemovalResult
+    let matchFn: (@Sendable (String) -> Bool)?
+    let description: String
 
-    public init(
+    init(
         provider: String,
         sourceID: String,
         removeFn: @escaping @Sendable (String, RemovedEntry) -> RemovalResult,
@@ -127,7 +127,7 @@ public struct RemovalStep: Sendable {
     /// Return true when this step matches the (provider, source)
     /// pair (= hermes `RemovalStep.matches` at
     /// `agent/credential_sources.py` L107-L113).
-    public func matches(provider: String, source: String) -> Bool {
+    func matches(provider: String, source: String) -> Bool {
         if self.provider != "*" && provider != self.provider {
             return false
         }
@@ -146,12 +146,12 @@ public struct RemovalStep: Sendable {
 /// Wenshu-side wins: hermes passes the removed PooledCredential
 /// dataclass object; wenshu uses a struct that mirrors the same
 /// shape (= provider + source + value).
-public struct RemovedEntry: Sendable {
-    public let provider: String
-    public let source: String
-    public let value: String
+struct RemovedEntry: Sendable {
+    let provider: String
+    let source: String
+    let value: String
 
-    public init(provider: String, source: String, value: String) {
+    init(provider: String, source: String, value: String) {
         self.provider = provider
         self.source = source
         self.value = value
@@ -162,7 +162,7 @@ public struct RemovedEntry: Sendable {
 
 /// Global registry of removal steps (= hermes `_REGISTRY` at
 /// `agent/credential_sources.py` L116).
-public enum CredentialSources {
+enum CredentialSources {
 
     /// Process-global registry. Tests can call `removeAll()` to
     /// reset state between cases.
@@ -173,7 +173,7 @@ public enum CredentialSources {
     /// Add a step to the registry (= hermes `register` at
     /// `agent/credential_sources.py` L119-L122).
     @discardableResult
-    public static func register(_ step: RemovalStep) -> RemovalStep {
+    static func register(_ step: RemovalStep) -> RemovalStep {
         lock.lock()
         defer { lock.unlock() }
         _registry.append(step)
@@ -183,7 +183,7 @@ public enum CredentialSources {
     /// Return the first matching step, or nil if unregistered
     /// (= hermes `find_removal_step` at
     /// `agent/credential_sources.py` L125-L135).
-    public static func findRemovalStep(provider: String, source: String) -> RemovalStep? {
+    static func findRemovalStep(provider: String, source: String) -> RemovalStep? {
         lock.lock()
         defer { lock.unlock() }
         return _registry.first { $0.matches(provider: provider, source: source) }
@@ -191,7 +191,7 @@ public enum CredentialSources {
 
     /// All registered steps (= hermes `_REGISTRY` direct access,
     /// exposed for the Settings UI).
-    public static func all() -> [RemovalStep] {
+    static func all() -> [RemovalStep] {
         lock.lock()
         defer { lock.unlock() }
         return _registry
@@ -199,7 +199,7 @@ public enum CredentialSources {
 
     /// Remove all registered steps (= hermes `reset_for_tests`
     /// pattern at `agent/credential_sources.py` L298-L303).
-    public static func removeAll() {
+    static func removeAll() {
         lock.lock()
         defer { lock.unlock() }
         _registry.removeAll()
@@ -214,7 +214,7 @@ public enum CredentialSources {
 /// When a credential source is removed and `RemovalResult.suppress`
 /// is true, the (provider, sourceID) pair is added to this set so
 /// future `loadPool()` calls skip the source.
-public enum CredentialSourceSuppression {
+enum CredentialSourceSuppression {
     nonisolated(unsafe) private static var _suppressed: Set<String> = []
     private static let lock = NSLock()
 
@@ -223,25 +223,25 @@ public enum CredentialSourceSuppression {
         "\(provider):\(sourceID)"
     }
 
-    public static func isSuppressed(provider: String, sourceID: String) -> Bool {
+    static func isSuppressed(provider: String, sourceID: String) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         return _suppressed.contains(key(provider: provider, sourceID: sourceID))
     }
 
-    public static func suppress(provider: String, sourceID: String) {
+    static func suppress(provider: String, sourceID: String) {
         lock.lock()
         defer { lock.unlock() }
         _suppressed.insert(key(provider: provider, sourceID: sourceID))
     }
 
-    public static func unsuppress(provider: String, sourceID: String) {
+    static func unsuppress(provider: String, sourceID: String) {
         lock.lock()
         defer { lock.unlock() }
         _suppressed.remove(key(provider: provider, sourceID: sourceID))
     }
 
-    public static func removeAll() {
+    static func removeAll() {
         lock.lock()
         defer { lock.unlock() }
         _suppressed.removeAll()

@@ -27,7 +27,7 @@ struct ChatToolUsePartView: View {
 
     @State private var isArgsExpanded: Bool = false
 
-    public init(toolUse: ChatMessagePart.ToolUsePart, isOutgoing: Bool) {
+    init(toolUse: ChatMessagePart.ToolUsePart, isOutgoing: Bool) {
         self.toolUse = toolUse
         self.isOutgoing = isOutgoing
     }

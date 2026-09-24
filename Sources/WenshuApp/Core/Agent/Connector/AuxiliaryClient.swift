@@ -38,14 +38,14 @@ import Foundation
 /// Many small SSE events for the same text block arrive between model
 /// flushes. We coalesce them into a single coalesced event before the
 /// LLMBlock emitter sees them.
-public struct SSECoalescedEvent: Sendable, Equatable {
-    public let eventType: String
-    public let data: String
-    public let coalescedCount: Int
-    public let firstTimestamp: Date
-    public let lastTimestamp: Date
+struct SSECoalescedEvent: Sendable, Equatable {
+    let eventType: String
+    let data: String
+    let coalescedCount: Int
+    let firstTimestamp: Date
+    let lastTimestamp: Date
 
-    public init(
+    init(
         eventType: String,
         data: String,
         coalescedCount: Int = 1,
@@ -66,11 +66,11 @@ public struct SSECoalescedEvent: Sendable, Equatable {
 /// flushes. We coalesce them into a single block before the LLMBlock
 /// emitter sees them. This reduces per-block overhead by ~3-5x in
 /// practice (= hermes measurements on Anthropic streaming).
-public actor SSECoalescer {
+actor SSECoalescer {
     private var pending: [String: SSECoalescedEvent] = [:]
     private let coalesceWindow: TimeInterval
 
-    public init(coalesceWindow: TimeInterval = 0.05) {
+    init(coalesceWindow: TimeInterval = 0.05) {
         self.coalesceWindow = coalesceWindow
     }
 
@@ -78,7 +78,7 @@ public actor SSECoalescer {
     /// exists and the coalesce window hasn't elapsed, the data is appended
     /// to the existing event. Otherwise, the previous event is flushed
     /// (= returned via `take`) and the new event becomes pending.
-    public func push(_ event: SSECoalescedEvent) -> [SSECoalescedEvent] {
+    func push(_ event: SSECoalescedEvent) -> [SSECoalescedEvent] {
         var flushed: [SSECoalescedEvent] = []
         if let existing = pending[event.eventType] {
             // Coalesce: append data + bump counter + update lastTimestamp.
@@ -104,29 +104,29 @@ public actor SSECoalescer {
     }
 
     /// Drain all pending events (= called when the SSE stream ends).
-    public func take() -> [SSECoalescedEvent] {
+    func take() -> [SSECoalescedEvent] {
         let drained = Array(pending.values)
         pending.removeAll()
         return drained
     }
 
     /// Pending count (= for diagnostics).
-    public func pendingCount() -> Int { pending.count }
+    func pendingCount() -> Int { pending.count }
 }
 
 /// Per-task model config (= hermes _get_auxiliary_task_config + the
 /// per-task defaults table).
-public struct AuxiliaryTaskConfig: Sendable, Equatable {
-    public let task: String
-    public let provider: String?
-    public let model: String?
-    public let baseURL: String?
-    public let temperature: Double?
-    public let maxTokens: Int?
-    public let timeoutSeconds: Double
-    public let extraBody: [String: String]
+struct AuxiliaryTaskConfig: Sendable, Equatable {
+    let task: String
+    let provider: String?
+    let model: String?
+    let baseURL: String?
+    let temperature: Double?
+    let maxTokens: Int?
+    let timeoutSeconds: Double
+    let extraBody: [String: String]
 
-    public init(
+    init(
         task: String,
         provider: String? = nil,
         model: String? = nil,
@@ -151,11 +151,11 @@ public struct AuxiliaryTaskConfig: Sendable, Equatable {
 /// L5987-6030; the per-task defaults table for summarization /
 /// compression-summarizer / skill-frontmatter / memory-block extraction /
 /// etc.).
-public enum AuxiliaryTaskRegistry {
+enum AuxiliaryTaskRegistry {
     /// The default per-task config table (= hermes _get_auxiliary_task_config).
     /// Each task gets a sensible default model that may differ from the main loop
     /// (smaller + faster, since auxiliary tasks are usually scope-limited).
-    public static func config(for task: String) -> AuxiliaryTaskConfig {
+    static func config(for task: String) -> AuxiliaryTaskConfig {
         switch task {
         case "summarization":
             return AuxiliaryTaskConfig(
@@ -208,19 +208,19 @@ public enum AuxiliaryTaskRegistry {
     }
 
     /// Resolve the extra body (= hermes _get_task_extra_body).
-    public static func extraBody(task: String) -> [String: String] {
+    static func extraBody(task: String) -> [String: String] {
         return config(for: task).extraBody
     }
 }
 
 /// Provider normalization helpers (= hermes _normalize_aux_provider +
 /// _resolve_aux_verify + _apply_user_default_headers + _build_call_kwargs).
-public enum AuxiliaryProviderNormalization {
+enum AuxiliaryProviderNormalization {
 
     /// Normalize a provider slug (= hermes _normalize_aux_provider L277-303).
     /// Returns one of: "anthropic" / "openai" / "google" / "ollama" /
     /// "openrouter" / "deepseek" / "minimax-cn" / "unknown".
-    public static func normalizeProvider(_ provider: String?) -> String {
+    static func normalizeProvider(_ provider: String?) -> String {
         guard let p = provider?.lowercased(), !p.isEmpty else { return "unknown" }
         switch p {
         case "anthropic": return "anthropic"
@@ -238,7 +238,7 @@ public enum AuxiliaryProviderNormalization {
     /// Returns true when the base URL is a known certificate-pinned host
     /// (Anthropic, OpenAI, Google); false when it's a local / self-signed
     /// host (Ollama, custom gateway).
-    public static func resolveVerify(baseURL: String?) -> Bool {
+    static func resolveVerify(baseURL: String?) -> Bool {
         guard let url = baseURL?.lowercased() else { return true }
         if url.contains("localhost") || url.contains("127.0.0.1") { return false }
         if url.contains("ollama") { return false }
@@ -248,7 +248,7 @@ public enum AuxiliaryProviderNormalization {
     /// Build call kwargs (= hermes _build_call_kwargs L6177-6279: normalizes
     /// model + messages + tools + temperature + max_tokens into the shape the
     /// underlying OpenAI-style client expects).
-    public static func buildCallKwags(
+    static func buildCallKwags(
         model: String,
         messages: [LLMMessage],
         systemPrompt: String?,
@@ -284,11 +284,11 @@ public enum AuxiliaryProviderNormalization {
 /// Auxiliary client facade (= hermes CodexAuxiliaryClient + the
 /// call_llm entry point surface). Wenshu-side wins: delegates to the
 /// existing LLMConnector profiles per the resolved task config.
-public actor AuxiliaryClient {
-    public let coalescer: SSECoalescer
+actor AuxiliaryClient {
+    let coalescer: SSECoalescer
     private var lastTaskConfig: [String: AuxiliaryTaskConfig] = [:]
 
-    public init(coalescer: SSECoalescer = SSECoalescer()) {
+    init(coalescer: SSECoalescer = SSECoalescer()) {
         self.coalescer = coalescer
     }
 }

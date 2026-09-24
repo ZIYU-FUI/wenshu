@@ -18,7 +18,7 @@
 
 import Foundation
 
-public enum WenshuI18n {
+enum WenshuI18n {
 
     /// Bundle that contains the Localizable.strings files. There are 3 candidate
     /// bundles Apple can resolve against at runtime; we try each in order:
@@ -137,7 +137,7 @@ public enum WenshuI18n {
     /// user's locale is zh-Hans, missing keys fall back
     /// to the en catalog; if still missing, the key string
     /// itself (= hermes i18n fallback policy).
-    public static func t(_ key: String, defaultValue: String, comment: String? = nil) -> String {
+    static func t(_ key: String, defaultValue: String, comment: String? = nil) -> String {
         NSLocalizedString(
             key,
             tableName: nil,
@@ -152,7 +152,7 @@ public enum WenshuI18n {
     /// without a defaultValue) still work. New call sites
     /// should use the 2-arg form (= t(_:defaultValue:))
     /// per Apple HIG.
-    public static func t(_ key: String) -> String {
+    static func t(_ key: String) -> String {
         // No defaultValue available here, so the user will
         // see the key string if the catalog is missing the
         // key (= hermes i18n fallback policy + Apple
@@ -167,24 +167,24 @@ public enum WenshuI18n {
     /// under the hood (= respects the user's locale for number
     /// formatting). Order matches the placeholder positions in
     /// the Localizable.strings value.
-    public static func tf(_ key: String, defaultValue: String, _ args: CVarArg..., comment: String? = nil) -> String {
+    static func tf(_ key: String, defaultValue: String, _ args: CVarArg..., comment: String? = nil) -> String {
         let format = t(key, defaultValue: defaultValue, comment: comment)
         return String(format: format, arguments: args)
     }
 
     /// Backward-compat format-string 1-arg form.
-    public static func tf(_ key: String, _ args: CVarArg...) -> String {
+    static func tf(_ key: String, _ args: CVarArg...) -> String {
         let format = t(key)
         return String(format: format, arguments: args)
     }
 
     /// %@-style variant for object substitutions (provider names, model IDs).
-    public static func ts(_ key: String, defaultValue: String, _ arg: String, comment: String? = nil) -> String {
+    static func ts(_ key: String, defaultValue: String, _ arg: String, comment: String? = nil) -> String {
         tf(key, defaultValue: defaultValue, arg, comment: comment)
     }
 
     /// Backward-compat %@ 1-arg form.
-    public static func ts(_ key: String, _ arg: String) -> String {
+    static func ts(_ key: String, _ arg: String) -> String {
         tf(key, arg)
     }
 }

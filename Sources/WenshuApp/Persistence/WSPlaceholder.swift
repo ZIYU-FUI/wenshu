@@ -12,8 +12,8 @@ import Foundation
 import SwiftData
 
 @Model
-public final class WSPlaceholder {
-    @Attribute(.unique) public var id: String
+final class WSPlaceholder {
+    @Attribute(.unique) var id: String
     /// FK to WSBook.id
     var bookID: String
     /// FK to WSChapter.id

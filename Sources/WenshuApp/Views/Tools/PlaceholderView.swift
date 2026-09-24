@@ -91,7 +91,7 @@ struct PlaceholderView: View {
         case failed(String)
     }
 
-    public init() {}
+    init() {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

@@ -11,7 +11,7 @@ import SwiftUI
 struct BacklinksPanel: View {
     @State private var viewModel: BacklinksViewModel
 
-    public init(viewModel: BacklinksViewModel = BacklinksViewModel()) {
+    init(viewModel: BacklinksViewModel = BacklinksViewModel()) {
         self._viewModel = State(initialValue: viewModel)
     }
 

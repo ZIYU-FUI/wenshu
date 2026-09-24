@@ -55,7 +55,7 @@ import Foundation
 /// placeholder between any two states directly without an
 /// enforced linear order; = matches the Python implementation's
 /// "free-form transitions" behavior).
-public enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
+enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// The placeholder has not yet been addressed.
     case open
     /// The placeholder has been replaced with real content
@@ -65,10 +65,10 @@ public enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifi
     /// address it; kept for archaeology but no longer in flight).
     case abandoned
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Human-readable English label (= for the picker / list rows).
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .open:      return "Open"
         case .resolved:  return "Resolved"
@@ -80,7 +80,7 @@ public enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifi
     /// Image(systemName:) directly in the PlaceholderView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .open:      return "circle"                // Lucide 'circle'
         case .resolved:  return "checkmark.circle"      // Lucide 'check-circle-2'
@@ -90,7 +90,7 @@ public enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifi
 
     /// Terminal statuses that mean the placeholder is no longer
     /// "in flight" (= the writer does not need to act on it again).
-    public var isTerminal: Bool {
+    var isTerminal: Bool {
         switch self {
         case .resolved, .abandoned: return true
         case .open:                 return false
@@ -117,37 +117,37 @@ public enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifi
 ///     triggered the match; matches the Python module's
 ///     `pattern` field).
 ///   - A lifecycle status (= see PlaceholderStatus).
-public struct Placeholder: Sendable, Codable, Equatable, Identifiable {
+struct Placeholder: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for add / update /
     /// remove lookups; never re-used even across books).
-    public let id: UUID
+    let id: UUID
 
     /// Owning book (= the actor resolves the on-disk sidecar
     /// through this id).
-    public let bookId: UUID
+    let bookId: UUID
 
     /// Chapter id where the placeholder was found.
-    public let chapterId: UUID
+    let chapterId: UUID
 
     /// 1-indexed line number of the placeholder within the
     /// chapter text.
-    public let lineNumber: Int
+    let lineNumber: Int
 
     /// Surrounding text excerpt (= the matched line + a small
     /// leading / trailing window). Trimmed at construction time.
-    public let context: String
+    let context: String
 
     /// The literal matched text (= e.g. "[TODO: check this]").
-    public let pattern: String
+    let pattern: String
 
     /// Lifecycle status (= see PlaceholderStatus).
-    public let status: PlaceholderStatus
+    let status: PlaceholderStatus
 
     /// Creation timestamp (= `Date.now` at add time).
-    public let createdAt: Date
+    let createdAt: Date
 
-    public init(
+    init(
         id: UUID = UUID(),
         bookId: UUID,
         chapterId: UUID,
@@ -198,12 +198,12 @@ struct PlaceholderSidecar: Codable, Sendable, Equatable {
 /// Errors thrown by `PlaceholderScanner`. Mirrors the
 /// ForeshadowingTracker / TagManager / CharacterLifecycleTracker
 /// / IdeaLibrary error conventions (= a LocalizedError per case).
-public enum PlaceholderScannerError: Error, LocalizedError, Sendable, Equatable {
+enum PlaceholderScannerError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case placeholderNotFound(id: UUID)
     case invalidPattern(pattern: String, underlying: String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .bookDirectoryNotFound(let id):
             return "PlaceholderScanner: book directory not found for id \(id.uuidString)"
@@ -239,7 +239,7 @@ public enum PlaceholderScannerError: Error, LocalizedError, Sendable, Equatable 
 ///     `.bookDirectoryNotFound`.
 ///   - Empty / whitespace-only patterns are rejected silently
 ///     on `add` (= no row is persisted).
-public actor PlaceholderScanner {
+actor PlaceholderScanner {
 
     /// Sidecar on-disk filename (= parallel to
     /// `kanban.json` / `todo.json` / `tags.json` / `ideas.json`
@@ -263,7 +263,7 @@ public actor PlaceholderScanner {
     ///  5. `[TBD ...]`         (TBD with optional body)
     ///  6. `<HERE>`            (literal HERE marker)
     ///  7. `{{...}}`           (mustache / handlebars template)
-    public static let defaultPatterns: [String] = [
+    static let defaultPatterns: [String] = [
         #"\[TODO[^\]]*\]"#,
         #"\[FIXME[^\]]*\]"#,
         #"\[XXX[^\]]*\]"#,
@@ -298,7 +298,7 @@ public actor PlaceholderScanner {
     ///   - Empty / whitespace-only patterns are rejected silently
     ///     (= no row is persisted; matches the tag manager's
     ///     strict policy on empty labels).
-    public func add(_ placeholder: Placeholder) async throws {
+    func add(_ placeholder: Placeholder) async throws {
         guard !placeholder.pattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         var sidecar = try await loadOrCreateSidecar(bookId: placeholder.bookId)
         if let idx = sidecar.placeholders.firstIndex(where: { $0.id == placeholder.id }) {
@@ -320,7 +320,7 @@ public actor PlaceholderScanner {
     ///     id exists for any cached book.
     ///   - Empty / whitespace-only patterns are rejected silently
     ///     (= no row is persisted).
-    public func update(_ placeholder: Placeholder) async throws {
+    func update(_ placeholder: Placeholder) async throws {
         guard !placeholder.pattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         // Load the sidecar (= warms the cache for the owning
         // book) BEFORE the existence check.
@@ -336,7 +336,7 @@ public actor PlaceholderScanner {
 
     /// Remove a placeholder by id. Throws `.placeholderNotFound`
     /// when the id is unknown for any cached book.
-    public func remove(id: UUID) async throws {
+    func remove(id: UUID) async throws {
         if let bookId = try await getBookId(for: id) {
             var sidecar = try await loadOrCreateSidecar(bookId: bookId)
             guard let idx = sidecar.placeholders.firstIndex(where: { $0.id == id }) else {
@@ -355,7 +355,7 @@ public actor PlaceholderScanner {
 
     /// All placeholders in a book, filterable by status and / or
     /// chapter. When both filters are nil, returns every row.
-    public func list(
+    func list(
         bookId: UUID,
         status: PlaceholderStatus? = nil,
         chapterId: UUID? = nil
@@ -384,7 +384,7 @@ public actor PlaceholderScanner {
     /// Single-placeholder lookup by id. Returns `nil` (= NOT
     /// throws) when the id is unknown for any cached book (=
     /// matches the view layer's "optional row" idiom).
-    public func get(id: UUID) async throws -> Placeholder? {
+    func get(id: UUID) async throws -> Placeholder? {
         guard let bookId = try await getBookId(for: id) else { return nil }
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         return sidecar.placeholders.first { $0.id == id }
@@ -394,13 +394,13 @@ public actor PlaceholderScanner {
 
     /// Mark a placeholder as resolved (= convenience wrapper
     /// over `update`).
-    public func resolve(id: UUID) async throws {
+    func resolve(id: UUID) async throws {
         try await setStatus(id: id, to: .resolved)
     }
 
     /// Mark a placeholder as abandoned (= convenience wrapper
     /// over `update`).
-    public func abandon(id: UUID) async throws {
+    func abandon(id: UUID) async throws {
         try await setStatus(id: id, to: .abandoned)
     }
 
@@ -408,7 +408,7 @@ public actor PlaceholderScanner {
     /// `update`; useful for re-opening a previously-resolved
     /// placeholder when the writer discovers the original was
     /// not actually addressed).
-    public func reopen(id: UUID) async throws {
+    func reopen(id: UUID) async throws {
         try await setStatus(id: id, to: .open)
     }
 
@@ -454,7 +454,7 @@ public actor PlaceholderScanner {
     /// `add(...)`; this matches the Python module's `scan`
     /// behavior which returns a list and lets the caller
     /// choose what to persist).
-    public func scan(
+    func scan(
         chapterText: String,
         bookId: UUID,
         chapterId: UUID,
@@ -504,7 +504,7 @@ public actor PlaceholderScanner {
     /// want a one-shot "scan and add all" flow use this).
     /// Returns the rows that were persisted.
     @discardableResult
-    public func scanAndAdd(
+    func scanAndAdd(
         chapterText: String,
         bookId: UUID,
         chapterId: UUID,

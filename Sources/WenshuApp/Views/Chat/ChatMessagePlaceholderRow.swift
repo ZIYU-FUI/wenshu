@@ -50,7 +50,7 @@ struct ChatMessagePlaceholderRow<Pulse: View>: View {
     /// StatusPulse type out of ChatMessageView.swift).
     @ViewBuilder let pulse: Pulse
 
-    public init(
+    init(
         hintText: String,
         timestamp: Date,
         @ViewBuilder pulse: () -> Pulse

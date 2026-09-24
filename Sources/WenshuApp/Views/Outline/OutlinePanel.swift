@@ -13,7 +13,7 @@ import SwiftUI
 struct OutlinePanel: View {
     @State private var items: [OutlineItem] = []
 
-    public init() {}
+    init() {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {

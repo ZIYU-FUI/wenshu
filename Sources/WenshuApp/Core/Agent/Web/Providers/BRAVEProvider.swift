@@ -15,17 +15,17 @@
 
 import Foundation
 
-public struct BRAVEProvider: WebSearchProvider, Sendable {
+struct BRAVEProvider: WebSearchProvider, Sendable {
 
-    public let name: String = "brave"
+    let name: String = "brave"
 
-    public init(apiKey: String? = nil) {
+    init(apiKey: String? = nil) {
         self.apiKey = apiKey
     }
 
     private let apiKey: String?
 
-    public func search(query: String, limit: Int) async throws -> [WebSearchResult] {
+    func search(query: String, limit: Int) async throws -> [WebSearchResult] {
         guard let apiKey, !apiKey.isEmpty else {
             return []
         }

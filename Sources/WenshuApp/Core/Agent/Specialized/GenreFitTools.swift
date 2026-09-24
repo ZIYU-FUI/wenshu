@@ -88,7 +88,7 @@ import Foundation
 /// original Python uses snake_case; the Swift names follow the
 /// wenshu style guide (= enum cases in lowerCamelCase, matching
 /// `ReaderExperienceKind`, `LongFormGuardrailKind`).
-public enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable {
+enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable {
     /// Literary fiction (= general literary prose).
     case literary
     /// Crime / mystery / detective.
@@ -111,10 +111,10 @@ public enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable
     /// from `.literary` to allow distinct preset).
     case literaryFiction
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Display label for the SwiftUI picker.
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .literary:         return "Literary"
         case .mystery:          return "Mystery"
@@ -130,7 +130,7 @@ public enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable
     }
 
     /// One-sentence hint shown next to the picker.
-    public var hint: String {
+    var hint: String {
         switch self {
         case .literary:
             return "Literary prose: introspective, image-rich, restrained dialogue."
@@ -159,7 +159,7 @@ public enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable
     /// Image(systemName:) directly in the GenreFitView
     /// row rendering path). Replaces the Lucide-era names removed
     /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .literary:         return "book.pages"                  // Lucide 'book-open'
         case .mystery:          return "magnifyingglass"             // Lucide 'magnifyingglass'
@@ -179,29 +179,29 @@ public enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable
 /// one `GenreConvention`. The fields are deliberately
 /// `let`-immutable so the actor can share them safely across
 /// concurrent callers.
-public struct GenreConvention: Sendable, Codable, Equatable {
+struct GenreConvention: Sendable, Codable, Equatable {
     /// The genre this preset belongs to.
-    public let genre: LiteraryGenre
+    let genre: LiteraryGenre
 
     /// Required structural beats (= e.g. mystery: "crime
     /// introduction", "red herring", "revelation"). The analyzer
     /// marks a beat as matched when any of its hint phrases
     /// appears in the chapter text.
-    public let requiredBeats: [String]
+    let requiredBeats: [String]
 
     /// Expected vocabulary tokens (= e.g. mystery: "alibi",
     /// "suspect", "clue"). The analyzer counts each token's
     /// presence in the chapter (= not just whether it appears
     /// once, but how many distinct expected-vocab tokens were
     /// found at least once).
-    public let expectedVocab: [String]
+    let expectedVocab: [String]
 
     /// Forbidden patterns (= e.g. romance: "deus ex machina",
     /// "sudden love"). The analyzer flags each occurrence as a
     /// `forbiddenHit`.
-    public let forbiddenPatterns: [String]
+    let forbiddenPatterns: [String]
 
-    public init(
+    init(
         genre: LiteraryGenre,
         requiredBeats: [String],
         expectedVocab: [String],
@@ -215,36 +215,36 @@ public struct GenreConvention: Sendable, Codable, Equatable {
 }
 
 /// The analyzer output (= matches the task spec verbatim).
-public struct GenreFitReport: Sendable, Codable, Equatable {
-    public let genre: LiteraryGenre
+struct GenreFitReport: Sendable, Codable, Equatable {
+    let genre: LiteraryGenre
 
     /// Normalized score in 0..100. Higher = more conventions met
     /// and fewer forbidden patterns. The exact formula lives in
     /// `GenreFitAnalyzer.score(...)`.
-    public let score: Double
+    let score: Double
 
     /// Required beats that the chapter exhibits (= matched at
     /// least one hint phrase).
-    public let matchedBeats: [String]
+    let matchedBeats: [String]
 
     /// Required beats that the chapter omits (= no hint phrase
     /// detected).
-    public let missingBeats: [String]
+    let missingBeats: [String]
 
     /// Forbidden patterns that appeared in the chapter (= each
     /// entry is the literal pattern that triggered the hit; the
     /// caller can render an evidence list).
-    public let forbiddenHits: [String]
+    let forbiddenHits: [String]
 
     /// Expected vocabulary tokens that WERE found in the
     /// chapter (= at least one occurrence).
-    public let expectedVocabUsed: [String]
+    let expectedVocabUsed: [String]
 
     /// Expected vocabulary tokens that were NOT found in the
     /// chapter (= zero occurrences).
-    public let expectedVocabMissing: [String]
+    let expectedVocabMissing: [String]
 
-    public init(
+    init(
         genre: LiteraryGenre,
         score: Double,
         matchedBeats: [String],
@@ -265,14 +265,14 @@ public struct GenreFitReport: Sendable, Codable, Equatable {
 
 /// Lightweight summary of a single genre for the picker. The
 /// view layer renders one row per `GenreSummary`.
-public struct GenreSummary: Sendable, Codable, Equatable, Identifiable {
-    public let genre: LiteraryGenre
-    public let displayName: String
-    public let requiredBeatCount: Int
+struct GenreSummary: Sendable, Codable, Equatable, Identifiable {
+    let genre: LiteraryGenre
+    let displayName: String
+    let requiredBeatCount: Int
 
-    public var id: String { genre.rawValue }
+    var id: String { genre.rawValue }
 
-    public init(genre: LiteraryGenre, displayName: String, requiredBeatCount: Int) {
+    init(genre: LiteraryGenre, displayName: String, requiredBeatCount: Int) {
         self.genre = genre
         self.displayName = displayName
         self.requiredBeatCount = requiredBeatCount
@@ -284,11 +284,11 @@ public struct GenreSummary: Sendable, Codable, Equatable, Identifiable {
 /// Errors thrown by `GenreFitAnalyzer`. The 2 cases mirror the
 /// reader_experience convention (= a LocalizedError for each
 /// case; = no `fatalError` paths).
-public enum GenreFitAnalyzerError: Error, LocalizedError, Sendable, Equatable {
+enum GenreFitAnalyzerError: Error, LocalizedError, Sendable, Equatable {
     case emptyChapter
     case unknownGenre(String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .emptyChapter:
             return "GenreFitAnalyzer: chapter text is empty."
@@ -309,7 +309,7 @@ public enum GenreFitAnalyzerError: Error, LocalizedError, Sendable, Equatable {
 /// reader_experience + plot_thread pattern (= Swift 6 strict
 /// concurrency; no shared mutable state across the
 /// SpecializedTools pane + chat loop callers).
-public actor GenreFitAnalyzer {
+actor GenreFitAnalyzer {
 
     /// Cached convention presets (= keyed by LiteraryGenre raw
     /// value). Built once at init so per-call lookups are O(1)
@@ -319,7 +319,7 @@ public actor GenreFitAnalyzer {
     /// Public initializer. No BookStore dependency (= the
     /// analyzer is fully deterministic and offline-capable; =
     /// mirrors ReaderExperienceAnalyzer).
-    public init() {
+    init() {
         var built: [String: GenreConvention] = [:]
         for genre in LiteraryGenre.allCases {
             built[genre.rawValue] = GenreFitAnalyzer.preset(for: genre)
@@ -336,7 +336,7 @@ public actor GenreFitAnalyzer {
     /// - Throws: `.unknownGenre` only if the enum is extended
     ///   without updating `preset(for:)` (= defensive — should
     ///   never fire in practice).
-    public func conventions(for genre: LiteraryGenre) throws -> GenreConvention {
+    func conventions(for genre: LiteraryGenre) throws -> GenreConvention {
         guard let preset = presets[genre.rawValue] else {
             throw GenreFitAnalyzerError.unknownGenre(genre.rawValue)
         }
@@ -355,7 +355,7 @@ public actor GenreFitAnalyzer {
     ///   `.unknownGenre` if the raw value is not one of the 10
     ///   known genres (= defensive — should never fire in
     ///   practice since the enum is exhaustive).
-    public func analyze(
+    func analyze(
         chapterText: String,
         genre: LiteraryGenre
     ) async throws -> GenreFitReport {
@@ -428,7 +428,7 @@ public actor GenreFitAnalyzer {
     /// List all available genres with their convention
     /// summaries. The view layer uses this to populate the
     /// picker without having to introspect each preset.
-    public func availableGenres() async -> [GenreSummary] {
+    func availableGenres() async -> [GenreSummary] {
         LiteraryGenre.allCases.map { genre in
             let preset = presets[genre.rawValue]
             return GenreSummary(
