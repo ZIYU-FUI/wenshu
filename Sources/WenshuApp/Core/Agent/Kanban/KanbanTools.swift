@@ -39,7 +39,7 @@ import Foundation
 
 /// LLM-facing kanban management tool. Thin facade over wenshu's
 /// SwiftData-backed kanban store (= WSKanbanRepository.shared =
-/// @MainActor; = Phase 5 ticket 6 deleted Core/Kanban/KanbanStore.swift
+/// @MainActor; [historical actor removed]
 /// which used raw sqlite3) that exposes the action dispatcher the
 /// chat surface uses.
 actor KanbanTools {
