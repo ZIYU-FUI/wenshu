@@ -76,8 +76,7 @@ public actor GoalsManager {
     /// Used by callers (= e.g. `Core/Chat/ChatSessionViewModel`)
     /// that need a session-scoped temp persistence dir without
     /// touching `FileManager` directly (= business layer cannot
-    /// touch `FileManager` per boss OOB 2026-09-22 '业务层不许摸
-    /// 基础设施'; = data-layer concern lives here).
+    /// touch `FileManager`; = data-layer concern lives here).
     public static func temporaryGoalsDirectory(prefix: String) -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent("\(prefix)-\(UUID().uuidString)", isDirectory: true)
@@ -87,9 +86,8 @@ public actor GoalsManager {
     /// `FileManager.default.urls(for: .applicationSupportDirectory, ...)`.
     /// Used as the fallback when no explicit `persistenceDirectory`
     /// is passed to `init` (= the FileManager call is data-layer
-    /// concern per boss OOB 2026-09-22 '业务层不许摸基础设施';
-    /// = the caller in `Core/Chat/ChatSessionViewModel` no
-    /// longer touches `FileManager` directly).
+    /// concern; = the caller in `Core/Chat/ChatSessionViewModel`
+    /// no longer touches `FileManager` directly).
     public static func applicationSupportGoalsDirectory() -> URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Wenshu/Goals", isDirectory: true)
