@@ -4,7 +4,7 @@
 //                          P0 #2 (WIRE-AGENT-002, 2026-09-04)
 //
 //  Wenshu main agent orchestrator: receives user message → calls LLM intent classify → dispatches 0-N v0.19 module agents → waits for results → calls LLM to synthesize final reply.
-//  Dispatch progress goes through WSKanbanRepository (= user checks Kanban board), ChatView does not show sub-agents (hidden) (boss 2026-08-21 said). (= Phase 5 ticket 6 deleted KanbanStore actor.)
+//  Dispatch progress goes through WSKanbanRepository (= user checks Kanban board), ChatView does not show sub-agents (hidden) (per the 2026-08 chat-arc OOB). ([historical actor removed] actor.)
 //
 //  Reuses v0.19 12-module backend (LinkGraph / Search / Template / Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier;
     //  note: `WenshuVerifier` lives at `Core/Agent/Connector/WenshuVerifier.swift`,
@@ -34,10 +34,10 @@ actor WenshuConductor {
     private let runtime: AgentRuntime
     private let verifier: WenshuVerifier
     /// Long-term memory persistence for agent (now SwiftData-backed via WSMemoryRepository
-    /// (= Phase 5 ticket 8 deleted MemoryStore.swift; this property was previously MemoryStore? for the deprecated actor bridge, now removed.)
+    /// ([historical actor removed]; this property was previously MemoryStore? for the deprecated actor bridge, now removed.)
     /// All memory calls go through WSMemoryRepository.shared (= @MainActor).
     /// Local Skills registry (replica of hermes skills_hub). Skills loaded at startup, agent invokes.
-    /// Lazy bootstrap pattern (= kept here for the still-actor-isolated SkillRegistry; = the MemoryStore equivalent was removed in Phase 5 ticket 8).
+    /// Lazy bootstrap pattern (= kept here for the still-actor-isolated SkillRegistry; = the MemoryStore equivalent was removed in subsequent migration step).
     /// See .scratch/2026-08-22-frontend-integration/issues/h02-skill-registry-frontend.md.
     private var skillRegistry: SkillRegistry?
     private var skillRegistryBootstrapped: Bool = false
@@ -98,7 +98,7 @@ actor WenshuConductor {
         // so the registry survives the chain (= legacy callers passing
         // a registry but no connector still keep their tools in case
         // the loop path is enabled later in the same lifetime).
-        // Phase 5 ticket 2: kanbanStore param was removed entirely from
+        // subsequent migration step: kanbanStore param was removed entirely from
         // both init signatures (= ticket 6 also deleted the KanbanStore
         // actor; = there is no kanbanStore arg to pass). KanbanStore
         // persistence is now exclusively via `repositories.kanban`
@@ -561,7 +561,7 @@ actor WenshuConductor {
                     }
                 }
             }
-            // + Phase 5 ticket 10a: write 1-line sub-agent run summary
+            // + subsequent migration stepa: write 1-line sub-agent run summary
             // to WSChatRepository.shared (= @MainActor SwiftData wrapper).
             // (boss 8/23 said: user doesn't need execution details, just sees results — no full LLM dialogue stored).
             for (name, result) in subResults {
