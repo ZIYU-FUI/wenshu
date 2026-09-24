@@ -1,6 +1,6 @@
 // Sources/WenshuApp/Editor/WenshuEditorServicesFactory.swift
 //
-// v0.39 ticket 001 + SMC ticket 003 -- factory + bus builder.
+// Factory + bus builder for the markdown editor.
 import Foundation
 import MarkdownEngine
 import MarkdownEngineCodeBlocks
@@ -57,7 +57,7 @@ enum WenshuEditorServicesFactory {
     }
 }
 
-// MARK: - MarkdownEditorBus construction (SMC ticket 003)
+// MARK: - MarkdownEditorBus construction
 extension MarkdownEditorBus {
     static func buildWenshu() -> MarkdownEditorBus {
         MarkdownEditorBus(
