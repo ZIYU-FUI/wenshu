@@ -31,6 +31,7 @@ struct AppRootScene: Scene {
     /// .sheet(item:) consumer). Injected via `.environment(sheetRequests)`
     /// at every scene root (= WindowGroup content + Settings scene).
     let sheetRequests: SheetRequestState
+    let editorCounters: EditorCounters
     let repositories: WSRepositoryContainer
 
     // the kanban + todo Windows each construct their own BookStore /
