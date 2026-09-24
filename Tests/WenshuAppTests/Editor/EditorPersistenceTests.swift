@@ -1,12 +1,11 @@
 //
-//  EditorPersistenceTests.swift · Wenshu · v1.70 editor-mvvm T2a
+//  EditorPersistenceTests.swift · Wenshu
 //
 //  Behavior + source-level tests for `EditorPersistence` (= the
 //  disk IO + conflict-backup + auto-save-task lifecycle extracted
-//  from EditorPlaceholder in v1.70 editor-mvvm T2a).
+//  from EditorPlaceholder.swift).
 //
-//  Per boss 2026-09-22 OOB '拆完功能' (= the split is done; = verify
-//  the functionality): the persistence helpers are pure (= take
+//  The persistence helpers are pure (= take
 //  EditorTab + BookStore?, return result structs, mutate tab in
 //  place via @Observable property access; = the view no longer
 //  owns the IO logic). Tests cover the public API + the 3
@@ -158,8 +157,6 @@ struct EditorPersistenceTests {
 
     @Test("save with no documentPath + bookStore proposes a chapters/ path and binds tab.documentPath (= B-21)")
     func saveProposesNewPathAndBinds() throws {
-        // v0.34 B-21 path-proposal requires a book context (= the
-        // BookStore.proposedPath reads `bookStore.selectedBookId`).
         // The persistence helper must accept a nil bookStore gracefully
         // (= falls back to /tmp), and a non-nil bookStore may
         // produce a real proposed path. We don't construct a full

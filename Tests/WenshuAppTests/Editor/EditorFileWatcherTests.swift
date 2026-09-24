@@ -1,16 +1,15 @@
 //
-//  EditorFileWatcherTests.swift · Wenshu · v1.70 editor-mvvm T1a
+//  EditorFileWatcherTests.swift · Wenshu
 //
 //  Behavior + source-level tests for `EditorFileWatcher` (= the
 //  DispatchSourceFileSystemObject wrapper extracted from
-//  EditorPlaceholder in v1.70 editor-mvvm T1a).
+//  EditorPlaceholder.swift).
 //
-//  Per boss 2026-09-22 OOB '拆完功能' (= the split is done; = verify
-//  the functionality): behavior tests cover the public API
+//  Behavior tests cover the public API
 //  (start(path:tab:) + stop(tab:)) with a real temp file + real
 //  DispatchSource (= macOS 27 filesystem event delivery). Source-
 //  level tests assert the new file exists + the legacy code is gone
-//  from EditorPlaceholder.swift (= the v0.34 B-23 inline startFileWatcher
+//  from EditorPlaceholder.swift (= the inline startFileWatcher
 //  + stopFileWatcher no longer compile against the migrated target).
 //
 //  Pattern (= v0.71 P1 batch 3 + v0.39 ticket 001 precedent):
