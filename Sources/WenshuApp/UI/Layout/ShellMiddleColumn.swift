@@ -421,7 +421,25 @@ struct ShellMiddleColumn: View {
                         // search field heights). NO hard-coded
                         // `.frame(height: 30)` per the boss's
                         // explicit request.
-                        .controlSize(.large)
+                        // v1.84c boss 2026-09-24 OOB '搜索框的高度, 需要参考左栏的
+                        // 选定效果的高度, 一样高': the search field
+                        // total height must match the sidebar
+                        // selection row height (= chromeHeight = 30
+                        // PT, = the same Apple HIG standard
+                        // sidebar-row height used for the sidebar's
+                        // selected rows). v1.84 used .controlSize(
+                        // .large) + chromePaddingMicro (= 28 + 4 ×
+                        // 2 = 36 PT = 6 PT taller than the sidebar
+                        // row = visually inconsistent across the two
+                        // columns). Switch back to .controlSize(
+                        // .regular) (22 PT) + chromePaddingMicro
+                        // (4 PT × 2) = 30 PT = exact match to
+                        // chromeHeight (= Apple semantic expression
+                        // = no hard-coded frame height = the search
+                        // field and the sidebar row now form a
+                        // matched-height rhythm across the
+                        // NavigationSplitView).
+                        .controlSize(.regular)
                         .textFieldStyle(.plain)
                     }
                     // v1.83 boss 2026-09-24 OOB '素材栏的搜索栏没有
