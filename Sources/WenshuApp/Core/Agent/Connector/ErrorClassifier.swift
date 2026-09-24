@@ -152,7 +152,7 @@ enum ErrorClassifier {
     }
 }
 
-// MARK: - LLMConnectorError classifier (HERMES-PARTIAL-001 wire-up)
+// MARK: - LLMConnectorError classifier (wenshu port wire-up)
 
 /// Classify an `LLMConnectorError` as transient (= retryable) or
 /// non-transient (= fail fast). Mirrors hermes `classify_api_error`'s
