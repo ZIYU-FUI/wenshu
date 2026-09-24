@@ -1,6 +1,6 @@
 //
 //  ContextEngine.swift · Wenshu · v0.35 ticket 003 sub-step 3
-//  + HERMES-PARTIAL-013 (2026-09-04).
+// .
 //
 //  Context aggregation facade. Maps to hermes context_engine.py
 //  (= 231 LOC ABC interface). Wenshu-side wins per AGENTS.md §11.3:
@@ -27,7 +27,7 @@
 //    - updateFromResponse(usage:) for per-call token tracking
 //    - getStatus() → diagnostic dict
 //
-// sub-step 3 + HERMES-PARTIAL-013 (2026-09-04).
+// sub-step 3.
 //
 
 import Foundation
@@ -128,7 +128,7 @@ actor ContextEngine {
 
     init() {}
 
-    // MARK: - Per-turn context bundle assembly (= HERMES-PARTIAL-013)
+    // MARK: - Per-turn context bundle assembly (= wenshu port)
 
     /// Default MemoryManager used by ContextEngine when no explicit
     /// manager is injected. Created on first use so unit tests can
@@ -201,7 +201,7 @@ actor ContextEngine {
         )
     }
 
-    /// Assemble a context bundle from explicit inputs (= HERMES-PARTIAL-013
+    /// Assemble a context bundle from explicit inputs (= wenshu port
     /// bundle-construction surface; the caller wires ephemeral hint +
     /// cacheable references + per-turn memos through this entry point
     /// without depending on the Memory subsystem).
