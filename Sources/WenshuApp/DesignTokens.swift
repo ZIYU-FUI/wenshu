@@ -1,10 +1,8 @@
 // Sources/WenshuApp/DesignTokens.swift
 //
-// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'need group
 // (= canonical dimensions for the unified Wenshu per-region chrome; =
 // matches Apple HIG 30 PT toolbar standard, Apple Pages / Mail / Xcode
 // toolbar layout)':
-// Phase 1 of 5-phase component refactor.
 //
 // Single source of truth for all chrome dimensions, paddings, font sizes,
 // dividers, tab metrics (= extracted from LayoutTokens + 16 files of
@@ -84,7 +82,6 @@ enum DesignTokens {
     /// chromePaddingMedium (5) + chromePaddingLarge (6) (= inconsistent).
     static let chromePaddingVertical: CGFloat = 8
 
-    /// v1.0.0-m1-shell boss 2026-09-11 OOB 'left, middle-left, right — three columns'
     /// title, give it one Apple-standard expression of top spacing, roughly 18pt
     /// — pick an approximate value': top padding from column edge to first
     /// section header text. Apple HIG macOS 27 Tahoe inspector /
@@ -307,7 +304,6 @@ enum DesignTokens {
     /// v1.28 A1.9: Layout picker chrome width (= 416 PT; = 26rem
     /// at 16 PT/rem; = replaces inline `26 * 16` at LayoutEditBar:56
     /// + LayoutPicker:156 (= the comment-encoded magic constant
-    /// pair). Per v1.27 component audit: the arithmetic was the
     /// only documentation for the picker column; = data-driven now
     /// so future picker redesign is 1-stop.
     static let layoutPickerWidth: CGFloat = 416
@@ -445,7 +441,6 @@ enum DesignTokens {
     static let bulletSizeSmall: CGFloat = 14
 
     /// Empty-state icon size (= 76 PT, 2× the default ContentUnavailableView
-    /// 38 PT). v1.0.0-m1-shell boss 2026-09-12 OOB 'while you're at it, double the size of the empty-state
     /// ICON' (='double the empty-state icon size'). Replaces the
     /// raw `.frame(width: 76, height: 76)` in EmptyStateView.swift.
     /// Single source of truth for ALL empty-state icon sizes (= no
