@@ -97,7 +97,7 @@ import SwiftUI
 ///    contains an inline "Settings" Button as part of the
 ///    sentence; = Apple Mail / Notes convention):
 ///    `EmptyStateView(icon: ..., titleView: { HStack { Text; Button; Text } }, body: "...")`
-public struct EmptyStateView: View {
+struct EmptyStateView: View {
     let icon: String
     let titleText: String?
     let detail: String

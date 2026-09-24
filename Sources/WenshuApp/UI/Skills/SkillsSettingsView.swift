@@ -8,7 +8,7 @@ import SwiftUI
 private let smallChipCornerRadius: CGFloat = 3
 private let subtleSurfaceAlpha: CGFloat = 0.05
 
-public struct SkillsSettingsView: View {
+struct SkillsSettingsView: View {
     public let skills: [SkillAdapter.Skill]
     @State public var slashCommandBuffer: String = ""
 
@@ -67,7 +67,7 @@ public struct SkillsSettingsView: View {
     }
 }
 
-public struct SkillRow: View {
+struct SkillRow: View {
     public let skill: SkillAdapter.Skill
     @State private var isEnabled: Bool
 

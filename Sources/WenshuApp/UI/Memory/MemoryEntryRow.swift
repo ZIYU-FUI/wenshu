@@ -20,7 +20,7 @@
 
 import SwiftUI
 
-public struct MemoryEntryRow: View {
+struct MemoryEntryRow: View {
     public let entry: MemoryAdapter.MemoryEntry
     public let compact: Bool
 

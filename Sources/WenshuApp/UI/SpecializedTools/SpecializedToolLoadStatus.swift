@@ -22,7 +22,7 @@
 
 import Foundation
 
-public enum SpecializedToolLoadStatus: Equatable, Sendable {
+enum SpecializedToolLoadStatus: Equatable, Sendable {
     case idle
     case loading
     case loaded

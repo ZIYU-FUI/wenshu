@@ -24,7 +24,7 @@ import SwiftUI
 ///
 /// Reads the RuntimeCWD actor on appear + refreshes every time the
 /// override changes (= via RuntimeCWD.didChangeCWD notification).
-public struct RuntimeCWDDisplayChip: View {
+struct RuntimeCWDDisplayChip: View {
     @State private var displayLabel: String = "CWD: …"
     @State private var lastRefresh: Date = .distantPast
 

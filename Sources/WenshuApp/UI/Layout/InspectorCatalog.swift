@@ -47,7 +47,7 @@ import SwiftUI
 /// InspectorTool is a value type, Sendable, stateless, owned by
 /// `InspectorCatalog`. View layer never constructs these directly —
 /// it consumes them via `InspectorPage.tools`.
-public struct InspectorTool: Identifiable, Hashable, Sendable {
+struct InspectorTool: Identifiable, Hashable, Sendable {
     public let id: String
     public let icon: String
     public let title: String
@@ -68,7 +68,7 @@ public struct InspectorTool: Identifiable, Hashable, Sendable {
 /// lived in `ShellDetailColumn.filteredToolsForCurrentPage` (lines
 /// 111-130, deleted in ticket 03). The 12 entries mirror the 12
 /// specialized tool views under `Views/Tools/` + `Views/SpecializedTools/`.
-public enum InspectorCatalog {
+enum InspectorCatalog {
     // 12 specialized tools, derived from the original inline
     // tuple in ShellDetailColumn.swift:111-130.
 

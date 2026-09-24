@@ -28,7 +28,7 @@ import SwiftUI
 /// Column-top section header: 10 PT inset, centered secondary title text,
 /// 4 PT gap, hairline divider, 10 PT inset below. The canonical column-top
 /// chrome in macOS Mail / Notes / Finder section-header idiom.
-public struct SectionHeader: View {
+struct SectionHeader: View {
     public let title: String
     public let showsDivider: Bool
 

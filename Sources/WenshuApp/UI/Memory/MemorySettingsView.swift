@@ -9,7 +9,7 @@ private let smallChipCornerRadius: CGFloat = 3
 private let subtleSurfaceAlpha: CGFloat = 0.05
 
 
-public struct MemorySettingsView: View {
+struct MemorySettingsView: View {
     @AppStorage(MemoryAdapter.DefaultsKey.enabled)
     public var isMemoryEnabled: Bool = true
 
@@ -124,7 +124,7 @@ public struct MemorySettingsView: View {
     }
 }
 
-public enum MemoryScope: String, CaseIterable, Sendable {
+enum MemoryScope: String, CaseIterable, Sendable {
     case perBook = "per_book"
     case libraryPublic = "library_public"
 }

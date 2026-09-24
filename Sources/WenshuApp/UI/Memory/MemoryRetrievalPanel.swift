@@ -10,7 +10,7 @@
 
 import SwiftUI
 
-public struct MemoryRetrievalPanel: View {
+struct MemoryRetrievalPanel: View {
     @State public var entries: [MemoryAdapter.MemoryEntry]
 
     public init(entries: [MemoryAdapter.MemoryEntry] = []) {

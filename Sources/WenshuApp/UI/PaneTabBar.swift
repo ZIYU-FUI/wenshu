@@ -58,7 +58,7 @@ import SwiftUI
 /// )
 /// ```
 @MainActor
-public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
+struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
     /// Tab items to display.
     public let items: [Item]
 
@@ -189,7 +189,7 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
 
 /// Convenience value type for `PaneTabBar` items (= used when caller
 /// doesn't have a custom Identifiable type).
-public struct PaneTabItem: Identifiable, Sendable {
+struct PaneTabItem: Identifiable, Sendable {
     public let id: String
     public let icon: String
     public let label: String
@@ -216,7 +216,7 @@ public struct PaneTabItem: Identifiable, Sendable {
 // (= chat-zone archive button; was inlined into TabContentDispatcher when
 // the wrapper was deleted in v0.34).
 @MainActor
-public struct PaneTrailingIconButton: View {
+struct PaneTrailingIconButton: View {
     public let icon: String
     public let tooltip: String
     public let action: () -> Void

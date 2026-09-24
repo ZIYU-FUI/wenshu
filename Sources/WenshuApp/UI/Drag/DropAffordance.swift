@@ -22,19 +22,19 @@ import AppKit
 
 /// Fade-in duration for drop affordance (= 200ms). Matches Hermes
 /// `FADE_IN_DURATION_MILLIS = 200`.
-public let kFadeInDurationMillis: Int = 200
+let kFadeInDurationMillis: Int = 200
 
 /// Flash duration (= 700ms total). Matches Hermes
 /// `FLASH_ZONES_DURATION_MILLIS = 700`.
-public let kFlashZonesDurationMillis: Int = 700
+let kFlashZonesDurationMillis: Int = 700
 
 /// Default sensitivity radius for zone capture (= 20 PT). Matches
 /// Hermes `LayoutDefaultSettings::DefaultSensitivityRadius = 20`.
-public let kDefaultSensitivityRadius: CGFloat = 20
+let kDefaultSensitivityRadius: CGFloat = 20
 
 /// Overlapping centers sensitivity (= 75). Matches Hermes
 /// `ZoneSelectionAlgorithms::OVERLAPPING_CENTERS_SENSITIVITY = 75`.
-public let kOverlappingCentersSensitivity: CGFloat = 75
+let kOverlappingCentersSensitivity: CGFloat = 75
 
 // MARK: - DropSheet view modifier
 
@@ -51,7 +51,7 @@ public let kOverlappingCentersSensitivity: CGFloat = 75
 /// - `alpha = clamp(t / 200ms, 0.001, 1)` (= 0.001 floor avoids CSS flicker)
 /// - Fade in over 200ms when active
 /// - Auto-hide after 700ms when autoHide = true (= flash mode)
-public struct DropSheet: View {
+struct DropSheet: View {
     let active: Bool
     let autoHide: Bool
     let startedAt: Date
@@ -120,7 +120,7 @@ public struct DropSheet: View {
 
 /// NSVisualEffectView bridge for SwiftUI (= SwiftUI doesn't natively
 /// expose NSVisualEffectView; hermes uses CSS `backdrop-blur-[2px]`).
-public struct VisualEffectBlur: NSViewRepresentable {
+struct VisualEffectBlur: NSViewRepresentable {
     let material: NSVisualEffectView.Material
     let blendingMode: NSVisualEffectView.BlendingMode
 
@@ -151,7 +151,7 @@ public struct VisualEffectBlur: NSViewRepresentable {
 /// `NSCursor.dragLink` on start (= matches hermes drag-session.ts).
 /// Restores previous cursor on end.
 @MainActor
-public final class DragSession {
+final class DragSession {
     private var previousCursor: NSCursor?
 
     public init() {}
@@ -174,7 +174,7 @@ public final class DragSession {
 /// SwiftUI View extension that swaps cursor to `NSCursor.dragLink`
 /// during a drag gesture (= matches hermes `paneChrome.collapsible`
 /// drag affordance).
-public struct DragCursorModifier: ViewModifier {
+struct DragCursorModifier: ViewModifier {
     let cursor: NSCursor
     @State private var isHover: Bool = false
 
