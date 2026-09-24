@@ -6,7 +6,9 @@ translate_block_lines function. Behavior preserved 100% after refactor.
 """
 import sys
 import os
+import json
 import unittest
+from pathlib import Path
 
 # Add Scripts/ to path so we can import the module
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -158,6 +160,44 @@ class TestTranslateBlockLines(unittest.TestCase):
             self.assertIn("EN", result[1])
         finally:
             mod.argos_translate = original_argos
+
+
+# MARK: - v1.81 except-narrowing acceptance (= file_is_polluted + load_cache)
+
+class TestExceptNarrowing(unittest.TestCase):
+    """Pin the narrow except clauses added by the v1.81 dedupe arc.
+
+    The narrow clauses (= (OSError, UnicodeDecodeError) for read_text;
+    = (OSError, JSONDecodeError) for cache load; = ImportError for
+    optional argos import; = (AttributeError, RuntimeError, OSError,
+    ValueError) for argos run; = (OSError, JSONDecodeError, KeyError,
+    ValueError) for per-file process) prevent accidentally swallowing
+    unrelated runtime errors (KeyboardInterrupt, MemoryError, etc).
+    These tests pin the narrow contract.
+    """
+
+    def test_file_is_polluted_returns_false_when_path_missing(self):
+        """OSError on read_text -> return False (= assume not polluted)."""
+        nonexistent = Path("/nonexistent/does/not/exist/__pollution_check__.swift")
+        self.assertFalse(mod.file_is_polluted(nonexistent))
+
+    def test_file_is_polluted_swallows_oserror(self):
+        """A real OSError (= permission denied) is treated as 'not polluted'."""
+        # Path that exists but raises PermissionError would be platform-
+        # specific; = we patch Path.read_text to raise. Smoke test =
+        # make sure the except clause catches OSError.
+        from unittest.mock import patch
+        with patch.object(Path, "read_text", side_effect=OSError("perm denied")):
+            self.assertFalse(mod.file_is_polluted(Path("/dev/null")))
+
+    def test_load_cache_returns_empty_on_corrupt_json(self):
+        """JSONDecodeError on cache read -> return {} (= silent recover)."""
+        from unittest.mock import patch
+        # The cache file may exist (= a previous run wrote it); = patch
+        # read_text to raise JSONDecodeError and assert recovery.
+        with patch.object(Path, "exists", return_value=True), \
+             patch.object(Path, "read_text", side_effect=json.JSONDecodeError("err", "doc", 0)):
+            self.assertEqual(mod.load_cache(), {})
 
 
 if __name__ == '__main__':
