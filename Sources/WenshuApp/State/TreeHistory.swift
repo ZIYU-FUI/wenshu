@@ -1,8 +1,8 @@
 // TreeHistory.swift · Wenshu () · v0.28 followup TKT-028-025
 //
-// Boss 2026-08-29 OOB ' hermes app, user' = port the
-// undo/redo pattern (= pure tree operations, each destructive op
-// pushes the previous tree to history) from Hermes Desktop verbatim.
+// Port the undo/redo pattern (= pure tree operations, each
+// destructive op pushes the previous tree to history) from
+// Hermes Desktop verbatim.
 //
 // SOURCE (= Hermes verbatim port):
 // /Volumes/ANAN/.hermes/hermes-agent/apps/desktop/src/components/pane-shell/tree/store.ts
