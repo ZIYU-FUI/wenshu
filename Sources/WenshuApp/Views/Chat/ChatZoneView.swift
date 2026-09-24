@@ -81,8 +81,7 @@ struct ChatZoneView: View {
         VStack(spacing: 0) {
             ZStack {
                 ChatView(conductor: conductor, vm: vm)
-                // boss 2026-09-18 'chat zone empty state still
-                // shows after configuring key': switch the empty
+                // Switch the empty
                 // state gate from `appState.llmModel.isEmpty` (=
                 // checks the SELECTED MODEL ID, not whether a
                 // key is configured) to `!ProviderKeychain.
