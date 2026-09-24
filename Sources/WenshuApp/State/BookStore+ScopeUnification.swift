@@ -8,24 +8,25 @@
 
 import Foundation
 
-// MARK: - B-13 scope unification (= Kanban / Todo / reference-library data tree)
+// MARK: - Scope unification (= Kanban / Todo / reference-library data tree)
 //
-// Boss 2026-09-04 OOB scope unification: the old `bookDirectory(bookId:)`
-// only resolved the book root. The 8 standard sub-folders (= `chapters/`
-// etc.) and the `reference-library/` root are now valid scope targets
-// too. The reference library (= `reference-library/` at the workspace
-// root) is added as `TaskScope.referenceLibrary` (= its own kanban /
-// todo JSON files at the library root).
+// The old `bookDirectory(bookId:)` only resolved the book root.
+// The 8 standard sub-folders (= `chapters/` etc.) and the
+// `reference-library/` root are now valid scope targets too. The
+// reference library (= `reference-library/` at the workspace root)
+// is added as `TaskScope.referenceLibrary` (= its own kanban / todo
+// JSON files at the library root).
 //
-// Design (= per spec `.scratch/2026-09-04-b-13-scope-unification.md`):
+// Design:
 //   - Scope is a VIEW FILTER, not a data-layer change. One kanban.json /
-//     todo.json per (book, sub-folder) pair + a library-kanban.json /
-//     library-todo.json at the library root.
-//   - `TaskScope` enumerates the valid scope variants. The UI scope picker
-//     in Kanban + Todo views uses `availableScopes(bookId:)` to enumerate
-//     the user's choices for the active book.
-//   - `scopeDirectory(bookId:scope:)` is the single helper views call to
-//     resolve the URL that BookKanbanStore / BookTodoStore should write to.
+//   todo.json per (book, sub-folder) pair + a library-kanban.json /
+//   library-todo.json at the library root.
+//   - `TaskScope` enumerates the valid scope variants. The UI scope
+//   picker in Kanban + Todo views uses `availableScopes(bookId:)`
+//   to enumerate the user's choices for the active book.
+//   - `scopeDirectory(bookId:scope:)` is the single helper views call
+//   to resolve the URL that BookKanbanStore / BookTodoStore should
+//   write to.
 
 /// One of the 8 standard sub-folders every book carries (= `chapters/`,
 /// `world/`, `characters/`, etc., per LibraryBootstrapper). Each case is
