@@ -1,10 +1,8 @@
 //
-//  EditorCounters.swift · Wenshu · P2-06 (audit 2026-09-24)
+//  EditorCounters.swift · Wenshu
 //
-//  P2-06 (audit 2026-09-24): extracted from `AppState.swift`.
-//  AppState was 644 LOC; this new class absorbs the editor zone's
-//  live counter (= editorWordCount). Net effect: AppState drops
-//  to ~150 LOC after this batch.
+//  Per-window observable for the editor zone's live counter
+//  (= editorWordCount).
 //
 //  Why a dedicated @Observable (= not just an Int on AppState):
 //  - EditorWordCount is owned by the editor zone (= lives there
