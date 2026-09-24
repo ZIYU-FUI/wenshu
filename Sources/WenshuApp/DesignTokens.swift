@@ -200,12 +200,12 @@ enum DesignTokens {
     /// naming, now generic for ALL pane tabs).
     static let paneTabHotArea: CGFloat = 28
 
-    /// v1.73d tab close button (= X) glyph font size (= 10 PT,
+    /// Tab close button (= X) glyph font size (= 10 PT,
     /// .semibold weight). Matches SF Symbol `xmark` rendered at
     /// 18 PT frame for finger-target parity with the 28 PT paneTab.
     static let tabCloseGlyphFontSize: CGFloat = 10
 
-    /// v1.73d tab close button (= X) hit area (= 18×18 PT). Apple HIG
+    /// Tab close button (= X) hit area (= 18×18 PT). Apple HIG
     /// inline-control minimum is 16 PT (= 44 PT Apple HIG = finger-target);
     /// 18 PT is a compromise that fits inside `paneTabHotArea` (= 28 PT)
     /// without padding artifacts (= Safari/Chrome/Terminal convention).
@@ -236,9 +236,8 @@ enum DesignTokens {
     /// Replaces `.foregroundStyle(.tertiary)` in 16 files.
     static let statusForeground: HierarchicalShapeStyle = .tertiary
 
-    /// v1.91 (2026-09-23): boss '聊天区的，文字回显层，是否可以变成左栏
-    /// 的颜色参数' (= 'the chat transcript layer should use the left
-    /// sidebar's color parameters'). The Apple HIG sidebar background
+    /// The chat transcript layer should use the left sidebar's color
+    /// parameters. The Apple HIG sidebar background
     /// (= NSColor.controlBackgroundColor; = the primitive that
     /// `List(...).listStyle(.sidebar)` paints on macOS 14+) is the
     /// canonical sidebar color. This token gives every wenshu surface
