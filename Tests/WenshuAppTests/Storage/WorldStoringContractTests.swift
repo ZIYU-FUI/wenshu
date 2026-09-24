@@ -4,7 +4,7 @@
 // the LibraryStoringContractTests pattern at LibraryStoringContractTests.swift
 // (= per-implementation factory + behavioral assertions on the contract).
 //
-// v0.26 FCP library replica spec at
+// 
 // `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 023.
 
 import Testing

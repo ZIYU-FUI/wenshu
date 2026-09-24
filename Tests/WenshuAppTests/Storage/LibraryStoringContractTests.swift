@@ -22,7 +22,7 @@ import Foundation
 /// as a base (= struct inheritance is not in Swift; instead, the contract
 /// body is exposed as static funcs called by each suite).
 ///
-/// v0.02.0 only has FileSystemLibraryStore (lands in v39); once it's in
+/// 
 /// place, FileSystemLibraryStoreContractTests is added here.
 
 @Suite("LibraryStoring contract")
@@ -292,7 +292,7 @@ struct LibraryStoringContractTests {
     // library has grown document operations: loadDocuments /
     // loadDocumentContent / saveDocument / deleteDocument. These
     // match the new BookCategory + Document domain types added in
-    // v53.1.
+    // 
 
     @Test("loadDocuments on an empty category returns []")
     func loadDocumentsEmpty() throws {

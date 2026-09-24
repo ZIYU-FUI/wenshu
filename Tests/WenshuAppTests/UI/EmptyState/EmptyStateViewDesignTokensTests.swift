@@ -1,7 +1,7 @@
 //
 //  EmptyStateViewDesignTokensTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  v0.71 P1 batch 3 (boss 2026-09-12 EOB 'anything that uses Apple styles should
+// 
 //  default everything; get code-level verification and testing in first... the rest we'll discuss Monday'):
 //  code-level verification (= no UI render, no screenshot) that the
 //  unified EmptyStateView uses the wenshu DesignTokens (= Apple HIG

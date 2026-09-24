@@ -18,7 +18,7 @@ struct WenshuLibraryTests {
     private final class InMemoryStore: LibraryStoring, @unchecked Sendable {
         let rootURL: URL = URL(fileURLWithPath: "/tmp/inmemory", isDirectory: true)
         var shelves: [UUID: Bookshelf] = [:]
-        var books: [UUID: Book] = [:]  // v0.02.1
+        var books: [UUID: Book] = [:]
         func loadShelves() throws -> [Bookshelf] {
             Array(shelves.values).sorted { $0.updatedAt > $1.updatedAt }
         }
@@ -32,7 +32,7 @@ struct WenshuLibraryTests {
             shelves.removeValue(forKey: id)
         }
         func search(query: String) throws -> [SearchHit] { [] }
-        // v0.02.1 book ops
+        // 
         func loadBooks(shelfId: UUID) throws -> [Book] {
             books.values.filter { $0.shelfId == shelfId }.sorted { $0.updatedAt > $1.updatedAt }
         }

@@ -6,7 +6,7 @@
 //  library). Mirrors the contract-test style in BookKanbanStoreTests
 //  (= fresh /tmp scratch dir per test, no shared state).
 //
-//  B-13 spec at `.scratch/2026-09-04-b-13-scope-unification.md`.
+// 
 //
 
 import Testing
