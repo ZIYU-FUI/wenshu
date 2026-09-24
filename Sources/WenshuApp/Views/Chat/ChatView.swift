@@ -226,10 +226,9 @@ struct ChatView: View {
         return bookStore
     }
 
-    /// v1.92 (2026-09-23): boss '用户说话的那个框，像 hermes 一样，
-    /// 实现吸顶。让用户知道 AI 回复的是哪个问题'. Group messages
-    /// into "turns" for `LazyVStack(pinnedViews: [.sectionHeaders])`
-    /// (= the macOS 27 SwiftUI equivalent of CSS `position: sticky;
+    /// Group messages into "turns" (= user message + assistant reply)
+    /// for `LazyVStack(pinnedViews: [.sectionHeaders])`
+    /// (= the macOS 27 SwiftUI equivalent of CSS `position: sticky;`
     /// top: 0`). Each turn = (userMessage, replies[] where replies =
     /// all subsequent assistant/placeholder messages until the next
     /// user message). The userMessage is rendered as the Section's
@@ -396,20 +395,12 @@ struct ChatView: View {
                     // = 10 PT, preserved as the user-card visual identity).
                     // Vertical 8 PT retained (= chat transcript row vertical
                     // gap; = Apple HIG py-2 vertical row gap convention).
-                    // boss 2026-09-18 'is there another layer behind it? the
-                    // text scrolls underneath but I can't see it — the
-                    // floating panel should be semi-transparent so I can
-                    // see through it'. Add .contentMargins(.bottom, 80) so
-                    // the chat history content extends UP TO 80 PT below
-                    // the ScrollView's visible bottom (= the area where the
-                    // floating chat input panel sits). The .glassEffect
-                    // (.regular) panel above is translucent (= the macOS
-                    // 27 .regular tier = Apple Mail/Notes chat input
-                    // translucency), so the user can see the chat
-                    // history content scrolling behind the panel (= the
-                    // Apple Messages / Slack / Telegram chat input
-                    // pattern where the last message peeks behind the
-                    // input bar).
+                    // The floating chat input panel is semi-transparent
+                    // (= macOS 27 .regular tier = Apple Mail/Notes
+                    // translucency), so the chat history content scrolls
+                    // behind the panel (= the Apple Messages / Slack /
+                    // Telegram chat input pattern where the last message
+                    // peeks behind the input bar).
                     .contentMargins(.bottom, 80, for: .scrollContent)
                     // -cleanup E3 boss 2026-09-21 '聊天区的背景能不能
                     // 降低一点颜色，比如用左栏的颜色' (= the chat
