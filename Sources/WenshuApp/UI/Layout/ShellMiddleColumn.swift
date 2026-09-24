@@ -182,18 +182,13 @@ struct ShellMiddleColumn: View {
         }
     }
 
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix:
-    // documents open in the middle column's editor zone. No separate windows. The editor zone is
-    // the document's editing area; opening a document means edit state. The editor uses SM, the third-party
-    // Markdown editor we brought in — the backend is already wired': card double-
-    // click handler (= the user double-clicks a card in the cards
-    // column = PreviewPane's onDoubleClick fires). Mirrors
-    // WorkspaceView.openCardInEditor logic (= reads the actually-
-    // clicked CardSource from the parameter, not the topmost
-    // card; = prevents the 'clicking Dufu card opens a tab with
-    // wrong name' regression = boss 9/8 OOB).
+    // The card double-click handler reads the actually-clicked
+    // CardSource from the parameter (= not the topmost card;
+    // = prevents the 'clicking Dufu card opens a tab with wrong
+    // name' regression). Mirrors `WorkspaceView.openCardInEditor`
+    // logic.
     //
-    // Differences from WorkspaceView.openCardInEditor:
+    // Differences from `WorkspaceView.openCardInEditor`:
     // 1. Reads `previewScope()` (= NavigationSplitShell's helper;
     //    = the equivalent of WorkspaceView's `previewScope`
     //    computed property).
@@ -242,9 +237,8 @@ struct ShellMiddleColumn: View {
         // Why .referenceScope(nil) and not .empty:
         // - .empty renders Apple's ContentUnavailableView (= an
         //   informational placeholder = NOT the cards themselves).
-        //   Per boss 2026-09-10 'we only need the original assets cards', the column
-        //   must show the actual card grid (= the entities), even
-        //   with no sidebar selection.
+        //   The column must show the actual card grid (= the entities),
+        //   even with no sidebar selection.
         // - .referenceScope(nil) = overview grid of all entities in
         //   the reference library (= Characters / Worldview / Books / Volumes / etc.). When
         //   the user later clicks a sidebar row, AppState can route
@@ -252,15 +246,13 @@ struct ShellMiddleColumn: View {
         //   the PreviewPane for filtered view.
         //
         // No VSplitView wrapper, no outline sub-area, no chapter tree.
-        // No navigationTitle: per boss 2026-09-10 OOB 'can we drop the title inside the red box',
-        // the column-level header (= the NavigationSplitView column
+        // No navigationTitle: the column-level header (= the NavigationSplitView column
         // title bar = 'Cards' + library subtitle 'anbaiqiang.ws') is
         // removed. The column content (= the cards themselves) is
         // self-explanatory; an extra title bar is noise on a single-
         // zone column.
         //
-        // v0.77 boss 2026-09-10 OOB 'wrong position — it should sit at the top INSIDE the middle-left column':
-        // the previous `.toolbar { ToolbarItem(.principal) { ...
+        // The previous `.toolbar { ToolbarItem(.principal) { ...
         // } }` route (= commit dff49498d) put the search field in
         // the window toolbar (= not in the column body). Drop the
         // .toolbar wrapper and let PreviewPane's internal
@@ -269,8 +261,7 @@ struct ShellMiddleColumn: View {
         // body = same visual slot as the sidebar's `.searchable`
         // field at the top of the sidebar column).
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'tree selection — the cards column doesn't react
-        // to the tree selection': the previous `.referenceScope(nil)`
+        // The previous `.referenceScope(nil)`
         // (= unfiltered overview grid of every entity in the library)
         // ignored sidebar selection entirely (= clicking Philosophy & Religion
         // / Military / Economics / Literature / History & Geography / Other in the sidebar had
@@ -289,8 +280,7 @@ struct ShellMiddleColumn: View {
         // All branches are exhaustive over SidebarItem cases (= no
         // unknown-sidebar-selection fallback path = the bug can't
         // reappear silently).
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'if the Apple API supports it, just use that directly':
-        // wire the Apple `.searchable` system-styled search field to
+        // Wire the Apple `.searchable` system-styled search field to
         // the live `envAppState.searchText` (= the AppState
         // @Observable property; = single source of truth for app-wide
         // search state; = multiple columns can attach .searchable
@@ -299,16 +289,14 @@ struct ShellMiddleColumn: View {
         // to the live `envAppState.searchText` (= the filter applies
         // correctly; = survives PreviewPane re-instantiation).
         VStack(spacing: 0) {
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'first, can you put the search field
-            // on the left?': per the boss's request, place the search
-            // field at the LEADING (= left) edge of the cards column's
-            // top bar (= flush to the column's left margin). The
-            // SwiftUI `.searchable` modifier is hard-wired to render
-            // in the TRAILING edge of any column toolbar (= Apple
-            // macOS 27 Mail / Notes / Finder all have their search
-            // box on the trailing side, so that's the framework
-            // default). To override the boss's preference for a
-            // LEADING-positioned search field, drop the `.searchable`
+            // Place the search field at the LEADING (= left) edge of the cards
+            // column's top bar (= flush to the column's left margin).
+            // The SwiftUI `.searchable` modifier is hard-wired to
+            // render in the TRAILING edge of any column toolbar (=
+            // Apple macOS 27 Mail / Notes / Finder all have their
+            // search box on the trailing side, so that's the
+            // framework default). To override the LEADING-positioned
+            // search field preference, drop the `.searchable`
             // modifier and render a custom TextField instead (= the
             // same TextField-with-search-icon that `.searchable`
             // produces internally; = bound to the same
@@ -320,25 +308,20 @@ struct ShellMiddleColumn: View {
             // system shortcut) because the search field IS in the
             // view hierarchy.
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'fill the width automatically,
-            // grow with the drag just like the cards do': the search field now fills
-            // the full column width (= .frame(maxWidth: .infinity,
+            // The search field now fills the full column width via (= .frame(maxWidth: .infinity,
             // alignment: .leading) so it stretches as the user
             // drags the column wider, matching the card grid's
             // intrinsic width). Removed the previous hard-coded
             // .frame(minWidth: 120, maxWidth: 240) (= a fixed 120-240
             // PT search bar that didn't track the column's width).
             //
-            // v1.84 boss 2026-09-24 OOB '素材栏加 10PT 内边距' +
-            // '搜索栏高调成 36 高': the outer VStack (= the entire
-            // PreviewPane column = the search field + cards +
-            // empty-state) gains a 10 PT horizontal padding
-            // (= chromePaddingContentHorizontal = the same gutter
-            // token v1.83 introduced for search field / cards).
-            // Search field + cards DROPPED their inner
-            // .padding(.horizontal, ...) (= would have stacked with
-            // the column padding = 10 + 10 = 20 PT total = the
-            // Search field
+            // The outer VStack (= the entire PreviewPane column = the search
+            // field + cards + empty-state) gains a 10 PT horizontal
+            // padding (= chromePaddingContentHorizontal = the same
+            // gutter token for search field / cards). Search field +
+            // cards DROPPED their inner .padding(.horizontal, ...)
+            // (= would have stacked with the column padding = 10 +
+            // 10 = 20 PT total). Search field
             // also switches to .controlSize(.large) (28 PT control
             // height) + .padding(.vertical, chromePaddingMicro = 4
             // PT) (= 28 + 4 × 2 = 36 PT total height = the
@@ -364,8 +347,7 @@ struct ShellMiddleColumn: View {
             // updates the other live (= the same envAppState.searchText).
             PreviewPane(
                 scope: previewScope(),
-                // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
-                // card double-click opens the document in the editor
+                // Card double-click opens the document in the editor pane
                 // pane (= mode = .edit = the WenshuMarkdownEditor
                 // editable surface from the start; = not a separate
                 // window). Forward the clicked CardSource so the
@@ -391,12 +373,7 @@ struct ShellMiddleColumn: View {
                                 set: { newValue in envAppState.searchText = newValue }
                             )
                         )
-                        // v1.0.0-m1-shell boss 2026-09-11 OOB
-                        // 'the search field is a bit too short — change it to
-                        // 30pt tall' + 'if the search field height can only
-                        // be hard-coded to 30pt, then don't hard-code — use the closest
-                        // Apple-standard expression for height': apply
-                        // `.controlSize(.regular)` (= the canonical
+                        // Apply `.controlSize(.regular)` (= the canonical
                         // macOS 13+ SwiftUI semantic expression for
                         // standard form-control height = maps to
                         // NSTextField regular controlSize = 22 PT
