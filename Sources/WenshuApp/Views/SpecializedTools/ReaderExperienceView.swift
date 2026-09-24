@@ -275,18 +275,18 @@ struct ReaderExperienceView: View {
     }
 
     private func runAnalyze() async {
-        ensureAnalyzer()
-        guard let analyzer = analyzer else { return }
+        ReaderExperienceOps.ensureAnalyzer(analyzer: &analyzer)
         status = .running
-        let text = chapterText
-        let kind = selectedKind
-        do {
-            let newReport = try await analyzer.analyze(chapterText: text, kind: kind)
-            report = newReport
+        let result = await ReaderExperienceOps.runAnalyze(
+            analyzer: analyzer,
+            chapterText: chapterText,
+            kind: selectedKind
+        )
+        report = result.report
+        if result.didRun {
             status = .idle
-        } catch {
-            status = .failed(error.localizedDescription)
-            report = nil
+        } else if let err = result.error {
+            status = .failed(err)
         }
     }
 }
