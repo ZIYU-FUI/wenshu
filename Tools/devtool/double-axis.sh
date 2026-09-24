@@ -84,7 +84,9 @@ SUBJECT=$(git log -1 --format='%s' "$AFTER" 2>/dev/null)
 BODY=$(git log -1 --format='%b' "$AFTER" 2>/dev/null)
 FORBIDDEN='可\|应当\|或许\|可能\|应该\|建议\|考虑\|试图\|尽量\|大概\|也许'
 # Note: "可能" is a partial substring of "不可能" etc; manual review needed
-HITS=$(echo "$SUBJECT $BODY" | grep -cE "$FORBIDDEN" || echo 0)
+# Note: `grep -c` outputs "0\n" when 0 matches (= multi-line, = breaks `[ "$HITS" -eq 0 ]` with `[: 0\n0:` integer expression error).
+# Use `wc -l` of `grep` output instead (= robust; = 0 matches = "0", 1 match = "1").
+HITS=$(echo "$SUBJECT $BODY" | { grep -E "$FORBIDDEN" || true; } | wc -l | tr -d ' ')
 if [ "$HITS" -eq 0 ]; then
     echo "OK"
 else
@@ -95,7 +97,7 @@ fi
 # 2. commit-msg: 修真因词禁用 (= 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障)
 echo -n "  [2/7] No 修真因 xianxia family in commit-msg ... "
 XIANXIA='修真\|渡劫\|筑基\|返虚\|结丹\|金丹\|元婴\|飞升\|天劫\|雷劫\|心魔\|魔障'
-HITS=$(echo "$SUBJECT $BODY" | grep -cE "$XIANXIA" || echo 0)
+HITS=$(echo "$SUBJECT $BODY" | { grep -E "$XIANXIA" || true; } | wc -l | tr -d ' ')
 if [ "$HITS" -eq 0 ]; then
     echo "OK"
 else
@@ -104,7 +106,7 @@ fi
 
 # 3. commit-msg: 唯一称谓 (= 老板 only, not boss/user/customer)
 echo -n "  [3/7] Only '老板' honorific (= no boss/user/customer) ... "
-HITS=$(echo "$SUBJECT $BODY" | grep -cE "(boss|Boss|BOSS|user|customer)" || echo 0)
+HITS=$(echo "$SUBJECT $BODY" | { grep -E "(boss|Boss|BOSS|user|customer)" || true; } | wc -l | tr -d ' ')
 if [ "$HITS" -eq 0 ]; then
     echo "OK"
 else
