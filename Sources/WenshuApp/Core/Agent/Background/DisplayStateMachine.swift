@@ -65,7 +65,7 @@ enum DisplayState: Sendable, Equatable, Codable {
         switch self {
             case .idle: return "circle"
             case .running: return "arrow.triangle.2.circlepath"
-            // v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
+            // Migrated to outline glyphs (= Apple SF Symbols 6 outline convention).
             // status icons (success / error) use outline glyphs
             // (= the canonical Apple HIG form for the Liquid Glass
             // 3rd-generation design language). The .fill variant

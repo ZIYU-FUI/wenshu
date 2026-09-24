@@ -32,7 +32,7 @@
 
 import Foundation
 
-// v0.72 SwiftData migration: ContextEngine migrated to WSMemoryRepository.shared.
+// Migrated to `WSMemoryRepository.shared`.
 // Phase 5 ticket 4 (= `makeDefaultMemoryManager` returns MemoryManager() with
 // no args = uses WSMemoryRepository.shared by default per ticket 4.1 design).
 

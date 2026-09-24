@@ -90,7 +90,7 @@ enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatabl
     /// SF Symbols 6 icon name (= Apple canonical; = used by
     /// Image(systemName:) directly in the IdeaLibraryView
     /// row rendering path). Replaces the Lucide-era names removed
-    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    /// Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .seedling:    return "leaf"               // Lucide 'sprout'
@@ -131,7 +131,7 @@ enum IdeaLinkTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equa
     /// SF Symbols 6 icon name (= Apple canonical; = used by
     /// Image(systemName:) directly in the IdeaLibraryView
     /// row rendering path). Replaces the Lucide-era names removed
-    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    /// Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .chapter:     return "book.pages"                  // Lucide 'book-open'

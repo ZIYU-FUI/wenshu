@@ -88,7 +88,7 @@ enum RelationshipKind: String, Sendable, Codable, CaseIterable, Identifiable, Eq
     /// SF Symbols 6 icon name (= Apple canonical; = used by
     /// Image(systemName:) directly in the CharacterRelationshipsView
     /// row rendering path). Replaces the Lucide-era names removed
-    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    /// Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .ally:          return "hand.raised"              // Lucide 'handshake'

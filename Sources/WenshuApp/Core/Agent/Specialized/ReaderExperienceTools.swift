@@ -132,7 +132,7 @@ enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Identifiable
     /// SF Symbols 6 icon name (= Apple canonical; = used by
     /// Image(systemName:) directly in the ReaderExperienceView
     /// row rendering path). Replaces the Lucide-era names removed
-    /// in v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    /// Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .tension:               return "waveform.path.ecg"           // Lucide 'activity'
