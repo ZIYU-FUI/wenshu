@@ -41,9 +41,7 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
     /// live instance after a request fires.
     nonisolated(unsafe) public static var stub: URLProtocolStub?
 
-    /// v1.12 ticket 001 (= per Q34 5.4 fix root cause for the
-    /// remaining URLProtocolStub global static races): TaskLocal
-    /// variants of `stub`, `registeredSnapshot`, `capturedRequest`.
+    /// TaskLocal variants of `stub`, `registeredSnapshot`, `capturedRequest`.
     /// Tests that opt into the TaskLocal pattern via
     /// `URLProtocolStub.$stub.withValue(stub) { ... }` (= or via
     /// the convenience `withStubForTesting(_:perform:)` helper)
@@ -63,7 +61,7 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
     @TaskLocal
     nonisolated(unsafe) public static var _taskLocalCapturedRequest: URLRequest?
 
-    /// v1.12 ticket 001: scoped test override via TaskLocal. Sets
+    /// Scoped test override via TaskLocal. Sets
     /// the per-task stub + snapshot + capturedRequest to the
     /// provided stub for the duration of the `body` closure.
     /// The previous TaskLocal values (= if any) are restored when
@@ -262,8 +260,7 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         self.capturedRequest = nil
     }
 
-    /// v1.16 ticket 001 (= per Q34 5.2 + Q173 ponytail per-test stub
-    /// instance pattern start): per-test isolated stub. Each call
+    /// Per-test isolated stub. Each call
     /// returns a new URLProtocolStub instance + a unique URLProtocol
     /// subclass that wraps it. Tests that opt into this pattern
     /// (= v1.17+ migration tickets) get hermetic isolation per
