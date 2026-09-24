@@ -17,9 +17,9 @@
 
 import Foundation
 
-/// Stateless business layer for ForeshadowingView. Mirrors the v1.72 +
-/// v1.74 + v1.75a/b/c precedents (= KanbanOps / TagManagerOps /
-/// CharacterLifecycleOps / BookSettingConstraintsOps / LongFormGuardrailsOps).
+/// Stateless business layer for ForeshadowingView. Mirrors the
+/// KanbanOps / TagManagerOps / CharacterLifecycleOps /
+/// BookSettingConstraintsOps / LongFormGuardrailsOps template.
 @MainActor
 enum ForeshadowingOps {
 
