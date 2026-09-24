@@ -1,10 +1,9 @@
 //
-//  BookStore+SidebarInline.swift · Wenshu · v0.72 (P2-06 god-state split)
+//  BookStore+SidebarInline.swift · Wenshu
 //
-//  P2-06 (audit 2026-09-24): extracted from `BookStore.swift` (= 217
-//  LOC of sidebar inline-storage methods). BookStore was 555 LOC;
-//  this extension brings it down to ~340 LOC. Each MARK section in
-//  `BookStore.swift` is now a focused extension on its own concern.
+//  Extension on `BookStore` (= sidebar inline-storage methods:
+//  shelf / book CRUD). Each MARK section in `BookStore.swift`
+//  is a focused extension on its own concern.
 //
 
 import Foundation
