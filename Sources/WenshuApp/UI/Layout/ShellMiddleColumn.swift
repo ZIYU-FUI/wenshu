@@ -20,82 +20,75 @@ import SwiftUI
 /// is removed (= the outline is the sidebar's job; duplicating it in
 /// the middle column is noise).
 ///
-/// Boss 2026-09-10 'remove the tab, keep just the cards content — and since the image picker isn't implemented anyway, just remove it too for now':
-/// the sidebar bottom card zone (= previously ZoneContentView
-/// with two tabs 'Preview / Image' = a .pickerStyle(.segmented) TabBar
+/// Remove the tab, keep just the cards content: the sidebar
+/// bottom card zone (= previously ZoneContentView with two
+/// tabs 'Preview / Image' = a .pickerStyle(.segmented) TabBar
 /// over a PreviewPane) is gone. PreviewPane now renders the
 /// card grid without any tab chrome (= Apple's empty state +
 /// search bar + the actual grid = the canonical pattern Xcode /
 /// Photos / Music use for unfiltered list views).
 ///
-/// v0.66 boss 2026-09-10 OOB 'drop the floating panel, just split the
-/// middle column in two': the previous float-over-document layout
-/// fought NSTextView's hit test (= an NSTextView on top of another
-/// NSTextView makes cursor + click ownership ambiguous). The
-/// previous VSplitView held cards on top + outline on bottom; per
-/// the next boss OOB (= 'we don't need that red-box area' = the outline sub-area)
-/// the VSplitView is gone too and the card zone owns the full
-/// column height.
+/// Drop the floating panel, just split the middle column in two:
+/// the previous float-over-document layout fought NSTextView's
+/// hit test (= an NSTextView on top of another NSTextView makes
+/// cursor + click ownership ambiguous). The previous VSplitView
+/// held cards on top + outline on bottom; per the 'we don't need
+/// that red-box area' design directive, the VSplitView is gone
+/// too and the card zone owns the full column height.
 struct ShellMiddleColumn: View {
-    // v1.0.0-m1-shell boss 2026-09-10 OOB 'library-tree selection and
-    // the cards in the assets zone weren't aligned and didn't filter' (= the cards column did not
-    // re-render when the user clicked a reference category in the
-    // sidebar). Root cause: `let appState: AppState` (= a plain
-    // stored property holding an `@Observable` instance) does NOT
-    // participate in SwiftUI's Observation Framework tracking when
-    // the view body reads `appState.sidebarSelection`. The
-    // `@Observable` macro generates `withObservationTracking`
-    // hooks keyed to the *direct* property access on a tracked
-    // reference (= `@Environment` / `@State` / `@Bindable`); a
-    // plain `let` field is treated as a non-tracked read, so the
-    // view body never re-renders when `sidebarSelection` mutates.
+    // The cards column did not re-render when the user clicked a
+    // reference category in the sidebar. Root cause: `let appState:
+    // AppState` (= a plain stored property holding an `@Observable`
+    // instance) does NOT participate in SwiftUI's Observation
+    // Framework tracking when the view body reads `appState.
+    // sidebarSelection`. The `@Observable` macro generates
+    // `withObservationTracking` hooks keyed to the *direct* property
+    // access on a tracked reference (= `@Environment` / `@State` /
+    // `@Bindable`); a plain `let` field is treated as a non-tracked
+    // read, so the view body never re-renders when
+    // `sidebarSelection` mutates.
     //
     // Fix: switch to `@Bindable var envAppState: AppState` (= the
     // canonical SwiftUI Observation entry point for `@Observable`
-    // instances; = reads of `envAppState.x` register tracking; = body
-    // re-renders on every mutation; = supports `$envAppState.x`
-    // binding syntax for Picker/Toggle). The `init` / call sites that
-    // previously passed `appState: appState` as a parameter can
-    // keep passing it for backwards compat (= the let field is
-    // kept as a no-op shim so callers don't have to change) but
-    // the @Bindable entry takes precedence for observation
-    // tracking inside body.
+    // instances; = reads of `envAppState.x` register tracking; =
+    // body re-renders on every mutation; = supports
+    // `$envAppState.x` binding syntax for Picker/Toggle). The
+    // `init` / call sites that previously passed `appState: appState`
+    // as a parameter can keep passing it for backwards compat (= the
+    // let field is kept as a no-op shim so callers don't have to
+    // change) but the @Bindable entry takes precedence for
+    // observation tracking inside body.
     @Bindable var envAppState: AppState
     let appState: AppState
-    // P2-06 (audit 2026-09-24): sidebarSelection moved to
-    // ShellState. ShellMiddleColumn's previewScope() reads it via
-    // `shell` (= the @Bindable Observable instance = observation
-    // tracking on every body render).
+    // sidebarSelection lives in ShellState. ShellMiddleColumn's
+    // `previewScope()` reads it via `shell` (= the @Bindable
+    // Observable instance = observation tracking on every body
+    // render).
     @Bindable var shell: ShellState
-    // P2-06 (audit 2026-09-24): previewSortOrder moved to
-    // WorkspaceUIState. The card grid's `previewSortOrder` binding
-    // (= passed to PreviewPane) reads via `workspaceUI`.
+    // previewSortOrder lives in WorkspaceUIState. The card grid's
+    // `previewSortOrder` binding (= passed to PreviewPane) reads
+    // via `workspaceUI`.
     @Bindable var workspaceUI: WorkspaceUIState
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
-    // openCardInEditor needs BookStore.referenceStore to load
+    // `openCardInEditor` needs `BookStore.referenceStore` to load
     // reference bodies for double-clicked cards (= the same env
-    // chain WorkspaceView.openCardInEditor uses via
-    // @Environment(BookStore.self)). Optional because the
-    // env chain may not be ready on early launch (= silent
-    // no-op fallback in openCardInEditor).
+    // chain `WorkspaceView.openCardInEditor` uses via
+    // `@Environment(BookStore.self)`). Optional because the env
+    // chain may not be ready on early launch (= silent no-op
+    // fallback in `openCardInEditor`).
     @Environment(BookStore.self) private var envBookStore
 
     private var bookStore: BookStore? { envBookStore }
 
-    // v1.27 component-architecture (2026-09-17): previewSortOrder
-    // promoted from `@State private var` (= column-local, ephemeral,
-    // = 3 independent copies in ShellMiddleColumn + WorkspaceView
-    // + PreviewPane that drifted) to `AppState.previewSortOrder`
-    // (= single source of truth; = shared across all columns;
-    // = survives column collapse-expand; = future changes to one
+    // `previewSortOrder` lives in `envAppState.previewSortOrder`
+    // (= single source of truth; = shared across all columns; =
+    // survives column collapse-expand; = future changes to one
     // place propagate to all readers).
     //
     // Access pattern: `$envAppState.previewSortOrder` is the
     // SwiftUI binding (= AppState is @Observable; = property
     // changes trigger view re-render via Observation framework).
 
-    // v1.0.0-m1-shell boss 2026-09-10 OOB 'global search': use
-    // envAppState.searchText (= the AppState @Observable
+    // Use `envAppState.searchText` (= the AppState @Observable
     // property) instead of a local @State. This lets the
     // .searchable modifier on the cards column share the same
     // search state with any future .searchable modifiers on
@@ -110,78 +103,66 @@ struct ShellMiddleColumn: View {
         nonmutating set { envAppState.searchText = newValue }
     }
 
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'tree selection — the cards column doesn't
-    /// react to the tree selection' + follow-up 'pick something in the left-side
-    /// tree and no cards appear in the middle assets zone' (= selecting .book(worldview)
-    /// in the sidebar showed .empty in the cards column instead of
-    /// the book's .md cards). The previous version mapped .book /
-    /// .shelf / .folder ALL to .empty (= cards column blanked out
-    /// for any user-scope row). The correct mapping per PreviewScope
-    /// enum (= see PreviewPane.swift lines 139-152):
-    /// - .referenceLibraryRoot / nil → .referenceScope(nil)
+    /// Tree selection → cards column. Selecting `.book(worldview)`
+    /// in the sidebar showed `.empty` in the cards column instead
+    /// of the book's `.md` cards. The previous version mapped
+    /// `.book` / `.shelf` / `.folder` ALL to `.empty` (= cards
+    /// column blanked out for any user-scope row). The correct
+    /// mapping per `PreviewScope` enum:
+    /// - `.referenceLibraryRoot` / nil → `.referenceScope(nil)`
     ///   (= overview grid of all entities across categories)
-    /// - .referenceCategory(let dirName) → .referenceScope(
-    ///   EntityCategory(rawValue: dirName)) (= one category only)
-    /// - .book(let id) → .bookScope(bookId: id, folderName: nil)
+    /// - `.referenceCategory(let dirName)` → `.referenceScope(
+    ///   EntityCategory(rawValue: dirName))` (= one category only)
+    /// - `.book(let id)` → `.bookScope(bookId: id, folderName: nil)`
     ///   (= the book with ALL its folders' .md cards = the user
-    ///   wants to see the book's content; = the boss's report
-    ///   'pick Worldview on the left, no cards in the middle' = the book WAS selected
-    ///   but the preview was .empty)
-    /// - .shelf(let id) → .shelfScope(shelfId: id) (= shelf hint,
+    ///   wants to see the book's content)
+    /// - `.shelf(let id)` → `.shelfScope(shelfId: id)` (= shelf hint,
     ///   per PreviewScope comment: 'shelves are a tree level, not
     ///   a document scope' = the preview pane shows a hint to
     ///   drill into a book)
-    /// - .folder(let bookId, let folderName) → .bookScope(bookId,
-    ///   folderName: folderName) (= the folder's .md cards only)
+    /// - `.folder(let bookId, let folderName)` → `.bookScope(bookId,
+    ///   folderName: folderName)` (= the folder's .md cards only)
     /// - Invalid dirName (= no matching EntityCategory) falls back
-    ///   to .referenceScope(nil) so a broken reference selection
+    ///   to `.referenceScope(nil)` so a broken reference selection
     ///   doesn't lock the user out.
     /// Without this fix, selecting ANY user-scope sidebar row (=
-    /// book / shelf / folder) showed 'Please pick a node on the left to view the document' even
-    /// though a real selection was active (= the boss's bug).
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'library-tree selection and
-    /// the cards in the assets zone weren't aligned and didn't filter': map sidebarSelection →
-    /// PreviewScope. The case-mismatch bug (sidebar wrote lowercase
-    /// directoryName 'b' but entities JSON stored uppercase
-    /// rawValue 'B') was fixed at the sidebar tag + onChange lookup
-    /// sites (= see AppleSidebarView.swift line ~`SidebarItem
-    /// .referenceCategory` case for the `.tag(node)` site + the
-    /// corresponding `appState.sidebarSelection =
-    /// .referenceCategory(cat.directoryName)` write site;
-    /// v0.71 P1 batch 9 dual-axis followup: lines were ~501 / ~721
-    /// before the v0.34 + v0.40 refactors that added per-category
-    /// entity loaders; = approximate refs are OK since the line
-    /// numbers drift as new features land);
-    /// by the time `previewScope()` reads `appState.sidebarSelection`,
-    /// the dirName is already the uppercase rawValue, so
-    /// `EntityCategory(rawValue: dirName)` succeeds (= .b for
-    /// Philosophy / 'B') and `.referenceScope(cat)` reaches
-    /// `categoryGrid(category: cat, ...)` which filters
-    /// `allEntities.filter { $0.category == category }` correctly.
+    /// book / shelf / folder) showed 'Please pick a node on the
+    /// left to view the document' even though a real selection was
+    /// active.
+    ///
+    /// Map `sidebarSelection` → `PreviewScope`. The case-mismatch
+    /// bug (sidebar wrote lowercase directoryName 'b' but entities
+    /// JSON stored uppercase rawValue 'B') was fixed at the sidebar
+    /// tag + onChange lookup sites; by the time `previewScope()`
+    /// reads `appState.sidebarSelection`, the dirName is already
+    /// the uppercase rawValue, so `EntityCategory(rawValue: dirName)`
+    /// succeeds (= `.b` for Philosophy / 'B') and `.referenceScope
+    /// (cat)` reaches `categoryGrid(category: cat, ...)` which
+    /// filters `allEntities.filter { $0.category == category }`
+    /// correctly.
     private func previewScope() -> PreviewScope {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB: read from envAppState
-        // (= the @Environment-tracked Observable instance), NOT
-        // from the `let appState` field (= which doesn't register
-        // Observation tracking; = previous code's `previewScope()`
-        // read stale data because the body never re-rendered).
+        // Read from `envAppState` (= the @Environment-tracked
+        // Observable instance), NOT from the `let appState` field
+        // (= which doesn't register Observation tracking; = previous
+        // code's `previewScope()` read stale data because the body
+        // never re-rendered).
         switch shell.sidebarSelection {
         case .referenceLibraryRoot:
             return .referenceScope(nil)
         case .referenceCategory(let dirName):
-            // v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示':
-            // SidebarItem.referenceCategory(directoryName) carries the
-            // EntityCategory.directoryName (= lowercase letter for the
-            // official 22 CLC cases, "其它" for the .z fallback, "未分类"
-            // for pre-v0.29 nil-category references). EntityCategory
-            // rawValues are uppercase letters (= "A" .. "Z"), so a
-            // case-insensitive lookup restores the canonical form.
+            // SidebarItem.referenceCategory(directoryName) carries
+            // the EntityCategory.directoryName (= lowercase letter
+            // for the official 22 CLC cases, "其它" for the .z
+            // fallback, "未分类" for pre-v0.29 nil-category
+            // references). EntityCategory rawValues are uppercase
+            // letters (= "A" .. "Z"), so a case-insensitive lookup
+            // restores the canonical form.
             //
-            // Previous behavior (= v1.0.0-m1-shell): the rawValue
-            // lookup was case-sensitive, so a lowercase dirName
-            // produced nil → fall-back to .referenceScope(nil) = the
-            // user picked a category but the middle column showed the
-            // full overview (= the boss's 'click category → still
-            // shows all entities' bug).
+            // Previous behavior: the rawValue lookup was
+            // case-sensitive, so a lowercase dirName produced nil →
+            // fall-back to `.referenceScope(nil)` = the user picked
+            // a category but the middle column showed the full
+            // overview.
             if let raw = EntityCategory(rawValue: dirName) {
                 return .referenceScope(raw)
             }
