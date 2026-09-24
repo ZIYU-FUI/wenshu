@@ -31,7 +31,6 @@
 //  ShellState + WorkspaceUIState); = descendants read via
 //  @Environment(SheetRequestState.self).
 //
-//  Per-v0.85 P2-06 split (= the AppState half of the audit),
 //  SheetRequestState is one of 4 new state classes added this arc
 //  (= ShellState / WorkspaceUIState / SheetRequestState /
 //  EditorCounters).
@@ -54,8 +53,7 @@ import Foundation
 @Observable
 final class SheetRequestState {
 
-    // v1.0.0-m1-shell boss 2026-09-10 OOB 'the sidebar tree syntax does not match
-    // Apple API': 3 sheet-request triggers moved from
+    // 3 sheet-request triggers moved from
     // NotificationCenter (.wenshuNewBookRequested /
     // .wenshuNewShelfRequested / .wenshuChoiceRequested) into
     // @Observable shared state. The toolbar Menu in AppRootScene
