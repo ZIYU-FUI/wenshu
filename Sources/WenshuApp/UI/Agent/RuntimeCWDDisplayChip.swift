@@ -1,21 +1,16 @@
 //
-//  RuntimeCWDDisplayChip.swift · Wenshu · v0.37 Batch 2.4 sub-step 1
+//  RuntimeCWDDisplayChip.swift · Wenshu
 //
-//  UI chip for displaying the current runtime CWD in the editor zone
-//  toolbar (= per v0.37-full-translation-plan.md Batch 2.4 = wire
-//  RuntimeCWD to UI).
+//  UI chip for displaying the current runtime CWD in the editor
+//  zone toolbar (= wire RuntimeCWD to UI).
 //
 //  Shows:
 //  - "Library: /path/to/library.ws" (default = library path)
 //  - "Override: /tmp/work" (when override is set)
 //  - "Unset" (when neither is configured)
 //
-// Per cadence 2026-09-03 'resume' (= auto-pilot continue per
-// v0.37 plan) + 'PO execute,don't' + 'finish first
-// visual' + '1 RULE 1 commit'.
-//
-//  Per ADR-0008 + iron rule 6: no magic numbers; uses DesignTokens for
-//  padding + corner radius.
+// Per ADR-0008 + iron rule 6: no magic numbers; uses DesignTokens for
+// padding + corner radius.
 //
 
 import SwiftUI
