@@ -1,7 +1,6 @@
 // TrackModel.swift · Wenshu () · v0.28 followup TKT-028-033
 //
-// Boss 2026-08-29 OOB '100%, ' = port the
-// `track-model.ts` verbatim (= MIN_PANE_PX, COLLAPSED_ZONE_PX,
+// Port the `track-model.ts` verbatim (= MIN_PANE_PX, COLLAPSED_ZONE_PX,
 // MINIMIZED_TRACK, PaneSizing, fixed/flex/uncapped resolution).
 //
 // SOURCE (= Hermes verbatim port):
