@@ -8,8 +8,7 @@
 //
 //  Why a dedicated @Observable (= not just an Int on AppState):
 //  - EditorWordCount is owned by the editor zone (= lives there
-//    to track live changes via .onChange(of: draft) per v0.34 B-18
-//    boss OOB).
+//    to track live changes via .onChange(of: draft)).
 //  - The chrome bottom-bar left field reads the same counter via
 //    @Environment(= cross-zone read; = the dedicated @Observable
 //    matches the cross-zone pattern).
@@ -26,7 +25,6 @@
 //  + WorkspaceUIState + SheetRequestState); = descendants read via
 //  @Environment(EditorCounters.self).
 //
-//  Per-v0.85 P2-06 split (= the AppState half of the audit),
 //  EditorCounters is the last of 4 new state classes added this arc
 //  (= ShellState / WorkspaceUIState / SheetRequestState /
 //  EditorCounters).
@@ -49,8 +47,7 @@ import Foundation
 @Observable
 final class EditorCounters {
 
-    // v0.34 B-18 (= boss 9/2 OOB ', editor, yesno
-    // '): editor zone's live word count, owned globally so
+    // Editor zone's live word count, owned globally so
     // both the chrome bottom-bar left field (= ": N" in
     // TabContentDispatcher.editor case) and any future editor-zone
     // status widgets share one source of truth. EditorPlaceholder
