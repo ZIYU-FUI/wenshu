@@ -3,10 +3,9 @@
 //
 //  Parse `@subagent_slug <task>` syntax in user chat input.
 //
-//  CHATBOX-003 (2026-09-04, boss OOB 'B'): hermes @subagent_writer
-//  mention syntax parity. User types `@writer draft chapter 3` and the
-//  chat route dispatches the rest of the message to the Writer
-//  sub-agent (= AsyncDelegation.delegate(...)).
+//  Hermes @subagent_writer mention syntax parity. User types
+//  `@writer draft chapter 3` and the chat route dispatches the rest
+//  of the message to the Writer sub-agent (= AsyncDelegation.delegate(...)).
 //
 //  Design:
 //    - Pure enum + static functions (= no actor needed; the parser is
