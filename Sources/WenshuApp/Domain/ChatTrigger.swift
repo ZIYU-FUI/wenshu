@@ -2,15 +2,13 @@
 //
 // Detects when a chat message hints at a new entity (= a character /
 // world fact / research reference) and emits an `IngestionRequest`
-// for the LLM Wiki pipeline. v0.27 spec: 'user names it,
-// agent auto-ingests'.
+// for the LLM Wiki pipeline.
 //
-// Trigger heuristics (v0.27 MVP, conservative):
+// Trigger heuristics (conservative):
 // 1. Chinese-style quoted names (= single corner brackets U+300C/U+300D)
-// 2. BookTitle patterns (= / / ...)
+// 2. BookTitle patterns (= canonical Chinese titles list)
 //
-// v0.27 followups can add LLM-based extraction; v0.27-03 ships the
-// rule-based trigger as the scaffolding.
+// Future versions may add LLM-based extraction.
 
 import Foundation
 
@@ -43,8 +41,7 @@ struct IngestionRequest: Identifiable, Hashable, Codable, Sendable {
 struct ChatTrigger: Sendable {
     /// Chinese quotation marks (= single corner brackets, double corner brackets, and double angle brackets).
     private let quotationRegex: NSRegularExpression
-    /// Common Chinese book-title patterns (= v0.27 hard-coded list;
-    /// future versions use LLM detection).
+    /// Common Chinese book-title patterns (= hard-coded list).
     private let bookTitlePatterns: [String]
 
     init() {
