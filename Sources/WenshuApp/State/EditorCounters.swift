@@ -1,0 +1,63 @@
+//
+//  EditorCounters.swift · Wenshu · P2-06 (audit 2026-09-24)
+//
+//  P2-06 (audit 2026-09-24): extracted from `AppState.swift`.
+//  AppState was 644 LOC; this new class absorbs the editor zone's
+//  live counter (= editorWordCount). Net effect: AppState drops
+//  to ~150 LOC after this batch.
+//
+//  Why a dedicated @Observable (= not just an Int on AppState):
+//  - EditorWordCount is owned by the editor zone (= lives there
+//    to track live changes via .onChange(of: draft) per v0.34 B-18
+//    boss OOB).
+//  - The chrome bottom-bar left field reads the same counter via
+//    @Environment(= cross-zone read; = the dedicated @Observable
+//    matches the cross-zone pattern).
+//  - Future expansion: e.g. characterCount, reading-time can
+//    follow the same pattern (= this class becomes the canonical
+//    home for editor-zone counters).
+//
+//  Persistence: none. Counter resets to 0 on relaunch (= editor
+//  zone is empty at launch; = the counter recomputes on first
+//  document load).
+//
+//  Environment injection: EditorCounters is injected once at the
+//  AppRootScene root (= same .environment(...) chain as ShellState
+//  + WorkspaceUIState + SheetRequestState); = descendants read via
+//  @Environment(EditorCounters.self).
+//
+//  Per-v0.85 P2-06 split (= the AppState half of the audit),
+//  EditorCounters is the last of 4 new state classes added this arc
+//  (= ShellState / WorkspaceUIState / SheetRequestState /
+//  EditorCounters).
+//
+
+import Foundation
+
+/// Per-window observable for editor-zone live counters (= word
+/// count of the active document).
+///
+/// Owned by `WenshuApp` (= the App struct, = per-window via
+/// `@State`), injected via `.environment(editorCounters)` on
+/// WiredShell. Descendants read it with
+/// `@Environment(EditorCounters.self) private var editorCounters`.
+///
+/// In-memory only (= no UserDefaults persistence); = editor zone
+/// is empty at launch; = the counter recomputes on first document
+/// load.
+@MainActor
+@Observable
+final class EditorCounters {
+
+    // v0.34 B-18 (= boss 9/2 OOB ', editor, yesno
+    // '): editor zone's live word count, owned globally so
+    // both the chrome bottom-bar left field (= ": N" in
+    // TabContentDispatcher.editor case) and any future editor-zone
+    // status widgets share one source of truth. EditorPlaceholder
+    // writes via .onChange(of: draft); chrome reads via @Environment.
+    var wordCount: Int = 0
+
+    init() {
+        // In-memory only (= no UserDefaults read).
+    }
+}
