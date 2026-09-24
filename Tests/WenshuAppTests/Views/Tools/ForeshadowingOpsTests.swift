@@ -5,7 +5,7 @@
 //  (= the stateless enum extracted from ForeshadowingView;
 //  = the P0 view listed in .scratch/2026-09-23-mvvm-audit/spec.md §9).
 //
-//  Coverage (= 11 tests):
+//  Coverage (= 12 tests):
 //    1.  fileExistsAtCanonicalPath
 //    2.  reload returns empty LoadResult when manager is nil
 //    3.  reload returns empty LoadResult when bookId is nil
@@ -13,10 +13,11 @@
 //    5.  addForeshadowing returns didSave=false when bookId is nil
 //    6.  addForeshadowing returns didSave=false when title is empty
 //    7.  addForeshadowing returns didSave=false when title is whitespace-only
-//    8.  removeForeshadowing returns didSave=false when manager is nil
-//    9.  sourceHasThreePublicStaticFuncs marker
-//    10. sourceIsStatelessEnum marker
-//    11. ops file is in Views/Tools/ (= matches ForeshadowingView location)
+//    8.  addForeshadowing returns didSave=false when both manager and bookId are nil
+//    9.  removeForeshadowing returns didSave=false when manager is nil
+//    10. sourceHasThreePublicStaticFuncs marker
+//    11. sourceIsStatelessEnum marker
+//    12. ops file is in Views/Tools/ (= matches ForeshadowingView location)
 //
 
 import Foundation
@@ -113,6 +114,24 @@ struct ForeshadowingOpsTests {
             title: "   \n  \t  ",
             setupChapterIdText: "",
             setupExcerpt: "test",
+            status: .setup
+        )
+        #expect(r.didSave == false)
+        #expect(r.error != nil)
+    }
+
+    @Test("addForeshadowing returns didSave=false when both manager and bookId are nil (= guard priority)")
+    func addForeshadowingIgnoresBothNil() async {
+        // Verifies the manager-first guard fires before the bookId
+        // guard (= the source's first guard is `manager`, so a nil
+        // bookId is never inspected). Title is non-empty so we know
+        // we are NOT exercising the title guard.
+        let r = await ForeshadowingOps.addForeshadowing(
+            manager: nil,
+            bookId: nil,
+            title: "the old key",
+            setupChapterIdText: "",
+            setupExcerpt: "a key hangs on the wall",
             status: .setup
         )
         #expect(r.didSave == false)
