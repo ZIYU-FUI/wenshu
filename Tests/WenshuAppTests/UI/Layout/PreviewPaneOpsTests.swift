@@ -135,8 +135,8 @@ struct PreviewPaneOpsTests {
 
     // MARK: - Source-level markers
 
-    @Test("source-marker: ops file contains 7 public static funcs")
-    func sourceHasSevenPublicStaticFuncs() throws {
+    @Test("source-marker: ops file contains 11 public static funcs")
+    func sourceHasElevenPublicStaticFuncs() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let repoRoot = testFileURL
             .deletingLastPathComponent()
@@ -154,6 +154,10 @@ struct PreviewPaneOpsTests {
         #expect(source.contains("static func loadBookDocs"))
         #expect(source.contains("static func sortBookDocs"))
         #expect(source.contains("static func sortEntities"))
+        #expect(source.contains("static func searchFilteredEntities"))
+        #expect(source.contains("static func searchFilteredBookDocs"))
+        #expect(source.contains("static func matchesSearch"))
+        #expect(source.contains("static func pinyinFirstLetters"))
     }
 
     @Test("ops file is a stateless enum (= no @Observable / @MainActor class)")
@@ -172,5 +176,46 @@ struct PreviewPaneOpsTests {
         #expect(source.contains("enum PreviewPaneOps"))
         #expect(!source.contains("@Observable"))
         #expect(!source.contains("class PreviewPaneOps"))
+    }
+
+    // MARK: - Search filter (= spec §9.2 row 6 extension)
+
+    @Test("matchesSearch returns true when query is empty (= pass-through)")
+    func matchesSearchEmptyQuery() {
+        #expect(PreviewPaneOps.matchesSearch(title: "anything", summary: "", query: ""))
+        #expect(PreviewPaneOps.matchesSearch(title: "anything", summary: "", query: "   "))
+    }
+
+    @Test("matchesSearch returns true when query is substring of title")
+    func matchesSearchTitleSubstring() {
+        #expect(PreviewPaneOps.matchesSearch(title: "Alpha", summary: "summary", query: "pha"))
+        #expect(PreviewPaneOps.matchesSearch(title: "Alpha", summary: "summary", query: "PHA"))
+    }
+
+    @Test("matchesSearch returns true when query is substring of summary")
+    func matchesSearchSummarySubstring() {
+        #expect(PreviewPaneOps.matchesSearch(title: "X", summary: "Hello World", query: "world"))
+    }
+
+    @Test("matchesSearch returns false when query matches neither")
+    func matchesSearchNoMatch() {
+        #expect(!PreviewPaneOps.matchesSearch(title: "Alpha", summary: "Beta", query: "zulu"))
+    }
+
+    @Test("pinyinFirstLetters produces uppercase initials for ASCII")
+    func pinyinFirstLettersASCII() {
+        #expect(PreviewPaneOps.pinyinFirstLetters("Hello World") == "HW")
+    }
+
+    @Test("searchFilteredEntities returns empty on empty input")
+    func searchFilteredEntitiesEmpty() {
+        let r = PreviewPaneOps.searchFilteredEntities([], query: "alpha")
+        #expect(r.isEmpty)
+    }
+
+    @Test("searchFilteredBookDocs returns empty on empty input")
+    func searchFilteredBookDocsEmpty() {
+        let r = PreviewPaneOps.searchFilteredBookDocs([], query: "alpha")
+        #expect(r.isEmpty)
     }
 }
