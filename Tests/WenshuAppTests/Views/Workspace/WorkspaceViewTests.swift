@@ -74,17 +74,35 @@ struct WorkspaceViewTests {
         #expect(codeRegion.contains("@State private var selectedEntity: Reference? = nil"),
                 "must declare selectedEntity state (= v0.30 detail card view)")
 
-        // Per the v0.30 boss OOB (= card-grid sort order):
-        #expect(codeRegion.contains("@State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter"),
-                "must declare previewSortOrder state (= v0.30 preview pane card sort)")
+        // Per v0.40 apple-001 Q3 surgical: `previewSortOrder` was hoisted
+        // from WorkspaceView's @State (= per-window copy) to AppState.previewSortOrder
+        // (= the canonical singleton per window via WenshuApp's @State wrapping).
+        // The acceptance that WorkspaceView reads `appState.previewSortOrder`
+        // (= not its own @State) is verified by inspecting AppState.swift.
+        let appStateURL = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/State/AppState.swift"
+        let appState = try String(contentsOfFile: appStateURL, encoding: .utf8)
+        let appStateCode = appState.components(separatedBy: "\n").filter {
+            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
+        }.joined(separator: "\n")
+        #expect(appStateCode.contains("var previewSortOrder: EntitySortOrder = .pinyinFirstLetter"),
+                "AppState MUST own previewSortOrder (= v0.40 apple-001 Q3 hoist from WorkspaceView)")
     }
 
     @Test("reads AppState + BookStore from environment (= per boss 2026-08-27 + v0.34 audit)")
     func readsAppStateAndBookStore() throws {
         let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("@Environment(AppState.self) private var appState"),
-                "must read AppState from environment (= v0.30 cross-zone interaction source of truth)")
+        // v0.40 apple-001 Q3 surgical: appState now passed via init
+        // (= @Bindable var appState: AppState) rather than @Environment
+        // (= per the WorkspaceView line 55-63 doc comment: "hoisted to
+        // appState.editMode (the shared AppState instance) so all workspace
+        // descendants read the same one"). The env-based form was
+        // removed because the AppState ownership shifted to WenshuApp's
+        // per-window @State (= each WindowGroup has its own instance
+        // for edit-mode isolation; = the @Environment form would have
+        // leaked state across windows).
+        #expect(source.contains("@Bindable var appState: AppState"),
+                "must receive AppState via init (= @Bindable; per v0.40 apple-001 Q3 surgical hoist)")
         #expect(source.contains("@Environment(BookStore.self) private var bookStore"),
                 "must read BookStore from environment (= v0.30 reference loading in preview pane)")
     }
