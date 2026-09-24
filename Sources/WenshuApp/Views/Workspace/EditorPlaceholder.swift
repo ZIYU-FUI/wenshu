@@ -729,7 +729,7 @@ struct EditorPlaceholder: View {
         isApplyingParagraphAI = true
         defer { isApplyingParagraphAI = false }
 
-        let providerSlug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector") ?? "anthropic"
+        let providerSlug = UserDefaultsStore.shared.string(forKey: .llmActiveConnector, fallback: "anthropic")
         let providerDefaultModel = ProviderCatalog.defaultModels(for: providerSlug).first ?? "unknown"
         let options = LLMCallOptions(
             model: appState.llmModel.isEmpty ? providerDefaultModel : appState.llmModel,
