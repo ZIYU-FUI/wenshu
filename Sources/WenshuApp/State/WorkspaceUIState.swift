@@ -1,0 +1,73 @@
+//
+//  WorkspaceUIState.swift · Wenshu · P2-06 (audit 2026-09-24)
+//
+//  P2-06 (audit 2026-09-24): extracted from `AppState.swift`.
+//  AppState was 644 LOC; this new class absorbs the 2 column-local
+//  UI state fields (= previewSortOrder + editMode) that survive
+//  shell lifecycle changes (= different scope than shell chrome).
+//
+//  Why bundle previewSortOrder + editMode (= not 2 separate classes):
+//  - Both are column-local UI state (= shared across WorkspaceView
+//    descendants).
+//  - Both reset together on shell collapse-expand (= co-vary).
+//  - Both are read by WorkspaceView.body (= the same call sites;
+//    = splitting creates 2 callers per split = more cost than
+//    benefit).
+//
+//  Persistence: in-memory only (= column-local; = matches the
+//  pre-existing AppState semantics for these fields; = resets
+//  to default on relaunch per the boss's 'should disappear on
+//  restart' expectation for column-local UI).
+//
+//  Environment injection: WorkspaceUIState is injected once at
+//  the AppRootScene root (= same .environment(...) chain as
+//  ShellState); = descendants read via
+//  @Environment(WorkspaceUIState.self).
+//
+//  Per-v0.85 P2-06 split (= the AppState half of the audit),
+//  WorkspaceUIState is one of 4 new state classes added this arc
+//  (= ShellState / WorkspaceUIState / SheetRequestState /
+//  EditorCounters).
+//
+
+import Foundation
+
+/// Per-window observable for column-local UI state (= preview
+/// sort order + layout edit mode).
+///
+/// Owned by `WenshuApp` (= the App struct, = per-window via
+/// `@State`), injected via `.environment(workspaceUI)` on
+/// WiredShell. Descendants read it with
+/// `@Environment(WorkspaceUIState.self) private var workspaceUI`.
+///
+/// Both fields are in-memory only (= no UserDefaults
+/// persistence); = column-local; = matches the boss's
+/// 'should disappear on restart' expectation for ephemeral UI
+/// state.
+@MainActor
+@Observable
+final class WorkspaceUIState {
+
+    /// Preview card-grid sort order (= shared across
+    /// PreviewPane's cards + the sort menu in the preview pane's
+    /// tab bar trailing slot + WorkspaceView's previewScope).
+    /// Default = .pinyinFirstLetter (= boss spec).
+    ///
+    /// v1.27 component-architecture (2026-09-17): removed the
+    /// 3 independent `@State` copies (= previously in
+    /// ShellMiddleColumn + WorkspaceView + PreviewPane = drifted).
+    /// Lives on AppState (= single source of truth; = batch 3 =
+    /// WorkspaceUIState split from AppState).
+    var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
+
+    /// Layout edit mode state (= v0.28 ticket 028-006; =
+    /// ⌘⇧\ toggle / Escape exit). v0.40 apple-001 Q3 surgical:
+    /// hoisted to `appState.editMode` so all workspace descendants
+    /// share one instance (= per-window via WenshuApp's @State).
+    /// Hotkey binding lives in `EditModeHotkey.swift`.
+    var editMode = LayoutEditMode()
+
+    init() {
+        // In-memory only (= no UserDefaults read).
+    }
+}
