@@ -1,5 +1,5 @@
 //
-//  CronjobTools.swift · Wenshu · HERMES-PARTIAL-010 (2026-09-04)
+//  CronjobTools.swift · Wenshu · port-window
 //
 //  LLM-side cronjob management surface. Direct port of hermes
 //  tools/cronjob_tools.py (= 1,137 LOC; provides the unified
@@ -18,7 +18,7 @@
 //
 //  Per spec §2.3: cron is a wenshu-side-wins surface (= wenshu's existing
 //  Cronjob + CronjobStore use Apple HIG macOS LaunchAgent, not hermes's
-//  cross-process claim/lock). HERMES-PARTIAL-010 adds the LLM-facing
+//  cross-process claim/lock). the LLM-facing
 //  tool dispatcher (= the cronjob(action:...) entry point) so the LLM
 //  can manage cron jobs through the chat surface without knowing about
 //  the underlying LaunchAgent plumbing.
