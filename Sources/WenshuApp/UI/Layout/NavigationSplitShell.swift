@@ -120,146 +120,21 @@ struct NavigationSplitShell: View {
             // Apple's standard "List with multiple sections"
             // pattern).
             //
-            // v0.71 boss 2026-09-10 OOB 'left + content + inspector
-            // widths follow Apple's NSV default ranges; the same for
-            // the middle column': no `.navigationSplitViewColumnWidth`
-            // modifier on any column (= SwiftUI's own defaults for
-            // min / ideal / max take over). Mail / Notes / Finder
-            // also do not specify column widths (= the same defaults).
+            // No `.navigationSplitViewColumnWidth` modifier on any
+            // column (= SwiftUI's own defaults for min / ideal /
+            // max take over; = Mail / Notes / Finder also do not
+            // specify column widths; = the same defaults apply).
             //
-            // v0.84 boss 2026-09-10 OOB 'all 4 columns = Apple HIG
-            // canonical width': set every column's width to the
-            // Apple HIG recommended range. The values come from
-            // measuring Apple apps on this machine:
-            // - sidebar 220/280/360 (= Mail / Notes / Finder
-            //   sidebar)
-            // - middle 240/320/480 (= Music / Photos cards list)
-            // - detail 400/600/900 (= Pages / Numbers canvas)
-            // - inspector 240/280/360 (= Notes / Reminders
-            //   inspector). Inspector uses the dedicated
-            //   `.inspectorColumnWidth` API (= same signature,
-            //   = matched to the .inspector modifier).
-            // All three parameters (= min / ideal / max) define
-            // the column's drag-resize and window-scaling bounds;
-            // = SwiftUI auto-distributes the remaining width
-            // across the other columns.
-            // v0.95 boss 2026-09-10 OOB 'NSV probe was working fine before':
-            // the probe (= /tmp/wenshu_full/Full.swift) inline
-            // its sidebar content directly in the column closure:
-            //     SidebarZone().navigationSplitViewColumnWidth(...)
-            // SidebarZone is a simple struct without init params.
-            // wenshu's ShellSidebarColumn is a wrapper struct
-            // that takes `let appState: AppState` (= init param).
-            // SwiftUI macOS 27 NSV may not propagate
-            // `.navigationSplitViewColumnWidth` through an
-            // init-parameter wrapper (= the columnWidth modifier
-            // sees the wrapper's nominal type instead of the
-            // underlying List). Drop the wrapper for now and
-            // inline `AppleSidebarView()` with the modifier.
-            // (= post-v1.69: the pre-v1.69e `NewLibraryOutlineView`
-            // was extracted to `AppleSidebarView.swift`; = the
-            // inline reference below uses the new file.)
-            // ShellSidebarColumn can be re-introduced in a
-            // separate ticket once the NSV beta stabilizes.
-            // v0.97 boss 2026-09-10 OOB 'NSV probe was working fine before':
-            // the probe (= commit 660c5e820 'land canonical 6-zone
-            // layout') had NO `.navigationSplitViewColumnWidth`
-            // modifier on any column (= SwiftUI's default
-            // sidebar ~140 PT, content ~200 PT, detail = rest).
-            // Adding `min:220/ideal:280/max:360` to sidebar
-            // (= later commit 762c3f69e) collapses sidebar to
-            // 8 PT in macOS 27 NSV (= the modifier triggers a
-            // degenerate layout pass that ignores the values).
-            // Drop the columnWidth modifier; let SwiftUI use
-            // its Apple HIG canonical default (~140 PT sidebar
-            // = the same range Mail / Notes / Finder ship with).
-            // This restores the working v0.71 state per the
-            // boss 9/10 'Apple default' OOB.
-            // v0.98 boss 2026-09-10 OOB 'NSV probe was working fine before':
-            // the probe / commit 660c5e820 had no columnWidth
-            // modifier; SwiftUI macOS 27 NSV auto-resolves sidebar
-            // to a narrow column (~140 PT) but the sidebar IS
-            // visible (= the user can see the column with text).
-            // The current wenshu build hides the sidebar entirely
-            // (= sidebar collapses to ~8 PT = invisible). This
-            // happens because:
-            //   (a) wenshu has 4 columns (sidebar + content +
-            //       detail + inspector); the probe only had 3.
-            //   (b) the defaultSize + contentMinSize combo from
-            //       earlier commits kept the window at 2205 PT.
-            // Drop the columnWidth modifier (= lets SwiftUI
-            // compute its default). The actual sidebar visibility
-            // fix lands in a follow-up ticket (per the boss OOB
-            // 'let's not give up; debug' = the inspector tab is
-            // already showing, so the layout is now usable).
-            // v0.101 boss 2026-09-10 OOB 'set each column to Apple's recommended parameters
-            // — min/ideal/max': re-apply
-            // `.navigationSplitViewColumnWidth(min:ideal:max:)`
-            // to all 4 columns with Apple HIG canonical ranges.
-            // Per Apple HIG §Sidebars (sidebar ~220-360 PT),
-            // Mail/Notes content list (~240-480), Pages/Keynote
-            // canvas (400-900), Notes/Reminders inspector
-            // (240-360). The earlier v0.83 attempt had sidebar
-            // collapsing to 8 PT because windowToolbarStyle +
-            // defaultSize combined pushed NSV into a degenerate
-            // layout pass; with `.windowToolbarStyle(.unifiedCompact)`
-            // (= matches the working probe /tmp/wenshu_full/Full.swift)
-            // + no defaultSize (= let SwiftUI auto-size the window
-            // like the probe), the columnWidth values now apply
-            // cleanly and each column lands at its ideal width.
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'on initial launch, make the left and left-2
-            // columns use the minimum size; leave the other two columns alone for now': set the sidebar +
-            // content (= left + left-2) ideal widths to their min
-            // values (= sidebar 220, content 240) so the columns
-            // open at their tightest legal width (= no extra padding
-            // room = the user sees the smallest sidebar + cards band
-            // that still fits the row icons + labels). The detail +
-            // inspector ideal widths stay as-is (= 600 / 280) per the
-            // boss's 'leave the other two columns alone' instruction.
-            //
-            // Why this works: `navigationSplitViewColumnWidth(min: X,
-            // ideal: Y, max: Z)` sets Y as the initial width when
-            // the column first appears; = setting ideal = min gives
-            // the minimum-width initial state without losing the
-            // user's ability to drag wider (= max is unchanged =
-            // user can drag sidebar up to 360 PT and content up to
-            // 480 PT).
-            //
-            // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
-            // audit ticket 4): strip
-            // `.navigationSplitViewColumnWidth(min:ideal:max:)`
-            // (= per boss 9/10 'Apple default' OOB = let
-            // `.automatic` style pick columns = Mail / Notes /
-            // Finder default). The previous 5-round iteration
-            // (= v0.83 / v0.95 / v0.97 / v0.98 / v0.101) tried
-            // various min/ideal/max ranges; all caused sidebar
-            // to collapse to 8 PT or split-view column-width
-            // layout pass to enter a degenerate state. The
-            // canonical answer per wenshu-visual-alignment/SKILL.md
-            // reverse-pattern = strip the modifier + let
-            // SwiftUI's NSV `.automatic` style use its Apple HIG
-            // canonical column ranges (~140 / ~200 / detail natural).
-            // v1.64 boss 2026-09-18 'sidebar has a real problem —
-            // Apple API has other methods, not necessarily outline
-            // tree': switch from the pre-v1.69e NewLibraryOutlineView
-            // (= List(.sidebar) = NSTableView = NSTableRowData
-            // NSLayout Constraint conflict on window resize per
-            // WenshuApp-2026-09-18-143621.ips) to LazySidebarView
-            // (= pure-SwiftUI ScrollView + LazyVStack + Button
-            // rows; = no NSTableView = no CoreAutoLayout conflict
-            // during window resize). LazySidebarView was removed
-            // in v1.69b (= also `git rm`-deleted alongside
-            // NewLibraryOutlineView in v1.69e).
-            //
-            // v1.68b boss 2026-09-22 OOB 'macOS 27 化' (= the Apple
-            // HIG canonical sidebar per WWDC20 10031) + '回方案 B
-            // 之前是因为别的原因, 记录的有问题' (= the v1.64
-            // NSTableView-resize-crash trade-off is reversed):
-            // replace LazySidebarView with AppleSidebarView (=
-            // macOS 14+ List(.sidebar) over a SidebarNode tree
-            // projection from the existing flat Bookshelf / Book
-            // domain models — boss '数据结构不要有变化' = the
-            // projection lives at view-layer only).
+            // The earlier 5-round iteration (min/ideal/max ranges
+            // = 220/280/360, 240/320/480, 400/600/900, 240/280/360)
+            // tried various ranges; all caused sidebar to collapse
+            // to 8 PT or split-view column-width layout pass to
+            // enter a degenerate state on macOS 27 NSV. The
+            // canonical answer per the Apple HIG reverse-pattern =
+            // strip the modifier + let SwiftUI's NSV `.automatic`
+            // style use its canonical column ranges (~140 sidebar
+            // / ~200 content / detail natural; = Mail / Notes /
+            // Finder ship with the same defaults).
             AppleSidebarView()
                 // v1.67 boss 2026-09-22 OOB '按 apple 文档示例改
                 // 四列宽度' (= applied DIRECTLY on the
