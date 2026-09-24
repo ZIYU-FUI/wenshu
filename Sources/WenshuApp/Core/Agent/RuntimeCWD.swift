@@ -37,17 +37,15 @@ actor RuntimeCWD {
 
     init() {
         // Read library path from UserDefaults at init time.
-        if let path = UserDefaults.standard.string(forKey: RuntimeCWD.libraryPathKey) {
-            self.libraryPathFallback = URL(fileURLWithPath: path)
-        } else {
-            self.libraryPathFallback = nil
-        }
+        let libPath = UserDefaultsStore.shared.string(forKey: .libraryPath)
+        self.libraryPathFallback = libPath.isEmpty
+            ? nil
+            : URL(fileURLWithPath: libPath)
         // Read CWD override from UserDefaults.
-        if let path = UserDefaults.standard.string(forKey: RuntimeCWD.cwdOverrideKey) {
-            self.cwdOverride = URL(fileURLWithPath: path)
-        } else {
-            self.cwdOverride = nil
-        }
+        let cwdPath = UserDefaultsStore.shared.string(forKey: .cwdOverride)
+        self.cwdOverride = cwdPath.isEmpty
+            ? nil
+            : URL(fileURLWithPath: cwdPath)
     }
 
     /// Current working directory (= override > library path > nil).
@@ -59,9 +57,9 @@ actor RuntimeCWD {
     func setCWD(_ url: URL?) {
         cwdOverride = url
         if let url {
-            UserDefaults.standard.set(url.path, forKey: RuntimeCWD.cwdOverrideKey)
+            UserDefaultsStore.shared.setString(url.path, forKey: .cwdOverride)
         } else {
-            UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
+            UserDefaultsStore.shared.remove(.cwdOverride)
         }
         // Post via the global Notification.Name extension (= shared with
         // AppStateEvents enum so observers across the app see the same
