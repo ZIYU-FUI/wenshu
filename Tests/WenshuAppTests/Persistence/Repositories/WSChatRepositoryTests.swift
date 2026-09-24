@@ -141,7 +141,7 @@ struct WSChatRepositoryTests {
         #expect(sessionsGlobal.count == 3)
     }
 
-    @Test("append + loadMessages are scoped by bookID; cross-book append is refused")
+    @Test("append + loadMessages are scoped by bookID; cross-book append auto-creates a sibling session")
     @MainActor
     func messagesIsolatedByBook() throws {
         let repo = try makeRepository()
@@ -166,19 +166,26 @@ struct WSChatRepositoryTests {
         #expect(messagesA.count == 1)
         #expect(messagesA[0].id == "m-A1")
 
-        // Cross-scope append (= bookID = "book-B" targeting "sess-A") must throw
-        #expect(throws: WSChatRepositoryError.self) {
-            try repo.append(
-                StoredChatMessage(id: "m-cross", source: "user", content: "x", timestamp: Date()),
-                sessionId: "sess-A",
-                bookID: "book-B"
-            )
-        }
+        // Cross-scope append (= bookID = "book-B" targeting sessionID
+        // "sess-A" which only exists under book-A) — v1.79 auto-creates
+        // a sibling session under book-B with the same sessionID so the
+        // chat pipeline can write per-book without coordinating session
+        // lifecycle separately (= see WSChatRepository.append comment
+        // block for the rationale).
+        try repo.append(
+            StoredChatMessage(id: "m-cross", source: "user", content: "x", timestamp: Date()),
+            sessionId: "sess-A",
+            bookID: "book-B"
+        )
 
-        // Global (bookID = nil) sees both messages via their session FKs
+        // Global (bookID = nil) sees all 3 messages (m-A1 + m-B1 + m-cross)
+        // via their session FKs (= global un-attached reads use
+        // sessionID alone; = the cross-scope message now has its own
+        // session row under book-B so loadMessages(sessionId: "sess-A")
+        // returns both m-A1 and m-cross).
         let messagesGlobalA = try repo.loadMessages(sessionId: "sess-A")
         let messagesGlobalB = try repo.loadMessages(sessionId: "sess-B")
-        #expect(messagesGlobalA.count == 1)
+        #expect(messagesGlobalA.count == 2)
         #expect(messagesGlobalB.count == 1)
     }
 

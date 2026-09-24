@@ -105,16 +105,25 @@ public final class WSChatRepository {
     }
 
     public func append(_ message: StoredChatMessage, sessionId: String, bookID: String? = nil) throws {
-        // Verify the target session exists AND matches the requested book scope.
-        // If the caller passes bookID = Some(id) but the session was created under
-        // a different book (or globally), refuse the append (= guard against
-        // accidentally writing to the wrong scope).
-        guard let session = try getSession(sessionID: sessionId, bookID: bookID) else {
-            throw WSChatRepositoryError.sessionNotFoundForBookScope(
-                sessionID: sessionId,
-                bookID: bookID ?? "<global>"
-            )
+        // Ensure the target session exists under the requested book scope.
+        // If no session exists yet (= first message of a new chat per book),
+        // create it automatically (= the chat pipeline should not have to
+        // manage session lifecycle separately from message appends; = the
+        // caller has the bookID + sessionID, so we know the canonical key).
+        //
+        // Boss 2026-09-24 chat-by-book test: previously this guard threw
+        // sessionNotFoundForBookScope (= silent fail because try? in
+        // ChatSessionViewModel.send); = messages stayed in memory but
+        // never reached SwiftData; = chat history was empty on book switch
+        // (= loadMessages returned nothing because no session row existed
+        // = no messages to fetch).
+        let session: WSSession
+        if let existing = try getSession(sessionID: sessionId, bookID: bookID) {
+            session = existing
+        } else {
+            session = try createSession(sessionID: sessionId, bookID: bookID)
         }
+        _ = session  // unused after this line; the predicate below reads the sessionId directly
         // Determine next position (= count + 1) within the same scope
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID)
