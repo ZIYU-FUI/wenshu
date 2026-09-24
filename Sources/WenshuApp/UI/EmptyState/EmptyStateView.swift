@@ -144,10 +144,8 @@ struct EmptyStateView: View {
             // name without setting the rendering mode (= at 76 PT
             // the fill glyph reads as a heavy solid blob).
             //
-            // v1.78 draw-on animation deferred: see file header
-            // for the SDK research log. The symbolEffect call was
-            // removed because macOS 27 renders the icon INVISIBLE
-            // under the IndefiniteSymbolEffect path.
+            // The symbolEffect call was removed because macOS 27 renders
+            // the icon INVISIBLE under the IndefiniteSymbolEffect path.
             Image(systemName: icon)
                 .font(.system(size: DesignTokens.emptyStateIconSize, weight: .thin))
                 .symbolRenderingMode(.monochrome)
