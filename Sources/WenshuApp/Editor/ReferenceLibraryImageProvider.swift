@@ -1,20 +1,19 @@
 // Sources/WenshuApp/Editor/ReferenceLibraryImageProvider.swift
 //
-// v0.39 ticket 001 -- EmbeddedImageProvider conformance that resolves
-// Obsidian-style ![[name]] embeds by searching the active book's
-// characters/ + worlds/ folders first, then the library's reference-
-// library/raw/ as fallback. Engine calls synchronously from the
-// image-embed render path.
+// EmbeddedImageProvider conformance that resolves Obsidian-style
+// ![[name]] embeds by searching the active book's characters/ + worlds/
+// folders first, then the library's reference-library/raw/ as fallback.
+// Engine calls synchronously from the image-embed render path.
 //
-// Real API (verified 2026-09-04 from swift-markdown-engine 0.12.0 source):
+// Real API (verified from swift-markdown-engine 0.12.0 source):
 //   protocol EmbeddedImageProvider: Sendable {
 //     func image(for reference: EmbeddedImageRequest) -> NSImage?
 //     func fingerprint() -> AnyHashable
 //   }
 //   struct EmbeddedImageRequest: Sendable, Equatable {
-//     let name: String                   // = part before any |
-//     let id: String?                    // = optional explicit id
-//     let requestedWidth: CGFloat?       // = optional explicit width
+//     let name: String                   // part before any |
+//     let id: String?                    // optional explicit id
+//     let requestedWidth: CGFloat?       // optional explicit width
 //   }
 // The engine parses `![[name|optional-id|optional-width]]` into an
 // EmbeddedImageRequest and asks the provider for an image.
