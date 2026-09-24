@@ -33,7 +33,8 @@ struct ChatAttachmentPreviewChip: View {
                 onClear()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .regular))
+                    .imageScale(.small)
+                    .symbolRenderingMode(.hierarchical)
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 14, height: 14)
                     .foregroundStyle(.secondary)

@@ -1,61 +1,26 @@
-// MemoryProvider.swift · Wenshu · v0.28
+// MemoryProvider.swift · Wenshu
 //
-// Port adapted from hermes-agent/agent/memory_provider.py L1-416
-// (= wenshu M6 ticket 18 = hermes-port batch 3 eighth ticket).
+// MemoryProvider ABC surface: system prompt fragment / prefetch /
+// sync / tool schemas / pre-compress checkpoint (= wenshu-side
+// implementation of the hermes MemoryProvider concept).
 //
-// Source (= hermes Python):
-// - agent/memory_provider.py L1-416 (= MemoryProvider ABC with
-//   system_prompt_block / prefetch / queue_prefetch / recall_status /
-//   is_available / unavailable_reason + PRE_COMPRESS_CHECKPOINT_API_VERSION
-//   constant + normalize_tool_schema helper + memory_provider_tools_enabled
-//   gate + INDICATOR_GLYPH + RecallStatus dataclass)
-//
-// Target (= wenshu Swift):
-// - Sources/WenshuApp/Core/Memory/MemoryProvider.swift (this file,
-//   ~400 LOC) = MemoryProvider ABC + 3 concrete impls
-//   (= InMemoryMemoryProvider + UserDefaultsMemoryProvider +
-//   SQLiteMemoryProvider) + helper extensions.
-//
-// scope refactor (= per Q109 doc-first + Q35 commit-description vs truth):
-// The hermes MemoryProvider ABC surface is broader (= 8+ methods
-// including queue_prefetch + recall_status + is_available +
-// unavailable_reason + INDICATOR_GLYPH + RecallStatus dataclass) than
-// what wenshu v1 ships. The wenshu port is a SUB-SET PORT: it captures
-// the core 5-method surface (= getSystemPrompt + prefetch + sync +
-// getToolSchemas + preCompressCheckpoint) and the helper functions
+// SwiftData-backed persistence uses WSMemoryRepository (@MainActor)
+// wrapping the WSMemory @Model.
 // (= PreCompressCheckpointAPI + ToolSchema.normalize +
 // memoryProviderToolsEnabled), but DEFER the wenshu-irrelevant
 // hermes-side surface (= queue_prefetch for background prefetching +
 // recall_status for deterministic indicator rendering + is_available
 // for unavailable-state gating + INDICATOR_GLYPH for brand-mark
 // customization + RecallStatus dataclass). The deferred items land
-// when wenshu adds the corresponding features (= v0.29+ prefetch
-// backgrounding / indicator overlay UI / provider disable surface).
+// when wenshu adds the corresponding features.
 //
-// The wenshu SwiftData-backed WSMemoryRepository (= the @MainActor
-// SwiftData wrapper for WSMemory @Model; = Phase 5 ticket 8 deleted
-// the MemoryStore actor) implements a subset of the hermes
-// MemoryProvider methods.
-// MemoryProvider in a follow-up commit (= the conformance bridge).
-//
-// 3 new concrete impls added:
-// 1. InMemoryMemoryProvider (= ephemeral session-only storage, used
-//   by the existing test surface and any per-conversation sandbox).
-// 2. UserDefaultsMemoryProvider (= tiny on-disk key-value fallback
-//   for environments where GRDB isn't available).
-// 3. SQLiteMemoryProvider (= thin adapter over the existing
-//   FileSystemMemoryStore (= pre-Phase 5; = current path = SwiftData-only).
-// + memory migration ticket).
-//
-// per AGENTS.md Section 8 pollution-defense hex-encoding rule:
-// this file does NOT contain the 12-token forbidden vocab literal;
-// the rule enumeration is referenced semantically only.
+// SwiftData-backed persistence uses WSMemoryRepository (@MainActor)
+// wrapping the WSMemory @Model; the deleted sqlite3 MemoryStore
+// actor was the previous implementation.
 
 import Foundation
 
-// WSMemoryRepository
-// (= @MainActor SwiftData; = Phase 5 ticket 8 deleted MemoryStore actor).
-// See commit 49 (= ContextEngine deferred) for the full rationale.
+// WSMemoryRepository = @MainActor SwiftData wrapper.
 // Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
 
 // MARK: - ABC (= hermes MemoryProvider)
@@ -283,14 +248,13 @@ final class UserDefaultsMemoryProvider: MemoryProvider, @unchecked Sendable {
 /// pretending to be SQLite-backed when in fact no SQLite was
 /// involved; = a typestate disguise so callers can pretend the
 /// persistence layer exists). The wenshu SwiftData migration
-/// (= Phase 5 ticket 8) deleted the MemoryStore actor and moved
-/// memory persistence to `WSMemoryRepository` (@MainActor SwiftData
-/// wrapper, = the real storage surface per v0.72). This class is
-/// renamed `SwiftDataMemoryProvider` (= the honest name; = the
+/// deleted the MemoryStore actor and moved memory persistence to
+/// `WSMemoryRepository` (@MainActor SwiftData wrapper). This class
+/// is renamed `SwiftDataMemoryProvider` (= the honest name; = the
 /// actual storage path; = no more "SQLite" theatre). The future
-/// SQLite migration (= v0.29+ ticket) will replace this class's
-/// internal SwiftData calls with GRDB calls if/when SQLite becomes
-/// the preferred on-disk format.
+/// SQLite migration will replace this class's internal SwiftData
+/// calls with GRDB calls if/when SQLite becomes the preferred
+/// on-disk format.
 final class SwiftDataMemoryProvider: MemoryProvider, @unchecked Sendable {
     let slug: String
     let isEnabled: Bool = true

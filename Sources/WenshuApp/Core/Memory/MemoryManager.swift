@@ -29,19 +29,18 @@ enum SyncResult: Sendable, Equatable {
 /// MemoryManager: orchestrates pre-turn prefetch + post-turn sync for WenshuConductor.
 /// Mirrors hermes agent/memory_manager.py pattern.
 actor MemoryManager {
-    /// Phase 5 ticket 4: `store` is now optional. When nil (= default),
-    /// the actor delegates reads/writes to WSMemoryRepository.shared
-    /// (= the @MainActor SwiftData wrapper for the `WSMemory` @Model).
+    /// `store` was optionalized. When nil (= default), the actor delegates
+    /// reads / writes to WSMemoryRepository.shared (= the @MainActor
+    /// SwiftData wrapper for the `WSMemory` @Model).
     /// Max character budget for prefetch (= hermes default = 2200).
-    /// All memory calls go through WSMemoryRepository.shared (Apple SwiftData-backed)
-    /// after Phase 5 ticket 8.
+    /// All memory calls go through WSMemoryRepository.shared (= Apple
+    /// SwiftData-backed).
     private let maxCharBudget: Int
 
-    /// P1-01 (audit 2026-09-24): prefer the injected
-    /// `WSMemoryRepository`; fall back to `.shared` (= every existing
-    /// caller keeps working without changes). Matches the
-    /// `WenshuConductor.repositories` pattern (= same injection shape,
-    /// same MainActor.assumeIsolated wrapping).
+    /// MemoryManager delegate injects WSMemoryRepository. The injected
+    /// value is preferred (= same injection shape as WenshuConductor.repositories);
+    /// when nil, the singleton `.shared` is used (every existing caller
+    /// keeps working without changes).
     private let memory: WSMemoryRepository
 
     init(maxCharBudget: Int = 2200, memory: WSMemoryRepository? = nil) {
@@ -171,22 +170,19 @@ actor MemoryManager {
         return .prefetched(memories: prefetched, totalChars: totalChars)
     }
 
-    // MARK: - Phase 5 ticket 4: SwiftData bridge helpers
+    // MARK: - SwiftData bridge helpers
     //
-    // MemoryManager always delegates reads/writes to
+    // MemoryManager always delegates reads / writes to
     // WSMemoryRepository.shared (= the @MainActor SwiftData wrapper for
-    // `WSMemory` @Model class per phase 3 deferred commit 43).
+    // `WSMemory` @Model).
     //
     // The bridge uses `await MainActor.run { ... }` because:
     //   - WSMemoryRepository is @MainActor (= synchronous SwiftData ops).
     //   - MemoryManager is an actor (= async methods run on the actor's
     //     executor; = not MainActor).
     //
-    // All helpers return [Memory] / Int / Bool (= the public-API shape
-    // preserved across the migration) so existing prefetch/sync callsites
-    // don't need to know which backend is used. Persistence is now always
-    // WSMemoryRepository (= @MainActor SwiftData wrapper for WSMemory
-    // @Model; = Phase 5 ticket 8 deleted the MemoryStore actor).
+    // All helpers return [Memory] / Int / Bool (= the public-API shape)
+    // so existing prefetch / sync callsites stay backend-agnostic.
 
     /// searchMemory: actor-isolated read (= delegates to SwiftData).
     private func searchMemory(
