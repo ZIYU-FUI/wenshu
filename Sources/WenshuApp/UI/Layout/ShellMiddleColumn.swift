@@ -346,6 +346,23 @@ struct ShellMiddleColumn: View {
             // .frame(minWidth: 120, maxWidth: 240) (= a fixed 120-240
             // PT search bar that didn't track the column's width).
             //
+            // v1.84 boss 2026-09-24 OOB '素材栏加 10PT 内边距' +
+            // '搜索栏高调成 36 高': the outer VStack (= the entire
+            // PreviewPane column = the search field + cards +
+            // empty-state) gains a 10 PT horizontal padding
+            // (= chromePaddingContentHorizontal = the same gutter
+            // token v1.83 introduced for search field / cards).
+            // Search field + cards DROPPED their inner
+            // .padding(.horizontal, ...) (= would have stacked with
+            // the column padding = 10 + 10 = 20 PT total = the
+            // boss's '10 + 10 就过多了' complaint). Search field
+            // also switches to .controlSize(.large) (28 PT control
+            // height) + .padding(.vertical, chromePaddingMicro = 4
+            // PT) (= 28 + 4 × 2 = 36 PT total height = the
+            // user-specified 36 PT without hard-coding a frame
+            // height = Apple semantic expression per the boss's
+            // '不要硬编码, 用 Apple 表达式' rule).
+            //
             // Note: dropped `.searchable` because the framework's
             // own search box was rendering trailing regardless of
             // the `placement:` parameter (= `.automatic` /
@@ -404,28 +421,28 @@ struct ShellMiddleColumn: View {
                         // search field heights). NO hard-coded
                         // `.frame(height: 30)` per the boss's
                         // explicit request.
-                        .controlSize(.regular)
+                        .controlSize(.large)
                         .textFieldStyle(.plain)
                     }
                     // v1.83 boss 2026-09-24 OOB '素材栏的搜索栏没有
                     // 加内间距, 需要加, 让整个搜索栏的高度高一些' +
                     // '整搜索栏左右两边没有间距... 素材栏没有内
-                    // 边距, 需要加 10PT': horizontal padding switches
-                    // from 8 PT (= zoneContentInset) to 10 PT
-                    // (= chromePaddingContentHorizontal = the
-                    // canonical PreviewPane content gutter; = the
-                    // user-specified value matching the cards'
-                    // horizontal padding in bookDocsGrid). Add
-                    // vertical padding 6 PT (= chromePaddingSmall)
-                    // inside the HStack so the icon + TextField sit
-                    // with breathing room above and below (= the
-                    // overall search field height grows from the
-                    // baseline 22 PT controlSize(.regular) to
-                    // ~34 PT, = the user's '搜索栏高度高一些' goal
-                    // without hard-coding a frame height = Apple
-                    // semantic expression).
-                    .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
-                    .padding(.vertical, DesignTokens.chromePaddingSmall)
+                    // 边距, 需要加 10PT': the horizontal padding
+                    // moved from the inner HStack (= .padding(
+                    // .horizontal, chromePaddingContentHorizontal))
+                    // to the outer VStack (= the v1.84 column-
+                    // level inset). Drop the inner horizontal
+                    // padding here (= would stack with the column
+                    // padding = 10 + 10 = 20 PT total = the
+                    // boss's '10 + 10 就过多了' complaint). Switch
+                    // from .controlSize(.regular) (22 PT) to
+                    // .controlSize(.large) (28 PT) + vertical
+                    // padding 4 PT (= chromePaddingMicro) (= 28 +
+                    // 4 × 2 = 36 PT total = the user-specified
+                    // search field height = Apple semantic
+                    // expression per the boss's '不要硬编码数字,
+                    // 用 Apple 表达式' rule).
+                    .padding(.vertical, DesignTokens.chromePaddingMicro)
                     // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
                     // spacing between it and the first card — is there a hand-written padding, and if
                     // so, drop it': drop the manual `.padding(.vertical,

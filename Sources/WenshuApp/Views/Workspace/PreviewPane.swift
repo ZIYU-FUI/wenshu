@@ -914,7 +914,16 @@ struct PreviewPane: View {
             // value the search field now uses after v1.83; = one
             // gutter = one source = no horizontal drift between
             // search field and card grid).
-            .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
+            //
+            // v1.84 boss 2026-09-24 OOB '10 + 10 就过多了': the
+            // cards' horizontal padding MOVED to the outer
+            // PreviewPane column (= the v1.84 column-level inset).
+            // Drop the inner horizontal padding here (= would
+            // stack with the column padding = 10 + 10 = 20 PT
+            // total = the boss's explicit complaint). Cards now
+            // rely solely on the column-level inset for left +
+            // right breathing room (= single source of truth for
+            // the PreviewPane gutter = chromePaddingContentHorizontal).
             .padding(.bottom, 8)
                 }
             // v1.79 boss 2026-09-24 OOB '点击 sidebar 后卡片出现，
