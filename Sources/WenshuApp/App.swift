@@ -228,6 +228,11 @@ struct WenshuApp: App {
     /// root.
     @State private var sheetRequests = SheetRequestState()
 
+    /// P2-06 (audit 2026-09-24): editor-zone live counters
+    /// (= wordCount). Split out from AppState. Injected via
+    /// `.environment(editorCounters)` at the AppRootScene root.
+    @State private var editorCounters = EditorCounters()
+
     /// v0.72 SwiftData migration: WSRepositoryContainer holds the 9
     /// `@MainActor @Observable` SwiftData repositories (= `chat`,
     /// `todo`, `kanban`, ...). Per `WSRepositoryContainer.swift:18-21`,
@@ -253,6 +258,7 @@ struct WenshuApp: App {
             shell: shell,
             workspaceUI: workspaceUI,
             sheetRequests: sheetRequests,
+            editorCounters: editorCounters,
             repositories: repositories
         )
     }

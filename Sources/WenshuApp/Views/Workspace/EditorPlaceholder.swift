@@ -47,6 +47,9 @@ struct EditorPlaceholder: View {
     /// = no path = render the short placeholder name).
     ///
     @Environment(AppState.self) private var appState
+    // P2-06 (audit 2026-09-24): editorWordCount moved to
+    // EditorCounters (= the editor-zone live counter).
+    @Environment(EditorCounters.self) private var editorCounters
     // v0.39 ticket 001: WenshuEditorServicesFactory.make needs
     // referenceLibraryRoot + active book root. Both come from
     // BookStore (= injected via .environment(bookStore) at the
@@ -333,7 +336,7 @@ struct EditorPlaceholder: View {
                             // left field reads it). Recompute is per-
                             // keystroke; = Foundation-only = microseconds.
                             onWordCountChange: { count in
-                                appState.editorWordCount = count
+                                editorCounters.wordCount = count
                             },
                             // v0.34 B-22: route dirty-state transitions
                             // v0.34 B-22: dirty-state machine. Engine fires this once per
@@ -449,9 +452,9 @@ struct EditorPlaceholder: View {
             }
             // Initialize word count from active tab (= 0 when no tab).
             if let tab = activeTab {
-                appState.editorWordCount = WordCounter.count(tab.originalBody).charactersNoSpaces
+                editorCounters.wordCount = WordCounter.count(tab.originalBody).charactersNoSpaces
             } else {
-                appState.editorWordCount = 0
+                editorCounters.wordCount = 0
             }
             // v0.34 B-23: start the file-system watcher for the current
             // documentPath (nil = placeholder mode; = no-op). The watcher
@@ -623,7 +626,7 @@ struct EditorPlaceholder: View {
         // Mark the document clean (= cancels any pending auto-save Task).
         EditorPersistence.handleDirtyTransition(false, tab: tab, bookStore: bookStore)
         // Update chrome bottom-bar left (= word count of new content).
-        appState.editorWordCount = WordCounter.count(result.newContent).charactersNoSpaces
+        editorCounters.wordCount = WordCounter.count(result.newContent).charactersNoSpaces
     }
 
     // v1.70 editor-mvvm T2b: `writeDraftToDisk()` migrated to

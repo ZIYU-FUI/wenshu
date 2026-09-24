@@ -38,7 +38,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // v0.21 ticket 01 (redo #7): SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear, OpenSettingsAction.callAsFunction()).
     // v0.72 Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone under Swift 6
     // strict concurrency). Replaced with @MainActor accessors (= Swift 6 strict concurrency; = NSLock not needed) (= safe under any
     // concurrency model). Reads via @MainActor; writes via @MainActor.
@@ -48,14 +47,12 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         set { _openSettings = newValue }
     }
 
-    /// v0.28 followup: debug Keychain override for cua / dev env without
     /// user-attached login keychain (= the InMemoryKeychainStore stub
     /// prevents SecItemCopyMatching from blocking wenshu main thread
     /// on the Keychain permission modal during dev/verify). Gated by
     /// WENSHU_DEBUG_INMEMORY_KEYCHAIN env var (= 1 = use in-memory stub,
     /// 0 = use real Apple keychain). Production builds never set this.
     ///
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode; once it's on,
     /// don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI': add the same
     /// UserDefaults override (= `wenshu.debugNoKeychain = YES`) for
     /// the boss's off-site UI iteration. The boss-set UserDefaults
@@ -90,7 +87,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
 
 
-    // v0.21 ticket 01 (redo #7): "show" → "restoredefaultlayout" NSMenu action (Q28: NSMenu in progress 6, SwiftUI commands)
     @MainActor @objc func resetLayout(_ sender: Any?) {
         NSLog("[wenshu.reset] NSMenu resetLayout(_:) called, posting")
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
@@ -98,13 +94,11 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        // v0.28 followup: force-evaluate sharedKeychainBackend so the
         // debug override takes effect before any Keychain access.
         _ = Self.sharedKeychainBackend
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // v0.28 followup Boss UX round 9 (Boss 2026-08-29 OOB 'wait,
         // button, not okdouble-click, ' =
         // titlebarAppearsTransparent + titleVisibility = .hidden
         // removes traffic lights AND double-click-to-zoom
@@ -115,7 +109,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // (= exactly macOS standard = native toolbar buttons next to
         // traffic lights = matches Apple Pages / Xcode / Mail etc.).
         //
-        // v0.21 ticket 06: synccreate KanbanStore + WenshuConductor (static let actor init)
         // (Phase 5 ticket 10a removed ChatSessionStore from this bootstrap)
         // unsafeMutablePointer / instance var — static let yes immutable,
 // v0.24 bossverificationfix (Boss 8/24 'chat, '):
@@ -207,8 +200,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             runtime: Self.sharedRuntime,
             verifier: Self.sharedVerifier
         )
-        // v0.21 ticket 06: NSApp.mainMenu applicationWillFinishLaunching (=, SwiftUI)
-        // v0.20 ticket 01: startregister wenshu agent (zone chat UI)
         let card = AgentCard(
             name: "wenshu",
             description: "wenshu 本地主 agent, 接 MiniMax key, 支持 chat UI",
@@ -222,7 +213,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             ))
         }
 
-        // v0.75 ticket 002: SkillBundles YAML discovery bootstrap (= loads any
         // user-placed YAML files into SkillBundles.shared so the LLM can use
         // them via the skill_bundles tool shipped in v0.73 ticket 001).
         // Failure-tolerant: a malformed YAML logs to stderr but never blocks
@@ -264,7 +254,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// test + production in lockstep without leaking the view API.
     nonisolated static func activeLLMConnector() -> any LLMConnector {
         let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
-        // v0.40 followup: unknown slug (= no UserDefaults key, or a slug that
         // ProviderCatalog cannot resolve) must fall back to AnthropicConnector
         // (NOT ProviderCatalog's .minimaxCn default). The unit test contract in
         // TriggerClosureWiringTests pins this so the production long-running-goal

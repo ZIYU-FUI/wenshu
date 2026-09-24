@@ -122,13 +122,12 @@ final class AppState {
     // documentation/swiftui/view/searchable).
     var searchText: String = ""
 
-    // v0.34 B-18 (= boss 9/2 OOB ', editor, yesno
-    // '): editor zone's live word count, owned globally so
-    // both the chrome bottom-bar left field (= ": N" in
-    // TabContentDispatcher.editor case) and any future editor-zone
-    // status widgets share one source of truth. EditorPlaceholder
-    // writes via .onChange(of: draft); chrome reads via @Environment.
-    var editorWordCount: Int = 0
+    // editorWordCount moved to EditorCounters.swift (= P2-06 split
+    // batch 5 = editor zone counter). EditorPlaceholder writes via
+    // .onChange(of: draft) callback (= the host routes the value);
+    // = chrome bottom-bar left field would read via @Environment
+    // (= current callers: 0 readers in this commit; = future
+    // chrome widget reads from `editorCounters.wordCount`).
 
     // v0.34 B-24 (= boss 9/2 OOB 'multi-tab editor, Safari style'):
     // open document tabs in the editor zone. Each tab = one open
