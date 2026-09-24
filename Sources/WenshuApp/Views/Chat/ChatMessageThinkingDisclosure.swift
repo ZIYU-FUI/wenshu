@@ -9,7 +9,7 @@
 //  - The collapse state is owned at the leaf level (= each message
 //    tracks its own collapse independently).
 //
-//  Boss 2026-09-22 '目标 UI，业务，数据，三分离':
+// :
 //  This is UI-only (= no business logic; = the thinking string comes
 //  straight from ChatMessage.thinking).
 //

@@ -132,7 +132,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // bossverificationfix (Boss 8/25 OOB 'yes .ws file'):
         // Chat persistence location = wenshu warehouse (anbaiqiang.ws/) if set,
         // else fall back to legacy ~/Library/Application Support/wenshu/chat.sqlite.
-        // Per boss spec: chat data must be part of the warehouse file so the
+        // chat data must be part of the warehouse file so the
         // customer can copy the warehouse to another Mac and continue the
         // session history directly.
         let warehousePath = UserDefaults.standard.string(forKey: "wenshu.libraryPath")
@@ -237,7 +237,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         true
     }
 
-    /// v0.37 trigger closure seeders (= commit 266c1c425 followup):
+    /// 
     /// canonical LLM connector resolver used by the production ChatView
     /// long-running-goal button (= M14 fix) and the unit-test
     /// TriggerClosureWiringTests. The resolver reads the

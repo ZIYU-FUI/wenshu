@@ -21,7 +21,7 @@
 //
 //
 //  Wire the lower-left zone to a real chat UI + Agent conversation (port of hermes 35-skill chat ground truth).
-//  Boss 2026-08-19 evening decision "first implement the chat zone, that is the lower-left area, support Agent conversation".
+// 
 //
 //  Plain-language summary (boss-readable):
 //  - wenshu lower-left zone becomes a real chat (message list + input box + send button)

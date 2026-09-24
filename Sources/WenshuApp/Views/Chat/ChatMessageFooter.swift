@@ -13,7 +13,7 @@
 //  - The hover-state for the timestamp expansion lives on the leaf
 //    (= each message tracks its own footer state independently).
 //
-//  Boss 2026-09-22 '目标 UI，业务，数据，三分离':
+// :
 //  UI-only (= no business logic). The token count comes from
 //  ChatMessage.tokens (= LLM API usage.total_tokens = input + output).
 //  The cost is derived (= estimated USD = $3/M input + $15/M output

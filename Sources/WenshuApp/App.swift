@@ -224,7 +224,7 @@ struct WenshuApp: App {
     /// `.environment(editorCounters)` at the AppRootScene root.
     @State private var editorCounters = EditorCounters()
 
-    /// v0.72 SwiftData migration: WSRepositoryContainer holds the 9
+    /// WSRepositoryContainer holds the 9
     /// `@MainActor @Observable` SwiftData repositories (= `chat`,
     /// `todo`, `kanban`, ...). Per `WSRepositoryContainer.swift:18-21`,
     /// Views should pull repos via `@Environment(WSRepositoryContainer.self)`,
@@ -304,7 +304,7 @@ enum AuxTask: String, CaseIterable, Identifiable {
 /// the new framework). Used by WorkspaceView's renderTabByKind to
 /// dispatch to the right view (= projectSidebar → AppleSidebarView,
 /// projectPreview → EntityPreviewPane, editor → editor, etc.).
-/// v0.10.3 split chatSidebar + chatDialogue 2, aiChat.
+/// chatSidebar + chatDialogue 2, aiChat.
 enum ZoneSlot {
     case projectSidebar
     case projectPreview

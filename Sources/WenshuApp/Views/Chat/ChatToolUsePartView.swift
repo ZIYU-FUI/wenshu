@@ -10,7 +10,7 @@
 //    specific cards for delegate_task / image_generate; = wenshu
 //    ships a generalized fallback per v0.71 P1 batch 2).
 //
-//  Boss 2026-09-22 '目标 UI，业务，数据，三分离':
+// :
 //  UI-only (= no business logic; = the tool name + args come from
 //  ChatMessagePart.ToolUsePart).
 //

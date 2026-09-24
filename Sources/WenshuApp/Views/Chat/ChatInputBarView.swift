@@ -22,7 +22,7 @@
 //    - Spacer() → .frame(maxWidth: .infinity, alignment: .leading)
 //                                 (= sidebar's exact alignment primitive)
 //    - HStack spacing 8 → 6        (= sidebar's exact icon-text gap)
-//  Boss 2026-09-23 '样式，尺寸照抄就好' (= 'just copy the style and
+// (= 'just copy the style and
 //  size from the sidebar').
 //
 // (2026-09-23): restored the token-usage bottom bar (= boss

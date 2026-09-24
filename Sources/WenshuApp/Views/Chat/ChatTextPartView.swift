@@ -12,7 +12,7 @@
 //  - The file no longer has 8 types crammed together (= easier to
 //    navigate the type catalog).
 //
-//  Boss 2026-09-22 '目标 UI，业务，数据，三分离':
+// :
 //  UI-only (= no business logic; = pure text rendering with optional
 //  streaming cursor).
 //

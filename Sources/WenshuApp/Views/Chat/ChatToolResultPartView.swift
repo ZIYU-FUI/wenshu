@@ -8,7 +8,7 @@
 //  - The chat part surface follows 1-view-1-file.
 //  - Tool-result UI can evolve independently of tool-use UI.
 //
-//  Boss 2026-09-22 '目标 UI，业务，数据，三分离':
+// :
 //  UI-only (= no business logic).
 //
 

@@ -11,7 +11,7 @@
 //    part rendering (= hermes 1:1 = reasoning gets its own card;
 //    = wenshu mirrors the same separation).
 //
-//  Boss 2026-09-22 '目标 UI，业务，数据，三分离':
+// :
 //  UI-only (= no business logic; = the reasoning string comes
 //  straight from ChatMessagePart.ReasoningPart.text).
 //

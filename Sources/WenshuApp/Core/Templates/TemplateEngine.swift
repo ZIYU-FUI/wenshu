@@ -1,6 +1,6 @@
 //
 //  TemplateEngine.swift · Wenshu · v0.19 ticket 15 (Obsidian replica, backend first)
-//  Boss 2026-08-19 evening decision Obsidian replica scope A + 'port the backend, no frontend integration into core project'.
+// 
 //
 //  Template engine: date tokens + variable substitution.
 //  Aligned with Obsidian Templates plugin ground truth (https://help.obsidian.md/Plugins/Templates).

@@ -2,7 +2,7 @@
 //  WenshuVerifier.swift · Wenshu · v0.18 ticket 31 (verify MiniMax key)
 //
 //  Verifier that proves the wenshu AgentProtocol works against the minimax-cn key.
-//  Boss 2026-08-19 decision "verify, use our minimax-cn key to confirm the ported hermes core can drive the agent".
+// .
 //
 //  Plain-language summary (boss-readable):
 //  - wenshu AgentProtocol (A2A protocol) → minimax-cn API (Anthropic-compatible protocol)

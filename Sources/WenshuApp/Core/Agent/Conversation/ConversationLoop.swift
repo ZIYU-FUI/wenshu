@@ -200,7 +200,7 @@ actor ConversationLoop {
     ///     concurrent tasks (= auto-generated UUID if nil).
     ///   - streamCallback: Optional callback invoked with each LLMBlock during
     ///     streaming. When nil (= default), API call uses non-streaming path.
-    ///     v0.35 sub-step 3 invokes the callback once per response block
+    /// invokes the callback once per response block
     ///     (= simulates streaming for non-streaming connectors).
     ///   - persistUserMessage: Optional clean user message to store in
     ///     transcripts (= hermes pattern: caller-provided override for

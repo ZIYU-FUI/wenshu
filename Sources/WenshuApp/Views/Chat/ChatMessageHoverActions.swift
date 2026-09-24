@@ -13,7 +13,7 @@
 //    or changing the modifier to use SwiftUI's newer `.onContinuousHover`).
 //  - The chat part file no longer mixes part rendering with hover chrome.
 //
-//  Boss 2026-09-22 '目标 UI，业务，数据，三分离':
+// :
 //  UI-only (= no business logic; = the action closures come from
 //  the caller = the ChatMessageView body wires the actual
 //  copy-to-clipboard + delete-message calls).

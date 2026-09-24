@@ -30,7 +30,7 @@ final class WSManifest {
     var updatedAt: Date
     var wenshuVersion: String
     var checksum: String?
-    /// v0.72 SwiftData migration: timestamp when migration from raw sqlite3 completed.
+    /// timestamp when migration from raw sqlite3 completed.
     /// nil = migration not yet run (= user on fresh install OR pre-migration existing user).
     /// Populated by the one-time data migration script in Phase 4.
     var migratedFromRawSqliteAt: Date?

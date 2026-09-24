@@ -9,7 +9,7 @@
 import Foundation
 
 /// Wenshu agent base identity. Static system prompt prepended to every LLM call.
-/// Boss 2026-08-23 decision: previously WenshuConductor only had task-level prompts,
+/// previously WenshuConductor only had task-level prompts,
 /// no agent identity / role / capabilities / limitations.
 /// This struct defines Wenshu in 6 sections (per Anthropic best practice, Building effective agents 2024-12).
 enum WenshuConductorIdentity {

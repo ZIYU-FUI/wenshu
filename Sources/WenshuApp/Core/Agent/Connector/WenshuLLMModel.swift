@@ -16,7 +16,7 @@ enum WenshuLLMModel: String, CaseIterable, Sendable {
     /// .001: provider slug for routing.
     /// Maps each model to its provider's slug (used by WenshuVerifier.resolveCredentials
     /// to look up the correct apiKey + baseURL from Keychain + ProviderCatalog).
-    /// Boss 2026-08-23: user model + agent sync,no mismatch .
+    /// 
     var providerSlug: String {
         switch self {
         case .m3, .m2, .reasoning:

@@ -1,6 +1,6 @@
 //
 //  OutlineExtractor.swift · Wenshu · v0.19 ticket 21 (Obsidian replica, backend first)
-//  Boss 2026-08-19 evening decision Obsidian replica scope A + 'port the backend, no frontend integration into core project'.
+// 
 //
 //  Markdown heading parse (H1-H6). Aligned with Obsidian Outline plugin behavior (https://obsidian.md/help/plugins/outline).
 //  Apple HIG: NSRegularExpression parses # / ## / ### / #### / ##### / ###### at line start.

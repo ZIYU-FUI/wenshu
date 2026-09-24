@@ -14,7 +14,7 @@
 //  - Future UI variants (= e.g. a video thumbnail, a PDF preview)
 //    plug in by adding more leaves next to this one.
 //
-//  Boss 2026-09-22 '目标 UI，业务，数据，三分离' (= Apple MVVM canonical):
+// (= Apple MVVM canonical):
 //  This file is UI-only (= no @Observable classes, no business
 //  logic, no FileManager calls). The image bytes are already on
 //  disk (= ChatMessage.imagePath points to a file in

@@ -3,7 +3,7 @@
 //
 //  Apple SwiftUI MVVM canonical view model for the chat feature.
 //
-//  Boss 2026-09-22 '目标 UI，业务，数据，三分离':
+// :
 //  - C-1 moved domain types (ChatMessage / ChatRole / ChatSource) to
 //    Core/Chat/Domain/.
 //  - C-2 split ChatMessage into ChatMessageHeader (cover) + Body

@@ -226,7 +226,7 @@ struct ShellMiddleColumn: View {
     }
 
     var body: some View {
-        // Boss 2026-09-10 'the cards zone goes in middle-left' + 'we only need the original assets cards':
+        // + 'we only need the original assets cards':
         // the middle column is exactly 1 zone = the reference library
         // overview grid (= PreviewPane with scope = .referenceScope(nil)
         // = ALL entities across categories). This is the canonical

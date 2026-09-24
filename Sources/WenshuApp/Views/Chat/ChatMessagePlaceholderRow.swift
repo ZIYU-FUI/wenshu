@@ -11,7 +11,7 @@
 //  - Future variants (= e.g. a "compacting context…" placeholder
 //    for compression status) plug in by adding leaves next to this.
 //
-//  Boss 2026-09-22 '目标 UI，业务，数据，三分离':
+// :
 //  UI-only (= no business logic). The "what is being thought about"
 //  string lives on ChatMessage.content (= the placeholder's payload;
 //  = business layer owns it). The pulse animation + elapsed timer

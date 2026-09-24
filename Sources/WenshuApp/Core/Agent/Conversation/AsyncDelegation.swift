@@ -2,7 +2,7 @@
 //  AsyncDelegation.swift · Wenshu · v0.23 ticket 013.010 (hermes gap 9)
 //                          + HERMES-PARTIAL-018 wire-up (2026-09-04)
 //
-// Boss 2026-08-23 decision: 'A complete overhaul, reference principle 3'.
+// 
 // Source: Gythub.com/NosResearch/hermes-agent/blob/main/tools/async delegation.py
 // Reference (=canonical Python source-of-truth):
 // /Volumes/ANAN/.hermes/tools/delegate tool.py(3,459 LOC)
