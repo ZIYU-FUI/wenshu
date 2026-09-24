@@ -91,7 +91,7 @@ struct WorkspaceViewTests {
     func readsAppStateAndBookStore() throws {
         let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        // v0.40 apple-001 Q3 surgical: appState now passed via init
+        // 
         // (= @Bindable var appState: AppState) rather than @Environment
         // (= per the WorkspaceView line 55-63 doc comment: "hoisted to
         // appState.editMode (the shared AppState instance) so all workspace
