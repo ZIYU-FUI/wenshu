@@ -1,10 +1,5 @@
 // Document.swift · Wenshu (Wenshu) · v0.03.0 (document module)
 //
-// v53 (= 8/15 17:48 ', show,,,
-// need'): the second column of the layout shows a card
-// grid (= FCP Browser filmstrip pattern) of MD documents grouped by
-// category.
-//
 // Document = one MD file inside a book. The .md is the source of
 // truth for content; Document is the metadata (= title, summary,
 // byte size, last-modified). The storage layer reads the .md's bytes
@@ -12,12 +7,11 @@
 // 'title' falls back to the first H1 of the MD, or the filename if no
 // H1 is present).
 //
-// Owner 8/15 15:55: 'needok,, refactor
-// '. The shape of Document is locked by `Tests/WenshuAppTests/
+// The shape of Document is locked by `Tests/WenshuAppTests/
 // Domain/DocumentTests.swift`. Adding any required field forces the
 // architectural decision to surface.
 //
-// Storage layout (= building on the v0.02.x book / chapter layout):
+// Storage layout:
 //   ~/Documents/wenshu/<shelf-id>/<book-id>/
 //     book.json
 //     chapters/<doc-id>.md   ← BookCategory.chapter
@@ -30,12 +24,11 @@
 import Foundation
 
 /// Document category (= what kind of MD file this is in the book).
-/// v53 (= 8/15 17:48 '3 ') — three cases: / /
-/// (= chapters / settings / research). Three cases is the v0.03.0
-/// minimum; v0.04+ can add more (= outline / foreshadowing / notes /
-/// drafts) without breaking the contract (= Codable default value
-/// handles unknown strings, and the card UI iterates `allCases` so
-/// new categories appear automatically).
+/// Three cases: chapter / setting / research. Three cases is the
+/// v0.03.0 minimum; v0.04+ can add more (= outline / foreshadowing /
+/// notes / drafts) without breaking the contract (= Codable default
+/// value handles unknown strings, and the card UI iterates `allCases`
+/// so new categories appear automatically).
 ///
 /// The `directoryName` is the actual on-disk folder (= Apple HIG: the
 /// filesystem identity for documents in this category). The
@@ -73,30 +66,20 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     /// weight, FCP Browser does the same when no poster frame exists).
     /// Apple HIG: symbols follow the system font; we use the .large
     /// image scale at render time for empty-state size.
-    /// v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
-    /// all entity-type icons use outline glyphs (= the canonical
-    /// Apple HIG form for the Liquid Glass 3rd-generation design
-    /// language).
-    /// v1.80 boss 2026-09-24 OOB '替换目录树 和 卡片的 ICON, = 小说正文
-    /// 换为 book.closed.circle': chapter icon matches the sidebar
-    /// folder icon.
-    /// v1.81 (= BookCategory SSOT derivation): the icon field
-    /// derives from BookFolderCatalog.spec(for: directoryName)?.icon
-    /// (= the SSOT for the same BookFolderSpec that powers the
-    /// sidebar + PreviewPane). The BookCategory enum stays as the
-    /// domain type (= caller-visible Codable + JSON-stable rawValue
+    /// Outline icons everywhere (= the canonical Apple HIG form for
+    /// the Liquid Glass 3rd-generation design language).
+    /// The chapter icon derives from `BookFolderCatalog.spec(for:
+    /// directoryName)?.icon` (= the SSOT for the same BookFolderSpec
+    /// that powers the sidebar + PreviewPane). BookCategory stays as
+    /// the domain type (= caller-visible Codable + JSON-stable rawValue
     /// unchanged; = stored Document.category JSON values across all
     /// user libraries are still 'chapter' / 'setting' / 'research');
-    /// but the icon value flows from the catalog.
-    /// Setting + research categories still get their pre-v1.81 hardcoded
-    /// icons (= gearshape.2 / books.vertical) because the matching
+    /// the icon value flows from the catalog.
+    /// Setting + research categories still get hardcoded icons
+    /// (= gearshape.2 / books.vertical) because the matching
     /// BookFolderCatalog specs (= 'settings' / 'research' folder ids)
     /// are not in the 8 standard folders (= settings / research are
     /// Document classification dimensions, not on-disk folder types).
-    /// A future v2 ticket can extend BookFolderCatalog to cover
-    /// those 2 folder types (= would also add a 6th + 7th user-facing
-    /// folder to the sidebar = '设定' + '资料' = the boss's editorial
-    /// decision = out of v1.81 scope).
     var icon: String {
         switch self {
         case .chapter:  return BookFolderCatalog.spec(for: directoryName)?.icon ?? "book.closed.circle"
@@ -129,12 +112,11 @@ struct Document: Identifiable, Hashable, Codable, Sendable {
     /// override the auto-extracted one.
     var summary: String
     /// Cross-references resolved at MD body load time from `@<type>.<name>`
-    /// syntax in the markdown body (= boss 2026-08-26 OOB cross-
-    /// reference feature, ticket 007). Three typed fields rather than
+    /// syntax in the markdown body. Three typed fields rather than
     /// a single untyped array so the view layer can render each ref
     /// category distinctly (= character chips, world chips, reference
     /// chips in the editor sidebar).
-    /// All default to empty array for back-compat with v0.25.x
+    /// All default to empty array for back-compat with pre-v1.0
     /// documents (= no Codable migration needed; existing .md files
     /// decode with refIds = [] because the field is missing from the
     /// file metadata; the @-parser re-extracts on next load).
@@ -203,15 +185,14 @@ struct Document: Identifiable, Hashable, Codable, Sendable {
 // MARK: Reference kind enum
 
 /// Type of cross-reference extracted from the `@<type>.<name>` syntax
-/// in document markdown bodies (= boss 2026-08-26 OOB cross-reference
-/// feature). Three kinds match the three typed refIds fields on
-/// Document.
+/// in document markdown bodies. Three kinds match the three typed
+/// refIds fields on Document.
 enum DocumentRefKind: String, CaseIterable, Codable, Sendable {
     case character
     case world
     case reference
 
-    /// Chinese UI label (= boss 8/25 'UI in progress' carve-out).
+    /// Chinese UI label.
     var displayName: String {
         switch self {
         case .character: return "角色"
@@ -220,11 +201,9 @@ enum DocumentRefKind: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// SF Symbol name (= for chips / badges in the UI).
-    /// v1.0.0-m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
-    /// all entity-type icons use outline glyphs (= the canonical
-    /// Apple HIG form for the Liquid Glass 3rd-generation design
-    /// language).
+    /// SF Symbol name (= for chips / badges in the UI). Outline
+    /// icons everywhere (= canonical Apple HIG form for the Liquid
+    /// Glass 3rd-generation design language).
     var icon: String {
         switch self {
         case .character: return "person"
@@ -308,9 +287,9 @@ struct DocumentCrossRefParser {
         // doesn't need them).
         //
         // We accept both English prefixes (character / world / reference)
-        // and Chinese prefixes (/ /) for back-compat with
+        // and Chinese prefixes (角色 / 世界观 / 资料) for back-compat with
         // any docs the writer may have written by hand using the Chinese
-        // UI form per boss 8/25 'UI in progress' pattern.
+        // UI form.
         let regex: NSRegularExpression
         do {
             regex = try NSRegularExpression(
