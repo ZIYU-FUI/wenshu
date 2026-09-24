@@ -4,10 +4,10 @@
 //  Searchable registry of all ⌘K palette actions (= commands, skills,
 //  navigation). Mirrors hermes slash_registry.py + commands.py.
 //
-//  CHATBOX-002 (2026-09-04, boss OOB 'B'): single search box that lists
-//  every available command / skill / action in the app. The palette is
-//  the canonical entry point for everything that was previously hidden
-//  behind slash commands, menu bar items, or NotificationCenter posts.
+//  Single search box that lists every available command / skill /
+//  action in the app. The palette is the canonical entry point
+//  for everything that was previously hidden behind slash commands,
+//  menu bar items, or NotificationCenter posts.
 //
 //  Design:
 //    - actor (Swift 6 strict concurrency = Sendable types only).
@@ -127,7 +127,7 @@ public enum CommandPaletteAction: Sendable, Equatable, Hashable {
 /// Searchable ⌘K palette registry. Pure data layer — UI lives in
 /// CommandPaletteView.swift.
 ///
-/// CHATBOX-002 design (= hermes slash_registry.py parity):
+/// Design (= hermes slash_registry.py parity):
 ///   - register / unregister for dynamic items (= commands a plugin /
 ///     third-party skill registers at runtime)
 ///   - allItems() returns the full list (for the empty-query state)
