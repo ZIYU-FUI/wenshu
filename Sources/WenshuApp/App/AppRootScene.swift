@@ -1,31 +1,18 @@
 // AppRootScene.swift · Wenshu · v0.40 apple-001 phase 1 Q1 slice 2
 //
-// Q1 boss split App.swift. After slice 1 (= extract WenshuAppDelegate
-// to App/WenshuAppDelegate.swift), the next slice pulls the Scene
-// assembly out of `WenshuApp.body` so the @main struct itself becomes
-// a minimal composition root (= declares the state owners + delegates
-// scene composition to AppRootScene).
+// Root Scene assembly (= the WindowGroup + Settings + 2 secondary
+// Windows = kanban / todo). State owners stay on the App struct
+// (library / appearanceMode / appState / shell / workspaceUI /
+// repositories); AppRootScene receives them as constructor params.
 //
-// Why a Scene struct, not a View struct:
-// WenshuApp.body returns `some Scene` (= WindowGroup + .commands +
-// Settings). Scene is a SwiftUI protocol that hosts the root-level
-// scene tree. The composition logic = `WindowGroup { ... }
-// .windowToolbarStyle(.unified) ... .commands { ... }` then a
-// sibling `Settings { ... }` scene. Both pieces are Scene-level
-// concerns (= window chrome, command palette bindings, settings
-// environment injection) and must stay at the scene layer; lifting
-// them into a View would be a downgrade (= Settings scene cannot be
-// expressed as a View body).
-//
-// Why state stays on WenshuApp (= not AppRootScene):
-// @State + @AppStorage require an @DynamicMemberLookup storage
-// instance (= the App struct itself). The state owners
-// (library / appearanceMode / appState) must remain on WenshuApp;
-// AppRootScene receives them as constructor parameters. The
-// `@AppStorage("appearanceMode")` binding is forwarded as
-// `@Binding var appearanceMode` to AppRootScene so the
-// SettingsEnvironmentCapturer inside WindowGroup can still observe
-// the same single source of truth.
+// Why Scene, not View:
+// - WenshuApp.body returns `some Scene` (= WindowGroup + .commands +
+//   Settings). Scene is the SwiftUI protocol for root-level scene
+//   trees. Settings scene cannot be expressed as a View body; = must
+//   stay at the scene layer.
+// - State owners (= @State + @AppStorage) must remain on the App
+//   struct itself; = `appState` / `shell` / `workspaceUI` are passed
+//   in, not constructed here.
 
 import SwiftUI
 import AppKit
@@ -34,18 +21,16 @@ struct AppRootScene: Scene {
     let library: WenshuLibrary
     @Binding var appearanceMode: AppearanceMode
     let appState: AppState
-    /// P2-06 (audit 2026-09-24): shell chrome (= sidebar +
-    /// inspector + chat zone + inspector page). Split out from
-    /// AppState. Injected via `.environment(shell)` at every
-    /// scene root that previously injected `.environment(appState)`
-    /// (= WindowGroup content + Settings scene); = the 2
+    /// Shell chrome state (= sidebar + inspector + chat zone +
+    /// inspector page). Injected via `.environment(shell)` at every
+    /// scene root (= WindowGroup content + Settings scene); = the 2
     /// injection sites stay parallel.
     let shell: ShellState
-    /// P2-06 (audit 2026-09-24): column-local UI state. Split
-    /// out from AppState. Injected via `.environment(workspaceUI)`
-    /// at every scene root (= WindowGroup content + Settings scene);
-    /// = the 2 injection sites stay parallel.
     let workspaceUI: WorkspaceUIState
+    /// Sheet-request triggers (= fire-and-forget counters for the
+    /// .sheet(item:) consumer). Injected via `.environment(sheetRequests)`
+    /// at every scene root (= WindowGroup content + Settings scene).
+    let sheetRequests: SheetRequestState
     let repositories: WSRepositoryContainer
 
     // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
@@ -82,6 +67,7 @@ struct AppRootScene: Scene {
                 .environment(appState)
                 .environment(shell)
                 .environment(workspaceUI)
+                .environment(sheetRequests)
                 .environment(repositories)
         }
         // v1.0.0-m1-shell boss 2026-09-10 OOB 'persistence after opening a .ws,
@@ -434,11 +420,11 @@ struct AppRootScene: Scene {
                 // triggered flow).
                 Menu(WenshuI18n.t("menu.file.new_project")) {
                     Button(WenshuI18n.t("menu.file.new_project.submenu.new_book")) {
-                        appState.newBookRequestCount += 1
+                        sheetRequests.newBook += 1
                     }
                     .keyboardShortcut("n", modifiers: .command)
                     Button(WenshuI18n.t("menu.file.new_project.submenu.new_shelf")) {
-                        appState.newShelfRequestCount += 1
+                        sheetRequests.newShelf += 1
                     }
                 }
                 // v0.27 boss 8/27 OOB: menusync toolbar 'import' button.
