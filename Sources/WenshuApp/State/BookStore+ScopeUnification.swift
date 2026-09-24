@@ -1,9 +1,8 @@
 //
-//  BookStore+ScopeUnification.swift · Wenshu · B-13 scope unification
+//  BookStore+ScopeUnification.swift · Wenshu
 //
-//  P2-06 (audit 2026-09-24): extracted from `BookStore.swift` (= 118
-//  LOC of B-13 scope-directory resolution). BookStore was 555 LOC;
-//  this extension brings it down to ~340 LOC.
+//  Extension on `BookStore` (= scope-directory resolution for
+//  Kanban / Todo / reference-library data trees).
 //
 
 import Foundation
