@@ -8,7 +8,18 @@ AGENTS.md
 - Forbidden neutral words: 可 / 应当 / 或许 / 可能 / 应该 / 建议 / 考虑 / 试图 / 尽量 / 大概 / 也许 / 或 / 任意 / 大概率 / 通常 / 一般来说. Replace with: 是 / 否 / 行 / 不行 / 可以 / 不可以 / 不变 / 变.
 - Forbidden Chinese vocabulary: 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. Historical note: 修真 = an earlier agent's typo for 修正. Use 修 / 改 / fix / 替换 / 调整 in commit body / comment / doc / prompt / card body.
 - First line of every doc = fact. Last line of every doc = fact.
-- **Comment policy (= 老板 2026-09-24)**: code comments capture engineering intent only (why this code exists / what invariant it preserves / what corner case it handles). No OOB history / no 老板 directives / no version narrative / no phase numbering in comments. OOB is archived separately in `OOB.md` (wenshu repo root, dev-time only). Real human engineers must read the code without laughing; AI-era narration patterns (boss OOB / Phase X of Y / per-ticket N) are forbidden in source. Allowed comment kinds: `///` public API doc-comments, `// MARK: -` section headers, technical "why this exists" rationale, `// FIXME` / `// TODO` (tracked by SwiftLint). Reference an OOB from code only as `(see OOB.md #YYYY-MM-DD)` — never quote the directive text inline.
+- **Comment policy (= 老板 2026-09-24, expanded 2026-09-24)**: code comments capture engineering intent only. Forbidden content (= the dev-narrative kinds real human devs would laugh at):
+  - Boss / 老板 / boss拍 / 老板拍 / 老板 directives (`boss OOB YYYY-MM-DD '...'` / `Per boss OOB ...`)
+  - Ticket IDs (`CHATBOX-NNN`, `HERMES-PARTIAL-NNN`, `Ticket 3`, `Ticket 001`)
+  - Q-numbers (`Q34 5.2`, `Q173 ponytail`, `Q112`)
+  - Version narratives (`v1.38 extracted (= ticket 1 of N)`, `v1.0.0-m1-shell boss OOB`)
+  - Phase numbering (`Phase 3 of 5-phase`)
+  - Refactor history (`replaces X (166 LOC)`, `Extracted from X.swift (= ...)`)
+  - Follow-up chains (= this continues the v1.34/v1.38/v1.39 arc)
+  - Any phrase that describes *how this file came to be* (= ticket lineage). What stays: engineering facts.
+- Allowed comment kinds: `///` public API doc-comments, `// MARK: -` section headers, technical "why this exists" rationale, `// FIXME` / `// TODO` (SwiftLint tracked), file header = file path + module name + last-meaningful-version only.
+- OOB references in code: only `(see OOB.md #YYYY-MM-DD)` — never the directive text inline.
+- OOB is archived separately in `OOB.md` (wenshu repo root, dev-time only).
 
 This file = wenshu project baseline + cross-role address hard constraint. Single agent (pocock profile) direct dialog with 老板. No dispatch, no board, no 6-role flow. Version 8/18拍 v0.07 + 2026-09-04/05拍 v0.10 (pocock single agent purified version).
 
