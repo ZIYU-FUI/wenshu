@@ -56,9 +56,25 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
     private var lastPrefetch: String = ""
     private let prefetchQueue = DispatchQueue(label: "com.wenshu.WSMemoryProvider.prefetch")
 
-    public init(slug: String = "swiftdata-memory", isEnabled: Bool = true) {
+    /// P1-01 (audit 2026-09-24): inject WSMemoryRepository via init;
+    /// fall back to .shared (= every existing caller keeps working
+    /// without changes). Same pattern as `WenshuConductor.repositories`
+    /// and `MemoryManager.memory`.
+    private let memory: WSMemoryRepository
+
+    public init(slug: String = "swiftdata-memory", isEnabled: Bool = true, memory: WSMemoryRepository? = nil) {
         self.slug = slug
         self.isEnabled = isEnabled
+        if let memory {
+            self.memory = memory
+        } else {
+            // WSMemoryProvider is @MainActor (= class annotation); but
+            // the init is nonisolated (= could be called from any
+            // context). .shared is @MainActor; assumeIsolated is safe
+            // because every production caller constructs this from a
+            // MainActor context (= App.swift + tests).
+            self.memory = MainActor.assumeIsolated { WSMemoryRepository.shared }
+        }
 
         // Initial mirror load (= bridge to @MainActor).
         Task { @MainActor [weak self] in
@@ -68,7 +84,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     @MainActor
     private func refreshMirror() async {
-        let entries = (try? WSMemoryRepository.shared.listRecent(userId: "default", limit: 20)) ?? []
+        let entries = (try? memory.listRecent(userId: "default", limit: 20)) ?? []
         let mapped = entries.map { entry in
             Memory(
                 userId: entry.userId,
@@ -92,7 +108,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
     func prefetch(forUserMessage message: String) async -> String {
         // Async (= bridges to @MainActor SwiftData + updates mirror).
         let results = await MainActor.run {
-            (try? WSMemoryRepository.shared.search(userId: "default", query: message, limit: 5)) ?? []
+            (try? memory.search(userId: "default", query: message, limit: 5)) ?? []
         }
         let mapped = results.map { $0.content }.joined(separator: "\n")
         // Update prefetch cache (= sync via DispatchQueue; = safe in async).
@@ -108,7 +124,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
     func sync(userMessage: String, assistantResponse: String) async {
         let content = "User: \(userMessage)\nAssistant: \(assistantResponse)"
         _ = await MainActor.run {
-            try? WSMemoryRepository.shared.add(userId: "default", content: content)
+            try? memory.add(userId: "default", content: content)
         }
         await refreshMirror()
     }

@@ -36,8 +36,20 @@ public actor MemoryManager {
     /// All memory calls go through WSMemoryRepository.shared (Apple SwiftData-backed)
     /// after Phase 5 ticket 8.
     private let maxCharBudget: Int
-    public init(maxCharBudget: Int = 2200) {
+
+    /// P1-01 (audit 2026-09-24): prefer the injected
+    /// `WSMemoryRepository`; fall back to `.shared` (= every existing
+    /// caller keeps working without changes). Matches the
+    /// `WenshuConductor.repositories` pattern (= same injection shape,
+    /// same MainActor.assumeIsolated wrapping).
+    private let memory: WSMemoryRepository
+
+    public init(maxCharBudget: Int = 2200, memory: WSMemoryRepository? = nil) {
         self.maxCharBudget = maxCharBudget
+        // .shared is @MainActor-isolated; actor bodies are not. assumeIsolated
+        // (= safe at runtime because every production caller constructs
+        // MemoryManager from a MainActor context).
+        self.memory = memory ?? MainActor.assumeIsolated { WSMemoryRepository.shared }
     }
 
     /// prefetch: pre-turn — load relevant memories based on user message.
@@ -183,7 +195,7 @@ public actor MemoryManager {
         limit: Int
     ) async -> [Memory] {
         return await MainActor.run {
-            (try? WSMemoryRepository.shared.search(userId: userId, query: query, limit: limit)) ?? []
+            (try? memory.search(userId: userId, query: query, limit: limit)) ?? []
         }
     }
 
@@ -191,14 +203,14 @@ public actor MemoryManager {
     @discardableResult
     private func addMemory(userId: String, content: String) async -> Bool {
         return await MainActor.run {
-            (try? WSMemoryRepository.shared.add(userId: userId, content: content)) != nil
+            (try? memory.add(userId: userId, content: content)) != nil
         }
     }
 
     /// countMemory: actor-isolated count.
     private func countMemory(userId: String) async -> Int {
         return await MainActor.run {
-            (try? WSMemoryRepository.shared.count(userId: userId)) ?? 0
+            (try? memory.count(userId: userId)) ?? 0
         }
     }
 }
