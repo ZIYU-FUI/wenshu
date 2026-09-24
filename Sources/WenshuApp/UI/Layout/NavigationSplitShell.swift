@@ -60,15 +60,13 @@ struct NavigationSplitShell: View {
     /// WorkspaceView's owner; = passed by reference via @Bindable
     /// in the body).
     var appState: AppState
-    // P2-06 (audit 2026-09-24): shell chrome state. Threaded
-    // into ShellMiddleColumn (= the @Bindable entry the
-    // previewScope() function reads). Same lifetime as
-    // WorkspaceView's owner; = passed by reference.
+    // Shell chrome state. Threaded into ShellMiddleColumn
+    // (= the @Bindable entry the previewScope() function reads).
+    // Same lifetime as WorkspaceView's owner; = passed by reference.
     var shell: ShellState
-    // P2-06 (audit 2026-09-24): column-local UI state. Threaded
-    // into ShellMiddleColumn (= the @Bindable entry the
-    // PreviewPane binding reads). Same lifetime as
-    // WorkspaceView's owner; = passed by reference.
+    // Column-local UI state. Threaded into ShellMiddleColumn
+    // (= the @Bindable entry the PreviewPane binding reads).
+    // Same lifetime as WorkspaceView's owner; = passed by reference.
     var workspaceUI: WorkspaceUIState
     /// Optional BookStore for env injection (= descendants
     /// like ForeshadowingView / PlaceholderView / PreviewPane
@@ -76,13 +74,11 @@ struct NavigationSplitShell: View {
     /// Optional because BookStore is constructed asynchronously
     /// by LibraryLifecycleHook (= may not exist at first frame).
     var bookStore: BookStore?
-    // v1.79 chat-by-book: thread WenshuLibrary through to the chat
-    // pane so ChatZoneView can observe library (= the canonical
-    // book-selection source mutated by BookshelfListView taps; =
-    // see WenshuLibrary.swift L74/L78/L198/L218-L219/L224).
+    // Thread WenshuLibrary through to the chat pane so
+    // ChatZoneView can observe library (= the canonical
+    // book-selection source mutated by BookshelfListView taps).
     var library: WenshuLibrary?
 
-    /// v0.88 boss 2026-09-10 OOB 'inspector always shown + always pass the value when there is one':
     /// `.inspector(isPresented:)` is wired with `.constant(true)`
     /// below (= inspector is permanently visible = the same
     /// pattern Apple Pages / Numbers / Keynote use; = Apple does
@@ -92,34 +88,30 @@ struct NavigationSplitShell: View {
     /// The `.constant(true)` binding is the source of truth.
 
     var body: some View {
-        // v0.40 boss 2026-09-08 OOB 'yesyes mac os 27 default,
-        // Liquid Glasseffect': macOS 27 Tahoe SwiftUI NavigationSplitView
-        // renders each column with the canonical Liquid Glass material
-        // (= .glassEffect(.regular) auto-applied to column backgrounds
-        // = the columns visually separate via glass-on-glass refraction
-        // = no visible drag-handle divider between columns; = matches
-        // the boss's Pages reference image exactly).
+        // macOS 27 Tahoe SwiftUI NavigationSplitView renders each
+        // column with the canonical Liquid Glass material (= .glassEffect(.regular)
+        // auto-applied to column backgrounds = the columns visually separate via
+        // glass-on-glass refraction = no visible drag-handle divider between columns).
         //
         // Pattern: NavigationSplitView (3 columns) + each column's
         // body wrapped in Rectangle.glassEffect(.regular) (= the
         // canonical macOS 27 Liquid Glass surface = the divider
         // becomes invisible because each column has its own glass
         // tier that refracts independently; = no horizontal line
-        // between columns = matches Pages / Numbers / Keynote).
-        // v0.89 boss 2026-09-10 OOB 'columnVisibility with binding
-        // made sidebar collapse to 8 PT': use the parameter-less
-        // `NavigationSplitView { sidebar content detail }` init
-        // (= SwiftUI's no-binding default). Per Apple docs, the
+        // between columns).
+        //
+        // Use the parameter-less `NavigationSplitView { sidebar content detail }`
+        // init (= SwiftUI's no-binding default). Per Apple docs, the
         // no-binding init uses an internal SwiftUI-managed
         // visibility state (= macOS always shows all three
         // columns; = the sidebar remains visible at its
         // `navigationSplitViewColumnWidth` ideal = 280 PT).
-        // Passing `columnVisibility: .constant(.automatic)`
-        // (= our v0.87 attempt) created a non-default code path
-        // that collapsed the sidebar to its absolute minimum
-        // width even when `navigationSplitViewColumnWidth`
-        // specified a 220-PT minimum. The no-binding init lets
-        // SwiftUI's layout engine use the column widths we set.
+        // Passing `columnVisibility: .constant(.automatic)` (= our
+        // earlier attempt) created a non-default code path that
+        // collapsed the sidebar to its absolute minimum width even
+        // when `navigationSplitViewColumnWidth` specified a 220-PT
+        // minimum. The no-binding init lets SwiftUI's layout
+        // engine use the column widths we set.
         NavigationSplitView {
             // Apple HIG sidebar (= leftmost column; = the source
             // of truth for navigation in this band). 2 vertical
