@@ -1,24 +1,21 @@
 // Sources/WenshuApp/UI/HoverWash.swift
 //
-// v0.34 boss 2026-09-02 OOB 'hover effect, apple api' (= hover
-// effect should be unified, use Apple API).
-//
 // Apple HIG canonical macOS 26+ hover wash (= .quaternary ShapeStyle
 // inside a 4 PT corner radius RoundedRectangle). This is the same
 // pattern Apple uses in Settings.app sidebar rows, Mail message
 // rows, Finder toolbar buttons = the system-managed hover feedback
 // (= adapts to dark/light + Increase Contrast automatically).
 //
-// Prior state: 7 sites in wenshu had self-written
+// Migration context: 7 sites in wenshu had self-written
 //   @State private var isHover: Bool = false
 //   .onHover { hovering in isHover = hovering }
 //   .background(RoundedRectangle(cornerRadius: 4).fill(
 //       isHover ? AnyShapeStyle(.quaternary) : AnyShapeStyle(Color.clear)))
 // = 7 copies of the same 4-line state plumbing + style block.
 // Replaced by .hoverWash() = single source of truth for the
-// hover wash plumbing + style. All 7 sites migrated.
+// hover wash plumbing + style.
 //
-// Apple API used (= no custom color or custom animation):
+// Apple APIs used (= no custom color or custom animation):
 // - .quaternary (= HierarchicalShapeStyle, Apple SwiftUI built-in
 //   system-managed ShapeStyle).
 // - .onHover (= Apple canonical SwiftUI macOS hover callback
@@ -36,9 +33,6 @@
 // - PreviewPane.swift card uses .stroke on hover (= hover
 //   semantics = 'tint the card outline', not 'fill the background'
 //   = different visual feedback type).
-//
-// Both are 1 of 17 .onHover sites in the project (= 88% migrated
-// to this single source of truth).
 
 import SwiftUI
 
