@@ -79,17 +79,29 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     /// all entity-type icons use outline glyphs (= the canonical
     /// Apple HIG form for the Liquid Glass 3rd-generation design
     /// language).
-    /// v1.80 boss 2026-09-24 OOB '替换目录树 和 卡片的 ICON,
-    /// = 小说正文换为 book.closed.circle': the chapter
-    /// (= 小说正文 folder) card icon migrates to
-    /// `book.closed.circle` to match the sidebar folder icon
-    /// (= the same glyph at both surfaces = the user's visual
-    /// identity rule = one entity = one icon). The other
-    /// categories stay unchanged (= setting / research = not
-    /// in the boss's replacement list).
+    /// v1.80 boss 2026-09-24 OOB '替换目录树 和 卡片的 ICON, = 小说正文
+    /// 换为 book.closed.circle': chapter icon matches the sidebar
+    /// folder icon.
+    /// v1.81 (= BookCategory SSOT derivation): the icon field
+    /// derives from BookFolderCatalog.spec(for: directoryName)?.icon
+    /// (= the SSOT for the same BookFolderSpec that powers the
+    /// sidebar + PreviewPane). The BookCategory enum stays as the
+    /// domain type (= caller-visible Codable + JSON-stable rawValue
+    /// unchanged; = stored Document.category JSON values across all
+    /// user libraries are still 'chapter' / 'setting' / 'research');
+    /// but the icon value flows from the catalog.
+    /// Setting + research categories still get their pre-v1.81 hardcoded
+    /// icons (= gearshape.2 / books.vertical) because the matching
+    /// BookFolderCatalog specs (= 'settings' / 'research' folder ids)
+    /// are not in the 8 standard folders (= settings / research are
+    /// Document classification dimensions, not on-disk folder types).
+    /// A future v2 ticket can extend BookFolderCatalog to cover
+    /// those 2 folder types (= would also add a 6th + 7th user-facing
+    /// folder to the sidebar = '设定' + '资料' = the boss's editorial
+    /// decision = out of v1.81 scope).
     var icon: String {
         switch self {
-        case .chapter:  return "book.closed.circle"
+        case .chapter:  return BookFolderCatalog.spec(for: directoryName)?.icon ?? "book.closed.circle"
         case .setting:  return "gearshape.2"
         case .research: return "books.vertical"
         }
