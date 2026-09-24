@@ -38,7 +38,7 @@ import Foundation
 /// the content, instead of being laid out all at once' rule).
 /// The category parent's children are the reference leaves.
 ///
-/// v1.69p boss 2026-09-22 OOB '资料库分类, 现在显示是的一个
+/// '资料库分类, 现在显示是的一个
 /// 字母. 不是中文分类名': the user-facing `title` MUST carry
 /// the Chinese display label (= the user reads the sidebar in
 /// 中文), NOT the routing key. The routing key (= the
@@ -58,7 +58,7 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
     var systemImage: String
     var children: [SidebarNode]?
 
-    /// v1.69p boss 2026-09-22 OOB: routing key for sidebar
+    /// : routing key for sidebar
     /// selection = the string that survives the round-trip
     /// from sidebar click → SidebarItem → PreviewScope
     /// case-insensitive EntityCategory lookup. Set on
@@ -74,7 +74,7 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         case shelf
         case book
         case reference
-        // boss 2026-09-22 OOB: reference-library
+        // reference-library
         // category parent (= one of 22 CLC top-level categories
         // = EntityCategory). Children = the references in that
         // category.

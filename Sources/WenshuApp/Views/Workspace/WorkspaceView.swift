@@ -191,7 +191,7 @@ struct WorkspaceView: View {
     }
 
     var body: some View {
-        // boss 2026-09-01 OOB: the legacy PaneRenderer path
+        // the legacy PaneRenderer path
         // (= v0.28 ticket 028-004 hand-rolled split-tree renderer)
         // was deleted per boss OOB (= the new NSSplitView code
         // fully replicates the old behavior). WorkspaceView now
@@ -225,7 +225,7 @@ struct WorkspaceView: View {
             bookStore: bookStore
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // boss 2026-09-02 OOB: sidebar selection persistence
+            // sidebar selection persistence
             // moved to AppleSidebarView (post-v1.69 MVVM split; =
             // unified with AppState.sidebarSelection's didSet writer).
             // WorkspaceView no longer owns any @AppStorage key for
@@ -249,7 +249,7 @@ struct WorkspaceView: View {
             .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
                 editMode.toggle()
             }
-            // boss 2026-09-01 OOB fix: the View menu's "Restore Default
+            // fix: the View menu's "Restore Default
             // Layout" item (= ⌘⇧R; both the SwiftUI Commands entry
             // (= the App.swift:567 + 1442 references are stale per the Q2 boss
             // split moved the legacy NSMenu to AppRootScene.swift)
@@ -432,7 +432,7 @@ struct WorkspaceView: View {
             // PlotThread per P1 ticket #8
             // [WIRE-SPECIALIZEDTOOLS-003] 2026-09-04).
             //   - Foreshadowing (= git-fork) + Placeholder (= square-dashed) per
-            // boss 2026-08-30 OOB 'replace, use Foreshadowing to replace the first
+            // 'replace, use Foreshadowing to replace the first
             //     tab, use Placeholder to replace the second tab. Current canvas feature is for later'
             //   - LongFormGuardrails (= shield-check) per P1
             //     ticket #6 (= port long_form_guardrails.py from

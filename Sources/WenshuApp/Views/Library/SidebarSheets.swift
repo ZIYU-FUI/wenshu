@@ -47,7 +47,7 @@ import UniformTypeIdentifiers
 
 // MARK: - PendingDelete (deletion confirmation sheet state)
 
-/// v1.69y boss 2026-09-23 OOB: pending deletion (= shows the
+/// : pending deletion (= shows the
 /// "Are you sure?" `.alert` before the destructive
 /// `SidebarService.deleteShelf(id:)` / `deleteBook(id:)`
 /// fires). Mirrors the pre-v1.69e legacy NewLibraryOutlineView's
@@ -63,7 +63,7 @@ struct SidebarPendingDelete: Identifiable, Equatable {
 
 // MARK: - RenamingTarget (rename sheet state)
 
-/// v1.69y boss 2026-09-23 OOB: pending rename (= shows the
+/// : pending rename (= shows the
 /// `RenameItemSheet` (= a focused single-field sheet with
 /// validation = duplicate name check + reserved name check).
 struct SidebarRenamingTarget: Identifiable, Equatable {
@@ -79,7 +79,7 @@ struct SidebarRenamingTarget: Identifiable, Equatable {
 
 // MARK: - NewChoiceSheet
 
-/// v1.69y boss 2026-09-23 OOB: the first sheet in the New
+/// : the first sheet in the New
 /// workflow (= "what do you want to create?"). On pick, fires
 /// `onCreate(.shelf)` or `onCreate(.book)` (= the caller
 /// observes and flips the next sheet's `isPresented` binding).

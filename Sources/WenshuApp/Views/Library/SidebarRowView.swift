@@ -64,7 +64,7 @@ struct SidebarRowView: View {
             .tag(node)
     }
 
-    /// v1.69bb boss 2026-09-23 OOB '现在把资料库上面也加一条
+    /// '现在把资料库上面也加一条
     /// 分割线': the row body (= split out so the
     /// `.divider` kind can return a different View type without
     /// breaking the `.tag(node)` modifier chain on the parent

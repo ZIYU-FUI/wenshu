@@ -24,7 +24,7 @@ import SwiftUI
 
 /// The sheet of paper the editor sits on, in the shape Pages uses.
 ///
-/// Boss 2026-09-09 OOB: give the middle column a paper-sized area and put
+/// give the middle column a paper-sized area and put
 /// the markdown engine on the white part.
 ///
 /// Width is A4 (595 PT). Measured Pages on this machine: its canvas draws
@@ -34,7 +34,7 @@ import SwiftUI
 struct EditorPaperCanvas<Content: View>: View {
     /// A4 width in points. Apple's own default for a new Pages document
     /// in a metric locale, and what the measurement above confirmed.
-    /// Boss 2026-09-10 OOB 'just design the paper as a single A4 sheet': keep
+    /// keep
     /// paperWidth = 595 PT (= Pages / Numbers use the same). The
     /// ScrollView wraps the sheet; when the detail column is
     /// narrower than 595 PT, the user can scroll horizontally to

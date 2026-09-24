@@ -117,7 +117,7 @@ struct LayoutEditBar: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, DesignTokens.chromePaddingMicro)
                         .padding(.vertical, DesignTokens.chromePaddingHotkeyVertical)
-                        // boss 2026-09-02 OOB (' apple api
+                        // (' apple api
                         // default'): use bare Apple Material catalog
                         // directly (= the canonical SwiftUI .thin
                         // Material from the Material enum). The

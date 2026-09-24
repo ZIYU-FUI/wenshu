@@ -145,7 +145,7 @@ struct TabContentDispatcher: View {
                         // know about it. Matches macOS 26 Tahoe pattern
                         // (= content area + small top inset for tab bar).
                         //
-                        // boss 2026-09-02 OOB: use PaneTabBar directly
+                        // use PaneTabBar directly
                         // (= no chat-zone wrapper layer). Single
                         // hard-coded chat tab item + archive trailing button
                         // (= migrated to PaneTrailingIconButton helper from

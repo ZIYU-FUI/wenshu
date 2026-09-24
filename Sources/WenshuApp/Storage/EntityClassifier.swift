@@ -1,6 +1,6 @@
 // Sources/WenshuApp/Storage/EntityClassifier.swift
 //
-// boss 2026-08-30 OOB: 'entities need to be organized into multiple folders by category, here we display
+// 'entities need to be organized into multiple folders by category, here we display
 // these category folders directly, e.g. history, science, such categories,
 // you can refer to the library classification system, this one rule, auto-classify entities. Category folders grow with the content,
 // not all at once laid out':

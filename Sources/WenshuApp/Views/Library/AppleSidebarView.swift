@@ -104,7 +104,7 @@ struct AppleSidebarView: View {
         Group {
             if let service {
                 VStack(spacing: 0) {
-                    // boss 2026-09-24 OOB '抽成一个组件, 10 PT /
+                    // '抽成一个组件, 10 PT /
                     // 文字 / 4 PT / 分割线 / 10 PT, Apple HIG 数字表达':
                     // lift the sidebar column title bar to the
                     // shared SectionHeader component (= also used by
@@ -198,7 +198,7 @@ struct AppleSidebarView: View {
                     loadShelves: { try bookStore.sidebarLoadShelves() },
                     loadAllBooks: { try bookStore.sidebarLoadAllBooks() },
                     loadReferences: { try bookStore.loadAllReferences() },
-                    // boss 2026-09-22 OOB '上面书架的五
+                    // '上面书架的五
                     // 目录也可以加' (= mirror the reference
                     // library's "X 项" subtitle on each book
                     // folder row). Count .md files in the
@@ -381,7 +381,7 @@ struct AppleSidebarView: View {
         }
     }
 
-    /// v1.69y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复':
+    /// '新建功能, 右边菜单等恢复':
     /// context-menu builder (= extracted from the inline body
     /// of `.contextMenu(forSelectionType:menuItems:)` above; =
     /// the inline closure body was so large the Swift type
@@ -449,7 +449,7 @@ struct AppleSidebarView: View {
     /// the v1.69 MVVM split (= when SidebarItem still lived
     /// inline inside NewLibraryOutlineView)).
     ///
-    /// v1.68f boss 2026-09-22 OOB '帮助和测试小说下面的自动生成的
+    /// '帮助和测试小说下面的自动生成的
     /// 目录没有出现，需要实现' (= the 5 standard folders under
     /// each book are now visible in the sidebar; = the folder
     /// rows forward their selection to AppState.sidebarSelection

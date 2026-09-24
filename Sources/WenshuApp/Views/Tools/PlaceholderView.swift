@@ -1,6 +1,6 @@
 // Sources/WenshuApp/Views/Tools/PlaceholderView.swift
 //
-// boss 2026-08-30 OOB 'replace, Foreshadowingreplace teb,
+// 'replace, Foreshadowingreplace teb,
 // replace teb. ': tools pane tab 2 is now
 // Placeholder (= Placeholder) instead of (= BaseView).
 //

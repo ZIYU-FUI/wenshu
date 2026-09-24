@@ -12,7 +12,7 @@
 // it's a documented deferral.
 //
 //
-// boss 2026-08-30 OOB 'entity classification is the last layer in the directory tree, after clicking,
+// 'entity classification is the last layer in the directory tree, after clicking,
 // the entity document should display in the material management area in a wenshu-style card stream layout, and double-clicking the card opens it
 // in the editor. That's why I said implementing the editor and data flow requires finishing these prerequisites first'. Ticket 2 (= the entity card flow).
 //
@@ -229,7 +229,7 @@ struct BookDoc: Identifiable, Hashable {
     }
 }
 
-/// v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
+/// 
 /// derive a STABLE UUID for a BookDoc from its on-disk
 /// path (= bookId + folderName + fileName). The same .md
 /// file on disk maps to the same UUID across SwiftUI body
@@ -319,7 +319,7 @@ extension PreviewPane {
 struct PreviewPane: View {
     @Environment(BookStore.self) private var bookStore
 
-    /// v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
+    /// 
     /// cached snapshot of `(shelfId → books)` so the shelf
     /// subtree can be cheaply skipped across body re-renders.
     /// The v1.69n shelfScopeView ran FileManager I/O (= walk
@@ -601,7 +601,7 @@ struct PreviewPane: View {
             //   always there but the title was missing; = adding
             //   the title above the search bar fixes the visual
             //   alignment in both states).
-            // boss 2026-09-24 OOB '抽成一个组件, 10 PT /
+            // '抽成一个组件, 10 PT /
             // 文字 / 4 PT / 分割线 / 10 PT, Apple HIG 数字表达':
             // lift the preview column title bar to the shared
             // SectionHeader component (= also used by AppleSidebarView
@@ -756,7 +756,7 @@ struct PreviewPane: View {
             // With the Spacers, the empty-state hint stays centered
             // in the residual space (= the canonical Apple HIG
             // empty-state layout).
-            // boss 2026-09-24 OOB '点击 sidebar 后卡片出现，没有任何
+            // '点击 sidebar 后卡片出现，没有任何
             // 动画，或者缓入缓出，就看起来不好看': wrap the
             // scope Group in `.id(scope)` (= stable subtree identity
             // per scope = SwiftUI unmounts the previous scope and
@@ -800,7 +800,7 @@ struct PreviewPane: View {
                     case .bookScope(let bookId, folderName: let folderName):
                         bookScopeView(bookId: bookId, folderName: folderName)
                     case .shelfScope(let shelfId):
-                        // boss 2026-09-22 OOB '书架, 就是
+                        // '书架, 就是
                         // 从这里开始, 测试书架. 这两个目录项可以
                         // 点击, 但没有在卡片栏加载所有卡片' (=
                         // clicking a shelf row should load all
@@ -845,7 +845,7 @@ struct PreviewPane: View {
                         emptyScopeView()
                     }
                 }
-                // boss 2026-09-24 OOB '点击 sidebar 后卡片
+                // '点击 sidebar 后卡片
                 // 出现，没有任何动画，或者缓入缓出，就看起来不
                 // 好看': the scope Group gets a stable per-scope
                 // identity (= `.id(scope)`) so SwiftUI treats each
@@ -901,7 +901,7 @@ struct PreviewPane: View {
             // so cards still have breathing room from the column
             // edges (= Apple HIG 8-point grid for inline content).
             //
-            // boss 2026-09-24 OOB '整搜索栏左右两边没有间距
+            // '整搜索栏左右两边没有间距
             // ... 素材栏没有内边距, 需要加 10PT': the cards' left
             // + right padding switches from 8 PT (= hand-written
             // magic number, = a long-standing inline number that
@@ -935,7 +935,7 @@ struct PreviewPane: View {
             .padding(.horizontal, 10)
             .padding(.bottom, 8)
                 }
-            // boss 2026-09-24 OOB '点击 sidebar 后卡片出现，
+            // '点击 sidebar 后卡片出现，
             // 没有任何动画，或者缓入缓出，就看起来不好看' (=
             // scope-switch entry animation). Boss 2026-09-24 followup
             // '没有看到动画效果': the original approach
@@ -1018,7 +1018,7 @@ struct PreviewPane: View {
                     titleKey: folderName != nil
                         ? "preview.empty_state.book_with_folder"
                         : "preview.empty_state.book_no_folder",
-                    // boss 2026-09-24 OOB '有的 key 没有 / 没有
+                    // '有的 key 没有 / 没有
                     // 显示中文断言': the previous key
                     // `preview.pick_book` did not exist in either
                     // locale (= fell back to the key string and
@@ -1165,7 +1165,7 @@ struct PreviewPane: View {
                                     // filtered.first bug).
                                     onDoubleClick(source)
                                 }
-                                // boss 2026-09-24 OOB '点击
+                                // '点击
                                 // sidebar 后卡片出现，没有任何动画':
                                 // individual Card gets an opacity +
                                 // scale entry transition. When the
@@ -1314,7 +1314,7 @@ struct PreviewPane: View {
         return PreviewPaneOps.loadBooksInShelf(bookStore: bookStore, shelfId: shelfId).books
     }
 
-    /// v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
+    /// 
     /// pre-computes the shelf's books exactly once per shelfId
     /// change (= called from `.task(id: shelfId)` at the call
     /// site). SwiftUI cancels any in-flight task and restarts
@@ -1479,7 +1479,7 @@ struct PreviewPane: View {
 /// image-pipeline integration is deferred to v0.31+ (= needs image
 /// storage infrastructure that doesn't exist yet).
 /// Single canonical card view for the material preview zone.
-/// Boss 2026-09-02 OOB: 'style owned by parent, data composition unified too' —
+/// 'style owned by parent, data composition unified too' —
     /// one component for both Reference (reference library) and BookDoc (bookshelf).
 /// Data extraction lives INSIDE the view; no per-source adapter structs.
 ///

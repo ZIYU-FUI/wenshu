@@ -125,7 +125,7 @@ struct EditorPlaceholder: View {
             // focus follow). We avoid sibling Button nesting inside the
             // active title Button (= which earlier triggered a SwiftUI
             // Update-Constraints infinite loop on macOS 27 Liquid Glass).
-            // boss 2026-09-24 OOB rollback: the editor
+            // rollback: the editor
             // top bar is NOT a column section header; = it
             // is a Safari-style TAB MANAGEMENT BAR (= one
             // tab per open document, with a close X on
@@ -264,7 +264,7 @@ struct EditorPlaceholder: View {
                         Spacer(minLength: 0)
                     }
                 } else {
-                    // boss 2026-09-09 OOB: give the middle column a
+                    // give the middle column a
                     // sheet of paper like Pages, with the markdown engine
                     // sitting on the white area.
                     //
@@ -475,7 +475,7 @@ struct EditorPlaceholder: View {
                 )
             }
         }
-        // boss 2026-09-08 OOB 'chattop bar 3 tab, editortop bar
+        // 'chattop bar 3 tab, editortop bar
         // ': REVERTED (= boss 2026-09-08 follow-up 'yes, don't
         //, info, default
         // editorshould MD tab'). The welcome tab was
@@ -556,7 +556,7 @@ struct EditorPlaceholder: View {
             appState.openTabs[idx].autoSaveTask = newValue
         }
     }
-    /// v1.70 editor-mvvm T1b: per-tab file-system watcher state
+    /// per-tab file-system watcher state
     /// (= `tab.fileWatcher` + `tab.watchedFD`) is now owned by
     /// `EditorFileWatcher` (= the extracted helper). The view
     /// passes the active tab into `EditorFileWatcher.start(path:

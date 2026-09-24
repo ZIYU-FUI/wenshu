@@ -209,7 +209,7 @@ final class SidebarService {
                     // Official CLC category — show by its
                     // EntityCategory displayName + icon.
                     //
-                    // boss 2026-09-22 OOB '到分类层就够
+                    // '到分类层就够
                     // 了': leaf rows (= individual references)
                     // are NOT rendered in the sidebar (= the
                     // user browses them via the middle-column
@@ -316,7 +316,7 @@ final class SidebarService {
     /// discriminator).
     static let referenceLibraryRootId = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 
-    /// v1.69bb boss 2026-09-23 OOB '现在把资料库上面也加一条
+    /// '现在把资料库上面也加一条
     /// 分割线': sentinel UUID for the divider row inserted
     /// between user shelves and the reference library root.
     /// (= a different sentinel than referenceLibraryRootId so
@@ -366,7 +366,7 @@ final class SidebarService {
     /// folders). Returns nil (= leaf row, no disclosure
     /// indicator) for books that should not show folders.
     ///
-    /// v1.68f boss 2026-09-22 OOB '帮助和测试小说下面的自动生成的
+    /// '帮助和测试小说下面的自动生成的
     /// 目录没有出现，需要实现' (= default-seeded books should
     /// show their 5 standard folders in the sidebar). All other
     /// books (= user-created) currently also show folders (= the
@@ -379,7 +379,7 @@ final class SidebarService {
         // books don't collide on the same folder name. Apple HIG
         // List(.sidebar) requires unique row ids within the tree.
         //
-        // boss 2026-09-22 OOB: add the "X 项" subtitle
+        // add the "X 项" subtitle
         // (= the .md file count under each folder) so the
         // sidebar rows mirror the reference-library row shape
         // (= same 2-line: icon + title + subtitle = icon +

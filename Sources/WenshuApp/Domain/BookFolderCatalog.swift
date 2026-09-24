@@ -52,7 +52,7 @@
 //  catalog fields and the two derived sites pick up the new
 //  values automatically.
 //
-// boss 2026-09-24 OOB '8 个目录, 不需要都定义 ICON, 因为
+// '8 个目录, 不需要都定义 ICON, 因为
 //  我们过滤掉 3 个, 用户永远不可见, 所以, 其实可见的 ICON
 //  只有五个': the icon field is optional (= nil for internal
 //  folders = sessions / foreshadowing / placeholders, which

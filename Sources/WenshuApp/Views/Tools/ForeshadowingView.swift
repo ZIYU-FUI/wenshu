@@ -1,6 +1,6 @@
 // Sources/WenshuApp/Views/Tools/ForeshadowingView.swift
 //
-// boss 2026-08-30 OOB 'replace, Foreshadowingreplace teb,
+// 'replace, Foreshadowingreplace teb,
 // replace teb. ': tools pane tab 1 is now
 // Foreshadowing (= Foreshadowing) instead of (= Canvas).
 //

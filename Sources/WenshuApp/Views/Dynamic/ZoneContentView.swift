@@ -46,7 +46,7 @@ struct ZoneContentView: View {
 
     @State private var selectedTabId: String
 
-    // boss 2026-09-02 OOB: per-instance SwiftUI namespace for the
+    // per-instance SwiftUI namespace for the
     // matchedGeometryEffect underline (= SwiftUI requires the namespace
     // to scope within a single view tree). Held by ZoneContentView now
     // (= previously held by the deleted ZoneContentTabBar wrapper).

@@ -157,7 +157,7 @@ struct AppRootScene: Scene {
         // append `.defaultPosition(.center)` after `.defaultSize`.
         // macOS 13+ (= wenshu target = macOS 27).
         .defaultPosition(.center)
-        // boss 2026-09-22 OOB '默认首次启动 1400 980, 用户可以
+        // '默认首次启动 1400 980, 用户可以
         // 自己设置, 然后就持久化用户的': Apple HIG default restoration
         // (= `.automatic` = SwiftUI default = persist the window frame
         // to the system-level `NSWindow Frame <bundleID>` UserDefaults
@@ -194,7 +194,7 @@ struct AppRootScene: Scene {
         // to accept this trade-off in exchange for the standard
         // macOS zoom gesture working as expected.
         .windowResizability(.contentMinSize)
-        // boss 2026-09-10 OOB: the inspector toggle button
+        // the inspector toggle button
         // (= ⌥⌘I = SF Symbols 6 'sidebar-right' icon = the canonical
         // Apple toolbar affordance for NavigationSplitView
         // `.inspector`)
