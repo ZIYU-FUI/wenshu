@@ -190,10 +190,25 @@ public struct EmptyStateView: View {
             // when the caller passes an outline root name without
             // setting the rendering mode (= at 76 PT the fill
             // glyph reads as a heavy solid blob = boss's "太粗").
+            //
+            // v1.78 boss 2026-09-24 OOB '我想加动画，不需要使用它注册色的参数
+            // / 参考 .symbolEffect(.drawOn.individually, options: .nonRepeating)':
+            // SF Symbols 6 .drawOn / .drawOff draws each stroke
+            // one at a time when the icon first appears (= the
+            // Apple HIG empty-state entry transition; = same
+            // animation Mail / Notes / Reminders use on the
+            // iOS 17 / macOS 14 'no inbox items' placeholder).
+            // .nonRepeating keeps the animation one-shot
+            // (= does not loop; = matches Apple HIG; = the icon
+            // draws once when the empty state first mounts and
+            // stays drawn until the next mount). Pairs with the
+            // standard .secondary tint (= no color parameters =
+            // pure stroke-draw animation = the user directive).
             Image(systemName: icon)
                 .font(.system(size: DesignTokens.emptyStateIconSize, weight: .thin))
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(.secondary)
+                .symbolEffect(.drawOn.individually, options: .nonRepeating)
                 .padding(.bottom, DesignTokens.chromePaddingEmptyStateGap)
             VStack(spacing: DesignTokens.chromePaddingSmall) {
                 // Title: plain Text (= common case) OR caller-supplied
