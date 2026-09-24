@@ -452,21 +452,18 @@ struct EmotionCurveView: View {
     }
 
     private func runAnalyze() async {
-        ensureAnalyzer()
-        guard let analyzer = analyzer else { return }
+        EmotionCurveOps.ensureAnalyzer(analyzer: &analyzer)
         status = .running
-        let text = chapterText
-        let count = windowCount
-        do {
-            let newReport = try await analyzer.analyze(
-                chapterText: text,
-                windowCount: count
-            )
-            report = newReport
+        let result = await EmotionCurveOps.runAnalyze(
+            analyzer: analyzer,
+            chapterText: chapterText,
+            windowCount: windowCount
+        )
+        report = result.report
+        if result.didRun {
             status = .idle
-        } catch {
-            status = .failed(error.localizedDescription)
-            report = nil
+        } else if let err = result.error {
+            status = .failed(err)
         }
     }
 }
