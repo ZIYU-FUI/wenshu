@@ -1,38 +1,30 @@
-// ShellDetailColumn.swift · Wenshu · v1.43 ticket 001
+// ShellDetailColumn.swift · Wenshu
 //
-// Extracted from NavigationSplitShell.swift (= v0.40 boss OOB).
+// Extracted from `NavigationSplitShell.swift`. Inspector column
+// (= the trailing panel that hosts the paged InspectorPage
+// body) for the macOS 27 NavigationSplitView shell.
 //
-// Per boss OOB 2026-09-16 '按优先级推' + '自己一口气推完' (= keep
-// pushing until done). v1.34 + v1.38 + v1.39 + v1.42 + v1.43 (= this
-// ticket) continue the NavigationSplitShell split pattern.
-// ShellDetailColumn (= 471 NLOC = the Apple HIG detail column
-// hosting the right tools + dynamic zone) is the LAST sibling
-// extracted (= NavigationSplitShell drops to ~550 NLOC after this
-// ticket = mostly the NavigationSplitShell root struct + helpers).
-//
-// Per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112: extract
-// ShellDetailColumn to its own file. The 21-line Apple HIG doc + the
-// 450-line SwiftUI body move verbatim. 0 behavior change.
-//
-// This ticket completes the NavigationSplitShell split arc
-// (= 4 of 4 siblings extracted = ShellPlaceholder + ShellSidebarColumn
-// + ShellContentColumn + ShellMiddleColumn + ShellDetailColumn).
+// Per the 4-sibling split pattern (= ShellPlaceholder +
+// ShellSidebarColumn + ShellContentColumn + ShellMiddleColumn +
+// ShellDetailColumn = 5 of 5 siblings extracted): the inspector
+// column body lives in this file; = `NavigationSplitShell.swift`
+// stays a thin shell. The 21-line Apple HIG doc + the 450-line
+// SwiftUI body move verbatim. 0 behavior change.
 
 import SwiftUI
 
-/// Apple HIG detail column (= 2 vertical sub-areas: +).
-/// Per boss 9/8 ' right tools / right dynamic' = the
+/// Apple HIG detail column (= 2 vertical sub-areas).
+/// Per the 9/8 design (= right tools / right dynamic) the
 /// detail column is also 1 column with 2 stacked sub-areas.
 ///
-/// M2 (= this commit): swap the M1 placeholders for the real
-/// wenshu zone views:
+/// 2 sub-areas:
 /// - top sub-area: ZoneModuleView(zoneSlot: .specializedTools)
-///   (real tools pane from v0.34+; = foreshadowing tracking,
-///   memory retrieval, etc.)
-/// - bottom sub-area: ZoneModuleView(zoneSlot: .aiDynamic) (real
-///   dynamic pane from v0.34+; = kanban + todo + scope status)
-/// v0.42 boss 2026-09-09 OOB 'use the 3-column framework default':
-/// right column uses the same simple 2-stack VStack pattern as
+///   (real tools pane; = foreshadowing tracking, memory
+///   retrieval, etc.)
+/// - bottom sub-area: ZoneModuleView(zoneSlot: .aiDynamic)
+///   (real dynamic pane; = kanban + todo + scope status)
+///
+/// Right column uses the same simple 2-stack VStack pattern as
 /// ShellSidebarColumn (= no inspector-specific chrome wrappers,
 /// no .toolbarRole special casing, no VStack container for the
 /// picker toggle). The 2-toggle Tools / Dynamic picker is
@@ -43,36 +35,32 @@ import SwiftUI
 /// (spacing: 0) with 2 sub-areas and a .toolbar for the column
 /// chrome. No custom inspector wrapper needed.'
 struct ShellDetailColumn: View {
-    // v1.27 component-architecture (2026-09-17): changed from
-    // `let appState: AppState` (= plain let; = no binding syntax)
-    // to `@Bindable var appState: AppState` (= the @Observable
+    // `@Bindable var appState: AppState` (= the @Observable
     // binding wrapper; = allows `$shell.inspectorPage` syntax
     // in Picker / Toggle etc.; = single source of truth for
     // inspectorPage, not duplicated @State).
     //
-    // Per Apple Observation framework (= developer.apple.com/documentation/swiftui/migrating-from-the-observable-object-protocol-to-the-observable-macro):
-    //   "To create a binding to a property of an Observable object,
-    //    declare a `@Bindable` variable in your View."
+    // Per Apple Observation framework (= developer.apple.com/
+    // documentation/swiftui/migrating-from-the-observable-
+    // object-protocol-to-the-observable-macro):
+    //   "To create a binding to a property of an Observable
+    //    object, declare a `@Bindable` variable in your View."
     @Bindable var appState: AppState
-    // P2-06 (audit 2026-09-24): inspectorPage + inspectorVisible
-    // moved to ShellState. The `@Bindable var shell` is the
-    // entry the Picker / Toggle / button read+write
-    // (= `$shell.inspectorPage` / `shell.inspectorVisible.toggle()`).
+    // inspectorPage + inspectorVisible live in ShellState. The
+    // `@Bindable var shell` is the entry the Picker / Toggle /
+    // button read+write (= `$shell.inspectorPage` /
+    // `shell.inspectorVisible.toggle()`).
     @Bindable var shell: ShellState
 
-    // v1.27 component-architecture (2026-09-17): inspectorPage
-    // promoted from `@State private var` (= column-local, ephemeral,
-    // = lost on column collapse-expand per SwiftUI view identity
-    // rules) to `AppState.inspectorPage` (= single source of
-    // truth; = survives shell lifecycle changes; = future
-    // inspector pane embeds can read the same value).
+    // inspectorPage lives in `shell.inspectorPage` (= single
+    // source of truth; = survives shell lifecycle changes; =
+    // future inspector pane embeds can read the same value).
     //
     // Access pattern: `$shell.inspectorPage` (= appState is
     // @Observable + injected via init parameter from
-    // NavigationSplitShell L306).
+    // NavigationSplitShell).
 
-    // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
-    // wire `@Environment(\.openWindow)` so the toolbar buttons can
+    // Wire `@Environment(\.openWindow)` so the toolbar buttons can
     // open dedicated KanbanWindow / TodoWindow scenes (= the
     // SwiftUI macOS 14+ API for opening secondary windows from
     // a scene; = Pages / Numbers / Keynote all use it for
