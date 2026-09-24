@@ -30,8 +30,8 @@
 
 import Foundation
 
-/// Stateless business layer for PreviewPane. Mirrors the v1.72 +
-/// v1.74 + v1.75a-i precedents.
+/// Stateless business layer for PreviewPane. Mirrors the wenshu
+/// MVVM enum + static + Result types precedent.
 @MainActor
 enum PreviewPaneOps {
 
