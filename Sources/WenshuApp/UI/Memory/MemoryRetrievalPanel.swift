@@ -64,13 +64,13 @@ struct MemoryRetrievalPanel: View {
                 }
             }
         }
-        // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
-        // chrome tier background tint (= .controlBackgroundColor
+        // Removed the chrome tier background tint (= .controlBackgroundColor
         // = #1E = visible chrome tier = lighter than the surrounding
         // pane content = creates a visible strip in the memory
-        // panel area = boss wants gone per the 'go up another layer and remove the background'
-        // cleanup round). MemoryRetrievalPanel now matches the
-        // surrounding tool zone's content tier (= no chrome tier
-        // distinction per the v0.40 chrome cleanup).
+        // panel area = gone per the 'go up another layer and
+        // remove the background' cleanup round).
+        // MemoryRetrievalPanel now matches the surrounding tool
+        // zone's content tier (= no chrome tier distinction per
+        // the chrome cleanup).
     }
 }
