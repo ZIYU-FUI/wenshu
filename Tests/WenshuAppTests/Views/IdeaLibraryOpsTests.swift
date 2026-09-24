@@ -1,20 +1,14 @@
 //
-//  IdeaLibraryOpsTests.swift · Wenshu · v1.74 idealibrary-mvvm T2a
+//  IdeaLibraryOpsTests.swift · Wenshu
 //
 //  Behavior + source-level tests for `IdeaLibraryOps` (= the
-//  stateless enum extracted from IdeaLibraryView in v1.74 T1).
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= the
-//  audit also flagged IdeaLibraryView per the 2026-09-23 spec
-//  at .scratch/2026-09-23-mvvm-audit/spec.md §2.3): the
-//  IdeaLibraryView business layer (= reload / addIdea /
+//  stateless enum extracted from IdeaLibraryView).
+//  The IdeaLibraryView business layer (= reload / addIdea /
 //  removeIdea / linkIdea / unlinkIdea / runSuggest + the inline
 //  Idea(...) construction + the tag comma-split parsing) must
 //  move to a stateless enum so the View becomes a pure consumer.
-//  The fix per ADR-0009 + the v1.72 settings-kanban-todo
-//  precedent (= KanbanOps / TodoOps / SettingsOps = stateless
-//  enums with @MainActor static funcs) + the v1.74 tagmanager-
-//  mvvm precedent (= TagManagerOps = nil-able actor reference
-//  seam) is `IdeaLibraryOps` (= this test's SUT).
+//  The fix per ADR-0009 (= KanbanOps / TodoOps / SettingsOps =
+//  stateless enums with @MainActor static funcs).
 //
 //  Why an enum (not @Observable class):
 //  - State already lives in `IdeaLibrary` (= the actor defined in

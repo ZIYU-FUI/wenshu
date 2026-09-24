@@ -1,21 +1,16 @@
 //
-//  PlaceholderOpsTests.swift · Wenshu · v1.74 placeholder-mvvm T2a
+//  PlaceholderOpsTests.swift · Wenshu
 //
 //  Behavior + source-level tests for `PlaceholderOps` (= the
-//  stateless enum extracted from PlaceholderView in v1.74 T1).
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= the
-//  audit also flagged PlaceholderView per the 2026-09-23 spec
-//  at .scratch/2026-09-23-mvvm-audit/spec.md §2.2): the
-//  PlaceholderView business layer (= reload / addPlaceholder /
+//  stateless enum extracted from PlaceholderView).
+//  The PlaceholderView business layer (= reload / addPlaceholder /
 //  resolvePlaceholder / abandonPlaceholder / reopenPlaceholder /
 //  removePlaceholder / runScan + the inline UUID-parse trim + the
 //  Placeholder(...) construction literals) must move to a
 //  stateless enum so the View becomes a pure consumer. The fix
-//  per ADR-0009 + the v1.72 settings-kanban-todo precedent (=
-//  KanbanOps / TodoOps / SettingsOps = stateless enums with
-//  @MainActor static funcs) + the v1.74 tagmanager-mvvm
-//  precedent (= TagManagerOps = nil-able actor reference seam)
-//  is `PlaceholderOps` (= this test's SUT).
+//  per ADR-0009 (= KanbanOps / TodoOps / SettingsOps = stateless
+//  enums with @MainActor static funcs) is `PlaceholderOps` (= this
+//  test's SUT).
 //
 //  Why an enum (not @Observable class):
 //  - State already lives in `PlaceholderScanner` (= the actor

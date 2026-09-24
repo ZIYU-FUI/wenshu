@@ -440,7 +440,7 @@ struct SettingViewTests {
     func providerApiRowUsesKeySfSymbolForBothStates() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
-        // Per boss 2026-09-15 OOB: same SF Symbol + different foreground
+        // Same SF Symbol + different foreground
         // color (green vs secondary) for has-key vs no-key state.
         #expect(section.contains("Image(systemName: hasKey ? \"key\" : \"key\")"),
                 "providerApiRow must use 'key' SF Symbol (= same glyph for both states per boss 2026-09-15)")

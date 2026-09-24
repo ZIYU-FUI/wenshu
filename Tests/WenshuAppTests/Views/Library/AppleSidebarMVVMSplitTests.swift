@@ -1,15 +1,12 @@
-// AppleSidebarMVVMSplitTests.swift · Wenshu · v1.69
+// AppleSidebarMVVMSplitTests.swift · Wenshu
 //
-// 
-// that the new MVVM-split sidebar stack
+// Verifies that the new MVVM-split sidebar stack
 // (= AppleSidebarView + SidebarService + SidebarNode + SidebarItem)
-// is correctly wired together (= the boss 2026-09-22 OOB requirement
-// "拆完了之后, 老的不符合 MVVM, UI, 业务, 数据分离的文件要删掉").
+// is correctly wired together.
 //
 // Three things must hold:
-//   1. The legacy NewLibraryOutlineView is GONE (= removed in
-//      v1.69; = any future re-introduction breaks the MVVM
-//      split).
+//   1. The legacy NewLibraryOutlineView is GONE (= any future
+//      re-introduction breaks the MVVM split).
 //   2. The new MVVM-split sidebar files all exist + form the
 //      canonical chain (= data = SidebarNode + SidebarItem;
 //      business = SidebarService; UI = AppleSidebarView +
@@ -19,13 +16,12 @@
 //      folderName) → appState.sidebarSelection → previewScope =
 //      .bookScope(bookId:, folderName:) → PreviewPane.loadBookDocs`)
 //      is the canonical path that renders the folder's .md files
-//      as cards (= the boss 2026-09-22 OOB requirement "书下的
-//      每目录可点击，然后卡片栏显示这个目录下的所有文件卡片").
+//      as cards.
 
 import Testing
 import Foundation
 
-@Suite("v1.69 — AppleSidebarView MVVM split + folder→cards chain")
+@Suite("AppleSidebarView MVVM split + folder→cards chain")
 struct AppleSidebarMVVMSplitTests {
 
     /// Resolve repo-relative paths against the wenshu project root
@@ -61,7 +57,7 @@ struct AppleSidebarMVVMSplitTests {
     }
 
     /// Parse a binary1 Localizable.strings file and return its keys.
-    /// v1.69s boss 2026-09-22 OOB shelf-empty-state copy needs
+    /// 
     /// both languages to define the new keys; = the test asserts
     /// the keys are present in the plist (= not just the Swift
     /// call site that reads them).
@@ -83,14 +79,11 @@ struct AppleSidebarMVVMSplitTests {
         let oldFile = Self.repoPath("Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift")
         let oldExt = Self.repoPath("Sources/WenshuApp/Views/Library/NewLibraryOutlineView+DisclosureState.swift")
         #expect(!FileManager.default.fileExists(atPath: oldFile),
-                "NewLibraryOutlineView.swift MUST be removed in v1.69 (= the legacy 2366-LOC sidebar that did not follow MVVM)")
+                "NewLibraryOutlineView.swift MUST be removed in v1.69")
         #expect(!FileManager.default.fileExists(atPath: oldExt),
-                "NewLibraryOutlineView+DisclosureState.swift MUST be removed in v1.69 (= the legacy sidebar extension)")
+                "NewLibraryOutlineView+DisclosureState.swift MUST be removed in v1.69")
 
-        // The 9 v1.68 lazy-extraction files (= unrolled-back v1.68
-        // attempt that pre-dated the v1.68b AppleSidebarView
-        // rewrite; = kept around as dead code per the pre-v1.69
-        // state; = removed in v1.69 too).
+        // The 9 v1.68 lazy-extraction files.
         let deadLazyFiles = [
             "Sources/WenshuApp/Views/Library/LazySidebarView.swift",
             "Sources/WenshuApp/Views/Library/LazySidebarState.swift",
@@ -104,7 +97,7 @@ struct AppleSidebarMVVMSplitTests {
         ]
         for f in deadLazyFiles {
             #expect(!FileManager.default.fileExists(atPath: Self.repoPath(f)),
-                    "\(f) MUST be removed in v1.69 (= dead-code from the pre-v1.68b lazy sidebar extraction)")
+                    "\(f) MUST be removed in v1.69")
         }
     }
 
@@ -119,7 +112,7 @@ struct AppleSidebarMVVMSplitTests {
         ]
         for f in dataFiles {
             #expect(FileManager.default.fileExists(atPath: Self.repoPath(f)),
-                    "\(f) MUST exist (= the data layer of the v1.68b MVVM-split sidebar)")
+                    "\(f) MUST exist")
         }
         // Business layer
         let businessFiles = [
@@ -127,7 +120,7 @@ struct AppleSidebarMVVMSplitTests {
         ]
         for f in businessFiles {
             #expect(FileManager.default.fileExists(atPath: Self.repoPath(f)),
-                    "\(f) MUST exist (= the business layer of the v1.68b MVVM-split sidebar)")
+                    "\(f) MUST exist")
         }
         // UI layer
         let uiFiles = [
@@ -138,7 +131,7 @@ struct AppleSidebarMVVMSplitTests {
         ]
         for f in uiFiles {
             #expect(FileManager.default.fileExists(atPath: Self.repoPath(f)),
-                    "\(f) MUST exist (= the UI layer of the v1.68b MVVM-split sidebar)")
+                    "\(f) MUST exist")
         }
     }
 
@@ -217,9 +210,8 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("sidebar_service_projects_folder_children_per_book")
     func sidebar_service_projects_folder_children_per_book() throws {
-        // v1.69f source refactor: SidebarService.folderChildren(for:)
-        // delegates folder naming to BookFolderCatalog (= the canonical
-        // owner of the user-facing folder spec since the v1.69f cleanup).
+        // 
+        // delegates folder naming to BookFolderCatalog.
         // The spec acceptance is that the 5 user-facing folders ARE
         // rendered; their canonical literal lives in BookFolderCatalog.
         let catalog = try String(
@@ -244,7 +236,7 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("sidebar_service_folder_children_carry_X_items_subtitle")
     func sidebar_service_folder_children_carry_X_items_subtitle() throws {
-        // v1.69 boss 2026-09-22 OOB '上面书架的五目录也可以加':
+        // 
         // each of the 5 standard folders (= 世界观 / 角色 /
         // 章节大纲 / 小说正文 / 小说草稿) renders an "X 项"
         // subtitle (= the .md file count under that folder),
@@ -261,11 +253,11 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("sidebar_service_reference_library_expands_to_category_rows")
     func sidebar_service_reference_library_expands_to_category_rows() throws {
-        // v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示':
+        // 
         // the Reference-Library root now has children that are
         // .referenceCategory rows (= one per non-empty CLC bucket).
         // Individual references are NOT rendered as leaves in the
-        // sidebar (= boss 2026-09-22 '到分类层就够了'): the
+        // sidebar : the
         // category row's children stay nil so the row carries no
         // disclosure chevron.
         let src = try String(
@@ -284,7 +276,7 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("sidebar_node_kind_includes_referenceCategory")
     func sidebar_node_kind_includes_referenceCategory() throws {
-        // v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示':
+        // 
         // SidebarNode.Kind grows a `.referenceCategory` case so
         // AppleSidebarView.forwardSelection can route category
         // row clicks to .referenceCategory(dirName) selection
@@ -299,7 +291,7 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("previewScope_referenceCategory_lookup_is_case_insensitive")
     func previewScope_referenceCategory_lookup_is_case_insensitive() throws {
-        // v1.69 boss 2026-09-22 OOB: SidebarItem.referenceCategory
+        // 
         // carries the EntityCategory.directoryName (= lowercase
         // letter for the official 22 CLC cases, "其它" for .z,
         // "未分类" for the nil-bucket fallback). ShellMiddleColumn
@@ -319,7 +311,7 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("sidebar_service_reference_category_title_is_displayName_with_routing_key")
     func sidebar_service_reference_category_title_is_displayName_with_routing_key() throws {
-        // v1.69 boss 2026-09-22 OOB '资料库分类, 现在显示是
+        // 
         // 的一个字母. 不是中文分类名': category row title
         // MUST be the EntityCategory.displayName (= the
         // user-facing Chinese label "哲学、宗教", what the
@@ -329,8 +321,7 @@ struct AppleSidebarMVVMSplitTests {
         // lookup resolves back to a category) lives in the
         // dedicated `routingKey` field on SidebarNode.
         //
-        // Why split title vs routingKey (= the v1.69m
-        // inverse of this ticket):
+        // Why split title vs routingKey:
         //   v1.69m put directoryName in title + displayName
         //   in subtitle. forwardSelection read node.title →
         //   routed correctly BUT the sidebar showed "i" /
@@ -350,7 +341,7 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("sidebar_node_kind_includes_routing_key")
     func sidebar_node_kind_includes_routing_key() throws {
-        // v1.69p: SidebarNode grows a `routingKey: String?`
+        // 
         // field so the user-visible title and the
         // forwardSelection routing key can diverge (= the
         // category row shows Chinese label + routes by
@@ -365,7 +356,7 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("previewPane_shelfScopeView_loads_union_of_books_under_shelf")
     func previewPane_shelfScopeView_loads_union_of_books_under_shelf() throws {
-        // v1.69 boss 2026-09-22 OOB '书架, 就是从这里开始,
+        // 
         // 测试书架. 这两个目录项可以点击, 但没有在卡片栏
         // 加载所有卡片': clicking a shelf row must load every
         // .md card from every book under that shelf (= the
@@ -376,14 +367,14 @@ struct AppleSidebarMVVMSplitTests {
             encoding: .utf8
         )
         #expect(src.contains("private func shelfScopeView(shelfId: UUID)"),
-                "shelfScopeView MUST accept a shelfId parameter (= replaces the empty-state-only v1.0.0-m1-shell form)")
+                "shelfScopeView MUST accept a shelfId parameter")
         #expect(src.contains("func loadBooksInShelf(shelfId: UUID)"),
                 "PreviewPane MUST expose loadBooksInShelf(= helper that filters BookStore.sidebarLoadAllBooks by shelfId)")
     }
 
     @Test("previewPane_shelfScopeView_empty_state_uses_shelf_specific_copy")
     func previewPane_shelfScopeView_empty_state_uses_shelf_specific_copy() throws {
-        // v1.69s boss 2026-09-22 OOB '点击网络长文时, 卡片区
+        // 
         // 的空态, 原来用的是非选书, 现在因为书架可以点了.
         // 这个地方需要换了. 和测试小说点击时一样. 应该改成
         // 书架下暂无文档': the shelf empty-state copy must
@@ -396,14 +387,12 @@ struct AppleSidebarMVVMSplitTests {
             encoding: .utf8
         )
         #expect(src.contains("titleKey: \"preview.empty_state.shelf_empty\""),
-                "shelfScopeView MUST use the shelf-specific empty-state title key (= no longer references the v1.0.0-m1 pick-book hint)")
+                "shelfScopeView MUST use the shelf-specific empty-state title key")
         #expect(src.contains("bodyKey: \"preview.empty.shelf_no_books\""),
                 "shelfScopeView MUST use a shelf-specific body key (= distinct from book_scope / reference_scope body keys)")
 
         // Verify both Localizable.strings files define the keys
-        // (= the v1.69q-r era shipped the title-only override;
-        // v1.69s adds a body key + retitles the title to match
-        // the book_empty copy contract).
+        // 
         let enKeys = try Self.localizableKeys(relaPath: "Sources/WenshuApp/Resources/en.lproj/Localizable.strings")
         let zhKeys = try Self.localizableKeys(relaPath: "Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings")
         #expect(enKeys.contains("preview.empty_state.shelf_empty"),
@@ -418,7 +407,7 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("previewPane_loadBookDocs_handles_folder_scope")
     func previewPane_loadBookDocs_handles_folder_scope() throws {
-        // v1.69f source refactor: PreviewPane.loadBookDocs delegates
+        // 
         // to PreviewPaneOps.loadBookDocs (= the canonical UI→Business→Data
         // seam per ADR-0009). The spec is met; the assertion target
         // moves from PreviewPane.swift to PreviewPaneOps.swift.
@@ -433,6 +422,6 @@ struct AppleSidebarMVVMSplitTests {
         #expect(pane.contains("private func loadBookDocs(bookId: UUID, folderName: String?) -> [BookDoc]"),
                 "PreviewPane MUST have loadBookDocs(bookId:, folderName:) (= the card grid loader; delegates to PreviewPaneOps)")
         #expect(ops.contains("folders = [folderName]"),
-                "PreviewPaneOps.loadBookDocs MUST scope to the one folder when non-nil (= single-folder card grid; canonical seam since v1.69f)")
+                "PreviewPaneOps.loadBookDocs MUST scope to the one folder when non-nil")
     }
 }

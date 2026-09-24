@@ -1,13 +1,10 @@
 //
-//  TagManagerOpsTests.swift · Wenshu · v1.74 tagmanager-mvvm T2a
+//  TagManagerOpsTests.swift · Wenshu
 //
 //  Behavior + source-level tests for `TagManagerOps` (= the
-//  stateless enum extracted from TagManagerView in v1.74 T1).
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离，排查
-//  设置页 / kanban / todo 这三个独立窗口是否符合标准' (= the audit
-//  also flagged TagManagerView / PlaceholderView / IdeaLibraryView
-//  per the 2026-09-23 spec at
-//  .scratch/2026-09-23-mvvm-audit/spec.md §2.1-§2.3): the
+//  stateless enum extracted from TagManagerView).
+//  TagManagerView / PlaceholderView / IdeaLibraryView
+//  (= the three independent windows) must follow the same separation
 //  TagManagerView business layer (= reload / runFilter / addTag
 //  / removeTag / applyTag / unapply + resolveApplyTargetUUID + the
 //  inline UUID-parse trim + the tag-construction inline literals)
