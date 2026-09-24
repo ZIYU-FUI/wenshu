@@ -283,8 +283,8 @@ struct AppRootScene: Scene {
                     }
                 }
                 // boss 8/27 OOB: menusync toolbar 'import' button.
-                // Per boss 8/27 standing rule 'a new feature should
-                // appear everywhere = synced', the menu bar gets a
+                // Per the standing rule that a new feature should
+                // appear everywhere = synced, the menu bar gets a
                 // matching import entry (= macOS-standard File → Import
                 // Convention; Cmd+Shift+I is the macOS default shortcut
                 // for File → Import per developer.apple.com/design/
