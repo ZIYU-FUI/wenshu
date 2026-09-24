@@ -120,7 +120,7 @@ struct BookTests {
 
     @Test("JSON missing 'length' / 'idea' keys decodes to defaults (= back-compat with v0.02.x fixtures)")
     func bookJsonBackCompat() throws {
-        // v0.02.x book.json files don't have 'length' or 'idea' (= fields
+        // 'length' or 'idea' (= fields
         // added in v52). The Codable conformance must decode them as
         // their default values (= .medium, nil), NOT fail.
         let oldJson = """

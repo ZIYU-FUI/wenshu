@@ -4,7 +4,7 @@
 //  Behavior tests for `WikiLinkNavigation.handle(displayName:referenceStore:bookStore:)`
 //  (= the SMC ticket 003 wiki-link resolver helper that was extracted
 //  out of EditorPlaceholder at v0.34 but never received test coverage).
-//  v1.70 editor-mvvm T3 = fill the test gap before declaring the
+// 
 //  wikilink path "done" (= the helper is the entry point both
 //  `handlePreviewWikiLink(displayName:)` + `handleEditorWikiLink(linkId:)`
 //  in the view route through).

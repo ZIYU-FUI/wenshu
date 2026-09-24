@@ -16,7 +16,7 @@
 //    block, and returns it).
 //
 //  Per Q182.4: Swift Testing framework (= wenshu convention since
-//  v0.30+); @MainActor isolation inherited from the types under
+// 
 //  test (EditorPlaceholder is a SwiftUI View = MainActor).
 //
 //  Test scope (= per the ticket hard rules): the toolbar struct

@@ -53,7 +53,7 @@ struct I18nParityTests {
     ///   directory is copied to the test bundle; = SPM's CpResource
     ///   step compiles text .strings into bplist just like Xcode).
     private static func loadCatalog(_ name: String, ext: String) -> String? {
-        // v0.71 P1 batch 3: the test bundle (= Bundle.module) stores
+        // 
         // Localizable.strings inside an .lproj subdirectory (= the
         // canonical Apple localization layout; = SPM copies each
         // .lproj as a subfolder under the bundle's Resources/).
@@ -145,7 +145,7 @@ struct I18nParityTests {
 
     @Test("WenshuI18n.t resolves known keys to non-key values")
     func tResolvesKnownKeys() {
-        // v0.38 ticket P2: regression test for the SPM bundle-resolution
+        // 
         // bug discovered after screenshot verify. Previously, when running
         // from an SPM-built executable (= not a Xcode/.app build), t() would
         // return the key path itself because Bundle.main could not find the

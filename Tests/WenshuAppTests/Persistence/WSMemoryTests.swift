@@ -2,7 +2,7 @@
 //  Persistence/WSMemoryTests.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
 //  Test commit 2: WSMemory @Model (= memories table from MemoryStore.swift).
-//  Per boss 2026-09-13 OOB: "build one, test one, commit one"
+// 
 
 import Foundation
 import SwiftData

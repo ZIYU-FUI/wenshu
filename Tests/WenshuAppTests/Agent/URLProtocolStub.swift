@@ -287,14 +287,14 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         return (stub, subclass)
     }
 
-    /// v1.17 ticket 001 (= per Q34 5.2 + Q173 ponytail + Q186):
+    /// 
     /// per-instance capturedRequest storage (= via instance var).
     /// Isolated stubs route here instead of writing to the global
     /// `URLProtocolStub.capturedRequest`. This is the per-test
     /// state that the isolated pattern needs.
     private var _isolatedCapturedRequest: URLRequest?
 
-    /// v1.17 ticket 001: route a URLSession-created instance's
+    /// 
     /// startLoading() to the per-instance stub captured via
     /// associated objects (= produced by IsolatedStubSubclass).
     ///
@@ -385,7 +385,7 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
     }
 }
 
-/// v1.16 ticket 001 (= per Q34 5.2 + Q173 ponytail + Q186):
+/// 
 /// Helper for the per-test stub instance pattern. Generates a
 /// unique URLProtocol subclass at runtime that captures the
 /// given stub instance via associated objects (= no global
