@@ -1,7 +1,7 @@
 // Sources/WenshuApp/Editor/WenshuMarkdownEditor.swift
 //
-// v0.39 ticket 001 + SMC ticket 003 -- wenshu-side wrapper for
-// swift-markdown-engine. SMC ticket 003 forwards onLinkClick.
+// wenshu-side wrapper for swift-markdown-engine. Forwards link-click
+// callbacks to the engine's NativeTextViewWrapper.
 import SwiftUI
 import AppKit
 import MarkdownEngine
@@ -11,23 +11,18 @@ struct WenshuMarkdownEditor: View {
     let draftId: String
     let configuration: MarkdownEditorConfiguration
 
-    // SMC ticket 003 -- engine-side link-click callback forwarded
-    // to the engine's NativeTextViewWrapper.
+    // Engine-side link-click callback forwarded to
+    // NativeTextViewWrapper.
     var onLinkClick: ((String) -> Void)? = nil
 
-    // v0.40 boss 9/7 OOB ', edit,
-    // yes, ., editor,
-    // yes, shouldgroup': preview mode and
-    // edit mode should use the SAME component (= no separate
+    // Preview and edit modes share the same component (= no separate
     // SwiftUI renderer). Previously preview used EditorPreviewContent
     // (= SwiftUI AttributedString renderer) and edit used
     // WenshuMarkdownEditor (= swift-markdown-engine NSTextView). Two
-    // different renderers = different visual scaling (= the ""
-    // boss described).
+    // different renderers meant different visual scaling.
     //
-    // Fix: both modes now use WenshuMarkdownEditor. The engine's
+    // Both modes now use WenshuMarkdownEditor. The engine's
     // NativeTextViewWrapper has an `isEditable: Bool` parameter
-    // (= "When false the editor renders read-only with no caret")
     // which toggles between edit + preview with the SAME NSTextView
     // (= zero visual scaling between modes; = Apple HIG canonical
     // for WYSIWYG / preview-vs-edit surfaces).
@@ -37,9 +32,7 @@ struct WenshuMarkdownEditor: View {
     // edit = editable NSTextView, same component, same font scale,
     // same line height, same textContainerInset, same NSTextLayoutManager.
     var isEditable: Bool = true
-    // v0.40 boss 9/7 OOB ', edit
-    //, . ok apple api ':
-    // the engine's NativeTextView has an internal `baseFont` field
+    // The engine's NativeTextView has an internal `baseFont` field
     // (= NSFont.systemFont(ofSize: NSFont.systemFontSize) by default,
     // = Apple canonical system default font size).
     // EditorPreviewContent (= preview mode) uses SwiftUI's Apple
@@ -57,17 +50,14 @@ struct WenshuMarkdownEditor: View {
     // engine's layout pipeline).
     private var adjustedConfiguration: MarkdownEditorConfiguration {
         var config = configuration
-        // v0.40 boss 9/7 OOB 'editor, cardtitle
-        // ': align the editor's font scale to the card visual
-        // density (= Apple HIG canonical reference card pattern
-        // in PreviewPane.swift Card view).
+        // Align the editor's font scale to the card visual density
+        // (= Apple HIG canonical reference card pattern in
+        // PreviewPane.swift Card view).
         //
         // Card title   = SwiftUI .headline (= 13 PT on macOS 27)
         // Card summary = SwiftUI .caption  (= 10 PT on macOS 27
         //   = NSFont.preferredFont(forTextStyle: .caption1).pointSize
-        //   on macOS; = SwiftUI bridges .caption to .caption1 in NSFont)
-        // (= boss 9/7 OOB screenshot: card with title
-        // ~13 PT bold + summary ~10 PT regular).
+        //   on macOS; = SwiftUI bridges .caption to .caption1 in NSFont).
         //
         // Strategy: use NSFont.preferredFont(forTextStyle: .caption1)
         // (= 10 PT = SwiftUI .caption on macOS) as the editor base
@@ -77,10 +67,6 @@ struct WenshuMarkdownEditor: View {
         // - H1   = .headline     = 13 PT (= matches card title)
         // - H2   = .footnote     = 10 PT (= matches card summary)
         // - H3-H6= .footnote     = 10 PT (= flat with body)
-        //
-        // v0.40 boss 9/7 OOB ', edit,
-        // ': both modes share this single
-        // configuration (= unified component commit).
         let base = NSFont.preferredFont(forTextStyle: .caption1).pointSize
         let h1 = NSFont.preferredFont(forTextStyle: .headline).pointSize
         let h2 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
@@ -98,17 +84,15 @@ struct WenshuMarkdownEditor: View {
         return config
     }
 
-    /// EDITORFONT-002 (2026-09-07): engine base font = caption1
-    /// (= 10 PT = SwiftUI `.caption` on macOS 27). Passed to
-    /// `NativeTextViewWrapper(fontSize:)` below (= the engine
-    /// default is 16 PT which broke the multiplier math).
+    /// Engine base font = caption1 (= 10 PT = SwiftUI `.caption` on
+    /// macOS 27). Passed to `NativeTextViewWrapper(fontSize:)` below
+    /// (= the engine default is 16 PT which broke the multiplier math).
     private var caption1BaseFontSize: CGFloat {
         NSFont.preferredFont(forTextStyle: .caption1).pointSize
     }
 
     var body: some View {
-        // v0.40 boss 9/7 OOB 'edit, 18PT':
-        // apply the same horizontal inset as preview mode (= 18 PT
+        // Apply the same horizontal inset as preview mode (= 18 PT
         // each side = DesignTokens.chromePaddingLeading /
         // chromePaddingTrailing = wenshu standard read-only text
         // inset per the sidebar / chrome spec). Edit mode
@@ -121,47 +105,35 @@ struct WenshuMarkdownEditor: View {
         // top/bottom = 0 (= matches preview mode; = matches
         // NSTextView tight top/bottom inset).
         //
-        // v0.40 boss 9/7 OOB 'editor, yes, should
-        // group': pass `isEditable` (= boss param on
-        // NativeTextViewWrapper) so the SAME NSTextView renders
-        // both preview (= read-only) and edit (= editable) modes
+        // Pass `isEditable` so the SAME NSTextView renders both
+        // preview (= read-only) and edit (= editable) modes
         // (= zero visual scaling between modes; = Apple HIG
         // canonical for WYSIWYG surfaces).
         NativeTextViewWrapper(
             text: $text,
             configuration: adjustedConfiguration,
-            // EDITORFONT-002 (2026-09-07): pass fontSize so the engine
-            // base font matches the caption1 multiplier base (= 10 PT).
-            // Without this, NativeTextViewWrapper defaults to 16 PT and
-            // the multiplier math produces H1 = 16 × (13/10) = 20.8 PT
+            // Pass fontSize so the engine base font matches the
+            // caption1 multiplier base (= 10 PT). Without this,
+            // NativeTextViewWrapper defaults to 16 PT and the
+            // multiplier math produces H1 = 16 × (13/10) = 20.8 PT
             // (= still visually dominant vs sidebar/kanban .headline
-            // = 13 PT = the bug boss 9/7 saw). With fontSize=10 here,
-            // engine base = 10 PT, multiplier H1 = 1.3 gives
-            // H1 = 10 × 1.3 = 13 PT = matches Apple `.headline`.
+            // = 13 PT). With fontSize=10 here, engine base = 10 PT,
+            // multiplier H1 = 1.3 gives H1 = 10 × 1.3 = 13 PT =
+            // matches Apple `.headline`.
             fontName: "SF Pro",
             fontSize: caption1BaseFontSize,
             documentId: draftId,
             isEditable: isEditable,            onLinkClick: onLinkClick
         )
-        // ZONE-INSET-002 round 2 (2026-09-07): ZoneContentView's
-        // outer .padding(.all, zoneContentInset) was REMOVED in the
-        // previous commit (= was doubled with Apple HIG built-in
-        // insets in List / LazyVGrid zones = caused zone 1, 2, 4 to
-        // look "too large"). The editor still needs an explicit inset
-        // because WenshuMarkdownEditor wraps NativeTextViewWrapper
-        // (= no Apple built-in content margins). Re-applied the
-        // 18 PT all-sides inset here directly (= uses the same
-        // canonical token DesignTokens.zoneContentInset = 18 PT
-        // for consistency).
-        //
-        // History:
-        //   - ab2b57021 (v0.40 apple-001 Q2): added .padding(.horizontal, 18)
-        //   - f6655f2bc (EDITORTOP-001): added .padding(.top, 18)
-        //   - 8a52378cc (ZONE-INSET-002): both removed (= absorbed
-        //     into ZoneContentView's outer 18 PT)
-        //   - this commit: re-added with .padding(.all, 18) (= the
-        //     18-PT uniform value stayed the goal = the zone wrapper
-        //     route was the wrong abstraction)
+        // ZoneContentView's outer .padding(.all, zoneContentInset)
+        // was REMOVED in an earlier commit (= was doubled with Apple
+        // HIG built-in insets in List / LazyVGrid zones = caused
+        // zones to look "too large"). The editor still needs an
+        // explicit inset because WenshuMarkdownEditor wraps
+        // NativeTextViewWrapper (= no Apple built-in content margins).
+        // Re-applied the 18 PT all-sides inset here directly (= uses
+        // the same canonical token DesignTokens.zoneContentInset =
+        // 18 PT for consistency).
         .padding(.all, DesignTokens.zoneContentInset)
     }
 }
