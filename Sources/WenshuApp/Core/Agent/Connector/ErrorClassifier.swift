@@ -11,7 +11,7 @@
 //  Pure Swift (= no external deps; per wenshu §11 hard rule + ADR-0011
 //  no LLM calls in classifier path).
 //
-//  v0.36 sub-step 2 of 3 for ticket 015.
+// sub-step 2 of 3 for ticket 015.
 //
 
 import Foundation

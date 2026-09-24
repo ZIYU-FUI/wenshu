@@ -18,7 +18,7 @@
 //  Per ADR-0009 (wenshu-side wins), uses existing TokenEstimator protocol
 //  (= ticket 003 sub-step 1) — no duplicate estimator.
 //
-//  v0.36 sub-step 1 of 2 for ticket 014.
+// sub-step 1 of 2 for ticket 014.
 //
 
 import Foundation

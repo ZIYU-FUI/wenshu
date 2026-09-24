@@ -41,7 +41,7 @@ import AppKit
 
 // name for menu bar zone toggle buttons (= CommandGroup can't directly
 // access vm instance, so menu items post notification, vm listens).
-// v0.34 boss 2026-09-02 OOB (B-04 backlog entry): all Notification.Name
+// boss 2026-09-02 OOB (B-04 backlog entry): all Notification.Name
 // definitions moved to Sources/WenshuApp/Core/Notifications/AppNotifications.swift
 // (= single source of truth, grouped into AppCommands / AppStateEvents /
 // LayoutEvents enums, unified to "com.wenshu.X" naming per Apple
@@ -57,7 +57,7 @@ extension Notification.Name {}  // placeholder; all members moved to AppNotifica
 // Apple HIG responsive: GeometryReader reads actual window size × ratio = 1:1 self-adaptive at any window size
 
 /// Apple Semantic Color — fully dark-mode adapted, zero RGB hardcoded
-// v0.32 boss 2026-09-02 OOB ('go all apple api default; don't write your own color wrapper'): removed the `DesignColor` enum entirely. The 5 static
+// boss 2026-09-02 OOB ('go all apple api default; don't write your own color wrapper'): removed the `DesignColor` enum entirely. The 5 static
 // lets (= titleBar / zoneSurface / dynamicZoneSurface / accentBlue /
 // splitterLine) were each just a thin wrapper over a bare
 // `Color(nsColor: .NSColorStaticProperty)` Apple API call. The
@@ -234,7 +234,7 @@ struct WenshuApp: App {
     @State private var repositories = WSRepositoryContainer()
 
     var body: some Scene {
-        // v0.40 apple-001 phase 1 Q1 slice 2: Scene composition (= WindowGroup +
+        // apple-001 phase 1 Q1 slice 2: Scene composition (= WindowGroup +
         // .commands + Settings) is now in AppRootScene. WenshuApp stays as the
         // composition root that owns the state (`library` / `appearanceMode`
         // / `appState`) and forwards it into AppRootScene as constructor
@@ -316,8 +316,8 @@ enum ZoneSlot {
 
 // MARK: - Library outline (sidebar)
 //
-// v1.69 sidebar MVVM cleanup: `LibraryOutlineViewContent` was a
-// v0.27 wiring wrapper that rendered the pre-v1.69e legacy
+// sidebar MVVM cleanup: `LibraryOutlineViewContent` was a
+// wiring wrapper that rendered the pre-v1.69e legacy
 // `NewLibraryOutlineView` (the 2366-LOC mega-file sidebar).
 // Both are removed in v1.69e (= commit 6bd3eb7f); = the sidebar
 // surface in production lives in NavigationSplitShell.swift

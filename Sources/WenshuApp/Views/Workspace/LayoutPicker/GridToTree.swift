@@ -175,7 +175,7 @@ private func assignZones(zones: [GridZone], panes: [PlacedPane]) -> [Int: [PaneI
         let spec = specs[role] ?? mainSpec
         var best: ZoneGeo? = nil
         for (_, g) in remaining {
-            // v0.71 P1 batch 10: replaced `best!` (= audit's LOW #14 smell;
+            // replaced `best!` (= audit's LOW #14 smell;
             // = force-unwrap inside a short-circuit `||` predicate; =
             // the `best == nil || ...` clause makes it safe in practice,
             // but reads as a crash vector) with explicit if-let-let

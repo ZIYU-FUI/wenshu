@@ -15,7 +15,7 @@
 //  tokens their BYOK config has consumed this session / month) — NOT
 //  for billing or metering. Wenshu is a writing tool, not a platform.
 //
-//  v0.36 sub-step 1 of 4 for ticket 016.
+// sub-step 1 of 4 for ticket 016.
 //
 
 import Foundation

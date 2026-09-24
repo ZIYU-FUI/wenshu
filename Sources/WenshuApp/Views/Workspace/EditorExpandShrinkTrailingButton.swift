@@ -28,14 +28,14 @@
 import SwiftUI
 
 struct EditorExpandShrinkTrailingButton: View {
-    // v0.34 ticket 01: replaced @State with @AppStorage (= Rule 11 + Apple
+    // ticket 01: replaced @State with @AppStorage (= Rule 11 + Apple
     // HIG standard storage; the bug ticket 03 fixes = no real persistence,
     // but @AppStorage makes persistence easy to add later if needed). The
     // snapshot key is written by PaneNSController.handleEditorMaximizedChanged
     // BEFORE the 5 zone-hide animator calls (= Q38 boss "full-state snapshot"
     // decision; restore-on-shrink must read this JSON).
     //
-    // v0.40 apple-001 HIG absent batch: migrated wenshu.editorMaximized
+    // apple-001 HIG absent batch: migrated wenshu.editorMaximized
     // from @AppStorage to @SceneStorage (= Apple HIG macOS 14+ standard for
     // per-window state restoration). Each window can have a different
     // editor maximize state (= when the user opens two windows and shrinks
@@ -64,7 +64,7 @@ struct EditorExpandShrinkTrailingButton: View {
         // single source of truth for hover wash; removed the per-site
         // .onHover + .background tint + @State isHover + .clipShape plumbing).
         //
-        // v0.34 boss 2026-09-02 OOB (multi-layer audit): the trailing-button
+        // boss 2026-09-02 OOB (multi-layer audit): the trailing-button
         // shape (Color.clear.frame(28,28).overlay(Image(systemName:))
         // + .hoverWash + .plain + .help) was duplicated between WorkspaceView.swift
         // EditorExpandShrinkTrailingButton and TabContentDispatcher.swift
@@ -79,7 +79,7 @@ struct EditorExpandShrinkTrailingButton: View {
             tooltip: editorMaximized
                 ? WenshuI18n.t("workspace.editor.restore_layout")
                 : WenshuI18n.t("workspace.editor.expand_fullscreen"),
-            // v0.34 ticket 03 (= Q33 boss fix): the action was previously a
+            // ticket 03 (= Q33 boss fix): the action was previously a
             // dead `editorMaximized.toggle()` (= View-local @State only,
             // no layout effect). Now it writes @AppStorage AND posts the
             // .wenshuEditorMaximizedChanged notification, which

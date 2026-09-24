@@ -1,6 +1,6 @@
 //  ChatView.swift · Wenshu · v1.92
 //
-//  v1.92 (2026-09-23): boss '用户说话的那个框，像 hermes 一样，实现吸
+// (2026-09-23): boss '用户说话的那个框，像 hermes 一样，实现吸
 //  顶。让用户知道 AI 回复的是哪个问题' (= implement hermes-style sticky
 //  top for the user bubble). Use `LazyVStack(pinnedViews:
 //  [.sectionHeaders])` (= the macOS 27 SwiftUI equivalent of CSS
@@ -15,7 +15,7 @@
 //  on new user message; = jarring; = reverted by boss 2026-09-21
 //  '把吸顶也取消吧').
 //
-//  v1.91 (2026-09-23): chat transcript background routed through
+// (2026-09-23): chat transcript background routed through
 //  DesignTokens.sidebarBackground token (= single source of truth
 //  for sidebar color in the wenshu design system).
 //
@@ -59,7 +59,7 @@ struct ChatView: View {
     /// last .user-sourced message); = cheap for transcript sizes
     /// wenshu handles. Walks from the end (= the common case where
     @State private var vm: ChatViewModel
-    // v0.24 boss acceptance fix (2026-08-24): focus management for input box.
+    // boss acceptance fix (2026-08-24): focus management for input box.
     // Boss 8/24 feedback: when no provider key, chat input should be disabled
     // AND lose focus (no cursor blinking, no keyboard capture).
     @FocusState private var inputFocused: Bool
@@ -67,7 +67,7 @@ struct ChatView: View {
     // user clicks the paperclip button. Bound to .fileImporter(isPresented:)
     // on the input HStack per Apple HIG SwiftUI fileImporter pattern.
     //
-    // v1.83 (2026-09-23): boss's 3-layer UI split. The state for the
+    // (2026-09-23): boss's 3-layer UI split. The state for the
     // input row's file picker + drop highlight are forwarded through
     // ChatInputBarView (= the top layer; = user-interactive controls).
     // ChatView owns the @State; = ChatInputBarView receives a Binding
@@ -79,7 +79,7 @@ struct ChatView: View {
     /// drop highlight. Apple's .dropDestination reports this for free.
     @State private var isDropTargeted: Bool = false
     // Reactive check: is the current model usable?
-    // v0.61 boss 2026-09-10 OOB 'put the no-key overlay back': the vm's
+    // boss 2026-09-10 OOB 'put the no-key overlay back': the vm's
     // snapshot of the model id lags when the key is configured from
     // Settings, so the input was disabling itself even though the user
     // had just set a key. Read the same UserDefaults the Settings pane
@@ -87,7 +87,7 @@ struct ChatView: View {
     // chat input and the ChatZoneView overlay above it answer to the same
     // signal.
     private var hasUsableKey: Bool {
-        // v1.54 chat-input-disabled-key-check: gate on the
+        // chat-input-disabled-key-check: gate on the
         // keychain, not on `wenshu.llm.model`. Previous
         // implementation read `vm.currentModel` (which routes
         // through AppState.llmModel = the SELECTED model id) and
@@ -267,7 +267,7 @@ struct ChatView: View {
                 }
             )
             .id(userMsg.id)
-            // v1.92: section header needs `.background()` to mask
+            // section header needs `.background()` to mask
             // replies scrolling underneath (= boss spec "像 hermes
             // 一样" = hermes uses `bg-(--background)` on the sticky
             // user-message). Use DesignTokens.sidebarBackground (=
@@ -278,9 +278,9 @@ struct ChatView: View {
     }
 
     var body: some View {
-        // v0.24 boss acceptance fix: listen for global defocus notification.
+        // boss acceptance fix: listen for global defocus notification.
         // Boss 8/24 feedback: 'clicking other areas, the textfield still keeps focus'.
-        // v1.65-cleanup E3 boss 2026-09-21 '文字不是左对齐' (= the chat
+        // -cleanup E3 boss 2026-09-21 '文字不是左对齐' (= the chat
         // transcript content was horizontally centered inside the chat
         // column; = each AI message sat in the middle of the column
         // instead of the leading edge). Root cause: VStack default
@@ -295,7 +295,7 @@ struct ChatView: View {
         // leading-aligned rendering per boss 'all 1:1').
         VStack(alignment: .leading, spacing: 0) {
             // Message list (ScrollView + LazyVStack ground truth)
-            // v1.65 MC3 (= hermes list.tsx:1454 'mx-auto flex min-h-full
+            // MC3 (= hermes list.tsx:1454 'mx-auto flex min-h-full
             // w-full max-w-(--composer-width) min-w-0 flex-col px-6'):
             // center the transcript content column on wide windows
             // (= wenshu main editor canvas can span far beyond the
@@ -309,7 +309,7 @@ struct ChatView: View {
             // / char ≈ 72 chars per line, in the right band.
             ScrollViewReader { proxy in
                 ScrollView {
-                    // v1.92 (2026-09-23): boss '用户说话的那个框，像
+                    // (2026-09-23): boss '用户说话的那个框，像
                     // hermes 一样，实现吸顶。让用户知道 AI 回复的是哪
                     // 个问题' (= implement sticky-top for the user bubble
                     // like hermes; = so the user can see which question
@@ -345,7 +345,7 @@ struct ChatView: View {
                         }
                     }
                     .padding(DesignTokens.chromePaddingVertical)
-                    // v1.65 boss 'all 1:1 hermes真值' + '试着补一下':
+                    // boss 'all 1:1 hermes真值' + '试着补一下':
                     // hermes `--composer-width: 100%` (= not a fixed
                     // pixel cap; = the chat content column fills the
                     // full chat pane width). The only horizontal
@@ -367,11 +367,11 @@ struct ChatView: View {
                     // The user glass card (= 75% maxWidth cap inside
                     // UserGlassCardModifier) stays at 75% so a long
                     // user message breaks inside the card (= per
-                    // boss 2026-09-21 '试着补一下'; = 100% 1:1 means
+                    // ; = 100% 1:1 means
                     // the COLUMN fills, not that the user card
                     // becomes full-width too).
                     //
-                    // v1.65-cleanup E3.5 boss 2026-09-21 '所有的对话，
+                    // -cleanup E3.5 boss 2026-09-21 '所有的对话，
                     // 在聊天区的展示，居左 10PT，居右 10PT。现在都
                     // 过于宽了' (= the chat column used 32 PT
                     // horizontal gutter; = too much padding; = the
@@ -380,7 +380,7 @@ struct ChatView: View {
                     // requires exactly 10 PT on each side). Set
                     // horizontal padding to 10 PT (= matches Apple
                     // HIG px-2.5 = 10 PT; = matches the chat input
-                    // v1.65-cleanup E8 boss 2026-09-21 '用户说话的框，还有 AI 回复的文字，
+                    // -cleanup E8 boss 2026-09-21 '用户说话的框，还有 AI 回复的文字，
                     // 现在视觉是距离聊天区边框 20PT':
                     // dropped `.padding(.horizontal, 10)` (= chat transcript
                     // content now sits flush against the chat column edge;
@@ -396,7 +396,7 @@ struct ChatView: View {
                     // = 10 PT, preserved as the user-card visual identity).
                     // Vertical 8 PT retained (= chat transcript row vertical
                     // gap; = Apple HIG py-2 vertical row gap convention).
-                    // v1.74 boss 2026-09-18 'is there another layer behind it? the
+                    // boss 2026-09-18 'is there another layer behind it? the
                     // text scrolls underneath but I can't see it — the
                     // floating panel should be semi-transparent so I can
                     // see through it'. Add .contentMargins(.bottom, 80) so
@@ -411,7 +411,7 @@ struct ChatView: View {
                     // pattern where the last message peeks behind the
                     // input bar).
                     .contentMargins(.bottom, 80, for: .scrollContent)
-                    // v1.65-cleanup E3 boss 2026-09-21 '聊天区的背景能不能
+                    // -cleanup E3 boss 2026-09-21 '聊天区的背景能不能
                     // 降低一点颜色，比如用左栏的颜色' (= the chat
                     // transcript area was using the macOS default
                     // windowBackgroundColor = RGB(28,28,28) on dark
@@ -450,7 +450,7 @@ struct ChatView: View {
                 // surface (= Apple Mail, Apple Messages, Notes chat
                 // = inspector/content tier; = controlBackgroundColor).
                 .scrollContentBackground(.hidden)
-                // v1.91 (2026-09-23): boss '聊天区的，文字回显层，是否
+                // (2026-09-23): boss '聊天区的，文字回显层，是否
                 // 可以变成左栏的颜色参数' (= 'chat transcript should
                 // use the left sidebar's color parameters'). Use
                 // `DesignTokens.sidebarBackground` (= token-driven
@@ -463,8 +463,8 @@ struct ChatView: View {
                 // source of truth for the sidebar color in the wenshu
                 // design system)).
                 .background(DesignTokens.sidebarBackground)
-                // v1.65-cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，确实没有实现'
-                // v1.65-cleanup E4 boss 2026-09-21 '不是居左，你把吸顶也取消吧':
+                // -cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，确实没有实现'
+                // -cleanup E4 boss 2026-09-21 '不是居左，你把吸顶也取消吧':
                 // the .safeAreaInset(edge: .top) sticky overlay that
                 // re-rendered the latest user message above the scroll
                 // viewport (= hermes user-message.tsx:46 `sticky z-40`
@@ -482,7 +482,7 @@ struct ChatView: View {
                         proxy.scrollTo(last.id, anchor: .bottom)
                     }
                 }
-                // v1.65 boss 'B = 试着补一下 sticky 真值': the
+                // boss 'B = 试着补一下 sticky 真值': the
                 // `scrollTo(anchor: .bottom)` above is the DEFAULT
                 // scroll-to-bottom for new content (= assistant
                 // streaming reply). The sticky behavior for the
@@ -522,7 +522,7 @@ struct ChatView: View {
                 // ChatMessageView keeps it visible above scrolling
                 // assistant content; = 80 PT top padding in
                 // ChatMessageView reserves the
-                // v1.57-floating-chat-input zone).
+                // -floating-chat-input zone).
                 //
                 // Single-argument `onChange(of:)` form (= takes
                 // only the new value; = macOS 14+ has the 2-arg
@@ -542,7 +542,7 @@ struct ChatView: View {
                     }
                 }
             }
-            // v1.83: chat input bar (= the top layer of the
+            // chat input bar (= the top layer of the
             // 3-layer UI split per boss v1.81 spec) floats over this
             // ScrollView via .safeAreaInset(edge: .bottom); = Apple HIG
             // Messages / Slack chat input pattern.
@@ -567,11 +567,11 @@ struct ChatView: View {
                 await vm.loadHistory()
             }
 
-            // v1.84 (2026-09-23): boss dropped the compression pill entirely
+            // (2026-09-23): boss dropped the compression pill entirely
             // (= ChatViewCompressionRow deleted in this commit; = no
             // token-usage chrome inside the chat column).
 
-            // v1.83: chat input bar (= the top layer of the
+            // chat input bar (= the top layer of the
             // 3-layer UI split per boss v1.81 spec) floats over this
             // ScrollView via .safeAreaInset(edge: .bottom); = Apple HIG
             // Messages / Slack chat input pattern.

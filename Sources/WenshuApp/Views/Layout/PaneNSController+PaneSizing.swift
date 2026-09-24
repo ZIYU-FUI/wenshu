@@ -1,7 +1,7 @@
 //
 //  PaneNSController+PaneSizing.swift · Wenshu · v1.28 C3.2.4
 //
-//  v1.28 C3.2.4: extract the pane-sizing helpers from PaneNSController.swift
+// C3.2.4: extract the pane-sizing helpers from PaneNSController.swift
 //  into a focused extension file. The 4 helpers (= minThickness + maxThickness
 //  + isCollapsiblePane + autosaveKey) all govern the sizing / collapse
 //  behavior of individual panes.

@@ -1,7 +1,7 @@
 //
 //  GlassIconButton.swift · Wenshu · v1.64f
 //
-//  v1.64f boss 2026-09-20 'apply the prototype to wenshu directly':
+// f boss 2026-09-20 'apply the prototype to wenshu directly':
 //  extract the Apple macOS 27 native NSButton(bezelStyle: .glass)
 //  NSViewRepresentable bridge from the v1.64e spike prototype into
 //  a shared file (= the canonical chat input button used by

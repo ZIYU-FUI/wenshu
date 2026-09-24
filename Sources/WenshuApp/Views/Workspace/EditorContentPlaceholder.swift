@@ -17,7 +17,7 @@ import SwiftUI
 
 struct EditorContentPlaceholder: View {
     var body: some View {
-        // v0.28 followup Boss UX round 37: REMOVED the
+        // followup Boss UX round 37: REMOVED the
         // Color.white.opacity(0.55) overlay (= was making the editor
         // pane appear LIGHTER than the other 5 panes = boss noticed
         // "is the editor background white? all the brightness looks different"). Now the

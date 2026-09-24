@@ -45,7 +45,7 @@
 //   for environments where GRDB isn't available).
 // 3. SQLiteMemoryProvider (= thin adapter over the existing
 //   FileSystemMemoryStore (= pre-Phase 5; = current path = SwiftData-only).
-//   v0.29+ memory migration ticket).
+// + memory migration ticket).
 //
 // per AGENTS.md Section 8 pollution-defense hex-encoding rule:
 // this file does NOT contain the 12-token forbidden vocab literal;

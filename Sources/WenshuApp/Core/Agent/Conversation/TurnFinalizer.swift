@@ -19,7 +19,7 @@
 //  Static utility (= no state). ConversationLoop.runConversation invokes
 //  this at the end of each turn before returning ConversationResult.
 //
-//  v0.35 sub-step 4 of 8 for ticket 001 + HERMES-PARTIAL-008 (2026-09-04).
+// sub-step 4 of 8 for ticket 001 + HERMES-PARTIAL-008 (2026-09-04).
 //
 
 import Foundation

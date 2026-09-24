@@ -9,7 +9,7 @@
 //  across every tab; = no hand-rolled VStack { Text + Text }
 //  duplicates).
 //
-//  v1.78: SF Symbols 6 drawOn animation via
+// SF Symbols 6 drawOn animation via
 //  `.symbolEffect(.drawOn.individually, options: .nonRepeating)`
 //  HIDES the icon entirely on macOS 27. SDK research
 //  (= MacOSX.sdk/Symbols.framework/Symbols.swiftinterface):

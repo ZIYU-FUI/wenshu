@@ -18,7 +18,7 @@
 //      maintains a write gate + retrieval policy; compression policy
 //      reuses those primitives without introducing new dependencies.
 //
-//  v0.35 ticket 003 sub-step 1 (= 6 sub-steps total for ticket 003:
+// ticket 003 sub-step 1 (= 6 sub-steps total for ticket 003:
 //  ContextCompressor + ConversationCompression + ContextEngine +
 //  ChatView compression pill + manual button + e2e tests).
 //

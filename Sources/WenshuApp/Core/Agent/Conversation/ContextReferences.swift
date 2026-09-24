@@ -31,7 +31,7 @@
 //  filesystem I/O at runtime; the map is populated at message-construction
 //  time when the message is loaded from disk).
 //
-//  HERMES-PARTIAL-014 extends the v0.36 sub-step 2 surface with the
+// extends the v0.36 sub-step 2 surface with the
 //  hermes context_references.py surface:
 //    - on-disk persistence (= the references survive session reset;
 //      loaded from a JSON file at actor init time).
@@ -45,7 +45,7 @@
 //      _expand_folder_reference + _expand_git_reference: turn the
 //      target token into the actual file contents).
 //
-//  v0.36 sub-step 2 of 2 for ticket 014 + HERMES-PARTIAL-014 (2026-09-04).
+// sub-step 2 of 2 for ticket 014 + HERMES-PARTIAL-014 (2026-09-04).
 //
 
 import Foundation

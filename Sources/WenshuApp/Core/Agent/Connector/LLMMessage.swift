@@ -15,7 +15,7 @@
 //  Anthropic, Gemini, etc.) maps the block list to its wire format on send,
 //  and reverse-maps on receive.
 //
-//  v0.35 sub-step 3 of 8 for ticket 001 (= TB-B tracer-bullet).
+// sub-step 3 of 8 for ticket 001 (= TB-B tracer-bullet).
 //
 
 import Foundation

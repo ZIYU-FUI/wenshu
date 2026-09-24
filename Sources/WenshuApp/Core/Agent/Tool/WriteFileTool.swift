@@ -8,7 +8,7 @@
 //  Pre-tool guardrail = FileTools.pathDenied (= reuses existing safety
 //  checks).
 //
-//  v0.35 sub-step 6 of 8 for ticket 001.
+// sub-step 6 of 8 for ticket 001.
 //
 //  Standards-axis S3 fix: input parsing delegated to ToolInputParser
 //  (= single source of truth for tool input JSON; replaces hand-rolled

@@ -9,7 +9,7 @@
 //  execute(input:) at most once per tool invocation, with the tool_use
 //  block's `input` field passed through verbatim.
 //
-//  v0.35 sub-step 5 of 8 for ticket 001.
+// sub-step 5 of 8 for ticket 001.
 //
 
 import Foundation

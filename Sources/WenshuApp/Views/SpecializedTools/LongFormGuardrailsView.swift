@@ -76,7 +76,7 @@ struct LongFormGuardrailsView: View {
     init() {}
 
     var body: some View {
-        // v1.28 C3.7.5: migrate to specializedToolBody modifier
+        // C3.7.5: migrate to specializedToolBody modifier
         // (= 6th and final SpecializedTool migration; = LongFormGuardrailsView).
         // Note: this view has an additional `.sheet(isPresented: $showAddSheet)`
         // modifier chained AFTER .task; = the migration preserves that.
@@ -103,8 +103,8 @@ struct LongFormGuardrailsView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // the unified EmptyStateView component (= 76 PT SF Symbols 6 icon
@@ -345,7 +345,7 @@ struct LongFormGuardrailsView: View {
             }
             .padding(DesignTokens.chromePaddingLarge)
             .frame(width: DesignTokens.guardrailSheetWidth)
-            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // apple-001 HIG absent batch: .navigationTitle +
             // .toolbar (= Apple HIG standard for sheet title bar +
             // action buttons). The inline Text(\"Add guardrail\") +
             // Cancel/Save buttons were removed; the title moves to

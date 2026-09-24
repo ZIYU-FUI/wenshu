@@ -5,7 +5,7 @@
 //  CommandPaletteItem from CommandPaletteRegistry.shared, filtered by
 //  the user's query.
 //
-//  CHATBOX-002 (2026-09-04, boss OOB 'B'): hermes commands.py +
+// (2026-09-04, boss OOB 'B'): hermes commands.py +
 //  slash_registry.py parity. Single search box at the top + scrollable
 //  list below + click-to-invoke.
 //
@@ -259,7 +259,7 @@ private struct CommandPaletteRow: View {
 
     private var categorySymbol: String {
         switch item.category {
-        // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6
+        // -m1-shell boss 2026-09-15 OOB 'use SF Symbols 6
         // (3rd gen) with palette rendering': canonical
         // category glyphs. Replaces the v0.46 boss 'SF Symbol
         // dropped, use Lucide' choice (= which has since been
@@ -310,7 +310,7 @@ enum CommandPaletteController {
     static func dispatch(action: CommandPaletteAction) {
         switch action {
         case let .invokeSkill(skillName, args):
-            // CHATBOX-001 wire-up: post a NotificationCenter event the
+            // wire-up: post a NotificationCenter event the
             // ChatViewModel listens for (= routes through the same
             // parseAndInvoke path that /skill_name uses in the chat
             // TextField). Args are forwarded via userInfo for future

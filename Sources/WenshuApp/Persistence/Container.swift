@@ -37,7 +37,7 @@
 //  spec is 100% complete; no further tickets remain in the roadmap.
 //  Phase 6 (= AGENTS §11.4 doc updates) is the canonical phase 5
 //  roadmap spec (= see AGENTS.md §11.4.2).
-//  v1.55d (= boss 2026-09-21 '数据库不要在用sqlite3 了') deleted
+// d (= boss 2026-09-21 '数据库不要在用sqlite3 了') deleted
 //  WSMigrationPerStore + WSMigrationRunner + SQLiteConstants (= the
 //  Phase 4 raw-sqlite3 one-shot importer + its driver + the shared
 //  SQLITE_TRANSIENT helper; = see AGENTS.md §11.7d). Post-v1.55d no

@@ -3,7 +3,7 @@
 //
 //  LLM-facing wrapper for `Sources/WenshuApp/Core/Agent/Skill/SkillBundles.swift`
 //  (= the 1:1 hermes port of `agent/skill_bundles.py` shipped in
-//  TICKET-HERMES-GAP-006). The actor was orphaned from the LLM tool
+// ). The actor was orphaned from the LLM tool
 //  surface (= no Tool wrapper); this ticket wires it in.
 //
 //  Per AGENTS.md §11.3 wenshu-side wins pattern: this Tool is a thin

@@ -61,7 +61,7 @@ struct LibraryRootView: View {
     }
 
     private var shouldShowOnboarding: Bool {
-        // v0.24 boss acceptance fix (Boss 8/24 OOB): trigger condition strict.
+        // boss acceptance fix (Boss 8/24 OOB): trigger condition strict.
         //
         // Boss said 'anbaiqiang.ws' = wenshu repository = .ws directory (= per v0.26 spec ticket 015,
         // .ws is now a macOS-style package directory, NOT a single file;
@@ -70,21 +70,21 @@ struct LibraryRootView: View {
         // Trigger = libraryPath empty OR path doesn't end with '.ws' OR
         // .ws directory doesn't exist on disk.
         //
-        // v0.24 bossverificationfix #2 (Boss 8/24 OOB follow-up): trigger only
+        // bossverificationfix #2 (Boss 8/24 OOB follow-up): trigger only
         // checked path existence, too lax. Boss saved '/Users/anbaiqiang/Documents'
         // (= parent folder, not anbaiqiang.ws file) → existed on disk → trigger
         // passed → main UI shown, even though no .ws file created.
-        // v0.26 amendment: .ws is a DIRECTORY (not file); require path ends
+        // amendment: .ws is a DIRECTORY (not file); require path ends
         // with '.ws' AND directory exists AND Info.plist is readable.
         if libraryPath.isEmpty { return true }
-        // v0.24 bossverificationfix: must end with .ws extension
+        // bossverificationfix: must end with .ws extension
         if !libraryPath.hasSuffix(".ws") { return true }
         // Directory must exist (v0.26: .ws is a directory, not a file)
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: libraryPath, isDirectory: &isDir)
         if !exists { return true }
         if !isDir.boolValue { return true }
-        // v0.26: Info.plist must be readable (= WSSchemaVersion check)
+        // Info.plist must be readable (= WSSchemaVersion check)
         let infoPlistURL = URL(fileURLWithPath: libraryPath).appendingPathComponent("Info.plist")
         if !FileManager.default.isReadableFile(atPath: infoPlistURL.path) { return true }
         return false
@@ -218,7 +218,7 @@ struct LibraryRootView: View {
             // bookStore.books.count is correct on the first render.
             self.bookStore?.reloadAllBooks()
         } catch {
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'UI doesn't load, just spins forever':
+            // -m1-shell boss 2026-09-10 OOB 'UI doesn't load, just spins forever':
             // the previous `#if DEBUG print` was suppressed in
             // release builds (= the boss is running a release .app
             // bundle). NSLog works in both DEBUG and RELEASE so the
@@ -290,8 +290,8 @@ struct LibraryOnboardingView: View {
         VStack(spacing: 24) {
             Spacer()
 
-// v0.24 bossverificationfix (Boss 8/24 OOB): (books.vertical) replace LOGO.
-// Boss 'yesfile' (= use wenshu-original-fanbai.png directly).
+// bossverificationfix (Boss 8/24 OOB): (books.vertical) replace LOGO.
+// (= use wenshu-original-fanbai.png directly).
 // .colorInvert() converts -blue ink to white text. .resizable +
 // .aspectRatio keeps aspect ratio.
 //
@@ -303,7 +303,7 @@ struct LibraryOnboardingView: View {
 //   to load PNG from absolute path inside .app bundle.
 Group {
     if let nsImage = loadWenshuLogo() {
-        // v0.24 bossverificationfix (Boss 8/24 OOB): 'yes' = show the
+        // bossverificationfix (Boss 8/24 OOB): 'yes' = show the
         // PNG as-is (gray-blue calligraphic ink), don't .colorInvert.
         // .colorMultiply(.white) makes the ink truly white
         // (consistent across light/dark mode).
@@ -334,7 +334,7 @@ Group {
             }
 
             VStack(spacing: 12) {
-                // v0.24 bossverificationfix (Boss 8/24: 'don't'):
+                // bossverificationfix (Boss 8/24: 'don't'):
                 // - 2 buttons = / open (macOS, not)
                 // - ' / '.ws' / 'Final Cut Pro' (boss don't)
                 // - boss ' → primary text = '
@@ -363,7 +363,7 @@ Group {
 
             Spacer()
         }
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'initial size, too small':
+        // -m1-shell boss 2026-09-10 OOB 'initial size, too small':
         // the onboarding body has no explicit outer frame, so
         // `.windowResizability(.contentSize)` (= applied at the
         // Scene root in AppRootScene) shrinks the window to the
@@ -415,7 +415,7 @@ Group {
         panel.title = WenshuI18n.t("auto2.libraryrootview.l472.h40947105")
         panel.message = WenshuI18n.t("auto2.libraryrootview.l473.h20911334")
         panel.prompt = WenshuI18n.t("auto2.libraryrootview.l474.h92696757")
-        // v0.24 bossverificationfix (Boss 8/24 OOB): default filename = NSUserName() + ".ws"
+        // bossverificationfix (Boss 8/24 OOB): default filename = NSUserName() + ".ws"
         // NSUserName() = current Mac username (Apple API, returns "anbaiqiang"
         // on 's machine). Boss 'shouldyes anbaiqiang'.
         let username = NSUserName()
@@ -424,7 +424,7 @@ Group {
         panel.showsTagField = false
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
-        // Boss ' .ws' (no .ws in user-facing text) but the
+        // (no .ws in user-facing text) but the
         // .ws package IS .ws (technical package format, like .photoslibrary
         // or .fcpbundle). Show extension so user sees what they're creating.
         if #available(macOS 11.0, *) {
@@ -432,7 +432,7 @@ Group {
             panel.allowedContentTypes = []
         }
 
-        // v0.24 bossverificationfix (Boss 8/24 OOB 'create, '): NSSavePanel
+        // bossverificationfix (Boss 8/24 OOB 'create, '): NSSavePanel
         // returns URL on OK but does NOT actually create the directory.
         // For .ws registered as com.apple.package (= Finder bundle),
         // caller must create the package directory. Call createWenshuWorkspace
@@ -489,11 +489,11 @@ extension LibraryOnboardingView {
                 try? data.write(to: infoPlistURL)
             }
         }
-        // v0.24 bossverificationfix (Boss 8/24 OOB 'fileicon, can LOGO '):
+        // bossverificationfix (Boss 8/24 OOB 'fileicon, can LOGO '):
         // Set the wenshu LOGO PNG as the Finder icon for the .ws package.
         // Apple HIG: NSWorkspace.shared.setIcon(_:forFile:options:) writes
         // icon into the file's resource fork / icon services metadata.
-        // v0.24 bossverificationfix (Boss 8/24 OOB ', SF,, '):
+        // bossverificationfix (Boss 8/24 OOB ', SF,, '):
         // Use SF Symbol fill book icon (= book.fill) instead of wenshu LOGO PNG.
         // Per Apple HIG: SF Symbol fill variant for package icon.
         // Render SF Symbol to NSImage at 1024x1024, then setIcon.

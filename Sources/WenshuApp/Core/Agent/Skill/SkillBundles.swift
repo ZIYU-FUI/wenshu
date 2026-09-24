@@ -189,7 +189,7 @@ enum SkillBundlesError: Error, LocalizedError, Sendable {
 // Direct port of hermes `agent/skill_bundles.py` per spec §3.1 #32
 // (= TICKET-HERMES-GAP-006 follow-up). The target file already existed
 // at 182 LOC (= ⚠️ partial per gap audit 2026-09-04 = wenshu-s
-// TICKET-HERMES-GAP-006 partial port = in-memory resolver layer).
+// partial port = in-memory resolver layer).
 // This H5 ticket adds the 4 hermes pure helpers (= slugify +
 // bundlePathFor + scanBundles + reloadBundles) that were
 // intentionally NOT ported in TICKET-HERMES-GAP-006.

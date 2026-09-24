@@ -16,7 +16,7 @@
 //  token rotates silently in the background. No user-visible OAuth screen
 //  beyond the standard browser redirect.
 //
-//  v0.36 sub-step 4 of 5 for ticket 012.
+// sub-step 4 of 5 for ticket 012.
 //
 
 import Foundation

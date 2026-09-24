@@ -54,9 +54,9 @@ struct LayoutEditBar: View {
             )
         }
         .frame(width: DesignTokens.layoutPickerWidth)  // 26rem (= 26 * 16 PT in macOS 1x)
-        // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '
+        // followup Boss UX round 19 (Boss 2026-08-29 OOB '
         // regiontop bar, bottom bar, background, color, canLiquid Glass'):
-        // v0.40 boss real-device test 2026-09-07: removed
+        // boss real-device test 2026-09-07: removed
         // .regularMaterial (= the Liquid Glass translucent
         // capsule); now uses Color.clear (= no background =
         // shows the underlying zone chrome).
@@ -65,10 +65,10 @@ struct LayoutEditBar: View {
                 .fill(Color.clear)
         )
         .overlay(
-            // v0.28 followup Boss UX round 19: 1 PT Apple .separator stroke
+            // followup Boss UX round 19: 1 PT Apple .separator stroke
             // (= canonical Liquid Glass separator, macOS 26 Tahoe)
             // replaces Color(nsColor: .separatorColor) (= solid NSColor).
-            // v0.28 followup Boss UX round 26: confirm .separator style
+            // followup Boss UX round 26: confirm .separator style
             // (= matches all other 1 PT splitters across the app).
             RoundedRectangle(cornerRadius: 10)
                 .stroke(.separator, lineWidth: 1)
@@ -117,7 +117,7 @@ struct LayoutEditBar: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, DesignTokens.chromePaddingMicro)
                         .padding(.vertical, DesignTokens.chromePaddingHotkeyVertical)
-                        // v0.32 boss 2026-09-02 OOB (' apple api
+                        // boss 2026-09-02 OOB (' apple api
                         // default'): use bare Apple Material catalog
                         // directly (= the canonical SwiftUI .thin
                         // Material from the Material enum). The
@@ -142,7 +142,7 @@ struct LayoutEditBar: View {
         }
         .padding(.horizontal, DesignTokens.chromePaddingMedium)
         .padding(.vertical, DesignTokens.chromePaddingVertical)
-        // v0.40 boss real-device test 2026-09-07: removed
+        // boss real-device test 2026-09-07: removed
         // .regularMaterial (= Liquid Glass background); now uses
         // Color.clear (= no background).
         .background(

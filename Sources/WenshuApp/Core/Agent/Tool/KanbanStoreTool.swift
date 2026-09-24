@@ -22,7 +22,7 @@
 //                          ->  KanbanTools.kanban(action:params:)
 //                          ->  KanbanStore (= wenshu-side canonical, written
 //                             by KanbanTools itself; per the existing
-//                             HERMES-PARTIAL-011 architecture the
+// architecture the
 //                             wenshu-side KanbanStore IS the canonical
 //                             task store; KanbanTools is the action
 //                             dispatcher that mutates it)

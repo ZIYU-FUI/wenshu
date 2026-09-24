@@ -68,7 +68,7 @@ struct WorkspaceView: View {
     // moved to WorkspaceUIState (= column-local UI state).
     @Bindable var workspaceUI: WorkspaceUIState
 
-    // v0.34 boss 2026-09-02 OOB 'sidebar + preview should share one unified persistence interface':
+    // boss 2026-09-02 OOB 'sidebar + preview should share one unified persistence interface':
     // Sidebar selection persistence moved into NewLibraryOutlineView's
     // unified SidebarState (= single AppStorage key 'wenshu.sidebarState').
     // WorkspaceView only reads shell.sidebarSelection (= single
@@ -96,7 +96,7 @@ struct WorkspaceView: View {
         case .folder(let bookId, let folderName):
             return .bookScope(bookId: bookId, folderName: folderName)
         case .shelf(let shelfId):
-            // v0.30 boss 8/31 OOB spec criterion #2: clicking a
+            // boss 8/31 OOB spec criterion #2: clicking a
             // shelf row shows the "select a book" hint. (.shelfScope
             // maps to emptyState(message: "Select a book to view documents") in
             // PreviewPane.shelfScopeView.) Previously this mapped
@@ -191,7 +191,7 @@ struct WorkspaceView: View {
     }
 
     var body: some View {
-        // v0.30 boss 2026-09-01 OOB: the legacy PaneRenderer path
+        // boss 2026-09-01 OOB: the legacy PaneRenderer path
         // (= v0.28 ticket 028-004 hand-rolled split-tree renderer)
         // was deleted per boss OOB (= the new NSSplitView code
         // fully replicates the old behavior). WorkspaceView now
@@ -200,7 +200,7 @@ struct WorkspaceView: View {
         // stays in LayoutTreeState for backward Codable
         // compatibility but the UI no longer branches on it.
         //
-        // CHATZONE-CRASH-FIX (2026-09-08): the previous M1
+        // (2026-09-08): the previous M1
         // implementation branched on `useThreeColumnSplit`
         // here in `WorkspaceView.body` (= nested
         // NavigationSplitView inside a non-root Group). Per
@@ -212,7 +212,7 @@ struct WorkspaceView: View {
         // still exists, = NSViewControllerRepresentable path is the only
         // remaining path; = unchanged behavior).
         //
-        // v1.27 component-arc: inlined `PaneSplitHost` here (= was a
+        // component-arc: inlined `PaneSplitHost` here (= was a
         // 1-caller NSViewControllerRepresentable wrapper around
         // `PaneNSController`; = the v0.30 ticket 02/4 stub layer is
         // removed). Layout construction now goes directly through
@@ -225,7 +225,7 @@ struct WorkspaceView: View {
             bookStore: bookStore
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // v0.34 boss 2026-09-02 OOB: sidebar selection persistence
+            // boss 2026-09-02 OOB: sidebar selection persistence
             // moved to AppleSidebarView (post-v1.69 MVVM split; =
             // unified with AppState.sidebarSelection's didSet writer).
             // WorkspaceView no longer owns any @AppStorage key for
@@ -242,14 +242,14 @@ struct WorkspaceView: View {
                         .padding(DesignTokens.chromePaddingVertical)
                 }
             }
-            // v0.28 ticket 028-006: View menu's "Layout edit mode"
+            // ticket 028-006: View menu's "Layout edit mode"
             // entry posts this notification (= ⌘⇧\); WorkspaceView
             // listens and flips the LayoutEditMode singleton so the
             // menu and the hotkey share the same state.
             .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
                 editMode.toggle()
             }
-            // v0.30 boss 2026-09-01 OOB fix: the View menu's "Restore Default
+            // boss 2026-09-01 OOB fix: the View menu's "Restore Default
             // Layout" item (= ⌘⇧R; both the SwiftUI Commands entry
             // (= the App.swift:567 + 1442 references are stale per the Q2 boss
             // split moved the legacy NSMenu to AppRootScene.swift)
@@ -261,7 +261,7 @@ struct WorkspaceView: View {
             // band 70/30 weights, root 50/50 column weights per the
             // boss OOB ratios).
             //
-            // v0.31 boss 2026-09-02 OOB (Apple canonical reset): the
+            // boss 2026-09-02 OOB (Apple canonical reset): the
             // .wenshuResetLayout notification now also un-collapses
             // the on-screen NSSplitView (= the menu item was previously
             // a no-op for the live layout — only the LayoutTreeStore
@@ -286,7 +286,7 @@ struct WorkspaceView: View {
                     ?? NSApp.windows.first(where: { $0.contentViewController != nil })?.contentViewController
                 findPaneController(in: root)?.restoreAllZones()
             }
-            // v0.28 ticket 028-007: floating TreeEditBar with the
+            // ticket 028-007: floating TreeEditBar with the
             // LayoutPicker (= preset grid + new-grid button +
             // save-current-as-preset input reveal). Shown only
             // when edit mode is on (= per spec §"Acceptance
@@ -306,7 +306,7 @@ struct WorkspaceView: View {
     private func renderTabByKind(_ kind: TabKind) -> some View {
         switch kind {
         case .projectSidebar:
-            // v0.28 followup Boss UX round 43 (= the sidebar's
+            // followup Boss UX round 43 (= the sidebar's
             // top chrome sat at a different Y than Preview/Editor/
             // Tools which use ZoneContentView with a 30 PT
             // RegionTabBar). Fix = wrap the (legacy) sidebar in
@@ -316,7 +316,7 @@ struct WorkspaceView: View {
             // uses the canonical 30 PT RegionTabBar (= identical
             // Y position for all 4 top tab bars).
             //
-            // v1.69: the legacy `NewLibraryOutlineView` was
+            // the legacy `NewLibraryOutlineView` was
             // extracted to focused files (= AppleSidebarView +
             // SidebarSheets + SidebarContextMenu + SidebarService +
             // SidebarItem + SidebarRowView + SidebarZoneHeaderButtons
@@ -328,13 +328,13 @@ struct WorkspaceView: View {
             // owns the canonical sidebar bottom '+' button via
             // AppleSidebarBottomNewButton).
             //
-            // v0.30: pass bindings so sidebar selection → preview pane.
+            // pass bindings so sidebar selection → preview pane.
             // The trailingButton uses the default-init (doesn't drive preview).
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
                 (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(AppleSidebarView())),
             ], trailingButton: AnyView(SidebarZoneHeaderButtons()))
         case .projectPreview:
-            // v0.28 followup Boss UX round 45 (Boss 2026-08-29 OOB
+            // followup Boss UX round 45 (Boss 2026-08-29 OOB
             // 'top and bottom bars are not aligned' = Preview/Tools were using old
             // ZoneModuleView (= renders BOTH outer ZoneTopToolbar 30 PT
             // + internal ZoneContentView tab bar 30 PT = DOUBLE chrome
@@ -348,13 +348,13 @@ struct WorkspaceView: View {
             // list), with the actual content view (CanvasView/BaseView
             // for Tools, GraphView for Preview) as the tab's body.
             //
-            // v0.30 boss 8/31 OOB 'click sidebar row → right material area normally displays
+            // boss 8/31 OOB 'click sidebar row → right material area normally displays
             // the directory's documents, control directory range': PreviewPane is wired here
             // (= the active WorkspaceView body) with the computed
             // `previewScope` (= driven by sidebarSelection). The tab
             // "Map" stays on GraphView placeholder for future graph
             // view work.
-            // v0.30 boss 8/31 OOB: the sort menu is now the
+            // boss 8/31 OOB: the sort menu is now the
             // trailing button of the preview pane's tab bar (=
             // rendered as the rightmost element in PaneTabBar's
             // HStack, via the trailing: { } slot). Removed the
@@ -366,7 +366,7 @@ struct WorkspaceView: View {
             // previewSortOrder binding so changing the sort
             // re-renders the card grid (= PreviewPane observes
             // the same @State via its previewSortOrder parameter).
-            // v0.40 boss 9/7 OOB ', top bar, yestop bar.
+            // boss 9/7 OOB ', top bar, yestop bar.
             // caneditor, yes': the search bar
             // belongs BELOW the ZoneContentView's tab strip (= inside
             // PreviewPane's body, = first element rendered after the
@@ -377,7 +377,7 @@ struct WorkspaceView: View {
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
-                    // v0.34 B-25: simplest possible = card double-click
+                    // simplest possible = card double-click
                     // opens the .md file from the card (= Apple HIG
                     // TextEdit / TextEditor behavior; = no popup, no
                     // previewScope inference, no alert = just open the
@@ -396,21 +396,21 @@ struct WorkspaceView: View {
                 ))),
                 (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ], trailingButton: AnyView(
-                // v0.30 boss 8/31 OOB: 'place the sort ICON in the top bar, right-aligned,
+                // boss 8/31 OOB: 'place the sort ICON in the top bar, right-aligned,
                 // ▼ replace with list-ordered icon'. The sort menu button
                 // shows [sort rule text (dim)] + [list-ordered icon
                 // (tint)] = icon right-aligned within the trailing button.
                 PreviewSortMenuButton(sortOrder: $workspaceUI.previewSortOrder)
             ))
         case .editor:
-            // v0.28 followup Boss UX round 43: switch from
+            // followup Boss UX round 43: switch from
             // EditorPlaceholder (= text-only) to real ZoneContentView
             // (= 3 tabs Edit/Outline/Backlinks + trailing expand/shrink).
             // This makes editor's top chrome consistent with the other
             // 3 general panes (= all use RegionTabBar = 30 PT tall at
             // the same Y).
             ZoneContentView(zoneSlug: "editor", tabs: [
-                // v0.34 B-13 fix (= boss 9/2 'git grep BEFORE patch' rule):
+                // fix (= boss 9/2 'git grep BEFORE patch' rule):
                 // EditorContentPlaceholder was the OLD text-only placeholder
                 // (= deleted by tonight's v0.34 commit chain). All ticket 04-10
                 // patches (= mode toggle / preview/edit / toolbar / close + hotkeys)
@@ -432,7 +432,7 @@ struct WorkspaceView: View {
             // PlotThread per P1 ticket #8
             // [WIRE-SPECIALIZEDTOOLS-003] 2026-09-04).
             //   - Foreshadowing (= git-fork) + Placeholder (= square-dashed) per
-            //     v0.29 boss 2026-08-30 OOB 'replace, use Foreshadowing to replace the first
+            // boss 2026-08-30 OOB 'replace, use Foreshadowing to replace the first
             //     tab, use Placeholder to replace the second tab. Current canvas feature is for later'
             //   - LongFormGuardrails (= shield-check) per P1
             //     ticket #6 (= port long_form_guardrails.py from
@@ -560,17 +560,17 @@ struct WorkspaceView: View {
 /// Real editor content view = ticket 027-35 followup; for now we
 /// render a subtle placeholder background matching the old 6-zone
 /// "Color.white.opacity(0.55) with 4 PT vertical inset" treatment.
-// v0.28 followup Boss UX round 21: .regularMaterial replaces the
+// followup Boss UX round 21: .regularMaterial replaces the
 /// DesignColor.zoneSurface (= solid) so the placeholder matches the
 /// Liquid Glass design language used everywhere else.
-// v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB 'material preview zone,
+// followup Boss UX round 31 (Boss 2026-08-29 OOB 'material preview zone,
 // dynamic zone, this zone's Liquid Glass effect is different from other zones'): uses
 // RegionContentBackground (= single source of truth for per-pane
 // content backgrounds = .regularMaterial = standard Liquid Glass tint).
 // Previously used .background(.regularMaterial) (= same material but
 // different render path = caused subtle inconsistencies with other panes).
 //
-// v0.28 followup Boss UX round 42: REMOVED the inline
+// followup Boss UX round 42: REMOVED the inline
 // RegionContentBackground (= now applied automatically by
 // ZonePerRegionChrome in round 42 = single source of truth for
 // per-pane content backgrounds). Keeping this as a placeholder
@@ -665,7 +665,7 @@ struct WorkspaceView: View {
 
 // MARK: - PreviewTabBackground (= preview pane content background)
 //
-// v0.28 followup Boss UX round 42 (Boss 2026-08-29 OOB 'missing three zones,
+// followup Boss UX round 42 (Boss 2026-08-29 OOB 'missing three zones,
 // project manager, tools, chat, none entered your stylesheet'): REMOVED the inline
 // RegionContentBackground call. The background is now applied
 // uniformly by ZonePerRegionChrome (= single source of truth for
@@ -740,4 +740,4 @@ fileprivate func findPaneController(in root: NSViewController?) -> PaneNSControl
     return nil
 }
 
-    // v1.28 C3.5.1: PaneNSViewController extracted to PaneNSViewController.swift
+    // C3.5.1: PaneNSViewController extracted to PaneNSViewController.swift

@@ -8,7 +8,7 @@
 //,). v0.26 starts with empty per-book
 // JSON files (per LibraryBootstrapper).
 //
-// B-13 (= boss 2026-09-04 OOB): scope picker lets the user target one of
+// (= boss 2026-09-04 OOB): scope picker lets the user target one of
 // 8 standard sub-folders inside the active book, the book root, or the
 // reference library. The scope is a view filter, not a data-layer
 // change: each scope variant writes to a different JSON file in the
@@ -19,9 +19,9 @@
 //   - ... (other folders)
 //   - .referenceLibrary → <dir>/library-todo.json
 //
-// v0.26 FCP library replica spec at
+// FCP library replica spec at
 // `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 026.
-// B-13 spec at `.scratch/2026-09-04-b-13-scope-unification.md`.
+// spec at `.scratch/2026-09-04-b-13-scope-unification.md`.
 
 import Foundation
 
@@ -69,7 +69,7 @@ struct BookTodoStore: BookDataStoring {
     /// name (= `todo.json` / `todo-<folder>.json` / `library-todo.json`).
     let scope: TaskScope
 
-    // B-13 backward-compat init (= see BookKanbanStore for rationale).
+    // backward-compat init (= see BookKanbanStore for rationale).
     init(bookId: UUID, bookDirectory: URL) {
         self.bookId = bookId
         self.directory = bookDirectory

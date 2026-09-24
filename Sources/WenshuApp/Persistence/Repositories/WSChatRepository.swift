@@ -22,7 +22,7 @@
 //    - Summary: loadSummary, saveSummary
 //    - SubAgentRuns: loadSubAgentRuns, recordSubAgentRun
 //
-//  v1.79 chat-by-book row-level split (boss 2026-09-24 OOB):
+// chat-by-book row-level split (boss 2026-09-24 OOB):
 //  All session-scoped methods now accept an Optional `bookID` filter.
 //    - bookID == nil  = "global un-attached" (= legacy behavior;
 //      = matches the pre-v1.79 default; = callers that haven't been
@@ -95,7 +95,7 @@ final class WSChatRepository {
                 content: model.content,
                 timestamp: model.createdAt,
                 tokens: model.tokenCount >= 0 ? model.tokenCount : nil,
-                // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示':
+                // -cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示':
                 // restore the persisted reasoning content from the new
                 // SwiftData column (= previously lost on reload because
                 // the streaming parts[] was never persisted to disk).
@@ -142,7 +142,7 @@ final class WSChatRepository {
             content: message.content,
             position: count,
             status: "ok",
-            // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示':
+            // -cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示':
             // persist the reasoning text alongside the reply (= multiple
             // .reasoning parts joined by '\n\n' at the streaming boundary;
             // = the View layer decomposes it back into separate reasoning
@@ -232,7 +232,7 @@ final class WSChatRepository {
                 content: model.content,
                 timestamp: model.createdAt,
                 tokens: model.tokenCount >= 0 ? model.tokenCount : nil,
-                // v1.65-cleanup E2: include thinking in summarize pipeline
+                // -cleanup E2: include thinking in summarize pipeline
                 thinking: model.thinking
             )
         }

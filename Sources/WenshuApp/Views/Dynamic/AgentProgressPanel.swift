@@ -105,7 +105,7 @@ struct AgentProgressPanel: View {
         }
         .padding(.horizontal, DesignTokens.chromePaddingMedium)
         .padding(.vertical, DesignTokens.chromePaddingVertical)
-        // v0.40 boss real-device test 2026-09-07: removed
+        // boss real-device test 2026-09-07: removed
         // .thinMaterial (= Liquid Glass agent progress strip);
         // now uses Color.clear (= no background).
         .background(Color.clear)

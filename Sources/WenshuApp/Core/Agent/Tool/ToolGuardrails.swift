@@ -16,7 +16,7 @@
 //  Per ADR-0009 (wenshu-side wins), this file is a thin façade (= delegates
 //  to canonical wenshu Core). No duplicate sandbox/permission engine.
 //
-//  v0.36 sub-step 1 of 3 for ticket 015.
+// sub-step 1 of 3 for ticket 015.
 //
 
 import Foundation

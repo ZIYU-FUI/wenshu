@@ -48,7 +48,7 @@
 //    through it on @MainActor.
 //  - The Result types are simple value types; = no shared mutation.
 //  - Same isolation as EditorFileWatcher / EditorPersistence per
-//    v1.70a / v1.70d.
+// a / v1.70d.
 //
 //  Public surface (= 5 entry points):
 //    - loadTickets(bookId:scope:resolver:) -> LoadResult
@@ -261,7 +261,7 @@ enum KanbanOps {
 // Shared adapter (= not nested inside KanbanOps or TodoOps) because
 // both helpers need to bridge the global @Observable BookStore
 // container to their own ScopeDirectoryResolver protocol. Per
-// v1.70 WikiLinkNavigation + ReferenceStoring precedent (= a thin
+// WikiLinkNavigation + ReferenceStoring precedent (= a thin
 // concrete type that bridges a global container to the helper's
 // protocol seam; = reusable across multiple helpers).
 //

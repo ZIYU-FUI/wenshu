@@ -15,7 +15,7 @@
 //    - formatContextBundle(_:) -> String
 //      (= renders the context as a system-prompt dynamic tier)
 //
-//  HERMES-PARTIAL-013 extends the v0.35 surface with the full hermes
+// extends the v0.35 surface with the full hermes
 //  ContextEngine ABC surface:
 //    - Per-turn context bundle assembly (= ephemeral hint +
 //      cacheable references + per-turn memos)

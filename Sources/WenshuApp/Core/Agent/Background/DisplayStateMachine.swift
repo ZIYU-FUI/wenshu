@@ -13,7 +13,7 @@
 //  Pure enum (= no actor, no state = thread-safe by definition). Callers
 //  observe transitions and update UI accordingly.
 //
-//  v0.36 sub-step 2 of 4 for ticket 016.
+// sub-step 2 of 4 for ticket 016.
 //
 
 import Foundation

@@ -9,7 +9,7 @@
 //  CharacterLifecycleTools.swift L287).
 //
 //  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= the
-//  v1.70/v1.71/v1.72/v1.74 arcs have done UI / 业务 / 数据 分离
+// /v1.71/v1.72/v1.74 arcs have done UI / 业务 / 数据 分离
 //  for editor / right-column / settings-kanban-todo / tagmanager-
 //  placeholder-idealibrary / cardopen-dedupe; = CharacterLifecycleView
 //  is the next P0 split per the §9 extended audit on 2026-09-23).

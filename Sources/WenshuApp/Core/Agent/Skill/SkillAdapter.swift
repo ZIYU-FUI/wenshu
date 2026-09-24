@@ -96,7 +96,7 @@ actor SkillAdapter {
         HubCommand(name: "docs", description: "Generate documentation", category: "research"),
         HubCommand(name: "search", description: "Search library", category: "discovery"),
         HubCommand(name: "index", description: "Index library", category: "discovery"),
-        // HERMES-AGENT-SMC-READYNESS v0.41 fix: add the 35th hub
+        // fix: add the 35th hub
         // command (= `cron` for scheduled-job management per the
         // audit at .scratch/hermes-agent-smc-readiness-evidence/
         // triggers.md M15: "SkillAdapter.hubCommands has no `cron`

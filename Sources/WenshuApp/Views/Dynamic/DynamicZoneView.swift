@@ -11,7 +11,7 @@
 //
 // Per AGENTS.md §12 in progress, tab labels in progress.
 //
-//  v0.41 WIRE-OPENBOX-001 (P2 #21): agent progress panel added at the
+// (P2 #21): agent progress panel added at the
 //  top of the zone (= below the tab bar, above the kanban/todo body).
 //  Reads from `AgentProgressTracker.shared` (= written by
 //  ConversationLoop). Only renders when a turn is currently in flight.
@@ -23,7 +23,7 @@ import SwiftUI
 /// (ChatZoneTabBar: top bar SF Symbol + .accentColor in progress).
 struct DynamicZoneView: View {
     enum DynamicTab: String, CaseIterable, Identifiable {
-        // v0.24 bossverificationfix (2026-08-24 OOB): Boss 'yeskanban, change
+        // bossverificationfix (2026-08-24 OOB): Boss 'yeskanban, change
         // ' = dynamic zone should be kanban (kanban), not progress (debug).
         // Per boss 8/24 'dynamic zone change 2 tab' = kanban + only.
         // Hide: progress (debug feature) + search (per 5c9ef2ee6 + chat zone pattern).
@@ -33,7 +33,7 @@ struct DynamicZoneView: View {
         var label: String { rawValue }
         var icon: String {
             switch self {
-            // v0.25.1 (= ticket 022 dynamic zone tab icons): owner
+            // (= ticket 022 dynamic zone tab icons): owner
             // 2026-08-26 OOB teb: teb1 -> layout-grid, teb2 -> layout-list
             // layout-grid teb2 layout-list' = SF rectangle.split.3x1
             // → Lucide layout-grid (= 4-cell grid icon, kanban board
@@ -45,8 +45,8 @@ struct DynamicZoneView: View {
         }
     }
 
-    // v0.24 bossverificationfix: persist tab selection across launches.
-// v0.40 apple-001 HIG absent batch: migrated wenshu.tabIndex.aiDynamic
+    // bossverificationfix: persist tab selection across launches.
+// apple-001 HIG absent batch: migrated wenshu.tabIndex.aiDynamic
 // from @AppStorage to @SceneStorage (= Apple HIG macOS 14+ per-window
 // tab state restoration). Each window has its own active dynamic
 // tab (= user can have Chat tab in one window + Kanban tab in another).
@@ -57,7 +57,7 @@ struct DynamicZoneView: View {
         nonmutating set { selectedTabRaw = newValue.rawValue }
     }
 
-    // v0.36 ticket 013 sub-step 3: 🟨 half-visible right-bottom panel
+    // ticket 013 sub-step 3: 🟨 half-visible right-bottom panel
     // per spec §6.4. MemoryRetrievalPanel = ticket 009 canonical
     // (= per ticket 013 sub-step 1 we deleted the duplicate
     // DynamicZoneMemoryPanel + its test). Activation here is a
@@ -65,7 +65,7 @@ struct DynamicZoneView: View {
     @State private var memoryEntries: [MemoryAdapter.MemoryEntry] = []
 
     var body: some View {
-        // v0.30 boss 8/31 OOB: alignment: .leading so the top tab bar
+        // boss 8/31 OOB: alignment: .leading so the top tab bar
         // (= DynamicZoneTabBar) is left-aligned instead of default
         // center-aligned (= SwiftUI VStack defaults to .center). Boss
         // spec: " teb iconchange" = the dynamic zone tabs should
@@ -76,7 +76,7 @@ struct DynamicZoneView: View {
                 get: { selectedTab },
                 set: { selectedTab = $0 }
             ))
-            // WIRE-OPENBOX-001 (v0.41 P2 #21): agent progress panel.
+            // (v0.41 P2 #21): agent progress panel.
             // Top-of-zone strip that surfaces real-time step-by-step
             // feedback from the running ConversationLoop turn. Only
             // renders when an entry is currently running (= user just
@@ -92,7 +92,7 @@ struct DynamicZoneView: View {
             }
             .animation(.default, value: selectedTab)
 
-            // v0.36 ticket 013 sub-step 3: MemoryRetrievalPanel
+            // ticket 013 sub-step 3: MemoryRetrievalPanel
             // (= ticket 009 canonical) as right-bottom panel per spec §6.4
             // 🟨 half-visible. The panel is always rendered at the bottom
             // of the DynamicZone (= memory preview is global to all tabs).
@@ -126,7 +126,7 @@ struct DynamicZoneView: View {
 /// DynamicZoneTabBar: top bar 3 SF Symbol tab + in progress .accentColor (ChatZoneTabBar)
 struct DynamicZoneTabBar: View {
     @Binding var selectedTab: DynamicZoneView.DynamicTab
-    // v0.25.1 (= ticket 013 underline slide animation): matchedGeometry
+    // (= ticket 013 underline slide animation): matchedGeometry
     // namespace for the shared underline (= PaneTabBar handles the
     // .matchedGeometryEffect internally). One namespace per tab bar
     // class (= SwiftUI requires the namespace to scope within a single
@@ -134,7 +134,7 @@ struct DynamicZoneTabBar: View {
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        // v0.28 followup Boss UX round A (Phase 3 of refactor): DynamicZoneTabBar
+        // followup Boss UX round A (Phase 3 of refactor): DynamicZoneTabBar
         // body now delegates to `PaneTabBar` generic component (= ComponentIndex.md
         // Level 3.2). Was 135 LOC, now ~10 LOC. Behavior preserved 1:1.
         //

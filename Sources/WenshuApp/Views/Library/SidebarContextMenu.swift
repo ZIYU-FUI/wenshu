@@ -11,7 +11,7 @@
 //  current `Set<I>` of the sidebar selection; = returns
 //  View hierarchy of buttons / labels).
 //
-//  v1.69y behavior (= matches the pre-v1.69e legacy
+// y behavior (= matches the pre-v1.69e legacy
 //  NewLibraryOutlineView.contextMenuForSelection):
 //   - single shelf selected: "New Book Here" + "Rename" + "Delete"
 //   - single book selected:  "Rename" + "Delete"

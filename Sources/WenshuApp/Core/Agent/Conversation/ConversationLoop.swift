@@ -13,7 +13,7 @@
 //    4. Returns ConversationResult (= response + full message history +
 //       taskId for tracing)
 //
-//  v0.35 sub-step 3 implements the MINIMUM surface that lets the rest of
+// sub-step 3 implements the MINIMUM surface that lets the rest of
 //  the agent stack (= ToolExecutor in sub-step 5, ConversationCompression
 //  in ticket 003) compose against it. Tool dispatch loop, fallback chain,
 //  preflight compression, post-turn hooks, background nudges = NOT in
@@ -34,9 +34,9 @@
 //      (= sub-step 3 implements the minimum surface, full loop body lands
 //      incrementally in tickets 003-005)
 //
-//  v0.35 sub-step 3 of 8 for ticket 001.
+// sub-step 3 of 8 for ticket 001.
 //
-//  TICKET-HERMES-GAP-003 wire-up (2026-09-04): ConversationLoop now
+// wire-up (2026-09-04): ConversationLoop now
 //  holds an optional `RuntimeHelpers` reference (default = a fresh actor
 //  instance per ConversationLoop; callers may inject a custom one for
 //  deterministic-test paths). The runtime is consulted via `await
@@ -45,7 +45,7 @@
 //  calls remain in the loop body — see `Sources/WenshuApp/Core/Agent/
 //  Runtime/RuntimeHelpers.swift` for the actor surface.
 //
-//  WIRE-AGENT-006 (v0.41 P2 #21): ConversationLoop now drives an
+// (v0.41 P2 #21): ConversationLoop now drives an
 //  `AgentProgressTracker` (= library-level, ephemeral, actor). The
 //  tracker emits step events as the turn progresses so the OpenBox
 //  panel (= DynamicZoneView progress strip) can render real-time
@@ -353,7 +353,7 @@ actor ConversationLoop {
         let resolvedTaskId = taskId ?? UUID().uuidString
         var retry = TurnRetryState(maxAttempts: maxAttempts)
 
-        // WIRE-AGENT-006 (v0.41 P2 #21): start the agent progress
+        // (v0.41 P2 #21): start the agent progress
         // entry for this turn. The sessionId defaults to the taskId
         // (= caller may use a richer id later; the OpenBox panel
         // matches by taskId today). The OpenBox panel polls
@@ -367,7 +367,7 @@ actor ConversationLoop {
         while retry.canRetry {
             retry.recordAttempt()
             do {
-                // WIRE-AGENT-006 step 2: "Compressing context if needed".
+                // step 2: "Compressing context if needed".
                 // The current code path triggers compression only after
                 // the LLM response (= hermes parity), so this step is
                 // a no-op for now (= the tracker entry simply advances
@@ -378,7 +378,7 @@ actor ConversationLoop {
                     label: "Compressing context if needed"
                 )
 
-                // WIRE-AGENT-006 step 3 + 4: "Building prompt" + "Calling LLM".
+                // step 3 + 4: "Building prompt" + "Calling LLM".
                 // Prompt construction and the actual LLM round-trip
                 // both happen inside runConversation; we surface this
                 // combined phase with a generous ETA (= the LLM
@@ -413,7 +413,7 @@ actor ConversationLoop {
                     streamCallback: streamCallback
                 )
 
-                // WIRE-AGENT-006 step 5: "Parsing response". The LLM
+                // step 5: "Parsing response". The LLM
                 // response is already in result.response (= parsed
                 // blocks); the loop has nothing extra to do here other
                 // than signal that the parse phase finished.
@@ -441,7 +441,7 @@ actor ConversationLoop {
                     // The loop counter is still kept internally (= it
                     // bounds the while condition); = only the user-visible
                     // marker is dropped.
-                    // WIRE-AGENT-006 step 6: "Executing tools".
+                    // step 6: "Executing tools".
                     await progressTracker.setStep(
                         id: progressEntry.id,
                         stepNumber: 6,
@@ -495,7 +495,7 @@ actor ConversationLoop {
                     )
                 }
 
-                // WIRE-AGENT-006 step 7: "Finalizing reply". Post-turn
+                // step 7: "Finalizing reply". Post-turn
                 // compression (= hermes
                 // conversation_history_after_compression) runs as part
                 // of finalization; surface it under the same step.
@@ -513,7 +513,7 @@ actor ConversationLoop {
                     ) ?? ""
                 )
 
-                // WIRE-AGENT-006: mark the entry as succeeded.
+                // mark the entry as succeeded.
                 await progressTracker.complete(id: progressEntry.id, status: .succeeded)
 
                 return ConversationResult(
@@ -522,7 +522,7 @@ actor ConversationLoop {
                     taskId: resolvedTaskId
                 )
             } catch let error as LLMConnectorError {
-                // WIRE-AGENT-006: mark the entry as failed on retryable
+                // mark the entry as failed on retryable
                 // error too (= the user sees the failed step in the
                 // OpenBox panel even if the loop will retry). The next
                 // retry iteration's `advance(...)` will reset the step
@@ -621,7 +621,7 @@ actor ConversationLoop {
         if let provider = Provider.all.first(where: { $0.slug == connector.connectorID }) {
             return provider.defaultModels.first ?? "unknown-model"
         }
-        // HERMES-PARTIAL-001 fix: when no Provider matches (= the
+        // fix: when no Provider matches (= the
         // common test path with MockLLMConnector whose connectorID
         // is "mock"), derive a stable fallback from the connectorID
         // itself so test assertions like `result.response.model == "mock"`

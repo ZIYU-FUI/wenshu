@@ -1,7 +1,7 @@
 //
 //  PaneNSController+ZoneSlotMapping.swift · Wenshu · v1.28 C3.2.1
 //
-//  v1.28 C3.2.1: extract the `zoneSlotToTabKind` helper (= v0.34 ticket 02
+// C3.2.1: extract the `zoneSlotToTabKind` helper (= v0.34 ticket 02
 //  ZoneSlot → TabKind canonical mapping) from PaneNSController.swift into
 //  a focused extension file.
 //

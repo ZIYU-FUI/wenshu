@@ -32,7 +32,7 @@
 //  applicable to the wenshu single-process model.
 //
 // (= user-side kanban) +
-//  HERMES-PARTIAL-011 (2026-09-04) for the LLM-side surface.
+// (2026-09-04) for the LLM-side surface.
 //
 
 import Foundation
@@ -57,7 +57,7 @@ actor KanbanTools {
             return
         }
         // SwiftData-backed: just use the shared repository directly.
-        // Q99 dual-axis audit (Round 1.2): callers MUST be on MainActor
+        // dual-axis audit (Round 1.2): callers MUST be on MainActor
         // when invoking this init without an explicit store (=
         // WSKanbanRepository.shared is @MainActor). Future refactor:
         // mark this init @MainActor and update KanbanStoreTool.shared

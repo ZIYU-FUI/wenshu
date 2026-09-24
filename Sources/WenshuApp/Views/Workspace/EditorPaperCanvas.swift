@@ -1,6 +1,6 @@
 // EditorPaperCanvas.swift · Wenshu · v1.34 ticket 001
 //
-// v1.34 real fix (= per Q34 5.4 + Q173 ponytail + Q186 + Q57 + Q112):
+// real fix (= per Q34 5.4 + Q173 ponytail + Q186 + Q57 + Q112):
 // extracted from `Sources/WenshuApp/Views/Workspace/WorkspaceView.swift`
 // (= the v0.27 ticket 027-34 monolith). = same module, no new import.
 //

@@ -106,7 +106,7 @@ struct CharacterLifecycleView: View {
     init() {}
 
     var body: some View {
-        // v1.28 C3.7.3: migrate to specializedToolBody modifier
+        // C3.7.3: migrate to specializedToolBody modifier
         // (= see SpecializedToolBodyModifier.swift; = extracted by C3.7.1
         // and adopted by TagManagerView in C3.7.2).
         specializedToolBody(
@@ -120,7 +120,7 @@ struct CharacterLifecycleView: View {
     }
 
     private var emptyState: some View {
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': use

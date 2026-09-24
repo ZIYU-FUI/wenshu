@@ -15,7 +15,7 @@
 //  Per ADR-0011 + §11 hard rule: pure Swift actor; no LLM calls; no
 //  external deps.
 //
-//  v0.36 ticket 017 (= single-commit ticket per boss cadence '1 RULE 1 commit').
+// ticket 017 (= single-commit ticket per boss cadence '1 RULE 1 commit').
 //
 
 import Foundation

@@ -18,7 +18,7 @@
 //    - sanitizeSurrogates(_:) — full hermes surrogate-handling table
 //    - sanitizeAll(_:) — runs the entire sanitization pipeline
 //
-//  v0.35 sub-step 4 of 8 for ticket 001 + HERMES-PARTIAL-009 (2026-09-04).
+// sub-step 4 of 8 for ticket 001 + HERMES-PARTIAL-009 (2026-09-04).
 //
 
 import Foundation

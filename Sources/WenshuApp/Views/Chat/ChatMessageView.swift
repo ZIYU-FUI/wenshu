@@ -99,9 +99,9 @@ struct ChatMessageView: View {
     }
 
     var body: some View {
-        // v1.65 boss 2026-09-21 'chat detail 1:1 hermes macOS desktop':
+        // boss 2026-09-21 'chat detail 1:1 hermes macOS desktop':
         // drop the iMessage-style bubble + avatar-run-merge path (= the
-        // v0.57 boss OOB) and render per Hermes真值:
+        // boss OOB) and render per Hermes真值:
         //   - user row: `apps/desktop/src/components/assistant-ui/
         //     thread/user-message.tsx:67-69` rounded-xl glass card with
         //     bg fill + border (= MC2).
@@ -125,7 +125,7 @@ struct ChatMessageView: View {
         messageContents
                     .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
                     .frame(maxWidth: .infinity, alignment: isOutgoing ? .center : .leading)
-                    // v1.88 (2026-09-23): boss '聊天回显区里 AI 回复的
+                    // (2026-09-23): boss '聊天回显区里 AI 回复的
                     // 文字，现在居左右 10PT，我需要改成 20PT，只改 AI
                     // 回复的文字，其它的不动'. AI rows get a 10 PT
                     // horizontal padding (= boss 2026-09-23 correction:
@@ -140,7 +140,7 @@ struct ChatMessageView: View {
                     // padding in UserGlassCardModifier is the SOLE
                     // source of user horizontal padding; = unchanged).
                     .padding(.horizontal, isOutgoing ? 0 : 10)
-                    // v1.65 boss 'B = 试着补一下 sticky 真值':
+                    // boss 'B = 试着补一下 sticky 真值':
                     //
                     // Apple SwiftUI on macOS 27 does NOT expose CSS `position:
                     // sticky` (= no `.sticky()` modifier). The closest
@@ -182,7 +182,7 @@ struct ChatMessageView: View {
                                         // without overlap with the floating input; = matches
                                         // the MC1 flat-text self-start behavior).
                                         //
-                                        // v1.65-cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，
+                                        // -cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，
                                         // 确实没有实现' (= the latest user message card was
                                         // padded 80 PT down inside the LazyVStack but did NOT
                                         // actually stick to the top of the chat viewport; =
@@ -221,7 +221,7 @@ struct ChatMessageView: View {
     /// the glass card wraps this when the row is outgoing.
     @ViewBuilder
     private var messageContents: some View {
-        // v1.65-cleanup E3 boss 2026-09-21 '用户说的话，要在那个框中，左对齐，
+        // -cleanup E3 boss 2026-09-21 '用户说的话，要在那个框中，左对齐，
         // 现在是显示在右边' (= the user text inside the glass card was
         // right-aligned; = boss expected left-aligned text reading like
         // iMessage / Slack / hermes真值). Root cause: the inner VStack
@@ -237,7 +237,7 @@ struct ChatMessageView: View {
         // the left (= inner alignment); = matches iMessage +
         // Slack + hermes真值 user-message.tsx).
         VStack(alignment: .leading, spacing: 4) {
-                // v1.65 boss 2026-09-21 "just refer to HERMES, do 1:1; drop
+                // boss 2026-09-21 "just refer to HERMES, do 1:1; drop
                 // wenshu-side source label + icon chrome that HERMES doesn't have":
                 //   - user-message.tsx:240-585 (= full UserMessage scan) renders
                 //     the user text with NO source label, NO avatar/icon, NO
@@ -271,7 +271,7 @@ struct ChatMessageView: View {
                         StatusPulse()
                     }
                 } else {
-                    // v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat
+                    // 
                     // zone isn't implemented... port the whole thing from hermes... The editor uses SM,
                     // a third-party Markdown editor we brought in'): the canonical
                     // 1:1 Hermes streaming UI. Renders message.parts[]
@@ -350,13 +350,13 @@ struct ChatMessageView: View {
                     if let imagePath = message.imagePath {
                         ChatMessageAttachmentPreview(imagePath: imagePath)
                     }
-                    // v0.71 P1 batch 2: ChatMessageBodyView (= the
+                    // ChatMessageBodyView (= the
                     // Hermes-style per-part renderer) wraps each part
                     // in the bubble background. Falls back to the
                     // single-text rendering for v0.34 messages with no
                     // parts.
                     //
-                    // v0.71 P1 batch 2 (user message hover actions):
+                    // 
                     // for OUTGOING messages (= user-sent), overlay
                     // ChatMessageHoverActions (= copy + delete buttons
                     // that fade in on hover = the Hermes MessageActions
@@ -389,7 +389,7 @@ struct ChatMessageView: View {
                         isStreaming: message.streamState == .streaming || message.isPlaceholder,
                         onApprovePlan: onApprovePlan
                     )
-                    // v1.65-cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
+                    // -cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
                     // dropped the inline `.padding(.horizontal, 12)` (= L1 in
                     // ChatView.swift is now the single source of truth for
                     // chat-column horizontal padding; = maintenance = one place
@@ -435,7 +435,7 @@ struct ChatMessageView: View {
             // the right edge (= the Hermes `ROLE` glyph + flat body
             // pattern; = no right-edge trailing space).
             // L818: extra } removed (= previous HStack wrapper gone).
-            // v1.65-cleanup E5 boss 2026-09-21 '聊天文字，用户和 AI
+            // -cleanup E5 boss 2026-09-21 '聊天文字，用户和 AI
             // 回复，都自动拉宽全宽': make messageContents fill the
             // full chat column width (= the VStack previously was
             // intrinsic-width = text didn't wrap to the chat column
@@ -500,7 +500,7 @@ private struct UserGlassCardModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         if isOutgoing {
-            // v1.65-cleanup E3.5 boss 2026-09-21 '本字要在矩形框里左对齐，
+            // -cleanup E3.5 boss 2026-09-21 '本字要在矩形框里左对齐，
             // 距离框的边缘 10PT' (= the user text inside the glass card
             // was at 12 PT horizontal padding; = boss wants exactly
             // 10 PT (= the Apple HIG px-2.5 = 10 PT convention; = the
@@ -510,7 +510,7 @@ private struct UserGlassCardModifier: ViewModifier {
             // more text per row, = matches boss's explicit 10 PT
             // instruction). Vertical padding stays at 6 PT (= unchanged;
             // = compact card height; = matches Apple HIG py-1.5 = 6 PT).
-            // v1.65-cleanup E8 boss 2026-09-21 '改对了，用户说话的框，里面的文字距离框
+            // -cleanup E8 boss 2026-09-21 '改对了，用户说话的框，里面的文字距离框
             // 10PT。把这个改回来' (= the L1 in ChatView.swift is now 0 PT
             // = chat transcript content sits flush against the chat
             // column edge; = the user card L2 inner padding below is
@@ -521,7 +521,7 @@ private struct UserGlassCardModifier: ViewModifier {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                // v1.65-cleanup E9 boss 2026-09-21 '现在改用户说话的枢，加液态玻璃':
+                // -cleanup E9 boss 2026-09-21 '现在改用户说话的枢，加液态玻璃':
                 // apply the macOS 27 `.glassEffect(.regular)` API
                 // (= the canonical Apple HIG Liquid Glass container; =
                 // blurs + refracts the chat content underneath; = same
@@ -536,7 +536,7 @@ private struct UserGlassCardModifier: ViewModifier {
                 // own visual boundary; = matches Apple HIG chat input
                 // row which has no separate border).
                 //
-                // v1.65-cleanup E10 boss 2026-09-21 '液态玻璃的透明度
+                // -cleanup E10 boss 2026-09-21 '液态玻璃的透明度
                 // 跟随系统' (= Apple System Settings > Appearance >
                 // Liquid Glass > translucency slider; = wenshu
                 // user-card glass follows the system slider via the
@@ -564,7 +564,7 @@ private struct UserGlassCardModifier: ViewModifier {
 // MARK: - Hermes真值 user bubble surface per `apps/desktop/src/components/
 
 
-// v1.65 boss '思考中的那个效果不是 hermes 的效果': StatusPulse
+// boss '思考中的那个效果不是 hermes 的效果': StatusPulse
 // (= hermes真值 `.tsx status-pulse.tsx` PULSE_DURATION_MS=400 +
 // PULSE_PERIOD_MS=5000).
 //

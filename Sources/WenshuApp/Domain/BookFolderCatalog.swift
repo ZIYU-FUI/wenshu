@@ -2,7 +2,7 @@
 //  BookFolderCatalog.swift
 //  wenshu
 //
-//  v1.81 SSOT (= single source of truth) for the 8 standard
+// SSOT (= single source of truth) for the 8 standard
 //  book sub-folders (= world / characters / outlines / chapters
 //  / drafts / sessions / foreshadowing / placeholders). Prior
 //  history:
@@ -42,7 +42,7 @@
 //  BookFolderSpec literal here (= 1 site edit) + register it
 //  in BookFolderCatalog.allBookFolders (= 1 site edit) = done.
 //
-//  v1.81 displays the sidebar name + card name differently on
+// displays the sidebar name + card name differently on
 //  purpose (= sidebar uses the full phrasing like '小说正文' to
 //  tell the user the folder's purpose; = the card uses the
 //  short label like '章节' to fit the grid cell width). Both
@@ -52,7 +52,7 @@
 //  catalog fields and the two derived sites pick up the new
 //  values automatically.
 //
-//  v1.81 boss 2026-09-24 OOB '8 个目录, 不需要都定义 ICON, 因为
+// boss 2026-09-24 OOB '8 个目录, 不需要都定义 ICON, 因为
 //  我们过滤掉 3 个, 用户永远不可见, 所以, 其实可见的 ICON
 //  只有五个': the icon field is optional (= nil for internal
 //  folders = sessions / foreshadowing / placeholders, which

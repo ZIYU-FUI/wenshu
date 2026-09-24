@@ -4,7 +4,7 @@
 // .listStyle(.sidebar)). The canonical sidebar surface for
 // the wenshu NavigationSplitView shell.
 //
-// v1.69 arc (= 27 commits v1.69a → v1.69bb per AGENTS.md):
+// arc (= 27 commits v1.69a → v1.69bb per AGENTS.md):
 //   - v1.68b: initial Apple HIG rewrite replacing the v1.64-v1.67
 //     hand-rolled LazySidebarView (= SwiftUI List(.sidebar)).
 //   - v1.69a-e: MVVM cleanup (= extract SidebarItem, BottomNewButton,
@@ -17,7 +17,7 @@
 //   - v1.69x: NSHostingView constraint loop fix (= stable SHA1
 //     BookDoc.id + cached shelf books + .task(id:) dispatch).
 //   - v1.69y: restore sidebar create + rename + context menu that
-//     v1.69e had `git rm`-deleted (= 4 sheets in SidebarSheets.swift,
+// e had `git rm`-deleted (= 4 sheets in SidebarSheets.swift,
 //     1 builder + 2 ViewModifier wrappers in SidebarContextMenu.swift,
 //     create/delete/rename business layer in SidebarService.swift).
 //   - v1.69aa-bb: UI polish (= centered '书架' title bar + Divider
@@ -77,7 +77,7 @@ struct AppleSidebarView: View {
     /// via .onChange below).
     @State private var selectedNode: SidebarNode?
 
-    // v1.69y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复':
+    // y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复':
     // the create/rename/delete sheets that live in
     // SidebarSheets.swift (recovered from the deleted v1.69e
     // NewLibraryOutlineView). Each sheet's `isPresented`
@@ -104,7 +104,7 @@ struct AppleSidebarView: View {
         Group {
             if let service {
                 VStack(spacing: 0) {
-                    // v1.77 boss 2026-09-24 OOB '抽成一个组件, 10 PT /
+                    // boss 2026-09-24 OOB '抽成一个组件, 10 PT /
                     // 文字 / 4 PT / 分割线 / 10 PT, Apple HIG 数字表达':
                     // lift the sidebar column title bar to the
                     // shared SectionHeader component (= also used by
@@ -121,7 +121,7 @@ struct AppleSidebarView: View {
                     }
                     sidebarList
                     .listStyle(.sidebar)
-                // v1.69y: empty-area right-click (= the
+                // y: empty-area right-click (= the
                 // `.contextMenu(forSelectionType:menuItems:)`
                 // hook below does NOT route empty-area hits; =
                 // macOS 26 SwiftUI behavior). A plain
@@ -139,7 +139,7 @@ struct AppleSidebarView: View {
                     newLabel: WenshuI18n.t("sidebar_context_menu_new"),
                     action: { sheetRequests.choice += 1 }
                 ))
-                // v1.69y: right-click on selected rows (= Apple
+                // y: right-click on selected rows (= Apple
                 // HIG canonical macOS 14+ contextMenu hook).
                 // The closure body lives in a separate
                 // helper method (= `contextMenuHandler(items:)`)
@@ -151,7 +151,7 @@ struct AppleSidebarView: View {
                     selectionType: SidebarItem.self,
                     builder: { items in contextMenuHandler(items: items) }
                 ))
-                // v1.69 sidebar fix (= boss 2026-09-22 OOB
+                // sidebar fix (= boss 2026-09-22 OOB
                 // '现在目录树还是点不了'): the .onChange(of:
                 // selectedNode) MUST live on the List (= outside
                 // the rowContent closure), not on each row.
@@ -198,7 +198,7 @@ struct AppleSidebarView: View {
                     loadShelves: { try bookStore.sidebarLoadShelves() },
                     loadAllBooks: { try bookStore.sidebarLoadAllBooks() },
                     loadReferences: { try bookStore.loadAllReferences() },
-                    // v1.69 boss 2026-09-22 OOB '上面书架的五
+                    // boss 2026-09-22 OOB '上面书架的五
                     // 目录也可以加' (= mirror the reference
                     // library's "X 项" subtitle on each book
                     // folder row). Count .md files in the
@@ -235,7 +235,7 @@ struct AppleSidebarView: View {
                         }
                         return 0
                     },
-                    // v1.69y: inject bookStore so the create /
+                    // y: inject bookStore so the create /
                     // delete / rename business methods can write
                     // to shelvesRoot (= the persistence layer
                     // surface for the sidebar mutations).
@@ -247,7 +247,7 @@ struct AppleSidebarView: View {
         .onChange(of: shell.sidebarSelection) { _, _ in
             Task { await service?.reload() }
         }
-        // v1.69y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复':
+        // y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复':
         // wire up the 3 request counters (= `choiceRequestCount`
         // + `newShelfRequestCount` + `newBookRequestCount`) to
         // flip the matching sheet's `isPresented` @State. Mirrors
@@ -264,7 +264,7 @@ struct AppleSidebarView: View {
         .onChange(of: sheetRequests.newBook) { _, _ in
             showNewBookSheet = true
         }
-        // v1.69y: the create/rename/delete sheets. Each presents
+        // y: the create/rename/delete sheets. Each presents
         // a focused `*Sheet` view from `SidebarSheets.swift`; =
         // the sheet's `onSave` closure calls into
         // `SidebarService.{createShelf,createBook,renameShelf,
@@ -301,7 +301,7 @@ struct AppleSidebarView: View {
             )
         }
         .sheet(isPresented: $showNewBookSheet) {
-            // v1.69y: pre-resolve target shelf from current
+            // y: pre-resolve target shelf from current
             // sidebarSelection (= mirrors the legacy NewLibraryOutlineView.
             // resolveNewBookTargetShelf pattern; = the same logic
             // now lives in `SidebarService.targetShelfForNewBook(...)`).
@@ -475,7 +475,7 @@ struct AppleSidebarView: View {
                 openBookInEditor(bookId: node.id)
             }
         case .reference:
-            // v1.69 reference-library leaf (= a single Reference
+            // reference-library leaf (= a single Reference
             // document). node.title carries the reference's
             // display title, not its category, so writing
             // `.referenceCategory(node.title)` here is incorrect;
@@ -495,13 +495,13 @@ struct AppleSidebarView: View {
             // on the middle-column card).
             shell.sidebarSelection = .referenceCategory(node.title)
         case .referenceCategory:
-            // v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示':
+            // boss 2026-09-22 OOB '资料库自动分类目录的展示':
             // a category parent row (= one of the 22 CLC
             // top-level categories under the Reference-Library
             // root). Selecting it scopes the middle-column card
             // grid to that category.
             //
-            // v1.69p boss 2026-09-22 OOB: read the routing key
+            // p boss 2026-09-22 OOB: read the routing key
             // (= the EntityCategory.directoryName, stored in
             // SidebarNode.routingKey during the v1.69j projection;
             // = lowercase letter for the official 22 cases,
@@ -512,12 +512,12 @@ struct AppleSidebarView: View {
             // a category — the user-visible title (= "文学") can't
             // be used directly because no EntityCategory rawValue
             // is "文学". Falling back to node.title (= the previous
-            // v1.69m behaviour) leaves the routing key in the
+            // m behaviour) leaves the routing key in the
             // user-visible slot (= the boss's '资料库分类, 现在
             // 显示是的一个字母' complaint).
             shell.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
         case .divider:
-            // v1.69bb boss 2026-09-23 OOB '现在把资料库上面也
+            // bb boss 2026-09-23 OOB '现在把资料库上面也
             // 加一条分割线': divider rows are non-interactive;
             // = the user can never select a divider (= it's
             // pure chrome between sections). Forwarding a

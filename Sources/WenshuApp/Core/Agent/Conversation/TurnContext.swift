@@ -17,12 +17,12 @@
 //
 //  In sub-step 4 (= the original v0.35 minimum surface) TurnContext was a
 //  pure value type bundling the inputs ConversationLoop already used.
-//  HERMES-PARTIAL-007 adds the build_turn_context() side-effect driver
+// adds the build_turn_context() side-effect driver
 //  that performs the actual setup (= reset retry counters, install safe
 //     stdio, restore system prompt, refresh credentials) and returns the
 //  value type. ConversationLoop.runTurn now calls this once per turn.
 //
-//  v0.35 sub-step 4 of 8 for ticket 001 + HERMES-PARTIAL-007 (2026-09-04)
+// sub-step 4 of 8 for ticket 001 + HERMES-PARTIAL-007 (2026-09-04)
 //  for ticket 007.
 //
 

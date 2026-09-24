@@ -23,7 +23,7 @@
 //  - _can_carry_marker logic: skip empty-content messages (= top-level
 //    marker would be silently ignored by envelope layout providers)
 //
-//  v0.35 ticket 002 sub-step 1 of N (= ticket 002 = PromptCaching +
+// ticket 002 sub-step 1 of N (= ticket 002 = PromptCaching +
 //  SystemPrompt + cache-stable invariants per spec §3.3 + §0.1 A3).
 //
 

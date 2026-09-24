@@ -26,7 +26,7 @@ import SwiftUI
 /// Used by the 4 "general" zones (projectSidebar / projectPreview / editor / specializedTools).
 struct ZoneContentView: View {
     struct Tab: Identifiable {
-        // v0.24 bossverificationfix: use String label as ID (UUID auto-generated per re-render
+        // bossverificationfix: use String label as ID (UUID auto-generated per re-render
         // → stale selectedTabId after re-render → no tab marked selected).
         let id: String
         let label: String
@@ -35,7 +35,7 @@ struct ZoneContentView: View {
     }
 
     let tabs: [Tab]
-    // v0.25.1 (= ticket 029c-trailing-button editor zone expand/shrink):
+    // (= ticket 029c-trailing-button editor zone expand/shrink):
     // owner 2026-08-26 OOB ' yesbutton yes
     // teb' = optional trailing button rendered at the right
     // edge of the tab bar (= independent of tab count). nil = no
@@ -46,14 +46,14 @@ struct ZoneContentView: View {
 
     @State private var selectedTabId: String
 
-    // v0.34 boss 2026-09-02 OOB: per-instance SwiftUI namespace for the
+    // boss 2026-09-02 OOB: per-instance SwiftUI namespace for the
     // matchedGeometryEffect underline (= SwiftUI requires the namespace
     // to scope within a single view tree). Held by ZoneContentView now
     // (= previously held by the deleted ZoneContentTabBar wrapper).
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        // v0.24 bossverificationfix: simpler structure (VStack only, no ZStack wrapper
+        // bossverificationfix: simpler structure (VStack only, no ZStack wrapper
         // which was regressing tab bar visibility). .frame(minHeight: 600)
         // forces window contentMinSize.
         //
@@ -81,7 +81,7 @@ struct ZoneContentView: View {
         // - The Apple-native Liquid Glass selected segment animation
         //   replaces the previous matchedGeometryEffect underline
         //   (= no @Namespace tabBarNamespace needed).
-        // v1.0.0-m1-shell boss 2026-09-11 OOB 'macOS 27's native control is our first choice':
+        // -m1-shell boss 2026-09-11 OOB 'macOS 27's native control is our first choice':
         // swap the SwiftUI Picker(.segmented) (= the legacy macOS 10.5
         // wrapper; = intrinsic-size; = does NOT expose
         // NSSegmentedControl.Role; = does NOT auto-fill the column
@@ -114,7 +114,7 @@ struct ZoneContentView: View {
         // inspector page supplies; = the boss's directive is
         // satisfied with a single-line change).
         VStack(spacing: 0) {
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'macOS 27's native
+            // -m1-shell boss 2026-09-11 OOB 'macOS 27's native
             // control is our first choice': use the macOS 27 native NSSegmentedControl
             // (= via the new `LabelSegmentedControl` wrapper in
             // UI/Segmented/; = the canonical Apple HIG Pages / Numbers
@@ -135,7 +135,7 @@ struct ZoneContentView: View {
                     set: { selectionBinding.wrappedValue = $0 }
                 ),
                 labels: tabs.map(\.id),
-                // v1.0.0-m1-shell boss 2026-09-11 OOB 'Foreshadowing, Placeholder,
+                // -m1-shell boss 2026-09-11 OOB 'Foreshadowing, Placeholder,
                 // Plot Threads — that tab bar': use the per-tab localized label
                 // (= the `Tab.label` field = the Chinese
                 // localized title; = rendered via
@@ -143,7 +143,7 @@ struct ZoneContentView: View {
                 displayStrings: tabs.map(\.label),
                 icon: { tabId in
                     guard let tab = tabs.first(where: { $0.id == tabId }) else { return nil }
-                    // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6
+                    // -m1-shell boss 2026-09-15 OOB 'use SF Symbols 6
                     // (3rd gen) with palette rendering':
                     // SF Symbol mapping as a
                     // NSSegmentedControl-friendly fallback
@@ -157,7 +157,7 @@ struct ZoneContentView: View {
                 }
             )
             .frame(maxWidth: .infinity)
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
+            // -m1-shell boss 2026-09-11 OOB 'remove all custom padding
             // and switch to Apple-standard expressions — find an approximate value': remove the custom
             // horizontal inset (= `chromePaddingLarge` = 8 PT) on
             // the per-page tab strip. The tabs are inside a
@@ -168,7 +168,7 @@ struct ZoneContentView: View {
             // the canonical Pages / Numbers inspector tab
             // pattern; = tabs stretch from column edge to
             // column edge).
-            // v0.24 bossverificationfix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
+            // bossverificationfix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
             // so it inherits zone size (not forces zone to grow). Without this,
             // AnyView collapses to its intrinsic size and zone shrinks to ~0.
             // ZONE-INSET-002 (2026-09-07): the unified zone-content
@@ -205,7 +205,7 @@ struct ZoneContentView: View {
             // content margins (= List, LazyVGrid, ScrollView all
             // have them); = we shouldn't duplicate them with our
             // own outer wrapper.
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'everything is currently vertically
+            // -m1-shell boss 2026-09-11 OOB 'everything is currently vertically
             // centered — keep the empty state vertically centered, title bar, divider, tab bar go
             // to the top, tab bar full-width fill is unchanged': per the boss's
             // request, the content area BELOW the tab strip is
@@ -248,7 +248,7 @@ struct ZoneContentView: View {
         // (which is only ~485 PT tall, 600 PT min would push it out of view).
     }
 
-    // v0.24 bossverificationfix (2026-08-24): persist tab selection per zone across launches.
+    // bossverificationfix (2026-08-24): persist tab selection per zone across launches.
 // Boss 8/24 feedback: 'region tab shouldyesin progress, in progressstatusshould'.
 // Implemented via zone-specific UserDefaults key (one per zone).
     private let storageKey: String
@@ -256,7 +256,7 @@ struct ZoneContentView: View {
     init(zoneSlug: String, tabs: [(label: String, icon: String, content: AnyView)], trailingButton: AnyView? = nil) {
         let mapped = tabs.map { Tab(id: $0.label, label: $0.label, icon: $0.icon, content: $0.content) }
         self.tabs = mapped
-        // v0.25.1 (= ticket 029c-trailing-button editor zone expand/shrink):
+        // (= ticket 029c-trailing-button editor zone expand/shrink):
         // owner 2026-08-26 OOB ' yesbutton yes
         // teb' = optional trailing button parameter passed through
         // to ZoneContentTabBar (= rendered at the right edge of the tab
@@ -264,7 +264,7 @@ struct ZoneContentView: View {
         self.trailingButton = trailingButton
         self.storageKey = "wenshu.tabIndex.\(zoneSlug)"
         // Restore selected tab from UserDefaults (or default to first tab).
-        // v0.24 bossverificationfix: handle invalid saved value (e.g. tab list changed)
+        // bossverificationfix: handle invalid saved value (e.g. tab list changed)
         // by falling back to first tab + resetting stored index.
         let savedIndex = UserDefaults.standard.integer(forKey: self.storageKey)
         if !mapped.indices.contains(savedIndex) {

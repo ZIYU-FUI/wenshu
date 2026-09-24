@@ -4,7 +4,7 @@
 // reference library's entities layer (= LLM Wiki entities; per boss
 // 8/26 'user').
 //
-// v0.27 MVP writes a minimal Reference per IngestionRequest with:
+// MVP writes a minimal Reference per IngestionRequest with:
 // - title = IngestionRequest.surfaceForm (= entity name)
 // - layer = .layerEntities (= per spec v5 L100-103)
 // - summary = empty (= LLM-derived summary lands in v0.27 followups)
@@ -29,7 +29,7 @@ struct EntityIngestion: Sendable {
             layer: .layerEntities,
             summary: ""
         )
-        // v0.34 Issue 04: run preflight (= WikiEntityPreflight)
+        // Issue 04: run preflight (= WikiEntityPreflight)
         // before saveReference. Critical issues throw and abort
         // the write (= library never lands in an inconsistent state
         // with empty / duplicate-id / body-missing entities).

@@ -30,7 +30,7 @@ struct TabContentDispatcher: View {
     /// global @Observable store). TabContentDispatcher reads
     /// AppState directly via @Environment (= no @Binding chain).
 
-    // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): bottom status
+    // boss 8/31 OOB (sidebar feedback bundle #3): bottom status
     // ': N /: N' was hardcoded to 0. Now reads live counts
     // from BookStore (= the Environment value already propagated
     // from App.swift via .environment(bookStore)).
@@ -41,7 +41,7 @@ struct TabContentDispatcher: View {
     /// selection directly from AppState (= no @Binding chain).
     @Environment(AppState.self) private var appState
 
-    // v0.34 boss 2026-09-02 OOB (B-02 multi-layer audit followup):
+    // boss 2026-09-02 OOB (B-02 multi-layer audit followup):
     // The chat-zone tab-bar wrapper (= the since-deleted wrapper that
     // previously held the chat top tab bar inside `PaneRenderer`) was
     // deleted. The state and namespace it owned (= archive-confirm
@@ -53,7 +53,7 @@ struct TabContentDispatcher: View {
     @State private var showingArchiveConfirm: Bool = false
     @Namespace private var chatTabBarNamespace
 
-    // v0.34 B-15 (= boss 9/2 OOB follow-up to B-14): the chrome bottom
+    // (= boss 9/2 OOB follow-up to B-14): the chrome bottom
     // status now reads ": 0 / N" (= replaces the legacy "N%"
     // progress placeholder). BacklinksViewModel lives here too (= own
     // loader for the chrome status; EditorPlaceholder holds its own
@@ -74,7 +74,7 @@ struct TabContentDispatcher: View {
     var body: some View {
         switch kind {
         case .projectSidebar:
-            // v0.28 followup Boss UX round 14 (Boss 2026-08-29 OOB
+            // followup Boss UX round 14 (Boss 2026-08-29 OOB
             // ZoneTopToolbar outer 30 PT) — the internal
             // ZoneContentTabBar (= 1 tab + trailing /
             // buttons) IS the top chrome. Otherwise we'd have 2 layers
@@ -102,7 +102,7 @@ struct TabContentDispatcher: View {
             
                 ZoneModuleView(zoneSlot: .editor)
 
-            // v0.34 B-15: trigger backlinks load on first appear.
+            // trigger backlinks load on first appear.
             // .task runs once when the editor zone is mounted (= won't
             // re-fetch on every re-render; = Apple HIG async task lifecycle).
             .task {
@@ -125,11 +125,11 @@ struct TabContentDispatcher: View {
                 ZoneModuleView(zoneSlot: .specializedTools)
 
         case .aiChat:
-            // v0.28 followup Boss UX round 16 (Boss 2026-08-29 OOB
+            // followup Boss UX round 16 (Boss 2026-08-29 OOB
             // Old 6 had ChatZoneTabBar (= 3 tabs: dialog / search / Settings
             // + archive button on right). The new ChatView doesn't
             // have an internal tab bar.
-            // v0.34 boss 2026-09-02 OOB (B-02 multi-layer audit):
+            // boss 2026-09-02 OOB (B-02 multi-layer audit):
             // The chat-zone tab-bar wrapper (= the since-deleted
             // wrapper that used to host the chat top tab bar) was
             // deleted; the PaneTabBar call now lives directly in this
@@ -145,7 +145,7 @@ struct TabContentDispatcher: View {
                         // know about it. Matches macOS 26 Tahoe pattern
                         // (= content area + small top inset for tab bar).
                         //
-                        // v0.34 boss 2026-09-02 OOB: use PaneTabBar directly
+                        // boss 2026-09-02 OOB: use PaneTabBar directly
                         // (= no chat-zone wrapper layer). Single
                         // hard-coded chat tab item + archive trailing button
                         // (= migrated to PaneTrailingIconButton helper from
@@ -258,7 +258,7 @@ private struct GroupTabStrip: View {
                 }
                 .background(paneID == activePaneID ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(Color.clear))
                 // Bottom 1 PT separator.
-                // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
+                // followup Boss UX round 26: Apple HierarchicalShapeStyle
                 // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
                 // replaces Color.secondary.opacity(0.3) (= solid muted gray)
                 // for the group header bottom border.
@@ -270,7 +270,7 @@ private struct GroupTabStrip: View {
                 )
             }
         }
-        // v0.40 boss real-device test 2026-09-07: removed
+        // boss real-device test 2026-09-07: removed
         // .regularMaterial (= Liquid Glass group tab bar);
         // now uses Color.clear (= no background).
         .background(Color.clear)

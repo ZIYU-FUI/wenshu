@@ -23,7 +23,7 @@
 //       Streaming + use = out of scope for sub-step 2 (lands in
 //       subsequent sub-steps via LLMStreamingConnector).
 //
-//  v0.35 sub-step 2 of 8 for ticket 001 (= TB-B tracer-bullet).
+// sub-step 2 of 8 for ticket 001 (= TB-B tracer-bullet).
 //  Refs: .scratch/2026-09-03-hermes-core-translation/spec.md §3.1, §3.2, §6.4
 //
 

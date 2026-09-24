@@ -1,7 +1,7 @@
 //
 //  PreviewPane+AdaptiveColumns.swift · Wenshu · v1.28 C3.3.1
 //
-//  v1.28 C3.3.1: extract the `adaptiveColumns(width:)` pure function from
+// C3.3.1: extract the `adaptiveColumns(width:)` pure function from
 //  PreviewPane.swift into a focused extension file.
 //
 //  Originally at PreviewPane.swift:1335-1350 (= 15 LOC including docstring).

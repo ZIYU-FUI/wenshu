@@ -120,7 +120,7 @@ final class ChatViewModel {
     // The corresponding `[wenshu.subagent]` + `[wenshu.agent] turn`
     // marker emission (= ConversationLoop + WenshuConductor) and
     // marker-parsing block below are also removed.
-    // v2.00 retention (= keep cancelRequested):
+    // retention (= keep cancelRequested):
     var cancelRequested: Bool = false
     /// T67-MUTE-SHORTCUT (2026-09-18): ⌘. handler (= cancel
     /// the currently-streaming assistant reply). Sets the
@@ -248,7 +248,7 @@ final class ChatViewModel {
         Task { await self.loadHistory() }
     }
 
-    // B-05 build fix: demote from `public init` to internal `init`. AppState
+    // build fix: demote from `public init` to internal `init`. AppState
     // is internal (= `final class AppState`, no access modifier), and a
     // `public init` cannot accept an internal type as a parameter. Both
     // call sites (= the App.swift:1528 reference is stale per the Q2 boss
@@ -308,7 +308,7 @@ final class ChatViewModel {
     /// at init (= production path); tests inject a fake.
     private let repository: ChatRepositoryProtocol
 
-    // CHATBOX-003 (2026-09-04): shared AsyncDelegationRegistry used by
+    // (2026-09-04): shared AsyncDelegationRegistry used by
     // the chat spawn delegation flow. The registry actor itself lives
     // at `Core/Agent/Conversation/AsyncDelegation.swift` (= non-MainActor
     // actor isolation; = its methods must be awaited).
@@ -411,7 +411,7 @@ final class ChatViewModel {
             return
         }
 
-        // CHATBOX-003 (2026-09-04): try @-mention subagent trigger
+        // (2026-09-04): try @-mention subagent trigger
         // FIRST (= higher priority than slash commands, because @slug
         // syntax is more specific — it names a known sub-agent).
         // Multiple mentions in one input spawn multiple sub-agents
@@ -446,7 +446,7 @@ final class ChatViewModel {
             return
         }
 
-        // CHATBOX-001: try explicit slash command / keyword match FIRST.
+        // try explicit slash command / keyword match FIRST.
         // SkillAdapter.parseAndInvoke throws SkillAdapterError.noMatch when
         // neither slash nor keyword resolves — we catch + fall through.
         do {

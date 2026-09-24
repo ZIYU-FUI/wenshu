@@ -3,7 +3,7 @@ import AppKit
 
 /// AppDelegate: WenshuCore runtime + macOS app init
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
-    // v0.24 bossverificationfix (Boss 8/25 OOB Spec axis GAP): one-time migration
+    // bossverificationfix (Boss 8/25 OOB Spec axis GAP): one-time migration
     // from legacy chat.sqlite to warehouse. Preserves chat history when
     // user first picks a .ws warehouse in onboarding (= avoids silent data loss).
     // Idempotent: if legacy file doesn't exist or new file already exists, skip.
@@ -38,7 +38,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // v0.72 Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone under Swift 6
+    // Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone under Swift 6
     // strict concurrency). Replaced with @MainActor accessors (= Swift 6 strict concurrency; = NSLock not needed) (= safe under any
     // concurrency model). Reads via @MainActor; writes via @MainActor.
     @MainActor private static var _openSettings: OpenSettingsAction?
@@ -77,7 +77,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     // Chat history now lives in
     // WSChatRepository.shared (= @MainActor SwiftData wrapper).
     // No per-actor sqlite3 bootstrap needed.
-    // v0.72 Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone).
+    // Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone).
     // Replaced with @MainActor accessor (= safe; = SwiftUI-compliant).
     @MainActor private static var _sharedConductor: WenshuConductor?
     @MainActor static var sharedConductor: WenshuConductor? {
@@ -111,11 +111,11 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         //
         // (Phase 5 ticket 10a removed ChatSessionStore from this bootstrap)
         // unsafeMutablePointer / instance var — static let yes immutable,
-// v0.24 bossverificationfix (Boss 8/24 'chat, '):
+// bossverificationfix (Boss 8/24 'chat, '):
         // add NSLog for chat store init + bootstrap errors (silent catch
         // makes debugging hard), and post .wenshuChatStoreReady notification
         // so ChatView can retry load when store becomes available.
-        // v0.72 SwiftData migration history (= per v1.55 sqlite3-zero arc, boss 2026-09-20
+        // SwiftData migration history (= per v1.55 sqlite3-zero arc, boss 2026-09-20
         // OOB): WSMigrationRunner + WSMigrationPerStore were removed 2026-09-21 (= boss
         // 2026-09-21 '数据库不要在用sqlite3 了'). Legacy `.ws/chat.sqlite` files (= pre-v0.72
         // data written by the deleted ChatSessionStore actor) are now treated as
@@ -129,7 +129,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // Post-v1.55d that call is gone (= no code path left; = the entire
         // legacy-import mechanism is deleted alongside the file removal).
 
-        // v0.24 bossverificationfix (Boss 8/25 OOB 'yes .ws file'):
+        // bossverificationfix (Boss 8/25 OOB 'yes .ws file'):
         // Chat persistence location = wenshu warehouse (anbaiqiang.ws/) if set,
         // else fall back to legacy ~/Library/Application Support/wenshu/chat.sqlite.
         // Per boss spec: chat data must be part of the warehouse file so the
@@ -185,7 +185,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             WSPersistenceContainer.activateWarehouseContainer(nil)
         }
 
-        // v0.24 bossverificationfix (Boss 8/25 OOB Spec axis GAP): one-time migration
+        // bossverificationfix (Boss 8/25 OOB Spec axis GAP): one-time migration
         // from legacy chat.sqlite to warehouse (preserves chat history when
         // user first picks a .ws warehouse in onboarding).
         if let warehouse = warehousePath {

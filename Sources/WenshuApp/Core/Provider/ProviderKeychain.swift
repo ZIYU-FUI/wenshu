@@ -172,7 +172,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
         // (= the canonical Apple Security framework keychain path; = the
         // canonical wenshu architecture per AGENTS.md §11 hard rule 'API
         // keys via AppleKeychain NEVER plaintext SQLite'; = the previous
-        // B-10 emergency revert stubbed this out because ad-hoc signed
+        // emergency revert stubbed this out because ad-hoc signed
         // wenshu.app triggered SecurityAgent modal + SIGABRT on the
         // Settings window). The canonical Apple HIG path for API keys =
         // the user's macOS Keychain = persists across app restarts +
@@ -276,9 +276,9 @@ final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
 /// after B-10 revert; was AppleKeychainStore before the 2026-09-04 emergency
 /// in-place revert). Tests override `backend` via `setBackendForTesting()`.
 enum ProviderKeychain {
-    // B-10 phase A (Boss 2026-09-04): entitlement embed done (= fix
+    // phase A (Boss 2026-09-04): entitlement embed done (= fix
     // codesign --entitlements in build-app.sh, commit 71349be49).
-    // B-10 phase B (= real AppleKeychainStore default): pending
+    // phase B (= real AppleKeychainStore default): pending
     // Apple Developer Program paid enrollment. Ad-hoc codesign without
     // a TeamIdentifier triggers macOS Security framework to SIGKILL
     // the process on SecItemAdd (= exit code -9), not a graceful
@@ -287,7 +287,7 @@ enum ProviderKeychain {
     // to InMemory for cua / dev / CI contexts. Tests inject InMemory
     // via setBackendForTesting().
     //
-    // B-10 phase B activation (Boss 2026-09-04 OOB 'skipverification,'):
+    // phase B activation (Boss 2026-09-04 OOB 'skipverification,'):
     // `B10_PHASE_B_ENABLED` Swift compile flag, when set via build setting
     // (`SWIFT_ACTIVE_COMPILATION_CONDITIONS += B10_PHASE_B_ENABLED`), switches
     // the default backend to `AppleKeychainStore` IF the running binary carries

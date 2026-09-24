@@ -1,6 +1,6 @@
 // ChatZoneView.swift · Wenshu · v1.91b
 //
-// v1.91b (2026-09-23): boss '聊天区的，文字回显层，是否可以变成左栏
+// b (2026-09-23): boss '聊天区的，文字回显层，是否可以变成左栏
 // 的颜色参数。没有实现，是不是被限制了，是不是 NSV 框架里限制了，
 // 你参数加的位置没有生效'. v1.91 added `.background(DesignTokens.
 // sidebarBackground)` to ChatView's inner ScrollView; = that only
@@ -16,7 +16,7 @@
 // ChatZoneView = the chat-zone root container (= AI provider model
 // selector + ChatView + HelpTextOverlay).
 //
-// v1.0.0-m1-shell boss 2026-09-10 OOB 'drop the chat zone's top bar entirely, including the archive
+// -m1-shell boss 2026-09-10 OOB 'drop the chat zone's top bar entirely, including the archive
 // icon button and the tabs — basically the whole top bar. For the zone's internal padding, if the API
 // provides one, let the API handle the defaults':
 // the chat zone no longer hosts any top-bar chrome (= no
@@ -51,7 +51,7 @@ struct ChatZoneView: View {
     // ShellState. Read goes through `shell` (= the
     // @Environment-tracked Observable instance).
     @Environment(ShellState.self) private var shell
-    // v1.79 chat-by-book: WenshuLibrary is the canonical source for
+    // chat-by-book: WenshuLibrary is the canonical source for
     // selectedBookId (= see WenshuLibrary.swift L74/L78/L198/L218-
     // L219/L224 = the only places selectedBookId is mutated).
     // Threaded through so ChatZoneView can observe it via
@@ -74,14 +74,14 @@ struct ChatZoneView: View {
     }
 
     var body: some View {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'chat zone doesn't fill the width':
+        // -m1-shell boss 2026-09-10 OOB 'chat zone doesn't fill the width':
         // apply `.frame(maxWidth: .infinity, maxHeight: .infinity)` to
         // the outer VStack so the chat zone fills the full width
         // and height of its NSSplitViewItem slot.
         VStack(spacing: 0) {
             ZStack {
                 ChatView(conductor: conductor, vm: vm)
-                // v1.68 boss 2026-09-18 'chat zone empty state still
+                // boss 2026-09-18 'chat zone empty state still
                 // shows after configuring key': switch the empty
                 // state gate from `appState.llmModel.isEmpty` (=
                 // checks the SELECTED MODEL ID, not whether a
@@ -123,7 +123,7 @@ struct ChatZoneView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v1.93 (2026-09-23): boss OOB '我们 UI 有多层，windows 层，
+        // (2026-09-23): boss OOB '我们 UI 有多层，windows 层，
         // NVS层，聊天回显层，逻辑上，应该是 NVS 层，赋予各区说背景色
         // 和风格。但现在的颜色应该是 NVS 默认的。不知道能否修改。
         // 如果不能，那 windows\NVS 聊天区，变成透明的，聊天回显层
@@ -165,10 +165,10 @@ struct ChatZoneView: View {
         //      = single sidebar surface layer, identical to the
         //      left sidebar).
         //
-        // v1.93 keeps the v1.91d frame(...) wrap (= NSViewRepresentable
+        // keeps the v1.91d frame(...) wrap (= NSViewRepresentable
         // in .background() requires explicit frame; = same SwiftUI/AppKit
         // bridging quirk documented in v1.91d).
-        // v1.95 (2026-09-23): boss '聊天区背景颜色没有实现' OOB follow-up.
+        // (2026-09-23): boss '聊天区背景颜色没有实现' OOB follow-up.
 // Replace the v1.93 VisualEffectBlur(.sidebar, .withinWindow) with
 // the explicit `DesignTokens.sidebarBackground` Color (= the
 // .controlBackgroundColor Apple HIG sidebar tint).
@@ -189,7 +189,7 @@ struct ChatZoneView: View {
 //     overlay. No more visual effect view gradient under us.
         .background(DesignTokens.sidebarBackground)
         .environment(appState)
-        // v1.79 chat-by-book (after wire-up audit 2026-09-24):
+        // chat-by-book (after wire-up audit 2026-09-24):
         // the canonical source for the user's active book is
         // `shell.sidebarSelection` (= mutated by AppleSidebarView's
         // `forwardSelection(_:)` whenever the user clicks a row; = see

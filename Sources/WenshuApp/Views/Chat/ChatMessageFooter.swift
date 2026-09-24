@@ -114,7 +114,7 @@ struct ChatMessageFooter: View {
             }
         }
         .padding(.top, 2)
-        // v1.65-cleanup E6: vertical 2 PT top (= row separator gap;
+        // -cleanup E6: vertical 2 PT top (= row separator gap;
         // = matches Apple HIG caption2 metadata vertical gap).
         .frame(maxWidth: .infinity, alignment: .leading)
         // T53-FOOTER-COMBO-TOOLTIP: combined tooltip on the

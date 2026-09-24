@@ -82,7 +82,7 @@ enum WikiLinkNavigation {
     /// Returns nil when no match is found. The host surfaces a
     /// no-op (= the engine already rendered the link in dashed
     /// gray to indicate "no target").
-    // HERMES-AGENT-SMC-READYNESS build-blocker: `BookStore` is an
+    // build-blocker: `BookStore` is an
     // internal type (= no `public` access modifier on its class
     // declaration). A `public` function cannot accept an internal
     // parameter type per Swift's access-control rules. Demoting this
@@ -183,7 +183,7 @@ enum DraftPersistence {
     /// (= a UUID) keeps the filename stable across saves (= no
     /// rename race on every keystroke) and unique within the
     /// chapters/ folder.
-    // HERMES-AGENT-SMC-READYNESS build-blocker: see the access-
+    // build-blocker: see the access-
     // control note on `handle(...)` above. Same rationale: demote
     // to internal so the build proceeds.
     static func proposedPath(

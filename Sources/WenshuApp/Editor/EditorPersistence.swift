@@ -2,7 +2,7 @@
 //  EditorPersistence.swift · Wenshu · v1.70 editor-mvvm T2a
 //
 //  Extracted from `EditorPlaceholder.swift` (= v0.34 B-21 + B-22 +
-//  B-23 + SMC ticket 003 disk IO + auto-save + conflict-backup).
+// + SMC ticket 003 disk IO + auto-save + conflict-backup).
 //  Lives at the module's Editor layer (= the same layer as
 //  `DraftPersistence`, `WikiLinkNavigation`, `EditorFileWatcher`).
 //
@@ -43,7 +43,7 @@
 //  Internal (= not public) because `EditorTab` itself is internal
 //  (= AppState.swift:487 = `final class` with no access modifier).
 //  Swift refuses `public func f(tab: EditorTab)`. Matches the
-//  v0.34 + T1a pattern.
+// + T1a pattern.
 //
 
 import Foundation

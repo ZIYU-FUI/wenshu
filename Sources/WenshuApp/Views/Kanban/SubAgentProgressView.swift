@@ -59,7 +59,7 @@ struct SubAgentProgressView: View {
             }
         }
         .padding()
-        // v0.24 bossverificationfix (2026-08-24): removed fixed minWidth/minHeight.
+        // bossverificationfix (2026-08-24): removed fixed minWidth/minHeight.
         // Tab content must follow zone size, not force zone to be 480x320.
         // Boss 8/24 feedback: 'tab viewchangechangeregionsize, autoregionsize'.
         .task(id: refreshTrigger) {
@@ -101,8 +101,8 @@ private struct TaskRowView: View {
             Spacer()
         }
         .padding(DesignTokens.chromePaddingVertical)
-        // v0.28 followup Boss UX round 24: .regularMaterial replaces
-        // v0.40 boss real-device test 2026-09-07: removed
+        // followup Boss UX round 24: .regularMaterial replaces
+        // boss real-device test 2026-09-07: removed
         // .regularMaterial (= Liquid Glass sub-agent card);
         // now uses Color.clear (= no background).
         .background(Color.clear)

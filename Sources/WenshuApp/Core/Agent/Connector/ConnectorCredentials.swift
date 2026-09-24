@@ -13,7 +13,7 @@
 //  This is the minimum credential surface needed by LLMConnector.send.
 //  Full credential pool with OAuth flow + key rotation lands in ticket 006.
 //
-//  v0.35 sub-step 2 of 8 for ticket 001.
+// sub-step 2 of 8 for ticket 001.
 //
 
 import Foundation

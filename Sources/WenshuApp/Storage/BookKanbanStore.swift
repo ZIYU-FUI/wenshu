@@ -8,7 +8,7 @@
 //,). v0.26 starts with empty per-book
 // JSON files (per LibraryBootstrapper).
 //
-// B-13 (= boss 2026-09-04 OOB): scope picker lets the user target one of
+// (= boss 2026-09-04 OOB): scope picker lets the user target one of
 // 8 standard sub-folders inside the active book (= `chapters/`,
 // `world/`, ...), the book root, or the reference library. The scope is
 // a view filter, not a data-layer change: each scope variant writes to a
@@ -19,9 +19,9 @@
 //   - ... (other folders)
 //   - .referenceLibrary → <dir>/library-kanban.json
 //
-// v0.26 FCP library replica spec at
+// FCP library replica spec at
 // `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 026.
-// B-13 spec at `.scratch/2026-09-04-b-13-scope-unification.md`.
+// spec at `.scratch/2026-09-04-b-13-scope-unification.md`.
 
 import Foundation
 
@@ -75,7 +75,7 @@ struct BookKanbanStore: BookDataStoring {
     /// name (= `kanban.json` / `kanban-<folder>.json` / `library-kanban.json`).
     let scope: TaskScope
 
-    // B-13 backward-compat init: pre-B-13 callers (= existing tests +
+    // backward-compat init: pre-B-13 callers (= existing tests +
     // KanbanView in the middle of a code review) used `init(bookId:
     // bookDirectory:)`. Preserved as a thin wrapper that defaults
     // `scope = .book` and `directory = bookDirectory` (= unchanged

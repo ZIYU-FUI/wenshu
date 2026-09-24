@@ -1,6 +1,6 @@
 // Sources/WenshuApp/State/AppState.swift
 //
-// v0.30 boss 8/31 OOB "option A for cross-zone communication"
+// boss 8/31 OOB "option A for cross-zone communication"
 // (= adopted = global @Observable + @Environment injection).
 // This file centralizes cross-zone UI state (formerly scattered
 // as @Binding across 4 view layers = WorkspaceView -> PaneRenderer
@@ -77,7 +77,7 @@ final class AppState {
     // a separate concern from cross-zone state + openTabs +
     // llmModel = the only remaining AppState contents).
 
-    // v1.0.0-m1-shell boss 2026-09-10 OOB 'the sidebar tree syntax does not match
+    // -m1-shell boss 2026-09-10 OOB 'the sidebar tree syntax does not match
     // Apple API': 3 sheet-request triggers moved from
     // NotificationCenter (.wenshuNewBookRequested /
     // .wenshuNewShelfRequested / .wenshuChoiceRequested) into
@@ -101,7 +101,7 @@ final class AppState {
     // flips its local @State showXSheet). Same pattern in 3
     // places, all bundled on SheetRequestState.
 
-    // v1.0.0-m1-shell boss 2026-09-10 OOB 'global search': promote
+    // -m1-shell boss 2026-09-10 OOB 'global search': promote
     // the search text to AppState (= a single source of truth
     // shared across all `.searchable` modifiers attached to
     // different column views). Per Apple SwiftUI docs, multiple
@@ -127,13 +127,13 @@ final class AppState {
     // (= current callers: 0 readers in this commit; = future
     // chrome widget reads from `editorCounters.wordCount`).
 
-    // v0.34 B-24 (= boss 9/2 OOB 'multi-tab editor, Safari style'):
+    // (= boss 9/2 OOB 'multi-tab editor, Safari style'):
     // open document tabs in the editor zone. Each tab = one open
     // document (= independent draft, mode, auto-save task, file
     // watcher). activeTabId identifies the currently focused tab.
     // Single source of truth across views (= TabContentDispatcher,
     // EditorPlaceholder, any future cross-zone tab bar).
-    // v0.40 boss 9/7 OOB 'delete, ': persist
+    // boss 9/7 OOB 'delete, ': persist
     // openTabs + activeTabId across launches (= JSON in UserDefaults).
     // Empty array on launch = no persisted tabs = editor zone shows
     // an onboarding hint instead of the samplePreviewBody.
@@ -144,7 +144,7 @@ final class AppState {
     }
     var activeTabId: UUID = UUID() {
         didSet {
-            // v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
+            // 
             // the audit's concern about "activeTabId.didSet not going through
             // the same `.constant(nil)` reset guard" doesn't apply here (=
             // `activeTabId` is `UUID` non-optional; = there's no nil
@@ -211,7 +211,7 @@ final class AppState {
         activeTabId = openTabs[0].id
     }
 
-    // v1.73 tab close button (= boss 2026-09-22 OOB 'TEB 没有叉,
+    // tab close button (= boss 2026-09-22 OOB 'TEB 没有叉,
     // 导致文档只能打开关不掉' + '需要加 X, 同时确保自动保存有用'):
     // the business entry point for the new X button on the editor
     // tab strip (= closes one tab by id; = flushes dirty drafts
@@ -324,7 +324,7 @@ final class AppState {
         // so this assignment does NOT trigger a write back to
         // UserDefaults on launch (= pure read-side migration).
         self.llmModel = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
-        // v0.40 boss 9/7 OOB: restore persisted open tabs BEFORE
+        // boss 9/7 OOB: restore persisted open tabs BEFORE
         // any view reads appState.openTabs (= EditorPlaceholder's
         // .onAppear reads it). Sets openTabs via the regular
         // assignment (= triggers didSet → persistOpenTabs = write
@@ -349,14 +349,14 @@ struct PersistedEditorTab: Codable {
     let draft: String
     let originalBody: String
     let mode: String  // EditorMode.rawValue (= "preview" / "edit")
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
+    // -m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
     // persist the card title (= 'Red Cliffs' / 'Du Fu' etc.) so the
     // tab strip shows the real name after relaunch (= instead of
     // 'preview-sample').
     let title: String?
 }
 
-// v0.34 B-24: per-tab editor state. Holds all data that was previously
+// per-tab editor state. Holds all data that was previously
 // View-local @State on EditorPlaceholder (= draft, originalBody,
 // mode, documentPath, autoSaveTask, fileWatcher). Each tab = one open
 // document with independent state; = when the user opens a 2nd
@@ -374,7 +374,7 @@ final class EditorTab: Identifiable {
     var draft: String
     var originalBody: String
     var mode: EditorMode
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
+    // -m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
     // when openCardInEditor opens a reference-library card (= no
     // documentPath = no absolute path = the ticket 027-35 deferred
     // path-resolution path), the tab strip used to render
@@ -387,7 +387,7 @@ final class EditorTab: Identifiable {
     // precedence as the existing fallback chain).
     var title: String?
 
-    // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
+    // boss 9/7 OOB 'card zoneshouldshowin progress
     // card': capture the scope where this doc was opened
     // from (= drives sidebar selection + preview cards on
     // restore). = .referenceScope(cat) for library refs,
@@ -396,23 +396,23 @@ final class EditorTab: Identifiable {
     // it; = those default to nil = no restore behavior).
     var sourceScope: PreviewScope?
 
-    // v0.34 B-22 (per-tab): auto-save debounce Task. Replaces
+    // (per-tab): auto-save debounce Task. Replaces
     // EditorPlaceholder's View-local autoSaveTask (= that pattern
     // worked for one tab but doesn't survive a tab switch; = the
     // 3-second timer must follow the active tab).
     var autoSaveTask: Task<Void, Never>?
 
-    // v0.34 B-23 (per-tab): file-system watcher (= DispatchSource).
+    // (per-tab): file-system watcher (= DispatchSource).
     // Survives only while the tab is mounted (= cancelled on tab
     // close or documentPath change).
     var fileWatcher: DispatchSourceFileSystemObject?
     var watchedFD: Int32 = -1
 
-    // v0.34 B-23: local notification posted when an external file
+    // local notification posted when an external file
     // change overwrites dirty user edits (= saves them to .local-wenshu-conflict-...md).
     var externalChangeNotice: String?
 
-    // v0.34 ticket 09: dirty-discard alert (= only relevant in edit mode).
+    // ticket 09: dirty-discard alert (= only relevant in edit mode).
     var showDirtyDiscardConfirm: Bool = false
 
     init(
@@ -420,14 +420,14 @@ final class EditorTab: Identifiable {
         documentPath: String?,
         draft: String,
         originalBody: String,
-        // v0.39 ticket 001-A-extended: default to .edit (= was .preview
+        // ticket 001-A-extended: default to .edit (= was .preview
         // in v0.34; = the reason the placeholder tab and any caller that
         // uses the default init landed users in raw-text preview mode
         // rather than the live-styling editor). openCardInEditor passes
         // .edit explicitly too, but this default is the one the placeholder
         // tab + 027-35 document-load ticket use, so it must match.
         mode: EditorMode = .edit,
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
+        // -m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
         // when documentPath is nil (= reference-library entity; =
         // path resolution deferred to ticket 027-35), the tab strip
         // displays `title` (= 'Red Cliffs' / 'Du Fu' etc.) instead of
@@ -444,7 +444,7 @@ final class EditorTab: Identifiable {
         self.title = title
     }
 
-    // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
+    // -m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
     // the canonical display title for a tab (= the value shown in
     // the tab strip). Single source of truth = `EditorTab.displayTitle`
     // (= v0.71 P1 batch 4 dual-axis fix removed the duplicate
@@ -475,7 +475,7 @@ final class EditorTab: Identifiable {
     }
 }
 
-// v0.34 B-24: top-level enum (= EditorTab is a top-level class; = can't
+// top-level enum (= EditorTab is a top-level class; = can't
 // reference nested Mode). Mirrors the previous nested enum (= .preview
 // / .edit) but lifted to module scope. Was: EditorPlaceholder.Mode.
 // Carries iconName + tooltip (= the format-bar / keyboard-shortcut

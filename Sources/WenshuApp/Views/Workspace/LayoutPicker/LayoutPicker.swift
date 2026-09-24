@@ -154,7 +154,7 @@ struct LayoutPicker: View {
             }
         }
         .frame(width: DesignTokens.layoutPickerWidth)
-        // v0.28 ticket 028-009: confirmation dialog for deleting
+        // ticket 028-009: confirmation dialog for deleting
         // a user-saved preset (= .confirmationDialog with
         // presenting: the preset; macOS-standard destructive /
         // cancel role buttons). Lives at the body level so it's

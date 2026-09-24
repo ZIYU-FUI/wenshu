@@ -1,7 +1,7 @@
 //
 //  PaneNSController+ZoneVisibility.swift · Wenshu · v1.28 C3.2.2
 //
-//  v1.28 C3.2.2: extract the 3 zone-visibility helpers (= allZoneSlots,
+// C3.2.2: extract the 3 zone-visibility helpers (= allZoneSlots,
 //  isZoneVisible, isZoneVisibleRecursive) from PaneNSController.swift into
 //  a focused extension file.
 //

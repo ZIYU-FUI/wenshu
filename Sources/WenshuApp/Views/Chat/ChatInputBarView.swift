@@ -1,19 +1,19 @@
 //
 //  ChatInputBarView.swift · Wenshu · v1.90
 //
-//  v1.90 (2026-09-23): boss 'token 计数的那个底栏，需要加上一个背景
+// (2026-09-23): boss 'token 计数的那个底栏，需要加上一个背景
 //  色，现在是全透明的，或者说是没有背景的，加上一个背景'. Add
 //  `.background(.bar)` (= Apple HIG sidebar/chrome material; =
 //  translucent + Light/Dark auto-adapts; = same primitive the sidebar
 // 底栏 inherits).
 //
-//  v1.87 (2026-09-23): divider co-located with tokenCountFooter (=
+// (2026-09-23): divider co-located with tokenCountFooter (=
 //  same VStack(spacing: 0) { Divider(); label } pattern as sidebar
 //  L1760 `sidebarBottomNewButton`; = boss '分割线比底栏高了一些' = the
 //  divider used to sit directly below inputRow = visually disconnected
 //  from the footer; = moved into the footer group).
 //
-//  v1.86 (2026-09-23): boss spec = match the sidebar's bottom "+ 新建"
+// (2026-09-23): boss spec = match the sidebar's bottom "+ 新建"
 //  button style/size verbatim. Reference: NewLibraryOutlineView.swift
 //  L1760 `sidebarBottomNewButton`. Changes to the tokenCountFooter:
 //    - .footnote → .callout        (= sidebar's exact text size)
@@ -25,15 +25,15 @@
 //  Boss 2026-09-23 '样式，尺寸照抄就好' (= 'just copy the style and
 //  size from the sidebar').
 //
-//  v1.85 (2026-09-23): restored the token-usage bottom bar (= boss
+// (2026-09-23): restored the token-usage bottom bar (= boss
 //  2026-09-23 '那个 token 计数的底栏没有了，刚你写出来过，挺好的。
 //  写回来吧'). Did NOT restore the manual compress button (= confirmed
 //  automatic via ConversationLoop.swift:512; = boss 2026-09-23 '如果
 //  可以自动，那个按钮就不用写回来了').
 //
-//  v1.84 (2026-09-23): boss spec = chat column bottom = single input row +
+// (2026-09-23): boss spec = chat column bottom = single input row +
 //  divider hairline (= Apple HIG sidebar-bottom-accessory separator).
-//  v1.83 = clean rewrite. v1.82 = single-row HStack. v1.81 = 3-layer split.
+// = clean rewrite. v1.82 = single-row HStack. v1.81 = 3-layer split.
 //
 //  Dead helper classes deleted (= no production caller):
 //    - ChatAttachButton.swift (= replaced by inline GlassIconButton)
@@ -72,7 +72,7 @@ struct ChatInputBarView: View {
     @Binding var isDropTargeted: Bool
 
     var body: some View {
-        // v1.85 (2026-09-23): boss restored the token-usage bottom bar
+        // (2026-09-23): boss restored the token-usage bottom bar
         // (= boss 2026-09-23 '那个 token 计数的底栏没有了，刚你写出来过，
         // 挺好的。写回来吧'). Manual compress button is NOT restored
         // (= ConversationLoop.swift:512 runs ConversationCompression.
@@ -115,7 +115,7 @@ struct ChatInputBarView: View {
     ///   2. Below threshold   → "N tokens used" in `.secondary` tone
     ///   3. Over threshold    → "N / M tokens (P%)" in `.orange` tone
     private var tokenCountFooter: some View {
-        // v1.86 (2026-09-23): boss spec = match the sidebar's bottom
+        // (2026-09-23): boss spec = match the sidebar's bottom
         // "+ 新建" button style/size verbatim (= boss '样式，尺寸照抄
         // 就好' = 'just copy the style and size from the sidebar').
         // Reference: NewLibraryOutlineView.swift L1760 `sidebarBottomNewButton`.
@@ -135,7 +135,7 @@ struct ChatInputBarView: View {
         //   - .foregroundStyle(.secondary) for the below-threshold label
         //     (= matches sidebar Image + .secondary; = the orange over-
         //     threshold branch keeps its warning tone).
-        // v1.85: T33-ALWAYS-SHOW-COMPRESSION behavior — always visible
+        // T33-ALWAYS-SHOW-COMPRESSION behavior — always visible
         // (= matches Apple Mail attachment-size badge = the user always
         // knows how much room they have).
         VStack(spacing: 0) {
@@ -143,7 +143,7 @@ struct ChatInputBarView: View {
             HStack(spacing: 6) {
                 if vm.contextUsed >= tokenCompressionContextThreshold {
                     // Over-threshold warning (orange).
-                    // v1.95 (2026-09-23): localized.
+                    // (2026-09-23): localized.
                     // en: "%d / %d tokens (%d%%)" / zh-Hans: "已使用 %d / %d tokens（%d%%）".
                     Text(WenshuI18n.tf("chat.input.tokens_used.over_threshold",
                                        vm.contextUsed,
@@ -153,7 +153,7 @@ struct ChatInputBarView: View {
                         .foregroundStyle(.orange)
                 } else {
                     // Below threshold (quiet secondary).
-                    // v1.95 (2026-09-23): boss '上下文用量的文字改中文'.
+                    // (2026-09-23): boss '上下文用量的文字改中文'.
                     // en: "%d tokens used" / zh-Hans: "已使用 %d tokens".
                     Text(WenshuI18n.tf("chat.input.tokens_used",
                                        vm.contextUsed))
@@ -165,7 +165,7 @@ struct ChatInputBarView: View {
             .padding(.vertical, 8)
             .padding(.horizontal, 8)
         }
-        // v1.90 (2026-09-23): boss 'token 计数的那个底栏，需要加上一个
+        // (2026-09-23): boss 'token 计数的那个底栏，需要加上一个
         // 背景色，现在是全透明的，或者说是没有背景的，加上一个背景'.
         // Use Apple HIG `.bar` material (= the macOS 27 sidebar/chrome
         // tint; = the same primitive the outer sidebar uses; =
@@ -215,7 +215,7 @@ struct ChatInputBarView: View {
     ///   6. 按钮 (scope = long-running goal, ⌘⇧G)
     ///   7. 按钮 (paperplane = send, ⌘↩)
     private var inputRow: some View {
-        // v1.96 (2026-09-23): boss '10PT｜按钮｜10PT｜按钮｜10PT｜按钮｜10PT｜聊天框
+        // (2026-09-23): boss '10PT｜按钮｜10PT｜按钮｜10PT｜按钮｜10PT｜聊天框
         // （自动拉宽）｜10PT｜按钮｜10PT｜按钮｜10PT' OOB. Apple Messages
         // 3-left + 2-right layout (= info/options left, action right;
         // = the canonical chat input row spec).
@@ -282,7 +282,7 @@ struct ChatInputBarView: View {
 
     private var agentPathButton: some View {
         GlassIconButton(systemName: "sparkles", help: "Agent path") {
-            // v2.03 (2026-09-23): display-only indicator (= no action).
+            // (2026-09-23): display-only indicator (= no action).
             // Code-review finding #14 flagged a stale comment that
             // referenced a non-existent `vm.activeAgentPath` property
             // (= no such field on ChatViewModel). Replace with the
@@ -326,7 +326,7 @@ struct ChatInputBarView: View {
         )
         .lineLimit(1)
         .textFieldStyle(.plain)
-        // v1.97 (2026-09-23): boss '输入消息...距离聊天框左边需要加个 10PT'.
+        // (2026-09-23): boss '输入消息...距离聊天框左边需要加个 10PT'.
         // Apple Messages chat input pattern: the placeholder /
         // typed text starts 10 PT from the inner-left of the
         // capsule (= the SF Symbol icons in macOS Messages chat

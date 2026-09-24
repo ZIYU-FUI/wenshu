@@ -1,6 +1,6 @@
 //
 //  MinimaxConnector.swift · Wenshu · v0.35 ticket 001 sub-step 7
-//                                      TICKET-HERMES-GAP-002 (request marshaling extracted)
+// (request marshaling extracted)
 //
 //  Minimax cn connector (= thin Anthropic-compatible wire format wrapper).
 //
@@ -30,7 +30,7 @@
 //  `AnthropicConnector` (= `decodeAnthropicResponse`) since Minimax
 //  returns Anthropic-shaped content blocks.
 //
-//  v0.35 sub-step 7 of 8 for ticket 001.
+// sub-step 7 of 8 for ticket 001.
 //
 
 import Foundation

@@ -14,7 +14,7 @@
 //    - manualTrigger(messages:) for explicit user-initiated
 //      compression (= ChatView manual button in sub-step 5)
 //
-//  v0.35 ticket 003 sub-step 2 of N.
+// ticket 003 sub-step 2 of N.
 //
 
 import Foundation

@@ -1,7 +1,7 @@
 //
 //  HermesTodoTool.swift · Wenshu · HERMES-SUBSYSTEM-4 (ticket 026 step 4)
 //
-//  HERMES-SUBSYSTEM-4 (todo) FULL 1:1 port of /Volumes/ANAN/.hermes/tools/
+// (todo) FULL 1:1 port of /Volumes/ANAN/.hermes/tools/
 //  todo_tool.py (330 LOC). This is the LLM internal planning list (= the
 //  agent's scratchpad that lives on AIAgent and is re-injected after
 //  context compression). NOT the wenshu-side user-facing persisted

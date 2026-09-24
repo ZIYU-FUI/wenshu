@@ -21,7 +21,7 @@
 //      context actions.
 //    - Empty state when no book selected / no items.
 //
-//  B-13 (= boss 2026-09-04 OOB "both Kanban views have the same problem"): the scope
+// (= boss 2026-09-04 OOB "both Kanban views have the same problem"): the scope
 //  picker (= .menu Picker over the 8 standard sub-folders + book root
 //  + reference library) drives which JSON file the view reads from /
 //  writes to. Scope is a view filter, not a data-layer change.
@@ -84,7 +84,7 @@ struct TodoListView: View {
             content
         }
         .padding(DesignTokens.chromePaddingVertical)
-        // v0.24 boss acceptance fix: flexible sizing (zone size controlled by splitter, not view).
+        // boss acceptance fix: flexible sizing (zone size controlled by splitter, not view).
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
         .onChange(of: scope) { _, _ in reloadFromDisk() }

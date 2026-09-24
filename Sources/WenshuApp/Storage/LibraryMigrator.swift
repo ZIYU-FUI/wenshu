@@ -45,7 +45,7 @@ struct LibraryMigrator: Sendable {
         // 1. Idempotency check: read Info.plist; if WSSchemaVersion = 1
         // (= current), skip migration entirely.
         if try isAlreadyCurrentSchema() {
-            // v0.29: BUT we still want to run helpDocUpgrade() to
+            // BUT we still want to run helpDocUpgrade() to
             // backfill the 5 v0.29 .md files into the existing default
             // book (= if user already has v0.26+v default book with
             // only 1 old help-doc, upgrade to 5 files).
@@ -242,7 +242,7 @@ struct LibraryMigrator: Sendable {
         // book.json (= the book metadata).
         let defaultBook = Book(
             id: defaultBookId,
-            // v0.30 boss 8/31 OOB (sidebar feedback bundle #1):
+            // boss 8/31 OOB (sidebar feedback bundle #1):
             // renamed default book title from ' to '
             // (= to disambiguate from the parent shelf, which has the
             // same ' name; the default book contains the

@@ -1,6 +1,6 @@
 // Sources/WenshuApp/Storage/EntityClassifier.swift
 //
-// v0.29 boss 2026-08-30 OOB: 'entities need to be organized into multiple folders by category, here we display
+// boss 2026-08-30 OOB: 'entities need to be organized into multiple folders by category, here we display
 // these category folders directly, e.g. history, science, such categories,
 // you can refer to the library classification system, this one rule, auto-classify entities. Category folders grow with the content,
 // not all at once laid out':
@@ -170,7 +170,7 @@ struct EntityClassifier: Sendable {
         let categoriesList = EntityCategory.allCases
             .map { "\($0.rawValue) = \($0.displayName)" }
             .joined(separator: "\n")
-        // v0.30: include EntityType (= 9 types) so LLM can classify both
+        // include EntityType (= 9 types) so LLM can classify both
         // the subject area AND the object nature.
         let typesList = EntityType.allCases
             .map { "\($0.promptNumber) = \($0.displayName): \($0.description)" }

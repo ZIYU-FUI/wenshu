@@ -9,7 +9,7 @@
 // `<.ws>/reference-library/<layer>/<ref-uuid>.md` where <layer> is one of
 // the 4 LLM Wiki layers (raw / entities / abstracts / indexes).
 //
-// v0.26 ships only `raw/` (user imports) + `entities/` (user-facing, the
+// ships only `raw/` (user imports) + `entities/` (user-facing, the
 // only visible layer). `abstracts/` + `indexes/` are LLM-derived layers
 // (= LLM-driven entity extraction from chat).
 //
@@ -151,7 +151,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         layer = try c.decode(ReferenceLayer.self, forKey: .layer)
         category = try c.decodeIfPresent(EntityCategory.self, forKey: .category)
         subcategory = try c.decodeIfPresent(String.self, forKey: .subcategory)
-        // v0.30: entityType may be encoded as String ("character") OR Int (1).
+        // entityType may be encoded as String ("character") OR Int (1).
         // Try Int first (= matches seed-script + LLM prompt format), fall
         // back to String (= matches human-readable format).
         if let intVal = try? c.decodeIfPresent(Int.self, forKey: .entityType) {

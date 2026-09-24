@@ -52,7 +52,7 @@ struct AppRootScene: Scene {
         // with .windowToolbarStyle(.unified, showsTitle: false) below for
         // canonical Apple HIG API to hide title slot in unified chrome.
         WindowGroup("") {
-            // v0.44 M8.1: dropped CommandPaletteHost + SettingsEnvironmentCapturer
+            // M8.1: dropped CommandPaletteHost + SettingsEnvironmentCapturer
             // wrappers (= 2 non-Apple-canonical layers between
             // WindowGroup and the root content view). Per Apple
             // canonical 4-layer architecture:
@@ -76,9 +76,9 @@ struct AppRootScene: Scene {
 // intrinsic sizing (= sidebar collapses to 8 PT, inspector content
 // goes blank). Stick with .unified.
         .windowToolbarStyle(.unified)
-        // v0.24 bossverificationfix: .contentMinSize (window doesn't shrink below initial
+        // bossverificationfix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
-        // v0.91 boss 2026-09-10 OOB '1480 is also OK': change to
+        // boss 2026-09-10 OOB '1480 is also OK': change to
         // .contentSize so the defaultSize (= 1480 PT width) is
         // actually applied. The previous `.contentMinSize` made
         // the window grow to fit the NavigationSplitView's
@@ -132,7 +132,7 @@ struct AppRootScene: Scene {
         //     = detail gets 600 PT (= its ideal = the boss's
         //     'middle column's default width' expectation).
         //
-        // v1.67 boss 2026-09-22 OOB '宽度 1400, 高度 980':
+        // boss 2026-09-22 OOB '宽度 1400, 高度 980':
         // initial window frame = 1400x980 logical PT (= Apple HIG
         // default for a 4-column NSV on a 13" laptop). Combined
         // with `.windowResizability(.contentSize)` below + the
@@ -143,7 +143,7 @@ struct AppRootScene: Scene {
         // by the NSV's 1100~1800 PT width + 600~1100 PT height
         // (= drag stops at the NSV's frame boundaries).
         .defaultSize(width: 1400, height: 980)
-        // v1.67 boss 2026-09-22 OOB '位置不是屏幕正中': the
+        // boss 2026-09-22 OOB '位置不是屏幕正中': the
         // defaultSize-only configuration leaves the window's
         // initial position to system-determined behavior (= the
         // previous v1.67 launch had the window anchored to the
@@ -157,7 +157,7 @@ struct AppRootScene: Scene {
         // append `.defaultPosition(.center)` after `.defaultSize`.
         // macOS 13+ (= wenshu target = macOS 27).
         .defaultPosition(.center)
-        // v1.67 boss 2026-09-22 OOB '默认首次启动 1400 980, 用户可以
+        // boss 2026-09-22 OOB '默认首次启动 1400 980, 用户可以
         // 自己设置, 然后就持久化用户的': Apple HIG default restoration
         // (= `.automatic` = SwiftUI default = persist the window frame
         // to the system-level `NSWindow Frame <bundleID>` UserDefaults
@@ -194,7 +194,7 @@ struct AppRootScene: Scene {
         // to accept this trade-off in exchange for the standard
         // macOS zoom gesture working as expected.
         .windowResizability(.contentMinSize)
-        // v0.81 boss 2026-09-10 OOB: the inspector toggle button
+        // boss 2026-09-10 OOB: the inspector toggle button
         // (= ⌥⌘I = SF Symbols 6 'sidebar-right' icon = the canonical
         // Apple toolbar affordance for NavigationSplitView
         // `.inspector`)
@@ -209,11 +209,11 @@ struct AppRootScene: Scene {
             // NSV .inspector(isPresented:) modifier already renders a
             // column-header chevron for inspector visibility; the
             // duplicated View > Inspector menu item (⌥⌘I) was a
-            // v0.48 convenience that bypassed SwiftUI default
+            // convenience that bypassed SwiftUI default
             // behavior. The chevron + drag header are the Apple
             // canonical affordance.
 
-            // v0.40 apple-001 + boss real-device test (2026-09-07) fix:
+            // apple-001 + boss real-device test (2026-09-07) fix:
             // removed the custom `CommandGroup(replacing: .appSettings) { Button("Settings…") }`
             // block. The custom Button was duplicating the macOS system
             // "Settings..." menu item (= which is auto-rendered when the
@@ -241,7 +241,7 @@ struct AppRootScene: Scene {
             // The post-.newItem block below (File > New Project
             // submenu + Import at ⇧⌘I) is preserved.
             CommandGroup(after: .newItem) {
-                // v0.27 macOS-standard cross-component sync (boss 8/27
+                // macOS-standard cross-component sync (boss 8/27
                 // OOB): File → is the macOS-standard menu item
                 // (= Cmd+N shortcut) for the file-creation kind. Per boss
                 // 8/27 standing rule 'a new feature should appear
@@ -282,7 +282,7 @@ struct AppRootScene: Scene {
                         sheetRequests.newShelf += 1
                     }
                 }
-                // v0.27 boss 8/27 OOB: menusync toolbar 'import' button.
+                // boss 8/27 OOB: menusync toolbar 'import' button.
                 // Per boss 8/27 standing rule 'a new feature should
                 // appear everywhere = synced', the menu bar gets a
                 // matching import entry (= macOS-standard File → Import
@@ -324,7 +324,7 @@ struct AppRootScene: Scene {
             // edge of the split view, by clicking the collapse
             // button in the divider, or programmatically.').
             //
-            // v1.28 A1.3: the NSNotification dispatch was removed
+            // A1.3: the NSNotification dispatch was removed
             // (= EditorChatNSController listener deleted in this
             // commit; = only the AppState flag flip remains; = the
             // chat zone visibility is owned by ShellState.chatVisible

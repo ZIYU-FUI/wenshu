@@ -37,7 +37,7 @@ actor SkillKeywordMatcher {
     func register(_ keyword: SkillKeyword) { keywords[keyword.skillName] = keyword }
     func match(input: String, contextFiles: [String] = []) -> SkillKeyword? {
         let text = input.lowercased()
-        // HERMES-AGENT-SMC-READYNESS (v0.41 M1 fix): score each
+        // (v0.41 M1 fix): score each
         // candidate by specificity AND earliest occurrence. Without
         // this fix the substring `text.contains(...)` semantics
         // over-allow matches: a command whose contextPattern (= category

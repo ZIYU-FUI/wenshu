@@ -9,7 +9,7 @@
 //   (= user dragged a folder without Info.plist; LibraryBootstrapper
 //   will recreate it on next launch)
 //
-// v0.26 FCP library replica spec at
+// FCP library replica spec at
 // `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 018.
 
 import Foundation

@@ -15,9 +15,9 @@
 // models stay flat (= no surprise for downstream callers); = the
 // sidebar gets the Apple HIG canonical surface.
 //
-// v1.68b differs from the reverted v1.68a (= same idea, =
+// b differs from the reverted v1.68a (= same idea, =
 // the boss accepted the architecture but rejected the rest of the
-// v1.68a patch because it leaked changes into LibraryStores /
+// a patch because it leaked changes into LibraryStores /
 // BookStore.init / 12 test fixtures — none of those are touched
 // here).
 
@@ -74,12 +74,12 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         case shelf
         case book
         case reference
-        // v1.69 boss 2026-09-22 OOB: reference-library
+        // boss 2026-09-22 OOB: reference-library
         // category parent (= one of 22 CLC top-level categories
         // = EntityCategory). Children = the references in that
         // category.
         case referenceCategory
-        // v1.69bb boss 2026-09-23 OOB '现在把资料库上面也加一条
+        // bb boss 2026-09-23 OOB '现在把资料库上面也加一条
         // 分割线': non-interactive row that renders a horizontal
         // Divider (= the Apple HIG section separator idiom;
         // = same role as the section header divider at the

@@ -1,7 +1,7 @@
 //
 //  ChatInputAttachmentRow.swift · Wenshu · v1.28 C3.4.2
 //
-//  v1.28 C3.4.2: split ChatInputAttachmentRow out of ChatView (= god-view
+// C3.4.2: split ChatInputAttachmentRow out of ChatView (= god-view
 //  split step 2 = the CHATIMG-001 attachment-preview chip row that
 //  sits above the HStack inside the chat input VStack).
 //

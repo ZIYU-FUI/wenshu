@@ -19,7 +19,7 @@ final class WSChatMessage {
     @Attribute(.unique) var id: String
     /// FK to WSSession.sessionID (= string FK, = legacy)
     var sessionID: String
-    // v1.79 chat-by-book row-level split (boss 2026-09-24 OOB):
+    // chat-by-book row-level split (boss 2026-09-24 OOB):
     // denormalized bookID copied from the parent WSSession at write time.
     // Why denormalize (= avoid relying on `$0.session?.bookID` keyPath
     // in SwiftData #Predicate macros, which has historic fragility
@@ -36,7 +36,7 @@ final class WSChatMessage {
     var role: String
     var status: String
     var content: String
-    // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示' (= the
+    // -cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示' (= the
     // assistant reasoning content was streaming into parts[] in memory
     // but never persisted to SwiftData; = on reload from the warehouse
     // .ws/WenshuStore.store, the parts[] was empty and the

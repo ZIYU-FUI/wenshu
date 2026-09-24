@@ -245,7 +245,7 @@ enum DesignTokens {
     /// that wants to match the sidebar one parameter (= token-driven
     /// color = Light/Dark mode + future Apple default updates = 1-line
     /// change instead of N).
-    // v1.95 (2026-09-23): boss '聊天区背景颜色没有实现'.
+    // (2026-09-23): boss '聊天区背景颜色没有实现'.
     // The default `.controlBackgroundColor` (= Apple HIG sidebar
     // tint) produced RGB(28,28,28) in chat zone (= NSSplitViewItem
     // underlying visual effect layer bleed-through) vs. sidebar
@@ -359,7 +359,7 @@ enum DesignTokens {
     /// ConnectorProfileRow.
     static let badgePaddingVertical: CGFloat = 2
 
-    // v0.40 apple-001 Q8 batch 1 site: max height for the Memory +
+    // apple-001 Q8 batch 1 site: max height for the Memory +
     // Skills settings lists (= 200 PT = the 4-row Mac App Store
     // "in-app settings" pattern = enough for a feature toggle, a
     // picker, and a description; beyond this the view should scroll).
@@ -367,14 +367,14 @@ enum DesignTokens {
     // (the 2 Settings panes that previously hard-coded the value).
     static let settingsListMaxHeight: CGFloat = 200
 
-    // v0.40 apple-001 Q8 batch 2 site: font size for the runtime CWD
+    // apple-001 Q8 batch 2 site: font size for the runtime CWD
     // display chip (= `.system(size: 11)` = macOS standard secondary
     // caption = 1 step smaller than body for status-bar meta text).
     // The status-bar font is already \`statusFont\` above; this is
     // a sibling token for the runtime chip's smaller size.
     static let runtimeCwdChipFont: Font = .system(size: 11)
 
-    // v0.40 apple-001 Q8 batch 3 site: monospaced hotkey combo label
+    // apple-001 Q8 batch 3 site: monospaced hotkey combo label
     // font (= .system(size: 12, design: .monospaced) = the 12 PT
     // monospaced style used by hotkey combo chips in the editor
     // toolbar (= FormatToolbarButtons / ParagraphAIToolbarButtons)
@@ -384,7 +384,7 @@ enum DesignTokens {
     // chrome a uniform visual rhythm).
     static let hotkeyComboFont: Font = .system(size: 12, design: .monospaced)
 
-    // v0.40 apple-001 iron-rule-6 batch 1 site: sub-agent progress
+    // apple-001 iron-rule-6 batch 1 site: sub-agent progress
     // card corner radius (= 6 PT, Apple HIG small card standard; = smaller
     // than the 8 PT surfaceCornerRadiusCard because the sub-agent
     // progress card is a transient notification card pattern, = not a
@@ -392,7 +392,7 @@ enum DesignTokens {
     // SubAgentProgressView.
     static let surfaceCornerRadiusProgressCard: CGFloat = 6
 
-    // v0.40 apple-001 iron-rule-6 batch 2 site: tab title font
+    // apple-001 iron-rule-6 batch 2 site: tab title font
     // (= .system(size: 12, design: .monospaced) = monospaced tab
     // title for the WorkspaceView tab strip. The weight is
     // applied per-instance (.regular vs .semibold based on active

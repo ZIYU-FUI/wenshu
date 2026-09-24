@@ -65,7 +65,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
                 // here to keep the protocol free of logging deps), leave
                 // the file alone, and continue loading the rest. The
                 // contract test for "corrupt shelf" is in v0.02.0+ (= not
-                // v0.02.0, since we haven't built a corruption recovery UI
+                // , since we haven't built a corruption recovery UI
                 // yet); land with the FileSystem-specific tests in v39b.
                 continue
             }
@@ -164,8 +164,8 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     }
 
     func search(query: String) throws -> [SearchHit] {
-        // v0.03.0 implementation: NSMetadataQuery on rootURL.
-        // v0.02.0: stub returns [] (= the protocol signature is locked
+        // implementation: NSMetadataQuery on rootURL.
+        // : stub returns [] (= the protocol signature is locked
         // now so the UI can wire up its search bar without an API
         // change later).
         return []
@@ -176,7 +176,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     // Mirrors the shelf ops above: loadBooks reads, saveBook writes
     // atomically (= tmp + replaceItemAt), deleteBook is idempotent.
     // The books/ subdir under each shelf was pre-created by saveShelf in
-    // v0.02.0 (= the v39 commit); this method just writes into it.
+    // (= the v39 commit); this method just writes into it.
 
     func loadBooks(shelfId: UUID) throws -> [Book] {
         let fm = FileManager.default

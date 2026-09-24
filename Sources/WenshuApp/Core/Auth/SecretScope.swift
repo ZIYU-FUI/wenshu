@@ -9,7 +9,7 @@
 //  (AGENTS.md §11) narrows the chain: wenshu is BYOK-only (= provider
 //  keys live in the existing `ProviderKeychain` shim), so the 1Password
 //  CLI / Bitwarden CLI / iCloud Keychain adapters are out of scope for
-//  v0.40 and intentionally not ported (= documented in the gap audit).
+// and intentionally not ported (= documented in the gap audit).
 //
 //  This file ships the canonical SecretScope primitive + 2 source
 //  implementations (EnvVarSource + KeychainSource). Future tickets can
@@ -156,7 +156,7 @@ actor SecretScope {
 // Wenshu-side wins (= per AGENTS.md §11.3):
 //
 // Direct port of hermes `agent/secret_scope.py` per spec §3.1 #33 (= TICKET-
-// HERMES-GAP-005 follow-up). The 3 hermes public functions that are NOT yet
+// follow-up). The 3 hermes public functions that are NOT yet
 // in wenshu land here (= `load_env_file`, `build_profile_secret_scope`,
 // `_is_global_env`). The multiplex-contextvar logic (= `set_secret_scope`,
 // `get_secret`, `_SECRET_SCOPE`, `_MULTIPLEX_ACTIVE`,

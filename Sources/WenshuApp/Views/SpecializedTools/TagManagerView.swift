@@ -103,7 +103,7 @@ struct TagManagerView: View {
     init() {}
 
     var body: some View {
-        // v1.28 C3.7.2: migrate to specializedToolBody modifier (= extracted by
+        // C3.7.2: migrate to specializedToolBody modifier (= extracted by
         // C3.7.1; = the canonical chromePadding + if/else pattern now lives
         // in a single modifier instead of being repeated verbatim across the
         // 6 SpecializedTools files).
@@ -118,7 +118,7 @@ struct TagManagerView: View {
     }
 
     private var emptyState: some View {
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': use

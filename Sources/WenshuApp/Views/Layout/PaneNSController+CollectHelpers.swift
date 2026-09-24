@@ -1,7 +1,7 @@
 //
 //  PaneNSController+CollectHelpers.swift · Wenshu · v1.28 C3.2.5
 //
-//  v1.28 C3.2.5: extract 2 traversal helpers from PaneNSController.swift
+// C3.2.5: extract 2 traversal helpers from PaneNSController.swift
 //  (= countSplitNodesBefore + collectPaneControllers). These 2 helpers
 //  are unique to C3.2.5 (= they were not part of C3.2.1 + C3.2.2 + C3.2.4).
 //

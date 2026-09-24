@@ -1,6 +1,6 @@
 //
 //  AnthropicConnector.swift · Wenshu · v0.35 ticket 004 sub-step 1
-//                                  TICKET-HERMES-GAP-002 (request marshaling extracted)
+// (request marshaling extracted)
 //  Anthropic native connector (= ticket 004 sub-step 1).
 //  P0 connector profile, full wire format support per AGENTS.md §11.2.
 //

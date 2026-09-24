@@ -17,7 +17,7 @@
 //    - Each ticket card: title + status badge + delete button.
 //    - Empty state when no book selected / no tickets.
 //
-// B-13 (= boss 2026-09-04 OOB "kanbanissue"): the scope
+// (= boss 2026-09-04 OOB "kanbanissue"): the scope
 //  picker (= .menu Picker over the 8 standard sub-folders + book root
 //  + reference library) drives which JSON file the view reads from /
 //  writes to. Scope is a view filter, not a data-layer change.
@@ -73,14 +73,14 @@ struct KanbanView: View {
             content
         }
         .padding(DesignTokens.chromePaddingVertical)
-        // v0.24 bossverificationfix: flexible size (was: 480x320 min forcing zone to grow).
+        // bossverificationfix: flexible size (was: 480x320 min forcing zone to grow).
         // "=" per ticket 026 v0.26).
         // B-13: re-load when the active scope changes (= user picked a
         // different sub-folder / reference library from the picker).
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
         .onChange(of: scope) { _, _ in reloadFromDisk() }
-        // v0.40 apple-001 HIG absent batch: .refreshable (= Apple
+        // apple-001 HIG absent batch: .refreshable (= Apple
         // HIG pull-to-refresh standard). On macOS this becomes a
         // refresh button in the toolbar (= Cmd-R equivalent). The
         // reloadFromDisk() action re-reads the kanban.json from disk,

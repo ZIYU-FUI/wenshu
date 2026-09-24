@@ -34,12 +34,12 @@ struct EditorEditContent: View {
     @Binding var draft: String
     let originalBody: String
     let onSave: () -> Void
-    // v0.34 B-18: word count callback (= char count → host writes to
+    // word count callback (= char count → host writes to
     // AppState.editorWordCount, which chrome reads for the bottom-bar
     // left field). Decoupled from AppState so EditorEditContent
     // stays a pure rendering surface (= no @Environment coupling).
     let onWordCountChange: (Int) -> Void
-    // v0.34 B-22: dirty-state change callback. Host routes true (= user
+    // dirty-state change callback. Host routes true (= user
     // started editing) to schedule the auto-save Task; false (= document
     // is saved or just got saved via Cmd+S) to cancel any pending Task.
     // Replaces B-21's onAutoSaveTrigger (= that triggered on every
@@ -47,7 +47,7 @@ struct EditorEditContent: View {
     // 9/2 OOB flagged as inefficient). Decoupled from Task internals
     // (= EditorEditContent doesn't know about Task).
     let onDirtyChange: (Bool) -> Void
-    // v0.39 ticket 001: pre-built markdown engine configuration. Host
+    // ticket 001: pre-built markdown engine configuration. Host
     // (WorkspaceView) builds this once per active-tab switch via
     // WenshuEditorServicesFactory.make(referenceLibraryRoot:activeBookRoot:).
     // The configuration owns the 4 service protocols (= wenshu implements
@@ -55,7 +55,7 @@ struct EditorEditContent: View {
     // HighlighterSwiftBridge is transitive via MarkdownEngineCodeBlocks;
     // LaTeX is not wired in 001).
     let configuration: MarkdownEditorConfiguration
-    // v0.39 ticket 001: stable per-tab id, passed to engine as
+    // ticket 001: stable per-tab id, passed to engine as
     // `documentId` so undo history + pending replacements are scoped
     // to each editor instance (= prevents cross-tab state bleed).
     let draftId: String
@@ -68,7 +68,7 @@ struct EditorEditContent: View {
     private var isDirty: Bool { draft != originalBody }
 
     var body: some View {
-        // v0.39 ticket 001: nodes-app/swift-markdown-engine (TextKit 2,
+        // ticket 001: nodes-app/swift-markdown-engine (TextKit 2,
         // live markdown styling, wiki-link resolution, image embeds,
         // code-fence syntax highlight via transitive HighlighterSwift
         // bridge) replaces Apple SwiftUI TextEditor. The engine's
@@ -98,7 +98,7 @@ struct EditorEditContent: View {
             // whitespace, line breaks, tabs).
             .onChange(of: draft) { _, newValue in
                 onWordCountChange(WordCounter.count(newValue).charactersNoSpaces)
-                // v0.34 B-22: auto-save is NOT triggered on every
+                // auto-save is NOT triggered on every
                 // keystroke (= that wastes memory creating a fresh
                 // Task per keystroke; = Obsidian-style debounce that
                 // the boss 9/2 flagged as inefficient). Instead,
@@ -108,7 +108,7 @@ struct EditorEditContent: View {
                 // every keystroke). The handler is wired below in
                 // .onChange(of: isDirty) → onDirtyChange().
             }
-            // v0.34 B-22: wire auto-save to dirty-state transitions,
+            // wire auto-save to dirty-state transitions,
             // NOT to every keystroke. When dirty becomes true
             // (= user starts editing), schedule a 3-second Task.
             // When dirty becomes false (= either Cmd+S saved the

@@ -1,6 +1,6 @@
 //
 //  GeminiNativeConnector.swift · Wenshu · v0.35 ticket 007
-//                                         TICKET-HERMES-GAP-002 (request marshaling extracted)
+// (request marshaling extracted)
 //
 //  Gemini native connector (= P1, ticket 007).
 //  Google GenAI protocol (= generateContent endpoint).

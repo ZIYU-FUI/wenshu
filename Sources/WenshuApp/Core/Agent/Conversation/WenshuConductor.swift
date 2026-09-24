@@ -745,7 +745,7 @@ actor WenshuConductor {
         // `Task { await registry.register(...) }` blocks at module load (=
         // MIGRATE-TOOLREGISTRY-002); a short settle window absorbs
         // scheduling jitter. v0.71 P1 batch 6 dual-axis followup (=
-        // Q99 Standards axis MED): the audit flagged `Task.sleep` for
+        // Standards axis MED): the audit flagged `Task.sleep` for
         // "blocking the cooperative pool" but `Task.sleep` SUSPENDS the
         // actor (= releases the pool slot) rather than blocking a
         // thread (= the same suspension mechanism that every `await`

@@ -14,11 +14,11 @@
 // The service takes pure closures (= loadShelves, loadBooks,
 // loadReferences) instead of a LibraryStoring reference — = no change
 // to LibraryStores / BookStore.init / 12 test fixtures (= the
-// v1.68a leak that the boss rejected).
+// a leak that the boss rejected).
 //
-// v1.68b differs from the reverted v1.68a (= same idea, =
+// b differs from the reverted v1.68a (= same idea, =
 // the boss accepted the architecture but rejected the rest of the
-// v1.68a patch because it leaked changes into LibraryStores /
+// a patch because it leaked changes into LibraryStores /
 // BookStore.init / 12 test fixtures — none of those are touched
 // here).
 
@@ -77,7 +77,7 @@ final class SidebarService {
         self.loadAllBooks = loadAllBooks
         self.loadReferences = loadReferences
         self.loadFolderDocCount = loadFolderDocCount
-        // v1.69y: optional bookStore reference (= used by
+        // y: optional bookStore reference (= used by
         // create/delete/rename on the persistence layer; =
         // shelvesRoot + per-shelf per-book paths live on bookStore.
         // = nil for unit-test SidebarService instances that
@@ -109,7 +109,7 @@ final class SidebarService {
             let allBooks = (try? loadAllBooks()) ?? []
             let references = (try? loadReferences()) ?? []
 
-            // v1.69y: cache the latest shelves + books (= the
+            // y: cache the latest shelves + books (= the
             // create / rename / delete business methods read
             // these for duplicate-name validation; = avoids
             // refetching on every UI event).
@@ -118,11 +118,11 @@ final class SidebarService {
 
             var roots: [SidebarNode] = []
 
-            // v1.68e boss 2026-09-22 OOB '正常播种五文件夹' (= the
+            // e boss 2026-09-22 OOB '正常播种五文件夹' (= the
             // 5 standard folders under each book stay on disk;
             // = LibraryMigrator seeds them).
             //
-            // v1.68f boss 2026-09-22 OOB '帮助和测试小说下面的
+            // f boss 2026-09-22 OOB '帮助和测试小说下面的
             // 自动生成的目录没有出现，需要实现' (= the default
             // help-doc book + the test novels seeded with '自动
             // 生成' folders on first launch should show their
@@ -163,7 +163,7 @@ final class SidebarService {
             // references; = user can pick a category in the
             // sidebar to filter the middle-column card grid).
             //
-            // v0.29 incremental display rule (= boss 8/30 OOB):
+            // incremental display rule (= boss 8/30 OOB):
             // 'category folders grow with the content, instead of
             // being laid out all at once' — only categories with
             // >= 1 reference are visible. Empty categories are
@@ -209,7 +209,7 @@ final class SidebarService {
                     // Official CLC category — show by its
                     // EntityCategory displayName + icon.
                     //
-                    // v1.69 boss 2026-09-22 OOB '到分类层就够
+                    // boss 2026-09-22 OOB '到分类层就够
                     // 了': leaf rows (= individual references)
                     // are NOT rendered in the sidebar (= the
                     // user browses them via the middle-column
@@ -219,7 +219,7 @@ final class SidebarService {
                     // = single-click routes to the category
                     // scope immediately).
                     //
-                    // v1.69p boss 2026-09-22 OOB '资料库分类,
+                    // p boss 2026-09-22 OOB '资料库分类,
                     // 现在显示是的一个字母. 不是中文分类名':
                     // the user-facing title carries the Chinese
                     // displayName (= what the user reads in the
@@ -277,7 +277,7 @@ final class SidebarService {
                     ))
                 }
             }
-            // v1.69bb boss 2026-09-23 OOB '现在把资料库上面也
+            // bb boss 2026-09-23 OOB '现在把资料库上面也
             // 加一条分割线': insert a non-interactive divider
             // row between the user shelves (= `roots` collected
             // from bookStore.sidebarLoadShelves) and the
@@ -379,7 +379,7 @@ final class SidebarService {
         // books don't collide on the same folder name. Apple HIG
         // List(.sidebar) requires unique row ids within the tree.
         //
-        // v1.69 boss 2026-09-22 OOB: add the "X 项" subtitle
+        // boss 2026-09-22 OOB: add the "X 项" subtitle
         // (= the .md file count under each folder) so the
         // sidebar rows mirror the reference-library row shape
         // (= same 2-line: icon + title + subtitle = icon +

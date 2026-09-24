@@ -214,7 +214,7 @@ enum ToolDispatchInputParser {
 // Direct port of hermes `agent/tool_dispatch_helpers.py` per spec §3.1 #20
 // (= TICKET-HERMES-GAP-008 follow-up). The target file already existed at
 // 207 LOC (= ⚠️ partial per gap audit 2026-09-04 = wenshu-s
-// TICKET-HERMES-GAP-008 partial port = the hook-chain + input-parser layer).
+// partial port = the hook-chain + input-parser layer).
 // This H4 ticket adds the 5 hermes multimodal + untrusted-wrap helpers
 // (= the highest-value gap-port = promptware defense for wenshu's tool
 // results).

@@ -1,8 +1,8 @@
 //
 //  ToolExecutor.swift · Wenshu · v0.35 ticket 001 sub-step 5
-//                          TICKET-HERMES-GAP-004 (hook chain wiring)
-//                          TICKET-HERMES-GAP-008 (dispatch hook chain)
-//                          HERMES-PARTIAL-003 (2026-09-04, 6 helpers wired)
+// (hook chain wiring)
+// (dispatch hook chain)
+// (2026-09-04, 6 helpers wired)
 //
 //  Tool dispatch actor. Maps to hermes tool_executor.py
 //  (= execute_tool_calls_concurrent at L306, execute_tool_calls_sequential
@@ -44,13 +44,13 @@
 //  Errors from individual tools are caught + reported as toolResult
 //  with isError flag (= hermes _emit_terminal_post_tool_call pattern).
 //
-//  HERMES-PARTIAL-003 (2026-09-04, boss OOB 'B' = port 18 partial modules):
+// (2026-09-04, boss OOB 'B' = port 18 partial modules):
 //    The 6 helpers (permission gate, output truncator, error classifier,
 //    result formatter, pre-dispatch validator, post-dispatch validator)
 //    are now configurable via init. Defaults preserve pre-existing
 //    behavior (= no behavior change for callers using `ToolExecutor()`).
 //
-//  v0.35 sub-step 5 of 8 for ticket 001.
+// sub-step 5 of 8 for ticket 001.
 //
 
 import Foundation
@@ -185,7 +185,7 @@ actor ToolExecutor {
                 await streamCallback(.toolUse(id: toolUseID, name: toolName, input: input))
             }
 
-            // HERMES-PARTIAL-003 step 1: permission gate.
+            // step 1: permission gate.
             if let denial = permissionGate(toolName, input) {
                 let toolMessage = LLMMessage(
                     role: .tool,
@@ -199,17 +199,17 @@ actor ToolExecutor {
                 continue
             }
 
-            // TICKET-HERMES-GAP-004: pre-tool-call hook.
+            // pre-tool-call hook.
             try await hookChain.firePreToolCall(call)
 
-            // TICKET-HERMES-GAP-008 + HERMES-PARTIAL-003 step 4: pre-dispatch validator + preDispatch hook.
+            // + HERMES-PARTIAL-003 step 4: pre-dispatch validator + preDispatch hook.
             let dispatchInput = ToolDispatchInputParser.parse(input)
             let validatedInput = try await preDispatchValidator(toolName, dispatchInput)
             let serializedInput = ToolDispatchInputParser.serialize(validatedInput)
 
             try await dispatchHookChain.firePreDispatch(toolName: toolName, input: validatedInput)
 
-            // HERMES-PARTIAL-003 step 5+6: invoke tool + classify on error.
+            // step 5+6: invoke tool + classify on error.
             let output: String
             var didError = false
             do {
@@ -229,7 +229,7 @@ actor ToolExecutor {
                 _ = error
             }
 
-            // HERMES-PARTIAL-003 steps 7+8: truncator + post-dispatch validator.
+            // steps 7+8: truncator + post-dispatch validator.
             let truncated = outputTruncator(output, toolName)
             let validatedOutput: String
             do {
@@ -239,14 +239,14 @@ actor ToolExecutor {
                 didError = true
             }
 
-            // HERMES-PARTIAL-003 step 9: result formatter.
+            // step 9: result formatter.
             let formatted = resultFormatter(validatedOutput, toolName)
 
-            // TICKET-HERMES-GAP-004: post-tool-call hook.
+            // post-tool-call hook.
             let result = ToolResult(toolCallID: toolUseID, output: formatted, isError: didError)
             try await hookChain.firePostToolCall(call, result: result)
 
-            // TICKET-HERMES-GAP-008: post-dispatch hook.
+            // post-dispatch hook.
             await dispatchHookChain.firePostDispatch(toolName: toolName, input: validatedInput, output: formatted)
 
             let toolMessage = LLMMessage(
@@ -292,12 +292,12 @@ actor ToolExecutor {
                 group.addTask {
                     let call = ToolCall(id: toolUseID, name: toolName, input: input)
 
-                    // HERMES-PARTIAL-003 step 1: permission gate (sequential-style).
+                    // step 1: permission gate (sequential-style).
                     if let denial = self.permissionGate(toolName, input) {
                         return IndexedOutput(index: index, toolUseID: toolUseID, output: denial)
                     }
 
-                    // TICKET-HERMES-GAP-004: pre-tool-call hook.
+                    // pre-tool-call hook.
                     do {
                         try await self.hookChain.firePreToolCall(call)
                     } catch {
@@ -305,7 +305,7 @@ actor ToolExecutor {
                         return IndexedOutput(index: index, toolUseID: toolUseID, output: rejectionOutput)
                     }
 
-                    // TICKET-HERMES-GAP-008 + HERMES-PARTIAL-003 step 4: pre-dispatch validator + preDispatch hook.
+                    // + HERMES-PARTIAL-003 step 4: pre-dispatch validator + preDispatch hook.
                     let dispatchInput = ToolDispatchInputParser.parse(input)
                     let validatedInput: [String: String]
                     do {
@@ -323,7 +323,7 @@ actor ToolExecutor {
                         return IndexedOutput(index: index, toolUseID: toolUseID, output: rejectionOutput)
                     }
 
-                    // HERMES-PARTIAL-003 steps 5+6: invoke tool + classify on error.
+                    // steps 5+6: invoke tool + classify on error.
                     let output: String
                     var didError = false
                     do {
@@ -341,7 +341,7 @@ actor ToolExecutor {
                         _ = error
                     }
 
-                    // HERMES-PARTIAL-003 steps 7+8: truncator + post-dispatch validator.
+                    // steps 7+8: truncator + post-dispatch validator.
                     let truncated = self.outputTruncator(output, toolName)
                     let validatedOutput: String
                     do {
@@ -351,10 +351,10 @@ actor ToolExecutor {
                         didError = true
                     }
 
-                    // HERMES-PARTIAL-003 step 9: result formatter.
+                    // step 9: result formatter.
                     let formatted = self.resultFormatter(validatedOutput, toolName)
 
-                    // TICKET-HERMES-GAP-004: post-tool-call hook (errors swallowed).
+                    // post-tool-call hook (errors swallowed).
                     do {
                         let result = ToolResult(toolCallID: toolUseID, output: formatted, isError: didError)
                         try await self.hookChain.firePostToolCall(call, result: result)
@@ -362,7 +362,7 @@ actor ToolExecutor {
                         _ = error
                     }
 
-                    // TICKET-HERMES-GAP-008: post-dispatch hook.
+                    // post-dispatch hook.
                     await self.dispatchHookChain.firePostDispatch(toolName: toolName, input: validatedInput, output: formatted)
                     return IndexedOutput(index: index, toolUseID: toolUseID, output: formatted)
                 }

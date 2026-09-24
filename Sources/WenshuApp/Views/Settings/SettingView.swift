@@ -48,11 +48,11 @@ struct SettingView: View {
     // property) and uses a custom Binding for the Picker so the
     // existing `$llmModel` selection API still works without
     // touching the surrounding body.
-    // v0.24 bossverificationfix (2026-08-24): default to empty string when no provider
+    // bossverificationfix (2026-08-24): default to empty string when no provider
     // key configured (not "MiniMax-M3" which implies a MiniMax provider is
     // selected even when user has no key). UI shows the localized 'please configure the provider first' placeholder
     // when this is empty.
-    // v0.24 boss acceptance fix (2026-08-24): the canonical
+    // boss acceptance fix (2026-08-24): the canonical
     // `@AppStorage("wenshu.llm.model") private var llmModel: String = ""`
     // pattern was retired by the B-05 centralization commit (= single
     // owner = `AppState.llmModel`). This comment preserves the exact
@@ -75,13 +75,13 @@ struct SettingView: View {
         )
     }
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
-    // v0.24 bossverificationfix: @AppStorage so chat 'Settings' link can jump to provider tab.
+    // bossverificationfix: @AppStorage so chat 'Settings' link can jump to provider tab.
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = "general"
-    // v0.24 fix: Settings UI exposes user-set value for agent-to-user address.
+    // fix: Settings UI exposes user-set value for agent-to-user address.
     // WenshuConductorIdentity.userAddress reads this key at LLM call time.
     // Boss 8/24 clarification: default = 'user' (not 'boss' = hermes-side convention).
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
-    // v0.32 boss 2026-09-02 OOB (' macOS Liquid Glass, Settings'):
+    // boss 2026-09-02 OOB (' macOS Liquid Glass, Settings'):
     // the user-tunable Liquid Glass opacity slider + manual @State mirror
     // + UserDefaults key + NotificationCenter wiring was removed
     // (= 134 LOC of self-rolled ladder across App.swift + LiquidGlassOpacity.swift
@@ -97,7 +97,7 @@ struct SettingView: View {
     @State private var isLoadingModels = false
     @State private var providersWithKeys: Set<String> = []
     @State private var apiExpandedProviders: Set<String> = []
-    // v0.40 apple-001 HIG absent batch: .searchable for the provider tab
+    // apple-001 HIG absent batch: .searchable for the provider tab
     // (= Apple HIG Cmd-F standard for filtering settings lists).
     // Empty string = show all providers.
     @State private var providerSearchText: String = ""
@@ -239,7 +239,7 @@ struct SettingView: View {
                     .foregroundStyle(DesignTokens.statusForeground)
             }
             Section(WenshuI18n.t("settings.general.agentAddress")) {
-                // v0.24 fix (Boss 8/24 OOB): user-set value for agent-to-user address.
+                // fix (Boss 8/24 OOB): user-set value for agent-to-user address.
                 // Read by WenshuConductorIdentity.userAddress at LLM call time
                 // (dynamic per-chat). User cannot modify via chat per AGENTS.md.
                 // Reason for no .onChange handler: WenshuConductorIdentity.
@@ -289,7 +289,7 @@ struct SettingView: View {
         }
         .formStyle(.grouped)
         .onAppear { refreshProviderStatus() }
-        // v0.40 apple-001 HIG absent batch: .searchable (= Apple HIG
+        // apple-001 HIG absent batch: .searchable (= Apple HIG
         // Cmd-F standard for filtering settings lists). Empty string
         // shows all providers (= no filtering).
         .searchable(text: $providerSearchText,
@@ -297,7 +297,7 @@ struct SettingView: View {
                     prompt: WenshuI18n.t("settings.search.placeholder"))
     }
 
-    // v0.40 apple-001 HIG absent batch: filtered providers for .searchable.
+    // apple-001 HIG absent batch: filtered providers for .searchable.
     // Case-insensitive match against provider name + slug. Empty
     // search = show all providers.
     private var filteredProviders: [Provider] {
@@ -310,7 +310,7 @@ struct SettingView: View {
     }
 
     private func toggleExpand(p: Provider) {
-        // v1.72 T3c: delegate the expansion set toggle to
+        // T3c: delegate the expansion set toggle to
         // SettingsOps (= the stateless business layer). The
         // SwiftUI-side reset (= apiDraftKey = currentDraftPreview(...)
         // on expand + apiError = nil) stays in the View per ADR-0009
@@ -361,7 +361,7 @@ struct SettingView: View {
     private func providerApiRow(_ p: Provider) -> some View {
         let hasKey = providersWithKeys.contains(p.slug)
         return HStack(spacing: 12) {
-            // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
+            // -m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
             // canonical LLM-provider key-state glyph = 'key'
             // (SF Symbols 6). Replaces the v0.27 'Lucide key'
             // choice per boss 2026-09-15 reversal.
@@ -397,7 +397,7 @@ struct SettingView: View {
         if result.shouldClearDraft { apiDraftKey = "" }
         if result.shouldCollapse { apiExpandedProviders.remove(provider.slug) }
         if result.shouldNotify {
-            // v0.24 bossverificationfix: notify ChatZoneView (and other
+            // bossverificationfix: notify ChatZoneView (and other
             // listeners) that the keychain changed so they can refresh
             // their model pickers without requiring an app restart.
             NotificationCenter.default.post(
@@ -441,7 +441,7 @@ struct SettingView: View {
             }
 
             Section {
-                // v0.21 ticket 35b: picker aligned with Apple Anthropic API effort parameter (5 valid values per docs)
+                // ticket 35b: picker aligned with Apple Anthropic API effort parameter (5 valid values per docs)
                 // Source: https://platform.claude.com/docs/en/build-with-claude/effort
                 // NOT hermes custom 7-level (purely decorative overlay, not API)
                 Picker(WenshuI18n.t("settings.model.reasoning_effort_label"), selection: $reasoningEffort) {
@@ -462,10 +462,10 @@ struct SettingView: View {
             Section {
                 ForEach(AuxTask.allCases, id: \.self) { task in
                     HStack {
-                        // v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
+                        // -m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
                         // AuxTask.icon is already a canonical
                         // SF Symbols 6 identifier (= per the
-                        // v1.0.0-m1-shell enum property rename).
+                        // -m1-shell enum property rename).
                         Image(systemName: task.icon).font(.system(size: 18, weight: .regular))
                             .foregroundStyle(.secondary)
                             .frame(width: DesignTokens.tabIconSize)
@@ -493,7 +493,7 @@ struct SettingView: View {
     }
 
     private var memoryTab: some View {
-        // v0.38 ticket A: wire MemorySettingsView (= v0.35 ticket 009 ship,
+        // ticket A: wire MemorySettingsView (= v0.35 ticket 009 ship,
         // isolated file pre-wire) into Settings scene. Scope + retention +
         // recent memory entries rendered.
         MemorySettingsView()
@@ -501,7 +501,7 @@ struct SettingView: View {
     }
 
     private var skillsTab: some View {
-        // v0.38 ticket A2: wrap SkillsSettingsView in a small loader view that
+        // ticket A2: wrap SkillsSettingsView in a small loader view that
         // owns @State skills + triggers .task async load via SkillAdapter.
         // SkillAdapter is an actor (= v0.35 ticket 010 spec); listSkills() is
         // async; SkillsSettingsView is a passive view (= @State skills binding

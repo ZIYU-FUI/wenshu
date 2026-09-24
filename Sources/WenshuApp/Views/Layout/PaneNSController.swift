@@ -83,7 +83,7 @@ final class PaneNSController: NSSplitViewController {
         self.appState = appState
         self.bookStore = bookStore
         self.layoutID = layoutID
-        // v0.30 boss 2026-09-01 OOB (zone toggle fix): nested
+        // boss 2026-09-01 OOB (zone toggle fix): nested
         // PaneNSController instances (= created by installSplit's
         // different-orientation branch) render only the subtree
         // they own. The previous design had every nested instance
@@ -126,7 +126,7 @@ final class PaneNSController: NSSplitViewController {
         // split's delegate lets us override `effectiveRect(...)` and
         // extend each divider's grabbable region by `dividerHitPadding`.
         self.splitView.delegate = self
-        // v0.30 boss 2026-09-01 OOB (zone toggle fix): nested
+        // boss 2026-09-01 OOB (zone toggle fix): nested
         // PaneNSController instances are created by installSplit
         // (= the parent child-controller path), so they re-enter this
         // init. Without the `installObservers` gate, every nested
@@ -149,13 +149,13 @@ final class PaneNSController: NSSplitViewController {
             name: .wenshuToggleZone,
             object: nil
         )
-        // v0.30 boss 2026-09-01 OOB: NSSplitView's divider style now
+        // boss 2026-09-01 OOB: NSSplitView's divider style now
         // follows the Liquid Glass opacity slider. At opacity 0 (= the
         // user explicitly wants fully transparent chrome), hide the
         // divider entirely (= boss OOB 'completely transparent'); for
         // any other value, use Apple's standard `.thin` divider (= a
         // semitransparent hairline that adapts to dark/light mode).
-        // v0.32 boss 2026-09-02 OOB ('use macOS-native Liquid Glass,
+        // boss 2026-09-02 OOB ('use macOS-native Liquid Glass,
         // follow system settings'): removed the user-tunable Liquid Glass
         // opacity slider + cross-instance notification plumbing.
         // Apple .glassEffect auto-applies via the system without
@@ -215,7 +215,7 @@ final class PaneNSController: NSSplitViewController {
     ///   expose a custom divider alpha either, but the divider
     ///   would be SwiftUI-native and controllable via overlay).
     private func applyDividerStyleForCurrentOpacity() {
-        // v0.30 boss 2026-09-01 OOB (divider final design):
+        // boss 2026-09-01 OOB (divider final design):
         //   - Width: 1 PT (= Apple default dividerStyle .thin;
         //     boss accepted the Apple limit and pivoted from the
         //     earlier .paneSplitter / 0-width / no-line attempts
@@ -301,7 +301,7 @@ final class PaneNSController: NSSplitViewController {
             // frame at its current bounds (= AppKit's internal
             // divider hit-area is preserved = drag still works).
             //
-            // v0.32 boss 2026-09-02 OOB ('if the line can't be seen,
+            // boss 2026-09-02 OOB ('if the line can't be seen,
             // it doesn't matter; all your colors are API-given, do not
             // customize'): the
             // divider subview is NOT painted (= no NSColor /
@@ -399,7 +399,7 @@ final class PaneNSController: NSSplitViewController {
 
     /// v0.30 boss 2026-09-01 OOB (divider Step 1 = API default): the
     /// observer still receives the notification but does not mutate
-    // v0.32 boss 2026-09-02 OOB: removed the
+    // boss 2026-09-02 OOB: removed the
     /// \`handleLiquidGlassOpacityChanged\` @objc selector (= the
     /// NotificationCenter observer that called it was deleted in
     /// init). Apple canonical .glassEffect auto-applies system-wide
@@ -497,7 +497,7 @@ final class PaneNSController: NSSplitViewController {
                 }
             }
         }
-        // v0.30 boss 2026-09-01 OOB (auto-fill band on full
+        // boss 2026-09-01 OOB (auto-fill band on full
         // collapse): after toggling, re-pin the root divider so
         // the upper band fills the whole root height when the
         // lower band is now fully hidden. Only the root observer
@@ -518,7 +518,7 @@ final class PaneNSController: NSSplitViewController {
     // The previous design (= v0.34 ticket 02) snapshotted the 6
     // zone's isCollapsed state + editor split weight to
     // UserDefaults JSON BEFORE hiding the 5 non-editor zones (= Q38
-    // boss "full-state snapshot" decision), then read the snapshot back
+    // decision), then read the snapshot back
     // on shrink to restore the pre-expand layout. That snapshot
     // path (= captureEditorExpandSnapshot +
     // restoreEditorExpandSnapshot) had the same root-cause bug
@@ -727,7 +727,7 @@ final class PaneNSController: NSSplitViewController {
         for _ in children {
             removeChild(at: 0)
         }
-        // v0.30 boss 2026-09-01 OOB fix: explicitly set the root
+        // boss 2026-09-01 OOB fix: explicitly set the root
         // NSSplitView's axis to match the root SplitNode's
         // orientation. Without this, NSSplitViewController defaults
         // to `isVertical = true` (= horizontal row of panes), which
@@ -738,7 +738,7 @@ final class PaneNSController: NSSplitViewController {
         // matches it against upperBand/lowerBand `.row` children,
         // installing them as siblings in one row (= 6 panes side
         // by side, NOT two bands stacked).
-        // v0.30 boss 2026-09-01 OOB (zone toggle fix): read the
+        // boss 2026-09-01 OOB (zone toggle fix): read the
         // subtree this controller owns (= NOT `store.workspace.root`,
         // which would re-enter installSplit at the top of the full
         // tree when called on a nested instance).
@@ -792,7 +792,7 @@ final class PaneNSController: NSSplitViewController {
             // boss report).
             self.splitView.autosaveName = nil
             installSplit(split, parent: self, parentOrientation: split.orientation == .row ? .row : .column)
-            // v0.30 boss 2026-09-01 OOB fix: AFTER the entire
+            // boss 2026-09-01 OOB fix: AFTER the entire
             // installSplit tree is built, walk the controller
             // hierarchy and capture every NSSplitViewController's
             // weights (= the items that ended up living on each
@@ -827,7 +827,7 @@ final class PaneNSController: NSSplitViewController {
         var result: [(NSSplitViewController, [Double])] = []
         // The root always needs its weights (= its NSSplitView
         // hosts either the children directly or nested controllers).
-        // v0.30 boss 2026-09-01 OOB (zone toggle fix): read the
+        // boss 2026-09-01 OOB (zone toggle fix): read the
         // owned subtree, not store.workspace.root (= see buildLayout).
         if case .split(let rootSplit) = subtree {
             result.append((self, rootSplit.weights))
@@ -935,7 +935,7 @@ final class PaneNSController: NSSplitViewController {
         /// v1.28 C3.2.5: countSplitNodesBefore extracted to PaneNSController+CollectHelpers.swift
     override func viewDidLayout() {
         super.viewDidLayout()
-        // v0.30 boss 2026-09-01 OOB fix: NSSplitView's bounds are
+        // boss 2026-09-01 OOB fix: NSSplitView's bounds are
         // 0 at init time, so applyWeights would compute positions
         // against a 0-wide canvas. Wait until the first real
         // layout, then apply the workspace weights. After this
@@ -1007,7 +1007,7 @@ final class PaneNSController: NSSplitViewController {
                 }
             }
         }
-        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis HIGH):
+        // 
         // removed `as! NSSplitViewController` fallback (= the previous
         // code force-cast a non-split view controller = hard crash).
         // Now returns early if `lowerItem.viewController` is not a
@@ -1055,7 +1055,7 @@ final class PaneNSController: NSSplitViewController {
         }
 
         // Different orientation → create a nested controller.
-        // v0.30 boss 2026-09-01 OOB (zone toggle fix): instantiate
+        // boss 2026-09-01 OOB (zone toggle fix): instantiate
         // PaneNSController (= not the bare NSSplitViewController) so
         // applyPersistedZoneVisibility / handleToggleZone can walk
         // the controller tree and find each pane's TabKind via the
@@ -1076,7 +1076,7 @@ final class PaneNSController: NSSplitViewController {
         nested.splitView.isVertical = (split.orientation == .row)
         nested.splitView.autosaveName = autosaveKey(for: split.id)
         installChildren(split.children, weights: split.weights, into: nested)
-        // v0.30 boss 2026-09-01 OOB (zone toggle fix): the nested
+        // boss 2026-09-01 OOB (zone toggle fix): the nested
         // controller skipped its own buildLayout (= avoids
         // double-installing the children above), so its
         // pendingWeights is empty. Register the nested's own
@@ -1403,7 +1403,7 @@ final class PaneNSController: NSSplitViewController {
         // handles this).
         let fraction = max(0.0, min(1.0, weight / totalBandWeight))
         item.preferredThicknessFraction = fraction
-        // v0.30 boss 2026-09-01 OOB (zone toggle fix): record the
+        // boss 2026-09-01 OOB (zone toggle fix): record the
         // mapping by the item's *index* within the OWNER
         // controller's `splitViewItems` array (NOT by
         // ObjectIdentifier; Apple may re-wrap NSSplitViewItem

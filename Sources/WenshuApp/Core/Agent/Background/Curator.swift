@@ -17,7 +17,7 @@
 //  Per ADR-0011 (= no LLM calls in curator path = pure data analysis).
 //  Per §11 hard rule (= Apple Foundation only; no external deps).
 //
-//  v0.36 sub-step 4 of 4 for ticket 016.
+// sub-step 4 of 4 for ticket 016.
 //
 
 import Foundation

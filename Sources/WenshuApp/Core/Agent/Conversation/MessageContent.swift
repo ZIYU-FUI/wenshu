@@ -8,7 +8,7 @@
 //  Static utility (= no state). TurnFinalizer calls canonicalize at turn end;
 //  callers can also use coalesceAdjacentText independently for streaming display.
 //
-//  v0.35 sub-step 4 of 8 for ticket 001.
+// sub-step 4 of 8 for ticket 001.
 //
 
 import Foundation

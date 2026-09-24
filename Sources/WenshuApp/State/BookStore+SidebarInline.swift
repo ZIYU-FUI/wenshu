@@ -92,7 +92,7 @@ extension BookStore {
         try data.write(to: bookDir.appendingPathComponent("book.json"))
         let bootstrapper = LibraryBootstrapper(wsRoot: stores.referenceLibraryRoot.deletingLastPathComponent())
         try bootstrapper.ensureValidStructure()
-        // B-07 015.019: keep `books` in sync. Insert in
+        // 015.019: keep `books` in sync. Insert in
         // `createdAt`-ascending order (= matches
         // `sidebarLoadAllBooks()` sort). If a duplicate id already
         // exists, replace it (= idempotent re-save guard).

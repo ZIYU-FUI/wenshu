@@ -33,7 +33,7 @@
 //  lives inside the actor (= Swift 6 actor isolation). Public API mirrors
 //  hermes' `CredentialPool` shape (register / list / pick / mark-* / persist).
 //
-//  v0.40 dispatch layer 1 of 4. Refs: boss OOB 'A' 2026-09-04.
+// dispatch layer 1 of 4. Refs: boss OOB 'A' 2026-09-04.
 //
 
 import Foundation

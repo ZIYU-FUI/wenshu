@@ -10,7 +10,7 @@
 //  already has defaultModels arrays per profile. This file is a thin
 //  aggregator that surfaces the catalog in a UI-friendly shape.
 //
-//  HERMES-PARTIAL-015 extends the v0.35 surface with three new capabilities:
+// extends the v0.35 surface with three new capabilities:
 //    - Pricing per model (= hermes _extract_pricing: input / cached-input /
 //      output $/MTok rates, populated from the OpenRouter catalog or the
 //      wenshu-side hardcoded table when the catalog is unavailable).
@@ -21,7 +21,7 @@
 //      + _forbids_sampling_params: a per-model feature table for vision,
 //      tools, streaming, reasoning effort, adaptive thinking).
 //
-//  v0.35 ticket 008 + HERMES-PARTIAL-015 (2026-09-04).
+// ticket 008 + HERMES-PARTIAL-015 (2026-09-04).
 //
 
 import Foundation
@@ -464,7 +464,7 @@ struct WenshuModelCatalog: Sendable, Equatable {
 // ported in this ticket — they fall into separate wenshu-
 // side wins patterns (= LLMConnector layer owns the
 // provider-specific URL detection + auth flows; = per
-// Q112 = one ticket per file).
+// = one ticket per file).
 //
 // Per AGENTS.md §11 hard rule: Apple Foundation only. No
 // third-party imports.

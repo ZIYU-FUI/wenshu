@@ -1,7 +1,7 @@
 // Book.swift · Wenshu (Wenshu) · v0.02.1 (book module) + v52 (new-book wizard)
 //
 // Domain model for a single book (= a novel the user is writing).
-// v0.02.1 ships just the book + its persistence; chapter content
+// ships just the book + its persistence; chapter content
 // (= .md files inside the book's directory) lands in v0.03.0 alongside
 // the EDITOR module.
 //
@@ -126,7 +126,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
 
     // MARK: - Codable back-compat (v52)
     //
-    // v0.02.x book.json files don't have 'length' or 'idea' (= fields
+    // x book.json files don't have 'length' or 'idea' (= fields
     // added in v52). Synthesized Codable would fail to decode them
     // (= keysNotFound). Override init(from:) to provide defaults for
     // missing keys. New fields added in v0.04+ (= synopsis, character

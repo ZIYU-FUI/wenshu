@@ -109,7 +109,7 @@ struct IdeaLibraryView: View {
     init() {}
 
     var body: some View {
-        // v1.28 C3.7.5: migrate to specializedToolBody modifier
+        // C3.7.5: migrate to specializedToolBody modifier
         // (= 5th of 6 SpecializedTool migrations; = IdeaLibraryView).
         specializedToolBody(
             activeBookId: activeBookId,
@@ -122,7 +122,7 @@ struct IdeaLibraryView: View {
     }
 
     private var emptyState: some View {
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': use

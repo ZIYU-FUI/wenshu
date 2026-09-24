@@ -12,7 +12,7 @@
 //  Pure Swift (= no external deps; Apple Foundation only per wenshu
 //  §11 hard rule + ADR-0011 no LLM calls in tracking path).
 //
-//  v0.36 sub-step 3 of 3 for ticket 015.
+// sub-step 3 of 3 for ticket 015.
 //
 
 import Foundation

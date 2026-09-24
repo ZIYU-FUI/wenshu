@@ -12,11 +12,11 @@
 // it's a documented deferral.
 //
 //
-// v0.30 boss 2026-08-30 OOB 'entity classification is the last layer in the directory tree, after clicking,
+// boss 2026-08-30 OOB 'entity classification is the last layer in the directory tree, after clicking,
 // the entity document should display in the material management area in a wenshu-style card stream layout, and double-clicking the card opens it
 // in the editor. That's why I said implementing the editor and data flow requires finishing these prerequisites first'. Ticket 2 (= the entity card flow).
 //
-// v0.30 boss 2026-08-31 OOB 'click sidebar row → right material area displays that directory's documents, control directory range': extended PreviewScope to cover both reference
+// boss 2026-08-31 OOB 'click sidebar row → right material area displays that directory's documents, control directory range': extended PreviewScope to cover both reference
 // library (= existing) AND book folder docs. File renamed from
 // EntityPreviewPane.swift to PreviewPane.swift (= it now serves both
 // scopes).
@@ -150,7 +150,7 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 // but PreviewScope is constructed from it; equality comparisons
 // happen upstream via sidebarSelection).
 //
-// v0.40 boss 9/7 OOB 'directory treecard, ':
+// boss 9/7 OOB 'directory treecard, ':
 // PreviewScope is Codable so it can be persisted on the active
 // EditorTab (= sourceScope) and restored on launch (= drives
 // sidebar expansion + preview card display).
@@ -175,7 +175,7 @@ enum PreviewScope: Hashable, Codable {
 // filesystem (= no caching yet; subsequent reads are fast on macOS
 // APFS). Used for the book-scope preview mode.
 struct BookDoc: Identifiable, Hashable {
-    // v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
+    // x boss 2026-09-23 OOB '好像启不来了' on bisect:
     // the previous `let id: UUID = UUID()` default value made
     // every BookDoc instance unique (= the SwiftUI ForEach
     // inside bookDocsGrid saw "all rows changed" on every
@@ -187,7 +187,7 @@ struct BookDoc: Identifiable, Hashable {
     // 16 bytes as UUID) so the id is STABLE across
     // re-evaluations of the same .md file.
     //
-    // v1.69y: simpler stable id = `bookId-folderName-fileName`
+    // y: simpler stable id = `bookId-folderName-fileName`
     // UUID v5-style hash (UUID(uuidString:) from a deterministic
     // namespace UUID + SHA256 of the path). The identifier
     // matches Swift's Identifiable contract: two BookDocs for
@@ -522,7 +522,7 @@ struct PreviewPane: View {
     static let twoColumnBreakpoint: CGFloat = 350
 
     var body: some View {
-        // v0.40 boss 9/7 OOB ', top bar, yestop bar.
+        // boss 9/7 OOB ', top bar, yestop bar.
         // caneditor, yes': the search bar
         // belongs BELOW the ZoneContentView's tab strip (= at the same
         // Y as the editor's pencil/arrow/refresh toolbar inside
@@ -537,7 +537,7 @@ struct PreviewPane: View {
         // column. Body content (Group { switch scope }) goes below
         // the search bar.
         //
-        // v0.40 boss 9/7 OOB 'top barsearchyes':
+        // boss 9/7 OOB 'top barsearchyes':
         // the .padding(DesignTokens.chromePaddingHero) was wrapping
         // the entire VStack (= search bar + body), = creating a visual
         // gap between the ZoneContentView tab strip and the search
@@ -546,7 +546,7 @@ struct PreviewPane: View {
         // flush against the tab strip, = Apple HIG canonical toolbar
         // pattern = no padding between tab strip and toolbar).
         VStack(spacing: 0) {
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'everything from the search bar up
+            // -m1-shell boss 2026-09-10 OOB 'everything from the search bar up
             // goes to the top; the empty state stays centered': the section-header block (= 'Assets'
             // title + Pages hairline) and the search bar must STICK
             // TO THE TOP of the cards column. The empty-state hint
@@ -558,7 +558,7 @@ struct PreviewPane: View {
             // empty-state visuals when a sidebar selection is made
             // but the right-hand column has no content yet).
             //
-            // v0.77 boss 2026-09-10 OOB 'wrong position — it should sit at the top INSIDE the middle-left column':
+            // boss 2026-09-10 OOB 'wrong position — it should sit at the top INSIDE the middle-left column':
             // the preview-pane search bar ALWAYS renders inline at
             // the top of the middle column body (= same visual slot
             // as the sidebar's `.searchable` field at the top of
@@ -576,7 +576,7 @@ struct PreviewPane: View {
             // rounded-pill pattern hosted inline because `.searchable`
             // has no 'middle column top' placement).
             //
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'cards zone — add a title that matches
+            // -m1-shell boss 2026-09-10 OOB 'cards zone — add a title that matches
             // the sidebar's style: "Assets" title + divider, then the search field': mirror the
             // sidebar's Pages-style section header (centered title
             // text + 1 PT hairline spanning the full column width
@@ -601,7 +601,7 @@ struct PreviewPane: View {
             //   always there but the title was missing; = adding
             //   the title above the search bar fixes the visual
             //   alignment in both states).
-            // v1.77 boss 2026-09-24 OOB '抽成一个组件, 10 PT /
+            // boss 2026-09-24 OOB '抽成一个组件, 10 PT /
             // 文字 / 4 PT / 分割线 / 10 PT, Apple HIG 数字表达':
             // lift the preview column title bar to the shared
             // SectionHeader component (= also used by AppleSidebarView
@@ -610,7 +610,7 @@ struct PreviewPane: View {
             // 4 PT / 10 PT insets; = PreviewPane no longer hardcodes
             // the geometry here).
             SectionHeader(title: WenshuI18n.t("preview.column.title"))
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
+            // -m1-shell boss 2026-09-11 OOB 'remove all custom padding
             // and switch to Apple-standard expressions — find an approximate value': remove the custom
             // top inset (= `chromePaddingSectionTop` = 18 PT) and the
             // custom bottom inset (= 4 PT). The center column is the
@@ -642,7 +642,7 @@ struct PreviewPane: View {
             // one (= `customLeadingSearch != nil`). Default = nil
             // = no field (= legacy callers / tests still work).
             if let customSearch = customLeadingSearch {
-                // v1.0.0-m1-shell boss 2026-09-11 OOB 'fill the width
+                // -m1-shell boss 2026-09-11 OOB 'fill the width
                 // automatically, growing with the drag just like the cards do': render the
                 // search field at the FULL column width (= the
                 // outer `.frame(maxWidth: .infinity)` makes
@@ -666,9 +666,9 @@ struct PreviewPane: View {
                 // can see the column width) is what forces the
                 // stretch.
                 customSearch
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'the search field
+                    // -m1-shell boss 2026-09-11 OOB 'the search field
                     // is a bit too short — change it to 30pt tall':
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'the search field
+                    // -m1-shell boss 2026-09-11 OOB 'the search field
                     // height can only be hard-coded to 30pt, then don't hard-code — use the closest
                     // Apple-standard expression for height': per Apple HIG,
                     // use `.controlSize(.regular)` on the inner
@@ -697,7 +697,7 @@ struct PreviewPane: View {
                     // surrounding HStack padding are added; = the
                     // boss's intuition that 30 PT feels right).
                     .frame(maxWidth: .infinity, alignment: .center)
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
+                    // -m1-shell boss 2026-09-11 OOB 'search field,
                     // spacing between it and the first card — is there a hand-written padding, and if
                     // so, drop it': drop the manual BOTTOM padding
                     // around the search field (= the previous
@@ -708,7 +708,7 @@ struct PreviewPane: View {
                     // first card below; = the cards' own LazyVGrid
                     // spacing controls the gap to the next card).
                     //
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'you just
+                    // -m1-shell boss 2026-09-11 OOB 'you just
                     // increased the spacing which broadened my range — the 4pt between the divider
                     // and the search field, you over-deleted, need to put it back': per the boss's
                     // UPDATE 2026-09-11 OOB 'remove all custom padding
@@ -722,7 +722,7 @@ struct PreviewPane: View {
                     // padding required; = the canonical Mail /
                     // Notes column search pattern).
             }
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'if the Apple API supports,
+            // -m1-shell boss 2026-09-10 OOB 'if the Apple API supports,
             // just use it — don't roll our own search': the previous internal
             // `previewSearchBar` view (= a hand-rolled HStack with
             // Lucide search icon + TextField + clear-x button) is
@@ -740,12 +740,12 @@ struct PreviewPane: View {
             //     toolbar slot hosts the search input.
             //   - ⌘F focuses the field (= Apple standard keyboard
             //     shortcut).
-            // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
+            // boss 8/31 OOB: scope-driven dispatch. Each scope
             // branch handles its own toolbar (some hide toolbar, e.g.
             // empty state). Padding applied here only (= doesn't
             // affect the search bar's Y position).
             //
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'empty state stays centered':
+            // -m1-shell boss 2026-09-10 OOB 'empty state stays centered':
             // wrap the scope Group in an explicit `VStack { Spacer;
             // Group; Spacer }` (= top + bottom spacers push the
             // Group to vertical center inside the remaining space
@@ -756,7 +756,7 @@ struct PreviewPane: View {
             // With the Spacers, the empty-state hint stays centered
             // in the residual space (= the canonical Apple HIG
             // empty-state layout).
-            // v1.79 boss 2026-09-24 OOB '点击 sidebar 后卡片出现，没有任何
+            // boss 2026-09-24 OOB '点击 sidebar 后卡片出现，没有任何
             // 动画，或者缓入缓出，就看起来不好看': wrap the
             // scope Group in `.id(scope)` (= stable subtree identity
             // per scope = SwiftUI unmounts the previous scope and
@@ -800,7 +800,7 @@ struct PreviewPane: View {
                     case .bookScope(let bookId, folderName: let folderName):
                         bookScopeView(bookId: bookId, folderName: folderName)
                     case .shelfScope(let shelfId):
-                        // v1.69 boss 2026-09-22 OOB '书架, 就是
+                        // boss 2026-09-22 OOB '书架, 就是
                         // 从这里开始, 测试书架. 这两个目录项可以
                         // 点击, 但没有在卡片栏加载所有卡片' (=
                         // clicking a shelf row should load all
@@ -813,7 +813,7 @@ struct PreviewPane: View {
                         // scope (= the union of every book's
                         // .md cards under the shelf).
                         //
-                        // v1.69x crash fix (= boss 2026-09-23 OOB
+                        // x crash fix (= boss 2026-09-23 OOB
                         // '好像启不来了' on bisect: v1.69n
                         // shelfScopeView launched a SwiftUI
                         // constraint loop because the shelf
@@ -845,7 +845,7 @@ struct PreviewPane: View {
                         emptyScopeView()
                     }
                 }
-                // v1.79 boss 2026-09-24 OOB '点击 sidebar 后卡片
+                // boss 2026-09-24 OOB '点击 sidebar 后卡片
                 // 出现，没有任何动画，或者缓入缓出，就看起来不
                 // 好看': the scope Group gets a stable per-scope
                 // identity (= `.id(scope)`) so SwiftUI treats each
@@ -887,7 +887,7 @@ struct PreviewPane: View {
             // 8 PT inset = the canonical 'comfortable but compact'
             // grid per Apple Design Resources).
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
+            // -m1-shell boss 2026-09-11 OOB 'search field,
             // spacing between it and the first card — is there a hand-written padding, and if
             // so, drop it': the previous `.padding(8)` (= 8 PT
             // top + bottom + leading + trailing) added a hand-
@@ -901,7 +901,7 @@ struct PreviewPane: View {
             // so cards still have breathing room from the column
             // edges (= Apple HIG 8-point grid for inline content).
             //
-            // v1.83 boss 2026-09-24 OOB '整搜索栏左右两边没有间距
+            // boss 2026-09-24 OOB '整搜索栏左右两边没有间距
             // ... 素材栏没有内边距, 需要加 10PT': the cards' left
             // + right padding switches from 8 PT (= hand-written
             // magic number, = a long-standing inline number that
@@ -912,7 +912,7 @@ struct PreviewPane: View {
             // gutter = one source = no horizontal drift between
             // search field and card grid).
             //
-            // v1.84 boss 2026-09-24 OOB '10 + 10 就过多了': the
+            // boss 2026-09-24 OOB '10 + 10 就过多了': the
             // cards' horizontal padding MOVED to the outer
             // PreviewPane column (= the v1.84 column-level inset).
             // Drop the inner horizontal padding here (= would
@@ -922,7 +922,7 @@ struct PreviewPane: View {
             // right breathing room (= single source of truth for
             // the PreviewPane gutter = chromePaddingContentHorizontal).
             //
-            // v1.85 boss 2026-09-24 OOB '素材栏加 10PT 内边距'
+            // boss 2026-09-24 OOB '素材栏加 10PT 内边距'
             // (= the user wants 10 PT inner padding on the cards
             // column; = the v1.84b column-level padding was the
             // intended landing but the boss's followup '标题不受
@@ -935,7 +935,7 @@ struct PreviewPane: View {
             .padding(.horizontal, 10)
             .padding(.bottom, 8)
                 }
-            // v1.79 boss 2026-09-24 OOB '点击 sidebar 后卡片出现，
+            // boss 2026-09-24 OOB '点击 sidebar 后卡片出现，
             // 没有任何动画，或者缓入缓出，就看起来不好看' (=
             // scope-switch entry animation). Boss 2026-09-24 followup
             // '没有看到动画效果': the original approach
@@ -979,7 +979,7 @@ struct PreviewPane: View {
     /// entities, flat grid per boss 8/30 OOB); non-nil = category filter.
     @ViewBuilder
     private func referenceScopeView(category: EntityCategory?) -> some View {
-        // v0.40 boss 9/7 OOB 'search, ': apply the
+        // boss 9/7 OOB 'search, ': apply the
         // search filter (= previewSearchQuery) on top of the
         // category filter. Both filters compose (= all entities →
         // search filter → category filter).
@@ -1001,7 +1001,7 @@ struct PreviewPane: View {
     @ViewBuilder
     private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
         let allDocs = loadBookDocs(bookId: bookId, folderName: folderName)
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'the assets column's search field doesn't
+        // -m1-shell boss 2026-09-10 OOB 'the assets column's search field doesn't
         // actually filter the cards' (= typing in the search field did not
         // filter cards in the book scope). The previous code passed
         // the unfiltered `docs` to `bookDocsGrid(docs:)`; = the
@@ -1018,7 +1018,7 @@ struct PreviewPane: View {
                     titleKey: folderName != nil
                         ? "preview.empty_state.book_with_folder"
                         : "preview.empty_state.book_no_folder",
-                    // v1.78 boss 2026-09-24 OOB '有的 key 没有 / 没有
+                    // boss 2026-09-24 OOB '有的 key 没有 / 没有
                     // 显示中文断言': the previous key
                     // `preview.pick_book` did not exist in either
                     // locale (= fell back to the key string and
@@ -1046,7 +1046,7 @@ struct PreviewPane: View {
     /// to books whose `shelfId == shelfId`).
     @ViewBuilder
     private func shelfScopeView(shelfId: UUID) -> some View {
-        // v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect:
+        // x boss 2026-09-23 OOB '好像启不来了' on bisect:
         // the v1.69n original ran FileManager I/O (= walk
         // shelves tree + read every .md) inside this ViewBuilder
         // body. SwiftUI re-evaluates this body on EVERY
@@ -1121,7 +1121,7 @@ struct PreviewPane: View {
     @ViewBuilder
     private func categoryGrid(category: EntityCategory, allEntities: [Reference]) -> some View {
         let inCategory = allEntities.filter { $0.category == category }
-        // v0.30 boss 8/31 OOB: removed the category header HStack
+        // boss 8/31 OOB: removed the category header HStack
         // (= icon + category.displayName + count). Per boss: 'in the reference
         // library, the title in the red box in the material preview area is unused, not needed,
         // delete it'. The sidebar already shows the category name (= when
@@ -1129,7 +1129,7 @@ struct PreviewPane: View {
         // selection); the preview pane's category header is
         // redundant. Now the preview pane jumps directly to the
         // card grid (= card thumbnails + card content).
-        // v0.30 boss 8/31 OOB 'preview area content isn't fully displayed, because the width was narrowed,
+        // boss 8/31 OOB 'preview area content isn't fully displayed, because the width was narrowed,
         // preview area doesn't auto-adapt the width' = preview pane content area is
         // narrower than the pane (= 184 PT vs ~430 PT) because the
         // outer VStack has no .frame(maxWidth: .infinity) = the
@@ -1165,7 +1165,7 @@ struct PreviewPane: View {
                                     // filtered.first bug).
                                     onDoubleClick(source)
                                 }
-                                // v1.79 boss 2026-09-24 OOB '点击
+                                // boss 2026-09-24 OOB '点击
                                 // sidebar 后卡片出现，没有任何动画':
                                 // individual Card gets an opacity +
                                 // scale entry transition. When the
@@ -1179,7 +1179,7 @@ struct PreviewPane: View {
                                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
                             }
                         }
-                        // v1.79 per-card animation trigger (= fires
+                        // per-card animation trigger (= fires
                         // on every Card add/remove within this
                         // categoryGrid). Reading `inCategory.map(\.id)`
                         // produces an Equatable sequence SwiftUI can
@@ -1219,7 +1219,7 @@ struct PreviewPane: View {
                 bodyKey: "preview.empty.import_hint"
             )
         } else {
-            // v0.30 boss OOB 'because the material preview area only displays cards of the currently selected directory,
+            // boss OOB 'because the material preview area only displays cards of the currently selected directory,
             // so only card flow is needed, just lay them out continuously' + 'material preview area doesn't need this title,
             // cards just tile flat'.
             //
@@ -1242,12 +1242,12 @@ struct PreviewPane: View {
                                 // (= which opens THIS specific card).
                                 onDoubleClick(source)
                             }
-                            // v1.79 per-card transition (= see
+                            // per-card transition (= see
                             // categoryGrid comment for rationale).
                             .transition(.opacity.combined(with: .scale(scale: 0.96)))
                         }
                     }
-                    // v1.79 per-card animation trigger (= search
+                    // per-card animation trigger (= search
                     // filter add/remove within overviewGrid).
                     .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 }
@@ -1265,7 +1265,7 @@ struct PreviewPane: View {
     /// icon. Caller can override per-call (= rare; most callers
     /// use the default).
     private func emptyState(
-        // v1.0.0-m1-shell boss 2026-09-16 OOB '先修空态的 ICON，没有显示':
+        // -m1-shell boss 2026-09-16 OOB '先修空态的 ICON，没有显示':
         // default icon 'book-open' is Lucide kebab-case (= NOT a
         // valid SF Symbol 6 identifier) = renders as a blank
         // rectangle in PreviewPane's empty states. Migrated to
@@ -1276,7 +1276,7 @@ struct PreviewPane: View {
         titleKey: String,
         bodyKey: String
     ) -> some View {
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': migrate
@@ -1382,12 +1382,12 @@ struct PreviewPane: View {
                             // the EXACT clicked book doc opens.
                             onDoubleClick(source)
                         }
-                        // v1.79 per-card transition (= see
+                        // per-card transition (= see
                         // categoryGrid comment for rationale).
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     }
                 }
-                // v1.79 per-card animation trigger (= search
+                // per-card animation trigger (= search
                 // filter add/remove within bookDocsGrid).
                 .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 .padding(.vertical, DesignTokens.chromePaddingVertical)
@@ -1638,10 +1638,10 @@ private struct Card: View {
         )
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
-        // v0.34 B-26 boss 9/3 'directorydouble-click': click-count
+        // boss 9/3 'directorydouble-click': click-count
         // latch (= more robust than the 300 ms timestamp latch; = the
         // user-reported failure was the timestamp being too tight).
-        // v0.34 B-26-FIX: every tap increments `clickCount`. The *next*
+        // every tap increments `clickCount`. The *next*
         // tap within the macOS system double-click interval
         // (= NSDoubleClickInterval = 500 ms via NSApp) is the second
         // tap of a double-click (= fire onDoubleClick; reset count to
@@ -1669,7 +1669,7 @@ private struct Card: View {
                 onDoubleClick(source)
             }
         }
-        // v0.34 B-26: Apple HIG tooltip (= .help = NSWindow tooltip =
+        // Apple HIG tooltip (= .help = NSWindow tooltip =
         // separate window per Apple HIG = the user can hover any tab
         // label and get its full name; = matches macOS Finder /
         // TextEdit tab bar tooltip behavior).

@@ -1,6 +1,6 @@
 //
 //  OpenAIConnector.swift · Wenshu · v0.35 ticket 005
-//                                  TICKET-HERMES-GAP-002 (request marshaling extracted)
+// (request marshaling extracted)
 //
 //  OpenAI native + OpenAI-compatible connector (= ticket 005, P0).
 //

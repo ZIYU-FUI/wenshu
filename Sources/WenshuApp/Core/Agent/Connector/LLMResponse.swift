@@ -12,7 +12,7 @@
 //    - stopReason: why the model stopped (= end_turn / tool_use / max_tokens)
 //    - usage: token counts (= input + output)
 //
-//  v0.35 sub-step 2 of 8 for ticket 001.
+// sub-step 2 of 8 for ticket 001.
 //
 
 import Foundation

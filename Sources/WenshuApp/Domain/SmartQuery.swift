@@ -4,7 +4,7 @@
 // static skeleton (= schema + storage); v0.27+ implements the search
 // engine (per spec v5 L208-214, ticket 016-017 deferred to v0.27+).
 //
-// v0.26 FCP library replica spec at
+// FCP library replica spec at
 // `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 016.
 
 import Foundation

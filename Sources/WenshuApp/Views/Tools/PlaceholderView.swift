@@ -1,10 +1,10 @@
 // Sources/WenshuApp/Views/Tools/PlaceholderView.swift
 //
-// v0.29 boss 2026-08-30 OOB 'replace, Foreshadowingreplace teb,
+// boss 2026-08-30 OOB 'replace, Foreshadowingreplace teb,
 // replace teb. ': tools pane tab 2 is now
 // Placeholder (= Placeholder) instead of (= BaseView).
 //
-// v0.39 P2 ticket #18 (WIRE-SPECIALIZEDTOOLS-012, 2026-09-04):
+// P2 ticket #18 (WIRE-SPECIALIZEDTOOLS-012, 2026-09-04):
 // this view is now wired to the PlaceholderScanner actor (= legacy
 // tab 2 now backed by real data, not a placeholder). Renders:
 //   - Top header (= icon + tab title + book + row count).
@@ -108,9 +108,9 @@ struct PlaceholderView: View {
     }
 
     private var emptyState: some View {
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
-        // v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // the unified EmptyStateView component (= 76 PT SF Symbols 6 icon + .regular weight = the canonical macOS 27 inspector icon weight; = standard
         // title/body hierarchy). Same visual treatment as every

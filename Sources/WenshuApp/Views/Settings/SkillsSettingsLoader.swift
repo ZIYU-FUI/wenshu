@@ -5,7 +5,7 @@
 //  SkillsSettingsLoader: View` at line 897, = 30 LOC). v0.40
 //  apple-001 phase 3 ticket 3 (MEDIUM-RISK leg).
 //
-//  v0.38 ticket A2: thin async-loader wrapper around
+// ticket A2: thin async-loader wrapper around
 //  SkillsSettingsView (= seeds the @State array with the result
 //  of SkillAdapter.listSkills() = the user-facing skills-hub
 //  pane). Apple HIG canonical async-data pattern = .task
@@ -34,7 +34,7 @@ struct SkillsSettingsLoader: View {
     @State private var hasLoaded: Bool = false
 
     var body: some View {
-        // v0.38 ticket A2: SkillsSettingsView is a public View with @State
+        // ticket A2: SkillsSettingsView is a public View with @State
         // binding; passing our @State array as init() seeds its state. The
         // empty-array placeholder ("No skills installed yet") shows briefly
         // while .task fires; once listSkills() returns, the @State
@@ -47,7 +47,7 @@ struct SkillsSettingsLoader: View {
                     self.hasLoaded = true
                 }
             }
-            // v0.38 ticket A2: hidden accessibility hint that conveys
+            // ticket A2: hidden accessibility hint that conveys
             // load state to assistive tech; visible UI is unchanged
             // (= Settings tab is a known site; the user can see skills
             // populate in real time).

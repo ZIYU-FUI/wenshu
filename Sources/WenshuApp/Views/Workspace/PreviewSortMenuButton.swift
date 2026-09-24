@@ -30,7 +30,7 @@ struct PreviewSortMenuButton: View {
     @State private var isHover: Bool = false
 
     var body: some View {
-        // Q34 ticket 01 of v0.30-topbar-card-alignment: PaneIconTab
+        // ticket 01 of v0.30-topbar-card-alignment: PaneIconTab
         // pattern exactly (= Color.clear base + overlay icon +
         // contentShape). The previous "plain Button + LucideIcon
         // (= SF Symbol via Image(systemName:)) + .frame(width:

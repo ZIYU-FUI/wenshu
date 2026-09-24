@@ -7,7 +7,7 @@
 //   reason: Hotspot with no paired test file (= needs split)
 //
 // Per boss OOB 2026-09-14 "我想把这些修掉" + Q34 5.2 +
-// Q173 ponytail + Q186 + Q57 + Q112: extract ZoneModuleView
+// ponytail + Q186 + Q57 + Q112: extract ZoneModuleView
 // (= the legacy 6-zone pane registry helper used by
 // RegisteredPanes) to its own file. This is the SAFE first split
 // because ZoneModuleViewTests.swift already exists in
@@ -24,7 +24,7 @@
 
 import SwiftUI
 import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
-// v1.36 ticket 002: drop `import LucideSwift` (= removed by boss's v1.x
+// ticket 002: drop `import LucideSwift` (= removed by boss's v1.x
 // Lucide → SF Symbols 6 deprecation in commit c50d76167). The legacy
 // `Lucide`/`LucideIcon` references in this file are comments only (= no
 // active symbol resolution = drop is safe). Per Q34 5.2 + Q173 ponytail +
@@ -103,7 +103,7 @@ struct ZoneModuleView: View {
             // book-open icon) + trailingButton (New + Import =
             // preserved from the pre-v1.69e legacy
             // NewLibraryOutlineView.zoneHeaderButtons).
-            // v0.30 boss 8/31 OOB: ZoneModuleView forwards its
+            // boss 8/31 OOB: ZoneModuleView forwards its
             // sidebarSelection binding to AppleSidebarView so
             // the sidebar click → preview pane scope works.
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
@@ -113,12 +113,12 @@ struct ZoneModuleView: View {
         case .projectPreview:
             // Old 6-zone projectPreview = 2 tabs (Preview / Map).
             // Per v0.25.1 ticket 014: book-open-check + waypoints.
-            // v0.28 followup Boss UX round 24: preview tab content uses
+            // followup Boss UX round 24: preview tab content uses
             // .ultraThinMaterial (= was DesignColor.zoneSurface =
             // solid Color(nsColor: .controlBackgroundColor) = NOT
             // Liquid Glass).
             //
-            // v0.30 boss 8/31 OOB: ZoneModuleView is the LEGACY
+            // boss 8/31 OOB: ZoneModuleView is the LEGACY
             // pane registry path (= RegisteredPanes.swift). Callers
             // don't pass a sidebarSelection binding (= they have no
             // concept of book folder scoping), so this preview pane
@@ -126,7 +126,7 @@ struct ZoneModuleView: View {
             // WorkspaceView path uses PreviewPane directly with the
             // computed previewScope (= supports all 4 sidebar scopes).
             //
-            // v0.40 boss 9/7 OOB ', top bar, yestop bar.
+            // boss 9/7 OOB ', top bar, yestop bar.
             // caneditor, yes': the search bar
             // belongs BELOW the ZoneContentView's tab strip (= inside
             // PreviewPane's body, = first element rendered after the
@@ -138,7 +138,7 @@ struct ZoneModuleView: View {
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
-                    // v0.34 B-25-fix (= boss 9/3 'double-clicking card did not open the document'):
+                    // fix (= boss 9/3 'double-clicking card did not open the document'):
                     // ZoneModuleView's caller L561 is the ACTIVE path
                     // (= not WorkspaceView's caller L355 which is dead
                     // code). Route double-click to ZoneModuleView's own
@@ -171,7 +171,7 @@ struct ZoneModuleView: View {
             // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04 +
             // PlotThread per P1 ticket #8
             // [WIRE-SPECIALIZEDTOOLS-003] 2026-09-04).
-            // v0.71 P1 batch 9 dual-axis followup (= Q99 Spec axis P0):
+            // 
             // fixed the stale "Old 6-zone specializedTools = 4 tabs"
             // comment (= current code has 5 tabs at L774-778 below;
             // the previous docstring described the pre-PlotThread state).
@@ -205,17 +205,17 @@ struct ZoneModuleView: View {
             ZoneContentView(
                 zoneSlug: "editor",
                 tabs: [
-                    // v0.34 B-13 fix (= boss 9/2 'git grep BEFORE patch' rule):
+                    // fix (= boss 9/2 'git grep BEFORE patch' rule):
                     // see L279 fix comment above; replace placeholder with
                     // EditorPlaceholder (= ticket 04-10 toolbar + mode toggle).
                     (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorPlaceholder())),
                     (WenshuI18n.t("tab.title.outline"), "puzzle", AnyView(OutlinePanel())),
-                    // v0.34 B-16: removed the "Backlinks" tab here (= boss 9/2 OOB
+                    // removed the "Backlinks" tab here (= boss 9/2 OOB
                     // 'the Backlinks area still has to be removed'). Backlinks are now
                     // surfaced via the chrome bottom-right "Backlinks 0"
                     // label click → popover (= spec user stories 8 + 11).
                 ],
-                // v0.25.1 (= ticket 029c-trailing-button): expand/shrink
+                // (= ticket 029c-trailing-button): expand/shrink
                 // trailing button. Boss 8/26 OOB 'it is one button, not a tab
                 // teb' = won't be a tab (= no selected underline), just
                 // a button at the right edge of the tab bar.

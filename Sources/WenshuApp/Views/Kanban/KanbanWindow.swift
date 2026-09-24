@@ -51,7 +51,7 @@ struct KanbanWindow: View {
 
     var body: some View {
         Group {
-            // v1.0.0-m1-shell boss 2026-09-11 OOB fix (= cua fatal-
+            // -m1-shell boss 2026-09-11 OOB fix (= cua fatal-
             // error trace at SwiftUICore/Environment+Objects.swift:34
             // when the kanban button was first clicked): the
             // kanban window is a SIBLING scene to the main
@@ -87,7 +87,7 @@ struct KanbanWindow: View {
         }
         .navigationTitle(WenshuI18n.t("window.kanban.title"))
         .task {
-            // v1.0.0-m1-shell boss 2026-09-11 OOB: use the
+            // -m1-shell boss 2026-09-11 OOB: use the
             // shared LibraryLifecycleHook (= same one the main
             // window's LibraryRootView.runLaunch() invokes) to
             // construct BookStore from the .ws root. The hook
@@ -110,7 +110,7 @@ struct KanbanWindow: View {
                 let result = try hook.runLaunch()
                 self.bookStore = result.makeBookStore()
             } catch {
-                // v1.0.0-m1-shell boss 2026-09-11 OOB: if the
+                // -m1-shell boss 2026-09-11 OOB: if the
                 // kanban window can't construct its store
                 // (= library path moved, file permissions, etc.)
                 // show the error and stay open so the user can

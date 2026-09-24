@@ -77,7 +77,7 @@
 //                                                  PromptBuilder for the dynamic
 //                                                  tier composition)
 //
-//  v0.39 ticket GAP-001 (= the highest-priority ❌ missing module from
+// ticket GAP-001 (= the highest-priority ❌ missing module from
 //  the 2026-09-04 gap audit; unblocks GAP-009 conversation_loop wiring).
 //
 
@@ -578,7 +578,7 @@ extension PromptBuilder {
 //         `agent/prompt_builder.py` for the build_* public APIs).
 //
 // Direct port of hermes `agent/prompt_builder.py` per spec §3.1 #4 (= TICKET-
-// HERMES-GAP-001 follow-up). The 4 generic public APIs
+// follow-up). The 4 generic public APIs
 // (`build_skills_system_prompt`, `build_nous_subscription_prompt`,
 // `build_context_files_prompt`, `build_environment_hints`) are ported
 // 1:1 (= same public function signatures + same body). The hermes-specific

@@ -16,7 +16,7 @@
 //
 //  Per ADR-0011 + §11 hard rule: pure Swift, no LLM calls.
 //
-//  v0.36 sub-step 3 of 4 for ticket 016.
+// sub-step 3 of 4 for ticket 016.
 //
 
 import Foundation

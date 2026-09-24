@@ -9,7 +9,7 @@
 //  (= callers are expected to synchronize in their own actor context, e.g.
 //  ConversationLoop actor owns the retry state).
 //
-//  v0.35 sub-step 4 of 8 for ticket 001.
+// sub-step 4 of 8 for ticket 001.
 //
 
 import Foundation

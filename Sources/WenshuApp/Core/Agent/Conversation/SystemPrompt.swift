@@ -17,7 +17,7 @@
 //      GAP-001) the composition of ContextEngine + MemoryAdapter +
 //      SkillAdapter into a single dynamic block.
 //
-//  HERMES-PARTIAL-012 adds three new public surfaces over the GAP-001 baseline:
+// adds three new public surfaces over the GAP-001 baseline:
 //    - Per-provider guidance blocks (= hermes per-model operational
 //      guidance: anthropic / openai / google / ollama / openrouter each
 //      get model-family-specific tool-use enforcement + parallel-tool
@@ -32,10 +32,10 @@
 //  Invariant: identical inputs → byte-identical output (= cache hit on
 //  subsequent calls within the same session).
 //
-//  v0.35 ticket 002 sub-step 2 of N (= ticket 002 = PromptCaching +
+// ticket 002 sub-step 2 of N (= ticket 002 = PromptCaching +
 //  SystemPrompt + cache-stable invariants per spec §3.3 + §0.1 A3).
 //
-//  TICKET-HERMES-GAP-001 refactor (2026-09-04): SystemPrompt is now a thin
+// refactor (2026-09-04): SystemPrompt is now a thin
 //  wrapper around PromptBuilder. The stable-tier identity string stays
 //  here (= canonical byte-stable source). The dynamic-tier composition
 //  (= ContextEngine + MemoryAdapter + SkillAdapter + caller extras +

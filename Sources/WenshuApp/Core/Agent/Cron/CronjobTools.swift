@@ -40,8 +40,8 @@
 //  directives detection) so the LLM-side tool refuses to create
 //  jobs with injection-prone prompts.
 //
-//  v0.18 ticket 21 (= user-side cron in Cronjob.swift) +
-//  HERMES-PARTIAL-010 (2026-09-04) for the LLM-side surface.
+// ticket 21 (= user-side cron in Cronjob.swift) +
+// (2026-09-04) for the LLM-side surface.
 //
 
 import Foundation
