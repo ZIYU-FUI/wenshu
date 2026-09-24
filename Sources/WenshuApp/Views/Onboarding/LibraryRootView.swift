@@ -186,7 +186,7 @@ public struct LibraryRootView: View {
             // wraps it: it is the direct child of the root view, which is
             // what Apple's NavigationSplitView documentation asks for
             // ("typically use it as the root view in a Scene").
-            NavigationSplitShell(appState: appState, bookStore: bookStore)
+            NavigationSplitShell(appState: appState, bookStore: bookStore, library: library)
         } else {
             // BookStore is built asynchronously by LibraryLifecycleHook.
             // Column bodies read it as a non-optional @Environment value,

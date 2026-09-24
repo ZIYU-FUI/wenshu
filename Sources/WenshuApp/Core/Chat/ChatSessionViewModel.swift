@@ -220,6 +220,36 @@ public final class ChatViewModel {
     // Mutable so archive flow can replace.
     @MainActor private var sessionId: String
 
+    // v1.79 chat-by-book: current scope bookID for all persistence calls.
+    // nil = global un-attached (= the pre-v1.79 default; = used when no
+    // book is selected, e.g. onboarding-before-book-selection chats).
+    // The view layer is expected to call setCurrentBookID(_:) when the
+    // user picks a different book so the chat panel reloads against the
+    // new scope. Until the view wires this up (= future ticket; = no UI
+    // change in v1.79), the chat panel still works (= bookID: nil = global
+    // = same behavior as before v1.79).
+    //
+    // internal (= not private) so the test target can read it without
+    // resorting to Mirror reflection (= Mirror on @Observable types
+    // produces String?? for Optional fields, which is brittle).
+    @MainActor internal var currentBookID: String?
+
+    /// v1.79 chat-by-book: update the active scope (= called by the view
+    /// layer when the user picks a different book). Refreshes the in-memory
+    /// session id (= per-book session) and reloads history. No-op if the
+    /// bookID is unchanged.
+    public func setCurrentBookID(_ bookID: String?) {
+        if currentBookID == bookID { return }
+        currentBookID = bookID
+        // Per-book session id: same key prefix + bookID suffix so the
+        // global session rows and the per-book session rows can coexist
+        // in the same SwiftData store (= the WSChatMessage.bookID column
+        // is what scopes reads, not the session id).
+        sessionId = Self.makeSessionID(for: bookID)
+        // Fire-and-forget reload against the new scope.
+        Task { await self.loadHistory() }
+    }
+
     // B-05 build fix: demote from `public init` to internal `init`. AppState
     // is internal (= `final class AppState`, no access modifier), and a
     // `public init` cannot accept an internal type as a parameter. Both
@@ -240,10 +270,15 @@ public final class ChatViewModel {
         sessionId: String = "default",
         initialMessages: [ChatMessage] = [],
         appState: AppState? = nil,
-        repository: ChatRepositoryProtocol = LiveChatRepository.shared
+        repository: ChatRepositoryProtocol = LiveChatRepository.shared,
+        bookID: String? = nil
     ) {
         self.conductor = conductor
-        self.sessionId = sessionId
+        // v1.79 chat-by-book: per-book session id when bookID is set
+        // (= the SwiftData store keys sessions by sessionID; = a unique
+        // per-book session id keeps chat rows cleanly partitioned).
+        self.sessionId = Self.makeSessionID(for: bookID, fallback: sessionId)
+        self.currentBookID = bookID
         self.messages = initialMessages
         // B-05: hold a strong reference to the AppState instance so
         // currentModel / switchModel can read + write the canonical
@@ -254,6 +289,21 @@ public final class ChatViewModel {
         // ↔ ChatMessage mapping internally (= business layer speaks
         // ChatMessage only).
         self.repository = repository
+    }
+
+    /// v1.79 chat-by-book: build a per-book session id. Returns
+    /// `book:<id>:default` when scoped to a book; otherwise returns the
+    /// caller-supplied fallback (= the global session id).
+    ///
+    /// Why a synthetic id (= instead of reusing "default" for every book):
+    /// WSChatRepository.getSession looks up sessions by sessionID. Each
+    /// book needs its own session row so messages don't share the same
+    /// session (= chat history under one book must not leak into another).
+    /// The id pattern is stable (= never reused) so subsequent calls with
+    /// the same bookID always hit the same SwiftData row.
+    static func makeSessionID(for bookID: String?, fallback: String = "default") -> String {
+        guard let bookID else { return fallback }
+        return "book:\(bookID):\(fallback)"
     }
 
     /// C-4: the data-layer seam. Defaults to LiveChatRepository.shared
@@ -535,7 +585,7 @@ public final class ChatViewModel {
         // C-4: route through ChatRepositoryProtocol (= the data-layer
         // seam). The Live impl owns the StoredChatMessage mapping; =
         // business layer speaks ChatMessage only.
-        try? await repository.append(userMsg, sessionId: sessionId)
+        try? await repository.append(userMsg, sessionId: sessionId, bookID: currentBookID)
 
         do {
             // v0.34: streaming path = render each text chunk as it
@@ -845,7 +895,7 @@ public final class ChatViewModel {
                 tokens: replyTokens,
                 thinking: replyThinking?.isEmpty == false ? replyThinking : nil
             )
-            try? await repository.append(agentMsg, sessionId: sessionId)
+            try? await repository.append(agentMsg, sessionId: sessionId, bookID: currentBookID)
             recomputeContextUsed()
 
             // trigger summary generation (LLM + saveSummary + deleteOldMessages order)
@@ -859,7 +909,8 @@ public final class ChatViewModel {
                 sessionId: sessionId,
                 lastN: 10,
                 threshold: 20,
-                verifier: verifier
+                verifier: verifier,
+                bookID: currentBookID
             )
         } catch {
             // v0.34: route through UserFacingError.from (= single
@@ -1026,9 +1077,12 @@ public final class ChatViewModel {
     /// the Live impl does the StoredChatMessage ↔ ChatMessage mapping.
     /// Errors are swallowed (= matches the prior `try?` behavior; =
     /// chat zone still renders, just with empty history).
+    ///
+    /// v1.79 chat-by-book: scoped by `currentBookID` (= set by
+    /// setCurrentBookID; = nil = global un-attached).
     public func loadHistory() async {
         do {
-            let loaded = try await repository.loadMessages(sessionId: sessionId)
+            let loaded = try await repository.loadMessages(sessionId: sessionId, bookID: currentBookID)
             self.messages = loaded
         } catch {
             // Silent no-op (= matches legacy behavior; = the view

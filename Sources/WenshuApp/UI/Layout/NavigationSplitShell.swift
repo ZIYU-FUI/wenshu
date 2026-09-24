@@ -95,6 +95,11 @@ struct NavigationSplitShell: View {
     /// Optional because BookStore is constructed asynchronously
     /// by LibraryLifecycleHook (= may not exist at first frame).
     var bookStore: BookStore?
+    // v1.79 chat-by-book: thread WenshuLibrary through to the chat
+    // pane so ChatZoneView can observe library (= the canonical
+    // book-selection source mutated by BookshelfListView taps; =
+    // see WenshuLibrary.swift L74/L78/L198/L218-L219/L224).
+    var library: WenshuLibrary?
 
     /// v0.88 boss 2026-09-10 OOB 'inspector always shown + always pass the value when there is one':
     /// `.inspector(isPresented:)` is wired with `.constant(true)`
@@ -360,7 +365,7 @@ struct NavigationSplitShell: View {
             // macOS 27 doc-alignment (audit ticket 4): strip
             // `.navigationSplitViewColumnWidth(min:ideal:max:)`
             // (= canonical Apple default; see comment above).
-            ShellContentColumn(appState: appState, bookStore: bookStore)
+            ShellContentColumn(appState: appState, bookStore: bookStore, library: library)
                 // v1.0.0-m1-shell boss 2026-09-10 OOB 'Keynote and the three office apps
                 // all use this same logic': wire the inspector's `isPresented` to
                 // a real `Binding<Bool>` (= `appState.inspectorVisible`)

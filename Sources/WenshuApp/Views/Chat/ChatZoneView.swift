@@ -47,6 +47,13 @@ struct ChatZoneView: View {
     // in WSChatRepository.shared (= @MainActor SwiftData wrapper).
 
     @Environment(AppState.self) private var envAppState
+    // v1.79 chat-by-book: WenshuLibrary is the canonical source for
+    // selectedBookId (= see WenshuLibrary.swift L74/L78/L198/L218-
+    // L219/L224 = the only places selectedBookId is mutated).
+    // Threaded through so ChatZoneView can observe it via
+    // @Environment(WenshuLibrary.self).
+    @Environment(WenshuLibrary.self) private var library
+    @Environment(BookStore.self) private var bookStore
 
     private var appState: AppState { envAppState }
 
@@ -178,6 +185,35 @@ struct ChatZoneView: View {
 //     overlay. No more visual effect view gradient under us.
         .background(DesignTokens.sidebarBackground)
         .environment(appState)
+        // v1.79 chat-by-book (after wire-up audit 2026-09-24):
+        // the canonical source for the user's active book is
+        // `appState.sidebarSelection` (= mutated by AppleSidebarView's
+        // `forwardSelection(_:)` whenever the user clicks a row; = see
+        // AppleSidebarView.swift L446-L465). WenshuLibrary.selectedBookId
+        // was tried first (= the bookish-named field), but no code in
+        // the project calls `WenshuLibrary.setSelectedBook(id:)` or
+        // `BookStore.reload(bookId:)` (= both functions exist but
+        // neither has a caller; = the field stays at init time).
+        //
+        // Resolution: derive bookID from sidebarSelection.
+        // - `.book(let bookID)` → use bookID
+        // - `.folder(let bookID, _)` → use bookID (= folder
+        //   is a sub-row of a book; = same book scope)
+        // - `.shelf / .reference* / nil` → nil (= global
+        //   un-attached; = pre-v1.79 behavior when no book
+        //   is selected).
+        .onChange(of: appState.sidebarSelection) { _, newSelection in
+            let bookID: UUID?
+            switch newSelection {
+            case .book(let id):
+                bookID = id
+            case .folder(let id, _):
+                bookID = id
+            case .shelf, .referenceCategory, .referenceLibraryRoot, nil:
+                bookID = nil
+            }
+            vm.setCurrentBookID(bookID?.uuidString)
+        }
     }
 
     /// compactNumber: real token count folded into compact format (Hermes format_token_count_compact canonical).

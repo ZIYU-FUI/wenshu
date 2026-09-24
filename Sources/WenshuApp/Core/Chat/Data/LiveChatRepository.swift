@@ -26,25 +26,70 @@
 //
 
 import Foundation
+import SwiftData
 
-/// SwiftData-backed ChatRepositoryProtocol implementation.
+/// SwiftData-backed ChatRepositoryProtocol implementation. Thin
 /// @unchecked Sendable: holds no mutable state. All reads of
 /// WSChatRepository.shared hop to MainActor (= the SwiftData
 /// wrapper's isolation); the only stored reference is the
 /// global singleton lookup (= trivially Sendable).
 public final class LiveChatRepository: ChatRepositoryProtocol, @unchecked Sendable {
-    public init() {}
+/// Optional override (= nil in production). When set, every forwarder
+/// uses this container instead of WSChatRepository.shared (= shared
+/// always uses WSPersistenceContainer.shared = the global store).
+private let containerOverride: ModelContainer?
 
-    public func append(_ message: ChatMessage, sessionId: String) async throws {
+/// Default initializer (= uses WSChatRepository.shared with the
+/// global persistence container). Production callers use this.
+///
+/// v1.79 chat-by-book tests: an init variant with an injected
+/// container exists below (= LiveChatRepository(container:)) so
+/// unit tests can isolate the Live adapter against a per-test
+/// in-memory container without polluting the shared singleton.
+public init() {
+    self.containerOverride = nil
+}
+
+/// Test-only initializer: back the Live adapter with a custom
+/// ModelContainer (= e.g. a per-test in-memory container built via
+/// WSPersistenceContainer.makeInMemoryContainer()). All forwarders
+/// route through the WSChatRepository built from this container
+/// instead of the shared singleton.
+///
+/// @unchecked Sendable: holds no mutable state. The custom
+/// container reference is read-only; all writes go through the
+/// WSChatRepository wrapper which is @MainActor-isolated.
+public init(container: ModelContainer) {
+    self.containerOverride = container
+}
+
+    /// Helper: resolve the WSChatRepository wrapper to use for a given
+    /// call. Returns the custom-container wrapper when one was injected
+    /// at init; = falls back to WSChatRepository.shared for production.
+    /// The `bookID` parameter is unused here (= future ticket may scope
+    /// the lookup further; = currently the only scope mechanism is
+    /// per-method predicates).
+    ///
+    /// @MainActor because WSChatRepository.shared is @MainActor-isolated;
+    /// = callers always invoke this from within a MainActor.run block.
+    @MainActor
+    private func repository(bookID _: String?) -> WSChatRepository {
+        if let containerOverride {
+            return WSChatRepository(container: containerOverride)
+        }
+        return WSChatRepository.shared
+    }
+
+    public func append(_ message: ChatMessage, sessionId: String, bookID: String?) async throws {
         let stored = Self.makeStored(from: message)
         try await Self.runOnMainActor {
-            try WSChatRepository.shared.append(stored, sessionId: sessionId)
+            try self.repository(bookID: bookID).append(stored, sessionId: sessionId, bookID: bookID)
         }
     }
 
-    public func loadMessages(sessionId: String) async throws -> [ChatMessage] {
+    public func loadMessages(sessionId: String, bookID: String?) async throws -> [ChatMessage] {
         let stored: [StoredChatMessage] = try await Self.runOnMainActor {
-            try WSChatRepository.shared.loadMessages(sessionId: sessionId)
+            try self.repository(bookID: bookID).loadMessages(sessionId: sessionId, bookID: bookID)
         }
         return stored.compactMap(Self.makeDomain(from:))
     }
@@ -53,7 +98,8 @@ public final class LiveChatRepository: ChatRepositoryProtocol, @unchecked Sendab
         sessionId: String,
         lastN: Int,
         threshold: Int,
-        verifier: WenshuVerifier
+        verifier: WenshuVerifier,
+        bookID: String?
     ) async throws {
         // WSChatRepository.summarizeIfNeeded is @MainActor + async.
         // Calling a @MainActor-isolated async method from a
@@ -61,11 +107,16 @@ public final class LiveChatRepository: ChatRepositoryProtocol, @unchecked Sendab
         // (= the await suspends, re-schedules on MainActor, runs
         // the body, then resumes the caller). No manual wrap
         // needed (= MainActor.run only accepts sync closures).
-        try await WSChatRepository.shared.summarizeIfNeeded(
+        // The Bool return value (= "did we summarize?") is dropped
+        // here on purpose: the protocol caller doesn't surface it.
+        // Callers that need the flag should query the repository
+        // directly (= Q112 seam: protocol stays minimal).
+        _ = try await self.repository(bookID: bookID).summarizeIfNeeded(
             sessionId: sessionId,
             lastN: lastN,
             threshold: threshold,
-            verifier: verifier
+            verifier: verifier,
+            bookID: bookID
         )
     }
 

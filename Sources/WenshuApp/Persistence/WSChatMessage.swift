@@ -19,6 +19,20 @@ public final class WSChatMessage {
     @Attribute(.unique) public var id: String
     /// FK to WSSession.sessionID (= string FK, = legacy)
     var sessionID: String
+    // v1.79 chat-by-book row-level split (boss 2026-09-24 OOB):
+    // denormalized bookID copied from the parent WSSession at write time.
+    // Why denormalize (= avoid relying on `$0.session?.bookID` keyPath
+    // in SwiftData #Predicate macros, which has historic fragility
+    // across SDK versions): each message row carries its own bookID,
+    // matching the WSChatMessage.sessionID pattern (= FK by convention).
+    //
+    // Invariant (= maintained by WSChatRepository.append): message.bookID
+    // MUST equal session.bookID for the session this message belongs to.
+    // WSChatRepository.append verifies this via getSession before insert
+    // and throws WSChatRepositoryError on mismatch.
+    //
+    // nil = global un-attached (= session was created without a book).
+    var bookID: String?
     var role: String
     var status: String
     var content: String
@@ -46,7 +60,7 @@ public final class WSChatMessage {
     /// Inverse relationship target (= declared on WSSession via @Relationship(inverse:))
     var session: WSSession?
 
-    init(id: String, sessionID: String, role: String, content: String, position: Int, status: String = "ok", thinking: String? = nil) {
+    init(id: String, sessionID: String, role: String, content: String, position: Int, status: String = "ok", thinking: String? = nil, bookID: String? = nil) {
         self.id = id
         self.sessionID = sessionID
         self.role = role
@@ -55,6 +69,7 @@ public final class WSChatMessage {
         self.position = position
         self.tokenCount = -1
         self.thinking = thinking
+        self.bookID = bookID
         self.createdAt = Date()
         self.updatedAt = Date()
     }

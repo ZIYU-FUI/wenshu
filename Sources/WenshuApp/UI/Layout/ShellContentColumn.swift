@@ -30,6 +30,12 @@ struct ShellContentColumn: View {
     // WikiLinkResolver + ImageProvider against the active book
     // root).
     let bookStore: BookStore?
+    // v1.79 chat-by-book: thread WenshuLibrary through to
+    // EditorChatSplitHost so ChatZoneView can observe
+    // library.selectedBookId (= the canonical source for the
+    // user's active book; = see WenshuLibrary.swift L74/L78/
+    // L198/L218-L219/L224 for all selectedBookId mutation sites).
+    let library: WenshuLibrary?
 
     var body: some View {
         // v1.0.0-m1-shell boss 2026-09-10 OOB 'keep grinding on the doc-handling plan': per
@@ -96,7 +102,8 @@ struct ShellContentColumn: View {
             // appState.openTabs + activeTabId + bookStore for
             // WenshuEditorServicesFactory.
             appState: appState,
-            bookStore: bookStore
+            bookStore: bookStore,
+            library: library
         )
         .environment(appState)
     }
