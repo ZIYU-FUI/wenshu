@@ -1,13 +1,12 @@
 // Sources/WenshuApp/UI/PaneTabBar.swift
 //
-// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '[Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame`; the cleanup commit replaced it with this placeholder because translation was incomplete]'): Phase 3 of 5-phase component refactor.
-//
 // Generic wrapper for a list of PaneIconTab + optional trailing buttons.
 // Listed in ComponentIndex.md Level 3.2.
 //
-// = replaces ZoneContentTabBar (166 LOC) + DynamicZoneTabBar (135 LOC) +
-// the chat-zone wrapper (74 LOC, since deleted in v0.34) = 375 LOC of duplicated
-// tab bar code. Only DynamicZoneTabBar survives (= enum↔string binding shim).
+// Replaces ZoneContentTabBar (166 LOC) + DynamicZoneTabBar (135 LOC) +
+// the chat-zone wrapper (74 LOC, since deleted) = 375 LOC of duplicated
+// tab bar code. Only DynamicZoneTabBar survives (= enum↔string binding
+// shim).
 //
 // Use this for ANY per-pane top tab bar (= sidebar/preview/editor/tools/
 // chat/dynamic). Don't write a new tab bar component from scratch.
@@ -125,10 +124,9 @@ struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
     }
 
     var body: some View {
-        // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
-        // RegionTabBar wrapper (= per Plan A = the tab bar = PaneTabBar
-        // = is the direct content = no chrome wrapper above). The
-        // PaneTabBar IS the chrome (= Apple-style flat tab bar).
+        // RegionTabBar wrapper removed: the tab bar IS the direct
+        // content (= no chrome wrapper above). The PaneTabBar IS
+        // the chrome (= Apple-style flat tab bar).
         HStack(spacing: DesignTokens.chromePaddingClusterGap) {
             ForEach(items) { item in
                 PaneIconTab(
@@ -145,33 +143,31 @@ struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
             // (= independent of how many tabs the pane has = always
             // sits at the rightmost position). Apple HIG canonical
                 // toolbar pattern (toolbars.action buttons at trailing edge).
-                // v0.30 ponytail fix v2: remove `Trailing.self == EmptyView.self`
-                // check (= always render trailing). Previous code skipped
-                // trailing when `Trailing` was inferred as EmptyView (= the
-                // default). When callers pass a real trailing via AnyView,
-                // SwiftUI's @ViewBuilder inference sometimes collapses the
+                // Remove `Trailing.self == EmptyView.self` check (= always render
+                // trailing). Previous code skipped trailing when `Trailing`
+                // was inferred as EmptyView (= the default). When
+                // callers pass a real trailing via AnyView, SwiftUI's
+                // @ViewBuilder inference sometimes collapses the
                 // trailing closure's return type to EmptyView (= the
-                // type-check trick at runtime doesn't catch this) = trailing
-                // skipped = sort icon / expand icon never render.
+                // type-check trick at runtime doesn't catch this) =
+                // trailing skipped = sort icon / expand icon never
+                // render.
                 //
-                // Fix: always render trailing. EmptyView collapses to 0
-                // width anyway (= no visual difference for callers that
-                // pass nil).
+                // Fix: always render trailing. EmptyView collapses to
+                // 0 width anyway (= no visual difference for callers
+                // that pass nil).
                 Spacer(minLength: 0)
                 trailing()
-            // v0.34 boss 2026-09-02 OOB 'groupneed, ':
-            // the PaneTabBar chrome parent controls the symmetric outer
-            // inset. Previously (.padding(.leading, chromePaddingLeading)
-            // only) the inner HStack was left-aligned with 18 PT left
-            // edge inset but 0 PT right (= visually asymmetric across
-            // the 6 zones). Apple HIG canonical toolbar = symmetric
-            // outer edge inset (Photos / Music / Mail tab bar use the
-            // same leading + trailing value). Now both sides use
-            // chromePaddingLeading (= 8 PT = Apple HIG canonical
-            // 'Spacing.small' for inline toolbar items per boss 9/8
-            // 'Apple API default spacing isn't PT, it's a semantic
-            // name' = the semantic name is '.small' = 8 PT) =
-            // Apple HIG symmetric.
+            // The PaneTabBar chrome parent controls the symmetric
+            // outer inset. Previously (.padding(.leading,
+            // chromePaddingLeading) only) the inner HStack was
+            // left-aligned with 8 PT left edge inset but 0 PT right
+            // (= visually asymmetric across the 6 zones). Apple HIG
+            // canonical toolbar = symmetric outer edge inset
+            // (Photos / Music / Mail tab bar use the same leading +
+            // trailing value). Now both sides use chromePaddingLeading
+            // (= 8 PT = Apple HIG canonical 'Spacing.small' for
+            // inline toolbar items) = Apple HIG symmetric.
             .padding(.horizontal, DesignTokens.chromePaddingLeading)
             // ponytail fix: the inner HStack had only intrinsic width
             // (= sum of children), so the Spacer(minLength: 0) before
@@ -243,12 +239,12 @@ struct PaneTrailingIconButton: View {
     }
 }
 
-// MARK: - PaneIconTab (inlined 2026-09-17 from UI/PaneIconTab.swift)
+// MARK: - PaneIconTab (inlined from UI/PaneIconTab.swift)
 //
-// v0.28 followup Boss UX round A: Phase 2 of 5-phase component refactor.
-// Inlined because the only caller (= PaneTabBar above) is in this same
-// file (= file-local consumer; = a separate file with a public type just
-// to host a single internal caller is gratuitous separation).
+// Inlined because the only caller (= PaneTabBar above) is in
+// this same file (= file-local consumer; = a separate file with
+// a public type just to host a single internal caller is
+// gratuitous separation).
 //
 // Apple HIG 28×28 hot area + SF Symbols 6 icon + selected-state underline
 // with matchedGeometry slide animation.
