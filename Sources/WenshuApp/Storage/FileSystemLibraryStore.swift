@@ -510,7 +510,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     }
 
     /// <root>/<shelf-id>/books/<book-id>/<category.directoryName>/<docId>.md
-    /// v0.23 audit #014 fix: don't force-unwrap. If book directory missing
+    /// 
     /// (corrupted state), throw instead of crashing.
     private func documentPath(id: UUID, bookId: UUID, category: BookCategory) throws -> URL {
         guard let dir = categoryDirectory(bookId: bookId, category: category) else {
