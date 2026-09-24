@@ -19,8 +19,8 @@
 //  The extraction moves the `if let imagePath = vm.attachedImagePath { ChatAttachmentPreviewChip }`
 //  block (= 9 LOC inside the VStack) into a standalone view. The HStack
 //  (= paperclip + TextField + Send button + Goal button) stays in
-//  ChatView.swift (= that block is large and tangled with many v0.61
-//  boss OOB comments; = future C3.4.3 ticket will extract it into
+//  ChatView.swift (= that block is large and tangled with many
+//  inline comments; = future C3.4.3 ticket will extract it into
 //  ChatInputRow.swift).
 //
 //  Behavior preserved (= the chip shows only when `vm.attachedImagePath != nil`,
