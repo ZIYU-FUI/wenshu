@@ -58,7 +58,7 @@ public enum WenshuDefaultsKey: String, CaseIterable, Sendable {
 /// `.bool(forKey:)` / `.set(_:forKey:)` callsites in wenshu code.
 /// The intent is to keep every key in `WenshuDefaultsKey` (= no string
 /// typos; = one place to audit).
-public struct UserDefaultsStore: Sendable {
+public struct UserDefaultsStore: @unchecked Sendable {
 
     public static let shared = UserDefaultsStore()
 
