@@ -1,28 +1,9 @@
-// ShellPlaceholder.swift · Wenshu · v1.34 ticket 001
+// ShellPlaceholder.swift · Wenshu
 //
-// Extracted from NavigationSplitShell.swift.
-//
-// The repowise get_health directive listed NavigationSplitShell as
-// the top #2 untested hotspot (= 1564 NLOC, 10 deps, score 4.5).
-//
-// v1.34 continues the WorkspaceView split pattern (= v1.32
-// ZoneModuleView + v1.33 EditorPlaceholder) by splitting
-// NavigationSplitShell. The smallest struct (= ShellPlaceholder
-// = 22 lines) is the SAFE first split.
-//
-// Canonical icon layer = Apple SF Symbols 6 built into macOS 27
-// (= zero SPM dependency). This extracted file uses the SF
-// Symbols version via `Image(systemName:)`.
-//
-// Per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112: extract
-// ShellPlaceholder to its own file. This is the SAFE first split
-// because:
-//   1. ShellPlaceholder is `public` (= accessible from WenshuApp module)
-//   2. Dependency = `Image(systemName:)` (= built into SwiftUI;
-//      no third-party icon library)
-//   3. ShellPlaceholder is a leaf component (= no other structs
-//      in NavigationSplitShell depend on it in a complex way;
-//      just instantiation via ShellPlaceholder(name:icon:hint:))
+// Extracted from `NavigationSplitShell.swift`. Canonical icon
+// layer = Apple SF Symbols 6 built into macOS 27 (= zero SPM
+// dependency). This extracted file uses the SF Symbols version
+// via `Image(systemName:)`.
 
 import SwiftUI
 
