@@ -73,4 +73,36 @@ struct WSSessionTests {
             try context.save()
         }
     }
+
+    @Test("WSSession init with bookID persists; default bookID = nil (= global un-attached)")
+    @MainActor
+    func bookIDDefaultIsNil() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+        let defaultSession = WSSession(sessionID: "default-session")
+        context.insert(defaultSession)
+        let scopedSession = WSSession(sessionID: "scoped-session", bookID: "book-uuid-A")
+        context.insert(scopedSession)
+        try context.save()
+
+        let fetched = try context.fetch(FetchDescriptor<WSSession>())
+        let byID = Dictionary(uniqueKeysWithValues: fetched.map { ($0.sessionID, $0) })
+        #expect(byID["default-session"]?.bookID == nil)
+        #expect(byID["scoped-session"]?.bookID == "book-uuid-A")
+    }
+
+    @Test("WSSession multiple sessions under same bookID is allowed (= no unique constraint on bookID)")
+    @MainActor
+    func bookIDNotUnique() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+        // Same bookID, different sessionIDs = legitimate multi-chat-per-book.
+        let a = WSSession(sessionID: "sess-A", bookID: "book-X")
+        let b = WSSession(sessionID: "sess-B", bookID: "book-X")
+        context.insert(a)
+        context.insert(b)
+        try context.save()
+        let count = try context.fetchCount(FetchDescriptor<WSSession>())
+        #expect(count == 2)
+    }
 }
