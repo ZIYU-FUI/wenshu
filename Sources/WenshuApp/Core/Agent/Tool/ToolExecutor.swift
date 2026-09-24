@@ -19,7 +19,7 @@
 //    - executeSequential(assistantMessage:messages:taskId:apiCallCount:tools:)
 //      runs tool_use blocks one at a time
 //
-//  Per-tool-call pipeline (HERMES-PARTIAL-003 = full 6-helper surface):
+//  Per-tool-call pipeline (wenshu port = full 6-helper surface):
 //    1. Permission gate (= hermes DELEGATE_BLOCKED_TOOLS via wenshu
 //       SubAgentPermissions). Rejected tools emit a denial toolResult
 //       without any I/O.
@@ -69,7 +69,7 @@ actor ToolExecutor {
     /// registry). Inject hooks via `init(hookChain:dispatchHookChain:)`.
     let dispatchHookChain: ToolDispatchHookChain
 
-    // MARK: - HERMES-PARTIAL-003 dispatch helpers (6 helpers)
+    // MARK: - wenshu port dispatch helpers (6 helpers)
 
     /// Permission gate (= hermes DELEGATE_BLOCKED_TOOLS check; wenshu
     /// SubAgentPermissions parity). Invoked BEFORE `tool.execute(input:)`.
@@ -106,8 +106,8 @@ actor ToolExecutor {
     // MARK: - Init
 
     /// Initializer accepting the optional pre-configured hook chains
-    /// + 6 HERMES-PARTIAL-003 dispatch helpers. Defaults preserve
-    /// pre-HERMES-PARTIAL-003 behavior.
+    /// + 6 wenshu port dispatch helpers. Defaults preserve
+    /// pre-wenshu port behavior.
     init(
         hookChain: ShellHookChain = ShellHookChain(),
         dispatchHookChain: ToolDispatchHookChain = ToolDispatchHookChain(),
@@ -202,7 +202,7 @@ actor ToolExecutor {
             // pre-tool-call hook.
             try await hookChain.firePreToolCall(call)
 
-            // + HERMES-PARTIAL-003 step 4: pre-dispatch validator + preDispatch hook.
+            // + wenshu port step 4: pre-dispatch validator + preDispatch hook.
             let dispatchInput = ToolDispatchInputParser.parse(input)
             let validatedInput = try await preDispatchValidator(toolName, dispatchInput)
             let serializedInput = ToolDispatchInputParser.serialize(validatedInput)
@@ -305,7 +305,7 @@ actor ToolExecutor {
                         return IndexedOutput(index: index, toolUseID: toolUseID, output: rejectionOutput)
                     }
 
-                    // + HERMES-PARTIAL-003 step 4: pre-dispatch validator + preDispatch hook.
+                    // + wenshu port step 4: pre-dispatch validator + preDispatch hook.
                     let dispatchInput = ToolDispatchInputParser.parse(input)
                     let validatedInput: [String: String]
                     do {
@@ -405,7 +405,7 @@ actor ToolExecutor {
 // Wenshu-side wins (= per AGENTS.md §11.3):
 //
 // Direct port of hermes `agent/tool_executor.py` per spec
-// §3.1 #12 (= TICKET-HERMES-PARTIAL-003 follow-up). The target
+// §3.1 #12 follow-up. The target
 // file already existed at 400 LOC with full surface
 // (= executeConcurrent + executeSequential + 5 helper
 // functions = wenshu chose an actor-based dispatch
