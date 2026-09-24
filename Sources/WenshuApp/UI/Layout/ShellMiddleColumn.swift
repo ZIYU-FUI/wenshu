@@ -522,20 +522,17 @@ struct ShellMiddleColumn: View {
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     )
-                    .overlay(
-                        // macOS 27 doc-alignment (boss 9/18 OOB
-                        // '全都改一下', audit ticket 6):
-                        // HierarchicalShapeStyle.separator is the
-                        // Apple semantic ShapeStyle that
-                        // auto-adapts to dark mode + Liquid Glass
-                        // (= 1 PT hairline by default; = not the
-                        // solid NSColor.separatorColor which fails
-                        // on dark mode + glass tint backgrounds per
-                        // wenshu-macos26-liquid-glass-pitfalls
-                        // Pitfall 1 = Attempt 1/2 boss-rejected).
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .stroke(.separator, lineWidth: 0.5)
-                    )
+                    // v1.85e boss 2026-09-24 OOB '把那个搜索框
+                    // 的描边掉, 不要描边': drop the stroke
+                    // overlay (= the macOS 27 hairline stroke on
+                    // top of the rounded rectangle = the boss's
+                    // 'no border' call). The fill stays (= the
+                    // visual background the user requested =
+                    // visible inset rectangle without the hairline
+                    // edge = flat fill style = the Apple Music /
+                    // Apple Notes 'pill' fill without border = the
+                    // user's '更协调' aesthetic per the v1.85
+                    // search-field rhythm).
                 )
             )
             // v1.85 boss 2026-09-24 OOB '标题, 也就是素材+分割线,
