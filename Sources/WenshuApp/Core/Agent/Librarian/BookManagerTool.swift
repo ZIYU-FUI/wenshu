@@ -590,7 +590,7 @@ actor BookManagerTool: Tool {
     /// unsafe escape hatch is safe here.
     nonisolated static let shared: BookManagerTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-books-\(UUID().uuidString)", isDirectory: true)
-        // v1.28 B2.10: surface createDirectory failures via NSLog (= was silent `try?`).
+        // surface createDirectory failures via NSLog (= was silent `try?`).
         do {
             try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
         } catch {

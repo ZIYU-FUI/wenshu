@@ -158,7 +158,7 @@ enum SkillFrontmatterParser {
             return "[inline-shell error: \(error.localizedDescription)]"
         }
 
-        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
+        // 
         // replaced the busy-wait `Thread.sleep` polling loop with a
         // semaphore + Process.terminationHandler (= the macOS-canonical
         // pattern from Process docs). The semaphore is the same

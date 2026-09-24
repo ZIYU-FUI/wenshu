@@ -1,7 +1,7 @@
 //
 //  NSRegularExpression+Literal.swift · Wenshu · v0.71 P1 batch 10
 //
-//  v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+// 
 //  central helper for compile-time-literal NSRegularExpression init.
 //  Replaces 13 sites that previously used `try! NSRegularExpression(...)`
 //  as static-let values (= the audit's LOW category flagged these as

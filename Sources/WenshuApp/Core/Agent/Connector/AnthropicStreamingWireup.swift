@@ -169,7 +169,7 @@ enum AnthropicStreamingWireupFactory {
         // AnthropicStreamingRequest helper was scoped to ticket 004
         // sub-step 2+3 = uncommitted AnthropicStreaming.swift. Inlining
         // here keeps the wire-up self-contained per sub-step 4 scope.)
-        // v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+        // 
         // replaced `URL(string: \"...\")!` (= audit's LOW smell; =
         // force-unwrap on a runtime-built string) with explicit
         // `guard let` + preconditionFailure (= the baseURL is
@@ -197,7 +197,7 @@ enum AnthropicStreamingWireupFactory {
             "max_tokens": maxTokens,
             "stream": true,
             // system is an ARRAY of content blocks (= one block per the
-            // v0.35 contract). The Anthropic API expects [[{type, text}]]
+            // . The Anthropic API expects [[{type, text}]]
             // so the test decodes as [[String: Any]]. The pre-fix
             // expression was a Swift dictionary literal (= `[key: value]`)
             // masquerading as an array because of the surrounding bracket,

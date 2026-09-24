@@ -302,7 +302,7 @@ final class SwiftDataMemoryProvider: MemoryProvider, @unchecked Sendable {
     }
 
     func getSystemPrompt() -> String {
-        // v1.28 B2.9: honest description (= SwiftData @MainActor
+        // honest description (= SwiftData @MainActor
         // WSMemoryRepository, not SQLite; = no SQLite theatre).
         return "SwiftData provider (= current wenshu memory surface via WSMemoryRepository; full SQLite/GRDB impl lands with v0.29+ migration ticket if SQLite becomes the preferred on-disk format)."
     }

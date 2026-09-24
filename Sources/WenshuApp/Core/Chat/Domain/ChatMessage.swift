@@ -86,7 +86,7 @@ struct ChatMessage: Equatable, Identifiable, Sendable {
         set { body.imagePath = newValue }
     }
 
-    /// v0.71 P1 batch 1: streaming state machine. Mirrors the Hermes
+    /// streaming state machine. Mirrors the Hermes
     /// `message.pending` boolean + the lifecycle hooks in
     /// `use-message-stream/index.ts` (`mutateStream` decides when
     /// to seal a pending bubble into a permanent one).
@@ -107,7 +107,7 @@ struct ChatMessage: Equatable, Identifiable, Sendable {
         tokens: Int? = nil,
         thinking: String? = nil,
         imagePath: String? = nil,
-        // v0.71 P1 batch 1: parts + streamState init params (= default
+        // parts + streamState init params (= default
         // = empty / idle for backward compat). When ChatMessage is
         // created from the streaming pipeline (= ChatViewModel.append),
         // pass the parts array (= the streaming pipeline owns the

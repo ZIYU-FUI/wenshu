@@ -68,7 +68,7 @@ actor PlotThreadTracker {
         let values = try await load(bookId: bookId)
         let chapters = values.compactMap(\.introducedIn)
         let recent = Set(chapters.suffix(3))
-        // v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis MED):
+        // 
         // refactored the previous `filter { $0.lastReferencedIn == nil
         // || !recent.contains($0.lastReferencedIn!) || ... }` (= the
         // audit flagged the `lastReferencedIn!` force-unwrap as a

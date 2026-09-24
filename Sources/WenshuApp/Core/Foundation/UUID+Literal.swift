@@ -1,7 +1,7 @@
 //
 //  UUID+Literal.swift · Wenshu · v0.71 P1 batch 10
 //
-//  v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+// 
 //  central helper for compile-time-literal UUID init.
 //  Replaces 4 sites in LayoutTreeState.swift that previously used
 //  `UUID(uuidString: "...")!` as static-let values (= the audit's

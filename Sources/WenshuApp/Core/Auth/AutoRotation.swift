@@ -216,7 +216,7 @@ actor AutoRotatingConnector {
         do {
             let response = try await performSend(request, context)
             // Mark ok (= reset status after successful send).
-            // v1.28 B2.10: surface markOk failures via os.Logger (= was silent
+            // surface markOk failures via os.Logger (= was silent
             // `try?`; = a status-reset failure would leave the key in
             // a cooldown state across attempts).
             do {

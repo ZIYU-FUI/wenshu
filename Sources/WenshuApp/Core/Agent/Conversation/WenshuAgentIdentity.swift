@@ -17,7 +17,7 @@ enum WenshuConductorIdentity {
     /// Full system prompt (~700 tokens target). Prepended to every LLM call in WenshuConductor.
     /// Use case: L1 (intent classify) + L3 (synthesis) call sites in handle().
     /// L2 (sub-agent content) is user-driven and does NOT prepend this.
-    // v0.24 boss acceptance fix (Boss 8/24 OOB 'add one in settings, what the LLM calls you'):
+    // 
     // User address is read from UserDefaults 'wenshu.userAddress' at call
     // time (= dynamic per-chat). Default = 'user' (boss decision: default is 'user', not 'boss').
     // Boss 8/24 clarification: 'boss' is hermes-side convention (= used by

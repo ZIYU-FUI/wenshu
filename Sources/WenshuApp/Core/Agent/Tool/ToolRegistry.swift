@@ -371,7 +371,7 @@ actor ToolRegistry {
 
     /// Last error message from `register()` (= tests inspect; nil =
     /// clean).
-    /// v1.28 B2.5: thin wrapper for the canonical `_registryBootstrap`
+    /// thin wrapper for the canonical `_registryBootstrap`
     /// boilerplate (= 14 files repeat the same `Task { await register(...) }`
     /// pattern; = the wrapper schedules the async call off the init
     /// thread; = collapse each call site from 8-line `Task { ... }`

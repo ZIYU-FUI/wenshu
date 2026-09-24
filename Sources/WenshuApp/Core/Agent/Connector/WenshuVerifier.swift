@@ -223,7 +223,7 @@ actor WenshuVerifier {
         // (v0.23 ticket 010.005 fix — was 'wenshu.provider.slug' which never matched the
         // existing @AppStorage binding, so the override never took effect.)
         let userDefaultsSlug = UserDefaults.standard.string(forKey: "wenshu.llm.provider")
-        // v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+        // 
         // replaced `userDefaultsSlug?.isEmpty == false ? userDefaultsSlug! : ...`
         // (= audit's LOW smell; = the `!` is logically safe given the
         // predicate but reads as a hidden force-unwrap) with explicit
@@ -328,7 +328,7 @@ actor WenshuVerifier {
             "model": request.model,
             "max_tokens": request.max_tokens,
             "messages": request.messages.map { ["role": $0.role, "content": $0.content] },
-            // v0.24 boss acceptance fix (Boss 8/24 OOB): concatenate system prompts into a single string
+            // concatenate system prompts into a single string
             // instead of array. Some minimax cn API deployments ignore second
             // entry when 'system' is an array (= single-string protocol fallback).
             // Mirrors hermes-agent/gateway/run.py single context_prompt pattern.

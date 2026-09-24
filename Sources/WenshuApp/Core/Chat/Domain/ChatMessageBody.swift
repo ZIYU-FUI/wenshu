@@ -32,7 +32,7 @@ import Foundation
 /// The inner pages of one chat turn (= content + streaming state +
 /// attachments). Mutated during streaming; sealed on stream.complete.
 struct ChatMessageBody: Equatable, Sendable {
-    /// v0.71 P1 batch 1 (boss 2026-09-12 OOB 'streaming output in the
+    /// (boss 2026-09-12 OOB 'streaming output in the
     /// chat zone isn't implemented... port the whole thing from
     /// hermes...'): streaming parts (= Hermes `parts: ChatMessagePart[]`
     /// in `lib/chat-messages/types.ts:15`). Each part is a typed content
@@ -42,7 +42,7 @@ struct ChatMessageBody: Equatable, Sendable {
     /// compat: `content` + `thinking` getters derive from this array
     /// (= existing ChatMessageView still works unchanged).
     var parts: [ChatMessagePart]
-    /// v0.71 P1 batch 1: streaming state. hermes uses `message.pending`
+    /// streaming state. hermes uses `message.pending`
     /// (= bool on ChatMessage); wenshu uses an enum so SwiftUI
     /// exhaustive-switch renders the right state (idle / streaming /
     /// sealed / error).

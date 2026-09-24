@@ -247,7 +247,7 @@ enum AnthropicAdapter {
             if let s = input as? String {
                 inputStr = s
             } else if let d = input {
-                // v0.71 P1 batch 10 dual-axis followup (= Q99 Standards axis LOW):
+                // 
                 // replaced `try! JSONSerialization.data(...)` (= audit's
                 // LOW smell; = would crash on non-JSON-representable value
                 // like NaN) with do/catch + NSLog + fallback to "{}".

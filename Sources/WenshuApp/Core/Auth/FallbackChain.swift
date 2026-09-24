@@ -300,7 +300,7 @@ actor FallbackChainExecutor {
         )
         // 4. Mark success (= reset to .ok + clear cooldown + lastError).
         if let keyId = resolved.keyId {
-            // v1.28 B2.10: surface markOk failures via os.Logger (= was silent
+            // surface markOk failures via os.Logger (= was silent
             // `try?`; = a status-reset failure was invisible; = the next
             // attempt would still see the key as cooldown'd).
             do {

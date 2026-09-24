@@ -158,7 +158,7 @@ struct ProcessTools: Tool, Sendable {
         // on write, while waitUntilExit never returns.
         let ioQueue = DispatchQueue(label: "wenshu.ProcessTools.io", attributes: .concurrent)
         let group = DispatchGroup()
-        // v0.46 fix: was `var stdoutData = Data()` mutated inside
+        // was `var stdoutData = Data()` mutated inside
         // concurrent ioQueue.async blocks (= Swift 6 strict
         // concurrency 'mutation of captured var' warning, even
         // though the group.wait() at L167 establishes a

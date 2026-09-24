@@ -26,7 +26,7 @@ struct Redactor: Sendable {
 
     private let rules: [CompiledRule]
 
-    // v0.37 fix: Regex is not Sendable; wrap in @unchecked Sendable so the
+    // Regex is not Sendable; wrap in @unchecked Sendable so the
     // owning Redactor struct stays Sendable (= required for actor storage
     // and across isolation boundaries). The regex is constructed at init
     // time and never mutated; safe to share.

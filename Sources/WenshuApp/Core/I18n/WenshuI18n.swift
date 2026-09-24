@@ -37,7 +37,7 @@ enum WenshuI18n {
     /// 3. Last-resort fallback: `Bundle.main` (returns key for missing
     ///    entries; matches hermes i18n fallback policy in i18n.py).
     private static let bundle: Bundle = {
-        // v0.38 P2: 3-candidate bundle resolution chain (= Bundle.main for
+        // 3-candidate bundle resolution chain (= Bundle.main for
         // Xcode .app builds + Wenshu_WenshuApp.bundle for SPM-built
         // executables + SPM test target context). The lazy static evaluates
         // on first call to t() and caches the winning bundle. Per
