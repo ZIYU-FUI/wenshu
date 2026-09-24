@@ -1,18 +1,13 @@
 //
-//  CardOpenOps.swift · Wenshu · v1.74 cardopen-dedupe T1
+//  CardOpenOps.swift · Wenshu
 //
 //  Card-open business layer, extracted from WorkspaceView /
 //  ZoneModuleView / ShellMiddleColumn (= 3 verbatim copies of
 //  `openCardInEditor`).
 //
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= UI /
-//  业务 / 数据 separation audit) + the 2026-09-23 spec at
-//  .scratch/2026-09-23-mvvm-audit/spec.md §2.6 / §2.7 / §2.11
-//  (= the audit surfaced verbatim duplication of
-//  `openCardInEditor(source:)` across 3 view files): the open-
-//  card business layer (= reference filter + body load + bookDoc
-//  load + duplicate-tab detection + EditorTab construction +
-//  appState mutation) is a single concern that was duplicated 3x.
+//  The open-card business layer (= reference filter + body load +
+//  bookDoc load + duplicate-tab detection + EditorTab construction
+//  + appState mutation) is a single concern that was duplicated 3x.
 //  This helper lifts the business layer into a stateless enum so
 //  the 3 views call one shared function.
 //
@@ -278,24 +273,21 @@ enum CardOpenOps {
             draft: content,
             originalBody: content,
             mode: mode,
-            // v1.0.0-m1-shell boss 2026-09-12 OOB 'tab title didn't go to the document name bug':
-            // pass title so tab strip shows the real card name
+            // Pass title so tab strip shows the real card name
             // instead of 'preview-sample'.
             title: title.isEmpty ? nil : title
         )
-        // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
-        // card': capture the scope where this doc was opened
-        // from (= drives sidebar selection + preview cards on
-        // restore). = .referenceScope(cat) for library refs,
-        // = .bookScope(bookId, folder) for book docs, etc.
+        // Capture the scope where this doc was opened from (= drives
+        // sidebar selection + preview cards on restore). =
+        // .referenceScope(cat) for library refs, = .bookScope
+        // (bookId, folder) for book docs, etc.
         newTab.sourceScope = previewScope
-        // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
-        // the old tab'): always append a new tab (= Safari multi-tab strip
+        // Always append a new tab (= Safari multi-tab strip
         // behavior). Duplicate-tab detection (= the fingerprint check
         // earlier in this function) handles the "switch to existing
-        // tab if same .md is open" case (= boss 9/3 'check whether an existing tab
-        // already opened the current MD'). = no replacement of the active tab;
-        // = no "second click fails" race.
+        // tab if same .md is open" case (= check whether an existing
+        // tab already opened the current MD). = no replacement of
+        // the active tab; = no "second click fails" race.
         appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
         return OpenCardResult(openedTabId: newTab.id,
