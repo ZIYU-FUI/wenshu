@@ -16,7 +16,6 @@
 import SwiftUI
 import AppKit
 
-// v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use SF
 // Symbols 6 (3rd generation) with palette rendering': LucideSwift
 // import removed (= see Package.swift + IconStyles.swift).
 
@@ -40,7 +39,6 @@ import AppKit
 // Boss 8/18 said "reset layout" notification bridge (LayoutShellView uses @State private vm,
 // top-level .commands can't access vm instance, routed via NotificationCenter)
 
-// v0.24 fix (Boss 8/25 60th OOB 'corresponding feature should be implemented in menu bar'): notification
 // name for menu bar zone toggle buttons (= CommandGroup can't directly
 // access vm instance, so menu items post notification, vm listens).
 // v0.34 boss 2026-09-02 OOB (B-04 backlog entry): all Notification.Name
@@ -76,7 +74,6 @@ enum LayoutTokens {
     static let designH: CGFloat = 980
 
 
-    // v0.28 followup Boss UX round 33 (Boss 2026-08-29 OOB 'the per-region
     // complete code, regarding styles, inconsistent — why don't you audit them'): single source
     // of truth for chrome padding (= replaces magic numbers 4, 6, 8
     // scattered across 15 files). Centralized here so future padding
@@ -91,7 +88,6 @@ enum LayoutTokens {
     static let chromePaddingSmall: CGFloat = 4
     static let chromePaddingLarge: CGFloat = 8
 
-    // v0.28 followup Boss UX round 33: single source of truth for
     // per-region control heights (= chat input row buttons, tab
     // buttons, hover hot areas). All instances of ".frame(height: 30)"
     // for chrome controls should reference chromeControlHeight instead.
@@ -184,7 +180,6 @@ struct WenshuApp: App {
     @State private var library = WenshuLibrary(
         store: FileSystemLibraryStore(rootURL: LibraryRoot.ensureDefault())
     )
-    // v0.21 ticket 01 (redo #11): @AppStorage("appearanceMode") (commit 4ef3e2e77, change @AppStorage)
     // (Standards sub-agent report H3): preferredColorScheme UserDefaults.standard.string, SettingView $appearanceMode yes binding source-of-truth
     // commit 4ef3e2e77 UserDefaults.standard.string, change @AppStorage (SettingView key)
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
@@ -206,7 +201,6 @@ struct WenshuApp: App {
     /// Descendants read it via `@Environment(AppState.self) var appState`.
     @State private var appState = AppState()
 
-    /// P2-06 (audit 2026-09-24): shell-chrome state (= sidebar
     /// selection, inspector visibility, chat-zone visibility,
     /// inspector page). Split out from AppState (= AppState was
     /// 644 LOC of cross-zone UI signals + openTabs + llmModel;
@@ -216,19 +210,16 @@ struct WenshuApp: App {
     /// AppState.
     @State private var shell = ShellState()
 
-    /// P2-06 (audit 2026-09-24): column-local UI state (= preview
     /// sort order + layout edit mode). Split out from AppState.
     /// Injected via `.environment(workspaceUI)` at the AppRootScene
     /// root. Same per-window @State pattern.
     @State private var workspaceUI = WorkspaceUIState()
 
-    /// P2-06 (audit 2026-09-24): sheet-request trigger counters
     /// (= newBook / newShelf / choice). Split out from AppState.
     /// Injected via `.environment(sheetRequests)` at the AppRootScene
     /// root.
     @State private var sheetRequests = SheetRequestState()
 
-    /// P2-06 (audit 2026-09-24): editor-zone live counters
     /// (= wordCount). Split out from AppState. Injected via
     /// `.environment(editorCounters)` at the AppRootScene root.
     @State private var editorCounters = EditorCounters()
@@ -305,7 +296,6 @@ enum AuxTask: String, CaseIterable, Identifiable {
 }
 
 
-// v0.21 ticket 01 (redo #10): SettingsEnvironmentCapturer (Q15 #11 dead code) + VibeMeter Mirror reflection NSApp.openSettings extension (Q15 #12 dead code)
 // Spec sub-agent (deleg_10289a6b): installMainMenu 6 + create NSWindow SettingView =
 // Settings { } Scene (ticket 04 commit 984ea556b Picker, 8/21 "show")
 
@@ -334,5 +324,4 @@ enum ZoneSlot {
 // (= AppleSidebarView = the v1.68b Apple HIG List(.sidebar) +
 // post-v1.69 split sheets/context-menu/business files). No
 // replacement needed here.
-
 
