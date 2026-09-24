@@ -1,9 +1,7 @@
 //
-//  AppState+Tabs.swift · Wenshu · P2-06 (audit 2026-09-24)
+//  AppState+Tabs.swift · Wenshu
 //
-//  P2-06 (audit 2026-09-24): extracted from `AppState.swift`
-//  (= 56 LOC of openTabs persistence / restore). AppState was
-//  689 LOC; this extension brings it down to ~630 LOC. The
+//  Extension on `AppState` (= 56 LOC of openTabs persistence / restore).
 //  `openTabs` / `activeTabId` vars (= the @Observable state itself)
 //  stay in AppState (= the `didSet` body calls `self.persistOpenTabs()`
 //  which lives here in the extension — Swift allows this because
