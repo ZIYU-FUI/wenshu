@@ -1,22 +1,21 @@
 // FileSystemReferenceStore.swift · Wenshu () · v0.26 (FCP library replica)
 //
-// Reference-library storage layer (= ticket 006 of the FCP library
-// replica spec).
+// Reference-library storage layer.
 //
-// Storage path (= per spec v5):
+// Storage path:
 //   <.ws>/reference-library/
 //     library.json                <- ReferenceLibrary metadata
-//     <layer>/<ref-uuid>.md       <- per-layer reference body (= LLM Wiki
+//     <layer>/<ref-uuid>.md       <- per-layer reference body (LLM Wiki
 //                                    4-layer: raw/, entities/,
 //                                    abstracts/, indexes/)
 //
 // Library-level (= ReferenceLibrary is library-public; one instance
 // per library; sibling to user-created shelves/). Reference struct
-// (ticket 003) holds structured metadata; the .md body holds the
-// free-form research material.
+// holds structured metadata; the .md body holds the free-form
+// research material.
 //
-// Implementation pattern matches FileSystemWorldStore (ticket 004) +
-// FileSystemCharacterStore (ticket 005), with the addition of a
+// Implementation pattern matches FileSystemWorldStore +
+// FileSystemCharacterStore, with the addition of a
 // ReferenceLayer-aware subdirectory and a Library-level metadata file.
 
 import Foundation
@@ -68,8 +67,7 @@ protocol ReferenceStoring: Sendable {
 // MARK: - ReferenceLibrary metadata
 
 /// Metadata for the library's ReferenceLibrary (= the system's default
-/// shelf per boss 2026-08-26 OOB). Stored at `<.ws>/reference-library/
-/// library.json`.
+/// shelf). Stored at `<.ws>/reference-library/library.json`.
 struct ReferenceLibraryMetadata: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
     let schemaVersion: Int
@@ -173,13 +171,12 @@ struct FileSystemReferenceStore: ReferenceStoring {
             // The closure below tries ISO8601 first, falls back to a
             // Unix timestamp Double.
             let decoder = JSONDecoder()
-            // v0.46 fix: was `let isoFormatter = ISO8601DateFormatter()`
-            // (= a Foundation class that Swift 6 marks non-Sendable)
-            // captured inside the .custom decoding closure (= also
-            // @Sendable, per JSONDecoder.dateDecodingStrategy's
-            // contract). Switched to Date.ISO8601FormatStyle
-            // (= Swift-native Sendable value type; = no @Sendable
-            // capture issue).
+            // The closure below tries ISO8601 first, falls back to a
+            // Unix timestamp Double. ISO8601DateFormatter is a
+            // Foundation class (= non-Sendable) that captures badly
+            // inside .custom decoding closures (= @Sendable). Use
+            // Date.ISO8601FormatStyle (= Swift-native Sendable value
+            // type) instead.
             let isoStyleWithFrac = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
             let isoStyleNoFrac = Date.ISO8601FormatStyle(includingFractionalSeconds: false)
             decoder.dateDecodingStrategy = .custom { dec in
@@ -196,11 +193,11 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 )
             }
             let references = try decoder.decode([Reference].self, from: data)
-            // v0.30 boss 8/31 OOB: normalize nil category to .z (=)
-            // so unclassified references always show up in the sidebar
-            // under the catch-all category. The on-disk file remains
-            // unchanged (= category field still serialized as null);
-            // only the in-memory representation gets .z.
+            // Normalize nil category to .z so unclassified references
+            // always show up in the sidebar under the catch-all
+            // category. The on-disk file remains unchanged (= category
+            // field still serialized as null); only the in-memory
+            // representation gets .z.
             return references.map { ref in
                 var normalized = ref
                 if normalized.layer == .layerEntities && normalized.category == nil {
@@ -309,25 +306,23 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
     }
 
-    /// v0.29 boss 2026-08-30 OOB: when saving an entity (= layer == .layerEntities)
-    /// with a category, ensure the category subdirectory exists. The category
-    /// folder is created LAZILY (= only when the first entity in that category
-    /// is saved). This is the "" rule (= boss: 'folder
-    ///, yes').
+    /// When saving an entity (= layer == .layerEntities) with a category,
+    /// ensure the category subdirectory exists. The category folder is
+    /// created lazily (= only when the first entity in that category
+    /// is saved).
     ///
-    /// v0.30 boss 8/31 OOB: when category is nil (= unclassified entity
-    /// OR raw material that the user hasn't tagged), route to the
-    /// `.z` (=) catch-all category instead of falling back to
-    /// the flat layer dir. Boss reported 'directory
-    /// ' — entities with nil category were invisible in the
-    /// sidebar but still counted (= hidden count).
+    /// When category is nil (= unclassified entity OR raw material
+    /// that the user hasn't tagged), route to the `.z` catch-all
+    /// category instead of falling back to the flat layer dir.
+    /// Unclassified entities with nil category would otherwise be
+    /// invisible in the sidebar but still counted (= hidden count).
     private func ensureEntityCategoryDirectoryExists(
         category: EntityCategory?,
         layer: ReferenceLayer
     ) throws {
         guard layer == .layerEntities else { return }
-        // v0.30 boss 8/31 OOB: nil category now routes to .z (=)
-        // so unclassified entities have a visible sidebar bucket.
+        // Nil category routes to .z so unclassified entities have a
+        // visible sidebar bucket.
         let effectiveCategory = category ?? .z
         let categoryDir = referenceLibraryRoot
             .appendingPathComponent("entities")
