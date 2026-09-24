@@ -16,7 +16,7 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 
 - Stack = Swift / SwiftUI + Swift Observation (@Observable) + filesystem JSON + Markdown (per-book private content) + Apple HIG (.fcpbundle-style directory, single-process). NO CoreData. NO external AI platform calls (any code file).
 - §11 product positioning (boss 2026-09-03 拍): Wenshu is a writing tool, NOT an LLM platform. Wenshu never resells or bundles LLM access, never holds user tokens on its own backend, never charges for token consumption. LLM is a layer below Wenshu that the user provides via the §11.2 connector layer. Any PR that adds metering, billing, quota tracking, or token-bundling is out of scope.
-- v0.27 boss OOB: "从今天开始，任何功能，先查有没有三方库可以用。不重复造轮子是对的。我之前说不引入三方给自己挖坑了" = wenshu stack baseline 修正 — 第三方库允许（前提 = 见 §11.1 UI 控件例外清单）。
+- wenshu stack baseline 修正 — 第三方库允许（前提 = 见 §11.1 UI 控件例外清单）。
 - v1 LLM connector architecture: 7 connector profiles (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn). Provider-agnostic. User BYOK (bring your own key). NO default recommendation. Wenshu ships with the connector layer wired but every profile is empty until user supplies credentials. See §11.2 for the 7 profiles.
 - `.ws` directory (= macOS package, NSOpenPanel-selected at onboarding) = per-library container. Holds: Info.plist (= Apple HIG bundle metadata; CFBundlePackageType=WSPC + WSSchemaVersion) + chat.sqlite (= global LLM chat history; 45 KB at v0.24 ship) + Icon (= Finder icon) + shelves/ (= user-created bookshelves; multiple) + reference-library/ (= library's default bookshelf; system-managed, ONE instance, user CANNOT delete or rename; holds LLM Wiki 4 layers: raw/ + entities/ + abstracts/ + indexes/) + cache/ (= thumbnails + search index + export temp). Per-book structure = `shelves/<shelf-uuid>/books/<book-uuid>/` with 8 standard folders (world/ characters/ outlines/ chapters/ drafts/ sessions/ foreshadowing/ placeholders/) + 8 JSON sidecars + 2 per-book JSON data files (kanban.json, todo.json). Per-book private world + characters + foreshadowing + placeholders; reference-library is library-public (= cross-book reusable raw materials).
 - Apple stack exclusive (macOS / iPad / iPhone). Current target = macOS-only single platform (老板 8/18 拍).
@@ -25,7 +25,7 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 - Version format = three digits (Hermes style): middle digit = phase, third digit = hotfix.
 - 3 docs = this file + `README.md` + `CLAUDE.md`. `CONTEXT.md` = domain glossary (see `docs/agents/domain.md`).
 - No hermes monorepo trace (no longer fork).
-- No Tauri / Rust / Vue 3 trace. SQLite REMOVED from wenshu stack (= boss 2026-09-20 OOB 'SQLite 全部弃用，只用 SwiftData' + A1 'Apple-default-first = Core Spotlight'; = runtime layer fully replaced in §11.7 v1.55 sqlite3-zero arc; = one-shot legacy importer deleted in §11.7d v1.55d closure on 2026-09-21 per boss OOB '数据库不要在用sqlite3 了'); legacy `.ws` bundle sqlite files (= `chat.sqlite`, `indexes.sqlite`, `search.db`, `kanban.sqlite`) are now orphaned (= no production code reads them; = see §11.7d for full removal record).
+- No Tauri / Rust / Vue 3 trace. SQLite REMOVED from wenshu stack (= boss 2026-09-20 OOB (see OOB.md) + A1 'Apple-default-first = Core Spotlight'; = runtime layer fully replaced in §11.7 v1.55 sqlite3-zero arc; = one-shot legacy importer deleted in §11.7d v1.55d closure on 2026-09-21 per boss OOB (see OOB.md)); legacy `.ws` bundle sqlite files (= `chat.sqlite`, `indexes.sqlite`, `search.db`, `kanban.sqlite`) are now orphaned (= no production code reads them; = see §11.7d for full removal record).
 - No sparse-clone assumption.
 - No novel-platform / novel-craft / Hermes-Slate-Desk legacy V0.5.x protocol.
 - Do not decide LLM key config for 老板.
@@ -47,12 +47,12 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
   4. macOS-first OR macOS-supported (= iOS-only 库不接受).
 - Approved third-party exceptions (ratified 2026-08-28 OOB by 老板 = "all libraries can be introduced immediately"):
   - RUNTIME (production):
-    - ~~`bring-shrubbery/lucide-swift` 1.25.0 — icon set (MIT, macOS-first, 8.8k★)~~ — REMOVED 2026-09-15 per boss OOB 'use SF Symbols 6 (3rd gen) with palette rendering'. Canonical icon layer is now Apple SF Symbols 6 (= built into macOS 27 = zero SPM dependency).
+    - ~~`bring-shrubbery/lucide-swift` 1.25.0 — icon set (MIT, macOS-first, 8.8k★)~~ — REMOVED 2026-09-15 per boss OOB (see OOB.md). Canonical icon layer is now Apple SF Symbols 6 (= built into macOS 27 = zero SPM dependency).
     - `sindresorhus/Defaults` 9.0.9 — UserDefaults typed wrapper (MIT, 2.7k★, P0; bumped 8.2.0 → 9.0.9 in v0.28 batch 1 per `brew info`-verified latest stable; wenshu source has zero `import Defaults` so zero source-code impact; the pin is preparation for the v0.28 chat history migration ticket's first consumer)
-    - `sindresorhus/KeyboardShortcuts` 2.2.0 — global shortcut binding (MIT, 1.1k★, P1; bumped 1.10.0 → 2.2.0 in v0.28 batch 2 issue 09 per boss拍 'v1 → v2 breaking-change risk 由 ticket 评估' = evaluated to zero source impact = wenshu has zero `import KeyboardShortcuts`; all 26 .keyboardShortcut calls use Apple SwiftUI native modifier; lib reserved for v0.28+ Settings pane Keyboard tab where users rebind global shortcuts via System Settings)
+    - `sindresorhus/KeyboardShortcuts` 2.2.0 — global shortcut binding (MIT, 1.1k★, P1; bumped 1.10.0 → 2.2.0 in v0.28 batch 2 issue 09 per boss拍 (see OOB.md) = evaluated to zero source impact = wenshu has zero `import KeyboardShortcuts`; all 26 .keyboardShortcut calls use Apple SwiftUI native modifier; lib reserved for v0.28+ Settings pane Keyboard tab where users rebind global shortcuts via System Settings)
     - `kean/Nuke` + `kean/NukeUI` — async image pipeline + SwiftUI `LazyImage` (MIT, 8.6k★ + 1.3k★, P0; NukeUI is a product of the main Nuke repo since Nuke 11.0; the standalone `kean/NukeUI` repo is frozen at Nuke 10.5 and rejected as the SPM pin source)
     - `weichsel/ZIPFoundation` 0.9.20 — pure-Swift ZIP read/write (MIT, 2.7k★, unblocked 2026-08-28 from prior defer)
-    - ~~`groue/GRDB.swift` 7.11.1 — SQLite toolkit + FTS5 full-text (MIT, 8.6k★, P0; replaces prior "No SQLite" rule scope = inside `.ws` bundle only)~~ — REMOVED 2026-09-20 per boss OOB 'SQLite 全部弃用，只用 SwiftData' + A1 'Core Spotlight 替代 FTS5'; canonical search layer is now `Core Spotlight` (= `CSSearchableIndex` + `CSSearchQuery`; = built into macOS 27 = zero SPM dependency); see §11.7 v1.55 sqlite3-zero migration arc.
+    - ~~`groue/GRDB.swift` 7.11.1 — SQLite toolkit + FTS5 full-text (MIT, 8.6k★, P0; replaces prior "No SQLite" rule scope = inside `.ws` bundle only)~~ — REMOVED 2026-09-20 per boss OOB (see OOB.md) + A1 'Core Spotlight 替代 FTS5'; canonical search layer is now `Core Spotlight` (= `CSSearchableIndex` + `CSSearchQuery`; = built into macOS 27 = zero SPM dependency); see §11.7 v1.55 sqlite3-zero migration arc.
     - `swiftlang/swift-markdown` 0.4.0 — CommonMark/GFM parser (Apache-2.0, 3.4k★, P1; SPM resolves to latest 0.8.0 via the permissive `from:` lower bound)
     - `mattt/EventSource` 1.5.1 — spec-compliant SSE client (`AsyncSequence` + `Last-Event-ID` reconnect, MIT, 116★, P1)
     - `gonzalezreal/Textual` 0.5.0 — SwiftUI rich-text engine with Markdown support (MIT, 842★, P2; future editor preview)
@@ -89,7 +89,7 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 
 User picks profile in Settings → LLM Connector pane. No default. Wenshu UI shows no LLM details once a profile is configured.
 
-# §11.3 Agent ↔ other Core module interaction principle (boss 2026-09-03 拍, derived from hermes-core-translation spec §3.6; corrected 2026-09-04 per boss OOB 'hermes 整体翻译成 swift, 整个工作树都完成了?' + '先不验收, 先继续把工作树干完')
+# §11.3 Agent ↔ other Core module interaction principle (boss 2026-09-03 拍, derived from hermes-core-translation spec §3.6; corrected 2026-09-04 per boss OOB (see OOB.md) + '先不验收, 先继续把工作树干完')
 
 The hermes-core-translation spec at `.scratch/2026-09-03-hermes-core-translation/spec.md`
 enumerates 43 in-scope hermes modules (= 38 must-translate core per spec §2.1 + 5
@@ -98,7 +98,7 @@ hermes' ported layer and follow the wenshu-side wins pattern (= existing wenshu
 module preserved; hermes-port is a thin adapter that delegates to it). The
 remaining 38 modules are covered by direct ports in `Sources/WenshuApp/Core/Agent/`,
 `Sources/WenshuApp/Core/Provider/`, and other wenshu Core sub-directories, or are
-still deferred (= the work-tree gap per boss OOB 2026-09-04 '继续把工作树干完').
+still deferred (= the work-tree gap per boss OOB 2026-09-04 (see OOB.md #2026-09-04)).
 
 Full per-module mapping (= all 43 hermes modules → wenshu Swift counterpart, with
 status = ✅ direct port / ⚠️ wenshu-side wins / 🟦 thin-port / ❌ deferred) lives in
@@ -137,7 +137,7 @@ ground-truth tally per the parallel gap audit at
   tool_dispatch_helpers, skill_bundles, secret_sources + secret_scope, retry_utils,
   shell_hooks).
 
-Per boss OOB 2026-09-04 '先不验收, 先继续把工作树干完' = the 26 incomplete
+Per boss OOB 2026-09-04 (see OOB.md #2026-09-04) = the 26 incomplete
 (= 18 ⚠️ partial + 8 ❌ missing) are the work-tree to fill in.
 
 Decision (= wenshu-side wins, per ADR-0009):
@@ -158,7 +158,7 @@ Decision (= wenshu-side wins, per ADR-0009):
 4. **Future hermes-side wins**: any future ticket proposing "hermes port replaces
    wenshu-side" requires explicit boss拍. Default = wenshu-side wins. No silent
    replacement.
-5. **Work-tree coverage** (boss OOB 2026-09-04 '继续把工作树干完'): the 26
+5. **Work-tree coverage** (boss OOB 2026-09-04 (see OOB.md #2026-09-04)): the 26
    incomplete hermes modules (= 18 ⚠️ partial + 8 ❌ missing per the gap audit at
    `.scratch/2026-09-04-hermes-port-gap-audit.md`) are tracked in the manifest's
    Coverage section. The 8 ❌ missing modules (= prompt_builder,
@@ -447,7 +447,7 @@ Next: phase 5 deletion step (= tickets 7/8/9 future cleanup + final git rm).
 
 ## §11.5 Known test flakes (= accepted 2026-09-14, v1.24 closure)
 
-Per boss OOB 2026-09-14 '按优先级推' + 'A': 2 pre-existing
+Per boss OOB 2026-09-14 (see OOB.md #2026-09-14) + 'A': 2 pre-existing
 MinimaxConnectorTests combined-run failures (= `testRequestBody`
 + `testResponseDecode`) are ACCEPTED as known flakes. Root cause
 = `MinimaxConnector` is an `actor` (= per
@@ -511,7 +511,7 @@ batch CI run is affected.
 
 ## §11.6 Migration arc closure (= v1.27 final summary, 2026-09-14)
 
-Per boss OOB 2026-09-14 '清完所有待办' (= complete all pending
+Per boss OOB 2026-09-14 (see OOB.md #2026-09-14) (= complete all pending
 work without asking): the v0.73-v1.26 migration arc is CLOSED.
 
 ### Final stats (= per Q34 5.4 + Q46 + Q186)
@@ -630,7 +630,7 @@ Kanban helper = `HermesKanbanDB.swift` (994 LOC raw sqlite3) is REPLACED by
 |---|---|---|
 | 1 | `SubAgentIdentity.swift` calls `FullTextSearch` | migrated to `CSSearchableIndexSearch` (= same public API: `index(docId:title:body:)`, `remove(docId:)`, `search(query:limit:)`) |
 | 2 | `KanbanStoreTool` reads kanban via `HermesKanbanDB` | migrated to `HermesKanbanHelper` (= SwiftData fetch via #Predicate) |
-| 3 | `WSMigrationPerStore.swift` reads raw sqlite3 files at first launch | **DELETED in v1.55d closure (= see §11.7d)** — was preserved through §11.7 v1.55 ship (= import count = 2; = dead code after first launch per user) but removed entirely on 2026-09-21 per boss OOB '数据库不要在用sqlite3 了' (= `import SQLite3` count drops from 2 to 0) |
+| 3 | `WSMigrationPerStore.swift` reads raw sqlite3 files at first launch | **DELETED in v1.55d closure (= see §11.7d)** — was preserved through §11.7 v1.55 ship (= import count = 2; = dead code after first launch per user) but removed entirely on 2026-09-21 per boss OOB (see OOB.md) (= `import SQLite3` count drops from 2 to 0) |
 
 ### What is NOT done (= future tickets if boss approves)
 
@@ -809,7 +809,7 @@ Total 4 keys removed (2 en + 2 zh-Hans). Other weekday strings
 | 1 | wenshu-side `MessageTimelineTimestamp` (= per-message timestamp footer) audit (= is it wired to all message paths, or only assistant turns?) | Q112 scope (= separate ticket); = pre-D2 audit confirmed it renders at the bottom of assistant messages; = no audit was needed for D2 (= D2 only deletes, doesn't touch the timestamp footer) |
 # §11.8 v1.57 stale-helper migration arc + pre-existing flake closure (= boss 2026-09-20 OOB)
 
-Per boss OOB 2026-09-20 '继续' (= continue; = no spec change required;
+Per boss OOB 2026-09-20 (see OOB.md #2026-09-20) (= continue; = no spec change required;
 = wenshu-side engineering hygiene pass) + wenshu-stale-test-cleanup skill
 invocation (= per Q46 stop-rule boundary; = docs and skill memory before
 declaring arc done):
@@ -1165,4 +1165,3 @@ Trigger descriptions measure 52 / 53 / 56 / 60 chars (= within the hermes-agent-
 Usage: the four trigger when the user says "design X" / "review PR" / "audit codebase" / "verify refactor". Prompt template for an audit run: `调用 pocock-engineering-audit-existing 给 wenshu 全仓做 12 类工程标准盘点,输出 .scratch/<date>-pocock-standards-audit.md,按 P0 到 P3 排序。`
 
 Tier = user-local (= pocock profile; = not hermes-agent官方仓). Future promotion requires usage evidence (= boss拍 = 5+ sessions/month per hermes-agent-skill-authoring bundled bar).
-
