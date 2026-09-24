@@ -154,17 +154,21 @@ struct ShellDetailColumn: View {
             // header reads as one visual unit; = the same
             // format as the 'Studio' / 'Assets' headers used
             // elsewhere in wenshu; = format LOCKED per memory).
-            VStack(spacing: 4) {
-                HStack {
-                    Spacer()
-                    Text(appState.inspectorPage.localizedTitle)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .textCase(nil)
-                    Spacer()
-                }
-                Divider()
-            }
+            //
+            // v1.77 boss 2026-09-24 OOB '刚标题的修改，在右栏切换的四个
+            // 页面，现在也都有标题，就是把样式统一': lift the
+            // Inspector page header to the shared SectionHeader
+            // component (= also used by AppleSidebarView '书架',
+            // PreviewPane '素材', and EditorPlaceholder '写作（小说）';
+            // = the 4 inspector pages = '写作（小说）' / '写作（风格）' /
+            // '写作（人物）' / '项目管理' all share this header; =
+            // same Apple HIG Mail / Notes / Finder section-header
+            // idiom; = SectionHeader owns the 10 PT / 4 PT /
+            // 10 PT insets). The previous inline VStack(spacing:4)
+            // HStack + Divider was the same pattern (= just
+            // without the 10 PT insets; = now consistent with the
+            // other 3 column headers).
+            SectionHeader(title: appState.inspectorPage.localizedTitle)
             // v1.0.0-m1-shell boss 2026-09-11 OOB 'remove all custom padding
             // and switch to Apple-standard expressions — find an approximate value': remove the custom
             // top inset (= `chromePaddingSectionTop` = 18 PT) and the
