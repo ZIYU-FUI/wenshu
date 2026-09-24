@@ -2,21 +2,16 @@
 //  LabelSegmentedControl.swift
 //  wenshu
 //
-//  v1.0.0-m1-shell boss 2026-09-11 OOB 'for the toolbar, use the one we
-//  just settled on — that's Apple's default toolbar style. The control you have now needs to be
-//  used in the Foreshadowing/Placeholder tab bar. Apply the change to all four pages': the toolbar's
-//  4-page Picker keeps using the SwiftUI `Picker(.segmented)`
-//  (= the canonical Apple HIG toolbar default style = the
-//  macOS-auto-picked rounded-rect capsule = the same visual
-//  Mail / Notes / Finder / Pages use in their toolbars).
+//  The toolbar's 4-page Picker keeps using the SwiftUI
+//  `Picker(.segmented)` (= the canonical Apple HIG toolbar default
+//  style = the macOS-auto-picked rounded-rect capsule = the same
+//  visual Mail / Notes / Finder / Pages use in their toolbars).
 //
-//  The macOS 27 native `NSSegmentedControl` (= introduced by
-//  this commit's previous implementation in commit `5ebd07ecd`
-//  as InspectorPageSegmentedControl.swift) belongs in the
+//  The macOS 27 native `NSSegmentedControl` belongs in the
 //  per-tool tab strip inside the inspector column body (= the
-//  per-page tool tabs like Foreshadowing / Placeholder / Plot Threads on Page 1;
-//  = all 4 pages get the same macOS 27 native control = the
-//  boss's 'apply the change to all four pages' directive).
+//  per-page tool tabs like Foreshadowing / Placeholder / Plot
+//  Threads on Page 1; = all 4 pages get the same macOS 27 native
+//  control).
 //
 //  Why this exists (= why SwiftUI `Picker(.segmented)` is NOT
 //  sufficient for the inspector body tabs):
@@ -30,9 +25,8 @@
 //    pre-macOS-27 segmented control; = intrinsic-size, NOT
 //    full-width).
 //  - The macOS 27 Pages / Keynote / Numbers inspector tab visual
-//    (= the boss's reference) uses `.role = .tabs` + the
-//    canonical `segmentStyle = .roundRect`, which SwiftUI does
-//    not expose.
+//    uses `.role = .tabs` + the canonical `segmentStyle =
+//    .roundRect`, which SwiftUI does not expose.
 //
 //  Renamed from `InspectorPageSegmentedControl` to
 //  `LabelSegmentedControl` (= generic over any selection type;
@@ -57,10 +51,7 @@
 //    role at the AppKit level).
 //  - `segmentDistribution = .fillEqually` (= each segment
 //    receives equal width; = the N tabs divide the column
-//    width equally; = satisfies the boss's 'auto-fill the right
-//    column's width' requirement that SwiftUI's `.frame(maxWidth:
-//    .infinity)` could not deliver inside the previous
-//    SwiftUI Picker).
+//    width equally).
 //  - `trackingMode = .selectOne` (= one segment selected at a
 //    time; = standard tab strip behavior).
 //
@@ -84,10 +75,7 @@
 import SwiftUI
 import AppKit
 
-/// v1.0.0-m1-shell boss 2026-09-11 OOB 'macOS 27's native control is our
-/// first choice' + 'for the toolbar, use the one we just settled on — that's Apple's default toolbar style.
-/// The control you have now needs to be used in the Foreshadowing/Placeholder tab bar.
-/// Apply the change to all four pages': the macOS 27 native segmented tab control.
+/// macOS 27's native segmented tab control.
 ///
 /// Generic over the selection type `Selection` (= Hashable; =
 /// the caller binds the segmented control to a typed selection;
@@ -128,10 +116,9 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// override for localized labels when Selection is a
     /// non-String Hashable like a custom enum).
     let displayStrings: [String]
-    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use SF Symbols 6
-    /// (3rd gen) with palette rendering': canonical icon layer =
-    /// Apple SF Symbols 6 (= built into macOS 27; = zero SPM
-    /// dependency). NSSegmentedControl.setImage(_:forSegment:)
+    /// Use SF Symbols 6 (3rd gen) with palette rendering: canonical
+    /// icon layer = Apple SF Symbols 6 (= built into macOS 27; =
+    /// zero SPM dependency). NSSegmentedControl.setImage(_:forSegment:)
     /// requires NSImage; = we resolve the SF Symbol name to
     /// NSImage via NSImage(systemSymbolName:) at the call site.
     /// TODO future ticket can pre-render the SF Symbol to
@@ -160,8 +147,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         configure(control, coordinator: context.coordinator)
     }
 
-    /// v1.0.0-m1-shell boss 2026-09-11 OOB 'auto-fill the right
-    /// column's width': configure the control to fill its container with
+    /// Configure the control to fill its container with
     /// equally-sized segments (= `segmentDistribution =
     /// .fillEqually`).
     private func configure(_ control: NSSegmentedControl, coordinator: Coordinator) {
@@ -174,10 +160,9 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             control.segmentCount = labels.count
         }
         for (index, label) in labels.enumerated() {
-            // v1.0.0-m1-shell boss 2026-09-11 OOB 'Foreshadowing, Placeholder,
-            // Plot Threads — that tab bar': use the per-page tab's display string
-            // (= the per-tab String label; = matches the
-            // existing SwiftUI Picker(.segmented) label washing).
+            // Use the per-page tab's display string (= the per-tab String
+            // label; = matches the existing SwiftUI Picker(.segmented)
+            // label washing).
             let display = index < displayStrings.count ? displayStrings[index] : String(describing: label)
             control.setLabel(display, forSegment: index)
             if let icon = icon {
@@ -188,12 +173,11 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             control.setToolTip(display, forSegment: index)
         }
 
-        // v1.0.0-m1-shell boss 2026-09-11 OOB 'Mac OS 27
-        // native control is our first choice': apply the macOS 27 native
-        // appearance. Wrapped in `if #available(macOS 27.0, *)`
-        // (= the macOS minimum target is 27.0 per AGENTS.md,
-        // so the guard is defensive; = any future macOS < 27
-        // target falls back to the legacy rounded style).
+        // Apply the macOS 27 native appearance. Wrapped in
+        // `if #available(macOS 27.0, *)` (= the macOS minimum
+        // target is 27.0 per AGENTS.md, so the guard is defensive;
+        // = any future macOS < 27 target falls back to the legacy
+        // rounded style).
         //
         // Note: `NSSegmentStyle` has NO `.glass` member (= the
         // common confusion source: `NSBezelStyle.glass` IS a
@@ -223,12 +207,10 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // behavior; = matches SwiftUI Picker(.segmented)).
         control.trackingMode = .selectOne
 
-        // v1.0.0-m1-shell boss 2026-09-11 OOB 'auto-fill the right
-        // column's width': distribute segments to fill the available
-        // width equally (= `segmentDistribution = .fillEqually`;
-        // = the boss's verbatim ask; = each segment takes 1/N
-        // of the column width when N pages; = NSSegmentedControl
-        // auto-stretches with the column drag).
+        // Distribute segments to fill the available width equally
+        // (= `segmentDistribution = .fillEqually`; = each segment
+        // takes 1/N of the column width when N pages;
+        // = NSSegmentedControl auto-stretches with the column drag).
         control.segmentDistribution = .fillEqually
         // Spread tracking mode = distribute leftover space
         // (= when control is wider than the sum of intrinsic
