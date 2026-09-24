@@ -67,8 +67,7 @@ struct ShellDetailColumn: View {
     // independent document windows).
     @Environment(\.openWindow) private var openWindow
 
-    /// v1.0.0-m1-shell boss 2026-09-11 OOB 'split into two pages': each
-    /// InspectorPage (= .authoring / .craft) renders 1+
+    /// Each InspectorPage (= .authoring / .craft) renders 1+
     /// specialized tools. Tools are selected via a 2nd segmented
     /// Picker in the body (= above the tool content; = the page
     /// Picker lives in the toolbar .principal placement; = the
@@ -76,69 +75,63 @@ struct ShellDetailColumn: View {
     /// tools themselves are hosted by ZoneContentView (=
     /// .specializedTools with a per-tab `currentTab` selection).
     ///
-    /// v1.71c right column MVVM split (= ticket 03 contract phase).
-    /// Per boss 2026-09-22 OOB 'UI 业务 数据分离，符合苹果的 MVVM'.
-    /// 修正前这里有 83 行 inline tuple + switch (= 业务 + 数据混
-    /// View, 违反 Q244 UI/业务/数据分离 范式). 修正后 page → tools
-    /// 改走 InspectorPage.tools (= ticket 02 新增) + InspectorCatalog
-    /// (= ticket 01 新建). View 端只做 1 行派生 + tuple 适配 (=
-    /// view-side-effect, Q245 §3 留在 view 不抽).
+    /// Default init (= the canonical SwiftUI view constructor; =
+    /// no @MainActor isolation, no user-facing defaults, no
+    /// reactive test isolation). The body's enum-driven Picker
+    /// reads the canonical `shell.inspectorPage` (= single source
+    /// of truth) and writes back via the @Bindable binding.
+    ///
+    /// page → tools route via InspectorPage.tools (= the enum
+    /// owns the routing as a computed property; = the catalog
+    /// holds the tool metadata; = the view derives via 1 line).
     private var toolsForCurrentPage: [InspectorTool] {
         shell.inspectorPage.tools
     }
 
     var body: some View {
-        // v1.0.0-m1-shell boss 2026-09-11 OOB 'OK then, in the right column
-        // put the four-page switcher in Trailing, aligned right': per the boss's request,
-        // the 4-page Picker (= Authoring (Fiction) / Style / Characters / Project
-        // Management) now lives in the NSWindow main toolbar's trailing
-        // placement (= `.toolbar { ToolbarItem(placement:
-        // .primaryAction) { Picker(...) } }` below) = NOT in the
-        // inspector column body anymore. The inspector column
-        // body now renders ONLY the active page's tool (= no
-        // internal Picker; = the body is dedicated to the tool
-        // itself; = the toolbar owns the page switch).
+        // The 4-page Picker (= Authoring (Fiction) / Style /
+        // Characters / Project Management) lives in the NSWindow
+        // main toolbar's trailing placement (= `.toolbar {
+        // ToolbarItem(placement: .primaryAction) { Picker(...) } }`
+        // below) = NOT in the inspector column body anymore. The
+        // inspector column body now renders ONLY the active page's
+        // tool (= no internal Picker; = the body is dedicated to
+        // the tool itself; = the toolbar owns the page switch).
         //
-        // vs the previous attempts (= documented in the
-        // ToolbarItem comment below):
+        // vs the previous attempts:
         // 1. Picker in body, right-aligned — worked, but the
-        //    boss asked for the toolbar placement instead.
-        // 2. Picker in INSPECTOR column's `.toolbar` block — same
-        //    as current target (= NSWindow toolbar; the
-        //    InspectorColumn's `.toolbar` block attaches to the
+        //    canonical placement is the toolbar trailing slot.
+        // 2. Picker in the inspector column's `.toolbar` block —
+        //    same as current target (= NSWindow toolbar; the
+        //    inspector column's `.toolbar` block attaches to the
         //    NSWindow main toolbar).
         //
-        // Why this works (= state binding crosses column
-        // boundaries): `inspectorPage` is `@State` on
-        // ShellDetailColumn; = ToolbarItem(placement: .primaryAction)
-        // inside the same view's `.toolbar` block can bind
-        // directly to `$shell.inspectorPage`; = the state change in
-        // the toolbar Picker propagates to the body below via
-        // SwiftUI's normal state binding; = no env-chain work
+        // State binding crosses column boundaries: `inspectorPage`
+        // is `@State` on ShellDetailColumn; = ToolbarItem(placement:
+        // .primaryAction) inside the same view's `.toolbar` block
+        // can bind directly to `$shell.inspectorPage`; = the state
+        // change in the toolbar Picker propagates to the body below
+        // via SwiftUI's normal state binding; = no env-chain work
         // needed (= the binding is local to ShellDetailColumn).
         //
-        // v1.0.0-m1-shell boss 2026-09-11 OOB 'for every page, add a
-        // title-plus-divider combo at the top, then put the tab bar below
-        // the divider — full-width tab bar that auto-fits the right-column width': per the
-        // boss's request, the inspector column body now opens
-        // with a sticky Pages-style title + Divider (= the
-        // canonical Pages / Numbers inspector page header
-        // pattern; = the title text reads the active page's
-        // `localizedTitle` and updates automatically as the
-        // toolbar Picker switches pages; = the Divider sits 4
-        // PT below the title per the Pages header spec); the
-        // ZoneContentView (= the per-page tab strip) renders
-        // immediately below the Divider and stretches to the
-        // full column width (= no center-aligned card column;
-        // = the tab strip fills the inspector column edge-to-
-        // edge like Apple Mail / Notes / Pages inspector tabs).
+        // The inspector column body now opens with a sticky
+        // Pages-style title + Divider (= the canonical Pages /
+        // Numbers inspector page header pattern; = the title text
+        // reads the active page's `localizedTitle` and updates
+        // automatically as the toolbar Picker switches pages; = the
+        // Divider sits 4 PT below the title per the Pages header
+        // spec); the ZoneContentView (= the per-page tab strip)
+        // renders immediately below the Divider and stretches to
+        // the full column width (= no center-aligned card column;
+        // = the tab strip fills the inspector column edge-to-edge
+        // like Apple Mail / Notes / Pages inspector tabs).
         //
-        // vs the previous (= pre-this-commit) inspector body:
-        // the body rendered ONLY the ZoneContentView (= the
-        // tabs were the FIRST thing in the column with no
-        // page title above; = looked like a naked tab strip
-        // floating in space). Per the boss's request, add the
-        // standard Pages page header above the tab strip.
+        // vs the previous pre-this-commit inspector body: the
+        // body rendered ONLY the ZoneContentView (= the tabs were
+        // the FIRST thing in the column with no page title above;
+        // = looked like a naked tab strip floating in space).
+        // Per the design ask, add the standard Pages page header
+        // above the tab strip.
         VStack(spacing: 0) {
             // Pages-style page header: centered title text
             // (.font(.body) + .foregroundStyle(.secondary) per
@@ -148,10 +141,8 @@ struct ShellDetailColumn: View {
             // format as the 'Studio' / 'Assets' headers used
             // elsewhere in wenshu; = format LOCKED per memory).
             //
-            // v1.77 boss 2026-09-24 OOB '刚标题的修改，在右栏切换的四个
-            // 页面，现在也都有标题，就是把样式统一': lift the
-            // Inspector page header to the shared SectionHeader
-            // component (= also used by AppleSidebarView '书架',
+            // Lift the Inspector page header to the shared
+            // SectionHeader component (= also used by AppleSidebarView '书架',
             // PreviewPane '素材', and EditorPlaceholder '写作（小说）';
             // = the 4 inspector pages = '写作（小说）' / '写作（风格）' /
             // '写作（人物）' / '项目管理' all share this header; =
