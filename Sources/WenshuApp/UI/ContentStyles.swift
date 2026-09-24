@@ -1,20 +1,18 @@
 //
-//  ContentStyles.swift · Wenshu · STYLES-001
+//  ContentStyles.swift · Wenshu
 //
 //  Style primitives for CONTENT (= the inner content of each zone,
 //  between the parent's chrome top bar and bottom bar). Companion
 //  to ChromeStyles.swift (= which owns the chrome styling).
 //
-//  Boss 9/7 'styles can actually be unified' (= applied to the content
-//  side too, not just the chrome) + boss 9/7 'UI and function separated' = the
+//  Applied to the content side too, not just the chrome. The
 //  content view (= each zone's actual UI) only owns FUNCTIONAL
 //  wiring (= which tabs render, which buttons open which sheet,
 //  which text shows). The visual styling (padding / spacing /
 //  text style / button style / icon style) lives here.
 //
-//  Ponytail principle (= boss 2026-08-31 directive 'linrear
-//  priority 7-tier ladder'): use stdlib / Apple-native / existing
-//  dependencies BEFORE writing new code. Apple canonical:
+//  Ponytail principle (= stdlib / Apple-native / existing
+//  dependencies BEFORE writing new code). Apple canonical:
 //  - .contentMargins(_:for:) (= iOS 17 / macOS 14 SwiftUI standard
 //    for ScrollView content insets; = the right primitive for
 //    "set the content's edge-to-zone-edge inset once").
