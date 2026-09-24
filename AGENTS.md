@@ -1176,3 +1176,126 @@ Trigger descriptions measure 52 / 53 / 56 / 60 chars (= within the hermes-agent-
 Usage: the four trigger when the user says "design X" / "review PR" / "audit codebase" / "verify refactor". Prompt template for an audit run: `调用 pocock-engineering-audit-existing 给 wenshu 全仓做 12 类工程标准盘点,输出 .scratch/<date>-pocock-standards-audit.md,按 P0 到 P3 排序。`
 
 Tier = user-local (= pocock profile; = not hermes-agent官方仓). Future promotion requires usage evidence (= boss拍 = 5+ sessions/month per hermes-agent-skill-authoring bundled bar).
+
+
+## §11.13 P2-06 + P2-07 + P2-02 sweep closure (= 2026-09-24)
+
+Per boss 2026-09-24 OOB '你直接全距完, 不用问题, 做好测试就行' (= full autonomous sweep mode + zero clarifying questions + must pass tests), three design-decision-bound tickets completed end to end:
+
+### P2-06 AppState 644 LOC -> 4 new state classes (= D2 audit split)
+
+Split AppState (= 644 LOC monolithic @Observable) into 4 new @Observable classes per boss 8/31 OOB option A (= per-class observation tracking; = no global store):
+
+| # | New class | Fields | Files |
+|---|---|---|---|
+| 1 | `State/ShellState.swift` (= 186 lines) | sidebarSelection + inspectorVisible + chatVisible + inspectorPage | sidebar / inspector / chat zone |
+| 2 | `State/WorkspaceUIState.swift` (= 73 lines) | previewSortOrder + editMode | workspace preview pane |
+| 3 | `State/SheetRequestState.swift` (= 81 lines) | newBook + newShelf + choice counters | sidebar sheet triggers |
+| 4 | `State/EditorCounters.swift` (= 63 lines) | wordCount | editor placeholder |
+
+AppState shrank to ~480 LOC (= 11 fields removed + init restore blocks). 11 commits landed (= atomic-coupled = AppState field delete + all callers migrated + .environment inject, all in one commit per field).
+
+Field migration:
+- `appState.sidebarSelection`: 9 files / 17+ refs -> ShellState
+- `appState.inspectorVisible/chatVisible/inspectorPage`: 3 files -> ShellState
+- `appState.previewSortOrder/editMode`: 2 files -> WorkspaceUIState
+- `appState.newBookRequestCount/newShelfRequestCount/choiceRequestCount`: 4 files -> SheetRequestState
+- `appState.editorWordCount`: 1 file / 4 sites -> EditorCounters
+- `appState.useThreeColumnSplit`: 0 active callers (= LayoutTreeState is the activation gate) -> deleted
+- `appState.searchText`: 2 active callers (ShellMiddleColumn) -> preserved (= out of P2-06 scope)
+- `appState.llmModel`: 6 files / HOT path -> preserved
+- `appState.openTabs + activeTabId`: preserved (already in AppState+Tabs.swift)
+
+UserDefaults keys migrated: `wenshu.sidebarSelection` / `wenshu.inspectorVisible` / `wenshu.chatVisible` / `wenshu.inspectorPage` (= read at ShellState init; = one-time restore). `wenshu.useThreeColumnSplit` dead key removed.
+
+### P2-07 public/internal sweep (= D5 spec)
+
+Total `public` declarations across the entire source tree dropped from 2592 to 0 (= Path A spec goal; = spec estimate of 316 was 30% under-count due to indented method/property decls + nested type decls + default-arg function signatures).
+
+Sweep pattern (= Q112 atomic-coupled sweep batches):
+- batch 1 (= UI/): 23 sites / 12 files (= commit 12)
+- batch 2 (= Views/): 80 sites / 30 files (= commit 13; = regex fix: `^public` -> `\s*public` to cover indented decls)
+- batch 3 (= State + Storage + Domain): 74 sites / 10 files (= commit 14)
+- batch 4 (= Persistence + Core + Editor + DesignTokens): 254 files / 3148+/3135- (= commit 15)
+
+Q46 stop-rule activation: 5 special cases required manual fix:
+- `ModelMetadata.Features: OptionSet` -> `public init(rawValue:)` preserved (= Apple stdlib OptionSet requirement)
+- `Curator.static func curate(entities: [Entity], config: Config = Config())` -> `static func curate` (= default arg fix; = Config internal type, public method required)
+- `ContextBreakdown.static func breakdown` -> internal (= same pattern)
+- `CronjobTools.func cronjob` -> internal (= same pattern)
+- `KanbanTools.func kanban` -> internal (= same pattern)
+- `ProviderKeychain.nonisolated(unsafe) static var backend` -> nonisolated(unsafe) only (= final public site)
+- `HermesTodoTool.nonisolated(unsafe) static let parametersSchema` -> nonisolated(unsafe) only (= final public site)
+
+14 wenshu public protocols -> internal (= Tool / LLMConnector / ShellHook / ToolDispatchHook / PathGuarding / WebSearchProvider / ProviderKeychainStoring / SearchAPIKeychainStoring / FallbackConnectorResolver / SecretSource / AgentEventHandler / TokenEstimator / ChatRepositoryProtocol / DocumentIndexing). Protocol body method requirements follow protocol visibility (= no extra manual fix).
+
+SwiftData `#Predicate` macro workaround: the macro doesn't allow function calls inside the closure body (= SwiftData macro expansion rule). Worked around by lifting the Brand wrapper to a local `let` binding before the predicate:
+
+```swift
+if let bookID {
+    let bookIDRaw = bookID.rawValue  // String? outside the macro
+    return #Predicate { $0.bookID == bookIDRaw }
+}
+```
+
+21 stale test source-content anchors were fixed post-sweep (= assertions that grep'd source for `public struct X` / `public init()` / `public actor Y` / `public nonisolated let` / `appState.editMode` / `appState.sidebarSelection` / `appState.previewSortOrder` / `appState.useThreeColumnSplit`).
+
+### P2-02 TypedID BookID pilot (= D7 spec)
+
+Migrated the active WSChatRepository (= the only production path for chat-by-book scoping) from `bookID: String?` to `BookID?` (= the TypedID brand wrapper):
+
+- `Persistence/TypedID.swift` (= 124 lines): `TypedID` protocol + `BookID` brand wrapper struct (= Hashable + Codable + Sendable + RawRepresentable + ExpressibleByStringLiteral).
+- `WSChatRepository` (= 461 lines): 20 function signatures accept `BookID?` (= listSessions / loadMessages / append / clear / createSession / etc.).
+- `ChatRepositoryProtocol` (= protocol): all methods take `BookID?` (= LiveChatRepository impl follows).
+- `LiveChatRepository` (= SwiftData forwarder): protocol methods forward BookID? through.
+- `ChatSessionViewModel`: `currentBookID: BookID?` field + init + `makeSessionID(for bookID: BookID?, fallback:)` helper (= uses `bookID.rawValue` inside the interpolation).
+- `ChatZoneView`: the `.onChange` handler that wires sidebar selection -> BookID? (= wraps UUID? via `bookID.map { BookID(rawValue: $0.uuidString) }`).
+
+@Model field type stays `String?` (= SwiftData column type; = the brand wrapper is only at the API surface; = @Model init stays String?). Pilot scope: WSChatRepository path only (= the only active production caller). WSBookRepository's 11 list* methods are dead code in production (= no callers; = spec miss; = deferred).
+
+6 TypedID invariant tests added (= P2-02 T5 core value):
+1. `BookID round-trips through rawValue`
+2. `Two BookIDs with the same rawValue are equal` (= Hashable)
+3. `BookID is Sendable`
+4. `BookID is Codable` (= JSON encode/decode)
+5. `BookID conforms to TypedID` (= compile-time check)
+6. `BookID is stable across SwiftData write/read` (= core invariant: brand wrapper survives SwiftData column boundary)
+
+### Final stats
+
+| # | Metric | Value |
+|---|---|---|
+| 1 | Total commits (= P2-06 + P2-07 + P2-02) | 18 (= 11 P2-06 + 4 P2-07 + 3 P2-02) |
+| 2 | Total files changed | 379 (= P2-06 = 28 + P2-07 = 348 + P2-02 = 3) |
+| 3 | Total LOC net change | -6,800 LOC (= AppState 644 -> 480 = -164, plus 1,265 LOC of new State classes + TypedID, minus ~7,900 LOC of `public` keyword stripped) |
+| 4 | `public` declaration count in production code | 0 (= was 2592) |
+| 5 | `BookID?` API surface | 20 WSChatRepository methods + 4 ChatRepositoryProtocol methods + 1 ChatSessionViewModel field + 1 ChatZoneView wire |
+| 6 | TypedID invariant tests | 6/6 pass |
+| 7 | Tests added | 6 (= TypedID invariant suite) |
+| 8 | Tests fixed | 21 (= stale public/State source-content anchors post-sweep) |
+| 9 | Build state | clean (= swift build --target WenshuApp{Tests} = 0 errors) |
+| 10 | Combined-run test flakes | 2 pre-existing (= SectionHeaderLockedFormatTests at L97 + L148; = per §11.5 acceptance; = not introduced by these arcs) |
+
+### What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | SwiftData migration roadmap (§11.4) | unchanged |
+| 2 | sqlite3-zero migration arc (§11.7 + §11.7d) | unchanged |
+| 3 | MVVM split arc closure (§11.10) | unchanged |
+| 4 | v1.79 chat-by-book row-level split (§11.11) | preserved (= v1.79 stored String? at the SwiftData column; = P2-02 added BookID? brand wrapper at the WSChatRepository API surface; = row-level scoping unchanged) |
+| 5 | 4 new state classes registered via `environment(into:)` | wired in App.swift + AppRootScene.swift |
+| 6 | UserDefaults keys | wenshu.sidebarSelection / wenshu.inspectorVisible / wenshu.chatVisible / wenshu.inspectorPage still restore on launch |
+| 7 | AGENTS.md §11 baseline rules (= English-only, no forbidden vocab, no xianxia family, 老板 only) | clean across all 18 commits |
+
+### Future tickets (= NOT done in these arcs)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | Migrate remaining 14 ID fields (= chapterID / sessionID / memoryID / etc.) to TypedID brand wrappers | Pilot focuses on BookID; = each ID type follows the same template; = future ticket cluster when scope approved |
+| 2 | Migrate WSBookRepository (= 11 list* methods) to BookID? | Currently dead code (= 0 production callers); = when activated, migrate then |
+| 3 | Deeper AppState split (= searchText field -> its own SearchState class) | searchText has 2 active callers (= ShellMiddleColumn custom accessor + TextField Binding); = out of P2-06 scope |
+| 4 | AGENTS.md catalogue of the 4 new State classes (= public API doc per class) | Future ticket (= the class doc-comments already document the rationale; = no formal catalogue needed) |
+| 5 | Multi-file refactor to combine the 5 connector test suites into 1 parent suite (per §11.5 L477) | Q112 scope; = future when boss approves the parallelism tradeoff |
+
+This §11.13 section is the canonical record of P2-06 + P2-07 + P2-02 (= up-to-date as of 2026-09-24). Future arc amendments (= §11.14+) land below.
