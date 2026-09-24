@@ -1299,51 +1299,10 @@ struct PreviewPane: View {
         /// predicate (= title / summary / pinyin first-letter
         /// substring) into a shared helper so reference entities
         /// AND book docs use the same filter (= per boss 'use one common
-        /// interface'). Previously each filter was a private inline
-        /// closure that duplicated the same pinyin + localized
-        /// substring logic.
-        private func matchesSearch(title: String, summary: String, query: String) -> Bool {
-            let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return true }
-            let lowered = trimmed.lowercased()
-            if title.localizedCaseInsensitiveContains(trimmed)
-                || summary.localizedCaseInsensitiveContains(trimmed) {
-                return true
-            }
-            let pinyinKey = pinyinFirstLetters(title)
-            if pinyinKey.lowercased().contains(lowered) {
-                return true
-            }
-            return false
-        }
+        /// interface'). Moved to PreviewPaneOps (= v1.76 spec-fix
+        /// arc; = per spec §9.2 row 6 entry-point list).
 
-        private func pinyinFirstLetters(_ title: String) -> String {
-        let mutable = NSMutableString(string: title)
-        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
-        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
-        let latinized = (mutable as String)
-        // Split on whitespace + extract first letter of each token.
-        // Also drop tokens that are pure punctuation (= e.g. "?").
-        // v0.71 P1 batch 7 dual-axis followup (= Q99 Standards axis LOW):
-        // the previous `first.isLetter` filter silently dropped emoji
-        // titles (= single-emoji title → empty initials → no pinyin
-        // match). Replaced with `isLetter || isNumber || isSymbol`
-        // to include Unicode symbols (= emojis are categorized as
-        // .symbol in Swift); = an emoji-only title now produces one
-        // initial char (= the emoji itself), enabling pinyin-key
-        // search to match it.
-        let initials = latinized
-            .split(whereSeparator: { $0.isWhitespace })
-            .compactMap { token -> String? in
-                guard let first = token.first else { return nil }
-                guard first.isLetter || first.isNumber || first.isSymbol else { return nil }
-                return String(first).uppercased()
-            }
-            .joined()
-        return String(initials)
-    }
-
-    /// v0.40 boss 9/7 OOB 'search,, d, can
+        /// v0.40 boss 9/7 OOB 'search, d, can
     /// ': filter the entity list by the current search query.
     /// Matches against BOTH:
     /// 1. Original title / summary substring (= case-insensitive)
@@ -1358,13 +1317,11 @@ struct PreviewPane: View {
         /// 'the search field doesn't actually filter the cards' bug was that bookDocsGrid was called
         /// with the unfiltered docs.
         private func searchFilteredBookDocs(_ docs: [BookDoc]) -> [BookDoc] {
-            let query = resolvedSearchQuery
-            return docs.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
-        }
+        return PreviewPaneOps.searchFilteredBookDocs(docs, query: resolvedSearchQuery)
+    }
 
-        private func searchFilteredEntities(_ entities: [Reference]) -> [Reference] {
-        let query = resolvedSearchQuery
-        return entities.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
+    private func searchFilteredEntities(_ entities: [Reference]) -> [Reference] {
+        return PreviewPaneOps.searchFilteredEntities(entities, query: resolvedSearchQuery)
     }
 
 }

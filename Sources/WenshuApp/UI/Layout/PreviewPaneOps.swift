@@ -11,7 +11,7 @@
 //  PreviewPane's private copy; = future ticket lifts to shared service
 //  when ZoneModuleView consumes it too).
 //
-//  Public surface (= 7 entry points + 5 Result types):
+//  Public surface (= 11 entry points + 5 Result types):
 //    1. loadAllEntities(bookStore:) -> LoadEntitiesResult
 //    2. loadBooksInShelf(bookStore:shelfId:) -> LoadBooksResult
 //    3. loadShelfBooksAsync(bookStore:shelfId:) async -> LoadBooksResult
@@ -19,6 +19,10 @@
 //    5. loadBookDocs(bookStore:bookId:folderName:) -> LoadBookDocsResult
 //    6. sortBookDocs(_:by:) -> [BookDoc]
 //    7. sortEntities(_:by:) -> [Reference]
+//    8. searchFilteredEntities(_:query:) -> [Reference]   (= spec §9.2 row 6)
+//    9. searchFilteredBookDocs(_:query:) -> [BookDoc]      (= spec §9.2 row 6)
+//    10. matchesSearch(title:summary:query:) -> Bool       (= spec §9.2 row 6)
+//    11. pinyinFirstLetters(_:) -> String                  (= spec §9.2 row 6)
 //
 //  No actor involvement (= pure filesystem + JSON helpers).
 //  All bookStore input preserved as view-supplied.
@@ -221,6 +225,64 @@ enum PreviewPaneOps {
                 return lhs.id.uuidString < rhs.id.uuidString
             }
         }
+    }
+
+    // MARK: - Search filter (= per spec §9.2 row 6 extension)
+
+    /// Filter reference entities by the current search query.
+    /// Matches against BOTH:
+    /// 1. Original title / summary substring (= case-insensitive)
+    /// 2. Pinyin first-letter substring (= e.g. "d" matches "X" -> DX)
+    /// Empty query = pass-through (= show all entities).
+    static func searchFilteredEntities(_ entities: [Reference], query: String) -> [Reference] {
+        return entities.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
+    }
+
+    /// Filter book docs by the current search query.
+    /// Same filter shape as `searchFilteredEntities` but for book
+    /// docs (= filesystem .md files loaded by `loadBookDocs`).
+    static func searchFilteredBookDocs(_ docs: [BookDoc], query: String) -> [BookDoc] {
+        return docs.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
+    }
+
+    /// Substring matcher shared between entities and book docs
+    /// (= per boss 'use one common interface').
+    /// Empty query = pass-through. Pure function (= no actor,
+    /// no MainActor; = trivially testable).
+    static func matchesSearch(title: String, summary: String, query: String) -> Bool {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return true }
+        let lowered = trimmed.lowercased()
+        if title.localizedCaseInsensitiveContains(trimmed)
+            || summary.localizedCaseInsensitiveContains(trimmed) {
+            return true
+        }
+        let pinyinKey = pinyinFirstLetters(title)
+        if pinyinKey.lowercased().contains(lowered) {
+            return true
+        }
+        return false
+    }
+
+    /// Pinyin first-letter sequence for one title.
+    /// Tokenises on whitespace, drops pure-punctuation tokens,
+    /// takes the first letter of each (= per Q99 Standards axis
+    /// LOW fix: emoji titles now produce one initial char too).
+    /// Pure function (= no actor, no MainActor).
+    static func pinyinFirstLetters(_ title: String) -> String {
+        let mutable = NSMutableString(string: title)
+        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+        let latinized = (mutable as String)
+        let initials = latinized
+            .split(whereSeparator: { $0.isWhitespace })
+            .compactMap { token -> String? in
+                guard let first = token.first else { return nil }
+                guard first.isLetter || first.isNumber || first.isSymbol else { return nil }
+                return String(first).uppercased()
+            }
+            .joined()
+        return String(initials)
     }
 
     // MARK: - Private helpers
