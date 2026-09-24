@@ -5,15 +5,19 @@
 //  (= the stateless enum extracted from ReaderExperienceView;
 //  = the P0-mild view listed in .scratch/2026-09-23-mvvm-audit/spec.md §9).
 //
-//  Coverage (= 8 tests):
+//  Coverage (= 12 tests):
 //    1.  fileExistsAtCanonicalPath
 //    2.  runAnalyze returns empty RunResult when analyzer is nil
 //    3.  runAnalyze preserves empty chapterText (= silent no-op)
-//    4.  ensureAnalyzer creates the actor when analyzer is nil
-//    5.  ensureAnalyzer is a no-op when analyzer is non-nil
-//    6.  sourceHasTwoPublicStaticFuncs marker
-//    7.  sourceIsStatelessEnum marker
-//    8.  sourceDeclaresEnsureAnalyzerWithInout
+//    4.  runAnalyze accepts every ReaderExperienceKind case when analyzer is nil
+//    5.  ensureAnalyzer creates the actor when analyzer is nil
+//    6.  ensureAnalyzer is a no-op when analyzer is non-nil
+//    7.  ensureAnalyzer produces distinct instances on repeated nil calls
+//    8.  sourceHasTwoPublicStaticFuncs marker
+//    9.  sourceIsStatelessEnum marker
+//    10. sourceDeclaresEnsureAnalyzerWithInout
+//    11. sourceDeclaresRunAnalyzeChapterTextParameter
+//    12. sourceDeclaresRunAnalyzeKindParameter
 //
 
 import Foundation
@@ -57,6 +61,23 @@ struct ReaderExperienceOpsTests {
         #expect(r.report == nil)
     }
 
+    @Test("runAnalyze accepts every ReaderExperienceKind case when analyzer is nil")
+    func runAnalyzeAcceptsEveryKindWhenAnalyzerNil() async {
+        // The source guards `analyzer` before `kind`, so every
+        // ReaderExperienceKind case must produce the same silent
+        // no-op result. Exercises the parameter pass-through contract.
+        for kind in ReaderExperienceKind.allCases {
+            let r = await ReaderExperienceOps.runAnalyze(
+                analyzer: nil,
+                chapterText: "any chapter text",
+                kind: kind
+            )
+            #expect(r.didRun == false)
+            #expect(r.report == nil)
+            #expect(r.error == nil)
+        }
+    }
+
     // MARK: - ensureAnalyzer
 
     @Test("ensureAnalyzer creates the actor when analyzer is nil")
@@ -72,6 +93,17 @@ struct ReaderExperienceOpsTests {
         var analyzer: ReaderExperienceAnalyzer? = existing
         await ReaderExperienceOps.ensureAnalyzer(analyzer: &analyzer)
         #expect(analyzer === existing)
+    }
+
+    @Test("ensureAnalyzer produces a fresh instance each time on nil (= not memoized)")
+    func ensureAnalyzerFreshInstanceOnRepeatedNil() async {
+        var first: ReaderExperienceAnalyzer? = nil
+        await ReaderExperienceOps.ensureAnalyzer(analyzer: &first)
+        var second: ReaderExperienceAnalyzer? = nil
+        await ReaderExperienceOps.ensureAnalyzer(analyzer: &second)
+        #expect(first != nil)
+        #expect(second != nil)
+        #expect(first !== second)
     }
 
     // MARK: - Source-level markers
@@ -123,5 +155,35 @@ struct ReaderExperienceOpsTests {
             .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("analyzer: inout ReaderExperienceAnalyzer?"))
+    }
+
+    @Test("source-marker: runAnalyze declares chapterText: String parameter")
+    func sourceDeclaresRunAnalyzeChapterTextParameter() throws {
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let repoRoot = testFileURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourcePath = repoRoot
+            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceOps.swift")
+        let source = try String(contentsOf: sourcePath, encoding: .utf8)
+        #expect(source.contains("chapterText: String"))
+    }
+
+    @Test("source-marker: runAnalyze declares kind: ReaderExperienceKind parameter")
+    func sourceDeclaresRunAnalyzeKindParameter() throws {
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let repoRoot = testFileURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourcePath = repoRoot
+            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceOps.swift")
+        let source = try String(contentsOf: sourcePath, encoding: .utf8)
+        #expect(source.contains("kind: ReaderExperienceKind"))
     }
 }
