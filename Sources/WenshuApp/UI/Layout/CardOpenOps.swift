@@ -151,7 +151,7 @@ enum CardOpenOps {
     ) -> CardTriad {
         switch previewScope {
         case .referenceScope(let category):
-            let entities: [Reference] = (try? bookStore?.referenceStore.loadAllReferences()) ?? []
+            let entities: [Reference] = (try? bookStore?.loadAllReferences()) ?? []
             let filtered = entities.filter { entity in
                 entity.layer == .layerEntities
                     && (category == nil || entity.category == category)
@@ -165,7 +165,7 @@ enum CardOpenOps {
                 return filtered.first
             }()
             if let first = pickedReference {
-                let body = bookStore?.referenceStore.loadReferenceBody(id: first.id) ?? first.summary
+                let body = bookStore?.loadReferenceBody(id: first.id) ?? first.summary
                 return CardTriad(
                     path: nil,  // reference is library-public; ticket 027-35 will resolve
                     content: body,

@@ -186,7 +186,7 @@ struct AppleSidebarView: View {
                 service = SidebarService(
                     loadShelves: { try bookStore.sidebarLoadShelves() },
                     loadAllBooks: { try bookStore.sidebarLoadAllBooks() },
-                    loadReferences: { try bookStore.referenceStore.loadAllReferences() },
+                    loadReferences: { try bookStore.loadAllReferences() },
                     // v1.69 boss 2026-09-22 OOB '上面书架的五
                     // 目录也可以加' (= mirror the reference
                     // library's "X 项" subtitle on each book

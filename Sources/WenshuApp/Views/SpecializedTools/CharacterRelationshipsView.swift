@@ -331,7 +331,7 @@ struct CharacterRelationshipsView: View {
         // Load characters from the per-book character store
         // (= single source of truth for character metadata).
         // Forgiving on missing / corrupt store: empty array.
-        characters = (try? bookStore.characterStore.loadCharacters()) ?? []
+        characters = (try? bookStore.loadCharacters()) ?? []
         // Reset picker defaults to the first / second character
         // (= convenience for empty state).
         if draftFromId == nil { draftFromId = characters.first?.id }

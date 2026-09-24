@@ -143,9 +143,43 @@ final class BookStore {
     /// The 3 v0.26 entity stores (= kept as direct properties for the
     /// 6 CP3 views' functional-injection compatibility; v0.27 followups
     /// migrate views to @Environment(BookStore.self)).
-    let worldStore: WorldStoring
-    let characterStore: CharacterStoring
-    let referenceStore: ReferenceStoring
+    /// P1-05 (audit 2026-09-24): the 3 per-book stores are private
+    /// (= views can't reach past the root). The previous `let worldStore`
+    /// (= public-by-default for internal module) let 5 callers reach
+    /// `bookStore.characterStore.loadCharacters()` etc. (= bypassing
+    /// the aggregate root). Passthrough methods on `BookStore` are the
+    /// canonical surface (= callers depend on the root, not the
+    /// underlying stores).
+    private let worldStore: WorldStoring
+    private let characterStore: CharacterStoring
+    private let referenceStore: ReferenceStoring
+
+    // MARK: - P1-05 reach-through passthroughs
+
+    /// Load all characters for the active book.
+    func loadCharacters() throws -> [Character] {
+        try characterStore.loadCharacters()
+    }
+
+    /// Load all reference items for the active book.
+    func loadAllReferences() throws -> [Reference] {
+        try referenceStore.loadAllReferences()
+    }
+
+    /// Load a single reference body by entity id.
+    func loadReferenceBody(id: UUID) -> String? {
+        referenceStore.loadReferenceBody(id: id)
+    }
+
+    /// P1-05 reach-through escape hatch: the `WikiLinkNavigation` /
+    /// `WikiLinkResolver` tools receive `bookStore.referenceStore`
+    /// (= a `ReferenceStoring` protocol reference) as a parameter.
+    /// Exposed as a method (= same passthrough pattern as the other
+    /// load methods above) so callers depend on `BookStore`, not on
+    /// its private stores.
+    func loadReferenceStore() -> ReferenceStoring {
+        referenceStore
+    }
 
     /// Reload the per-book data for the given book id. Drops the
     /// previous bundle and reads fresh from the storage layer. Apple

@@ -642,7 +642,7 @@ struct EditorPlaceholder: View {
         guard !displayName.isEmpty else { return }
         guard let result = WikiLinkNavigation.handle(
             displayName: displayName,
-            referenceStore: bookStore.referenceStore,
+            referenceStore: bookStore.loadReferenceStore(),
             bookStore: bookStore
         ) else {
             #if DEBUG

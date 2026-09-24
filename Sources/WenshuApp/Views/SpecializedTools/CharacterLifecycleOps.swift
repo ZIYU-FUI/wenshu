@@ -93,7 +93,7 @@ enum CharacterLifecycleOps {
         // Load characters from the per-book character store (= single
         // source of truth for character metadata). Forgiving on
         // missing / corrupt store = empty array.
-        let characters = (try? bookStore.characterStore.loadCharacters()) ?? []
+        let characters = (try? bookStore.loadCharacters()) ?? []
         do {
             let events = try await actor.list(bookId: bookId)
             let contradictions = try await actor.contradictions(bookId: bookId)

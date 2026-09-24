@@ -62,7 +62,7 @@ enum PreviewPaneOps {
             return LoadEntitiesResult(entities: [], error: "bookStore is nil")
         }
         do {
-            let allRefs = try bookStore.referenceStore.loadAllReferences()
+            let allRefs = try bookStore.loadAllReferences()
             let layer = allRefs.filter { $0.layer == .layerEntities }
             return LoadEntitiesResult(entities: layer, error: nil)
         } catch {
@@ -89,7 +89,7 @@ enum PreviewPaneOps {
     /// Load the body text for one reference entity (= the preview pane content).
     static func loadBody(bookStore: BookStore?, for entity: Reference) -> LoadBodyResult {
         guard let bookStore else { return LoadBodyResult(body: nil) }
-        return LoadBodyResult(body: bookStore.referenceStore.loadReferenceBody(id: entity.id))
+        return LoadBodyResult(body: bookStore.loadReferenceBody(id: entity.id))
     }
 
     /// Load the book docs for one book (= the doc list source; = file scan).
