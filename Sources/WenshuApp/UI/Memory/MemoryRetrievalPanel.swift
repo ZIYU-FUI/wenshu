@@ -1,8 +1,7 @@
 //
-//  MemoryRetrievalPanel.swift · Wenshu · v0.35 ticket 009
+//  MemoryRetrievalPanel.swift · Wenshu
 //
-//  Right-bottom panel for DynamicZone showing memory retrieval
-//  (= spec §6.4 🟨 half-visible).
+//  Right-bottom panel for DynamicZone showing memory retrieval.
 //
 //  Displays the memories retrieved for the current turn, with source
 //  file paths. Shown alongside the main chat view as a side panel.
