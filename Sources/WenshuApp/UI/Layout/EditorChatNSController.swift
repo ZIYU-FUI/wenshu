@@ -122,15 +122,23 @@ final class EditorChatNSController: NSSplitViewController {
     // click on a card).
     private let appState: AppState?
     private let bookStore: BookStore?
+    // v1.79 chat-by-book: WenshuLibrary is the canonical source for
+    // selectedBookId (= see WenshuLibrary.swift L74/L78/L198/L218-
+    // L219/L224 = the only places selectedBookId is mutated).
+    // Threaded through so ChatZoneView can observe it via
+    // @Environment(WenshuLibrary.self).
+    private let library: WenshuLibrary?
 
     init(
         conductor: WenshuConductor?,
         appState: AppState? = nil,
-        bookStore: BookStore? = nil
+        bookStore: BookStore? = nil,
+        library: WenshuLibrary? = nil
     ) {
         self.conductor = conductor
         self.appState = appState
         self.bookStore = bookStore
+        self.library = library
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -228,6 +236,21 @@ final class EditorChatNSController: NSSplitViewController {
         let chatViewController = NSHostingController(
             rootView: ChatZoneView(
                 conductor: WenshuAppDelegate.sharedConductor
+            )
+            // v1.79 chat-by-book: ChatZoneView reads
+            // WenshuLibrary + BookStore via @Environment to drive
+            // setCurrentBookID(_:) when the user picks a different
+            // book (= wired off appState.sidebarSelection mutations
+            // in ChatZoneView.body). Without the env wrapper, the
+            // SwiftUI @Environment(WenshuLibrary.self) +
+            // @Environment(BookStore.self) wrappers crash with
+            // 'No Observable object of type WenshuLibrary found' at
+            // view construction time (= SwiftUI's @Environment(T.self)
+            // is a hard fatalError when T is absent from the env chain).
+            .applyOptionalEnvironment(
+                appState: appState,
+                bookStore: bookStore,
+                library: library
             )
         )
         let chatItemLocal = NSSplitViewItem(viewController: chatViewController)
@@ -357,12 +380,19 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
     // lookups (= AppState + BookStore) actually resolve.
     let appState: AppState?
     let bookStore: BookStore?
+    // v1.79 chat-by-book: thread WenshuLibrary through the
+    // SwiftUI → AppKit boundary so ChatZoneView can observe
+    // library (= the canonical book-selection source mutated by
+    // BookshelfListView taps; = future per-book chat features may
+    // also read this).
+    let library: WenshuLibrary?
 
     func makeNSViewController(context: Context) -> EditorChatNSController {
         let controller = EditorChatNSController(
             conductor: conductor,
             appState: appState,
-            bookStore: bookStore
+            bookStore: bookStore,
+            library: library
         )
         return controller
     }
@@ -379,17 +409,19 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
 // AppKit code where the SwiftUI @Environment chain doesn't
 // propagate; = this helper bridges AppState + BookStore across the
 // boundary without forcing every caller to know the env keys).
+//
+// v1.79 chat-by-book: extended to also inject WenshuLibrary (= the
+// chat zone reads library via @Environment; = reusing the helper
+// means every pane gets the same env chain pattern).
 extension View {
     @ViewBuilder
-    func applyOptionalEnvironment(appState: AppState?, bookStore: BookStore?) -> some View {
-        if let appState = appState, let bookStore = bookStore {
-            self.environment(appState).environment(bookStore)
-        } else if let appState = appState {
-            self.environment(appState)
-        } else if let bookStore = bookStore {
-            self.environment(bookStore)
-        } else {
-            self
-        }
+    func applyOptionalEnvironment(appState: AppState?, bookStore: BookStore?, library: WenshuLibrary? = nil) -> some View {
+        // Apply the union of available objects in one pass (= each
+        // .environment modifier is additive; = the order doesn't
+        // matter; = a single self is the chain root).
+        self
+            .environment(appState)
+            .environment(bookStore)
+            .environment(library)
     }
 }
