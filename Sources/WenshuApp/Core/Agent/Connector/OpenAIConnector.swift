@@ -18,7 +18,7 @@
 //  for OpenAI-compatible to support Ollama's no-auth local), transport
 //  send, and HTTP-status error path.
 //
-//  v0.35 ticket 005 (= 1 commit covering both connectors).
+// (= 1 commit covering both connectors).
 //
 
 import Foundation

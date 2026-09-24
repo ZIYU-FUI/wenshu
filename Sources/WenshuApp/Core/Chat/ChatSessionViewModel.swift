@@ -111,7 +111,7 @@ final class ChatViewModel {
     var attachedImagePath: String?
     var isSending: Bool = false
     var lastError: String?
-    // v2.00 (2026-09-23): boss 'check split, check dead code'.
+    // boss 'check split, check dead code'.
     // Removed dead `activeSubAgentName` + `currentAgentTurn`
     // fields (= T4-SUBAGENT-UI + T8-CHATVIEWMODEL-WIRE) —
     // these were read by ChatSubAgentTag + ChatTurnProgress
@@ -343,7 +343,7 @@ final class ChatViewModel {
         appState?.llmModel = id
     }
 
-    /// v1.99 (2026-09-23): boss 'UI 层不许直接调数据层'.
+    /// boss 'UI 层不许直接调数据层'.
     /// Sets the canonical 'wenshu.settingsTab' to 'providerApi' so
     /// the Settings window opens on the LLM Connector pane. The
     /// canonical pattern (= the @AppStorage mirror in Settings reads
@@ -586,7 +586,7 @@ final class ChatViewModel {
         try? await repository.append(userMsg, sessionId: sessionId, bookID: currentBookID)
 
         do {
-            // v0.34: streaming path = render each text chunk as it
+            // streaming path = render each text chunk as it
             // arrives (= character-by-character, ChatGPT-style). The
             // conductor path remains blocking for now (= its
             // WenshuConductor.handle returns a single assembled
@@ -654,7 +654,7 @@ final class ChatViewModel {
                             "[wenshu.conductor] PATH=stream BLOCK=%@ (model=%@)",
                             kindTag, currentModel
                         )
-                        // v2.00 (2026-09-23): dead marker-parsing block
+                        // dead marker-parsing block
                         // removed (= it targeted [wenshu.subagent] /
                         // [wenshu.agent] turn markers, both of which are
                         // no longer emitted per the matching deletion in
@@ -911,7 +911,7 @@ final class ChatViewModel {
                 bookID: currentBookID
             )
         } catch {
-            // v0.34: route through UserFacingError.from (= single
+            // route through UserFacingError.from (= single
             // source of truth for raw-error-to-Chinese translation;
             // = replaces the prior ad-hoc "Error: \(localizedDescription)"
             // which showed the raw English NSError text to the user).
@@ -971,7 +971,7 @@ final class ChatViewModel {
         // HermesGoals.swift's GoalsManager.persistGoal requires the
         // directory to be writable (= tests use the same temp-scoped
         // pattern; see HermesGoalsTests.makeTempPersistenceDir).
-        // v1.98 (2026-09-23): boss '业务层不许摸基础设施'.
+        // boss '业务层不许摸基础设施'.
         // The FileManager.default.temporaryDirectory call moves
         // into HermesGoals.swift's `temporaryGoalsDirectory(prefix:)`
         // helper (= data-layer concern). Here we call the helper

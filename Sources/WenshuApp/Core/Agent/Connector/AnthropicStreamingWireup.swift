@@ -18,7 +18,7 @@
 //  EventSource. No duplicate SSE parser (= EventSource.Parser is the
 //  canonical byte-level SSE parser).
 //
-//  v0.35 ticket 004 sub-step 4 of N.
+// sub-step 4 of N.
 //
 
 import Foundation

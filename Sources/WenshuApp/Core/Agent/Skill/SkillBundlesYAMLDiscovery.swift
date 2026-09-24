@@ -4,7 +4,7 @@
 //  Hermes-port continuation: discovers SkillBundle YAML files at the
 //  canonical wenshu path (= `~/Library/Application Support/wenshu/skill-bundles/*.yaml`)
 //  and registers each into `SkillBundles.shared` (= the actor from
-//  v0.73 ticket 001).
+// ).
 //
 //  Hermes counterpart: hermes-agent `agent/skill_bundles.py` `_scan_bundles`
 //  (= scans `~/.hermes/skill-bundles/*.yaml`).

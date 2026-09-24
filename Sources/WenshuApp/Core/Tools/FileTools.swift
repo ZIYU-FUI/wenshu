@@ -92,16 +92,16 @@ struct FileTools: Tool, Sendable {
     /// pathDenied: path deny-list check (boss 8/23: userchatchange / changeconfig).
     /// Returns true if the path matches project code / config / scratch / system files.
     /// Uses (path as NSString).standardizingPath to normalize symlinks / . / ..
-    /// v0.23 ticket 013.002: hermes _is_blocked_device parity.
+    /// .002: hermes _is_blocked_device parity.
     /// Also blocks /dev/* + /proc/* (memory/environ leaks) + symlink hops.
     func pathDenied(_ path: String) -> Bool {
         let std = (path as NSString).standardizingPath
 
-        // v0.23 ticket 013.002: hermes _is_blocked_device_path parity.
+        // .002: hermes _is_blocked_device_path parity.
         // Block /dev/* (can hang reads) and /proc/* secrets (environ/maps/mem).
         if isBlockedDevice(std) { return true }
 
-        // v0.23 ticket 013.002: hermes symlink-hop defense.
+        // .002: hermes symlink-hop defense.
         // Follow symlinks and re-check each hop's parent + final resolved path.
         if pathHasBlockedSymlink(std) { return true }
 
@@ -174,7 +174,7 @@ struct FileTools: Tool, Sendable {
     }
 
     /// write: file (, Apple: .atomicWrite)
-    /// v0.23 ticket 008: path guard rejects deny-list paths.
+    /// path guard rejects deny-list paths.
     func write(path: String, content: String) throws {
         if pathDenied(path) { throw FileToolError.pathDenied(path: path) }
         let url = URL(fileURLWithPath: path)
@@ -182,7 +182,7 @@ struct FileTools: Tool, Sendable {
     }
 
     /// patch: 1 replace (hermes patch 1)
-    /// v0.23 ticket 008: path guard rejects deny-list paths.
+    /// path guard rejects deny-list paths.
     func patch(path: String, hunk: PatchHunk) throws {
         if pathDenied(path) { throw FileToolError.pathDenied(path: path) }
         let original = try read(path: path)

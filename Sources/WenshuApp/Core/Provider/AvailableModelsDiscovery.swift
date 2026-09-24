@@ -32,7 +32,7 @@ enum AvailableModelsDiscovery {
     /// Returns empty array if no providers are configured (e.g. fresh install).
     /// Sync (AppleKeychainStore.loadKeySync is sync). Caller wraps in async if needed.
     static func loadFromKeychain() -> [AvailableProviderModels] {
-        // v0.28 followup: use the shared ProviderKeychain backend (= respects
+        // use the shared ProviderKeychain backend (= respects
         // setBackendForTesting for dev/cua verify) instead of constructing
         // a fresh AppleKeychainStore (which would always hit the real
         // keychain regardless of the debug override).

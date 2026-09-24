@@ -27,7 +27,7 @@
 //    - updateFromResponse(usage:) for per-call token tracking
 //    - getStatus() → diagnostic dict
 //
-//  v0.35 ticket 003 sub-step 3 + HERMES-PARTIAL-013 (2026-09-04).
+// sub-step 3 + HERMES-PARTIAL-013 (2026-09-04).
 //
 
 import Foundation

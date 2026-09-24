@@ -2,7 +2,7 @@
 //  WenshuVerifierKeyNote.swift
 //
 //  Single-key contract documentation for WenshuVerifier.
-//  v0.23 ticket 009: doc-only test surface (no runtime behavior).
+// doc-only test surface (no runtime behavior).
 //
 //  Boss 2026-08-23 OOB: 'make all agents share a single key as default behavior'.
 //
@@ -22,7 +22,7 @@
 import Foundation
 
 extension WenshuVerifier {
-    /// v0.23 ticket 009: static documentation comment for single-key contract.
+    /// static documentation comment for single-key contract.
     /// No code behavior change — existing API surface already enforces
     /// single-verifier per conductor, single-apiKey per verifier.
     static let singleKeyContractNote: String = """

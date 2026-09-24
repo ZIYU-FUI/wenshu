@@ -32,7 +32,7 @@ struct StoredChatMessage: Equatable, Sendable {
     let source: String
     let content: String
     let timestamp: Date
-    /// v0.21 ticket 34: real LLM API usage.total_tokens
+    /// real LLM API usage.total_tokens
     /// (= nil if not available; = legacy actor preserved this field).
     let tokens: Int?
     // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示': persisted

@@ -31,7 +31,7 @@ struct ConnectorCredentials: Sendable {
     let provider: Provider
     let apiKey: String
     let baseURL: String
-    /// v0.36 ticket 012: rotation metadata (= expiry + OAuth tokens).
+    /// rotation metadata (= expiry + OAuth tokens).
     /// nil if metadata not yet loaded (= fresh key, no rotation tracking).
     let metadata: ProviderKeychainMetadata?
 
@@ -49,7 +49,7 @@ struct ConnectorCredentials: Sendable {
 
     /// Resolve credentials for a connector profile via existing ProviderKeychain.
     ///
-    /// v0.36 ticket 012 sub-step 5: also loads metadata for expiry tracking.
+    /// sub-step 5: also loads metadata for expiry tracking.
     /// Caller (= LLMConnector.send) should check `metadata.isExpired` and
     /// trigger OAuth refresh before send if needed.
     ///
@@ -65,7 +65,7 @@ struct ConnectorCredentials: Sendable {
         } else {
             key = ProviderKeychain.loadKeySync(for: provider) ?? ""
         }
-        // v0.36 ticket 012: also load rotation metadata (= expiry + OAuth).
+        // also load rotation metadata (= expiry + OAuth).
         let metadata = ProviderKeychain.loadMetadata(for: provider)
         return ConnectorCredentials(
             provider: provider,

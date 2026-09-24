@@ -554,7 +554,7 @@ extension PromptBuilder {
     ///
     /// Wenshu-side: returns the wenshu-flavored identity (= delegates to
     /// SystemPrompt.stableTier() which is the canonical source per the
-    /// v0.35 ticket 002 sub-step 2 stable-tier design).
+    /// sub-step 2 stable-tier design).
     static func defaultIdentity() -> String {
         SystemPrompt.stableTier()
     }

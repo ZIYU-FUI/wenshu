@@ -189,13 +189,13 @@ actor AgentProtocol {
         guard let verifier = verifier else {
             task.status = .failed
             task.updatedAt = Date()
-            tasks[taskId] = task  // v0.21 ticket 03 + S3: task save
+            tasks[taskId] = task  // + S3: task save
             tasksByAgent[agentCard.name, default: []].append(taskId)
             return A2AResponse(id: request.id, error: A2AError(code: -32603, message: "verifier not configured"))
         }
         do {
             let response = try await verifier.chat(message.content)
-            // v0.21 ticket 39: union decode (text / thinking / tool_use) — concat all text blocks
+            // union decode (text / thinking / tool_use) — concat all text blocks
             let reply = response.content.map(\.displayText).joined()
             let visibleReply = reply.isEmpty ? "(empty reply)" : reply
             let agentMsg = AgentMessage(role: .agent, content: visibleReply)
@@ -204,7 +204,7 @@ actor AgentProtocol {
         } catch {
             task.status = .failed
             task.updatedAt = Date()
-            tasks[taskId] = task  // v0.21 ticket 03 + S3: task save
+            tasks[taskId] = task  // + S3: task save
             tasksByAgent[agentCard.name, default: []].append(taskId)
             let err = A2AError(code: -32603, message: "LLM failed: \(error.localizedDescription)")
             return A2AResponse(id: request.id, error: err)

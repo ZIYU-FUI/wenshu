@@ -24,7 +24,7 @@
 //  uses UserDefaults for dev path; = this module replaces that path on
 //  production default).
 //
-//  v0.84 ticket 002: refactored to delegate Security framework calls to
+// refactored to delegate Security framework calls to
 //  `KeychainOps` (= canonical shared helper; = eliminates the 16% dup
 //  with `ProviderKeychain.swift` flagged by repowise dry_violation).
 
@@ -54,7 +54,7 @@ enum SearchAPIKeychainError: Error, LocalizedError {
         case .keychainStatus(let s):
             return .keychainStatus(s)
         case .missingEntitlement(let s):
-            // v0.91 ticket 001: surface the missing-entitlement
+            // surface the missing-entitlement
             // error with a descriptive message instead of the
             // generic OSStatus error. The boss 2026-08-24 fix-tracking
             // wanted this for ad-hoc-signed builds.

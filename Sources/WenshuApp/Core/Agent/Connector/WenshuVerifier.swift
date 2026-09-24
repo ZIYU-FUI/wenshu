@@ -38,7 +38,7 @@ struct WenshuLLMRequest: Codable, Sendable {
     }
 }
 
-// v0.21 ticket 39: union content block (Apple Codable enum ground truth)
+// union content block (Apple Codable enum ground truth)
 // Anthropic-compatible content blocks include text / thinking (CoT) / tool_use variants
 
 // minimax-cn M2.7 returns thinking blocks before text (chain-of-thought pattern)
@@ -113,7 +113,7 @@ enum WenshuLLMBlock: Codable, Sendable, Equatable {
     }
 }
 
-// v0.21 ticket 34: real LLM API usage (Apple Anthropic protocol)
+// real LLM API usage (Apple Anthropic protocol)
 // { "usage": { "input_tokens": N, "output_tokens": N, "cache_creation_input_tokens": N, "cache_read_input_tokens": N } }
 struct WenshuLLMUsage: Codable, Sendable, Equatable {
     let input_tokens: Int
@@ -139,7 +139,7 @@ struct WenshuLLMResponse: Codable, Sendable {
     let id: String
     let model: String
     let role: String
-    let content: [WenshuLLMBlock]   // v0.21 ticket 39: union decode (text / thinking / tool_use)
+    let content: [WenshuLLMBlock]   // union decode (text / thinking / tool_use)
     let stop_reason: String?
     let usage: WenshuLLMUsage?
 
@@ -184,7 +184,7 @@ actor WenshuVerifier {
 
     private let model: String
 
-    /// v0.23 ticket 010.002: apiKey + baseURL no longer frozen at init.
+    /// .002: apiKey + baseURL no longer frozen at init.
     /// They are resolved PER LLM CALL via resolveCredentials() — boss 8/23 decision:
     /// when the user switches model/key, main + sub-agents must switch together,
     /// otherwise mismatch deadlock.
@@ -239,7 +239,7 @@ actor WenshuVerifier {
             throw WenshuLLMError.invalidBaseURL(url: "unknown provider slug: \(effectiveSlug)")
         }
         // 3. Load key from Keychain for that provider.
-        // v0.28 followup: use the shared ProviderKeychain backend (= respects
+        // use the shared ProviderKeychain backend (= respects
         // setBackendForTesting for dev/cua verify) instead of constructing
         // a fresh AppleKeychainStore (which would always hit the real
         // keychain regardless of the debug override).
@@ -273,7 +273,7 @@ actor WenshuVerifier {
         return try await send(request: request, outputKind: .shortText)
     }
 
-    /// v0.21 ticket 38: chat overload that takes model at call time
+    /// chat overload that takes model at call time
     /// (boss 2026-08-22 feedback "switched the AI but it did not actually switch" — original chat() used self.model from init = hardcoded)
     /// This overload lets ChatViewModel pass current model from UserDefaults at call time
     func chat(_ text: String, model overrideModel: String) async throws -> WenshuLLMResponse {
@@ -285,7 +285,7 @@ actor WenshuVerifier {
         return try await send(request: request, outputKind: .shortText)
     }
 
-    /// v0.22 ticket 001 (Wenshu agent base identity): chat overload that takes an explicit system prompt.
+    /// (Wenshu agent base identity): chat overload that takes an explicit system prompt.
     /// Used by WenshuConductor to prepend the agent identity (WenshuConductorIdentity.systemPrompt).
     /// Default model = self.model (conductor uses runtime model).
     func chat(_ text: String, system: String, model overrideModel: String? = nil) async throws -> WenshuLLMResponse {
@@ -306,7 +306,7 @@ actor WenshuVerifier {
         outputKind: OutputKind = .chat,
         extraSystemPrompt: String? = nil
     ) async throws -> WenshuLLMResponse {
-        // v0.23 ticket 010.002: resolve credentials per call (boss 8/23 decision).
+        // .002: resolve credentials per call (boss 8/23 decision).
         // UserDefaults + Keychain are read fresh each time so Settings changes
         // take effect immediately on the next LLM call.
         let creds = try resolveCredentials()
@@ -368,7 +368,7 @@ actor WenshuVerifier {
     /// the chat persistence layer) can opt in to the new LLMConnector protocol
     /// without breaking the established send() path.
     ///
-    /// v0.35 ticket 001 sub-step 8 (= TB-B tracer-bullet). Existing send()
+    /// sub-step 8 (= TB-B tracer-bullet). Existing send()
     /// below remains the production path until all call sites migrate.
     func sendViaMinimaxConnector(
         request: WenshuLLMRequest,
@@ -462,7 +462,7 @@ actor WenshuVerifier {
         model overrideModel: String? = nil
     ) -> AsyncThrowingStream<WenshuLLMBlock, Error> {
         let effectiveModel = overrideModel ?? model
-        // v0.34: build the request URL + headers the same way as
+        // build the request URL + headers the same way as
         // `send()` (= avoid duplicating credential resolution logic).
         // We resolve credentials here (= we don't `throw` from a
         // streaming init; we surface errors via the stream's first

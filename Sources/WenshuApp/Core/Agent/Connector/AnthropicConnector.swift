@@ -18,7 +18,7 @@
 //  remaining here: credential resolution, URL building, auth headers,
 //  transport send, and HTTP-status error path.
 //
-//  v0.35 ticket 004 (= 1 of N sub-steps).
+// (= 1 of N sub-steps).
 //
 
 import Foundation

@@ -131,7 +131,7 @@ enum KeychainOps {
 /// Canonical keychain errors (= mapped into each provider's domain-specific
 /// error type by the calling provider file).
 ///
-/// v0.91 ticket 001 (= pre-existing flake fix): the
+/// (= pre-existing flake fix): the
 /// `errSecMissingEntitlement` case (= OSStatus -34018) is now a
 /// first-class error type so callers can show a graceful error message
 /// (= "Keychain access requires code signing entitlement; please run

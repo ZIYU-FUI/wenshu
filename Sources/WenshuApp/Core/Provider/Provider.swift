@@ -141,7 +141,7 @@ struct Provider: Identifiable, Hashable, Sendable {
         defaultModels: []
     )
 
-    // v0.35 ticket 001 sub-step 2 (= hermes-core-translation spec §3.2):
+    // sub-step 2 (= hermes-core-translation spec §3.2):
     // 3 new connector profiles added per AGENTS.md §11.2 (P1/P1/P1).
     // Other 4 (= Anthropic / OpenAI / minimax cn / OpenRouter) were already
     // present in the existing wenshu Provider enum (= v0.21 ticket 01).
@@ -177,7 +177,7 @@ struct Provider: Identifiable, Hashable, Sendable {
         .openrouter, .nous, .minimax, .minimaxCn,
         .openaiCodex, .copilot, .copilotAcp, .xaiOauth,
         .stepfun, .anthropic, .custom,
-        // v0.35 ticket 001 sub-step 2 additions
+        // sub-step 2 additions
         .gemini, .deepseek, .ollama
     ]
 

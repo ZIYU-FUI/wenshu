@@ -13,7 +13,7 @@ enum WenshuLLMModel: String, CaseIterable, Sendable {
     /// Settings Picker show label (= rawValue,,)
     var label: String { rawValue }
 
-    /// v0.23 ticket 010.001: provider slug for routing.
+    /// .001: provider slug for routing.
     /// Maps each model to its provider's slug (used by WenshuVerifier.resolveCredentials
     /// to look up the correct apiKey + baseURL from Keychain + ProviderCatalog).
     /// Boss 2026-08-23: user model + agent sync,no mismatch .

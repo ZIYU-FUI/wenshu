@@ -32,7 +32,7 @@
 //  entry-point contract); AnthropicConnector calls into these helpers
 //  when assembling the request body.
 //
-//  v0.35 ticket 004 sub-step 1 + HERMES-PARTIAL-006 (2026-09-04).
+// sub-step 1 + HERMES-PARTIAL-006 (2026-09-04).
 //
 
 import Foundation

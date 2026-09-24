@@ -126,7 +126,7 @@ enum LLMConnectorError: Error, LocalizedError, Sendable {
     case transport(provider: String, statusCode: Int, body: String)
     case decode(provider: String, underlying: String)
     case unsupportedProvider(slug: String)
-    case streamingFailed(provider: String)  // v0.36 ticket 004 sub-step 4
+    case streamingFailed(provider: String)  // sub-step 4
 
     var errorDescription: String? {
         switch self {

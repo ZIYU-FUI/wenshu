@@ -64,7 +64,7 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
     let startedAt: Date
     var completedAt: Date?
     var result: String?
-    /// v0.74 ticket 004: parallel source-of-truth identifier into
+    /// parallel source-of-truth identifier into
     /// `AgentLifecycleTracker.shared` (= Option B in
     /// `AgentLifecycleTrackerDesign.md`). Set via
     /// `AsyncDelegationRegistry.attachTrackerSpawnID(handleID:spawnID:)`
@@ -181,7 +181,7 @@ actor AsyncDelegationRegistry {
         records[handle.id] = handle
     }
 
-    /// v0.74 ticket 004: attach the `AgentLifecycleTracker` spawn UUID to
+    /// attach the `AgentLifecycleTracker` spawn UUID to
     /// an existing handle. Called from `delegate(...)` immediately after
     /// `tracker.registerSpawn(...)` so the terminal-status path
     /// (`markCompleted` / `markFailed`) can route the tracker record back
@@ -222,7 +222,7 @@ actor AsyncDelegationRegistry {
         handle.result = result
         records[id] = handle
         completionQueue.append(id)
-        // v0.74 ticket 004: parallel call into AgentLifecycleTracker
+        // parallel call into AgentLifecycleTracker
         // (= Option B per AgentLifecycleTrackerDesign.md). The spawn ID
         // was captured at delegate(...) time and stored on the handle.
         if let spawnID = handle.trackerSpawnID {
@@ -249,7 +249,7 @@ actor AsyncDelegationRegistry {
         handle.result = "(failed: \(error))"
         records[id] = handle
         completionQueue.append(id)
-        // v0.74 ticket 004: parallel call into AgentLifecycleTracker.
+        // parallel call into AgentLifecycleTracker.
         if let spawnID = handle.trackerSpawnID {
             AgentLifecycleTracker.shared.markFailed(id: spawnID, error: error)
         }
@@ -383,7 +383,7 @@ func delegate(
     )
     await registry.register(handle: handle)
 
-    // v0.74 ticket 004: parallel call into AgentLifecycleTracker (= Option B
+    // parallel call into AgentLifecycleTracker (= Option B
     // per AgentLifecycleTrackerDesign.md). The tracker is a parallel source
     // of truth alongside AsyncDelegationRegistry; UI keeps reading from the
     // SwiftData-backed KanbanStore path (= zero UI change). This call site is

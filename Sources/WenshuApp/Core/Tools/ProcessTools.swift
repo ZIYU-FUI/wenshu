@@ -36,7 +36,7 @@ struct ProcessResult: Equatable, Sendable {
 /// ProcessToolError: errors thrown by ProcessTools (v0.23 ticket 008: chat-triggered shell deny).
 enum ProcessToolError: Error, LocalizedError {
     case chatShellDenied(command: String)
-    case readOnlyDenied(command: String, reason: String)  // v0.23 ticket 013.011
+    case readOnlyDenied(command: String, reason: String)  // .011
 
     var errorDescription: String? {
         switch self {
@@ -69,12 +69,12 @@ struct ProcessTools: Tool, Sendable {
 
     /// runShell: v0.23 ticket 008.002: blocked from chat path by default (boss 8/23).
     /// Use wenshu-devtool CLI for legitimate shell access.
-    /// v0.23 ticket 013.011: read-only commands are now allowed via `runReadOnlyShell`.
+    /// .011: read-only commands are now allowed via `runReadOnlyShell`.
     func runShell(_ command: String, workingDirectory: String? = nil) throws -> ProcessResult {
         throw ProcessToolError.chatShellDenied(command: command)
     }
 
-    /// v0.23 ticket 013.011 (hermes gap 10): run read-only shell commands.
+    /// .011 (hermes gap 10): run read-only shell commands.
     /// Mirrors hermes `set_approval_callback` pattern: dangerous commands
     /// require approval, but safe read-only commands (ls, wc, cat, etc.) are
     /// allowed without approval.
@@ -114,7 +114,7 @@ struct ProcessTools: Tool, Sendable {
         return try run(executable: "/bin/sh", arguments: ["-c", trimmed], workingDirectory: workingDirectory)
     }
 
-    /// v0.23 ticket 013.011: read-only command whitelist.
+    /// .011: read-only command whitelist.
     /// Mirrors hermes read-only shell command safety pattern.
     static let readOnlyCommands: Set<String> = [
         "ls",      // list directory

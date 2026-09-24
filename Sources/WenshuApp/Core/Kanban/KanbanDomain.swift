@@ -29,7 +29,7 @@ enum KanbanStatus: String, Codable, Sendable, CaseIterable {
 }
 
 /// Kanban task
-/// v0.23 ticket 013.003: extended with hermes-style metadata
+/// .003: extended with hermes-style metadata
 /// (priority / assignee / started_at / completed_at / model_override).
 struct KanbanTask: Equatable, Sendable {
     let id: String
@@ -37,15 +37,15 @@ struct KanbanTask: Equatable, Sendable {
     var status: KanbanStatus
     let createdAt: Date
     var updatedAt: Date
-    /// v0.23 ticket 013.003: priority (0 = low, 5 = normal, 10 = urgent).
+    /// .003: priority (0 = low, 5 = normal, 10 = urgent).
     var priority: Int
-    /// v0.23 ticket 013.003: assignee agent name (e.g. "writer", "researcher", "wenshu-conductor").
+    /// .003: assignee agent name (e.g. "writer", "researcher", "wenshu-conductor").
     var assignee: String?
-    /// v0.23 ticket 013.003: when task started running.
+    /// .003: when task started running.
     var startedAt: Date?
-    /// v0.23 ticket 013.003: when task completed/failed.
+    /// .003: when task completed/failed.
     var completedAt: Date?
-    /// v0.23 ticket 013.003: model used for this task (e.g. "MiniMax-M3", "claude-3.7-sonnet").
+    /// .003: model used for this task (e.g. "MiniMax-M3", "claude-3.7-sonnet").
     var modelOverride: String?
 
     init(

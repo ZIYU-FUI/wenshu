@@ -31,7 +31,7 @@
 //  worker_run_id / _enforce_worker_task_ownership surfaces are not
 //  applicable to the wenshu single-process model.
 //
-//  v0.18 ticket 21 (= user-side kanban) +
+// (= user-side kanban) +
 //  HERMES-PARTIAL-011 (2026-09-04) for the LLM-side surface.
 //
 

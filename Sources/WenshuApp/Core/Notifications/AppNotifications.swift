@@ -91,7 +91,7 @@ enum LayoutEvents: String, CaseIterable {
 
     /// Toggle layout edit mode (= View menu "Layout edit mode" entry,
     /// ⌘⇧\ hotkey). Listened by WorkspaceView's LayoutEditMode singleton.
-    /// v0.28 ticket 028-006.
+    /// -006.
     case toggleEditMode = "com.wenshu.toggleEditMode"
 
     /// Editor expand/shrink toggle (= editor top-bar right-side expand icon).
@@ -100,7 +100,7 @@ enum LayoutEvents: String, CaseIterable {
     /// changes. Listened by PaneNSController.handleEditorMaximizedChanged(:_)
     /// which snapshots 6-zone visibility + editor weight BEFORE hiding other
     /// zones (= shrink restore per Q38 boss "status snapshot" decision).
-    /// v0.34 ticket 01 (= spec: .scratch/v0.34-editor-preview-and-expand/spec.md).
+    /// (= spec: .scratch/v0.34-editor-preview-and-expand/spec.md).
     case editorMaximizedChanged = "com.wenshu.editorMaximizedChanged"
 }
 

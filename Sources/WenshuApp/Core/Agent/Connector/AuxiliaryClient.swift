@@ -24,7 +24,7 @@
 //  Plus a small set of per-provider normalization helpers (= _resolve_
 //  aux_verify, _apply_user_default_headers, _build_call_kwargs, etc.).
 //
-//  Per boss 2026-09-04 OOB 'B': 1:1 port of the full surface, focused on
+// 1:1 port of the full surface, focused on
 //  the SSE-coalescing + per-task model selection + provider-normalization
 //  helpers that wenshu needs. The Codex-specific adapter (= hermes
 //  _CodexCompletionsAdapter ~1700 LOC) and the credential pool integration

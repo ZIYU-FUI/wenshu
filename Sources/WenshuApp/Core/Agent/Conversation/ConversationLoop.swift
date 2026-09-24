@@ -435,7 +435,7 @@ actor ConversationLoop {
                       assistant.blocks.contains(where: { if case .toolUse = $0 { return true } else { return false } }),
                       turnCount < maxAgentTurns {
                     turnCount += 1
-                    // v2.00 (2026-09-23): dead `[wenshu.agent] turn N/M`
+                    // dead `[wenshu.agent] turn N/M`
                     // marker emission removed (= ChatTurnProgress.swift
                     // deleted in v1.83; = no view consumes the marker).
                     // The loop counter is still kept internally (= it

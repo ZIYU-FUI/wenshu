@@ -44,7 +44,7 @@ enum ProviderKeychainError: Error, LocalizedError {
         case .keychainStatus(let s):
             return .keychainStatus(s)
         case .missingEntitlement(let s):
-            // v0.91 ticket 001: surface the missing-entitlement
+            // surface the missing-entitlement
             // error (= OSStatus -34018 = errSecMissingEntitlement)
             // with the boss 2026-08-24 graceful error message
             // instead of a generic Swift error. Ad-hoc-signed
@@ -59,7 +59,7 @@ enum ProviderKeychainError: Error, LocalizedError {
 /// Storage backend for provider API keys. Production = Apple Keychain via Security framework.
 /// Tests inject `InMemory` to avoid OS Keychain entitlements requirement.
 ///
-/// v0.36 ticket 012 (= credential rotation + OAuth) adds optional protocol
+/// (= credential rotation + OAuth) adds optional protocol
 /// methods with default no-op implementations. Backwards-compatible: existing
 /// implementations (= AppleKeychainStore / InMemoryKeychainStore) compile
 /// without changes. New backends can opt-in by overriding the rotation methods.
@@ -162,7 +162,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     }
 
     func saveKeySync(_ key: String, for provider: Provider) throws {
-        // v0.86 ticket 001: delegate to KeychainOps (= canonical shared
+        // delegate to KeychainOps (= canonical shared
         // helper; = eliminates the 16% dry_violation flagged by repowise
         // between this file and SearchAPIKeychain.swift). Behavior is
         // preserved: identical short-circuit + identical OSStatus error
@@ -199,7 +199,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     }
 
     func loadKeySync(for provider: Provider) -> String? {
-        // v0.86 ticket 001: delegate to KeychainOps. See saveKeySync header.
+        // delegate to KeychainOps. See saveKeySync header.
         //
         // v1.0.0-m1-shell: also short-circuits the Apple Security framework
         // call when wenshu.debugNoKeychain UserDefaults is set (= the OS-level
@@ -213,7 +213,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     }
 
     func deleteKeySync(for provider: Provider) throws {
-        // v0.86 ticket 001: delegate to KeychainOps. See saveKeySync header.
+        // delegate to KeychainOps. See saveKeySync header.
         do {
             try KeychainOps.delete(service: Self.service, account: "\(provider.slug).api.key")
         } catch let e as KeychainOpsError {
@@ -222,7 +222,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     }
 
     func listProvidersWithKeys() -> [String] {
-        // v0.86 ticket 001: delegate to KeychainOps. See saveKeySync header.
+        // delegate to KeychainOps. See saveKeySync header.
         return KeychainOps.listAccounts(service: Self.service)
     }
 }
@@ -368,7 +368,7 @@ enum ProviderKeychain {
         backend = store
     }
 
-    // v1.09 ticket 001 (= per Q34 5.4 fix root cause for the 3
+    // (= per Q34 5.4 fix root cause for the 3
     // remaining inter-suite OpenAI-compatible connector test
     // failures): TaskLocal backend reference. Tests that opt into
     // the TaskLocal pattern via `withBackendForTesting` get
@@ -391,7 +391,7 @@ enum ProviderKeychain {
     @TaskLocal
     private static var _taskLocalBackend: (any ProviderKeychainStoring)?
 
-    /// v1.09 ticket 001: scoped test override via TaskLocal.
+    /// scoped test override via TaskLocal.
     /// Sets the per-task backend to `store` for the duration of
     /// the `body` closure (= the test body is the only time the
     /// override is active). The previous TaskLocal value (= if any)
@@ -411,7 +411,7 @@ enum ProviderKeychain {
         }
     }
 
-    /// v1.09 ticket 001: per-call helper. Returns the current
+    /// per-call helper. Returns the current
     /// task's backend (= the TaskLocal if set; = the global
     /// `backend` otherwise). The shim methods use this so the
     /// TaskLocal pattern works without any caller changes.
@@ -434,7 +434,7 @@ enum ProviderKeychain {
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return
         }
-        // v1.09 ticket 001: read from the per-task TaskLocal (= or
+        // read from the per-task TaskLocal (= or
         // fall back to the global `backend`). Tests that opt into
         // the TaskLocal pattern via `withBackendForTesting` get
         // hermetic isolation per task.
@@ -461,7 +461,7 @@ enum ProviderKeychain {
         }
         return currentBackend().listProvidersWithKeys()
     }
-    // v0.36 ticket 012 shim methods (= delegate to backend).
+    // shim methods (= delegate to backend).
     static func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? {
         currentBackend().loadMetadata(for: provider)
     }

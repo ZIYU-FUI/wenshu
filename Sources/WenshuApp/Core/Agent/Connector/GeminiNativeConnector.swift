@@ -18,7 +18,7 @@
 //  (= ticket 005, since they use the OpenAI chat completions protocol).
 //  This file adds only the Google-specific wire format.
 //
-//  v0.35 ticket 007 (= 1 commit covering Gemini native).
+// (= 1 commit covering Gemini native).
 //
 
 import Foundation

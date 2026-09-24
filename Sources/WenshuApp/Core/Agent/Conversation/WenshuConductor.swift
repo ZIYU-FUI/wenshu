@@ -207,7 +207,7 @@ actor WenshuConductor {
     /// - vision: input = image path → returns recognized text
     /// - av: input = text → speaks aloud (fire-and-forget)
     func invokeTool(name: String, input: String, caller: AgentCaller = .main) async -> String {
-        // v0.23 ticket 012: hermes DELEGATE_BLOCKED_TOOLS parity (boss 8/23 said).
+        // hermes DELEGATE_BLOCKED_TOOLS parity (boss 8/23 said).
         // Sub-agents cannot call delegate_task / clarify / send_message / cronjob (any op).
         // Sub-agents can call memory but only for read ops (no add/delete).
         if caller.isSubAgent {
@@ -217,7 +217,7 @@ actor WenshuConductor {
                 return reason
             }
         }
-        // v0.23 ticket 008.003: tool-level allowlist (boss 8/23 said: user cannot change system via chat).
+        // .003: tool-level allowlist (boss 8/23 said: user cannot change system via chat).
         // input format: "op:arg" (e.g. "read:./file.txt", "write:./Sources/foo.swift")
         // Unknown op = blocked (per-tool allowlist below).
         let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
@@ -255,9 +255,9 @@ actor WenshuConductor {
     /// handle: receive user message, dispatch sub-agents, synthesize final reply
     /// Truth: user does not see multi-agent dispatch traces, ChatView always sees only 1 .wenshu reply
     /// code-review S4 graceful degradation: LLM fail does not throw, fallback synthesis still returns reply (boss doesn't see Error system messages on macOS)
-    /// v0.21 ticket 34: returns (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis real LLM API usage accumulated
-    /// v0.21 ticket 38: handle adds model parameter (boss feedback "switching AI didn't actually switch" = the original handle used verifier.init's hardcoded model)
-    /// v0.21 ticket 39: adds thinking field (WenshuLLMBlock.thinking footnote UI, Apple HIG footnote pattern)
+    /// returns (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis real LLM API usage accumulated
+    /// handle adds model parameter (boss feedback "switching AI didn't actually switch" = the original handle used verifier.init's hardcoded model)
+    /// adds thinking field (WenshuLLMBlock.thinking footnote UI, Apple HIG footnote pattern)
     ///
     /// P0 #1 (WIRE-AGENT-001): when the conductor was constructed with a
     /// `connector` injection, the call is first routed through the full
@@ -452,7 +452,7 @@ actor WenshuConductor {
         streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
     ) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // Step 1: write 1 conductor parent task to WSKanbanRepository (kanban progress, not shown in ChatView)
-        // v0.34: create the kanban entry on MainActor (= the WS* repository
+        // create the kanban entry on MainActor (= the WS* repository
         // singletons are @MainActor in v0.34; the conductor runs on its own
         // actor). MainActor.run is not throwing (= the inner try? is the
         // only error sink), so we can drop the do/catch.
@@ -460,15 +460,15 @@ actor WenshuConductor {
             try? self.repositories.kanban.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
         }
 
-        // v0.21 ticket 34: accumulate all LLM API real usage (intent classify + sub-agent LLM calls + synthesis)
+        // accumulate all LLM API real usage (intent classify + sub-agent LLM calls + synthesis)
         var totalTokens = 0
 
         // Step 2: call LLM intent classify, fallback on failure → 0 sub-agents, don't throw
         var selectedAgents: [String] = []
-        // v0.22 ticket 001: prepend Wenshu agent identity (WenshuConductorIdentity.systemPrompt)
+        // prepend Wenshu agent identity (WenshuConductorIdentity.systemPrompt)
         // as system prompt. The send() method already injects the pollution-defense
         // systemPromptEnglishOnly as the first system segment; our identity follows.
-        // v0.23 ticket 002: 5 sub-agent names instead of 5 module names.
+        // 5 sub-agent names instead of 5 module names.
         let intentPrompt = """
         \(WenshuConductorIdentity.systemPrompt)
 
@@ -487,21 +487,21 @@ actor WenshuConductor {
         ["researcher", "writer"]
         """
         if let intentResponse = try? await verifier.chat(intentPrompt, system: WenshuConductorIdentity.systemPrompt, model: model) {
-            // v0.21 ticket 39: union decode WenshuLLMBlock (text / thinking / tool_use)
+            // union decode WenshuLLMBlock (text / thinking / tool_use)
             let intentRaw = intentResponse.content.map(\.displayText).joined()
             if !intentRaw.isEmpty {
                 selectedAgents = parseAgentList(intentRaw).filter { name in
                     SubAgentIdentity.Name(rawValue: name) != nil
                 }
             }
-            // v0.21 ticket 34: accumulate intent classify real token usage
+            // accumulate intent classify real token usage
             totalTokens += intentResponse.usage?.total_tokens ?? 0
         }
         // intent classify fail → selectedAgents still empty [] → S4 graceful degradation
-        // v0.23 ticket 002: filter unknown agent names to prevent invalid dispatch
+        // filter unknown agent names to prevent invalid dispatch
         selectedAgents = selectedAgents.filter { ["writer", "analyst", "researcher", "auditor", "memory"].contains($0) }
         // Step 3: dispatch 0-N sub-agents in parallel (TaskGroup) + collect results (v0.23 ticket 002)
-        // v0.23 ticket 002: TaskGroup parallel dispatch replaces serial for-loop.
+        // TaskGroup parallel dispatch replaces serial for-loop.
         // Each sub-agent has independent system prompt (SubAgentIdentity.systemPrompt).
         var subResults: [(String, String)] = []
         if !selectedAgents.isEmpty {
@@ -561,7 +561,7 @@ actor WenshuConductor {
                     }
                 }
             }
-            // v0.23 ticket 006 + Phase 5 ticket 10a: write 1-line sub-agent run summary
+            // + Phase 5 ticket 10a: write 1-line sub-agent run summary
             // to WSChatRepository.shared (= @MainActor SwiftData wrapper).
             // (boss 8/23 said: user doesn't need execution details, just sees results — no full LLM dialogue stored).
             for (name, result) in subResults {
@@ -577,7 +577,7 @@ actor WenshuConductor {
                 )
                 _ = await MainActor.run { try? self.repositories.chat.recordSubAgentRun(run, sessionId: "default") }
             }
-            // v0.23 ticket 002: Auditor runs if Writer or Analyst in selection.
+            // Auditor runs if Writer or Analyst in selection.
             let needsAudit = selectedAgents.contains("writer") || selectedAgents.contains("analyst")
             if needsAudit {
                 let auditorPrompt = """
@@ -603,13 +603,13 @@ actor WenshuConductor {
         }
 
         // Step 4: call LLM to synthesize final reply (S4 fallback: synthesis fail → return original text + default synthesis text)
-        // v0.23 ticket 002: synthesis now includes auditor verdict if any.
+        // synthesis now includes auditor verdict if any.
         let synthesisPrompt = buildSynthesisPrompt(userMessage: userMessage, subResults: subResults)
-        var finalThinking: String?    // v0.21 ticket 39: WenshuLLMBlock.thinking
+        var finalThinking: String?    // WenshuLLMBlock.thinking
         let finalReply: String
-        // v0.22 ticket 001: prepend Wenshu agent identity for synthesis call.
+        // prepend Wenshu agent identity for synthesis call.
         if let response = try? await verifier.chat(synthesisPrompt, system: WenshuConductorIdentity.systemPrompt, model: model) {
-            // v0.21 ticket 39: union decode concat all text blocks (M2.7 has thinking block prefix)
+            // union decode concat all text blocks (M2.7 has thinking block prefix)
             let text = response.content.map(\.displayText).joined()
             if !text.isEmpty {
                 finalReply = text
@@ -620,7 +620,7 @@ actor WenshuConductor {
                 let summary = subResults.map { "• \($0.0): \($0.1.prefix(80))" }.joined(separator: "\n")
                 finalReply = "(LLM synthesis failed, below is the raw sub-agent result)\n\n\(summary)"
             }
-            // v0.21 ticket 34: accumulate synthesis real token usage
+            // accumulate synthesis real token usage
             totalTokens += response.usage?.total_tokens ?? 0
         } else {
             // S4 graceful degradation: synthesis fail still returns natural reply
@@ -856,7 +856,7 @@ actor WenshuConductor {
         return box.value
     }
 
-    /// v0.71 P1 batch 4 dual-axis audit fix: Sendable-safe result
+    /// Sendable-safe result
     /// box for the sync-over-async bridge (= `any Tool` is not
     /// Sendable but a `@unchecked Sendable` reference holder is
     /// allowed).
