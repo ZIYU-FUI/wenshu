@@ -56,7 +56,7 @@ import SwiftUI
 /// State: backed by the `ForeshadowingTracker` actor (= per-book
 /// JSON sidecar at `books/<bookId>/foreshadowings.json`).
 @MainActor
-public struct ForeshadowingView: View {
+struct ForeshadowingView: View {
 
     @Environment(BookStore.self) private var bookStore
 
@@ -91,7 +91,7 @@ public struct ForeshadowingView: View {
 
     public init() {}
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if activeBookId == nil {
                 emptyState

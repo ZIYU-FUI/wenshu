@@ -31,10 +31,10 @@
 
 import SwiftUI
 
-public struct ChatTextPartView: View {
-    public let text: String
-    public let isOutgoing: Bool
-    public let isStreaming: Bool
+struct ChatTextPartView: View {
+    let text: String
+    let isOutgoing: Bool
+    let isStreaming: Bool
     @State private var isCursorOn: Bool = true
 
     public init(text: String, isOutgoing: Bool, isStreaming: Bool = false) {
@@ -43,7 +43,7 @@ public struct ChatTextPartView: View {
         self.isStreaming = isStreaming
     }
 
-    public var body: some View {
+    var body: some View {
         // v0.55 boss 2026-09-09 OOB 'use the ones we have not used yet':
         // AttributedString(markdown:) parses inline markdown natively
         // (= bold / italic / code / links show as formatting = not raw

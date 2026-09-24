@@ -25,9 +25,9 @@
 
 import SwiftUI
 
-public struct ChatReasoningPartView: View {
-    public let text: String
-    public let isRunning: Bool
+struct ChatReasoningPartView: View {
+    let text: String
+    let isRunning: Bool
     // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示' (= the
     // thinking content was collapsed by default; = the user could see
     // only the brain-head-profile icon and the "AI thought for Xs"
@@ -43,7 +43,7 @@ public struct ChatReasoningPartView: View {
         self.isRunning = isRunning
     }
 
-    public var body: some View {
+    var body: some View {
         // Apple HIG footnote pattern (= the DisclosureGroup is the
         // canonical SwiftUI collapse/expand control = identical to
         // Mail / Notes "Show Details" toggles). Renders a label +

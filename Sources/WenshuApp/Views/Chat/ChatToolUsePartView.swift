@@ -21,9 +21,9 @@
 
 import SwiftUI
 
-public struct ChatToolUsePartView: View {
-    public let toolUse: ChatMessagePart.ToolUsePart
-    public let isOutgoing: Bool
+struct ChatToolUsePartView: View {
+    let toolUse: ChatMessagePart.ToolUsePart
+    let isOutgoing: Bool
 
     @State private var isArgsExpanded: Bool = false
 
@@ -32,7 +32,7 @@ public struct ChatToolUsePartView: View {
         self.isOutgoing = isOutgoing
     }
 
-    public var body: some View {
+    var body: some View {
         // Apple HIG inline card (= rounded rect + thin left border +
         // monospaced font for the tool name = the canonical "tool call"
         // visual = same pattern as Xcode / Mail "Show Details" blocks).

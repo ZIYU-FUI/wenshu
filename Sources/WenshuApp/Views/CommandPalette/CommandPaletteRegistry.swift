@@ -29,18 +29,18 @@ import Foundation
 /// The action field is an enum so the palette stays type-safe across
 /// command / skill / navigate / send-chat / custom (= hermes
 /// slash_registry.py action kinds).
-public struct CommandPaletteItem: Identifiable, Hashable, Sendable {
-    public let id: String
-    public let title: String
-    public let subtitle: String?
-    public let category: String      // "command" / "skill" / "navigate" / "chat" / "custom"
-    public let shortcutHint: String? // "⌘N" / "/skill_name" / "⌘K"
+struct CommandPaletteItem: Identifiable, Hashable, Sendable {
+    let id: String
+    let title: String
+    let subtitle: String?
+    let category: String      // "command" / "skill" / "navigate" / "chat" / "custom"
+    let shortcutHint: String? // "⌘N" / "/skill_name" / "⌘K"
 
     /// Sendable action kind. Closures would be nicer ergonomically but
     /// can't carry Swift 6 strict concurrency; the enum dispatches
     /// through the SwiftUI side via the standard command / navigation
     /// paths (= .openSettings, .navigate, NotificationCenter post, etc.).
-    public let action: CommandPaletteAction
+    let action: CommandPaletteAction
 
     public init(
         id: String,
@@ -66,7 +66,7 @@ public struct CommandPaletteItem: Identifiable, Hashable, Sendable {
 /// Settings tab / sends a chat message / calls a custom hook. Closures
 /// were rejected (Swift 6 Sendable), and a stringly-typed action would
 /// lose type safety. This enum is the middle ground.
-public enum CommandPaletteAction: Sendable, Equatable, Hashable {
+enum CommandPaletteAction: Sendable, Equatable, Hashable {
     /// Invoke a skill (= same path as SkillAdapter.parseAndInvoke in CHATBOX-001).
     /// args = the keyword args to pass (mostly empty in v1; future
     /// skill args land here).
@@ -99,7 +99,7 @@ public enum CommandPaletteAction: Sendable, Equatable, Hashable {
         }
     }
 
-    public func hash(into hasher: inout Hasher) {
+    func hash(into hasher: inout Hasher) {
         // Discriminator + payload. Stable across cases (= same payload
         // hashes the same regardless of case order). Required for
         // SwiftUI Identifiable / Hashable usage in the palette list.
@@ -153,27 +153,27 @@ public actor CommandPaletteRegistry {
     /// Register an item. If the id is already taken, the new item wins
     /// (= same precedence as hermes slash_registry.register: latest
     /// registration wins).
-    public func register(_ item: CommandPaletteItem) {
+    func register(_ item: CommandPaletteItem) {
         items[item.id] = item
     }
 
     /// Register many items in one call (= convenience for the
     /// "seed default palette" code path).
-    public func registerMany(_ newItems: [CommandPaletteItem]) {
+    func registerMany(_ newItems: [CommandPaletteItem]) {
         for item in newItems {
             items[item.id] = item
         }
     }
 
     /// Unregister by id. No-op if the id was never registered.
-    public func unregister(id: String) {
+    func unregister(id: String) {
         items.removeValue(forKey: id)
     }
 
     /// Snapshot of every registered item. Returned as an array (= not
     /// the actor's internal dictionary) so callers can sort / filter
     /// outside the actor without violating isolation.
-    public func allItems() -> [CommandPaletteItem] {
+    func allItems() -> [CommandPaletteItem] {
         return Array(items.values)
     }
 
@@ -185,7 +185,7 @@ public actor CommandPaletteRegistry {
     /// there is no race with concurrent register/unregister calls. The
     /// caller can iterate the result outside the actor (= it's already
     /// a snapshot value, not a live view).
-    public func itemsMatching(_ query: String) -> [CommandPaletteItem] {
+    func itemsMatching(_ query: String) -> [CommandPaletteItem] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return Array(items.values) }
         let needle = trimmed.lowercased()
@@ -205,7 +205,7 @@ public actor CommandPaletteRegistry {
     }
 
     /// Total count (= for the palette footer "N items").
-    public func count() -> Int {
+    func count() -> Int {
         return items.count
     }
 }

@@ -35,7 +35,7 @@ import SwiftUI
 
 /// Leaf view: collapsible reasoning block for legacy messages.
 /// Pass `thinking: ""` or `shouldRender: false` to hide the leaf.
-public struct ChatMessageThinkingDisclosure<Label: View>: View {
+struct ChatMessageThinkingDisclosure<Label: View>: View {
     let thinking: String
     @Binding var isExpanded: Bool
     @ViewBuilder let collapsedLabel: Label
@@ -50,7 +50,7 @@ public struct ChatMessageThinkingDisclosure<Label: View>: View {
         self.collapsedLabel = collapsedLabel()
     }
 
-    public var body: some View {
+    var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
             Text(thinking)
                 .font(.caption)

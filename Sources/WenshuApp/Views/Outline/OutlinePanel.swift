@@ -10,12 +10,12 @@ import SwiftUI
 
 /// OutlinePanel: SwiftUI View, show placeholder
 /// LayoutShellView, standalone wait macOS
-public struct OutlinePanel: View {
+struct OutlinePanel: View {
     @State private var items: [OutlineItem] = []
 
     public init() {}
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(WenshuI18n.t("auto.outlinepanel.l35.h85687200"))
                 .font(.headline)

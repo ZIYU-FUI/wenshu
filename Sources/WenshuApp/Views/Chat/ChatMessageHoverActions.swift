@@ -21,16 +21,16 @@
 
 import SwiftUI
 
-public struct ChatMessageHoverActions: View {
+struct ChatMessageHoverActions: View {
     /// The message content to copy when the user clicks Copy.
-    public let content: String
+    let content: String
     @State private var isHovering: Bool = false
 
     public init(content: String) {
         self.content = content
     }
 
-    public var body: some View {
+    var body: some View {
         HStack(spacing: DesignTokens.chromePaddingSmall) {
             // Copy button (= SF Symbols 6 `document.on.document` icon;
             // = copies the message text to NSPasteboard).
@@ -88,16 +88,16 @@ extension Notification.Name {
 
 /// View modifier that wires the hover state (= a `View` extension
 /// that captures the hover event and stores it in `@State`).
-public struct ChatHoverModifier: ViewModifier {
+struct ChatHoverModifier: ViewModifier {
     @State private var isHovering: Bool = false
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
         content.onHover { hovering in
             isHovering = hovering
         }
     }
 }
 
-public extension View {
+extension View {
     /// Convenience: attach the hover state to any view. The state's
     /// `$isHovering` is NOT exposed (= this modifier is for inline
     /// use where the parent owns its own hover state; = use the

@@ -32,9 +32,9 @@ import WenshuApp
 ///   4. ChatMessageBodyView routes .plan -> ChatPlanPartView
 ///   5. User clicks Approve -> onApprove(plan) re-invokes the
 ///      conductor with the plan attached as additional system context
-public struct ChatPlanPartView: View {
-    public let plan: Plan
-    public let onApprove: (Plan) -> Void
+struct ChatPlanPartView: View {
+    let plan: Plan
+    let onApprove: (Plan) -> Void
 
     @State private var isExpanded: Bool = true
 
@@ -62,7 +62,7 @@ public struct ChatPlanPartView: View {
         }
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
             // Header: 'Plan: <query>' + connector label.
             HStack(spacing: DesignTokens.chromePaddingSmall) {

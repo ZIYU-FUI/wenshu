@@ -37,7 +37,7 @@ import SwiftUI
 
 /// Leaf view that renders the image attachment chip inside a chat
 /// message bubble. Tap = NSWorkspace.shared.open (= default app).
-public struct ChatMessageAttachmentPreview: View {
+struct ChatMessageAttachmentPreview: View {
     /// Absolute path to the image file (= from ChatMessage.imagePath).
     let imagePath: String
 
@@ -45,7 +45,7 @@ public struct ChatMessageAttachmentPreview: View {
         self.imagePath = imagePath
     }
 
-    public var body: some View {
+    var body: some View {
         // Try to load the image. When the file is gone (= cache
         // cleared after the chat was loaded), show the missing-image
         // placeholder instead.

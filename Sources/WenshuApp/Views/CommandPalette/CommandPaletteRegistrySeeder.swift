@@ -33,7 +33,7 @@ import Foundation
 
 /// Seeds CommandPaletteRegistry.shared with the real existing wenshu
 /// actions (= per the audit recommendation).
-public enum CommandPaletteRegistrySeeder {
+enum CommandPaletteRegistrySeeder {
 
     /// Populate the registry. Safe to call multiple times.
     public static func seed() async {

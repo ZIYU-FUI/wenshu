@@ -39,7 +39,7 @@ import SwiftUI
 
 /// Leaf view: the "AI thinking…" placeholder row rendered in the
 /// chat transcript while a streaming reply is in flight.
-public struct ChatMessagePlaceholderRow<Pulse: View>: View {
+struct ChatMessagePlaceholderRow<Pulse: View>: View {
     /// The hint text shown next to the pulse (= usually "AI 思考中…").
     let hintText: String
     /// The timestamp the thinking started (= used to compute the
@@ -60,7 +60,7 @@ public struct ChatMessagePlaceholderRow<Pulse: View>: View {
         self.pulse = pulse()
     }
 
-    public var body: some View {
+    var body: some View {
         HStack(spacing: 6) {
             // Caller-provided pulse (= StatusPulse by default).
             pulse

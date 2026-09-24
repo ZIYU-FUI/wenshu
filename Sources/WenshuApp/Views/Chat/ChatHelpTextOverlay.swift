@@ -10,10 +10,10 @@ import SwiftUI
 
 /// ChatHelpTextOverlay: (centered, large) shown when no API key configured.
 /// Tapping 'Settings' jumps to Settings → API tab.
-public struct ChatHelpTextOverlay: View {
+struct ChatHelpTextOverlay: View {
     let onSettingsTap: () -> Void
 
-    public var body: some View {
+    var body: some View {
         // v1.0.0-m1-shell boss 2026-09-10 OOB 'the chat zone's empty-state hint has no background,
         // add a same-sized overlay using Apple APIs — find the mask-related
         // APIs'. The previous ChatHelpTextOverlay rendered as a

@@ -22,11 +22,11 @@ import SwiftUI
 /// Per-row model for the autocomplete popup. Bundles the hub
 /// command metadata + a stable id (= SwiftUI ForEach requires
 /// Identifiable).
-public struct ChatSlashCommandRow: Identifiable, Equatable, Sendable {
-    public let id: String  // = command name (= unique)
-    public let name: String
-    public let description: String
-    public let category: String
+struct ChatSlashCommandRow: Identifiable, Equatable, Sendable {
+    let id: String  // = command name (= unique)
+    let name: String
+    let description: String
+    let category: String
 
     public init(command: SkillAdapter.HubCommand) {
         self.id = command.name
@@ -38,7 +38,7 @@ public struct ChatSlashCommandRow: Identifiable, Equatable, Sendable {
     /// Format for display in the popup: "/<name>  <description>"
     /// (= monospaced name + secondary description, matches the
     /// Hermes desktop slash menu).
-    public var displayLabel: String {
+    var displayLabel: String {
         return "/\(name)"
     }
 }
@@ -49,7 +49,7 @@ public struct ChatSlashCommandRow: Identifiable, Equatable, Sendable {
 ///
 /// Visible as `static` (= no instance state) so tests can call
 /// it without spinning up a SkillAdapter.
-public enum ChatSlashCommandAutocompleteEngine {
+enum ChatSlashCommandAutocompleteEngine {
 
     /// Filter `allCommands` to those whose `name` starts with
     /// `prefix` (case-insensitive). When `prefix` is empty (= the
@@ -99,9 +99,9 @@ public enum ChatSlashCommandAutocompleteEngine {
 /// be placed in a `.overlay(alignment: .topLeading)` above the
 /// chat TextField (= sits flush against the TextField top edge,
 /// = the standard "autocomplete popup" pattern).
-public struct ChatSlashCommandAutocomplete: View {
-    public let rows: [ChatSlashCommandRow]
-    public let onSelect: (ChatSlashCommandRow) -> Void
+struct ChatSlashCommandAutocomplete: View {
+    let rows: [ChatSlashCommandRow]
+    let onSelect: (ChatSlashCommandRow) -> Void
 
     public init(
         rows: [ChatSlashCommandRow],
@@ -111,7 +111,7 @@ public struct ChatSlashCommandAutocomplete: View {
         self.onSelect = onSelect
     }
 
-    public var body: some View {
+    var body: some View {
         if rows.isEmpty {
             EmptyView()
         } else {

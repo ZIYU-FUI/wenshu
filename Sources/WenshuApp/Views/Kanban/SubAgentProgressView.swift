@@ -10,14 +10,14 @@ import SwiftUI
 /// Sub-agent progress view: (transparent open box) showing all sub-agent tasks.
 /// Reads WSKanbanRepository (= @MainActor SwiftData wrapper for WSKanbanTask @Model) and renders task list with status, title, duration.
 /// Per boss 8/23: 'userworkprogress'.
-public struct SubAgentProgressView: View {
+struct SubAgentProgressView: View {
     @State private var tasks: [KanbanTask] = []
     @State private var refreshTrigger: Int = 0
     @Environment(WSRepositoryContainer.self) private var repositories: WSRepositoryContainer
 
     public init() {}
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(WenshuI18n.t("subagent.progress_title"))

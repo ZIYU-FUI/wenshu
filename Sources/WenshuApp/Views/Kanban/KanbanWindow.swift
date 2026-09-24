@@ -40,7 +40,7 @@ import SwiftUI
 /// root as the main window). Kanban persistence is the shared
 /// WSKanbanRepository.shared (= @MainActor SwiftData wrapper;
 /// = Phase 5 ticket 6 deleted the KanbanStore actor).
-public struct KanbanWindow: View {
+struct KanbanWindow: View {
     let library: WenshuLibrary
 
     @State private var bookStore: BookStore?
@@ -49,7 +49,7 @@ public struct KanbanWindow: View {
         self.library = library
     }
 
-    public var body: some View {
+    var body: some View {
         Group {
             // v1.0.0-m1-shell boss 2026-09-11 OOB fix (= cua fatal-
             // error trace at SwiftUICore/Environment+Objects.swift:34

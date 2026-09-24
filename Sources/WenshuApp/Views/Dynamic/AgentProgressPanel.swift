@@ -39,7 +39,7 @@ import SwiftUI
 /// Reads from `AgentProgressTracker.shared` (= the canonical shared
 /// instance the agent writes to). Renders only when a running
 /// entry exists (= user just sent a message; loop is in flight).
-public struct AgentProgressPanel: View {
+struct AgentProgressPanel: View {
 
     /// Cached latest running entry (= refreshed by the .task timer).
     @State private var currentEntry: AgentProgressEntry?
@@ -57,7 +57,7 @@ public struct AgentProgressPanel: View {
         self.tracker = tracker
     }
 
-    public var body: some View {
+    var body: some View {
         // Always render a VStack so the layout above (= tab bar)
         // doesn't jump when the panel appears / disappears.
         // We toggle the visible content based on `currentEntry`.

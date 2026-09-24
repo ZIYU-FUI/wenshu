@@ -8,14 +8,14 @@ import SwiftUI
 
 /// BacklinksPanel: SwiftUI View, show note backlinks
 /// LayoutShellView, standalone wait macOS
-public struct BacklinksPanel: View {
+struct BacklinksPanel: View {
     @State private var viewModel: BacklinksViewModel
 
     public init(viewModel: BacklinksViewModel = BacklinksViewModel()) {
         self._viewModel = State(initialValue: viewModel)
     }
 
-    public var body: some View {
+    var body: some View {
         // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
         // audit ticket 2): BacklinksPanel is a content-layer
         // (= Z1 in apple-hig-visual-z-axis-layer-model.md L29-31)

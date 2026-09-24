@@ -45,7 +45,7 @@ import UniformTypeIdentifiers
 ///   on disk (= boss deleted repository externally, or repository was on a now-disconnected
 ///   drive) → onboarding (re-pick)
 /// - else (= path set + path exists) → main app LayoutShellView
-public struct LibraryRootView: View {
+struct LibraryRootView: View {
     // v0.44 M8.1: LibraryRootView now owns the library + appearance
     // bindings (= were previously held by the now-removed
     // SettingsEnvironmentCapturer wrapper). The root view
@@ -114,7 +114,7 @@ public struct LibraryRootView: View {
     @State private var editMode = LayoutEditMode()
     @Environment(\.openSettings) private var openSettings
 
-    public var body: some View {
+    var body: some View {
         // No Group wrapper: a @ViewBuilder computed property is inlined
         // by the result builder, so `content` costs zero view layers,
         // while `Group { ... }` is a real View in the hierarchy.
@@ -276,7 +276,7 @@ private func loadWenshuLogo() -> NSImage? {
 /// LibraryOnboardingView: First-launch .ws file picker (NSOpenPanel).
 /// Shows welcome + ' .ws ' button. User must select or create a
 /// .ws file location (FCP-style event library UX).
-public struct LibraryOnboardingView: View {
+struct LibraryOnboardingView: View {
     let onLibraryPicked: (URL) -> Void
 
     /// Apple HIG Inventory 2026-09-06 listed `.fileImporter` as a
@@ -286,7 +286,7 @@ public struct LibraryOnboardingView: View {
     /// standard sheet UX; macOS 14+).
     @State private var isImporterPresented: Bool = false
 
-    public var body: some View {
+    var body: some View {
         VStack(spacing: 24) {
             Spacer()
 

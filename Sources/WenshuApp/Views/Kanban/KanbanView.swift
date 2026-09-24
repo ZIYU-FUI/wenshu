@@ -38,7 +38,7 @@ import SwiftUI
 /// in the `aiDynamic` zone (= tab "kanban"). Reads from `BookKanbanStore`
 /// (= scope-aware kanban JSON: `kanban.json` / `kanban-<folder>.json`
 /// / `library-kanban.json`).
-public struct KanbanView: View {
+struct KanbanView: View {
     @Environment(BookStore.self) private var bookStore
 
     /// The active scope (book root / 8 sub-folders / reference library).
@@ -61,7 +61,7 @@ public struct KanbanView: View {
 
     public init() {}
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             header
             inputRow

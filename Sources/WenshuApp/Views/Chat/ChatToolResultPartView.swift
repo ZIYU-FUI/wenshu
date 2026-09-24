@@ -14,9 +14,9 @@
 
 import SwiftUI
 
-public struct ChatToolResultPartView: View {
-    public let toolResult: ChatMessagePart.ToolResultPart
-    public let isOutgoing: Bool
+struct ChatToolResultPartView: View {
+    let toolResult: ChatMessagePart.ToolResultPart
+    let isOutgoing: Bool
 
     @State private var isExpanded: Bool = false
 
@@ -25,7 +25,7 @@ public struct ChatToolResultPartView: View {
         self.isOutgoing = isOutgoing
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             HStack(spacing: DesignTokens.chromePaddingSmall) {
                 // Success/error icon (= SF Symbol equivalent for the

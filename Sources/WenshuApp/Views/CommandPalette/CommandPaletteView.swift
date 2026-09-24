@@ -41,11 +41,11 @@ import AppKit
 ///     SwiftUI sheet (reads from it).
 @MainActor
 @Observable
-public final class CommandPaletteModel {
-    public var query: String = ""
-    public var isVisible: Bool = false
-    public var items: [CommandPaletteItem] = []
-    public var selectedIndex: Int = 0
+final class CommandPaletteModel {
+    var query: String = ""
+    var isVisible: Bool = false
+    var items: [CommandPaletteItem] = []
+    var selectedIndex: Int = 0
 
     private let registry: CommandPaletteRegistry
 
@@ -54,7 +54,7 @@ public final class CommandPaletteModel {
     }
 
     /// Show the palette (= called from ⌘K menu item).
-    public func show() {
+    func show() {
         isVisible = true
         query = ""
         selectedIndex = 0
@@ -63,13 +63,13 @@ public final class CommandPaletteModel {
 
     /// Hide the palette (= called after an item is invoked OR the user
     /// dismisses with Esc).
-    public func hide() {
+    func hide() {
         isVisible = false
         query = ""
     }
 
     /// Reload items from the registry (= respects current query).
-    public func reload() async {
+    func reload() async {
         let filtered = await registry.itemsMatching(query)
         // Sort by category then title (= deterministic order; same
         // shape as Apple's macOS Spotlight palette).
@@ -83,13 +83,13 @@ public final class CommandPaletteModel {
 
     /// Filter by current query (= called on every keystroke from the
     /// SwiftUI .onChange handler).
-    public func filter(by query: String) async {
+    func filter(by query: String) async {
         self.query = query
         await reload()
     }
 
     /// Invoke the item at the given index (= dispatch the action).
-    public func invoke(at index: Int) {
+    func invoke(at index: Int) {
         guard index >= 0 && index < items.count else { return }
         let item = items[index]
         CommandPaletteController.dispatch(action: item.action)
@@ -97,7 +97,7 @@ public final class CommandPaletteModel {
     }
 
     /// Move the selection up (= arrow key binding).
-    public func moveSelection(_ delta: Int) {
+    func moveSelection(_ delta: Int) {
         guard !items.isEmpty else { return }
         var next = (selectedIndex + delta) % items.count
         if next < 0 { next += items.count }
@@ -106,7 +106,7 @@ public final class CommandPaletteModel {
 }
 
 /// ⌘K palette view (= SwiftUI sheet body).
-public struct CommandPaletteView: View {
+struct CommandPaletteView: View {
     @State private var model: CommandPaletteModel
     @FocusState private var queryFocused: Bool
 
@@ -114,7 +114,7 @@ public struct CommandPaletteView: View {
         _model = State(initialValue: model)
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(spacing: 0) {
             // Search field (Apple HIG TextField .plain = macOS 27 native
             // text-field render; no custom frame / border / Liquid Glass
@@ -298,7 +298,7 @@ private struct CommandPaletteRow: View {
 /// CHATBOX-002 keeps the NotificationCenter pattern (= already used by
 /// 5+ zone-toggle items in App.swift) for consistency.
 @MainActor
-public enum CommandPaletteController {
+enum CommandPaletteController {
     /// Show the palette (= ⌘K handler).
     public static func show() {
         NotificationCenter.default.post(name: .wenshuShowCommandPalette, object: nil)
@@ -350,7 +350,7 @@ public enum CommandPaletteController {
 
 /// NotificationCenter extension — central registry for palette events.
 /// Mirrors the pattern of existing .wenshu* notifications in App.swift.
-public extension Notification.Name {
+extension Notification.Name {
     /// Posted by CommandPaletteController.show() (= ⌘K menu item).
     /// The active scene listens and shows the palette sheet.
     static let wenshuShowCommandPalette = Notification.Name("wenshuShowCommandPalette")

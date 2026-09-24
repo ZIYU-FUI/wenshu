@@ -54,7 +54,7 @@ import SwiftUI
 /// State: backed by the `PlaceholderScanner` actor (= per-book
 /// JSON sidecar at `books/<bookId>/placeholders.json`).
 @MainActor
-public struct PlaceholderView: View {
+struct PlaceholderView: View {
 
     @Environment(BookStore.self) private var bookStore
 
@@ -93,7 +93,7 @@ public struct PlaceholderView: View {
 
     public init() {}
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if activeBookId == nil {
                 emptyState

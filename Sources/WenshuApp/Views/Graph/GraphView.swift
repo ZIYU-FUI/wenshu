@@ -10,13 +10,13 @@ import SwiftUI
 
 /// GraphView: SwiftUI View, show placeholder
 /// LayoutShellView, standalone wait macOS
-public struct GraphView: View {
+struct GraphView: View {
     @State private var isLoading: Bool = false
     @State private var error: String? = nil
 
     public init() {}
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(WenshuI18n.t("auto.graphview.l46.h27522022"))
                 .font(.headline)

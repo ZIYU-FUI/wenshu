@@ -80,7 +80,7 @@ struct EditorPlaceholder: View {
     /// NSTextViewDelegate. Today the setter is unused (= the
     /// buttons fall through to the whole-draft path; see
     /// applyParagraphAI's guard).
-    public func setSelection(_ text: String) {
+    func setSelection(_ text: String) {
         selectedText = text
     }
 

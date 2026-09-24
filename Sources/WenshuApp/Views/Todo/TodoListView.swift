@@ -54,7 +54,7 @@ import SwiftUI
 /// the `aiDynamic` zone (= tab "Todo"). Reads from `BookTodoStore`
 /// (= scope-aware todo JSON: `todo.json` / `todo-<folder>.json` /
 /// `library-todo.json`).
-public struct TodoListView: View {
+struct TodoListView: View {
     @Environment(BookStore.self) private var bookStore
 
     /// B-13: active scope (book root / 8 sub-folders / reference
@@ -72,7 +72,7 @@ public struct TodoListView: View {
 
     public init() {}
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             header
             inputRow

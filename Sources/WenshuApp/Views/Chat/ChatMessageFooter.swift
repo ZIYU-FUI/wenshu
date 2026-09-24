@@ -33,7 +33,7 @@ import SwiftUI
 /// Leaf view: the sealed-message footer row showing timestamp +
 /// token count + estimated cost + NEW badge. Rendered below each
 /// chat bubble's body (= Apple HIG metadata convention).
-public struct ChatMessageFooter: View {
+struct ChatMessageFooter: View {
     /// Timestamp displayed in the footer (= chat message creation time).
     let timestamp: Date
     /// LLM API usage.total_tokens (= nil for user messages).
@@ -60,7 +60,7 @@ public struct ChatMessageFooter: View {
         self._isTimestampHovered = isTimestampHovered
     }
 
-    public var body: some View {
+    var body: some View {
         HStack(spacing: 6) {
             // T65-CLOCK-PREFIX: clock icon before the timestamp text.
             Image(systemName: "clock")

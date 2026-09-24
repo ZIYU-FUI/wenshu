@@ -31,7 +31,7 @@ import Foundation
 
 extension ChatRole {
     /// Convert wenshu's ChatRole to LLMMessage.Role for sending to LLM API.
-    public var toLLMRole: LLMMessage.Role {
+    var toLLMRole: LLMMessage.Role {
         switch self {
         case .user: return .user
         case .agent: return .assistant
@@ -42,7 +42,7 @@ extension ChatRole {
 
 extension LLMMessage.Role {
     /// Convert LLMMessage.Role back to wenshu's ChatRole for UI display.
-    public var fromLLMRole: ChatRole {
+    var fromLLMRole: ChatRole {
         switch self {
         case .user: return .user
         case .assistant: return .agent
@@ -61,7 +61,7 @@ extension LLMMessage.Role {
 
 extension LLMMessage {
     /// First text content (= concatenate text blocks; empty if none).
-    public var textContent: String {
+    var textContent: String {
         blocks.compactMap { block in
             if case let .text(text) = block { return text }
             return nil
@@ -73,7 +73,7 @@ extension LLMMessage {
 
 extension ChatMessage {
     /// Convert this ChatMessage to LLMMessage for compression / LLM API.
-    public var asLLMMessage: LLMMessage {
+    var asLLMMessage: LLMMessage {
         LLMMessage(
             role: role.toLLMRole,
             blocks: [.text(content)]

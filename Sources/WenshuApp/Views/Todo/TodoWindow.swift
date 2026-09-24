@@ -35,7 +35,7 @@ import SwiftUI
 /// was deleted in Phase 5 ticket 7; todo persistence is
 /// WSTodoRepository.shared)
 /// here that points at the same .ws root as the main window).
-public struct TodoWindow: View {
+struct TodoWindow: View {
     let library: WenshuLibrary
 
     @State private var bookStore: BookStore?
@@ -44,7 +44,7 @@ public struct TodoWindow: View {
         self.library = library
     }
 
-    public var body: some View {
+    var body: some View {
         Group {
             // See KanbanWindow for the env-chain fix rationale.
             // (= the todo window is a SIBLING scene to the

@@ -48,15 +48,15 @@ import SwiftUI
 /// `.contentTransition(.interpolate)` smoothly interpolates text
 /// growth across streaming chunks (= no per-chunk flicker = the
 /// canonical SwiftUI streaming text pattern).
-public struct ChatMessageBodyView: View {
-    public let message: ChatMessage
-    public let isOutgoing: Bool
-    public let isStreaming: Bool
+struct ChatMessageBodyView: View {
+    let message: ChatMessage
+    let isOutgoing: Bool
+    let isStreaming: Bool
     /// T22: optional closure for plan part approval (= flows down
     /// through ChatPartRow to ChatPlanPartView). Nil = no approve
     /// action (= the plan is read-only). Future ticket wires the
     /// actual approve-reinvoke path.
-    public let onApprovePlan: ((Plan) -> Void)?
+    let onApprovePlan: ((Plan) -> Void)?
 
     public init(
         message: ChatMessage,
@@ -70,7 +70,7 @@ public struct ChatMessageBodyView: View {
         self.onApprovePlan = onApprovePlan
     }
 
-    public var body: some View {
+    var body: some View {
         // Hermes truth source for user/assistant text colors:
         //   user       = text-foreground/95 (= 95% opacity)
         //   assistant  = text-foreground (= 100% opacity)
