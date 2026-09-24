@@ -20,7 +20,12 @@
 import Foundation
 
 /// Stateless business layer for CharacterRelationshipsView. Mirrors the
-/// v1.72 + v1.74 + v1.75a/b/c/d precedents.
+/// Mirrors the KanbanOps / TodoOps / SettingsOps / TagManagerOps /
+/// CharacterLifecycleOps / BookSettingConstraintsOps /
+/// LongFormGuardrailsOps / ForeshadowingOps / IdeaLibraryOps /
+/// PlaceholderOps / EmotionCurveOps / GenreFitOps /
+/// ReaderExperienceOps template (= stateless enums with
+/// @MainActor static funcs).
 @MainActor
 enum CharacterRelationshipsOps {
 

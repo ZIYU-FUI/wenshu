@@ -195,8 +195,7 @@ final class PaneNSController: NSSplitViewController {
     /// background tint independently); the divider line is left at
     /// Apple default.
     ///
-    /// Per boss 2026-09-01 OOB: "if there is no corresponding API,
-    /// do not implement it" — Apple NSSplitView.DividerStyle is an
+    /// Apple NSSplitView.DividerStyle is an
     /// enum with no alpha API; controlling the divider visual at all
     /// is off the table until boss picks an implementation that
     /// satisfies all constraints (= visually 1 PT hairline + hidden

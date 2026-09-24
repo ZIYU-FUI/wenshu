@@ -579,8 +579,6 @@ struct WorkspaceView: View {
 
 
 /// Editor expand/shrink trailing button (= old v0.25.1 ticket 029c).
-/// Per boss 8/26 OOB 'after clicking, maximize the entire editor, hide all other
-/// columns, at this point the ICON becomes shrink, after clicking restore to the state just before clicking expand'.
 /// State + snapshot lives in @AppStorage (= ticket 01, v0.34).
 /// action closure now posts the .wenshuEditorMaximizedChanged
 /// notification (= PaneNSController listener installed by ticket 02 handles

@@ -59,7 +59,7 @@ import Foundation
 
 /// Stateless business layer for the per-book todo list. Lifts the
 /// disk-IO + state-transition logic out of `TodoListView` per the
-/// v1.72 UI/业务/数据 separation audit (= ADR-0009; = the TodoWindow
+/// UI / 业务 / 数据 separation audit (= ADR-0009; = the TodoWindow
 /// sibling of the KanbanWindow split).
 @MainActor
 enum TodoOps {
