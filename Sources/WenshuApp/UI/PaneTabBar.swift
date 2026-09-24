@@ -228,7 +228,9 @@ struct PaneTrailingIconButton: View {
             Color.clear
                 .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                 .overlay(alignment: .center) {
-                    Image(systemName: icon).font(.system(size: DesignTokens.tabIconSize, weight: .regular))
+                    Image(systemName: icon)
+                        .imageScale(.medium)
+                        .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.secondary)
                 }
                 .contentShape(Rectangle())
@@ -284,7 +286,9 @@ struct PaneIconTab: View {
             Color.clear
                 .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                 .overlay(alignment: .center) {
-                    Image(systemName: icon).font(.system(size: DesignTokens.tabIconSize, weight: .regular))
+                    Image(systemName: icon)
+                        .imageScale(.medium)
+                        .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                 }
                 .contentShape(Rectangle())
