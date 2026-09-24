@@ -2,21 +2,14 @@
 //  EmptyStateView.swift
 //  wenshu
 //
-//  v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state
-//  is not a single component; can you abstract a UI component?
-//  Also 2x the icon size and use the thinnest stroke.
-//  The right column has 12 tabs and most lack empty states':
-//
-//  Unified empty-state component (= single source of truth for
-//  every "no content" zone in the wenshu workspace). All 12
-//  specialized tool tabs use this component via
+//  v1.0.0-m1-shell: unified empty-state component (= single source
+//  of truth for every "no content" zone in the wenshu workspace).
+//  All 12 specialized tool tabs use this component via
 //  `EmptyStateView(icon:title:body:)` (= same visual treatment
 //  across every tab; = no hand-rolled VStack { Text + Text }
 //  duplicates).
 //
-//  v1.78 boss 2026-09-24 OOB '我想加动画，不需要使用它注册色的参数'
-//  + 'ICON 还是不显示': the SF Symbols 6 drawOn animation
-//  attempt via
+//  v1.78: SF Symbols 6 drawOn animation via
 //  `.symbolEffect(.drawOn.individually, options: .nonRepeating)`
 //  HIDES the icon entirely on macOS 27. SDK research
 //  (= MacOSX.sdk/Symbols.framework/Symbols.swiftinterface):
@@ -64,19 +57,17 @@
 //
 //  Spacing:
 //    - icon -> title: DesignTokens.chromePaddingEmptyStateGap (= the
-//      Apple HIG standard ContentUnavailableView measured value; =
-//      the boss's '...use Apple styles' OOB = the literal number isn't
-//      Apple-default = Apple doesn't expose this value publicly;
-//      = we use a semantic token instead)
+//      Apple HIG standard ContentUnavailableView measured value;
+//      = the literal number isn't Apple-default = Apple doesn't
+//      expose this value publicly; = we use a semantic token instead)
 //    - title -> body: chromePaddingSmall (= Apple HIG standard for
 //      title->caption spacing)
 //    - body maxWidth: DesignTokens.guardrailSheetWidth (= 360 PT
 //      = Apple HIG modal sheet width = the empty-state body
 //      should wrap to the same width as a standard modal sheet)
 //    - icon size: DesignTokens.emptyStateIconSize (= 76 PT
-//      = 2x the v0.54 38 PT default = the boss's '2x size'
-//      directive; = not a magic number = semantic token for the
-//      canonical empty-state icon size)
+//      = 2x the v0.54 38 PT default = the canonical empty-state
+//      icon size; = not a magic number = semantic token)
 
 import SwiftUI
 
@@ -141,26 +132,22 @@ public struct EmptyStateView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // v1.0.0-m1-shell boss 2026-09-12 OOB '2x icon size'
-            // (= 2x the v0.54 38 PT default = 76 PT)
-            // + 'use thinnest stroke' (= .thin weight = the
-            // canonical macOS 27 inspector / empty-state icon
+            // 2x icon size (= 76 PT) + thinnest stroke (= .thin weight =
+            // the canonical macOS 27 inspector / empty-state icon
             // weight; = matches the SF Symbols 6 3rd-generation
             // palette-rendering default).
             //
-            // Per wenshu-icon-policy v1.5 boss OOB 2026-09-17:
-            // empty-state / large icons (>=38 PT) MUST pin
-            // .symbolRenderingMode(.monochrome). SF Symbols 6 on
-            // macOS 27 silently falls back to the .fill variant
-            // when the caller passes an outline root name without
-            // setting the rendering mode (= at 76 PT the fill
-            // glyph reads as a heavy solid blob = boss's "太粗").
+            // Per wenshu-icon-policy: empty-state / large icons
+            // (>=38 PT) MUST pin .symbolRenderingMode(.monochrome).
+            // SF Symbols 6 on macOS 27 silently falls back to the
+            // .fill variant when the caller passes an outline root
+            // name without setting the rendering mode (= at 76 PT
+            // the fill glyph reads as a heavy solid blob).
             //
-            // v1.78 boss 2026-09-24 OOB '我想加动画' deferred:
-            // see file header for the SDK research log. The
-            // symbolEffect call was removed because macOS 27
-            // renders the icon INVISIBLE under the
-            // IndefiniteSymbolEffect path; = future ticket.
+            // v1.78 draw-on animation deferred: see file header
+            // for the SDK research log. The symbolEffect call was
+            // removed because macOS 27 renders the icon INVISIBLE
+            // under the IndefiniteSymbolEffect path.
             Image(systemName: icon)
                 .font(.system(size: DesignTokens.emptyStateIconSize, weight: .thin))
                 .symbolRenderingMode(.monochrome)
