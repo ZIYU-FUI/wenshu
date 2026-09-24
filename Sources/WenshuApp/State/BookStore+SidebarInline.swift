@@ -9,14 +9,14 @@
 
 import Foundation
 
-// MARK: - v0.32 sidebar inline-storage consolidation
+// MARK: - Sidebar inline-storage consolidation
 //
 // Moved from the pre-v1.69e `NewLibraryOutlineView.swift`
 // (= inline FileManager + JSONDecoder + JSONEncoder calls
 // duplicated the storage adapter logic in two places). These
 // methods are the canonical place to ask the sidebar / outline
-// views for shelf / book CRUD. Views
-// never touch FileManager directly.
+// views for shelf / book CRUD. Views never touch FileManager
+// directly.
 
 extension BookStore {
     /// Read all shelves from the filesystem. Forgiving: missing root
@@ -80,7 +80,7 @@ extension BookStore {
 
     /// Create a new book on disk + run per-book bootstrap (= creates
     /// the 8 standard folders + 2 JSON data files).
-    /// v0.30 boss 8/31 OOB: path = `<shelvesRoot>/<shelf-uuid>/books/<book-uuid>/`,
+    /// Path = `<shelvesRoot>/<shelf-uuid>/books/<book-uuid>/`,
     /// matching the v5 spec layout (= the previous path duplicated
     /// the 'books' segment).
     func sidebarSaveBook(_ book: Book) throws {
@@ -127,7 +127,7 @@ extension BookStore {
     /// `sidebarDeleteBook`.
     func reloadAllBooks() {
         books = (try? sidebarLoadAllBooks()) ?? []
-        // v1.28 B2.2: invalidate cache (= fresh books = potentially
+        // Invalidate cache (= fresh books = potentially
         // different on-disk paths).
         bookDirectoryCache.removeAll(keepingCapacity: true)
     }
@@ -179,13 +179,13 @@ extension BookStore {
     /// dependency; trivially testable; matches `folderDocumentCount`
     /// scan pattern above).
     ///
-    /// v1.28 B2.2: read-through cache (= O(1) hit on warm cache;
+    /// Read-through cache (= O(1) hit on warm cache;
     /// = the original N-shelf scan only runs on cache miss; =
     /// rebuild on miss rebuilds from the freshest `books` array in
     /// one pass; = subsequent calls hit cache until the next books
     /// mutation invalidates it).
-    /// P1-04 (audit 2026-09-24): nonisolated counterpart for the 11
-    /// agent-tool actors that previously called `bookDirectory(bookId:)`
+    /// Nonisolated counterpart for the agent-tool
+    /// actors that previously called `bookDirectory(bookId:)`
     /// synchronously from inside their `actor` body (= Swift 6 strict
     /// concurrency can't let a non-MainActor caller access the
     /// @MainActor `bookDirectoryCache` mutable dict). Re-runs the same
