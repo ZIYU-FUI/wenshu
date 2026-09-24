@@ -8,10 +8,7 @@
 //
 // Single @Observable instance (= not per-book instances; Apple
 // Observation framework pattern). Injected via @Environment in
-// App.swift (= ticket 019 wiring; this file = the data model only).
-//
-// v0.26 FCP library replica spec at
-// `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 019.
+// App.swift wires this singleton at launch; this file = the data model only.
 
 import Foundation
 import Observation
@@ -41,24 +38,20 @@ struct BookBundle: Sendable {
 /// observation-tracked state holder; not per-book instances; per Apple
 /// HIG + WWDC23 'Discover Observation in SwiftUI').
 ///
-/// v0.27 ticket 019 wiring followup: BookStore now holds a
 /// `LibraryStores` reference (= constructed by LibraryLifecycleHook)
 /// + a `currentBookDirectory` optional. `reload(bookId:)` swaps the
 /// directory; the WorldStoring / CharacterStoring callable members
 /// lazily resolve the per-book store via `LibraryStores.makeBookStores`.
 ///
-/// P1-04 (audit 2026-09-24): `@MainActor` (= matches `WenshuLibrary` +
-/// `AppState`; = every SwiftUI View + the 11 agent tools that read
-/// these properties are already on the MainActor at runtime). The
-/// previous `@unchecked Sendable` was a misannotation (= Swift 6
-/// strict concurrency would have flagged the actor-isolation lie
-/// had the macro been enforced). Agent-tool callers (= `PlotThreadTracker`,
-/// `TagManager`, `BookManagerTool`, ...) that previously read
-/// `bookStore.stores.shelvesRoot` from inside their `actor` bodies now
-/// route through the `nonisolated let stores` and the standalone
-/// `BookStorePathHelper` (= same shape as the LiveChatRepository
-/// forwarder pattern); = no `await` ceremony required for the 11
-/// tools that only need URL paths.
+/// `@MainActor` (= matches `WenshuLibrary` + `AppState`; = every
+/// SwiftUI View + agent tools that read these properties are
+/// already on the MainActor at runtime). Agent-tool callers
+/// (= `PlotThreadTracker`, `TagManager`, `BookManagerTool`, ...)
+/// that read `bookStore.stores.shelvesRoot` from inside their
+/// `actor` bodies route through `nonisolated let stores` and the
+/// standalone `BookStorePathHelper` (= same shape as the
+/// LiveChatRepository forwarder pattern); = no `await` ceremony
+/// required for tools that only need URL paths.
 @MainActor
 @Observable
 final class BookStore {
@@ -66,14 +59,14 @@ final class BookStore {
     /// save on change).
     var shelves: [Bookshelf] = []
 
-    /// B-07 015.019 (boss 2026-09-04 OOB '): reactive
+    /// Reactive
     /// flat list of every book across every shelf (= mirrors the
     /// result of `sidebarLoadAllBooks()`). Views that need a
     /// live book count (= projectSidebar bottom status ": N")
     /// bind to `books.count` instead of running an inline
     /// `FileManager.contentsOfDirectory` scan at render time.
     /// Sorted by `createdAt` ascending (= matches the order the
-    /// post-v1.69 sidebar shows them via SidebarService).
+    /// Sidebar uses this array to enumerate books).
     ///
     /// Initialized empty; the caller (= `LibraryRootView`'s
     /// layout shell) calls `reloadAllBooks()` once at launch.
@@ -82,7 +75,7 @@ final class BookStore {
     /// stale counts).
     var books: [Book] = []
 
-    /// v1.28 B2.2: cached book-id → on-disk directory URL lookup map.
+    /// Cached book-id → on-disk directory URL lookup map.
     /// Previously every `bookDirectory(bookId:)` call (= and
     /// `folderDocumentCount(bookId:folderDirectoryName:)` which calls it
     /// internally) re-scanned every shelf under `shelvesRoot`
@@ -124,13 +117,7 @@ final class BookStore {
     /// at app launch).
     var referenceLibrary: ReferenceLibrary = ReferenceLibrary()
 
-    /// Init (= v0.27 wiring): takes the LibraryStores bundle from the
-    /// launch result. The v0.26 init signature was preserved for back-
-    /// compat in commit 1de8e0e7f (= pre-v0.27 tests + callers), but
-    /// git grep shows zero external callers; the init is removed in
-    /// this commit to fix the S5 sentinel path bug (= reload(bookId:)
-    /// would have written to `/books/<uuid>/` if any future caller used
-    /// the back-compat init).
+    /// Init: takes the LibraryStores bundle from the launch result.
     init(stores: LibraryStores) {
         self.stores = stores
         self.worldStore = stores.makeBookStores(for: stores.shelvesRoot)
@@ -140,21 +127,21 @@ final class BookStore {
         self.referenceStore = stores.referenceStore
     }
 
-    /// The 3 v0.26 entity stores (= kept as direct properties for the
-    /// 6 CP3 views' functional-injection compatibility; v0.27 followups
-    /// migrate views to @Environment(BookStore.self)).
-    /// P1-05 (audit 2026-09-24): the 3 per-book stores are private
-    /// (= views can't reach past the root). The previous `let worldStore`
-    /// (= public-by-default for internal module) let 5 callers reach
+    /// The 3 entity stores (= kept as direct properties for views'
+    /// functional-injection compatibility; views migrate to
+    /// @Environment(BookStore.self) over time). The 3 per-book
+    /// stores are private (= views can't reach past the root).
+    /// The previous `let worldStore` (= public-by-default for
+    /// internal module) let 5 callers reach
     /// `bookStore.characterStore.loadCharacters()` etc. (= bypassing
-    /// the aggregate root). Passthrough methods on `BookStore` are the
-    /// canonical surface (= callers depend on the root, not the
-    /// underlying stores).
+    /// the aggregate root). Passthrough methods on `BookStore` are
+    /// the canonical surface (= callers depend on the root, not
+    /// the underlying stores).
     private let worldStore: WorldStoring
     private let characterStore: CharacterStoring
     private let referenceStore: ReferenceStoring
 
-    // MARK: - P1-05 reach-through passthroughs
+    // MARK: - Reach-through passthroughs
 
     /// Load all characters for the active book.
     func loadCharacters() throws -> [Character] {
@@ -171,12 +158,11 @@ final class BookStore {
         referenceStore.loadReferenceBody(id: id)
     }
 
-    /// P1-05 reach-through escape hatch: the `WikiLinkNavigation` /
-    /// `WikiLinkResolver` tools receive `bookStore.referenceStore`
-    /// (= a `ReferenceStoring` protocol reference) as a parameter.
-    /// Exposed as a method (= same passthrough pattern as the other
-    /// load methods above) so callers depend on `BookStore`, not on
-    /// its private stores.
+    /// `WikiLinkNavigation` / `WikiLinkResolver` tools receive
+    /// `bookStore.referenceStore` (= a `ReferenceStoring` protocol
+    /// reference) as a parameter. Exposed as a method (= same
+    /// passthrough pattern as the other load methods above) so
+    /// callers depend on `BookStore`, not on its private stores.
     func loadReferenceStore() -> ReferenceStoring {
         referenceStore
     }
@@ -185,9 +171,8 @@ final class BookStore {
     /// previous bundle and reads fresh from the storage layer. Apple
     /// standard "data source switch" pattern.
     ///
-    /// v0.27 followup: the App.swift `.onChange` of selectedBookId
-    /// observer calls this method (= wired by the App.swift wiring
-    /// ticket). v0.27-01 lands the contract only.
+    /// App.swift `.onChange` of selectedBookId observer calls this
+    /// method.
     func reload(bookId: UUID) {
         selectedBookId = bookId
         let bookDir = stores.shelvesRoot
@@ -197,16 +182,16 @@ final class BookStore {
         currentBook = nil
     }
 
-    /// v0.30 boss OOB ',, show': count .md
-    /// files directly by folder directory name. Doesn't require
-    /// BookCategory (= which only has 3 cases = chapter/setting/research;
-    /// the 5 user-facing folders use custom directory names like
-    /// 'world' / 'characters' / 'outlines' that aren't in BookCategory).
-    /// Returns 0 for missing folders (= forgiving convention).
+    /// Count .md files directly by folder directory name. Doesn't
+    /// require BookCategory (= which only has 3 cases = chapter/
+    /// setting/research; the 5 user-facing folders use custom
+    /// directory names like 'world' / 'characters' / 'outlines'
+    /// that aren't in BookCategory). Returns 0 for missing folders
+    /// (= forgiving convention).
     ///
-    /// v0.30 followup: this can be replaced by a proper BookCategory
-    /// extension (= add `world` / `characters` cases) once the
-    /// Document model migrates to support all 5 folder types.
+    /// Future migration: replace by a proper BookCategory extension
+    /// (= add `world` / `characters` cases) once the Document
+    /// model supports all 5 folder types.
     ///
     /// Path layout (= per FCP library replica spec v5):
     ///   <ws>/shelves/<shelf-id>/books/<book-id>/<folder-name>/*.md
@@ -243,8 +228,8 @@ final class BookStore {
     }
 }
 
-/// Library-public reference library (= the library's default shelf per
-/// boss 8/26 OOB; system-managed; user CANNOT delete or rename).
+/// Library-public reference library (= the library's default shelf;
+/// system-managed; user CANNOT delete or rename).
 struct ReferenceLibrary: Sendable {
     var metadata: ReferenceLibraryMetadata = .empty
     var rawReferences: [Reference] = []
@@ -252,10 +237,10 @@ struct ReferenceLibrary: Sendable {
 }
 
 
-// MARK: - Extensions (= sidebar inline-storage + B-13 scope unification)
+// MARK: - Extensions (= sidebar inline-storage + scope unification)
 //
-// P2-06 (audit 2026-09-24): these concerns were extracted from the
-// monolithic class body into focused extension files:
+// Concerns are extracted from the monolithic class body into focused
+// extension files:
 //   - `BookStore+SidebarInline.swift` (= sidebar CRUD over the on-disk JSON)
 //   - `BookStore+ScopeUnification.swift` (= book/folder/reference-library
-//     scope directory resolution; = B-13 unification)
+//     scope directory resolution)
