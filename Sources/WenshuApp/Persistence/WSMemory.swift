@@ -34,8 +34,16 @@ public final class WSMemory {
         self.memoryID = memoryID
         self.userID = userID
         self.content = content
-        self.createdAt = Date()
-        self.updatedAt = Date()
+        // v0.72 Q99 MED fix: shared `now` so createdAt and updatedAt
+        // are bit-identical on init (= the B-09 contract per the
+        // WSMemoryTests.createdAndUpdatedAtEqualOnInit spec). Two
+        // separate Date() calls could land on opposite sides of the
+        // sub-second tick boundary (= Date's precision is platform-
+        // dependent: macOS 27 = ~1ns, but Swift Testing's CI uses
+        // a coarser clock that makes 2 calls frequently differ).
+        let now = Date()
+        self.createdAt = now
+        self.updatedAt = now
     }
 
     /// Touch updatedAt on content edit (= mirrors old MemoryStore.append behavior).
