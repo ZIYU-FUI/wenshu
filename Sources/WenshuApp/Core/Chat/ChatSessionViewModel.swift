@@ -38,7 +38,7 @@
 //    swift build: 0 errors / same pre-existing warnings as main HEAD.
 //
 
-import SwiftUI
+import Foundation
 
 /// v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone...'):
 /// reference-type accumulator for the streaming LLMBlock callback.
