@@ -8,6 +8,7 @@ AGENTS.md
 - Forbidden neutral words: 可 / 应当 / 或许 / 可能 / 应该 / 建议 / 考虑 / 试图 / 尽量 / 大概 / 也许 / 或 / 任意 / 大概率 / 通常 / 一般来说. Replace with: 是 / 否 / 行 / 不行 / 可以 / 不可以 / 不变 / 变.
 - Forbidden Chinese vocabulary: 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. Historical note: 修真 = an earlier agent's typo for 修正. Use 修 / 改 / fix / 替换 / 调整 in commit body / comment / doc / prompt / card body.
 - First line of every doc = fact. Last line of every doc = fact.
+- **Comment policy (= 老板 2026-09-24)**: code comments capture engineering intent only (why this code exists / what invariant it preserves / what corner case it handles). No OOB history / no 老板 directives / no version narrative / no phase numbering in comments. OOB is archived separately in `OOB.md` (wenshu repo root, dev-time only). Real human engineers must read the code without laughing; AI-era narration patterns (boss OOB / Phase X of Y / per-ticket N) are forbidden in source. Allowed comment kinds: `///` public API doc-comments, `// MARK: -` section headers, technical "why this exists" rationale, `// FIXME` / `// TODO` (tracked by SwiftLint). Reference an OOB from code only as `(see OOB.md #YYYY-MM-DD)` — never quote the directive text inline.
 
 This file = wenshu project baseline + cross-role address hard constraint. Single agent (pocock profile) direct dialog with 老板. No dispatch, no board, no 6-role flow. Version 8/18拍 v0.07 + 2026-09-04/05拍 v0.10 (pocock single agent purified version).
 
