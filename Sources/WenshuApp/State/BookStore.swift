@@ -1,10 +1,6 @@
 // BookStore.swift · Wenshu () · v0.26 (FCP library replica) + B-13 scope unification
 //
-// Single BookStore @Observable singleton (= boss 8/26 OOB " apple
-// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-// yescorrect, " + ",,
-// ok"). Holds the per-book in-memory state (= the 10 standard entries
-// per book + per-book JSON data: kanban + todo + the 8 folder indexes).
+// Single BookStore @Observable singleton. Holds the per-book in-memory state (= the 10 standard entries per book + per-book JSON data: kanban + todo + the 8 folder indexes).
 //
 // Switching books triggers BookStore.reload(bookId:) which reads the
 // per-book JSON files into in-memory state; previous book's state is
@@ -402,15 +398,12 @@ extension BookStore {
 
 // MARK: - B-13 scope unification (= Kanban / Todo / reference-library data tree)
 //
-// Boss 2026-09-04 OOB:
-// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
-// - "kanbanissue, directory, directory, yes
-// directory, " — the old `bookDirectory(bookId:)` only resolved the
-//     book root. The 8 standard sub-folders (= `chapters/` etc.) and the
-//     `reference-library/` root are now valid scope targets too.
-// - "" — the reference library (= `reference-library/`
-//     at the workspace root) is added as `TaskScope.referenceLibrary`
-//     (= its own kanban / todo JSON files at the library root).
+// Boss 2026-09-04 OOB scope unification: the old `bookDirectory(bookId:)`
+// only resolved the book root. The 8 standard sub-folders (= `chapters/`
+// etc.) and the `reference-library/` root are now valid scope targets
+// too. The reference library (= `reference-library/` at the workspace
+// root) is added as `TaskScope.referenceLibrary` (= its own kanban /
+// todo JSON files at the library root).
 //
 // Design (= per spec `.scratch/2026-09-04-b-13-scope-unification.md`):
 //   - Scope is a VIEW FILTER, not a data-layer change. One kanban.json /

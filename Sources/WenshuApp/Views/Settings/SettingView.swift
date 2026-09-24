@@ -37,7 +37,6 @@ import SwiftUI
 /// 8/21 'Pages Settingspanel UI, macOS 27 group'
 /// = toolbar (3 segmented tab, Pages, 2)
 /// yes macOS Settings { } Scene autotitle segmented tab button (commit 0082bd1fe + 030a58355)
-// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 /// Pages () = window toolbar, yeswindowtitlebutton
 struct SettingView: View {
     @Environment(AppState.self) private var appState

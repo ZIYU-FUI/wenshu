@@ -10,7 +10,6 @@
 // '). Both fields have defaults + Codable back-compat (= v0.02.x
 // book.json files without these keys still decode).
 //
-// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // Owner 8/15 15:55: 'needok,, refactor
 // BookTests.swift`. Adding any required field forces the architectural
 // decision to surface (= not just an incidental change in some file).

@@ -48,7 +48,6 @@ import CryptoKit  // v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect: 
 
 // MARK: - Sort order (v0.30 boss OOB)
 //
-// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // Boss 2026-08-30: 'all cards default sort is pinyin initial letter alphabetical, in the material preview top bar add an icon on the right side to implement re-sort. Current options: first letter, creation time, modification time'.
 //
 // 3 sort options:
@@ -485,8 +484,6 @@ struct PreviewPane: View {
         self._searchQuery = searchQuery
         self.customLeadingSearch = customLeadingSearch
     }
-
-// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 /// v0.30 boss OOB: 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
     /// not enough for two columns, auto-adapt to one column, in plain words it's card flow, width adaptive'.
     ///

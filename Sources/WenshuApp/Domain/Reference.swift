@@ -199,7 +199,6 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     }
 
     /// One-line summary shown on the card (= boss 8/26 'cardyes
-    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     /// ').
     var summary: String
 

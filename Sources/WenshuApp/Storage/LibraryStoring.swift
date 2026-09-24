@@ -1,6 +1,5 @@
 // LibraryStoring.swift · Wenshu (Wenshu) · v0.02.0 (bookshelf module)
 //
-// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // Owner 8/15 15:55: 'needok,, refactor'.
 //
 // This file is the architectural root of the wenshu library system.

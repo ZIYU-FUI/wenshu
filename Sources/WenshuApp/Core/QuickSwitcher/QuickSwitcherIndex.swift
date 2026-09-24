@@ -56,8 +56,6 @@ public enum QuickSwitcherIndex {
         let fuzzyScore = fuzzyCharacterMatch(query: lowerQ, text: lowerT)
         return fuzzyScore > 0 ? fuzzyScore : nil
     }
-
-    // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
     ///: query text
     ///: ()
     private static func characterOrderScore(query: String, text: String) -> Int {

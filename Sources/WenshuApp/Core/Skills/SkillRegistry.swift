@@ -132,7 +132,6 @@ public actor SkillRegistry {
             }
         }
         if !foundEnd {
-            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
             // ---, fileyes body
             return (SkillFrontmatter(name: "unknown", description: ""), raw)
         }

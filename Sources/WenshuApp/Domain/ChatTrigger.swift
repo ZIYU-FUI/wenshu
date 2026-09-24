@@ -3,7 +3,6 @@
 // Detects when a chat message hints at a new entity (= a character /
 // world fact / research reference) and emits an `IngestionRequest`
 // for the LLM Wiki pipeline. v0.27 spec: 'user names it,
-// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // agent auto-ingests'.
 //
 // Trigger heuristics (v0.27 MVP, conservative):

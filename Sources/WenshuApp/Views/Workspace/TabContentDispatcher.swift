@@ -75,7 +75,6 @@ struct TabContentDispatcher: View {
         switch kind {
         case .projectSidebar:
             // v0.28 followup Boss UX round 14 (Boss 2026-08-29 OOB
-            // (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
             // ZoneTopToolbar outer 30 PT) — the internal
             // ZoneContentTabBar (= 1 tab + trailing /
             // buttons) IS the top chrome. Otherwise we'd have 2 layers

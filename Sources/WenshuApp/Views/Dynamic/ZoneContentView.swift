@@ -2,7 +2,6 @@
 // ZoneContentView.swift · Wenshu · v0.24 bossverification
 //
 // Boss 2026-08-24 (out-of-band): region, can tab view.
-// (Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame` on this line; the cleanup commit replaced it with a stub because its translation was incomplete.)
 // not oktop bar, top bar, can tab.
 //
 // Pattern (ChatZoneView ChatZoneTabBar + DynamicZoneView DynamicZoneTabBar):
