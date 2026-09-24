@@ -54,13 +54,6 @@ public struct CSSearchResult: Equatable, Sendable {
     }
 }
 
-/// SearchStore error (= 1:1 with FullTextSearch.SearchStoreError).
-public enum CSSearchStoreError: Error, Equatable {
-    case indexUnavailable(reason: String)
-    case queryFailed(reason: String)
-    case docMirrorUnavailable(reason: String)
-}
-
 /// Domain name registered with CSSearchableIndex.
 /// Apple HIG: per-domain identifier to scope queries to wenshu docs only.
 public enum CSSearchDomain {
@@ -352,18 +345,5 @@ public enum TokenOverlapRanking {
             }
         }
         return String(body.prefix(contextChars * 2))
-    }
-}
-
-extension CSSearchStoreError: LocalizedError {
-    public var errorDescription: String? {
-        switch self {
-        case .indexUnavailable(let reason):
-            return "Search index unavailable: \(reason)"
-        case .queryFailed(let reason):
-            return "Search query failed: \(reason)"
-        case .docMirrorUnavailable(let reason):
-            return "Document mirror unavailable: \(reason)"
-        }
     }
 }

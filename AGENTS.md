@@ -1148,3 +1148,20 @@ Each session's `sessionID` (= `book:<UUID>:default`) encodes the bookID as a syn
 
 This §11.11 section is the canonical record of v1.79 chat-by-book row-level split (= up-to-date as of 2026-09-24). Future arc amendments (= §11.12+) land below.
 
+# §11.12 Pocock engineering standards skill set (= boss 2026-09-24 OOB)
+
+Per 老板 OOB 2026-09-24, four user-local skills ship under `~/.hermes/profiles/pocock/skills/engineering/pocock-engineering-*/` to replace the implicit "remember to spot things" workflow with explicit, description-matched auto-loading. Each skill = one SKILL.md + one `scripts/validate.py` (= stdlib-only frontmatter validator).
+
+| # | Skill | Trigger description | Covers |
+|---|---|---|---|
+| 1 | `pocock-engineering-design-check` | Check 12 standards before designing a module or spec. | all 12 (= SSOT, Module Boundary, DIP, Layering, API Boundary, DDDD, Value Object vs Entity, Aggregate Root, Type Boundary, Immutability, Error Handling, Side-Effect Boundary) |
+| 2 | `pocock-engineering-code-review-check` | Run pre-commit standards check on a code diff or PR. | 7 diff-frequent (= MVVM, Side-Effect, Error Handling, Concurrency, Magic Numbers, Test Coverage, Naming) |
+| 3 | `pocock-engineering-audit-existing` | Audit an existing codebase against 12 engineering standards. | all 12 + severity ladder P0 to P3 + mechanical probes |
+| 4 | `pocock-engineering-refactor-verify` | Verify a refactor closed every standards gap end to end. | 4 passes (= Closure of Audit Findings, No-Regression Sweep, Test and Behavior Reality, Boundary Edges) |
+
+Trigger descriptions measure 52 / 53 / 56 / 60 chars (= within the hermes-agent-skill-authoring hardline of 60; = the 57-char system-prompt trigger window is preserved for all four). Each SKILL.md body ends with a "See also" line pointing to the other three; = no router / hub / index skill (= per hardline "No router / index / hub skills").
+
+Usage: the four trigger when the user says "design X" / "review PR" / "audit codebase" / "verify refactor". Prompt template for an audit run: `调用 pocock-engineering-audit-existing 给 wenshu 全仓做 12 类工程标准盘点,输出 .scratch/<date>-pocock-standards-audit.md,按 P0 到 P3 排序。`
+
+Tier = user-local (= pocock profile; = not hermes-agent官方仓). Future promotion requires usage evidence (= boss拍 = 5+ sessions/month per hermes-agent-skill-authoring bundled bar).
+
