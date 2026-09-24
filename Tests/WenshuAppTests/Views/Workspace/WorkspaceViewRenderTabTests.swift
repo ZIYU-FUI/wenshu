@@ -5,7 +5,7 @@
 // .projectPreview / .editor / .specializedTools; = the canonical
 // rendering surface for the 4-zone layout).
 //
-// Per boss 2026-08-27 OOB 'land the refactor': the 4-case switch
+// 
 // is the production (= only) render path since v0.30. Per v0.34
 // boss 9/2 OOB (multi-layer audit): the ZoneContentView chrome
 // layer (30 PT RegionTabBar) is uniform across all 4 tabs; =

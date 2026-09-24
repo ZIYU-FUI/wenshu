@@ -220,7 +220,7 @@ struct EditorPlaceholderTests {
     @Test("declares per-tab dirty-state vars as computed properties (= v0.34 B-24 single source of truth)")
     func declaresDirtyStateVarsAsComputed() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
-        // v0.34 B-24: per-tab state lives on AppState.openTabs[activeTabIndex].
+        // AppState.openTabs[activeTabIndex].
         // EditorPlaceholder reads/writes the ACTIVE tab via computed properties.
         // These computed properties expose the per-tab state (= Safari behavior).
         #expect(code.contains("private var draft: String {"),
@@ -238,9 +238,9 @@ struct EditorPlaceholderTests {
     @Test("declares file watcher + alert state as computed properties (= v0.34 B-23 + v1.70 T1b)")
     func declaresFileWatcherAndAlertStateAsComputed() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
-        // v0.34 B-23: per-tab file-system watcher. State lives on the
+        // 
         // active tab (= appState.openTabs[idx].fileWatcher).
-        // v1.70 editor-mvvm T1b: `fileWatcher` + `watchedFD` are NO
+        // `fileWatcher` + `watchedFD` are NO
         // LONGER computed properties on the view (= the DispatchSource
         // lifecycle migrated to `EditorFileWatcher`; = the helper
         // writes them on `tab.*` directly). The view still surfaces
@@ -268,7 +268,7 @@ struct EditorPlaceholderTests {
     @Test("declares 3 private mutation methods = saveDraft + handlePreviewWikiLink + handleEditorWikiLink (= v1.70 T2b)")
     func declaresFiveMutationMethods() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
-        // v1.70 editor-mvvm T2b: writeDraftToDisk + reloadDocumentFromDisk
+        // writeDraftToDisk + reloadDocumentFromDisk
         // + handleDirtyTransition migrated to EditorPersistence (= the
         // view now has 3 thin call sites + the saveDraft entry point).
         #expect(code.contains("private func saveDraft()"),
@@ -282,7 +282,7 @@ struct EditorPlaceholderTests {
     @Test("declares 2 lifecycle methods = applyParagraphAI + replaceSelectedText (= v1.70 T2b)")
     func declaresLifecycleMethods() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
-        // v1.70 editor-mvvm T2b: handleDirtyTransition migrated to
+        // handleDirtyTransition migrated to
         // EditorPersistence.handleDirtyTransition(_:tab:bookStore:).
         // The view no longer holds the dirty-state machine.
         // applyParagraphAI is public (= engine bridge), takes EditorTransform parameter.
@@ -290,10 +290,10 @@ struct EditorPlaceholderTests {
                 "EditorPlaceholder must declare public func applyParagraphAI(_ transform:) (= P2 #19 WIRE-PARAGRAPH-002 engine bridge)")
         #expect(code.contains("private func replaceSelectedText(with newText: String)"),
                 "EditorPlaceholder must declare replaceSelectedText(with:) (= SMC engine bridge)")
-        // v1.70 editor-mvvm T1b: `startFileWatcher` + `stopFileWatcher`
+        // `startFileWatcher` + `stopFileWatcher`
         // migrated to `EditorFileWatcher`. The view no longer declares
         // them (= the helper is the single owner of the fd lifecycle).
-        // v1.70 editor-mvvm T2b: `handleDirtyTransition` migrated to
+        // `handleDirtyTransition` migrated to
         // `EditorPersistence.handleDirtyTransition(_:tab:bookStore:)`.
         // The view no longer holds the dirty-state machine (= helper is
         // the single owner of the auto-save Task lifecycle).
@@ -312,7 +312,7 @@ struct EditorPlaceholderTests {
 
     @Test("EditorPersistence.save uses atomically: true write option (= data integrity + v1.70 T2b)")
     func writeDraftToDiskUsesAtomicOption() throws {
-        // v1.70 editor-mvvm T2b: the disk write migrated to
+        // the disk write migrated to
         // `EditorPersistence.save(tab:bookStore:)`. The view no longer
         // holds the disk-write logic. Assert the new helper uses
         // atomically: true (= prevents half-written file on crash).
@@ -332,7 +332,7 @@ struct EditorPlaceholderTests {
 
     @Test("EditorFileWatcher uses DispatchSource.makeFileSystemObjectSource + POSIX open (= B-23 + v1.70 T1b)")
     func startFileWatcherUsesDispatchSource() throws {
-        // v1.70 editor-mvvm T1b: the DispatchSource + POSIX open
+        // the DispatchSource + POSIX open
         // lifecycle migrated to `EditorFileWatcher`. The assertions
         // now point at the new file (= the view no longer holds them).
         let testFileURL = URL(fileURLWithPath: #filePath)
@@ -363,7 +363,7 @@ struct EditorPlaceholderTests {
 
     @Test("EditorFileWatcher.stop cancels DispatchSource + resets tab.watchedFD to -1 (= B-23 + v1.70 T1b)")
     func stopFileWatcherCancelsDispatchSource() throws {
-        // v1.70 editor-mvvm T1b: the stop path migrated to
+        // the stop path migrated to
         // `EditorFileWatcher.stop(tab:)`.
         let testFileURL = URL(fileURLWithPath: #filePath)
         let testsRoot = testFileURL
@@ -411,7 +411,7 @@ struct EditorPlaceholderTests {
 
     @Test("EditorPersistence.handleDirtyTransition manages autoSaveTask lifecycle (= 3-second debounce + v1.70 T2b)")
     func handleDirtyTransitionManagesAutoSaveTask() throws {
-        // v1.70 editor-mvvm T2b: the dirty-state machine migrated to
+        // the dirty-state machine migrated to
         // `EditorPersistence.handleDirtyTransition(_:tab:bookStore:)`.
         // The view no longer holds it. Assert the helper holds the
         // 3-second debounce + cancel logic (= boss 9/2 spec).
@@ -488,9 +488,9 @@ struct EditorPlaceholderTests {
         // v0.34 B-23: external file change. The trigger is the
         // DispatchSource event handler (= .write + .extend) in
         // `EditorFileWatcher`, which invokes the `onChange` closure.
-        // v1.70 editor-mvvm T1b: the view passes the onChange closure
+        // the view passes the onChange closure
         // when calling `EditorFileWatcher.start(path:tab:onChange:)`.
-        // v1.70 editor-mvvm T2b: the onChange closure is now
+        // the onChange closure is now
         // `reloadFromDiskAndApply()` (= the new thin wrapper that
         // calls EditorPersistence.reloadFromDisk + writes the result
         // back to the active tab + updates the word-count badge).

@@ -2,9 +2,7 @@
 //  SidebarServiceTests.swift
 //  wenshu
 //
-//  v1.81 SSOT derivation tests (= verify the sidebar's
-//  folderCatalog tuple values come from BookFolderCatalog.userFacing
-//  and that the (= name, displayName, icon) shape is preserved
+// shape is preserved
 //  across the derivation).
 //
 

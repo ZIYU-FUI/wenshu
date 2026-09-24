@@ -8,7 +8,7 @@
 // Per v0.77 spec decision (= ViewInspector behavior tests on this view
 // require ~150-200 LOC of mock scaffolding for LayoutTreeStore /
 // PaneSplitHost / WorkspaceMode; = exceeds 1-ticket scope per Q112).
-// v0.88 = 3 source-level structural test files covering the main view's
+// 
 // boss-spec invariants (= the things the boss has explicitly called
 // out in OOB messages over the v0.27-v0.40 development window).
 //

@@ -5,7 +5,7 @@
 //  enum extracted from TodoListView in v1.72 T2b). Per boss
 //  2026-09-22 OOB '按MVVM UI 业务 数据，三分离': TodoListView currently
 //  owns the same kind of inline business logic as KanbanView (= the
-//  v1.72 T1 sibling arc), with one extra field (priority). The fix
+// 
 //  per ADR-0009 + the v1.70 editor-mvvm precedent (= stateless
 //  enums) is the same lift-out.
 //

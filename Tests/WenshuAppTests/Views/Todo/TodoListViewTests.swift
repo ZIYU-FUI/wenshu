@@ -23,7 +23,7 @@ import Testing
 @Suite("TodoListView (v0.93 ticket 004 — per-(book × scope) todo list)")
 struct TodoListViewTests {
 
-    /// v1.33 ticket 001 pattern: derive the TodoListView source path
+    /// 
     /// from THIS test file's path. Tests work regardless of where
     /// the worktree is mounted (= v1.32 hit a build failure when
     /// EditorPlaceholder was in a worktree because the old hardcoded
@@ -125,7 +125,7 @@ struct TodoListViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        // v0.22 ticket h07: data-source-switch pattern (= reload from disk
+        // 
         // when book id OR scope changes). Boss B-09 acceptance.
         #expect(codeRegion.contains(".onAppear { reloadFromDisk() }"),
                 "TodoListView body must call reloadFromDisk on .onAppear (= initial load trigger)")
@@ -247,7 +247,7 @@ struct TodoListViewTests {
         let endRange = section.range(of: "}\n}", options: .literal)?.lowerBound ?? section.endIndex
         let chipSection = String(section[..<endRange])
 
-        // B-13: low/medium = neutral palette, high/urgent = warm warning palette
+        // 
         #expect(chipSection.contains("case .low: return (\"低\", Color.secondary"),
                 "chipStyle .low must use secondary foreground")
         #expect(chipSection.contains("case .medium: return (\"中\", Color.primary"),

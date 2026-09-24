@@ -7,7 +7,7 @@
 // 
 // (= WorkspaceView test coverage expansion). v0.82-83 covered 3
 // subcomponents; v0.87 covered 4; v0.88 covered the main WorkspaceView;
-// v0.93 = the 3 helper structs in WorkspaceView.swift
+// 
 // (= ZoneModuleView, EditorPlaceholder, EditorPaperCanvas).
 // This ticket covers the simplest = EditorPaperCanvas.
 //

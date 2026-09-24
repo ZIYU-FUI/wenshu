@@ -34,7 +34,7 @@ import Foundation
 @Suite("SettingView (v0.93 ticket 005 — Settings tab)")
 struct SettingViewTests {
 
-    /// v1.33 ticket 001 pattern: derive the SettingView source path
+    /// 
     /// from THIS test file's path (= worktree-aware).
     private static var settingViewPath: String {
         let testFileURL = URL(fileURLWithPath: #filePath)
