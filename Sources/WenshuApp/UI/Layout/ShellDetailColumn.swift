@@ -353,9 +353,9 @@ struct ShellDetailColumn: View {
                 .help(WenshuI18n.t("window.todo.help"))
             }
         }
-        // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
-        // the env chain. SwiftUI 6+ breaks the @Environment chain
-        // across NavigationSplitView's 3-column boundary.
+        // Re-inject AppState into the env chain. SwiftUI 6+ breaks
+        // the @Environment chain across NavigationSplitView's
+        // 3-column boundary.
         .environment(appState)
     }
 }
