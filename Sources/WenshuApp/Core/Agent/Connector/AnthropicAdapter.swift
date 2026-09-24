@@ -1,5 +1,5 @@
 //
-//  AnthropicAdapter.swift · Wenshu · HERMES-PARTIAL-006 (2026-09-04)
+//  AnthropicAdapter.swift · Wenshu · port-window
 //
 //  Anthropic Messages API adapter extensions. Direct port of hermes
 //  agent/anthropic_adapter.py (= 2,789 LOC; provides redacted_thinking
@@ -32,7 +32,7 @@
 //  entry-point contract); AnthropicConnector calls into these helpers
 //  when assembling the request body.
 //
-// sub-step 1 + HERMES-PARTIAL-006 (2026-09-04).
+// sub-step 1.
 //
 
 import Foundation
@@ -88,7 +88,7 @@ enum AnthropicAdapter {
                 case .base64:
                     return ["type": "base64", "media_type": mediaType, "data": data]
                 case .url:
-                    // Per HERMES-PARTIAL-006 Z contract test
+                    // Per wenshu port Z contract test
                     // `convertOpenAIMessagesToAnthropic handles document blocks`:
                     // the wire format must include `media_type` even for
                     // URL-sourced documents. Anthropic's API expects the
@@ -136,7 +136,7 @@ enum AnthropicAdapter {
             // Strip the optional ";base64" payload encoding hint so the
             // mediaType that flows to the Anthropic wire format matches
             // the canonical MIME type (= "image/png" not "image/png;base64").
-            // Per HERMES-PARTIAL-006 Z contract test `imageSourceFromOpenAIURL
+            // Per wenshu port Z contract test `imageSourceFromOpenAIURL
             // converts data: URL into base64 source`: the wire format is
             // `{"type": "base64", "media_type": "image/png", "data": "..."}`.
             // The ";base64" suffix is a data-URL payload encoding hint, not
