@@ -67,7 +67,8 @@ struct ChatPlanPartView: View {
             // Header: 'Plan: <query>' + connector label.
             HStack(spacing: DesignTokens.chromePaddingSmall) {
                 Image(systemName: "list.bullet.rectangle")
-                    .font(.system(size: 12, weight: .regular))
+                    .imageScale(.small)
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Color.accentColor)
                 Text("Plan: \(plan.query)")
                     .font(.system(.caption, design: .monospaced))
@@ -105,7 +106,8 @@ struct ChatPlanPartView: View {
                 // Falls back to 'questionmark.circle' when the slug
                 // is unknown (= forward-compat for future connectors).
                 Image(systemName: Self.connectorIcon(plan.connectorID))
-                    .font(.system(size: 11, weight: .regular))
+                    .imageScale(.small)
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.tertiary)
                 HStack(spacing: 2) {
                     Text(Provider.by(slug: plan.connectorID)?.name ?? plan.connectorID)
@@ -158,7 +160,9 @@ struct ChatPlanPartView: View {
                     Label {
                         Text("Approve & Run")
                     } icon: {
-                        Image(systemName: "play.fill").font(.system(size: 10, weight: .semibold))
+                        Image(systemName: "play.fill")
+                            .imageScale(.small)
+                            .symbolRenderingMode(.hierarchical)
                     }
                     .labelStyle(.titleAndIcon)
                 }
