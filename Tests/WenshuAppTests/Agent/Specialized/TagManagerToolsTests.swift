@@ -31,6 +31,8 @@ struct TagManagerToolsTests {
     // MARK: - Shared helpers
 
     /// Build a tiny BookStore rooted in a unique /tmp directory.
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; this helper constructs / mutates BookStore state.
+    @MainActor
     private static func makeBookStore() throws -> (BookStore, LibraryStores) {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p1-14-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
@@ -57,6 +59,8 @@ struct TagManagerToolsTests {
     }
 
     /// Convenience composition of `makeBookStore` + `makeBookDir`.
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeBookStoreWithDir(for bookId: UUID) throws -> (BookStore, URL) {
         let (store, stores) = try makeBookStore()
         let dir = try makeBookDir(under: stores, bookId: bookId)
@@ -68,6 +72,7 @@ struct TagManagerToolsTests {
     // MARK: - Test 1: add tag persists to the sidecar
 
     @Test("add persists a tag to the per-book sidecar")
+    @MainActor
     func testAddTag_persistsToBookSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, dir) = try Self.makeBookStoreWithDir(for: bookId)
@@ -98,6 +103,7 @@ struct TagManagerToolsTests {
     // MARK: - Test 2: apply tag records an application
 
     @Test("apply records a tag application for the target entity")
+    @MainActor
     func testApplyTag_recordsApplication() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -140,6 +146,7 @@ struct TagManagerToolsTests {
     // MARK: - Test 3: unapply removes the application
 
     @Test("unapply deletes the application row")
+    @MainActor
     func testUnapplyTag_removesApplication() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -171,6 +178,7 @@ struct TagManagerToolsTests {
     // MARK: - Test 4: tag cloud returns one entry per tag with count
 
     @Test("tag cloud returns one entry per tag with a count of distinct applications")
+    @MainActor
     func testTagCloud_returnsCountPerTag() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -219,6 +227,7 @@ struct TagManagerToolsTests {
     // MARK: - Test 5: filterByTag returns matching entity ids
 
     @Test("filterByTag returns the set of entity ids for the matching tag + target")
+    @MainActor
     func testFilterByTag_returnsMatchingEntityIds() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)

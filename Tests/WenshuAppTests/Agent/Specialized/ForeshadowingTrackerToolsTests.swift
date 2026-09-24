@@ -32,6 +32,8 @@ struct ForeshadowingTrackerToolsTests {
     // MARK: - Shared helpers
 
     /// Build a tiny BookStore rooted in a unique /tmp directory.
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; this helper constructs / mutates BookStore state.
+    @MainActor
     private static func makeBookStore() throws -> (BookStore, LibraryStores) {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p2-17-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
@@ -58,6 +60,8 @@ struct ForeshadowingTrackerToolsTests {
     }
 
     /// Convenience composition of `makeBookStore` + `makeBookDir`.
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeBookStoreWithDir(for bookId: UUID) throws -> (BookStore, URL) {
         let (store, stores) = try makeBookStore()
         let dir = try makeBookDir(under: stores, bookId: bookId)
@@ -69,6 +73,7 @@ struct ForeshadowingTrackerToolsTests {
     // MARK: - Test 1: add foreshadowing persists to the sidecar
 
     @Test("add persists a foreshadowing to the per-book sidecar")
+    @MainActor
     func testAddForeshadowing_persistsToBookSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, dir) = try Self.makeBookStoreWithDir(for: bookId)
@@ -107,6 +112,7 @@ struct ForeshadowingTrackerToolsTests {
     // MARK: - Test 2: update foreshadowing updates status
 
     @Test("update changes the foreshadowing's status")
+    @MainActor
     func testUpdateForeshadowing_updatesStatus() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -157,6 +163,7 @@ struct ForeshadowingTrackerToolsTests {
     // MARK: - Test 3: remove foreshadowing removes from sidecar
 
     @Test("remove deletes a foreshadowing from the per-book sidecar")
+    @MainActor
     func testRemoveForeshadowing_removesFromSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, dir) = try Self.makeBookStoreWithDir(for: bookId)
@@ -205,6 +212,7 @@ struct ForeshadowingTrackerToolsTests {
     // MARK: - Test 4: list foreshadowings filters by status
 
     @Test("list filters foreshadowings by status")
+    @MainActor
     func testListForeshadowings_filtersByStatus() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -277,6 +285,7 @@ struct ForeshadowingTrackerToolsTests {
     // MARK: - Test 5: stale foreshadowings returns open older than threshold
 
     @Test("staleForeshadowings returns in-flight rows older than the threshold")
+    @MainActor
     func testStaleForeshadowings_returnsOpenOlderThanThreshold() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)

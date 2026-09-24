@@ -32,6 +32,8 @@ struct CharacterRelationshipToolsTests {
     // MARK: - Shared helpers
 
     /// Build a tiny BookStore rooted in a unique /tmp directory.
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; this helper constructs / mutates BookStore state.
+    @MainActor
     private static func makeBookStore() throws -> (BookStore, LibraryStores) {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p1-12-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
@@ -58,6 +60,8 @@ struct CharacterRelationshipToolsTests {
     }
 
     /// Convenience composition of `makeBookStore` + `makeBookDir`.
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeBookStoreWithDir(for bookId: UUID) throws -> (BookStore, URL) {
         let (store, stores) = try makeBookStore()
         let dir = try makeBookDir(under: stores, bookId: bookId)
@@ -69,6 +73,7 @@ struct CharacterRelationshipToolsTests {
     // MARK: - Test 1: add persists to the sidecar
 
     @Test("add persists a relationship to the per-book sidecar")
+    @MainActor
     func testAddRelationship_persistsToBookSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, dir) = try Self.makeBookStoreWithDir(for: bookId)
@@ -103,6 +108,7 @@ struct CharacterRelationshipToolsTests {
     // MARK: - Test 2: update changes the kind
 
     @Test("update replaces an existing relationship's kind")
+    @MainActor
     func testUpdateRelationship_updatesKind() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -138,6 +144,7 @@ struct CharacterRelationshipToolsTests {
     // MARK: - Test 3: remove clears the sidecar entry
 
     @Test("remove deletes the relationship from the sidecar")
+    @MainActor
     func testRemoveRelationship_removesFromSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -159,6 +166,7 @@ struct CharacterRelationshipToolsTests {
     // MARK: - Test 4: list filters by kind
 
     @Test("list filters relationships by kind")
+    @MainActor
     func testListRelationships_filtersByKind() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -210,6 +218,7 @@ struct CharacterRelationshipToolsTests {
     // MARK: - Test 5: inconsistencies detects conflicting kinds
 
     @Test("inconsistencies returns one row per pair with conflicting kinds")
+    @MainActor
     func testInconsistencies_detectsConflictingKinds() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -253,6 +262,7 @@ struct CharacterRelationshipToolsTests {
     // MARK: - Test 6: graph builds nodes and edges
 
     @Test("graph builds nodes from characters and edges from relationships")
+    @MainActor
     func testGraph_buildsNodesAndEdges() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)

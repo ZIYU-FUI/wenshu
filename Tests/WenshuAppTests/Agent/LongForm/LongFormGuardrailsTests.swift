@@ -36,6 +36,8 @@ struct LongFormGuardrailsTests {
     /// Returns the BookStore + the underlying stores bundle (so
     /// each test can create its own per-book subdir under
     /// `stores.shelvesRoot`).
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; helper that constructs / mutates BookStore state must run on the main actor.
+    @MainActor
     private static func makeBookStore() throws -> (BookStore, LibraryStores) {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p1-06-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
@@ -65,6 +67,8 @@ struct LongFormGuardrailsTests {
 
     /// Build a BookStore + a per-book subdir for the supplied bookId.
     /// Convenience composition of `makeBookStore` + `makeBookDir`.
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeBookStoreWithDir(for bookId: UUID) throws -> (BookStore, URL) {
         let (store, stores) = try makeBookStore()
         let dir = try makeBookDir(under: stores, bookId: bookId)
@@ -76,6 +80,7 @@ struct LongFormGuardrailsTests {
     // MARK: - Test 1: loadGuardrails reads the sidecar
 
     @Test("loadGuardrails returns auto-derived set when no sidecar exists")
+    @MainActor
     func testLoadGuardrails_fromBookConfig() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -93,6 +98,7 @@ struct LongFormGuardrailsTests {
     // MARK: - Test 2: add persists to the sidecar
 
     @Test("add persists a user-authored guardrail to the sidecar")
+    @MainActor
     func testAddGuardrail_persistsToBookConfig() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -121,6 +127,7 @@ struct LongFormGuardrailsTests {
     // MARK: - Test 3: remove clears the sidecar entry
 
     @Test("remove deletes the guardrail from the sidecar")
+    @MainActor
     func testRemoveGuardrail_removesFromBookConfig() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -144,6 +151,7 @@ struct LongFormGuardrailsTests {
     // MARK: - Test 4: constraint violation
 
     @Test("check returns a violation when a forbidden word appears")
+    @MainActor
     func testCheck_constraintViolation_returnsViolation() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -173,6 +181,7 @@ struct LongFormGuardrailsTests {
     // MARK: - Test 5: constraint pass
 
     @Test("check returns no violation when the forbidden word is absent")
+    @MainActor
     func testCheck_constraintPass_noViolation() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -197,6 +206,7 @@ struct LongFormGuardrailsTests {
     // MARK: - Test 6: strict enforcement rejects the response
 
     @Test("applyEnforcement throws when a strict guardrail produces a critical violation")
+    @MainActor
     func testCheck_strictEnforcement_rejectsResponse() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -226,6 +236,7 @@ struct LongFormGuardrailsTests {
     // MARK: - Test 7: warn enforcement appends a warning block
 
     @Test("applyEnforcement appends a warning block when a warn guardrail fires")
+    @MainActor
     func testCheck_warnEnforcement_appendsWarning() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -252,6 +263,7 @@ struct LongFormGuardrailsTests {
     // MARK: - Test 8: extractConstraints from book context
 
     @Test("extractConstraints produces one guardrail per kind from the book context")
+    @MainActor
     func testExtractConstraints_fromBookContext() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)

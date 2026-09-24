@@ -399,8 +399,8 @@ actor LongFormGuardrails {
     /// Add a user-authored guardrail. Persists + caches.
     func add(_ guardrail: LongFormGuardrail) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: guardrail.kind == .continuity
-            ? sidecarBookIdForGuardrail(guardrail) ?? UUID()
-            : sidecarBookIdForGuardrail(guardrail) ?? UUID())
+            ? (await sidecarBookIdForGuardrail(guardrail)) ?? UUID()
+            : (await sidecarBookIdForGuardrail(guardrail)) ?? UUID())
         // Re-resolve the right bookId: the input struct does not
         // carry its own bookId (= keep Codable surface narrow per
         // S5; the caller MUST pass the bookId via a separate API
@@ -743,7 +743,7 @@ actor LongFormGuardrails {
     /// resolved bookId is the active selectedBookId; = the
     /// `loadGuardrails(for:)` return value tells the caller
     /// which bookId to use).
-    private func sidecarBookIdForGuardrail(_ guardrail: LongFormGuardrail) -> UUID? {
+    private func sidecarBookIdForGuardrail(_ guardrail: LongFormGuardrail) async -> UUID? {
         // First pass: cache lookup (= any cached sidecar holding
         // this guardrail's id = the right bookId).
         for (bookId, sidecar) in cache {
@@ -754,7 +754,9 @@ actor LongFormGuardrails {
         // Second pass: fall back to the BookStore's selected book
         // (= the canonical "what book is the user looking at"
         // = the sidecar the untyped add should land in).
-        return bookStore.selectedBookId
+        // P1-04 (audit 2026-09-24): BookStore is now @MainActor;
+        // = read the value from a MainActor-isolated context.
+        return await MainActor.run { bookStore.selectedBookId }
     }
 
     // MARK: - Per-kind evaluators (= `check(_:against:)` workers)

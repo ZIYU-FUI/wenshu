@@ -33,6 +33,8 @@ struct PlaceholderScannerToolsTests {
     // MARK: - Shared helpers
 
     /// Build a tiny BookStore rooted in a unique /tmp directory.
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; this helper constructs / mutates BookStore state.
+    @MainActor
     private static func makeBookStore() throws -> (BookStore, LibraryStores) {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p2-18-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
@@ -59,6 +61,8 @@ struct PlaceholderScannerToolsTests {
     }
 
     /// Convenience composition of `makeBookStore` + `makeBookDir`.
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeBookStoreWithDir(for bookId: UUID) throws -> (BookStore, URL) {
         let (store, stores) = try makeBookStore()
         let dir = try makeBookDir(under: stores, bookId: bookId)
@@ -70,6 +74,7 @@ struct PlaceholderScannerToolsTests {
     // MARK: - Test 1: add placeholder persists to the sidecar
 
     @Test("add persists a placeholder to the per-book sidecar")
+    @MainActor
     func testAddPlaceholder_persistsToBookSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, dir) = try Self.makeBookStoreWithDir(for: bookId)
@@ -108,6 +113,7 @@ struct PlaceholderScannerToolsTests {
     // MARK: - Test 2: update placeholder updates status
 
     @Test("update changes the placeholder's status")
+    @MainActor
     func testUpdatePlaceholder_updatesStatus() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -166,6 +172,7 @@ struct PlaceholderScannerToolsTests {
     // MARK: - Test 3: remove placeholder removes from sidecar
 
     @Test("remove deletes a placeholder from the per-book sidecar")
+    @MainActor
     func testRemovePlaceholder_removesFromSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, dir) = try Self.makeBookStoreWithDir(for: bookId)
@@ -219,6 +226,7 @@ struct PlaceholderScannerToolsTests {
     // MARK: - Test 4: list placeholders filters by chapter
 
     @Test("list filters placeholders by chapter")
+    @MainActor
     func testListPlaceholders_filtersByChapter() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -309,6 +317,7 @@ struct PlaceholderScannerToolsTests {
     // MARK: - Test 5: scan chapter with TODO marker returns a match
 
     @Test("scan returns a match for a chapter containing a TODO marker")
+    @MainActor
     func testScan_chapterWithTodoMarker_returnsMatch() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)

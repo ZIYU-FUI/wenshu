@@ -32,6 +32,8 @@ struct BookManagerToolTests {
     // MARK: - Shared helpers
 
     /// Build a tiny BookStore rooted in a unique /tmp directory.
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; helper that constructs / mutates BookStore state must run on the main actor.
+    @MainActor
     private static func makeBookStore() throws -> (BookStore, LibraryStores) {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p2-20-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
@@ -50,6 +52,8 @@ struct BookManagerToolTests {
     /// (= mirrors the production UI path), then mirror it into
     /// `bookStore.shelves` (= the in-memory cache BookManager
     /// consults on create for shelf-existence checks).
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; helper that constructs / mutates BookStore state must run on the main actor.
+    @MainActor
     private static func makeShelf(
         bookStore: BookStore,
         stores: LibraryStores,
@@ -75,6 +79,7 @@ struct BookManagerToolTests {
     // MARK: - Test 1: create book returns descriptor
 
     @Test("createBook returns a descriptor with the requested fields")
+    @MainActor
     func testCreateBook_returnsDescriptor() async throws {
         let (store, _) = try Self.makeBookStore()
         let shelf = try Self.makeShelf(bookStore: store, stores: store.stores)
@@ -97,6 +102,7 @@ struct BookManagerToolTests {
     // MARK: - Test 2: rename book updates title
 
     @Test("renameBook updates the title and preserves shelfId")
+    @MainActor
     func testRenameBook_updatesTitle() async throws {
         let (store, _) = try Self.makeBookStore()
         let shelf = try Self.makeShelf(bookStore: store, stores: store.stores)
@@ -121,6 +127,7 @@ struct BookManagerToolTests {
     // MARK: - Test 3: delete book moves to trash (= removes from disk)
 
     @Test("deleteBook removes the book from BookStore.books and the per-book directory")
+    @MainActor
     func testDeleteBook_movesToTrash() async throws {
         let (store, _) = try Self.makeBookStore()
         let shelf = try Self.makeShelf(bookStore: store, stores: store.stores)
@@ -148,6 +155,7 @@ struct BookManagerToolTests {
     // MARK: - Test 4: list books returns all (= filterable by shelf)
 
     @Test("listBooks returns every book; shelfId filter scopes the result")
+    @MainActor
     func testListBooks_returnsAll() async throws {
         let (store, _) = try Self.makeBookStore()
         let shelfA = try Self.makeShelf(bookStore: store, stores: store.stores, name: "Shelf A")
@@ -177,6 +185,7 @@ struct BookManagerToolTests {
     // MARK: - Test 5: execute("create") parses JSON and creates a book
 
     @Test("execute(create) parses the JSON envelope and creates a book")
+    @MainActor
     func testExecute_createAction_parsesAndCreates() async throws {
         let (store, _) = try Self.makeBookStore()
         let shelf = try Self.makeShelf(bookStore: store, stores: store.stores)

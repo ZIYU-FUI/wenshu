@@ -124,6 +124,8 @@ struct IntegrationPlanEndToEndTests {
     /// every per-tool test (= ForeshadowingTracker / IdeaLibrary /
     /// TagManager / LongFormGuardrails / etc.) so the integration
     /// test reuses the canonical wenshu-side test scaffolding.
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeBookStore() throws -> (BookStore, LibraryStores) {
         let tag = "p5-23-\(UUID().uuidString)"
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-\(tag)", isDirectory: true)
@@ -143,6 +145,8 @@ struct IntegrationPlanEndToEndTests {
     /// BookManager / BookManagerTool smoke tests can pass the
     /// shelf-existence check on create (= mirrors the
     /// BookManagerToolTests scaffolding).
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeShelf(bookStore: BookStore, name: String = "Integration Shelf") throws -> Bookshelf {
         try bookStore.sidebarSaveShelf(name: name, icon: nil)
         let shelves = try bookStore.sidebarLoadShelves()
@@ -174,6 +178,8 @@ struct IntegrationPlanEndToEndTests {
 
     /// Convenience: BookStore + per-book subdir + a per-book UUID
     /// triple. The single helper every smoke step depends on.
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeBookStoreWithDir() throws -> (BookStore, URL, UUID) {
         let bookId = UUID()
         let (store, stores) = try makeBookStore()

@@ -83,6 +83,8 @@ struct SMC003EditorActionsTests {
     }
 
     @Test("DraftPersistence proposedPath returns chapters/<uuid>.md")
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; helper that constructs / mutates BookStore state must run on the main actor.
+    @MainActor
     func draftPersistenceProposedPath() async throws {
         let bundle = try makeBookStoreBundle()
         let stores = LibraryStores(

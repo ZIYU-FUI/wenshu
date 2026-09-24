@@ -32,6 +32,8 @@ struct CharacterLifecycleToolsTests {
     // MARK: - Shared helpers
 
     /// Build a tiny BookStore rooted in a unique /tmp directory.
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; this helper constructs / mutates BookStore state.
+    @MainActor
     private static func makeBookStore() throws -> (BookStore, LibraryStores) {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p1-13-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
@@ -58,6 +60,8 @@ struct CharacterLifecycleToolsTests {
     }
 
     /// Convenience composition of `makeBookStore` + `makeBookDir`.
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeBookStoreWithDir(for bookId: UUID) throws -> (BookStore, URL) {
         let (store, stores) = try makeBookStore()
         let dir = try makeBookDir(under: stores, bookId: bookId)
@@ -69,6 +73,7 @@ struct CharacterLifecycleToolsTests {
     // MARK: - Test 1: add persists to the sidecar
 
     @Test("add persists a lifecycle event to the per-book sidecar")
+    @MainActor
     func testAddEvent_persistsToBookSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, dir) = try Self.makeBookStoreWithDir(for: bookId)
@@ -105,6 +110,7 @@ struct CharacterLifecycleToolsTests {
     // MARK: - Test 2: list filters by character
 
     @Test("list filters events by character")
+    @MainActor
     func testListEvents_filtersByCharacter() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -153,6 +159,7 @@ struct CharacterLifecycleToolsTests {
     // MARK: - Test 3: timeline returns sorted events
 
     @Test("timeline returns events for a character sorted by chapter then createdAt")
+    @MainActor
     func testTimeline_returnsSortedEvents() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -201,6 +208,7 @@ struct CharacterLifecycleToolsTests {
     // MARK: - Test 4: contradictions detect dead-but-active
 
     @Test("contradictions detects a character who is 'dead' then 'active' without resurrection")
+    @MainActor
     func testContradictions_detectsDeadButActive() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -254,6 +262,7 @@ struct CharacterLifecycleToolsTests {
     // MARK: - Test 5: remove clears the sidecar entry
 
     @Test("remove deletes the event from the sidecar")
+    @MainActor
     func testRemoveEvent_removesFromSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)

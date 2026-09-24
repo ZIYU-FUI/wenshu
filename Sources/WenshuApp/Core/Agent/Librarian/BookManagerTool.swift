@@ -232,7 +232,7 @@ public actor BookManager {
         guard !trimmedTitle.isEmpty else {
             throw BookManagerError.emptyTitle
         }
-        let shelves = bookStore.shelves
+        let shelves = await MainActor.run { bookStore.shelves }
         guard shelves.contains(where: { $0.id == shelfId }) else {
             throw BookManagerError.shelfNotFound(shelfId: shelfId)
         }
@@ -245,7 +245,7 @@ public actor BookManager {
             updatedAt: now
         )
         do {
-            try bookStore.sidebarSaveBook(book)
+            try await MainActor.run { try bookStore.sidebarSaveBook(book) }
         } catch {
             throw BookManagerError.underlying(String(describing: error))
         }
@@ -276,7 +276,7 @@ public actor BookManager {
         guard !trimmed.isEmpty else {
             throw BookManagerError.emptyTitle
         }
-        let books = bookStore.books
+        let books = await MainActor.run { bookStore.books }
         guard let idx = books.firstIndex(where: { $0.id == id }) else {
             throw BookManagerError.bookNotFound(bookId: id)
         }
@@ -284,7 +284,7 @@ public actor BookManager {
         book.title = trimmed
         book.updatedAt = Date()
         do {
-            try bookStore.sidebarSaveBook(book)
+            try await MainActor.run { try bookStore.sidebarSaveBook(book) }
         } catch {
             throw BookManagerError.underlying(String(describing: error))
         }
@@ -305,12 +305,12 @@ public actor BookManager {
     ///     (= canonical wenshu-side deletion + side-effects on
     ///     BookStore.books).
     public func deleteBook(id: UUID) async throws {
-        let books = bookStore.books
+        let books = await MainActor.run { bookStore.books }
         guard books.contains(where: { $0.id == id }) else {
             throw BookManagerError.bookNotFound(bookId: id)
         }
         do {
-            try bookStore.sidebarDeleteBook(id: id)
+            try await MainActor.run { try bookStore.sidebarDeleteBook(id: id) }
         } catch {
             throw BookManagerError.underlying(String(describing: error))
         }
@@ -325,7 +325,7 @@ public actor BookManager {
     /// canonical wenshu-side order in `AppleSidebarView` (= post-v1.69 sidebar MVVM split) — the legacy
     /// `BookStore.sidebarLoadAllBooks`).
     public func listBooks(shelfId: UUID? = nil) async throws -> [BookDescriptor] {
-        let books = bookStore.books
+        let books = await MainActor.run { bookStore.books }
         let filtered = books.filter { book in
             shelfId.map { $0 == book.shelfId } ?? true
         }
@@ -347,9 +347,10 @@ public actor BookManager {
     /// the id is unknown (= matches the view layer's "optional
     /// row" idiom).
     public func showBook(id: UUID) async throws -> BookDescriptor? {
-        guard let book = bookStore.books.first(where: { $0.id == id }) else {
+        guard let book: Book? = await MainActor.run(body: { bookStore.books.first(where: { $0.id == id }) }) else {
             return nil
         }
+        guard let book else { return nil }
         return BookDescriptor(
             id: book.id,
             title: book.title,
@@ -603,9 +604,19 @@ public actor BookManagerTool: Tool {
             referenceLibraryRoot: referenceLibraryRoot,
             referenceStore: referenceStore
         )
-        let bookStore = BookStore(stores: stores)
-        bookStore.shelves = (try? bookStore.sidebarLoadShelves()) ?? []
-        bookStore.reloadAllBooks()
+        // P1-04 (audit 2026-09-24): BookStore is now @MainActor. The
+        // `nonisolated static let shared` initializer cannot `await`
+        // (= static-let initializer = nonisolated context). Wrap the
+        // BookStore construction + initial shelves load in
+        // `MainActor.assumeIsolated` (= this initializer runs at
+        // first access from the main thread in production; tests that
+        // hit the static from background threads will assert-fail
+        // explicitly, which is the desired fail-loud behavior).
+        let bookStore = MainActor.assumeIsolated { BookStore(stores: stores) }
+        MainActor.assumeIsolated {
+            bookStore.shelves = (try? bookStore.sidebarLoadShelves()) ?? []
+            bookStore.reloadAllBooks()
+        }
         return BookManagerTool(manager: BookManager(bookStore: bookStore))
     }()
 

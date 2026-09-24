@@ -31,6 +31,8 @@ struct IdeaLibraryToolsTests {
     // MARK: - Shared helpers
 
     /// Build a tiny BookStore rooted in a unique /tmp directory.
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; this helper constructs / mutates BookStore state.
+    @MainActor
     private static func makeBookStore() throws -> (BookStore, LibraryStores) {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p1-15-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
@@ -57,6 +59,8 @@ struct IdeaLibraryToolsTests {
     }
 
     /// Convenience composition of `makeBookStore` + `makeBookDir`.
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeBookStoreWithDir(for bookId: UUID) throws -> (BookStore, URL) {
         let (store, stores) = try makeBookStore()
         let dir = try makeBookDir(under: stores, bookId: bookId)
@@ -68,6 +72,7 @@ struct IdeaLibraryToolsTests {
     // MARK: - Test 1: add idea persists to the sidecar
 
     @Test("add persists an idea to the per-book sidecar")
+    @MainActor
     func testAddIdea_persistsToBookSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, dir) = try Self.makeBookStoreWithDir(for: bookId)
@@ -102,6 +107,7 @@ struct IdeaLibraryToolsTests {
     // MARK: - Test 2: update idea updates status
 
     @Test("update changes the idea's status")
+    @MainActor
     func testUpdateIdea_updatesStatus() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -146,6 +152,7 @@ struct IdeaLibraryToolsTests {
     // MARK: - Test 3: list filters by status
 
     @Test("list filters ideas by status")
+    @MainActor
     func testListIdeas_filtersByStatus() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -223,6 +230,7 @@ struct IdeaLibraryToolsTests {
     // MARK: - Test 4: search returns matches by title + description
 
     @Test("search returns matching ideas by title and description")
+    @MainActor
     func testSearchIdeas_returnsMatchingByTitleAndDescription() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -293,6 +301,7 @@ struct IdeaLibraryToolsTests {
     // MARK: - Test 5: link idea records a link to chapter
 
     @Test("link records an IdeaLink on the idea + auto-bumps status to planted")
+    @MainActor
     func testLinkIdea_recordsLinkToChapter() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)

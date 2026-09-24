@@ -33,6 +33,8 @@ struct BookSettingConstraintsToolsTests {
     // MARK: - Shared helpers
 
     /// Build a tiny BookStore rooted in a unique /tmp directory.
+    /// P1-04 (audit 2026-09-24): BookStore is now @MainActor; this helper constructs / mutates BookStore state.
+    @MainActor
     private static func makeBookStore() throws -> (BookStore, LibraryStores) {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p1-16-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
@@ -59,6 +61,8 @@ struct BookSettingConstraintsToolsTests {
     }
 
     /// Convenience composition of `makeBookStore` + `makeBookDir`.
+    /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
+    @MainActor
     private static func makeBookStoreWithDir(for bookId: UUID) throws -> (BookStore, URL) {
         let (store, stores) = try makeBookStore()
         let dir = try makeBookDir(under: stores, bookId: bookId)
@@ -70,6 +74,7 @@ struct BookSettingConstraintsToolsTests {
     // MARK: - Test 1: add persists to the sidecar
 
     @Test("add persists a constraint to the per-book sidecar")
+    @MainActor
     func testAddConstraint_persistsToBookSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, dir) = try Self.makeBookStoreWithDir(for: bookId)
@@ -107,6 +112,7 @@ struct BookSettingConstraintsToolsTests {
     // MARK: - Test 2: list filters by severity
 
     @Test("list filters constraints by severity")
+    @MainActor
     func testListConstraints_filtersBySeverity() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -165,6 +171,7 @@ struct BookSettingConstraintsToolsTests {
     // MARK: - Test 3: chapter with forbidden phrase returns a violation
 
     @Test("check returns a violation when chapter text contains a forbidden phrase")
+    @MainActor
     func testCheck_chapterWithForbiddenPhrase_returnsViolation() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -199,6 +206,7 @@ struct BookSettingConstraintsToolsTests {
     // MARK: - Test 4: chapter without forbidden phrase returns no violations
 
     @Test("check returns no violations when chapter text is clean")
+    @MainActor
     func testCheck_chapterWithoutForbiddenPhrase_returnsNoViolations() async throws {
         let bookId = Self.sampleBookId()
         let (store, _) = try Self.makeBookStoreWithDir(for: bookId)
@@ -232,6 +240,7 @@ struct BookSettingConstraintsToolsTests {
     // MARK: - Test 5: remove constraint removes from sidecar
 
     @Test("remove deletes a constraint from the per-book sidecar")
+    @MainActor
     func testRemoveConstraint_removesFromSidecar() async throws {
         let bookId = Self.sampleBookId()
         let (store, dir) = try Self.makeBookStoreWithDir(for: bookId)

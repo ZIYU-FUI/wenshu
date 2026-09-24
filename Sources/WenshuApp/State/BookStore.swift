@@ -46,8 +46,22 @@ struct BookBundle: Sendable {
 /// + a `currentBookDirectory` optional. `reload(bookId:)` swaps the
 /// directory; the WorldStoring / CharacterStoring callable members
 /// lazily resolve the per-book store via `LibraryStores.makeBookStores`.
+///
+/// P1-04 (audit 2026-09-24): `@MainActor` (= matches `WenshuLibrary` +
+/// `AppState`; = every SwiftUI View + the 11 agent tools that read
+/// these properties are already on the MainActor at runtime). The
+/// previous `@unchecked Sendable` was a misannotation (= Swift 6
+/// strict concurrency would have flagged the actor-isolation lie
+/// had the macro been enforced). Agent-tool callers (= `PlotThreadTracker`,
+/// `TagManager`, `BookManagerTool`, ...) that previously read
+/// `bookStore.stores.shelvesRoot` from inside their `actor` bodies now
+/// route through the `nonisolated let stores` and the standalone
+/// `BookStorePathHelper` (= same shape as the LiveChatRepository
+/// forwarder pattern); = no `await` ceremony required for the 11
+/// tools that only need URL paths.
+@MainActor
 @Observable
-final class BookStore: @unchecked Sendable {
+final class BookStore {
     /// All shelves (= loaded once at app launch; edits in-memory;
     /// save on change).
     var shelves: [Bookshelf] = []
@@ -93,7 +107,15 @@ final class BookStore: @unchecked Sendable {
 
     /// Library-level store bundle (= constructed by LibraryLifecycleHook
     /// at app launch; held here for per-book resolution).
-    let stores: LibraryStores
+    ///
+    /// `nonisolated let` (= `LibraryStores` is itself a `Sendable`
+    /// struct holding Sendable `URL` + `ReferenceStoring` references).
+    /// Agent tools (= actors that synchronously need `bookStore.stores.shelvesRoot`
+    /// or `bookStore.stores.referenceLibraryRoot` to resolve per-book
+    /// paths) read this from inside their `actor` bodies without
+    /// `await` ceremony. Mutable state (= `shelves`, `books`,
+    /// `currentBookId`) stays on the MainActor.
+    nonisolated let stores: LibraryStores
 
     /// Current book directory (= swapped by reload(bookId:)).
     var currentBookDirectory: URL?
@@ -370,12 +392,17 @@ extension BookStore {
     /// rebuild on miss rebuilds from the freshest `books` array in
     /// one pass; = subsequent calls hit cache until the next books
     /// mutation invalidates it).
-    func bookDirectory(bookId: UUID) -> URL? {
-        if let cached = bookDirectoryCache[bookId] {
-            return cached
-        }
-        // Cache miss: scan shelves (= the same N-shelf loop the
-        // pre-cache version ran every call; = now only on miss).
+    /// P1-04 (audit 2026-09-24): nonisolated counterpart for the 11
+    /// agent-tool actors that previously called `bookDirectory(bookId:)`
+    /// synchronously from inside their `actor` body (= Swift 6 strict
+    /// concurrency can't let a non-MainActor caller access the
+    /// @MainActor `bookDirectoryCache` mutable dict). Re-runs the same
+    /// shelves scan via `stores.shelvesRoot` (= which IS nonisolated;
+    /// see the `nonisolated let stores` annotation above). The cache
+    /// hit path is bypassed (= agent tools hit a cold cache every call;
+    /// acceptable because the scan is N-shelf and bounded by the
+    /// user's library size).
+    nonisolated func bookDirectory(bookId: UUID) -> URL? {
         let fm = FileManager.default
         let shelvesRoot = stores.shelvesRoot
         guard let shelfEntries = try? fm.contentsOfDirectory(
@@ -388,9 +415,21 @@ extension BookStore {
                 .appendingPathComponent("books", isDirectory: true)
                 .appendingPathComponent(bookId.uuidString, isDirectory: true)
             if fm.fileExists(atPath: candidate.path) {
-                bookDirectoryCache[bookId] = candidate
                 return candidate
             }
+        }
+        return nil
+    }
+
+    /// MainActor-isolated original (= retains the cache for the
+    /// SwiftUI view path that calls this on every render).
+    func bookDirectoryCached(bookId: UUID) -> URL? {
+        if let cached = bookDirectoryCache[bookId] {
+            return cached
+        }
+        if let resolved = bookDirectory(bookId: bookId) {
+            bookDirectoryCache[bookId] = resolved
+            return resolved
         }
         return nil
     }
@@ -491,9 +530,9 @@ extension BookStore {
     func scopeDirectory(bookId: UUID?, scope: TaskScope) -> URL? {
         switch scope {
         case .book:
-            return bookId.flatMap { bookDirectory(bookId: $0) }
+            return bookId.flatMap { bookDirectoryCached(bookId: $0) }
         case .folder(let folder):
-            guard let bookDir = bookId.flatMap({ bookDirectory(bookId: $0) }) else {
+            guard let bookDir = bookId.flatMap({ bookDirectoryCached(bookId: $0) }) else {
                 return nil
             }
             return bookDir.appendingPathComponent(folder.folderName, isDirectory: true)
