@@ -1,7 +1,7 @@
 //
 //  ReadOnlyShellTests.swift · Wenshu · v0.23 ticket 013.011 (hermes gap 10)
 //
-// Boss 2026-08-23: hermes selective shell allow (read-only whitelist).
+// 
 //
 
 import Foundation

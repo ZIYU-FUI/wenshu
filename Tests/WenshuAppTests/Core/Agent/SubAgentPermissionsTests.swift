@@ -1,7 +1,7 @@
 //
 //  SubAgentPermissionsTests.swift · Wenshu · v0.23 ticket 012
 //
-// Boss 2026-08-23: hermes, must.
+// 
 //  Verify hermes DELEGATE_BLOCKED_TOOLS parity in wenshu.
 //
 

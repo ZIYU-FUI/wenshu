@@ -13,7 +13,7 @@ struct AgentProtocolTests {
     private static func makeProtocol() -> AgentProtocol {
         // 
         // test agent WenshuVerifier (key → ping fail → error path, yes echo)
-        // v1.52 stale-test-cleanup: inject an empty InMemoryKeychainStore
+        // 
         // (= hermetic; = test expects no LLM key → verifier .missingAPIKey
         // → task.status = .failed). The previous default behavior read
         // the real keychain (= dev env may have sk-test, = verifier

@@ -167,7 +167,7 @@ struct RealAgentDispatchTests {
         _ = result  // ConversationResult wraps the response
     }
 
-    /// v0.37 Batch 2.1 sub-step 3: scripted tool_use flow end-to-end.
+    /// 
     /// The mock emits a tool_use block, ConversationLoop routes to
     /// ToolExecutor, which executes ReadFileTool, then mock emits final
     /// response. Verifies the full real-agent dispatch loop.
@@ -220,7 +220,7 @@ struct RealAgentDispatchTests {
         _ = result
     }
 
-    /// v0.37 Batch 2.1 sub-step 3: multi-step tool dispatch.
+    /// 
     /// Mock emits WriteFile tool_use, ConversationLoop routes to
     /// ToolExecutor, which executes WriteFileTool, then mock emits final.
     /// Verifies file system side effect of tool execution.
@@ -274,7 +274,7 @@ struct RealAgentDispatchTests {
         _ = result
     }
 
-    /// v0.37 Batch 2.1 sub-step 4: ConversationResult structure verification.
+    /// 
     /// Verifies that the result wraps an LLMResponse with expected
     /// blocks + usage + stopReason (= hermes parity per ADR-0012).
     @Test("ConversationResult: response.blocks + usage + stopReason match scripted")
@@ -324,7 +324,7 @@ struct RealAgentDispatchTests {
         }
     }
 
-    /// v0.37 Batch 2.1 sub-step 4: ConversationResult.messages contains
+    /// 
     /// the user message (= history tracking works).
     @Test("ConversationResult: messages contain user input")
     func conversationResultMessagesTracking() async throws {

@@ -40,7 +40,7 @@ struct StreamingPartsTests {
 
     // MARK: - ChatMessage init synthesis
 
-    /// v0.71 P1 batch 1: a legacy caller (= the v0.34 / pre-batch-1
+    /// 
     /// code path that passes `content: "..."` + `thinking: nil` to
     /// ChatMessage init) gets a synthesized parts[] array of one
     /// `.text` part. This keeps the public init surface 100% back-
@@ -61,7 +61,7 @@ struct StreamingPartsTests {
         }
     }
 
-    /// v0.71 P1 batch 1: a caller that passes `thinking: "..."` gets
+    /// 
     /// a synthesized `.reasoning` part appended AFTER the synthesized
     /// `.text` part (= the Hermes `chatMessageText` order: text
     /// first, reasoning second, = the canonical WenshuMarkdownEditor
@@ -99,7 +99,7 @@ struct StreamingPartsTests {
         #expect(message.parts.isEmpty)
     }
 
-    /// v0.71 P1 batch 1: a caller that passes `parts: [...]` directly
+    /// 
     /// (= the streaming pipeline path) does NOT synthesize text or
     /// reasoning parts (= the caller's parts array is canonical; =
     /// the legacy content/thinking init args are ignored when parts
@@ -233,7 +233,7 @@ struct StreamingPartsTests {
 
     // MARK: - StreamState transitions
 
-    /// v0.71 P1 batch 1: a fresh ChatMessage defaults to
+    /// 
     /// .streamState = .idle (= the v0.34 pre-batch-1 behavior
     /// = no streaming decoration in the UI).
     @Test("streamState_defaultsToIdle")
@@ -265,7 +265,7 @@ struct StreamingPartsTests {
     /// array stability invariant).
     @Test("equatable_samePartsAreEqual")
     func equatable_samePartsAreEqual() {
-        // v0.71 P1 batch 1+2: pin the timestamp to a fixed Date so
+        // 
         // the synthesized Equatable (= which compares ALL stored
         // properties including `timestamp: Date`) doesn't trip on
         // the per-instance `Date()` default. The streaming

@@ -106,7 +106,7 @@ struct PresetCardTests {
 
     @Test("uses Image(systemName:) for xmark (= SF Symbols 6 per AGENTS.md §11.1)")
     func usesLucideXmark() throws {
-        // v1.52 stale-test-cleanup: AGENTS.md §11.1 boss OOB 2026-09-15
+        // 
         // 'use SF Symbols 6 (3rd gen) with palette rendering' retired
         // LucideIconSystemFallback. PresetCard.swift now uses
         // `Image(systemName: "xmark")` directly. Test updated to

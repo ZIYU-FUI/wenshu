@@ -672,7 +672,7 @@ struct IntegrationPlanEndToEndTests {
                 "P2 #21 AgentProgressTracker.complete should flip status to .succeeded")
 
         // ===== P2 #22: TodoStore reactivity =====
-        // v1.52 stale-test-cleanup: WSTodoRepository does NOT have a reactive
+        // 
         // stream (= ticket 3 dropped the dead stream that had no consumer;
         // = see AGENTS.md §11.4.2 ticket 3 commit ce80c6492). The previous
         // test stubbed a collector and asserted it received the notification;

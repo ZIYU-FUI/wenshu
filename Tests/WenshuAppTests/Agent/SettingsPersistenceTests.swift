@@ -120,7 +120,7 @@ struct SettingsPersistenceTests {
     @Test("MemoryAdapter: recentEntries returns empty on a fresh suite")
     @MainActor
     func testMemoryAdapterRecentEmpty() async {
-        // v1.52 stale-test-cleanup: MemoryAdapter.recentEntries reads from
+        // 
         // WSMemoryRepository.shared (= global singleton). When other
         // tests in the suite write to shared, = entries persist across
         // tests in the same process. The previous test passed because

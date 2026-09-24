@@ -1,7 +1,7 @@
 //
 // ChatViewModelDefaultModelTests.swift · Wenshu · v0.24 bossverification
 //
-// Boss 2026-08-24: key, model picker defaultshow
+// 
 // 'MiniMax M3', show ' placeholder.
 //
 //  Boss commit c83a131b2 fixed App.swift line 219 (SettingView.llmModel default),

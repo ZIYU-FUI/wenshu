@@ -1,6 +1,6 @@
 // SectionHeaderLockedFormatTests.swift · Wenshu · v0.71 P1 batch 3
 //
-// v0.71 P1 batch 3 (boss 2026-09-11 OOB 'keep this style as the standard — use it from
+// 
 // now on' = 'this style stays as the standard, use it from now on' + 'that
 // title's text color — Apple's is a bit grayer, not pure white, close to the divider's color' =
 // 'the title color is gray, not pure white, close to the divider color'):

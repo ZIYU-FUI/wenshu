@@ -208,7 +208,7 @@ struct ConversationLoopStreamCallbackTests {
 
     // MARK: - WenshuConductor.handle forwards streamCallback
 
-    // v0.71 P1 batch 1+2: the public `WenshuConductor.handle(...streamCallback:)`
+    // 
     // surface is wired through to ConversationLoop.runTurn(...streamCallback:).
     // The 5 unit tests above (= nil/text/thinking/toolUse/ordering) cover
     // the ConversationLoop layer; = the WenshuConductor integration
@@ -223,7 +223,7 @@ struct ConversationLoopStreamCallbackTests {
     // ChatViewModel.send when the user types into the chat zone.
 }
 
-/// v0.71 P1 batch 1+2 helper: a thread-safe accumulator for the
+/// 
 /// streamCallback (= mirrors the @unchecked Sendable
 /// StreamingAccumulator in ChatView.swift; = the test uses a
 /// plain class because the closure is called from the

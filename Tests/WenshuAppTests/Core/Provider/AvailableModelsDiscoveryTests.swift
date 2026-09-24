@@ -1,7 +1,7 @@
 //
 //  AvailableModelsDiscoveryTests.swift · Wenshu · v0.23 ticket 011.003
 //
-// Boss 2026-08-23: key, group.
+// 
 //  Tests verify the discovery logic + Provider invariants.
 //
 

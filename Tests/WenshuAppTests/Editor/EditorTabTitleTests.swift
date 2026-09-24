@@ -1,7 +1,7 @@
 //
 //  EditorTabTitleTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  v0.71 P1 batch 3 (boss 2026-09-12 OOB 'tab title didn't go to the document name bug'
+// 't go to the document name bug'
 //  + 'I raise requirements, you only do what I ask for... just pick an approximate value'):
 //
 //  Code-level verification (= no UI render) that the canonical

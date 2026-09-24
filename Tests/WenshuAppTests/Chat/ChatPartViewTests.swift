@@ -1,7 +1,7 @@
 //
 //  ChatPartViewTests.swift · Wenshu · v0.71 P1 batch 2
 //
-//  v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented...
+// 't implemented...
 //  port the whole thing from hermes... The editor uses SM, the third-party Markdown editor we brought in'):
 //
 //  Code-level verification (= no UI render, no screenshot) of the
@@ -120,7 +120,7 @@ struct ChatPartViewTests {
             id: UUID(),
             role: .agent,
             content: "hello world",
-            parts: []   // v0.34: empty parts
+            parts: []   
         )
         // The body view can be constructed without crashing.
         let body = ChatMessageBodyView(message: msg, isOutgoing: false)
@@ -364,7 +364,7 @@ struct ChatPartViewTests {
 
     // MARK: - ChatMessageHoverActions (= hermes MessageActions)
 
-    /// boss 2026-09-12 OOB 'port the whole thing from hermes... user-message hover': the
+    /// 
     /// ChatMessageHoverActions view MUST be constructible from any
     /// message content (= no crash; = the canonical initialization
     /// path). The view's actual hover behavior is rendered by SwiftUI

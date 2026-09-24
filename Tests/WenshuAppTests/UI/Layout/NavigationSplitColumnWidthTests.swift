@@ -1,7 +1,7 @@
 //
 //  NavigationSplitColumnWidthTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  v0.71 P1 batch 3 (boss 2026-09-10 OOB 'Apple default ranges; left +
+// 
 //  content + inspector widths follow Apple's NSV default ranges' +
 //  'set each column to Apple's recommended parameters — min/ideal/max' + 'on initial launch, make the left and
 //  left-2 columns use the minimum size':

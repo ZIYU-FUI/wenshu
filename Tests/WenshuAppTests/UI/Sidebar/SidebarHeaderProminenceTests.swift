@@ -1,6 +1,6 @@
 // SidebarHeaderProminenceTests.swift · Wenshu · v0.71 P1 batch 3
 //
-// v0.71 P1 batch 3 (boss 2026-09-12 OOB 'sidebar column, test bookshelf, divider,
+// 
 // reference library — is there spacing between these controls that we added by hand; if so, revert to default'):
 // code-level verification (= no UI render) that the sidebar's
 // section header doesn't use the non-Apple-default `.headerProminence

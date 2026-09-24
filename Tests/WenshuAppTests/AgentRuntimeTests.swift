@@ -69,7 +69,7 @@ struct AgentRuntimeTests {
 
     @Test("delegateTask 派任务 + 拿 task 详情 (dev env 没 LLM key → 期望 delegateFailed)")
     func testDelegateTask() async throws {
-        // v1.52 stale-test-cleanup: hermetic InMemoryKeychainStore override
+        // 
         // (= ensures WenshuVerifier hits .missingAPIKey, = AgentRuntime.delegateTask
         // surfaces AgentRuntimeError as expected).
         let empty = InMemoryKeychainStore()

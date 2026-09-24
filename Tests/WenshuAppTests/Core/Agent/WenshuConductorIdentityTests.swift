@@ -1,7 +1,7 @@
 //
 // WenshuConductorIdentityTests.swift · Wenshu · v0.22 ticket 001 (agent)
 //
-// Boss 2026-08-23: verify agent identity is defined and injected.
+// 
 //
 
 import Foundation

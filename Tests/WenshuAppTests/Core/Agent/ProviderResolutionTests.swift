@@ -1,7 +1,7 @@
 //
 //  ProviderResolutionTests.swift · Wenshu · v0.23 ticket 010.003
 //
-// Boss 2026-08-23: user model/key + agent sync.
+// 
 //  Tests verify dynamic credential resolution end-to-end.
 //
 

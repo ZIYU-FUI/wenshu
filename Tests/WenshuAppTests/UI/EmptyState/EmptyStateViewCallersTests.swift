@@ -1,7 +1,7 @@
 //
 //  EmptyStateViewCallersTests.swift · Wenshu · v0.71 P1 batch 3
 //
-//  v0.71 P1 batch 3 (boss 2026-09-12 OOB 'the current empty state isn't a single component,
+// 't a single component,
 //  can you abstract a UI component? While you're at it, on the empty-state icon: double the size and use the thinnest
 //  strokes. The goal is to unify all empty-state styles' + 'audit the right column's 12 tabs; many of them
 //  are missing an empty state'):
