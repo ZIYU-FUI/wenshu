@@ -1,13 +1,9 @@
 //
-//  ShellState.swift · Wenshu · P2-06 (audit 2026-09-24)
+//  ShellState.swift · Wenshu
 //
-//  P2-06 (audit 2026-09-24): extracted from `AppState.swift`.
-//  AppState was 644 LOC of cross-zone UI signals + openTabs +
-//  llmModel; this new class absorbs the 4 shell-chrome fields
+//  Per-window observable for the 4 shell-chrome fields
 //  (= sidebarSelection + inspectorVisible + chatVisible +
-//  inspectorPage) and their persistence helpers. Net effect:
-//  AppState drops to ~150 LOC.
-//
+//  inspectorPage) and their persistence helpers.
 //  Why bundle these 4 (= not 4 separate classes):
 //  - All are "shell chrome" (= sidebar + inspector + chat zone
 //    + inspector page).
