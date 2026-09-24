@@ -1,6 +1,5 @@
 //
-//  MemorySettingsView.swift · Wenshu · v0.35 ticket 009
-//  + SETTINGS-PERSISTENCE-001 (2026-09-05).
+//  MemorySettingsView.swift · Wenshu
 //
 
 import SwiftUI
