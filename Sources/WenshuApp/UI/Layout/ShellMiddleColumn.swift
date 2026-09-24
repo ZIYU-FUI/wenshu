@@ -442,24 +442,22 @@ struct ShellMiddleColumn: View {
                         .controlSize(.regular)
                         .textFieldStyle(.plain)
                     }
-                    // v1.83 boss 2026-09-24 OOB '素材栏的搜索栏没有
-                    // 加内间距, 需要加, 让整个搜索栏的高度高一些' +
-                    // '整搜索栏左右两边没有间距... 素材栏没有内
-                    // 边距, 需要加 10PT': the horizontal padding
-                    // moved from the inner HStack (= .padding(
-                    // .horizontal, chromePaddingContentHorizontal))
-                    // to the outer VStack (= the v1.84 column-
-                    // level inset). Drop the inner horizontal
-                    // padding here (= would stack with the column
-                    // padding = 10 + 10 = 20 PT total = the
-                    // boss's '10 + 10 就过多了' complaint). Switch
-                    // from .controlSize(.regular) (22 PT) to
-                    // .controlSize(.large) (28 PT) + vertical
-                    // padding 4 PT (= chromePaddingMicro) (= 28 +
-                    // 4 × 2 = 36 PT total = the user-specified
-                    // search field height = Apple semantic
-                    // expression per the boss's '不要硬编码数字,
-                    // 用 Apple 表达式' rule).
+                    // v1.85 boss 2026-09-24 OOB '搜索栏里的 ICON
+                    // 和文字, 距左, 也需要加 10PT': the search
+                    // field HStack now owns its own 10 PT horizontal
+                    // padding (= the inner gutter where the icon
+                    // + TextField sit = the icon-to-rounded-rect
+                    // left distance becomes 10 PT, the TextField's
+                    // leading placeholder distance becomes 10 PT).
+                    // This is the user-specified inner padding that
+                    // v1.84b's column-level padding was supposed to
+                    // provide (= the column-level padding was
+                    // removed in v1.85 to free the SectionHeader
+                    // from horizontal padding; = the gutter now
+                    // lives on the per-element level = search
+                    // field background flush to the column edges
+                    // + inner content 10 PT from the rect edge).
+                    .padding(.horizontal, 10)
                     .padding(.vertical, DesignTokens.chromePaddingMicro)
                     // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
                     // spacing between it and the first card — is there a hand-written padding, and if
@@ -518,27 +516,23 @@ struct ShellMiddleColumn: View {
                     )
                 )
             )
-            // v1.84 boss 2026-09-24 OOB '素材栏加 10PT 内边距':
-            // the column-level horizontal inset (= 10 PT
-            // chromePaddingContentHorizontal = the PreviewPane
-            // content gutter token from v1.83). This single
-            // VStack-level padding replaces the per-child horizontal
-            // paddings the search field + card grid used in v1.83
-            // (= which the boss caught as '10 + 10 就过多了'; =
-            // single source of truth for the PreviewPane
-            // horizontal gutter = no double padding).
-            //
-            // v1.84b followup: the v1.84 commit body claim that
-            // this padding is wired (= the body commit message
-            // + the ShellMiddleColumn doc comment above both
-            // described the column-level padding as 'applied'),
-            // but the actual code change only DELETED the inner
-            // per-child horizontal paddings (= search field +
-            // cards) without adding the VStack-level padding.
-            // Net effect: the column-level inset never landed
-            // and the boss's '素材栏的内边距 10PT 没有生效' was
-            // exactly right. This patch is the missing half.
+            // v1.85 boss 2026-09-24 OOB '标题, 也就是素材+分割线,
+            // 也被内边距影响了, 需要像目录树和右栏一样, 让标题不
+            // 受栏的内边距影响, 让分割线拉满整栏': drop the
+            // v1.84b PreviewPane-column-level .padding(.horizontal,
+            // chromePaddingContentHorizontal). The column-level
+            // padding affected the SectionHeader (= divider + title
+            // shrank by 10 PT from each side = not flush to the
+            // column edges). Per the user's request, SectionHeader
+            // must stay flush to the column edges (= like the
+            // sidebar's SectionHeader at AppleSidebarView L103 + the
+            // inspector's SectionHeader at ShellDetailColumn = both
+            // are NOT wrapped in any horizontal padding). The
+            // padding instead moves DOWN to the per-element level
+            // (= search field HStack + card grid each carry their
+            // own 10 PT horizontal padding = single horizontal
+            // gutter rhythm across the column without affecting
+            // the column-top chrome).
         }
-        .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
     }
 }

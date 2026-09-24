@@ -924,6 +924,18 @@ struct PreviewPane: View {
             // rely solely on the column-level inset for left +
             // right breathing room (= single source of truth for
             // the PreviewPane gutter = chromePaddingContentHorizontal).
+            //
+            // v1.85 boss 2026-09-24 OOB '素材栏加 10PT 内边距'
+            // (= the user wants 10 PT inner padding on the cards
+            // column; = the v1.84b column-level padding was the
+            // intended landing but the boss's followup '标题不受
+            // 栏的内边距影响' forced the column-level padding to
+            // be removed = the 10 PT gutter now lives on the
+            // per-element level = the cards grid re-asserts its
+            // own 10 PT horizontal padding here = the same visual
+            // result as v1.84b but without affecting the
+            // SectionHeader).
+            .padding(.horizontal, 10)
             .padding(.bottom, 8)
                 }
             // v1.79 boss 2026-09-24 OOB '点击 sidebar 后卡片出现，
