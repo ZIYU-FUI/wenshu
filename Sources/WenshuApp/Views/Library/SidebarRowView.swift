@@ -45,7 +45,24 @@ struct SidebarRowView: View {
         // https://stackoverflow.com/questions/58785044/swiftui-sidebar-list-does-not-register-first-click
         // (= the same class of bug; the .tag fix here is the
         // canonical workaround).
-        rowContent.tag(node)
+        //
+        // v1.82 boss 2026-09-24 OOB '这条分割线没有拉宽到自动
+        // 拉宽到整个左栏, 改一下': for divider rows, override
+        // .listRowInsets to zero (= remove the default 16 PT
+        // horizontal padding that List(.sidebar) applies to
+        // every row) + wrap the Divider in a frame with 10 PT
+        // left/right padding (= the standard sidebar inner
+        // padding; = the same 10 PT gutter PreviewPane's section
+        // header uses). Net result: divider spans from sidebar
+        // left edge + 10 PT to sidebar right edge − 10 PT (= full
+        // visible width minus the standard inset, NOT flush to
+        // the column edge; = the user's '符合左栏内边距保留'
+        // requirement).
+        rowContent
+            .listRowInsets(node.kind == .divider
+                            ? EdgeInsets(top: DesignTokens.chromePaddingMicro, leading: 0, bottom: DesignTokens.chromePaddingMicro, trailing: 0)
+                            : EdgeInsets())
+            .tag(node)
     }
 
     /// v1.69bb boss 2026-09-23 OOB '现在把资料库上面也加一条
@@ -62,9 +79,19 @@ struct SidebarRowView: View {
         // (= no icon, no title, no subtitle; = just a Divider +
         // small vertical breathing room). Apple HIG section
         // separator idiom.
+        //
+        // v1.82 boss 2026-09-24 OOB '这条分割线没有拉宽到自动
+        // 拉宽到整个左栏, ... 也就是左右各 10PT': the divider
+        // has `.listRowInsets(EdgeInsets(top: 4, leading: 0,
+        // bottom: 4, trailing: 0))` applied at the body level
+        // (= no horizontal inset from the List); = the Divider
+        // here renders flush to the sidebar column edge (= the
+        // raw maximum width the List gives to a row = the user
+        // asked to remove the .padding(.horizontal, 10) to
+        // measure the List's natural divider width before
+        // adding the standard inner gutter).
         if node.kind == .divider {
             Divider()
-                .padding(.vertical, 4)
         } else {
             HStack(spacing: 6) {
                 Image(systemName: node.systemImage)
