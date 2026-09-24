@@ -1,10 +1,9 @@
 //
-//  SheetRequestState.swift · Wenshu · P2-06 (audit 2026-09-24)
+//  SheetRequestState.swift · Wenshu
 //
-//  P2-06 (audit 2026-09-24): extracted from `AppState.swift`.
-//  AppState was 644 LOC; this new class absorbs the 3 sheet-request
-//  trigger counters (= newBook / newShelf / choice). Net effect:
-//  AppState drops further in the rest of the P2-06 arc.
+//  Per-window observable for sheet-request trigger counters
+//  (= newBook / newShelf / choice). 3 fire-and-forget counters that
+//  sidebar body observes via .onChange.
 //
 //  Why bundle these 3 counters (= not 3 separate classes):
 //  - All 3 follow the same fire-and-forget counter pattern
