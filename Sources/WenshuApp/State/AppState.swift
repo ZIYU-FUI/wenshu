@@ -272,53 +272,8 @@ var sidebarSelection: SidebarItem? = nil {
     static let activeTabIdKey = "wenshu.editor.activeTabId.v1"
 
     /// Persist openTabs to UserDefaults as JSON (= v0.40 boss 9/7).
-    /// Persisted shape = PersistedEditorTab (= id + documentPath +
-    /// draft + originalBody + mode). Tasks / file-watchers / dirty
-    /// state are runtime-only (= recreated on launch when tabs are
-    /// reloaded from disk).
-    private func persistOpenTabs() {
-        let snapshot = openTabs.map {
-            PersistedEditorTab(
-                id: $0.id,
-                documentPath: $0.documentPath,
-                draft: $0.draft,
-                originalBody: $0.originalBody,
-                mode: $0.mode.rawValue,
-                title: $0.title
-            )
-        }
-        if let data = try? JSONEncoder().encode(snapshot) {
-            UserDefaults.standard.set(data, forKey: AppState.openTabsKey)
-        }
-    }
 
-    /// Restore openTabs from UserDefaults (= v0.40 boss 9/7). Called
-    /// from init() so subsequent view code reads the restored state
-    /// on the first render.
-    private func restoreOpenTabs() {
-        guard let data = UserDefaults.standard.data(forKey: AppState.openTabsKey),
-              let snapshot = try? JSONDecoder().decode([PersistedEditorTab].self, from: data) else {
-            return
-        }
-        self.openTabs = snapshot.compactMap { p in
-            guard let mode = EditorMode(rawValue: p.mode) else { return nil }
-            return EditorTab(
-                id: p.id,
-                documentPath: p.documentPath,
-                draft: p.draft,
-                originalBody: p.originalBody,
-                mode: mode,
-                title: p.title
-            )
-        }
-        if let activeIdStr = UserDefaults.standard.string(forKey: AppState.activeTabIdKey),
-           let activeId = UUID(uuidString: activeIdStr),
-           openTabs.contains(where: { $0.id == activeId }) {
-            self.activeTabId = activeId
-        } else if let first = openTabs.first {
-            self.activeTabId = first.id
-        }
-    }
+    // MARK: - P2-06 extracted concerns (= openTabs persistence lives in AppState+Tabs.swift)
 
     /// v0.40 boss 2026-09-08 OOB 'chattop bar 3 tab (= dialog / search /
     /// Settings), editortop bar (= openTabs default)'. Fix = inject a
