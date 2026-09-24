@@ -31,12 +31,12 @@ struct NavigationSplitColumnWidthTests {
 
     /// Apple HIG canonical sidebar width range.
     private static let sidebarMin: Int = 220
-    private static let sidebarIdeal: Int = 220  // v1.0.0-m1-shell: ideal = min
+    private static let sidebarIdeal: Int = 220
     private static let sidebarMax: Int = 360
 
     /// Apple HIG canonical content column width range.
     private static let contentMin: Int = 240
-    private static let contentIdeal: Int = 240  // v1.0.0-m1-shell: ideal = min
+    private static let contentIdeal: Int = 240
     private static let contentMax: Int = 480
 
     /// Apple HIG canonical detail column width range.

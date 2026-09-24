@@ -51,9 +51,11 @@ struct BookFolderCatalogTests {
 
     @Test("v1.80 icon replacements (= 4 user-facing folder icons migrated to SF Symbols 6 circular glyphs)")
     func v1_80IconReplacements() {
-        // Boss 2026-09-24 OOB '替换目录树 和 卡片的 ICON, = 角色换为
-        // person.crop.circle, 章节大纲 换为 bookmark.circle, 小说正文
-        // 换为 book.closed.circle, 小说草稿 换为 book.circle':
+        // Icon replacements per the canonical spec:
+        //   characters → person.crop.circle
+        //   outline → bookmark.circle
+        //   draft → book.circle
+        //   chapters (formal) → book.closed.circle
         #expect(BookFolderCatalog.spec(for: "characters")?.icon == "person.crop.circle")
         #expect(BookFolderCatalog.spec(for: "outlines")?.icon == "bookmark.circle")
         #expect(BookFolderCatalog.spec(for: "chapters")?.icon == "book.closed.circle")

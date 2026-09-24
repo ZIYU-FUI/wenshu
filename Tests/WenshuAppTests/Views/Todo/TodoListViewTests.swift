@@ -283,7 +283,7 @@ struct TodoListViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        // B-13: different message for reference library vs missing book.
+        // 
         #expect(codeRegion.contains("case .referenceLibrary:"),
                 "scopeUnavailableHint must special-case .referenceLibrary (= \"资料库未 bootstrap\")")
         #expect(codeRegion.contains("case .book, .folder:"),

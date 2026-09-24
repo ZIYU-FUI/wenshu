@@ -18,7 +18,7 @@ struct ChatViewPasteImageTests {
     /// T38 contract: ChatView source uses .onPasteCommand(of: [.image])
     /// (= the SwiftUI native paste handler for image UTType).
     @Test func source_uses_onPasteCommand_image() throws {
-        // v1.83 (2026-09-23): boss's 3-layer refactor moves the paste
+        /// The chat input was rewritten as a 3-layer split.
         // handler (= image-paste attach) from ChatView (the middle
         // layer = chat content) into ChatInputBarView (the top layer
         // = user-interactive input controls). The handler reads
@@ -33,7 +33,7 @@ struct ChatViewPasteImageTests {
     /// T38 contract: the handler extracts a NSImage, converts to PNG,
     /// writes to a temp file, then hands the URL to vm.attachImage.
     @Test func handler_writes_temp_png_and_calls_attachImage() throws {
-        // v1.83: same handler relocation (= ChatView → ChatInputBarView).
+        // same handler relocation (= ChatView → ChatInputBarView).
         let src = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
             encoding: .utf8
@@ -43,7 +43,7 @@ struct ChatViewPasteImageTests {
         #expect(src.contains("NSBitmapImageRep"))
         #expect(src.contains("representation(using: .png"))
         #expect(src.contains("FileManager.default.temporaryDirectory"))
-        // v1.83: paste handler now invokes vm.attachImage via the
+        // paste handler now invokes vm.attachImage via the
         // ImagePasteModifier's onAttach closure (= the call sits one
         // closure inside; = the literal is `vm.attachImage(at: url)`).
         #expect(src.contains("vm.attachImage(at:"))
@@ -51,7 +51,7 @@ struct ChatViewPasteImageTests {
 
     /// T38 contract: the paste handler is in the chat input area (= on
     /// the same view as the file picker; = both belong to the input row).
-    /// v1.83 (2026-09-23): boss's 3-layer refactor moves both
+    /// The chat input was rewritten as a 3-layer split.
     /// .onPasteCommand + .fileImporter from ChatView into ChatInputBarView
     /// (= the top layer = input controls). The T38 contract now
     /// asserts co-location in ChatInputBarView (= they sit on the
@@ -76,7 +76,7 @@ struct ChatViewPasteImageTests {
             to: callSiteRange.lowerBound
         )
         let gap = abs(pasteOffset - importerOffset)
-        // v1.83: paste handler is now inside the private
+        // paste handler is now inside the private
         // ImagePasteModifier (= wraps TextField); = ~140 lines below
         // the fileImporter call (= ~5,000 chars); = relaxed from 5_000.
         #expect(gap < 10_000, "paste handler should be near fileImporter call (= same input row); gap = \(gap)")
@@ -85,7 +85,7 @@ struct ChatViewPasteImageTests {
     /// T38 contract: existing image affordances (fileImporter +
     /// dropDestination) are preserved (= no regression).
     @Test func existing_image_paths_preserved() throws {
-        // v1.83 (2026-09-23): .fileImporter + .dropDestination
+        // .fileImporter + .dropDestination
         // moved from ChatView (= the middle layer) into ChatInputBarView
         // (= the top layer). Both now live on the input row.
         let src = try String(
@@ -99,7 +99,7 @@ struct ChatViewPasteImageTests {
 
     /// T38 contract: the paste handler is on the chat input area
     /// (= NOT inside the input HStack = HStack invariant preserved).
-    /// v1.81 (2026-09-23): boss's 3-layer refactor hoists the chat input
+    /// The chat input was rewritten as a 3-layer split.
     /// row (= buttons + TextField + paste handler) out of ChatView.swift
     /// into a dedicated ChatInputBarView (= the top layer; = the user-
     /// interactive controls). The paste handler (= `.onPasteCommand(of:
@@ -110,7 +110,7 @@ struct ChatViewPasteImageTests {
     /// row HStack's `.frame(minHeight: 30)` close) is now distributed
     /// across the SAME file (= ChatInputBarView.swift); = this test reads
     /// ChatInputBarView.swift and verifies the same positional invariant.
-/// v1.83 (2026-09-23): boss's 3-layer refactor rewrites the chat input
+/// The chat input was rewritten as a 3-layer split.
     /// row. The paste handler (= `.onPasteCommand(of: [.image])`) is now
     /// attached to the TextField inside ChatInputBarView (= wrapped in
     /// the ImagePasteModifier modifier; = the paste target IS the
@@ -137,7 +137,7 @@ struct ChatViewPasteImageTests {
         // TextField via ImagePasteModifier; = top layer).
         #expect(inputBarSrc.contains(".onPasteCommand(of: [.image])"))
         #expect(!chatViewSrc.contains(".onPasteCommand(of: [.image])"))
-        // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
+        // The input row HStack's minimum height pin (= .frame(minHeight: 36); = input height = 36PT = match button diameter)
         // lives in ChatInputBarView (= the top layer).
         #expect(inputBarSrc.contains(".frame(minHeight: 36, maxHeight: 36)"))
         #expect(!chatViewSrc.contains(".frame(minHeight: 36, maxHeight: 36)"))

@@ -21,7 +21,7 @@
 //
 //  All nil-paths return silent no-op (= didLoad/didSave=false; error=nil
 //  when no actor attempt) — mirrors TagManagerOps / CharacterLifecycleOps
-//  v1.74 + v1.75a contract.
+// 
 //
 //  Per Q112 1 ticket 1 file.
 //

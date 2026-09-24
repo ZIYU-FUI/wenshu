@@ -345,7 +345,7 @@ struct EditorPlaceholderTests {
         let helperPath = testsRoot
             .appendingPathComponent("Sources/WenshuApp/Editor/EditorFileWatcher.swift").path
         let code = try String(contentsOfFile: helperPath, encoding: .utf8)
-        // v0.34 B-23 invariant: per-tab file-system watcher. POSIX open(2) +
+        // 
         // DispatchSourceFileSystemObject event source.
         #expect(code.contains("DispatchSource.makeFileSystemObjectSource"),
                 "EditorFileWatcher must use DispatchSource.makeFileSystemObjectSource (= kernel-level FS events)")
@@ -427,7 +427,7 @@ struct EditorPlaceholderTests {
         let helperSource = try String(contentsOfFile: helperPath, encoding: .utf8)
         #expect(helperSource.contains("handleDirtyTransition"),
                 "EditorPersistence must declare handleDirtyTransition (= state machine)")
-        // v0.34 B-22: dirty → start Task (debounced 3s); clean → cancel + nil.
+        // 
         #expect(helperSource.contains("if isDirty {"),
                 "handleDirtyTransition must branch on isDirty true (= start debounce)")
         #expect(helperSource.contains("if tab.autoSaveTask == nil {"),
@@ -448,7 +448,7 @@ struct EditorPlaceholderTests {
     @Test("body uses SwiftUI Observation pattern via appState.openTabs (= B-24)")
     func bodyUsesOpenTabsFromAppState() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
-        // v0.34 B-24: EditorPlaceholder reads/writes the ACTIVE tab via
+        // 
         // computed properties (= single source of truth). The body must
         // iterate over appState.openTabs (= the canonical tab list).
         // v1.73 tab-strip redesign (= boss OOB): only the active tab is
@@ -485,7 +485,7 @@ struct EditorPlaceholderTests {
     @Test("reloadFromDiskAndApply fires via EditorFileWatcher's onChange closure (= B-23 + v1.70 T1b + v1.70 T2b)")
     func reloadDocumentFromDiskTriggersOnWriteEvent() throws {
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
-        // v0.34 B-23: external file change. The trigger is the
+        // 
         // DispatchSource event handler (= .write + .extend) in
         // `EditorFileWatcher`, which invokes the `onChange` closure.
         // the view passes the onChange closure
