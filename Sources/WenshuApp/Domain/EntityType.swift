@@ -1,12 +1,6 @@
 // Sources/WenshuApp/Domain/EntityType.swift
 //
-// v0.30 boss 2026-08-30 OOB 'is the taxonomy preloaded with a large set,
-// because we cannot predict what the user will research. How are entities
-// defined, are there rules, you already ported llm wiki, are there rules
-// in it'. Boss chose option A: 'v0.30 add EntityType enum +
-// strict schema':
-//
-// = Universal entity-type classification (= orthogonal to EntityCategory).
+// Universal entity-type classification (= orthogonal to EntityCategory).
 // EntityCategory answers 'what subject area does this belong to' (= e.g.
 // I = literature, K = history). EntityType answers 'what kind of object
 // is this' (= e.g. character / location / event / concept).
@@ -19,10 +13,9 @@
 //          'Battle of Red Cliffs' = event (type) + history K (category).
 //          'Tang dynasty' = era (type) + history K (category).
 //
-// This is the v0.30 strict schema (= codable, validated by linter, enforced
-// by LLM classifier). It is the FIRST explicit entity-definition rule
-// wenshu has (= previous versions relied on hermes Python's 4 regex rules
-// for surface forms, not semantic type).
+// Codable + validated by linter + enforced by LLM classifier. First
+// explicit entity-definition rule (= pre-hasher format relied on
+// Python's 4 surface-form regexes, not as type).
 //
 // Reference: hermes-agent/skills/research/llm-wiki/SKILL.md v2.1.0 lists
 // 4 entity types in its `concepts/` + `comparisons/` convention (= implicit).
@@ -56,7 +49,7 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
 
     public var id: String { rawValue }
 
-    /// Chinese display name (= boss 8/25 'UI in progress' carve-out).
+    /// Chinese display name.
     public var displayName: String {
         switch self {
         case .character: return "人物"
@@ -71,10 +64,8 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
         }
     }
 
-    /// v0.30 boss OOB: 'do not use abbreviations, just the full characters:
-    /// nian (), di (), ren (), the full names are only 2-4 chars,
-    /// plenty to display'. Full Chinese name (= 2-4 chars, plenty of
-    /// sidebar space). Used as inline prefix in sidebar (= '[] Li Bai').
+    /// Full Chinese name (= 2-4 chars, plenty of sidebar space).
+    /// Used as inline prefix in sidebar (= '[] Li Bai').
     public var shortName: String {
         switch self {
         case .character: return "人物"
@@ -88,11 +79,8 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
         case .other: return "其他"
         }
     }
-    /// SF Symbols 6 icon name (= for sidebar tree display; = boss 9/15
-    /// 'use SF Symbols 6 (3rd gen) with palette rendering' replaces
-    /// the Lucide-era icon names).
-    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline (= no .fill)
-    /// uniformly': all types return outline (= non-.fill) icons.
+    /// SF Symbols 6 icon name (= for sidebar tree display; outline-only
+    /// = no .fill variant).
     public var icon: String {
         switch self {
         case .character: return "person"            // SF Symbols 6: person (= canonical character badge)
