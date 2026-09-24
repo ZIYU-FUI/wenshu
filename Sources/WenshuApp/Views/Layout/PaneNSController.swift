@@ -186,7 +186,7 @@ final class PaneNSController: NSSplitViewController {
         NotificationCenter.default.removeObserver(self)
     }
 
-    /// v0.30 boss 2026-09-01 OOB (Step 1 = restore API default): do NOT
+    /// (Step 1 = restore API default): do NOT
     /// set the divider style programmatically. Apple NSSplitView
     /// uses `.thick` by default (= the legacy divider visual). The
     /// Liquid Glass slider does NOT influence the divider in this
@@ -257,7 +257,7 @@ final class PaneNSController: NSSplitViewController {
         return result
     }
 
-    /// v0.30 boss 2026-09-01 OOB: 1 PT ok + paneSplitter + hit-area
+    /// 1 PT ok + paneSplitter + hit-area
     /// hidden was wrong (= Apple .paneSplitter leaves an 8 PT
     /// physical gap between subviews even with dividerColor alpha=0;
     /// the gap is what the boss sees as a 'wide divider line').
@@ -397,7 +397,7 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-    /// v0.30 boss 2026-09-01 OOB (divider Step 1 = API default): the
+    /// (divider Step 1 = API default): the
     /// observer still receives the notification but does not mutate
     // removed the
     /// \`handleLiquidGlassOpacityChanged\` @objc selector (= the
@@ -422,7 +422,7 @@ final class PaneNSController: NSSplitViewController {
     /// editor) are silently ignored (= their menu items were never
     /// collapsible in the FCP spec either).
     ///
-    /// v0.30 boss 2026-09-01 OOB (zone toggle fix): walks self + all
+    /// (zone toggle fix): walks self + all
     /// nested PaneNSController children. The root controller's
     /// splitViewItems only contain wrap-mode items for the
     /// upper/lower bands (= canCollapse = false), so the per-pane
@@ -702,7 +702,7 @@ final class PaneNSController: NSSplitViewController {
     /// NSSplitViewItem for each, so weights at every level need
     /// their own applyWeights call).
     private var pendingWeights: [(NSSplitViewController, [Double])] = []
-    /// v0.30 boss 2026-09-01 OOB (zone toggle fix): records each
+    /// (zone toggle fix): records each
     /// installed NSSplitViewItem's TabKind by its positional
     /// index in `controller.splitViewItems` (NOT by
     /// ObjectIdentifier; see `makeSplitItems` for why). Keyed by
@@ -714,7 +714,7 @@ final class PaneNSController: NSSplitViewController {
     /// v1.28 C3.2.2: visibility relaxed from `private` to `internal` so the
     /// extension file `PaneNSController+ZoneVisibility.swift` can read it.
     var paneKindByItem: [Int: TabKind] = [:]
-    /// v0.30 boss 2026-09-01 OOB (zone toggle fix): the subtree this
+    /// (zone toggle fix): the subtree this
     /// controller renders. The root instance renders `store.workspace.root`
     /// (= the full tree); nested instances render the SplitNode they
     /// were assigned by their parent installSplit call. Without this
@@ -979,7 +979,7 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-    /// v0.30 boss 2026-09-01 OOB (auto-fill band on full collapse):
+    /// (auto-fill band on full collapse):
     /// when both panes of the lower band (= chat + dynamic) are
     /// collapsed, push the root column divider all the way to the
     /// bottom edge so the upper band fills the entire root height.
@@ -1092,7 +1092,7 @@ final class PaneNSController: NSSplitViewController {
         pendingWeights.append((nested, split.weights))
     }
 
-    /// v0.30 boss 2026-09-01 OOB fix: explicitly position each
+    /// fix: explicitly position each
     /// NSSplitView divider according to the workspace weights array.
     ///
     /// Without this, NSSplitView treats all added items equally
@@ -1178,7 +1178,7 @@ final class PaneNSController: NSSplitViewController {
     /// pane's SwiftUI @Environment lookup still works (= threaded
     /// through init's appState + bookStore).
     ///
-    /// v0.30 boss 2026-09-01 OOB (zone toggle fix): the `on` parameter
+    /// (zone toggle fix): the `on` parameter
     /// is the PaneNSController that will OWN the `paneKindByItem`
     /// entry. It may be `self` (= caller is the owner) or a nested
     /// controller (= caller is the root installChildren, target is a

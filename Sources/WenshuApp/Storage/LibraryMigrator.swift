@@ -538,7 +538,7 @@ struct LibraryMigrator: Sendable {
         try chapterData.write(to: bookDir.appendingPathComponent("chapters.json"))
     }
 
-    /// v0.29 boss 2026-08-30 OOB: upgrade the existing default help-doc
+    /// upgrade the existing default help-doc
     /// book (= if user already has the v0.26 default book with only
     /// 1 old help-doc.md) by adding the 4 missing .md files
     /// (= world / characters / outlines / drafts + the existing chapters's

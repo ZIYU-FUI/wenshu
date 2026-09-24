@@ -4,7 +4,7 @@
 //  Single-key contract documentation for WenshuVerifier.
 // doc-only test surface (no runtime behavior).
 //
-//  Boss 2026-08-23 OOB: 'make all agents share a single key as default behavior'.
+// 
 //
 //  Design contract (clarified boss 8/23):
 //  - WenshuVerifier holds exactly 1 apiKey (sourced from Keychain via LLMKeychain).

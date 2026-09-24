@@ -129,7 +129,7 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 
     /// SF Symbols 6 icon name (= Apple canonical; = for the sort
     /// menu picker). Replaces the Lucide-era names removed in
-    /// v1.0.0-m1-shell (boss 2026-09-15 OOB).
+    /// 
     var menuIcon: String {
         switch self {
         case .pinyinFirstLetter: return "list.number"           // Lucide 'list-ordered'
@@ -1302,7 +1302,7 @@ struct PreviewPane: View {
         return result.entities
     }
 
-    /// v1.69 boss 2026-09-22 OOB: helper for shelfScopeView.
+    /// helper for shelfScopeView.
     /// Returns the books that live under the given shelf (= the
     /// books whose `.shelfId` matches). Reads from the same
     /// BookStore.sidebarLoadAllBooks source the sidebar already
@@ -1581,7 +1581,7 @@ private struct Card: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                // Boss 2026-09-17 OOB: '素材卡片的 ICON, 用 .ultraLight'.
+                // 
                 // Per wenshu-icon-policy v1.5: 64 PT (= empty-state
                 // threshold >=38 PT) MUST pin .symbolRenderingMode(.monochrome).
                 // SF Symbols 6 on macOS 27 silently falls back to the

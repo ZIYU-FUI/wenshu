@@ -58,7 +58,7 @@ final class SidebarService {
     /// (= `bookStore.referenceStore.loadAllReferences()` in production.)
     private let loadReferences: @MainActor () throws -> [Reference]
 
-    /// v1.69 boss 2026-09-22 OOB: closure that returns the number
+    /// closure that returns the number
     /// of .md files in a given book + folder (= used to populate
     /// the "X 项" subtitle on each folder row in the sidebar).
     /// Defaults to `{ _, _ in 0 }` (= unit tests + legacy call
