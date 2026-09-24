@@ -140,7 +140,7 @@ struct ChatMessageView: View {
                     // padding in UserGlassCardModifier is the SOLE
                     // source of user horizontal padding; = unchanged).
                     .padding(.horizontal, isOutgoing ? 0 : 10)
-                    // boss 'B = 试着补一下 sticky 真值':
+                    // 
                     //
                     // Apple SwiftUI on macOS 27 does NOT expose CSS `position:
                     // sticky` (= no `.sticky()` modifier). The closest
@@ -479,7 +479,7 @@ struct ChatMessageView: View {
 /// 16 + 8 in MC6; = tighter, matches hermes `px-3 py-2` from
 /// USER_BUBBLE_BASE_CLASS).
 ///
-/// v1.65-cleanup E1 (boss 2026-09-21 OOB 'user message not visible' bug):
+/// 
 /// remove the broken `.frame(maxWidth: 0.95, alignment: .trailing)` line.
 /// Root cause: `maxWidth: 0.95` was treated as 0.95 PT (= less than 1 PT,
 /// = essentially zero usable width); = the user card collapsed to a

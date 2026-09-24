@@ -111,7 +111,7 @@ protocol LibraryStoring: Sendable {
     func deleteShelf(id: UUID) throws
 
     /// Search stub for v0.03.0 (= NSMetadataQuery on ~/Documents/wenshu).
-    /// v0.02.0 always returns []. The signature is locked now so the UI
+    /// 
     /// can wire up its search bar without an API change later.
     /// Owner 8/15 15:55: lock the contract now, not when search ships.
     func search(query: String) throws -> [SearchHit]
@@ -140,7 +140,7 @@ protocol LibraryStoring: Sendable {
     /// notification automatically (= Spotlight tracks the directory).
     func deleteBook(id: UUID) throws
 
-    /// v0.02.1 (book module): look up a single book by id across all
+    /// 
     /// shelves. The book id alone doesn't carry its shelfId, so the
     /// store must scan (= same forgiveness as loadBooks: missing
     /// shelves / corrupt book.json are skipped, returns nil if no
