@@ -4,8 +4,7 @@
 //  Structural tests for IdeaLibraryView (= 5 statuses + link to chapter/character/plot-thread + search + suggest (= P1 ticket #15 = hermes idea_library.py port); = ~667 NLOC,
 //  = repowise untested hotspot with 4 dependents).
 //
-//  Per boss OOB 2026-09-16 '按优先级推' + '自己一口气推完' (= keep
-//  pushing until done): v1.44 batch-adds source-level structural
+// : v1.44 batch-adds source-level structural
 //  coverage for the 11 specialized tools (= the P1 hermes-port
 //  batch per WorkspaceView renderTab dispatcher; = the
 //  specializedTools column tab list).

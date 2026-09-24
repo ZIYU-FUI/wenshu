@@ -5,8 +5,7 @@
 //  subclass that hosts the recursive LayoutTreeState tree = repowise #4
 //  untested hotspot, 1648 NLOC, 7 dependents).
 //
-//  Per boss OOB 2026-09-16 "按优先级推" + "继续" (= continue the
-//  fat-file split pattern from v1.32-v1.40): v1.41 adds source-level
+// : v1.41 adds source-level
 //  structural coverage (= no NSViewController rendering; = code-level
 //  verification of the PaneNSController surface = matches the v1.30
 //  PlaceholderViewTests + v1.40 PreviewPaneTests pattern).

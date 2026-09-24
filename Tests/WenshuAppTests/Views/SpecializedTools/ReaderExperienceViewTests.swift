@@ -4,8 +4,7 @@
 //  Structural tests for ReaderExperienceView (= 5 reader-experience analyzers: tension/pacing/foreshadowing/cliffhanger/payoff (= P1 ticket #7 = hermes reader_experience.py port); = ~294 NLOC,
 //  = repowise untested hotspot with 3 dependents).
 //
-//  Per boss OOB 2026-09-16 '按优先级推' + '自己一口气推完' (= keep
-//  pushing until done): v1.44 batch-adds source-level structural
+// : v1.44 batch-adds source-level structural
 //  coverage for the 11 specialized tools (= the P1 hermes-port
 //  batch per WorkspaceView renderTab dispatcher; = the
 //  specializedTools column tab list).

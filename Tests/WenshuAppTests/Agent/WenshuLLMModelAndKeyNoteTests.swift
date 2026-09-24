@@ -10,8 +10,7 @@
 //
 //  Safe scope (= NOT v0.34 in-flight) = WenshuLLMModel.swift is v0.21,
 //  WenshuVerifierKeyNote.swift is v0.23, WenshuLLMModelFetcher.swift is
-//  v0.36 ticket 008 (= all my work, none v0.34 in-flight).
-//
+// 
 
 import Testing
 import Foundation

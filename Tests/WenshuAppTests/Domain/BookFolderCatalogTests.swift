@@ -2,10 +2,7 @@
 //  BookFolderCatalogTests.swift
 //  wenshu
 //
-//  v1.81 SSOT tests (= verify the canonical folder catalog
-//  drives all derived sites; = any future icon rename / new
-//  folder / folder relabel only needs to touch BookFolderCatalog
-//  and these tests catch the cascade).
+// 
 //
 
 import Testing

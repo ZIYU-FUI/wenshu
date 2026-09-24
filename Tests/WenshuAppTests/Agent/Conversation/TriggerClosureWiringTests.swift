@@ -2,8 +2,7 @@
 //  TriggerClosureWiringTests.swift · Wenshu · HERMES-AGENT-SMC-READYNESS
 //
 //  Focused tests verifying the production wiring for the audit's
-//  M1/M2/M3/M5/M14 missing-trigger findings (= per the audit at
-//  .scratch/hermes-agent-smc-readiness-evidence/triggers.md).
+// .
 //
 //  Tests:
 //    1. palette seeder populates the 35 hub commands (= M2 fix)

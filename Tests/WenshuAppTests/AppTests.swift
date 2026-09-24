@@ -4,8 +4,7 @@
 //  Structural tests for App (= main app entry point (= @main App struct); = ~307 NLOC,
 //  = repowise untested hotspot).
 //
-//  Per boss OOB 2026-09-16 '按优先级推' + '自己一口气推完' (= keep
-//  pushing until done): v1.45 adds final batch of source-level
+// : v1.45 adds final batch of source-level
 //  structural coverage for remaining untested hotspots.
 //
 //  Per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112: source-level
