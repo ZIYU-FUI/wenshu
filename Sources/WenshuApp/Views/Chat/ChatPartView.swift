@@ -1,9 +1,6 @@
 //
 //  ChatPartView.swift · Wenshu · v0.71 P1 batch 2 (= Hermes 1:1 streaming UI)
 //
-//  v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented...
-//  port the whole thing from hermes...'):
-//
 //  Renders a single ChatMessagePart in the wenshu streaming chat
 //  zone. Each Hermes `ChatMessagePart` kind (= text / reasoning /
 //  tool_use / tool_result) maps to a dedicated render view (= the
@@ -13,7 +10,7 @@
 //  The 4 part renderers (= each is a self-contained SwiftUI View):
 //    • ChatTextPartView: text fragment with inline markdown rendering
 //      (= AttributedString(markdown:options:.inlineOnlyPreservingWhitespace);
-//      = the canonical SwiftUI markdown path per v0.55 boss OOB) +
+//      = the canonical SwiftUI markdown path) +
 //      `.contentTransition(.interpolate)` for smooth token-by-token
 //      streaming (= no per-chunk flicker).
 //    • ChatReasoningPartView: CoT / hidden thinking block rendered
@@ -30,8 +27,7 @@
 //    • are `public` (= the ChatMessageBodyView uses them).
 //    • conform to `View` (= SwiftUI).
 //    • use DesignTokens (= no magic numbers; = iron-rule 6).
-//    • render via SwiftUI primitives (= no NSTextView, no WebView
-//      = the boss's 'anything that uses Apple styles should default everything' OOB).
+//    • render via SwiftUI primitives (= no NSTextView, no WebView).
 //    • support `message.source == .user` (= outgoing = accent fill)
 //      AND `message.source == .wenshu` (= incoming = quaternary fill)
 //      via the caller-supplied `isOutgoing: Bool` parameter.
@@ -51,11 +47,7 @@ import SwiftUI
 /// Text can natively render; = bold/italic/code/links do format).
 /// `.contentTransition(.interpolate)` smoothly interpolates text
 /// growth across streaming chunks (= no per-chunk flicker = the
-/// canonical SwiftUI streaming text pattern per v0.55 boss OOB).
-/// doesn't ship tool-specific UI like Hermes does for `delegate_task`
-/// or `image_generate`).
-/// warning icon when failed).
-/// older persisted messages that didn't carry parts).
+/// canonical SwiftUI streaming text pattern).
 public struct ChatMessageBodyView: View {
     public let message: ChatMessage
     public let isOutgoing: Bool
@@ -79,25 +71,22 @@ public struct ChatMessageBodyView: View {
     }
 
     public var body: some View {
-        // v1.65-cleanup C5 boss 2026-09-21 'just refer to HERMES, do
-        // 1:1; drop wenshu-side chrome; differentiate user/AI by color
-        // alone': hermes truth source = user-message.tsx:386
-        // 'text-foreground/95' for user messages (= 95% opacity) +
-        // assistant-message.tsx:292 'text-foreground' for assistant
-        // (= 100% opacity). The 5% delta is intentional and visible
-        // against a neutral transcript.
+        // Hermes truth source for user/assistant text colors:
+        //   user       = text-foreground/95 (= 95% opacity)
+        //   assistant  = text-foreground (= 100% opacity)
+        // The 5% delta is intentional and visible against a neutral
+        // transcript.
         //
-        // SwiftUI closest-1:1 (= Apple semantic ShapeStyle):
-        //   user   = .primary (= foreground at full strength) +
-        //            .opacity(0.92) on the tint container (= the 95%
-        //            saturation approximation hermes sets on the
-        //            user bubble text specifically)
-        //   assistant = .secondary (= one tint step quieter than
-        //            .primary; = the macOS 27 default tertiary
-        //            foreground that matches hermes text-foreground
-        //            for the assistant rows)
+        // SwiftUI closest 1:1 (= Apple semantic ShapeStyle):
+        //   user       = .primary + .opacity(0.92) on the tint
+        //                container (= the 95% saturation approximation
+        //                hermes sets on the user bubble text)
+        //   assistant  = .secondary (= one tint step quieter than
+        //                .primary; = the macOS 27 default tertiary
+        //                foreground that matches hermes text-foreground
+        //                for the assistant rows)
         //
-        // We apply the tint as an outer container so per-part
+        // The tint is applied as an outer container so per-part
         // `.foregroundStyle(.secondary)` etc. (= already in the file)
         // still wins for their local chrome (= status text / icons
         // inside reasoning + tool rows).
@@ -210,9 +199,8 @@ private struct ChatPartRow: View {
 
 // MARK: - User message hover actions (= hermes MessageActions)
 
-/// v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone isn't implemented... port the
-/// whole thing from hermes...'): hover actions overlay for user messages (= the
-/// Hermes `MessageActions` pattern = copy + delete buttons that fade
+// Hover actions overlay for user messages (= the Hermes
+/// `MessageActions` pattern = copy + delete buttons that fade
 /// in on hover).
 ///
 /// Usage:
