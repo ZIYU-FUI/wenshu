@@ -322,11 +322,10 @@ struct AppleSidebarMVVMSplitTests {
         // dedicated `routingKey` field on SidebarNode.
         //
         // Why split title vs routingKey:
-        //   v1.69m put directoryName in title + displayName
+        //   The earlier iteration put directoryName in title + displayName
         //   in subtitle. forwardSelection read node.title →
-        //   routed correctly BUT the sidebar showed "i" /
-        //   "l" / "k" (= boss complaint: '显示是的一个字
-        //   母'). v1.69p fixes the split: displayName in
+        //   routed correctly BUT the sidebar showed the first-letter
+        //   hint. The fix: displayName in
         //   title (user-readable); routingKey in dedicated
         //   field (forwardSelection reads it).
         let src = try String(
