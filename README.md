@@ -73,7 +73,7 @@
 
 | Stage | Goal | Status |
 |-------|------|--------|
-| **v0.00.0** | Project baseline = 3 docs finalized (README / AGENTS / CLAUDE archived) + Swift package init + CoreData single file + minimax cn LLM access (Anthropic-compatible) | **current** |
+| **v0.00.0** | Project baseline = 3 docs finalized (README / AGENTS / CLAUDE archived) + Swift package init + CoreData single file + minimax cn LLM access (Anthropic-compatible). **Latest on main (= v1.79)**: chat-by-book row-level split (= per-book chat session isolation in SwiftData; = see AGENTS.md §11.11 + `docs/agents/v1.79-chat-by-book-row-split.md`). | **current** |
 | **v0.01.0** | Minimal closed loop: create project → write one-sentence story → AI extrapolate → 老板 choose → generate character / world skeleton (read-only display) | pending |
 | **v0.02.0** | Full closed loop: chat-driven setting evolution + resource library background research + board real-time reflect + revision candidate no-overwrite + **5-zone layout grammar + collapse + drag (FCP-style, layout state stored in .ws)** (see AGENTS.md §8.1) | pending |
 | **v0.03.0** | Stage gate: idea discussion → setting → outline → body. 老板 controls rhythm, AI judges maturity | pending |
