@@ -1,72 +1,43 @@
 //
-//  NavigationSplitShell.swift · Wenshu · M1-shell (2026-09-08) + v0.72 Q99 LOW fix
+//  NavigationSplitShell.swift · Wenshu
 //
-//  DEFERRED (v0.77 spec decision):
-//  ViewInspector test coverage for this view is deferred to v0.80+
-//  (= see .scratch/v0.77-workspaceview-tests/spec.md). NavigationSplitShell
-//  is the macOS SwiftUI 27+ shell that the WorkspaceView container wraps;
-//  testing requires a stable NavigationSplitView column-width surface
-//  (= Q227-Q231 trap scope) plus mock WorkspaceMode / LayoutTreeStore.
-//
-//  This file is NOT dead code (= per Q57: 3rd-party verdict ≠ authority).
-//
-//  SwiftUI NavigationSplitView 4-column shell (= sidebar + content + inspector + detail).
-//  This is the canonical layout per AGENTS.md §11 + boss 2026-09-03 OOB.
+//  SwiftUI NavigationSplitView 4-column shell (= sidebar + content +
+//  detail + inspector) for the macOS 27 workspace.
 //
 //  Column configuration:
 //    - Sidebar (= leftmost; = library / shelf / book outline tree)
 //    - Content (= 2nd column; = book cards / chapter list / kanban / todo)
-//    - Inspector (= 3rd column; = metadata + character pane)
-//    - Detail (= rightmost; = editor canvas / preview pane)
+//    - Detail (= 3rd column; = editor canvas / preview pane)
+//    - Inspector (= rightmost; = metadata + character pane)
 //
-//  Column-width policy:
-//    - .navigationSplitViewColumnWidth(min:ideal:max:) on each column
-//    - .inspectorColumnWidth on the inspector column
-//    - Apple-default initial values (= sidebar 140pt / content 200pt / detail natural)
+//  Column-width policy: `.navigationSplitViewColumnWidth(min:ideal:max:)`
+//  + `.inspectorColumnWidth`. Apple-default initial values (= sidebar
+//  ~220/280/360 PT; = content ~240/320/480 PT; = detail ~400/600/900 PT;
+//  = inspector ~240/280/360 PT).
 //
-//  State bindings:
-//    - @State columnVisibility (= driven by WenshuSettings)
-//    - @State preferredCompactColumn (= Apple default = .sidebar)
+//  State bindings: columnVisibility driven by AppState; =
+//  preferredCompactColumn = .sidebar (= Apple default).
 //
-//  Migration note: v0.72 SwiftData migration did not touch this file
-//  (= persistence layer is below the UI layer; = no @Model class is
-//  referenced directly from this view).
-//
-//  Apple-native 3-column shell for the macOS 27 NavigationSplitView
-//  migration (= the worktree = `.worktrees/m1-navigation-split-shell/`;
-//  spec = `.scratch/2026-09-08-m1-shell/spec.md`).
-//
-//  Layout structure (per boss 9/8 red-line drawing = 1 continuous
-// vertical drag-resizable divider window = NOT 2 separate
-//  NavigationSplitView, but 1 outer NavigationSplitView with each
-//  column containing 2 vertically-stacked sub-areas):
+//  Apple HIG layout (single outer NavigationSplitView, not 2 stacked):
+//  the user-facing red line is 1 continuous vertical divider that runs
+//  the full window height. Only 1 outer NavigationSplitView with each
+//  column containing 2 vertically-stacked sub-areas (= VStack) achieves
+//  this; = 2 stacked NavigationSplitView would produce 2 separate
+//  vertical dividers (= 4 dividers total = wrong).
 //
 //    Outer: NavigationSplitView (3 columns, Apple HIG canonical)
 //    ├── sidebar (1 column, 2 vertical sub-areas, no inner divider):
-// │ ├── top: directory tree (M2 = directory tree migrates here)
-// │ └── bottom: card (M2 = card grid migrates here)
+//    │ ├── top: directory tree
+//    │ └── bottom: card
 //    ├── content (1 column, 2 vertical sub-areas, no inner divider):
-// │ ├── top: editor (M3 = editor zone migrates here)
-// │ └── bottom: chat (M3 = chat zone migrates here)
+//    │ ├── top: editor
+//    │ └── bottom: chat
 //    └── detail (1 column, 2 vertical sub-areas, no inner divider):
-// ├── top: (M4 = tools zone migrates here)
-// └── bottom: (M4 = dynamic zone migrates here)
+//    ├── top: tools zone
+//    └── bottom: dynamic zone
 //
-//  Why 1 outer NavigationSplitView (not 2 + VSplitView): the boss's
-//  red line is 1 continuous vertical line that runs the full
-//  height of the window. That is only possible with 1 outer
-//  NavigationSplitView whose 3 columns have vertical sub-areas
-//  (VStack). Two stacked NavigationSplitView (upper + lower) would
-//  produce 2 separate vertical dividers (= 4 dividers total = NOT
-//  matching the boss's 2-dividers-only red-line).
-//
-//  M1 = build the shell SKELETON only (= placeholders, NO zone
-//  content). M2-M5 = migrate existing zone content into the new
-//  panes (= subsequent tickets; see spec §6).
-//
-//  Activation: LayoutTreeState.useThreeColumnSplit (= optional
-// Bool = default `nil`/off = PaneSplitHost path = ZERO
-//  regression).
+//  Activation: `LayoutTreeState.useThreeColumnSplit` (= optional Bool =
+//  default `nil`/off = `PaneSplitHost` path = zero regression).
 //
 
 import SwiftUI
