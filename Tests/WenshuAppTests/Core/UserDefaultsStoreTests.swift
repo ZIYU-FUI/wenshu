@@ -16,32 +16,40 @@ struct UserDefaultsStoreTests {
     // standard suite; tests must not leak state).
     private let store = UserDefaultsStore.shared
 
-    init() {
+    private func resetDefaults() {
         for key in WenshuDefaultsKey.allCases {
             UserDefaultsStore.shared.remove(key)
         }
+    }
+
+    init() {
+        resetDefaults()
     }
 
     // MARK: - String
 
     @Test("String read returns empty string fallback when key absent")
     func stringFallback() {
+        resetDefaults()
         #expect(store.string(forKey: .llmModel) == "")
     }
 
     @Test("String round-trips through set + get")
     func stringRoundTrip() {
+        resetDefaults()
         store.setString("providerApi", forKey: .settingsTab)
         #expect(store.string(forKey: .settingsTab) == "providerApi")
     }
 
     @Test("String with explicit fallback returns fallback when key absent")
     func stringWithFallback() {
+        resetDefaults()
         #expect(store.string(forKey: .userAddress, fallback: "用户") == "用户")
     }
 
     @Test("String with explicit fallback returns stored value when present")
     func stringWithFallbackStored() {
+        resetDefaults()
         store.setString("老板", forKey: .userAddress)
         #expect(store.string(forKey: .userAddress, fallback: "用户") == "老板")
     }
@@ -50,11 +58,13 @@ struct UserDefaultsStoreTests {
 
     @Test("Bool defaults to false when key absent")
     func boolDefault() {
+        resetDefaults()
         #expect(store.bool(forKey: .debugNoKeychain) == false)
     }
 
     @Test("Bool round-trips through set + get")
     func boolRoundTrip() {
+        resetDefaults()
         store.setBool(true, forKey: .debugNoKeychain)
         #expect(store.bool(forKey: .debugNoKeychain) == true)
     }
@@ -63,11 +73,13 @@ struct UserDefaultsStoreTests {
 
     @Test("Int defaults to 0 when key absent")
     func intDefault() {
+        resetDefaults()
         #expect(store.int(forKey: .monthlyCredits) == 0)
     }
 
     @Test("Int round-trips through set + get")
     func intRoundTrip() {
+        resetDefaults()
         store.setInt(4242, forKey: .monthlyCredits)
         #expect(store.int(forKey: .monthlyCredits) == 4242)
     }
@@ -76,11 +88,13 @@ struct UserDefaultsStoreTests {
 
     @Test("Double defaults to 0.0 when key absent")
     func doubleDefault() {
+        resetDefaults()
         #expect(store.double(forKey: .monthlyCredits) == 0.0)
     }
 
     @Test("Double round-trips through set + get")
     func doubleRoundTrip() {
+        resetDefaults()
         store.setDouble(3.14, forKey: .monthlyCredits)
         #expect(store.double(forKey: .monthlyCredits) == 3.14)
     }
@@ -89,11 +103,13 @@ struct UserDefaultsStoreTests {
 
     @Test("Data returns nil when key absent")
     func dataNilWhenAbsent() {
+        resetDefaults()
         #expect(store.data(forKey: .openTabs) == nil)
     }
 
     @Test("Data round-trips through set + get")
     func dataRoundTrip() {
+        resetDefaults()
         let blob = Data([1, 2, 3, 4, 5])
         store.setData(blob, forKey: .openTabs)
         #expect(store.data(forKey: .openTabs) == blob)
@@ -103,11 +119,13 @@ struct UserDefaultsStoreTests {
 
     @Test("UUID returns nil when key absent")
     func uuidNilWhenAbsent() {
+        resetDefaults()
         #expect(store.uuid(forKey: .activeTabId) == nil)
     }
 
     @Test("UUID round-trips through set + get")
     func uuidRoundTrip() {
+        resetDefaults()
         let id = UUID()
         store.setUUID(id, forKey: .activeTabId)
         #expect(store.uuid(forKey: .activeTabId) == id)
@@ -115,6 +133,7 @@ struct UserDefaultsStoreTests {
 
     @Test("UUID set to nil removes the key")
     func uuidSetNilRemoves() {
+        resetDefaults()
         let id = UUID()
         store.setUUID(id, forKey: .activeTabId)
         #expect(store.uuid(forKey: .activeTabId) == id)
@@ -126,6 +145,7 @@ struct UserDefaultsStoreTests {
 
     @Test("remove clears a previously-stored value")
     func removeClearsValue() {
+        resetDefaults()
         store.setString("anthropic", forKey: .llmActiveConnector)
         #expect(store.string(forKey: .llmActiveConnector) == "anthropic")
         store.remove(.llmActiveConnector)
@@ -154,6 +174,7 @@ struct UserDefaultsStoreTests {
 
     @Test("set + get via UserDefaultsStore matches raw UserDefaults read (= interop with @AppStorage)")
     func interopWithRawUserDefaults() {
+        resetDefaults()
         store.setString("anthropic", forKey: .llmActiveConnector)
         // A SwiftUI view using @AppStorage("wenshu.llm.activeConnector")
         // would read this exact key path.
