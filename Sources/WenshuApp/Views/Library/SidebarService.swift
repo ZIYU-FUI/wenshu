@@ -312,7 +312,7 @@ final class SidebarService {
     }
 
     /// Stable sentinel id for the synthetic Reference-Library root
-    /// node (= used by AppState.sidebarSelection's .referenceCategory
+    /// node (= used by ShellState.sidebarSelection's .referenceCategory
     /// discriminator).
     static let referenceLibraryRootId = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 

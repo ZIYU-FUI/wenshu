@@ -46,6 +46,10 @@ struct ZoneModuleView: View {
     /// AppState is the global @Observable source of truth.
     /// ZoneModuleView reads it directly (= no @Binding chain).
     @Environment(AppState.self) private var appState
+    // P2-06 (audit 2026-09-24): sidebarSelection moved to
+    // ShellState. Read goes through `shell` (= the @Environment-
+    // tracked Observable instance).
+    @Environment(ShellState.self) private var shell
 
     /// v0.34 B-25-fix (= boss 9/3 'PreviewPane double-click did not open the document'):
     /// ZoneModuleView also needs BookStore to read reference bodies
@@ -59,7 +63,7 @@ struct ZoneModuleView: View {
     /// ZoneModuleView self-contained without threading the scope
     /// through WorkspaceView → ZoneModuleView via another binding).
     private var previewScope: PreviewScope {
-        guard let item = appState.sidebarSelection else { return .empty }
+        guard let item = shell.sidebarSelection else { return .empty }
         switch item {
         case .book(let bookId):
             return .bookScope(bookId: bookId, folderName: nil)

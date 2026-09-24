@@ -13,9 +13,9 @@
 //   - PreviewPane / WorkspaceView / ShellMiddleColumn can read
 //     the same SidebarItem without importing the sidebar view
 //     (= clean module boundary).
-//   - AppState.sidebarSelection (= the Codable property in
-//     AppState.swift) persists the selection via the Codable
-//     conformance here.
+//   - ShellState.sidebarSelection (= the Codable property in
+    //     State/ShellState.swift) persists the selection via the Codable
+    //     conformance here.
 //   - Tests (= WorkspaceViewPreviewScopeTests + future tests)
 //     can target the enum independently of any view code.
 

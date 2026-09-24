@@ -10,11 +10,11 @@
 // Why a global @Observable (= per Apple Observation framework,
 // Swift 5.9+):
 // 1. Instant reactivity (= any descendant view that reads
-//    `appState.sidebarSelection` auto-re-renders on change).
+//    `shell.sidebarSelection` auto-re-renders on change).
 // 2. Single source of truth (= one place for cross-zone signals).
 // 3. Zero plumbing (= no @Binding chain to thread through new
 //    views).
-// 4. Boss can debug = `print(appState.sidebarSelection)` directly
+// 4. Boss can debug = `print(shell.sidebarSelection)` directly
 //    (= vs grep NotificationCenter post names across N files).
 // 5. Apple-native (= no 3rd-party dep, AGENTS.md §11.1 stays
 //    unchanged).
@@ -65,59 +65,12 @@ final class AppState {
     /// - `LayoutTreeState.*` (= per-pane = divider positions, weights, collapsed flags)
     var useThreeColumnSplit: Bool = false
 
-    /// Sidebar tree selection (= 5 cases: .book(UUID) / .folder / .shelf
-    /// / .referenceCategory / .referenceLibraryRoot, nil = nothing
-    /// selected). Drives Preview pane scope (= see
-    /// WorkspaceView.previewScope).
-    ///
-    /// Persisted to `wenshu.sidebarSelection` UserDefaults key
-    /// (= JSON shape via Codable; = set by didSet = write back on
-    /// every change; = read by AppState.init() at launch).
-    ///
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'look at this persistence,
-    /// I picked the directory I selected as Help > World, what the card
-    /// displays is wenshu. Now restart. Let me see. It should disappear':
-    /// the comment here previously claimed
-    /// 'Persisted to wenshu.sidebarSelection' but the actual write
-    /// / read code was missing (= only `useThreeColumnSplit`,
-    /// `llmModel`, and `openTabs` had real persistence in init +
-    /// didSet; = `sidebarSelection` was an in-memory @Observable
-    /// property that reset to `nil` on every launch; = the boss's
-    /// 'should disappear on restart' prediction was correct). This
-    /// change restores the documented behavior: write the JSON
-    /// encoding to UserDefaults on every set, read it back at
-    /// AppState.init() (= the same pattern used for `openTabs`).
-var sidebarSelection: SidebarItem? = nil {
-        didSet {
-            // B-05: didSet is NOT called during init (= Swift property
-            // wrapper semantics), so this does NOT trigger a write
-            // back to UserDefaults on launch (= pure read-side
-            // migration). Encoded as JSON via the existing Codable
-            // conformance (= SidebarItem: Hashable, Codable, declared
-            // in its own file `SidebarItem.swift` post-v1.69c split).
-            //
-            // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
-            // added duplicate-write guard (= same pattern as
-            // `activeTabId.didSet` and `llmModel.didSet` below) so a
-            // burst of clicks (= N identical sets) only writes once.
-            // UserDefaults.standard.set is in-memory fast (= does not
-            // sync to disk synchronously per the Apple HIG UserDefaults
-            // queue contract); = the "synchronous main-thread write"
-            // audit concern is overblown for the actual implementation,
-            // but the guard still helps avoid N redundant write calls
-            // during rapid interaction (= e.g. keyboard nav spam).
-            guard oldValue != sidebarSelection else { return }
-            if let item = sidebarSelection,
-               let data = try? JSONEncoder().encode(item) {
-                UserDefaults.standard.set(data, forKey: Self.sidebarSelectionKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: Self.sidebarSelectionKey)
-            }
-        }
-    }
-
-    /// UserDefaults key for sidebar selection persistence (= JSON).
-    static let sidebarSelectionKey = "wenshu.sidebarSelection"
+    // Sidebar tree selection moved to ShellState.swift (= P2-06
+    // split). Drives Preview pane scope. Persisted to the same
+    // UserDefaults key "wenshu.sidebarSelection" (= JSON via Codable).
+    // The key string is unchanged so no user-data migration is
+    // needed. Callers now read `shell.sidebarSelection` (= via
+    // `@Environment(ShellState.self)` injected at AppRootScene).
 
     // v1.0.0-m1-shell boss 2026-09-10 OOB 'Keynote + Pages + Numbers
     // all three office apps use this logic' (= 'Keynote / Pages / Numbers all use the same
@@ -460,25 +413,10 @@ var sidebarSelection: SidebarItem? = nil {
         // assignment (= triggers didSet → persistOpenTabs = write
         // back the same data; = harmless redundant write).
         restoreOpenTabs()
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'look at this persistence,
-        // I picked the directory I selected as Help > World, what the card
-        // displays is wenshu. Now restart. Let me see. It should disappear':
-        // restore the sidebar
-        // selection from UserDefaults (= JSON-encoded via Codable;
-        // = same pattern as openTabs). Without this read, the
-        // sidebar selection resets to nil on every launch (= the
-        // boss's prediction that 'it will disappear' was correct
-        // before this fix).
-        //
-        // Assignment via `self.sidebarSelection = ...` does NOT
-        // trigger the didSet write-back (= Swift property wrapper
-        // semantics; = didSet is suppressed during init). So this
-        // read is purely load-side (= no UserDefaults write during
-        // launch = no extra disk churn).
-        if let data = UserDefaults.standard.data(forKey: AppState.sidebarSelectionKey),
-           let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data) {
-            self.sidebarSelection = decoded
-        }
+        // Sidebar selection restore moved to ShellState.init()
+        // (= P2-06 split; = reads the same UserDefaults key
+        // "wenshu.sidebarSelection"; = no behavior change for
+        // users).
     }
 }
 

@@ -189,18 +189,32 @@ struct WenshuApp: App {
     // commit 4ef3e2e77 UserDefaults.standard.string, change @AppStorage (SettingView key)
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
 
-    /// v0.30 boss 8/31 OOB "option A for cross-zone communication"
+    /// v0.30 boss 8/31 OOB option A for cross-zone communication
     /// (= global @Observable store). Per-window @State (= each
     /// WindowGroup instance gets its own AppState = boss 8/27 OOB
     /// multi-window future-proofing). Currently hosts the
-    /// `sidebarSelection` signal (= the 4-layer @Binding chain
-    /// from commit d845fe9c9 has been collapsed to a single
-    /// `@Environment(AppState.self) var appState` lookup).
+    /// `llmModel` + `openTabs` signals (= the persistence-pair
+    /// from commit 4b5d94f1f).
+    /// Cross-zone shell-chrome state (= sidebar selection, inspector
+    /// visibility, chat zone visibility) lives on `ShellState`
+    /// (= P2-06 audit split). The
+    /// `@Environment(AppState.self) var appState` lookup continues
+    /// for `llmModel` + `openTabs`.
     /// The 3 other signals declared in the original spec
     /// (selectedEntity / selectedEntityCategory / previewSortOrder)
     /// are tracked in v0.31 backlog (= see CONTEXT.md AppState row).
     /// Descendants read it via `@Environment(AppState.self) var appState`.
     @State private var appState = AppState()
+
+    /// P2-06 (audit 2026-09-24): shell-chrome state (= sidebar
+    /// selection, inspector visibility, chat-zone visibility,
+    /// inspector page). Split out from AppState (= AppState was
+    /// 644 LOC of cross-zone UI signals + openTabs + llmModel;
+    /// = now ~590 LOC and dropping further in the rest of the
+    /// P2-06 arc). Injected via `.environment(shell)` at the
+    /// AppRootScene root; = same per-window @State pattern as
+    /// AppState.
+    @State private var shell = ShellState()
 
     /// v0.72 SwiftData migration: WSRepositoryContainer holds the 9
     /// `@MainActor @Observable` SwiftData repositories (= `chat`,
@@ -224,6 +238,7 @@ struct WenshuApp: App {
             library: library,
             appearanceMode: $appearanceMode,
             appState: appState,
+            shell: shell,
             repositories: repositories
         )
     }

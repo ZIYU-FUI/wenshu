@@ -69,6 +69,11 @@ struct ShellMiddleColumn: View {
     // tracking inside body.
     @Bindable var envAppState: AppState
     let appState: AppState
+    // P2-06 (audit 2026-09-24): sidebarSelection moved to
+    // ShellState. ShellMiddleColumn's previewScope() reads it via
+    // `shell` (= the @Bindable Observable instance = observation
+    // tracking on every body render).
+    @Bindable var shell: ShellState
     // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
     // openCardInEditor needs BookStore.referenceStore to load
     // reference bodies for double-clicked cards (= the same env
@@ -162,7 +167,7 @@ struct ShellMiddleColumn: View {
         // from the `let appState` field (= which doesn't register
         // Observation tracking; = previous code's `previewScope()`
         // read stale data because the body never re-rendered).
-        switch envAppState.sidebarSelection {
+        switch shell.sidebarSelection {
         case .referenceLibraryRoot:
             return .referenceScope(nil)
         case .referenceCategory(let dirName):

@@ -47,6 +47,10 @@ struct ChatZoneView: View {
     // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper).
 
     @Environment(AppState.self) private var envAppState
+    // P2-06 (audit 2026-09-24): sidebarSelection moved to
+    // ShellState. Read goes through `shell` (= the
+    // @Environment-tracked Observable instance).
+    @Environment(ShellState.self) private var shell
     // v1.79 chat-by-book: WenshuLibrary is the canonical source for
     // selectedBookId (= see WenshuLibrary.swift L74/L78/L198/L218-
     // L219/L224 = the only places selectedBookId is mutated).
@@ -187,12 +191,12 @@ struct ChatZoneView: View {
         .environment(appState)
         // v1.79 chat-by-book (after wire-up audit 2026-09-24):
         // the canonical source for the user's active book is
-        // `appState.sidebarSelection` (= mutated by AppleSidebarView's
+        // `shell.sidebarSelection` (= mutated by AppleSidebarView's
         // `forwardSelection(_:)` whenever the user clicks a row; = see
         // AppleSidebarView.swift L446-L465). WenshuLibrary.selectedBookId
         // was tried first (= the bookish-named field), but no code in
-        // the project calls `WenshuLibrary.setSelectedBook(id:)` or
-        // `BookStore.reload(bookId:)` (= both functions exist but
+        // the production tree actually mutates it; = the same pattern
+        // applies to `BookStore.reload(bookId:)` (= both functions exist but
         // neither has a caller; = the field stays at init time).
         //
         // Resolution: derive bookID from sidebarSelection.
@@ -202,7 +206,7 @@ struct ChatZoneView: View {
         // - `.shelf / .reference* / nil` → nil (= global
         //   un-attached; = pre-v1.79 behavior when no book
         //   is selected).
-        .onChange(of: appState.sidebarSelection) { _, newSelection in
+        .onChange(of: shell.sidebarSelection) { _, newSelection in
             let bookID: UUID?
             switch newSelection {
             case .book(let id):

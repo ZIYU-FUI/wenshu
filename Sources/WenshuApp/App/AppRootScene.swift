@@ -34,6 +34,13 @@ struct AppRootScene: Scene {
     let library: WenshuLibrary
     @Binding var appearanceMode: AppearanceMode
     let appState: AppState
+    /// P2-06 (audit 2026-09-24): shell chrome (= sidebar +
+    /// inspector + chat zone + inspector page). Split out from
+    /// AppState. Injected via `.environment(shell)` at every
+    /// scene root that previously injected `.environment(appState)`
+    /// (= WindowGroup content + Settings scene); = the 2
+    /// injection sites stay parallel.
+    let shell: ShellState
     let repositories: WSRepositoryContainer
 
     // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
@@ -68,6 +75,7 @@ struct AppRootScene: Scene {
             // view layers total = Apple canonical).
             LibraryRootView(library: library, appearanceMode: appearanceMode)
                 .environment(appState)
+                .environment(shell)
                 .environment(repositories)
         }
         // v1.0.0-m1-shell boss 2026-09-10 OOB 'persistence after opening a .ws,
@@ -497,6 +505,7 @@ struct AppRootScene: Scene {
         // because the Settings scene had no `.environment(appState)`
         // modifier (= only the WindowGroup's content view had one).
         .environment(appState)
+        .environment(shell)
         .environment(repositories)
         // v1.0.0-m1-shell boss 2026-09-11 OOB 'Kanban and Todo get their own dedicated windows':
         // add 2 dedicated `Window` scenes (= the SwiftUI macOS

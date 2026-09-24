@@ -57,12 +57,18 @@ import SwiftUI
 struct AppleSidebarView: View {
     @Environment(BookStore.self) private var bookStore
     @Environment(AppState.self) private var appState
+    // P2-06 (audit 2026-09-24): sidebarSelection moved to
+    // ShellState. Read/write goes through `shell` (= the
+    // @Environment-tracked Observable instance); = `appState`
+    // stays for cross-zone state that lives elsewhere on
+    // AppState (= openTabs / llmModel / etc.).
+    @Environment(ShellState.self) private var shell
 
     /// SidebarService owns the tree (= data + business logic;
     /// = SwiftUI doesn't see it; = the List renders it).
     @State private var service: SidebarService?
 
-    /// Selection state (= forwarded to AppState.sidebarSelection
+    /// Selection state (= forwarded to ShellState.sidebarSelection
     /// via .onChange below).
     @State private var selectedNode: SidebarNode?
 
@@ -233,7 +239,7 @@ struct AppleSidebarView: View {
             }
             await service?.reload()
         }
-        .onChange(of: appState.sidebarSelection) { _, _ in
+        .onChange(of: shell.sidebarSelection) { _, _ in
             Task { await service?.reload() }
         }
         // v1.69y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复':
@@ -294,7 +300,7 @@ struct AppleSidebarView: View {
             // sidebarSelection (= mirrors the legacy NewLibraryOutlineView.
             // resolveNewBookTargetShelf pattern; = the same logic
             // now lives in `SidebarService.targetShelfForNewBook(...)`).
-            let target = service?.targetShelfForNewBook(currentSelection: appState.sidebarSelection)
+            let target = service?.targetShelfForNewBook(currentSelection: shell.sidebarSelection)
                 ?? service?.defaultShelfTarget() ?? (id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!, name: WenshuI18n.t("library.default.shelf_name"))
             NewBookSheet(
                 onSave: { input in
@@ -391,7 +397,7 @@ struct AppleSidebarView: View {
             selection: items,
             availableShelves: shelves,
             onNewBookHere: { shelfId in
-                appState.sidebarSelection = .shelf(shelfId)
+                shell.sidebarSelection = .shelf(shelfId)
                 appState.newBookRequestCount += 1
             },
             onRenameShelf: { shelfId, _ in
@@ -447,7 +453,7 @@ struct AppleSidebarView: View {
         guard let node else { return }
         switch node.kind {
         case .shelf:
-            appState.sidebarSelection = .shelf(node.id)
+            shell.sidebarSelection = .shelf(node.id)
         case .book:
             // Determine if this is a real book (top-level row) or a
             // folder row (child of a book). Folder rows have a
@@ -456,11 +462,11 @@ struct AppleSidebarView: View {
             // are children of a shelf. Walk the tree to disambiguate.
             if let parent = Self.parentBookInfo(for: node.id, in: service?.nodes ?? []) {
                 // Folder row.
-                appState.sidebarSelection = .folder(bookId: parent.bookId, folderName: parent.folderName)
+                shell.sidebarSelection = .folder(bookId: parent.bookId, folderName: parent.folderName)
                 openFolderInEditor(bookId: parent.bookId, folderName: parent.folderName)
             } else {
                 // Real book row.
-                appState.sidebarSelection = .book(node.id)
+                shell.sidebarSelection = .book(node.id)
                 openBookInEditor(bookId: node.id)
             }
         case .reference:
@@ -482,7 +488,7 @@ struct AppleSidebarView: View {
             // the user sees the full overview; = the leaf can
             // be opened via the existing double-click pipeline
             // on the middle-column card).
-            appState.sidebarSelection = .referenceCategory(node.title)
+            shell.sidebarSelection = .referenceCategory(node.title)
         case .referenceCategory:
             // v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示':
             // a category parent row (= one of the 22 CLC
@@ -504,7 +510,7 @@ struct AppleSidebarView: View {
             // v1.69m behaviour) leaves the routing key in the
             // user-visible slot (= the boss's '资料库分类, 现在
             // 显示是的一个字母' complaint).
-            appState.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
+            shell.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
         case .divider:
             // v1.69bb boss 2026-09-23 OOB '现在把资料库上面也
             // 加一条分割线': divider rows are non-interactive;

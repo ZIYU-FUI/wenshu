@@ -94,8 +94,9 @@ final class NavigationSplitShellTests: XCTestCase {
     /// default BookStore anyway).
     func testNavigationSplitShellAssembles() throws {
         let appState = AppState()
+        let shell = ShellState()
         XCTAssertNoThrow(
-            NavigationSplitShell(appState: appState),
+            NavigationSplitShell(appState: appState, shell: shell),
             "NavigationSplitShell body MUST assemble without throwing (= the 6 real wenshu zone views are correctly wired per M2 spec)."
         )
     }
