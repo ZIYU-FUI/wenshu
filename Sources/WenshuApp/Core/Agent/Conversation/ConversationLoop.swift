@@ -106,10 +106,10 @@ actor ConversationLoop {
     ///     and no verbose/debug flags. Callers wanting deterministic-test
     ///     injection (= v0.36 ticket 014) should pass a runtime built with
     ///     `RuntimeHelpers(state: .init(mockTime: ...))`.
-    ///   - shellHookChain: Optional shell hook chain (= HERMES-PARTIAL-001).
+    ///   - shellHookChain: Optional shell hook chain (= wenshu port).
     ///     When nil, a default empty chain is used (= no behavior change for
-    ///     callers wanting the pre-HERMES-PARTIAL-001 surface).
-    ///   - conversationCompression: Optional compression actor (= HERMES-PARTIAL-001).
+    ///     callers wanting the pre-wenshu port surface).
+    ///   - conversationCompression: Optional compression actor (= wenshu port).
     ///     When nil, a default actor instance is used (= the canonical wenshu
     ///     compression policy).
     ///   - progressTracker: Optional agent progress tracker (= WIRE-AGENT-006).
@@ -126,7 +126,7 @@ actor ConversationLoop {
     ) {
         // Back-compat: the parameter is named `connector` everywhere in
         // the existing surface; the new parameter is named `connection`
-        // (= HERMES-PARTIAL-001 marker). For now we accept `connection`
+        // (= wenshu port marker). For now we accept `connection`
         // via this init; the legacy `connector:` init remains for callers
         // that don't need the new surface. Both inits land on the same
         // stored property below.
@@ -139,8 +139,8 @@ actor ConversationLoop {
     }
 
     /// Legacy initializer (= preserved for backward compat with callers
-    /// that built the loop before HERMES-PARTIAL-001). Delegates to the
-    /// HERMES-PARTIAL-001 init with default hook chain + compression actor.
+    /// that built the loop before wenshu port). Delegates to the
+    /// wenshu port init with default hook chain + compression actor.
     init(
         connector: any LLMConnector,
         systemPrompt: String? = nil,
@@ -156,13 +156,13 @@ actor ConversationLoop {
         )
     }
 
-    /// Shell hook chain (= HERMES-PARTIAL-001). Default = empty.
+    /// Shell hook chain (= wenshu port). Default = empty.
     /// Used by `runConversation` (= single round-trip) and `runTurn`
     /// (= full orchestrator) to fire pre/post-turn hooks. Empty chain
     /// = no behavior change for callers not registering hooks.
     private let shellHookChain: ShellHookChain
 
-    /// Conversation compression actor (= HERMES-PARTIAL-001). Default =
+    /// Conversation compression actor (= wenshu port). Default =
     /// a fresh actor instance per loop (= the canonical wenshu
     /// compression policy). Used by `runTurn` to compress history
     /// after the final assistant turn (= hermes
@@ -224,7 +224,7 @@ actor ConversationLoop {
     ) async throws -> ConversationResult {
         let resolvedTaskId = taskId ?? UUID().uuidString
 
-        // Per-turn setup (= HERMES-PARTIAL-001): sanitize the user
+        // Per-turn setup (= wenshu port): sanitize the user
         // message (= hermes message_sanitization._sanitize_surrogates +
         // _strip_non_ascii), reset the retry counter for this turn, and
         // emit the pre-turn shell hook.
@@ -286,7 +286,7 @@ actor ConversationLoop {
         let assistantMessage = LLMMessage(role: .assistant, blocks: response.blocks)
         messages.append(assistantMessage)
 
-        // Post-turn hooks (= HERMES-PARTIAL-001):
+        // Post-turn hooks (= wenshu port):
         //   1. TurnFinalizer.finalize (= drop empty blocks, normalize)
         //   2. ShellHookChain.firePostTurn (= observation + optional mutation)
         let finalResponse = TurnFinalizer.finalize(response: response)
@@ -305,7 +305,7 @@ actor ConversationLoop {
         )
     }
 
-    // MARK: - HERMES-PARTIAL-001 wire-up: runTurn (full turn orchestrator)
+    // MARK: - wenshu port wire-up: runTurn (full turn orchestrator)
 
     /// Full turn orchestrator (= hermes run_conversation body).
     ///
