@@ -339,11 +339,19 @@ final class SidebarService {
     /// LazySidebar* family (= that family is v1.67 cleanup
     /// historical; = the v1.68 family owns the sidebar tree).
     private static let folderCatalog: [(name: String, displayName: String, icon: String)] = [
+        // v1.80 boss 2026-09-24 OOB '替换目录树 和 卡片的 ICON
+        // = 角色换为 person.crop.circle, 章节大纲 换为
+        // bookmark.circle, 小说正文 换为 book.closed.circle,
+        // 小说草稿 换为 book.circle': each folder icon is a
+        // SF Symbols 6 circular glyph (= the canonical 'object as
+        // a single entity' form vs the rectangular / abstract
+        // glyphs previously used). The world folder's
+        // 'globe' glyph stays unchanged (= not in the boss's list).
         ("world",      "世界观",   "globe"),
-        ("characters", "角色",     "person"),
-        ("outlines",   "章节大纲", "list.bullet.rectangle"),
-        ("chapters",   "小说正文", "text.book.closed"),
-        ("drafts",     "小说草稿", "pencil"),
+        ("characters", "角色",     "person.crop.circle"),
+        ("outlines",   "章节大纲", "bookmark.circle"),
+        ("chapters",   "小说正文", "book.closed.circle"),
+        ("drafts",     "小说草稿", "book.circle"),
     ]
 
     /// Build the folder children for a book (= 5 user-facing

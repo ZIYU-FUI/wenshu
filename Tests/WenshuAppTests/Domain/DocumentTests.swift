@@ -105,7 +105,11 @@ struct DocumentTests {
     @Test("BookCategory.icon = SF Symbol name for the card")
     func categoryIcons() {
         // SF Symbol names (= the card uses Image(systemName:) with these).
-        #expect(BookCategory.chapter.icon == "book.closed")
+        // v1.80 boss 2026-09-24 OOB '替换目录树 和 卡片的 ICON, = 小说正文
+        // 换为 book.closed.circle': chapter icon now matches the sidebar
+        // folder icon (= one entity = one icon rule). The other categories
+        // stay unchanged.
+        #expect(BookCategory.chapter.icon == "book.closed.circle")
         #expect(BookCategory.setting.icon == "gearshape.2")
         #expect(BookCategory.research.icon == "books.vertical")
     }

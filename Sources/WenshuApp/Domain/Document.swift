@@ -79,9 +79,17 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     /// all entity-type icons use outline glyphs (= the canonical
     /// Apple HIG form for the Liquid Glass 3rd-generation design
     /// language).
+    /// v1.80 boss 2026-09-24 OOB '替换目录树 和 卡片的 ICON,
+    /// = 小说正文换为 book.closed.circle': the chapter
+    /// (= 小说正文 folder) card icon migrates to
+    /// `book.closed.circle` to match the sidebar folder icon
+    /// (= the same glyph at both surfaces = the user's visual
+    /// identity rule = one entity = one icon). The other
+    /// categories stay unchanged (= setting / research = not
+    /// in the boss's replacement list).
     var icon: String {
         switch self {
-        case .chapter:  return "book.closed"
+        case .chapter:  return "book.closed.circle"
         case .setting:  return "gearshape.2"
         case .research: return "books.vertical"
         }

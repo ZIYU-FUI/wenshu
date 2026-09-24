@@ -112,13 +112,28 @@ enum BookFolder: String, CaseIterable {
     /// (= the sidebar's folder row ICON, to keep both surfaces
     /// visually consistent; = the constant now lives in
     /// SidebarService.standardFolderIcons).
+    /// v1.80 boss 2026-09-24 OOB '替换目录树 和 卡片的 ICON, = 角色
+    /// 换为 person.crop.circle, 章节大纲 换为 bookmark.circle,
+    /// 小说正文 换为 book.closed.circle, 小说草稿 换为 book.circle':
+    /// these 4 folder icons match the SidebarService.folderCatalog
+    /// values (= one entity = one icon rule = the same glyph at the
+    /// sidebar row AND the PreviewPane card row). World keeps 'globe'
+    /// (= not in the boss's replacement list). Sessions /
+    /// foreshadowing / placeholders keep their previous values (= sidebar-
+    /// hidden internal folders, not in the boss's replacement list).
+    /// Q112 SSOT note: the SidebarService folderCatalog and this
+    /// enum are two parallel sources of truth for the same 5 user-
+    /// facing folder icons (= a known duplication; = a future SSOT
+    /// ticket can merge them by promoting the BookFolder enum into
+    /// the canonical source and making SidebarService a thin map
+    /// over it; = out of v1.80 scope = Q112 1-ticket-1-source rule).
     var icon: String {
         switch self {
         case .world: return "globe"
-        case .characters: return "person"
-        case .outlines: return "list.bullet.rectangle"
-        case .chapters: return "text.book.closed"
-        case .drafts: return "pencil"
+        case .characters: return "person.crop.circle"
+        case .outlines: return "bookmark.circle"
+        case .chapters: return "book.closed.circle"
+        case .drafts: return "book.circle"
         case .sessions: return "message-square"
         case .foreshadowing: return "git-fork"
         case .placeholders: return "square.dashed"
