@@ -764,6 +764,41 @@ struct PreviewPane: View {
             // With the Spacers, the empty-state hint stays centered
             // in the residual space (= the canonical Apple HIG
             // empty-state layout).
+            // v1.79 boss 2026-09-24 OOB '点击 sidebar 后卡片出现，没有任何
+            // 动画，或者缓入缓出，就看起来不好看': wrap the
+            // scope Group in `.id(scope)` (= stable subtree identity
+            // per scope = SwiftUI unmounts the previous scope and
+            // mounts the new one on scope change) + apply
+            // `.transition(.opacity.combined(with: .scale(scale: 0.96)))`
+            // (= the cards fade in + scale up from 96% to 100% on
+            // entry; = the same scale-fade-in Apple Photos uses
+            // when navigating between library days; = 220 ms =
+            // matches Apple's macOS 27 List / LazyVGrid default
+            // animation duration). The parent VStack wraps the
+            // transition in a `withAnimation(.smooth)` block
+            // triggered by `.onChange(of: scope)` (= the actual
+            // animation trigger; = without withAnimation the
+            // transition fires instantly with no visible motion).
+            //
+            // Why scope-level transition (= not per-card transition):
+            // when the user clicks a different sidebar row, ALL
+            // cards in the previous scope unmount and ALL cards in
+            // the new scope mount in one batch. Animating each card
+            // independently would create a staggered cascade that
+            // looks chaotic; = the boss's report 'cards appear
+            // without any animation, looks ugly' was specifically
+            // about the scope-switch case. A single coordinated
+            // group-level fade-in reads as a deliberate state
+            // transition (= Apple Mail / Notes behavior on
+            // mailbox / folder switch).
+            //
+            // Per-card transition (.opacity + .scale 0.96) stays
+            // attached for the search-filter case (= typing in the
+            // search field adds/removes cards one at a time; =
+            // each card's own transition fires individually with
+            // the `.animation(.smooth, value: ids)` modifier on
+            // the ForEach; = search changes feel responsive
+            // without cascading the scope-level animation).
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 Group {
@@ -818,6 +853,22 @@ struct PreviewPane: View {
                         emptyScopeView()
                     }
                 }
+                // v1.79 boss 2026-09-24 OOB '点击 sidebar 后卡片
+                // 出现，没有任何动画，或者缓入缓出，就看起来不
+                // 好看': the scope Group gets a stable per-scope
+                // identity (= `.id(scope)`) so SwiftUI treats each
+                // scope switch as a full subtree unmount / mount;
+                // = the matching `.transition` below plays the
+                // scope-switch entry animation. The animation is
+                // triggered by the parent `.onChange(of: scope)`
+                // wrapping the state mutation in `withAnimation(
+                // .smooth)` (= SwiftUI's structural transitions
+                // only animate when the change is wrapped in a
+                // withAnimation block; = without it the transition
+                // is instant and identical to the unfindable pre-v1.79
+                // behavior).
+                .id(scope)
+                .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 Spacer(minLength: 0)
             }
             // boss 9/8 round 1 'card, searchcard icon,
@@ -860,7 +911,33 @@ struct PreviewPane: View {
             .padding(.horizontal, 8)
             .padding(.bottom, 8)
                 }
-            }
+            // v1.79 boss 2026-09-24 OOB '点击 sidebar 后卡片出现，
+            // 没有任何动画，或者缓入缓出，就看起来不好看' (=
+            // scope-switch entry animation). Boss 2026-09-24 followup
+            // '没有看到动画效果': the original approach
+            // (= .onChange(of: scope) wrapping withAnimation) does
+            // NOT trigger the transition because `scope` is an
+            // immutable let-bound prop that arrives from the parent
+            // (= the parent triggers the value change outside any
+            // withAnimation block; = the closure runs in a non-
+            // animated transaction; = the .transition attached to
+            // the Group never plays).
+            //
+            // Resolution: attach `.animation(.smooth(duration:
+            // 0.22), value: scope)` directly on the body root.
+            // SwiftUI's value-based .animation modifier is the
+            // canonical replacement for withAnimation when the
+            // state mutation lives outside the current view (= the
+            // .animation modifier listens for value changes on the
+            // passed Equatable/Hashable and wraps the resulting
+            // render frames in an animation transaction; = the
+            // .transition on the Group below fires correctly).
+            //
+            // Scale 0.96 + opacity over 220 ms = the Apple Photos
+            // library-day navigation feel (= boss's reference for
+            // the entry transition).
+            .animation(.smooth(duration: 0.22), value: scope)
+        }
 
     /// v0.40 boss 9/7 OOB 'top bar, editor, yes':
     /// preview-pane search bar (= 30 PT tall, = matches
@@ -1064,8 +1141,29 @@ struct PreviewPane: View {
                                     // filtered.first bug).
                                     onDoubleClick(source)
                                 }
+                                // v1.79 boss 2026-09-24 OOB '点击
+                                // sidebar 后卡片出现，没有任何动画':
+                                // individual Card gets an opacity +
+                                // scale entry transition. When the
+                                // user types in the search field,
+                                // matching cards fade + scale in and
+                                // non-matching cards fade out
+                                // (= the .animation(.smooth, value:)
+                                // on the LazyVGrid triggers each
+                                // card's transition as SwiftUI adds
+                                // or removes it from the diff).
+                                .transition(.opacity.combined(with: .scale(scale: 0.96)))
                             }
                         }
+                        // v1.79 per-card animation trigger (= fires
+                        // on every Card add/remove within this
+                        // categoryGrid). Reading `inCategory.map(\.id)`
+                        // produces an Equatable sequence SwiftUI can
+                        // diff (= when the IDs change = some cards
+                        // added/removed = the cards' .opacity /
+                        // scale transitions play). 180 ms = matches
+                        // the LazyVGrid default fade duration.
+                        .animation(.smooth(duration: 0.18), value: inCategory.map(\.id))
                         // STYLES-006 (2026-09-07): use the canonical content
                         // inset modifier (= 0 PT = matches sidebar / editor
                         // behavior = content sits right below the
@@ -1120,10 +1218,16 @@ struct PreviewPane: View {
                                 // (= which opens THIS specific card).
                                 onDoubleClick(source)
                             }
+                            // v1.79 per-card transition (= see
+                            // categoryGrid comment for rationale).
+                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
                         }
                     }
-                    .padding(.vertical, DesignTokens.chromePaddingVertical)
+                    // v1.79 per-card animation trigger (= search
+                    // filter add/remove within overviewGrid).
+                    .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 }
+                .padding(.vertical, DesignTokens.chromePaddingVertical)
             }
         }
     }
@@ -1254,8 +1358,14 @@ struct PreviewPane: View {
                             // the EXACT clicked book doc opens.
                             onDoubleClick(source)
                         }
+                        // v1.79 per-card transition (= see
+                        // categoryGrid comment for rationale).
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     }
                 }
+                // v1.79 per-card animation trigger (= search
+                // filter add/remove within bookDocsGrid).
+                .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 .padding(.vertical, DesignTokens.chromePaddingVertical)
             }
         }
