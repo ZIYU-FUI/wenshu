@@ -338,21 +338,29 @@ final class SidebarService {
     /// inlined here so SidebarService doesn't reach across the
     /// LazySidebar* family (= that family is v1.67 cleanup
     /// historical; = the v1.68 family owns the sidebar tree).
-    private static let folderCatalog: [(name: String, displayName: String, icon: String)] = [
-        // v1.80 boss 2026-09-24 OOB '替换目录树 和 卡片的 ICON
-        // = 角色换为 person.crop.circle, 章节大纲 换为
-        // bookmark.circle, 小说正文 换为 book.closed.circle,
-        // 小说草稿 换为 book.circle': each folder icon is a
-        // SF Symbols 6 circular glyph (= the canonical 'object as
-        // a single entity' form vs the rectangular / abstract
-        // glyphs previously used). The world folder's
-        // 'globe' glyph stays unchanged (= not in the boss's list).
-        ("world",      "世界观",   "globe"),
-        ("characters", "角色",     "person.crop.circle"),
-        ("outlines",   "章节大纲", "bookmark.circle"),
-        ("chapters",   "小说正文", "book.closed.circle"),
-        ("drafts",     "小说草稿", "book.circle"),
-    ]
+    ///
+    /// v1.81 (= sidebar SSOT consolidation): the
+    /// (name, displayName, icon) tuples are derived from
+    /// BookFolderCatalog.userFacing (= the canonical source).
+    /// SidebarService no longer hardcodes any of these fields;
+    /// = to rename a folder or change its icon, edit the
+    /// BookFolderSpec literal in BookFolderCatalog.swift and
+    /// the sidebar picks up the new value automatically.
+    /// BookFolderCatalog.userFacing = the 5 folders with
+    /// isUserFacing = true (= world / characters / outlines /
+    /// chapters / drafts); = the 3 internal folders (= sessions
+    /// / foreshadowing / placeholders) are filtered here.
+    private static let folderCatalog: [(name: String, displayName: String, icon: String)] =
+        BookFolderCatalog.userFacing.map { spec in
+            // The icon field is non-nil for all 5 user-facing
+            // folders (= enforced by BookFolderCatalogTests' user-
+            // facing check); = the `?? "folder"` fallback is a
+            // defensive default if a future spec accidentally
+            // leaves icon = nil on a user-facing folder (= the
+            // sidebar would render a blank rectangle rather than
+            // crashing).
+            (spec.directoryName, spec.sidebarDisplayName, spec.icon ?? "folder")
+        }
 
     /// Build the folder children for a book (= 5 user-facing
     /// folders). Returns nil (= leaf row, no disclosure
