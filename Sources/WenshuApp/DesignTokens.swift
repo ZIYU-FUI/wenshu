@@ -275,7 +275,7 @@ enum DesignTokens {
         return Color(nsColor: dynamic)
     }()
 
-    /// v1.28 A1.7: System message surface fill (= 15% red opacity on
+    /// System message surface fill (= 15% red opacity on
     /// Apple accent red; = the canonical warning banner background
     /// for chat error / system messages; = replaces the band-aid
     /// inline `Color.red.opacity(0.15)` at ChatView.swift:1907
@@ -293,7 +293,7 @@ enum DesignTokens {
     /// Round style = `.continuous` (Apple HIG 13+ corner style).
     static let surfaceCornerRadiusCard: CGFloat = 8
 
-    /// v1.28 A1.8: Chat bubble horizontal padding (= 12 PT; = the
+    /// Chat bubble horizontal padding (= 12 PT; = the
     /// iMessage-style bubble internal padding measured against
     /// Messages.app in dark mode; = replaces the inline literal at
     /// ChatView.swift:1786 + 1877 = duplicated chat-bubble padding
@@ -301,7 +301,7 @@ enum DesignTokens {
     /// (= the zone-level grid inset); = bubble internal padding is
     /// larger because the bubble itself adds visual weight.
     static let bubblePaddingHorizontal: CGFloat = 12
-    /// v1.28 A1.9: Layout picker chrome width (= 416 PT; = 26rem
+    /// Layout picker chrome width (= 416 PT; = 26rem
     /// at 16 PT/rem; = replaces inline `26 * 16` at LayoutEditBar:56
     /// + LayoutPicker:156 (= the comment-encoded magic constant
     /// only documentation for the picker column; = data-driven now

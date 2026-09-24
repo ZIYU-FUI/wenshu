@@ -74,7 +74,7 @@ struct EntityIngestion: Sendable {
     }
 }
 
-/// v0.34 Issue 04: thrown by `EntityIngestion.ingest` when
+/// thrown by `EntityIngestion.ingest` when
 /// preflight surfaces critical issues. Caller (= chat assistant /
 /// LLM Wiki pipeline) renders the issues array as user-facing
 /// diagnostic text (= Issue 06 UserFacingError integration point

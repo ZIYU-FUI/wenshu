@@ -108,7 +108,7 @@ struct Document: Identifiable, Hashable, Codable, Sendable {
     /// collapsed to spaces; frontmatter stripped if present). Lets the
     /// user glance at the document's center of gravity (= FCP
     /// Browser's filmstrip thumbnail role) without opening the file.
-    /// v0.04+ will allow an explicit `summary` frontmatter field to
+    /// an explicit `summary` frontmatter field to
     /// override the auto-extracted one.
     var summary: String
     /// Cross-references resolved at MD body load time from `@<type>.<name>`

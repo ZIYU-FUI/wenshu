@@ -111,7 +111,7 @@ final class WSChatRepository {
         // manage session lifecycle separately from message appends; = the
         // caller has the bookID + sessionID, so we know the canonical key).
         //
-        // Boss 2026-09-24 chat-by-book test: previously this guard threw
+        // previously this guard threw
         // sessionNotFoundForBookScope (= silent fail because try? in
         // ChatSessionViewModel.send); = messages stayed in memory but
         // never reached SwiftData; = chat history was empty on book switch

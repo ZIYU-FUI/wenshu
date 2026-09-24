@@ -42,7 +42,7 @@ import SwiftUI
 @Observable
 final class AppState {
 
-    /// M1-shell (2026-09-08): opt-in to the Apple-native
+    /// opt-in to the Apple-native
     /// NavigationSplitView path (= 3-column layout per macOS 27
     /// `NavigationSplitView` = the canonical Apple HIG pattern
     /// per developer.apple.com/documentation/swiftui/navigationsplitview).

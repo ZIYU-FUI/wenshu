@@ -809,7 +809,7 @@ struct LayoutTreeState: Codable, Equatable {
     var useNSSplitView: Bool? = nil
 
     // MARK: - 3-column NavigationSplitView migration (= M1 shell)
-    /// M1-shell (2026-09-08): opt-in to the Apple-native
+    /// opt-in to the Apple-native
     /// NavigationSplitView path (= the macOS 27 recommended 3-column
     /// layout per developer.apple.com/documentation/swiftui/navigationsplitview).
     ///

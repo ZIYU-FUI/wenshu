@@ -385,7 +385,7 @@ final class ChatViewModel {
         NSLog("[wenshu.context] sum tokens after recompute: %d (messages=%d)", contextUsed, messages.count)
     }
 
-    /// CHATBOX-001 (2026-09-04): routeInput is the new front-door for chat
+    /// routeInput is the new front-door for chat
     /// input. It dispatches `/<skill>` slash commands through
     /// SkillAdapter.parseAndInvoke BEFORE the LLM path; non-slash text falls
     /// through to `send()`. Empty input is a no-op. Slash input that fails
