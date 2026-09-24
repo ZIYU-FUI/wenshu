@@ -19,7 +19,7 @@
 import Foundation
 
 /// Stateless business layer for ReaderExperienceView. Mirrors the v1.72 +
-/// v1.74 + v1.75a-f precedents.
+/// 
 @MainActor
 enum ReaderExperienceOps {
 

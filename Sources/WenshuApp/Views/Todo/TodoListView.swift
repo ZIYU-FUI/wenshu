@@ -284,7 +284,7 @@ struct TodoListView: View {
     /// + B-13: load items from the scope's todo JSON. The scope
     /// is resolved via `bookStore.scopeDirectory(...)`. See
     /// `KanbanView.reloadFromDisk` for the symmetric flow.
-    /// v1.72 T2c: lift the disk-IO + state-transition logic into
+    /// lift the disk-IO + state-transition logic into
     /// `TodoOps` (= the stateless business layer at
     /// `Sources/WenshuApp/Views/Todo/TodoOps.swift`). Per ADR-0009
     /// (= UI/业务/数据 separation), the View is now a pure consumer:

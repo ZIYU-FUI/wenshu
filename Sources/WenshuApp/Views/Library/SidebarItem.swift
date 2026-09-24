@@ -22,7 +22,7 @@
 import Foundation
 
 /// Identifies a single sidebar item for List(selection:) binding.
-/// v0.30: composite enum (= book OR reference category) because
+/// composite enum (= book OR reference category) because
 /// Apple HIG allows ONE selection type per List, so we unify
 /// both selection kinds into one Hashable enum.
 enum SidebarItem: Hashable, Codable {

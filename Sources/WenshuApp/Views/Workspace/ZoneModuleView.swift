@@ -35,7 +35,7 @@ import MarkdownEngine
 struct ZoneModuleView: View {
     let zoneSlot: ZoneSlot
 
-    /// v0.30: bindings passed from WorkspaceView so sidebar category
+    /// bindings passed from WorkspaceView so sidebar category
     /// selection → preview pane can react (= same Binding reference).
     /// Default value `nil` (= for non-workspace callers that don't
     /// drive the preview pane).
@@ -84,7 +84,7 @@ struct ZoneModuleView: View {
         }
     }
 
-    /// v0.30: default initializer for non-workspace callers.
+    /// default initializer for non-workspace callers.
     /// (= pass dummy constants explicitly, see RegisteredPanes.swift)
     init(
         zoneSlot: ZoneSlot,

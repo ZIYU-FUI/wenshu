@@ -178,7 +178,7 @@ struct SettingView: View {
         .task { refreshProviderStatus() }
     }
 
-    /// v1.72 T3c: lift the keychain + fetcher + expansion logic into
+    /// lift the keychain + fetcher + expansion logic into
     /// `SettingsOps` (= the stateless business layer at
     /// `Sources/WenshuApp/Views/Settings/SettingsOps.swift`). Per
     /// ADR-0009 (= UI/业务/数据 separation), the View is now a pure

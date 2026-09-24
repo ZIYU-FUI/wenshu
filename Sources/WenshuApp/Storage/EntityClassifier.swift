@@ -57,7 +57,7 @@ struct EntityClassifier: Sendable {
     /// EntityCategory. Always returns a category (= falls back to .z
     /// = General Books (catch-all) if both passes fail).
     ///
-    /// v0.30: also returns EntityType (default = .other for keyword
+    /// also returns EntityType (default = .other for keyword
     /// pass, LLM-determined when LLM fallback is invoked).
     func classify(
         title: String,

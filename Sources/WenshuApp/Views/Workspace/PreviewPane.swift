@@ -452,7 +452,7 @@ struct PreviewPane: View {
     /// reports ext=0 + int=0; = 0 callers; = the helper checked
     /// `searchQuery == nil` (= the legacy internal-@State fallback
     /// gate); = the binding is now always non-optional per the
-    /// v1.0.0-m1-shell boss OOB comment directly below; = this
+    /// this
     /// computed var is no longer meaningful; = no behavior change;
     /// = 4 LOC removed).
 

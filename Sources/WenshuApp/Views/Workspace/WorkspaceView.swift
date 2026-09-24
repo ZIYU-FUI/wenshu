@@ -45,7 +45,7 @@ struct WorkspaceView: View {
     /// (= nil = overview mode showing all entities).
     @State private var selectedEntityCategory: EntityCategory? = nil
 
-    /// v0.30: tracks which entity card is currently being viewed in
+    /// tracks which entity card is currently being viewed in
     /// detail mode (= single card with full .md body).
     @State private var selectedEntity: Reference? = nil
 
@@ -116,7 +116,7 @@ struct WorkspaceView: View {
         }
     }
 
-    /// v0.30: BookStore env (= for reference loading in preview pane).
+    /// BookStore env (= for reference loading in preview pane).
     @Environment(BookStore.self) private var bookStore
 
     /// Layout edit mode state (= v0.28 ticket 028-006). v0.40

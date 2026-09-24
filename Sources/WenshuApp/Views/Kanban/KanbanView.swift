@@ -239,7 +239,7 @@ struct KanbanView: View {
 
     // MARK: - Mutations
 
-    /// v1.72 T1c: lift the disk-IO + state-transition logic into
+    /// lift the disk-IO + state-transition logic into
     /// `KanbanOps` (= the stateless business layer at
     /// `Sources/WenshuApp/Views/Kanban/KanbanOps.swift`). Per
     /// ADR-0009 (= UI/业务/数据 separation), the View is now a pure
