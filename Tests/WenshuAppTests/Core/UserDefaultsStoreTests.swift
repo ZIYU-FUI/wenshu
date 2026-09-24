@@ -17,9 +17,16 @@ struct UserDefaultsStoreTests {
     private let store = UserDefaultsStore.shared
 
     private func resetDefaults() {
-        for key in WenshuDefaultsKey.allCases {
-            UserDefaultsStore.shared.remove(key)
-        }
+        // Only reset the keys this suite actually uses (= other suites
+        // run in parallel and may rely on wenshu.* state being intact).
+        UserDefaultsStore.shared.remove(.llmModel)
+        UserDefaultsStore.shared.remove(.settingsTab)
+        UserDefaultsStore.shared.remove(.userAddress)
+        UserDefaultsStore.shared.remove(.debugNoKeychain)
+        UserDefaultsStore.shared.remove(.monthlyCredits)
+        UserDefaultsStore.shared.remove(.openTabs)
+        UserDefaultsStore.shared.remove(.activeTabId)
+        UserDefaultsStore.shared.remove(.llmActiveConnector)
     }
 
     init() {
