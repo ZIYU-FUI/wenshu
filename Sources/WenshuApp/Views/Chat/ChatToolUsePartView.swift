@@ -55,7 +55,8 @@ struct ChatToolUsePartView: View {
                 // The pulse stops when status leaves .running (= the
                 // icon returns to its static foregroundStyle tint).
                 Image(systemName: Self.statusIconName(for: toolUse.status))
-                    .font(.system(size: 9, weight: .regular))
+                    .imageScale(.small)
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(statusColor)
                     .opacity(isRunningStatus ? runningStatusOpacity : 1.0)
                     .animation(
@@ -78,7 +79,8 @@ struct ChatToolUsePartView: View {
                 // Falls back to "wrench.and.screwdriver" for tools
                 // not in the map (= forward-compat for new tools).
                 Image(systemName: Self.iconName(for: toolUse.name))
-                    .font(.system(size: 11, weight: .regular))
+                    .imageScale(.small)
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.secondary)
                     .frame(width: 14)
                 // Tool name in monospaced font (= the wenshu convention
