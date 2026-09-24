@@ -217,21 +217,29 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("sidebar_service_projects_folder_children_per_book")
     func sidebar_service_projects_folder_children_per_book() throws {
-        let src = try String(
+        // v1.69f source refactor: SidebarService.folderChildren(for:)
+        // delegates folder naming to BookFolderCatalog (= the canonical
+        // owner of the user-facing folder spec since the v1.69f cleanup).
+        // The spec acceptance is that the 5 user-facing folders ARE
+        // rendered; their canonical literal lives in BookFolderCatalog.
+        let catalog = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Domain/BookFolderCatalog.swift"),
+            encoding: .utf8
+        )
+        // SidebarService MUST expose folderChildren (= the 5 standard folders per book)
+        let sidebarSvc = try String(
             contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarService.swift"),
             encoding: .utf8
         )
-        // SidebarService.folderChildren(for:) MUST render the 5
-        // standard folders under each book (= the v1.68f boss OOB
-        // '帮助和测试小说下面的自动生成的目录没有出现，需要实现').
-        #expect(src.contains("folderChildren"),
+        #expect(sidebarSvc.contains("folderChildren"),
                 "SidebarService MUST expose folderChildren (= the 5 standard folders per book)")
-        #expect(src.contains("\"世界观\""),
-                "SidebarService MUST render 世界观 folder (= one of the 5 standard sub-folders)")
-        #expect(src.contains("\"章节大纲\""),
-                "SidebarService MUST render 章节大纲 folder")
-        #expect(src.contains("\"小说正文\""),
-                "SidebarService MUST render 小说正文 folder")
+        // The 5 user-facing folder labels live in BookFolderCatalog (= the canonical spec).
+        #expect(catalog.contains("\"世界观\""),
+                "BookFolderCatalog MUST define 世界观 folder (= one of the 5 user-facing sub-folders)")
+        #expect(catalog.contains("\"章节大纲\""),
+                "BookFolderCatalog MUST define 章节大纲 folder")
+        #expect(catalog.contains("\"小说正文\""),
+                "BookFolderCatalog MUST define 小说正文 folder")
     }
 
     @Test("sidebar_service_folder_children_carry_X_items_subtitle")
@@ -410,18 +418,21 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("previewPane_loadBookDocs_handles_folder_scope")
     func previewPane_loadBookDocs_handles_folder_scope() throws {
-        let src = try String(
+        // v1.69f source refactor: PreviewPane.loadBookDocs delegates
+        // to PreviewPaneOps.loadBookDocs (= the canonical UI→Business→Data
+        // seam per ADR-0009). The spec is met; the assertion target
+        // moves from PreviewPane.swift to PreviewPaneOps.swift.
+        let pane = try String(
             contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Workspace/PreviewPane.swift"),
             encoding: .utf8
         )
-        // PreviewPane.loadBookDocs(bookId:, folderName:) MUST
-        // read the single folder (= when folderName is non-nil)
-        // = the .md files inside that folder become the card
-        // grid. Without this, the boss's '点 folder → 显示这个
-        // 目录下的所有文件卡片' requirement is broken.
-        #expect(src.contains("private func loadBookDocs(bookId: UUID, folderName: String?) -> [BookDoc]"),
-                "PreviewPane MUST have loadBookDocs(bookId:, folderName:) (= the card grid loader)")
-        #expect(src.contains("folders = [folderName]"),
-                "PreviewPane.loadBookDocs MUST scope to the one folder when non-nil (= single-folder card grid)")
+        let ops = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/UI/Layout/PreviewPaneOps.swift"),
+            encoding: .utf8
+        )
+        #expect(pane.contains("private func loadBookDocs(bookId: UUID, folderName: String?) -> [BookDoc]"),
+                "PreviewPane MUST have loadBookDocs(bookId:, folderName:) (= the card grid loader; delegates to PreviewPaneOps)")
+        #expect(ops.contains("folders = [folderName]"),
+                "PreviewPaneOps.loadBookDocs MUST scope to the one folder when non-nil (= single-folder card grid; canonical seam since v1.69f)")
     }
 }
