@@ -63,7 +63,7 @@ struct ChatViewNewChatShortcutTests {
     /// T48 contract: HStack invariant preserved (= new shortcut
     /// is AFTER the input HStack's closing brace).
     @Test func hstack_invariant_preserved() throws {
-        // v1.81 (2026-09-23): boss's 3-layer refactor hoists the chat input
+        // 
         // row out of ChatView.swift into ChatInputBarView.swift (= the top
         // layer; = the user-interactive controls). The hidden Button("New chat") Button
         // (= a hidden keyboard-shortcut Button outside the visible input

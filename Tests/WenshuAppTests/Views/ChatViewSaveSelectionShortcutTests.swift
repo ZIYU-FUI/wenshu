@@ -107,7 +107,7 @@ struct ChatViewSaveSelectionShortcutTests {
 
     /// T103 contract: HStack invariant preserved.
     @Test func hstack_invariant_preserved() throws {
-        // v1.81 (2026-09-23): boss's 3-layer refactor hoists the chat input
+        // 
         // row out of ChatView.swift into ChatInputBarView.swift (= the top
         // layer; = the user-interactive controls). The hidden Button("Save selection") Button
         // (= a hidden keyboard-shortcut Button outside the visible input

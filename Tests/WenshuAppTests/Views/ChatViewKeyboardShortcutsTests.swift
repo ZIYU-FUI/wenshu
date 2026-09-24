@@ -83,7 +83,7 @@ struct ChatViewKeyboardShortcutsTests {
     /// HStack is unchanged; = the new Buttons are AFTER the
     /// closing `}` of the HStack).
     @Test func hstack_invariant_preserved() throws {
-        // v1.83 (2026-09-23): boss's 3-layer refactor rewrites the chat input
+        // 
         // row (= buttons + TextField) into a dedicated ChatInputBarView
         // (= the top layer; = the user-interactive controls). The hidden
         // buttons (= ⌘K Focus input + other ⌘K/⌘L/etc. keyboard
