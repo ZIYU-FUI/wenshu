@@ -1,14 +1,13 @@
 //
-//  PreviewPaneTests.swift · Wenshu · v1.40 ticket 001
+//  PreviewPaneTests.swift · Wenshu
 //
 //  Structural tests for PreviewPane (= the material preview pane,
 //  repowise top #3 untested hotspot, 1534 NLOC, 18 dependents).
 //
-//  Per boss OOB 2026-09-16 "按优先级推" + "继续" (= continue the
-//  fat-file split pattern from v1.32-v1.39): v1.40 adds source-level
-//  structural coverage (= no SwiftUI rendering; = code-level verification
-//  of the PreviewPane surface = matches the v1.30 PlaceholderViewTests +
-//  v1.28 ForeshadowingViewTests pattern).
+//  Continues the fat-file split pattern from the v1.32-v1.39 arc:
+//  source-level structural coverage (= no SwiftUI rendering; = code-level
+//  verification of the PreviewPane surface = matches the v1.30
+//  PlaceholderViewTests + v1.28 ForeshadowingViewTests pattern).
 //
 //  Per repowise `get_health` directive (2026-09-14, still ranks
 //  PreviewPane.swift = #3 untested hotspot, weighted_deficit 5152,

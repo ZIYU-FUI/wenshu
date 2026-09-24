@@ -1,17 +1,13 @@
 //
-//  EditorPlaceholderRefRuntimeSmokeTests.swift · Wenshu · v0.93 ticket 007
+//  EditorPlaceholderRefRuntimeSmokeTests.swift · Wenshu
 //
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
 //
-// 
-//  v1.46 ticket 001 established this pattern (= runtime smoke tests
-//  that reference the primary type at runtime to satisfy repowise).
-//
 //  This file complements (= does NOT replace) the source-level
-//  structural tests in EditorPlaceholderTests.swift (= v0.93
-//  ticket 003 + 006): source-level tests read files as text; these
-//  NEW tests reference the actual type at runtime.
+//  structural tests in EditorPlaceholderTests.swift: source-level
+//  tests read files as text; these tests reference the actual type
+//  at runtime.
 //
 //  Per repowise heuristic (= MCP dashboard + `repowise health`):
 //  the `has_test_file` detector requires a runtime reference to the

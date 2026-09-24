@@ -2,7 +2,7 @@
 //  PreviewPaneBookFolderIconTests.swift
 //  wenshu
 //
-//  v1.81 SSOT derivation tests (= verify PreviewPane.BookFolder
+//  SSOT derivation tests (= verify PreviewPane.BookFolder
 //  icon / displayName / directoryName computed properties
 //  derive from BookFolderCatalog; = the canonical source).
 //
@@ -10,15 +10,15 @@
 import Testing
 @testable import WenshuApp
 
-@Suite("PreviewPane.BookFolder (v1.81 — derives from BookFolderCatalog SSOT)")
+@Suite("PreviewPane.BookFolder (derives from BookFolderCatalog SSOT)")
 struct PreviewPaneBookFolderIconTests {
 
     @Test("5 user-facing folder icons (= sidebar + card share the same glyph)")
     func userFacingFolderIcons() {
-        // Pre-v1.81 these were hardcoded inside the BookFolder enum
+        // Previously these were hardcoded inside the BookFolder enum
         // (= a parallel source of truth that drifted from
-        // SidebarService.folderCatalog until v1.80 caught it).
-        // Post-v1.81 both surfaces read from BookFolderCatalog;
+        // SidebarService.folderCatalog until the icon unification pass).
+        // Both surfaces now read from BookFolderCatalog;
         // = the values MUST match BookFolderCatalog.userFacing in
         // display order.
         let expected: [(folder: String, icon: String)] = [

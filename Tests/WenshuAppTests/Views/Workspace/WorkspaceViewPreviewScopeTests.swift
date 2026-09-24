@@ -60,11 +60,11 @@ struct WorkspaceViewPreviewScopeTests {
                 ".folder must map to bookScope(bookId:, folderName:) (= preserves folder context)")
     }
 
-    @Test("shelf case maps to shelfScope(shelfId:) — NOT .empty (= boss 8/31 OOB fix)")
+    @Test("shelf case maps to shelfScope(shelfId:) — NOT .empty")
     func shelfCase() throws {
-        // Per boss 2026-08-31 OOB spec criterion #2: "clicking a shelf row
-        // shows the 'select a book' hint" — previously this mapped to
-        // .empty which the spec sub-agent flagged as FAIL.
+        // "clicking a shelf row shows the 'select a book' hint" —
+        // previously this mapped to .empty which the spec sub-agent
+        // flagged as FAIL.
         let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/WorkspaceView.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("case .shelf(let shelfId):"),

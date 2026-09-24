@@ -86,11 +86,11 @@ struct EditorPaperCanvasTests {
     @Test("paper width = 595 PT (= A4 width, per Pages standard)")
     func paperWidthIsA4() throws {
         let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
-        // Per boss 2026-09-10 OOB 'just design the paper as a single A4
-        // sheet' (= Pages / Numbers use the same). The paperWidth
+        // Design the paper as a single A4
+        // sheet (= Pages / Numbers use the same). The paperWidth
         // constant must be 595 PT (= A4 width in points).
         #expect(source.contains("paperWidth: CGFloat { 595 }"),
-                "EditorPaperCanvas.paperWidth must be 595 PT (= A4 width; = per boss 2026-09-10 OOB)")
+                "EditorPaperCanvas.paperWidth must be 595 PT (= A4 width)")
     }
 
     @Test("paper margin = 72 PT (= 1 inch Pages default)")
@@ -114,7 +114,7 @@ struct EditorPaperCanvasTests {
     @Test("body uses defaultScrollAnchor(.center) (= macOS 14+ centering API)")
     func bodyUsesDefaultScrollAnchor() throws {
         let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
-        // Per boss 2026-09-10 OOB: the sheet used to be left-aligned.
+        // The sheet used to be left-aligned.
         // Center the paper horizontally with defaultScrollAnchor(.center)
         // (= Apple macOS 14+ API).
         #expect(source.contains(".defaultScrollAnchor(.center)"),

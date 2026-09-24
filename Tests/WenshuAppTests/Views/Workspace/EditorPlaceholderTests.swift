@@ -345,7 +345,7 @@ struct EditorPlaceholderTests {
         let helperPath = testsRoot
             .appendingPathComponent("Sources/WenshuApp/Editor/EditorFileWatcher.swift").path
         let code = try String(contentsOfFile: helperPath, encoding: .utf8)
-        // 
+        //
         // DispatchSourceFileSystemObject event source.
         #expect(code.contains("DispatchSource.makeFileSystemObjectSource"),
                 "EditorFileWatcher must use DispatchSource.makeFileSystemObjectSource (= kernel-level FS events)")
@@ -451,24 +451,21 @@ struct EditorPlaceholderTests {
         // 
         // computed properties (= single source of truth). The body must
         // iterate over appState.openTabs (= the canonical tab list).
-        // v1.73 tab-strip redesign (= boss OOB): only the active tab is
+        // Tab-strip redesign: only the active tab is
         // rendered (= Safari single-tab feel); = the body locates it
         // via openTabs.first(where:) rather than ForEach over the full
-        // list. This assertion accepts either v1.0.0-m1 (= ForEach) or
-        // v1.73 (= active-only first) per the per-revision spec.
+        // list. This assertion accepts either ForEach over the full
+        // list or active-only first.
         let iteratesAllTabs = code.contains("ForEach(appState.openTabs, id: \\.id)")
             || code.contains("ForEach(appState.openTabs)")
         let locatesActiveTab = code.contains("if let active = appState.openTabs.first")
             || code.contains("first(where: { $0.id == appState.activeTabId })")
         #expect(iteratesAllTabs || locatesActiveTab,
-                "EditorPlaceholder body must either iterate openTabs (= pre-v1.73 ForEach) or locate the active tab via openTabs.first(where:) (= v1.73 active-only)")
+                "EditorPlaceholder body must either iterate openTabs (= ForEach) or locate the active tab via openTabs.first(where:)")
     }
 
-    @Test("v1.73d tab close button uses DesignTokens (= no raw numeric literals)")
+    @Test("Tab close button uses DesignTokens (= no raw numeric literals)")
     func v73dTabCloseButtonUsesDesignTokens() throws {
-        // v1.73d: Standards axis review WARN-B (per `wenshu-components`
-        // skill §2 = "if you're typing a number in a layout/size/font
-        // context, you almost certainly want a DesignTokens constant").
         // The xmark glyph font size + frame size must reference
         // DesignTokens.tabCloseGlyphFontSize + DesignTokens.tabCloseFrameSize.
         let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
