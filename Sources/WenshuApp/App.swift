@@ -70,7 +70,7 @@ extension Notification.Name {}  // placeholder; all members moved to AppNotifica
 
 enum LayoutTokens {
     // Design baseline (Apple macOS 27 1x = 1 PT = 1 PX)
-    static let designW: CGFloat = 1480  // v0.90 boss 2026-09-10 OOB '1480 is also OK': boss's preferred column balance. Note: macOS 27 NavigationSplitView appears to ignore this defaultSize and force a minimum window width of ~2205 PT (= 4 columns + drag handles + chrome); the user can manually resize to 1480 but the initial launch is always wider.
+    static let designW: CGFloat = 1480  // boss's preferred column balance; macOS 27 NavigationSplitView appears to ignore this defaultSize and force a minimum window width of ~2205 PT (= 4 columns + drag handles + chrome); the user can manually resize to 1480 but the initial launch is always wider.
     static let designH: CGFloat = 980
 
 
@@ -103,7 +103,7 @@ enum SelfScreenshot {
     static func run() {
         let env = ProcessInfo.processInfo.environment
         let path = env["WS_SCREENSHOT_PATH"] ?? "/tmp/wenshu-selfshot.png"
-        let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "5.0") ?? 5.0  // v0.10.7: 5s layout race condition
+        let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "5.0") ?? 5.0  // 5s layout race condition (debug-only)
         let shouldExit = env["WS_SCREENSHOT_EXIT"] != "0"
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {

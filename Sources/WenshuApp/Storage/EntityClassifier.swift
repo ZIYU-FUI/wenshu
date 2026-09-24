@@ -153,7 +153,7 @@ struct EntityClassifier: Sendable {
     /// Result of the LLM pass.
     struct LLMResult: Sendable {
         let category: EntityCategory
-        let entityType: EntityType  // v0.30: new field
+        let entityType: EntityType  // entity classification discriminator
         let confidence: Double
     }
 

@@ -1061,7 +1061,7 @@ final class ChatViewModel {
     /// (= was `valueForStore` returning a chat store instance;
     /// = Phase 5 ticket 10a replaced that with a direct
     /// `WSChatRepository.shared.loadMessages` call inside the view).
-    func valueForSessionId() -> String { sessionId }  // v0.24 bossverificationfix (F2): @MainActor-isolated with sessionId
+    func valueForSessionId() -> String { sessionId }  // @MainActor-isolated helper
 
     /// replaceMessages: ChatView .task loadcompletereplace (append)
     func replaceMessages(_ newMessages: [ChatMessage]) {
