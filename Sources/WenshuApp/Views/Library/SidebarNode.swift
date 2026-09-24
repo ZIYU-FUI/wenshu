@@ -29,7 +29,7 @@ import Foundation
 /// `List(_, children:)` initializer needs to render disclosure
 /// indicators automatically (= non-nil = parent, nil = leaf).
 ///
-/// v1.69 boss 2026-09-22 OOB '资料库自动分类目录的展示': adds
+/// : adds
 /// the `.referenceCategory` Kind case (= the 22 CLC top-level
 /// categories that auto-classify references). When
 /// SidebarService projects the Reference-Library subtree, it

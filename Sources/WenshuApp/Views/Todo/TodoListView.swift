@@ -45,7 +45,7 @@
 //
 //  Apple HIG: small icon button + .bordered / .borderedProminent
 //  button styles per macOS 26 Tahoe guidance. No sheet (per
-//  v0.24 boss 8/24 OOB 'dynamic zone should be tab mode, not sheet').
+// ).
 //
 
 import SwiftUI

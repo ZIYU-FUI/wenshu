@@ -1,6 +1,6 @@
 // WikiEntityPreflight.swift · Wenshu () · v0.34
 //
-// v0.34 boss 2026-09-02 OOB 'engineering, ':
+// 
 // LLM Wiki entity preflight validation (= port of Card-master
 // `src/userscript/application/preflight.ts` `userscriptInstallationDiagnostics`).
 //

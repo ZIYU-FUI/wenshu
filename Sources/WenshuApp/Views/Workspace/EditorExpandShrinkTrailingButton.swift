@@ -51,7 +51,7 @@ struct EditorExpandShrinkTrailingButton: View {
     @AppStorage("wenshu.editorExpand.snapshot") private var editorExpandSnapshotJSON: String = "{}"
 
     var body: some View {
-        // v0.34 boss 2026-09-02 OOB 'the ICON on the right of the editor, the size did not follow the component':
+        // 
         // the editor expand/shrink trailing button was using raw `Lucide(...)`
         // (= no size parameter = Lucide default size, not Apple HIG standard
         // 18 PT tab icon). Migrated to the SAME icon-rendering pattern as

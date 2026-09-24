@@ -110,7 +110,7 @@ struct ChatZoneView: View {
                     EmptyView()
                 } else {
                     ChatHelpTextOverlay {
-                        // v1.99 (2026-09-23): boss 'UI 层不许直接调数据层'.
+                        // 
                         // Move the UserDefaults write into the business
                         // layer (= `ChatSessionViewModel.openSettingsToProviderApi`)
                         // so the UI only triggers the side-effect (= opens

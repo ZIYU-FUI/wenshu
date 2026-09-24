@@ -46,7 +46,7 @@ import UniformTypeIdentifiers
 ///   drive) → onboarding (re-pick)
 /// - else (= path set + path exists) → main app LayoutShellView
 struct LibraryRootView: View {
-    // v0.44 M8.1: LibraryRootView now owns the library + appearance
+    // LibraryRootView now owns the library + appearance
     // bindings (= were previously held by the now-removed
     // SettingsEnvironmentCapturer wrapper). The root view
     // receives them as constructor parameters from the App's
@@ -90,7 +90,7 @@ struct LibraryRootView: View {
         return false
     }
 
-    // v0.47 boss 2026-09-09 OOB 'fix the layer count to Apple canonical':
+    // 
     // the state below was owned by the WiredShell wrapper struct, which
     // sat between LibraryRootView and NavigationSplitShell. That wrapper
     // is gone; its state and its launch task live here now, so the view
@@ -145,7 +145,7 @@ struct LibraryRootView: View {
             .containerBackground(for: .window) {
                 Color(nsColor: .windowBackgroundColor)
             }
-            // v0.74 boss 2026-09-10 OOB 'this library's filename shouldn't be shown either':
+            // s filename shouldn't be shown either':
             // drop the `.navigationSubtitle(libraryPath.lastPathComponent)`.
             // It was originally added (= ticket 008, commit a0e9b509d) to
             // match Apple's Pages / Numbers 'document basename in the
@@ -158,7 +158,7 @@ struct LibraryRootView: View {
             // available for future use (= .navigationSubtitle remains
             // imported at the call site below via SwiftUI re-export;
             // = we just don't call it from this root view anymore).
-            // v0.81 boss 2026-09-10 OOB 'inspector toggle button':
+            // 
             // REMOVED. Per boss 2026-09-10 OOB 'Apple Pages/Numbers/
             // Keynote doesn't hide the right column' + 'Apple doesn't provide a default collapse button for the right column',
             // inspector is permanently visible (= no toggle, no
@@ -244,7 +244,7 @@ struct LibraryRootView: View {
 /// "explainer tooltip" pattern, = non-intrusive but always
 /// available on demand).
 
-// v0.47 boss 2026-09-09 OOB 'fix the layer count to Apple canonical':
+// 
 // the WiredShell wrapper struct is deleted. It existed only to own the
 // BookStore construction and the command-palette / edit-mode state, and
 // it added a whole view layer between the root view and the

@@ -44,7 +44,7 @@ struct ChatTextPartView: View {
     }
 
     var body: some View {
-        // v0.55 boss 2026-09-09 OOB 'use the ones we have not used yet':
+        // 
         // AttributedString(markdown:) parses inline markdown natively
         // (= bold / italic / code / links show as formatting = not raw
         // asterisks). Falls back to plain string when not valid markdown.

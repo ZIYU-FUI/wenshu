@@ -46,8 +46,7 @@ struct SidebarRowView: View {
         // (= the same class of bug; the .tag fix here is the
         // canonical workaround).
         //
-        // v1.82 boss 2026-09-24 OOB '这条分割线没有拉宽到自动
-        // 拉宽到整个左栏, 改一下': for divider rows, override
+        // for divider rows, override
         // .listRowInsets to zero (= remove the default 16 PT
         // horizontal padding that List(.sidebar) applies to
         // every row) + wrap the Divider in a frame with 10 PT
@@ -80,8 +79,7 @@ struct SidebarRowView: View {
         // small vertical breathing room). Apple HIG section
         // separator idiom.
         //
-        // v1.82 boss 2026-09-24 OOB '这条分割线没有拉宽到自动
-        // 拉宽到整个左栏, ... 也就是左右各 10PT': the divider
+        // the divider
         // has `.listRowInsets(EdgeInsets(top: 4, leading: 0,
         // bottom: 4, trailing: 0))` applied at the body level
         // (= no horizontal inset from the List); = the Divider

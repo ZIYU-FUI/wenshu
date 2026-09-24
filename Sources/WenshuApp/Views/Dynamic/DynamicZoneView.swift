@@ -101,7 +101,7 @@ struct DynamicZoneView: View {
                 .padding(.horizontal, DesignTokens.chromePaddingLeading)
                 .padding(.bottom, DesignTokens.chromePaddingVertical)
         }
-        // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
+        // removed
         // .regionContentBackground() (= per Plan A = the pane
         // relies on NavigationSplitView's built-in Liquid Glass
         // material = no custom per-pane background paint). The
@@ -138,7 +138,7 @@ struct DynamicZoneTabBar: View {
         // body now delegates to `PaneTabBar` generic component (= ComponentIndex.md
         // Level 3.2). Was 135 LOC, now ~10 LOC. Behavior preserved 1:1.
         //
-        // v0.40 boss 2026-09-09 OOB 'macOS 27 official API + segmented picker':
+        // 
         // replaced the previous PaneTabBar (= custom icon tab bar) with
         // Apple's canonical Picker(...).pickerStyle(.segmented). Per
         // WWDC25-323 'Build a SwiftUI app with the new design' (= the

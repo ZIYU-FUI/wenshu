@@ -85,8 +85,7 @@ struct EditorEditContent: View {
             draftId: draftId,
             configuration: configuration,
             onLinkClick: onLinkClick,
-            // v0.40 boss 9/7 OOB 'editor, yes,
-            // shouldgroup': edit mode = editable NSTextView
+            // : edit mode = editable NSTextView
             // (= same engine wrapper as preview, = no scaling
             // between modes).
             isEditable: true

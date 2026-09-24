@@ -47,7 +47,7 @@ struct EditorPaperCanvas<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        // v0.100 boss 2026-09-10 OOB 'big empty areas on the left and right of the paper':
+        // 
         // the sheet used to be left-aligned inside its
         // ScrollView (= the 595 PT paper sat flush against the
         // ScrollView's leading edge = ~370 PT of black empty

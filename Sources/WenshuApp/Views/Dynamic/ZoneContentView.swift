@@ -57,7 +57,7 @@ struct ZoneContentView: View {
         // which was regressing tab bar visibility). .frame(minHeight: 600)
         // forces window contentMinSize.
         //
-        // v0.40 boss 2026-09-09 OOB 'macOS 27 official API + segmented picker':
+        // 
         // replaced the previous PaneTabBar (= custom icon tab bar) with
         // Apple's canonical Picker(...).pickerStyle(.segmented). Per
         // WWDC25-323 'Build a SwiftUI app with the new design' (the
