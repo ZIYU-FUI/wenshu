@@ -26,7 +26,7 @@ import Foundation
 
 /// Stateless business layer for BookSettingConstraintsView. Mirrors the
 /// shape of KanbanOps / TagManagerOps / CharacterLifecycleOps (= v1.72 +
-/// v1.74 + v1.75a precedents).
+/// ).
 @MainActor
 enum BookSettingConstraintsOps {
 

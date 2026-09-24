@@ -130,7 +130,7 @@ enum EditorPersistence {
     /// - Returns: the new content + conflict notice (= nil on
     ///   missing file or clean tab). Caller uses the conflict
     ///   notice to set `tab.externalChangeNotice` (= the v0.34
-    ///   B-23 user-facing alert).
+    /// user-facing alert).
     static func reloadFromDisk(tab: EditorTab) -> EditorPersistenceReloadResult? {
         guard let path = tab.documentPath else { return nil }
         let url = URL(fileURLWithPath: path)

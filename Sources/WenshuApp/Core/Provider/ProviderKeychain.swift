@@ -124,7 +124,7 @@ struct ProviderKeychainMetadata: Sendable, Equatable, Codable {
 
 /// Default production backend — Apple Security framework (`kSecClassGenericPassword`).
 ///
-/// B-10 EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'):
+/// EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'):
 /// the public methods below are stubs (= early-return + debug key) so the
 /// macOS Security framework is never invoked at Settings-open time. The
 /// real SecItemAdd / SecItemCopyMatching / SecItemDelete implementations

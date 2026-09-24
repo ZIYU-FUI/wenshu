@@ -104,7 +104,7 @@ extension BookStore {
         }
     }
 
-    /// B-07 015.019: delete a book by id. Mirrors
+    /// 015.019: delete a book by id. Mirrors
     /// `sidebarSaveBook(_:)` for removals (= keeps the reactive
     /// `books` array in sync so `bookStore.books.count` stays
     /// accurate after a remove). Idempotent: deleting an unknown
@@ -118,7 +118,7 @@ extension BookStore {
         books.removeAll { $0.id == id }
     }
 
-    /// B-07 015.019: refresh the reactive `books` array from
+    /// 015.019: refresh the reactive `books` array from
     /// disk (= reads every `<shelvesRoot>/<shelf>/books/<id>/book.json`).
     /// Called once at launch (= by `LibraryRootView`'s layout
     /// shell) and from any view that has just performed a bulk
@@ -168,7 +168,7 @@ extension BookStore {
     /// every shelf (= a book id is unique across the library; it lives
     /// in exactly one shelf, so we walk shelves/<shelf>/books/<id>).
     ///
-    /// B-09 (= kanban + todo UI functional linkage): the Kanban + Todo
+    /// (= kanban + todo UI functional linkage): the Kanban + Todo
     /// views use this to construct per-book ``BookKanbanStore`` /
     /// ``BookTodoStore`` instances (= read/write kanban.json + todo.json
     /// inside the active book directory). Returns nil if the book id

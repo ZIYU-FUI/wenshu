@@ -42,7 +42,7 @@ struct KanbanView: View {
     @Environment(BookStore.self) private var bookStore
 
     /// The active scope (book root / 8 sub-folders / reference library).
-    /// B-13: changes when the user picks a different scope from the
+    /// changes when the user picks a different scope from the
     /// `.menu` Picker in the header. Reload-from-disk happens in
     /// `.onChange(of: scope)`.
     @State private var scope: TaskScope = .book
@@ -91,7 +91,7 @@ struct KanbanView: View {
     // MARK: - Subviews
 
     /// Header: kanban title + scope picker + ticket count + json hint.
-    /// B-13: the scope picker is a `.menu` Picker (= compact for the
+    /// the scope picker is a `.menu` Picker (= compact for the
     /// DynamicZone width; boss cadence is `.menu` for narrow zone).
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -113,7 +113,7 @@ struct KanbanView: View {
     }
 
     /// Hint text showing which JSON file the active scope reads from.
-    /// B-13: scope-aware (= changes when `scope` changes).
+    /// scope-aware (= changes when `scope` changes).
     private var jsonHint: String {
         switch scope {
         case .book:
@@ -128,7 +128,7 @@ struct KanbanView: View {
     /// Inline-create row (Apple HIG text field + return-to-submit).
     /// Disabled when the scope has no resolved directory or the text
     /// is empty.
-    /// B-12 fix: `.disabled(...)` is placed BEFORE `.buttonStyle(...)`
+    /// fix: `.disabled(...)` is placed BEFORE `.buttonStyle(...)`
     /// so SwiftUI applies the disabled visual state (gray-out) to the
     /// button content, not to the styled wrapper; `.help(...)` exposes
     /// the reason on hover; an inline caption explains why the button
@@ -159,7 +159,7 @@ struct KanbanView: View {
         }
     }
 
-    /// B-13: explain why the add row is inactive. Different message
+    /// explain why the add row is inactive. Different message
     /// for the reference-library scope vs a missing-book selection.
     private var scopeUnavailableHint: String {
         switch scope {

@@ -341,7 +341,7 @@ struct PreviewPane: View {
     /// card-double-click callback (= replaces the B-13
     /// empty NSLog placeholders + BUG1 from boss 9/3 macOS visual
     /// verify). Type = `() -> Void` (= untyped; = matches the existing
-    /// B-02 single-Card pattern; = the actual card data is read from
+    /// single-Card pattern; = the actual card data is read from
     /// the Card's own `source` field at call time, not via closure
     /// capture; = same code path handles both reference and bookDoc
     /// sources since B-02's CardSource enum unification).

@@ -86,7 +86,7 @@ struct BookKanbanStore: BookDataStoring {
         self.scope = .book
     }
 
-    /// B-13 scope-aware init (= the canonical entry point after the
+    /// scope-aware init (= the canonical entry point after the
     /// unification). `directory` is whatever `BookStore.scopeDirectory`
     /// returns for the active `(bookId, scope)` pair.
     init(bookId: UUID, directory: URL, scope: TaskScope) {

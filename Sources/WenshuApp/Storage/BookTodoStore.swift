@@ -76,7 +76,7 @@ struct BookTodoStore: BookDataStoring {
         self.scope = .book
     }
 
-    /// B-13 scope-aware init (= canonical entry point).
+    /// scope-aware init (= canonical entry point).
     init(bookId: UUID, directory: URL, scope: TaskScope) {
         self.bookId = bookId
         self.directory = directory

@@ -57,7 +57,7 @@ import SwiftUI
 struct TodoListView: View {
     @Environment(BookStore.self) private var bookStore
 
-    /// B-13: active scope (book root / 8 sub-folders / reference
+    /// active scope (book root / 8 sub-folders / reference
     /// library). Reload-from-disk happens in `.onChange(of: scope)`.
     @State private var scope: TaskScope = .book
 
@@ -98,7 +98,7 @@ struct TodoListView: View {
     // MARK: - Subviews
 
     /// Header: Todo title + scope picker + count + json hint.
-    /// B-13: scope picker drives the JSON file the view reads from.
+    /// scope picker drives the JSON file the view reads from.
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(WenshuI18n.t("auto.todolistview.l135.h30358113"))
@@ -118,7 +118,7 @@ struct TodoListView: View {
         }
     }
 
-    /// B-13: hint text showing which JSON file the active scope
+    /// hint text showing which JSON file the active scope
     /// reads from (= mirror of `KanbanView.jsonHint`).
     private var jsonHint: String {
         switch scope {
@@ -134,13 +134,13 @@ struct TodoListView: View {
     /// Inline-create row (Apple HIG text field + priority picker
     /// + return-to-submit). Disabled when the scope has no resolved
     /// directory or the text is empty.
-    /// B-12 fix: `.disabled(...)` is placed BEFORE `.buttonStyle(...)`
+    /// fix: `.disabled(...)` is placed BEFORE `.buttonStyle(...)`
     /// so SwiftUI applies the disabled visual state (gray-out) to the
     /// button content, not to the styled wrapper; `.help(...)` exposes
     /// the reason on hover; an inline caption explains why the button
     /// is inactive when no directory is resolved (= Apple HIG
     /// disabled-control feedback).
-    /// B-13 visual distinction: button label = "+ Add Todo" (= not
+    /// visual distinction: button label = "+ Add Todo" (= not
     /// Kanban's "+ New"). This + the priority chip on each row
     /// (= below) are the two boss-Issue-1 differentiators.
     private var inputRow: some View {
@@ -175,7 +175,7 @@ struct TodoListView: View {
         }
     }
 
-    /// B-13: explain why the add row is inactive. Different message
+    /// explain why the add row is inactive. Different message
     /// for the reference-library scope vs a missing-book selection.
     private var scopeUnavailableHint: String {
         switch scope {
@@ -281,7 +281,7 @@ struct TodoListView: View {
 
     // MARK: - Mutations
 
-    /// B-09 + B-13: load items from the scope's todo JSON. The scope
+    /// + B-13: load items from the scope's todo JSON. The scope
     /// is resolved via `bookStore.scopeDirectory(...)`. See
     /// `KanbanView.reloadFromDisk` for the symmetric flow.
     /// v1.72 T2c: lift the disk-IO + state-transition logic into
@@ -358,7 +358,7 @@ struct TodoListView: View {
 /// priority chip (= B-13 visual distinction), due-date (= red if
 /// overdue), delete button + context actions per status.
 ///
-/// B-13 visual distinction (= boss Issue 1, "Kanban and Todo look the same"):
+/// visual distinction (= boss Issue 1, "Kanban and Todo look the same"):
 ///   - **Priority chip** is now a colored text-in-capsule badge with
 ///     the priority label (= "High" / "Urgent" etc.) — not just a tiny
 ///     icon. This makes the priority visible at a glance, distinct
@@ -403,7 +403,7 @@ private struct TodoRow: View {
         .padding(.vertical, DesignTokens.chromePaddingNano)
     }
 
-    /// B-13: due-date display — shows the date in red when overdue
+    /// due-date display — shows the date in red when overdue
     /// (= past today), in `.secondary` when future, "(no due date)" when nil.
     @ViewBuilder
     private var dueDateLabel: some View {
@@ -470,7 +470,7 @@ private struct TodoRow: View {
         }
     }
 
-    /// B-13 visual distinction: priority chip with text label +
+    /// visual distinction: priority chip with text label +
     /// color-coded background. Replaces the v0.22 icon-only badge
     /// (= `arrow.up` etc.) so the priority is readable at a glance.
     private var priorityChip: some View {
