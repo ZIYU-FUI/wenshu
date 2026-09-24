@@ -42,9 +42,9 @@
 // matches Finder icon view style).
 
 import SwiftUI
-import CoreFoundation  // v0.30: for CFStringTransform (pinyin sort)
-import AppKit  // v0.34 B-26: NSDoubleClickInterval (= system double-click interval)
-import CryptoKit  // v1.69x boss 2026-09-23 OOB '好像启不来了' on bisect: SHA1 for stable BookDoc id (= UUID v5)
+import CoreFoundation
+import AppKit
+import CryptoKit
 
 // MARK: - Sort order (v0.30 boss OOB)
 //
@@ -338,7 +338,7 @@ struct PreviewPane: View {
     /// sidebar selection (= WorkspaceView computes from sidebarSelection).
     let scope: PreviewScope
 
-    /// v0.34 B-25: card-double-click callback (= replaces the B-13
+    /// card-double-click callback (= replaces the B-13
     /// empty NSLog placeholders + BUG1 from boss 9/3 macOS visual
     /// verify). Type = `() -> Void` (= untyped; = matches the existing
     /// B-02 single-Card pattern; = the actual card data is read from
@@ -368,14 +368,14 @@ struct PreviewPane: View {
     /// button (= the scope just renders its tab bar + content).
     var trailingButton: AnyView? = nil
 
-    /// v0.30 boss OOB: 'carddefaultyes'.
+    /// : 'carddefaultyes'.
     /// Default = .pinyinFirstLetter (= boss spec). Owned by
     /// WorkspaceView (= shared with PreviewSortMenuButton via
     /// the @State binding) so changing the sort via the tab
     /// bar trailing button re-renders this view's card grid.
     @Binding var previewSortOrder: EntitySortOrder
 
-    /// v0.40 boss 9/7 OOB ', autorefresh. restore':
+    /// 
     /// search query for the preview pane. Owned by PreviewPane
     /// (= previously a @Binding to WorkspaceView, = now reverted
     /// to @State since the search bar lives inside PreviewPane
@@ -484,7 +484,7 @@ struct PreviewPane: View {
         self._searchQuery = searchQuery
         self.customLeadingSearch = customLeadingSearch
     }
-/// v0.30 boss OOB: 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
+/// : 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
     /// not enough for two columns, auto-adapt to one column, in plain words it's card flow, width adaptive'.
     ///
     /// Adaptive column count:
@@ -963,7 +963,7 @@ struct PreviewPane: View {
             .animation(.smooth(duration: 0.22), value: scope)
         }
 
-    /// v0.40 boss 9/7 OOB 'top bar, editor, yes':
+    /// 
     /// preview-pane search bar (= 30 PT tall, = matches
     /// `LayoutTokens.toolbarHeight` = the editor's pencil/arrow toolbar
     /// inside EditorPlaceholder). Pattern matches the editor:
@@ -1542,7 +1542,7 @@ private struct Card: View {
 
     @State private var isHovered: Bool = false
 
-    /// v0.34 B-26 boss 9/3 'directorydouble-click': Apple's
+    /// boss 9/3 'directorydouble-click': Apple's
     /// `.onTapGesture(count: 2)` was eaten by LazyVGrid's ScrollView
     /// gesture recognizer. The previous attempt (= a timestamp
     /// latch within 300 ms) was too tight (= macOS default

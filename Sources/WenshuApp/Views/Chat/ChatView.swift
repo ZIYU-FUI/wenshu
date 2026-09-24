@@ -46,7 +46,7 @@
 import SwiftUI
 
 struct ChatView: View {
-    /// v1.65 boss 'all 1:1 hermes真值': true when `messageID` is the
+    /// true when `messageID` is the
     /// most recent user-sourced message in the transcript. Hermes
     /// (`user-message.tsx:30-55` `StickyHumanMessageContainer`) pins
     /// the latest user bubble to the top of the scroll viewport via

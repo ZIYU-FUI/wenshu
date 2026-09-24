@@ -21,7 +21,7 @@
 import AppKit
 
 extension PaneNSController {
-    /// v0.34 ticket 02: ZoneSlot → TabKind canonical mapping (= mirror
+    /// ZoneSlot → TabKind canonical mapping (= mirror
     /// of the switch in handleToggleZone, factorised out for reuse).
     /// `internal` (= module-internal scope; = the helper is callable
     /// from any site inside the wenshu-app module; = Swift `private`

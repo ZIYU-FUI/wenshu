@@ -26,7 +26,7 @@ struct TabContentDispatcher: View {
     let kind: TabKind
     let title: String
 
-    /// v0.30 boss 8/31 OOB 'region' (= option A =
+    /// (= option A =
     /// global @Observable store). TabContentDispatcher reads
     /// AppState directly via @Environment (= no @Binding chain).
 
@@ -36,12 +36,12 @@ struct TabContentDispatcher: View {
     // from App.swift via .environment(bookStore)).
     @Environment(BookStore.self) private var bookStore
 
-    /// v0.30 boss 8/31 OOB 'region' (= option A =
+    /// (= option A =
     /// global @Observable store). TabContentDispatcher reads sidebar
     /// selection directly from AppState (= no @Binding chain).
     @Environment(AppState.self) private var appState
 
-    // boss 2026-09-02 OOB (B-02 multi-layer audit followup):
+    // 
     // The chat-zone tab-bar wrapper (= the since-deleted wrapper that
     // previously held the chat top tab bar inside `PaneRenderer`) was
     // deleted. The state and namespace it owned (= archive-confirm
@@ -129,7 +129,7 @@ struct TabContentDispatcher: View {
             // Old 6 had ChatZoneTabBar (= 3 tabs: dialog / search / Settings
             // + archive button on right). The new ChatView doesn't
             // have an internal tab bar.
-            // boss 2026-09-02 OOB (B-02 multi-layer audit):
+            // 
             // The chat-zone tab-bar wrapper (= the since-deleted
             // wrapper that used to host the chat top tab bar) was
             // deleted; the PaneTabBar call now lives directly in this

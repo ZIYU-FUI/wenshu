@@ -60,7 +60,7 @@ struct FormatToolbarButtons: View {
 
     // MARK: - Helpers
 
-    /// v0.34 B-20: wrap the current cursor selection (or insert at
+    /// wrap the current cursor selection (or insert at
     /// cursor if no selection) with `open` + `close` MD markers.
     /// Selection tracking is approximated (= we don't have access
     /// to the TextEditor's NSRange without NSViewRepresentable),
@@ -74,7 +74,7 @@ struct FormatToolbarButtons: View {
         draft = draft + open + "text" + close
     }
 
-    /// v0.34 B-20: prefix the current line with `prefix`. Fallback
+    /// prefix the current line with `prefix`. Fallback
     /// (= no cursor info): append a new line at end with the prefix.
     /// Future ticket: parse draft by lines + insert at cursor line.
     private func prefixCurrentLine(with prefix: String) {

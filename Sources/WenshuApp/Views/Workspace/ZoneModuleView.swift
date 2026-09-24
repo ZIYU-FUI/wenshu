@@ -6,7 +6,7 @@
 //   fix_first: WorkspaceView.swift (= score 4.15, 2062 NLOC, 30 deps)
 //   reason: Hotspot with no paired test file (= needs split)
 //
-// Per boss OOB 2026-09-14 "我想把这些修掉" + Q34 5.2 +
+// 
 // ponytail + Q186 + Q57 + Q112: extract ZoneModuleView
 // (= the legacy 6-zone pane registry helper used by
 // RegisteredPanes) to its own file. This is the SAFE first split
@@ -23,7 +23,7 @@
 // @Environment, init, and body (= no behavior change).
 
 import SwiftUI
-import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
+import MarkdownEngine
 // ticket 002: drop `import LucideSwift` (= removed by boss's v1.x
 // Lucide → SF Symbols 6 deprecation in commit c50d76167). The legacy
 // `Lucide`/`LucideIcon` references in this file are comments only (= no
@@ -42,7 +42,7 @@ struct ZoneModuleView: View {
     @Binding var selectedEntityCategory: EntityCategory?
     @Binding var selectedEntity: Reference?
 
-    /// v0.30 boss 8/31 OOB 'cross-zone interaction' (= option A):
+    /// (= option A):
     /// AppState is the global @Observable source of truth.
     /// ZoneModuleView reads it directly (= no @Binding chain).
     @Environment(AppState.self) private var appState
@@ -51,7 +51,7 @@ struct ZoneModuleView: View {
     // tracked Observable instance).
     @Environment(ShellState.self) private var shell
 
-    /// v0.34 B-25-fix (= boss 9/3 'PreviewPane double-click did not open the document'):
+    /// -fix (= boss 9/3 'PreviewPane double-click did not open the document'):
     /// ZoneModuleView also needs BookStore to read reference bodies
     /// (= same as WorkspaceView's openCardInEditor). Injected via
     /// the existing .environment(bookStore) call sites in App.swift
@@ -226,7 +226,7 @@ struct ZoneModuleView: View {
         }
     }
 
-    /// v0.34 B-25-followup (= boss 9/3 'fix it until I can use it'): ZoneModuleView
+    /// -followup (= boss 9/3 'fix it until I can use it'): ZoneModuleView
     /// needs its own openCardInEditor (= WorkspaceView's openCardInEditor
     /// is in a DIFFERENT struct = can't share via this same View type).
     /// Code is mostly duplicated from WorkspaceView's openCardInEditor

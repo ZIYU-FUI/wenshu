@@ -30,7 +30,7 @@ import SwiftUI
 /// replacement for LayoutShellView). Boss 2026-08-27 grill D1 chose
 /// this paradigm over the FCP / Hermes alternatives.
 ///
-/// Boss 2026-08-27 standing goal: 'land the refactor'. This view is the
+/// 'land the refactor'. This view is the
 /// production (= only) rendering path since v0.30. The v0.27
 /// LayoutShellView legacy path was removed in v0.30 (= 1310 lines
 /// deleted per boss 8/31 OOB 'the old 6-zone layout is no longer used,
@@ -39,7 +39,7 @@ import SwiftUI
 struct WorkspaceView: View {
     var store: LayoutTreeStore
 
-    /// v0.30 boss OOB: entity classification is the last layer in the directory tree, after clicking,
+    /// : entity classification is the last layer in the directory tree, after clicking,
     /// the entity document should display in the material management area in a wenshu-style card stream layout (= projectPreview).
     /// Tracks which entity category is currently selected in the sidebar
     /// (= nil = overview mode showing all entities).
@@ -49,7 +49,7 @@ struct WorkspaceView: View {
     /// detail mode (= single card with full .md body).
     @State private var selectedEntity: Reference? = nil
 
-    /// v0.30 boss 8/31 OOB 'cross-zone interaction' (= option A = global
+    /// (= option A = global
     /// @Observable store, = commit eb3066bca). The cross-zone
     /// UI state (= sidebarSelection / selectedEntity / etc.) lives
     /// here, NOT in WorkspaceView's @State. WorkspaceView just
@@ -138,7 +138,7 @@ struct WorkspaceView: View {
     /// built-in Default preset). Boss can split / rearrange via
     /// drag-and-drop in 027-36+.
 
-    /// v0.34 B-25 (simplified): card double-click handler. Reads the
+    /// (simplified): card double-click handler. Reads the
     /// .md file (= body content) for the current sidebar selection's
     /// first entity, then either (a) SWITCHES to an existing tab that
     /// already has the same content loaded (= boss 9/3 OOB 'check whether
@@ -261,7 +261,7 @@ struct WorkspaceView: View {
             // band 70/30 weights, root 50/50 column weights per the
             // boss OOB ratios).
             //
-            // boss 2026-09-02 OOB (Apple canonical reset): the
+            // the
             // .wenshuResetLayout notification now also un-collapses
             // the on-screen NSSplitView (= the menu item was previously
             // a no-op for the live layout — only the LayoutTreeStore
@@ -582,7 +582,7 @@ struct WorkspaceView: View {
 /// Per boss 8/26 OOB 'after clicking, maximize the entire editor, hide all other
 /// columns, at this point the ICON becomes shrink, after clicking restore to the state just before clicking expand'.
 /// State + snapshot lives in @AppStorage (= ticket 01, v0.34).
-/// v0.34 ticket 03: action closure now posts the .wenshuEditorMaximizedChanged
+/// action closure now posts the .wenshuEditorMaximizedChanged
 /// notification (= PaneNSController listener installed by ticket 02 handles
 /// the actual layout mutation). The button stays a thin View-local proxy:
 /// read @AppStorage, write @AppStorage, post notification.
@@ -595,7 +595,7 @@ struct WorkspaceView: View {
 /// into clickable Button instances that surface the target ref via the
 /// `wikilinkTarget` closure (= ticket 027-35 wires navigation).
 ///
-/// v0.34 ticket 06: append wenshu's existing BacklinksPanel (= Core/LinkGraph/
+/// append wenshu's existing BacklinksPanel (= Core/LinkGraph/
 /// BacklinksPanel.swift, = v0.19 ticket 12 Obsidian replica) below the
 /// rendered markdown. ViewModel loads on `.task` (= Apple HIG async task
 /// lifecycle). Doc id is the placeholder sample body filename for now;
@@ -630,7 +630,7 @@ struct WorkspaceView: View {
 ///   US-13 (no hand-rolled NSTextView wrapper — engine wraps it)
 ///   US-22 (character-level dirty detection)
 
-/// v0.34 B-20: FormatToolbarButtons (= boss 9/2 OOB 'format toolbar' =
+/// FormatToolbarButtons (= boss 9/2 OOB 'format toolbar' =
 /// 'all can do'). 5 inline MD formatting buttons: bold / italic /
 /// heading / inline code / bullet list. Sits in the editor top-bar
 /// left slot (= Q21-boss answer = "editor top toolbar left side"). Shown

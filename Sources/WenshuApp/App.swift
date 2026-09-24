@@ -41,7 +41,7 @@ import AppKit
 
 // name for menu bar zone toggle buttons (= CommandGroup can't directly
 // access vm instance, so menu items post notification, vm listens).
-// boss 2026-09-02 OOB (B-04 backlog entry): all Notification.Name
+// all Notification.Name
 // definitions moved to Sources/WenshuApp/Core/Notifications/AppNotifications.swift
 // (= single source of truth, grouped into AppCommands / AppStateEvents /
 // LayoutEvents enums, unified to "com.wenshu.X" naming per Apple
@@ -57,7 +57,7 @@ extension Notification.Name {}  // placeholder; all members moved to AppNotifica
 // Apple HIG responsive: GeometryReader reads actual window size × ratio = 1:1 self-adaptive at any window size
 
 /// Apple Semantic Color — fully dark-mode adapted, zero RGB hardcoded
-// boss 2026-09-02 OOB ('go all apple api default; don't write your own color wrapper'): removed the `DesignColor` enum entirely. The 5 static
+// removed the `DesignColor` enum entirely. The 5 static
 // lets (= titleBar / zoneSurface / dynamicZoneSurface / accentBlue /
 // splitterLine) were each just a thin wrapper over a bare
 // `Color(nsColor: .NSColorStaticProperty)` Apple API call. The

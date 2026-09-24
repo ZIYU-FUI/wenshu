@@ -56,7 +56,7 @@ enum EditorFileWatcher {
     /// Arm a file-system watcher on `path`. Writes the resulting
     /// `DispatchSourceFileSystemObject` to `tab.fileWatcher` and
     /// the POSIX fd to `tab.watchedFD` (= per-tab ownership per
-    /// v0.34 B-23).
+    /// ).
     ///
     /// - Parameters:
     ///   - path: absolute path to the .md file to watch. `nil` =

@@ -2,7 +2,7 @@
 //
 // Extracted from WorkspaceView.swift (= v0.34 ticket 04).
 //
-// Per boss OOB 2026-09-14 "我想把这些修掉" + repowise
+// 
 // get_health directive (WorkspaceView = top untested hotspot):
 // continues the WorkspaceView split (= v1.32 = ZoneModuleView;
 // = EditorPlaceholder).
@@ -20,7 +20,7 @@
 // @State, init, and body (= no behavior change).
 
 import SwiftUI
-import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
+import MarkdownEngine
 // ticket 002: drop `import LucideSwift` (= removed by boss's v1.x
 // Lucide → SF Symbols 6 deprecation in commit c50d76167). The legacy
 // `Lucide`/`LucideIcon` references in this file are comments only (= no
@@ -35,14 +35,14 @@ struct EditorPlaceholder: View {
     // Mode enum was removed; = EditorPlaceholder.Mode.iconName /
     // .tooltip helpers became EditorMode.iconName / .tooltip (= same
     // shape; = one-line update at every usage).
-    /// v0.34 ticket 04: mode lives on the active tab (= AppState.openTabs
+    /// mode lives on the active tab (= AppState.openTabs
     /// [activeTabId].mode). Reading the active tab's mode instead of a
     /// View-local @State = each tab keeps its own preview/edit state
     /// (= switching tabs preserves mode; = matches Safari behavior).
     private var mode: EditorMode {
         appState.openTabs.first(where: { $0.id == appState.activeTabId })?.mode ?? .preview
     }
-    /// v0.34 B-26: derive the display title for a tab (= file basename
+    /// derive the display title for a tab (= file basename
     /// without the .md extension; = boss 9/3 OOB 'no .md extension either'). Placeholder tab = 'preview-sample' (= no .md extension,
     /// = no path = render the short placeholder name).
     ///
@@ -84,7 +84,7 @@ struct EditorPlaceholder: View {
         selectedText = text
     }
 
-    /// v0.39 ticket 001: lookup the active tab's id (= the engine's
+    /// lookup the active tab's id (= the engine's
     /// `documentId` for undo + replacement scoping). Falls back to
     /// a deterministic placeholder id when no tab is open (=
     /// editor in initial state with no document).

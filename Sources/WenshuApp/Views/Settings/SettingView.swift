@@ -81,7 +81,7 @@ struct SettingView: View {
     // WenshuConductorIdentity.userAddress reads this key at LLM call time.
     // Boss 8/24 clarification: default = 'user' (not 'boss' = hermes-side convention).
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
-    // boss 2026-09-02 OOB (' macOS Liquid Glass, Settings'):
+    // 
     // the user-tunable Liquid Glass opacity slider + manual @State mirror
     // + UserDefaults key + NotificationCenter wiring was removed
     // (= 134 LOC of self-rolled ladder across App.swift + LiquidGlassOpacity.swift

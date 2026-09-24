@@ -64,7 +64,7 @@ struct EditorExpandShrinkTrailingButton: View {
         // single source of truth for hover wash; removed the per-site
         // .onHover + .background tint + @State isHover + .clipShape plumbing).
         //
-        // boss 2026-09-02 OOB (multi-layer audit): the trailing-button
+        // the trailing-button
         // shape (Color.clear.frame(28,28).overlay(Image(systemName:))
         // + .hoverWash + .plain + .help) was duplicated between WorkspaceView.swift
         // EditorExpandShrinkTrailingButton and TabContentDispatcher.swift

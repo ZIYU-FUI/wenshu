@@ -226,7 +226,7 @@ enum CardOpenOps {
     ///    in progress card' = drives sidebar selection on restore)
     ///    + append to `appState.openTabs` + set `appState.activeTabId
     ///    = newTab.id` (= Safari multi-tab strip behavior per
-    ///    v0.34 B-26-FIX).
+    /// -FIX).
     static func openTab(
         triad: CardTriad,
         previewScope: PreviewScope,

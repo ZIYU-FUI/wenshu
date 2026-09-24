@@ -16,7 +16,7 @@
 import AppKit
 
 extension PaneNSController {
-    /// v0.34 ticket 02: explicit list of all ZoneSlot cases (= ZoneSlot
+    /// explicit list of all ZoneSlot cases (= ZoneSlot
     /// is not CaseIterable; mirror the enum's 6-case definition here).
     func allZoneSlots() -> [ZoneSlot] {
         [.projectSidebar, .projectPreview, .editor,
