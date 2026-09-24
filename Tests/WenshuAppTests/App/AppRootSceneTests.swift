@@ -1,15 +1,8 @@
 //
-//  AppRootSceneTests.swift · Wenshu · v1.45 ticket 001
+//  AppRootSceneTests.swift · Wenshu
 //
-//  Structural tests for AppRootScene (= SwiftUI Scene root + wenshu menu chrome (= the legacy NSMenu → SwiftUI Commands migration per Q2 boss split); = ~486 NLOC,
-//  = repowise untested hotspot).
+//  Structural tests for AppRootScene (= SwiftUI Scene root + wenshu menu chrome).
 //
-//  Per boss OOB 2026-09-16 '按优先级推' + '自己一口气推完' (= keep
-//  pushing until done): v1.45 adds final batch of source-level
-//  structural coverage for remaining untested hotspots.
-//
-//  Per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112: source-level
-//  tests following the v1.40 PreviewPaneTests + v1.44 batch
 //  precedent. Pattern: 8 tests per file.
 //
 //  Path is derived from #filePath (= robust to worktree relocations).
