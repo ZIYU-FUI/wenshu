@@ -1,7 +1,7 @@
 //
 // DynamicZoneView.swift · Wenshu · v0.24 bossverification + v0.41 WIRE-OPENBOX-001
 //
-// Boss 2026-08-24: dynamic zone shouldyes tab (chat zone ChatZoneTabBar),
+// dynamic zone shouldyes tab (chat zone ChatZoneTabBar),
 // shouldyes sheet (sheet, tab).
 //
 //  Tab order (per boss 8/24 explicit feedback):

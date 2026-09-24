@@ -184,7 +184,7 @@ struct WenshuApp: App {
     // commit 4ef3e2e77 UserDefaults.standard.string, change @AppStorage (SettingView key)
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
 
-    /// v0.30 boss 8/31 OOB option A for cross-zone communication
+    /// option A for cross-zone communication
     /// (= global @Observable store). Per-window @State (= each
     /// WindowGroup instance gets its own AppState = boss 8/27 OOB
     /// multi-window future-proofing). Currently hosts the

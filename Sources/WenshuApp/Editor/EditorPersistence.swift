@@ -202,7 +202,7 @@ enum EditorPersistence {
                         // actor per the surrounding @MainActor context).
                         // No `MainActor.run` hop needed.
                         save(tab: tab, bookStore: bookStore)
-                        // B-22: after auto-save, mark the document as
+                        // after auto-save, mark the document as
                         // clean (= originalBody = draft = the cycle
                         // ends; = subsequent handleDirtyTransition
                         // calls find a clean state and skip).

@@ -236,7 +236,7 @@ struct LibraryRootView: View {
     }
 }
 
-/// v0.40 boss 9/7 OOB ', shouldchat zonedialog.
+/// ', shouldchat zonedialog.
 /// hint, should /help ': ChatBookManagerHint deleted (= top
 /// banner removed in the same commit). The slash-command hint
 /// moves to the .help() modifier on the chat TextField (= macOS

@@ -175,7 +175,7 @@ struct EditorPlaceholder: View {
             // ticket 09: dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG
             // 2-option confirm pattern (= destructive + cancel).
-            // B-24: showDirtyDiscardConfirm is now a computed property;
+            // showDirtyDiscardConfirm is now a computed property;
             // = wrap in Binding(get:set:) for .alert's isPresented:.
             .alert(WenshuI18n.t("workspace.editor.dirty_discard_alert_title"), isPresented: Binding(
                 get: { self.showDirtyDiscardConfirm },
@@ -320,7 +320,7 @@ struct EditorPlaceholder: View {
                         // boss decision). Save button (added by ticket 08)
                         // .tint highlights when dirty; Cmd+S hotkey (ticket
                         // 10) triggers save.
-                        // B-24: draft is a computed property (= reads active
+                        // draft is a computed property (= reads active
                         // tab). Wrap in Binding(get:set:) so EditorEditContent
                         // can still use @Binding draft (SwiftUI 2-way binding
                         // contract).
@@ -420,7 +420,7 @@ struct EditorPlaceholder: View {
             // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
             // (= solid green placeholder = inconsistent with the
             // Liquid Glass design language). Editor zone has no
-            // boss 2026-09-08 OOB 'go up one layer and remove the background': drop
+            // : drop
             // .background(.ultraThinMaterial) (= was adding glass
             // material over the editor zone = visually distinct
             // from the chat zone's plain background). Editor zone
@@ -831,7 +831,7 @@ struct EditorPlaceholder: View {
     // The v0.40 apple-001 UX cleanup replaced its CJK content with
     // an onboarding welcome. Now removed entirely per boss 9/7 OOB.
 
-    /// v1.28 B2.1.13: deleted `emptyStateHint` (= verify-dead reports
+    /// deleted `emptyStateHint` (= verify-dead reports
     /// ext=0 + int=0; = 0 callers; = the computed var returned the
     /// empty-state hint when no editor tab is open; = the v0.40 boss
     /// 9/7 OOB "delete" ticket already removed the call site that

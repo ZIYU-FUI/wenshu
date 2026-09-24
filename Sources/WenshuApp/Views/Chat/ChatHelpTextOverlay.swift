@@ -1,7 +1,7 @@
 //
 // ChatHelpTextOverlay.swift · Wenshu · v0.24 bossverification
 //
-// Boss 2026-08-24: chatviewin progress (was: bottom-right).
+// chatviewin progress (was: bottom-right).
 //
 //  Pattern: ZStack +
 //

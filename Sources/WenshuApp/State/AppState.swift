@@ -294,7 +294,7 @@ final class AppState {
     // EditModeHotkey.swift toggled `appState.editMode`).
     // Now: same lifecycle, just lives on WorkspaceUIState.
 
-    // B-05: wenshu.llm.model centralization. Single owner of the
+    // wenshu.llm.model centralization. Single owner of the
     // active LLM model id (= was previously scattered as 4 separate
     // @AppStorage("wenshu.llm.model") declarations across App.swift
     // + LibraryRootView.swift, plus 3 raw UserDefaults reads/writes
@@ -319,7 +319,7 @@ final class AppState {
         // AppState no longer owns this flag. LayoutTreeState owns the
         // canonical flag (= Codable + UserDefaults-backed). The seed
         // lives in LayoutTreeState's own init.
-        // B-05: seed from the existing UserDefaults value. didSet is
+        // seed from the existing UserDefaults value. didSet is
         // not called during init (= Swift property wrapper semantics),
         // so this assignment does NOT trigger a write back to
         // UserDefaults on launch (= pure read-side migration).
@@ -337,7 +337,7 @@ final class AppState {
     }
 }
 
-/// v0.40 boss 9/7 OOB: JSON-friendly shape for persisting open
+/// JSON-friendly shape for persisting open
 /// editor tabs to UserDefaults (= small, bounded session state;
 /// not worth a SQLite table). EditorTab itself is not Codable
 /// because it holds runtime-only state (= Tasks, DispatchSource

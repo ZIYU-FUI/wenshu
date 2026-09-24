@@ -554,7 +554,7 @@ final class PaneNSController: NSSplitViewController {
 
 
 
-    /// v0.34 ticket 02: collapse the 5 non-editor zones (= hide sidebar /
+    /// collapse the 5 non-editor zones (= hide sidebar /
     /// preview / tools / chat / dynamic; editor stays visible and takes
     /// the freed space).
     private func collapseAllNonEditorZones() {

@@ -68,24 +68,24 @@ struct WorkspaceView: View {
     // moved to WorkspaceUIState (= column-local UI state).
     @Bindable var workspaceUI: WorkspaceUIState
 
-    // boss 2026-09-02 OOB 'sidebar + preview should share one unified persistence interface':
+    // :
     // Sidebar selection persistence moved into NewLibraryOutlineView's
     // unified SidebarState (= single AppStorage key 'wenshu.sidebarState').
     // WorkspaceView only reads shell.sidebarSelection (= single
     // source of truth); no separate persistence here.
 
-    /// v0.30 boss 8/31 OOB: card-grid sort order (= shared between
+    /// card-grid sort order (= shared between
     /// PreviewPane's cards and the sort menu in the preview pane's
     /// tab bar trailing slot). Default = .pinyinFirstLetter.
     ///
-    /// v1.27 component-architecture (2026-09-17): removed.
+    /// removed.
     /// Sort order now lives on `AppState.previewSortOrder`
     /// (= shared across ShellMiddleColumn + WorkspaceView +
     /// PreviewPane; = the 3 independent `@State` copies drifted
     /// before; = the merge logic now lives in AppState).
 
 
-    /// v0.30 boss 8/31 OOB: convert sidebar selection to PreviewScope
+    /// convert sidebar selection to PreviewScope
     /// for the material management zone. Computed on every render so
     /// it stays in sync with `sidebarSelection`.
     private var previewScope: PreviewScope {
@@ -172,7 +172,7 @@ struct WorkspaceView: View {
     /// For the new PreviewPane callers (the post-fix wiring), the
     /// source is always supplied.
     ///
-    /// v1.74 cardopen-dedupe: thin wrapper over `CardOpenOps` (=
+    /// thin wrapper over `CardOpenOps` (=
     /// the dedup + EditorTab + activeTabId mutation shared with
     /// ZoneModuleView + ShellMiddleColumn). Mirrors the inline
     /// helper that previously lived here verbatim (= the 3 views
@@ -673,7 +673,7 @@ struct WorkspaceView: View {
 // Color.clear (= will be wrapped automatically by the chrome layer).
 
 
-/// v0.30 boss 8/31 OOB: sort button rendered in the preview pane's
+/// sort button rendered in the preview pane's
 /// tab bar trailing slot. ponytail fix: previous Menu-based
 /// implementation collapsed to zero size inside ZoneContentView's
 /// trailing slot (= the AnyView wrapper at ZoneContentTabBar erases

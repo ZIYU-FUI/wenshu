@@ -339,7 +339,7 @@ final class SidebarService {
     /// LazySidebar* family (= that family is v1.67 cleanup
     /// historical; = the v1.68 family owns the sidebar tree).
     ///
-    /// v1.81 (= sidebar SSOT consolidation): the
+    /// the
     /// (name, displayName, icon) tuples are derived from
     /// BookFolderCatalog.userFacing (= the canonical source).
     /// SidebarService no longer hardcodes any of these fields;

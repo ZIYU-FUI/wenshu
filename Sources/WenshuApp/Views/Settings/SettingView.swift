@@ -42,7 +42,7 @@ struct SettingView: View {
     @Environment(AppState.self) private var appState
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
-    // B-05: wenshu.llm.model centralization. The `wenshu.llm.model`
+    // wenshu.llm.model centralization. The `wenshu.llm.model`
     // UserDefaults key now has a single owner = `AppState.llmModel`.
     // SettingView reads + writes via the appState (an @Observable
     // property) and uses a custom Binding for the Picker so the
@@ -190,7 +190,7 @@ struct SettingView: View {
         providersWithKeys = SettingsOps.refreshProviderStatus(keychain: ProviderKeychain.backend)
     }
 
-    /// v1.28 B2.1.7: deleted `selectProvider(_:)` (= verify-dead
+    /// deleted `selectProvider(_:)` (= verify-dead
     /// reports ext=0 + int=0; = 0 callers; = the function was an
     /// old provider-selection entry point that wrote to the
     /// @State providers directly; = the current Provider row uses
@@ -323,7 +323,7 @@ struct SettingView: View {
         }
     }
 
-    /// v1.28 B2.1.7: deleted `bindingForExpanded(_:)` (= verify-dead
+    /// deleted `bindingForExpanded(_:)` (= verify-dead
     /// reports ext=0 + int=0; = 0 callers; = the helper built a
     /// Binding<Bool> from `apiExpandedProviders` Set state; =
     /// the current API row uses inline

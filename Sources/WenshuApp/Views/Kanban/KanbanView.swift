@@ -75,7 +75,7 @@ struct KanbanView: View {
         .padding(DesignTokens.chromePaddingVertical)
         // bossverificationfix: flexible size (was: 480x320 min forcing zone to grow).
         // "=" per ticket 026 v0.26).
-        // B-13: re-load when the active scope changes (= user picked a
+        // re-load when the active scope changes (= user picked a
         // different sub-folder / reference library from the picker).
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }

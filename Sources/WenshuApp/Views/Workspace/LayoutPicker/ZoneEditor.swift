@@ -380,7 +380,7 @@ struct ZoneEditor: View {
         }
     }
 
-    /// v1.28 B2.1.3: deleted `splitAtColumn(_:)` (= verify-dead
+    /// deleted `splitAtColumn(_:)` (= verify-dead
     /// reports ext=0 + int=0; = 0 callers; = the function was
     /// leftover from an earlier ZoneEditor MVP that supported
     /// manual column splits; = the current MVP uses preset-based

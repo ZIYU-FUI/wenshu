@@ -1,7 +1,7 @@
 //
 //  SubAgentIdentity.swift · Wenshu · v0.23 ticket 001 (5 sub-agent system prompts)
 //
-// Boss 2026-08-23: "work, ".
+// "work, ".
 // 5 sub-agents under WenshuConductor (=):
 // - Researcher: (search / web / linkgraph)
 // - Writer: (composer / template / wordcount)

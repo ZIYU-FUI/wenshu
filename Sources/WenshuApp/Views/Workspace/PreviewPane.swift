@@ -16,7 +16,7 @@
 // the entity document should display in the material management area in a wenshu-style card stream layout, and double-clicking the card opens it
 // in the editor. That's why I said implementing the editor and data flow requires finishing these prerequisites first'. Ticket 2 (= the entity card flow).
 //
-// boss 2026-08-31 OOB 'click sidebar row → right material area displays that directory's documents, control directory range': extended PreviewScope to cover both reference
+// s documents, control directory range': extended PreviewScope to cover both reference
 // library (= existing) AND book folder docs. File renamed from
 // EntityPreviewPane.swift to PreviewPane.swift (= it now serves both
 // scopes).
@@ -48,7 +48,7 @@ import CryptoKit
 
 // MARK: - Sort order (v0.30 boss OOB)
 //
-// Boss 2026-08-30: 'all cards default sort is pinyin initial letter alphabetical, in the material preview top bar add an icon on the right side to implement re-sort. Current options: first letter, creation time, modification time'.
+// 'all cards default sort is pinyin initial letter alphabetical, in the material preview top bar add an icon on the right side to implement re-sort. Current options: first letter, creation time, modification time'.
 //
 // 3 sort options:
 // 1. .pinyinFirstLetter (= default) — Chinese pinyin alphabetical
@@ -104,7 +104,7 @@ enum BookFolder: String, CaseIterable {
     /// (= the sidebar's folder row ICON, to keep both surfaces
     /// visually consistent).
     ///
-    /// v1.81 (= card SSOT consolidation): the icon / displayName
+    /// the icon / displayName
     /// / directoryName values derive from BookFolderCatalog
     /// (= the canonical source). BookFolder stays as the enum type
     /// (= caller-visible type signature unchanged) but its three
@@ -334,7 +334,7 @@ struct PreviewPane: View {
     /// re-render = no I/O storm = no layout cycle).
     @State private var cachedShelfBooks: [UUID: [Book]] = [:]
 
-    /// v0.30 boss 8/31 OOB: scope of documents to display. Driven by
+    /// scope of documents to display. Driven by
     /// sidebar selection (= WorkspaceView computes from sidebarSelection).
     let scope: PreviewScope
 
@@ -361,7 +361,7 @@ struct PreviewPane: View {
     /// which uses the supplied source instead of `filtered.first`.
     let onDoubleClick: (CardSource) -> Void
 
-    /// v0.30 boss 8/31 OOB: trailing button rendered in the pane's
+    /// trailing button rendered in the pane's
     /// tab bar (= PaneTabBar trailing slot). Used by the project
     /// preview scope to host the sort menu (= sorts the card grid
     /// by first letter / creation time / modification time). Default = nil = no trailing
@@ -448,7 +448,7 @@ struct PreviewPane: View {
     }
 
     /// Whether the pane renders its internal handwritten search
-    /// v1.28 B2.1.5: deleted `showsInternalSearchBar` (= verify-dead
+    /// deleted `showsInternalSearchBar` (= verify-dead
     /// reports ext=0 + int=0; = 0 callers; = the helper checked
     /// `searchQuery == nil` (= the legacy internal-@State fallback
     /// gate); = the binding is now always non-optional per the
@@ -558,7 +558,7 @@ struct PreviewPane: View {
             // empty-state visuals when a sidebar selection is made
             // but the right-hand column has no content yet).
             //
-            // boss 2026-09-10 OOB 'wrong position — it should sit at the top INSIDE the middle-left column':
+            // :
             // the preview-pane search bar ALWAYS renders inline at
             // the top of the middle column body (= same visual slot
             // as the sidebar's `.searchable` field at the top of
@@ -912,7 +912,7 @@ struct PreviewPane: View {
             // gutter = one source = no horizontal drift between
             // search field and card grid).
             //
-            // boss 2026-09-24 OOB '10 + 10 就过多了': the
+            // : the
             // cards' horizontal padding MOVED to the outer
             // PreviewPane column (= the v1.84 column-level inset).
             // Drop the inner horizontal padding here (= would
@@ -922,7 +922,7 @@ struct PreviewPane: View {
             // right breathing room (= single source of truth for
             // the PreviewPane gutter = chromePaddingContentHorizontal).
             //
-            // boss 2026-09-24 OOB '素材栏加 10PT 内边距'
+            // 
             // (= the user wants 10 PT inner padding on the cards
             // column; = the v1.84b column-level padding was the
             // intended landing but the boss's followup '标题不受
@@ -1110,7 +1110,7 @@ struct PreviewPane: View {
 
     // MARK: - 3 view modes
 
-    /// v1.28 B2.1.5: deleted `singleEntityDetail(_ entity: Reference) -> some View`
+    /// deleted `singleEntityDetail(_ entity: Reference) -> some View`
     /// (= verify-dead reports ext=0 + int=0; = 0 callers; = the
     /// function was a 3-mode dispatcher child for entity detail;
     /// = the parent body in PreviewPane uses `singleEntityDetail`
@@ -1259,7 +1259,7 @@ struct PreviewPane: View {
     /// Empty-state placeholder (= boss UX 8/27 '...no markdown body
     /// = leave a clear empty state, not a blank white pane').
     @ViewBuilder
-    /// v0.40 boss 9/7 OOB follow-up 'editor ICON': use
+    /// follow-up 'editor ICON': use
     /// the SAME icon (= book-open) as the editor empty state, so
     /// all "no content" panels in the workspace share one visual
     /// icon. Caller can override per-call (= rare; most callers
@@ -1334,7 +1334,7 @@ struct PreviewPane: View {
         return PreviewPaneOps.loadBody(bookStore: bookStore, for: entity).body
     }
 
-    /// v0.30 boss 8/31 OOB: load .md files from a book folder on the
+    /// load .md files from a book folder on the
     /// filesystem. Walks all shelves (= shelves/<shelf>/books/<book>/)
     /// to find the matching bookId, then scans one or more of the 8
     /// standard folders for .md files.
@@ -1414,7 +1414,7 @@ struct PreviewPane: View {
         return "~"
     }
 
-    /// v0.40 boss 9/7 OOB 'search,, d, can
+    /// 'search,, d, can
     /// ': convert a CJK + ASCII title to its FULL pinyin
     /// first-letter string (= concatenated initial of each pinyin
     /// syllable, all uppercase, no separator). Examples:
@@ -1437,13 +1437,13 @@ struct PreviewPane: View {
         /// interface'). Moved to PreviewPaneOps (= v1.76 spec-fix
         /// arc; = per spec §9.2 row 6 entry-point list).
 
-        /// v0.40 boss 9/7 OOB 'search, d, can
+        /// 'search, d, can
     /// ': filter the entity list by the current search query.
     /// Matches against BOTH:
     /// 1. Original title / summary substring (= case-insensitive)
     /// 2. Pinyin first-letter substring (= e.g. "d" matches "" → DF)
     /// Empty query = pass-through (= show all entities).
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'the assets column's search field doesn't actually filter the cards':
+    /// s search field doesn't actually filter the cards':
         /// same filter shape as `searchFilteredEntities` but for book
         /// docs (= filesystem .md files loaded by `loadBookDocs`).
         /// Uses the shared `matchesSearch` helper (= title / summary /
@@ -1605,7 +1605,7 @@ private struct Card: View {
                 )
             )
             // TEXT content below the thumbnail
-            // Boss 2026-09-02: reference-library card standard = title + one-line summary,
+            // reference-library card standard = title + one-line summary,
             // no [type] badge, no timestamp chip, no iconSize split.
             VStack(alignment: .leading, spacing: 6) {
                 Text(source.title)
@@ -1623,7 +1623,7 @@ private struct Card: View {
             .padding(DesignTokens.chromePaddingPickerItem)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        // Boss 2026-09-02: parent component owns style, child component only does function.
+        // parent component owns style, child component only does function.
         // Hover tint (= matches PaneIconTab hover pattern).
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)

@@ -1,7 +1,7 @@
 //
 //  AvailableModelsDiscovery.swift · Wenshu · v0.23 ticket 011.001
 //
-// Boss 2026-08-23: 'chat zoneyesnoconfigfile,
+// 'chat zoneyesnoconfigfile,
 // key, shouldgroup'.
 //
 

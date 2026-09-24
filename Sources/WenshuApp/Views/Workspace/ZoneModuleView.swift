@@ -58,7 +58,7 @@ struct ZoneModuleView: View {
     /// + LibraryRootView.
     @Environment(BookStore.self) private var bookStore
 
-    /// v0.30 boss 8/31 OOB: computed preview scope (= mirrors
+    /// computed preview scope (= mirrors
     /// WorkspaceView's `previewScope`; duplicated here to keep
     /// ZoneModuleView self-contained without threading the scope
     /// through WorkspaceView → ZoneModuleView via another binding).
@@ -247,7 +247,7 @@ struct ZoneModuleView: View {
     /// For the new PreviewPane callers (the post-fix wiring), the
     /// source is always supplied.
     ///
-    /// v1.74 cardopen-dedupe: thin wrapper over `CardOpenOps` (=
+    /// thin wrapper over `CardOpenOps` (=
     /// the dedup + EditorTab + activeTabId mutation shared with
     /// WorkspaceView + ShellMiddleColumn). The reference-scope +
     /// bookDoc-deferred path delegates to `CardOpenOps

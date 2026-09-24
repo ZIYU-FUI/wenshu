@@ -64,7 +64,7 @@ struct TabContentDispatcher: View {
     // backlinks.count stays in sync).
     @State private var backlinksVM = BacklinksViewModel()
     @State private var backlinksCount: Int = 0
-    // B-16: popover state for the chrome bottom-right " 0" button.
+    // popover state for the chrome bottom-right " 0" button.
     // When the user taps the chrome bottom right text (= rendered as a
     // clickable Button by PaneStatusBar when rightOnTap is non-nil),
     // showBacklinksPopover flips true and a .popover with the full
@@ -109,7 +109,7 @@ struct TabContentDispatcher: View {
                 await backlinksVM.load(docId: "preview-sample")
                 backlinksCount = backlinksVM.backlinks.count
             }
-            // B-16: BacklinksPanel popover, anchored to the chrome
+            // BacklinksPanel popover, anchored to the chrome
             // bottom-right (= the " 0" button). Apple HIG
             // non-modal popover for contextual reference info.
             // 320x280 PT = standard inspector popover footprint.

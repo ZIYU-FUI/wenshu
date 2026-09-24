@@ -78,7 +78,7 @@ struct AppRootScene: Scene {
         .windowToolbarStyle(.unified)
         // bossverificationfix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
-        // boss 2026-09-10 OOB '1480 is also OK': change to
+        // : change to
         // .contentSize so the defaultSize (= 1480 PT width) is
         // actually applied. The previous `.contentMinSize` made
         // the window grow to fit the NavigationSplitView's
@@ -132,7 +132,7 @@ struct AppRootScene: Scene {
         //     = detail gets 600 PT (= its ideal = the boss's
         //     'middle column's default width' expectation).
         //
-        // boss 2026-09-22 OOB '宽度 1400, 高度 980':
+        // :
         // initial window frame = 1400x980 logical PT (= Apple HIG
         // default for a 4-column NSV on a 13" laptop). Combined
         // with `.windowResizability(.contentSize)` below + the
@@ -143,7 +143,7 @@ struct AppRootScene: Scene {
         // by the NSV's 1100~1800 PT width + 600~1100 PT height
         // (= drag stops at the NSV's frame boundaries).
         .defaultSize(width: 1400, height: 980)
-        // boss 2026-09-22 OOB '位置不是屏幕正中': the
+        // : the
         // defaultSize-only configuration leaves the window's
         // initial position to system-determined behavior (= the
         // previous v1.67 launch had the window anchored to the
@@ -342,7 +342,7 @@ struct AppRootScene: Scene {
         Settings {
             SettingView()
         }
-        // B-11: inject AppState into the Settings scene so
+        // inject AppState into the Settings scene so
         // SettingView's `@Environment(AppState.self) private var
         // appState` lookup (= appState.llmModel on the model picker
         // binding) doesn't assert-fail when the user opens Settings

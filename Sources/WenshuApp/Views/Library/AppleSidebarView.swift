@@ -495,7 +495,7 @@ struct AppleSidebarView: View {
             // on the middle-column card).
             shell.sidebarSelection = .referenceCategory(node.title)
         case .referenceCategory:
-            // boss 2026-09-22 OOB '资料库自动分类目录的展示':
+            // :
             // a category parent row (= one of the 22 CLC
             // top-level categories under the Reference-Library
             // root). Selecting it scopes the middle-column card

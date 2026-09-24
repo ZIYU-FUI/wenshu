@@ -1,7 +1,7 @@
 //
 //  SubAgentPermissions.swift · Wenshu · v0.23 ticket 012
 //
-// Boss 2026-08-23: ' hermes, must'.
+// ' hermes, must'.
 //  Source: https://github.com/NousResearch/hermes-agent/blob/main/tools/delegate_tool.py
 //
 //  Hermes `DELEGATE_BLOCKED_TOOLS` (tools sub-agents must NEVER have access to):

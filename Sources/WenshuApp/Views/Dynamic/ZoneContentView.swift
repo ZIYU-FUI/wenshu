@@ -288,7 +288,7 @@ struct ZoneContentView: View {
     }
 }
 
-/// v1.28 B2.1.19: deleted `ZoneContentTabBar` (= verify-dead
+/// deleted `ZoneContentTabBar` (= verify-dead
     /// reports ext=0 + int=0 across the struct + its 5 nested
     /// types; = 0 callers across the entire codebase; = the
     /// wrapper was the v0.34 SpecializedTools tab bar scaffold

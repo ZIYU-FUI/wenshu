@@ -93,7 +93,7 @@ struct LongFormGuardrailsView: View {
         }
     }
 
-    /// v1.28 B2.1.10: deleted `autoDerivedCount` + `userCount`
+    /// deleted `autoDerivedCount` + `userCount`
     /// (= verify-dead reports both as ext=0 + int=0; = 0 callers;
     /// = the 2 computed vars tallied `guardrails.filter` results for
     /// header counts that the v0.34 MVP never wired into the body;

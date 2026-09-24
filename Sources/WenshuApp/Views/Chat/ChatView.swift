@@ -79,7 +79,7 @@ struct ChatView: View {
     /// drop highlight. Apple's .dropDestination reports this for free.
     @State private var isDropTargeted: Bool = false
     // Reactive check: is the current model usable?
-    // boss 2026-09-10 OOB 'put the no-key overlay back': the vm's
+    // : the vm's
     // snapshot of the model id lags when the key is configured from
     // Settings, so the input was disabling itself even though the user
     // had just set a key. Read the same UserDefaults the Settings pane
@@ -110,7 +110,7 @@ struct ChatView: View {
     init(conductor: WenshuConductor? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
         // optional ChatViewModel injection (ChatZoneView shared vm for bottom toolbar
         // Read vm.contextUsed auto-propagate. Q51 child overrides parent partial, do not touch ChatViewModel.send() body, do not touch ChatView body)
-        // B-05: when ChatZoneView passes a pre-constructed `vm` (=
+        // when ChatZoneView passes a pre-constructed `vm` (=
         // the canonical path), the AppState is already injected into
         // the vm in ChatZoneView.init. When ChatView creates its own
         // vm (= the standalone path), the env-injected AppState is

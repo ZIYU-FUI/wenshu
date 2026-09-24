@@ -171,7 +171,7 @@ final class ChatViewModel {
     func clearAttachedImage() {
         attachedImagePath = nil
     }
-    // B-05: wenshu.llm.model centralization. The model id was
+    // wenshu.llm.model centralization. The model id was
     // previously scattered as 7 different reads/writes (4 @AppStorage
     // + 3 raw UserDefaults); the canonical owner is now
     // `AppState.llmModel`. ChatViewModel.holds a strong reference
@@ -278,7 +278,7 @@ final class ChatViewModel {
         self.sessionId = Self.makeSessionID(for: bookID, fallback: sessionId)
         self.currentBookID = bookID
         self.messages = initialMessages
-        // B-05: hold a strong reference to the AppState instance so
+        // hold a strong reference to the AppState instance so
         // currentModel / switchModel can read + write the canonical
         // owner. Caller passes the env-injected AppState (= same
         // lifetime as the WindowGroup that owns it).
@@ -337,7 +337,7 @@ final class ChatViewModel {
     nonisolated static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
 
     func switchModel(_ id: String) {
-        // B-05: write to the canonical owner (= AppState.llmModel),
+        // write to the canonical owner (= AppState.llmModel),
         // which then mirrors to UserDefaults via its didSet. No raw
         // UserDefaults call here (= single owner maintained).
         appState?.llmModel = id
@@ -594,7 +594,7 @@ final class ChatViewModel {
             // pipeline and isn't yet adapted to streaming). v0.34
             // ships streaming for the direct verifier path = the
             // most common user flow.
-            // B-05: read the model id from the canonical owner (= same value
+            // read the model id from the canonical owner (= same value
             // `vm.currentModel` returns, via the shared AppState
             // reference). No more raw UserDefaults read here (= single
             // owner maintained).
