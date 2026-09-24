@@ -1,13 +1,12 @@
 //
 //  TypedID.swift · Wenshu · P2-02 (audit 2026-09-24)
 //
-//  P2-02 (audit 2026-09-24): brand-wrapper convention for type-safe
-//  IDs. wenshu stores 21 ID fields as raw `String` (= 17 @Model
-//  primary keys + 4 cross-boundary foreign keys = bookID / sessionID /
-//  chapterID / memoryID); = the compiler cannot distinguish
-//  "this is a book ID" from "this is a chapter ID" from "this is a
-//  path string". Typos or accidental string swaps compile cleanly
-//  and crash at runtime.
+//  Brand-wrapper convention for type-safe IDs. wenshu stores 21 ID
+//  fields as raw `String` (= 17 @Model primary keys + 4 cross-boundary
+//  foreign keys = bookID / sessionID / chapterID / memoryID); = the
+//  compiler cannot distinguish "this is a book ID" from "this is a
+//  chapter ID" from "this is a path string". Typos or accidental
+//  string swaps compile cleanly and crash at runtime.
 //
 //  The fix is to wrap each ID type in a brand wrapper (= newtype
 //  pattern: zero runtime cost + compile-time guarantee).
@@ -15,7 +14,7 @@
 //  This file ships the convention (= protocol TypedID) + the pilot
 //  implementation (= BookID, the highest-volume ID with 29 callers).
 //  Future wrappers (ChapterID / SessionID / MemoryID) follow the same
-//  template (= see spec §3.1 for the per-ID rollout plan).
+//  template.
 //
 //  Why a protocol (= not just BookID):
 //  - Tests + helper APIs can be generic over TypedID (= e.g. an
@@ -27,15 +26,14 @@
 //    SwiftData `@Attribute(.unique)` predicates via .rawValue casts).
 //
 //  Why Optional<BookID> (= for the global un-attached bucket):
-//  - Per v1.79 chat-by-book row-level split: bookID == nil means
-//    "the session belongs to the global un-attached bucket" (= used
-//    during onboarding + future create-book-via-conversation flows).
-//    The Optional<RawValue> on SwiftData @Model side stays as
-//    `String?` (= SwiftData's @Attribute doesn't accept brand
-//    wrappers as @Model field types yet); = the brand-wrapper is
-//    the in-memory API surface (= the SwiftData row stores the
-//    raw String?, the app code passes BookID? through the
-//    repository layer).
+//  - bookID == nil means "the session belongs to the global
+//    un-attached bucket" (= used during onboarding + future
+//    create-book-via-conversation flows). The Optional<RawValue> on
+//    SwiftData @Model side stays as `String?` (= SwiftData's
+//    @Attribute doesn't accept brand wrappers as @Model field types
+//    yet); = the brand-wrapper is the in-memory API surface (= the
+//    SwiftData row stores the raw String?, the app code passes
+//    BookID? through the repository layer).
 //
 
 import Foundation
