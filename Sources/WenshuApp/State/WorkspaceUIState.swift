@@ -24,7 +24,6 @@
 //  ShellState); = descendants read via
 //  @Environment(WorkspaceUIState.self).
 //
-//  Per-v0.85 P2-06 split (= the AppState half of the audit),
 //  WorkspaceUIState is one of 4 new state classes added this arc
 //  (= ShellState / WorkspaceUIState / SheetRequestState /
 //  EditorCounters).
@@ -53,7 +52,7 @@ final class WorkspaceUIState {
     /// tab bar trailing slot + WorkspaceView's previewScope).
     /// Default = .pinyinFirstLetter (= boss spec).
     ///
-    /// v1.27 component-architecture (2026-09-17): removed the
+    /// Removed the
     /// 3 independent `@State` copies (= previously in
     /// ShellMiddleColumn + WorkspaceView + PreviewPane = drifted).
     /// Lives on AppState (= single source of truth; = batch 3 =
