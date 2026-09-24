@@ -1,12 +1,12 @@
 // Sources/WenshuApp/Editor/ReferenceLibraryWikiLinkResolver.swift
 //
-// v0.39 ticket 001 -- WikiLinkResolver conformance that searches
-// wenshu's reference-library 4-layer structure for entities matching
-// the wiki-link display name. Engine calls this synchronously from
-// the styler; wenshu does a single-pass filesystem read (= ~1ms for
+// WikiLinkResolver conformance that searches wenshu's
+// reference-library 4-layer structure for entities matching the
+// wiki-link display name. Engine calls this synchronously from the
+// styler; wenshu does a single-pass filesystem read (= ~1ms for
 // libraries with < 10k entities).
 //
-// Real API (verified 2026-09-04 from swift-markdown-engine 0.12.0 source):
+// Real API (verified from swift-markdown-engine 0.12.0 source):
 //   protocol WikiLinkResolver: Sendable {
 //     func resolve(displayName: String, range: NSRange) -> WikiLinkResolution?
 //     func name(forID id: String) -> String?
