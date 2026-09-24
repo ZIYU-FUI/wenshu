@@ -64,18 +64,16 @@ final class ShellState {
     /// (= JSON shape via Codable; = set by didSet = write back on
     /// every change; = read by ShellState.init() at launch).
     ///
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'look at this persistence,
-    /// I picked the directory I selected as Help > World, what the
-    /// card displays is wenshu. Now restart. Let me see. It should
-    /// disappear': the previous AppState comment here previously
-    /// claimed 'Persisted to wenshu.sidebarSelection' but the
-    /// actual write / read code was missing (= only `llmModel`
-    /// and `openTabs` had real persistence in init + didSet;
-    /// = `sidebarSelection` was an in-memory @Observable
-    /// property that reset to `nil` on every launch). This
-    /// change restores the documented behavior: write the JSON
-    /// encoding to UserDefaults on every set, read it back at
-    /// ShellState.init() (= the same pattern used for `openTabs`).
+    /// Persisted to `wenshu.sidebarSelection` UserDefaults key
+    /// (= JSON shape via Codable; = set by didSet = write back on
+    /// every change; = read by ShellState.init() at launch).
+    /// The previous AppState comment here previously claimed
+    /// 'Persisted to wenshu.sidebarSelection' but the actual
+    /// write / read code was missing (= only `llmModel` and
+    /// `openTabs` had real persistence in init + didSet;
+    /// = `sidebarSelection` was an in-memory @Observable property
+    /// that reset to `nil` on every launch). This property
+    /// restores the documented behavior.
     var sidebarSelection: SidebarItem? = nil {
         didSet {
             // didSet is NOT called during init (= Swift property
@@ -86,16 +84,12 @@ final class ShellState {
             // Codable, declared in its own file
             // `SidebarItem.swift` post-v1.69c split).
             //
-            // v0.71 P1 batch 6 dual-axis followup (= Q99
-            // Standards axis MED): added duplicate-write guard
-            // (= same pattern as `activeTabId.didSet` and
-            // `llmModel.didSet`) so a burst of clicks
-            // (= N identical sets) only writes once.
-            // UserDefaults.standard.set is in-memory fast (= does
-            // not sync to disk synchronously per the Apple HIG
-            // UserDefaults queue contract); = the "synchronous
-            // main-thread write" audit concern is overblown for
-            // the actual implementation, but the guard still
+            // Duplicate-write guard (= same pattern as
+            // `activeTabId.didSet` and `llmModel.didSet`) so a
+            // burst of clicks (= N identical sets) only writes
+            // once. UserDefaults.standard.set is in-memory fast
+            // (= does not sync to disk synchronously per the Apple
+            // HIG UserDefaults queue contract); = the guard still
             // helps avoid N redundant write calls during rapid
             // interaction (= e.g. keyboard nav spam).
             guard oldValue != sidebarSelection else { return }
@@ -113,38 +107,27 @@ final class ShellState {
     /// pre-P2-06 location).
     static let sidebarSelectionKey = "wenshu.sidebarSelection"
 
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'Keynote + Pages + Numbers
-    /// all three office apps use this logic' (= 'Keynote / Pages /
-    /// Numbers all use the same inspector toggle logic'): the user
-    /// can drag the right-column divider to close the inspector,
-    /// and clicking the right content toggle in the top-right
-    /// toolbar reopens the inspector AND restores the previous
-    /// content. This is the canonical Apple HIG behavior for
-    /// `.inspector(isPresented:)` per Apple's WWDC23-10161
+    /// The user can drag the right-column divider to close the
+    /// inspector, and clicking the right content toggle in the
+    /// top-right toolbar reopens the inspector AND restores the
+    /// previous content. This is the canonical Apple HIG behavior
+    /// for `.inspector(isPresented:)` per Apple's WWDC23-10161
     /// documentation: 'Inspectors can collapse by default, but
     /// they aren't resizable by default. We can change it with
     /// .inspectorColumnWidth. We can also add a toolbar button
     /// to toggle the presented property.'
     ///
-    /// Was previously removed by commit 5ad064686 (the boss's
-    /// earlier directive that 'Apple Pages/Keynote don't show a
-    /// inspector toggle button' = incorrect; = the toolbar
-    /// toggle button IS the Keynote/Pages/Numbers pattern for
-    /// the "presenter notes" / inspector reopen action;
-    /// = per WWDC23).
+    /// The toolbar toggle button is the Keynote/Pages/Numbers
+    /// pattern for the "presenter notes" / inspector reopen
+    /// action; = per WWDC23.
     var inspectorVisible: Bool = true
 
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'NSV default, the chat
-    /// zone area can be shown/hidden but the function is in the
-    /// menu bar, no dedicated button. I need to make this area
-    /// toggleable now, menu bar first, whether to add a button
-    /// later is TBD': the chat zone (= the bottom half of the
-    /// detail column = hosted by an `NSSplitViewItem` inside
+    /// The chat zone (= the bottom half of the detail column =
+    /// hosted by an `NSSplitViewItem` inside
     /// `EditorChatNSController`) has a Show/Hide toggle that lives
     /// in the macOS menu bar (= Apple HIG canonical pattern for
     /// View > Show/Hide {Pane Name} menu items; = NO toolbar
-    /// button today; = matches the boss's 'menu bar first,
-    /// whether to add a button later is TBD' directive).
+    /// button today).
     ///
     /// When `chatVisible = true`, the chat zone NSSplitViewItem is
     /// visible (= editor + chat zone = 50/50 detail column).
@@ -153,10 +136,8 @@ final class ShellState {
     /// = matches Keynote's 'presenter notes' Show/Hide behavior).
     var chatVisible: Bool = true
 
-    /// v1.27 component-architecture (2026-09-17): column-local
-    /// state promotion (= boss OOB '在新框架下, 哪些没有同成组件,
-    /// 要抽好'). Previously `@State private var` inside
-    /// `ShellDetailColumn`. Lives here because it co-varies with
+    /// Lives here (= not as `@State private var` inside
+    /// `ShellDetailColumn`) because it co-varies with
     /// `inspectorVisible` (= an inspector page is meaningless
     /// when the inspector is hidden).
     ///
@@ -166,12 +147,10 @@ final class ShellState {
     var inspectorPage: InspectorPage = .authoringFiction
 
     init() {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'look at this
-        // persistence': restore the sidebar selection from
-        // UserDefaults (= JSON-encoded via Codable; = same pattern
-        // as openTabs). Without this read, the sidebar selection
-        // resets to nil on every launch (= the boss's prediction
-        // that 'it will disappear' was correct before the fix).
+        // Restore the sidebar selection from UserDefaults
+        // (= JSON-encoded via Codable; = same pattern as openTabs).
+        // Without this read, the sidebar selection resets to nil
+        // on every launch.
         //
         // Assignment via `self.sidebarSelection = ...` does NOT
         // trigger the didSet write-back (= Swift property
