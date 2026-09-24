@@ -6,7 +6,7 @@
 //  CharacterLifecycleTracker actor in Core/Agent/Specialized/
 //  CharacterLifecycleTools.swift).
 //
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= the
+//  Per ADR-0009 (= the UI / 业务 / 数据 separation audit):
 //  per editor / right-column / settings-kanban-todo / tagmanager-
 //  placeholder-idealibrary / cardopen-dedupe; = CharacterLifecycleView
 //  is the next P0 split per the §9 extended audit.
