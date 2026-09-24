@@ -43,7 +43,7 @@ public enum WenshuDefaultsKey: String, CaseIterable, Sendable {
     case useNSSplitView      = "wenshu.useNSSplitView"
     case userAddress         = "wenshu.userAddress"
     case openTabs            = "wenshu.openTabs"
-    case activeTabId         = "wenshu.activeTabId"
+    case activeTabId         = "wenshu.editor.activeTabId.v1"
     case sidebarSelection    = "wenshu.sidebarSelection"
     case inspectorVisible    = "wenshu.inspectorVisible"
     case chatVisible         = "wenshu.chatVisible"
