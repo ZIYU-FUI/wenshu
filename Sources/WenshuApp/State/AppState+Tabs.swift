@@ -51,8 +51,7 @@ extension AppState {
                 title: p.title
             )
         }
-        if let activeIdStr = UserDefaults.standard.string(forKey: AppState.activeTabIdKey),
-           let activeId = UUID(uuidString: activeIdStr),
+        if let activeId = UserDefaultsStore.shared.uuid(forKey: .activeTabId),
            openTabs.contains(where: { $0.id == activeId }) {
             self.activeTabId = activeId
         } else if let first = openTabs.first {
