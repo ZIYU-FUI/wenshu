@@ -16,12 +16,13 @@
 import Foundation
 import SwiftData
 
-/// One-stop entry point holding all 9 Repositories.
+/// One-stop entry point holding all 8 Repositories.
 /// Apps inject this via SwiftUI .environment(\.repositoryContainer).
 ///
-/// NOTE: 9 of the 23 SwiftData @Model classes have a Repository (= the 9 listed below).
-/// The remaining 14 (@Model classes for sub-types like WSAttachment, WSForeshadowing,
-/// WSPlaceholder, WSOutlineNode, WSOutlineDocument, etc.) are accessed directly via
+/// NOTE: 8 of the 23 SwiftData @Model classes have a Repository (= the 8 listed below).
+/// The remaining 15 (@Model classes for sub-types like WSAttachment, WSForeshadowing,
+/// WSPlaceholder, WSOutlineNode, WSOutlineDocument, etc. + WSBook / WSBookShelf
+/// which BookStore handles directly) are accessed directly via
 /// WSPersistenceContainer.shared (= no repository layer needed; = they're either
 /// transient view data or simple CRUD wrappers).
 @MainActor
@@ -33,7 +34,6 @@ final class WSRepositoryContainer {
     let bookmark: WSBookmarkRepository
     let kanban: WSKanbanRepository
     let link: WSLinkRepository
-    let book: WSBookRepository
     let providerKey: WSProviderKeyRepository
     let preference: WSPreferenceRepository
 
@@ -44,7 +44,6 @@ final class WSRepositoryContainer {
         self.bookmark = WSBookmarkRepository(container: container)
         self.kanban = WSKanbanRepository(container: container)
         self.link = WSLinkRepository(container: container)
-        self.book = WSBookRepository(container: container)
         self.providerKey = WSProviderKeyRepository(container: container)
         self.preference = WSPreferenceRepository(container: container)
     }
@@ -75,9 +74,6 @@ extension WSKanbanRepository {
 }
 extension WSLinkRepository {
     @MainActor static let shared = WSLinkRepository()
-}
-extension WSBookRepository {
-    @MainActor static let shared = WSBookRepository()
 }
 extension WSProviderKeyRepository {
     @MainActor static let shared = WSProviderKeyRepository()
