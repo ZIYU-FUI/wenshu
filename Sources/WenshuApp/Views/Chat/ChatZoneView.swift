@@ -43,8 +43,8 @@ import SwiftUI
 
 struct ChatZoneView: View {
     let conductor: WenshuConductor?
-    // Phase 5 ticket 10a: ChatSessionStore deleted. Chat persistence lives
-    // in WSChatRepository.shared (= @MainActor SwiftData wrapper).
+    // Chat persistence lives
+    // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper).
 
     @Environment(AppState.self) private var envAppState
     // v1.79 chat-by-book: WenshuLibrary is the canonical source for

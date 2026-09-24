@@ -104,8 +104,8 @@ final class EditorChatNSController: NSSplitViewController {
     /// External dependencies the SwiftUI views need (passed through
     /// `NSHostingController(rootView:).environment(...)`).
     private let conductor: WenshuConductor?
-    // Phase 5 ticket 10a: ChatSessionStore deleted. Chat persistence lives
-    // in WSChatRepository.shared (= @MainActor SwiftData wrapper).
+    // Chat persistence lives
+    // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper).
     // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix:
     // documents open in the middle column's editor zone. No separate windows. The editor zone is
     // the document's editing area, and opening a document means edit state. The editor uses SM, the third-party
@@ -372,8 +372,8 @@ final class EditorChatNSController: NSSplitViewController {
 /// into NSHostingController via `.environment(...)` if/when needed).
 struct EditorChatSplitHost: NSViewControllerRepresentable {
     let conductor: WenshuConductor?
-    // Phase 5 ticket 10a: ChatSessionStore deleted. Chat persistence lives
-    // in WSChatRepository.shared (= @MainActor SwiftData wrapper).
+    // Chat persistence lives
+    // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper).
     // v1.0.0-m1-shell boss 2026-09-12 OOB 'doc-open pipeline fix':
     // thread appState + bookStore through the SwiftUI →
     // AppKit boundary so the editor pane's @Environment

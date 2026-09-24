@@ -1,17 +1,10 @@
 //
-//  Persistence/WSSummary.swift · Wenshu · v0.72 SwiftData migration Phase 1
+// Persistence/WSSummary.swift · Wenshu
 //
-//  Phase 1 commit 13/21: WSSummary.
-//  Mirrors the `chat_summaries` table from the legacy ChatSessionStore actor
-//  (= now deleted via Phase 5 ticket 10a; this @Model is the SwiftData home
-//  for what used to live in that actor's raw sqlite3 table).
+// SwiftData @Model: chat summary per session (= 1↔1 to WSSession).
+// v0.72 SwiftData migration Phase 1 (= see CHANGELOG.md v0.72 section
+// for the full migration narrative from raw sqlite3 to SwiftData).
 //
-//  1↔1 to WSSession (= each session has 0 or 1 summary; = the summary
-//  is regenerated when the session grows past a threshold).
-//
-//  Same SwiftData pattern as commit 12:
-//  - Parent (WSSession.summary): @Relationship(inverse: \WSSummary.session)
-//  - Child (WSSummary.session): plain Optional WSSession?
 
 import Foundation
 import SwiftData

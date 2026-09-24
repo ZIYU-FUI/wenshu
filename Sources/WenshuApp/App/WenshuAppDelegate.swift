@@ -77,7 +77,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     static let sharedRuntime = AgentRuntime()
     static let sharedVerifier = WenshuVerifier()
-    // Phase 5 ticket 10a: chat history now lives exclusively in
+    // Chat history now lives in
     // WSChatRepository.shared (= @MainActor SwiftData wrapper).
     // No per-actor sqlite3 bootstrap needed.
     // v0.72 Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone).

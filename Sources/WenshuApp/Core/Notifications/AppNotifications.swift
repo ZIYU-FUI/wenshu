@@ -130,7 +130,7 @@ extension Notification.Name {
 
     // AppStateEvents
     static let wenshuProviderKeychainChanged = Notification.Name(AppStateEvents.providerKeychainChanged.rawValue)
-    // Phase 5 ticket 10a: wenshuChatStoreReady removed (ChatSessionStore deleted).
+    // wenshuChatStoreReady removed (= v0.72 SwiftData migration; see CHANGELOG.md).
     static let wenshuDefocusChatInput = Notification.Name(AppStateEvents.defocusChatInput.rawValue)
 
     // Migration note: original local symbol in RuntimeCWDDisplayChip.swift

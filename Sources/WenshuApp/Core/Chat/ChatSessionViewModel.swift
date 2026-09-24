@@ -212,8 +212,8 @@ public final class ChatViewModel {
     public var contextMax: Int = 1_000_000
 
     private let conductor: WenshuConductor?
-    // Phase 5 ticket 10a: ChatSessionStore deleted. Chat persistence lives
-    // in WSChatRepository.shared (= @MainActor SwiftData wrapper). All
+    // Chat persistence lives
+    // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper). All
     // view-side append/load/summarize calls go through the shared repo.
     // v0.24 boss acceptance fix (Boss 8/25 OOB ticket 015.014 + F2 cleanup): @MainActor
     // isolation replaces nonisolated(unsafe) for Swift 6 concurrency safety.

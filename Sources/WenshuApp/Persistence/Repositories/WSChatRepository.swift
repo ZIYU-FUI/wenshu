@@ -168,7 +168,7 @@ public final class WSChatRepository {
 
     /// deleteOldMessages(sessionId:beforeTimestamp:) -> Void
     ///
-    /// Phase 5 ticket 10a: replaces the deleted ChatSessionStore actor's
+    /// (= v0.72 SwiftData migration; replaces the deleted ChatSessionStore actor)
     /// `deleteOldMessages(sessionId:beforeTimestamp:)` method (= used by
     /// the summarization pipeline to drop pre-cutoff messages after a
     /// successful `saveSummary`). Non-transactional: SwiftData ModelContext
@@ -192,7 +192,7 @@ public final class WSChatRepository {
 
     /// summaryCutoffTimestamp(sessionId:keepLastN:) -> Date?
     ///
-    /// Phase 5 ticket 10a: replaces the deleted ChatSessionStore actor's
+    /// (= v0.72 SwiftData migration; replaces the deleted ChatSessionStore actor)
     /// helper. Returns the timestamp below which messages should be
     /// summarised (= the (count - keepLastN)-th message's timestamp).
     /// Returns nil if no summarization is needed (= count <= keepLastN).
@@ -212,7 +212,7 @@ public final class WSChatRepository {
 
     /// messagesBeforeCutoff(sessionId:cutoff:) -> [StoredChatMessage]
     ///
-    /// Phase 5 ticket 10a: replaces the deleted ChatSessionStore actor's
+    /// (= v0.72 SwiftData migration; replaces the deleted ChatSessionStore actor)
     /// helper. Returns the pre-cutoff messages (= those to be summarised)
     /// in ASC timestamp order (= matches the deleted actor's spec).
     public func messagesBeforeCutoff(sessionId: String, cutoff: Date, bookID: String? = nil) throws -> [StoredChatMessage] {

@@ -25,7 +25,7 @@ struct WenshuConductorE2ETests {
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
-    /// Phase 5 ticket 6 migration from KanbanStore actor (= now deleted).
+    /// (= v0.72 SwiftData migration from KanbanStore actor).
     @MainActor
     private static func makeKanbanRepository() throws -> WSKanbanRepository {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
@@ -42,7 +42,7 @@ struct WenshuConductorE2ETests {
     func testE2EGracefulDegradation() async throws {
         // Set up all stores (real SQLite, tmp paths)
         let kanban = try Self.makeKanbanRepository()
-        // Phase 5 ticket 10a: ChatSessionStore was deleted (= sessionStore: param
+        // (= v0.72 SwiftData migration; sessionStore param
         // removed from WenshuConductor init). Sub-agent run persistence now lives
         // exclusively in WSChatRepository.shared (= @MainActor SwiftData wrapper).
         let runtime = AgentRuntime()
@@ -71,7 +71,7 @@ struct WenshuConductorE2ETests {
         #expect(conductorTask != nil, "should have a conductor:* title task")
 
         // Step 6: sub_agent_runs table should be empty (no sub-agents dispatched since LLM failed)
-        // Phase 5 ticket 10a: ChatSessionStore deleted; sub-agent runs now live in
+        // (= v0.72 SwiftData migration; sub-agent runs now live in
         // WSChatRepository.shared (= @MainActor SwiftData wrapper).
         let subAgentRuns = try WSChatRepository.shared.loadSubAgentRuns(sessionId: "default")
         #expect(subAgentRuns.isEmpty, "no LLM → no sub-agent runs persisted")

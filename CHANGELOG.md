@@ -286,6 +286,73 @@ After 老板 visual verify (= PASS), I (pocock PO) execute:
 - Real agent dispatch end-to-end works
 - 7-connector BYOK architecture wired
 
+## v0.72 (2026-08-XX) — SwiftData migration Phase 1-5 (= history snapshot)
+
+Single source of truth for the v0.72 SwiftData migration that is
+currently referenced in 20+ source file headers as "Phase 5 ticket 10a:
+ChatSessionStore deleted" (= stale if not for this consolidated entry).
+
+### Phase 1 — SwiftData @Model extraction (= 21 commits, 23 @Model classes)
+
+- Per AGENTS.md §11.4 SwiftData migration roadmap.
+- Replaced 10 raw sqlite3 stores + 20+ tables with a single SwiftData
+  `ModelContainer` (= Container.swift) holding 23 explicit `@Model`
+  classes.
+- Source files: `Sources/WenshuApp/Persistence/WS*.swift`.
+
+### Phase 2 — Repository class wrappers (= 21 commits, 9 repositories)
+
+- Thin wrapper @MainActor classes exposing the same public API surface
+  as the deleted sqlite3 Actors (= `WSChatRepository`, `WSBookRepository`,
+  `WSKanbanRepository`, `WSTodoRepository`, `WSMemoryRepository`,
+  `WSBookmarkRepository`, `WSSkillRepository`, `WSLinkRepository`,
+  `WSReferenceRepository`).
+- Source files: `Sources/WenshuApp/Persistence/Repositories/WS*.swift`.
+
+### Phase 3 — Call site migration (= 12 commits)
+
+- Switched all callers from Actor APIs to Repository APIs (= `WS*.shared`).
+
+### Phase 4 — Actor deletion (= 7 commits, 7 actors deleted)
+
+- Deleted: `ChatSessionStore` (sqlite3 raw connection),
+  `KanbanStore`, `TodoStore`, `MemoryStore`, `LinkIndex`,
+  `BookmarkStore`, `WenshuWorkspace`.
+
+### Phase 5 — Ticket 10a/10b/10c consolidation (= 3 commits)
+
+- 10a: ChatSessionStore actor + sqlite3 raw connection fully removed
+  (= the last actor with raw sqlite3).
+- 10b: 6 remaining sqlite3 stores migrated to SwiftData WS*Repository.shared
+  (= BookmarkStore actor deleted).
+- 10c: WenshuWorkspace mega-store + 9 separate stores replaced by the
+  single ModelContainer.
+
+### Where the migration history lived in source files
+
+These 20+ source files carry short Phase-5 residue comments as header
+context (= per the wenshu-pocock-workflow "first/last line = fact"
+rule, headers may carry 1-line historical context). The full
+migration narrative lives here, not in each file:
+
+- `Sources/WenshuApp/Persistence/Container.swift` (Phase 1 master)
+- `Sources/WenshuApp/Persistence/WSSummary.swift`
+- `Sources/WenshuApp/Persistence/WSSubAgentRun.swift`
+- `Sources/WenshuApp/Persistence/Repositories/WSChatRepository.swift`
+- `Sources/WenshuApp/Core/Chat/ChatDomain.swift`
+- `Sources/WenshuApp/Core/Chat/ChatSessionViewModel.swift` (line 215, 1064)
+- `Sources/WenshuApp/Views/Chat/ChatZoneView.swift` (line 46)
+- `Sources/WenshuApp/UI/Layout/EditorChatNSController.swift` (line 107, 375)
+- `Sources/WenshuApp/App/WenshuAppDelegate.swift` (line 80, 119, 152, 167, 202)
+- `Sources/WenshuApp/Core/Notifications/AppNotifications.swift` (line 133)
+- `Sources/WenshuApp/Core/Memory/*` (= 4 files; per v2 audit finding P2-04)
+- `Sources/WenshuApp/Core/Bookmarks/BookmarkDomain.swift`
+- `Sources/WenshuApp/Core/LinkGraph/BacklinkResolver.swift`
+- `Sources/WenshuApp/Core/Agent/**` tool files (= 12; per v2 audit finding P2-04)
+- `Tests/WenshuAppTests/WenshuConductorE2ETests.swift` (line 28, 45, 74)
+
+---
+
 ## v0.36 — 2026-09-03 — hermes-core-translation + iron rule 6 sweep
 
 This is the first major version since v0.35. Two large efforts landed:
