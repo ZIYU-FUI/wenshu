@@ -1,11 +1,9 @@
 //
-//  TagManagerOps.swift · Wenshu · v1.74 tagmanager-mvvm T1
+//  TagManagerOps.swift · Wenshu
 //
 //  Per-book tag business layer, extracted from TagManagerView.
 //
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= UI /
-//  业务 / 数据 separation audit) + the v1.72 settings-kanban-todo
-//  precedent (= KanbanOps / TodoOps / SettingsOps = stateless
+//  Mirrors the KanbanOps / TodoOps / SettingsOps template (= stateless
 //  enums with @MainActor static funcs): TagManagerView currently
 //  owns the business logic for the per-book tag board. reload /
 //  runFilter / addTag / removeTag / applyTag / unapply are

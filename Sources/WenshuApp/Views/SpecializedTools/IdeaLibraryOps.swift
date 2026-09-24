@@ -1,13 +1,11 @@
 //
-//  IdeaLibraryOps.swift · Wenshu · v1.74 idealibrary-mvvm T1
+//  IdeaLibraryOps.swift · Wenshu
 //
 //  Per-book idea library business layer, extracted from IdeaLibraryView.
 //
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= UI /
-//  业务 / 数据 separation audit) + the v1.72 settings-kanban-todo
-//  precedent (= KanbanOps / TodoOps / SettingsOps = stateless
-//  enums with @MainActor static funcs) + the v1.74 tagmanager-mvvm
-//  precedent (= TagManagerOps = nil-able actor reference seam
+//  Mirrors the KanbanOps / TodoOps / SettingsOps template (= stateless
+//  enums with @MainActor static funcs) + the TagManagerOps pattern (= nil-able actor reference seam
+//  passed via environment):
 //  for tests): IdeaLibraryView currently owns the business logic
 //  for the per-book idea library. reload / addIdea / removeIdea /
 //  linkIdea / unlinkIdea / runSuggest are private methods on the
