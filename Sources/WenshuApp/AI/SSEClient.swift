@@ -1,9 +1,7 @@
-// SSEClient.swift · Wenshu () · v0.34
+// SSEClient.swift · Wenshu · v0.34
 //
-// v0.34 boss 2026-09-02 OOB 'engineering, ':
-// Server-Sent Events (SSE) client for streaming LLM responses
-// (= port of Card-master `src/ai/infrastructure/responses-api-client.ts`
-// SSE parsing logic).
+// Server-Sent Events (SSE) client for streaming LLM responses.
+// Parses the W3C SSE wire format from `URLSession.bytes(for:)`.
 //
 // SSE wire format (= W3C spec):
 //   event: <event-name>\n
@@ -107,8 +105,7 @@ public actor SSEClient {
                             if v.hasPrefix(" ") { v.removeFirst() }
                             pendingData.append(v)
                         } else if line.hasPrefix("id:") || line.hasPrefix(":") {
-                            // id + comment lines: ignored (= Last-Event-ID
-                            // resumption not needed for v0.34 chat; comments
+                            // id + comment lines: ignored (= comments
                             // are heartbeat lines).
                             continue
                         }
