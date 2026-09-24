@@ -88,7 +88,10 @@ def file_is_polluted(path: Path) -> bool:
     """
     try:
         text = path.read_text(encoding="utf-8")
-    except Exception:
+    except (OSError, UnicodeDecodeError):
+        # File unreadable (= permission denied, vanished between rglob
+        # and read) or binary -> assume not polluted (= let the writer
+        # try; = writer will fail with its own error).
         return False
     return any(marker in text for marker in POLLUTION_MARKERS)
 
@@ -145,7 +148,7 @@ def load_cache() -> dict[str, str]:
         return {}
     try:
         return json.loads(CACHE_PATH.read_text(encoding="utf-8"))
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError) as exc:
         sys.stderr.write(f"translate-cjk-comments: cache load failed ({exc}); starting empty\n")
         return {}
 
@@ -181,11 +184,11 @@ def argos_translate(text: str) -> str | None:
     """
     try:
         from argostranslate import translate as argos_translate_module  # noqa: WPS433
-    except Exception:
+    except ImportError:
         return None
     try:
         return argos_translate_module.translate(text, "zh", "en")
-    except Exception:
+    except (AttributeError, RuntimeError, OSError, ValueError):
         return None
 
 
@@ -380,7 +383,7 @@ def main() -> int:
     for f in swift_files:
         try:
             counters = process_file(f, cache)
-        except Exception as exc:
+        except (OSError, json.JSONDecodeError, KeyError, ValueError) as exc:
             sys.stderr.write(f"  ERR processing {f}: {exc}\n")
             continue
         for k, v in counters.items():
