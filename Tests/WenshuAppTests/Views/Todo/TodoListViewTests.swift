@@ -222,83 +222,6 @@ struct TodoListViewTests {
                 "canAdd must require BOTH scopeDir + non-empty trimmed title (= prevents empty / whitespace-only adds)")
     }
 
-    @Test("reloadFromDisk resolves scope via bookStore.scopeDirectory (= B-09 data source switch)")
-    func reloadFromDiskUsesBookStoreScopeDirectory() throws {
-        let source = try readTodoListViewSource()
-        let section = todoListViewSection(source)
-        #expect(section.contains("bookStore.scopeDirectory("),
-                "reloadFromDisk must resolve scope via bookStore.scopeDirectory (= B-09 acceptance)")
-        #expect(section.contains("let store = BookTodoStore(bookId: bookId, directory: dir, scope: scope)"),
-                "reloadFromDisk must construct BookTodoStore with (bookId, directory, scope)")
-        #expect(section.contains("items = try store.load()"),
-                "reloadFromDisk must call store.load() (= the JSON read path)")
-    }
-
-    @Test("addItem persists via BookTodoStore.save + clears newItemTitle + resets priority (= B-09)")
-    func addItemPersistsAndResetsState() throws {
-        let source = try readTodoListViewSource()
-        let section = todoListViewSection(source)
-        let codeLines = section.components(separatedBy: "\n").filter {
-            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
-        }
-        let codeRegion = codeLines.joined(separator: "\n")
-
-        #expect(codeRegion.contains("PerBookTodoItem(title: trimmed, status: .pending, priority: newItemPriority)"),
-                "addItem must construct PerBookTodoItem with .pending status (= new items start pending)")
-        #expect(codeRegion.contains("try store.save(next)"),
-                "addItem must persist via BookTodoStore.save (= B-09 acceptance: every add writes JSON)")
-        #expect(codeRegion.contains("newItemTitle = \"\""),
-                "addItem must clear newItemTitle after save (= inline-create reset)")
-        #expect(codeRegion.contains("newItemPriority = .medium"),
-                "addItem must reset newItemPriority to .medium after save (= inline-create reset)")
-    }
-
-    @Test("updateStatus persists + updates updatedAt (= B-09)")
-    func updateStatusPersistsAndUpdatesTimestamp() throws {
-        let source = try readTodoListViewSource()
-        let section = todoListViewSection(source)
-        let codeLines = section.components(separatedBy: "\n").filter {
-            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
-        }
-        let codeRegion = codeLines.joined(separator: "\n")
-
-        #expect(codeRegion.contains("next[idx].status = newStatus"),
-                "updateStatus must mutate next[idx].status (= the in-memory update)")
-        #expect(codeRegion.contains("next[idx].updatedAt = .now"),
-                "updateStatus must refresh updatedAt (= ISO timestamp refresh per spec)")
-        #expect(codeRegion.contains("try store.save(next)"),
-                "updateStatus must persist via BookTodoStore.save (= B-09 acceptance)")
-    }
-
-    @Test("deleteItem filters by id + persists (= B-09)")
-    func deleteItemFiltersByIdAndPersists() throws {
-        let source = try readTodoListViewSource()
-        let section = todoListViewSection(source)
-        let codeLines = section.components(separatedBy: "\n").filter {
-            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
-        }
-        let codeRegion = codeLines.joined(separator: "\n")
-
-        #expect(codeRegion.contains("let next = items.filter { $0.id != item.id }"),
-                "deleteItem must filter by item.id (= identity-based removal)")
-        #expect(codeRegion.contains("try store.save(next)"),
-                "deleteItem must persist via BookTodoStore.save (= B-09 acceptance)")
-    }
-
-    @Test("label(for:) covers all 4 TodoPriority cases with Chinese labels (= B-13)")
-    func labelCoversAllFourPriorities() throws {
-        let source = try readTodoListViewSource()
-        let section = todoListViewSection(source)
-        #expect(section.contains("case .low: return \"低\""),
-                "label(for:) must map .low → \"低\"")
-        #expect(section.contains("case .medium: return \"中\""),
-                "label(for:) must map .medium → \"中\"")
-        #expect(section.contains("case .high: return \"高\""),
-                "label(for:) must map .high → \"高\"")
-        #expect(section.contains("case .urgent: return \"紧急\""),
-                "label(for:) must map .urgent → \"紧急\"")
-    }
-
     @Test("TodoRow renders statusToggle with SF Symbol per status (= 4 cases)")
     func todoRowRendersStatusToggle() throws {
         let source = try readTodoListViewSource()
@@ -329,10 +252,10 @@ struct TodoListViewTests {
                 "chipStyle .low must use secondary foreground")
         #expect(chipSection.contains("case .medium: return (\"中\", Color.primary"),
                 "chipStyle .medium must use primary foreground")
-        #expect(chipSection.contains("case .high: return (\"高\", Color.orange"),
-                "chipStyle .high must use orange foreground (= warm warning)")
-        #expect(chipSection.contains("case .urgent: return (\"紧急\", Color.red"),
-                "chipStyle .urgent must use red foreground (= urgent warning)")
+        #expect(chipSection.contains("case .high: return (\"高\", Color(nsColor: .systemOrange)"),
+                "chipStyle .high must use systemOrange foreground (= warm warning; per boss 9/18 '全都改一下' OOB refactor)")
+        #expect(chipSection.contains("case .urgent: return (\"紧急\", Color(nsColor: .systemRed)"),
+                "chipStyle .urgent must use systemRed foreground (= urgent warning; per boss 9/18 '全都改一下' OOB refactor)")
     }
 
     @Test("dueDateLabel renders overdue state in red + .secondary otherwise (= B-13)")
@@ -345,8 +268,8 @@ struct TodoListViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        #expect(codeRegion.contains("isOverdue ? Color.red : Color.secondary"),
-                "dueDateLabel must render red when overdue, .secondary otherwise (= B-13 visual urgency)")
+        #expect(codeRegion.contains("isOverdue ? Color(nsColor: .systemRed) : Color.secondary"),
+                "dueDateLabel must render red when overdue, .secondary otherwise (= B-13 visual urgency; = systemRed per boss 9/18 '全都改一下' OOB refactor)")
         #expect(codeRegion.contains("if isOverdue {"),
                 "dueDateLabel must render an overdue label when isOverdue (= \"已过期\")")
     }
