@@ -47,8 +47,7 @@ struct SidebarHeaderProminenceTests {
         )
     }
 
-    /// boss 'anything that uses Apple styles should default everything' (= Apple styles = all
-    /// defaults): the sidebar MUST NOT use any non-standard SwiftUI
+    /// The sidebar MUST NOT use any non-standard SwiftUI
     /// header prominence (= .standard is the default; .increased
     /// and .decreased are explicit non-default values).
     @Test("no_headerProminence_any_non_default_in_sidebar")
@@ -71,10 +70,7 @@ struct SidebarHeaderProminenceTests {
         }
     }
 
-    /// boss 'audit the right column... if I added any spacing by hand, revert to default' (= audit the
-    /// right column for any custom padding I added; revert to defaults)
-    /// + 'anything that uses Apple styles should default everything' (= Apple styles = all defaults):
-    /// the sidebar section header MUST NOT have any custom numeric
+    /// The sidebar section header MUST NOT have any custom numeric
     /// padding (= the previous commit removed `.padding(.top, 18)`
     /// AND `.padding(.top, 4)` AND `.headerProminence(.increased)`;
     /// = Apple HIG default = `.listStyle(.sidebar)` manages section
