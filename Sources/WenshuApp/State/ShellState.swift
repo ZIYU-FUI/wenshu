@@ -91,9 +91,9 @@ final class ShellState {
             guard oldValue != sidebarSelection else { return }
             if let item = sidebarSelection,
                let data = try? JSONEncoder().encode(item) {
-                UserDefaults.standard.set(data, forKey: Self.sidebarSelectionKey)
+                UserDefaultsStore.shared.setData(data, forKey: .sidebarSelection)
             } else {
-                UserDefaults.standard.removeObject(forKey: Self.sidebarSelectionKey)
+                UserDefaultsStore.shared.remove(.sidebarSelection)
             }
         }
     }
