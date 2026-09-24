@@ -442,23 +442,50 @@ struct ShellMiddleColumn: View {
                         .controlSize(.regular)
                         .textFieldStyle(.plain)
                     }
-                    // v1.85 boss 2026-09-24 OOB '搜索栏里的 ICON
-                    // 和文字, 距左, 也需要加 10PT': the search
+                    // v1.85c boss 2026-09-24 OOB '搜索栏边框, 距离素材栏
+                    // 的左右 10PT 的编辑没有, 需要加': the search
                     // field HStack now owns its own 10 PT horizontal
-                    // padding (= the inner gutter where the icon
-                    // + TextField sit = the icon-to-rounded-rect
-                    // left distance becomes 10 PT, the TextField's
-                    // leading placeholder distance becomes 10 PT).
-                    // This is the user-specified inner padding that
-                    // v1.84b's column-level padding was supposed to
-                    // provide (= the column-level padding was
-                    // removed in v1.85 to free the SectionHeader
-                    // from horizontal padding; = the gutter now
-                    // lives on the per-element level = search
-                    // field background flush to the column edges
-                    // + inner content 10 PT from the rect edge).
+                    // OUTER padding (= the gutter between the search
+                    // field's RoundedRectangle background and the
+                    // column edges). The padding is applied AFTER
+                    // `.background(...)` in the modifier chain (= the
+                    // padding wraps the background + content together
+                    // = the background now stands 10 PT away from
+                    // each column edge = the user-specified visual
+                    // inset that v1.92's column-level padding was
+                    // supposed to provide but never landed).
+                    //
+                    // v1.85c boss 2026-09-24 OOB '用六的': the
+                    // search field INNER vertical padding is
+                    // chromePaddingSmall (= 6 PT) on each side =
+                    // 12 PT total vertical breathing room between
+                    // the icon / TextField and the RoundedRectangle
+                    // background top / bottom edges. Boss
+                    // experimented with 8 PT (= '上下各 8PT, 试
+                    // 一下') and switched to 6 PT (= '用六的').
+                    // Per boss's standing rule: use Apple HIG
+                    // semantic expressions (= chromePaddingSmall)
+                    // instead of hardcoded numbers.
+                    //
+                    // Modifier order matters: HStack content →
+                    // .padding(.vertical, 6) → .frame(maxWidth:
+                    // .infinity) → .background(RoundedRectangle) →
+                    // .padding(.horizontal, 10). The outer
+                    // .padding(.horizontal, 10) wraps both the
+                    // background AND the frame so the background
+                    // shrinks 10 PT from each column edge (= the
+                    // rect no longer fills the column from edge to
+                    // edge). The inner .padding(.vertical, 6)
+                    // operates between the content (icon +
+                    // TextField) and the background (= the content
+                    // sits 6 PT from the rect top + bottom edges).
+                    .padding(.vertical, DesignTokens.chromePaddingSmall)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
+                    )
                     .padding(.horizontal, 10)
-                    .padding(.vertical, DesignTokens.chromePaddingMicro)
                     // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
                     // spacing between it and the first card — is there a hand-written padding, and if
                     // so, drop it': drop the manual `.padding(.vertical,
