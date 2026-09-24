@@ -247,12 +247,12 @@ enum AnthropicChunkToLLMBlockConverter {
 // Wenshu-side wins (= per AGENTS.md §11.3):
 //
 // Direct port of hermes `agent/anthropic_adapter.py` per
-// spec §3.1 #14 (= TICKET-HERMES-PARTIAL-009 follow-up).
+// spec §3.1 #14 follow-up.
 // The target file already existed at 240 LOC (= ⚠ partial
 // per gap audit 2026-09-04 = wenshu-side wins = the basic
 // content-block canonicalization layer). This P5 ticket
 // adds the 3 hermes Anthropic-specific helpers that were
-// intentionally NOT ported in TICKET-HERMES-PARTIAL-009:
+// intentionally NOT ported in TICKET-wenshu port:
 //
 //   1. _extract_preserved_thinking_blocks (= hermes L1800-L1820)
 //   2. _convert_content_to_anthropic (= hermes L1822-L1834)
