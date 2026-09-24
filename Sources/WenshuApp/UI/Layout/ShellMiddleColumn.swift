@@ -192,8 +192,8 @@ struct ShellMiddleColumn: View {
     // 1. Reads `previewScope()` (= NavigationSplitShell's helper;
     //    = the equivalent of WorkspaceView's `previewScope`
     //    computed property).
-    // 2. mode = .edit (= boss's 'opening a document means edit state' = the
-    //    user wants the WenshuMarkdownEditor's editable NSTextView,
+    // 2. mode = .edit (= 'opening a document means edit state' =
+    //    the user wants the WenshuMarkdownEditor's editable NSTextView,
     //    NOT the read-only preview; = uses the SM third-party md
     //    editor's edit surface directly).
     // 3. Reads `bookStore?` (= NavigationSplitShell threads it as
@@ -378,20 +378,8 @@ struct ShellMiddleColumn: View {
                         // standard form-control height = maps to
                         // NSTextField regular controlSize = 22 PT
                         // = matches Apple's Mail / Notes / Finder
-                        // search field heights). NO hard-coded
-                        // `.frame(height: 30)` per the boss's
-                        // explicit request.
-                        // v1.84c boss 2026-09-24 OOB '搜索框的高度, 需要参考左栏的
-                        // 选定效果的高度, 一样高': the search field
-                        // total height must match the sidebar
-                        // selection row height (= chromeHeight = 30
-                        // PT, = the same Apple HIG standard
-                        // sidebar-row height used for the sidebar's
-                        // selected rows). v1.84 used .controlSize(
-                        // .large) + chromePaddingMicro (= 28 + 4 ×
-                        // 2 = 36 PT = 6 PT taller than the sidebar
-                        // row = visually inconsistent across the two
-                        // columns). Switch back to .controlSize(
+                        // NO hard-coded `.frame(height: 30)`.
+                        // The search field total height must match the sidebar selection row height (= chromeHeight = 30 PT, = the same Apple HIG standard sidebar-row height used for the sidebar's selected rows). Used `.controlSize(.large)` + chromePaddingMicro (= 28 + 4 × 2 = 36 PT = 6 PT taller than the sidebar row = visually inconsistent across the two columns). Switch back to `.controlSize(`
                         // .regular) (22 PT) + chromePaddingMicro
                         // (4 PT × 2) = 30 PT = exact match to
                         // chromeHeight (= Apple semantic expression
@@ -426,8 +414,7 @@ struct ShellMiddleColumn: View {
                     // honors that order, but the background fills
                     // the parent's maxWidth regardless (= the
                     // padding wraps the framed view but the
-                    // background is drawn at maxWidth). v1.85d
-                    // re-orders: HStack content → padding
+                    // background is drawn at maxWidth). Re-orders: HStack content → padding
                     // .horizontal → padding .vertical → frame
                     // → background. The padding now sits INSIDE
                     // the frame (= the padded view reports a size
@@ -485,14 +472,12 @@ struct ShellMiddleColumn: View {
                     // Search field
                     // 的描边掉, 不要描边': drop the stroke
                     // overlay (= the macOS 27 hairline stroke on
-                    // top of the rounded rectangle = the boss's
-                    // 'no border' call). The fill stays (= the
+                    // top of the rounded rectangle = 'no border' call. The fill stays (= the
                     // visual background the user requested =
                     // visible inset rectangle without the hairline
                     // edge = flat fill style = the Apple Music /
                     // Apple Notes 'pill' fill without border = the
-                    // user's '更协调' aesthetic per the v1.85
-                    // search-field rhythm).
+                    // '更协调' aesthetic per the search-field rhythm.
                 )
             )
             // Header (= assets + divider
