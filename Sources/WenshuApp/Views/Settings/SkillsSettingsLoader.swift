@@ -22,7 +22,7 @@
 
 import SwiftUI
 
-/// v0.38 ticket A2: thin loader view that owns the @State array of
+/// thin loader view that owns the @State array of
 /// SkillAdapter.Skill + triggers an async load on appear. Bridges the
 /// gap between async actor-isolated SkillAdapter.listSkills() (= v0.35
 /// ticket 010 spec) and the passive SkillsSettingsView (= expects an

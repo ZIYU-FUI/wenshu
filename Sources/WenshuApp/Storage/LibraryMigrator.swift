@@ -203,7 +203,7 @@ struct LibraryMigrator: Sendable {
     /// the user has created other books in the same shelf; preserves
     /// user-created content).
     ///
-    /// v0.29 boss 2026-08-30 OOB 'use the Start Here help docs as
+    /// 
     /// test files too': expanded the seed from 1 help-doc (= in
     /// chapters/) to 5 .md files across 5 user-facing folders:
     /// - world/: Wenshu introduction + user guide

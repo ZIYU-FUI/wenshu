@@ -111,7 +111,7 @@ enum DesignTokens {
     static let chromePaddingNano: CGFloat = 2
     static let chromePaddingPico: CGFloat = 1
 
-    /// v1.83 boss 2026-09-24 OOB '素材栏的搜索栏没有加内间距, 需要
+    /// 
     /// 加 10PT' + '整搜索栏左右两边没有间距... 素材栏没有内边距,
     /// 需要加 10PT': horizontal content-area padding (= 10 PT)
     /// for the middle-column PreviewPane (= where the search

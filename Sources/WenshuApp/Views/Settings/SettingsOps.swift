@@ -3,7 +3,7 @@
 //
 //  Settings pane business layer, extracted from SettingView.
 //
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' + ADR-0009
+// 
 //  + the v1.72 T1 KanbanOps + v1.72 T2 TodoOps precedents:
 //  SettingView currently owns the business logic for the 9-tab
 //  Settings pane (= 5 private methods touching ProviderKeychain +

@@ -30,7 +30,7 @@
 
 import SwiftUI
 
-/// v1.0.0-m1-shell boss 2026-09-11 OOB: KanbanWindow = the
+/// KanbanWindow = the
 /// dedicated scene body for the kanban-as-independent-window
 /// feature (= the WindowGroup(id: WindowID.kanban) in
 /// AppRootScene). Owns its own BookStore (= the main window's
@@ -121,7 +121,7 @@ struct KanbanWindow: View {
         }
     }
 
-    /// v1.0.0-m1-shell boss 2026-09-11 OOB: resolve the active
+    /// resolve the active
     /// .ws package URL from the main window's UserDefaults
     /// (= the same `wenshu.libraryPath` key LibraryOnboardingView
     /// writes at first launch). Throws if the path is empty or

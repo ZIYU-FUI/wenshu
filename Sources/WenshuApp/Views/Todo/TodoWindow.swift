@@ -25,7 +25,7 @@
 
 import SwiftUI
 
-/// v1.0.0-m1-shell boss 2026-09-11 OOB: TodoWindow = the
+/// TodoWindow = the
 /// dedicated scene body for the todo-as-independent-window
 /// feature (= the WindowGroup(id: WindowID.todo) in
 /// AppRootScene). Owns its own BookStore + TodoStore (= the

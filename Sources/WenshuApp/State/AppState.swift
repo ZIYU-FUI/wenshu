@@ -169,7 +169,7 @@ final class AppState {
 
     // MARK: - P2-06 extracted concerns (= openTabs persistence lives in AppState+Tabs.swift)
 
-    /// v0.40 boss 2026-09-08 OOB 'chattop bar 3 tab (= dialog / search /
+    /// 
     /// Settings), editortop bar (= openTabs default)'. Fix = inject a
     /// single default Welcome tab when openTabs is empty (= gives the
     /// editor top tab bar at least one tab to render so the bar is

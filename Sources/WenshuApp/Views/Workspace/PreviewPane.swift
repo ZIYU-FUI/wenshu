@@ -93,7 +93,7 @@ enum BookFolder: String, CaseIterable {
         BookFolderCatalog.spec(for: rawValue)?.cardDisplayName ?? rawValue
     }
 
-    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'remove Lucide, use
+    /// 'remove Lucide, use
     /// SF Symbols 6 (3rd generation) with palette rendering': Lucide
     /// kebab-case names (= globe / user-round / list-tree / book-text /
     /// file-pen-line) are NOT valid SF Symbols 6 identifiers and
@@ -386,7 +386,7 @@ struct PreviewPane: View {
     /// (= live refresh, no submit button, no .onChange handler
     /// needed).
     ///
-    /// v0.73 boss 2026-09-10 OOB 'the two search fields look different — they should be unified
+    /// 
     /// to the Apple API default style': callers can pass an OPTIONAL external
     /// `searchQuery` Binding to use an EXTERNAL `.searchable(...)`
     /// modifier (= the canonical macOS 13+ Apple HIG search field;
@@ -404,7 +404,7 @@ struct PreviewPane: View {
     /// `.searchable` modifier).
     @Binding var searchQuery: String?
 
-    /// v1.0.0-m1-shell boss 2026-09-11 OOB 'move the position: below the title
+    /// 'move the position: below the title
     /// and divider, above the first card': per the boss's request, the
     /// search field renders BELOW the 'Assets' section header + Divider
     /// and ABOVE the first card (= the Apple HIG "sticky header +
@@ -456,7 +456,7 @@ struct PreviewPane: View {
     /// computed var is no longer meaningful; = no behavior change;
     /// = 4 LOC removed).
 
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'if the Apple API supports
+    /// 'if the Apple API supports
         /// it, just use it — don't roll our own search': the previous init took
         /// `searchQuery: Binding<String?>?` (= optional; = nil meant
     /// 'fall back to the legacy internal @State'). The optional
@@ -1038,7 +1038,7 @@ struct PreviewPane: View {
 
 
     /// Shelf scope: union of every book's docs under the shelf.
-    /// v1.69 boss 2026-09-22 OOB '书架, 就是从这里开始, 测试
+    /// 
     /// 书架. 这两个目录项可以点击, 但没有在卡片栏加载所有
     /// 卡片' (= the shelf row is a scope, = shows every .md
     /// card from every book under that shelf; = union of all
@@ -1429,7 +1429,7 @@ struct PreviewPane: View {
     /// diacritics, then extract the first letter of each whitespace-
     /// separated word. Uses Apple's CoreFoundation string transform
     /// (= no third-party pinyin lib = AGENTS.md §11.1 hard rule).
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'pinyin initials + Chinese-character search — it was
+    /// 'pinyin initials + Chinese-character search — it was
         /// already supported before, there should be existing code for it': extract the search-match
         /// predicate (= title / summary / pinyin first-letter
         /// substring) into a shared helper so reference entities
