@@ -4,7 +4,6 @@
 // the wenshu library). v0.02.0 ships just the bookshelf + its persistence;
 // Book / Chapter land in v0.02.1.
 //
-// Owner 8/15 15:55: 'needok,, refactor'.
 // The shape of Bookshelf is locked by `Tests/WenshuAppTests/Domain/
 // BookshelfTests.swift` — any future change to required fields, id type,
 // or Codable strategy must surface there first (= not silently in some
@@ -24,10 +23,9 @@ import Foundation
 struct Bookshelf: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var name: String
-    /// v0.30 boss 8/31 OOB: shelf icon name (= SF Symbols 6
-    /// dot.case identifier, e.g. "books.vertical"). Optional
-    /// (= nil = default "books.vertical" / "square.dashed"
-    /// glyph via `displayIcon`).
+    /// User-picked SF Symbols 6 icon name (= dot.case identifier,
+    /// e.g. "books.vertical"). Optional (= nil = default
+    /// "books.vertical" / "square.dashed" glyph via `displayIcon`).
     var icon: String?
     let createdAt: Date
     var updatedAt: Date
@@ -53,12 +51,11 @@ struct Bookshelf: Identifiable, Hashable, Codable, Sendable {
         id.uuidString
     }
 
-    /// v0.30 boss 8/31 OOB: shelf icon for sidebar display.
-    /// Returns `icon` if set, otherwise a default SF Symbols 6
-    /// icon name (= "square.dashed" for the reference-library
-    /// root shelf, "books.vertical" for user-created shelves).
-    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline uniformly':
-    /// all defaults are outline (= non-.fill) icons.
+    /// Shelf icon for sidebar display. Returns `icon` if set,
+    /// otherwise a default SF Symbols 6 icon name (= "square.dashed"
+    /// for the reference-library root shelf, "books.vertical" for
+    /// user-created shelves). All defaults are outline (= non-.fill)
+    /// icons.
     var displayIcon: String {
         if let icon, !icon.isEmpty {
             return icon
