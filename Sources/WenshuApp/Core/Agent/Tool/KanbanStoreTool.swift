@@ -60,7 +60,7 @@
 //  Standards-axis S4 (= no new third-party deps): pure Foundation +
 //  the existing WenshuApp module surface (KanbanTools actor +
 //  ToolInputParser). No SQLite import here.
-//  (= KanbanStore actor was deleted in Phase 5 ticket 6;
+//  (= the legacy actor was deleted in favor of WSKanbanRepository;
 //  persistence is now WSKanbanRepository.shared = @MainActor
 //  SwiftData wrapper.)
 
@@ -86,7 +86,7 @@ struct KanbanStoreTool: Tool, Sendable {
     /// so the unsafe escape hatch is safe here. `KanbanTools(store:
     /// nil)` falls through to `WSKanbanRepository.shared` (=
     /// @MainActor SwiftData wrapper; = no /tmp sqlite3 fallback
-    /// after Phase 5 ticket 6 deleted the KanbanStore actor).
+    /// after the deleted legacy actor was replaced by WSKanbanRepository).
     /// Q99 dual-axis audit (Round 1.3): callers MUST construct
     /// this singleton from a MainActor context (= the @MainActor
     /// accessor on `WSKanbanRepository.shared` traps if accessed
