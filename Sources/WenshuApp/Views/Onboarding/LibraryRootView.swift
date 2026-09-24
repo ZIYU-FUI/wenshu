@@ -247,7 +247,7 @@ struct LibraryRootView: View {
 // NavigationSplitView. All of it moved onto LibraryRootView above.
 
 
-/// v0.24 bossverificationfix: NSImage load helper (for PNG not in .xcassets).
+/// NSImage load helper (for PNG not in .xcassets).
 /// Searches multiple paths in .app bundle for wenshu-original-fanbai.png.
 private func loadWenshuLogo() -> NSImage? {
     // Build process: Package.swift copies AppIcon.icon/ → Wenshu.app/Contents/Resources/AppIcon.icon/
@@ -398,13 +398,11 @@ Group {
     }
 
     /// showSavePanel: NSSavePanel for new .ws package directory.
-    /// v0.26 amendment: .ws is now a package DIRECTORY (= boss 8/26 OOB
-    /// 'library-public / cross-book shared' model). The NSSavePanel still
+    /// The .ws bundle is now a package DIRECTORY (= cross-book shared
+    /// model). The NSSavePanel still
     /// takes a "filename" but createWenshuWorkspace creates a directory
     /// at that name (no .ws file inside).
-    /// Boss 8/24 OOB: '.ws defaultfilename, useruser.
-    /// shouldyes anbaiqiang. fileshould anbaiqiang.ws'
-    /// = default name = NSUserName() (Apple API for current Mac username).
+    /// Default name = NSUserName() (Apple API for current Mac username).
     /// Apple HIG 'create new package' pattern (NSSavePanel with default name).
     private func showSavePanel() {
         let panel = NSSavePanel()
@@ -507,8 +505,8 @@ extension LibraryOnboardingView {
         NSLog("[wenshu.library] created package: %@", url.path)
     }
 
-    /// v0.24 bossverificationfix: render an SF Symbol to NSImage at given size.
-    /// Used for setting Finder icons on .ws packages (per Boss 8/24 OOB).
+    /// Render an SF Symbol to NSImage at given size.
+    /// Used for setting Finder icons on .ws packages.
     /// Apple HIG: SF Symbol fill variant for package icons.
     static func renderSFSymbol(_ name: String, size: CGFloat) -> NSImage? {
         // Use NSImage(systemSymbolName:) for SF Symbol loading.
@@ -520,7 +518,7 @@ extension LibraryOnboardingView {
         return image
     }
 
-    /// v0.24 bossverificationfix: load the wenshu LOGO PNG for use as Finder icon.
+    /// Load the wenshu LOGO PNG for use as Finder icon.
     /// Searches multiple paths in priority order (Bundle.main → absolute path).
     static func loadWenshuLogoForIcon() -> NSImage? {
         let paths = [
