@@ -49,7 +49,7 @@ public enum WenshuDefaultsKey: String, CaseIterable, Sendable {
     case chatVisible         = "wenshu.chatVisible"
     case inspectorPage       = "wenshu.inspectorPage"
     case monthlyCredits      = "wenshu.monthlyCredits"
-    case cwdOverride         = "wenshu.cwdOverride"
+    case cwdOverride         = "wenshu.runtimeCWD"
     case creditsMonthly      = "wenshu.credits.monthly"
     case creditsMonthlyReset = "wenshu.credits.monthlyReset"
 }
