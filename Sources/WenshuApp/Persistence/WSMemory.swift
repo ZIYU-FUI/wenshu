@@ -1,12 +1,7 @@
 //
 //  Persistence/WSMemory.swift · Wenshu · v0.72 SwiftData migration Phase 1
 //
-//  Phase 1 commit 2/21: WSMemory.
-//  Per AGENTS.md §11.4 + .scratch/2026-09-13-swiftdata-migration-spec.md.
-//
-//  WSMemory mirrors the memories table schema (= v0.21 ticket 02 hermes mem0 port):
-//  (= Phase 5 ticket 8 deleted Core/Memory/MemoryStore.swift; the canonical
-//  domain type is now Core/Memory/MemoryDomain.swift's Memory struct.)
+//  WSMemory mirrors the memories table schema (= hermes mem0 port):
 //    - memory_id TEXT PRIMARY KEY
 //    - user_id TEXT NOT NULL
 //    - content TEXT NOT NULL
@@ -15,9 +10,6 @@
 //
 //  Old code: MemoryStore.swift (raw sqlite3 + actor isolation)
 //  New code: SwiftData @Model (= Apple-recommended; = free migration framework)
-//
-//  v0.18 ticket 01 = wenshu local SQLite long-term memory (replica of
-//  hermes mem0 platform pattern).
 
 import Foundation
 import SwiftData
@@ -34,13 +26,10 @@ final class WSMemory {
         self.memoryID = memoryID
         self.userID = userID
         self.content = content
-        // v0.72 Q99 MED fix: shared `now` so createdAt and updatedAt
-        // are bit-identical on init (= the B-09 contract per the
-        // WSMemoryTests.createdAndUpdatedAtEqualOnInit spec). Two
-        // separate Date() calls could land on opposite sides of the
-        // sub-second tick boundary (= Date's precision is platform-
-        // dependent: macOS 27 = ~1ns, but Swift Testing's CI uses
-        // a coarser clock that makes 2 calls frequently differ).
+        // Shared `now` so createdAt and updatedAt are bit-identical
+        // on init (= Swift Testing's CI clock is coarser than Date's
+        // precision, so two separate Date() calls frequently differ
+        // at sub-second ticks).
         let now = Date()
         self.createdAt = now
         self.updatedAt = now
