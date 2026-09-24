@@ -25,7 +25,7 @@ import Foundation
 
 /// Document category (= what kind of MD file this is in the book).
 /// Three cases: chapter / setting / research. Three cases is the
-/// v0.03.0 minimum; v0.04+ can add more (= outline / foreshadowing /
+/// minimum; v0.04+ can add more (= outline / foreshadowing /
 /// notes / drafts) without breaking the contract (= Codable default
 /// value handles unknown strings, and the card UI iterates `allCases`
 /// so new categories appear automatically).
