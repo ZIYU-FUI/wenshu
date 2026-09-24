@@ -50,7 +50,7 @@ struct EmptyStateViewDesignTokensTests {
         )
     }
 
-    /// v0.71 P1 batch 3: the icon→title gap (= 22 PT) MUST come from
+    /// 
     /// `DesignTokens.chromePaddingEmptyStateGap`.
     @Test("icon_title_gap_usesDesignTokens_chromePaddingEmptyStateGap")
     func icon_title_gap_usesDesignTokens_chromePaddingEmptyStateGap() throws {
@@ -61,7 +61,7 @@ struct EmptyStateViewDesignTokensTests {
         )
     }
 
-    /// v0.71 P1 batch 3: the title→body gap (= 6 PT) MUST come from
+    /// 
     /// `DesignTokens.chromePaddingSmall`.
     @Test("title_body_gap_usesDesignTokens_chromePaddingSmall")
     func title_body_gap_usesDesignTokens_chromePaddingSmall() throws {
@@ -72,7 +72,7 @@ struct EmptyStateViewDesignTokensTests {
         )
     }
 
-    /// v0.71 P1 batch 3: the title + body max-width (= 360 PT) MUST come
+    /// 
     /// from `DesignTokens.guardrailSheetWidth`.
     @Test("max_width_usesDesignTokens_guardrailSheetWidth")
     func max_width_usesDesignTokens_guardrailSheetWidth() throws {
@@ -88,7 +88,7 @@ struct EmptyStateViewDesignTokensTests {
         )
     }
 
-    /// v0.71 P1 batch 3: the canonical Apple HIG values (= 76 PT icon,
+    /// 
     /// 22 PT gap, 6 PT title-body gap, 360 PT max-width) MUST be defined
     /// in DesignTokens.swift (= the single source of truth).
     @Test("design_tokens_defines_canonical_empty_state_values")

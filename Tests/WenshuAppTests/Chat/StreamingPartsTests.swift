@@ -87,7 +87,7 @@ struct StreamingPartsTests {
         }
     }
 
-    /// v0.71 P1 batch 1: empty content + empty thinking = empty
+    /// 
     /// parts[] (= the canonical "no payload" sentinel; = Hermes
     /// empty ChatMessage = parts = []).
     @Test("init_emptyContentAndThinking_emptyParts")
@@ -125,7 +125,7 @@ struct StreamingPartsTests {
 
     // MARK: - ChatMessagePart factory helpers
 
-    /// v0.71 P1 batch 1: the .text factory creates a part with
+    /// 
     /// `.text(String)` kind (= the most common case; = mirrors
     /// hermes `parts.ts:5 textPart`).
     @Test("textFactory_createsTextPart")
@@ -136,7 +136,7 @@ struct StreamingPartsTests {
         #expect(part.timestamp == nil)
     }
 
-    /// v0.71 P1 batch 1: the .reasoning factory creates a part
+    /// 
     /// with `.reasoning(String)` kind (= mirrors hermes
     /// `parts.ts:9 reasoningPart`).
     @Test("reasoningFactory_createsReasoningPart")
@@ -145,7 +145,7 @@ struct StreamingPartsTests {
         #expect(part.kind == .reasoning("internal monologue"))
     }
 
-    /// v0.71 P1 batch 1: the .toolUse factory creates a part with
+    /// 
     /// `.toolUse(ToolUsePart)` kind + the canonical initial
     /// `status: .running` (= the streaming pipeline updates
     /// status → .complete when the .toolResult event arrives).
@@ -167,7 +167,7 @@ struct StreamingPartsTests {
         }
     }
 
-    /// v0.71 P1 batch 1: the .toolResult factory creates a part
+    /// 
     /// with `.toolResult(ToolResultPart)` kind (= mirrors hermes
     /// `tool-parts.ts` toolResult cases; = used for orphan tool
     /// results that surface without a prior .toolUse).
@@ -189,7 +189,7 @@ struct StreamingPartsTests {
 
     // MARK: - ChatMessagePart.joinedText / joinedReasoning
 
-    /// v0.71 P1 batch 1: joinedText concatenates .text parts in
+    /// 
     /// order (= Hermes `chatMessageText` = the canonical
     /// "show me the full assistant text" helper). Skips
     /// .reasoning / .toolUse / .toolResult.
@@ -205,7 +205,7 @@ struct StreamingPartsTests {
         #expect(ChatMessagePart.joinedText(parts) == "先后最后")
     }
 
-    /// v0.71 P1 batch 1: joinedReasoning returns the FIRST .reasoning
+    /// 
     /// part's text (= Hermes' typical case = one reasoning per turn;
     /// = the streaming UI's "▾ Thought for 3.2s" disclosure
     /// shows this single string).
@@ -219,7 +219,7 @@ struct StreamingPartsTests {
         #expect(ChatMessagePart.joinedReasoning(parts) == "first thought")
     }
 
-    /// v0.71 P1 batch 1: joinedReasoning returns nil when no
+    /// 
     /// reasoning part exists (= the streaming UI's reasoning
     /// disclosure is hidden).
     @Test("joinedReasoning_nilWhenNoReasoningPart")
@@ -242,7 +242,7 @@ struct StreamingPartsTests {
         #expect(message.streamState == .idle)
     }
 
-    /// v0.71 P1 batch 1: explicit `streamState: .sealed` survives
+    /// 
     /// init (= the streaming pipeline marks a message as sealed
     /// after `message.complete` fires; = the canonical Hermes
     /// `pending: true → pending: false` flip).
@@ -258,7 +258,7 @@ struct StreamingPartsTests {
 
     // MARK: - Equatable
 
-    /// v0.71 P1 batch 1: two ChatMessages with the same parts[]
+    /// 
     /// are equal (= SwiftUI `==` checks = the streaming UI only
     /// re-renders when something actually changes; = same
     /// parts = no re-render = Hermes `parts: ChatMessagePart[]`
@@ -292,7 +292,7 @@ struct StreamingPartsTests {
         #expect(a == b)
     }
 
-    /// v0.71 P1 batch 1: two ChatMessages with DIFFERENT parts are
+    /// 
     /// not equal (= SwiftUI re-renders when parts change = the
     /// per-token streaming update fires a re-render).
     @Test("equatable_differentPartsAreNotEqual")
