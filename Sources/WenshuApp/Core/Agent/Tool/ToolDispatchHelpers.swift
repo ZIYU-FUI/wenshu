@@ -185,7 +185,7 @@ enum ToolDispatchInputParser {
 
     /// Serialize a `[String: String]` dispatch-layer dictionary back into
     /// a JSON string suitable for passing to `Tool.execute(input:)`.
-    /// HERMES-PARTIAL-003 wire-up: ToolExecutor's pre-dispatch validator
+    /// wenshu port wire-up: ToolExecutor's pre-dispatch validator
     /// returns a `[String: String]` (= the dispatch-layer dict); this
     /// method reverses ToolDispatchInputParser.parse so the tool receives
     /// the canonical input envelope.

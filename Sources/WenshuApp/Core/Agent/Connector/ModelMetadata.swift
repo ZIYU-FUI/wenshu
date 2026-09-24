@@ -1,6 +1,6 @@
 //
 //  ModelMetadata.swift · Wenshu · v0.35 ticket 008
-//  + HERMES-PARTIAL-015 (2026-09-04).
+// .
 //
 //  Per-provider model catalog. Port of hermes model_metadata.py
 //  (= 2,434 LOC, contains per-provider model lists, capabilities,
@@ -21,7 +21,7 @@
 //      + _forbids_sampling_params: a per-model feature table for vision,
 //      tools, streaming, reasoning effort, adaptive thinking).
 //
-// ticket 008 + HERMES-PARTIAL-015 (2026-09-04).
+// ticket 008.
 //
 
 import Foundation

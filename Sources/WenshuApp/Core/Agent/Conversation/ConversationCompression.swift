@@ -87,7 +87,7 @@ actor ConversationCompression {
 // Wenshu-side wins (= per AGENTS.md §11.3):
 //
 // Direct port of hermes `agent/conversation_compression.py`
-// per spec §3.1 #15 (= TICKET-HERMES-PARTIAL-007 follow-up).
+// per spec §3.1 #15 follow-up.
 // The target file already had `ConversationCompression`
 // actor + `historyAfterCompression` + `manualTrigger` at
 // 80 LOC. This P8 ticket adds the hermes

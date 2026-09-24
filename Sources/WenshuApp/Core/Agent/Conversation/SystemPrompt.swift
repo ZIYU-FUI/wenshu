@@ -1,7 +1,7 @@
 //
 //  SystemPrompt.swift · Wenshu · v0.35 ticket 002 sub-step 2
 //  + TICKET-HERMES-GAP-001 refactor (2026-09-04).
-//  + HERMES-PARTIAL-012 (2026-09-04).
+// .
 //
 //  System prompt builder. Direct port of hermes system_prompt.py
 //  (= L113-L507, 536 LOC; provides build_system_prompt_parts +
@@ -210,7 +210,7 @@ enum SystemPrompt {
     }
 
     /// Build the system prompt as a dict of tiers with full options
-    /// (= HERMES-PARTIAL-012: per-provider + per-locale + dynamic-tier).
+    /// (= wenshu port: per-provider + per-locale + dynamic-tier).
     ///
     /// Returns the three hermes tiers:
     /// * ``stable``   — identity + tool guidance + per-provider operational
@@ -273,7 +273,7 @@ enum SystemPrompt {
         )
     }
 
-    /// Stable tier with full HERMES-PARTIAL-012 options.
+    /// Stable tier with full wenshu port options.
     static func stableTier(
         provider: ProviderGuidance,
         locale: Locale,

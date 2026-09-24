@@ -1,13 +1,11 @@
 //
-//  MemoryAdapter.swift · Wenshu · v0.72 SwiftData migration Phase 3
+//  MemoryAdapter.swift · Wenshu
 //
-//  Migration commit 34 of 42: MemoryAdapter → @MainActor + WSMemoryRepository.
-//  Per AGENTS.md §11.4.
+//  @MainActor facade over WSMemoryRepository.shared.
 //
-//  Was `public actor MemoryAdapter` (= each call site did
-//  `await MemoryAdapter().method(...)`). Now `public final class` @MainActor
-//  that delegates to WSMemoryRepository.shared (= synchronous calls;
-//  matches SwiftUI view conventions).
+//  Was an actor (= each call site did `await MemoryAdapter().method(...)`).
+//  Now a @MainActor class with synchronous method shapes (= matches
+//  SwiftUI view conventions; = no extra `await` per access).
 //
 //  Public surface (= preserved 1:1):
 //    - struct MemoryEntry: id + source + snippet + relevanceScore

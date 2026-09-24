@@ -1,6 +1,6 @@
 //
 //  MessageSanitization.swift · Wenshu · v0.35 ticket 001 sub-step 4
-//  + HERMES-PARTIAL-009 (2026-09-04).
+// .
 //
 //  Message text sanitization. Maps to hermes message_sanitization.py
 //  (= 477 LOC; provides _sanitize_surrogates, _repair_tool_call_arguments,
@@ -8,7 +8,7 @@
 //  _strip_non_ascii, partial-JSON repair).
 //
 //  In sub-step 4 we implemented the minimum: strip C0 control characters
-//  + sanitize(). HERMES-PARTIAL-009 adds the full hermes surface:
+//  + sanitize(). the full hermes surface:
 //    - repairToolCallArguments(_:toolName:) — malformed JSON repair
 //    - closeInterruptedToolSequence(_:fallbackResponse:) — synthetic
 //      closing assistant when a /stop interrupt leaves a tool tail
@@ -18,7 +18,7 @@
 //    - sanitizeSurrogates(_:) — full hermes surrogate-handling table
 //    - sanitizeAll(_:) — runs the entire sanitization pipeline
 //
-// sub-step 4 of 8 for ticket 001 + HERMES-PARTIAL-009 (2026-09-04).
+// sub-step 4 of 8 for ticket 001.
 //
 
 import Foundation
@@ -168,7 +168,7 @@ enum MessageSanitization {
 
         // Pass 0: well-formed JSON → return as-is (= no re-serialise that
         // would re-encode `/` → `\/` and break byte-for-byte identity).
-        // Per HERMES-PARTIAL-009 Z contract (= `testRepairTrivialJSON`):
+        // Per wenshu port Z contract (= `testRepairTrivialJSON`):
         // `repairToolCallArguments` on already-valid JSON must NOT mutate
         // the input. The downstream wire format accepts both `"/foo"`
         // and `"\/foo"` as identical JSON values, but tool-call argument

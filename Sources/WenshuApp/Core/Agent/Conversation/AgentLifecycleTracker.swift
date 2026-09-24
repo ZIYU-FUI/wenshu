@@ -312,7 +312,7 @@ struct AgentInitDefaults: Sendable, Hashable {
     }
 }
 
-// MARK: - Bootstrap (= HERMES-PARTIAL-005: agent_init.py bootstrap surface)
+// MARK: - Bootstrap (= wenshu port: agent_init.py bootstrap surface)
 
 /// Per-step bootstrap status (= hermes agent_init.py init_agent performs
 /// ~60 setup steps; we expose the bootstrap result as a typed bag so the

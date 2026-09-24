@@ -59,7 +59,7 @@ enum MessageContent {
     // Wenshu-side wins (= per AGENTS.md §11.3):
     //
     // Direct port of hermes `agent/message_content.py` per
-    // spec §3.1 #18 = TICKET-HERMES-PARTIAL-009 follow-up.
+    // spec §3.1 #18 = TICKET-wenshu port follow-up.
     // The target file already had `canonicalize` +
     // `coalesceAdjacentText` at 54 LOC (= the LLMBlock-level
     // canonicalization layer). This P11 ticket adds the 3

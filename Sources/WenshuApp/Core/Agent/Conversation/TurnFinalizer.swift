@@ -1,6 +1,6 @@
 //
 //  TurnFinalizer.swift · Wenshu · v0.35 ticket 001 sub-step 4
-//  + HERMES-PARTIAL-008 (2026-09-04).
+// .
 //
 //  Turn-end normalization. Mirrors hermes turn_finalizer.py
 //  (= 507 LOC; provides finalize_turn = the post-loop finalization
@@ -19,7 +19,7 @@
 //  Static utility (= no state). ConversationLoop.runConversation invokes
 //  this at the end of each turn before returning ConversationResult.
 //
-// sub-step 4 of 8 for ticket 001 + HERMES-PARTIAL-008 (2026-09-04).
+// sub-step 4 of 8 for ticket 001.
 //
 
 import Foundation
@@ -236,7 +236,7 @@ enum TurnFinalizer {
 
     // MARK: - Internal helpers (= hermes close_interrupted_tool_sequence +
     // drop_trailing_empty_response_scaffolding ported inline; the full
-    // MessageSanitization surface lands in HERMES-PARTIAL-009 with the
+    // MessageSanitization surface lands in wenshu port with the
     // hermes message_sanitization.py port).
 
     /// Append a synthetic assistant message closing an interrupted tool sequence

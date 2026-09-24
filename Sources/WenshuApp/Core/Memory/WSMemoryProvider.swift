@@ -1,24 +1,17 @@
 //
-//  Core/Memory/WSMemoryProvider.swift · Wenshu · v0.72 SwiftData migration Phase 3 deferred
+//  Core/Memory/WSMemoryProvider.swift · Wenshu
 //
-//  Phase 3 deferred supplementary (= post-phase-4 work; = NOT part of
-//  the 21-commit phase 1 sequence). Adds SwiftData-backed MemoryProvider
-//  (= the canonical MemoryProvider implementation for code paths that
-//  (= Phase 5 ticket 8 deleted MemoryStore actor; this file
-//  uses WSMemoryRepository.shared = @MainActor SwiftData wrapper).
-//  Per AGENTS.md §11.4.
+//  SwiftData-backed MemoryProvider implementation.
 //
-//  New MemoryProvider implementation that conforms to the existing
-//  MemoryProvider protocol (= Sendable; sync method shape).
+//  Persistence flows through WSMemoryRepository.shared (@MainActor
+//  wrapper around the WSMemory @Model store). An in-memory mirror
+//  cache (@MainActor writes; NSLock on read) lets sync methods
+//  (getSystemPrompt, preCompressCheckpoint) answer without re-touching
+//  SwiftData. Async methods (sync, prefetch) cross the actor boundary
+//  via Task to keep the SwiftData writes on @MainActor.
 //
-//  Uses an in-memory mirror cache (= updated by async prefetch/sync
-//  methods that bridge to @MainActor SwiftData via Task).
-//  Sync methods (= getSystemPrompt, preCompressCheckpoint) read from the
-//  cache without touching SwiftData (= safe from any actor).
-//
-//  Per AGENTS.md §11.4: post-Phase 5 ticket 8, memory persistence
-//  is WSMemoryRepository (= @MainActor SwiftData wrapper); new code uses
-//  SwiftData. WSMemoryProvider is the SwiftData-backed impl.
+//  Conforms to the Sendable MemoryProvider protocol (= thin facade
+//  over WSMemoryRepository; = no extra storage of its own).
 
 import os
 

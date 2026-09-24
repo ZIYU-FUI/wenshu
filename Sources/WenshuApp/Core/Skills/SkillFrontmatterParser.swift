@@ -1,12 +1,12 @@
 //
-//  SkillFrontmatterParser.swift · Wenshu · HERMES-PARTIAL-016 (2026-09-04)
+//  SkillFrontmatterParser.swift · Wenshu · port-window
 //
 //  Dedicated SKILL.md frontmatter parser extracted from SkillMeta.swift.
 //  Direct port of hermes agent/skill_preprocessing.py (= 144 LOC;
 //  provides load_skills_config + substitute_template_vars +
 //  expand_inline_shell + preprocess_skill_content).
 //
-//  Per HERMES-PARTIAL-016: the frontmatter parsing surface is currently
+//  Per wenshu port: the frontmatter parsing surface is currently
 //  inlined into SkillMeta.swift (= parseFrontmatter + splitFrontmatter +
 //  parse(skillMDContent:)). This file extracts that surface into a
 //  dedicated module so the SkillMeta.swift API stays focused on the
@@ -33,7 +33,7 @@
 //       the configured skills section (= hermes preprocess_skill_content
 //       L128-144).
 //
-// refactor + HERMES-PARTIAL-016 (2026-09-04).
+// refactor.
 //
 
 import Foundation

@@ -1,5 +1,5 @@
 //
-//  TurnContext.swift · Wenshu · HERMES-PARTIAL-007 (2026-09-04)
+//  TurnContext.swift · Wenshu · port-window
 //
 //  Per-turn state bundle + per-turn setup helpers.
 //  Direct port of hermes agent/turn_context.py (= 565 LOC; provides
@@ -22,7 +22,7 @@
 //     stdio, restore system prompt, refresh credentials) and returns the
 //  value type. ConversationLoop.runTurn now calls this once per turn.
 //
-// sub-step 4 of 8 for ticket 001 + HERMES-PARTIAL-007 (2026-09-04)
+// sub-step 4 of 8 for ticket 001
 //  for ticket 007.
 //
 

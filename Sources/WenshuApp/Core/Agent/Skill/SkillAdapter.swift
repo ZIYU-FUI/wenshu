@@ -1,6 +1,6 @@
 //
 //  SkillAdapter.swift · Wenshu · v0.35 ticket 010
-//  + HERMES-PARTIAL-017 (2026-09-04)
+// 
 //  + SETTINGS-PERSISTENCE-002 (2026-09-05).
 //
 

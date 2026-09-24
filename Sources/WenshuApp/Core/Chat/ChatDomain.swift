@@ -1,19 +1,15 @@
 //
-//  ChatDomain.swift · Wenshu · v0.72 SwiftData migration Phase 5 ticket 10a
+//  ChatDomain.swift · Wenshu
 //
-//  Domain types for the chat feature (= preserved from the
-//  now-deleted ChatSessionStore.swift actor).
+//  Domain types for the chat feature.
 //
-//  History:
-//    - v0.21 ticket 02: ChatSessionStore actor (= SQLite-backed;
-//      = 4 tables = chat_messages + chat_summaries + chat_archives
-//      + sub_agent_runs).
-//    - Phase 5 ticket 10a: ChatSessionStore deleted; pure value types
-//      preserved here (= no SQLite dependency). SwiftData persistence
-//      lives in WSChatMessage @Model + WSChatRepository.swift.
+//  Pure value types (no SwiftData coupling; = no SQLite dependency).
+//  Persistence lives in WSChatMessage @Model + WSChatRepository.swift
+//  (= @MainActor SwiftData wrapper).
 //
-//  Per AGENTS.md §11.4 SwiftData migration spec, raw sqlite3 stores
-//  are being phased out (= SwiftData @Model replaces them).
+//  ChatSessionViewModel wires these types to the SwiftData store.
+//  ChatMessage / ChatSummary / SubAgentRun / ChatArchive are the
+//  canonical shapes callers read and write.
 //
 
 import Foundation

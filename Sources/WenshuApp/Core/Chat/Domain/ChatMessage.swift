@@ -148,7 +148,7 @@ enum ChatRole: String, Equatable, Sendable {
     case system
 }
 
-/// Message source ground truth (user = sent by the user / wenshu = Wenshu's reply / system = system error). Wenshu's internal multi-agent dispatch results do not show as ChatMessage; they go through the WSKanbanRepository board (= Phase 5 ticket 6 deleted KanbanStore actor).
+/// Message source ground truth (user = sent by the user / wenshu = Wenshu's reply / system = system error). Wenshu's internal multi-agent dispatch results do not show as ChatMessage; they go through the WSKanbanRepository board.
 enum ChatSource: String, Equatable, Sendable, Codable {
     case user
     case wenshu

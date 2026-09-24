@@ -1,5 +1,5 @@
 //
-//  AuxiliaryClient.swift · Wenshu · HERMES-PARTIAL-002 (2026-09-04)
+//  AuxiliaryClient.swift · Wenshu · port-window
 //
 //  Auxiliary LLM client for non-main tasks (= hermes agent/auxiliary_client.py
 //  = 7,469 LOC; provides call_llm / async_call_llm + the per-task model
