@@ -37,7 +37,7 @@ import SwiftUI
 /// the data is useless and the code is outdated, after spot-check
 /// you can clean it up').
 struct WorkspaceView: View {
-    @ObservedObject var store: LayoutTreeStore
+    var store: LayoutTreeStore
 
     /// v0.30 boss OOB: entity classification is the last layer in the directory tree, after clicking,
     /// the entity document should display in the material management area in a wenshu-style card stream layout (= projectPreview).

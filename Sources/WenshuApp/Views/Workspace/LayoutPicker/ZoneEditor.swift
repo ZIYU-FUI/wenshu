@@ -18,7 +18,7 @@ import SwiftUI
 /// ZoneEditor — the full-screen grid editor sheet (= presented
 /// from LayoutPicker when the user clicks "+ gridlayout").
 struct ZoneEditor: View {
-    @ObservedObject var store: LayoutTreeStore
+    var store: LayoutTreeStore
     @Environment(\.dismiss) private var dismiss
 
     /// The four template types (= per spec §"Acceptance criteria"

@@ -54,7 +54,7 @@ struct WorkspaceViewTests {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct WorkspaceView: View"),
                 "struct must conform to View protocol")
-        #expect(source.contains("@ObservedObject var store: LayoutTreeStore"),
+        #expect(source.contains("var store: LayoutTreeStore"),
                 "must own LayoutTreeStore as @ObservedObject (= the layout tree source of truth)")
     }
 

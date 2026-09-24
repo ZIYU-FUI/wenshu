@@ -30,7 +30,8 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class LayoutTreeStore: ObservableObject {
+@Observable
+final class LayoutTreeStore {
     /// UserDefaults keys (= centralized for grep-ability).
     private static let workspaceKey = "wenshu.workspace.json"
     private static let presetsKey = "wenshu.workspace.presets"
@@ -44,15 +45,15 @@ final class LayoutTreeStore: ObservableObject {
 
     /// Current workspace state (= ObservableObject for SwiftUI
     /// re-render; mutations via `save()` write to UserDefaults).
-    @Published var workspace: LayoutTreeState
+    var workspace: LayoutTreeState
 
     /// Saved presets (= user can have several; the built-in Default
     /// preset is always present).
-    @Published var presets: [LayoutPreset]
+    var presets: [LayoutPreset]
 
     /// ID of the currently active preset (= nil = user is on an
     /// unsaved custom layout).
-    @Published var currentPresetID: UUID?
+    var currentPresetID: UUID?
 
     private let userDefaults: UserDefaults
     private let jsonEncoder: JSONEncoder

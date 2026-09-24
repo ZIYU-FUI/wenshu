@@ -1204,9 +1204,10 @@ final class PaneNSController: NSSplitViewController {
         let content = TabContentDispatcher(kind: tab.kind, title: tab.title)
             .environment(appState)
             .environment(bookStore)
-        // LayoutTreeStore is an ObservableObject (= passes via .environmentObject
-        // instead of .environment, which is reserved for @Observable types).
-        let hosted = content.environmentObject(store)
+        // LayoutTreeStore is an @Observable type (= passes via
+        // .environment, the Swift 6 Observation API; = the
+        // .environmentObject modifier was the pre-Swift 6 form).
+        let hosted = content.environment(store)
         let hosting = NSHostingController(rootView: hosted)
         // ZONE-VIS-FIX-003 (2026-09-08): Apple API solution to the
         // "split view min/max overridden by SwiftUI intrinsic content
