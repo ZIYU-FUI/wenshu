@@ -28,7 +28,7 @@ extension AppState {
             )
         }
         if let data = try? JSONEncoder().encode(snapshot) {
-            UserDefaults.standard.set(data, forKey: AppState.openTabsKey)
+            UserDefaultsStore.shared.setData(data, forKey: .openTabs)
         }
     }
 
@@ -36,7 +36,7 @@ extension AppState {
     /// subsequent view code reads the restored state on the first
     /// render.
     func restoreOpenTabs() {
-        guard let data = UserDefaults.standard.data(forKey: AppState.openTabsKey),
+        guard let data = UserDefaultsStore.shared.data(forKey: .openTabs),
               let snapshot = try? JSONDecoder().decode([PersistedEditorTab].self, from: data) else {
             return
         }
