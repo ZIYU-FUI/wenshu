@@ -14,6 +14,29 @@
 //  across every tab; = no hand-rolled VStack { Text + Text }
 //  duplicates).
 //
+//  v1.78 boss 2026-09-24 OOB '我想加动画，不需要使用它注册色的参数'
+//  + 'ICON 还是不显示': the SF Symbols 6 drawOn animation
+//  attempt via
+//  `.symbolEffect(.drawOn.individually, options: .nonRepeating)`
+//  HIDES the icon entirely on macOS 27. SDK research
+//  (= MacOSX.sdk/Symbols.framework/Symbols.swiftinterface):
+//    - `symbolEffect(_:options:isActive:)` overload takes
+//      `IndefiniteSymbolEffect` (= sustained = the icon should
+//      stay drawn; = the modifier renders via
+//      `_IndefiniteSymbolEffectModifier` body = .never).
+//    - `symbolEffect(_:options:value:)` overload takes
+//      `DiscreteSymbolEffect` (= value-bound = one-shot);
+//      `DrawOnSymbolEffect` is NOT a `DiscreteSymbolEffect`.
+//    - `.transition(.symbolEffect(...))` requires a mount /
+//      unmount boundary; = the empty-state icon is permanently
+//      mounted; = the transition never fires.
+//  Resolution for v1.78: drop the symbolEffect modifier and
+//  keep the monochrome tint. The icon renders correctly
+//  (= no animation, but visible). The draw-on animation is
+//  deferred to a future ticket (= will require either a macOS
+//  SDK fix or wrapping the icon in a structural .transition
+//  boundary).
+//
 //  Design contract (= what each caller MUST honor):
 //
 //  Layout: centered VStack filling the entire available space
@@ -29,24 +52,24 @@
 //      Apple's 2-step hierarchy for empty-state icons)
 //
 //  Title:
-//    - .font(.system(size: 15, weight: .semibold))
+//    - .font(.headline)
 //    - .foregroundStyle(.secondary)
 //    - 1 line, no truncation
 //
 //  Body:
-//    - .font(.system(size: 13))
-//    - .foregroundStyle(DesignTokens.statusForeground)
+//    - .font(.callout)
+//    - .foregroundStyle(DesignTokens.statusForeground = .tertiary)
 //    - multilineTextAlignment(.center)
 //    - maxWidth: 360 (= wraps on small inspector columns)
 //
 //  Spacing:
-//    - icon → title: DesignTokens.chromePaddingEmptyStateGap (= the
+//    - icon -> title: DesignTokens.chromePaddingEmptyStateGap (= the
 //      Apple HIG standard ContentUnavailableView measured value; =
 //      the boss's '...use Apple styles' OOB = the literal number isn't
 //      Apple-default = Apple doesn't expose this value publicly;
 //      = we use a semantic token instead)
-//    - title → body: chromePaddingSmall (= Apple HIG standard for
-//      title→caption spacing)
+//    - title -> body: chromePaddingSmall (= Apple HIG standard for
+//      title->caption spacing)
 //    - body maxWidth: DesignTokens.guardrailSheetWidth (= 360 PT
 //      = Apple HIG modal sheet width = the empty-state body
 //      should wrap to the same width as a standard modal sheet)
@@ -54,59 +77,25 @@
 //      = 2x the v0.54 38 PT default = the boss's '2x size'
 //      directive; = not a magic number = semantic token for the
 //      canonical empty-state icon size)
-//
-//  Why these specific tokens (= Apple HIG + wenshu design system):
-//  - 76 PT icon + 1 PT stroke = matches Apple's macOS 27 inspector
-//    / empty-state icon visual weight (= Pages / Numbers / Keynote
-//    all use a similar weight in their "no document selected"
-//    panes).
-//  - 15/13 PT (= standard macOS callout/caption1 sizes) match
-//    the empty-state style Apple uses in Mail / Pages / Xcode
-//    when a list / zone is empty.
-//  - .secondary + .tertiary = Apple's 2-step hierarchy for empty
-//    states (= title is the primary message, body is the
-//    supporting instruction).
 
 import SwiftUI
 
-/// v1.0.0-m1-shell boss 2026-09-12 OOB 'the current empty state is not a single component':
-/// unified empty-state component for ALL "no content" zones in
+/// Unified empty-state component for ALL "no content" zones in
 /// the wenshu workspace (= 12 specialized tool tabs + editor
 /// zone + PreviewPane + future zones). Caller provides the icon
 /// (= SF Symbols 6 name; = e.g. "book.pages" for a book-themed
-/// empty state; = any valid SF Symbol 6 identifier — Lucide
-/// kebab-case names are NOT valid SF Symbols and render as blank
-/// rectangles since the v1.0.0-m1-shell migration).
+/// empty state; = any valid SF Symbol 6 identifier).
 /// Caller also supplies title (= String) and body (= String).
 ///
 /// Usage:
 ///
 /// ```swift
 /// EmptyStateView(
-///     icon: "doc.text",  // SF Symbols 6 name (= any valid SF Symbol identifier)
+///     icon: "doc.text",  // SF Symbols 6 name
 ///     title: WenshuI18n.t("foreshadowingview.empty.title"),
 ///     body: WenshuI18n.t("foreshadowingview.empty.body")
 /// )
 /// ```
-///
-/// The component handles ALL layout (= icon + title + body + the
-/// vertical spacing between them) and ALL visual styling (= font
-/// sizes, colors, weights, alignment, max-width). Callers
-/// provide ONLY the icon + title + body content.
-///
-/// Visual contract (= what the user sees):
-/// - 76 PT SF Symbol icon (= 2× the v0.54 38 PT default; = sized
-///   for empty states per Apple HIG ContentUnavailableView).
-/// - 15 PT semibold title below the icon (= .secondary tone =
-///   primary message)
-/// - 13 PT body below the title (= .tertiary tone = supporting
-///   detail)
-/// - 22 PT vertical gap between icon and title (= matches
-///   Apple's measured ContentUnavailableView sample)
-/// - 6 PT vertical gap between title and body (= chromePaddingSmall
-///   = Apple HIG standard)
-/// - Centered horizontally inside the caller's frame (= the
-///   SwiftUI VStack auto-centers its children)
 ///
 /// Two init flavors:
 ///
@@ -117,9 +106,6 @@ import SwiftUI
 ///    contains an inline "Settings" Button as part of the
 ///    sentence; = Apple Mail / Notes convention):
 ///    `EmptyStateView(icon: ..., titleView: { HStack { Text; Button; Text } }, body: "...")`
-///
-/// Both flavors render the same icon + body style; only the title
-/// rendering differs (= plain Text vs. caller-supplied View).
 public struct EmptyStateView: View {
     let icon: String
     let titleText: String?
@@ -142,20 +128,6 @@ public struct EmptyStateView: View {
     /// Custom-title-view init (= for chat empty state where the
     /// title contains an inline link / Button as part of the
     /// sentence).
-    ///
-    /// Parameters:
-    /// - icon: SF Symbols 6 icon name (= any valid SF Symbol
-    ///   identifier; = `doc.text`, `book.pages`, `person.2`, etc.)
-    ///   - per v1.0.0-m1-shell Lucide -> SF Symbols 6 migration:
-    ///     Lucide kebab-case names (= git-fork, square-dashed,
-    ///     shield-check, etc.) render as blank rectangles and
-    ///     MUST be migrated to dot.case SF Symbols 6 names.
-    /// - titleView: caller-supplied title view (= rendered in
-    ///   place of the plain Text title; = should use
-    ///   `.foregroundStyle(.secondary)` + `.font(.headline)`
-    ///   to match the EmptyStateView visual contract)
-    /// - body: plain-text body (= always plain Text; = no
-    ///   custom view needed for the body in current callers)
     public init<V: View>(
         icon: String,
         titleView: V,
@@ -170,19 +142,12 @@ public struct EmptyStateView: View {
     public var body: some View {
         VStack(spacing: 0) {
             // v1.0.0-m1-shell boss 2026-09-12 OOB '2x icon size'
-            // (= 2× the v0.54 38 PT default = 76 PT)
-            // + 'use thinnest stroke' (= .regular weight = the
+            // (= 2x the v0.54 38 PT default = 76 PT)
+            // + 'use thinnest stroke' (= .thin weight = the
             // canonical macOS 27 inspector / empty-state icon
             // weight; = matches the SF Symbols 6 3rd-generation
             // palette-rendering default).
             //
-            // Apple's empty states use a much bigger icon
-            // (= measured 38 PT on a real ContentUnavailableView
-            // sample; = v0.54 default). The boss's '2x size'
-            // directive = 2× the 38 PT default = 76 PT. The
-            // vertical gap (= 22 PT below) matches Apple's
-            // measured ContentUnavailableView sample (= NOT
-            // custom; = Apple HIG standard).
             // Per wenshu-icon-policy v1.5 boss OOB 2026-09-17:
             // empty-state / large icons (>=38 PT) MUST pin
             // .symbolRenderingMode(.monochrome). SF Symbols 6 on
@@ -191,24 +156,15 @@ public struct EmptyStateView: View {
             // setting the rendering mode (= at 76 PT the fill
             // glyph reads as a heavy solid blob = boss's "太粗").
             //
-            // v1.78 boss 2026-09-24 OOB '我想加动画，不需要使用它注册色的参数
-            // / 参考 .symbolEffect(.drawOn.individually, options: .nonRepeating)':
-            // SF Symbols 6 .drawOn / .drawOff draws each stroke
-            // one at a time when the icon first appears (= the
-            // Apple HIG empty-state entry transition; = same
-            // animation Mail / Notes / Reminders use on the
-            // iOS 17 / macOS 14 'no inbox items' placeholder).
-            // .nonRepeating keeps the animation one-shot
-            // (= does not loop; = matches Apple HIG; = the icon
-            // draws once when the empty state first mounts and
-            // stays drawn until the next mount). Pairs with the
-            // standard .secondary tint (= no color parameters =
-            // pure stroke-draw animation = the user directive).
+            // v1.78 boss 2026-09-24 OOB '我想加动画' deferred:
+            // see file header for the SDK research log. The
+            // symbolEffect call was removed because macOS 27
+            // renders the icon INVISIBLE under the
+            // IndefiniteSymbolEffect path; = future ticket.
             Image(systemName: icon)
                 .font(.system(size: DesignTokens.emptyStateIconSize, weight: .thin))
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(.secondary)
-                .symbolEffect(.drawOn.individually, options: .nonRepeating)
                 .padding(.bottom, DesignTokens.chromePaddingEmptyStateGap)
             VStack(spacing: DesignTokens.chromePaddingSmall) {
                 // Title: plain Text (= common case) OR caller-supplied
