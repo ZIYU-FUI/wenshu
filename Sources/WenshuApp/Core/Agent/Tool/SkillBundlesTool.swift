@@ -17,7 +17,7 @@
 //  - register <bundle>          — add or overwrite a bundle
 //  - unregister <bundle_id>     — remove a bundle
 //
-//  Per Q42: reuse `SkillBundles.shared` actor. NO duplicate resolver logic.
+// reuse `SkillBundles.shared` actor. NO duplicate resolver logic.
 //  Per AGENTS.md §11.1: Apple Foundation only. NO third-party deps.
 //  Per Q187-Q190: doc-only header preserved verbatim (English only).
 //

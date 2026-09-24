@@ -32,8 +32,7 @@ import Foundation
 /// The inner pages of one chat turn (= content + streaming state +
 /// attachments). Mutated during streaming; sealed on stream.complete.
 struct ChatMessageBody: Equatable, Sendable {
-    /// (boss 2026-09-12 OOB 'streaming output in the
-    /// chat zone isn't implemented... port the whole thing from
+    /// t implemented... port the whole thing from
     /// hermes...'): streaming parts (= Hermes `parts: ChatMessagePart[]`
     /// in `lib/chat-messages/types.ts:15`). Each part is a typed content
     /// block (text / reasoning / tool_use / tool_result). The streaming
@@ -53,7 +52,7 @@ struct ChatMessageBody: Equatable, Sendable {
     var content: String
     var isPlaceholder: Bool
     var tokens: Int?    // real LLM API usage.total_tokens (nil if user message or unavailable)
-    var thinking: String?    // v0.71 P1: also a computed getter (= joined reasoning parts)
+    var thinking: String?    // also a computed getter (= joined reasoning parts)
     // CHATIMG-001 (2026-09-07): absolute file URL of an attached
     // screenshot/image. When non-nil, ChatMessageView renders the image
     // thumbnail above the text content. The file lives in

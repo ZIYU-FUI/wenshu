@@ -10,7 +10,7 @@
 //
 //  Per AGENTS.md §11.1: NO third-party SDKs for HTTP. URLSession only.
 //  Per AGENTS.md §11: API key via ProviderKeychain. NO plaintext.
-//  Per Q42: thin adapter over URLSession; = NO duplicate provider logic.
+// thin adapter over URLSession; = NO duplicate provider logic.
 //
 //  Stub behavior: returns [] (= empty success) when the API key is
 //  missing (= "config not yet set"). This lets the WebSearch actor's

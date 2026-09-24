@@ -9,7 +9,7 @@
 //
 //  Per AGENTS.md §11.1: NO third-party SDKs. URLSession only.
 //  Per AGENTS.md §11: API key via ProviderKeychain.
-//  Per Q42: thin adapter. NO duplicate provider logic.
+// thin adapter. NO duplicate provider logic.
 //
 //  Stub behavior: returns [] when API key missing.
 //

@@ -2,9 +2,9 @@
 //  LongFormGuardrails.swift · Wenshu · P1 ticket #6 (PORT-LONGFORM-001, 2026-09-04)
 //
 //  1:1 port of hermes `agent/specialized/long_form_guardrails.py`
-//  (= the 3,200 LOC hermes module boss 2026-08-27 named as THE top
+// 
 //  competitive moat). The Python module ships 6 named guardrails
-//  boss 2026-08-27 listed (= boss 2026-09-03 confirmed):
+// 
 //
 //    1. constraint         — chapter-level constraints
 //                            (= POV / tense / forbidden words)
@@ -87,7 +87,7 @@ import Foundation
 // MARK: - Kind enum
 
 /// 6 named guardrail kinds (= 1:1 with the hermes
-/// `long_form_guardrails.py` enum + boss 2026-08-27 confirmed list).
+/// 
 enum LongFormGuardrailKind: String, Sendable, Codable, CaseIterable, Equatable {
     /// Chapter-level constraints (= POV / tense / forbidden words)
     /// enforced on every LLM response.
@@ -217,7 +217,7 @@ struct LongFormGuardrail: Sendable, Codable, Equatable, Identifiable {
     /// applies kind-specific heuristics instead).
     var pattern: String?
     /// Severity the actor attaches to violations of this guardrail.
-    /// Defaults to `.warning` per the boss 2026-08-27 default.
+    /// 
     var defaultSeverity: LongFormGuardrailViolation.Severity
     /// Whether the row is auto-derived (= the actor built it from
     /// book context) or user-authored. Auto-derived rows show in

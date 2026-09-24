@@ -42,7 +42,7 @@ private let containerOverride: ModelContainer?
 /// Default initializer (= uses WSChatRepository.shared with the
 /// global persistence container). Production callers use this.
 ///
-/// v1.79 chat-by-book tests: an init variant with an injected
+/// an init variant with an injected
 /// container exists below (= LiveChatRepository(container:)) so
 /// unit tests can isolate the Live adapter against a per-test
 /// in-memory container without polluting the shared singleton.

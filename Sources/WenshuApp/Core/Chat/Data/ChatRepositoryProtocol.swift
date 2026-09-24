@@ -47,7 +47,7 @@ protocol ChatRepositoryProtocol: Sendable {
     /// (= `try?` + no throw visible to caller) is the convention —
     /// persistence failures should not crash the chat pipeline.
     ///
-    /// v1.79 chat-by-book: bookID is Optional. Callers MUST pass the
+    /// bookID is Optional. Callers MUST pass the
     /// current WenshuLibrary.selectedBookId so the message lands in
     /// the correct scope. nil = global un-attached (= legacy behavior;
     /// = used for onboarding-before-book-selection chats).
@@ -58,7 +58,7 @@ protocol ChatRepositoryProtocol: Sendable {
     /// new or the store is unavailable — callers render the empty
     /// state directly.
     ///
-    /// v1.79 chat-by-book: bookID is Optional. Pass the current book id
+    /// bookID is Optional. Pass the current book id
     /// to filter to in-scope messages; nil = legacy "load everything
     /// in this session regardless of book scope" behavior.
     func loadMessages(sessionId: String, bookID: BookID?) async throws -> [ChatMessage]
@@ -68,7 +68,7 @@ protocol ChatRepositoryProtocol: Sendable {
     /// `verifier` is the LLM verifier (= same one used by the chat
     /// pipeline) — the repository doesn't own the LLM client.
     ///
-    /// v1.79 chat-by-book: bookID is Optional (= scope of the
+    /// bookID is Optional (= scope of the
     /// summarization pipeline; = messages outside the scope are not
     /// counted toward the threshold).
     func summarizeIfNeeded(

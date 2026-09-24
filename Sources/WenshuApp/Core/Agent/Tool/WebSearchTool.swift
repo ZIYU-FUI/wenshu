@@ -14,7 +14,7 @@
 //  - search(query, limit?, providers?)  — multi-provider rotation search
 //  - research(query, limit?)            — search + local summary aggregation
 //
-//  Per Q42: reuse `WebSearch.shared` actor. NO duplicate resolver logic.
+// reuse `WebSearch.shared` actor. NO duplicate resolver logic.
 //  Per AGENTS.md §11.1: Apple Foundation only. NO third-party deps.
 //  Per Q187-Q190: doc-only header preserved verbatim (English only).
 //

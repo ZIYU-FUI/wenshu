@@ -101,7 +101,7 @@ struct LLMCallOptions: Sendable {
     let temperature: Double?
     /// Reasoning effort level from `wenshu.llm.reasoningEffort` (= user setting).
     /// Values: "low" / "medium" / "high" / "xhigh" / "max". nil = connector uses provider default.
-    /// v0.71 cleanup batch 4: wired from SettingView picker through to connector adapters
+    /// wired from SettingView picker through to connector adapters
     /// (= Anthropic thinking budget_tokens, OpenAI reasoning_effort, Gemini thinkingBudget).
     let reasoningEffort: String?
 

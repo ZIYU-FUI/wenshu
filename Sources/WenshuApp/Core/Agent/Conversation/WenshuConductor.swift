@@ -44,7 +44,7 @@ actor WenshuConductor {
     /// h10: agent toolkit dispatch (FileTools + ProcessTools + WebTools + VisionTools).
     /// Tools are stateless structs, no bootstrap needed.
 
-    /// v0.72 Phase 6 (WIRE-P1-01): P1-01 audit fix. The conductor reads
+    /// The conductor reads
     /// / writes kanban + chat persistence (= formerly via
     /// `WSKanbanRepository.shared` / `WSChatRepository.shared` static
     /// singletons). Inject the @MainActor-isolated
@@ -179,7 +179,7 @@ actor WenshuConductor {
         do {
             _ = try await registry.list()
         } catch {
-            // v0.23 audit #014 fix: reset bootstrapped flag on failure so
+            // Reset bootstrapped flag on failure so
             // next call retries (don't permanently disable skills).
             skillRegistryBootstrapped = false
             skillRegistry = nil
@@ -267,7 +267,7 @@ actor WenshuConductor {
     /// falls back to the legacy intent+sub-agent+synthesis pipeline and
     /// logs the error. The legacy path is always preserved (= never
     /// removed) so existing public surface is 100% back-compatible.
-    /// v0.71 P1 batch 2 (boss 2026-09-12 OOB 'streaming output in the chat zone is not implemented...'):
+    /// Streaming output in the chat zone
     /// add `streamCallback` parameter (= Hermes streaming pattern).
     /// When supplied (= ChatView passes it for live token rendering),
     /// the conductor emits `LLMBlock` events (= text / thinking /
@@ -342,7 +342,7 @@ actor WenshuConductor {
         sessionId: String,
         model: String,
         connector: any LLMConnector,
-        // v0.71 P1 batch 2: forward streamCallback to ConversationLoop
+        // Forward streamCallback to ConversationLoop
         // (= Hermes streaming pattern). When non-nil, every LLMBlock
         // (= text / thinking / tool_use / tool_result) is delivered
         // to the callback as it arrives (= ChatView renders the
@@ -383,7 +383,7 @@ actor WenshuConductor {
                 // tool registry so ToolExecutor dispatches against
                 // registered wenshu tools.
                 tools: tools,
-                // v0.71 P1 batch 2: forward streamCallback (= Hermes
+                // Forward streamCallback (= Hermes
                 // streaming pattern). ConversationLoop.runTurn emits
                 // LLMBlock events (= text / thinking / tool_use) to
                 // this closure as each block arrives from the LLM
@@ -442,7 +442,7 @@ actor WenshuConductor {
         userMessage: String,
         sessionId: String,
         model: String,
-        // v0.71 P1 batch 2: forward streamCallback to the legacy path
+        // Forward streamCallback to the legacy path
         // (= Hermes streaming pattern). The legacy path goes through
         // WenshuVerifier.streamChat (= the same AsyncStream<LLMBlock>
         // used by ChatView's direct-verifier streaming path). Forwarding
@@ -516,7 +516,7 @@ actor WenshuConductor {
             // Run sub-agents in parallel
             subResults = await withTaskGroup(of: (String, String).self) { group in
                 for (name, _) in tasks {
-                    // v0.23 audit #014 fix (HIGH): pre-validate cast once, skip unknown.
+                    // Pre-validate cast once, skip unknown.
                     // Was: 'SubAgentIdentity.Name(rawValue: name)!' — crash risk.
                     guard let identityName = SubAgentIdentity.Name(rawValue: name) else {
                         continue  // skip unknown sub-agent name
@@ -548,7 +548,7 @@ actor WenshuConductor {
                 }
                 return collected
             }
-            // v0.23 audit #014 fix: check cancellation before kanban write
+            // Check cancellation before kanban write
             // (boss 8/23 risk-averse: don't write kanban state for cancelled runs).
             // Note: handle() doesn't throw, so guard with Task.isCancelled and
             // skip the kanban transitions if cancelled (loop body no-ops).
@@ -634,7 +634,7 @@ actor WenshuConductor {
 
         // Step 5: mark conductor parent task done (if any)
         if let conductorTask = conductorTask {
-            // v0.23 audit #014 fix: don't write kanban state if cancelled.
+            // Don't write kanban state if cancelled.
             if !Task.isCancelled {
                 await MainActor.run {
                     _ = try? self.repositories.kanban.transition(id: conductorTask.id, to: .done)
@@ -782,7 +782,7 @@ actor WenshuConductor {
     /// cannot await (= SwiftUI `View.init` is sync; the ChatView
     /// fallback-conductor construction site runs there).
     ///
-    /// v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards axis HIGH):
+    ///
     /// replaces the previous `DispatchSemaphore` + `DispatchQueue.global()
     /// .async` + `Task.detached` pattern (= Apple-canonical anti-pattern
     /// under Swift 6 strict concurrency: a future `buildTools` that
@@ -812,7 +812,7 @@ actor WenshuConductor {
         // Cold path: synchronous-over-async bridge using a
         // Sendable-safe ResultBox + DispatchSemaphore.
         //
-        // v0.72 Q99 dual-axis HIGH fix: DispatchSemaphore.wait() blocks
+        // `DispatchSemaphore.wait()` blocks
         // the caller thread (= up to toolRegistryWaitTimeoutMs). This is
         // a documented Swift 6 strict-concurrency risk (= the bridge is
         // safe ONLY when buildTools(from:) does NOT await @MainActor work;
@@ -861,7 +861,7 @@ actor WenshuConductor {
     /// Sendable but a `@unchecked Sendable` reference holder is
     /// allowed).
     /// 
-    /// v0.71 P1 batch 6 followup (= Q99 Standards axis MED): CRITICAL
+    /// CRITICAL
     /// INVARIANT = `box.value` MUST be assigned BEFORE the
     /// `semaphore.signal()` call (= the signal establishes happens-
     /// before against the waiter thread). If any future refactor
@@ -875,7 +875,7 @@ actor WenshuConductor {
         var value: [String: any Tool] = [:]
     }
 
-    /// v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards axis HIGH):
+    ///
     /// thread-safe cache for `buildToolsSync`. Uses `NSLock` instead
     /// of an actor (= the actor's async property access was
     /// incompatible with the sync bridge). The class is `@unchecked
@@ -903,13 +903,13 @@ actor WenshuConductor {
         }
     }
 
-    /// v0.71 P1 batch 4 dual-axis fix: process-wide singleton cache
+    /// Process-wide singleton cache
     /// (= thread-safe via `NSLock`). Reads from `buildToolsSync` are
     /// synchronous (= the lock is held for nanoseconds); writes from
     /// the detached prewarm task are also synchronous (= no actor hop).
     private static let toolCache = ToolCache()
 
-    /// v0.71 P1 batch 4 dual-axis fix: pre-warm the tool cache (= the
+    /// Pre-warm the tool cache (= the
     /// canonical production pattern). Call from `App.swift` startup
     /// (= before any ChatView.init fires) so the first `buildToolsSync`
     /// call sees a hot cache.

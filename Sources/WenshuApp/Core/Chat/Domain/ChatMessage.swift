@@ -8,7 +8,7 @@
 //  the forwarders go away.
 //
 //  Pre-C-2 history: ChatMessage was a single 98-line struct holding
-//  all 12 fields. Per boss 2026-09-22 '目标 UI，业务，数据，三分离'
+// 
 //  the type was split:
 //  - ChatMessageHeader (= identity)  -> Core/Chat/Domain/ChatMessageHeader.swift
 //  - ChatMessageBody   (= content)   -> Core/Chat/Domain/ChatMessageBody.swift

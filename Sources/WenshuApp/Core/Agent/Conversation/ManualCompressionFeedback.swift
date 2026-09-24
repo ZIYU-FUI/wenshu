@@ -2,7 +2,7 @@
 //  ManualCompressionFeedback.swift · Wenshu · HERMES-INTERNAL-007 (2026-09-04)
 //
 //  1:1 port of hermes manual_compression_feedback.py (= hermes-internal
-//  module #7, boss 2026-09-04 OOB 'A'). Thin adapter that delegates to
+// Thin adapter that delegates to
 //  wenshu's ConversationCompression.swift (= canonical compression surface).
 //
 //  The hermes port's summarize_manual_compression returns a user-facing

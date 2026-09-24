@@ -12,7 +12,7 @@
 
 import Foundation
 
-// v0.72 SwiftData migration: this file uses ProviderKeychain for metadata read/write.
+// ProviderKeychain for metadata read/write.
 // Migration to WSProviderKeyRepository is deferred (per AGENTS.md §11 AppleKeychain
 // contract; = metadata is the only sqlite piece in this path). Future ticket.
 #warning("wenshu.WenshuVerifier: ProviderKeychain metadata is sqlite-backed; = migrate to WSProviderKeyRepository in future ticket")
@@ -274,7 +274,7 @@ actor WenshuVerifier {
     }
 
     /// chat overload that takes model at call time
-    /// (boss 2026-08-22 feedback "switched the AI but it did not actually switch" — original chat() used self.model from init = hardcoded)
+    /// used self.model from init = hardcoded)
     /// This overload lets ChatViewModel pass current model from UserDefaults at call time
     func chat(_ text: String, model overrideModel: String) async throws -> WenshuLLMResponse {
         let request = WenshuLLMRequest(

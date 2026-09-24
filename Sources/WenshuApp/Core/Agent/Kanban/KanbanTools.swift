@@ -44,7 +44,7 @@ import Foundation
 /// chat surface uses.
 actor KanbanTools {
     private let store: WSKanbanRepository
-    // v0.72 Q99 MED followup: removed the dead sharedPlaceholder cache
+    // removed the dead sharedPlaceholder cache
     // (= init always falls through to WSKanbanRepository.shared; = the
     // cache check never returns a hit after the SwiftData migration).
     // This eliminates the nonisolated(unsafe) mutable static var.

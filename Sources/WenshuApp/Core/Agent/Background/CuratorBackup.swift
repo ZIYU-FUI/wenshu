@@ -6,7 +6,7 @@
 //  3: Curator, 4: CuratorBackup, 5: DisplayStateMachine)
 //
 //  1:1 port of hermes curator_backup.py (= hermes-internal module #5,
-//  boss 2026-09-04 OOB 'A'). Thin adapter over wenshu's Curator.swift
+// ). Thin adapter over wenshu's Curator.swift
 //  (= the canonical curator that produces CurationReport snapshots).
 //
 //  Wenshu-side wins preserved: Curator.swift remains canonical. This

@@ -136,7 +136,7 @@ enum KeychainOps {
 /// first-class error type so callers can show a graceful error message
 /// (= "Keychain access requires code signing entitlement; please run
 /// from the signed .app bundle") instead of a generic Swift error.
-/// Per boss 2026-08-24 fix-tracking: the previous behavior showed
+/// the previous behavior showed
 /// "The operation couldn't be completed" (= generic Swift error) on
 /// ad-hoc-signed wenshu.app (= no TeamIdentifier = no embedded
 /// provisioning profile). The new case preserves the OSStatus code for
@@ -161,7 +161,7 @@ enum KeychainOpsError: Error, LocalizedError {
     /// to a typed `KeychainOpsError`. Per Apple developer.apple.com/
     /// documentation/security/keychain_services: -34018 is the
     /// canonical `errSecMissingEntitlement` (= team identifier missing
-    /// for ad-hoc-signed binaries; = the boss 2026-08-24 fix-tracking
+    /// 
     /// root cause for the chat zone showing a generic Swift error).
     static func from(_ status: OSStatus) -> KeychainOpsError {
         if status == -34018 {

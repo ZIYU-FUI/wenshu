@@ -37,7 +37,7 @@ enum ProviderKeychainError: Error, LocalizedError {
     /// Map the canonical `KeychainOpsError` (= shared across all keychain
     /// consumers in wenshu) into the provider-specific error type.
     /// Added in v0.86 ticket 001: dry_violation partner dedup partner of
-    /// v0.84 (= `AppleKeychainStore` now delegates to `KeychainOps` like
+    /// `AppleKeychainStore` now delegates to `KeychainOps` like
     /// `AppleSearchKeychainStore` does).
     static func from(_ error: KeychainOpsError) -> ProviderKeychainError {
         switch error {
@@ -46,7 +46,7 @@ enum ProviderKeychainError: Error, LocalizedError {
         case .missingEntitlement(let s):
             // surface the missing-entitlement
             // error (= OSStatus -34018 = errSecMissingEntitlement)
-            // with the boss 2026-08-24 graceful error message
+            // graceful error message
             // instead of a generic Swift error. Ad-hoc-signed
             // wenshu.app triggers this on every keychain access.
             return .keychainStatus(s)
@@ -135,14 +135,14 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
 
     init() {}
 
-    /// v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode,
+    /// Build a remote-debug mode,
     /// once it's on, don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI': the
     /// Apple Security framework backend (SecItemAdd /
     /// SecItemCopyMatching / SecItemDelete) triggers the macOS
     /// SecurityAgent modal on ad-hoc-signed wenshu.app (= no
     /// Apple Developer Program paid enrollment = no embedded
     /// provisioning profile = securityd prompts on every keychain
-    /// access). For the boss's off-site UI iteration (= no way to
+    /// off-site UI iteration (= no way to
     /// dismiss the modal remotely), this backend must NEVER touch
     /// the real keychain. The `wenshu.debugNoKeychain` UserDefaults
     /// (= set via `defaults write com.wenshu.app wenshu.debugNoKeychain
@@ -157,7 +157,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     private var debugNoKeychain: Bool {
         // Retained for backwards compatibility with external readers that
         // introspect this property; = no longer needed in this file because
-        // v0.86 delegates short-circuit handling to KeychainOps.
+        // delegates short-circuit handling to `KeychainOps`.
         UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain")
     }
 
@@ -168,7 +168,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
         // preserved: identical short-circuit + identical OSStatus error
         // mapping (= via ProviderKeychainError.from(_:)).
         //
-        // v1.0.0-m1-shell: the previous inline SecItemAdd implementation
+        // The previous inline `SecItemAdd` implementation
         // (= the canonical Apple Security framework keychain path; = the
         // canonical wenshu architecture per AGENTS.md §11 hard rule 'API
         // keys via AppleKeychain NEVER plaintext SQLite'; = the previous
@@ -187,7 +187,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
         // Keychain API would be even better': Apple Keychain is the canonical wenshu
         // path. This is the right restore.
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode':
+        // Build a remote-debug mode
         // short-circuit when debugNoKeychain UserDefaults is set (= the
         // remote-debug mode toggle). Silent no-op (= no throw; =
         // callers = Settings Save button = silently accept and move on).
@@ -201,7 +201,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     func loadKeySync(for provider: Provider) -> String? {
         // delegate to KeychainOps. See saveKeySync header.
         //
-        // v1.0.0-m1-shell: also short-circuits the Apple Security framework
+        // Also short-circuits the Apple Security framework
         // call when wenshu.debugNoKeychain UserDefaults is set (= the OS-level
         // SecurityAgent modal still prompts even when the
         // ProviderKeychain.backend lazy-init returned InMemoryKeychainStore;
@@ -296,7 +296,7 @@ enum ProviderKeychain {
     // Default OFF (= Phase A still active). Activation procedure:
     // `.scratch/2026-09-04-b-10-phase-b-activation.md`.
     //
-    // v0.40 fix (apple-001 phase 1 candidate A-revised): the WENSHU_DEBUG_INMEMORY_KEYCHAIN
+    // `WENSHU_DEBUG_INMEMORY_KEYCHAIN`
     // env check is honoured eagerly here (= the test helper process never calls
     // WenshuAppDelegate.applicationWillFinishLaunching, so the lazy init in
     // WenshuAppDelegate.sharedKeychainBackend never fires in tests; reading the env
@@ -304,7 +304,7 @@ enum ProviderKeychain {
     // without touching the real Apple Keychain (= avoids securityd IPC hang in
     // macOS 27 when running swift test). Production builds never set this env var,
     // so production behavior is unchanged.
-    // v1.0.0-m1-shell boss 2026-09-10 OOB 'the configured key isn't persisted — needs
+    // The configured key isn't persisted — needs
     // to be implemented; going through the Apple Keychain API would be even better': flip the default
     // backend back to AppleKeychainStore (= the canonical wenshu
     // path per AGENTS.md §11 hard rule 'API keys via AppleKeychain
@@ -328,7 +328,7 @@ enum ProviderKeychain {
         // still honor the override; = cua / dev / CI overrides also
         // honored).
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'build a remote-debug mode,
+        // Build a remote-debug mode,
         // once it's on, don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI':
         // add a UserDefaults-based remote-debug switch (= boss is
         // off-site, = the macOS Keychain prompt for ad-hoc-signed
@@ -377,14 +377,14 @@ enum ProviderKeychain {
     // concurrent test bodies do NOT race on the global `backend`
     // static var.
     //
-    // Per Q34 5.2: the TaskLocal pattern is the Swift-native way
+    // The `TaskLocal` pattern is the Swift-native way
     // to give each task its own value (= no global mutation; =
     // no race). Tests that want hermetic isolation wrap their
     // body in `await ProviderKeychain.withBackendForTesting(store)
     // { ... }`. Tests that don't use the helper continue to read
     // the global `backend` (= backward compatible).
     //
-    // Per Q186: this is a single-file change (= no caller updates
+    // this is a single-file change (= no caller updates
     // required; = the shim methods read `currentBackend` with a
     // fallback to the global `backend` when the TaskLocal is
     // not set).
@@ -398,7 +398,7 @@ enum ProviderKeychain {
     /// is restored when the body returns (= via Swift Concurrency
     /// `TaskLocal.withValue` semantics).
     ///
-    /// Per Q34 5.4 + Q186 + Q173 ponytail: this is the OPT-IN
+    /// OPT-IN
     /// hermetic backend pattern. Tests that already use the global
     /// `setBackendForTesting` continue to work (= backward
     /// compatible). New tests should prefer this helper.
@@ -423,7 +423,7 @@ enum ProviderKeychain {
     }
 
     static func saveKeySync(_ key: String, for provider: Provider) throws {
-        // v1.0.0-m1-shell: belt-and-braces remote-debug short-circuit
+        // Belt-and-braces remote-debug short-circuit
         // at the ProviderKeychain shim level (= the dispatch layer
         // that all call sites reach). Combined with the backend lazy
         // init override (= InMemoryKeychainStore when

@@ -468,7 +468,7 @@ struct HermesTodoTool: Tool, Sendable {
     /// still constructs dedicated instances via the existing
     /// `init(store:)` initializer (= e.g. ChatView pre-populates
     /// the conductor with a per-session instance).
-    // v0.72 Q99 MED note: `nonisolated(unsafe)` escape hatch required because
+    // `nonisolated(unsafe)` escape hatch required because
     // HermesTodoStore is `@unchecked Sendable` (= DispatchQueue-protected).
     // This is INTENTIONAL: HermesTodoStore is the hermes-port scratchpad
     // (= mirrors the Python `TodoStore` class for the hermes-python tool

@@ -2,7 +2,7 @@
 //  WebSearch.swift · Wenshu · HERMES-INTERNAL-001 (2026-09-04)
 //
 //  1:1 port of hermes web_search.py + web_search_provider.py
-//  (= hermes-internal module #1, boss 2026-09-04 OOB 'A').
+// 
 //
 //  Five search providers: EXA, TAVILY, BRAVE, PARALLEL, SEARXNG.
 //  Firecrawl is the scraper-only backend (= research convenience

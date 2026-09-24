@@ -46,7 +46,7 @@ actor OpenAIConnector: LLMConnector {
         }
 
         // Build OpenAI chat completions request body via shared helper.
-        // v0.71 cleanup batch 4: pass reasoningEffort from user setting.
+        // pass reasoningEffort from user setting.
         let body = try RequestHelpers.buildOpenAIRequest(
             model: options.model,
             messages: messages,
@@ -104,7 +104,7 @@ actor OpenAICompatibleConnector: LLMConnector {
         }
 
         // Build OpenAI-compatible request body via shared helper.
-        // v0.71 cleanup batch 4: pass reasoningEffort from user setting.
+        // pass reasoningEffort from user setting.
         let body = try RequestHelpers.buildOpenAIRequest(
             model: options.model,
             messages: messages,

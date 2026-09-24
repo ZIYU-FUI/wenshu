@@ -265,7 +265,7 @@ actor ConversationLoop {
         // the active connector profile; per-call override not yet wired in
         // sub-step 3, lands in ticket 002 cache layer)
         let defaultModel = defaultModelForConnector()
-        // v0.71 cleanup batch 4: read user-selected reasoning effort from
+        // read user-selected reasoning effort from
         // UserDefaults (= set by SettingView picker; = "low"/"medium"/"high"/
         // "xhigh"/"max"). nil = connector uses provider default.
         let reasoningEffort = UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")

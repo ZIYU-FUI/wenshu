@@ -2,7 +2,7 @@
 //  ReasonScrubber.swift · Wenshu · HERMES-INTERNAL-003 (2026-09-04)
 //
 //  1:1 port of hermes think_scrubber.py (= hermes-internal module #3,
-//  boss 2026-09-04 OOB 'A'). Thin specialization over wenshu's
+// ). Thin specialization over wenshu's
 //  MessageSanitization.swift (= the canonical hermes-port surface that
 //  already strips C0 controls, surrogates, and unescaped JSON chars).
 //

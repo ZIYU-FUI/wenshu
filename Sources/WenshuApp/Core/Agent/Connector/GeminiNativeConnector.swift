@@ -45,7 +45,7 @@ actor GeminiNativeConnector: LLMConnector {
         }
 
         // Build Gemini request body via shared helper (= TICKET-HERMES-GAP-002).
-        // v0.71 cleanup batch 4: pass reasoningEffort from user setting.
+        // pass reasoningEffort from user setting.
         let body = try RequestHelpers.buildGeminiRequest(
             model: options.model,
             messages: messages,

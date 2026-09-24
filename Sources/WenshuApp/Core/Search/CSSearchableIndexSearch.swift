@@ -3,7 +3,7 @@
 //
 // REPLACES: FullTextSearch.swift (207 LOC SQLite FTS5 actor, removed in v1.55).
 //
-// Per boss 2026-09-20 OOB 'SQLite 全部弃用，只用 SwiftData' + A1
+// + A1
 // 'Apple-default-first = Core Spotlight 替代 FTS5':
 // canonical search layer = Apple Core Spotlight (= built into macOS 27 = zero
 // SPM dependency). The SQLite FTS5 actor is REPLACED by `CSSearchableIndex`
@@ -27,7 +27,7 @@
 //
 // The SwiftData mirror lives in this actor (= SearchDocMirrorPersistence
 // helper; = no longer imported from WSMigrationPerStore, which was
-// deleted in v1.55d arc, boss 2026-09-21 '数据库不要在用sqlite3 了').
+// 
 // The mirror is written on every `index(docId:title:body:)` so that the
 // fallback always has fresh data.
 //

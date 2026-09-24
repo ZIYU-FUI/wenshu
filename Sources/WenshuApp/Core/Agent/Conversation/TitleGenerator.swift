@@ -2,7 +2,7 @@
 //  TitleGenerator.swift · Wenshu · HERMES-INTERNAL-008 (2026-09-04)
 //
 //  1:1 port of hermes title_generator.py (= hermes-internal module #8,
-//  boss 2026-09-04 OOB 'A'). Auto-generate short session titles from
+// ). Auto-generate short session titles from
 //  the first user message.
 //
 //  Two modes:

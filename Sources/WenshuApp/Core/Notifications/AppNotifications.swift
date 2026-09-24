@@ -1,6 +1,6 @@
 // AppNotifications.swift · Wenshu () · v0.34
 //
-// v0.34 boss 2026-09-02 OOB (B-04 backlog entry): Notification.Name
+// Notification.Name
 // naming convention scattered (= 6 wenshu.X + 5 com.wenshu.X across
 // 2 extension blocks in App.swift). Moved to this single source of
 // truth + unified to Apple's reverse-DNS naming convention (=

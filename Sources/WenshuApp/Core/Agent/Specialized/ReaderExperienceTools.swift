@@ -5,7 +5,7 @@
 //
 //  The Python module ships 5 reader-experience analyzers that fire
 //  on a finished chapter (= the second specialized_tools surface
-//  per the boss 2026-09-04 plan; the first was long_form_guardrails
+// 
 //  = P1 #6):
 //
 //    1. tension          — measures the emotional intensity curve

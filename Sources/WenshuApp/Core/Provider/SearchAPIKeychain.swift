@@ -20,7 +20,7 @@
 //  Per AGENTS.md §11: API keys must use AppleKeychain in production.
 //  This module satisfies the §11 mandate for web-search API keys.
 //
-//  Per Q57: do NOT delete hermes-port files (= `WebSearchConfigurator`
+// do NOT delete hermes-port files (= `WebSearchConfigurator`
 //  uses UserDefaults for dev path; = this module replaces that path on
 //  production default).
 //
@@ -56,7 +56,7 @@ enum SearchAPIKeychainError: Error, LocalizedError {
         case .missingEntitlement(let s):
             // surface the missing-entitlement
             // error with a descriptive message instead of the
-            // generic OSStatus error. The boss 2026-08-24 fix-tracking
+            // 
             // wanted this for ad-hoc-signed builds.
             return .keychainStatus(s)
         case .invalidKeyFormat:

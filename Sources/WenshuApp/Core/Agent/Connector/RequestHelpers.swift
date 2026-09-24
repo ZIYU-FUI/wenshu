@@ -75,7 +75,7 @@ enum RequestHelpers {
         messages: [LLMMessage],
         maxTokens: Int,
         systemPrompt: String?,
-        /// v0.71 cleanup batch 4: reasoning effort from user setting.
+        /// reasoning effort from user setting.
         /// Maps to Anthropic `thinking.budget_tokens` (= low=1024, medium=8192, high=16384, max=32768).
         /// nil = no thinking block (= connector default).
         reasoningEffort: String? = nil
@@ -91,7 +91,7 @@ enum RequestHelpers {
                 "cache_control": ["type": "ephemeral"]
             ]
         }
-        // v0.71 cleanup batch 4: wire reasoningEffort → Anthropic thinking block.
+        // wire reasoningEffort → Anthropic thinking block.
         // Apple canonical effort → budget_tokens mapping (= per Anthropic docs).
         // xhigh maps to max (= 32768 = the highest allowed budget).
         if let effort = reasoningEffort, !effort.isEmpty {
@@ -307,7 +307,7 @@ enum RequestHelpers {
         messages: [LLMMessage],
         maxTokens: Int,
         systemPrompt: String?,
-        /// v0.71 cleanup batch 4: reasoning effort from user setting.
+        /// reasoning effort from user setting.
         /// Maps to OpenAI `reasoning_effort` param (= "low"/"medium"/"high"/"xhigh"/"max").
         /// nil = omit param (= connector default).
         reasoningEffort: String? = nil
@@ -320,7 +320,7 @@ enum RequestHelpers {
                 userMessages: messages
             )
         ]
-        // v0.71 cleanup batch 4: wire reasoningEffort → OpenAI reasoning_effort param.
+        // wire reasoningEffort → OpenAI reasoning_effort param.
         // Apple canonical mapping (= per OpenAI docs for gpt-5 reasoning models).
         // "xhigh" maps to "high" (= OpenAI's max supported value).
         if let effort = reasoningEffort, !effort.isEmpty {
@@ -420,7 +420,7 @@ enum RequestHelpers {
         messages: [LLMMessage],
         maxTokens: Int,
         systemPrompt: String?,
-        /// v0.71 cleanup batch 4: reasoning effort from user setting.
+        /// reasoning effort from user setting.
         /// Maps to Gemini `generationConfig.thinkingConfig.thinkingBudget`.
         /// Apple canonical mapping: low=1024, medium=8192, high=16384, max=32768.
         /// nil = omit thinkingConfig (= Gemini default).
@@ -449,7 +449,7 @@ enum RequestHelpers {
         if maxTokens > 0 {
             body["generationConfig"] = ["maxOutputTokens": maxTokens]
         }
-        // v0.71 cleanup batch 4: wire reasoningEffort → Gemini thinkingBudget.
+        // wire reasoningEffort → Gemini thinkingBudget.
         // Per Google docs (ai.google.dev/gemini-api/docs/thinking):
         // generationConfig.thinkingConfig = {thinkingBudget: N, includeThoughts: false}.
         // nil = omit thinkingConfig (= Gemini default = no thinking).

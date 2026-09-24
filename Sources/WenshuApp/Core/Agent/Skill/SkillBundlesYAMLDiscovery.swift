@@ -156,7 +156,7 @@ enum SkillBundlesYAMLDiscovery {
                 await bundles.register(bundle)
                 registeredCount += 1
             } catch {
-                // Per Q34: log + continue (= don't crash on first malformed file)
+                // log + continue (= don't crash on first malformed file)
                 FileHandle.standardError.write(
                     Data("[wenshu] SkillBundles YAML discovery error at \(file.lastPathComponent): \(error)\n".utf8)
                 )

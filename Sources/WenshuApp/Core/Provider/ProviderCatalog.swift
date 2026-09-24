@@ -11,13 +11,13 @@ enum ProviderCatalog {
         Provider.by(slug: slug) ?? .minimaxCn
     }
 
-    /// v0.28 batch 3 issue 16: hermes-side ProviderProfileExt lookup.
+    /// ProviderProfileExt lookup.
     /// Returns the per-slug extension or nil (= caller falls back to .empty).
     static func profileExt(for slug: String) -> ProviderProfileExt? {
         profileExts[slug]
     }
 
-    /// v0.28 batch 3 issue 16: hermes-side ProviderProfileExt catalog.
+    /// ProviderProfileExt catalog.
     /// v1 deployment ships only minimax cn (= Anthropic-compatible protocol).
     static let profileExts: [String: ProviderProfileExt] = [
         "minimax-cn": ProviderProfileExt(

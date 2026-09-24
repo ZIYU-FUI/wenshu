@@ -35,7 +35,7 @@ struct StoredChatMessage: Equatable, Sendable {
     /// real LLM API usage.total_tokens
     /// (= nil if not available; = legacy actor preserved this field).
     let tokens: Int?
-    // v1.65-cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示': persisted
+    // persisted
     // reasoning content for round-trip restore. nil = no thinking
     // (= user message, or pre-v1.65-cleanup assistant message); = non-nil
     // for assistant messages that streamed .reasoning parts during the

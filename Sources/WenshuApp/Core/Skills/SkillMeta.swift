@@ -9,7 +9,7 @@
 // policy + quarantine"). The prior v0.23 surface contained 5 types
 // (= SkillTrustLevel enum, SkillSource enum, SkillFrontmatter struct,
 // SkillTrustPolicy struct, SkillQuarantine struct) all defined in the
-// v0.23 SkillMeta.swift file. All 5 types are REMOVED by the v0.28
+// 
 // M6-19 port (= no callers found via grep; see commit 2799a9717 for
 // their v0.23 definitions; this v0.28 M6-19 file replaces the entire
 // content with hermes-aligned YAML frontmatter parser + slash-command

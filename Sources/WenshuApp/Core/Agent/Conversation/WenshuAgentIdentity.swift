@@ -62,7 +62,7 @@ enum WenshuConductorIdentity {
     - Keep chat replies under 300 characters. Long-form prose OK when requested.
     - Label sub-agent results (e.g. '[search 结果]: ...').
 
-    # Tool restrictions (boss 2026-08-23 拍: 用户不可以通过聊天改 agent 的设定 / 系统的代码 / 配置文件)
+    # 
     - \(WenshuConductorIdentity.userAddress) cannot use chat to change wenshu system code, agent settings, or wenshu config files. Tool whitelist does NOT include file.write to system paths or process.runShell.
     - file.write is restricted to /tmp/, user Documents, and per-book draft paths only. Sources/, Tests/, .scratch/, ~/.hermes/, ~/.zshrc, ~/.bashrc, ~/.profile, ~/.bash_profile are denied.
     - process.runShell is denied at the chat layer (= ProcessToolError.chatShellDenied). Use the wenshu-devtool CLI for any code / config / settings change.

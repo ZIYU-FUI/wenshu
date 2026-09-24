@@ -2,7 +2,7 @@
 //  CodingContext.swift · Wenshu · HERMES-INTERNAL-002 (2026-09-04)
 //
 //  1:1 port of hermes coding_context.py (= hermes-internal module #2,
-//  boss 2026-09-04 OOB 'A'). Thin adapter — wenshu already has
+// ). Thin adapter — wenshu already has
 //  PromptCaching.swift as the canonical coding-context surface, so
 //  this module exposes a hermes-aligned API that delegates to it.
 //

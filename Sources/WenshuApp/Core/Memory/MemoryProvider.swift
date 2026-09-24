@@ -53,7 +53,7 @@
 
 import Foundation
 
-// v0.72 SwiftData migration: this file uses WSMemoryRepository
+// WSMemoryRepository
 // (= @MainActor SwiftData; = Phase 5 ticket 8 deleted MemoryStore actor).
 // See commit 49 (= ContextEngine deferred) for the full rationale.
 // Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
@@ -277,7 +277,7 @@ final class UserDefaultsMemoryProvider: MemoryProvider, @unchecked Sendable {
 
 /// SQLite-backed memory provider (= thin adapter over GRDB).
 /// Full implementation lands with the v0.29+ memory migration ticket;
-/// v1.28 B2.9 rewrite: `SQLiteMemoryProvider` was a stub façade over
+/// `SQLiteMemoryProvider` was a stub façade over
 /// `InMemoryMemoryProvider` (= R4 altitude audit D-3 verdict: 3
 /// stacked layers — SQLite name + InMemory backing + TODO comment —
 /// pretending to be SQLite-backed when in fact no SQLite was

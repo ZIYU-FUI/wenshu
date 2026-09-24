@@ -2,7 +2,7 @@
 //  IterationBudget.swift · Wenshu · HERMES-INTERNAL-006 (2026-09-04)
 //
 //  1:1 port of hermes iteration_budget.py (= hermes-internal module #6,
-//  boss 2026-09-04 OOB 'A'). Wenshu already has TurnRetryState.swift as
+// ). Wenshu already has TurnRetryState.swift as
 //  the canonical per-turn retry counter; IterationBudget extends that
 //  with a per-task budget (iterations + tokens), giving the conversation
 //  loop a hard cap on runaway retries.
