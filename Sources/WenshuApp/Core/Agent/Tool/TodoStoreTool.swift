@@ -62,8 +62,7 @@ struct TodoStoreTool: Tool, Sendable {
     /// (= nonisolated context); the closure runs synchronously at
     /// first access so the unsafe escape hatch is safe here. The
     /// `TodoStoreTool(hermesTodo:todoRepository:)` initializer does
-    /// NOT touch `TodoStore` actor (= it was deleted in Phase 5
-    /// ticket 7; persistence is now `WSTodoRepository.shared` =
+    /// NOT touch the deleted legacy actor (= superseded by WSTodoRepository; persistence is now `WSTodoRepository.shared` =
     /// @MainActor SwiftData wrapper). The inner MainActor.assumeIsolated
     /// ONLY matters for `WSTodoRepository.shared` access (=
     /// @MainActor accessor).
