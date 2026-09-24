@@ -1,5 +1,5 @@
 //
-//  KanbanTools.swift · Wenshu · HERMES-PARTIAL-011 (2026-09-04)
+//  KanbanTools.swift · Wenshu · port-window
 //
 //  LLM-side kanban management surface. Direct port of hermes
 //  tools/kanban_tools.py (= 1,672 LOC; provides the unified
@@ -9,7 +9,7 @@
 //  Per spec §2.3 + AGENTS.md §11.3: kanban is a wenshu-side-wins
 //  surface (= wenshu's SwiftData WSKanbanRepository manages the
 //  task store; hermes's cross-process claim/lock semantics don't
-//  apply to a single-process macOS app). HERMES-PARTIAL-011 adds the
+//  apply to a single-process macOS app). the
 //  LLM-facing tool dispatcher so the chat surface can manage tasks
 //  through the same show / list / complete / block / heartbeat /
 //  comment / create / unblock / link action surface that hermes ships.
