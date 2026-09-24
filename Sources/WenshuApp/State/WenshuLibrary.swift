@@ -31,11 +31,10 @@ final class WenshuLibrary {
     /// All bookshelves, sorted by updatedAt descending (= Apple HIG Finder
     /// 'Recents' convention).
     private(set) var shelves: [Bookshelf] = []
-    /// v0.24 bossverificationfix (Boss 8/25 sixth OOB ticket 015.019): total book
-    /// count across all shelves (= used by projectSidebar bottom toolbar
-    /// right-side status ": N"). Computed by iterating store.loadBooks
-    /// for each shelf; cached in @Observable mirror so UI updates
-    /// reactively when shelves/books change.
+    /// Total book count across all shelves (= used by projectSidebar
+    /// bottom toolbar right-side status ": N"). Computed by iterating
+    /// store.loadBooks for each shelf; cached in @Observable mirror
+    /// so UI updates reactively when shelves/books change.
     private(set) var bookCount: Int = 0
 
     /// The user's current selection (= Apple HIG document-based apps
@@ -82,15 +81,14 @@ final class WenshuLibrary {
                 // empty state will render and the user can pick one.
             }
         }
-        // v0.24 bossverificationfix (Boss 8/25 sixth OOB ticket 015.019): compute
-        // total book count across all shelves (= used by projectSidebar
-        // bottom toolbar right-side status ': N').
+        // Compute total book count across all shelves (= used by
+        // projectSidebar bottom toolbar right-side status ': N').
         recomputeBookCount()
     }
 
-    /// v0.24 bossverificationfix (Boss 8/25 sixth OOB ticket 015.019): recompute
-    /// bookCount by summing books across all shelves. Public so views can
-    /// trigger recomputation after shelf/book add/remove mutations.
+    /// Recompute bookCount by summing books across all shelves.
+    /// Public so views can trigger recomputation after shelf/book
+    /// add/remove mutations.
     func recomputeBookCount() {
         var total = 0
         for shelf in shelves {
@@ -171,7 +169,7 @@ final class WenshuLibrary {
         return shelves.first(where: { $0.id == id })
     }
 
-    // MARK: - Book state (v0.02.1, = book module end-to-end)
+    // MARK: - Book state
     //
     // Additive only (= v0.02.0 callers and contracts untouched). The
     // books for each shelf are lazily fetched from the store (= we don't
@@ -238,19 +236,19 @@ final class WenshuLibrary {
         try store.loadDocuments(bookId: bookId, category: category)
     }
 
-    /// v0.30 boss OOB ',, show': count .md
-    /// files directly by folder directory name. Doesn't require
-    /// BookCategory (= which only has 3 cases = chapter/setting/research;
-    /// the 5 user-facing folders use custom directory names like
-    /// 'world' / 'characters' / 'outlines' that aren't in BookCategory).
-    /// Returns 0 for missing folders (= forgiving convention).
+    /// Count .md files directly by folder directory name. Doesn't
+    /// require BookCategory (= which only has 3 cases = chapter/
+    /// setting/research; the 5 user-facing folders use custom
+    /// directory names like 'world' / 'characters' / 'outlines'
+    /// that aren't in BookCategory). Returns 0 for missing folders
+    /// (= forgiving convention).
     ///
-    /// v0.30 followup: this can be replaced by a proper BookCategory
-    /// extension (= add `world` / `characters` cases) once the
-    /// Document model migrates to support all 5 folder types.
-    /// v0.40 apple-001 Q4 incremental: route through LibraryStoring
-    /// (= the protocol that owns the storage contract) instead of
-    /// casting to BookStore (= WenshuLibrary's `store` is actually
+    /// Future migration: replace by a proper BookCategory extension
+    /// (= add `world` / `characters` cases) once the Document model
+    /// supports all 5 folder types.
+    /// Route through LibraryStoring (= the protocol that owns the
+    /// storage contract) instead of casting to BookStore
+    /// (= WenshuLibrary's `store` is actually
     /// `FileSystemLibraryStore`, not BookStore; the prior `as? BookStore`
     /// cast silently returned nil and this method always returned 0).
     /// The protocol declares `folderDocumentCount` with a default
