@@ -84,7 +84,7 @@ struct ChatTextPartView: View {
                     let elapsed = context.date.timeIntervalSinceReferenceDate
                     let phase = Int(elapsed / 0.5) % 2 == 0
                     Text("▎")
-                        .font(.system(size: 14, weight: .regular))
+                        .font(.body)
                         .foregroundStyle(Color.primary)
                         .opacity(phase ? 1.0 : 0.0)
                         // T61-CURSOR-HELP (2026-09-18): a .help()
