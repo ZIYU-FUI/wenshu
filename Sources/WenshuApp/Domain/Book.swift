@@ -6,13 +6,12 @@
 // the EDITOR module.
 //
 // v52: adds `length` (BookLength enum) + `idea` (optional String) for
-// the New Book Creation Wizard (= 8/15 17:32 ',,
-// '). Both fields have defaults + Codable back-compat (= v0.02.x
-// book.json files without these keys still decode).
+// the New Book Creation Wizard. Both fields have defaults + Codable
+// back-compat (= v0.02.x book.json files without these keys still
+// decode).
 //
-// Owner 8/15 15:55: 'needok,, refactor
-// BookTests.swift`. Adding any required field forces the architectural
-// decision to surface (= not just an incidental change in some file).
+// Adding any required field forces the architectural decision to
+// surface (= not just an incidental change in some file).
 //
 // Storage layout (= Apple HIG document-based app convention, building
 // on the v0.02.0 shelf layout):
@@ -29,11 +28,10 @@
 import Foundation
 
 /// Book length = the scope the user commits to when creating a new
-/// book. v52 introduced this (= 8/15 17:32 '). Drives
-/// later chapter management (= v0.03.0 chapter list reads the length
-/// to suggest word-count targets + chapter split heuristics). Three
-/// cases, allCases-ordered (= Picker in the wizard renders in this
-/// order: / in progress /).
+/// book. Drives later chapter management (= v0.03.0 chapter list
+/// reads the length to suggest word-count targets + chapter split
+/// heuristics). Three cases, allCases-ordered (= Picker in the wizard
+/// renders in this order: short / medium / long).
 enum BookLength: String, CaseIterable, Codable, Sendable {
     case short
     case medium
@@ -58,11 +56,10 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     /// Author name; empty string = no author specified (= wenshu doesn't
     /// require one; we just record whatever the user types).
     var author: String
-    /// v0.30 boss 8/31 OOB: user-picked SF Symbols 6 icon name
-    /// (= dot.case identifier, e.g. "book.pages") for the
-    /// sidebar display. Optional (= nil = default "book"
-    /// glyph via `displayIcon`). Mirrors the Bookshelf.icon
-    /// pattern (= same shape, same default).
+    /// User-picked SF Symbols 6 icon name (= dot.case identifier,
+    /// e.g. "book.pages") for the sidebar display. Optional
+    /// (= nil = default "book" glyph via `displayIcon`). Mirrors
+    /// the Bookshelf.icon pattern (= same shape, same default).
     var icon: String?
     /// Parent bookshelf (= filesystem constraint: the book's directory
     /// must live under its parent shelf's `books/`). Required at init so
@@ -107,11 +104,8 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         id.uuidString
     }
 
-    /// v0.30 boss 8/31 OOB: book icon for sidebar display. Returns
-    /// `icon` if set, otherwise the default "book" icon.
-    ///
-    /// v1.0.0-m1-shell boss 2026-09-15 OOB 'use outline uniformly':
-    /// default returns outline (= non-.fill) icons.
+    /// Book icon for sidebar display. Returns `icon` if set,
+    /// otherwise the default "book" icon (outline-only).
     var displayIcon: String {
         guard let icon, !icon.isEmpty else { return "book" }
         return icon
@@ -150,7 +144,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         let shelfId = try c.decode(UUID.self, forKey: .shelfId)
         let length = try c.decodeIfPresent(BookLength.self, forKey: .length) ?? .medium
         let idea = try c.decodeIfPresent(String.self, forKey: .idea)
-        let icon = try c.decodeIfPresent(String.self, forKey: .icon)  // v0.30 boss OOB: optional
+        let icon = try c.decodeIfPresent(String.self, forKey: .icon)
         let createdAt = try c.decode(Date.self, forKey: .createdAt)
         let updatedAt = try c.decode(Date.self, forKey: .updatedAt)
         self.init(
