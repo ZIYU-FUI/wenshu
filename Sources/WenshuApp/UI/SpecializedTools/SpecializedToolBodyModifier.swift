@@ -1,7 +1,8 @@
 //
-//  SpecializedToolBodyModifier.swift · Wenshu · v1.28 Tier C
+//  SpecializedToolBodyModifier.swift · Wenshu
 //
-//  v1.28 C3.7.1: View modifier that wraps the 6 SpecializedTools view bodies' verbatim duplicated pattern:
+//  View modifier that wraps the 6 SpecializedTools view bodies'
+//  verbatim duplicated pattern:
 //    VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
 //        if activeBookId == nil {
 //            emptyState
@@ -10,7 +11,8 @@
 //        }
 //    }
 //    .padding(DesignTokens.chromePaddingMedium)
-//  (= 8 LOC × 6 files = 48 LOC verbatim copy-paste; = R1 audit "Pervasive Duplications" entry).
+//  (= 8 LOC × 6 files = 48 LOC verbatim copy-paste; = "Pervasive
+//  Duplications" audit entry).
 //
 //  Usage (= at the body site):
 //    var body: some View {
