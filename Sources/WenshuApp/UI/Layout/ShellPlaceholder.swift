@@ -1,19 +1,16 @@
 // ShellPlaceholder.swift · Wenshu · v1.34 ticket 001
 //
-// Extracted from NavigationSplitShell.swift (= v0.46 boss OOB).
+// Extracted from NavigationSplitShell.swift.
 //
-// Per boss OOB 2026-09-14 '要修，继续' + repowise
-// get_health directive (NavigationSplitShell = top #2 untested
-// hotspot = 1564 NLOC, 10 deps, score 4.5).
+// The repowise get_health directive listed NavigationSplitShell as
+// the top #2 untested hotspot (= 1564 NLOC, 10 deps, score 4.5).
 //
 // v1.34 continues the WorkspaceView split pattern (= v1.32
 // ZoneModuleView + v1.33 EditorPlaceholder) by splitting
 // NavigationSplitShell. The smallest struct (= ShellPlaceholder
 // = 22 lines) is the SAFE first split.
 //
-// v1.34 aligns with boss's v1.x 'remove Lucide, use SF Symbols 6'
-// decision (= merged 2026-09-15). After boss's deprecation
-// canonical icon layer = Apple SF Symbols 6 built into macOS 27
+// Canonical icon layer = Apple SF Symbols 6 built into macOS 27
 // (= zero SPM dependency). This extracted file uses the SF
 // Symbols version via `Image(systemName:)`.
 //
@@ -35,7 +32,7 @@ struct ShellPlaceholder: View {
     let hint: String
 
     var body: some View {
-        // Canonical SF Symbols 6 icon layer (= boss 2026-09-15 OOB).
+        // Canonical SF Symbols 6 icon layer.
         ContentUnavailableView {
             // 38 PT matches the glyph height Apple's own
             // ContentUnavailableView renders, measured on this machine.
