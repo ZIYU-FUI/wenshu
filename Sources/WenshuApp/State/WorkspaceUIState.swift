@@ -1,10 +1,9 @@
 //
-//  WorkspaceUIState.swift · Wenshu · P2-06 (audit 2026-09-24)
+//  WorkspaceUIState.swift · Wenshu
 //
-//  P2-06 (audit 2026-09-24): extracted from `AppState.swift`.
-//  AppState was 644 LOC; this new class absorbs the 2 column-local
-//  UI state fields (= previewSortOrder + editMode) that survive
-//  shell lifecycle changes (= different scope than shell chrome).
+//  Per-window observable for the 2 column-local UI state fields
+//  (= previewSortOrder + editMode) that survive shell lifecycle
+//  changes (= different scope than shell chrome).
 //
 //  Why bundle previewSortOrder + editMode (= not 2 separate classes):
 //  - Both are column-local UI state (= shared across WorkspaceView
