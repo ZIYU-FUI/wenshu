@@ -34,9 +34,9 @@ extension AppState {
         }
     }
 
-    /// Restore openTabs from UserDefaults (= v0.40 boss 9/7). Called
-    /// from init() so subsequent view code reads the restored state
-    /// on the first render.
+    /// Restore openTabs from UserDefaults. Called from init() so
+    /// subsequent view code reads the restored state on the first
+    /// render.
     func restoreOpenTabs() {
         guard let data = UserDefaults.standard.data(forKey: AppState.openTabsKey),
               let snapshot = try? JSONDecoder().decode([PersistedEditorTab].self, from: data) else {
