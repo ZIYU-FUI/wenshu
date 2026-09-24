@@ -1,13 +1,9 @@
 //
-//  LibraryRootView.swift · Wenshu · v0.24 boss acceptance
+//  LibraryRootView.swift · Wenshu
 //
-//  Boss 2026-08-24 OOB said: 'like FCP, on first run, whether or not to create a shelf,
-//  must first specify a .ws file library location' (tactical UX decision).
-//  Boss 8/24 follow-up: 'text shouldn't contain our decisions, like "like FCP".
-//  Just say directly, what this library file is for. Also don't say the library file is called .ws.
-//  Just say ask the user to specify a Wenshu repository'.
+//  First-run library picker (= the onboarding flow).
 //
-//  User-facing text (per boss said): no decision words (like FCP, better than X,
+//  User-facing text: no decision words (like FCP, better than X,
 //  etc.), no .ws library file terminology, just describe the purpose. Use 'Wenshu repository'
 //  terminology.
 //
