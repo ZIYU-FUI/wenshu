@@ -295,7 +295,7 @@ private struct CommandPaletteRow: View {
 ///
 /// Apple HIG alternative = .focusedSceneValue (= macOS 14+) could
 /// carry a typed value from the .commands block to the active scene.
-/// CHATBOX-002 keeps the NotificationCenter pattern (= already used by
+/// 
 /// 5+ zone-toggle items in App.swift) for consistency.
 @MainActor
 enum CommandPaletteController {

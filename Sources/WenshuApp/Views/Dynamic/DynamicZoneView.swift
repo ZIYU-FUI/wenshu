@@ -25,7 +25,7 @@ struct DynamicZoneView: View {
     enum DynamicTab: String, CaseIterable, Identifiable {
         // bossverificationfix (2026-08-24 OOB): Boss 'yeskanban, change
         // ' = dynamic zone should be kanban (kanban), not progress (debug).
-        // Per boss 8/24 'dynamic zone change 2 tab' = kanban + only.
+        // = kanban + only.
         // Hide: progress (debug feature) + search (per 5c9ef2ee6 + chat zone pattern).
         case kanban = "看板"
         case todo = "待办"

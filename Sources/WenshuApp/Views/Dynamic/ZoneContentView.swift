@@ -1,7 +1,7 @@
 //
 // ZoneContentView.swift · Wenshu · v0.24 bossverification
 //
-// Boss 2026-08-24 (out-of-band): region, can tab view.
+// 
 // not oktop bar, top bar, can tab.
 //
 // Pattern (ChatZoneView ChatZoneTabBar + DynamicZoneView DynamicZoneTabBar):
@@ -152,7 +152,7 @@ struct ZoneContentView: View {
                     // the SF Symbol glyph as NSImage for true
                     // visual fidelity). Replaces the
                     // 2026-09-11 'Lucide only' choice per
-                    // boss 2026-09-15 reversal.
+                    // 
                     return NSImage(systemSymbolName: tab.icon, accessibilityDescription: tab.label)
                 }
             )

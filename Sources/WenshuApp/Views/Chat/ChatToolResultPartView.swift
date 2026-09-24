@@ -119,7 +119,7 @@ struct ChatToolResultPartView: View {
 
 // MARK: - Body view (= iterates parts[])
 
-/// v0.71 P1 batch 2: the canonical renderer for the message body
+/// 
 /// of a `ChatMessage`. Iterates `message.parts[]` (= the Hermes
 /// canonical state) and renders each part via the appropriate
 /// `Chat*PartView`.

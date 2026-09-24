@@ -1,7 +1,7 @@
 //
 //  WenshuAgentIdentity.swift · Wenshu · v0.22 ticket 001 (Wenshu agent base identity)
 //
-//  Boss 2026-08-23 decision: define the Wenshu agent base identity (it was missing
+// 
 //  before, no different from a bare LLM API call).
 //  Prepended to every LLM call as the first system message.
 //

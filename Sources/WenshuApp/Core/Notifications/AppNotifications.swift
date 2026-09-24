@@ -28,7 +28,7 @@ import Foundation
 // other AppKit menu item surfaces. Listened by views that don't share
 // a direct @Environment / @Binding with the menu source.
 //
-// Boss 2026-08-19 OOB §Commands: rejected @FocusedValue as a
+// 
 // substitute for these specific notifications (= .commands Button -> View
 // is the reverse direction from @FocusedValue's View -> commands
 // capability; v0.34 commit 85f87a68f Apple-API-first #6 documented this).

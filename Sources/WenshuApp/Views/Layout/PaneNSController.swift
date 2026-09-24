@@ -43,7 +43,7 @@ final class PaneNSController: NSSplitViewController {
 
     // MARK: - Stored dependencies (= set once at init; not mutated)
 
-    /// v1.28 C3.2.5: visibility relaxed from `private` to `internal` so the
+    /// 
     /// extension files (`PaneNSController+CollectHelpers` reads `store.workspace.root`
     /// in `countSplitNodesBefore(_:)`). `store` is mutated only via init
     /// (= not after construction); = the relaxed access matches the actual usage.
@@ -174,7 +174,7 @@ final class PaneNSController: NSSplitViewController {
         // needed here.
     }
 
-    /// v0.71 P1 batch 8 dual-axis followup (= Q99 Standards axis HIGH):
+    /// 
     /// remove the selector-based NotificationCenter observer added in
     /// viewDidLoad (= HIGH leak: NotificationCenter retains `self`
     /// forever if no `removeObserver` runs; = the pane controller
@@ -711,7 +711,7 @@ final class PaneNSController: NSSplitViewController {
     /// re-wrapped the items. Index 0 is enough for v0.30 because
     /// every GroupNode renders exactly one pane (= multi-pane
     /// groups are flattened by `makeSplitItems`).
-    /// v1.28 C3.2.2: visibility relaxed from `private` to `internal` so the
+    /// 
     /// extension file `PaneNSController+ZoneVisibility.swift` can read it.
     var paneKindByItem: [Int: TabKind] = [:]
     /// (zone toggle fix): the subtree this
@@ -932,7 +932,7 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-        /// v1.28 C3.2.5: countSplitNodesBefore extracted to PaneNSController+CollectHelpers.swift
+        /// 
     override func viewDidLayout() {
         super.viewDidLayout()
         // fix: NSSplitView's bounds are
@@ -1508,7 +1508,7 @@ final class PaneNSController: NSSplitViewController {
         }
     }
 
-        /// v1.28 C3.2.5: collectPaneControllers extracted to PaneNSController+CollectHelpers.swift
+        /// 
     // MARK: - autosaveName key (= per-layout + per-split)
 
 }

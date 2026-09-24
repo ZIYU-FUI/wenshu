@@ -345,7 +345,7 @@ struct ChatView: View {
                         }
                     }
                     .padding(DesignTokens.chromePaddingVertical)
-                    // boss 'all 1:1 hermes真值' + '试着补一下':
+                    // 
                     // hermes `--composer-width: 100%` (= not a fixed
                     // pixel cap; = the chat content column fills the
                     // full chat pane width). The only horizontal
@@ -482,7 +482,7 @@ struct ChatView: View {
                         proxy.scrollTo(last.id, anchor: .bottom)
                     }
                 }
-                // boss 'B = 试着补一下 sticky 真值': the
+                // 
                 // `scrollTo(anchor: .bottom)` above is the DEFAULT
                 // scroll-to-bottom for new content (= assistant
                 // streaming reply). The sticky behavior for the
@@ -1370,8 +1370,7 @@ struct ChatView: View {
 
 // MARK: - v1.92 ChatTurn (= unit of grouping for sticky-top user bubbles)
 
-/// Boss 2026-09-23 '用户说话的那个框，像 hermes 一样，实现吸顶' (=
-/// make the user bubble sticky like hermes). Each ChatTurn groups one
+/// . Each ChatTurn groups one
 /// user message (= the Section.header that pins to the scroll viewport
 /// top via `LazyVStack(pinnedViews: [.sectionHeaders])`) with all
 /// following assistant/placeholder messages (= the Section.content

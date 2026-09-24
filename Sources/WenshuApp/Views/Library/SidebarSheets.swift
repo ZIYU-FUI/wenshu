@@ -249,7 +249,7 @@ struct NewShelfSheet: View {
 
 /// full-form sheet for creating a new book (= title +
 /// author + shelf picker + SF Symbols 6 icon picker). Mirrors the
-/// v1.0.0-m1 legacy NewBookSheet (= same Form shape + SF Symbols
+/// 
 /// picker UX = scrollable 8-wide LazyVGrid + tap-to-select with
 /// `.tint` highlight on the selected cell).
 struct NewBookSheet: View {

@@ -99,7 +99,7 @@ struct ChatMessageView: View {
     }
 
     var body: some View {
-        // boss 2026-09-21 'chat detail 1:1 hermes macOS desktop':
+        // :
         // drop the iMessage-style bubble + avatar-run-merge path (= the
         // boss OOB) and render per Hermes真值:
         //   - user row: `apps/desktop/src/components/assistant-ui/

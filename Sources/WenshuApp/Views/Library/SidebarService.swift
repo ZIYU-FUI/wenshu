@@ -48,7 +48,7 @@ final class SidebarService {
     /// sidebar (not the data layer) groups them by shelf via
     /// `Book.shelfId` (= the pre-v1.69 pattern preserved through
     /// the MVVM split).
-    /// v1.68b boss 2026-09-22 '数据结构不要有变化' = no per-shelf
+    /// = no per-shelf
     /// loader (= the existing flat BookStore API stays).
     private let loadAllBooks: @MainActor () throws -> [Book]
 

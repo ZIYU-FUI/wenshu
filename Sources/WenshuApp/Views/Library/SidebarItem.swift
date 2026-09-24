@@ -111,7 +111,7 @@ enum SidebarItem: Hashable, Codable {
         }
     }
 
-    /// v0.71 P1 batch 6: parse a UUID string and surface malformed input
+    /// 
     /// (= replaces the previous `UUID(uuidString:) ?? UUID()` silent swap).
     /// Throws `DecodingError.dataCorrupted` if the string is not a valid
     /// UUID (= visible to the caller = caller can decide to drop the

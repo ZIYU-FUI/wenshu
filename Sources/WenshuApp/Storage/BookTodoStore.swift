@@ -3,7 +3,7 @@
 // Per-(book × scope) todo JSON store. Replaces v0.25.x app-level TodoStore (SQLite) with a
 // per-book JSON file (books/<book-id>/todo.json).
 //
-// v0.26 starts with empty per-book JSON files (per LibraryBootstrapper).
+// 
 //
 // The scope picker lets the user target one of
 // 8 standard sub-folders inside the active book, the book root, or the
