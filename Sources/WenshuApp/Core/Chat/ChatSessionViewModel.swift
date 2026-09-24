@@ -229,16 +229,14 @@ final class ChatViewModel {
     // change in v1.79), the chat panel still works (= bookID: nil = global
     // = same behavior as before v1.79).
     //
-    // internal (= not private) so the test target can read it without
-    // resorting to Mirror reflection (= Mirror on @Observable types
-    // produces String?? for Optional fields, which is brittle).
-    @MainActor internal var currentBookID: String?
+    // P2-02 audit (2026-09-24): BookID brand wrapper.
+    @MainActor internal var currentBookID: BookID?
 
     /// v1.79 chat-by-book: update the active scope (= called by the view
     /// layer when the user picks a different book). Refreshes the in-memory
     /// session id (= per-book session) and reloads history. No-op if the
     /// bookID is unchanged.
-    func setCurrentBookID(_ bookID: String?) {
+    func setCurrentBookID(_ bookID: BookID?) {
         if currentBookID == bookID { return }
         currentBookID = bookID
         // Per-book session id: same key prefix + bookID suffix so the
@@ -271,7 +269,7 @@ final class ChatViewModel {
         initialMessages: [ChatMessage] = [],
         appState: AppState? = nil,
         repository: ChatRepositoryProtocol = LiveChatRepository.shared,
-        bookID: String? = nil
+        bookID: BookID? = nil
     ) {
         self.conductor = conductor
         // v1.79 chat-by-book: per-book session id when bookID is set
@@ -301,9 +299,9 @@ final class ChatViewModel {
     /// session (= chat history under one book must not leak into another).
     /// The id pattern is stable (= never reused) so subsequent calls with
     /// the same bookID always hit the same SwiftData row.
-    static func makeSessionID(for bookID: String?, fallback: String = "default") -> String {
+    static func makeSessionID(for bookID: BookID?, fallback: String = "default") -> String {
         guard let bookID else { return fallback }
-        return "book:\(bookID):\(fallback)"
+        return "book:\(bookID.rawValue):\(fallback)"
     }
 
     /// C-4: the data-layer seam. Defaults to LiveChatRepository.shared

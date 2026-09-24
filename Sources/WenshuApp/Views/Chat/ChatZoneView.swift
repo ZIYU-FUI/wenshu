@@ -216,7 +216,7 @@ struct ChatZoneView: View {
             case .shelf, .referenceCategory, .referenceLibraryRoot, nil:
                 bookID = nil
             }
-            vm.setCurrentBookID(bookID?.uuidString)
+            vm.setCurrentBookID(bookID.map { BookID(rawValue: $0.uuidString) })
         }
     }
 

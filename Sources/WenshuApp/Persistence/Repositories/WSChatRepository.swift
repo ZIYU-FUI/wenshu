@@ -48,21 +48,21 @@ final class WSChatRepository {
     // MARK: - Sessions
 
     @discardableResult
-    func createSession(sessionID: String, title: String? = nil, bookID: String? = nil) throws -> WSSession {
-        let session = WSSession(sessionID: sessionID, title: title, bookID: bookID)
+    func createSession(sessionID: String, title: String? = nil, bookID: BookID? = nil) throws -> WSSession {
+        let session = WSSession(sessionID: sessionID, title: title, bookID: bookID?.rawValue)
         context.insert(session)
         try context.save()
         return session
     }
 
-    func getSession(sessionID: String, bookID: String? = nil) throws -> WSSession? {
+    func getSession(sessionID: String, bookID: BookID? = nil) throws -> WSSession? {
         let descriptor = FetchDescriptor<WSSession>(
             predicate: Self.sessionPredicate(sessionID: sessionID, bookID: bookID)
         )
         return try context.fetch(descriptor).first
     }
 
-    func listSessions(includeArchived: Bool = false, bookID: String? = nil) throws -> [WSSession] {
+    func listSessions(includeArchived: Bool = false, bookID: BookID? = nil) throws -> [WSSession] {
         let descriptor: FetchDescriptor<WSSession>
         if includeArchived {
             descriptor = FetchDescriptor<WSSession>(
@@ -83,7 +83,7 @@ final class WSChatRepository {
 
     // MARK: - Messages
 
-    func loadMessages(sessionId: String, bookID: String? = nil) throws -> [StoredChatMessage] {
+    func loadMessages(sessionId: String, bookID: BookID? = nil) throws -> [StoredChatMessage] {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID),
             sortBy: [SortDescriptor(\.position)]
@@ -104,7 +104,7 @@ final class WSChatRepository {
         }
     }
 
-    func append(_ message: StoredChatMessage, sessionId: String, bookID: String? = nil) throws {
+    func append(_ message: StoredChatMessage, sessionId: String, bookID: BookID? = nil) throws {
         // Ensure the target session exists under the requested book scope.
         // If no session exists yet (= first message of a new chat per book),
         // create it automatically (= the chat pipeline should not have to
@@ -134,7 +134,7 @@ final class WSChatRepository {
         // Reads (= loadMessages) can then filter by message.bookID without
         // traversing the optional $0.session relationship keyPath (= which
         // has historic fragility in SwiftData #Predicate macros).
-        let effectiveBookID: String? = bookID ?? session.bookID
+        let effectiveBookID: BookID? = bookID ?? BookID(rawValue: session.bookID ?? "")
         let model = WSChatMessage(
             id: message.id,
             sessionID: sessionId,
@@ -148,14 +148,14 @@ final class WSChatRepository {
             // = the View layer decomposes it back into separate reasoning
             // parts at restore time).
             thinking: message.thinking,
-            bookID: effectiveBookID
+            bookID: effectiveBookID?.rawValue
         )
         model.tokenCount = message.tokens ?? -1
         context.insert(model)
         try context.save()
     }
 
-    func clear(sessionId: String, bookID: String? = nil) throws {
+    func clear(sessionId: String, bookID: BookID? = nil) throws {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID)
         )
@@ -175,7 +175,7 @@ final class WSChatRepository {
     /// batches all writes in a single `save()` (= the deleted actor's
     /// custom `transact` wrapper is no longer needed because SwiftData
     /// uses an internal Core Data transaction per save).
-    func deleteOldMessages(sessionId: String, beforeTimestamp: Date, bookID: String? = nil) throws {
+    func deleteOldMessages(sessionId: String, beforeTimestamp: Date, bookID: BookID? = nil) throws {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.combinedChatPredicate(
                 sessionId: sessionId,
@@ -196,7 +196,7 @@ final class WSChatRepository {
     /// helper. Returns the timestamp below which messages should be
     /// summarised (= the (count - keepLastN)-th message's timestamp).
     /// Returns nil if no summarization is needed (= count <= keepLastN).
-    func summaryCutoffTimestamp(sessionId: String, keepLastN: Int, bookID: String? = nil) throws -> Date? {
+    func summaryCutoffTimestamp(sessionId: String, keepLastN: Int, bookID: BookID? = nil) throws -> Date? {
         let total = try count(sessionId: sessionId, bookID: bookID)
         guard total > keepLastN else { return nil }
         let offset = total - keepLastN
@@ -215,7 +215,7 @@ final class WSChatRepository {
     /// (= v0.72 SwiftData migration; replaces the deleted ChatSessionStore actor)
     /// helper. Returns the pre-cutoff messages (= those to be summarised)
     /// in ASC timestamp order (= matches the deleted actor's spec).
-    func messagesBeforeCutoff(sessionId: String, cutoff: Date, bookID: String? = nil) throws -> [StoredChatMessage] {
+    func messagesBeforeCutoff(sessionId: String, cutoff: Date, bookID: BookID? = nil) throws -> [StoredChatMessage] {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.combinedChatPredicate(
                 sessionId: sessionId,
@@ -252,7 +252,7 @@ final class WSChatRepository {
         lastN: Int = 10,
         threshold: Int = 20,
         verifier: WenshuVerifier,
-        bookID: String? = nil
+        bookID: BookID? = nil
     ) async throws -> Bool {
         let currentCount = try count(sessionId: sessionId, bookID: bookID)
         guard currentCount > threshold else { return false }
@@ -281,7 +281,7 @@ final class WSChatRepository {
         return true
     }
 
-    func count(sessionId: String, bookID: String? = nil) throws -> Int {
+    func count(sessionId: String, bookID: BookID? = nil) throws -> Int {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID)
         )
@@ -290,14 +290,14 @@ final class WSChatRepository {
 
     // MARK: - Summary
 
-    func loadSummary(sessionId: String, bookID: String? = nil) throws -> String? {
+    func loadSummary(sessionId: String, bookID: BookID? = nil) throws -> String? {
         let descriptor = FetchDescriptor<WSSummary>(
             predicate: Self.summaryPredicate(sessionId: sessionId, bookID: bookID)
         )
         return try context.fetch(descriptor).first?.summary
     }
 
-    func saveSummary(_ summary: String, sessionId: String, lastMessageId: String, bookID: String? = nil) throws {
+    func saveSummary(_ summary: String, sessionId: String, lastMessageId: String, bookID: BookID? = nil) throws {
         let descriptor = FetchDescriptor<WSSummary>(
             predicate: Self.summaryPredicate(sessionId: sessionId, bookID: bookID)
         )
@@ -323,7 +323,7 @@ final class WSChatRepository {
 
     // MARK: - SubAgentRuns
 
-    func loadSubAgentRuns(sessionId: String, bookID: String? = nil) throws -> [SubAgentRun] {
+    func loadSubAgentRuns(sessionId: String, bookID: BookID? = nil) throws -> [SubAgentRun] {
         let descriptor = FetchDescriptor<WSSubAgentRun>(
             predicate: Self.subAgentRunPredicate(sessionId: sessionId, bookID: bookID),
             sortBy: [SortDescriptor(\.startedAt)]
@@ -341,7 +341,7 @@ final class WSChatRepository {
         }
     }
 
-    func recordSubAgentRun(_ run: SubAgentRun, sessionId: String, bookID: String? = nil) throws {
+    func recordSubAgentRun(_ run: SubAgentRun, sessionId: String, bookID: BookID? = nil) throws {
         let model = WSSubAgentRun(
             id: run.id,
             sessionID: sessionId,
@@ -368,9 +368,10 @@ final class WSChatRepository {
     // place and avoids a copy-paste explosion across every FetchDescriptor.
 
     /// Predicate matching one session by ID + optional book scope.
-    private static func sessionPredicate(sessionID: String, bookID: String?) -> Predicate<WSSession> {
+    private static func sessionPredicate(sessionID: String, bookID: BookID?) -> Predicate<WSSession> {
         if let bookID {
-            return #Predicate { $0.sessionID == sessionID && $0.bookID == bookID }
+            let bookIDRaw = bookID.rawValue
+            return #Predicate { $0.sessionID == sessionID && $0.bookID == bookIDRaw }
         } else {
             return #Predicate { $0.sessionID == sessionID }
         }
@@ -378,9 +379,10 @@ final class WSChatRepository {
 
     /// Predicate for listing sessions, filtered by bookID only (= used when
     /// includeArchived = true so the archive flag is not in the predicate).
-    private static func bookIDPredicate(bookID: String?) -> Predicate<WSSession> {
+    private static func bookIDPredicate(bookID: BookID?) -> Predicate<WSSession> {
         if let bookID {
-            return #Predicate { $0.bookID == bookID }
+            let bookIDRaw = bookID.rawValue
+            return #Predicate { $0.bookID == bookIDRaw }
         } else {
             // #Predicate { true } is rejected by the SwiftData macro (= the
             // predicate must reference $0); = use a trivially-true comparison
@@ -390,9 +392,10 @@ final class WSChatRepository {
     }
 
     /// Predicate combining "not archived" + bookID filter.
-    private static func combinedPredicate(archivedNotSet: Bool, bookID: String?) -> Predicate<WSSession> {
+    private static func combinedPredicate(archivedNotSet: Bool, bookID: BookID?) -> Predicate<WSSession> {
         if let bookID {
-            return #Predicate { $0.archivedAt == nil && $0.bookID == bookID }
+            let bookIDRaw = bookID.rawValue
+            return #Predicate { $0.archivedAt == nil && $0.bookID == bookIDRaw }
         } else {
             return #Predicate { $0.archivedAt == nil }
         }
@@ -402,9 +405,10 @@ final class WSChatRepository {
     /// WSChatMessage.sessionID is the FK; the bookID filter additionally
     /// rejects cross-scope reads (= same sessionID can't exist under two
     /// books; = if you find one, it's a bug or legacy data).
-    private static func chatMessagePredicate(sessionId: String, bookID: String?) -> Predicate<WSChatMessage> {
+    private static func chatMessagePredicate(sessionId: String, bookID: BookID?) -> Predicate<WSChatMessage> {
         if let bookID {
-            return #Predicate { $0.sessionID == sessionId && $0.bookID == bookID }
+            let bookIDRaw = bookID.rawValue
+            return #Predicate { $0.sessionID == sessionId && $0.bookID == bookIDRaw }
         } else {
             return #Predicate { $0.sessionID == sessionId }
         }
@@ -413,11 +417,12 @@ final class WSChatRepository {
     /// Predicate for WSChatMessage with a createdAt cutoff.
     private static func combinedChatPredicate(
         sessionId: String,
-        bookID: String?,
+        bookID: BookID?,
         createdBefore: Date
     ) -> Predicate<WSChatMessage> {
         if let bookID {
-            return #Predicate { $0.sessionID == sessionId && $0.bookID == bookID && $0.createdAt < createdBefore }
+            let bookIDRaw = bookID.rawValue
+            return #Predicate { $0.sessionID == sessionId && $0.bookID == bookIDRaw && $0.createdAt < createdBefore }
         } else {
             return #Predicate { $0.sessionID == sessionId && $0.createdAt < createdBefore }
         }
@@ -427,7 +432,7 @@ final class WSChatRepository {
     /// stored on WSSummary directly, so we filter via the sessionID alone
     /// (= the caller is responsible for resolving the session within the
     /// correct book scope before calling loadSummary).
-    private static func summaryPredicate(sessionId: String, bookID: String?) -> Predicate<WSSummary> {
+    private static func summaryPredicate(sessionId: String, bookID: BookID?) -> Predicate<WSSummary> {
         // bookID is unused here on purpose (= the sessionID uniquely
         // identifies a session, and a session belongs to exactly one book).
         _ = bookID
@@ -435,7 +440,7 @@ final class WSChatRepository {
     }
 
     /// WSSubAgentRun same as WSSummary: filter by sessionID only.
-    private static func subAgentRunPredicate(sessionId: String, bookID: String?) -> Predicate<WSSubAgentRun> {
+    private static func subAgentRunPredicate(sessionId: String, bookID: BookID?) -> Predicate<WSSubAgentRun> {
         _ = bookID
         return #Predicate { $0.sessionID == sessionId }
     }

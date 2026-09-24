@@ -125,12 +125,12 @@ struct WSChatRepositoryTests {
     @MainActor
     func sessionsIsolatedByBook() throws {
         let repo = try makeRepository()
-        _ = try repo.createSession(sessionID: "sess-book-A", bookID: "book-A")
-        _ = try repo.createSession(sessionID: "sess-book-B", bookID: "book-B")
+        _ = try repo.createSession(sessionID: "sess-book-A", bookID: BookID(rawValue: "book-A"))
+        _ = try repo.createSession(sessionID: "sess-book-B", bookID: BookID(rawValue: "book-B"))
         _ = try repo.createSession(sessionID: "sess-global")
 
-        let sessionsForA = try repo.listSessions(bookID: "book-A")
-        let sessionsForB = try repo.listSessions(bookID: "book-B")
+        let sessionsForA = try repo.listSessions(bookID: BookID(rawValue: "book-A"))
+        let sessionsForB = try repo.listSessions(bookID: BookID(rawValue: "book-B"))
         let sessionsGlobal = try repo.listSessions(bookID: nil)
 
         #expect(sessionsForA.count == 1)
@@ -145,24 +145,24 @@ struct WSChatRepositoryTests {
     @MainActor
     func messagesIsolatedByBook() throws {
         let repo = try makeRepository()
-        try repo.createSession(sessionID: "sess-A", bookID: "book-A")
-        try repo.createSession(sessionID: "sess-B", bookID: "book-B")
+        try repo.createSession(sessionID: "sess-A", bookID: BookID(rawValue: "book-A"))
+        try repo.createSession(sessionID: "sess-B", bookID: BookID(rawValue: "book-B"))
 
         // Append under book-A
         try repo.append(
             StoredChatMessage(id: "m-A1", source: "user", content: "in book A", timestamp: Date()),
             sessionId: "sess-A",
-            bookID: "book-A"
+            bookID: BookID(rawValue: "book-A")
         )
         // Append under book-B
         try repo.append(
             StoredChatMessage(id: "m-B1", source: "user", content: "in book B", timestamp: Date()),
             sessionId: "sess-B",
-            bookID: "book-B"
+            bookID: BookID(rawValue: "book-B")
         )
 
         // book-A scope only sees the book-A message
-        let messagesA = try repo.loadMessages(sessionId: "sess-A", bookID: "book-A")
+        let messagesA = try repo.loadMessages(sessionId: "sess-A", bookID: BookID(rawValue: "book-A"))
         #expect(messagesA.count == 1)
         #expect(messagesA[0].id == "m-A1")
 
@@ -175,7 +175,7 @@ struct WSChatRepositoryTests {
         try repo.append(
             StoredChatMessage(id: "m-cross", source: "user", content: "x", timestamp: Date()),
             sessionId: "sess-A",
-            bookID: "book-B"
+            bookID: BookID(rawValue: "book-B")
         )
 
         // Global (bookID = nil) sees all 3 messages (m-A1 + m-B1 + m-cross)
@@ -193,14 +193,14 @@ struct WSChatRepositoryTests {
     @MainActor
     func countAndClearScoped() throws {
         let repo = try makeRepository()
-        try repo.createSession(sessionID: "sess-A", bookID: "book-A")
+        try repo.createSession(sessionID: "sess-A", bookID: BookID(rawValue: "book-A"))
         try repo.append(
             StoredChatMessage(id: "m1", source: "user", content: "x", timestamp: Date()),
             sessionId: "sess-A",
-            bookID: "book-A"
+            bookID: BookID(rawValue: "book-A")
         )
-        #expect(try repo.count(sessionId: "sess-A", bookID: "book-A") == 1)
-        try repo.clear(sessionId: "sess-A", bookID: "book-A")
-        #expect(try repo.count(sessionId: "sess-A", bookID: "book-A") == 0)
+        #expect(try repo.count(sessionId: "sess-A", bookID: BookID(rawValue: "book-A")) == 1)
+        try repo.clear(sessionId: "sess-A", bookID: BookID(rawValue: "book-A"))
+        #expect(try repo.count(sessionId: "sess-A", bookID: BookID(rawValue: "book-A")) == 0)
     }
 }

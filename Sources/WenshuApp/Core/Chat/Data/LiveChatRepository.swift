@@ -73,21 +73,21 @@ init(container: ModelContainer) {
     /// @MainActor because WSChatRepository.shared is @MainActor-isolated;
     /// = callers always invoke this from within a MainActor.run block.
     @MainActor
-    private func repository(bookID _: String?) -> WSChatRepository {
+    private func repository(bookID _: BookID?) -> WSChatRepository {
         if let containerOverride {
             return WSChatRepository(container: containerOverride)
         }
         return WSChatRepository.shared
     }
 
-    func append(_ message: ChatMessage, sessionId: String, bookID: String?) async throws {
+    func append(_ message: ChatMessage, sessionId: String, bookID: BookID?) async throws {
         let stored = Self.makeStored(from: message)
         try await Self.runOnMainActor {
             try self.repository(bookID: bookID).append(stored, sessionId: sessionId, bookID: bookID)
         }
     }
 
-    func loadMessages(sessionId: String, bookID: String?) async throws -> [ChatMessage] {
+    func loadMessages(sessionId: String, bookID: BookID?) async throws -> [ChatMessage] {
         let stored: [StoredChatMessage] = try await Self.runOnMainActor {
             try self.repository(bookID: bookID).loadMessages(sessionId: sessionId, bookID: bookID)
         }
@@ -99,7 +99,7 @@ init(container: ModelContainer) {
         lastN: Int,
         threshold: Int,
         verifier: WenshuVerifier,
-        bookID: String?
+        bookID: BookID?
     ) async throws {
         // WSChatRepository.summarizeIfNeeded is @MainActor + async.
         // Calling a @MainActor-isolated async method from a

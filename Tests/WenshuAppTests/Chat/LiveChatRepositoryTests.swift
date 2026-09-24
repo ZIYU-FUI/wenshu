@@ -36,7 +36,7 @@ struct LiveChatRepositoryTests {
         // Seed via the same container the Live adapter will use (= same ModelContext).
         let repo = WSChatRepository(container: container)
         let live = makeLive(container: container)
-        try repo.createSession(sessionID: "sess-A", bookID: "book-A")
+        try repo.createSession(sessionID: "sess-A", bookID: BookID(rawValue: "book-A"))
 
         let userMsg = ChatMessage(
             id: UUID(),
@@ -47,10 +47,10 @@ struct LiveChatRepositoryTests {
             tokens: nil,
             thinking: nil
         )
-        try await live.append(userMsg, sessionId: "sess-A", bookID: "book-A")
+        try await live.append(userMsg, sessionId: "sess-A", bookID: BookID(rawValue: "book-A"))
 
         // Load through the protocol (= the Live impl should forward bookID)
-        let loaded = try await live.loadMessages(sessionId: "sess-A", bookID: "book-A")
+        let loaded = try await live.loadMessages(sessionId: "sess-A", bookID: BookID(rawValue: "book-A"))
         #expect(loaded.count == 1)
         #expect(loaded[0].content == "in book A")
 
@@ -84,7 +84,7 @@ struct LiveChatRepositoryTests {
 
         // A session lookup under a non-matching bookID scope returns nil
         // (= the append under nil leaves no bookID on the session row).
-        let sessionInBookA = try repo.getSession(sessionID: "sess-global", bookID: "book-A")
+        let sessionInBookA = try repo.getSession(sessionID: "sess-global", bookID: BookID(rawValue: "book-A"))
         #expect(sessionInBookA == nil)
         let sessionGlobal = try repo.getSession(sessionID: "sess-global", bookID: nil)
         #expect(sessionGlobal != nil)
