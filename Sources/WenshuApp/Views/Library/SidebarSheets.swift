@@ -71,7 +71,7 @@ struct SidebarRenamingTarget: Identifiable, Equatable {
     let kind: Kind
     let itemId: UUID
     let originalName: String
-    /// v1.69y: optional `shelfId` (= only used for `.book` renames
+    /// optional `shelfId` (= only used for `.book` renames
     /// to know which shelf dir to walk to find `book.json`).
     let shelfId: UUID?
     var id: UUID { itemId }
@@ -127,7 +127,7 @@ struct NewChoiceSheet: View {
     }
 }
 
-/// v1.69y: single tappable card for NewChoiceSheet (= a large
+/// single tappable card for NewChoiceSheet (= a large
 /// icon + title + subtitle in a rounded rectangle that highlights
 /// on hover).
 private struct NewChoiceCard: View {
@@ -170,7 +170,7 @@ private struct NewChoiceCard: View {
 
 // MARK: - NewShelfSheet
 
-/// v1.69y: single-field sheet for creating a new shelf (= name
+/// single-field sheet for creating a new shelf (= name
 /// only). Mirrors the v1.0.0-m1 legacy NewShelfSheet (= same UX:
 /// single TextField + Cancel + Save buttons + live duplicate-name
 /// validation against `existingNames`).
@@ -182,7 +182,7 @@ struct NewShelfSheet: View {
     @State private var name: String = ""
     @Environment(\.dismiss) private var dismiss
 
-    /// v1.69y: reserved shelf names (= same set the v1.0.0-m1
+    /// reserved shelf names (= same set the v1.0.0-m1
     /// legacy `renameShelf` enforces). The reference library uses
     /// the name `资料库` as its display name; reusing that name for
     /// a user shelf would shadow the reference root.
@@ -191,7 +191,7 @@ struct NewShelfSheet: View {
         "资料库", "参考库", "reference library"
     ]
 
-    /// v1.69y: live validation result (= shown in the Save
+    /// live validation result (= shown in the Save
     /// button's `.disabled` + a small caption under the
     /// TextField). Mirrors the legacy `nameError` /
     /// `isNameValid` pair.
@@ -247,7 +247,7 @@ struct NewShelfSheet: View {
 
 // MARK: - NewBookSheet
 
-/// v1.69y: full-form sheet for creating a new book (= title +
+/// full-form sheet for creating a new book (= title +
 /// author + shelf picker + SF Symbols 6 icon picker). Mirrors the
 /// v1.0.0-m1 legacy NewBookSheet (= same Form shape + SF Symbols
 /// picker UX = scrollable 8-wide LazyVGrid + tap-to-select with
@@ -279,7 +279,7 @@ struct NewBookSheet: View {
         _shelfId = State(initialValue: targetShelfId)
     }
 
-    /// v1.69y: persisted input (= what the caller writes to
+    /// persisted input (= what the caller writes to
     /// disk via SidebarService.createBook(input:)).
     struct NewBookInput: Equatable {
         let title: String
@@ -292,7 +292,7 @@ struct NewBookSheet: View {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    /// v1.69y: curated SF Symbols 6 names (= the v1.0.0-m1
+    /// curated SF Symbols 6 names (= the v1.0.0-m1
     /// legacy NewBookSheet's `allSFSymbols` list; = same
     /// ~150-icon subset covering all 16 SF Symbols 6 categories
     /// = book / folder / arrow / etc.).
@@ -412,7 +412,7 @@ struct NewBookSheet: View {
 
 // MARK: - RenameItemSheet
 
-/// v1.69y: single-field sheet for renaming a shelf or book.
+/// single-field sheet for renaming a shelf or book.
 /// Validation = duplicate-name check (against `otherNames`) +
 /// reserved-name check (= same reservedNames set as
 /// NewShelfSheet).

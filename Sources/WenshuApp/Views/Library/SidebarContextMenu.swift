@@ -40,7 +40,7 @@ import SwiftUI
 
 // MARK: - SidebarContextMenuBuilder
 
-/// v1.69y: static helpers that build the menu View tree for a
+/// static helpers that build the menu View tree for a
 /// given sidebar selection (= mirrors the pre-v1.69e legacy
 /// NewLibraryOutlineView.contextMenuForSelection). All actions
 /// delegate to caller-provided closures (= the AppleSidebarView
@@ -48,7 +48,7 @@ import SwiftUI
 /// `@State showNewXSheet` binding; = this file has zero
 /// `@State` and zero direct AppState access = pure UI).
 enum SidebarContextMenuBuilder {
-    /// v1.69y: build the menu elements for a given set of
+    /// build the menu elements for a given set of
     /// `SidebarItem` (= the sidebar selection). Returns an
     /// empty array (= `.contextMenu(forSelectionType:)` displays
     /// nothing) when:

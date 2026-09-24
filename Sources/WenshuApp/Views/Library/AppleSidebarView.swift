@@ -92,7 +92,7 @@ struct AppleSidebarView: View {
     @State private var renaming: SidebarRenamingTarget?
     @State private var pendingDelete: SidebarPendingDelete?
 
-    /// v1.69y: set of selected `SidebarItem` (= mirrors the
+    /// set of selected `SidebarItem` (= mirrors the
     /// legacy NewLibraryOutlineView's `Set<SidebarItem>` selection
     /// pattern; = macOS 14+ `.contextMenu(forSelectionType:)` reads
     /// from the `List(selection:)` binding; = we forward the
@@ -587,7 +587,7 @@ struct AppleSidebarView: View {
     /// Open a folder (= the `<book-id>/<folder-name>/` directory's
     /// first .md file) in the editor's tab strip.
     ///
-    /// v1.68f: minimal folder-open wiring (= future ticket
+    /// minimal folder-open wiring (= future ticket
     /// surfaces the folder's content in the editor's tab UI; =
     /// for now the editor shows a placeholder until the file is
     /// loaded). Matches the legacy v1.67 LazySidebarView's

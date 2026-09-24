@@ -83,17 +83,17 @@ final class SidebarService {
         self.bookStore = bookStore
     }
 
-    /// v1.69y: optional BookStore reference (= injected at
+    /// optional BookStore reference (= injected at
     /// AppleSidebarView's .task block; = nil for unit-test
     /// instances that only test the read-side tree building).
     private let bookStore: BookStore?
 
-    /// v1.69y: latest cached shelves (= populated by `reload()`
+    /// latest cached shelves (= populated by `reload()`
     /// from `loadShelves()`; = read by createShelf / renameShelf
     /// for name validation).
     private(set) var shelves: [Bookshelf] = []
 
-    /// v1.69y: latest cached books (= populated by `reload()`
+    /// latest cached books (= populated by `reload()`
     /// from `loadAllBooks()`; = read by createBook / renameBook
     /// for title validation).
     private(set) var books: [Book] = []
@@ -523,7 +523,7 @@ final class SidebarService {
 //  with all cases; = same set of reserved + duplicate +
 //  cannot-delete-default guards preserved verbatim).
 extension SidebarService {
-    /// v1.69y: domain error for the create / delete / rename
+    /// domain error for the create / delete / rename
     /// operations (= LocalizedError so the caller can present
     /// the message in a SwiftUI `.alert(item:)`).
     enum MutationError: LocalizedError, Equatable {
@@ -551,7 +551,7 @@ extension SidebarService {
         }
     }
 
-    /// v1.69y: reserved shelf / book names (= the reference library
+    /// reserved shelf / book names (= the reference library
     /// uses `资料库` as its display name; = reusing that name for
     /// a user shelf would shadow the reference root; = same set
     /// the legacy NewLibraryOutlineView.renameShelf enforced).
@@ -560,21 +560,21 @@ extension SidebarService {
         "资料库", "参考库", "reference library"
     ]
 
-    /// v1.69y: list all shelf display names (= for duplicate-name
+    /// list all shelf display names (= for duplicate-name
     /// validation in NewShelfSheet + RenameItemSheet).
     /// Caller passes the cached `shelves` from SidebarService.
     func existingShelfNames() -> [String] {
         shelves.map { $0.name }
     }
 
-    /// v1.69y: list all book titles (= for duplicate-name
+    /// list all book titles (= for duplicate-name
     /// validation in RenameItemSheet; = the legacy
     /// NewLibraryOutlineView.renameBook logic).
     func existingBookTitles() -> [String] {
         books.map { $0.title }
     }
 
-    /// v1.69y: create a new shelf on disk (= shelves/<uuid>/shelf.json
+    /// create a new shelf on disk (= shelves/<uuid>/shelf.json
     /// + standard 8 book folders + empty kanban.json + todo.json).
     /// Returns the new shelf's UUID on success (= the caller
     /// updates `shelves` + `sidebarSelection` + calls `reload()`).
@@ -602,7 +602,7 @@ extension SidebarService {
         return shelfId
     }
 
-    /// v1.69y: create a new book on disk (= shelves/<shelf>/books/<book-uuid>/
+    /// create a new book on disk (= shelves/<shelf>/books/<book-uuid>/
     /// with 8 standard folders + book.json + kanban.json + todo.json).
     /// Mirrors the v0.29 LibraryBootstrapper per-book setup pattern.
     /// Returns the new book's UUID on success.
@@ -652,7 +652,7 @@ extension SidebarService {
         return bookId
     }
 
-    /// v1.69y: delete a shelf on disk (= shelves/<uuid>/).
+    /// delete a shelf on disk (= shelves/<uuid>/).
     /// The default shelf (`00000000-0000-0000-0000-000000000000`)
     /// cannot be deleted (= the legacy ShelfDeleteError
     /// guard; = boss OOB 'Reference Library cannot be deleted').
@@ -670,7 +670,7 @@ extension SidebarService {
         }
     }
 
-    /// v1.69y: delete a single book on disk (= shelves/<shelf>/books/<book-uuid>/).
+    /// delete a single book on disk (= shelves/<shelf>/books/<book-uuid>/).
     /// Silently no-op if the book is not on disk (= the legacy
     /// NewLibraryOutlineView.deleteBook behavior).
     func deleteBook(id: UUID) throws {
@@ -697,7 +697,7 @@ extension SidebarService {
         // Book not on disk = silent no-op (= matches legacy).
     }
 
-    /// v1.69y: rename a shelf (= rewrites shelf.json with the
+    /// rename a shelf (= rewrites shelf.json with the
     /// new name). The directory name (= UUID) is preserved (= the
     /// shelf's identity is stable per Apple HIG document-based app).
     func renameShelf(id: UUID, newName: String) throws {
@@ -731,7 +731,7 @@ extension SidebarService {
         try updated.write(to: shelfJSONURL)
     }
 
-    /// v1.69y: rename a book (= rewrites book.json with the new
+    /// rename a book (= rewrites book.json with the new
     /// title). The directory name (= UUID) is preserved (= the
     /// book's identity is stable per Apple HIG document-based app).
     func renameBook(id: UUID, newTitle: String) throws {
@@ -780,14 +780,14 @@ extension SidebarService {
     // RenameItemSheet; = pure reads of the current SidebarService
     // state).
 
-    /// v1.69y: list of (id, name) for the shelf picker in
+    /// list of (id, name) for the shelf picker in
     /// NewBookSheet (= the user picks which shelf a new book
     /// goes into).
     func availableShelvesForPicker() -> [(id: UUID, name: String)] {
         shelves.map { ($0.id, $0.name) }
     }
 
-    /// v1.69y: resolve the target shelf for a new book (= the
+    /// resolve the target shelf for a new book (= the
     /// current sidebarSelection if it's a shelf, else fallback
     /// to the default shelf). Mirrors the v1.0.0-m1 legacy
     /// NewLibraryOutlineView.resolveNewBookTargetShelf.
@@ -804,7 +804,7 @@ extension SidebarService {
         return defaultShelfTarget()
     }
 
-    /// v1.69y: fallback target shelf (= the default all-zeros
+    /// fallback target shelf (= the default all-zeros
     /// shelf; = first-launch enable).
     func defaultShelfTarget() -> (id: UUID, name: String)? {
         let defaultId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
@@ -815,14 +815,14 @@ extension SidebarService {
         return (defaultId, WenshuI18n.t("library.default.shelf_name"))
     }
 
-    /// v1.69y: shelf names excluding the one with `id` (= for
+    /// shelf names excluding the one with `id` (= for
     /// duplicate-name validation in RenameItemSheet when the
     /// user is renaming a shelf).
     func otherShelfNames(excluding id: UUID) -> [String] {
         shelves.filter { $0.id != id }.map { $0.name }
     }
 
-    /// v1.69y: book titles excluding the one with `id` (= for
+    /// book titles excluding the one with `id` (= for
     /// duplicate-title validation in RenameItemSheet when the
     /// user is renaming a book).
     func otherBookTitles(excluding id: UUID) -> [String] {
