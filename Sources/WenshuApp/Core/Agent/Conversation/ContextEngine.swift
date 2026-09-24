@@ -33,7 +33,7 @@
 import Foundation
 
 // Migrated to `WSMemoryRepository.shared`.
-// Phase 5 ticket 4 (= `makeDefaultMemoryManager` returns MemoryManager() with
+// subsequent step (= `makeDefaultMemoryManager` returns MemoryManager() with
 // no args = uses WSMemoryRepository.shared by default per ticket 4.1 design).
 
 actor ContextEngine {
@@ -135,7 +135,7 @@ actor ContextEngine {
     /// construct a ContextEngine without touching the user-visible
     /// library store.
     ///
-    /// Phase 5 ticket 4: the previous 38-line sqlite fallback chain
+    /// the previous 38-line sqlite fallback chain
     /// (= /tmp tmpfile → default-init MemoryStore → :memory: DSN
     /// → preconditionFailure) was deleted. The MemoryManager default
     /// initializer now reads from WSMemoryRepository.shared (= the
