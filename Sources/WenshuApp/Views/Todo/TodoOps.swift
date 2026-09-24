@@ -1,11 +1,10 @@
 //
-//  TodoOps.swift · Wenshu · v1.72 settings-kanban-todo-mvvm T2b
+//  TodoOps.swift · Wenshu
 //
 //  Per-book todo business layer, extracted from TodoListView.
+//  Mirrors the KanbanOps enum + static + Result types precedent.
 //
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= UI /
-//  业务 / 数据 separation audit) + ADR-0009 + the v1.72 T1
-//  KanbanOps precedent: TodoListView currently owns the same kind
+//  Per ADR-0009 + the KanbanOps precedent: TodoListView currently owns the same kind
 //  of inline business logic as KanbanView (= reloadFromDisk /
 //  addItem / updateStatus / deleteItem), with one extra field
 //  (priority at add time) carried through the lifecycle. This

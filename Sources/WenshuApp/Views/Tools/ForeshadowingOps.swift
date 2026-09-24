@@ -1,12 +1,10 @@
 //
-//  ForeshadowingOps.swift · Wenshu · v1.75 foreshadowing-mvvm T1b
+//  ForeshadowingOps.swift · Wenshu
 //
 //  Per-book foreshadowing business layer, extracted from
-//  ForeshadowingView (= the P0 view listed in
-//  .scratch/2026-09-23-mvvm-audit/spec.md §9 v1.75 arc).
+//  ForeshadowingView.
 //
-//  Per v1.72 KanbanOps template (= @MainActor enum + Result types +
-//  static funcs). Per Q112 1 ticket = 1 file.
+//  Mirrors the KanbanOps enum + Result types + static funcs template.
 //
 //  Public surface (= 3 entry points + 3 Result types):
 //    1. reload(manager:bookId:filterStatus:) -> LoadResult

@@ -1,13 +1,11 @@
 //
-//  PlaceholderOps.swift · Wenshu · v1.74 placeholder-mvvm T1
+//  PlaceholderOps.swift · Wenshu
 //
 //  Per-book placeholder business layer, extracted from PlaceholderView.
 //
-//  Per boss 2026-09-22 OOB '按MVVM UI 业务 数据，三分离' (= UI /
-//  业务 / 数据 separation audit) + the v1.72 settings-kanban-todo
-//  precedent (= KanbanOps / TodoOps / SettingsOps = stateless
-//  enums with @MainActor static funcs) + the v1.74 tagmanager-mvvm
-//  precedent (= TagManagerOps = nil-able actor reference seam
+//  Mirrors the KanbanOps / TodoOps / SettingsOps template (= stateless
+//  enums with @MainActor static funcs) + the TagManagerOps pattern (= nil-able actor reference seam
+//  passed via environment):
 //  for tests): PlaceholderView currently owns the business logic
 //  for the per-book placeholder tracker. reload / addPlaceholder /
 //  resolvePlaceholder / abandonPlaceholder / reopenPlaceholder /
