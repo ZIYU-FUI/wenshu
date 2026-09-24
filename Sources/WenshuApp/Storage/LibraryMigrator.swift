@@ -1,6 +1,5 @@
 // LibraryMigrator.swift · Wenshu · v0.26 (FCP library replica)
 //
-// DEFERRED (v0.78 spec decision):
 // The "co_change_scatter" repowise signal (= 25 distinct files) is a
 // historical artifact from v0.26 launch + v0.40-v0.73 era, not a current
 // shotgun surgery pattern. See .scratch/v0.78-librarymigrator-defer/spec.md
@@ -199,7 +198,6 @@ struct LibraryMigrator: Sendable {
 
     /// Seed the default help-doc book + doc under ' shelf.
     ///
-    /// Boss 8/27 OOB: 'land this default structure inside the default
     /// shelf, the default book, and the default doc'. Idempotent: only seeds if the default book id
     /// (= '11111111-...-111111111111') is absent (= preserved even if
     /// the user has created other books in the same shelf; preserves
@@ -257,7 +255,6 @@ struct LibraryMigrator: Sendable {
         let bookData = try JSONEncoder().encode(defaultBook)
         try bookData.write(to: bookDir.appendingPathComponent("book.json"))
         // =================================================================
-        // v0.29 boss OOB: seed 5 .md files (= 1 per visible folder).
         // These are the official help-doc + test-content for the app.
         // Style: plain language (= "") like a SpaceX user manual.
         // Each .md uses a stable filename so re-seeding doesn't
@@ -629,7 +626,6 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4.2 characters/characters.md
-        // v0.30 boss OOB: 'split the characters file into six, one per Agent
         // going forward'. The single Agent.md (the 6-Agent.md file) is replaced by
         // 6 per-agent files (= one per agent). If user already has
         // the split files (= from running Scripts/split-help-docs.py
@@ -677,7 +673,6 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4.4 chapters/chapters/feature-module-overview.md
-        // v0.30 boss OOB: 'the feature modules too, split one feature module per doc'.
         // The single feature-module-overview.md is replaced by 9 per-module
         // files (= 01--Sidebar.md (sidebar) through 09--KeyboardShortcuts.md (keyboard shortcuts)).
         // Same approach as 4.2: delete the merged file if it exists
