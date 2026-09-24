@@ -210,7 +210,7 @@ struct ShellMiddleColumn: View {
     // 'switch to existing tab if same .md already open' behavior
     // still applies; = no duplicate tabs).
     //
-    /// v1.74 cardopen-dedupe: thin wrapper over `CardOpenOps` (=
+    /// Thin wrapper over `CardOpenOps` (=
     /// the dedup + EditorTab + activeTabId mutation shared with
     /// WorkspaceView + ZoneModuleView). Same `mode = .edit` per
     /// ShellMiddleColumn's specific UX (= WenshuMarkdownEditor's
@@ -338,7 +338,7 @@ struct ShellMiddleColumn: View {
             // Search field + cards DROPPED their inner
             // .padding(.horizontal, ...) (= would have stacked with
             // the column padding = 10 + 10 = 20 PT total = the
-            // boss's '10 + 10 就过多了' complaint). Search field
+            // Search field
             // also switches to .controlSize(.large) (28 PT control
             // height) + .padding(.vertical, chromePaddingMicro = 4
             // PT) (= 28 + 4 × 2 = 36 PT total height = the
@@ -425,7 +425,7 @@ struct ShellMiddleColumn: View {
                         .controlSize(.regular)
                         .textFieldStyle(.plain)
                     }
-                    // v1.85d boss 2026-09-24 OOB '总高 = 22 PT
+                    // Total height = 22 PT
                     // (controlSize .regular) + 6 PT × 2 = 34 PT,
                     // 这个需要再改, 还是得 8PT, 6 不够': the
                     // search field INNER vertical padding is
@@ -439,11 +439,11 @@ struct ShellMiddleColumn: View {
                     // chromePaddingSmall (= 6 PT) was visually
                     // cramped.
                     //
-                    // v1.85d boss 2026-09-24 OOB '搜索框的边框
+                    // The search field border
                     // 左右距离素材栏栏边的间距没有生效': the
                     // outer .padding(.horizontal, 10) modifier
                     // was placed AFTER .background(...) in the
-                    // v1.85c chain (= HStack content → padding
+                    // The chain (= HStack content → padding
                     // .vertical → frame → background → padding
                     // .horizontal). The SwiftUI layout system
                     // honors that order, but the background fills
@@ -464,7 +464,7 @@ struct ShellMiddleColumn: View {
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     )
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'search field,
+                    // The search field,
                     // spacing between it and the first card — is there a hand-written padding, and if
                     // so, drop it': drop the manual `.padding(.vertical,
                     // 4)` (= 4 PT top + 4 PT bottom = hand-rolled
@@ -477,7 +477,7 @@ struct ShellMiddleColumn: View {
                     // card spacing). Keep only the `.padding(.horizontal,
                     // 8)` (= Apple HIG 8-point grid for inline
                     // content horizontal inset).
-                    // v1.0.0-m1-shell boss 2026-09-11 OOB 'fill the width automatically,
+                    // Fill the width automatically,
                     // grow with the drag just like the cards do': the search field
                     // now fills the full column width (= the
                     // `.frame(maxWidth: .infinity)` modifier
@@ -489,7 +489,7 @@ struct ShellMiddleColumn: View {
                     // and the search field stretch together).
                     //
                     // Why not use `alignment: .leading` (= the
-                    // boss's earlier preference for left-alignment):
+                    // earlier preference for left-alignment):
                     // the LazyVGrid cards are center-aligned within
                     // the column (= the card grid is centered to
                     // keep the 2-column rhythm visually balanced);
@@ -505,7 +505,7 @@ struct ShellMiddleColumn: View {
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     )
-                    // v1.85e boss 2026-09-24 OOB '把那个搜索框
+                    // Search field
                     // 的描边掉, 不要描边': drop the stroke
                     // overlay (= the macOS 27 hairline stroke on
                     // top of the rounded rectangle = the boss's
@@ -518,10 +518,10 @@ struct ShellMiddleColumn: View {
                     // search-field rhythm).
                 )
             )
-            // v1.85 boss 2026-09-24 OOB '标题, 也就是素材+分割线,
+            // Header (= assets + divider
             // 也被内边距影响了, 需要像目录树和右栏一样, 让标题不
             // 受栏的内边距影响, 让分割线拉满整栏': drop the
-            // v1.84b PreviewPane-column-level .padding(.horizontal,
+            // PreviewPane-column-level .padding(.horizontal,
             // chromePaddingContentHorizontal). The column-level
             // padding affected the SectionHeader (= divider + title
             // shrank by 10 PT from each side = not flush to the
