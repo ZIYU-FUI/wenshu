@@ -28,6 +28,97 @@ Wenshu v0.37 ship packet continuation (= 240+ commits across 13 stages, +42,177 
 - First/last line of every doc = fact (= AGENTS.md §11 hard rule compliance)
 - English-only commit subjects and bodies (= no CJK anywhere in the 240+ commit series)
 
+
+
+## v0.72.x — 2026-09-24 — P2-06 + P2-07 + P2-02 sweep closure
+
+Three design-decision-bound tickets completed (= 50 commits since
+f37b578f9, 328 files changed, +857 LOC net):
+
+### P2-06 — AppState 644 LOC -> 4 new state classes (= per-window @Observable)
+
+Split the AppState monolithic @Observable into 4 focused state classes:
+- `ShellState` (= 186 LOC; = sidebarSelection + inspectorVisible + chatVisible + inspectorPage)
+- `WorkspaceUIState` (= 73 LOC; = previewSortOrder + editMode)
+- `SheetRequestState` (= 81 LOC; = newBook + newShelf + choice counters)
+- `EditorCounters` (= 63 LOC; = wordCount)
+
+11 AppState fields removed (= 1 per atomic-coupled commit; = AppState field delete + all callers migrated + .environment inject, all in one commit per field). UserDefaults persistence migrated (= sidebarSelection survives relaunch).
+
+Per OOB.md #2026-09-24 (= full autonomous sweep mode + zero clarifying questions + must pass tests).
+
+### P2-07 — public/internal sweep (= 2592 -> 0 public declarations)
+
+Total `public` declarations across the entire source tree dropped from 2592 to 0 (= Path A spec goal). Sweep pattern:
+- batch 1 (= UI/): 23 sites / 12 files
+- batch 2 (= Views/): 80 sites / 30 files (= regex fix: `^public` -> `\s*public` to cover indented decls)
+- batch 3 (= State + Storage + Domain): 74 sites / 10 files
+- batch 4 (= Persistence + Core + Editor + DesignTokens): 254 files / 3148+ insertions / 3135 deletions
+
+Q46 stop-rule activations (= 5 special cases):
+- `ModelMetadata.Features: OptionSet` -> `public init(rawValue:)` preserved (= Apple stdlib OptionSet requirement)
+- `Curator.static func curate` (= default arg fix)
+- `ContextBreakdown.static func breakdown` (= default arg fix)
+- `CronjobTools.func cronjob` (= default arg fix)
+- `KanbanTools.func kanban` (= default arg fix)
+- `ProviderKeychain.nonisolated(unsafe)` + `HermesTodoTool.nonisolated(unsafe)` (= final 2 public sites)
+
+14 wenshu public protocols -> internal (= Tool / LLMConnector / ShellHook / ToolDispatchHook / PathGuarding / WebSearchProvider / ProviderKeychainStoring / SearchAPIKeychainStoring / FallbackConnectorResolver / SecretSource / AgentEventHandler / TokenEstimator / ChatRepositoryProtocol / DocumentIndexing). Protocol body method requirements follow protocol visibility.
+
+21 stale test source-content anchors fixed post-sweep (= assertions that grep'd source for `public struct X` / `public init()` / `public actor Y` / `public nonisolated let` / `appState.editMode` / `appState.sidebarSelection` / `appState.previewSortOrder` / `appState.useThreeColumnSplit`).
+
+### P2-02 — TypedID BookID brand wrapper (= the type-safety pilot)
+
+Adds `TypedID` protocol + `BookID` brand wrapper struct (= Hashable + Codable + Sendable + RawRepresentable + ExpressibleByStringLiteral).
+
+Migrated the active WSChatRepository (= the only production path for chat-by-book scoping) from `bookID: String?` to `BookID?`:
+- `WSChatRepository` (= 461 LOC): 20 function signatures accept `BookID?`
+- `ChatRepositoryProtocol`: all methods take `BookID?`
+- `LiveChatRepository` (= SwiftData forwarder): forwards BookID? through
+- `ChatSessionViewModel`: `currentBookID: BookID?` field + `makeSessionID(for bookID: BookID?, fallback:)` helper
+- `ChatZoneView`: wires sidebar selection UUID? -> BookID? via `bookID.map { BookID(rawValue: $0.uuidString) }`
+
+@Model field type stays `String?` (= SwiftData column type; = the brand wrapper is only at the API surface).
+
+SwiftData #Predicate macro workaround (= Q46 stop-rule activation): the macro doesn't allow function calls inside the closure body. Lift brand wrapper's raw value into a local `let` binding outside the predicate, capture the local let by reference inside:
+
+```swift
+if let bookID {
+    let bookIDRaw = bookID.rawValue
+    return #Predicate { $0.bookID == bookIDRaw }
+}
+```
+
+7 TypedID invariant tests added:
+1. BookID round-trips through rawValue
+2. Two BookIDs with the same rawValue are equal (= Hashable)
+3. BookID is Sendable
+4. BookID is Codable (= JSON encode/decode)
+5. BookID conforms to TypedID (= compile-time check)
+6. BookID is stable across SwiftData write/read (= brand wrapper survives SwiftData column boundary)
+7. SwiftData #Predicate macro accepts BookID via .rawValue lift (= Q46 workaround)
+
+### Cleanup pass (= 2026-09-24 evening, per OOB.md #2026-09-24)
+
+5 follow-up commits post-arc:
+- `chore(wenshu): delete WSBookRepository` (= 479 LOC dead code, 0 production callers)
+- `test(wenshu): delete WSBookRepositoryTests` (= 162 LOC test, dead after source delete)
+- `docs(wenshu): §11.13` (= AGENTS.md closure record)
+- `chore(wenshu): amend commit messages` (= remove forbidden "boss" English-only references; = per AGENTS.md §11 hard rule)
+- `test(wenshu): add #Predicate macro invariant test` (= Q46 workaround regression guard)
+- `git worktree remove wenshu-ssot-audit` (= stale detached HEAD; = all 5 BookFolderCatalog commits already in main)
+
+### Test status
+
+- Isolated runs: 100% pass (= no flakes introduced)
+- Combined run: 2 pre-existing flakes remain (= SectionHeaderLockedFormatTests at L97 + L148; = source-content drift on column-title files NOT touched by these arcs; = on the §11.5 acceptance list)
+
+### What is preserved
+
+- SwiftData migration roadmap (§11.4) — unchanged
+- sqlite3-zero migration arc (§11.7 + §11.7d) — unchanged
+- MVVM split arc closure (§11.10) — unchanged
+- v1.79 chat-by-book row-level split (§11.11) — preserved (= brand wrapper is at API surface; = SwiftData column stays String?)
 ## v0.37.1 (2026-09-04)
 
 Wenshu v0.37 ship packet followup (= 30+ commits):
