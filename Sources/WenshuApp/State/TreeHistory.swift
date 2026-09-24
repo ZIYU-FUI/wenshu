@@ -16,7 +16,7 @@ import Foundation
 
 /// Bounded ring buffer for tree history. Cap = 50 entries (= matches
 /// hermes `undoStack` cap). When full, oldest entry is dropped.
-public final class TreeHistory: @unchecked Sendable {
+final class TreeHistory: @unchecked Sendable {
     public static let defaultCap: Int = 50
 
     private let cap: Int
@@ -29,14 +29,14 @@ public final class TreeHistory: @unchecked Sendable {
     }
 
     /// Number of undo entries.
-    public var undoCount: Int {
+    var undoCount: Int {
         lock.lock()
         defer { lock.unlock() }
         return entries.count
     }
 
     /// Number of redo entries.
-    public var redoCount: Int {
+    var redoCount: Int {
         lock.lock()
         defer { lock.unlock() }
         return redoEntries.count
@@ -82,7 +82,7 @@ public final class TreeHistory: @unchecked Sendable {
     }
 
     /// Clear all history (= e.g. after applying a preset).
-    public func clear() {
+    func clear() {
         lock.lock()
         entries.removeAll()
         redoEntries.removeAll()

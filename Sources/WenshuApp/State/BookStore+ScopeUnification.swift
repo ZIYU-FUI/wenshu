@@ -30,7 +30,7 @@ import Foundation
 /// One of the 8 standard sub-folders every book carries (= `chapters/`,
 /// `world/`, `characters/`, etc., per LibraryBootstrapper). Each case is
 /// also a valid `TaskScope` (= the picker lets the user target one).
-public enum StandardBookFolder: String, CaseIterable, Sendable, Codable {
+enum StandardBookFolder: String, CaseIterable, Sendable, Codable {
     case world
     case characters
     case outlines
@@ -42,14 +42,14 @@ public enum StandardBookFolder: String, CaseIterable, Sendable, Codable {
 
     /// Filesystem directory name (= derives from BookFolderCatalog
     /// = the SSOT for id → directoryName mapping).
-    public var folderName: String {
+    var folderName: String {
         BookFolderCatalog.spec(for: rawValue)?.directoryName ?? rawValue
     }
 
     /// User-facing Chinese label (= derives from BookFolderCatalog
     /// = the SSOT for id → cardDisplayName mapping; = the Kanban
     /// / Todo scope picker shows this label per folder).
-    public var displayName: String {
+    var displayName: String {
         BookFolderCatalog.spec(for: rawValue)?.cardDisplayName ?? rawValue
     }
 }
@@ -60,12 +60,12 @@ public enum StandardBookFolder: String, CaseIterable, Sendable, Codable {
 /// a data-layer change: BookKanbanStore / BookTodoStore resolve to
 /// different JSON filenames per scope (see `bookKanbanStoreURL` /
 /// `bookTodoStoreURL` on the store types).
-public enum TaskScope: Hashable, Identifiable, Sendable {
+enum TaskScope: Hashable, Identifiable, Sendable {
     case book
     case folder(StandardBookFolder)
     case referenceLibrary
 
-    public var id: String {
+    var id: String {
         switch self {
         case .book: return "book"
         case .folder(let f): return "folder-\(f.folderName)"
@@ -73,7 +73,7 @@ public enum TaskScope: Hashable, Identifiable, Sendable {
         }
     }
 
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .book: return "(全书)"
         case .folder(let f): return f.displayName

@@ -39,7 +39,7 @@ import Foundation
 /// categories are added to the sidebar automatically as entities
 /// are added to them (= the UI calls `EntityClassifier` on save
 /// which sets the category, and the sidebar reloads).
-public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
+enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
     // MARK: - 22 top-level categories (CLC 5th edition, simplified)
 
     case a = "A"  // Marxism, Leninism, Mao Zedong Thought, Deng Xiaoping Theory
@@ -65,11 +65,11 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
     case x = "X"  // Environmental Sciences, Safety Sciences
     case z = "Z"  // Other (= catch-all fallback category)
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Chinese display name.
     /// E.g. "I" → "Literature", "K" → "History, Geography".
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .a: return "马克思列宁毛邓"
         case .b: return "哲学、宗教"
@@ -98,7 +98,7 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
 
     /// Short Chinese label (= used in tight UI like sidebar chips,
     /// 1-2 char per CLC convention).
-    public var shortName: String {
+    var shortName: String {
         switch self {
         case .a: return "马列毛邓"
         case .b: return "哲学"
@@ -131,7 +131,7 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
     /// Uses lowercase letter (= POSIX-compliant) for all cases EXCEPT
     /// `.z` (= Other fallback, uses Chinese name to match the fallback
     /// convention so LLM output is consistent across the system).
-    public var directoryName: String {
+    var directoryName: String {
         switch self {
         case .z: return "其它"
         default: return rawValue.lowercased()
@@ -141,7 +141,7 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
     /// SF Symbols 6 icon name for sidebar folder display. All
     /// categories return outline (= non-.fill) icons for visual
     /// consistency across the sidebar.
-    public var icon: String {
+    var icon: String {
         switch self {
         case .a: return "books.vertical"           // classics (= SF Symbols 6 book stack, outline)
         case .b: return "brain.head.profile"        // philosophy (SF Symbols 6 has no standalone brain; = head profile is closest)
@@ -179,7 +179,7 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
     /// = String? = e.g. "I2" or nil). Subcategories are pre-defined
     /// here for future use but not enforced (= 22 top-level is the
     /// canonical classification depth).
-    public var subcategories: [(code: String, displayName: String)] {
+    var subcategories: [(code: String, displayName: String)] {
         switch self {
         case .a: return [("A1", "马列经典"), ("A2", "毛邓思想")]
         case .b: return [("B1", "哲学理论"), ("B2", "世界哲学"), ("B3", "中国哲学"), ("B4", "宗教")]

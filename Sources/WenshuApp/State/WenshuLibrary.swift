@@ -91,7 +91,7 @@ final class WenshuLibrary {
     /// v0.24 bossverificationfix (Boss 8/25 sixth OOB ticket 015.019): recompute
     /// bookCount by summing books across all shelves. Public so views can
     /// trigger recomputation after shelf/book add/remove mutations.
-    public func recomputeBookCount() {
+    func recomputeBookCount() {
         var total = 0
         for shelf in shelves {
             if let books = try? store.loadBooks(shelfId: shelf.id) {

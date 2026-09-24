@@ -34,7 +34,7 @@ import Foundation
 ///
 /// Used by `Reference.entityType` (= v0.30 new field) to enforce strict
 /// schema (= Codable + LLM-extracted + linter-validated).
-public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
+enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
     // MARK: - 8 specific types + 1 catch-all
 
     case character    //: a person (real or fictional)
@@ -47,10 +47,10 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
     case work         //: a creative work (poem, novel, painting, film)
     case other        // catch-all: doesn't fit any of the above
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     /// Chinese display name.
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .character: return "人物"
         case .location: return "地点"
@@ -66,7 +66,7 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
 
     /// Full Chinese name (= 2-4 chars, plenty of sidebar space).
     /// Used as inline prefix in sidebar (= '[] Li Bai').
-    public var shortName: String {
+    var shortName: String {
         switch self {
         case .character: return "人物"
         case .location: return "地点"
@@ -81,7 +81,7 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
     }
     /// SF Symbols 6 icon name (= for sidebar tree display; outline-only
     /// = no .fill variant).
-    public var icon: String {
+    var icon: String {
         switch self {
         case .character: return "person"            // SF Symbols 6: person (= canonical character badge)
         case .location: return "mappin.and.ellipse" // SF Symbols 6: location pin
@@ -96,7 +96,7 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
     }
 
     /// Description (= for LLM classifier prompt context).
-    public var description: String {
+    var description: String {
         switch self {
         case .character: return "人物: 一个真实或虚构的人 (= e.g. 李白, 杜甫, 汉尼拔, 武则天)"
         case .location: return "地点: 一个地方 (= e.g. 长安, 罗马, 赤壁, 长江)"
@@ -112,7 +112,7 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
 
     /// Compact representation for LLM prompt (= e.g. '1', '2', ..., '9').
     /// Used in structured LLM output like 'K 5' (= category K, type 5 = artifact).
-    public var promptNumber: Int {
+    var promptNumber: Int {
         switch self {
         case .character: return 1
         case .location: return 2

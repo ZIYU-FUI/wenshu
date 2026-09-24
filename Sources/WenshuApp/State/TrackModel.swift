@@ -32,7 +32,7 @@ import SwiftUI
 
 /// Floor for a non-tool pane (= the sash lets it shrink down to this
 /// before it collapses). Matches Hermes `MIN_PANE_PX = 80`.
-public let kMinPanePX: CGFloat = 80
+let kMinPanePX: CGFloat = 80
 
 /// Floor for a tool panel zone (= terminal / logs). A tool panel is
 /// meant to be draggable down to nothing (= the minimized rail is the
@@ -40,12 +40,12 @@ public let kMinPanePX: CGFloat = 80
 /// that and then collapses the zone rather than jamming against an
 /// 80px floor with a sliver of unusable content still showing).
 /// Matches Hermes `COLLAPSED_ZONE_PX = 28`.
-public let kCollapsedZonePX: CGFloat = 28
+let kCollapsedZonePX: CGFloat = 28
 
 /// A minimized zone IS its strip (= vertical rail row / header column)
 /// — both 28 PT thick. Matches Hermes `MINIMIZED_TRACK = '1.75rem'`
 /// (= 1.75 * 16 = 28 PT).
-public let kMinimizedTrack: CGFloat = 28
+let kMinimizedTrack: CGFloat = 28
 
 // MARK: - Track kind
 
@@ -55,7 +55,7 @@ public let kMinimizedTrack: CGFloat = 28
 /// - `.flex` = pane has no declared width/height (= weight-shared leftover)
 /// - `.uncapped` = like `.flex` but with no maxWidth/maxHeight clamp
 ///   (= the last child in an all-fixed split absorbs leftover space)
-public enum TrackKind: String, Codable, Sendable, Equatable {
+enum TrackKind: String, Codable, Sendable, Equatable {
     case fixed
     case flex
     case uncapped
@@ -67,13 +67,13 @@ public enum TrackKind: String, Codable, Sendable, Equatable {
 /// (= width/height/min/max along both axes). All values are in PT
 /// (= points, the macOS-native unit). `nil` (= no declaration; the
 /// pane is flex-at-heart).
-public struct PaneSizeContribution: Equatable, Codable, Sendable {
-    public var width: CGFloat?
-    public var height: CGFloat?
-    public var minWidth: CGFloat?
-    public var maxWidth: CGFloat?
-    public var minHeight: CGFloat?
-    public var maxHeight: CGFloat?
+struct PaneSizeContribution: Equatable, Codable, Sendable {
+    var width: CGFloat?
+    var height: CGFloat?
+    var minWidth: CGFloat?
+    var maxWidth: CGFloat?
+    var minHeight: CGFloat?
+    var maxHeight: CGFloat?
 
     public init(
         width: CGFloat? = nil,
@@ -91,7 +91,7 @@ public struct PaneSizeContribution: Equatable, Codable, Sendable {
         self.maxHeight = maxHeight
     }
 
-    public var isEmpty: Bool {
+    var isEmpty: Bool {
         width == nil && height == nil && minWidth == nil && maxWidth == nil
             && minHeight == nil && maxHeight == nil
     }
@@ -102,7 +102,7 @@ public struct PaneSizeContribution: Equatable, Codable, Sendable {
 /// max() of the defined values. Matches Hermes `cssMax()` (= dedupes
 /// + returns `max(a, b, ...)` when more than one value, or the single
 /// value when only one). `nil` when no values.
-public func cssMaxPx(_ values: [CGFloat?]) -> CGFloat? {
+func cssMaxPx(_ values: [CGFloat?]) -> CGFloat? {
     let defined = values.compactMap { $0 }
     let unique = Array(Set(defined))
     if unique.isEmpty { return nil }
@@ -121,7 +121,7 @@ public func cssMaxPx(_ values: [CGFloat?]) -> CGFloat? {
 ///   - hasMainPane: True if any pane in the group is a `placement: 'main'`
 ///     pane (= workspace/tile). Main-bearing zones are flex-at-heart
 ///     regardless of size declarations (= matching Hermes).
-public func resolveTrackKind(
+func resolveTrackKind(
     panes: [PaneSizeContribution],
     axis: SplitAxis,
     hasMainPane: Bool = false
@@ -146,7 +146,7 @@ public func resolveTrackKind(
 /// Split axis (= row = horizontal, column = vertical). Matches Hermes
 /// track-model.ts `axis: 'row' | 'column'`. Named `SplitAxis` to avoid
 /// collision with SwiftUI's `Axis` (= same enum values).
-public enum SplitAxis: String, Codable, Sendable, Equatable {
+enum SplitAxis: String, Codable, Sendable, Equatable {
     case row
     case column
 }
@@ -164,13 +164,13 @@ public enum SplitAxis: String, Codable, Sendable, Equatable {
 /// - `PaneFrame.minWidth(_:)` = flex pane with minWidth floor
 /// - `PaneFrame.fixed(_:)` = fixed pane with exact width
 /// - `PaneFrame.flex(_:)` = flex pane with weight
-public struct PaneFrameMode: Equatable, Codable, Sendable {
-    public var mode: TrackKind
-    public var size: CGFloat?           // width (row axis) or height (column axis)
-    public var minWidth: CGFloat?       // min along primary axis (= row)
-    public var idealWidth: CGFloat?     // ideal (= unused in pure track model, kept for compat)
-    public var flex: CGFloat            // weight (= 1.0 default)
-    public var maxWidth: CGFloat?       // max along primary axis (= row)
+struct PaneFrameMode: Equatable, Codable, Sendable {
+    var mode: TrackKind
+    var size: CGFloat?           // width (row axis) or height (column axis)
+    var minWidth: CGFloat?       // min along primary axis (= row)
+    var idealWidth: CGFloat?     // ideal (= unused in pure track model, kept for compat)
+    var flex: CGFloat            // weight (= 1.0 default)
+    var maxWidth: CGFloat?       // max along primary axis (= row)
 
     public init(
         mode: TrackKind = .flex,
@@ -201,7 +201,7 @@ public struct PaneFrameMode: Equatable, Codable, Sendable {
 /// declare maxWidth 20rem, and promoting them to grow-1 + dropping
 /// the clamp made ⌘G / ⌘J open a half-window rail and ignore
 /// sash-remembered sizes (= flex-basis alone can't hold against grow).
-public func allFixedAbsorberIndex(
+func allFixedAbsorberIndex(
     growable: [Int],
     maxAlongAxis: (Int) -> CGFloat?
 ) -> Int {

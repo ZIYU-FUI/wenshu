@@ -32,7 +32,7 @@
 
 import Foundation
 
-public struct ReferenceEntityExtractor: Sendable {
+struct ReferenceEntityExtractor: Sendable {
 
     public init() {}
 
@@ -67,7 +67,7 @@ public struct ReferenceEntityExtractor: Sendable {
     /// Returns a deduplicated list preserving first-seen order (= dedup by
     /// case-insensitive lowercased comparison, identical to hermes Python
     /// behavior).
-    public func extract(_ text: String) -> [String] {
+    func extract(_ text: String) -> [String] {
         var seen = Set<String>()
         var candidates: [String] = []
 

@@ -51,13 +51,13 @@ import Foundation
 /// tickets; the struct stays additive as long as new fields have
 /// `Codable` defaults (= so older `project-config.json` files on
 /// disk still decode against the new struct).
-public struct BookProjectConfig: Codable, Sendable, Equatable {
-    public let bookId: UUID
-    public var autosaveCadenceSeconds: Int
-    public var defaultChapterTemplate: String
-    public var kanbanEnabled: Bool
-    public var todoEnabled: Bool
-    public var updatedAt: Date
+struct BookProjectConfig: Codable, Sendable, Equatable {
+    let bookId: UUID
+    var autosaveCadenceSeconds: Int
+    var defaultChapterTemplate: String
+    var kanbanEnabled: Bool
+    var todoEnabled: Bool
+    var updatedAt: Date
 
     public init(
         bookId: UUID,
@@ -97,7 +97,7 @@ public actor BookProjectConfigStore {
     /// directory cannot be resolved. Forgiving on corrupt JSON
     /// (= returns `nil` instead of throwing) so a bad file never
     /// bricks the per-book UI surface.
-    public func loadConfig(bookId: UUID) async throws -> BookProjectConfig? {
+    func loadConfig(bookId: UUID) async throws -> BookProjectConfig? {
         guard let bookDir = resolveBookDirectory(bookId: bookId) else {
             return nil
         }
@@ -119,7 +119,7 @@ public actor BookProjectConfigStore {
     /// shouldn't happen in normal flow but is defensive against
     /// orphan book IDs). `updatedAt` is bumped to `.now` on every
     /// write regardless of what the caller passed.
-    public func saveConfig(_ config: BookProjectConfig) async throws {
+    func saveConfig(_ config: BookProjectConfig) async throws {
         var stamped = config
         stamped.updatedAt = Date()
         guard let bookDir = resolveBookDirectory(bookId: stamped.bookId) else {
@@ -139,7 +139,7 @@ public actor BookProjectConfigStore {
     /// the file does not exist — matches the canonical
     /// `BookTodoStore`-style forgiving delete where the absence of
     /// a config is indistinguishable from a successful delete.
-    public func deleteConfig(bookId: UUID) async throws {
+    func deleteConfig(bookId: UUID) async throws {
         guard let bookDir = resolveBookDirectory(bookId: bookId) else {
             return
         }
@@ -220,10 +220,10 @@ public actor BookProjectConfigStore {
 }
 
 /// Errors thrown by `BookProjectConfigStore`.
-public enum BookProjectConfigError: Error, LocalizedError, Sendable {
+enum BookProjectConfigError: Error, LocalizedError, Sendable {
     case bookDirectoryNotFound(bookId: UUID)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .bookDirectoryNotFound(let bookId):
             return "BookProjectConfigStore: book directory not found for id \(bookId.uuidString)"

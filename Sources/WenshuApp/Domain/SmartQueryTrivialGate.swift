@@ -38,7 +38,7 @@ import Foundation
 /// for queries that fail any rule (= caller decides how to handle:
 /// typically return the original user message verbatim, or reject the
 /// rewrite entirely).
-public struct SmartQueryTrivialGate: Sendable {
+struct SmartQueryTrivialGate: Sendable {
 
     public init() {}
 
@@ -111,7 +111,7 @@ public struct SmartQueryTrivialGate: Sendable {
     /// Returns the normalized query (= nil if any rule fails = verbatim
     /// hermes `_normalize_rewrite` empty-string return semantics; wenshu
     /// caller decides how to handle nil).
-    public func normalize(_ text: String) -> String? {
+    func normalize(_ text: String) -> String? {
         var candidate = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // 1. Strip markdown code fences

@@ -45,7 +45,7 @@ import Foundation
 ///
 /// The LLM pass is opt-in (= boss can set `useLLMFallback = false` in
 /// Settings to force keyword-only classification = no LLM cost).
-public struct EntityClassifier: Sendable {
+struct EntityClassifier: Sendable {
     public init() {}
 
     /// Optional LLM callback (= signature matches WenshuConductor's
@@ -59,7 +59,7 @@ public struct EntityClassifier: Sendable {
     ///
     /// v0.30: also returns EntityType (default = .other for keyword
     /// pass, LLM-determined when LLM fallback is invoked).
-    public func classify(
+    func classify(
         title: String,
         summary: String = "",
         body: String = "",
@@ -101,15 +101,15 @@ public struct EntityClassifier: Sendable {
     // MARK: - Keyword classifier (1st pass)
 
     /// Result of the keyword pass (= category + confidence 0-1).
-    public struct KeywordResult: Sendable {
-        public let category: EntityCategory
-        public let confidence: Double  // 0.0 = no signal, 1.0 = definitive
+    struct KeywordResult: Sendable {
+        let category: EntityCategory
+        let confidence: Double  // 0.0 = no signal, 1.0 = definitive
     }
 
     /// Score each category by counting keyword matches in the text.
     /// Returns the highest-scoring category (= with confidence = top /
     /// (top + runner-up) so a clear winner = high confidence).
-    public func keywordClassify(title: String, summary: String, body: String) -> KeywordResult {
+    func keywordClassify(title: String, summary: String, body: String) -> KeywordResult {
         let text = (title + " " + summary + " " + body).lowercased()
 
         var scores: [EntityCategory: Int] = [:]
@@ -151,10 +151,10 @@ public struct EntityClassifier: Sendable {
     // MARK: - LLM classifier (2nd pass)
 
     /// Result of the LLM pass.
-    public struct LLMResult: Sendable {
-        public let category: EntityCategory
-        public let entityType: EntityType  // v0.30: new field
-        public let confidence: Double
+    struct LLMResult: Sendable {
+        let category: EntityCategory
+        let entityType: EntityType  // v0.30: new field
+        let confidence: Double
     }
 
     /// Ask the LLM to classify (= returns the category letter + entity-type
