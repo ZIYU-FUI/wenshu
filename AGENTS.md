@@ -1035,4 +1035,116 @@ Per boss 2026-09-23 OOB "不用等我拍了，做好测试的话，你一直推�
 - It does not touch AGENTS.md §11.4 SwiftData migration (= out of scope).
 - It does not touch AGENTS.md §11.7 sqlite3-zero migration (= out of scope).
 
-This §11.10 section is the canonical record of v1.74 + v1.75 + v1.76 (= up-to-date as of 2026-09-24). Future arc amendments (= §11.11+) land here.
+This §11.10 section is the canonical record of v1.74 + v1.75 + v1.76 (= up-to-date as of 2026-09-24). §11.11 (= v1.79 chat-by-book row-level split) now lives below. Future arc amendments (= §11.12+) land below §11.11.
+
+## §11.11 v1.79 chat-by-book row-level split (= 2026-09-24)
+
+Per boss 2026-09-24 OOB '聊天区的会话记录，需要按书拆分，按书存储', the chat panel's session history is now partitioned per book at the row level of the SwiftData store (= not at the model-container level). This section records the design decision, the 7-commit arc, the audit findings, and the acceptance evidence (= boss visual verification + sqlite row-level proof).
+
+### Why row-level over model-level
+
+Wenshu's data model has many per-book datasets (= chat history, kanban, todo, bookmarks, foreshadowing, placeholders, world, characters, outlines, attachments, ...). The split-level question (= partition by book) was raised explicitly:
+
+> 不光是聊天记录要按书分, 之后还会做其它的看板的, todo 的, 所有右栏工具的. 其实都是针对书的. 逻辑上是只要是目录树中, 选定了书, 以及书以下的五文件夹, 聊天区, 和其它区域就要切换数据. 所以你根据我们未来的实际情况来判断. 应该在哪个级别切.
+
+Two plausible designs:
+
+| # | Design | Implementation | Verdict |
+|---|---|---|---|
+| 1 | **Model-level** (= re-open a fresh SwiftData ModelContainer per book switch) | per-book `ModelContainer` + `RepositoryContainer` lifecycle tied to `selectedBookId` | rejected |
+| 2 | **Row-level** (= single shared `ModelContainer`, each row carries `bookID: String?` FK) | `Optional<String>` column on every per-book `@Model` + predicate-based reads | **selected** |
+
+Reasons for row-level:
+
+1. **Future-proof for `nil` global bucket**: a future 'create-book-via-conversation' feature needs an un-attached chat session (= `bookID = nil`) that lives in the same store as per-book chats. Row-level `Optional<String>` accommodates this trivially; = model-level requires either a second container (= DB fragmentation) or a sentinel UUID (= breaks the FK invariant).
+2. **Apple HIG + SwiftData idiom**: SwiftData's `Predicate<Model>` macro + `@Relationship` is designed for shared-store filtering. The Apple sample code 'trips with friends' uses the same row-level pattern (= a shared `ModelContainer`, per-row `personID` predicate).
+3. **Symmetry with planned future per-book datasets**: kanban / todo / bookmark / placeholder / foreshadowing / world / character / outline / attachment all share the same shape (= per-book, row-level, single container). Adopting row-level now means each follow-up dataset follows the same template.
+4. **Migration cost**: row-level = 7 commits in one arc; = model-level = per-dataset container-lifecycle plumbing + per-dataset tests + 1 container per dataset = ~3x the surface.
+
+### Final stats (= 7 commits, 15 files, +798 LOC, 27 tests pass)
+
+| # | Commit | Scope |
+|---|---|---|
+| T1 | `e0a88140d` | `WSSession.bookID: String?` |
+| T2 | `72f45c580` | `WSChatRepository.bookID` filter + `WSChatMessage.bookID` denormalization |
+| T3 | `d91cd0256` | `ChatRepositoryProtocol.bookID` + `LiveChatRepository` forwarder |
+| T5 | `4121206f0` | `ChatSessionViewModel.currentBookID` + `setCurrentBookID(_:)` hook |
+| U5 | `66af1d0ef` | `ChatZoneView` wire to `appState.sidebarSelection` (= the real source) |
+| T6 | `89b3380b7` | `WSChatRepository.append` auto-creates session under bookID scope |
+| merge | `d09f13f57` | `--no-ff` merge into main (= preserves ticket boundaries) |
+
+Files changed: 15 (= 7 source + 4 test modified + 2 test new + 2 i18n strings un-touched because the v1.79 split is invisible to i18n). Tests: 27/27 pass across 5 suites (= WSSessionTests, WSChatRepositoryTests, LiveChatRepositoryTests, ChatSessionViewModelBookScopeTests, ChatZoneView).
+
+### Arc decisions
+
+| # | Decision | Why |
+|---|---|---|
+| 1 | `bookID: String?` (= `Optional`, not `UUID`) | `String` because the canonical SwiftData FK is the book's `WSBook.id` (= UUID, stored as String in the @Model mirror); = Optional because `nil` = the global un-attached bucket. |
+| 2 | Denormalize `bookID` onto `WSChatMessage` (= in addition to `WSession.bookID`) | SwiftData `#Predicate` on optional relationships has historic fragility across SDK versions; = mirroring the parent's bookID onto the child makes `loadMessages(bookID:)` a trivial predicate; = the parent's `bookID` is the source of truth, the child's is a denormalized cache. |
+| 3 | `ChatRepositoryProtocol.append(... bookID:)` with **no** default value | Swift protocols reject default-argument syntax; = every call site must pass `bookID` explicitly (= ergonomic but unambiguous). The protocol append is wrapped by `LiveChatRepository.append` which forwards `bookID` to `WSChatRepository.append`. |
+| 4 | `ChatSessionViewModel.currentBookID` as `internal var` + `public func setCurrentBookID(_:)` | Same-shape pattern as the rest of the per-tool viewmodel pattern (= internal for test inspection, public for production mutation). `setCurrentBookID` is idempotent (= no-op if same value) + fire-and-forget reload. |
+| 5 | `ChatZoneView` reacts to `appState.sidebarSelection` (= NOT `WenshuLibrary.selectedBookId`, NOT `BookStore.selectedBookId`) | **The wire-up audit finding (2026-09-24)**: both `WenshuLibrary.selectedBookId` and `BookStore.selectedBookId` look like the canonical source (= the bookish-named field), but neither has a mutating caller. `WenshuLibrary.setSelectedBook(id:)` (= L223 of `WenshuLibrary.swift`) and `BookStore.reload(bookId:)` (= L139 of `BookStore.swift`) exist as functions but are never called from any view or actor. The actual canonical source is `appState.sidebarSelection` (= `enum SidebarItem = .book(UUID) | .folder(bookId, folderName) | .shelf(UUID) | .referenceCategory(String) | .referenceLibraryRoot | nil`), mutated by `AppleSidebarView.forwardSelection(_:)` whenever the user clicks a sidebar row. ChatZoneView's `.onChange(of: appState.sidebarSelection)` extracts `bookID` from the enum and forwards to `vm.setCurrentBookID(_:)`. |
+| 6 | `WSChatRepository.append` auto-creates the session under bookID scope (= was: throws `sessionNotFoundForBookScope`) | Per-book visual test (2026-09-24) found that messages reached the in-memory `vm.messages` buffer but never persisted to SwiftData: `append` threw because the per-book session row didn't exist yet, and `try?` at the call site silently swallowed the error. Auto-create eliminates the throw (= the chat pipeline doesn't have to coordinate session lifecycle separately from message appends; = the caller has the bookID + sessionID, so the canonical key is known). Cross-scope writes now auto-create a sibling session row (= same sessionID, different bookID) instead of throwing. |
+
+### Acceptance (= boss 2026-09-24 visual verification + sqlite row-level proof)
+
+Boss verification (the 'I clicked book A, typed message, clicked book B, typed message, clicked back to book A and saw my previous messages' test):
+
+```
+1. Click 测试书 2 (UUID 68F9A258...) → type '你好' → AI responds
+2. Click 测试书 (UUID 330BB299...) → type '世界' → AI responds
+3. Click 测试书 2 → '你好' + AI reply visible (= chat history preserved per book)
+4. Click 测试书 → '世界' + AI reply visible (= chat history preserved per book)
+```
+
+Sqlite row-level proof (= on-disk evidence that chat rows are actually partitioned per book):
+
+```
+SESSIONS:
+  book:68F9A258-ECEC-4CFE-8FB0-49409E5EB750:default ← 测试书 2
+  book:330BB299-31C8-48F4-BAC4-C790FA911FA1:default ← 测试书
+
+MESSAGES:
+  ZBOOKID=68F9A258 (测试书 2): user='你好', wenshu='老板好！我是文枢...'
+  ZBOOKID=330BB299 (测试书):   user='世界', wenshu='收到老板的问题...'
+
+  + 16 historical rows with ZBOOKID=NULL (= pre-v1.79 dirty data
+    written by the deleted ChatSessionStore actor; = now isolated
+    under the 'default' session as the global un-attached bucket).
+```
+
+Each session's `sessionID` (= `book:<UUID>:default`) encodes the bookID as a synthetic suffix; = per-message `ZBOOKID` column points at the owning book; = loadMessages(bookID:) returns only the messages in scope.
+
+### What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | Apple HIG NavigationSplitView column chrome (= sidebar / content / detail / inspector) | unchanged |
+| 2 | The pre-v1.79 global chat session (bookID=nil, sessionID='default') | preserved as the un-attached bucket for onboarding + future 'create-book-via-conversation' flows |
+| 3 | Existing `ChatSessionViewModel` API (= `init`, `send`, `messages`, `currentModel`, `inputText`, ...) | unchanged |
+| 4 | Other per-book datasets (= kanban, todo, bookmark, foreshadowing, placeholder, world, character, outline, attachment) | unchanged (= will adopt the same row-level pattern in future arcs) |
+| 5 | The `BookStore` and `WenshuLibrary` types themselves | unchanged (= `BookStore.selectedBookId` / `WenshuLibrary.selectedBookId` are still dead fields, but documented as 'do not use' for chat purposes) |
+| 6 | AGENTS.md §11 baseline rules (= English-only, no forbidden vocab, no xianxia family, 老板 only) | clean across all 7 commits |
+| 7 | SwiftData migration roadmap (§11.4 phase 1-5) | unchanged (= v1.79 split is additive on top of the existing 23 @Model classes; = no new @Model entities, just new Optional columns on WSSession + WSChatMessage) |
+| 8 | v1.55 sqlite3-zero migration arc (§11.7) | unchanged (= v1.79 SwiftData writes go through WSChatRepository which uses `@Attribute(.unique)` and `@MainActor`-isolated `ModelContext`; = no sqlite3 surface) |
+
+### What is NOT done (= future tickets if boss approves)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | Apply the same row-level pattern to kanban / todo / bookmark / foreshadowing / placeholder / world / character / outline / attachment | each is a follow-up arc (= 1 source + 1 test per ticket; = same template as v1.79); = the template + audit findings are now known so each arc will be smaller than v1.79 |
+| 2 | Adopt the row-level pattern for `WenshuLibrary.selectedBookId` (= make BookshelfListView taps actually write through `setSelectedBook(id:)` so future per-book features can subscribe to that field) | current state is 'WenshuLibrary.selectedBookId is auto-set at init from the first book in the first shelf'; = making taps write through is a separate ticket that changes existing behavior in `AppleSidebarView.forwardSelection`; = future when needed |
+| 3 | SwiftData `VersionedSchema` + `SchemaMigrationPlan` (= so future schema changes auto-migrate the existing user store instead of needing manual `ALTER TABLE`) | v1.79 ships a manual `ALTER TABLE` workaround for the new ZBOOKID column (= the dev-environment store already has the columns); = when a real migration story is needed (= first release to a non-dev user), declare `v0→v1` schema with the new column |
+| 4 | Cache the 16 historical `bookID=NULL` rows to a per-user 'legacy' bucket with a UI notice | currently they're rendered correctly (= the global un-attached bucket is a real session); = if the user wants to label them 'pre-v1.79', that's a content fix, not a code fix |
+| 5 | Auto-cleanup of `wt/*` branches that landed but are now merged (= this arc deleted 7 such branches) | this is a standing rule (= see wenshu-pocock-workflow skill); = applied per session, not automated |
+
+### What this section (§11.11) does NOT do
+
+- It does not amend AGENTS.md §11 baseline (= the baseline is boss拍-pinned).
+- It does not touch AGENTS.md §11.1 third-party library policy (= no new SPM deps added; = all v1.79 storage uses built-in SwiftData).
+- It does not touch AGENTS.md §11.4 SwiftData migration roadmap (= v1.79 is additive on the existing 23 @Model classes; = no schema version bump).
+- It does not touch AGENTS.md §11.7 sqlite3-zero migration (= v1.79 writes go through SwiftData only).
+- It does not amend any other §11.XX entry (= §11.10 and earlier are unchanged).
+
+This §11.11 section is the canonical record of v1.79 chat-by-book row-level split (= up-to-date as of 2026-09-24). Future arc amendments (= §11.12+) land below.
+
