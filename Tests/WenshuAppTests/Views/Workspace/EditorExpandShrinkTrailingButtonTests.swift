@@ -4,7 +4,7 @@
 // (= the trailing button on the editor pane's top-right that toggles
 // "Expand Fullscreen" <-> "Restore Layout").
 //
-// Per boss 2026-09-14 OOB '按优先级推' + 'A': extend item 10
+// 
 // (= WorkspaceView test coverage expansion). v0.82-83 covered 3
 // subcomponents; v0.87 ticket 001 covered PreviewTabBackground;
 // ticket 002 covered EditorEditContent; this ticket covers

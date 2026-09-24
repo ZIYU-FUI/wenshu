@@ -4,7 +4,7 @@
 // tile in the LayoutPicker grid; = shows a 4:3 mini-render via
 // PresetThumbnail + the preset name + an optional delete button).
 //
-// Per boss 2026-09-14 OOB '按优先级推' + 'A': extend item 10
+// 
 // (= WorkspaceView test coverage expansion). v0.87 ticket 001 =
 // PreviewTabBackground, ticket 002 = EditorEditContent, ticket 003 =
 // EditorExpandShrinkTrailingButton, ticket 004 = this (PresetCard).

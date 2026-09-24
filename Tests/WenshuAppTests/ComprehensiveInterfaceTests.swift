@@ -30,7 +30,7 @@ import Foundation
 @Suite("LLMConnector protocol")
 struct LLMConnectorProtocolTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -116,7 +116,7 @@ struct LLMConnectorProtocolTests {
 @Suite("ProviderKeychain + ProviderKeychainMetadata")
 struct ComprehensiveProviderKeychainTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -248,7 +248,7 @@ struct ComprehensiveProviderKeychainTests {
 @Suite("OAuthFlow")
 struct OAuthFlowTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -313,7 +313,7 @@ struct OAuthFlowTests {
 @Suite("ToolGuardrails + ToolNameWhitelist")
 struct ToolGuardrailsTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -394,7 +394,7 @@ struct ToolGuardrailsTests {
 @Suite("ErrorClassifier + LLMErrorCategory")
 struct ErrorClassifierTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -500,7 +500,7 @@ struct ErrorClassifierTests {
 @Suite("RateLimitTracker")
 struct RateLimitTrackerTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -581,7 +581,7 @@ struct RateLimitTrackerTests {
 @Suite("BackgroundCreditsTracker")
 struct BackgroundCreditsTrackerTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -639,7 +639,7 @@ struct BackgroundCreditsTrackerTests {
 @Suite("DisplayStateMachine + DisplayState")
 struct DisplayStateMachineTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -736,7 +736,7 @@ struct DisplayStateMachineTests {
 @Suite("BackgroundReview + BackgroundProposal")
 struct BackgroundReviewTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -836,7 +836,7 @@ struct BackgroundReviewTests {
 @Suite("Curator")
 struct CuratorTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -925,7 +925,7 @@ struct CuratorTests {
 @Suite("RuntimeCWD")
 struct RuntimeCWDTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -1032,7 +1032,7 @@ struct RuntimeCWDTests {
 @Suite("ContextBreakdown + ContextReferences")
 struct ContextBreakdownAndReferencesTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -1146,7 +1146,7 @@ struct ContextBreakdownAndReferencesTests {
 @Suite("MemoryEntryRow + ChatMessageBridge")
 struct MemoryEntryRowAndChatMessageBridgeTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -1194,7 +1194,7 @@ struct MemoryEntryRowAndChatMessageBridgeTests {
 @Suite("ConnectorCredentials + AnthropicStreamingWireup")
 struct ConnectorCredentialsAndStreamingTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -1296,7 +1296,7 @@ struct ConnectorCredentialsAndStreamingTests {
 @Suite("LLMConnectorError + ToolExecutor")
 struct LLMConnectorErrorAndToolExecutorTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }
@@ -1379,7 +1379,7 @@ struct LLMConnectorErrorAndToolExecutorTests {
 @Suite("Misc edge cases")
 struct MiscEdgeCaseTests {
 
-    // v1.05 ticket 001: per-test init() reset clears the 2 RuntimeCWD UserDefaults keys (= wenshu.runtimeCWD + wenshu.libraryPath) to prevent state pollution from a prior test (= v1.04 scan surfaced this as the v1.04 RuntimeCWD flake).
+    // 
     init() {
         UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
     }

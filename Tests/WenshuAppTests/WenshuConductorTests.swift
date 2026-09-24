@@ -29,8 +29,8 @@ struct WenshuConductorTests {
         let conductor = WenshuConductor(runtime: runtime, verifier: verifier)
 
         // S4 graceful degradation: handle (LLM fail), fallback reply (yes throw)
-        // v0.21 ticket 34: handle (reply, totalTokens) tuple
-        // v0.21 ticket 38: handle model
+        // 
+        // 
         let result = await conductor.handle(userMessage: "test query", sessionId: "default", model: "MiniMax-M3")
         #expect(!result.reply.isEmpty, "handle should always return non-empty reply (S4 graceful degradation)")
         // totalTokens 0 (LLM fail) (LLM success) —

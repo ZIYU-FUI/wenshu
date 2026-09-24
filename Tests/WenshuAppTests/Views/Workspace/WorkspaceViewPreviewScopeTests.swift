@@ -5,7 +5,7 @@
 // for the preview pane's boss-spec invariants: "shelf row → select a
 // book hint", "reference __root__ → all references", etc.).
 //
-// Per boss 2026-08-27 OOB + v0.30 boss 8/31 OOB:
+// 
 // - `.book(bookId)` → `.bookScope(bookId:, folderName: nil)`
 // - `.folder(bookId, folderName)` → `.bookScope(bookId:, folderName:)`
 // - `.shelf(shelfId)` → `.shelfScope(shelfId:)` (= NOT `.empty`; the

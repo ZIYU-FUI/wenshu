@@ -4,7 +4,7 @@
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
 //
-//  Per boss OOB 2026-09-16 '再拉一个工作树, 把健康度再往上拉一下'.
+// 
 //  v1.46 ticket 001 established this pattern (= runtime smoke tests
 //  that reference the primary type at runtime to satisfy repowise).
 //

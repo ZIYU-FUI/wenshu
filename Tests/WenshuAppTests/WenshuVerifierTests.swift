@@ -28,7 +28,7 @@ struct WenshuVerifierTests {
         #expect(response.model == "MiniMax-M3")
         #expect(response.role == "assistant")
         #expect(!response.content.isEmpty)
-        // v0.21 ticket 39: union decode (text / thinking / tool_use)
+        // 
         let displayText = response.content.map(\.displayText).joined()
         #expect(displayText.count > 0)
     }

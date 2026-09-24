@@ -1,7 +1,7 @@
 //
 //  WenshuConductorE2ETests.swift · Wenshu · v0.23 ticket 007 (end-to-end pipeline test)
 //
-// Boss 2026-08-23: ' agent,, '.
+// 
 //
 //  This test exercises the FULL conductor pipeline WITHOUT calling real LLM:
 //    1. handle() entry point

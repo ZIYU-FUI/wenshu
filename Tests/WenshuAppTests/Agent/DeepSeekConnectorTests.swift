@@ -32,7 +32,7 @@ import Foundation
 struct DeepSeekConnectorTests {
 
     init() {
-        // v1.00 ticket 001: per-file init() reset (= v0.86 / v0.90 pattern)
+        // 
         // to avoid cross-suite races on `ProviderKeychain.backend`.
         ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
     }

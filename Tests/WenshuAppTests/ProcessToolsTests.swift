@@ -18,7 +18,7 @@ struct ProcessToolsTests {
 
     @Test("runShell 跑多命令")
     func testRunShell() async throws {
-        // v0.23 ticket 008: runShell always throws (boss 8/23: user cannot change system via chat).
+        // 
         // Use wenshu-devtool CLI for legitimate shell access.
         let tools = ProcessTools()
         do {

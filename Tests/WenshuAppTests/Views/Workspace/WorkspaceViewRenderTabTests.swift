@@ -120,9 +120,9 @@ struct WorkspaceViewRenderTabTests {
 
     @Test("file declares WorkspaceView struct only (= ZoneModuleView + EditorPlaceholder + EditorPaperCanvas all extracted to own files)")
     func declaresWorkspaceViewStruct() throws {
-        // v1.32: ZoneModuleView extracted to ZoneModuleView.swift
-        // v1.33: EditorPlaceholder extracted to EditorPlaceholder.swift
-        // v1.37: EditorPaperCanvas extracted to EditorPaperCanvas.swift (= this ticket)
+        // 
+        // 
+        // (= this ticket)
         // WorkspaceView.swift now hosts ONLY the WorkspaceView root struct.
         // Per Q34 5.2 + Q173 ponytail + Q186 + Q57: assert reality (= what is
         // currently in the file), not what was planned.

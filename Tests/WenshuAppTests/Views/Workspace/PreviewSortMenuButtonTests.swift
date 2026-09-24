@@ -11,7 +11,7 @@
 // if someone reorders the cycle, this test catches it; = the
 // duplicate IS the test, not the production code path)
 //
-// v1.52 stale-test-cleanup: replaced hardcoded worktree path
+// 
 // `v0.83-workspaceview-subcomponents` (= merged and deleted) with
 // `#filePath`-based relative path resolution. Replaced `LucideIcon`
 // assertion (= deprecated per AGENTS.md §11.1 boss OOB 2026-09-15

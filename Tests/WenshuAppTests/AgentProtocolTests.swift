@@ -11,7 +11,7 @@ import Foundation
 @Suite("AgentProtocol (A2A 协议)")
 struct AgentProtocolTests {
     private static func makeProtocol() -> AgentProtocol {
-        // v0.21 ticket 03 + code-review S3: handle verifier throw (echo), test fallback error path
+        // 
         // test agent WenshuVerifier (key → ping fail → error path, yes echo)
         // v1.52 stale-test-cleanup: inject an empty InMemoryKeychainStore
         // (= hermetic; = test expects no LLM key → verifier .missingAPIKey
@@ -45,7 +45,7 @@ struct AgentProtocolTests {
                 fromAgent: "user"
             ))
             let response = await protocol_.handle(request)
-            // v0.21 ticket 03 + code-review S3: handle echo fallback, LLM → error != nil
+            // 
             // test agent WenshuVerifier key → LLM fail → error yes LLM failed
             #expect(response.error != nil)
             if response.error == nil {
@@ -73,7 +73,7 @@ struct AgentProtocolTests {
                 return
             }
             #expect(task.id == taskId)
-            // v0.21 ticket 03 + code-review S3: handle (LLM fail) → task.status = .failed, agent reply message
+            // 
             #expect(task.status == .failed)
             #expect(task.messages.count == 1)  // user message, agent echo
         }
@@ -99,7 +99,7 @@ struct AgentProtocolTests {
             let protocol_ = Self.makeProtocol()
             let taskId1 = UUID()
             let taskId2 = UUID()
-            // v0.21 ticket 03 + code-review S3: handle task save (status = .failed)
+            // 
             _ = await protocol_.handle(A2ARequest(method: .messageSend, params: .messageSend(
                 taskId: taskId1, message: AgentMessage(role: .user, content: "1"), fromAgent: "user")))
             _ = await protocol_.handle(A2ARequest(method: .messageSend, params: .messageSend(

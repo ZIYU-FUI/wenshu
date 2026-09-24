@@ -4,7 +4,7 @@
 // pane registry helper struct used by RegisteredPanes; = renders
 // the 6-zone layout via a switch on zoneSlot).
 //
-// v1.32 update: ZoneModuleView was extracted from WorkspaceView.swift
+// 
 // to its own file (Sources/WenshuApp/Views/Workspace/ZoneModuleView.swift).
 // The test file's hardcoded path was changed from WorkspaceView.swift
 // to ZoneModuleView.swift AND rewritten to use a path derived from
@@ -13,7 +13,7 @@
 // because the absolute path hardcoded the main worktree path,
 // not the v1.32 worktree path).
 //
-// Per boss 2026-09-14 OOB '按优先级推' + 'A': extend item 10
+// 
 // (= WorkspaceView test coverage expansion). v0.93 ticket 001 =
 // EditorPaperCanvas (the simplest helper). This ticket = ZoneModuleView
 // (the legacy registry path; = previewScope computed + 6-case switch).
@@ -29,7 +29,7 @@ import Testing
 @Suite("ZoneModuleView (v0.93 + v1.32 — legacy 6-zone pane registry helper, now in own file)")
 struct ZoneModuleViewTests {
 
-    /// v1.32 (= per Q34 5.2 + Q173 ponytail + Q186): derive the
+    /// 
     /// ZoneModuleView source path from THIS test file's path
     /// (= #filePath = "/path/to/ZoneModuleViewTests.swift"). This
     /// means the tests work regardless of where the worktree is

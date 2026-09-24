@@ -5,7 +5,7 @@
 // WenshuMarkdownEditor = NSViewRepresentable around
 // nodes-app/swift-markdown-engine).
 //
-// Per boss 2026-09-14 OOB '按优先级推' + 'A': extend item 10
+// 
 // (= WorkspaceView test coverage expansion). v0.82-83 covered 3
 // subcomponents; v0.87 ticket 001 covered PreviewTabBackground;
 // this ticket covers EditorEditContent.

@@ -46,7 +46,7 @@ struct ChatViewModelDefaultModelTests {
         let saved = UserDefaults.standard.string(forKey: "wenshu.llm.model")
         #expect(saved == nil, "UserDefaults 'wenshu.llm.model' should be unset (clean test)")
 
-        // v0.91 ticket 001: derive path from currentDirectoryPath so the
+        // 
         // test reads the worktree-local file (= not the hardcoded main path).
         let cwd = FileManager.default.currentDirectoryPath
         let settingViewURL = URL(fileURLWithPath: cwd)
@@ -61,7 +61,7 @@ struct ChatViewModelDefaultModelTests {
     @Test("ChatZoneView.swift currentModel default = '' when no UserDefaults")
     func testAppChatZoneDefault() async {
         clearModelDefaults()
-        // v0.91 ticket 001: derive path from currentDirectoryPath (= works
+        // 
         // from any worktree = not just main).
         let cwd = FileManager.default.currentDirectoryPath
         let chatZoneViewURL = URL(fileURLWithPath: cwd)

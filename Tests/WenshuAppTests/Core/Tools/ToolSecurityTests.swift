@@ -1,7 +1,7 @@
 //
 //  ToolSecurityTests.swift · Wenshu · v0.23 ticket 008.005 (security guardrails tests)
 //
-// Boss 2026-08-23: 'usernot okchatmodify agent / / configfile'.
+// 
 //  Tests verify L1 (system prompt) + L2 (invokeTool allowlist) + L3 (path deny-list) defenses.
 //
 

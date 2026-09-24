@@ -5,7 +5,7 @@
 // + dirty-discard alert + various handlers; = ~1100 LOC body, the
 // most complex of the 3 helper structs in WorkspaceView.swift).
 //
-// Per boss 2026-09-14 OOB '按优先级推' + 'A': extend item 10
+// 
 // (= WorkspaceView test coverage expansion). v0.93 ticket 001 =
 // EditorPaperCanvas (8 tests). Ticket 002 = ZoneModuleView (6 tests).
 // This ticket = EditorPlaceholder (= the most complex; =
@@ -25,7 +25,7 @@ import Testing
 
 @Suite("EditorPlaceholder (v0.93 — editor pane wrapper with tab strip + dirty alert)")
 struct EditorPlaceholderTests {
-    /// v1.33 (= per Q34 5.2 + Q173 ponytail + Q186): derive the
+    /// 
     /// EditorPlaceholder source path from THIS test file's path
     /// (= #filePath). This means the tests work regardless of
     /// where the worktree is mounted (= v1.32 hit a build failure

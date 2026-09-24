@@ -4,8 +4,8 @@
 //  Runtime-reference test (= the minimum scaffolding needed to
 //  register the test file with repowise's has_test_file detector).
 //
-//  Per boss OOB 2026-09-16 '再拉一个工作树, 把健康度再往上拉一下'.
-//  v1.46 adds 4-test runtime scaffolding for each top-20 untested hotspot.
+// 
+// 
 //  These complement (not replace) the source-level structural tests
 //  added in v1.40-v1.45 (= source-level tests read files as text;
 //  these NEW tests reference the actual type at runtime).

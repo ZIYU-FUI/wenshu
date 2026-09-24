@@ -4,7 +4,7 @@
 // paper-canvas wrapper used by the editor pane to give the document
 // the Pages-like "white sheet on dark background" presentation).
 //
-// Per boss 2026-09-14 OOB '按优先级推' + 'A': extend item 10
+// 
 // (= WorkspaceView test coverage expansion). v0.82-83 covered 3
 // subcomponents; v0.87 covered 4; v0.88 covered the main WorkspaceView;
 // v0.93 = the 3 helper structs in WorkspaceView.swift
@@ -18,7 +18,7 @@
 // structs + ScrollView wrappers (= v0.82 Q-lesson); = use
 // source-level structural assertions per v0.82 pattern.
 //
-// v1.37 ticket 001: path is derived from `#filePath` (= the same
+// 
 // pattern as v1.33 EditorPlaceholderTests = robust to worktree
 // relocations).
 
@@ -51,7 +51,7 @@ struct EditorPaperCanvasTests {
 
     @Test("source imports SwiftUI")
     func importsSwiftUI() throws {
-        // v1.34 ticket 001: EditorPaperCanvas extracted from WorkspaceView.swift
+        // 
         // to its own file at Sources/WenshuApp/Views/Workspace/EditorPaperCanvas.swift.
         let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
         #expect(source.contains("struct EditorPaperCanvas<Content: View>: View"),

@@ -3,7 +3,7 @@
 // Source-level structural tests for WorkspaceView (= the customizable-
 // layout root SwiftUI view; = wraps LayoutTreeStore + PaneSplitHost).
 //
-// Per boss 2026-09-14 OOB '按优先级推' + 'A': test the WorkspaceView
+// 
 // main file (= 2,139 LOC, = health score 4.15 = lowest in the repo).
 // Per v0.77 spec decision (= ViewInspector behavior tests on this view
 // require ~150-200 LOC of mock scaffolding for LayoutTreeStore /
@@ -30,7 +30,7 @@ struct WorkspaceViewTests {
 
     @Test("source imports SwiftUI (= post-v1.37 MarkdownEngine import drop)")
     func sourceImports() throws {
-        // v1.37 ticket 001: drop the `import MarkdownEngine` assertion.
+        // 
         // WorkspaceView.swift no longer needs `MarkdownEngine` (= the
         // MarkdownEditorConfiguration type moved with the markdown editor
         // surface into EditorPlaceholder.swift during the v1.33 extraction).

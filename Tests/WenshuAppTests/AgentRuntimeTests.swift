@@ -19,7 +19,7 @@ struct AgentRuntimeTests {
                 skills: ["test"],
                 endpoint: "in-process://\(name)"
             ),
-            // v0.21 ticket 03 + code-review S3: verifier (key → LLM fail path, yes echo)
+            // 
             process: AgentProtocol(agentCard: AgentCard(
                 name: name,
                 description: "测试 agent \(name)",
@@ -76,7 +76,7 @@ struct AgentRuntimeTests {
         try await ProviderKeychain.withBackendForTesting(empty) {
             let runtime = AgentRuntime()
             await runtime.register(Self.makeAgent(name: "worker"))
-            // v0.21 ticket 03 + code-review S3: handle LLM → AgentProtocol error → AgentRuntime .delegateFailed
+            // 
             // dev env MINIMAX_CN_API_KEY, LLM fail, (yes, yestest bug)
             await #expect(throws: AgentRuntimeError.self) {
                 _ = try await runtime.delegateTask(to: "worker", content: "do something")
