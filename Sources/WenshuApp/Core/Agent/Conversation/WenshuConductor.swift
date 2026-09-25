@@ -960,37 +960,36 @@ actor WenshuConductor {
     ]
 
     /// Wire the four book_X tools (= world / character / chapter /
-    /// outline) with closures returning the chat session's
-    /// currently-bound book + its on-disk bookDirectory.
+    /// outline) for the chat session's currently-bound book.
     ///
-    /// Both closures are read on every execute(input:) call (= the
-    /// latest sidebar selection is honored even if the user switches
-    /// books mid-conversation). BookDirectory is re-derived (= so
-    /// the agent always writes to the freshly-selected book, not a
-    /// stale root).
+    /// Takes value snapshots (= not closures) because the four actors
+    /// are re-wired on every change of the sidebar's selected book
+    /// (= see ChatZoneView.swift `.onChange`). Capturing closures
+    /// across actor boundaries would force async hops (= incompatible
+    /// with the sync execute(input:) contract).
     ///
     /// `reference_library` (= library-public) is intentionally NOT
-    /// in the replaced set. `book_manager` (= meta: create / delete
-    /// / rename book) is also NOT in the set (= see spec L30).
+    /// in the replaced set. `book_manager` (= meta: create / delete /
+    /// rename book) is also NOT in the set (= see spec L30).
     func wireBookScopeGuard(
-        currentChatBookIDProvider: @escaping @Sendable () -> UUID?,
-        bookDirectoryProvider: @escaping @Sendable () -> URL?
+        currentChatBookID: UUID?,
+        bookDirectory: URL?
     ) {
         let worldActor = BookWorldActor(
-            bookDirectoryProvider: bookDirectoryProvider,
-            currentChatBookIDProvider: currentChatBookIDProvider
+            bookDirectoryProvider: { bookDirectory },
+            currentChatBookIDProvider: { currentChatBookID }
         )
         let characterActor = BookCharacterActor(
-            bookDirectoryProvider: bookDirectoryProvider,
-            currentChatBookIDProvider: currentChatBookIDProvider
+            bookDirectoryProvider: { bookDirectory },
+            currentChatBookIDProvider: { currentChatBookID }
         )
         let chapterActor = BookChapterActor(
-            bookDirectoryProvider: bookDirectoryProvider,
-            currentChatBookIDProvider: currentChatBookIDProvider
+            bookDirectoryProvider: { bookDirectory },
+            currentChatBookIDProvider: { currentChatBookID }
         )
         let outlineActor = BookOutlineActor(
-            bookDirectoryProvider: bookDirectoryProvider,
-            currentChatBookIDProvider: currentChatBookIDProvider
+            bookDirectoryProvider: { bookDirectory },
+            currentChatBookIDProvider: { currentChatBookID }
         )
 
         tools["book_world"] = BookWorldTool(actor: worldActor)
