@@ -86,6 +86,24 @@ protocol ReferenceStoring: Sendable {
         summary: String
     ) throws -> Reference
 
+    /// Upsert-with-tags overload (= v2.6 facet model). When `tags`
+    /// is non-nil, it replaces the existing tags (the caller is
+    /// expected to have done the merge already in the agent layer).
+    /// When `tags` is nil, the existing tags are preserved (the
+    /// legacy upsert path). See `FileSystemReferenceStore.upsertReference`
+    /// for the implementation.
+    func upsertReference(
+        title: String,
+        bodyMarkdown: String,
+        layer: ReferenceLayer,
+        category: EntityCategory?,
+        tags: Set<String>?,
+        source: String?,
+        url: String?,
+        entityType: EntityType,
+        summary: String
+    ) throws -> Reference
+
     /// Remove a reference. Idempotent.
     func deleteReference(id: UUID) throws
 
@@ -304,6 +322,44 @@ struct FileSystemReferenceStore: ReferenceStoring {
         entityType: EntityType = .other,
         summary: String = ""
     ) throws -> Reference {
+        // Legacy entry point (= no `tags` param). The agent layer is
+        // expected to call the overload below when tags are part of
+        // the upsert payload; = here we preserve the existing tags.
+        return try upsertReference(
+            title: title,
+            bodyMarkdown: bodyMarkdown,
+            layer: layer,
+            category: category,
+            tags: nil,
+            source: source,
+            url: url,
+            entityType: entityType,
+            summary: summary
+        )
+    }
+
+    /// Upsert by title within a layer (= the recurring-research path).
+    /// If an entry with the same case-insensitive trimmed title
+    /// already exists in the layer, its body + summary + source +
+    /// url + tags + updatedAt are refreshed in place; = otherwise a
+    /// new reference is created.
+    ///
+    /// When `tags` is nil (= the legacy agent path), existing tags
+    /// are preserved. When `tags` is non-nil (= the v2.6 facet-model
+    /// path), the supplied tag set replaces the existing one (= the
+    /// agent layer is expected to have done a union-merge if it wants
+    /// monotonic growth).
+    func upsertReference(
+        title: String,
+        bodyMarkdown: String,
+        layer: ReferenceLayer,
+        category: EntityCategory? = nil,
+        tags: Set<String>? = nil,
+        source: String? = nil,
+        url: String? = nil,
+        entityType: EntityType = .other,
+        summary: String = ""
+    ) throws -> Reference {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedTitle = trimmed.lowercased()
 
@@ -319,6 +375,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
             if let source { updated.source = source }
             if let url { updated.url = url }
             if layer == .layerEntities, let category { updated.category = category }
+            if let tags { updated.tags = tags }
             updated.updatedAt = Date()
             try replaceReference(updated, bodyMarkdown: bodyMarkdown)
             return updated
@@ -331,6 +388,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
             url: url,
             layer: layer,
             category: layer == .layerEntities ? category : nil,
+            tags: tags ?? [],
             entityType: entityType,
             summary: summary
         )
