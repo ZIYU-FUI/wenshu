@@ -92,6 +92,9 @@ actor BookEntityActor {
                 reason: "no chat session book bound (= scope guard should have caught this earlier)"
             )
         }
+        // wt/path-guard-v2-2026-09-25: PathGuard second-line defense
+        // (= see BookChapterActor.resolveStore for the rationale).
+        try PathGuard.assertInsideLibrary(path: LibraryPath(rawValue: dir.path))
         return FileSystemEntityStore(bookDirectory: dir)
     }
 

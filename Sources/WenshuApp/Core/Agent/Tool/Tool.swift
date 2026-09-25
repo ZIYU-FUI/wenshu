@@ -11,6 +11,14 @@
 //
 // sub-step 5 of 8 for ticket 001.
 //
+//  Error cases updated in wt/path-guard-v2-2026-09-25:
+//    - `sandboxViolation` renamed to `pathGuardViolation` (= PathGuard
+//      replaces the v1 WenshuSandbox enum; = "sandbox" implied Apple
+//      kernel sandbox; = "pathGuard" is the allow-list policy name).
+//    - The closure passed into `preDispatchValidator` is now
+//      `(String, PathGuardInput) throws -> PathGuardInput` (= typed
+//      input wrapper; = v1 used raw [String: String]).
+//
 
 import Foundation
 
@@ -23,11 +31,11 @@ enum ToolExecutorError: Error, LocalizedError, Sendable {
     case toolNotFound(name: String)
     case toolFailed(name: String, underlying: String)
     case invalidInput(name: String, reason: String)
-    /// Tool call rejected by the wenshu sandbox (= the requested
+    /// Tool call rejected by the wenshu PathGuard (= the requested
     /// path resolves outside the .ws library root; = wenshu built-in
-    /// tools only operate inside the user's selected library
-    /// bundle, see AGENTS.md §11 baseline + WenshuSandbox).
-    case sandboxViolation(toolName: String, key: String, underlying: WenshuSandbox.SandboxError)
+    /// tools only operate inside the user's selected library bundle,
+    /// see AGENTS.md §11 baseline + PathGuard).
+    case pathGuardViolation(toolName: String, key: String, underlying: PathGuard.GuardError)
 
     var errorDescription: String? {
         switch self {
@@ -37,8 +45,13 @@ enum ToolExecutorError: Error, LocalizedError, Sendable {
             return String(format: "Tool '%@' failed: %@", n, u)
         case .invalidInput(let n, let r):
             return String(format: "Tool '%@' rejected input: %@", n, r)
-        case .sandboxViolation(let n, let k, let underlying):
-            return String(format: "Tool '%@' blocked by wenshu sandbox: key '%@' — %@", n, k, underlying.errorDescription ?? "outside library")
+        case .pathGuardViolation(let n, let k, let underlying):
+            // Surface only the basename via underlying.errorDescription;
+            // the absolute path stays in os_log (debug-level only).
+            return String(
+                format: "Tool '%@' blocked by PathGuard: key '%@' — %@",
+                n, k, underlying.errorDescription ?? "outside library"
+            )
         }
     }
 }

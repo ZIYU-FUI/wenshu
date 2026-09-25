@@ -89,6 +89,18 @@ struct FileToolsAgentTests {
 
     @Test("ReadFileTool integrates with ToolExecutor (end-to-end dispatch)")
     func testToolExecutorIntegration() async throws {
+        // wt/path-guard-v2-2026-09-25: the executor's preDispatchValidator
+        // (= defaultPathGuardValidator) rejects any path that resolves
+        // outside the .ws library root. Set the library root to the
+        // canonical /tmp (= resolves through /private/tmp symlink so
+        // PathGuard's canonical-root comparison matches the test's
+        // /tmp/wenshu-exec-test-*.md temp file).
+        UserDefaultsStore.shared.setString(
+            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
+            forKey: .libraryPath
+        )
+        defer { UserDefaultsStore.shared.remove(.libraryPath) }
+
         let tmpPath = "/tmp/wenshu-exec-test-\(UUID().uuidString).md"
         try FileTools().write(path: tmpPath, content: "executor dispatched this")
 

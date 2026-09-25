@@ -21,7 +21,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("BookEntityActor (v2.3)")
+@Suite("BookEntityActor (v2.3)", .serialized)
 struct BookEntityActorTests {
 
     /// Make a unique temp book directory for each test (= per
@@ -44,6 +44,17 @@ struct BookEntityActorTests {
     ) -> BookEntityActor {
         let directory = bookDirectory
         let chatBookID = bookID
+        // wt/path-guard-v2-2026-09-25: set libraryPath to the test's
+        // tmp root (= FileManager.default.temporaryDirectory, which
+        // = $TMPDIR on macOS) so the actor's resolveStore() PathGuard
+        // assertion accepts the test's book directory. The tmp root
+        // path is canonicalized via resolvingSymlinksInPath so
+        // PathGuard's canonical-root comparison matches.
+        let canonicalTmp = FileManager.default.temporaryDirectory
+            .resolvingSymlinksInPath()
+            .standardizedFileURL
+            .path
+        UserDefaultsStore.shared.setString(canonicalTmp, forKey: .libraryPath)
         return BookEntityActor(
             bookDirectoryProvider: { directory },
             currentChatBookIDProvider: { chatBookID }

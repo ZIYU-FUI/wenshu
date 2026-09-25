@@ -27,7 +27,11 @@ import Foundation
 actor RuntimeCWD {
 
     /// Default library path key (= AGENTS.md §11 baseline).
-    static let libraryPathKey = "wenshu.libraryPath"
+    /// UserDefaults key for the library root path (= single source
+    /// of truth = `PathGuard.libraryPathUserDefaultsKey`; this
+    /// property delegates to the canonical owner so the raw string
+    /// literal lives in exactly one place).
+    static var libraryPathKey: String { PathGuard.libraryPathUserDefaultsKey }
 
     /// CWD override key (= when set, takes precedence over library path).
     static let cwdOverrideKey = "wenshu.runtimeCWD"

@@ -1,37 +1,24 @@
 //
-//  ToolExecutorSandboxTests.swift · Wenshu · wt/sandbox-tighten-2026-09-25
+//  ToolExecutorPathGuardTests.swift · Wenshu · wt/path-guard-v2-2026-09-25
 //
-//  Integration coverage: confirms that ToolExecutor.executeSequential
-//  rejects any tool_use block whose input dictionary carries a
-//  path-bearing key (path / file / cwd / from / to) that resolves
-//  outside the .ws library root.
-//
-//  Each test sets wenshu.libraryPath in setUp and tears it down in
-//  tearDown so test isolation is preserved.
-//
-//  Cases:
-//    1. Path inside the library = the tool runs normally
-//    2. Path outside the library = throws ToolExecutorError.sandboxViolation,
-//       the offending tool is NOT invoked
-//    3. Empty input dict (= no path keys) = the tool runs normally
-//        (= sandbox only checks path-bearing keys)
-//    4. Two sequential tool_use blocks: one valid, one outside = the
-//        second throws while the first succeeds (= executor keeps
-//        going on first, aborts on second per the spec's throw-to-abort
-//        pre-dispatch semantics)
+//  Integration coverage: confirms ToolExecutor.executeSequential
+//  rejects tool_use blocks whose input dict has a path-bearing key
+//  (= path / file / cwd / from / to / rootDir) that resolves outside
+//  the .ws library root. Replaces the v1 ToolExecutorSandboxTests
+//  (= now that the rename + move is complete, the integration test
+//  reads "PathGuard" instead of "WenshuSandbox").
 //
 
 import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("ToolExecutor ↔ WenshuSandbox integration (wt/sandbox-tighten-2026-09-25)", .serialized)
-struct ToolExecutorSandboxTests {
+@Suite("ToolExecutor ↔ PathGuard integration (wt/path-guard-v2-2026-09-25)", .serialized)
+struct ToolExecutorPathGuardTests {
 
     private let libraryRoot = "/Users/anbaiqiang/libraries/test.ws"
 
     init() {
-        // Clean before each test (= no leakage from prior runs / real onboarding).
         UserDefaultsStore.shared.remove(.libraryPath)
     }
 
@@ -39,13 +26,11 @@ struct ToolExecutorSandboxTests {
         UserDefaultsStore.shared.setString(libraryRoot, forKey: .libraryPath)
     }
 
-    /// Echo-style tool that returns the input dictionary verbatim so
-    /// tests can assert whether the tool body ran (= input round-trips
-    /// to output).
+    /// Echo-style tool returning the input verbatim with a "RAN:"
+    /// prefix so tests can detect "tool body ran" vs "skipped by
+    /// PathGuard".
     private struct EchoPathTool: Tool {
         func execute(input: String) async throws -> String {
-            // Tag the output so a test can detect "tool ran" vs "tool
-            // was skipped by the sandbox".
             return "RAN:\(input)"
         }
     }
@@ -74,8 +59,6 @@ struct ToolExecutorSandboxTests {
             tools: tools
         )
 
-        // 1 tool_result message appended; the "RAN:" prefix proves the
-        // tool was actually invoked (= sandbox passed it through).
         #expect(messages.count == 2)
         if case .toolResult(_, let output) = messages[1].blocks[0] {
             #expect(output.hasPrefix("RAN:"))
@@ -110,15 +93,12 @@ struct ToolExecutorSandboxTests {
             )
         }
 
-        // The echo tool body did NOT run (= no "RAN:" prefix in
-        // any result; = the sandbox aborted the call before
-        // dispatch).
         let allBlocks = messages.flatMap { $0.blocks }
         let anyRan = allBlocks.contains { block in
             if case .toolResult(_, let output) = block, output.hasPrefix("RAN:") { return true }
             return false
         }
-        #expect(anyRan == false, "tool body must not run when the sandbox rejects the path")
+        #expect(anyRan == false, "tool body must not run when PathGuard rejects the path")
     }
 
     @Test("executeSequential allows a tool_use block with no path-bearing keys")
@@ -177,16 +157,42 @@ struct ToolExecutorSandboxTests {
             )
         }
 
-        // First block ran (= "RAN:" tool result present); second
-        // never ran (= no second tool result message appended).
-        // The throw aborts BEFORE the executor appends the toolResult
-        // for the second block, so messages.count stays at 2 (= initial
-        // + first successful tool_result).
         #expect(messages.count == 2)
         if case .toolResult(_, let firstOutput) = messages[1].blocks[0] {
             #expect(firstOutput.hasPrefix("RAN:"))
         } else {
             Issue.record("expected first toolResult to be the RAN: echo of the inside path")
+        }
+    }
+
+    @Test("executeSequential errorDescription for pathGuardViolation does NOT leak absolute path")
+    func testErrorDescriptionHidesAbsolutePath() async throws {
+        setLibraryRoot()
+        let executor = ToolExecutor()
+        let tools: [String: any Tool] = ["ReadFileLike": EchoPathTool()]
+
+        let assistantMessage = LLMMessage(
+            role: .assistant,
+            blocks: [.toolUse(
+                id: "t1",
+                name: "ReadFileLike",
+                input: "{\"path\":\"/etc/passwd\"}"
+            )]
+        )
+        var messages: [LLMMessage] = [assistantMessage]
+
+        do {
+            try await executor.executeSequential(
+                assistantMessage: assistantMessage,
+                messages: &messages,
+                taskId: "task-1",
+                tools: tools
+            )
+            Issue.record("expected throw")
+        } catch let error as ToolExecutorError {
+            let description = error.errorDescription ?? ""
+            #expect(!description.contains("/etc/passwd"))
+            #expect(description.contains("passwd"))
         }
     }
 }
