@@ -1,5 +1,5 @@
 //
-//  ContextReferencesPersistenceTests.swift · Wenshu · HERMES-PARTIAL-014 (2026-09-04)
+//  ContextReferencesPersistenceTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the ContextReferences extensions (= hermes
 //  context_references.py = 598 LOC):
@@ -13,7 +13,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("ContextReferencesPersistence (HERMES-PARTIAL-014)")
+@Suite("ContextReferencesPersistence ()")
 struct ContextReferencesPersistenceTests {
 
     // MARK: - Test 1: Parse file reference
