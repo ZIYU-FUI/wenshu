@@ -7,7 +7,7 @@
 // ticket 01's stub). It walks the recursive LayoutTreeState tree
 // and builds the matching NSSplitView + NSSplitViewItem hierarchy.
 //
-// Ticket 03 / 4 scope (= this file):
+//  / 4 scope (= this file):
 //   - Declare `final class PaneNSController: NSSplitViewController`
 //   - Walk store.workspace.root recursively
 //   - For each SplitNode, create an NSSplitView child with the right
