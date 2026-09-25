@@ -220,7 +220,8 @@ actor ConversationLoop {
         streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil,
         persistUserMessage: String? = nil,
         persistUserTimestamp: TimeInterval? = nil,
-        moaConfig: MOAConfig? = nil
+        moaConfig: MOAConfig? = nil,
+        toolSchemas: [ToolRegistrySchema] = []
     ) async throws -> ConversationResult {
         let resolvedTaskId = taskId ?? UUID().uuidString
 
@@ -274,7 +275,8 @@ actor ConversationLoop {
             maxTokens: 4096,
             systemPrompt: effectiveSystemPrompt,
             temperature: nil,
-            reasoningEffort: reasoningEffort
+            reasoningEffort: reasoningEffort,
+            tools: toolSchemas
         )
 
         // Send to LLMConnector (= one round-trip)
@@ -348,7 +350,15 @@ actor ConversationLoop {
         tools: [String: any Tool] = [:],
         taskId: String? = nil,
         maxAttempts: Int = 3,
-        streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
+        streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil,
+        /// Tool schemas advertised to the model. Empty (= default)
+        /// omits the `tools` parameter from the request (= prior
+        /// behavior). The `tools` dispatch dict above is unaffected;
+        /// this param controls only what the LLM is told is
+        /// available. Wenshu source of truth for schemas =
+        /// `ToolRegistry.getDefinitions(...)` (= called by the
+        /// conductor before invoking runTurn).
+        toolSchemas: [ToolRegistrySchema] = []
     ) async throws -> ConversationResult {
         let resolvedTaskId = taskId ?? UUID().uuidString
         var retry = TurnRetryState(maxAttempts: maxAttempts)
@@ -410,7 +420,8 @@ actor ConversationLoop {
                     systemMessage: systemMessage,
                     conversationHistory: conversationHistory,
                     taskId: resolvedTaskId,
-                    streamCallback: streamCallback
+                    streamCallback: streamCallback,
+                    toolSchemas: toolSchemas
                 )
 
                 // step 5: "Parsing response". The LLM
@@ -479,7 +490,8 @@ actor ConversationLoop {
                             persistent: systemPrompt
                         ),
                         temperature: nil,
-                        reasoningEffort: reasoningEffort
+                        reasoningEffort: reasoningEffort,
+                        tools: toolSchemas
                     )
                     let nextResponse = try await streamInto(
                         messages: result.messages,
