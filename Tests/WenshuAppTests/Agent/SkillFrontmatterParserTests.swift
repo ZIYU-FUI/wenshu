@@ -1,5 +1,5 @@
 //
-//  SkillFrontmatterParserTests.swift · Wenshu · HERMES-PARTIAL-016 (2026-09-04)
+//  SkillFrontmatterParserTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the dedicated SkillFrontmatterParser surface
 //  (= hermes skill_preprocessing.py = 144 LOC):
@@ -12,7 +12,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("SkillFrontmatterParser (HERMES-PARTIAL-016)")
+@Suite("SkillFrontmatterParser ()")
 struct SkillFrontmatterParserTests {
 
     // MARK: - Test 1: Template substitution
