@@ -27,7 +27,7 @@ import Foundation
 // 1. LLMConnector protocol
 // ============================================================================
 
-@Suite("LLMConnector protocol")
+@Suite("LLMConnector protocol", .serialized)
 struct LLMConnectorProtocolTests {
 
     // 
@@ -113,7 +113,7 @@ struct LLMConnectorProtocolTests {
 // 2. ProviderKeychain + ProviderKeychainMetadata
 // ============================================================================
 
-@Suite("ProviderKeychain + ProviderKeychainMetadata")
+@Suite("ProviderKeychain + ProviderKeychainMetadata", .serialized)
 struct ComprehensiveProviderKeychainTests {
 
     // 
@@ -245,7 +245,7 @@ struct ComprehensiveProviderKeychainTests {
 // 3. OAuthFlow
 // ============================================================================
 
-@Suite("OAuthFlow")
+@Suite("OAuthFlow", .serialized)
 struct OAuthFlowTests {
 
     // 
@@ -310,7 +310,7 @@ struct OAuthFlowTests {
 // 4. ToolGuardrails + ToolNameWhitelist
 // ============================================================================
 
-@Suite("ToolGuardrails + ToolNameWhitelist")
+@Suite("ToolGuardrails + ToolNameWhitelist", .serialized)
 struct ToolGuardrailsTests {
 
     // 
@@ -391,7 +391,7 @@ struct ToolGuardrailsTests {
 // 5. ErrorClassifier + LLMErrorCategory
 // ============================================================================
 
-@Suite("ErrorClassifier + LLMErrorCategory")
+@Suite("ErrorClassifier + LLMErrorCategory", .serialized)
 struct ErrorClassifierTests {
 
     // 
@@ -497,7 +497,7 @@ struct ErrorClassifierTests {
 // 6. RateLimitTracker
 // ============================================================================
 
-@Suite("RateLimitTracker")
+@Suite("RateLimitTracker", .serialized)
 struct RateLimitTrackerTests {
 
     // 
@@ -578,7 +578,7 @@ struct RateLimitTrackerTests {
 // 7. BackgroundCreditsTracker
 // ============================================================================
 
-@Suite("BackgroundCreditsTracker")
+@Suite("BackgroundCreditsTracker", .serialized)
 struct BackgroundCreditsTrackerTests {
 
     // 
@@ -636,7 +636,7 @@ struct BackgroundCreditsTrackerTests {
 // 8. DisplayStateMachine + DisplayState
 // ============================================================================
 
-@Suite("DisplayStateMachine + DisplayState")
+@Suite("DisplayStateMachine + DisplayState", .serialized)
 struct DisplayStateMachineTests {
 
     // 
@@ -733,7 +733,7 @@ struct DisplayStateMachineTests {
 // 9. BackgroundReview + BackgroundProposal
 // ============================================================================
 
-@Suite("BackgroundReview + BackgroundProposal")
+@Suite("BackgroundReview + BackgroundProposal", .serialized)
 struct BackgroundReviewTests {
 
     // 
@@ -833,7 +833,7 @@ struct BackgroundReviewTests {
 // 10. Curator
 // ============================================================================
 
-@Suite("Curator")
+@Suite("Curator", .serialized)
 struct CuratorTests {
 
     // 
@@ -922,7 +922,7 @@ struct CuratorTests {
 // 11. RuntimeCWD
 // ============================================================================
 
-@Suite("RuntimeCWD")
+@Suite("RuntimeCWD", .serialized)
 struct RuntimeCWDTests {
 
     // 
@@ -1029,7 +1029,7 @@ struct RuntimeCWDTests {
 // 12. ContextBreakdown + ContextReferences
 // ============================================================================
 
-@Suite("ContextBreakdown + ContextReferences")
+@Suite("ContextBreakdown + ContextReferences", .serialized)
 struct ContextBreakdownAndReferencesTests {
 
     // 
@@ -1143,7 +1143,7 @@ struct ContextBreakdownAndReferencesTests {
 // 13. MemoryEntryRow + ChatMessageBridge
 // ============================================================================
 
-@Suite("MemoryEntryRow + ChatMessageBridge")
+@Suite("MemoryEntryRow + ChatMessageBridge", .serialized)
 struct MemoryEntryRowAndChatMessageBridgeTests {
 
     // 
@@ -1191,7 +1191,7 @@ struct MemoryEntryRowAndChatMessageBridgeTests {
 // 14. ConnectorCredentials + AnthropicStreamingWireup
 // ============================================================================
 
-@Suite("ConnectorCredentials + AnthropicStreamingWireup")
+@Suite("ConnectorCredentials + AnthropicStreamingWireup", .serialized)
 struct ConnectorCredentialsAndStreamingTests {
 
     // 
@@ -1293,7 +1293,7 @@ struct ConnectorCredentialsAndStreamingTests {
 // 15. LLMConnectorError + ToolExecutor
 // ============================================================================
 
-@Suite("LLMConnectorError + ToolExecutor")
+@Suite("LLMConnectorError + ToolExecutor", .serialized)
 struct LLMConnectorErrorAndToolExecutorTests {
 
     // 
@@ -1376,7 +1376,7 @@ struct LLMConnectorErrorAndToolExecutorTests {
 // 16. Misc edge cases
 // ============================================================================
 
-@Suite("Misc edge cases")
+@Suite("Misc edge cases", .serialized)
 struct MiscEdgeCaseTests {
 
     // 
