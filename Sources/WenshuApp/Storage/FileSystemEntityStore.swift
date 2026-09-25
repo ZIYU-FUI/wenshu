@@ -101,7 +101,26 @@ struct FileSystemEntityStore: EntityStoring {
         do {
             let data = try Data(contentsOf: indexURL)
             let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
+            decoder.dateDecodingStrategy = .custom { decoder in
+                let container = try decoder.singleValueContainer()
+                let str = try container.decode(String.self)
+                // Try the fractional-seconds form first; fall back to
+                // plain iso8601 (= forgiving for old data written
+                // before the v2.3 schema).
+                let fractional = ISO8601DateFormatter()
+                fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                if let d = fractional.date(from: str) {
+                    return d
+                }
+                let plain = ISO8601DateFormatter()
+                if let d = plain.date(from: str) {
+                    return d
+                }
+                // Last-resort fallback (= shouldn't happen but avoids
+                // throwing a decoder error that the whole load would
+                // recover from by returning []).
+                return Date()
+            }
             return try decoder.decode([EntityDescriptor].self, from: data)
         } catch {
             // Corrupt JSON = forgiving reset (= per v2.0 pattern;
@@ -192,7 +211,12 @@ struct FileSystemEntityStore: EntityStoring {
 
     private func writeIndex(_ entities: [EntityDescriptor]) throws {
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            try container.encode(f.string(from: date))
+        }
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(entities)
         try atomicWrite(data, to: indexURL)
