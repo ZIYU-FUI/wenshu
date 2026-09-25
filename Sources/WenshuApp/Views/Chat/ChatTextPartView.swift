@@ -44,38 +44,42 @@ struct ChatTextPartView: View {
     }
 
     var body: some View {
-        // 
-        // AttributedString(markdown:) parses inline markdown natively
-        // (= bold / italic / code / links show as formatting = not raw
-        // asterisks). Falls back to plain string when not valid markdown.
-        // `.inlineOnlyPreservingWhitespace` blocks are excluded (= those
-        // would require a full markdown renderer = out of scope for this
-        // batch).
+        // Streaming reply path. During streaming (= isStreaming == true)
+        // render the raw text without markdown parsing: SwiftUI's
+        // native `.contentTransition(.interpolate)` works correctly on
+        // a homogeneous plain-text string, but breaks down when the
+        // underlying AttributedString re-parses on every chunk and the
+        // text crosses a markdown boundary (e.g. `**bold` -> `**bold**`),
+        // because the structural diff (= plain vs bold span) interrupts
+        // the interpolation. Once the message is sealed, parse markdown
+        // once so bold/italic/code/links render.
         //
-        // T42-STREAM-CURSOR (2026-09-18): when isStreaming, render the
-        // text with a trailing blinking cursor (▎) at the end. The
-        // cursor's on/off state oscillates via a TimelineView
-        // (= .periodic(from: .now, by: 0.5)) so it blinks every 0.5s
-        // (= matches the Apple Messages / Slack typing indicator
-        // cadence). Hidden when isStreaming = false (= the message is
-        // sealed; = no cursor).
+        // Hermes does the same on its end (= assistant-message.tsx
+        // renders plain text while `status.type === 'running'`; =
+        // markdown parsing happens at the post-stream step).
         HStack(alignment: .firstTextBaseline, spacing: 0) {
-            Text(Self.parseMarkdown(text))
-                .textSelection(.enabled)
-                // Streaming replies grow token by token. The default Text
-                // transition re-renders the whole run; this one interpolates
-                // so the bubble does not flicker on every chunk.
-                .contentTransition(isStreaming ? .interpolate : .identity)
-                // -cleanup E2 boss 2026-09-21 OOB 'no gray text like
-                // hermes' (= the assistant reply was rendered as full
-                // white because ChatTextPartView hardcoded
-                // `.foregroundStyle(Color.primary)`; = overrode the parent
-                // `.secondary` tint applied by ChatMessageBodyView per
-                // hermes 1:1). Drop the local override and let the parent
-                // tint win: assistant text = .secondary (= muted gray on
-                // dark background; = matches hermes assistant-message.tsx
-                // styling), user text = .primary (= full brightness; =
-                // matches hermes user-message.tsx text-foreground/95).
+            Group {
+                if isStreaming {
+                    Text(text)
+                } else {
+                    Text(Self.parseMarkdown(text))
+                }
+            }
+            .textSelection(.enabled)
+            // Streaming replies grow token by token. The default Text
+            // transition re-renders the whole run; this one interpolates
+            // so the bubble does not flicker on every chunk.
+            .contentTransition(isStreaming ? .interpolate : .identity)
+            // -cleanup E2 boss 2026-09-21 OOB 'no gray text like
+            // hermes' (= the assistant reply was rendered as full
+            // white because ChatTextPartView hardcoded
+            // `.foregroundStyle(Color.primary)`; = overrode the parent
+            // `.secondary` tint applied by ChatMessageBodyView per
+            // hermes 1:1). Drop the local override and let the parent
+            // tint win: assistant text = .secondary (= muted gray on
+            // dark background; = matches hermes assistant-message.tsx
+            // styling), user text = .primary (= full brightness; =
+            // matches hermes user-message.tsx text-foreground/95).
             if isStreaming {
                 // T42 blinking caret (= white-on-cursor / vertical bar)
                 TimelineView(.periodic(from: .now, by: 0.5)) { context in
