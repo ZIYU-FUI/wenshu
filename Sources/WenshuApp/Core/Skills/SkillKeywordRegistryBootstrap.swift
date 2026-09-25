@@ -33,7 +33,7 @@ enum SkillKeywordRegistryBootstrap {
     /// Populate the matcher. Safe to call multiple times (= the
     /// matcher's `register(_:)` is upsert-by-skillName).
     static func seed() async {
-        let keywords: [SkillKeyword] = SkillAdapter.hubCommands.map { cmd in
+        let keywords: [SkillKeyword] = ChatHubCommands.all.map { cmd in
             SkillKeyword(
                 skillName: cmd.name,
                 primaryKeyword: cmd.name,
@@ -54,7 +54,7 @@ enum SkillKeywordRegistryBootstrap {
     /// (= "review the chapter for style") and the matcher picks up
     /// "review" → /review. Words shorter than 4 chars are dropped
     /// (= too noisy; "add" / "run" / "fix" match too much).
-    private static func aliasList(for cmd: SkillAdapter.HubCommand) -> [String] {
+    private static func aliasList(for cmd: HubCommand) -> [String] {
         var aliases: [String] = ["/\(cmd.name)"]
         let descriptionWords = cmd.description
             .lowercased()

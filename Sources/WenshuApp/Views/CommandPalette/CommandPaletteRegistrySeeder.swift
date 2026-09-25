@@ -49,7 +49,7 @@ enum CommandPaletteRegistrySeeder {
     // MARK: - Hub commands (35)
 
     private static func hubCommandItems() -> [CommandPaletteItem] {
-        return SkillAdapter.hubCommands.map { cmd in
+        return ChatHubCommands.all.map { cmd in
             CommandPaletteItem(
                 id: "palette.hub.\(cmd.name)",
                 title: "/\(cmd.name)",

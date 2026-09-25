@@ -364,7 +364,7 @@ private struct SlashCommandAutocompleteModifier: ViewModifier {
             let prefix = ChatSlashCommandAutocompleteEngine.prefixFromInput(inputText)
             let rows = ChatSlashCommandAutocompleteEngine.filter(
                 prefix: prefix,
-                allCommands: SkillAdapter.hubCommands
+                allCommands: ChatHubCommands.all
             )
             if ChatSlashCommandAutocompleteEngine.shouldShow(input: inputText) {
                 ChatSlashCommandAutocomplete(

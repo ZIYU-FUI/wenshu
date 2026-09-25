@@ -28,7 +28,7 @@ struct ChatSlashCommandRow: Identifiable, Equatable, Sendable {
     let description: String
     let category: String
 
-    init(command: SkillAdapter.HubCommand) {
+    init(command: HubCommand) {
         self.id = command.name
         self.name = command.name
         self.description = command.description
@@ -62,7 +62,7 @@ enum ChatSlashCommandAutocompleteEngine {
     ///   = visible rows fit on a 4-line list at 13 PT).
     static func filter(
         prefix: String,
-        allCommands: [SkillAdapter.HubCommand],
+        allCommands: [HubCommand],
         maxResults: Int = 8
     ) -> [ChatSlashCommandRow] {
         let trimmed = prefix.trimmingCharacters(in: .whitespaces)
