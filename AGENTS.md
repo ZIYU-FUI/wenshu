@@ -1299,3 +1299,77 @@ Migrated the active WSChatRepository (= the only production path for chat-by-boo
 | 5 | Multi-file refactor to combine the 5 connector test suites into 1 parent suite (per §11.5 L477) | Q112 scope; = future when boss approves the parallelism tradeoff |
 
 This §11.13 section is the canonical record of P2-06 + P2-07 + P2-02 (= up-to-date as of 2026-09-24). Future arc amendments (= §11.14+) land below.
+# §11.14 v2.4 agent-behavior settings pane (= boss 2026-09-25 OOB)
+
+Per 老板 OOB 2026-09-25: "不允许用户改变它的定义, 风格等, 甚至 soul 文件都不能修改, 用失去用户自定义的能力, 换系统 Agent 稳定输出". wenshu is a commercial product (= v2.4 product philosophy); = users can ONLY pick from wenshu-provided closed-enum presets for agent-behavior settings. No SOUL.md / AGENTS.md / .cursorrules / HERMES.md / CLAUDE.md loader is implemented (= hermes-only; = explicitly out of scope for wenshu; = PromptBuilder.swift:60-95 comments pin this position).
+
+## Product philosophy (= binding for all future agent work)
+
+| Surface | Hermes (open-source) | Wenshu (commercial, v2.4+) |
+|---|---|---|
+| Soul / agent definition | User-editable SOUL.md | **wenshu source code owns identity** |
+| Style / reply register | User-editable prompt text | **Closed enum picker** (= 4 presets) |
+| AGENTS.md / .cursorrules | Loaded from cwd | **Not loaded** (= not implemented) |
+| Auto-create entity rule | LLM judges from prompt | **System behavior** (= pre-LLM hook, no LLM freedom) |
+| Per-book setting | User-editable markdown | **Closed enum picker (= per-book)** |
+
+The tradeoff: wenshu sacrifices user expression freedom for system-managed stable output (= the same product philosophy as Notion / Linear / Bear's AI settings).
+
+## v2.4 arc first surface (= speaking-style)
+
+| # | File | Change |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Settings/AgentBehavior.swift` | NEW — `SpeakingStyle` enum (= 4 closed cases: formal / casual / literary / concise) + `AgentBehavior` UserDefaults bridge |
+| 2 | `Sources/WenshuApp/Core/Agent/Conversation/SystemPrompt.swift` | MODIFY — `stableTier()` appends `speakingStyle.promptGuidance` as the last section |
+| 3 | `Sources/WenshuApp/Views/Settings/SettingView.swift` | MODIFY — new `agentBehavior` SettingsTab + radio-group picker |
+| 4 | `Sources/WenshuApp/Resources/{en,zh-Hans}.lproj/Localizable.strings` | MODIFY — 4 new i18n keys |
+| 5 | `Tests/WenshuAppTests/Settings/AgentBehaviorTests.swift` | NEW — 12 tests |
+
+## Closed-enum policy (= how to add a new agent-behavior setting)
+
+Any future agent-behavior setting follows this exact pattern (= Q112 = 1 source + 1 test per commit):
+
+1. Add a new enum case under the existing or new enum type (= closed set; = users pick, never type free text).
+2. Add a `current<X>(defaults:)` + `setCurrent<X>(_:defaults:)` pair on `AgentBehavior` (= centralized UserDefaults bridge).
+3. Add a Picker row in `SettingView.swift` `agentBehaviorTab` (= radio-group = Apple HIG canonical).
+5. Inject the new setting into `SystemPrompt.stableTier()` as a new section (= stable tier = cacheable across turns).
+4. Add the same i18n key in both en.lproj + zh-Hans.lproj (= dual-locale policy).
+
+**Never implement**:
+- A free-text input (= TextField / TextEditor) for an agent-behavior setting (= this would let users bypass the closed-enum contract).
+- A file loader (= SOUL.md / AGENTS.md / .cursorrules) for agent identity (= explicitly out of scope per v2.4 boss拍).
+- A user-editable markdown file at any path inside `.ws/` for agent definition (= same reason).
+
+## Source comments aligned to this section
+
+- `Sources/WenshuApp/Core/Agent/Conversation/PromptBuilder.swift:60-95` — comments on the 4 hermes-only loaders (`build_nous_subscription_prompt`, `load_soul_md`, `_load_hermes_md`, `_load_agents_md`, `_load_claude_md`, `_load_cursorrules`, `build_context_files_prompt`) now explicitly state "wenshu does NOT implement this; = see AGENTS.md §11.14". Future agents reading those comments must NOT take them as a TODO.
+- `Sources/WenshuApp/Core/Agent/Conversation/SystemPrompt.swift` — no "future tickets may swap in SOUL.md" wording remains (= the prior `future tickets may swap in a SOUL.md-backed variant` doc comment was deleted; = replaced with the v2.4 stance that identity is wenshu-source-owned).
+
+## Future agent-behavior settings (= when boss asks)
+
+Adding a new setting in this family:
+
+- reply length preference (= short / medium / long / adaptive)
+- auto-create entity on first mention (= off / on-confirm / on-silently) — note: this is the v2.3+ future ticket; = when implemented it MUST be a system pre-LLM hook, NOT a soul rule (= system behavior, not LLM freedom)
+- reference-include-level (= none / last-only / all) (= how much past context the LLM sees)
+- language preference (= zh / en / bilingual)
+
+Each lands as 1 source commit + 1 test commit (= Q112 standing rule).
+
+## Future per-book project settings (= when boss asks)
+
+Per-book "项目设定" (= chapter length, narrative POV, tense, plot structure) live as **closed-enum pickers per book**, NOT as user-editable markdown. Reuse the existing 12 specialized-tools pattern: each setting persists to `<bookDir>/<name>.json` (= same shape as `setting-constraints.json`, `lifecycle.json`, etc.). The 12 existing right-rail tools already cover most per-book writer-workflow knobs (= constraints / character lifecycle / relationships / foreshadowing / etc.); = if a new project setting does NOT map to an existing tool, build a new actor + sidecar following the `BookSettingConstraints` template.
+
+## Acceptance
+
+| # | Property | Value |
+|---|---|---|
+| 1 | User can pick reply style | yes, via Settings → 智能体 tab → radio-group |
+| 2 | User can type free-text agent definition | **no** (= explicitly forbidden per v2.4 boss拍) |
+| 3 | System loads SOUL.md / AGENTS.md | **no** (= explicitly out of scope) |
+| 4 | `swift test --filter AgentBehaviorTests` | 12/12 pass |
+| 5 | `bash Tools/devtool/double-axis.sh main HEAD` | Standards 6/7 + Q112 WARN (5 source files in 1 commit = atomic-coupled) |
+| 6 | Q112 standing rule | 1 source + 1 test per commit (= all 2 commits hold) |
+| 7 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved) |
+
+This §11.14 section is the canonical record of v2.4 arc (= up-to-date as of 2026-09-25). Future arc amendments (= §11.15+) land below.
