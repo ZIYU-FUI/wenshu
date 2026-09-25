@@ -122,6 +122,24 @@ struct ChatZoneView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // v2.1 (2026-09-25): wire the four book_X tools to honor
+        // the chat session's currently-bound book + the user's
+        // sidebar-selected book directory. Without this, the agent
+        // can pass any book_id in JSON envelopes (= scope guard
+        // would still reject cross-book writes; = but the
+        // bookDirectory is also re-derived here so the actor
+        // writes land on the right disk path).
+        //
+        // Re-wired on each change of `library.selectedBookId` so
+        // switching books mid-conversation is honored. The
+        // providers are cheap closures (= they just read
+        // @Observable state on the main actor).
+        .task {
+            await wireBookScopeGuardIfPossible()
+        }
+        .onChange(of: library.selectedBookId) { _, _ in
+            Task { await wireBookScopeGuardIfPossible() }
+        }
         // (2026-09-23): boss OOB '我们 UI 有多层，windows 层，
         // NVS层，聊天回显层，逻辑上，应该是 NVS 层，赋予各区说背景色
         // 和风格。但现在的颜色应该是 NVS 默认的。不知道能否修改。
@@ -226,5 +244,31 @@ struct ChatZoneView: View {
         if d >= 1_000_000 { return String(format: "%.1fM", d / 1_000_000).replacingOccurrences(of: ".0M", with: "M") }
         if d >= 1_000 { return String(format: "%.1fk", d / 1_000).replacingOccurrences(of: ".0k", with: "k") }
         return "\(n)"
+    }
+
+    // MARK: - Book scope guard wiring (v2.1, 2026-09-25)
+
+    /// Re-wire the four book_X tools on the conductor with
+    /// value snapshots for the chat session's currently-bound book
+    /// + the sidebar-selected book directory.
+    ///
+    /// Implementation note: ChatZoneView runs on the main actor
+    /// (SwiftUI body default). `library.selectedBookId` and
+    /// `bookStore.bookDirectoryCache[id]` are @Observable /
+    /// @MainActor state (= cheap sync reads here). The conductor
+    /// re-binds on every `.onChange(of: library.selectedBookId)`
+    /// so switching books mid-conversation is honored.
+    private func wireBookScopeGuardIfPossible() async {
+        guard let conductor else { return }
+        let currentChatBookID = vm.currentBookID.flatMap {
+            UUID(uuidString: $0.rawValue)
+        }
+        let bookDirectory = library.selectedBookId.flatMap { id in
+            bookStore.bookDirectoryCache[id]
+        }
+        await conductor.wireBookScopeGuard(
+            currentChatBookID: currentChatBookID,
+            bookDirectory: bookDirectory
+        )
     }
 }
