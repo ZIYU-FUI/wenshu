@@ -136,8 +136,25 @@ enum BookWorldError: Error, LocalizedError, Sendable, Equatable {
 actor BookWorldActor {
     private let worldStore: any WorldStoring
 
-    init(worldStore: any WorldStoring) {
+    /// Closure returning the chat session's currently-bound book
+    /// (= nil when the chat session has no bound book).
+    ///
+    /// The actor reads this on every execute(input:) call so the
+    /// latest sidebar selection is always honored (= the user may
+    /// have switched books between LLM turns).
+    ///
+    /// Implementation note: the conductor builds the closure from
+    /// ChatSessionViewModel.currentBookID (= BookID?), unwrapping the
+    /// RawRepresentable<String> wrapper to a UUID before returning.
+    /// This keeps the guard's compare-types simple (= UUID == UUID).
+    private let currentChatBookIDProvider: @Sendable () -> UUID?
+
+    init(
+        worldStore: any WorldStoring,
+        currentChatBookIDProvider: @escaping @Sendable () -> UUID? = { nil }
+    ) {
         self.worldStore = worldStore
+        self.currentChatBookIDProvider = currentChatBookIDProvider
     }
 
     /// The book directory the underlying FileSystemWorldStore writes to.
@@ -331,6 +348,26 @@ actor BookWorldActor {
             )
         }
 
+        // Scope guard: every action MUST carry a `book_id` that matches
+        // the chat session's currently-bound book. Validated once here
+        // (= before any disk write) so cross-book writes are blocked
+        // before reaching the storage layer.
+        do {
+            try BookScopeGuard.validate(
+                providedBookID: Self.parseUUID(envelope["book_id"]),
+                currentChatBookIDProvider: currentChatBookIDProvider
+            )
+        } catch let violation as BookScopeViolation {
+            return Self.encodeFailureScopeViolation(action: action, error: violation)
+        } catch {
+            return Self.encodeFailure(
+                action: action,
+                error: BookWorldError.invalidInput(
+                    reason: "scope guard failed: \(error.localizedDescription)"
+                )
+            )
+        }
+
         do {
             switch action {
             case .create:
@@ -484,6 +521,23 @@ actor BookWorldActor {
         if let action {
             payload["action"] = action.rawValue
         }
+        return encodeJSON(payload)
+    }
+
+    /// Encode a BookScopeViolation into the standard failure envelope.
+    /// Kept separate from encodeFailure(BookWorldError) so future
+    /// maintenance can give scope violations distinct telemetry
+    /// (= e.g. log every cross-book attempt).
+    private static func encodeFailureScopeViolation(
+        action: BookWorldAction,
+        error: BookScopeViolation
+    ) -> String {
+        let payload: [String: Any] = [
+            "ok": false,
+            "action": action.rawValue,
+            "error": error.errorDescription ?? "unknown error",
+            "error_kind": "book_scope_violation"
+        ]
         return encodeJSON(payload)
     }
 

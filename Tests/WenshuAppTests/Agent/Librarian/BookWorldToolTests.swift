@@ -34,6 +34,15 @@ struct BookWorldToolTests {
         return FileSystemWorldStore(bookDirectory: tmpRoot)
     }
 
+    /// Default actor factory: returns an actor with a provider that
+    /// always says "no chat book bound". The CRUD-level tests
+    /// (= create / read / update / delete / list / find) call
+    /// `createEntry` / `readEntry` directly (= bypassing the scope
+    /// guard), so this default is fine for those tests.
+    ///
+    /// The execute(input:) tests (= test 7 + the new scope-violation
+    /// test) override the provider by constructing the actor
+    /// directly with `BookWorldActor(worldStore: ..., currentChatBookIDProvider: ...)`.
     private static func makeActor() throws -> BookWorldActor {
         try BookWorldActor(worldStore: makeWorldStore())
     }
@@ -155,16 +164,68 @@ struct BookWorldToolTests {
 
     @Test func testExecute_createAction_parsesAndCreates() async throws {
         let store = try Self.makeWorldStore()
-        let actor = BookWorldActor(worldStore: store)
+        let bookId = UUID()
+        // Bind the chat session to the same book we're creating
+        // the entry in; = scope guard accepts (= the LLM /
+        // dispatcher path is what production uses).
+        let actor = BookWorldActor(
+            worldStore: store,
+            currentChatBookIDProvider: { bookId }
+        )
         let tool = BookWorldTool(actor: actor)
-        let bookId = UUID().uuidString
         let input = """
-        {"action":"create","book_id":"\(bookId)","name":"Beijing","type":"geography","markdown":"# Beijing"}
+        {"action":"create","book_id":"\(bookId.uuidString)","name":"Beijing","type":"geography","markdown":"# Beijing"}
         """
         let output = try await tool.execute(input: input)
         #expect(output.contains("\"ok\":true"))
         #expect(output.contains("\"action\":\"create\""))
         #expect(output.contains("\"name\":\"Beijing\""))
         #expect(output.contains("\"type\":\"geography\""))
+    }
+
+    // MARK: - Test 8: scope guard rejects cross-book write
+
+    @Test func testExecute_crossBookWrite_rejectedByScopeGuard() async throws {
+        let store = try Self.makeWorldStore()
+        let chatBook = UUID()  // chat session is bound to chatBook
+        let requestedBook = UUID()  // LLM tries to write a different book
+        let actor = BookWorldActor(
+            worldStore: store,
+            currentChatBookIDProvider: { chatBook }
+        )
+        let tool = BookWorldTool(actor: actor)
+        let input = """
+        {"action":"create","book_id":"\(requestedBook.uuidString)","name":"Forbidden","markdown":"# Forbidden"}
+        """
+        let output = try await tool.execute(input: input)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
+        #expect(output.contains("\"action\":\"create\""))
+        // Soft message should mention both ids so the LLM can
+        // guide the user.
+        #expect(output.contains(chatBook.uuidString))
+        #expect(output.contains(requestedBook.uuidString))
+        // No file should be written to either book's disk.
+        let bodyForRequested = store.loadEntryBody(id: UUID())  // any id; = no entry exists
+        #expect(bodyForRequested == nil)
+    }
+
+    // MARK: - Test 9: scope guard rejects when no chat book is bound
+
+    @Test func testExecute_noChatBook_rejectedByScopeGuard() async throws {
+        let store = try Self.makeWorldStore()
+        let requestedBook = UUID()
+        let actor = BookWorldActor(
+            worldStore: store,
+            currentChatBookIDProvider: { nil }  // no chat book bound (= onboarding)
+        )
+        let tool = BookWorldTool(actor: actor)
+        let input = """
+        {"action":"create","book_id":"\(requestedBook.uuidString)","name":"Forbidden","markdown":"# Forbidden"}
+        """
+        let output = try await tool.execute(input: input)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
+        #expect(output.contains("not bound to any book"))
     }
 }
