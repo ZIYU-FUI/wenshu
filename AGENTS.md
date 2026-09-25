@@ -1527,3 +1527,83 @@ Firecrawl is hermes's 4th keyless vendor. We empirically validated (2026-09-25) 
 | 9 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved; = verbatim OOB quote archived to OOB.md only) |
 
 This §11.15 section is the canonical record of the v2.5 keyless web search arc (= up-to-date as of 2026-09-25). Future arc amendments (= §11.16+) land below.
+
+
+# §11.16 v2.6 facet model arc closure (= 2026-09-25)
+
+Per 老板 OOB 2026-09-25 (= adopted option 3 = facet model): wenshu reference library
+no longer uses a strict single-category hierarchy (= the legacy `Reference.subcategory`
+String? field is removed). v2.6 introduces the multi-facet model:
+
+- `Reference.category: EntityCategory?` remains optional (= v2.6 keeps the existing
+  CLC top-level 22-category scaffolding as a primary facet, = but lets a reference
+  have no category at all when the LLM judge is unsure).
+- `Reference.tags: Set<String>` is the new cross-cutting facet (= orthogonal to
+  category + entityType). Tags are sorted by CJK Unicode code point on the wire
+  (= Swift Set<String>.sorted() = [唐朝 U+5510, 诗人 U+8BD7, 诗仙 U+8BD7..., 浪漫主义 U+6D6A...])
+  and capped at 16 tags per reference (= overflow tokens discarded; = the LLM is
+  free to enumerate more but the writer persists only the first 16).
+- `Reference.entityType: EntityType` is the orthogonal facet (= character /
+  location / organization / event / item) carried in metadata + index.
+- File path = `<reference-library>/entities/<uuid>.md` (= FLAT; = no category
+  subdirectory). The category lives in `entities.json` metadata; = not on the
+  directory tree.
+- Sidebar adds `SidebarItem.tag(String)` as a third selection source (= alongside
+  `.referenceCategory(dirName)` + `.referenceLibraryRoot`). Selecting a tag routes
+  the preview pane to `.referenceScope(nil)` with the active tag-filter applied
+  separately.
+- `EntityClassifier.classify()` returns `ClassificationResult` (= category +
+  tags + entityType) instead of the legacy `(EntityCategory, EntityType)` tuple.
+  Keyword pass still returns the legacy shape; = the LLM pass is augmented to
+  parse the JSON envelope `{"category","tags","entity_type"}`. Legacy string
+  format "K 3" still works as backward-compat.
+- `ReferenceLibraryTool.execute` envelope accepts a `tags` array on both `.create`
+  and `.upsert` (= upsert merges by union, = preserves existing tags + adds new).
+  The returned descriptor carries the tags field on the wire (= round-trip
+  honesty).
+
+## Files changed (= 5 source + 5 test, all on `wt/v2.6-facet-model-2026-09-25`)
+
+| # | Path | Role |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Domain/Reference.swift` | -subcategory String?; +tags Set<String>; CodingKeys + init + onDiskPath doc |
+| 2 | `Sources/WenshuApp/Storage/FileSystemReferenceStore.swift` | +migrateLegacyEntityCategoryLayout(to:) helper; flat path; upsertReference +tags param |
+| 3 | `Sources/WenshuApp/Storage/EntityClassifier.swift` | +ClassificationResult struct; multi-facet JSON parse; legacy "K 3" backward-compat |
+| 4 | `Sources/WenshuApp/Core/Agent/Librarian/ReferenceLibraryTool.swift` | ReferenceDescriptor +tags; createReference +tags; upsertReference +tags; descriptorToJSON emits tags |
+| 5 | `Sources/WenshuApp/Views/Library/SidebarItem.swift` | +tag(String) case; +CodingKeys.tag; +encode/decode branch |
+| 6 | `Sources/WenshuApp/Views/Library/SidebarContextMenu.swift` | switch .tag -> AnyView(EmptyView()) (= exhaustiveness) |
+| 7 | `Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift` | switch .tag -> .referenceScope(nil) |
+| 8 | `Sources/WenshuApp/Views/Workspace/ZoneModuleView.swift` | switch .tag -> .referenceScope(nil) |
+| 9 | `Sources/WenshuApp/Views/Workspace/WorkspaceView.swift` | switch .tag -> .referenceScope(nil) |
+| 10 | `Sources/WenshuApp/Views/Chat/ChatZoneView.swift` | switch .tag -> bookID = nil |
+| 11 | `Tests/WenshuAppTests/Domain/ReferenceTagsTests.swift` | new (= 6 tests on tags field) |
+| 12 | `Tests/WenshuAppTests/Storage/ReferenceStoreMigrationTests.swift` | new (= 3 tests on legacy layout migration) |
+| 13 | `Tests/WenshuAppTests/Storage/EntityClassifierFacetTests.swift` | new (= 6 tests on multi-facet output + JSON parse + 16-tag cap) |
+| 14 | `Tests/WenshuAppTests/Core/Agent/Librarian/ReferenceLibraryToolTagsTests.swift` | new (= 6 tests on envelope round-trip) |
+| 15 | `Tests/WenshuAppTests/UI/Sidebar/ReferenceLibrarySidebarTests.swift` | new (= 3 tests on SidebarItem.tag Codable) |
+| 16 | `Tests/WenshuAppTests/Core/Agent/Web/KeylessProviders/AnbaiqiangLiveResearch.swift` | modified (= assert flat path + tags) |
+
+## Acceptance (= per Q112 + Q99 dual-axis)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 = 1 source + 1 test per commit (= atomic-coupled where compile requires) | YES (= T1-T6 each atomic) |
+| 2 | `swift build --target WenshuApp{Tests}` clean | YES (= 0 errors) |
+| 3 | `swift test --filter "ReferenceTags\|ReferenceStoreMigration\|FileSystemEntityStore\|ReferenceStoringContract\|ReferenceLibraryToolTags\|EntityClassifierFacet\|ReferenceLibrarySidebar"` isolated | 32+ tests pass (= 32 base + sidebar = 35) |
+| 4 | `WENSHU_LIVE_API_TESTS=1 swift test --filter AnbaiqiangLiveResearch` | 1/1 pass in 4.39s (= e2e live) |
+| 5 | Live test asserts v2.6 invariants | YES (= flat path; = no category subdir; = tags in index; = descriptor tags round-trip) |
+| 6 | Q99 spec axis (= hermes 1:1 fidelity) | N/A (= wenshu-side design divergence per §11 baseline) |
+| 7 | Q99 standards axis (= Apple default + pre-existing preservation) | YES (= Apple Swift Codable + Set; = zero new SPM deps) |
+| 8 | `import SQLite3` count in production code | 0 (= unchanged from §11.7d closure) |
+| 9 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved) |
+| 10 | Commits on worktree | 6 (= T1-T6) + T7 doc = 7 total |
+
+## Future tickets (= NOT done in v2.6)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | `ReferenceLibrarySidebar` UI surface (= tag cloud + entityType group + category filter rendered in the Apple sidebar) | T5 only added SidebarItem.tag + routing; = the visual sidebar surface (= tag cloud rows under referenceLibraryRoot) is a SwiftUI view ticket = follow-up arc |
+| 2 | EntityClassifier prompt rewrite to specifically request multi-facet output | current LLM passes use the legacy single-pair prompt; = when boss asks for richer facet-aware output, swap prompt + parse LLMClassificationPrompt fixture (= future ticket) |
+| 3 | Preview pane integration of active tag-filter (= card grid renders only references whose `tags` contains the filter) | T5 routes `.tag` to `.referenceScope(nil)`; = the actual filter on the rendered cards lives in `BookDocLoaderOps` (= separate arc; = per §11.10 v1.74 ticket 027-35 pattern) |
+
+This §11.16 section is the canonical record of v2.6 facet model arc (= up-to-date as of 2026-09-25). Future amendments (= §11.17+) land below.
