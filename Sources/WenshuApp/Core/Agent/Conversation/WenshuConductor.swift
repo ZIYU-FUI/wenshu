@@ -349,30 +349,41 @@ actor WenshuConductor {
         // Step 3: invoke the full turn orchestrator. On any throw, log
         // and return nil (= caller falls back to legacy pipeline).
         //
-        // Agent driver (2026-09-25, boss OOB): before the LLM sees
-        // the user message, wenshu-side scans the prompt for
-        // concrete proper nouns (= professions / places / dynasties /
-        // named events) via `ConcreteNounDetector`. When any noun
-        // is found, the detector emits a mandatory tool-trigger
-        // reminder (= the LLM's training-data confidence is NOT a
-        // sufficient reason to skip web_search). The reminder is
-        // injected as the `systemMessage` override (= goes through
-        // `composeSystemPrompt(override:persistent:)` which picks
-        // `override ?? persistent ?? ""` as the ephemeral hint; =
-        // the reminder rides in the LAST slot of the system prompt,
-        // where the LLM pays the most attention to imperative
-        // instructions). When no noun is detected, the override is
-        // nil and the persistent stable tier (= with agent_driver
-        // guidance) still applies (= the LLM has a backup rule).
-        let agentDriverReminder = ConcreteNounDetector
-            .reminderIfAny(in: userMessage)
-        let agentDriverOverride: String? = agentDriverReminder.isEmpty
-            ? nil
-            : agentDriverReminder
+        // Agent driver (2026-09-25, boss OOB): wenshu-side forces the
+        // LLM to call `web_search` whenever the user prompt names
+        // a concrete proper noun. We don't maintain a hand-rolled
+        // noun dictionary (= that would drift over time as new
+        // professions / places / events emerge); = we trust the
+        // LLM's own noun detection (= the LLM's training data
+        // covers every Chinese profession / city / dynasty / event
+        // we could ever want to verify). The rule fires via the
+        // stable tier's universalGuidance('agent_driver') block,
+        // which is appended LAST (= closest to the user message =
+        // strongest late-stage attention bias). The reminder text
+        // here is intentionally short (= a numbered nudge, not a
+        // full noun enumeration); = the LLM extracts the nouns
+        // itself from the user prompt.
+        let agentDriverReminder = """
+        [WENSHU AGENT DRIVER] This user prompt contains concrete
+        proper nouns (= profession / place / period / event / brand /
+        etc.). You MUST call `web_search` (= action="search", =
+        query=<the noun verbatim>) for EACH one BEFORE writing
+        your reply. Emit the tool_use blocks as parallel content
+        blocks in this same assistant turn (= Anthropic tool_use
+        wire shape, NOT markdown code fences). After tool results
+        land, follow up with `reference_library.create` (= or
+        `upsert`) to persist. THEN write the user reply grounded
+        in the search hits. If a noun's search returns nothing,
+        say so plainly — do NOT fabricate.
+        """
         do {
             let result = try await loop.runTurn(
                 userMessage: userMessage,
-                systemMessage: agentDriverOverride,
+                // Pass the agent-driver reminder as the systemMessage
+                // override (= it rides in the LAST slot of the
+                // composed system prompt, where the LLM pays the
+                // most attention to imperative instructions).
+                systemMessage: agentDriverReminder,
                 conversationHistory: [],
                 // P0 #2 (WIRE-AGENT-002): forward the conductor's
                 // tool registry so ToolExecutor dispatches against

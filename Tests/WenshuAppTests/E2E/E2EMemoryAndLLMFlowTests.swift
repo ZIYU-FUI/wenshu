@@ -314,20 +314,30 @@ struct E2EMemoryAndLLMFlowTests {
         """
         print("[E2E] step 1.5: userMessage prepared (\(userMessage.count) chars)")
 
-        // Agent driver reminder (= wenshu-side ConcreteNounDetector).
-        // We mirror the production path (= WenshuConductor injects the
-        // same reminder via `systemMessage` override when nouns are
-        // detected). The detector is mechanical (= dictionary match
-        // + Latin brand heuristic), so the LLM sees a clear
-        // numbered checklist of concrete nouns in the user prompt
-        // that MUST be web_search'd before reply.
-        let agentDriverReminder = ConcreteNounDetector.reminderIfAny(in: userMessage)
-        let detectedNouns = ConcreteNounDetector.detect(in: userMessage)
-        print("[E2E] agent driver detected nouns: \(detectedNouns.sorted().joined(separator: ", "))")
+        // Agent driver reminder (= trust the LLM's own noun
+        // detection; = no hand-rolled dictionary to maintain).
+        // The reminder is intentionally short (= a numbered nudge,
+        // not a full noun enumeration). The LLM extracts the nouns
+        // (= 入殓师, 沧州) itself from the user prompt; = its
+        // training data covers every Chinese profession / city /
+        // dynasty / event we could want to verify. The reminder
+        // rides in the LAST slot of the composed system prompt
+        // (= via ConversationLoop.runTurn's systemMessage override)
+        // where the LLM pays the most attention to imperative
+        // instructions.
+        let agentDriverReminder = """
+        [WENSHU AGENT DRIVER] The user prompt above contains
+        concrete proper nouns (= profession / place / period / event /
+        brand). You MUST call `web_search` for EACH one BEFORE writing
+        your reply. Emit the tool_use blocks as parallel content
+        blocks in this same assistant turn (= Anthropic tool_use
+        wire shape, NOT markdown code fences). After tool results
+        land, follow up with `reference_library.create` (= or
+        `upsert`) to persist. THEN write the user reply grounded
+        in the search hits. If a noun's search returns nothing, say
+        so plainly — do NOT fabricate.
+        """
         print("[E2E] agent driver reminder chars: \(agentDriverReminder.count)")
-        #expect(detectedNouns.contains("入殓师"), "ConcreteNounDetector must identify 入殓师 (= profession dictionary match)")
-        #expect(detectedNouns.contains("沧州"), "ConcreteNounDetector must identify 沧州 (= place dictionary match)")
-        #expect(!agentDriverReminder.isEmpty, "ConcreteNounDetector.reminderIfAny must emit a non-empty reminder when nouns are found")
 
         // Step 2: 装 ConversationLoop (= same shape as fullFlow test; = bypasses
         // WenshuConductor's MainActor-bound `buildToolsSync` semaphore
@@ -390,7 +400,7 @@ struct E2EMemoryAndLLMFlowTests {
         #expect(
             emittedToolUseNames.contains("web_search")
                 || emittedToolUseNames.contains("reference_library"),
-            "agent driver must force at least one tool call (= web_search or reference_library) when the user prompt contains concrete nouns (= detectedNouns=\(detectedNouns.sorted().joined(separator: ", ")))"
+            "agent driver must force at least one tool call (= web_search or reference_library) when the user prompt contains concrete nouns (= the LLM should detect them itself via training data)"
         )
 
         // Step 6: 看文件系统副作用 (= reference_library.create 是否真写到了

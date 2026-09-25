@@ -414,10 +414,8 @@ enum SystemPrompt {
             - 按用户要求输出散文、对话与结构化大纲。
             - 用户要求修改时，保持现有语气与叙事人称，除非明确要求改变。
             - 大纲与结构性内容使用 Markdown；章节正文使用纯散文。
-            - 你的知识储备比用户丰富，但仍要主动调用 `web_search` 与 `reference_library`
-              工具调研用户提到的陌生主题（职业、地域、历史时期、行业术语等），而不是
-              直接凭印象回答——调研结果会写进 reference-library，下一轮对话可复用。
-              工具调用规则见 Agent driver guidance section。
+            - 凡是用户提到具体职业、地名、朝代、事件、品牌等，都必须先 web_search 调研，
+              再写回复——用你自己的训练数据识别这些名词。规则见 Agent driver section。
             """
         case .japanese:
             return """
@@ -545,54 +543,35 @@ enum SystemPrompt {
             """
         case "agent_driver":
             return """
-            Agent driver guidance (= wenshu drives the LLM to verify
-            any concrete noun in the user prompt before answering):
+            Agent driver guidance (= forces the LLM to verify concrete
+            nouns via web_search before answering):
 
-            HEURISTIC (= applied to EVERY user turn, no LLM-judged
-            familiarity): when the user prompt contains ANY concrete
-            proper noun — a profession (= 入殓师 / 律师 / 厨师 /
-            程序员), a Chinese city or county (= 沧州 / 任丘 / 佛山 /
-            黄骅), a region or street, a historical period or dynasty
-            (= 唐宋 / 民国 / 文革), a named event (= 义和团 / 五四 /
-            唐山大地震), a person, a brand, an industry term, a
-            technique — the LLM MUST call `web_search` BEFORE writing
-            the reply (= the LLM's training-data confidence is NOT a
-            sufficient reason to skip; = if it is wrong the user has no
-            way to catch it because the user is asking BECAUSE they
-            don't know). This rule fires on EVERY turn where the
-            prompt contains such a noun — not "when unfamiliar" (= the
-            LLM cannot reliably judge what is unfamiliar to itself and
-            tends to over-rate its own knowledge).
-
-            Call pattern (= mandatory two-step):
-              1. `web_search` with action="search", query=<the
-                 concrete noun, ideally the noun phrase verbatim from
-                 the user prompt>, limit=10. Parallel-search every
-                 distinct concrete noun in the prompt in the SAME
-                 assistant turn (= independent calls = no dependency).
-              2. After search results land, `reference_library.create`
-                 (= or `upsert` if same-title already exists) to persist
-                 a per-noun summary card so future turns can recall
-                 without re-searching. Use `layer: "entities"` for
-                 people / places / events / professions; `layer: "raw"`
-                 for general research.
-
-            Edge cases (= skip web_search):
-              - The user's prompt is purely conversational (= "hi",
-                "thanks", "好的"). No concrete noun => no research.
-              - The user explicitly says "don't research, just write".
-              - The prompt only references Wenshu-internal data
-                (= book content the user just pasted in = no external
-                lookup needed).
-
-            Failure mode (= be honest with the user):
-              - When web_search returns insufficient results (= all
-                vendors rate-limited, or hits don't address the noun),
-                say so plainly: "I tried to look up <noun> but the
-                search ring returned no grounded hits; = here's what I
-                know from training (= may be stale): ...". Do NOT
-                fabricate details about a specific profession / place
-                the search ring could not verify.
+            - When the user prompt contains any concrete proper noun
+              (= a profession, a Chinese city / county / region, a
+              historical period / dynasty, a named event, a brand,
+              an industry term, a person), call `web_search`
+              (= action="search", query=<the noun verbatim>) for
+              EACH noun BEFORE you write the reply. Trust your own
+              noun detection (= your training data covers every
+              Chinese profession / city / dynasty / event we could
+              want to verify; = the user is asking because they
+              don't know the grounded answer).
+            - Emit the web_search tool_use blocks in PARALLEL in
+              your FIRST assistant turn (= the Anthropic tool_use
+              content block format; = NOT markdown ```tool_call,
+              NOT a <function_calls> wrapper). After tool results
+              land, follow up with `reference_library.create` (= or
+              `upsert` for follow-ups) to persist a per-noun
+              summary. Use layer="entities" for people / places /
+              events / professions; layer="raw" for general
+              research.
+            - Then write your user-facing reply grounded in the
+              search results. If a noun's search returns no usable
+              hits, say so plainly — do NOT fabricate details
+              about a specific profession / place / event.
+            - Edge case: if the user's prompt is purely
+              conversational (= "hi", "thanks", "好的") with NO
+              concrete noun, skip this rule (= no research).
             """
         default:
             return ""
