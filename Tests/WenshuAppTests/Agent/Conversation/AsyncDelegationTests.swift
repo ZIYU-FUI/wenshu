@@ -1,8 +1,8 @@
 //
-//  AsyncDelegationTests.swift · Wenshu · HERMES-PARTIAL-018 (2026-09-04)
+//  AsyncDelegationTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the AsyncDelegation surface added in
-//  HERMES-PARTIAL-018:
+//  :
 //    - delegate(...) public entry
 //    - AsyncDelegationRegistry progress stream
 //    - SubAgentPermissions integration (permission gate)
@@ -20,7 +20,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("AsyncDelegation (HERMES-PARTIAL-018)")
+@Suite("AsyncDelegation ()")
 struct AsyncDelegationTests {
 
     // MARK: - Test 1: delegate simple task
