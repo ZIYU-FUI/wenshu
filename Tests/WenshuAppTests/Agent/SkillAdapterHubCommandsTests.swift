@@ -1,5 +1,5 @@
 //
-//  SkillAdapterHubCommandsTests.swift · Wenshu · HERMES-PARTIAL-017 (2026-09-04)
+//  SkillAdapterHubCommandsTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the 35 do_* hub commands (= hermes
 //  skill_commands.py + tools/skills_hub.py = 732 LOC + 4,400 LOC):
@@ -17,7 +17,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("SkillAdapterHubCommands (HERMES-PARTIAL-017)")
+@Suite("SkillAdapterHubCommands ()")
 struct SkillAdapterHubCommandsTests {
 
     // MARK: - Test 1: Count
