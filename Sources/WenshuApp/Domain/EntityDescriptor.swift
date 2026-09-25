@@ -45,8 +45,12 @@ struct EntityID: TypedID, Equatable, CustomStringConvertible {
 ///   compressed view for the LLM; full body is fetched via a
 ///   separate read tool call).
 struct EntityDescriptor: Codable, Sendable, Equatable {
-    var id: EntityID
-    var bookID: BookID
+    /// Stored as String on disk (= see Codable note below).
+    /// At the API surface (= the LLM-facing tool return), callers
+    /// receive this as `BookID(rawValue:)`.
+    var bookIDRaw: String
+    /// Stored as String on disk; bridged to EntityID via accessor.
+    var idRaw: String
     var kind: EntityKind
     var name: String
     var aliases: [String]
@@ -57,6 +61,13 @@ struct EntityDescriptor: Codable, Sendable, Equatable {
     var bodyExcerpt: String
     var createdAt: Date
     var updatedAt: Date
+
+    /// Convenience accessor (= bridges the String-on-disk format
+    /// to the typed BookID at the API surface).
+    var bookID: BookID { BookID(rawValue: bookIDRaw) }
+
+    /// Convenience accessor (= bridges to EntityID).
+    var id: EntityID { EntityID(rawValue: idRaw) }
 
     init(
         id: EntityID,
@@ -72,8 +83,8 @@ struct EntityDescriptor: Codable, Sendable, Equatable {
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
-        self.id = id
-        self.bookID = bookID
+        self.idRaw = id.rawValue
+        self.bookIDRaw = bookID.rawValue
         self.kind = kind
         self.name = name
         self.aliases = aliases
