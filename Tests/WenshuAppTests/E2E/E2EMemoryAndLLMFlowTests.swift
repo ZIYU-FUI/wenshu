@@ -306,6 +306,29 @@ struct E2EMemoryAndLLMFlowTests {
         let toolSchemas: [ToolRegistrySchema] = [webSearchSchema, referenceLibrarySchema]
         print("[E2E] step 1 done: tools dict + toolSchemas constructed (web_search + reference_library)")
 
+        // Step 1.5: construct the user prompt (= 老板原话，不改写)
+        let userMessage = """
+        我想写一部小说，主角名字还没想好。
+        设定是入殓师职业，出生在沧州。
+        你看怎么规划？
+        """
+        print("[E2E] step 1.5: userMessage prepared (\(userMessage.count) chars)")
+
+        // Agent driver reminder (= wenshu-side ConcreteNounDetector).
+        // We mirror the production path (= WenshuConductor injects the
+        // same reminder via `systemMessage` override when nouns are
+        // detected). The detector is mechanical (= dictionary match
+        // + Latin brand heuristic), so the LLM sees a clear
+        // numbered checklist of concrete nouns in the user prompt
+        // that MUST be web_search'd before reply.
+        let agentDriverReminder = ConcreteNounDetector.reminderIfAny(in: userMessage)
+        let detectedNouns = ConcreteNounDetector.detect(in: userMessage)
+        print("[E2E] agent driver detected nouns: \(detectedNouns.sorted().joined(separator: ", "))")
+        print("[E2E] agent driver reminder chars: \(agentDriverReminder.count)")
+        #expect(detectedNouns.contains("入殓师"), "ConcreteNounDetector must identify 入殓师 (= profession dictionary match)")
+        #expect(detectedNouns.contains("沧州"), "ConcreteNounDetector must identify 沧州 (= place dictionary match)")
+        #expect(!agentDriverReminder.isEmpty, "ConcreteNounDetector.reminderIfAny must emit a non-empty reminder when nouns are found")
+
         // Step 2: 装 ConversationLoop (= same shape as fullFlow test; = bypasses
         // WenshuConductor's MainActor-bound `buildToolsSync` semaphore
         // bridge which SIGTRAPs under test isolation).
@@ -314,13 +337,8 @@ struct E2EMemoryAndLLMFlowTests {
         let loop = ConversationLoop(connection: recording)
         print("[E2E] step 2 done: ConversationLoop wired with RecordingLLMConnector")
 
-        // Step 3: 模糊 prompt (= boss 的精确措辞 — 不改写)。
-        let userMessage = """
-        我想写一部小说，主角名字还没想好。
-        设定是入殓师职业，出生在沧州。
-        你看怎么规划？
-        """
-        print("[E2E] step 3 done: vague prompt prepared (\(userMessage.count) chars)")
+        // Step 3: vague prompt already prepared in step 1.5
+        print("[E2E] step 3 done: vague prompt ready (= \(userMessage.count) chars; = boss 的精确措辞, 不改写)")
         print("[E2E] sending vague prompt: \(userMessage.prefix(80))…")
 
         // Step 4: runTurn (= full ConversationLoop pipeline with tool dispatch).
@@ -328,7 +346,7 @@ struct E2EMemoryAndLLMFlowTests {
         // ~3 LLM round-trips before giving up).
         let result = try await loop.runTurn(
             userMessage: userMessage,
-            systemMessage: nil,
+            systemMessage: agentDriverReminder.isEmpty ? nil : agentDriverReminder,
             conversationHistory: [],
             tools: tools,
             taskId: "e2e-002-research",
@@ -364,6 +382,16 @@ struct E2EMemoryAndLLMFlowTests {
         }
         print("[E2E] LLM-emitted toolUse names (across all calls): \(emittedToolUseNames.sorted().joined(separator: ", "))")
         #expect(captured.count >= 1, "loop.runTurn must call LLM at least once")
+        // Agent driver guarantee: the LLM MUST have called web_search
+        // (= or reference_library) for at least one of the detected
+        // nouns. Without this assertion the test would pass even when
+        // the LLM ignores the agent-driver reminder (= it happened
+        // before; = per boss 2026-09-25 the gap must close).
+        #expect(
+            emittedToolUseNames.contains("web_search")
+                || emittedToolUseNames.contains("reference_library"),
+            "agent driver must force at least one tool call (= web_search or reference_library) when the user prompt contains concrete nouns (= detectedNouns=\(detectedNouns.sorted().joined(separator: ", ")))"
+        )
 
         // Step 6: 看文件系统副作用 (= reference_library.create 是否真写到了
         // <ws>/reference-library/entities/*.md). 一个 .md 文件 = 一次 LLM

@@ -78,7 +78,13 @@ actor MinimaxConnector: LLMConnector {
             model: options.model,
             messages: cachedMessages,
             maxTokens: options.maxTokens,
-            systemPrompt: options.systemPrompt
+            systemPrompt: options.systemPrompt,
+            // Wire the tool schemas (= required for the agent
+            // driver: the LLM only emits `tool_use` blocks when
+            // the request body advertises them; = without this
+            // field, Minimax-cn LLM defaults to plain text reply
+            // even when the system prompt demands tools).
+            tools: options.tools
         )
 
         var request = URLRequest(url: url)

@@ -545,30 +545,54 @@ enum SystemPrompt {
             """
         case "agent_driver":
             return """
-            Agent driver guidance (= controls how wenshu drives the LLM):
-            - Your training data may be broader than the user's, but you are
-              NOT a substitute for fresh lookup. When the user's prompt
-              references a domain fact the user might not have seen verified
-              (= unfamiliar profession, specific region / city, historical
-              period, industry jargon, or any name / place / event you cannot
-              recall from training with high confidence), MUST call
-              `web_search` first to gather grounded facts, then call
-              `reference_library.create` (= or `upsert` for follow-ups) to
-              persist the findings under a stable title. Do NOT reply with
-              unverified impressions.
-            - When web_search returns insufficient results (= all vendors
-              rate-limited, or hits don't address the prompt), say so
-              plainly and offer to retry later; do NOT fabricate
-              descriptions of unfamiliar professions / places.
-            - The two-call pattern is intentional: web_search gathers raw
-              evidence; reference_library turns that evidence into a
-              durable per-book (= or library-public) resource the user
-              can browse and re-edit. Treat reference_library.create as
-              the canonical record (= same title in a follow-up turn =
-              edit-in-place via `upsert`, never duplicate).
-            - If the user is plainly casual (= "hi, how are you?", "thanks,
-              that's helpful"), skip this rule; the agent driver only
-              triggers on content that needs grounded facts.
+            Agent driver guidance (= wenshu drives the LLM to verify
+            any concrete noun in the user prompt before answering):
+
+            HEURISTIC (= applied to EVERY user turn, no LLM-judged
+            familiarity): when the user prompt contains ANY concrete
+            proper noun — a profession (= 入殓师 / 律师 / 厨师 /
+            程序员), a Chinese city or county (= 沧州 / 任丘 / 佛山 /
+            黄骅), a region or street, a historical period or dynasty
+            (= 唐宋 / 民国 / 文革), a named event (= 义和团 / 五四 /
+            唐山大地震), a person, a brand, an industry term, a
+            technique — the LLM MUST call `web_search` BEFORE writing
+            the reply (= the LLM's training-data confidence is NOT a
+            sufficient reason to skip; = if it is wrong the user has no
+            way to catch it because the user is asking BECAUSE they
+            don't know). This rule fires on EVERY turn where the
+            prompt contains such a noun — not "when unfamiliar" (= the
+            LLM cannot reliably judge what is unfamiliar to itself and
+            tends to over-rate its own knowledge).
+
+            Call pattern (= mandatory two-step):
+              1. `web_search` with action="search", query=<the
+                 concrete noun, ideally the noun phrase verbatim from
+                 the user prompt>, limit=10. Parallel-search every
+                 distinct concrete noun in the prompt in the SAME
+                 assistant turn (= independent calls = no dependency).
+              2. After search results land, `reference_library.create`
+                 (= or `upsert` if same-title already exists) to persist
+                 a per-noun summary card so future turns can recall
+                 without re-searching. Use `layer: "entities"` for
+                 people / places / events / professions; `layer: "raw"`
+                 for general research.
+
+            Edge cases (= skip web_search):
+              - The user's prompt is purely conversational (= "hi",
+                "thanks", "好的"). No concrete noun => no research.
+              - The user explicitly says "don't research, just write".
+              - The prompt only references Wenshu-internal data
+                (= book content the user just pasted in = no external
+                lookup needed).
+
+            Failure mode (= be honest with the user):
+              - When web_search returns insufficient results (= all
+                vendors rate-limited, or hits don't address the noun),
+                say so plainly: "I tried to look up <noun> but the
+                search ring returned no grounded hits; = here's what I
+                know from training (= may be stale): ...". Do NOT
+                fabricate details about a specific profession / place
+                the search ring could not verify.
             """
         default:
             return ""

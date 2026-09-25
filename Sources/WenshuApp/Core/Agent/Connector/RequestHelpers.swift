@@ -292,29 +292,128 @@ enum RequestHelpers {
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
-        systemPrompt: String?
+        systemPrompt: String?,
+        /// Tool schemas (= wenshu 1:1 ports the Anthropic Messages API
+        /// `tools` field; = minimax-cn's Anthropic-compatible surface
+        /// passes them through unchanged). Empty = omits the field
+        /// (= matches the prior tool-less behavior).
+        tools: [ToolRegistrySchema] = []
     ) throws -> Data {
-        let body: [String: Any] = [
-            "model": model,
-            "max_tokens": maxTokens,
-            "system": systemPrompt ?? "",
-            "messages": messages.map { msg -> [String: Any] in
+        // Anthropic-compatible wire shape (= minimax-cn accepts the
+        // Anthropic Messages API request body byte-for-byte, including
+        // the structured `content` array of {text, thinking, tool_use,
+        // tool_result} blocks). This is required for the agent driver
+        // tool round-trip: the LLM emits `tool_use` blocks in its
+        // first response; = ConversationLoop dispatches them via
+        // ToolExecutor; = the second LLM call carries `tool_result`
+        // blocks (= appended to the assistant message as feedback);
+        // = a flattened-string content (= prior behavior) would drop
+        // both tool_use + tool_result blocks and the LLM would lose
+        // the round-trip context.
+        let messagesPayload: [[String: Any]] = messages.map { msg -> [String: Any] in
+            // Per-role content shaping.
+            switch msg.role {
+            case .user, .assistant:
+                // Emit the full block array (= text + thinking +
+                // tool_use for assistant messages; = text + tool_result
+                // for user messages). Anthropic-compatible.
                 var dict: [String: Any] = [
                     "role": msg.role.rawValue,
-                    "content": msg.blocks.compactMap { block -> String? in
+                    "content": msg.blocks.compactMap { block -> [String: Any]? in
                         switch block {
-                        case .text(let s): return s
-                        case .thinking(let t, _): return t
-                        default: return nil
+                        case .text(let s):
+                            return ["type": "text", "text": s]
+                        case .thinking(let t, _):
+                            return ["type": "thinking", "thinking": t]
+                        case .toolUse(let id, let name, let input):
+                            // Parse the input JSON string into a dict so
+                            // Anthropic-compatible surfaces see a
+                            // structured object (= not a string).
+                            let parsedInput: Any
+                            if let data = input.data(using: .utf8),
+                               let parsed = try? JSONSerialization.jsonObject(with: data) {
+                                parsedInput = parsed
+                            } else {
+                                parsedInput = input
+                            }
+                            return [
+                                "type": "tool_use",
+                                "id": id,
+                                "name": name,
+                                "input": parsedInput
+                            ]
+                        case .toolResult:
+                            return nil  // tool_result belongs in user-role, not assistant.
                         }
-                    }.joined(separator: "\n")
+                    }
+                ]
+                if let marker = msg.cacheControl {
+                    dict["cache_control"] = marker
+                }
+                return dict
+            case .tool:
+                // Anthropic tool-role (= the convention is a `user`
+                // role with `tool_result` content blocks). We surface
+                // tool_result blocks under a synthetic `user` role so
+                // minimax-cn's Anthropic-compatible endpoint accepts
+                // them (= minimax does not recognize the `tool` role;
+                // = this is the wenshu-side port choice for the
+                // Anthropic Messages API shape).
+                let resultBlocks: [[String: Any]] = msg.blocks.compactMap { block -> [String: Any]? in
+                    switch block {
+                    case .toolResult(let toolUseID, let output):
+                        return [
+                            "type": "tool_result",
+                            "tool_use_id": toolUseID,
+                            "content": output
+                        ]
+                    default:
+                        return nil
+                    }
+                }
+                var dict: [String: Any] = [
+                    "role": "user",
+                    "content": resultBlocks
                 ]
                 if let marker = msg.cacheControl {
                     dict["cache_control"] = marker
                 }
                 return dict
             }
+        }
+        var body: [String: Any] = [
+            "model": model,
+            "max_tokens": maxTokens,
+            "system": systemPrompt ?? "",
+            "messages": messagesPayload
         ]
+        if !tools.isEmpty {
+            // Anthropic-compatible wire shape (= minimax-cn speaks the
+            // same tool schema as Anthropic Messages API). The
+            // description goes verbatim; = the input_schema goes under
+            // the `input_schema` key (= not `parameters`). The per-
+            // property `toJSON()` is the canonical helper defined on
+            // `ToolRegistrySchemaProperty` (= emits
+            // `{type, description, enum}`).
+            body["tools"] = tools.map { schema -> [String: Any] in
+                var dict: [String: Any] = [
+                    "name": schema.name,
+                    "description": schema.description
+                ]
+                if !schema.inputSchema.isEmpty || !schema.required.isEmpty {
+                    var props: [String: Any] = [:]
+                    for (key, prop) in schema.inputSchema {
+                        props[key] = prop.toJSON()
+                    }
+                    dict["input_schema"] = [
+                        "type": "object",
+                        "properties": props,
+                        "required": schema.required
+                    ]
+                }
+                return dict
+            }
+        }
         return try JSONSerialization.data(withJSONObject: body)
     }
 

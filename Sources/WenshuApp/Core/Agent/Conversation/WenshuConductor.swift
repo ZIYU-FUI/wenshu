@@ -348,10 +348,31 @@ actor WenshuConductor {
 
         // Step 3: invoke the full turn orchestrator. On any throw, log
         // and return nil (= caller falls back to legacy pipeline).
+        //
+        // Agent driver (2026-09-25, boss OOB): before the LLM sees
+        // the user message, wenshu-side scans the prompt for
+        // concrete proper nouns (= professions / places / dynasties /
+        // named events) via `ConcreteNounDetector`. When any noun
+        // is found, the detector emits a mandatory tool-trigger
+        // reminder (= the LLM's training-data confidence is NOT a
+        // sufficient reason to skip web_search). The reminder is
+        // injected as the `systemMessage` override (= goes through
+        // `composeSystemPrompt(override:persistent:)` which picks
+        // `override ?? persistent ?? ""` as the ephemeral hint; =
+        // the reminder rides in the LAST slot of the system prompt,
+        // where the LLM pays the most attention to imperative
+        // instructions). When no noun is detected, the override is
+        // nil and the persistent stable tier (= with agent_driver
+        // guidance) still applies (= the LLM has a backup rule).
+        let agentDriverReminder = ConcreteNounDetector
+            .reminderIfAny(in: userMessage)
+        let agentDriverOverride: String? = agentDriverReminder.isEmpty
+            ? nil
+            : agentDriverReminder
         do {
             let result = try await loop.runTurn(
                 userMessage: userMessage,
-                systemMessage: nil,
+                systemMessage: agentDriverOverride,
                 conversationHistory: [],
                 // P0 #2 (WIRE-AGENT-002): forward the conductor's
                 // tool registry so ToolExecutor dispatches against
