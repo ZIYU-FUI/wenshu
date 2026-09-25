@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSRepositoryContainer.swift · Wenshu · v0.72 SwiftData migration Phase 3
+//  Persistence/Repositories/WSRepositoryContainer.swift · Wenshu · v0.72 SwiftData migration 
 //
 //  Migration commit 33 of 42: Repository singletons + WSRepositoryContainer.
 //  Per AGENTS.md §11.4.
