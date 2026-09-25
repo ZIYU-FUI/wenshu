@@ -255,12 +255,11 @@ struct WenshuApp: App {
     }
 }
 
-/// task (Hermes AUX_TASKS: vision/web_extract/compression/skills_hub/approval/mcp/title_generation/curator)
+/// task (Hermes AUX_TASKS: vision/web_extract/compression/approval/mcp/title_generation/curator)
 enum AuxTask: String, CaseIterable, Identifiable {
     case vision = "vision"
     case webExtract = "web_extract"
     case compression = "compression"
-    case skillsHub = "skills_hub"
     case approval = "approval"
     case mcp = "mcp"
     case titleGeneration = "title_generation"
@@ -273,7 +272,6 @@ enum AuxTask: String, CaseIterable, Identifiable {
         case .vision: return "视觉"
         case .webExtract: return "网页提取"
         case .compression: return "压缩"
-        case .skillsHub: return "技能中心"
         case .approval: return "审批"
         case .mcp: return "MCP"
         case .titleGeneration: return "标题生成"
@@ -286,7 +284,6 @@ enum AuxTask: String, CaseIterable, Identifiable {
         case .vision: return "eye"
         case .webExtract: return "globe"
         case .compression: return "arrow.down.right.and.arrow.up.left"
-        case .skillsHub: return "wand.and.stars"
         case .approval: return "checkmark.shield"
         case .mcp: return "puzzlepiece"
         case .titleGeneration: return "textformat"

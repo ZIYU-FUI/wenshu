@@ -103,17 +103,33 @@ final class MemoryAdapter {
         }
     }
 
-    func retrieve(forUserMessage userMessage: String, bookId: String? = nil) -> [MemoryEntry] {
-        _ = bookId
-        _ = userMessage
+    func retrieve(forUserMessage userMessage: String, bookId: String? = nil) async -> [MemoryEntry] {
         guard isEnabled else { return [] }
-        return []
+        // Sync read from WSMemoryProvider mirror cache (= thread-safe;
+        // = no SwiftData hop). Falls back to WSMemoryRepository when
+        // the mirror is empty (initial-launch case before the first
+        // refresh completes).
+        let raw = await WSMemoryProvider.shared.prefetch(forUserMessage: userMessage)
+        guard !raw.isEmpty else { return [] }
+        // Split on the newlines the provider emits between entries.
+        let lines = raw.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+        return lines.enumerated().map { idx, line in
+            MemoryEntry(
+                id: "mem:\(idx):\(bookId ?? "global")",
+                source: "memory:recall",
+                snippet: String(line.prefix(120)),
+                relevanceScore: 1.0 - Double(idx) * 0.05
+            )
+        }
     }
 
-    func write(snippet: String, source: String, bookId: String? = nil) {
+    func write(snippet: String, source: String, bookId: String? = nil) async {
         _ = bookId
-        _ = snippet
         _ = source
+        _ = snippet
         guard isEnabled else { return }
+        // Persist via WSMemoryProvider (= SwiftData-backed; = same
+        // userId canonicalization as the recentEntries path).
+        await WSMemoryProvider.shared.sync(userMessage: snippet, assistantResponse: source)
     }
 }

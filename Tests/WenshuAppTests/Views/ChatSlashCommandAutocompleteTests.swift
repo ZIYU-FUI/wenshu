@@ -41,7 +41,7 @@ struct ChatSlashCommandAutocompleteTests {
     /// T18 contract: filter with empty prefix returns the first
     /// maxResults commands (= the default top-8 surface).
     @Test func empty_prefix_returns_top_commands() {
-        let all = SkillAdapter.hubCommands
+        let all = ChatHubCommands.all
         let rows = ChatSlashCommandAutocompleteEngine.filter(
             prefix: "", allCommands: all
         )
@@ -52,7 +52,7 @@ struct ChatSlashCommandAutocompleteTests {
     /// T18 contract: filter with non-empty prefix returns only
     /// commands whose name starts with the prefix (case-insensitive).
     @Test func prefix_filter_matches_by_prefix() {
-        let all = SkillAdapter.hubCommands
+        let all = ChatHubCommands.all
         let rows = ChatSlashCommandAutocompleteEngine.filter(
             prefix: "rev", allCommands: all
         )
@@ -64,7 +64,7 @@ struct ChatSlashCommandAutocompleteTests {
     /// T18 contract: filter is case-insensitive (= "REV" matches
     /// the same rows as "rev").
     @Test func prefix_filter_is_case_insensitive() {
-        let all = SkillAdapter.hubCommands
+        let all = ChatHubCommands.all
         let lower = ChatSlashCommandAutocompleteEngine.filter(
             prefix: "rev", allCommands: all
         )
@@ -84,7 +84,7 @@ struct ChatSlashCommandAutocompleteTests {
     /// (= popup hides).
     @Test func no_match_returns_empty() {
         let rows = ChatSlashCommandAutocompleteEngine.filter(
-            prefix: "zzznomatch", allCommands: SkillAdapter.hubCommands
+            prefix: "zzznomatch", allCommands: ChatHubCommands.all
         )
         #expect(rows.isEmpty)
     }
@@ -92,7 +92,7 @@ struct ChatSlashCommandAutocompleteTests {
     /// T18 contract: maxResults cap is respected (= even when many
     /// matches exist).
     @Test func max_results_cap() {
-        let all = SkillAdapter.hubCommands
+        let all = ChatHubCommands.all
         // "c" matches several commands (character, chapter, conflict, citation, cite, continue, cron, code).
         let rows = ChatSlashCommandAutocompleteEngine.filter(
             prefix: "c", allCommands: all, maxResults: 3
@@ -104,7 +104,7 @@ struct ChatSlashCommandAutocompleteTests {
     /// trimmed (= so typing "/rev " still matches "rev").
     @Test func prefix_trimming() {
         let rows = ChatSlashCommandAutocompleteEngine.filter(
-            prefix: "  rev  ", allCommands: SkillAdapter.hubCommands
+            prefix: "  rev  ", allCommands: ChatHubCommands.all
         )
         #expect(rows.count == 1)
         #expect(rows[0].name == "review")

@@ -42,6 +42,12 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
     let slug: String
     var isEnabled: Bool
 
+    /// Shared singleton (= matches the WSMemoryRepository.shared +
+    /// MemoryManager.shared pattern). Created lazily on first access
+    /// from a @MainActor context (= per init's assumeIsolated contract).
+    @MainActor
+    static let shared: WSMemoryProvider = WSMemoryProvider()
+
     /// In-memory mirror cache (= thread-safe; = updated by async prefetch/sync).
     private let mirror = WSMemoryMirror()
 

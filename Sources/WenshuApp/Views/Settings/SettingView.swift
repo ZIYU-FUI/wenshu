@@ -114,7 +114,6 @@ struct SettingView: View {
         case providerApi
         case model
         case memory
-        case skills
         var id: String { rawValue }
         /// Localized display label (v0.38 P2). Uses the same catalog keys
         /// as the tab Picker rendering, so the segmented control labels
@@ -126,7 +125,6 @@ struct SettingView: View {
             case .providerApi: return WenshuI18n.t("settings.tab.providerApi")
             case .model: return WenshuI18n.t("settings.tab.model")
             case .memory: return WenshuI18n.t("settings.tab.memory")
-            case .skills: return WenshuI18n.t("settings.tab.skills")
             }
         }
         var icon: String {
@@ -136,7 +134,6 @@ struct SettingView: View {
             case .providerApi: return "key.horizontal"
             case .model: return "cpu"
             case .memory: return "brain"
-            case .skills: return "command"
             }
         }
     }
@@ -173,7 +170,6 @@ struct SettingView: View {
                 case .providerApi: providerApiTab
                 case .model: modelTab
                 case .memory: memoryTab
-                case .skills: skillsTab
                 }
             }
             .animation(.default, value: selectedTab)
@@ -539,17 +535,6 @@ struct SettingView: View {
         // isolated file pre-wire) into Settings scene. Scope + retention +
         // recent memory entries rendered.
         MemorySettingsView()
-            .padding(DesignTokens.chromePaddingMedium)
-    }
-
-    private var skillsTab: some View {
-        // ticket A2: wrap SkillsSettingsView in a small loader view that
-        // owns @State skills + triggers .task async load via SkillAdapter.
-        // SkillAdapter is an actor (= v0.35 ticket 010 spec); listSkills() is
-        // async; SkillsSettingsView is a passive view (= @State skills binding
-        // = parent must populate). Loader view bridges the two per SwiftUI
-        // canonical state ownership pattern.
-        SkillsSettingsLoader()
             .padding(DesignTokens.chromePaddingMedium)
     }
 

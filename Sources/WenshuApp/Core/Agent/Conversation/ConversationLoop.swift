@@ -257,7 +257,7 @@ actor ConversationLoop {
         // ContextEngine + ticket 010 wires SkillAdapter), so the dynamic tier
         // reduces to the ephemeral hint as a final block. The placeholder
         // Swift template no longer appears anywhere in the source tree.
-        let effectiveSystemPrompt = composeSystemPrompt(
+        let effectiveSystemPrompt = await composeSystemPrompt(
             override: systemMessage,
             persistent: systemPrompt
         )
@@ -485,7 +485,7 @@ actor ConversationLoop {
                     let options = LLMCallOptions(
                         model: defaultModelForConnector(),
                         maxTokens: 4096,
-                        systemPrompt: composeSystemPrompt(
+                        systemPrompt: await composeSystemPrompt(
                             override: systemMessage,
                             persistent: systemPrompt
                         ),
@@ -519,10 +519,31 @@ actor ConversationLoop {
                 )
                 let (compressedMessages, compressedSystem) = await conversationCompression.historyAfterCompression(
                     messages: result.messages,
-                    systemMessage: composeSystemPrompt(
+                    systemMessage: await composeSystemPrompt(
                         override: systemMessage,
                         persistent: systemPrompt
                     ) ?? ""
+                )
+
+                // step 8: "Persisting memory". Write the turn's
+                // user + assistant pair into the memory subsystem
+                // (= hermes turn_finalizer._sync_memory). The
+                // adapter short-circuits when isEnabled = false, so
+                // off-by-default users see no behavior change.
+                await progressTracker.setStep(
+                    id: progressEntry.id,
+                    stepNumber: 8,
+                    label: "Persisting memory",
+                    etaSeconds: nil
+                )
+                await MemoryAdapter().write(
+                    snippet: userMessage,
+                    source: result.response.blocks.first(where: { if case .text = $0 { return true } else { return false } })
+                        .map { block -> String in
+                            if case .text(let s) = block { return s }
+                            return ""
+                        } ?? "",
+                    bookId: nil
                 )
 
                 // mark the entry as succeeded.
@@ -677,10 +698,10 @@ actor ConversationLoop {
     /// into the loop (= ticket 009 + ticket 010), so the dynamic tier
     /// reduces to the ephemeral hint as the final block. Future tickets
     /// can extend this method to read live data from those adapters.
-    private nonisolated func composeSystemPrompt(
+    private func composeSystemPrompt(
         override: String?,
         persistent: String?
-    ) -> String? {
+    ) async -> String? {
         // Determine the ephemeral hint source (= which string flows into
         // the dynamic tier's "Context: ..." section).
         let ephemeralHint = override ?? persistent ?? ""
@@ -691,15 +712,22 @@ actor ConversationLoop {
 
         // Dynamic tier: composed via PromptBuilder (= the GAP-001 path).
         // Empty hint = empty dynamic tier (and PromptBuilder returns "").
+        // Memory prefetch happens here (= hermes prompt_builder.build_memory_guidance)
+        // so the LLM sees relevant context on the first token.
+        let prefetched = await MemoryAdapter().retrieve(
+            forUserMessage: ephemeralHint,
+            bookId: nil
+        )
         let dynamic = PromptBuilder.dynamicTier(
             contextBundle: ContextEngine.ContextBundle(
-                memories: [],
+                memories: prefetched.map { entry in
+                    ContextEngine.MemoryEntry(source: entry.source, snippet: entry.snippet)
+                },
                 characterContext: [],
                 worldContext: [],
                 foreshadowContext: []
             ),
-            memories: [],
-            skills: [],
+            memories: prefetched,
             callerExtras: [:],
             ephemeralHint: ephemeralHint
         )

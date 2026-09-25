@@ -36,11 +36,6 @@ actor WenshuConductor {
     /// Long-term memory persistence for agent (now SwiftData-backed via WSMemoryRepository
     /// ([historical actor removed]; this property was previously MemoryStore? for the deprecated actor bridge, now removed.)
     /// All memory calls go through WSMemoryRepository.shared (= @MainActor).
-    /// Local Skills registry (replica of hermes skills_hub). Skills loaded at startup, agent invokes.
-    /// Lazy bootstrap pattern (= kept here for the still-actor-isolated SkillRegistry; = the MemoryStore equivalent was removed in subsequent migration step).
-    /// See .scratch/2026-08-22-frontend-integration/issues/h02-skill-registry-frontend.md.
-    private var skillRegistry: SkillRegistry?
-    private var skillRegistryBootstrapped: Bool = false
     /// h10: agent toolkit dispatch (FileTools + ProcessTools + WebTools + VisionTools).
     /// Tools are stateless structs, no bootstrap needed.
 
@@ -97,7 +92,6 @@ actor WenshuConductor {
     init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
-        skillRegistry: SkillRegistry? = nil,
         tools: [String: any Tool] = [:],
         repositories: WSRepositoryContainer? = nil
     ) {
@@ -118,8 +112,7 @@ actor WenshuConductor {
         self.init(
             runtime: runtime,
             verifier: verifier,
-            skillRegistry: skillRegistry,
-            connector: nil,
+                connector: nil,
             loopRuntime: nil,
             tools: tools,
             repositories: repositories
@@ -149,7 +142,6 @@ actor WenshuConductor {
     init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
-        skillRegistry: SkillRegistry? = nil,
         connector: (any LLMConnector)? = nil,
         loopRuntime: RuntimeHelpers? = nil,
         tools: [String: any Tool] = [:],
@@ -157,7 +149,6 @@ actor WenshuConductor {
     ) {
         self.runtime = runtime
         self.verifier = verifier
-        self.skillRegistry = skillRegistry
         self.connector = connector
         self.loopRuntime = loopRuntime
         // P0 #2 (WIRE-AGENT-002): store the tool registry so the loop
@@ -182,34 +173,6 @@ actor WenshuConductor {
         // Bootstrap deferred to first handle() call (Swift actor init cannot await).
     }
 
-    /// h02: lazy bootstrap of SkillRegistry. Lists available skills.
-    private func ensureSkillRegistryBootstrapped() async {
-        guard !skillRegistryBootstrapped else { return }
-        skillRegistryBootstrapped = true
-        guard let registry = skillRegistry else { return }
-        do {
-            _ = try await registry.list()
-        } catch {
-            // Reset bootstrapped flag on failure so
-            // next call retries (don't permanently disable skills).
-            skillRegistryBootstrapped = false
-            skillRegistry = nil
-        }
-    }
-
-    /// h02: invoke a wenshu local skill. Returns "" if registry unavailable or skill not found.
-    func invokeSkill(name: String, input: String = "") async -> String {
-        await ensureSkillRegistryBootstrapped()
-        guard let registry = skillRegistry else { return "" }
-        return (try? await registry.invoke(name: name, input: input)) ?? ""
-    }
-
-    /// h02: list available skills (for agent context). Returns [] if registry unavailable.
-    func availableSkills() async -> [String] {
-        await ensureSkillRegistryBootstrapped()
-        guard let registry = skillRegistry else { return [] }
-        return (try? await registry.list()) ?? []
-    }
 
     /// h10: dispatch an agent tool call. Returns "" on unknown tool / failure.
     /// - file: input = file path → returns file content

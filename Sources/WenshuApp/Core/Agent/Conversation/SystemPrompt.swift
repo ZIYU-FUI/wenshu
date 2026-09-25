@@ -236,6 +236,10 @@ enum SystemPrompt {
         )
 
         // Dynamic tier: routed through PromptBuilder (= GAP-001 refactor).
+        // Memory prefetch happens at the ConversationLoop.composeSystemPrompt
+        // boundary (= see ConversationLoop.swift); = the caller passes
+        // pre-fetched entries through BuildOptions / callerExtras. The
+        // buildParts() surface here stays synchronous (= no actor hop).
         let dynamic = PromptBuilder.dynamicTier(
             contextBundle: ContextEngine.ContextBundle(
                 memories: [],
@@ -244,7 +248,6 @@ enum SystemPrompt {
                 foreshadowContext: []
             ),
             memories: [],
-            skills: [],
             callerExtras: options.callerMessage.map { ["caller_message": $0] } ?? [:],
             ephemeralHint: options.ephemeralHint
         )

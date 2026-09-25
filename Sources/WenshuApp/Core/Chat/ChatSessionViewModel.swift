@@ -384,12 +384,14 @@ final class ChatViewModel {
         NSLog("[wenshu.context] sum tokens after recompute: %d (messages=%d)", contextUsed, messages.count)
     }
 
-    /// routeInput is the new front-door for chat
-    /// input. It dispatches `/<skill>` slash commands through
-    /// SkillAdapter.parseAndInvoke BEFORE the LLM path; non-slash text falls
-    /// through to `send()`. Empty input is a no-op. Slash input that fails
-    /// (= parseAndInvoke throws) also falls through to `send()` for graceful
-    /// degradation (= unknown skill name should still reach the LLM).
+    /// routeInput is the front-door for chat input. It dispatches
+    /// `/plan <query>` to the plan-mode engine and `@mention`
+    /// sub-agent spawns (= both higher-priority prefixes). All other
+    /// input (= bare text + slash commands like `/review chapter 1`)
+    /// falls through to `send()` so the LLM sees the user's exact
+    /// wording. Slash commands are prompt templates per ChatHubCommands
+    /// (= the LLM interprets the prefix; = no short-circuit to a stub
+    /// skill-invoke result).
     func routeInput() async {
         let input = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return }
@@ -445,28 +447,9 @@ final class ChatViewModel {
             return
         }
 
-        // try explicit slash command / keyword match FIRST.
-        // SkillAdapter.parseAndInvoke throws SkillAdapterError.noMatch when
-        // neither slash nor keyword resolves — we catch + fall through.
-        do {
-            let parsed = try await SkillAdapter.shared.parseAndInvoke(input)
-            // Skill resolved — record the result as a system message and
-            // clear the draft. The skill's own output is the user-visible
-            // reply; we don't re-send it through the LLM.
-            messages.append(ChatMessage(
-                role: .system,
-                source: .system,
-                content: "Skill /\(parsed.skillName) → \(parsed.result)"
-            ))
-            inputText = ""
-            return
-        } catch {
-            // Slash/keyword failed (= unknown skill, stub error, etc.) →
-            // fall through to the LLM path so the user isn't left with a
-            // dropped message.
-        }
-
-        // No slash match → existing LLM send path.
+        // No slash match → existing LLM send path. The slash prefix
+        // (= `/review chapter 1`) is sent verbatim to the LLM, which
+        // interprets it as a prompt template per ChatHubCommands.
         await send()
     }
 
@@ -480,10 +463,9 @@ final class ChatViewModel {
     ///   - `/plan query here`         -> "query here"
     ///   - `/plan` (no args)           -> nil (= empty query is
     ///                                    not a valid plan command;
-    ///                                    = fall through to the
-    ///                                    SkillAdapter path which
-    ///                                    will treat it as unknown
-    ///                                    /plan invocation)
+    ///                                    = fall through to the LLM
+    ///                                    path with `/plan` as a
+    ///                                    slash prefix)
     ///   - `/plans` (extra char)       -> nil (= exact prefix
     ///                                    match only; = prevents
     ///                                    accidental collision
@@ -492,8 +474,8 @@ final class ChatViewModel {
     private func stripPlanPrefix(_ input: String) -> String? {
         guard input.hasPrefix("/plan") else { return nil }
         // Exact-match on "/plan" + whitespace (= no args means
-        // the command is invalid for plan-mode; = let SkillAdapter
-        // surface it as an unknown skill).
+        // the command is invalid for plan-mode; = send `/plan` to
+        // the LLM verbatim as a slash command per ChatHubCommands).
         let afterPrefix = input.dropFirst("/plan".count)
         // Either whitespace (= normal command) or end-of-string
         // (= no args) is allowed.

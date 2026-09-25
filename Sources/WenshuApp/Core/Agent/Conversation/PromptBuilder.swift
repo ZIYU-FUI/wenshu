@@ -160,7 +160,6 @@ struct PromptBuilder: Sendable {
         systemPrompt: SystemPrompt.Type = SystemPrompt.self,
         contextBundle: ContextEngine.ContextBundle,
         memories: [MemoryAdapter.MemoryEntry],
-        skills: [SkillAdapter.Skill],
         callerExtras: [String: String] = [:],
         ephemeralHint: String = ""
     ) {
@@ -169,7 +168,6 @@ struct PromptBuilder: Sendable {
         let dynamic = Self.composeDynamicTier(
             contextBundle: contextBundle,
             memories: memories,
-            skills: skills,
             callerExtras: callerExtras,
             ephemeralHint: ephemeralHint
         )
@@ -185,14 +183,12 @@ struct PromptBuilder: Sendable {
     static func dynamicTier(
         contextBundle: ContextEngine.ContextBundle,
         memories: [MemoryAdapter.MemoryEntry],
-        skills: [SkillAdapter.Skill],
         callerExtras: [String: String] = [:],
         ephemeralHint: String = ""
     ) -> String {
         composeDynamicTier(
             contextBundle: contextBundle,
             memories: memories,
-            skills: skills,
             callerExtras: callerExtras,
             ephemeralHint: ephemeralHint
         )
@@ -288,19 +284,17 @@ struct PromptBuilder: Sendable {
 
 extension PromptBuilder {
     /// Compose the dynamic tier from all sources (= ContextEngine bundle
-    /// + memory retrieval + skill summary + caller extras + ephemeral hint).
+    /// + memory retrieval + caller extras + ephemeral hint).
     ///
     /// Section order (matches hermes `build_system_prompt_parts` L340-461
     /// "volatile" tier order):
     ///   1. Context bundle (= ContextEngine.formatContextBundle)
     ///   2. Memory retrieval entries (= formatted with source + snippet)
-    ///   3. Skill registry summary (= formatSkillsSummary)
-    ///   4. Caller extras (= rendered as "Key: Value" lines)
-    ///   5. Ephemeral hint (= final section, back-compat with v0.35 literal)
+    ///   3. Caller extras (= rendered as "Key: Value" lines)
+    ///   4. Ephemeral hint (= final section, back-compat with v0.35 literal)
     fileprivate static func composeDynamicTier(
         contextBundle: ContextEngine.ContextBundle,
         memories: [MemoryAdapter.MemoryEntry],
-        skills: [SkillAdapter.Skill],
         callerExtras: [String: String],
         ephemeralHint: String
     ) -> String {
@@ -323,13 +317,7 @@ extension PromptBuilder {
             sections.append("Relevant memories:\n\(memoryLines)")
         }
 
-        // 3. Skill registry summary (= formatSkillsSummary)
-        let skillSection = formatSkillsSummary(skills)
-        if !skillSection.isEmpty {
-            sections.append(skillSection)
-        }
-
-        // 4. Caller extras (= "Key: Value" lines)
+        // 3. Caller extras (= "Key: Value" lines)
         if !callerExtras.isEmpty {
             let sortedKeys = callerExtras.keys.sorted()
             let extrasLines = sortedKeys
@@ -355,36 +343,6 @@ extension PromptBuilder {
     }
 }
 
-// MARK: - Skill summary formatting (= hermes build_skills_system_prompt)
-
-extension PromptBuilder {
-    /// Build a compact skill summary (= hermes `build_skills_system_prompt`).
-    ///
-    /// Layout (per AGENTS.md §11.3 wenshu-side wins pattern; matches the
-    /// hermes output shape byte-for-byte where applicable):
-    ///   - Empty when no skills
-    ///   - Otherwise a `Available skills:` header + one bullet per skill
-    ///     in the form `- <name>: <description>`
-    ///   - Skills sorted alphabetically by name (= deterministic output)
-    ///
-    /// Note: the full hermes implementation includes a 2-layer cache
-    /// (in-process LRU + disk snapshot), per-category grouping, demotion
-    /// for compact-mode (= names-only line), and tool/environment
-    /// filtering. The wenshu port delegates cache + filtering to
-    /// `SkillAdapter.listSkills()` (= the wenshu-side wins pattern;
-    /// SkillAdapter already calls SkillRegistry.load which handles
-    /// frontmatter parse + frontmatter-level filtering). The rendering
-    /// below is the post-cache, post-filter summary.
-    static func formatSkillsSummary(_ skills: [SkillAdapter.Skill]) -> String {
-        let enabled = skills.filter { $0.enabled }
-        if enabled.isEmpty {
-            return ""
-        }
-        let sorted = enabled.sorted { $0.name < $1.name }
-        let lines = sorted.map { "- \($0.name): \($0.description)" }
-        return "Available skills:\n" + lines.joined(separator: "\n")
-    }
-}
 
 // MARK: - Environment hints (= hermes build_environment_hints)
 
@@ -616,91 +574,6 @@ extension PromptBuilder {
 // prompt_builder.py`).
 
 extension PromptBuilder {
-
-    // MARK: -- H1.1 build_skills_system_prompt (hermes L1417-L1684)
-
-    /// Build a compact skill index for the system prompt.
-    ///
-    /// Direct port of hermes `build_skills_system_prompt` at
-    /// `agent/prompt_builder.py` L1417-L1684.
-    ///
-    /// Two-layer cache:
-    ///   1. In-process LRU dict keyed by (skills_dir, tools, toolsets, hidden)
-    ///   2. Disk snapshot (`.skills_prompt_snapshot.json`) validated by
-    ///      mtime/size manifest — survives process restarts
-    ///
-    /// Falls back to a full filesystem scan when both layers miss.
-    ///
-    /// Wenshu-side wins (= per AGENTS.md §11.3):
-    ///   - skills dir source = wenshu's `~/.wenshu/skills/` (= NOT
-    ///     hermes's `~/.hermes/skills/`).
-    ///   - external dirs = wenshu config (NOT hermes config.yaml).
-    ///
-    /// - Parameters:
-    ///   - availableTools: set of currently-available tool names
-    ///   - availableToolsets: set of currently-available toolset names
-    ///   - compactCategories: categories whose descriptions get demoted
-    ///     to a single names-only line (= posturing for non-coding context).
-    /// - Returns: the rendered skill-index system-prompt block
-    ///   (= empty string when no skills directory exists).
-    static func buildSkillsSystemPrompt(
-        availableTools: Set<String>? = nil,
-        availableToolsets: Set<String>? = nil,
-        compactCategories: Set<String>? = nil,
-    ) -> String {
-        // Wenshu-side wins: derive skills dir from wenshu's
-        // `~/.wenshu/skills/` (= NOT hermes's `~/.hermes/skills/`).
-        let skillsDir = PromptBuilderCaches.resolveSkillsDir()
-        guard FileManager.default.fileExists(atPath: skillsDir.path) else {
-            return ""
-        }
-        // Wenshu-side wins: in-process LRU cache via NSCache (= hermes
-        // uses OrderedDict + threading.Lock; = wenshu uses NSCache
-        // = thread-safe by Apple contract + countLimit for LRU cap).
-        let cacheKey = PromptBuilderCaches.skillsCacheKey(
-            skillsDir: skillsDir,
-            availableTools: availableTools,
-            availableToolsets: availableToolsets,
-            compactCategories: compactCategories,
-        )
-        if let cached = PromptBuilderCaches.skillsPromptCache.object(forKey: cacheKey) as String? {
-            return cached
-        }
-        // Wenshu-side wins: load skills via SkillAdapter (= the canonical
-        // wenshu-side adapter at `Core/Agent/Skill/SkillAdapter.swift`).
-        // Replaces hermes's `_load_skills_snapshot` + `_parse_skill_file`
-        // + `_build_skills_manifest` + `_write_skills_snapshot` chain.
-        // Wenshu-side: PromptBuilder is currently a synchronous
-        // call site; = the synchronous skill load via
-        // `Task.detached` + `DispatchSemaphore` is the bridge
-        // (= forward-flexibility for a future async rewire of
-        // PromptBuilder where buildSkillsSystemPrompt becomes
-        // async). When that lands, the semaphore wait can be
-        // removed.
-        //
-        // Wenshu-side: this is a thin-port placeholder; = full
-        // port of hermes's snapshot cache is a follow-up ticket.
-        nonisolated(unsafe) var adapterSkills: [SkillAdapter.Skill] = []
-        let semaphore = DispatchSemaphore(value: 0)
-        Task {
-            adapterSkills = await SkillAdapter.shared.listSkills()
-            semaphore.signal()
-        }
-        semaphore.wait()
-        // Wenshu-side: SkillAdapter.Skill has name + description
-        // (= NO conditions / category / frontmatterName; = hermes-side
-        // richness is a follow-up); = predicate degenerates to "show all".
-        let result = PromptBuilderCaches.renderSkillsPrompt(
-            skills: adapterSkills,
-            compactCategories: Array(compactCategories ?? []),
-        )
-        PromptBuilderCaches.skillsPromptCache.setObject(
-            result as NSString,
-            forKey: cacheKey,
-        )
-        return result
-    }
-
     // MARK: -- H1.2 build_nous_subscription_prompt (hermes L1686-L1754)
 
     /// Build a compact Nous subscription capability block for the system prompt.
@@ -831,26 +704,6 @@ extension PromptBuilder {
         #endif
     }
 
-    // MARK: -- H1.5 clear_skills_system_prompt_cache (hermes L1265-L1274)
-
-    /// Clear the in-process skills-prompt LRU cache (= optional
-    /// disk-snapshot clear).
-    ///
-    /// Direct port of hermes `clear_skills_system_prompt_cache` at
-    /// `agent/prompt_builder.py` L1265-L1274.
-    ///
-    /// - Parameter clearSnapshot: when true, also delete the disk
-    ///   snapshot file (= `.skills_prompt_snapshot.json`).
-    static func clearSkillsSystemPromptCache(
-        clearSnapshot: Bool = false,
-    ) {
-        PromptBuilderCaches.skillsPromptCache.removeAllObjects()
-        if clearSnapshot {
-            let snapshotPath = PromptBuilderCaches.skillsPromptSnapshotPath()
-            try? FileManager.default.removeItem(at: snapshotPath)
-        }
-    }
-
     // MARK: -- H1.6 drain_truncation_warnings (hermes L1241-L1259)
 
     /// Drain (= return + clear) the in-process truncation-warnings
@@ -876,15 +729,6 @@ extension PromptBuilder {
 //     Wenshu uses NSCache for thread-safe bounded-buffer storage.
 
 enum PromptBuilderCaches {
-    /// Skills-prompt in-process LRU cache (= wenshu's NSCache-backed
-    /// version of hermes's `_SKILLS_PROMPT_CACHE` + `_SKILLS_PROMPT_CACHE_LOCK`).
-    /// Key = stable string hash of (skillsDir + tools + toolsets + platform +
-    /// disabled + compactCategories).
-    nonisolated(unsafe) static let skillsPromptCache: NSCache<NSString, NSString> = {
-        let c = NSCache<NSString, NSString>()
-        c.countLimit = 16
-        return c
-    }()
 
     /// Truncation-warnings ring buffer (= wenshu's NSCache-backed
     /// version of hermes's `_TRUNCATION_WARNINGS`).
@@ -893,113 +737,6 @@ enum PromptBuilderCaches {
         c.countLimit = 32
         return c
     }()
-
-    /// Skill-show predicate (= hermes `_skill_should_show` at
-    /// `agent/prompt_builder.py` L1386-L1415).
-    ///
-    /// Wenshu-side wins (= per AGENTS.md §11.3):
-    ///   - hermes-side `skill.conditions` (= fallback_for_tools /
-    ///     requires_tools / requires_toolsets) is NOT present in
-    ///     wenshu's SkillAdapter.Skill struct (= wenshu uses
-    ///     simpler name/description/enabled model).
-    ///   - This predicate degenerates to "show all" (= always true).
-    static func skillShouldShow(
-        skill: SkillAdapter.Skill,
-        availableTools: Set<String>?,
-        availableToolsets: Set<String>?,
-    ) -> Bool {
-        // Wenshu-side: no conditions metadata; = show all loaded.
-        // Future ticket can add conditions struct to SkillAdapter.Skill
-        // to restore hermes-style filtering (= follow-up).
-        _ = skill
-        _ = availableTools
-        _ = availableToolsets
-        return true
-    }
-
-    /// Render the skills-prompt block (= hermes L1656-L1684 lines
-    /// = the post-processing that turns the dict into the rendered
-    /// string).
-    static func renderSkillsPrompt(
-        skills: [SkillAdapter.Skill],
-        compactCategories: [String],
-    ) -> String {
-        // Wenshu-side wins: hermes's Skill struct has category +
-        // frontmatter_name; wenshu's SkillAdapter.Skill has only
-        // name + description + enabled. We collapse all skills
-        // into a single "general" category (= forward-flexibility:
-        // when SkillAdapter.Skill gains a category field, this
-        // can split by category).
-        var byCategory: [String: [(name: String, desc: String)]] = [:]
-        for skill in skills {
-            let category = "general"
-            byCategory[category, default: []].append(
-                (name: skill.name, desc: skill.description),
-            )
-        }
-        if byCategory.isEmpty {
-            return ""
-        }
-        let compactSet = Set(compactCategories)
-        var lines: [String] = []
-        for category in byCategory.keys.sorted() {
-            let isDemoted = compactSet.contains(category)
-            if isDemoted {
-                let names = byCategory[category]!.map { $0.name }
-                let uniqueNames = Array(Set(names)).sorted()
-                lines.append("  \(category) [names only]: \(uniqueNames.joined(separator: ", "))")
-                continue
-            }
-            lines.append("  \(category):")
-            for (name, desc) in byCategory[category]!.sorted(by: { $0.name < $1.name }) {
-                if !desc.isEmpty {
-                    lines.append("    - \(name): \(desc)")
-                } else {
-                    lines.append("    - \(name)")
-                }
-            }
-        }
-        let hiddenNote = compactCategories.isEmpty
-            ? ""
-            : "\n(Categories marked [names only] are outside the current context, so their descriptions are omitted.)"
-        return """
-        ## Skills (mandatory)
-
-        Before replying, scan the skills below. If a skill matches or is even partially relevant to your task, you MUST load it with skill_view(name) and follow its instructions.
-
-        <available_skills>
-        \(lines.joined(separator: "\n"))
-        </available_skills>
-
-        Only proceed without loading a skill if genuinely none are relevant to the task.\(hiddenNote)
-        """
-    }
-
-    /// Compute the LRU cache key (= hermes L1463-L1470 = the
-    /// cache_key tuple).
-    static func skillsCacheKey(
-        skillsDir: URL,
-        availableTools: Set<String>?,
-        availableToolsets: Set<String>?,
-        compactCategories: Set<String>?,
-    ) -> NSString {
-        let toolsKey = (availableTools ?? []).sorted().joined(separator: ",")
-        let toolsetKey = (availableToolsets ?? []).sorted().joined(separator: ",")
-        let compactKey = (compactCategories ?? []).sorted().joined(separator: ",")
-        return NSString(string: "\(skillsDir.path)|\(toolsKey)|\(toolsetKey)|\(compactKey)")
-    }
-
-    /// Resolve the skills dir (= wenshu's `~/.wenshu/skills/`).
-    static func resolveSkillsDir() -> URL {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        return home.appendingPathComponent(".wenshu/skills")
-    }
-
-    /// Skills-prompt snapshot path (= hermes L1261-L1263 =
-    /// `_skills_prompt_snapshot_path`).
-    static func skillsPromptSnapshotPath() -> URL {
-        resolveSkillsDir().appendingPathComponent(".skills_prompt_snapshot.json")
-    }
 
     /// Scan context content (= hermes L46-L63 = `_scan_context_content`).
     static func scanContextContent(content: String, filename: String) -> String {

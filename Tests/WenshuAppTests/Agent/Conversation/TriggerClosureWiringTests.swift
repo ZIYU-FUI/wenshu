@@ -34,16 +34,16 @@ struct TriggerClosureWiringTests {
 
 
 
-    @Test("CommandPaletteRegistrySeeder populates the 35 hub commands from SkillAdapter.hubCommands")
+    @Test("CommandPaletteRegistrySeeder populates the 35 hub commands from ChatHubCommands.all")
     @MainActor
     func testCommandPaletteRegistrySeeder_populates35HubCommands() async {
         await CommandPaletteRegistrySeeder.seed()
         let all = await CommandPaletteRegistry.shared.allItems()
         let hubIds = all.filter { $0.id.hasPrefix("palette.hub.") }
-        #expect(hubIds.count == SkillAdapter.hubCommands.count,
-                "seeder must register one palette entry per hub command (got \(hubIds.count), expected \(SkillAdapter.hubCommands.count))")
+        #expect(hubIds.count == ChatHubCommands.all.count,
+                "seeder must register one palette entry per hub command (got \(hubIds.count), expected \(ChatHubCommands.all.count))")
         let hubNames = Set(hubIds.map { $0.id.replacingOccurrences(of: "palette.hub.", with: "") })
-        for cmd in SkillAdapter.hubCommands {
+        for cmd in ChatHubCommands.all {
             #expect(hubNames.contains(cmd.name),
                     "hub command '\(cmd.name)' must appear as a palette entry")
         }
@@ -81,33 +81,12 @@ struct TriggerClosureWiringTests {
         await CommandPaletteRegistrySeeder.seed()
         let all = await CommandPaletteRegistry.shared.allItems()
         let settingsIds = all.filter { $0.id.hasPrefix("palette.settings.") }
-        #expect(settingsIds.count == 3, "seeder must register 3 Settings entries (got \(settingsIds.count))")
-        for id in ["palette.settings.providers", "palette.settings.memory", "palette.settings.skills"] {
+        #expect(settingsIds.count == 2, "seeder must register 2 Settings entries (got \(settingsIds.count))")
+        for id in ["palette.settings.providers", "palette.settings.memory"] {
             #expect(settingsIds.contains { $0.id == id }, "expected settings palette entry '\(id)'")
         }
     }
 
-    @Test("SkillKeywordRegistryBootstrap registers the 35 hub commands as keyword targets")
-    @MainActor
-    func testSkillKeywordBootstrap_registersKeywordsFromHubCommands() async {
-        await SkillKeywordRegistryBootstrap.seed()
-        for cmd in SkillAdapter.hubCommands {
-            let match = await SkillKeywordMatcher.shared.match(input: "/\(cmd.name)")
-            #expect(match != nil, "keyword matcher must resolve '/\(cmd.name)' to a SkillKeyword (= M1 fix)")
-            if let m = match {
-                #expect(m.skillName == cmd.name, "match for '/\(cmd.name)' must map to the right skill name")
-            }
-        }
-    }
-
-    @Test("SkillKeywordRegistryBootstrap enables natural-language match for hub-command aliases")
-    @MainActor
-    func testSkillKeywordBootstrap_naturalLanguageAliasMatch() async {
-        await SkillKeywordRegistryBootstrap.seed()
-        let match = await SkillKeywordMatcher.shared.match(input: "please review the chapter for style consistency")
-        #expect(match != nil, "natural-language 'review the chapter for style' must match a hub command")
-        #expect(match?.skillName == "review", "natural-language 'review' must resolve to /review skill")
-    }
 
     @Test("production WenshuConductor builds tools from ToolRegistry.shared (not an empty dict)")
     @MainActor

@@ -55,7 +55,6 @@ struct PromptBuilderTests {
         let dynamic = PromptBuilder.dynamicTier(
             contextBundle: bundle,
             memories: [],
-            skills: [],
             callerExtras: [:],
             ephemeralHint: ""
         )
@@ -81,7 +80,6 @@ struct PromptBuilderTests {
                 dynamicTier: PromptBuilder.dynamicTier(
                     contextBundle: bundle,
                     memories: [],
-                    skills: [],
                     callerExtras: [:],
                     ephemeralHint: ""
                 )
@@ -104,7 +102,6 @@ struct PromptBuilderTests {
         let dynamic = PromptBuilder.dynamicTier(
             contextBundle: bundle,
             memories: [],
-            skills: [],
             callerExtras: [:],
             ephemeralHint: ""
         )
@@ -128,7 +125,6 @@ struct PromptBuilderTests {
             last = PromptBuilder.dynamicTier(
                 contextBundle: bundle,
                 memories: [],
-                skills: [],
                 callerExtras: [:],
                 ephemeralHint: ""
             )
@@ -163,7 +159,6 @@ struct PromptBuilderTests {
                 foreshadowContext: []
             ),
             memories: memories,
-            skills: [],
             callerExtras: [:],
             ephemeralHint: ""
         )
@@ -196,7 +191,6 @@ struct PromptBuilderTests {
                     foreshadowContext: []
                 ),
                 memories: memories,
-                skills: [],
                 callerExtras: [:],
                 ephemeralHint: ""
             )
@@ -205,59 +199,7 @@ struct PromptBuilderTests {
     }
 
     // MARK: - Test 4: skill summary renders
-
-    @Test("buildSystemPrompt_withSkill: non-empty skill registry -> dynamic tier contains skill summary")
-    func testBuildSystemPromptWithSkill() {
-        let skills: [SkillAdapter.Skill] = [
-            SkillAdapter.Skill(name: "narrative-craft", description: "Long-form prose techniques", enabled: true),
-            SkillAdapter.Skill(name: "wenshu-pollution-defense", description: "12 xianxia token defense chain", enabled: true),
-            SkillAdapter.Skill(name: "apple-hig-grep", description: "Apple HIG lookup before custom code", enabled: false)  // disabled
-        ]
-
-        let dynamic = PromptBuilder.dynamicTier(
-            contextBundle: ContextEngine.ContextBundle(
-                memories: [],
-                characterContext: [],
-                worldContext: [],
-                foreshadowContext: []
-            ),
-            memories: [],
-            skills: skills,
-            callerExtras: [:],
-            ephemeralHint: ""
-        )
-
-        // Dynamic tier is non-empty
-        #expect(!dynamic.isEmpty)
-        // Skill summary header present
-        #expect(dynamic.contains("Available skills:"))
-        // Enabled skills listed (= 2 enabled, 1 disabled)
-        #expect(dynamic.contains("- narrative-craft"))
-        #expect(dynamic.contains("Long-form prose techniques"))
-        #expect(dynamic.contains("- wenshu-pollution-defense"))
-        #expect(dynamic.contains("12 xianxia token defense chain"))
-        // Disabled skill excluded from summary
-        #expect(!dynamic.contains("- apple-hig-grep"))
-
-        // Deterministic across runs (= alphabetical sort)
-        let first = dynamic
-        var last = first
-        for _ in 0..<50 {
-            last = PromptBuilder.dynamicTier(
-                contextBundle: ContextEngine.ContextBundle(
-                    memories: [],
-                    characterContext: [],
-                    worldContext: [],
-                    foreshadowContext: []
-                ),
-                memories: [],
-                skills: skills,
-                callerExtras: [:],
-                ephemeralHint: ""
-            )
-        }
-        #expect(first == last)
-    }
+    // Test 4 removed in v2.4 (= skill summary no longer in dynamic tier; per AGENTS.md §11.14).
 
     // MARK: - Test 5: full tier (everything non-empty)
 
@@ -277,9 +219,6 @@ struct PromptBuilderTests {
                 relevanceScore: 0.88
             )
         ]
-        let skills: [SkillAdapter.Skill] = [
-            SkillAdapter.Skill(name: "narrative-craft", description: "Long-form prose", enabled: true)
-        ]
         let callerExtras = [
             "today": "2026-09-04",
             "user_request": "draft chapter 1"
@@ -289,7 +228,6 @@ struct PromptBuilderTests {
         let dynamic = PromptBuilder.dynamicTier(
             contextBundle: bundle,
             memories: memories,
-            skills: skills,
             callerExtras: callerExtras,
             ephemeralHint: ephemeralHint
         )
@@ -298,21 +236,18 @@ struct PromptBuilderTests {
         // Compose the full PromptBuilder and verify per-provider builders
         let builder = PromptBuilder(stableTier: stable, dynamicTier: dynamic)
 
-        // All 5 dynamic-tier sections present:
+        // All 4 dynamic-tier sections present (= skill summary removed in v2.4):
         // 1. Context bundle
         #expect(dynamic.contains("Characters:"))
         #expect(dynamic.contains("Alice: protagonist"))
         // 2. Memory retrieval
         #expect(dynamic.contains("Relevant memories:"))
         #expect(dynamic.contains("First chapter outline"))
-        // 3. Skill summary
-        #expect(dynamic.contains("Available skills:"))
-        #expect(dynamic.contains("narrative-craft"))
-        // 4. Caller extras (= "Key: Value" lines)
+        // 3. Caller extras (= "Key: Value" lines)
         #expect(dynamic.contains("Caller extras:"))
         #expect(dynamic.contains("today: 2026-09-04"))
         #expect(dynamic.contains("user_request: draft chapter 1"))
-        // 5. Ephemeral hint (= final section, back-compat with v0.35 literal)
+        // 4. Ephemeral hint (= final section, back-compat with v0.35 literal)
         #expect(dynamic.contains("Context: Tuesday, sunny"))
 
         // Per-provider builders
@@ -351,7 +286,6 @@ struct PromptBuilderTests {
                 dynamicTier: PromptBuilder.dynamicTier(
                     contextBundle: bundle,
                     memories: memories,
-                    skills: skills,
                     callerExtras: callerExtras,
                     ephemeralHint: ephemeralHint
                 )

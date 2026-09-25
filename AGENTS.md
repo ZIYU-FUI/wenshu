@@ -1607,3 +1607,72 @@ String? field is removed). v2.6 introduces the multi-facet model:
 | 3 | Preview pane integration of active tag-filter (= card grid renders only references whose `tags` contains the filter) | T5 routes `.tag` to `.referenceScope(nil)`; = the actual filter on the rendered cards lives in `BookDocLoaderOps` (= separate arc; = per §11.10 v1.74 ticket 027-35 pattern) |
 
 This §11.16 section is the canonical record of v2.6 facet model arc (= up-to-date as of 2026-09-25). Future amendments (= §11.17+) land below.
+
+# §11.17 v2.4 skill cleanup + memory rewire arc (= 2026-09-25)
+
+Per boss 2026-09-25 OOB (= user-edit on SOUL/AGENTS/.cursorrules/skill markdown files conflicts with v2.4 commercial product philosophy; = sacrifice user expression freedom for system-managed stable output), the wenshu skill system is split into two tracks:
+
+- **Track A (skill system cleanup)**: Delete the user-editable skill authoring surface (= SkillAdapter + SkillBundles + SkillRegistry + WSSkill + SkillsSettingsView + SkillBundlesTool + 5 consumer files). Keep the 35-entry hub command catalog (= wenshu-side slash command dictionary; = independent of the skill authoring layer). Future ticket = transform hub command UX from `/cmd` to button+menu per Apple HIG.
+- **Track M (memory subsystem rewire)**: Memory concept is preserved (= LLM auto-recalls facts the user told it; = not a user-editable file). The previous `MemoryAdapter.retrieve` and `.write` were no-op stubs; = now they delegate to `WSMemoryProvider.shared` (= SwiftData-backed; = same path hermes `prompt_builder.build_memory_guidance` + `turn_finalizer._sync_memory` take).
+
+## Files removed (= 14 source + 19 test)
+
+| Category | Files |
+|---|---|
+| Skill authoring source | `Core/Agent/Skill/SkillAdapter.swift` + `SkillBundles.swift` + `SkillBundlesYAMLDiscovery.swift` + `SkillCommands.swift` + `SkillPreprocessing.swift` + `Core/Agent/Tool/SkillBundlesTool.swift` + `Core/Skills/SkillFrontmatterParser.swift` + `SkillKeywordMatcher.swift` + `SkillKeywordRegistryBootstrap.swift` + `SkillMeta.swift` + `SkillRegistry.swift` + `Persistence/WSSkill.swift` + `UI/Skills/SkillsSettingsView.swift` + `Views/Settings/SkillsSettingsLoader.swift` |
+| Memory dead code source | `Core/Memory/MemoryConsolidator.swift` |
+| Skill test files | 13 test files + 1 golden JSON (= deleted in the skill cleanup commit) |
+| Memory test files | `Core/Memory/MemoryConsolidatorTests.swift` + `MemoryProviderTests.swift` + `Agent/MemorySkillOAuthTests.swift` (= deleted or merged) |
+
+## Files added (= 2 source + 1 test)
+
+| Path | Role |
+|---|---|
+| `Sources/WenshuApp/Chat/ChatHubCommands.swift` | Top-level `HubCommand` struct + `ChatHubCommands.all: [HubCommand]` (= the 35-entry wenshu-side slash command catalog). Independent of the deleted skill authoring layer. |
+| `Tests/WenshuAppTests/Chat/ChatHubCommandsTests.swift` | 8 tests: 35-entry count + per-category bucket presence + hermes-parity category coverage |
+| `Sources/WenshuApp/UI/Memory/MemorySettingsView.swift` (modified) | Slider for retention days replaced with closed-enum picker (= 30 / 90 / 180 / 365 days). Per v2.4 product philosophy: users pick, never type. |
+
+## Files rewritten (= 8 source)
+
+| Path | Change |
+|---|---|
+| `Core/Agent/Conversation/PromptBuilder.swift` | Removed `skills: [SkillAdapter.Skill]` parameter from `init` + `dynamicTier`; deleted `formatSkillsSummary` extension + `buildSkillsSystemPrompt` extension + `PromptBuilderCaches.skillsPromptCache` + `resolveSkillsDir` + cache snapshot path. Skill-related doc comments retained as v2.4 stance notes. |
+| `Core/Agent/Conversation/SystemPrompt.swift` | Removed `skills: []` parameter from `buildParts`; `dynamicTier` no longer renders skill summary section. |
+| `Core/Agent/Conversation/ConversationLoop.swift` | Removed `skills: []` parameter; `composeSystemPrompt` became `async` so it can `await MemoryAdapter().retrieve(...)`; added `step 8: Persisting memory` (= `await MemoryAdapter().write(...)` after finalization) per hermes `turn_finalizer._sync_memory`. |
+| `Core/Agent/Memory/MemoryAdapter.swift` | `retrieve(forUserMessage:bookId:)` is now `async` + delegates to `WSMemoryProvider.shared.prefetch(...)`; `write(snippet:source:bookId:)` is now `async` + delegates to `WSMemoryProvider.shared.sync(...)`. The stub-no-op behavior is gone. |
+| `Core/Memory/WSMemoryProvider.swift` | Added `@MainActor static let shared = WSMemoryProvider()` (= matches the WSMemoryRepository.shared + MemoryManager.shared singleton pattern). |
+| `Core/Memory/MemoryProvider.swift` | Trimmed to just the `MemoryProvider` protocol + `ToolSchema` helpers + `PreCompressCheckpointAPI` enum. Removed `InMemoryMemoryProvider` + `UserDefaultsMemoryProvider` (= never wired into production). |
+| `Core/Chat/ChatSessionViewModel.swift` | Removed `parseAndInvoke` short-circuit; slash commands now flow through to the LLM (= the LLM interprets `/review chapter 1` as a prompt template per `ChatHubCommands`). The pre-v2.4 stub `SkillAdapter.parseAndInvoke` result-message-injection path is gone. |
+| `Views/Settings/SettingView.swift` + `App.swift` + `Views/CommandPalette/CommandPaletteRegistrySeeder.swift` + `App/WenshuAppDelegate.swift` + `Core/Agent/Conversation/WenshuConductor.swift` + `Persistence/Container.swift` | Schema + UI + bootstrap = mechanical deletions of the user-facing skill entry points (= `skills` tab, `palette.settings.skills`, `AuxTask.skillsHub`, `SkillBundlesYAMLDiscovery.discover(...)`, `skillRegistry` parameters, `WSSkill.self`). |
+
+## Final stats
+
+| # | Metric | Value |
+|---|---|---|
+| 1 | Branch | `wt/v2.4-skill-cleanup-memory-rewire-2026-09-25` (= 8 commits) |
+| 2 | Source files added | 1 (= ChatHubCommands.swift) |
+| 3 | Source files deleted | 15 (= 14 skill + 1 memory consolidator) |
+| 4 | Source files rewritten | 9 |
+| 5 | Test files added | 1 (= ChatHubCommandsTests) |
+| 6 | Test files deleted | 17 (= 13 skill + 3 memory + 1 golden JSON) |
+| 7 | Test files rewritten | 1 (= MemoryAdapterTests) |
+| 8 | Total LOC removed (source) | ~3,500 |
+| 9 | Total LOC removed (test) | ~2,500 |
+| 10 | Total LOC added (source) | ~100 (= ChatHubCommands + MemorySettingsView closed picker) |
+| 11 | SwiftData schema migrations | 0 (= `WSSkill.self` removed from `WSPersistenceContainer.schema`; = per wenshu-pollution-defense "no backwards-compat migration" — user store simply drops the `ZSKILL` table on next launch) |
+| 12 | Production callers of `SkillAdapter` | 0 |
+| 13 | `import SQLite3` count in production code | 0 (= unchanged from §11.7d closure) |
+| 14 | `public` declaration count in production code | 0 (= unchanged from §11.13 P2-07) |
+| 15 | `swift build --target WenshuApp{Tests}` | green (= 0 errors / 0 warnings introduced) |
+| 16 | `swift test --filter ChatHubCommandsTests\|MemoryAdapterTests` isolated | 10/10 pass |
+| 17 | `bash Tools/devtool/double-axis.sh main HEAD` | exit 0 (= spec axis 5/5 OK; = standards axis 6/7 OK + 1 WARN = Q112 single-file budget exceeded = atomic-coupled deletion arc) |
+
+## What this section (§11.17) does NOT do
+
+- It does not amend AGENTS.md §11.14 (= the v2.4 closed-enum product philosophy is preserved).
+- It does not introduce a new SOUL.md / AGENTS.md / .cursorrules / HERMES.md loader (= explicit v2.4 ban).
+- It does not change the 35-entry hub command catalog UX (= future ticket = transform `/cmd` slash to button+popover menu per Apple HIG).
+- It does not touch SwiftData migration (§11.4) / sqlite3-zero (§11.7) / MVVM split (§11.10) / chat-by-book (§11.11) / AppState split (§11.13) / v2.4 agent-behavior pane (§11.14) / facet model (§11.16).
+- It does not delete `WSMemoryProvider.swift` (= it stays as the canonical SwiftData-backed MemoryProvider implementation; = the wenshu-side wins pattern per §11.3).
+
+This §11.17 section is the canonical record of the v2.4 skill cleanup + memory rewire arc (= up-to-date as of 2026-09-25). Future amendments (= §11.18+) land below.

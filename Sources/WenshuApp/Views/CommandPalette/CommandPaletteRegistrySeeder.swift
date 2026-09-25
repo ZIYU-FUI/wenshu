@@ -49,7 +49,7 @@ enum CommandPaletteRegistrySeeder {
     // MARK: - Hub commands (35)
 
     private static func hubCommandItems() -> [CommandPaletteItem] {
-        return SkillAdapter.hubCommands.map { cmd in
+        return ChatHubCommands.all.map { cmd in
             CommandPaletteItem(
                 id: "palette.hub.\(cmd.name)",
                 title: "/\(cmd.name)",
@@ -142,14 +142,6 @@ enum CommandPaletteRegistrySeeder {
                 category: "command",
                 shortcutHint: nil,
                 action: .openSettings(tab: "memory")
-            ),
-            CommandPaletteItem(
-                id: "palette.settings.skills",
-                title: "Open Settings — Skills",
-                subtitle: "Browse installed skills + slash commands",
-                category: "command",
-                shortcutHint: nil,
-                action: .openSettings(tab: "skills")
             )
         ]
     }

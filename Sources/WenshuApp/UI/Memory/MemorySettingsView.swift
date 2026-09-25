@@ -48,17 +48,23 @@ struct MemorySettingsView: View {
             .pickerStyle(.segmented)
             .disabled(!isMemoryEnabled)
 
+            // Closed-enum retention picker (= wenshu v2.4 product philosophy:
+// = users pick from a closed set, no free-text input).
+// The numeric slider becomes a Picker over 30 / 90 / 180 / 365 days.
+// Each preset maps to a fixed retention budget (= per retentionDays
+// in hermes MEMORY_RETENTION_BUCKETS).
+
             HStack {
                 Text(WenshuI18n.t("settings.memory.retention"))
                     .frame(width: DesignTokens.settingsRowLabelWidth, alignment: .leading)
-                Slider(value: Binding(
-                    get: { Double(retentionDays) },
-                    set: { retentionDays = Int($0) }
-                ), in: 7...365, step: 1)
+                Picker(WenshuI18n.t("settings.memory.retention"), selection: $retentionDays) {
+                    Text(WenshuI18n.t("settings.memory.retention.d30")).tag(30)
+                    Text(WenshuI18n.t("settings.memory.retention.d90")).tag(90)
+                    Text(WenshuI18n.t("settings.memory.retention.d180")).tag(180)
+                    Text(WenshuI18n.t("settings.memory.retention.d365")).tag(365)
+                }
+                .pickerStyle(.segmented)
                 .disabled(!isMemoryEnabled)
-                Text(WenshuI18n.tf("settings.memory.retention.value", retentionDays))
-                    .monospacedDigit()
-                    .frame(width: DesignTokens.settingsRowLabelWidth, alignment: .trailing)
             }
             .onChange(of: retentionDays) { _, newValue in
                 Task {
