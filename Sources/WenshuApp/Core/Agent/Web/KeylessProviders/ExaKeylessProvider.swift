@@ -40,9 +40,17 @@ struct ExaKeylessProvider: WebSearchProvider, Sendable {
     ]
 
     func search(query: String, limit: Int) async throws -> [WebSearchResult] {
+        // Exa's MCP schema requires both `query` and `objective` (= per
+        // exa.ai MCP server v3.2.1). `numResults` is optional (= defaults to 10).
+        // We synthesize `objective` from the query if the caller did not
+        // supply one (= keeps the WebSearchProvider protocol simple).
         let text = try await client.call(
             tool: "web_search_exa",
-            arguments: ["query": query, "numResults": max(1, limit)]
+            arguments: [
+                "query": query,
+                "objective": Self.objective(for: query),
+                "numResults": max(1, limit)
+            ]
         )
 
         var results: [WebSearchResult] = []
@@ -101,5 +109,17 @@ struct ExaKeylessProvider: WebSearchProvider, Sendable {
     private static func after(_ line: String, prefix: String) -> String {
         guard line.hasPrefix(prefix) else { return line }
         return String(line.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Exa's MCP server requires an `objective` field. We synthesize one
+    /// from the query by treating the query itself as the goal. Per the
+    /// Exa MCP docs (= v3.2.1, 2026-09-25): "describe the ideal page, not
+    /// just keywords; say which documents should rank first, which should
+    /// be excluded, and what specific facts or figures to pull from them."
+    /// Wenshu passes the query verbatim as the objective (= simple, and
+    /// keeps the WebSearchProvider protocol free of provider-specific
+    /// parameters).
+    private static func objective(for query: String) -> String {
+        query
     }
 }

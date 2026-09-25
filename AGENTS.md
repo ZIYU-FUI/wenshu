@@ -1459,6 +1459,26 @@ The "Settings → 搜索引擎" UI section was already removed in earlier arcs (
 4. Provider throws any OTHER error -> STOP and rethrow (= a malformed query fails everywhere; = don't silently round-robin).
 5. All providers tried -> throw `RingError.allProvidersThrottled(attempted: [String], lastMessage: String)`.
 
+## Live vendor schemas (= empirically validated 2026-09-25 from wenshu host network)
+
+All three vendors respond to direct HTTP calls without any API key or account. Verified schema (= JSON-RPC envelope for Parallel + Exa, REST envelope for Keenable):
+
+| # | Vendor | Endpoint | Transport | Tool name | Required args | Response |
+|---|---|---|---|---|---|---|
+| 1 | Parallel | `https://search.parallel.ai/mcp` | MCP Streamable HTTP JSON-RPC 2.0 | `web_search` | `objective: String`, `search_queries: [String]`, `session_id: String` | JSON `{"results": [{url, title, publish_date, excerpts}]}` wrapped in MCP `result.content[0].text` |
+| 2 | Exa | `https://mcp.exa.ai/mcp` | MCP Streamable HTTP JSON-RPC 2.0 (= requires `initialize` + `notifications/initialized` handshake first) | `web_search_exa` | `query: String`, `objective: String` (= both required); `numResults: Int` (= optional) | Plain text blocks separated by `\n---\n`. Each block has `Title:` / `URL:` / `Published:` / `Author:` / `Highlights:` fields. |
+| 3 | Keenable | `https://api.keenable.ai/v1/search/public` | REST POST JSON | (no tool concept; = direct endpoint) | Headers: `Content-Type: application/json`, `X-Keenable-Title: wenshu` (= mandatory; = server rejects without it as "Missing app identifier"). Body: `{"query": String, "max_results": Int}`. NOTE: the field is `max_results`, NOT `n_results`. | JSON `{"query", "mode", "results": [{title, url, description, snippet}]}` |
+
+### Empirical observations from the live validation run (= 2026-09-25)
+
+- All three vendors responded in <2 seconds from a domestic Chinese network (= HTTP 200 OK). No proxy, no account, no signup.
+- Parallel returns 10 results by default (= `objective + search_queries` produces a per-query result + the objective produces a follow-up result set; = the actual count varies but is typically >= 10).
+- Exa requires the `initialize` MCP handshake before `tools/call` (= the wenshu client doesn't currently do this; = the KeylessRing falls through to Keenable when Parallel returns empty + Exa returns an MCP handshake error; = future ticket to add the MCP handshake in `MCPJSONRPCClient.callTool` for Exa parity).
+- Keenable rejects requests without `X-Keenable-Title` (= HTTP 400 "Missing app identifier"). The `n_results` field name is also rejected (= HTTP 400 "Unknown parameter(s)"); = the canonical field name is `max_results`.
+- The wenshu code already passes the correct schema for Parallel (= `objective` + `search_queries` + `session_id`).
+- The wenshu code already passes the correct schema for Keenable (= `max_results` + `X-Keenable-Title`).
+- The wenshu code initially passed only `query + numResults` for Exa (= missing the required `objective` field); = 2026-09-25 patch added `objective: query` (= keeps the WebSearchProvider protocol free of provider-specific parameters).
+
 ## Closed-enum policy (= how to add a new keyless vendor)
 
 Any future keyless vendor follows this exact pattern (= Q112 = 1 source + 1 test per commit):

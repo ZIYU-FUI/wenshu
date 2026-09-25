@@ -212,6 +212,7 @@ struct ExaKeylessProviderTests {
         let args = params?["arguments"] as? [String: Any]
         #expect(args?["numResults"] as? Int == 5)
         #expect(args?["query"] as? String == "test")
+        #expect(args?["objective"] as? String == "test")
         #expect(params?["name"] as? String == "web_search_exa")
     }
 }
