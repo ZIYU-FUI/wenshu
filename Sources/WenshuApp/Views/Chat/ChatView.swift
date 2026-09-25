@@ -170,9 +170,9 @@ struct ChatView: View {
         // direct verifier path (= non-conductor branch in send()) does
         // not consult a tool registry, so this is a no-op for preview.
         guard conductor != nil else { return nil }
-        // Phase 5 ticket 2.2: peer conductor no longer instantiates a
+        // : peer conductor no longer instantiates a
         // WSKanbanRepository (= the sqlite3 fallback path was dropped
-        // in Phase 5 ticket 6, which also deleted the KanbanStore
+        // in , which also deleted the KanbanStore
         // actor; ticket 2's goal to remove all in-tree KanbanStore callers
         // file can be deleted once ticket 6 migrates the production
         // WenshuConductor storage layer). kanbanStore: nil = the
