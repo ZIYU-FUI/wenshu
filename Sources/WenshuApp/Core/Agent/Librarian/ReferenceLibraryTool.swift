@@ -67,7 +67,11 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     init(_ reference: Reference) {
         self.id = reference.id
         self.title = reference.title
-        self.layer = reference.layer.rawValue
+        // Map ReferenceLayer.wire_internal raw values (= "layerRaw" /
+        // "layerEntities") to the LLM-friendly wire names (= "raw" /
+        // "entities"). The internal case names are verbose because
+        // the domain enum predates the agent tool surface.
+        self.layer = Self.wireLayer(reference.layer)
         self.category = reference.category?.rawValue
         self.entityType = reference.entityType.rawValue
         self.summary = reference.summary
@@ -75,6 +79,17 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
         self.url = reference.url
         self.createdAt = reference.createdAt
         self.updatedAt = reference.updatedAt
+    }
+
+    /// ReferenceLayer.wireRawValue: maps the internal layer enum to
+    /// the LLM-friendly wire string used in tool input / output.
+    static func wireLayer(_ layer: ReferenceLayer) -> String {
+        switch layer {
+        case .layerRaw:       return "raw"
+        case .layerEntities:  return "entities"
+        case .layerAbstracts: return "abstracts"
+        case .layerIndexes:   return "indexes"
+        }
     }
 }
 
@@ -230,11 +245,19 @@ actor ReferenceLibraryActor {
     func listReferences(layer: String? = nil) async throws -> [ReferenceDescriptor] {
         let all = (try? referenceStore.loadAllReferences()) ?? []
         let filtered: [Reference]
-        if let layer, let parsedLayer = parseLayerIfUserFacing(layer) {
+        if let layer {
+            // Explicit layer requested. Reject LLM-derived layers
+            // (= .layerAbstracts / .layerIndexes) by returning empty
+            // rather than silently falling back to user-managed.
+            guard let parsedLayer = parseLayerIfUserFacing(layer) else {
+                return []
+            }
             filtered = all.filter { $0.layer == parsedLayer }
         } else {
-            // Default: user-facing layers only.
-            filtered = all.filter { $0.layer.isUserFacing }
+            // Default: user-managed layers (= raw + entities; =
+            // excludes the LLM-derived .layerAbstracts / .layerIndexes
+            // which stay hidden per the spec v5 convention).
+            filtered = all.filter { $0.layer == .layerRaw || $0.layer == .layerEntities }
         }
         let sorted = filtered.sorted { $0.updatedAt > $1.updatedAt }
         return sorted.map { ReferenceDescriptor($0) }
@@ -244,10 +267,16 @@ actor ReferenceLibraryActor {
         let normalized = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let all = (try? referenceStore.loadAllReferences()) ?? []
         let candidates: [Reference]
-        if let layer, let parsedLayer = parseLayerIfUserFacing(layer) {
+        if let layer {
+            // Explicit layer requested. Reject LLM-derived layers
+            // (= .layerAbstracts / .layerIndexes) by returning nil.
+            guard let parsedLayer = parseLayerIfUserFacing(layer) else {
+                return nil
+            }
             candidates = all.filter { $0.layer == parsedLayer }
         } else {
-            candidates = all.filter { $0.layer.isUserFacing }
+            // Default: search across both raw + entities (= user-managed).
+            candidates = all.filter { $0.layer == .layerRaw || $0.layer == .layerEntities }
         }
         let match = candidates.first { ref in
             ref.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalized
