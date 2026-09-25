@@ -137,7 +137,7 @@ struct ReaderExperienceView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l175.h61672688")) } icon: { Image(systemName: "play").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l175.h61672688")) } icon: { Image(systemName: "play").imageScale(.small) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
@@ -147,7 +147,7 @@ struct ReaderExperienceView: View {
                     report = nil
                     status = .idle
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l185.h22504814")) } icon: { Image(systemName: "xmark").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l185.h22504814")) } icon: { Image(systemName: "xmark").imageScale(.small) }
                 }
                 .buttonStyle(.bordered)
                 .help(WenshuI18n.t("b5.readerexperienceview.l188.h90304051"))
@@ -177,7 +177,7 @@ struct ReaderExperienceView: View {
     private func resultSection(for report: ReaderExperienceReport) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingVertical) {
             HStack(spacing: DesignTokens.chromePaddingVertical) {
-                Image(systemName: report.kind.icon).font(.system(size: 16, weight: .regular))
+                Image(systemName: report.kind.icon).imageScale(.small)
                     .foregroundStyle(.tint)
                 Text(report.kind.displayName)
                     .font(.callout)
