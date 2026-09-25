@@ -146,8 +146,14 @@ struct EmptyStateView: View {
             //
             // The symbolEffect call was removed because macOS 27 renders
             // the icon INVISIBLE under the IndefiniteSymbolEffect path.
+            // Resizable Image with explicit frame (= canonical Apple path
+            // for SF Symbol icons >= 40 PT where .imageScale does not apply).
+            // .thin weight preserved via .font(.system(.thin)) on the glyph.
             Image(systemName: icon)
-                .font(.system(size: DesignTokens.emptyStateIconSize, weight: .thin))
+                .resizable()
+                .font(.system(.thin))
+                .aspectRatio(contentMode: .fit)
+                .frame(width: DesignTokens.emptyStateIconSize, height: DesignTokens.emptyStateIconSize)
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, DesignTokens.chromePaddingEmptyStateGap)
