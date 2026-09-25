@@ -84,20 +84,42 @@ enum BookChapterError: Error, LocalizedError, Sendable, Equatable {
 // MARK: - Actor
 
 actor BookChapterActor {
-    private let chapterStore: any ChapterStoring
+    /// Closure returning the book directory for the current chat
+    /// session's bound book (= nil when no chat book is bound).
+    /// Resolved on every CRUD call so the user can switch books
+    /// mid-conversation without the actor holding a stale root.
+    private let bookDirectoryProvider: @Sendable () -> URL?
 
-    init(chapterStore: any ChapterStoring) {
-        self.chapterStore = chapterStore
-    }
+    /// Closure returning the chat session's currently-bound book.
+    /// See BookWorldActor's matching field for the contract.
+    private let currentChatBookIDProvider: @Sendable () -> UUID?
 
-    var bookDirectory: URL {
-        chapterStore.bookDirectory
+    init(
+        bookDirectoryProvider: @escaping @Sendable () -> URL?,
+        currentChatBookIDProvider: @escaping @Sendable () -> UUID? = { nil }
+    ) {
+        self.bookDirectoryProvider = bookDirectoryProvider
+        self.currentChatBookIDProvider = currentChatBookIDProvider
     }
 
     /// Test-only body accessor.
     func readBodyForTest(id: UUID) async -> String? {
-        let store = FileSystemChapterStore(bookDirectory: chapterStore.bookDirectory)
+        guard let dir = bookDirectoryProvider() else { return nil }
+        let store = FileSystemChapterStore(bookDirectory: dir)
         return store.loadChapterBody(id: id)
+    }
+
+    /// Resolve the current book directory (= raises `invalidInput`
+    /// if the chat session has no bound book, which the scope guard
+    /// should already have rejected). Then construct a fresh
+    /// FileSystemChapterStore rooted at that directory.
+    private func resolveStore() throws -> FileSystemChapterStore {
+        guard let dir = bookDirectoryProvider() else {
+            throw BookChapterError.invalidInput(
+                reason: "no chat session book bound (= scope guard should have caught this earlier)"
+            )
+        }
+        return FileSystemChapterStore(bookDirectory: dir)
     }
 
     // MARK: - CRUD
@@ -120,7 +142,10 @@ actor BookChapterActor {
             summary: summary
         )
         do {
-            try chapterStore.saveChapter(document, bodyMarkdown: bodyMarkdown)
+            let store = try resolveStore()
+            try store.saveChapter(document, bodyMarkdown: bodyMarkdown)
+        } catch let err as BookChapterError {
+            throw err
         } catch {
             throw BookChapterError.underlying(String(describing: error))
         }
@@ -129,11 +154,12 @@ actor BookChapterActor {
 
     func readChapter(id: UUID) async throws -> (ChapterDescriptor, String?) {
         do {
-            let documents = try chapterStore.loadChapters()
+            let store = try resolveStore()
+            let documents = try store.loadChapters()
             guard let document = documents.first(where: { $0.id == id }) else {
                 throw BookChapterError.entryNotFound(id: id)
             }
-            let body = chapterStore.loadChapterBody(id: id)
+            let body = store.loadChapterBody(id: id)
             return (ChapterDescriptor(document), body)
         } catch let err as BookChapterError {
             throw err
@@ -152,9 +178,10 @@ actor BookChapterActor {
         guard !trimmed.isEmpty else {
             throw BookChapterError.emptyTitle
         }
+        let store = try resolveStore()
         let documents: [Document]
         do {
-            documents = try chapterStore.loadChapters()
+            documents = try store.loadChapters()
         } catch {
             throw BookChapterError.underlying(String(describing: error))
         }
@@ -167,7 +194,7 @@ actor BookChapterActor {
         updated.byteSize = bodyMarkdown.utf8.count
         updated.updatedAt = Date()
         do {
-            try chapterStore.replaceChapter(updated, bodyMarkdown: bodyMarkdown)
+            try store.replaceChapter(updated, bodyMarkdown: bodyMarkdown)
         } catch {
             throw BookChapterError.underlying(String(describing: error))
         }
@@ -176,16 +203,20 @@ actor BookChapterActor {
 
     func deleteChapter(id: UUID) async throws {
         do {
-            try chapterStore.deleteChapter(id: id)
+            let store = try resolveStore()
+            try store.deleteChapter(id: id)
+        } catch let err as BookChapterError {
+            throw err
         } catch {
             throw BookChapterError.underlying(String(describing: error))
         }
     }
 
     func listChapters(bookId: UUID) async throws -> [ChapterDescriptor] {
+        let store = try resolveStore()
         let documents: [Document]
         do {
-            documents = try chapterStore.loadChapters()
+            documents = try store.loadChapters()
         } catch {
             throw BookChapterError.underlying(String(describing: error))
         }
@@ -196,9 +227,10 @@ actor BookChapterActor {
 
     func findChapter(bookId: UUID, title: String) async throws -> ChapterDescriptor? {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let store = try resolveStore()
         let documents: [Document]
         do {
-            documents = try chapterStore.loadChapters()
+            documents = try store.loadChapters()
         } catch {
             throw BookChapterError.underlying(String(describing: error))
         }
@@ -238,6 +270,23 @@ actor BookChapterActor {
                 action: nil,
                 error: BookChapterError.invalidInput(
                     reason: "missing or unknown 'action' (expected: create / read / update / delete / list / find)"
+                )
+            )
+        }
+
+        // Scope guard: see BookWorldActor (= identical contract).
+        do {
+            try BookScopeGuard.validate(
+                providedBookID: Self.parseUUID(envelope["book_id"]),
+                currentChatBookIDProvider: currentChatBookIDProvider
+            )
+        } catch let violation as BookScopeViolation {
+            return Self.encodeFailureScopeViolation(action: action, error: violation)
+        } catch {
+            return Self.encodeFailure(
+                action: action,
+                error: BookChapterError.invalidInput(
+                    reason: "scope guard failed: \(error.localizedDescription)"
                 )
             )
         }
@@ -393,6 +442,22 @@ actor BookChapterActor {
         return encodeJSON(payload)
     }
 
+    /// Encode a BookScopeViolation into the standard failure envelope.
+    /// See BookWorldTool.encodeFailureScopeViolation for the matching
+    /// contract.
+    private static func encodeFailureScopeViolation(
+        action: BookChapterAction,
+        error: BookScopeViolation
+    ) -> String {
+        let payload: [String: Any] = [
+            "ok": false,
+            "action": action.rawValue,
+            "error": error.errorDescription ?? "unknown error",
+            "error_kind": "book_scope_violation"
+        ]
+        return encodeJSON(payload)
+    }
+
     private static func descriptorToJSON(_ d: ChapterDescriptor) -> [String: Any] {
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
@@ -486,7 +551,11 @@ extension BookChapterTool {
     nonisolated static let shared: BookChapterTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-chapter-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        let store = FileSystemChapterStore(bookDirectory: tmpRoot)
-        return BookChapterTool(actor: BookChapterActor(chapterStore: store))
+        return BookChapterTool(
+            actor: BookChapterActor(
+                bookDirectoryProvider: { tmpRoot },
+                currentChatBookIDProvider: { nil }
+            )
+        )
     }()
 }

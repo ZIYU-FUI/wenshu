@@ -91,19 +91,41 @@ enum BookOutlineError: Error, LocalizedError, Sendable, Equatable {
 // MARK: - Actor
 
 actor BookOutlineActor {
-    private let outlineStore: any OutlineStoring
+    /// Closure returning the book directory for the current chat
+    /// session's bound book (= nil when no chat book is bound).
+    /// Resolved on every CRUD call so the user can switch books
+    /// mid-conversation without the actor holding a stale root.
+    private let bookDirectoryProvider: @Sendable () -> URL?
 
-    init(outlineStore: any OutlineStoring) {
-        self.outlineStore = outlineStore
-    }
+    /// Closure returning the chat session's currently-bound book.
+    /// See BookWorldActor's matching field for the contract.
+    private let currentChatBookIDProvider: @Sendable () -> UUID?
 
-    var bookDirectory: URL {
-        outlineStore.bookDirectory
+    init(
+        bookDirectoryProvider: @escaping @Sendable () -> URL?,
+        currentChatBookIDProvider: @escaping @Sendable () -> UUID? = { nil }
+    ) {
+        self.bookDirectoryProvider = bookDirectoryProvider
+        self.currentChatBookIDProvider = currentChatBookIDProvider
     }
 
     func readBodyForTest(id: UUID) async -> String? {
-        let store = FileSystemOutlineStore(bookDirectory: outlineStore.bookDirectory)
+        guard let dir = bookDirectoryProvider() else { return nil }
+        let store = FileSystemOutlineStore(bookDirectory: dir)
         return store.loadOutlineBody(id: id)
+    }
+
+    /// Resolve the current book directory (= raises `invalidInput`
+    /// if the chat session has no bound book, which the scope guard
+    /// should already have rejected). Then construct a fresh
+    /// FileSystemOutlineStore rooted at that directory.
+    private func resolveStore() throws -> FileSystemOutlineStore {
+        guard let dir = bookDirectoryProvider() else {
+            throw BookOutlineError.invalidInput(
+                reason: "no chat session book bound (= scope guard should have caught this earlier)"
+            )
+        }
+        return FileSystemOutlineStore(bookDirectory: dir)
     }
 
     // MARK: - CRUD
@@ -128,7 +150,10 @@ actor BookOutlineActor {
             order: order
         )
         do {
-            try outlineStore.saveOutline(entry, bodyMarkdown: bodyMarkdown)
+            let store = try resolveStore()
+            try store.saveOutline(entry, bodyMarkdown: bodyMarkdown)
+        } catch let err as BookOutlineError {
+            throw err
         } catch {
             throw BookOutlineError.underlying(String(describing: error))
         }
@@ -137,11 +162,12 @@ actor BookOutlineActor {
 
     func readOutline(id: UUID) async throws -> (OutlineEntryDescriptor, String?) {
         do {
-            let entries = try outlineStore.loadOutlines()
+            let store = try resolveStore()
+            let entries = try store.loadOutlines()
             guard let entry = entries.first(where: { $0.id == id }) else {
                 throw BookOutlineError.entryNotFound(id: id)
             }
-            let body = outlineStore.loadOutlineBody(id: id)
+            let body = store.loadOutlineBody(id: id)
             return (OutlineEntryDescriptor(entry), body)
         } catch let err as BookOutlineError {
             throw err
@@ -162,9 +188,10 @@ actor BookOutlineActor {
         guard !trimmed.isEmpty else {
             throw BookOutlineError.emptyTitle
         }
+        let store = try resolveStore()
         let entries: [OutlineEntry]
         do {
-            entries = try outlineStore.loadOutlines()
+            entries = try store.loadOutlines()
         } catch {
             throw BookOutlineError.underlying(String(describing: error))
         }
@@ -180,7 +207,7 @@ actor BookOutlineActor {
         if let order { updated.order = order }
         updated.updatedAt = Date()
         do {
-            try outlineStore.replaceOutline(updated, bodyMarkdown: bodyMarkdown)
+            try store.replaceOutline(updated, bodyMarkdown: bodyMarkdown)
         } catch {
             throw BookOutlineError.underlying(String(describing: error))
         }
@@ -189,16 +216,20 @@ actor BookOutlineActor {
 
     func deleteOutline(id: UUID) async throws {
         do {
-            try outlineStore.deleteOutline(id: id)
+            let store = try resolveStore()
+            try store.deleteOutline(id: id)
+        } catch let err as BookOutlineError {
+            throw err
         } catch {
             throw BookOutlineError.underlying(String(describing: error))
         }
     }
 
     func listOutlines(bookId: UUID) async throws -> [OutlineEntryDescriptor] {
+        let store = try resolveStore()
         let entries: [OutlineEntry]
         do {
-            entries = try outlineStore.loadOutlines()
+            entries = try store.loadOutlines()
         } catch {
             throw BookOutlineError.underlying(String(describing: error))
         }
@@ -212,9 +243,10 @@ actor BookOutlineActor {
 
     func findOutline(bookId: UUID, title: String) async throws -> OutlineEntryDescriptor? {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let store = try resolveStore()
         let entries: [OutlineEntry]
         do {
-            entries = try outlineStore.loadOutlines()
+            entries = try store.loadOutlines()
         } catch {
             throw BookOutlineError.underlying(String(describing: error))
         }
@@ -254,6 +286,23 @@ actor BookOutlineActor {
                 action: nil,
                 error: BookOutlineError.invalidInput(
                     reason: "missing or unknown 'action' (expected: create / read / update / delete / list / find)"
+                )
+            )
+        }
+
+        // Scope guard: see BookWorldActor (= identical contract).
+        do {
+            try BookScopeGuard.validate(
+                providedBookID: Self.parseUUID(envelope["book_id"]),
+                currentChatBookIDProvider: currentChatBookIDProvider
+            )
+        } catch let violation as BookScopeViolation {
+            return Self.encodeFailureScopeViolation(action: action, error: violation)
+        } catch {
+            return Self.encodeFailure(
+                action: action,
+                error: BookOutlineError.invalidInput(
+                    reason: "scope guard failed: \(error.localizedDescription)"
                 )
             )
         }
@@ -433,6 +482,22 @@ actor BookOutlineActor {
         return encodeJSON(payload)
     }
 
+    /// Encode a BookScopeViolation into the standard failure envelope.
+    /// See BookWorldTool.encodeFailureScopeViolation for the matching
+    /// contract.
+    private static func encodeFailureScopeViolation(
+        action: BookOutlineAction,
+        error: BookScopeViolation
+    ) -> String {
+        let payload: [String: Any] = [
+            "ok": false,
+            "action": action.rawValue,
+            "error": error.errorDescription ?? "unknown error",
+            "error_kind": "book_scope_violation"
+        ]
+        return encodeJSON(payload)
+    }
+
     private static func descriptorToJSON(_ d: OutlineEntryDescriptor) -> [String: Any] {
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
@@ -539,7 +604,11 @@ extension BookOutlineTool {
     nonisolated static let shared: BookOutlineTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-outline-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        let store = FileSystemOutlineStore(bookDirectory: tmpRoot)
-        return BookOutlineTool(actor: BookOutlineActor(outlineStore: store))
+        return BookOutlineTool(
+            actor: BookOutlineActor(
+                bookDirectoryProvider: { tmpRoot },
+                currentChatBookIDProvider: { nil }
+            )
+        )
     }()
 }

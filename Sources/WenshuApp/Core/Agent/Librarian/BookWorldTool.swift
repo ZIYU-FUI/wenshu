@@ -134,25 +134,53 @@ enum BookWorldError: Error, LocalizedError, Sendable, Equatable {
 ///   - Unknown id on read / update / delete / find = throws
 ///     `.entryNotFound` / returns nil for find.
 actor BookWorldActor {
-    private let worldStore: any WorldStoring
+    /// Closure returning the book directory for the current chat
+    /// session's bound book (= nil when no chat book is bound).
+    /// Resolved on every CRUD call so the user can switch books
+    /// mid-conversation without the actor holding a stale root.
+    ///
+    /// `nil` from the provider means the chat session has no bound
+    /// book (= onboarding or a chat predating v1.79). The actor
+    /// surfaces this as an `invalidInput` (= the scope guard
+    /// catches the cross-book case earlier).
+    private let bookDirectoryProvider: @Sendable () -> URL?
 
-    init(worldStore: any WorldStoring) {
-        self.worldStore = worldStore
-    }
+    /// Closure returning the chat session's currently-bound book
+    /// (= nil when the chat session has no bound book). The actor
+    /// reads this on every execute(input:) call so the latest
+    /// sidebar selection is always honored.
+    private let currentChatBookIDProvider: @Sendable () -> UUID?
 
-    /// The book directory the underlying FileSystemWorldStore writes to.
-    /// Exposed for tests; in production the actor is opaque.
-    var bookDirectory: URL {
-        worldStore.bookDirectory
+    init(
+        bookDirectoryProvider: @escaping @Sendable () -> URL?,
+        currentChatBookIDProvider: @escaping @Sendable () -> UUID? = { nil }
+    ) {
+        self.bookDirectoryProvider = bookDirectoryProvider
+        self.currentChatBookIDProvider = currentChatBookIDProvider
     }
 
     /// Test-only: re-construct a FileSystemWorldStore rooted at the
-    /// actor's book directory and read the .md body for an entry id.
+    /// current chat session's book directory (= the provider's
+    /// current value) and read the .md body for an entry id.
     /// Lives on the actor (not a free function) so the test can call
     /// it without breaking actor isolation on the store.
     func readBodyForTest(id: UUID) async -> String? {
-        let store = FileSystemWorldStore(bookDirectory: worldStore.bookDirectory)
+        guard let dir = bookDirectoryProvider() else { return nil }
+        let store = FileSystemWorldStore(bookDirectory: dir)
         return store.loadEntryBody(id: id)
+    }
+
+    /// Resolve the current book directory (= raises `invalidInput`
+    /// if the chat session has no bound book, which the scope guard
+    /// should already have rejected). Then construct a fresh
+    /// FileSystemWorldStore rooted at that directory.
+    private func resolveStore() throws -> FileSystemWorldStore {
+        guard let dir = bookDirectoryProvider() else {
+            throw BookWorldError.invalidInput(
+                reason: "no chat session book bound (= scope guard should have caught this earlier)"
+            )
+        }
+        return FileSystemWorldStore(bookDirectory: dir)
     }
 
     // MARK: - CRUD
@@ -169,109 +197,119 @@ actor BookWorldActor {
             throw BookWorldError.emptyName
         }
         let parsedType = WorldEntryType(rawValue: type) ?? .other
-        let entry = WorldEntry(
-            bookId: bookId,
-            type: parsedType,
-            name: trimmed,
-            summary: summary
-        )
-        do {
-            try worldStore.saveEntry(entry, bodyMarkdown: bodyMarkdown)
-        } catch {
-            throw BookWorldError.underlying(String(describing: error))
-        }
-        return WorldEntryDescriptor(entry)
-    }
-
-    func readEntry(id: UUID) async throws -> (WorldEntryDescriptor, String?) {
-        do {
-            let entries = try worldStore.loadWorld()
-            guard let entry = entries.first(where: { $0.id == id }) else {
-                throw BookWorldError.entryNotFound(id: id)
+                let entry = WorldEntry(
+                    bookId: bookId,
+                    type: parsedType,
+                    name: trimmed,
+                    summary: summary
+                )
+                do {
+                    let store = try resolveStore()
+                    try store.saveEntry(entry, bodyMarkdown: bodyMarkdown)
+                } catch let err as BookWorldError {
+                    throw err
+                } catch {
+                    throw BookWorldError.underlying(String(describing: error))
+                }
+                return WorldEntryDescriptor(entry)
             }
-            let body = worldStore.loadEntryBody(id: id)
-            return (WorldEntryDescriptor(entry), body)
-        } catch let err as BookWorldError {
-            throw err
-        } catch {
-            throw BookWorldError.underlying(String(describing: error))
-        }
-    }
 
-    func updateEntry(
-        id: UUID,
-        name: String,
-        bodyMarkdown: String,
-        type: String? = nil,
-        summary: String? = nil
-    ) async throws -> WorldEntryDescriptor {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            throw BookWorldError.emptyName
-        }
-        let entries: [WorldEntry]
-        do {
-            entries = try worldStore.loadWorld()
-        } catch {
-            throw BookWorldError.underlying(String(describing: error))
-        }
-        guard let existing = entries.first(where: { $0.id == id }) else {
-            throw BookWorldError.entryNotFound(id: id)
-        }
-        let updatedType: WorldEntryType
-        if let type, let parsed = WorldEntryType(rawValue: type) {
-            updatedType = parsed
-        } else {
-            updatedType = existing.type
-        }
-        let updatedSummary = summary ?? existing.summary
-        var updated = existing
-        updated.name = trimmed
-        updated.type = updatedType
-        updated.summary = updatedSummary
-        updated.updatedAt = Date()
-        do {
-            try worldStore.replaceEntry(updated, bodyMarkdown: bodyMarkdown)
-        } catch {
-            throw BookWorldError.underlying(String(describing: error))
-        }
-        return WorldEntryDescriptor(updated)
-    }
+            func readEntry(id: UUID) async throws -> (WorldEntryDescriptor, String?) {
+                do {
+                    let store = try resolveStore()
+                    let entries = try store.loadWorld()
+                    guard let entry = entries.first(where: { $0.id == id }) else {
+                        throw BookWorldError.entryNotFound(id: id)
+                    }
+                    let body = store.loadEntryBody(id: id)
+                    return (WorldEntryDescriptor(entry), body)
+                } catch let err as BookWorldError {
+                    throw err
+                } catch {
+                    throw BookWorldError.underlying(String(describing: error))
+                }
+            }
 
-    func deleteEntry(id: UUID) async throws {
-        do {
-            try worldStore.deleteEntry(id: id)
-        } catch {
-            throw BookWorldError.underlying(String(describing: error))
-        }
-    }
+            func updateEntry(
+                id: UUID,
+                name: String,
+                bodyMarkdown: String,
+                type: String? = nil,
+                summary: String? = nil
+            ) async throws -> WorldEntryDescriptor {
+                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else {
+                    throw BookWorldError.emptyName
+                }
+                let store = try resolveStore()
+                let entries: [WorldEntry]
+                do {
+                    entries = try store.loadWorld()
+                } catch {
+                    throw BookWorldError.underlying(String(describing: error))
+                }
+                guard let existing = entries.first(where: { $0.id == id }) else {
+                    throw BookWorldError.entryNotFound(id: id)
+                }
+                let updatedType: WorldEntryType
+                if let type, let parsed = WorldEntryType(rawValue: type) {
+                    updatedType = parsed
+                } else {
+                    updatedType = existing.type
+                }
+                let updatedSummary = summary ?? existing.summary
+                var updated = existing
+                updated.name = trimmed
+                updated.type = updatedType
+                updated.summary = updatedSummary
+                updated.updatedAt = Date()
+                do {
+                    try store.replaceEntry(updated, bodyMarkdown: bodyMarkdown)
+                } catch {
+                    throw BookWorldError.underlying(String(describing: error))
+                }
+                return WorldEntryDescriptor(updated)
+            }
 
-    func listEntries(bookId: UUID) async throws -> [WorldEntryDescriptor] {
-        let entries: [WorldEntry]
-        do {
-            entries = try worldStore.loadWorld()
-        } catch {
-            throw BookWorldError.underlying(String(describing: error))
-        }
-        let filtered = entries.filter { $0.bookId == bookId }
-        let sorted = filtered.sorted { $0.updatedAt > $1.updatedAt }
-        return sorted.map { WorldEntryDescriptor($0) }
-    }
+            func deleteEntry(id: UUID) async throws {
+                do {
+                    let store = try resolveStore()
+                    try store.deleteEntry(id: id)
+                } catch let err as BookWorldError {
+                    throw err
+                } catch {
+                    throw BookWorldError.underlying(String(describing: error))
+                }
+            }
 
-    func findEntry(bookId: UUID, name: String) async throws -> WorldEntryDescriptor? {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let entries: [WorldEntry]
-        do {
-            entries = try worldStore.loadWorld()
-        } catch {
-            throw BookWorldError.underlying(String(describing: error))
-        }
-        let match = entries.first { entry in
-            entry.bookId == bookId &&
-            entry.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmed
-        }
-        return match.map { WorldEntryDescriptor($0) }
-    }
+            func listEntries(bookId: UUID) async throws -> [WorldEntryDescriptor] {
+                let store = try resolveStore()
+                let entries: [WorldEntry]
+                do {
+                    entries = try store.loadWorld()
+                } catch {
+                    throw BookWorldError.underlying(String(describing: error))
+                }
+                let filtered = entries.filter { $0.bookId == bookId }
+                let sorted = filtered.sorted { $0.updatedAt > $1.updatedAt }
+                return sorted.map { WorldEntryDescriptor($0) }
+            }
+
+            func findEntry(bookId: UUID, name: String) async throws -> WorldEntryDescriptor? {
+                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                let store = try resolveStore()
+                let entries: [WorldEntry]
+                do {
+                    entries = try store.loadWorld()
+                } catch {
+                    throw BookWorldError.underlying(String(describing: error))
+                }
+                let match = entries.first { entry in
+                    entry.bookId == bookId &&
+                    entry.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmed
+                }
+                return match.map { WorldEntryDescriptor($0) }
+            }
 
     // MARK: - Tool-protocol entry-point (LLM-facing dispatcher)
 
@@ -327,6 +365,26 @@ actor BookWorldActor {
                 action: nil,
                 error: BookWorldError.invalidInput(
                     reason: "missing or unknown 'action' (expected: create / read / update / delete / list / find)"
+                )
+            )
+        }
+
+        // Scope guard: every action MUST carry a `book_id` that matches
+        // the chat session's currently-bound book. Validated once here
+        // (= before any disk write) so cross-book writes are blocked
+        // before reaching the storage layer.
+        do {
+            try BookScopeGuard.validate(
+                providedBookID: Self.parseUUID(envelope["book_id"]),
+                currentChatBookIDProvider: currentChatBookIDProvider
+            )
+        } catch let violation as BookScopeViolation {
+            return Self.encodeFailureScopeViolation(action: action, error: violation)
+        } catch {
+            return Self.encodeFailure(
+                action: action,
+                error: BookWorldError.invalidInput(
+                    reason: "scope guard failed: \(error.localizedDescription)"
                 )
             )
         }
@@ -487,6 +545,23 @@ actor BookWorldActor {
         return encodeJSON(payload)
     }
 
+    /// Encode a BookScopeViolation into the standard failure envelope.
+    /// Kept separate from encodeFailure(BookWorldError) so future
+    /// maintenance can give scope violations distinct telemetry
+    /// (= e.g. log every cross-book attempt).
+    private static func encodeFailureScopeViolation(
+        action: BookWorldAction,
+        error: BookScopeViolation
+    ) -> String {
+        let payload: [String: Any] = [
+            "ok": false,
+            "action": action.rawValue,
+            "error": error.errorDescription ?? "unknown error",
+            "error_kind": "book_scope_violation"
+        ]
+        return encodeJSON(payload)
+    }
+
     private static func descriptorToJSON(_ d: WorldEntryDescriptor) -> [String: Any] {
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
@@ -591,7 +666,11 @@ extension BookWorldTool {
     nonisolated static let shared: BookWorldTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-world-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        let store = FileSystemWorldStore(bookDirectory: tmpRoot)
-        return BookWorldTool(actor: BookWorldActor(worldStore: store))
+        return BookWorldTool(
+            actor: BookWorldActor(
+                bookDirectoryProvider: { tmpRoot },
+                currentChatBookIDProvider: { nil }
+            )
+        )
     }()
 }

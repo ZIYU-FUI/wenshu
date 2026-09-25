@@ -18,14 +18,18 @@ import Foundation
 @Suite("BookOutlineTool (v2.0)")
 struct BookOutlineToolTests {
 
-    private static func makeOutlineStore() throws -> FileSystemOutlineStore {
+    private static func makeBookDirectory() throws -> URL {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-v2-outline-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        return FileSystemOutlineStore(bookDirectory: tmpRoot)
+        return tmpRoot
     }
 
     private static func makeActor() throws -> BookOutlineActor {
-        try BookOutlineActor(outlineStore: makeOutlineStore())
+        let dir = try makeBookDirectory()
+        return BookOutlineActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
     }
 
     @Test func testCreateOutline_persistsBody() async throws {
@@ -96,8 +100,11 @@ struct BookOutlineToolTests {
     }
 
     @Test func testListOutlines_filtersByBookIdAndSortsByOrder() async throws {
-        let store = try Self.makeOutlineStore()
-        let actor = BookOutlineActor(outlineStore: store)
+        let dir = try Self.makeBookDirectory()
+        let actor = BookOutlineActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
         let bookA = UUID()
         let bookB = UUID()
         _ = try await actor.createOutline(bookId: bookA, title: "A-3", bodyMarkdown: "a3", order: 3)
@@ -128,17 +135,56 @@ struct BookOutlineToolTests {
     }
 
     @Test func testExecute_createAction_parsesAndCreates() async throws {
-        let store = try Self.makeOutlineStore()
-        let actor = BookOutlineActor(outlineStore: store)
+        let dir = try Self.makeBookDirectory()
+        let bookId = UUID()
+        let actor = BookOutlineActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { bookId }
+        )
         let tool = BookOutlineTool(actor: actor)
-        let bookId = UUID().uuidString
         let input = """
-        {"action":"create","book_id":"\(bookId)","title":"Volume 1","order":1,"markdown":"# V1"}
+        {"action":"create","book_id":"\(bookId.uuidString)","title":"Volume 1","order":1,"markdown":"# V1"}
         """
         let output = try await tool.execute(input: input)
         #expect(output.contains("\"ok\":true"))
         #expect(output.contains("\"action\":\"create\""))
         #expect(output.contains("\"title\":\"Volume 1\""))
         #expect(output.contains("\"order\":1"))
+    }
+
+    @Test func testExecute_crossBookWrite_rejectedByScopeGuard() async throws {
+        let dir = try Self.makeBookDirectory()
+        let chatBook = UUID()
+        let requestedBook = UUID()
+        let actor = BookOutlineActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { chatBook }
+        )
+        let tool = BookOutlineTool(actor: actor)
+        let input = """
+        {"action":"create","book_id":"\(requestedBook.uuidString)","title":"Forbidden","order":1,"markdown":"# F"}
+        """
+        let output = try await tool.execute(input: input)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
+        #expect(output.contains(chatBook.uuidString))
+        #expect(output.contains(requestedBook.uuidString))
+    }
+
+    @Test func testExecute_noChatBook_rejectedByScopeGuard() async throws {
+        let dir = try Self.makeBookDirectory()
+        let requestedBook = UUID()
+        let actor = BookOutlineActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
+        let tool = BookOutlineTool(actor: actor)
+        let input = """
+        {"action":"create","book_id":"\(requestedBook.uuidString)","title":"Forbidden","order":1,"markdown":"# F"}
+        """
+        let output = try await tool.execute(input: input)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
+        #expect(output.contains("not bound to any book"))
     }
 }

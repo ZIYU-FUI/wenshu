@@ -20,14 +20,18 @@ struct BookCharacterToolTests {
 
     // MARK: - Helpers
 
-    private static func makeCharacterStore() throws -> FileSystemCharacterStore {
+    private static func makeBookDirectory() throws -> URL {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-v2-character-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        return FileSystemCharacterStore(bookDirectory: tmpRoot)
+        return tmpRoot
     }
 
     private static func makeActor() throws -> BookCharacterActor {
-        try BookCharacterActor(characterStore: makeCharacterStore())
+        let dir = try makeBookDirectory()
+        return BookCharacterActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
     }
 
     // MARK: - Test 1: create persists .md body
@@ -110,8 +114,11 @@ struct BookCharacterToolTests {
     // MARK: - Test 5: list filters by bookId
 
     @Test func testListCharacters_filtersByBookId() async throws {
-        let store = try Self.makeCharacterStore()
-        let actor = BookCharacterActor(characterStore: store)
+        let dir = try Self.makeBookDirectory()
+        let actor = BookCharacterActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
         let bookA = UUID()
         let bookB = UUID()
         _ = try await actor.createCharacter(bookId: bookA, name: "A1", bodyMarkdown: "a1")
@@ -146,17 +153,56 @@ struct BookCharacterToolTests {
     // MARK: - Test 7: LLM dispatcher
 
     @Test func testExecute_createAction_parsesAndCreates() async throws {
-        let store = try Self.makeCharacterStore()
-        let actor = BookCharacterActor(characterStore: store)
+        let dir = try Self.makeBookDirectory()
+        let bookId = UUID()
+        let actor = BookCharacterActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { bookId }
+        )
         let tool = BookCharacterTool(actor: actor)
-        let bookId = UUID().uuidString
         let input = """
-        {"action":"create","book_id":"\(bookId)","name":"Wei Zhongxian","role":"antagonist","markdown":"# Wei"}
+        {"action":"create","book_id":"\(bookId.uuidString)","name":"Wei Zhongxian","role":"antagonist","markdown":"# Wei"}
         """
         let output = try await tool.execute(input: input)
         #expect(output.contains("\"ok\":true"))
         #expect(output.contains("\"action\":\"create\""))
         #expect(output.contains("\"name\":\"Wei Zhongxian\""))
         #expect(output.contains("\"role\":\"antagonist\""))
+    }
+
+    @Test func testExecute_crossBookWrite_rejectedByScopeGuard() async throws {
+        let dir = try Self.makeBookDirectory()
+        let chatBook = UUID()
+        let requestedBook = UUID()
+        let actor = BookCharacterActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { chatBook }
+        )
+        let tool = BookCharacterTool(actor: actor)
+        let input = """
+        {"action":"create","book_id":"\(requestedBook.uuidString)","name":"Forbidden","markdown":"# F"}
+        """
+        let output = try await tool.execute(input: input)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
+        #expect(output.contains(chatBook.uuidString))
+        #expect(output.contains(requestedBook.uuidString))
+    }
+
+    @Test func testExecute_noChatBook_rejectedByScopeGuard() async throws {
+        let dir = try Self.makeBookDirectory()
+        let requestedBook = UUID()
+        let actor = BookCharacterActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
+        let tool = BookCharacterTool(actor: actor)
+        let input = """
+        {"action":"create","book_id":"\(requestedBook.uuidString)","name":"Forbidden","markdown":"# F"}
+        """
+        let output = try await tool.execute(input: input)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
+        #expect(output.contains("not bound to any book"))
     }
 }
