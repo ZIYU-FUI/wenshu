@@ -81,7 +81,12 @@ actor WenshuConductor {
     /// `runLegacyConductorPipeline` does not consult the registry.
     /// Default = empty (= no tools) preserves every existing test +
     /// call site without modification.
-    private let tools: [String: any Tool]
+    /// Tool registry carried through to the conversation loop. Mutable
+    /// so the book_X scope guard can replace the four default
+    /// registrations with provider-bound instances (= see
+    /// `wireBookScopeGuard`). actor-isolated (= safe to mutate from
+    /// any conductor method).
+    private var tools: [String: any Tool]
 
     init(
         runtime: AgentRuntime,
@@ -939,5 +944,58 @@ actor WenshuConductor {
     /// `ToolRegistry.shared`, not a freshly-constructed dict).
     internal func registeredToolNames() -> [String] {
         tools.keys.sorted()
+    }
+
+    // MARK: - Book scope guard wiring (v2.1, 2026-09-25)
+
+    /// The four agent tools that are bound to a chat-session's book
+    /// (= the user picks a book in the sidebar and the chat session
+    /// becomes scoped to that book). These are replaced with
+    /// provider-bound instances by `wireBookScopeGuard`.
+    private static let bookScopeGuardedToolNames: Set<String> = [
+        "book_world",
+        "book_character",
+        "book_chapter",
+        "book_outline"
+    ]
+
+    /// Wire the four book_X tools (= world / character / chapter /
+    /// outline) with closures returning the chat session's
+    /// currently-bound book + its on-disk bookDirectory.
+    ///
+    /// Both closures are read on every execute(input:) call (= the
+    /// latest sidebar selection is honored even if the user switches
+    /// books mid-conversation). BookDirectory is re-derived (= so
+    /// the agent always writes to the freshly-selected book, not a
+    /// stale root).
+    ///
+    /// `reference_library` (= library-public) is intentionally NOT
+    /// in the replaced set. `book_manager` (= meta: create / delete
+    /// / rename book) is also NOT in the set (= see spec L30).
+    func wireBookScopeGuard(
+        currentChatBookIDProvider: @escaping @Sendable () -> UUID?,
+        bookDirectoryProvider: @escaping @Sendable () -> URL?
+    ) {
+        let worldActor = BookWorldActor(
+            bookDirectoryProvider: bookDirectoryProvider,
+            currentChatBookIDProvider: currentChatBookIDProvider
+        )
+        let characterActor = BookCharacterActor(
+            bookDirectoryProvider: bookDirectoryProvider,
+            currentChatBookIDProvider: currentChatBookIDProvider
+        )
+        let chapterActor = BookChapterActor(
+            bookDirectoryProvider: bookDirectoryProvider,
+            currentChatBookIDProvider: currentChatBookIDProvider
+        )
+        let outlineActor = BookOutlineActor(
+            bookDirectoryProvider: bookDirectoryProvider,
+            currentChatBookIDProvider: currentChatBookIDProvider
+        )
+
+        tools["book_world"] = BookWorldTool(actor: worldActor)
+        tools["book_character"] = BookCharacterTool(actor: characterActor)
+        tools["book_chapter"] = BookChapterTool(actor: chapterActor)
+        tools["book_outline"] = BookOutlineTool(actor: outlineActor)
     }
 }
