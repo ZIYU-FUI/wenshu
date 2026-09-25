@@ -109,7 +109,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // (= exactly macOS standard = native toolbar buttons next to
         // traffic lights = matches Apple Pages / Xcode / Mail etc.).
         //
-        // (Phase 5 ticket 10a removed ChatSessionStore from this bootstrap)
+        // ( removed ChatSessionStore from this bootstrap)
         // unsafeMutablePointer / instance var — static let yes immutable,
 // bossverificationfix (Boss 8/24 'chat, '):
         // add NSLog for chat store init + bootstrap errors (silent catch
@@ -142,7 +142,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             (path as NSString).appendingPathComponent("chat.sqlite")
         }
 
-        // Phase 5 ticket 1 sub-task 1b.3: activate the warehouse ModelContainer.
+        //  sub-task 1b.3: activate the warehouse ModelContainer.
         //
         // When the warehouse URL is set (= UserDefaults "wenshu.libraryPath"),
         // makeContainerForWarehouse tries to build a SwiftData ModelContainer
@@ -157,7 +157,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         //
         // This runs BEFORE any chat-history view reads from the repository
         // (= so SwiftData repositories are ready before any view reads from them).
-        // Post-Phase 5 ticket 10b: all 7 of the planned sqlite3 stores are deleted
+        // Post-: all 7 of the planned sqlite3 stores are deleted
         // (= KanbanStore + TodoStore + MemoryStore + LinkIndex + ChatSessionStore +
         // BookmarkStore + WenshuWorkspace). The warehouse container is the canonical
         // SwiftData home for all live data. Post-v1.55d (= boss 2026-09-21 '数据库不要
@@ -192,7 +192,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             Self.migrateLegacyChatIfNeeded(warehousePath: warehouse, chatDbPath: chatDbPath)
         }
 
-        // Phase 5 ticket 10a: ChatSessionStore actor + sqlite3 raw connection
+        // : ChatSessionStore actor + sqlite3 raw connection
         // removed. Chat history now lives in WSChatRepository.shared
         // (= @MainActor SwiftData wrapper; = warehouse container activated
         // above). No per-actor sqlite3 chat store bootstrap needed.
