@@ -26,7 +26,7 @@ struct AppleSidebarBottomNewButton: View {
             Button(action: action) {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .regular))
+                        .imageScale(.small)
                         .foregroundStyle(.secondary)
                     Text(WenshuI18n.t("sidebar.new_button.label"))
                         .font(.callout)

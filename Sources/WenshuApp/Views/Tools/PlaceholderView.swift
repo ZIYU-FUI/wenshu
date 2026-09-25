@@ -179,7 +179,7 @@ struct PlaceholderView: View {
                 Button {
                     Task { await addPlaceholder() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.placeholderview.l213.h26972630")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.placeholderview.l213.h26972630")) } icon: { Image(systemName: "plus").imageScale(.small) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
@@ -270,7 +270,7 @@ struct PlaceholderView: View {
     private func placeholderRow(_ row: Placeholder) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: row.status.icon).font(.system(size: 16, weight: .regular))
+                Image(systemName: row.status.icon).imageScale(.small)
                     .foregroundStyle(.tint)
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
@@ -306,7 +306,7 @@ struct PlaceholderView: View {
                         Button {
                             Task { await resolvePlaceholder(row) }
                         } label: {
-                            Image(systemName: "checkmark").font(.system(size: 14, weight: .regular))
+                            Image(systemName: "checkmark").imageScale(.small)
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -316,7 +316,7 @@ struct PlaceholderView: View {
                         Button {
                             Task { await reopenPlaceholder(row) }
                         } label: {
-                            Image(systemName: "arrow.counterclockwise").font(.system(size: 14, weight: .regular))
+                            Image(systemName: "arrow.counterclockwise").imageScale(.small)
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -326,7 +326,7 @@ struct PlaceholderView: View {
                         Button {
                             Task { await abandonPlaceholder(row) }
                         } label: {
-                            Image(systemName: "xmark.circle").font(.system(size: 14, weight: .regular))
+                            Image(systemName: "xmark.circle").imageScale(.small)
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -335,7 +335,7 @@ struct PlaceholderView: View {
                     Button(role: .destructive) {
                         Task { await removePlaceholder(row) }
                     } label: {
-                        Image(systemName: "trash").font(.system(size: 14, weight: .regular))
+                        Image(systemName: "trash").imageScale(.small)
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
@@ -354,7 +354,7 @@ struct PlaceholderView: View {
     private var scanSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Image(systemName: "viewfinder").font(.system(size: 14, weight: .regular))
+                Image(systemName: "viewfinder").imageScale(.small)
                     .foregroundStyle(.tint)
                 Text(WenshuI18n.t("b5.placeholderview.l396.h55542836"))
                     .font(.callout)
@@ -375,7 +375,7 @@ struct PlaceholderView: View {
                 Button {
                     Task { await runScan() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.placeholderview.l415.h37771405")) } icon: { Image(systemName: "plus.circle").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.placeholderview.l415.h37771405")) } icon: { Image(systemName: "plus.circle").imageScale(.small) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canScan)

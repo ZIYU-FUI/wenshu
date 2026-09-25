@@ -31,7 +31,7 @@ struct RuntimeCWDDisplayChip: View {
 
     var body: some View {
         HStack(spacing: DesignTokens.chromePaddingMicro) {
-            Image(systemName: "folder").font(.system(size: 16, weight: .regular))
+            Image(systemName: "folder").imageScale(.small)
                 .font(DesignTokens.runtimeCwdChipFont)
                 .foregroundStyle(.secondary)
             Text(displayLabel)

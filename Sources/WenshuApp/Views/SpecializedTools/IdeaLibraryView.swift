@@ -182,7 +182,7 @@ struct IdeaLibraryView: View {
                 Button {
                     Task { await addIdea() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.idealibraryview.l223.h11292365")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.idealibraryview.l223.h11292365")) } icon: { Image(systemName: "plus").imageScale(.small) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddIdea)
@@ -285,7 +285,7 @@ struct IdeaLibraryView: View {
     private func ideaRow(_ idea: Idea) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-                Image(systemName: idea.status.icon).font(.system(size: 16, weight: .regular))
+                Image(systemName: idea.status.icon).imageScale(.small)
                     .foregroundStyle(.tint)
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
@@ -333,7 +333,7 @@ struct IdeaLibraryView: View {
                 Button(role: .destructive) {
                     Task { await removeIdea(idea) }
                 } label: {
-                    Image(systemName: "trash").font(.system(size: 14, weight: .regular))
+                    Image(systemName: "trash").imageScale(.small)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
@@ -407,7 +407,7 @@ struct IdeaLibraryView: View {
                     Button {
                         Task { await linkIdea() }
                     } label: {
-                        Label { Text(WenshuI18n.t("b5.idealibraryview.l454.h37139110")) } icon: { Image(systemName: "link").font(.system(size: 16, weight: .regular)) }
+                        Label { Text(WenshuI18n.t("b5.idealibraryview.l454.h37139110")) } icon: { Image(systemName: "link").imageScale(.small) }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canLink)
@@ -456,7 +456,7 @@ struct IdeaLibraryView: View {
 
     private func linkRow(_ link: IdeaLink, for ideaId: UUID) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-            Image(systemName: link.target.icon).font(.system(size: 14, weight: .regular))
+            Image(systemName: link.target.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
@@ -482,7 +482,7 @@ struct IdeaLibraryView: View {
             Button(role: .destructive) {
                 Task { await unlinkIdea(ideaId: ideaId, link: link) }
             } label: {
-                Image(systemName: "xmark").font(.system(size: 12, weight: .regular))
+                Image(systemName: "xmark").imageScale(.small)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
@@ -513,7 +513,7 @@ struct IdeaLibraryView: View {
                 Button {
                     Task { await runSuggest() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.idealibraryview.l563.h68346633")) } icon: { Image(systemName: "wand.and.rays").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.idealibraryview.l563.h68346633")) } icon: { Image(systemName: "wand.and.rays").imageScale(.small) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(draftSuggestContext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -524,7 +524,7 @@ struct IdeaLibraryView: View {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                         ForEach(suggestions) { idea in
                             HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-                                Image(systemName: idea.status.icon).font(.system(size: 12, weight: .regular))
+                                Image(systemName: idea.status.icon).imageScale(.small)
                                     .foregroundStyle(.tint)
                                     .frame(width: DesignTokens.iconStandardSize)
                                 Text(idea.title)

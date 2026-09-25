@@ -157,7 +157,7 @@ struct TodoListView: View {
                 .pickerStyle(.menu)
                 .fixedSize()
                 Button(action: addItem) {
-                    Label { Text(WenshuI18n.t("auto2.todolistview.l191.h76640765")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("auto2.todolistview.l191.h76640765")) } icon: { Image(systemName: "plus").imageScale(.small) }
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)
@@ -394,7 +394,7 @@ private struct TodoRow: View {
                 Divider()
                 Button(WenshuI18n.t("auto2.todolistview.l573.h2266275"), role: .destructive) { onDelete() }
             } label: {
-                Image(systemName: "ellipsis").font(.system(size: 16, weight: .regular))
+                Image(systemName: "ellipsis").imageScale(.small)
                     .font(.caption)
             }
             .menuStyle(.borderlessButton)
@@ -412,7 +412,7 @@ private struct TodoRow: View {
                 && item.status != .completed
                 && item.status != .cancelled
             HStack(spacing: 4) {
-                Image(systemName: "calendar").font(.system(size: 16, weight: .regular))
+                Image(systemName: "calendar").imageScale(.small)
                     .font(.caption2)
                 Text(Self.dueDateFormatter.string(from: due))
                     .font(.caption)
@@ -445,27 +445,27 @@ private struct TodoRow: View {
         switch item.status {
         case .pending:
             Button(action: { onSetStatus(.inProgress) }) {
-                Image(systemName: "circle").font(.system(size: 16, weight: .regular))
+                Image(systemName: "circle").imageScale(.small)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("auto2.todolistview.l630.h96905135"))
         case .inProgress:
             Button(action: { onSetStatus(.completed) }) {
-                Image(systemName: "circle.dotted").font(.system(size: 16, weight: .regular))
+                Image(systemName: "circle.dotted").imageScale(.small)
                     .foregroundStyle(.tint)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("auto2.todolistview.l637.h11194739"))
         case .completed:
             Button(action: { onSetStatus(.pending) }) {
-                Image(systemName: "checkmark.circle").font(.system(size: 16, weight: .regular))
+                Image(systemName: "checkmark.circle").imageScale(.small)
                     .foregroundStyle(.green)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("todolist.reopen"))
         case .cancelled:
-            Image(systemName: "xmark.circle").font(.system(size: 16, weight: .regular))
+            Image(systemName: "xmark.circle").imageScale(.small)
                 .foregroundStyle(DesignTokens.statusForeground)
         }
     }

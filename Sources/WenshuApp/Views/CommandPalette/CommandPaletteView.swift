@@ -120,7 +120,7 @@ struct CommandPaletteView: View {
             // text-field render; no custom frame / border / Liquid Glass
             // paint = boss 2026-09-02 OOB 'let Apple defaults through').
             HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").font(.system(size: 16, weight: .regular))
+                Image(systemName: "magnifyingglass").imageScale(.small)
                     .foregroundStyle(.secondary)
                 TextField(WenshuI18n.t("b5.commandpaletteview.l125.h99176598"), text: Binding(
                     get: { model.query },
@@ -140,7 +140,7 @@ struct CommandPaletteView: View {
                     Button {
                         Task { await model.filter(by: "") }
                     } label: {
-                        Image(systemName: "xmark.circle").font(.system(size: 16, weight: .regular))
+                        Image(systemName: "xmark.circle").imageScale(.small)
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
@@ -222,7 +222,7 @@ private struct CommandPaletteRow: View {
             // "chat" / "custom"). SF Symbol fallback is acceptable here
             // because this is a debug/internal UX surface (= not the
             // user-facing app chrome).
-            Image(systemName: categorySymbol).font(.system(size: 16, weight: .regular))
+            Image(systemName: categorySymbol).imageScale(.small)
                 .foregroundStyle(categoryColor)
                 .frame(width: DesignTokens.iconStandardSize, height: DesignTokens.iconStandardSize)
             VStack(alignment: .leading, spacing: 2) {

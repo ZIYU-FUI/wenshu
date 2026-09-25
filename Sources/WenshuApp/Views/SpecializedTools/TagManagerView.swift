@@ -180,7 +180,7 @@ struct TagManagerView: View {
                 Button {
                     Task { await addTag() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.tagmanagerview.l219.h42031648")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.tagmanagerview.l219.h42031648")) } icon: { Image(systemName: "plus").imageScale(.small) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddTag)
@@ -220,7 +220,7 @@ struct TagManagerView: View {
 
     private func tagRow(_ tag: Tag) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-            Image(systemName: tag.category.icon).font(.system(size: 16, weight: .regular))
+            Image(systemName: tag.category.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
@@ -246,7 +246,7 @@ struct TagManagerView: View {
             Button(role: .destructive) {
                 Task { await removeTag(tag) }
             } label: {
-                Image(systemName: "trash").font(.system(size: 14, weight: .regular))
+                Image(systemName: "trash").imageScale(.small)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
@@ -303,7 +303,7 @@ struct TagManagerView: View {
                 Button {
                     Task { await applyTag() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.tagmanagerview.l348.h96054186")) } icon: { Image(systemName: "link").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.tagmanagerview.l348.h96054186")) } icon: { Image(systemName: "link").imageScale(.small) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canApply)
@@ -346,7 +346,7 @@ struct TagManagerView: View {
 
     private func applicationRow(_ application: TagApplication) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-            Image(systemName: application.target.icon).font(.system(size: 14, weight: .regular))
+            Image(systemName: application.target.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
@@ -369,7 +369,7 @@ struct TagManagerView: View {
             Button(role: .destructive) {
                 Task { await unapply(application) }
             } label: {
-                Image(systemName: "xmark").font(.system(size: 12, weight: .regular))
+                Image(systemName: "xmark").imageScale(.small)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
@@ -405,7 +405,7 @@ struct TagManagerView: View {
 
     private func cloudRow(_ entry: TagCloudEntry) -> some View {
         HStack(spacing: DesignTokens.chromePaddingSmall) {
-            Image(systemName: entry.tag.category.icon).font(.system(size: 12, weight: .regular))
+            Image(systemName: entry.tag.category.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.iconStandardSize)
             Text(entry.tag.label)
@@ -473,7 +473,7 @@ struct TagManagerView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(Array(filterMatches.enumerated()), id: \.offset) { _, id in
                             HStack(spacing: DesignTokens.chromePaddingSmall) {
-                                Image(systemName: draftFilterTarget.icon).font(.system(size: 12, weight: .regular))
+                                Image(systemName: draftFilterTarget.icon).imageScale(.small)
                                     .foregroundStyle(.tint)
                                     .frame(width: DesignTokens.iconStandardSize)
                                 Text(id.uuidString)

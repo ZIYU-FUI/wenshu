@@ -188,7 +188,7 @@ struct BookSettingConstraintsView: View {
                 Button {
                     Task { await addConstraint() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l230.h25158042")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l230.h25158042")) } icon: { Image(systemName: "plus").imageScale(.small) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
@@ -237,7 +237,7 @@ struct BookSettingConstraintsView: View {
     private func constraintRow(_ constraint: BookSettingConstraint) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
             HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-                Image(systemName: constraint.severity.icon).font(.system(size: 16, weight: .regular))
+                Image(systemName: constraint.severity.icon).imageScale(.small)
                     .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(.tint))
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
@@ -294,7 +294,7 @@ struct BookSettingConstraintsView: View {
                 Button(role: .destructive) {
                     Task { await removeConstraint(constraint) }
                 } label: {
-                    Image(systemName: "trash").font(.system(size: 14, weight: .regular))
+                    Image(systemName: "trash").imageScale(.small)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
@@ -325,7 +325,7 @@ struct BookSettingConstraintsView: View {
                     Button {
                         Task { await runCheck() }
                     } label: {
-                        Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l376.h23587784")) } icon: { Image(systemName: "magnifyingglass").font(.system(size: 16, weight: .regular)) }
+                        Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l376.h23587784")) } icon: { Image(systemName: "magnifyingglass").imageScale(.small) }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || constraints.isEmpty)
@@ -355,7 +355,7 @@ struct BookSettingConstraintsView: View {
     private func violationRow(_ violation: ConstraintViolation) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
             Image(systemName: violation.severity == .hard ? "octagon" : "exclamationmark.triangle")
-                .font(.system(size: 14, weight: .regular))
+                .imageScale(.small)
                 .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(Color(nsColor: .systemOrange)))
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
