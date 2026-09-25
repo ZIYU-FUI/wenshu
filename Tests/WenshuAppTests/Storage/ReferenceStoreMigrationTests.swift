@@ -28,8 +28,8 @@ struct ReferenceStoreMigrationTests {
         return (store, tmp, tmp.deletingLastPathComponent())
     }
 
-    @Test("saveReference writes to entities/<uuid>.md (flat path)")
-    func saveFlatPath() throws {
+    @Test("saveReference writes to entities/<title>--<uuid8>.md (v2.6 facet convention)")
+    func saveTitleFilename() throws {
         let (store, reflibRoot, _) = try makeStore()
         let refID = UUID()
         let ref = Reference(
@@ -39,19 +39,38 @@ struct ReferenceStoreMigrationTests {
             category: .i,
             tags: ["诗人", "唐朝"]
         )
-        try store.saveReference(ref, bodyMarkdown: "# 李白")
+        try store.saveReference(ref, bodyMarkdown: "# 李白\n")
 
-        // The file must land at the flat entities/<uuid>.md path.
-        let flatPath = reflibRoot
+        // The file must land at the v2.6 facet path: entities/<title>--<uuid8>.md.
+        let expectedName = "李白--\(String(refID.uuidString.prefix(8))).md"
+        let expectedPath = reflibRoot
+            .appendingPathComponent("entities")
+            .appendingPathComponent(expectedName)
+        #expect(FileManager.default.fileExists(atPath: expectedPath.path),
+                "expected v2.6 facet filename at \(expectedPath.path)")
+
+        // No UUID-only file should also exist (= one file per reference).
+        let legacyFlatPath = reflibRoot
             .appendingPathComponent("entities")
             .appendingPathComponent("\(refID.uuidString).md")
-        #expect(FileManager.default.fileExists(atPath: flatPath.path),
-                "expected flat file at \(flatPath.path)")
-        // No category subdir should be created by saveReference in
-        // v2.6 (= the v1.x behavior created entities/i/ etc.).
+        #expect(!FileManager.default.fileExists(atPath: legacyFlatPath.path),
+                "no UUID-only file should exist; found \(legacyFlatPath.path)")
+
+        // No category subdir should be created by saveReference.
         let categoryDir = reflibRoot.appendingPathComponent("entities/i")
         #expect(!FileManager.default.fileExists(atPath: categoryDir.path),
                 "no category subdir should be created by saveReference; = found \(categoryDir.path)")
+    }
+
+    @Test("filename sanitizer strips filesystem-unsafe characters")
+    func sanitizeFilenameSafety() {
+        #expect(Reference.sanitizeFilename("李白") == "李白")
+        #expect(Reference.sanitizeFilename("hello world") == "hello-world")
+        #expect(Reference.sanitizeFilename("  spaced  ") == "spaced")
+        #expect(Reference.sanitizeFilename("a/b\\c:d|e?f*g\"h<i>j") == "abcdefghij")
+        #expect(Reference.sanitizeFilename("multiple   spaces") == "multiple-spaces")
+        #expect(Reference.sanitizeFilename("--leading-and-trailing--") == "leading-and-trailing")
+        #expect(Reference.sanitizeFilename("") == "")
     }
 
     @Test("legacy `entities/<category>/<uuid>.md` migrates to flat path on first load")
@@ -87,19 +106,55 @@ struct ReferenceStoreMigrationTests {
         #expect(loaded.count == 1)
         #expect(loaded.first?.id == refID)
 
-        // Legacy file moved to flat path.
-        let flatPath = entitiesDir.appendingPathComponent("\(refID.uuidString).md")
-        #expect(FileManager.default.fileExists(atPath: flatPath.path),
-                "legacy file should be moved to flat path on first load")
-        // Legacy subdir file is gone.
+        // Legacy file moved to v2.6 facet filename (= title--uuid8).
+        let expectedName = "李白--\(String(refID.uuidString.prefix(8))).md"
+        let titlePath = entitiesDir.appendingPathComponent(expectedName)
+        #expect(FileManager.default.fileExists(atPath: titlePath.path),
+                "legacy file should be renamed to title-filename on first load")
+        // Legacy path is gone.
         #expect(!FileManager.default.fileExists(atPath: legacyPath.path),
                 "legacy path should be removed after migration")
 
         // Migration is idempotent — second call is a no-op.
         let loaded2 = try store.loadReferences(layer: .layerEntities)
         #expect(loaded2.count == 1)
-        #expect(FileManager.default.fileExists(atPath: flatPath.path),
-                "flat path still exists after second load (= migration is idempotent)")
+        #expect(FileManager.default.fileExists(atPath: titlePath.path),
+                "title path still exists after second load (= migration is idempotent)")
+    }
+
+    @Test("flat-UUID filename migrates to title filename on first load")
+    func flatUUIDToTitleFilename() throws {
+        let (store, reflibRoot, _) = try makeStore()
+        let entitiesDir = reflibRoot.appendingPathComponent("entities")
+        try FileManager.default.createDirectory(at: entitiesDir, withIntermediateDirectories: true)
+        // Pre-v2.6.1 layout: file at entities/<uuid>.md (= flat UUID).
+        let refID = UUID()
+        let legacyFlatPath = entitiesDir
+            .appendingPathComponent("\(refID.uuidString).md")
+        try "# 李白 (flat)".write(to: legacyFlatPath, atomically: true, encoding: .utf8)
+        // entities.json has the title mapping.
+        let ref = Reference(
+            id: refID,
+            title: "李白",
+            layer: .layerEntities,
+            category: .i,
+            tags: ["诗人"]
+        )
+        let entitiesJSON = entitiesDir.appendingPathComponent("entities.json")
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted]
+        try encoder.encode([ref]).write(to: entitiesJSON, options: .atomic)
+
+        // Trigger the migration.
+        _ = try store.loadReferences(layer: .layerEntities)
+
+        // The file should now be at entities/<title>--<uuid8>.md.
+        let expectedName = "李白--\(String(refID.uuidString.prefix(8))).md"
+        let titlePath = entitiesDir.appendingPathComponent(expectedName)
+        #expect(FileManager.default.fileExists(atPath: titlePath.path),
+                "flat-UUID file should be renamed to title-filename")
+        #expect(!FileManager.default.fileExists(atPath: legacyFlatPath.path),
+                "flat-UUID path should be removed after title-filename migration")
     }
 
     @Test("category metadata survives migration (= preserved in entities.json)")
