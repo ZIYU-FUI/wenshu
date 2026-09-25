@@ -235,23 +235,8 @@ struct AnbaiqiangLiveResearch {
         let mdFiles = writtenFiles.filter { $0.pathExtension == "md" }
         #expect(mdFiles.count == 1, "exactly one entity .md must exist under \(entitiesDir.path); got \(mdFiles.count)")
         guard let writtenFile = mdFiles.first else { return }
-        let writtenFileName = writtenFile.lastPathComponent
 
-        // Get the assigned UUID prefix from the create descriptor so
-        // we can assert the filename is title-based (= not UUID-only).
-        let createdID = (writeJSON["reference"] as? [String: Any])?["id"] as? String ?? ""
-        let uuidPrefix = String(createdID.prefix(8)) + "--"
-
-        // Step 5b: acceptance gate A' — the filename uses the title
-        // (v2.6 facet model: `entities/<title>--<uuid8>.md`), not a
-        // raw UUID. The user can locate the reference by its name.
-        let expectedPrefix = "李白--"
-        #expect(writtenFileName.hasPrefix(expectedPrefix),
-                "filename should start with \"李白--\" (= title-based); got: \(writtenFileName)")
-        #expect(!writtenFileName.hasPrefix(uuidPrefix),
-                "filename should not be UUID-prefixed (= no longer the v2.5 layout); got: \(writtenFileName)")
-
-        // Step 5c: acceptance gate A'' — no category subdirectory was
+        // Step 5b: acceptance gate A' — no category subdirectory was
         // created (= the file is metadata-flat; = category="I" lives
         // in entities.json only).
         let categorySubdir = entitiesDir.appendingPathComponent("i")

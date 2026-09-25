@@ -258,55 +258,9 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         self.updatedAt = updatedAt
     }
 
-    /// Filename on disk. v2.6 facet model: file path uses the reference
-    /// title (= e.g. `entities/李白.md`) so the user can locate a
-    /// reference by its on-disk name. The opaque id is preserved as
-    /// a suffix to guarantee uniqueness (= two references sharing a
-    /// title = e.g. `李白` vs `李白 (poet)` don't collide):
-    /// `<title>--<uuid-prefix>.md`. The title is sanitized for
-    /// filesystems (= forbidden characters `<>:"/\|?*` stripped,
-    /// internal whitespace collapsed to `-`, = leading/trailing
-    /// whitespace trimmed) before being joined with the id.
+    /// Filename on disk (= `<uuid>.md`).
     var filename: String {
-        let sanitized = Self.sanitizeFilename(title)
-        let idSuffix = String(id.uuidString.prefix(8))
-        if sanitized.isEmpty {
-            return "\(idSuffix).md"
-        }
-        return "\(sanitized)--\(idSuffix).md"
-    }
-
-    /// Replace filesystem-unsafe characters in a reference title.
-    /// Keeps CJK + Latin letters + digits + a small set of safe
-    /// punctuation (`- _ . ( )`). Whitespace collapses to `-`.
-    /// Empty input returns "".
-    static func sanitizeFilename(_ raw: String) -> String {
-        let forbidden = CharacterSet(charactersIn: "/\\<>:\"|?*")
-        let cleaned = raw.unicodeScalars
-            .filter { !forbidden.contains($0) }
-            .reduce(into: "") { acc, scalar in
-                if scalar == " " {
-                    acc.append("-")
-                } else {
-                    acc.unicodeScalars.append(scalar)
-                }
-            }
-        // Collapse runs of dashes (= from collapsed whitespace).
-        var collapsed = ""
-        var lastWasDash = false
-        for ch in cleaned {
-            if ch == "-" {
-                if !lastWasDash && !collapsed.isEmpty {
-                    collapsed.append(ch)
-                }
-                lastWasDash = true
-            } else {
-                collapsed.append(ch)
-                lastWasDash = false
-            }
-        }
-        // Trim leading/trailing dashes.
-        return collapsed.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        "\(id.uuidString).md"
     }
 
     /// Full on-disk path. v2.6 facet model: file path is metadata-flat

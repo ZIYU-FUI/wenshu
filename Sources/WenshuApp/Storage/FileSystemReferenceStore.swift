@@ -215,7 +215,6 @@ struct FileSystemReferenceStore: ReferenceStoring {
         // so the file move does not lose classification data.
         if layer == .layerEntities {
             migrateLegacyEntitySubdirectoryLayoutIfNeeded()
-            migrateFlatUUIDToTitleFilename()
         }
         guard FileManager.default.fileExists(atPath: indexURL.path) else {
             return []
@@ -547,72 +546,6 @@ struct FileSystemReferenceStore: ReferenceStoring {
             if let remaining = try? FileManager.default.contentsOfDirectory(at: entry, includingPropertiesForKeys: nil),
                remaining.isEmpty {
                 try? FileManager.default.removeItem(at: entry)
-            }
-        }
-    }
-
-    /// Loads the on-disk reference index (= entities.json / raw.json /
-    /// abstracts.json / indexes.json depending on layer). Used by
-    /// migration helpers to look up a title from a UUID.
-    private func loadLayerIndex(layer: ReferenceLayer) -> [Reference] {
-        let file = referenceLibraryRoot
-            .appendingPathComponent(layer.directoryName)
-            .appendingPathComponent("\(layer.directoryName).json")
-        guard let data = try? Data(contentsOf: file),
-              let list = try? JSONDecoder().decode([Reference].self, from: data) else {
-            return []
-        }
-        return list
-    }
-
-    /// One-shot migration: rename `entities/<uuid>.md` files to
-    /// `entities/<title>--<uuid8>.md` (= the post-v2.6 facet model
-    /// convention). The title is read from entities.json (= the
-    /// reference index); = if the index is missing a uuid entry the
-    /// file is left under its UUID filename (= safe fallback).
-    /// Idempotent — renamed files no longer match the UUID-only
-    /// glob pattern so the next run is a no-op.
-    private func migrateFlatUUIDToTitleFilename() {
-        let entitiesDir = referenceLibraryRoot
-            .appendingPathComponent(ReferenceLayer.layerEntities.directoryName)
-        guard FileManager.default.fileExists(atPath: entitiesDir.path) else { return }
-        let idToTitle: [UUID: String] = Dictionary(
-            uniqueKeysWithValues: loadLayerIndex(layer: .layerEntities).map { ($0.id, $0.title) }
-        )
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: entitiesDir,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) else { return }
-        for file in contents where file.pathExtension == "md" {
-            let leaf = file.deletingPathExtension().lastPathComponent
-            // Skip files that already follow the new convention (= they
-            // have a `--<8-hex-char>` suffix).
-            let parts = leaf.components(separatedBy: "--")
-            if parts.count == 2 && parts[1].count == 8,
-               parts[1].allSatisfy({ $0.isHexDigit }) {
-                continue
-            }
-            // leaf should be a UUID here (= pre-v2.6 flat layout).
-            guard let uuid = UUID(uuidString: leaf) else { continue }
-            let title = idToTitle[uuid] ?? ""
-            let sanitized = Reference.sanitizeFilename(title)
-            let idSuffix = String(uuid.uuidString.prefix(8))
-            let newLeaf = sanitized.isEmpty
-                ? "\(idSuffix).md"
-                : "\(sanitized)--\(idSuffix).md"
-            let destination = entitiesDir.appendingPathComponent(newLeaf)
-            if FileManager.default.fileExists(atPath: destination.path) {
-                // Destination already exists (= a concurrent migration
-                // run beat us); = remove the UUID-named copy.
-                try? FileManager.default.removeItem(at: file)
-                continue
-            }
-            do {
-                try FileManager.default.moveItem(at: file, to: destination)
-            } catch {
-                // Leave the UUID-named file in place so a retry can
-                // complete the migration.
             }
         }
     }
