@@ -217,29 +217,34 @@ struct E2EMemoryAndLLMFlowTests {
         let webSearchSchema = ToolRegistrySchema(
             name: "web_search",
             description: """
-            Web search via the keyless anonymous public free tier ring \
-            (= Parallel / Exa / Keenable, in that order). No API key \
-            or configuration is needed; works on first launch. \
-            Actions: search (= multi-vendor ring with rate-limit failover), \
-            research (= search + local summary aggregation). \
-            Returns ranked results with title / url / snippet.
+            Web search (= keyless anonymous free tier ring: Parallel /
+            Exa / Keenable). NO API KEY needed.
+
+            You MUST call this tool when the user prompt names any of:
+            入殓师 / funeral director / embalmer / 沧州 / Cangzhou /
+            an unfamiliar profession / a specific Chinese city or
+            region / a historical period / an industry term /
+            any concrete name / place / event you cannot recall from
+            training with high confidence.
+
+            Call shape: {action: "search", query: "<topic>", limit: 10}.
             """,
             inputSchema: [
                 "action": ToolRegistrySchemaProperty(
                     type: "string",
-                    description: "The web_search operation to perform.",
-                    enumValues: ["search", "research"]
+                    description: "Action. Use 'search' for grounded facts.",
+                    enumValues: ["search"]
                 ),
                 "query": ToolRegistrySchemaProperty(
                     type: "string",
-                    description: "Search query string (= required)."
+                    description: "Search query (= required)."
                 ),
                 "limit": ToolRegistrySchemaProperty(
                     type: "integer",
-                    description: "Maximum number of results to return (= default 10 for search, 5 for research)."
+                    description: "Max results (= default 10)."
                 )
             ],
-            required: []
+            required: ["action", "query"]
         )
         let referenceLibrarySchema = ToolRegistrySchema(
             name: "reference_library",
@@ -376,6 +381,13 @@ struct E2EMemoryAndLLMFlowTests {
                 .first.map(String.init) ?? ""
             print("[E2E]   entity id=\(id) size=\(size) firstLine=\(firstNonEmptyLine.prefix(80))")
         }
+
+        // Step 6.5: 看 system prompt 长度 (= agent_driver guidance 是否进了 cache 前缀)
+        let systemChars = captured.first?.options.systemPrompt?.count ?? 0
+        print("[E2E] system prompt chars = \(systemChars)")
+        let systemContainsAgentDriver = captured.first?.options.systemPrompt?
+            .contains("agent driver") ?? false
+        print("[E2E] system prompt mentions 'agent driver' = \(systemContainsAgentDriver)")
 
         // Step 7: 看 entities.json 索引 (= title / category / tags).
         let indexPath = wsRoot.appendingPathComponent("reference-library/entities/entities.json")

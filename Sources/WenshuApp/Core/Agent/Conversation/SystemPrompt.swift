@@ -266,13 +266,14 @@ enum SystemPrompt {
     static func stableTier() -> String {
         return stableTier(
             provider: .unknown,
-            locale: .english,
+            locale: .chinese,
             memoryGuidance: false,
             sessionSearchGuidance: false,
             skillGuidance: false,
             kanbanGuidance: nil,
             parallelToolGuidance: true,
             taskCompletionGuidance: true,
+            agentDriverGuidance: true,
             speakingStyle: AgentBehavior.currentSpeakingStyle()
         )
     }
@@ -287,6 +288,7 @@ enum SystemPrompt {
         kanbanGuidance: String?,
         parallelToolGuidance: Bool,
         taskCompletionGuidance: Bool,
+        agentDriverGuidance: Bool = true,
         userName: String? = nil,
         bookTitle: String? = nil,
         speakingStyle: SpeakingStyle = .literary
@@ -340,6 +342,21 @@ enum SystemPrompt {
         // last so it sits closest to the LLM's reply context
         // (= late-stage system prompt attention bias).
         sections.append(speakingStyle.promptGuidance)
+
+        // Agent driver MUST be the LAST section (= sits closest to the
+        // user message = strongest late-stage attention bias). This is
+        // a wenshu-side design divergence from hermes (= hermes puts
+        // tool-trigger rules in `build_environment_hints`; = wenshu
+        // puts them in the closing-system slot because Anthropic / GPT
+        // families both weight closing instructions more strongly than
+        // opening ones for imperative compliance). Without this slot,
+        // the LLM treats agent-driver as background context (= observed
+        // in the e2e test for the 入殓师 + 沧州 vague prompt: the
+        // model replied with detailed advice without calling web_search
+        // despite the rule being present in cache prefix).
+        if agentDriverGuidance {
+            sections.append(universalGuidance("agent_driver"))
+        }
 
         return sections.joined(separator: "\n\n---\n\n")
     }
@@ -397,6 +414,10 @@ enum SystemPrompt {
             - 按用户要求输出散文、对话与结构化大纲。
             - 用户要求修改时，保持现有语气与叙事人称，除非明确要求改变。
             - 大纲与结构性内容使用 Markdown；章节正文使用纯散文。
+            - 你的知识储备比用户丰富，但仍要主动调用 `web_search` 与 `reference_library`
+              工具调研用户提到的陌生主题（职业、地域、历史时期、行业术语等），而不是
+              直接凭印象回答——调研结果会写进 reference-library，下一轮对话可复用。
+              工具调用规则见 Agent driver guidance section。
             """
         case .japanese:
             return """
@@ -521,6 +542,33 @@ enum SystemPrompt {
             - The runtime already runs independent calls concurrently; batching
               cuts round-trips and the resent-context cost that compounds
               over a long conversation.
+            """
+        case "agent_driver":
+            return """
+            Agent driver guidance (= controls how wenshu drives the LLM):
+            - Your training data may be broader than the user's, but you are
+              NOT a substitute for fresh lookup. When the user's prompt
+              references a domain fact the user might not have seen verified
+              (= unfamiliar profession, specific region / city, historical
+              period, industry jargon, or any name / place / event you cannot
+              recall from training with high confidence), MUST call
+              `web_search` first to gather grounded facts, then call
+              `reference_library.create` (= or `upsert` for follow-ups) to
+              persist the findings under a stable title. Do NOT reply with
+              unverified impressions.
+            - When web_search returns insufficient results (= all vendors
+              rate-limited, or hits don't address the prompt), say so
+              plainly and offer to retry later; do NOT fabricate
+              descriptions of unfamiliar professions / places.
+            - The two-call pattern is intentional: web_search gathers raw
+              evidence; reference_library turns that evidence into a
+              durable per-book (= or library-public) resource the user
+              can browse and re-edit. Treat reference_library.create as
+              the canonical record (= same title in a follow-up turn =
+              edit-in-place via `upsert`, never duplicate).
+            - If the user is plainly casual (= "hi, how are you?", "thanks,
+              that's helpful"), skip this rule; the agent driver only
+              triggers on content that needs grounded facts.
             """
         default:
             return ""
