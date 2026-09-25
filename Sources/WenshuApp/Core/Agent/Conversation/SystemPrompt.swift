@@ -244,7 +244,6 @@ enum SystemPrompt {
                 foreshadowContext: []
             ),
             memories: [],
-            skills: [],
             callerExtras: options.callerMessage.map { ["caller_message": $0] } ?? [:],
             ephemeralHint: options.ephemeralHint
         )

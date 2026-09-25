@@ -699,7 +699,6 @@ actor ConversationLoop {
                 foreshadowContext: []
             ),
             memories: [],
-            skills: [],
             callerExtras: [:],
             ephemeralHint: ephemeralHint
         )
