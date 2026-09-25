@@ -613,6 +613,59 @@ once user upgrades.
 
 ---
 
+## v2.5 (2026-09-25) — keyless web search rewrite
+
+Per (see OOB.md #2026-09-25): the previous web search layer (= EXA / TAVILY / BRAVE / PARALLEL / SEARXNG paid providers + SearchAPIKeychain + WebSearchConfigurator + a no-op Settings UI) was deleted. wenshu now ships with a single, zero-configuration keyless web search ring: **Parallel MCP** -> **Exa MCP** -> **Keenable REST**. All three are anonymous public free tiers (= no API key, no account, no configuration; = the user opens wenshu and web search works).
+
+### Files added (= 5 source + 5 test, all in `Core/Agent/Web/KeylessProviders/`)
+
+- `MCPJSONRPCClient.swift` (= 156 LOC) — JSON-RPC 2.0 client over URLSession.
+- `ParallelKeylessProvider.swift` (= 73 LOC) — Vendor 1 (`https://search.parallel.ai/mcp`).
+- `ExaKeylessProvider.swift` (= 105 LOC) — Vendor 2 (`https://mcp.exa.ai/mcp`).
+- `KeenableKeylessProvider.swift` (= 96 LOC) — Vendor 3 (`https://api.keenable.ai/v1/search/public`, requires `X-Keenable-Title: wenshu` header).
+- `KeylessRing.swift` (= ~110 LOC) — The hermes `_walk_ring` 1:1 port (= actor with `defaultProviders()`, `defaultRing()`, `search(query:limit:)`, `RingError`). Failover rules: empty / rate-limit-shaped error / non-throttle error / all-throttled.
+- 5 matching test files (= 27 new tests total).
+
+### Files removed (= 7 source + 1 test + 1 directory)
+
+- `Sources/WenshuApp/Core/Agent/Web/Providers/EXAProvider.swift`
+- `Sources/WenshuApp/Core/Agent/Web/Providers/TAVILYProvider.swift`
+- `Sources/WenshuApp/Core/Agent/Web/Providers/BRAVEProvider.swift`
+- `Sources/WenshuApp/Core/Agent/Web/Providers/PARALLELProvider.swift`
+- `Sources/WenshuApp/Core/Agent/Web/Providers/SEARXNGProvider.swift`
+- `Sources/WenshuApp/Core/Agent/Web/WebSearchConfigurator.swift`
+- `Sources/WenshuApp/Core/Provider/SearchAPIKeychain.swift`
+- `Tests/WenshuAppTests/Core/Agent/SearchAPIKeychainTests.swift`
+- `Sources/WenshuApp/Core/Agent/Web/Providers/` directory (= rmdir after last file deletion)
+
+### Files rewritten (= 2 source + 2 test, atomic-coupled)
+
+- `Sources/WenshuApp/Core/Agent/Web/WebSearch.swift` — Actor now holds `ring: KeylessRing`. Drops `WebSearchError.emptyResults` case.
+- `Sources/WenshuApp/Core/Agent/Tool/WebSearchTool.swift` — Error envelopes no longer mention API keys or per-provider configuration. ToolRegistry schema description updated to say "no API key or configuration is needed".
+- `Tests/WenshuAppTests/Core/Agent/Web/WebSearchTests.swift` — Switched to `WebSearch(ring: KeylessRing(...))`; renamed private stubs; added 3 new tests for `summarize` and the canonical `shared` ring.
+- `Tests/WenshuAppTests/Core/Agent/WebSearchToolTests.swift` — Switched to the new `ring:` API.
+
+### Files with comment-only patches (= 2 source)
+
+- `Sources/WenshuApp/Core/Provider/KeychainOps.swift` — Header rewritten to reflect that SearchAPIKeychain.swift was deleted.
+- `Sources/WenshuApp/Core/Provider/ProviderKeychain.swift` — saveKeySync comment rewritten.
+
+### Stats
+
+- Commits: 15
+- Source files added: 5; deleted: 7; rewritten: 2; comment-only patched: 2
+- New tests: 27 (= isolated 100% pass; §11.5 combined-run race is pre-existing and not introduced by this arc)
+- Swift Package Manager dependencies added: 0 (= URLSession + JSONSerialization only)
+- `swift build --target WenshuApp`: clean (= no errors, no new warnings)
+
+### Acceptance
+
+- Web search works on first launch with zero configuration (yes — `WebSearch.shared` uses `KeylessRing.defaultRing()`; no `ProviderKeychain` lookup; no UI)
+- All 3 vendors reachable from `KeylessRing.defaultProviders()` (yes — Parallel, Exa, Keenable; in that order)
+- Rate-limit-shaped errors advance the ring (yes — 7 marker strings match)
+- `import SearchAPIKeychain` anywhere in production: 0 hits
+- References to EXAProvider / TAVILYProvider / BRAVEProvider / SEARXNGProvider / WebSearchConfigurator in production: 0 hits
+
 ## v0.35 → v0.34 → v0.33 → ... (= prior history)
 
 See `git log` for full commit history. The major v0.3x milestones:
