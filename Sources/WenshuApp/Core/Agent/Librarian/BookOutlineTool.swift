@@ -93,8 +93,16 @@ enum BookOutlineError: Error, LocalizedError, Sendable, Equatable {
 actor BookOutlineActor {
     private let outlineStore: any OutlineStoring
 
-    init(outlineStore: any OutlineStoring) {
+    /// Closure returning the chat session's currently-bound book.
+    /// See BookWorldActor's matching field for the contract.
+    private let currentChatBookIDProvider: @Sendable () -> UUID?
+
+    init(
+        outlineStore: any OutlineStoring,
+        currentChatBookIDProvider: @escaping @Sendable () -> UUID? = { nil }
+    ) {
         self.outlineStore = outlineStore
+        self.currentChatBookIDProvider = currentChatBookIDProvider
     }
 
     var bookDirectory: URL {
@@ -254,6 +262,23 @@ actor BookOutlineActor {
                 action: nil,
                 error: BookOutlineError.invalidInput(
                     reason: "missing or unknown 'action' (expected: create / read / update / delete / list / find)"
+                )
+            )
+        }
+
+        // Scope guard: see BookWorldActor (= identical contract).
+        do {
+            try BookScopeGuard.validate(
+                providedBookID: Self.parseUUID(envelope["book_id"]),
+                currentChatBookIDProvider: currentChatBookIDProvider
+            )
+        } catch let violation as BookScopeViolation {
+            return Self.encodeFailureScopeViolation(action: action, error: violation)
+        } catch {
+            return Self.encodeFailure(
+                action: action,
+                error: BookOutlineError.invalidInput(
+                    reason: "scope guard failed: \(error.localizedDescription)"
                 )
             )
         }
@@ -430,6 +455,22 @@ actor BookOutlineActor {
         if let action {
             payload["action"] = action.rawValue
         }
+        return encodeJSON(payload)
+    }
+
+    /// Encode a BookScopeViolation into the standard failure envelope.
+    /// See BookWorldTool.encodeFailureScopeViolation for the matching
+    /// contract.
+    private static func encodeFailureScopeViolation(
+        action: BookOutlineAction,
+        error: BookScopeViolation
+    ) -> String {
+        let payload: [String: Any] = [
+            "ok": false,
+            "action": action.rawValue,
+            "error": error.errorDescription ?? "unknown error",
+            "error_kind": "book_scope_violation"
+        ]
         return encodeJSON(payload)
     }
 

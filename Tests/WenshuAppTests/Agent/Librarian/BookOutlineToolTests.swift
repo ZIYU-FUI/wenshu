@@ -129,16 +129,55 @@ struct BookOutlineToolTests {
 
     @Test func testExecute_createAction_parsesAndCreates() async throws {
         let store = try Self.makeOutlineStore()
-        let actor = BookOutlineActor(outlineStore: store)
+        let bookId = UUID()
+        let actor = BookOutlineActor(
+            outlineStore: store,
+            currentChatBookIDProvider: { bookId }
+        )
         let tool = BookOutlineTool(actor: actor)
-        let bookId = UUID().uuidString
         let input = """
-        {"action":"create","book_id":"\(bookId)","title":"Volume 1","order":1,"markdown":"# V1"}
+        {"action":"create","book_id":"\(bookId.uuidString)","title":"Volume 1","order":1,"markdown":"# V1"}
         """
         let output = try await tool.execute(input: input)
         #expect(output.contains("\"ok\":true"))
         #expect(output.contains("\"action\":\"create\""))
         #expect(output.contains("\"title\":\"Volume 1\""))
         #expect(output.contains("\"order\":1"))
+    }
+
+    @Test func testExecute_crossBookWrite_rejectedByScopeGuard() async throws {
+        let store = try Self.makeOutlineStore()
+        let chatBook = UUID()
+        let requestedBook = UUID()
+        let actor = BookOutlineActor(
+            outlineStore: store,
+            currentChatBookIDProvider: { chatBook }
+        )
+        let tool = BookOutlineTool(actor: actor)
+        let input = """
+        {"action":"create","book_id":"\(requestedBook.uuidString)","title":"Forbidden","order":1,"markdown":"# F"}
+        """
+        let output = try await tool.execute(input: input)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
+        #expect(output.contains(chatBook.uuidString))
+        #expect(output.contains(requestedBook.uuidString))
+    }
+
+    @Test func testExecute_noChatBook_rejectedByScopeGuard() async throws {
+        let store = try Self.makeOutlineStore()
+        let requestedBook = UUID()
+        let actor = BookOutlineActor(
+            outlineStore: store,
+            currentChatBookIDProvider: { nil }
+        )
+        let tool = BookOutlineTool(actor: actor)
+        let input = """
+        {"action":"create","book_id":"\(requestedBook.uuidString)","title":"Forbidden","order":1,"markdown":"# F"}
+        """
+        let output = try await tool.execute(input: input)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
+        #expect(output.contains("not bound to any book"))
     }
 }
