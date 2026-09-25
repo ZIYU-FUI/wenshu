@@ -2,7 +2,7 @@
 // SubAgentProgressView.swift · Wenshu · v0.23 ticket 005 (sub-agent progress)
 //
 // 'kanbanchat, userworkprogress'.
-//  Reads from WSKanbanRepository.shared (= @MainActor SwiftData wrapper; = Phase 5 ticket 6 deleted KanbanStore actor), renders running / done sub-agent tasks in aiDynamic zone.
+//  Reads from WSKanbanRepository.shared (= @MainActor SwiftData wrapper; =  deleted KanbanStore actor), renders running / done sub-agent tasks in aiDynamic zone.
 //
 
 import SwiftUI
