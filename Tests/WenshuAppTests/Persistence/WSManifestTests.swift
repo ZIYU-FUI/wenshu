@@ -19,7 +19,7 @@ import Testing
 struct WSManifestTests {
 
     /// Helper: build an in-memory ModelContainer that contains just WSManifest
-    /// (= no other @Model classes yet; = isolates this test from Phase 1+ additions).
+    /// (= no other @Model classes yet; = isolates this test from Step+ additions).
     @MainActor
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([WSManifest.self])
