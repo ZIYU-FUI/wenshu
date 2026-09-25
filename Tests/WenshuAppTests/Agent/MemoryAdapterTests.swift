@@ -13,7 +13,7 @@ struct MemoryAdapterTests {
     @MainActor
     func testRetrieveStub() async {
         let adapter = MemoryAdapter()
-        let entries = adapter.retrieve(forUserMessage: "test")
+        let entries = await adapter.retrieve(forUserMessage: "test")
         #expect(entries.isEmpty)
     }
 
@@ -21,7 +21,7 @@ struct MemoryAdapterTests {
     @MainActor
     func testWriteStub() async {
         let adapter = MemoryAdapter()
-        adapter.write(snippet: "test", source: "/test.md")
+        await adapter.write(snippet: "test", source: "/test.md")
         // No assertion (= smoke test only)
     }
 }
