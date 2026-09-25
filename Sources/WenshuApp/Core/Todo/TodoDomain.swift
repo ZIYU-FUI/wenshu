@@ -51,7 +51,7 @@ struct TodoItem: Equatable, Sendable {
 
 
 /// Reserved for future-hook callers (= no consumers yet; = the
-/// pre-Phase 5 deleted TodoStore actor's error type was extracted
+/// pre-migration deleted TodoStore actor's error type was extracted
 /// in  and renamed here; = currently dead code but
 /// preserved for potential future callers that want the legacy
 /// 4-case error shape from the old actor's sqlite3 failures).
