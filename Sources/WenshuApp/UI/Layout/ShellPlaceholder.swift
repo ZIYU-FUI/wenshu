@@ -17,7 +17,7 @@ struct ShellPlaceholder: View {
         ContentUnavailableView {
             // 38 PT matches the glyph height Apple's own
             // ContentUnavailableView renders, measured on this machine.
-            Label { Text(name) } icon: { Image(systemName: icon).font(.system(size: 38, weight: .regular)) }
+            Label { Text(name) } icon: { Image(systemName: icon).imageScale(.large) }
         } description: {
             Text(hint)
         }
