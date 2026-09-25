@@ -25,26 +25,30 @@ struct BookWorldToolTests {
 
     // MARK: - Shared helpers
 
-    /// Build a fresh FileSystemWorldStore rooted in a unique /tmp
-    /// directory. Per-test root guarantees isolation; macOS auto-
-    /// cleans /tmp.
-    private static func makeWorldStore() throws -> FileSystemWorldStore {
+    /// Build a fresh /tmp book directory for the actor. Per-test root
+    /// guarantees isolation; macOS auto-cleans /tmp.
+    private static func makeBookDirectory() throws -> URL {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-v2-world-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        return FileSystemWorldStore(bookDirectory: tmpRoot)
+        return tmpRoot
     }
 
-    /// Default actor factory: returns an actor with a provider that
-    /// always says "no chat book bound". The CRUD-level tests
-    /// (= create / read / update / delete / list / find) call
+    /// Default actor factory: returns an actor with a bookDirectory
+    /// provider that always returns the test's isolated root + a
+    /// currentChatBookID provider that always returns nil. CRUD-level
+    /// tests (= create / read / update / delete / list / find) call
     /// `createEntry` / `readEntry` directly (= bypassing the scope
     /// guard), so this default is fine for those tests.
     ///
-    /// The execute(input:) tests (= test 7 + the new scope-violation
-    /// test) override the provider by constructing the actor
-    /// directly with `BookWorldActor(worldStore: ..., currentChatBookIDProvider: ...)`.
+    /// The execute(input:) tests (= test 7 + 8 + 9) override the
+    /// providers by constructing the actor directly with
+    /// `BookWorldActor(bookDirectoryProvider:..., currentChatBookIDProvider:...)`.
     private static func makeActor() throws -> BookWorldActor {
-        try BookWorldActor(worldStore: makeWorldStore())
+        let dir = try makeBookDirectory()
+        return BookWorldActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
     }
 
     // MARK: - Test 1: create persists .md body
@@ -127,8 +131,11 @@ struct BookWorldToolTests {
     // MARK: - Test 5: list filters by bookId
 
     @Test func testListEntries_filtersByBookId() async throws {
-        let store = try Self.makeWorldStore()
-        let actor = BookWorldActor(worldStore: store)
+        let dir = try Self.makeBookDirectory()
+        let actor = BookWorldActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
         let bookA = UUID()
         let bookB = UUID()
         _ = try await actor.createEntry(bookId: bookA, name: "A1", bodyMarkdown: "a1")
@@ -163,13 +170,13 @@ struct BookWorldToolTests {
     // MARK: - Test 7: LLM dispatcher (create action via JSON envelope)
 
     @Test func testExecute_createAction_parsesAndCreates() async throws {
-        let store = try Self.makeWorldStore()
+        let dir = try Self.makeBookDirectory()
         let bookId = UUID()
         // Bind the chat session to the same book we're creating
         // the entry in; = scope guard accepts (= the LLM /
         // dispatcher path is what production uses).
         let actor = BookWorldActor(
-            worldStore: store,
+            bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { bookId }
         )
         let tool = BookWorldTool(actor: actor)
@@ -186,11 +193,11 @@ struct BookWorldToolTests {
     // MARK: - Test 8: scope guard rejects cross-book write
 
     @Test func testExecute_crossBookWrite_rejectedByScopeGuard() async throws {
-        let store = try Self.makeWorldStore()
+        let dir = try Self.makeBookDirectory()
         let chatBook = UUID()  // chat session is bound to chatBook
         let requestedBook = UUID()  // LLM tries to write a different book
         let actor = BookWorldActor(
-            worldStore: store,
+            bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { chatBook }
         )
         let tool = BookWorldTool(actor: actor)
@@ -206,17 +213,17 @@ struct BookWorldToolTests {
         #expect(output.contains(chatBook.uuidString))
         #expect(output.contains(requestedBook.uuidString))
         // No file should be written to either book's disk.
-        let bodyForRequested = store.loadEntryBody(id: UUID())  // any id; = no entry exists
+        let bodyForRequested = await actor.readBodyForTest(id: UUID())
         #expect(bodyForRequested == nil)
     }
 
     // MARK: - Test 9: scope guard rejects when no chat book is bound
 
     @Test func testExecute_noChatBook_rejectedByScopeGuard() async throws {
-        let store = try Self.makeWorldStore()
+        let dir = try Self.makeBookDirectory()
         let requestedBook = UUID()
         let actor = BookWorldActor(
-            worldStore: store,
+            bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { nil }  // no chat book bound (= onboarding)
         )
         let tool = BookWorldTool(actor: actor)
