@@ -5,7 +5,7 @@
 //  Per AGENTS.md §11.4.
 //
 //  SwiftData @Model replacement for BookmarkStore actor (= v0.19
-//  ticket 22). Phase 5 ticket 10b deleted BookmarkStore.
+//  ticket 22).  deleted BookmarkStore.
 //
 //  Public API (preserved 1:1 from old BookmarkStore actor):
 //    - add(_ bookmark: Bookmark) throws
