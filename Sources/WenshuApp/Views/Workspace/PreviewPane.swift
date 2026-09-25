@@ -1590,7 +1590,9 @@ private struct Card: View {
                 // Trade-off: .tint(.opacity 0.85) blue is replaced by
                 // default .secondary blue tint via .foregroundStyle.
                 Image(systemName: source.iconName)
-                    .font(.system(size: 64, weight: .ultraLight))
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 64, height: 64)
                     .symbolRenderingMode(.monochrome)
                     .foregroundStyle(.tint.opacity(0.85))
             }
