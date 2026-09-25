@@ -3,7 +3,7 @@
 //
 //  Phase 1 commit 3/21: WSTodo.
 //  Mirrors todos table schema (= v0.18 ticket 06 local Todo).
-//  (= Phase 5 ticket 7 deleted Core/Todo/TodoStore.swift; the canonical
+//  (=  deleted Core/Todo/TodoStore.swift; the canonical
 //  domain type is now Core/Todo/TodoDomain.swift's TodoItem struct.)
 //
 //  Status values (hermes-port parity per todo.py):
