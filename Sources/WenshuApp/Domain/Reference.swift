@@ -90,6 +90,15 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// convention).
     var title: String
 
+    /// Optional front-end-only show label. Persisted separately from
+    /// `title` (= which is the searchable user/LLM-supplied name).
+    /// When nil, the front-end falls back to `title` via
+    /// `effectiveDisplayTitle`. Generated lazily by the storage layer
+    /// after the reference is first saved (= it is derived from
+    /// `title`, never user-input), = keeps the on-disk file naming
+    /// (= UUID) and the user-visible card title independent.
+    var displayTitle: String?
+
     /// Optional bibliographic source (= e.g. ', 'Smith 2020').
     /// Display-only (= does not affect search or cross-ref matching).
     var source: String?
@@ -150,7 +159,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     // (= matches LLM promptNumber), human-readable exports use strings.
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, source, url, layer, category
+        case id, title, displayTitle, source, url, layer, category
         case tags
         case entityType, summary, characterRefIds, worldRefIds
         case bookRefIds, createdAt, updatedAt
@@ -160,6 +169,11 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)
         title = try c.decode(String.self, forKey: .title)
+        // displayTitle is new in v2.6 (= the front-end-only show
+        // label). Legacy entities.json files (= written before this
+        // commit) lack the field; = default to nil. Computed
+        // `effectiveDisplayTitle` falls back to `title` when nil.
+        displayTitle = try c.decodeIfPresent(String.self, forKey: .displayTitle)
         source = try c.decodeIfPresent(String.self, forKey: .source)
         url = try c.decodeIfPresent(String.self, forKey: .url)
         layer = try c.decode(ReferenceLayer.self, forKey: .layer)
@@ -191,6 +205,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
         try c.encode(title, forKey: .title)
+        try c.encodeIfPresent(displayTitle, forKey: .displayTitle)
         try c.encodeIfPresent(source, forKey: .source)
         try c.encodeIfPresent(url, forKey: .url)
         try c.encode(layer, forKey: .layer)
@@ -229,6 +244,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     init(
         id: UUID = UUID(),
         title: String,
+        displayTitle: String? = nil,
         source: String? = nil,
         url: String? = nil,
         layer: ReferenceLayer = .layerRaw,
@@ -244,6 +260,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     ) {
         self.id = id
         self.title = title
+        self.displayTitle = displayTitle
         self.source = source
         self.url = url
         self.layer = layer
@@ -288,4 +305,78 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
+
+    /// The string the front-end should render as the reference card
+    /// title. Returns the explicit `displayTitle` when set; = falls
+    /// back to the user/LLM-supplied `title` otherwise. Never returns
+    /// the opaque UUID — that's a storage concern, not a UX concern.
+    var effectiveDisplayTitle: String {
+        displayTitle?.isEmpty == false ? displayTitle! : title
+    }
+
+    /// Generate (= or refresh) the front-end display title from
+    /// `title`. Used by the storage layer to backfill the field on
+    /// first save (= no user input) and on legacy data migration
+    /// (= older entries lack `displayTitle`).
+    ///
+    /// Output rules:
+    ///  1. Trim whitespace.
+    ///  2. Collapse internal whitespace runs to single spaces.
+    ///  3. Strip trailing punctuation (= quotes, periods, parens
+    ///     left open by sloppy LLM output).
+    ///  4. If two references share the same sanitized title in the
+    ///     loaded layer, append the 6-char UUID prefix to disambiguate
+    ///     (= only when a `siblingTitles` lookup is provided; = the
+    ///     default behavior leaves the title as-is).
+    ///  5. Result is always non-empty (= a sanitization-only input
+    ///     falls back to `title` verbatim so the user always sees
+    ///     something).
+    mutating func ensureDisplayTitle(siblingTitles: Set<String> = []) {
+        let sanitized = Self.sanitizeDisplayTitle(title)
+        let candidate = sanitized.isEmpty ? title : sanitized
+        if siblingTitles.contains(candidate) {
+            // Disambiguate by appending the 6-char UUID prefix (= the
+            // opaque id acts as a unique-enough suffix; = the user
+            // sees the title + a short tag instead of a full UUID).
+            let suffix = String(id.uuidString.prefix(6))
+            displayTitle = "?\(candidate) ·\(suffix)"
+        } else {
+            displayTitle = candidate
+        }
+    }
+
+    /// Strip whitespace / trailing punctuation from a user-supplied
+    /// title. CJK characters survive intact (= most references carry
+    /// Chinese names per boss 2026-09-25 e2e tests).
+    static func sanitizeDisplayTitle(_ raw: String) -> String {
+        let collapsed = raw
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Strip trailing ASCII noise (= stray quotes / periods / parens
+        // from LLM output).
+        var trimmed = collapsed
+        // Strip trailing ASCII noise (= stray quotes / periods / parens
+        // from LLM output). Single-character literals are typed as
+        // Character directly.
+        while let last = trimmed.last, Self.trailingNoise.contains(last) {
+            trimmed.removeLast()
+        }
+        return trimmed.trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Static noise set (= single-character literals work here
+    /// because Swift infers Character directly from a 1-char string
+    /// literal in a Set<Character> context).
+    /// Static noise characters stripped from the trailing edge of a
+    /// user-supplied title. ASCII punctuation + closing brackets /
+    /// quotes LLM output sometimes leaves dangling.
+    private static let trailingNoise: [Swift.Character] = {
+        let raw = "\u{22}\u{27}\u{2E}\u{2C}\u{3B}\u{3A}\u{29}\u{5D}\u{7D}\u{3F}"
+        var out: [Swift.Character] = []
+        out.reserveCapacity(raw.count)
+        for c in raw {
+            out.append(c)
+        }
+        return out
+    }()
 }

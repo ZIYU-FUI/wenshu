@@ -263,6 +263,15 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 if normalized.layer == .layerEntities && normalized.category == nil {
                     normalized.category = .z
                 }
+                // Backfill displayTitle for legacy / freshly-loaded
+                // references (= set once on read; = persist back to
+                // entities.json on next save via writeIndex).
+                // The disambiguation suffix is NOT applied here (= the
+                // siblingTitles set isn't yet known at this layer);
+                // use the basic sanitization only.
+                if normalized.displayTitle == nil {
+                    normalized.ensureDisplayTitle()
+                }
                 return normalized
             }
         } catch {
@@ -282,8 +291,22 @@ struct FileSystemReferenceStore: ReferenceStoring {
 
         try atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: refURL)
 
+        // Build the sibling-titles lookup from the just-loaded set
+        // (= before appending the new reference; = we want to know
+        // which titles are already taken, not the new one).
+        var referenceToStore = reference
+        let loadedSiblings = (try? loadReferences(layer: reference.layer)) ?? []
+        let siblings = Set(
+            loadedSiblings
+                .filter { $0.id != reference.id }
+                .map { $0.effectiveDisplayTitle }
+        )
+        if referenceToStore.displayTitle == nil {
+            referenceToStore.ensureDisplayTitle(siblingTitles: siblings)
+        }
+
         var current = (try? loadReferences(layer: reference.layer)) ?? []
-        current.append(reference)
+        current.append(referenceToStore)
         try writeIndex(current, for: reference.layer)
     }
 
@@ -393,7 +416,10 @@ struct FileSystemReferenceStore: ReferenceStoring {
             summary: summary
         )
         try saveReference(newRef, bodyMarkdown: bodyMarkdown)
-        return newRef
+        // saveReference backfills displayTitle; = re-read to surface
+        // the post-backfill value to the caller.
+        let reloaded = (try? loadReferences(layer: layer))?.first(where: { $0.id == newRef.id })
+        return reloaded ?? newRef
     }
 
     func deleteReference(id: UUID) throws {

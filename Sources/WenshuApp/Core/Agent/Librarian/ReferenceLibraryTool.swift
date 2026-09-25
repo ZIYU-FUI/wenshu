@@ -31,6 +31,7 @@ import Foundation
 struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     let id: UUID
     let title: String
+    let displayTitle: String?
     let layer: String
     let category: String?
     let tags: [String]
@@ -44,6 +45,7 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     init(
         id: UUID,
         title: String,
+        displayTitle: String? = nil,
         layer: String,
         category: String?,
         tags: [String],
@@ -56,6 +58,7 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     ) {
         self.id = id
         self.title = title
+        self.displayTitle = displayTitle
         self.layer = layer
         self.category = category
         self.tags = tags
@@ -70,6 +73,7 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     init(_ reference: Reference) {
         self.id = reference.id
         self.title = reference.title
+        self.displayTitle = reference.displayTitle
         // Map ReferenceLayer.wire_internal raw values (= "layerRaw" /
         // "layerEntities") to the LLM-friendly wire names (= "raw" /
         // "entities"). The internal case names are verbose because
@@ -626,6 +630,7 @@ actor ReferenceLibraryActor {
         var dict: [String: Any] = [
             "id": d.id.uuidString,
             "title": d.title,
+            "displayTitle": d.displayTitle ?? d.title,
             "layer": d.layer,
             "entity_type": d.entityType,
             "summary": d.summary,
