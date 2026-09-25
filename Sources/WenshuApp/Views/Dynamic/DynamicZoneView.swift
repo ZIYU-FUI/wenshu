@@ -134,7 +134,7 @@ struct DynamicZoneTabBar: View {
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        // followup Boss UX round A (Phase 3 of refactor): DynamicZoneTabBar
+        // followup Boss UX round A ( of refactor): DynamicZoneTabBar
         // body now delegates to `PaneTabBar` generic component (= ComponentIndex.md
         // Level 3.2). Was 135 LOC, now ~10 LOC. Behavior preserved 1:1.
         //
