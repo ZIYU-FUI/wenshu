@@ -1,7 +1,7 @@
 //
-//  Persistence/WSOutlineNode.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSOutlineNode.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 16/21: WSOutlineNode.
+//   : WSOutlineNode.
 //  Mirrors `outline_entries` table from WenshuWorkspace.swift.
 //
 //  Hierarchical outline (= a chapter's structure; = self-referential
