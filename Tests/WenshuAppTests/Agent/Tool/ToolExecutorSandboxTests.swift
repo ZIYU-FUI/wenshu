@@ -25,7 +25,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("ToolExecutor ↔ WenshuSandbox integration (wt/sandbox-tighten-2026-09-25)")
+@Suite("ToolExecutor ↔ WenshuSandbox integration (wt/sandbox-tighten-2026-09-25)", .serialized)
 struct ToolExecutorSandboxTests {
 
     private let libraryRoot = "/Users/anbaiqiang/libraries/test.ws"
