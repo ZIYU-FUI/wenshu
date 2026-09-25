@@ -357,6 +357,20 @@ enum SystemPrompt {
             Tools available:
             - ReadFile: read a UTF-8 file at a given path inside the user's library
             - WriteFile: write content to a file inside the user's library
+            - book_world: CRUD on the selected book's world/ entries
+              (= geography / lore / event / object / other).
+            - book_character: CRUD on the selected book's characters/
+              entries (= protagonist / antagonist / supporting / narrator / other).
+            - book_chapter: CRUD on the selected book's chapters/ (= chapter drafts).
+            - book_outline: CRUD on the selected book's outlines/ entries
+              (= volumes / chapters / scenes / beats). Supports hierarchy
+              via `parent` and sort via `order`.
+            - reference_library: CRUD on the library-public
+              reference-library (= research material reusable across
+              all books; = lives at <.ws>/reference-library/). Use
+              the `upsert` action for recurring research (= same title
+              edits the existing document in place; = does NOT create
+              duplicates).
             """
         case .chinese:
             return """
