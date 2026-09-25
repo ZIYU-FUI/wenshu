@@ -110,6 +110,7 @@ struct SettingView: View {
 
     enum SettingsTab: String, CaseIterable, Identifiable {
         case general
+        case agentBehavior
         case providerApi
         case model
         case memory
@@ -121,6 +122,7 @@ struct SettingView: View {
         var displayName: String {
             switch self {
             case .general: return WenshuI18n.t("settings.tab.general")
+            case .agentBehavior: return WenshuI18n.t("settings.tab.agentBehavior")
             case .providerApi: return WenshuI18n.t("settings.tab.providerApi")
             case .model: return WenshuI18n.t("settings.tab.model")
             case .memory: return WenshuI18n.t("settings.tab.memory")
@@ -130,6 +132,7 @@ struct SettingView: View {
         var icon: String {
             switch self {
             case .general: return "gearshape"
+            case .agentBehavior: return "person.wave.2"
             case .providerApi: return "key.horizontal"
             case .model: return "cpu"
             case .memory: return "brain"
@@ -166,6 +169,7 @@ struct SettingView: View {
             Group {
                 switch selectedTab {
                 case .general: generalTab
+                case .agentBehavior: agentBehaviorTab
                 case .providerApi: providerApiTab
                 case .model: modelTab
                 case .memory: memoryTab
@@ -253,6 +257,40 @@ struct SettingView: View {
             }
             Section(WenshuI18n.t("settings.general.misc")) {
                 Text(WenshuI18n.t("settings.general.misc.placeholderNote"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+    private var agentBehaviorTab: some View {
+        // v2.4 (= boss拍 2026-09-25): per-user agent-behavior settings
+        // exposed as a closed enum picker (= no free-text input = no
+        // SOUL.md / AGENTS.md loader = users cannot degrade the LLM
+        // by editing a markdown file). Each setting drives the
+        // SystemPrompt stable tier (= see SystemPrompt.swift).
+        //
+        // Scope (= v2.4 arc starts here):
+        // - Speaking style (formal / casual / literary / concise)
+        //
+        // Future settings land in the same Section block. Keep the
+        // picker shape consistent (= closed enum + radio-style =
+        // Apple HIG canonical).
+        Form {
+            Section(WenshuI18n.t("settings.agentBehavior.speakingStyle.title")) {
+                Picker(
+                    WenshuI18n.t("settings.agentBehavior.speakingStyle.prompt"),
+                    selection: Binding(
+                        get: { AgentBehavior.currentSpeakingStyle() },
+                        set: { AgentBehavior.setCurrentSpeakingStyle($0) }
+                    )
+                ) {
+                    ForEach(SpeakingStyle.allCases) { style in
+                        Text(style.label).tag(style)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+                Text(WenshuI18n.t("settings.agentBehavior.speakingStyle.help"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
