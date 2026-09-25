@@ -18,7 +18,7 @@ import Foundation
 
 // MARK: - Role bridge (ChatRole ↔ LLMMessage.Role)
 //
-// Ticket 003 sub-step 5 acceptance: compression round-trip preserves
+//  sub-step 5 acceptance: compression round-trip preserves
 // message identity. Role bridge lives in this file (= single source of
 // truth for ChatView ↔ LLMMessage role mapping). Per §11.3 wenshu-side
 // wins, this bridge is a thin adapter over the existing ChatRole enum.
