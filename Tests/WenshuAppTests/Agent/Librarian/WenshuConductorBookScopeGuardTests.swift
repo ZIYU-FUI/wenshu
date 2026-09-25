@@ -66,8 +66,7 @@ struct WenshuConductorBookScopeGuardTests {
             bookDirectory: dir
         )
         let names = await conductor.registeredToolNames()
-        #expect(names.contains("book_world"))
-        #expect(names.contains("book_character"))
+        #expect(names.contains("book_entity"))
         #expect(names.contains("book_chapter"))
         #expect(names.contains("book_outline"))
     }
@@ -116,16 +115,16 @@ struct WenshuConductorBookScopeGuardTests {
             currentChatBookID: chatBook,
             bookDirectory: dir
         )
-        // Invoke book_world with a different book_id than the
+        // Invoke book_entity with a different book_id than the
         // chat-bound one (= scope guard must reject).
         let tools = await conductor.tools
-        let world = tools["book_world"]
-        #expect(world != nil)
-        if let world {
+        let entity = tools["book_entity"]
+        #expect(entity != nil)
+        if let entity {
             let input = """
-            {"action":"create","book_id":"\(requestedBook.uuidString)","name":"Forbidden","markdown":"# F"}
+            {"action":"create","book_id":"\(requestedBook.uuidString)","kind":"person","name":"Forbidden","markdown":"# F"}
             """
-            let output = try await world.execute(input: input)
+            let output = try await entity.execute(input: input)
             #expect(output.contains("\"ok\":false"))
             #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
             #expect(output.contains(chatBook.uuidString))
@@ -145,13 +144,13 @@ struct WenshuConductorBookScopeGuardTests {
             bookDirectory: dir
         )
         let tools = await conductor.tools
-        let world = tools["book_world"]
-        #expect(world != nil)
-        if let world {
+        let entity = tools["book_entity"]
+        #expect(entity != nil)
+        if let entity {
             let input = """
-            {"action":"create","book_id":"\(chatBook.uuidString)","name":"Beijing","markdown":"# B"}
+            {"action":"create","book_id":"\(chatBook.uuidString)","kind":"location","name":"Beijing","markdown":"# B"}
             """
-            let output = try await world.execute(input: input)
+            let output = try await entity.execute(input: input)
             #expect(output.contains("\"ok\":true"))
             #expect(output.contains("\"action\":\"create\""))
             #expect(output.contains("\"name\":\"Beijing\""))
@@ -170,13 +169,13 @@ struct WenshuConductorBookScopeGuardTests {
             bookDirectory: dir
         )
         let tools = await conductor.tools
-        let world = tools["book_world"]
-        #expect(world != nil)
-        if let world {
+        let entity = tools["book_entity"]
+        #expect(entity != nil)
+        if let entity {
             let input = """
-            {"action":"create","book_id":"\(requestedBook.uuidString)","name":"Forbidden","markdown":"# F"}
+            {"action":"create","book_id":"\(requestedBook.uuidString)","kind":"person","name":"Forbidden","markdown":"# F"}
             """
-            let output = try await world.execute(input: input)
+            let output = try await entity.execute(input: input)
             #expect(output.contains("\"ok\":false"))
             #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
             #expect(output.contains("not bound to any book"))

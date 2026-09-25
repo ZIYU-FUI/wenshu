@@ -708,11 +708,10 @@ actor WenshuConductor {
         "ReadFile",         // Core/Agent/Tool/ReadFileTool.swift
         "WriteFile",        // Core/Agent/Tool/WriteFileTool.swift
         "av",               // Core/Tools/AVMediaTools.swift
-        "book_character",   // Core/Agent/Librarian/BookCharacterTool.swift
         "book_chapter",     // Core/Agent/Librarian/BookChapterTool.swift
+        "book_entity",      // Core/Agent/Librarian/BookEntityTool.swift  (= v2.3 entity schema redesign)
         "book_manager",     // Core/Agent/Librarian/BookManagerTool.swift
         "book_outline",     // Core/Agent/Librarian/BookOutlineTool.swift
-        "book_world",       // Core/Agent/Librarian/BookWorldTool.swift
         "file",             // Core/Tools/FileTools.swift
         "kanban",           // Core/Agent/Tool/KanbanStoreTool.swift
         "process",          // Core/Tools/ProcessTools.swift
@@ -958,17 +957,23 @@ actor WenshuConductor {
     /// (= the user picks a book in the sidebar and the chat session
     /// becomes scoped to that book). These are replaced with
     /// provider-bound instances by `wireBookScopeGuard`.
+    ///
+    /// In v2.3 the world + character tools collapse into a single
+    /// `book_entity` tool that handles all 5 kinds (= person /
+    /// location / object / ability / event). The `book_chapter` +
+    /// `book_outline` tools remain scoped to their respective
+    /// chapter + outline schemas (= not part of the entity
+    /// schema redesign; = see AGENTS.md §11.11 row 1).
     private static let bookScopeGuardedToolNames: Set<String> = [
-        "book_world",
-        "book_character",
+        "book_entity",
         "book_chapter",
         "book_outline"
     ]
 
-    /// Wire the four book_X tools (= world / character / chapter /
-    /// outline) for the chat session's currently-bound book.
+    /// Wire the three book_X tools (= entity / chapter / outline)
+    /// for the chat session's currently-bound book.
     ///
-    /// Takes value snapshots (= not closures) because the four actors
+    /// Takes value snapshots (= not closures) because the three actors
     /// are re-wired on every change of the sidebar's selected book
     /// (= see ChatZoneView.swift `.onChange`). Capturing closures
     /// across actor boundaries would force async hops (= incompatible
@@ -981,11 +986,7 @@ actor WenshuConductor {
         currentChatBookID: UUID?,
         bookDirectory: URL?
     ) {
-        let worldActor = BookWorldActor(
-            bookDirectoryProvider: { bookDirectory },
-            currentChatBookIDProvider: { currentChatBookID }
-        )
-        let characterActor = BookCharacterActor(
+        let entityActor = BookEntityActor(
             bookDirectoryProvider: { bookDirectory },
             currentChatBookIDProvider: { currentChatBookID }
         )
@@ -998,8 +999,7 @@ actor WenshuConductor {
             currentChatBookIDProvider: { currentChatBookID }
         )
 
-        tools["book_world"] = BookWorldTool(actor: worldActor)
-        tools["book_character"] = BookCharacterTool(actor: characterActor)
+        tools["book_entity"] = BookEntityTool(actor: entityActor)
         tools["book_chapter"] = BookChapterTool(actor: chapterActor)
         tools["book_outline"] = BookOutlineTool(actor: outlineActor)
     }
