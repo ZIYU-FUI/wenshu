@@ -1,8 +1,8 @@
 //
-//  ToolExecutorHelpersTests.swift · Wenshu · HERMES-PARTIAL-003 (2026-09-04)
+//  ToolExecutorHelpersTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the 6 dispatch helpers + ToolDispatchInputParser.serialize
-//  added in HERMES-PARTIAL-003:
+//  added in :
 //    1. testPermissionGate              — denied tool → denial string + no I/O
 //    2. testOutputTruncator             — long output → truncated
 //    3. testErrorClassifier             — thrown error → classified message
@@ -17,7 +17,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("ToolExecutorHelpers (HERMES-PARTIAL-003)")
+@Suite("ToolExecutorHelpers ()")
 struct ToolExecutorHelpersTests {
 
     // MARK: - Test 1: Permission gate
