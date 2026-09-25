@@ -1,7 +1,7 @@
 //
-//  Persistence/WSBook.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSBook.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 15/21: WSBook.
+//   : WSBook.
 //  Mirrors `books` table from WenshuWorkspace.swift.
 //  Central entity of wenshu's data model (= a book holds chapters, outline,
 //  foreshadowing, placeholders, characters, world).
