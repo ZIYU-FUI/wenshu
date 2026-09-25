@@ -1,7 +1,7 @@
 //
-//  Persistence/Repositories/WSMemoryRepositoryTests.swift · Wenshu · v0.72 SwiftData migration Phase 2
+//  Persistence/Repositories/WSMemoryRepositoryTests.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Test commit 22/42: WSMemoryRepository (= MemoryStore actor replacement).
+//  Test : WSMemoryRepository (= MemoryStore actor replacement).
 
 import Foundation
 import SwiftData
