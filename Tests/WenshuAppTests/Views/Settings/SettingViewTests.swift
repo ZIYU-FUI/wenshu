@@ -249,8 +249,8 @@ struct SettingViewTests {
     func refreshProviderStatusUsesProviderKeychain() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
-        #expect(section.contains("providersWithKeys = Set(ProviderKeychain.listProvidersWithKeys())"),
-                "refreshProviderStatus must read ProviderKeychain.listProvidersWithKeys (= single source of truth)")
+        #expect(section.contains("SettingsOps.refreshProviderStatus(keychain:"),
+                "refreshProviderStatus must delegate to SettingsOps.refreshProviderStatus (= single source of truth via MVVM Ops layer per v1.72)")
     }
 
     @Test("generalTab uses .formStyle(.grouped) + .radioGroup for appearance picker")
@@ -292,12 +292,8 @@ struct SettingViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        #expect(codeRegion.contains("if apiExpandedProviders.contains(p.slug)"),
-                "toggleExpand must check membership before removing")
-        #expect(codeRegion.contains("apiExpandedProviders.remove(p.slug)"),
-                "toggleExpand must remove from set on collapse")
-        #expect(codeRegion.contains("apiExpandedProviders.insert(p.slug)"),
-                "toggleExpand must insert into set on expand")
+        #expect(codeRegion.contains("apiExpandedProviders = SettingsOps.toggleExpansion"),
+                "toggleExpand must delegate to SettingsOps.toggleExpansion (= MVVM extraction per v1.72)")
         #expect(codeRegion.contains("apiDraftKey = currentDraftPreview(for: p)"),
                 "toggleExpand must pre-populate apiDraftKey with the masked key preview (= UX consistency)")
         #expect(codeRegion.contains("apiError = nil"),
@@ -407,8 +403,8 @@ struct SettingViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        #expect(codeRegion.contains("return String(key.prefix(12))"),
-                "keyPrefix12 must use first 12 chars (= 12-char prefix contract)")
+        #expect(codeRegion.contains("SettingsOps.keyPrefix12"),
+                "keyPrefix12 must delegate to SettingsOps.keyPrefix12 (= MVVM extraction per v1.72)")
     }
 
     @Test("filteredProviders returns all when search empty (= no filter on empty query)")
@@ -444,7 +440,7 @@ struct SettingViewTests {
         // color (green vs secondary) for has-key vs no-key state.
         #expect(section.contains("Image(systemName: hasKey ? \"key\" : \"key\")"),
                 "providerApiRow must use 'key' SF Symbol (= same glyph for both states per boss 2026-09-15)")
-        #expect(section.contains(".foregroundStyle(hasKey ? Color.green : Color.secondary)"),
+        #expect(section.contains(".foregroundStyle(hasKey ? Color(nsColor: .systemGreen) : Color.secondary)"),
                 "providerApiRow must tint green when hasKey, .secondary otherwise (= visual state difference)")
     }
 }
