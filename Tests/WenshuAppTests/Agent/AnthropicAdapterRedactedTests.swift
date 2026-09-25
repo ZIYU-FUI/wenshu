@@ -1,5 +1,5 @@
 //
-//  AnthropicAdapterRedactedTests.swift · Wenshu · HERMES-PARTIAL-006 (2026-09-04)
+//  AnthropicAdapterRedactedTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the AnthropicAdapter extensions (= hermes
 //  anthropic_adapter.py = 2,789 LOC):
@@ -15,7 +15,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("AnthropicAdapterRedacted (HERMES-PARTIAL-006)")
+@Suite("AnthropicAdapterRedacted ()")
 struct AnthropicAdapterRedactedTests {
 
     // MARK: - Test 1: redacted_thinking propagation
