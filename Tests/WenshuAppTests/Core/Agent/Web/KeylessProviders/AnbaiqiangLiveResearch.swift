@@ -181,6 +181,13 @@ struct AnbaiqiangLiveResearch {
         let firstSnippet = (searchItems.first?["snippet"] as? String) ?? ""
         let summary = String(firstSnippet.prefix(120)).replacingOccurrences(of: "\n", with: " ")
 
+        // v2.6 facet model: the create envelope carries a tags array
+        // (= cross-cutting facet). The tags below are the canonical
+        // set the boss would expect for 李白 (= poet / Tang dynasty /
+        // romanticism / poet-immortal / Blue Lotus hermit). Sorted
+        // alphabetically (= per the Reference struct contract).
+        let tags = ["唐朝", "诗人", "浪漫主义", "诗仙", "青莲居士"]
+
         // Escape the body for JSON embedding (= use JSONSerialization
         // to build the envelope so we don't have to hand-escape quotes).
         let createEnvelope: [String: Any] = [
@@ -188,6 +195,7 @@ struct AnbaiqiangLiveResearch {
             "title": "李白",
             "layer": "entities",
             "category": "I",  // CLC top-level "Literature" (= 李白 = poet)
+            "tags": tags,       // v2.6 facet model: cross-cutting tag facet
             "entity_type": "character",
             "source": "wenshu WebSearchTool (= Parallel MCP keyless ring)",
             "summary": summary,
@@ -219,15 +227,21 @@ struct AnbaiqiangLiveResearch {
         }
 
         // Step 5: acceptance gate A — a `<uuid>.md` was created in the
-        // user's `.ws/reference-library/entities/<category>/` directory
-        // (= e.g. `entities/i/<uuid>.md` for category "I" = Literature;
-        // = per FileSystemReferenceStore.ensureEntityCategoryDirectoryExists).
-        let category = "I"  // boss 2026-09-25 EntityCategory "I" = Literature
-        let categoryDir = Self.wsRoot.appendingPathComponent("reference-library/entities/\(category.lowercased())")
-        let writtenFiles = (try? FileManager.default.contentsOfDirectory(at: categoryDir, includingPropertiesForKeys: nil)) ?? []
+        // user's `.ws/reference-library/entities/` directory.
+        // v2.6 facet model: file path is FLAT (no category subdir;
+        // = category lives in entities.json metadata, not on disk).
+        let entitiesDir = Self.wsRoot.appendingPathComponent("reference-library/entities")
+        let writtenFiles = (try? FileManager.default.contentsOfDirectory(at: entitiesDir, includingPropertiesForKeys: nil)) ?? []
         let mdFiles = writtenFiles.filter { $0.pathExtension == "md" }
-        #expect(mdFiles.count == 1, "exactly one entity .md must exist under \(categoryDir.path); got \(mdFiles.count)")
+        #expect(mdFiles.count == 1, "exactly one entity .md must exist under \(entitiesDir.path); got \(mdFiles.count)")
         guard let writtenFile = mdFiles.first else { return }
+
+        // Step 5b: acceptance gate A' — no category subdirectory was
+        // created (= the file is metadata-flat; = category="I" lives
+        // in entities.json only).
+        let categorySubdir = entitiesDir.appendingPathComponent("i")
+        #expect(!FileManager.default.fileExists(atPath: categorySubdir.path),
+                "no category subdir should be created in v2.6 facet model; found \(categorySubdir.path)")
 
         // Step 6: acceptance gate B — body contains "李白" + real
         // search snippets (= proves the LLM-style body made it to disk).
@@ -236,14 +250,27 @@ struct AnbaiqiangLiveResearch {
         #expect(onDiskBody.count > 200, "on-disk .md must be substantive; got \(onDiskBody.count) bytes")
 
         // Step 7: acceptance gate C — entities/indexes JSON index has
-        // the entry. (= FileSystemReferenceStore writes
-        // `entities/entities.json` and `indexes/saved-searches.json`;
-        // = per-layer index files.)
+        // the entry with the expected tags.
         let indexPath = Self.wsRoot.appendingPathComponent("reference-library/entities/entities.json")
         let indexRaw = (try? String(contentsOf: indexPath, encoding: .utf8)) ?? ""
         #expect(indexRaw.contains("李白"), "entities.json index must list 李白")
         #expect(indexRaw.contains("\"I\"") || indexRaw.contains("\"category\":\"I\""),
                 "entities.json index must record category=I (Literature)")
+        // v2.6 facet model: tags are persisted as a JSON array
+        // (= the cross-cutting facet lives in the index, sorted
+        // alphabetically by CJK code point).
+        for tag in tags {
+            #expect(indexRaw.contains("\"\(tag)\""),
+                    "entities.json must record tag \"\(tag)\"; got: \(indexRaw.prefix(500))")
+        }
+
+        // Step 7b: acceptance gate C' — the descriptor returned by
+        // ReferenceLibraryTool.execute carries the tags field (= the
+        // LLM tool surface is honest about the round-trip).
+        let writeReference = (writeJSON["reference"] as? [String: Any]) ?? [:]
+        let writeTags = (writeReference["tags"] as? [String]) ?? []
+        #expect(Set(writeTags) == Set(tags),
+                "descriptor.tags must round-trip the input tag set; got: \(writeTags)")
 
         // Step 8: log the canonical .md filename (= boss wants to know
         // that the file exists; = we surface its UUID-name + size for
