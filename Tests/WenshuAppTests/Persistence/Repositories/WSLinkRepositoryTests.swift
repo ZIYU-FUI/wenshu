@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSLinkRepositoryTests.swift · Wenshu · v0.72 SwiftData migration Phase 2
+//  Persistence/Repositories/WSLinkRepositoryTests.swift · Wenshu · v0.72 SwiftData migration 
 
 import Foundation
 import SwiftData
@@ -61,7 +61,7 @@ struct WSLinkRepositoryTests {
         #expect(doc2.count == 1)
     }
 
-    @Test("addMultipleAtSameLine: 2 distinct [[name]] links on the same line = 2 distinct rows (= composite id includes targetRef after Phase 5 ticket 5)")
+    @Test("addMultipleAtSameLine: 2 distinct [[name]] links on the same line = 2 distinct rows (= composite id includes targetRef after )")
     @MainActor
     func addMultipleAtSameLine() throws {
         let repo = try makeRepository()
