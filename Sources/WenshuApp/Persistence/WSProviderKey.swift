@@ -1,7 +1,7 @@
 //
-//  Persistence/WSProviderKey.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSProviderKey.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 8/21: WSProviderKey.
+//   : WSProviderKey.
 //  Note: the `provider_keys` table in WenshuWorkspace.swift was actually
 //  metadata-only (= the actual API keys live in AppleKeychain per AGENTS.md §11).
 //  WSProviderKey is the SwiftData metadata index (= encrypted BLOB + slug + timestamps).
