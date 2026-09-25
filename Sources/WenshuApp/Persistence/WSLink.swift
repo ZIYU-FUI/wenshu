@@ -1,7 +1,7 @@
 //
-//  Persistence/WSLink.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSLink.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 5/21: WSLink.
+//   : WSLink.
 //  Mirrors links table schema (= v0.19 ticket 12 Internal Link).
 //  (=  deleted Core/LinkGraph/LinkIndex.swift; the canonical
 //  domain type is now Core/LinkGraph/LinkDomain.swift's Link struct.)
