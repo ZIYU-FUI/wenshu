@@ -173,6 +173,253 @@ struct E2EMemoryAndLLMFlowTests {
         print("[E2E] ConversationResult.response blocks: \(result.response.blocks.count)")
         #expect(result.response.blocks.count > 0, "ConversationResult.response must carry the LLM blocks")
     }
+
+    // MARK: - 第二回合: 测试书上下文 + 模糊 prompt 自动触发调研
+
+    @Test("测试书上下文: 模糊 prompt (主角入殓师, 出生沧州) 触发 web_search + reference_library 工具链")
+    @MainActor
+    func autoTriggerResearch() async throws {
+        guard Self.liveEnabled else {
+            Issue.record("skipped (= WENSHU_LIVE_API_TESTS not set)")
+            return
+        }
+
+        // Step 0: 准备 anbaiqiang.ws 仓库 (= reset reference-library 4 layers
+        // so the test starts from a clean reference store). Run the
+        // LibraryLifecycleHook so the SwiftData ModelContainer + reference store
+        // are wired (= the user-bound reference_library tool writes to
+        // <ws>/reference-library/, not the singleton's /tmp/ fallback).
+        let wsRoot = Self.anbaiqiangWSRoot
+        Self.resetReferenceLibrary(wsRoot: wsRoot)
+        let lifecycle = LibraryLifecycleHook(wsRoot: wsRoot)
+        let launchResult: LibraryLaunchResult
+        do {
+            launchResult = try lifecycle.runLaunch()
+        } catch {
+            Issue.record("LibraryLifecycleHook.runLaunch failed: \(error)")
+            return
+        }
+        let referenceStore = launchResult.stores.referenceStore
+        print("[E2E] reference-library root = \(referenceStore.referenceLibraryRoot.path)")
+        let userBoundRefLibTool = ReferenceLibraryTool(
+            actor: ReferenceLibraryActor(referenceStore: referenceStore)
+        )
+        print("[E2E] step 0 done: user-bound ReferenceLibraryTool constructed")
+
+        // Step 1: 手构造 tools dict + toolSchemas (= web_search +
+        // reference_library). Bypass ToolRegistry entirely (= the
+        // production-bootstrap chain fires 12 fire-and-forget Tasks that
+        // trap the process under @MainActor test isolation). This is the
+        // canonical observability shape: we want the LLM to see exactly
+        // these 2 tools (= no other tool schema contaminates the system
+        // prompt), so the agent's decision to call them is unambiguous.
+        let webSearchTool = WebSearchTool.shared
+        let webSearchSchema = ToolRegistrySchema(
+            name: "web_search",
+            description: """
+            Web search via the keyless anonymous public free tier ring \
+            (= Parallel / Exa / Keenable, in that order). No API key \
+            or configuration is needed; works on first launch. \
+            Actions: search (= multi-vendor ring with rate-limit failover), \
+            research (= search + local summary aggregation). \
+            Returns ranked results with title / url / snippet.
+            """,
+            inputSchema: [
+                "action": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "The web_search operation to perform.",
+                    enumValues: ["search", "research"]
+                ),
+                "query": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "Search query string (= required)."
+                ),
+                "limit": ToolRegistrySchemaProperty(
+                    type: "integer",
+                    description: "Maximum number of results to return (= default 10 for search, 5 for research)."
+                )
+            ],
+            required: []
+        )
+        let referenceLibrarySchema = ToolRegistrySchema(
+            name: "reference_library",
+            description: """
+            Library-public reference CRUD with dedup-by-title upsert \
+            (= wraps FileSystemReferenceStore). Same-title research \
+            edits the existing document instead of creating a new one.
+            """,
+            inputSchema: [
+                "action": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "The reference operation to perform.",
+                    enumValues: ["create", "read", "update", "delete", "list", "find", "upsert"]
+                ),
+                "id": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "Reference id (UUID). Required for read / update / delete."
+                ),
+                "title": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "Reference title. Required for create / find / upsert."
+                ),
+                "layer": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "Reference layer ('raw' or 'entities'). Defaults to 'raw'.",
+                    enumValues: ["raw", "entities"]
+                ),
+                "category": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "Entity category (for layer=entities)."
+                ),
+                "entity_type": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "EntityType (character / location / event / concept / artifact / organization / era / work / other)."
+                ),
+                "source": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "Bibliographic source string."
+                ),
+                "url": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "Source URL (web sources)."
+                ),
+                "summary": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "1-line summary."
+                ),
+                "markdown": ToolRegistrySchemaProperty(
+                    type: "string",
+                    description: "Full .md body. Alias: 'body'."
+                )
+            ],
+            required: ["action"]
+        )
+        let tools: [String: any Tool] = [
+            "web_search": webSearchTool,
+            "reference_library": userBoundRefLibTool
+        ]
+        let toolSchemas: [ToolRegistrySchema] = [webSearchSchema, referenceLibrarySchema]
+        print("[E2E] step 1 done: tools dict + toolSchemas constructed (web_search + reference_library)")
+
+        // Step 2: 装 ConversationLoop (= same shape as fullFlow test; = bypasses
+        // WenshuConductor's MainActor-bound `buildToolsSync` semaphore
+        // bridge which SIGTRAPs under test isolation).
+        let realConnector = MinimaxConnector()
+        let recording = RecordingLLMConnector(wrapping: realConnector)
+        let loop = ConversationLoop(connection: recording)
+        print("[E2E] step 2 done: ConversationLoop wired with RecordingLLMConnector")
+
+        // Step 3: 模糊 prompt (= boss 的精确措辞 — 不改写)。
+        let userMessage = """
+        我想写一部小说，主角名字还没想好。
+        设定是入殓师职业，出生在沧州。
+        你看怎么规划？
+        """
+        print("[E2E] step 3 done: vague prompt prepared (\(userMessage.count) chars)")
+        print("[E2E] sending vague prompt: \(userMessage.prefix(80))…")
+
+        // Step 4: runTurn (= full ConversationLoop pipeline with tool dispatch).
+        // `maxAttempts` defaults to 3 (= the tool-call loop has budget for
+        // ~3 LLM round-trips before giving up).
+        let result = try await loop.runTurn(
+            userMessage: userMessage,
+            systemMessage: nil,
+            conversationHistory: [],
+            tools: tools,
+            taskId: "e2e-002-research",
+            toolSchemas: toolSchemas
+        )
+        print("[E2E] step 4 done: loop.runTurn returned")
+
+        // Step 5: 总报告 (= boss 想看的就是这些)。
+        let captured = await recording.capturedCalls()
+        print("[E2E] LLM send calls captured = \(captured.count)")
+        var emittedToolUseNames = Set<String>()
+        for (idx, call) in captured.enumerated() {
+            var toolUseBlocksInResponse: [String] = []
+            for block in call.response.blocks {
+                if case .toolUse(_, let name, _) = block {
+                    toolUseBlocksInResponse.append(name)
+                    emittedToolUseNames.insert(name)
+                }
+            }
+            // Look at requestMessages too: ConversationLoop.runTurn sends
+            // .toolResult blocks (= feedback from prior tool executions)
+            // in subsequent LLM round-trips. We want to see what tool the
+            // agent ACTUALLY dispatched (= .toolResult blocks in requestMessages).
+            var toolResultsInRequest: [Int] = []
+            for msg in call.requestMessages where msg.role == .user {
+                for block in msg.blocks {
+                    if case .toolResult(let toolUseID, _) = block {
+                        toolResultsInRequest.append(toolUseID.hashValue)
+                    }
+                }
+            }
+            print("[E2E]   call[\(idx)] blocks=\(call.response.blocks.count) toolUse_in_response=\(toolUseBlocksInResponse) toolResults_in_request=\(toolResultsInRequest)")
+        }
+        print("[E2E] LLM-emitted toolUse names (across all calls): \(emittedToolUseNames.sorted().joined(separator: ", "))")
+        #expect(captured.count >= 1, "loop.runTurn must call LLM at least once")
+
+        // Step 6: 看文件系统副作用 (= reference_library.create 是否真写到了
+        // <ws>/reference-library/entities/*.md). 一个 .md 文件 = 一次 LLM
+        // 自动创建的文档。boss 想看的: 入殓师 / 沧州 / 主角文档有没有。
+        let entitiesDir = wsRoot.appendingPathComponent("reference-library/entities")
+        let writtenFiles = (try? FileManager.default.contentsOfDirectory(at: entitiesDir, includingPropertiesForKeys: nil)) ?? []
+        let mdFiles = writtenFiles.filter { $0.pathExtension == "md" }
+        print("[E2E] reference-library/entities/*.md count = \(mdFiles.count)")
+        for file in mdFiles {
+            let id = file.deletingPathExtension().lastPathComponent
+            let attrs = (try? FileManager.default.attributesOfItem(atPath: file.path)) ?? [:]
+            let size = (attrs[.size] as? Int) ?? 0
+            let body = (try? String(contentsOf: file, encoding: .utf8)) ?? ""
+            let firstNonEmptyLine = body.split(whereSeparator: { $0.isNewline })
+                .first.map(String.init) ?? ""
+            print("[E2E]   entity id=\(id) size=\(size) firstLine=\(firstNonEmptyLine.prefix(80))")
+        }
+
+        // Step 7: 看 entities.json 索引 (= title / category / tags).
+        let indexPath = wsRoot.appendingPathComponent("reference-library/entities/entities.json")
+        let indexRaw = (try? String(contentsOf: indexPath, encoding: .utf8)) ?? ""
+        print("[E2E] entities.json index (\(indexRaw.count) chars):")
+        if !indexRaw.isEmpty {
+            print(indexRaw)
+        }
+
+        // Step 8: 总报告 (boss visual verification — he wants to see these numbers).
+        let resultTexts = result.response.blocks.compactMap { block -> String? in
+            if case .text(let s) = block { return s }
+            return nil
+        }
+        let resultTextBlob = resultTexts.joined(separator: "\n")
+        print("")
+        print("========== [E2E] vague-prompt auto-trigger research summary ==========")
+        print("LLM send calls (one LLM round-trip per call):       \(captured.count)")
+        print("LLM-emitted tool_use names (across all calls):      \(emittedToolUseNames.sorted().joined(separator: ", "))")
+        print("On-disk entity .md files written by reference_lib: \(mdFiles.count)")
+        print("ConversationResult.response blocks:                 \(result.response.blocks.count)")
+        print("ConversationResult.response has toolUse blocks:     \(result.response.blocks.contains { if case .toolUse = $0 { return true } else { return false } })")
+        print("Final reply (\(resultTextBlob.count) chars):")
+        print(resultTextBlob)
+        print("======================================================================")
+    }
+}
+
+extension E2EMemoryAndLLMFlowTests {
+    /// 测试用的 .ws 仓库根 (=老板的 anbaiqiang.ws 副本 + 测试隔离).
+    fileprivate static var anbaiqiangWSRoot: URL {
+        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        return cwd.appendingPathComponent(".scratch/anbaiqiang.ws")
+    }
+
+    /// 重置 reference-library 4 个 layer (=让本测试能从干净起点开始).
+    fileprivate static func resetReferenceLibrary(wsRoot: URL) {
+        let reflibRoot = wsRoot.appendingPathComponent("reference-library")
+        for layer in ["raw", "entities", "abstracts", "indexes"] {
+            let layerDir = reflibRoot.appendingPathComponent(layer)
+            try? FileManager.default.removeItem(at: layerDir)
+            try? FileManager.default.createDirectory(at: layerDir, withIntermediateDirectories: true)
+        }
+    }
 }
 
 // MARK: - Recording connector
