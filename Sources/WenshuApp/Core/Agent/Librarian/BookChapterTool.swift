@@ -86,8 +86,16 @@ enum BookChapterError: Error, LocalizedError, Sendable, Equatable {
 actor BookChapterActor {
     private let chapterStore: any ChapterStoring
 
-    init(chapterStore: any ChapterStoring) {
+    /// Closure returning the chat session's currently-bound book.
+    /// See BookWorldActor's matching field for the contract.
+    private let currentChatBookIDProvider: @Sendable () -> UUID?
+
+    init(
+        chapterStore: any ChapterStoring,
+        currentChatBookIDProvider: @escaping @Sendable () -> UUID? = { nil }
+    ) {
         self.chapterStore = chapterStore
+        self.currentChatBookIDProvider = currentChatBookIDProvider
     }
 
     var bookDirectory: URL {
@@ -242,6 +250,23 @@ actor BookChapterActor {
             )
         }
 
+        // Scope guard: see BookWorldActor (= identical contract).
+        do {
+            try BookScopeGuard.validate(
+                providedBookID: Self.parseUUID(envelope["book_id"]),
+                currentChatBookIDProvider: currentChatBookIDProvider
+            )
+        } catch let violation as BookScopeViolation {
+            return Self.encodeFailureScopeViolation(action: action, error: violation)
+        } catch {
+            return Self.encodeFailure(
+                action: action,
+                error: BookChapterError.invalidInput(
+                    reason: "scope guard failed: \(error.localizedDescription)"
+                )
+            )
+        }
+
         do {
             switch action {
             case .create:
@@ -390,6 +415,22 @@ actor BookChapterActor {
         if let action {
             payload["action"] = action.rawValue
         }
+        return encodeJSON(payload)
+    }
+
+    /// Encode a BookScopeViolation into the standard failure envelope.
+    /// See BookWorldTool.encodeFailureScopeViolation for the matching
+    /// contract.
+    private static func encodeFailureScopeViolation(
+        action: BookChapterAction,
+        error: BookScopeViolation
+    ) -> String {
+        let payload: [String: Any] = [
+            "ok": false,
+            "action": action.rawValue,
+            "error": error.errorDescription ?? "unknown error",
+            "error_kind": "book_scope_violation"
+        ]
         return encodeJSON(payload)
     }
 
