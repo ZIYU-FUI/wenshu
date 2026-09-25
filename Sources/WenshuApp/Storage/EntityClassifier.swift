@@ -45,6 +45,29 @@ import Foundation
 ///
 /// The LLM pass is opt-in (= boss can set `useLLMFallback = false` in
 /// Settings to force keyword-only classification = no LLM cost).
+/// Multi-facet classification result (= v2.6 facet model).
+///
+/// The classifier no longer returns a single `(category, entityType)`
+/// tuple; = it returns a `ClassificationResult` that carries the
+/// primary category, the entity-type facet, AND a list of free-form
+/// tags. A document can carry:
+/// - 0 or 1 `category` (= primary CLC bucket; = the LLM may decline
+///   to assign one, in which case the sidebar falls back to .z)
+/// - 1 `entityType` (= orthogonal facet)
+/// - 0..N `tags` (= cross-cutting; = any string the LLM thinks is
+///   useful for retrieval; = CJK + EN; = max 10 to avoid spam)
+struct ClassificationResult: Sendable, Equatable {
+    let category: EntityCategory?
+    let tags: [String]
+    let entityType: EntityType
+
+    static func == (lhs: ClassificationResult, rhs: ClassificationResult) -> Bool {
+        lhs.category == rhs.category &&
+        lhs.tags == rhs.tags &&
+        lhs.entityType == rhs.entityType
+    }
+}
+
 struct EntityClassifier: Sendable {
     init() {}
 
@@ -53,26 +76,41 @@ struct EntityClassifier: Sendable {
     /// default = keyword-only mode for offline + free use).
     typealias LLMCallback = @Sendable (String) async throws -> String
 
-    /// Classify a reference (= title + summary + body) into an
-    /// EntityCategory. Always returns a category (= falls back to .z
-    /// = General Books (catch-all) if both passes fail).
+    /// Max tags per classification (= the LLM is asked for "up to 10
+    /// tags"; = this constant enforces the cap so a chatty model
+    /// can't spam the index).
+    static let maxTags = 10
+
+    /// Classify a reference (= title + summary + body) into a
+    /// multi-facet `ClassificationResult`. The result always carries
+    /// at least one fact (= falls back to .z + empty tags + .other
+    /// if both passes fail).
     ///
-    /// also returns EntityType (default = .other for keyword
-    /// pass, LLM-determined when LLM fallback is invoked).
+    /// Two-pass strategy (= unchanged from pre-v2.6):
+    /// 1. Keyword pass (sync, fast, no LLM cost). If confident, return.
+    /// 2. LLM pass (fallback). Returns multi-facet JSON.
     func classify(
         title: String,
         summary: String = "",
         body: String = "",
         useLLMFallback: Bool = true,
         llmCallback: LLMCallback? = nil
-    ) async -> (category: EntityCategory, entityType: EntityType) {
+    ) async -> ClassificationResult {
         // 1st pass: keyword matching (= sync, fast, no LLM cost).
-        // Keyword pass doesn't infer EntityType (= .other as default).
         let keywordResult = keywordClassify(title: title, summary: summary, body: body)
 
-        // If keyword result is confident (= clear winner), use it directly
+        // If keyword result is confident (= clear winner), return it
+        // with tags derived from the matched category's display name
+        // (= "文学" for category .i, "历史" for .k, etc.) + the raw
+        // category letter ("I" / "K"). This gives the user a starting
+        // tag set even when the LLM pass is skipped.
         if keywordResult.confidence >= 0.6 {
-            return (keywordResult.category, .other)
+            let tags = Self.deriveKeywordTags(category: keywordResult.category)
+            return ClassificationResult(
+                category: keywordResult.category,
+                tags: tags,
+                entityType: .other
+            )
         }
 
         // 2nd pass: LLM (only if enabled + LLM callback available)
@@ -84,8 +122,13 @@ struct EntityClassifier: Sendable {
                     body: body,
                     llmCallback: llm
                 )
-                if llmResult.confidence >= 0.5 {
-                    return (llmResult.category, llmResult.entityType)
+                // The LLM pass is considered authoritative when it
+                // returns ANY non-fallback result (= non-.z OR non-
+                // empty tags OR non-.other entityType). If the LLM
+                // returns the fallback shape, we discard it and rely
+                // on the keyword pass instead.
+                if llmResult.category != .z || !llmResult.tags.isEmpty || llmResult.entityType != .other {
+                    return llmResult
                 }
             } catch {
                 // LLM failed (= network down, etc.) = fall through to
@@ -95,7 +138,20 @@ struct EntityClassifier: Sendable {
         }
 
         // Fallback (= keyword result OR .z = General Books catch-all)
-        return (keywordResult.category, .other)
+        let tags = Self.deriveKeywordTags(category: keywordResult.category)
+        return ClassificationResult(
+            category: keywordResult.category,
+            tags: tags,
+            entityType: .other
+        )
+    }
+
+    /// Derive a starter tag set from a keyword-classified category.
+    /// The tag set includes the category's display name + the raw
+    /// letter (= so the user sees both "文学" and "I" in the tag
+    /// cloud; = useful for cross-facet filter expressions).
+    private static func deriveKeywordTags(category: EntityCategory) -> [String] {
+        [category.displayName, category.rawValue]
     }
 
     // MARK: - Keyword classifier (1st pass)
@@ -150,23 +206,22 @@ struct EntityClassifier: Sendable {
 
     // MARK: - LLM classifier (2nd pass)
 
-    /// Result of the LLM pass.
-    struct LLMResult: Sendable {
-        let category: EntityCategory
-        let entityType: EntityType  // entity classification discriminator
-        let confidence: Double
-    }
+    /// Result of the LLM pass (= a multi-facet ClassificationResult).
+    typealias LLMResult = ClassificationResult
 
-    /// Ask the LLM to classify (= returns the category letter + entity-type
-    /// number, separated by space, e.g. 'K 3' = history + event).
+    /// Ask the LLM to classify (= returns JSON with category + tags +
+    /// entity_type). The JSON shape is:
+    /// ```
+    /// { "category": "I", "tags": ["诗人","唐朝","浪漫主义"], "entity_type": "character" }
+    /// ```
+    /// Tags are capped at `Self.maxTags` (= 10) to avoid spam.
     private func llmClassifier(
         title: String,
         summary: String,
         body: String,
         llmCallback: LLMCallback
     ) async throws -> LLMResult {
-        // Build a structured prompt (= request "CATEGORY_LETTER TYPE_NUMBER"
-        // for fast parse).
+        // Build a structured prompt (= request JSON for fast parse).
         let categoriesList = EntityCategory.allCases
             .map { "\($0.rawValue) = \($0.displayName)" }
             .joined(separator: "\n")
@@ -176,41 +231,56 @@ struct EntityClassifier: Sendable {
             .map { "\($0.promptNumber) = \($0.displayName): \($0.description)" }
             .joined(separator: "\n")
         let prompt = """
-        你是一个图书馆分类 + 实体类型判定专家。请将下面的资料同时判定:
+        你是一个图书馆分类 + 实体类型 + 标签提取专家。请将下面的资料同时输出:
         1) 所属类目 (= 《中国图书馆分类法》一级类目, 用字母)
         2) 实体类型 (= 这是什么类型的对象, 用数字)
+        3) 标签 (= 自由形式, 适合检索, 最多 10 个, 中英文均可)
 
         ## 资料信息
         - 标题: \(title)
         - 摘要: \(summary)
         - 正文 (前 500 字): \(String(body.prefix(500)))
 
-        ## 22 个一级类目 (= 第一个输出字母)
+        ## 22 个一级类目 (= category 字段值)
         \(categoriesList)
 
-        ## 9 个实体类型 (= 第二个输出数字)
+        ## 9 个实体类型 (= entity_type 字段值)
         \(typesList)
 
         ## 输出要求
-        - 输出一行, 字母 + 空格 + 数字, 例如 'K 3'
-        - K = 第一个字母 (类目), 3 = 第二个数字 (类型)
-        - 不要任何解释, 不要任何其他文字, 不要标点
+        - 输出一行 JSON, 严格符合下面的 schema:
+          {"category":"<letter>","tags":["<tag1>","<tag2>",...],"entity_type":<number>}
+        - category 必须是 22 个类目之一 (= A / B / C / D / E / F / G / H / I / J / K / N / O / P / Q / R / S / T / U / V / X / Z); = 不确定时输出 "Z"
+        - tags 是字符串数组, 最多 \(Self.maxTags) 个; = 可以为空数组
+        - entity_type 必须是 1-9 之间的数字; = 不确定时输出 9 (= other)
+        - 不要任何解释, 不要任何其他文字, 不要 markdown 代码块
         """
         let response = try await llmCallback(prompt)
         let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Parse "K 3" format
-        let parts = trimmed.split(separator: " ", maxSplits: 1).map(String.init)
-        guard parts.count == 2 else {
-            // Fallback: try old single-letter format for backward compat
-            if let firstChar = trimmed.first, let cat = EntityCategory(rawValue: String(firstChar).uppercased()) {
-                return LLMResult(category: cat, entityType: .other, confidence: 0.5)
-            }
-            return LLMResult(category: .z, entityType: .other, confidence: 0.0)
+        // Parse the JSON envelope.
+        if let data = trimmed.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let catRaw = (json["category"] as? String)?.uppercased() ?? "Z"
+            let cat = EntityCategory(rawValue: catRaw) ?? .z
+            let tagsRaw = (json["tags"] as? [String]) ?? []
+            let tags = Array(tagsRaw.prefix(Self.maxTags))
+            let typeNum = (json["entity_type"] as? Int) ?? 9
+            let type = EntityType.fromPromptNumber(typeNum)
+            return ClassificationResult(category: cat, tags: tags, entityType: type)
         }
-        let cat = EntityCategory(rawValue: parts[0].uppercased()) ?? .z
-        let typeNum = Int(parts[1]) ?? 9
-        let type = EntityType.fromPromptNumber(typeNum)
-        return LLMResult(category: cat, entityType: type, confidence: 0.7)
+        // Fallback to legacy "K 3" format for backward-compat with
+        // older LLM responses that don't emit JSON.
+        let parts = trimmed.split(separator: " ", maxSplits: 1).map(String.init)
+        if parts.count == 2,
+           let cat = EntityCategory(rawValue: parts[0].uppercased()),
+           let typeNum = Int(parts[1]) {
+            return ClassificationResult(category: cat, tags: [], entityType: EntityType.fromPromptNumber(typeNum))
+        }
+        // Legacy single-letter fallback (= e.g. "I" alone).
+        if let firstChar = trimmed.first, let cat = EntityCategory(rawValue: String(firstChar).uppercased()) {
+            return ClassificationResult(category: cat, tags: [], entityType: .other)
+        }
+        return ClassificationResult(category: .z, tags: [], entityType: .other)
     }
 
     // MARK: - Keyword dictionary
