@@ -14,12 +14,12 @@
 //  This is the FINAL commit of . It defines the ModelContainer
 //  (= single store) that aggregates all 23 @Model classes.
 //
-//  BEFORE Phase 1: 10 raw sqlite3 stores, 20+ tables, hand-rolled
+//  BEFORE SwiftData migration: 10 raw sqlite3 stores, 20+ tables, hand-rolled
 //  migration (= WenshuWorkspace.swift mega-store + 9 separate stores
 //  with duplicate tables for chat_messages / chat_summaries /
 //  sub_agent_runs / kanban_tasks / bookmarks / memory_entries).
 //
-//  AFTER Phase 1: 1 SwiftData ModelContainer holding all 23 @Model
+//  AFTER SwiftData migration: 1 SwiftData ModelContainer holding all 23 @Model
 //  classes. Tables still physically exist (= SwiftData uses Core Data's
 //  SQLite under the hood on macOS) but the API surface is unified:
 //  ModelContext.fetch(FetchDescriptor<WSXxx>()) replaces every per-store
@@ -155,7 +155,7 @@ enum WSPersistenceContainer {
     ///
     /// Migration path: existing callers using `WSPersistenceContainer.shared`
     /// stay on Application Support. New callers (= ticket 1b.2+) use `current`.
-    /// Post-Phase 5 (= tickets 1 + 6 + 7 + 8 + 9 + 10a + 10b): all 7 of
+    /// Post-SwiftData migration: all 7 of
     /// the planned sqlite stores are deleted (= KanbanStore + TodoStore +
     /// MemoryStore + LinkIndex + ChatSessionStore + BookmarkStore +
     /// WenshuWorkspace). The phase 5 spec is 100% complete; new
