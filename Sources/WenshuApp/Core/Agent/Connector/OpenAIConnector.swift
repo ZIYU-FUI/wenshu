@@ -186,7 +186,8 @@ actor OpenAICompatibleConnector: LLMConnector {
             maxTokens: options.maxTokens,
             systemPrompt: options.systemPrompt,
             messages: messages,
-            bearerToken: bearer
+            bearerToken: bearer,
+            tools: options.tools
         )
         // T12b: use stateful converter (= aggregates tool_calls across
         // chunks). Until T12: tool_calls chunks were dropped on the floor.

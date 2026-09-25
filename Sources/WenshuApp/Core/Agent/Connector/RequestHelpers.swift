@@ -339,7 +339,12 @@ enum RequestHelpers {
         /// reasoning effort from user setting.
         /// Maps to OpenAI `reasoning_effort` param (= "low"/"medium"/"high"/"xhigh"/"max").
         /// nil = omit param (= connector default).
-        reasoningEffort: String? = nil
+        reasoningEffort: String? = nil,
+        /// Tool schemas to advertise to the model. Empty (= default)
+        /// omits the `tools` field. OpenAI chat completions tools
+        /// shape: top-level `tools` array of `{type:"function",
+        /// function:{name, description, parameters}}` objects.
+        tools: [ToolRegistrySchema] = []
     ) throws -> Data {
         var body: [String: Any] = [
             "model": model,
@@ -360,6 +365,29 @@ enum RequestHelpers {
             default: mapped = "medium"
             }
             body["reasoning_effort"] = mapped
+        }
+        if !tools.isEmpty {
+            body["tools"] = tools.map { schema -> [String: Any] in
+                var props: [String: Any] = [:]
+                for (key, prop) in schema.inputSchema {
+                    props[key] = prop.toJSON()
+                }
+                var function: [String: Any] = [
+                    "name": schema.name,
+                    "description": schema.description
+                ]
+                if !props.isEmpty || !schema.required.isEmpty {
+                    function["parameters"] = [
+                        "type": "object",
+                        "properties": props,
+                        "required": schema.required
+                    ]
+                }
+                return [
+                    "type": "function",
+                    "function": function
+                ]
+            }
         }
         return try JSONSerialization.data(withJSONObject: body)
     }
