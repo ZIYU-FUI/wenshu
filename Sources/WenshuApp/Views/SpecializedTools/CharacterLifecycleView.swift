@@ -192,7 +192,7 @@ struct CharacterLifecycleView: View {
                 Button {
                     Task { await addEvent() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723")) } icon: { Image(systemName: "plus").imageScale(.small) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
@@ -243,7 +243,7 @@ struct CharacterLifecycleView: View {
 
     private func eventRow(_ event: LifecycleEvent) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
-            Image(systemName: event.stage.icon).font(.system(size: 16, weight: .regular))
+            Image(systemName: event.stage.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
@@ -274,7 +274,7 @@ struct CharacterLifecycleView: View {
             Button(role: .destructive) {
                 Task { await removeEvent(event) }
             } label: {
-                Image(systemName: "trash").font(.system(size: 14, weight: .regular))
+                Image(systemName: "trash").imageScale(.small)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
@@ -337,7 +337,7 @@ struct CharacterLifecycleView: View {
 
     private func timelineRow(_ event: LifecycleEvent) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-            Image(systemName: event.stage.icon).font(.system(size: 12, weight: .regular))
+            Image(systemName: event.stage.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.iconStandardSize)
             Text(event.stage.displayName)
@@ -367,7 +367,7 @@ struct CharacterLifecycleView: View {
             } else {
                 ForEach(Array(contradictions.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
-                        Image(systemName: "exclamationmark.triangle").font(.system(size: 14, weight: .regular))
+                        Image(systemName: "exclamationmark.triangle").imageScale(.small)
                             .foregroundStyle(Color(nsColor: .systemOrange))
                             .frame(width: DesignTokens.tabIconSize)
                         VStack(alignment: .leading, spacing: 1) {
