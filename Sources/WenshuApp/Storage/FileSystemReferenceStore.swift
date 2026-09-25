@@ -53,6 +53,39 @@ protocol ReferenceStoring: Sendable {
     /// Update an existing reference in place.
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws
 
+    /// Upsert by title within a layer (= boss 2026-09-25 directive:
+    /// "same topic research edits existing doc, not creates new").
+    ///
+    /// Behavior:
+    ///   - Looks up an existing reference whose `title` (case-insensitive
+    ///     trimmed) matches the given title in the given layer.
+    ///   - If found: calls `replaceReference` (= updates the .md body
+    ///     and bumps the index row's updatedAt).
+    ///   - If not found: creates a new reference with the given title
+    ///     (= a fresh UUID; = caller does not need to coordinate).
+    ///
+    /// Returns the resulting Reference (= new or updated).
+    /// `category` is only consulted for `.layerEntities` (= the
+    /// category subdirectory); = ignored for `.layerRaw` and the
+    /// LLM-derived layers.
+    ///
+    /// Note: the protocol method intentionally has no default args
+    /// (= Swift 6 forbids default values on protocol method
+    /// declarations). Callers that want the convenience of
+    /// defaults should call the FileSystemReferenceStore extension
+    /// (= which forwards to this entry point with the default
+    /// values filled in).
+    func upsertReference(
+        title: String,
+        bodyMarkdown: String,
+        layer: ReferenceLayer,
+        category: EntityCategory?,
+        source: String?,
+        url: String?,
+        entityType: EntityType,
+        summary: String
+    ) throws -> Reference
+
     /// Remove a reference. Idempotent.
     func deleteReference(id: UUID) throws
 
@@ -245,6 +278,55 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
         current[idx] = reference
         try writeIndex(current, for: reference.layer)
+    }
+
+    /// Upsert by title within a layer (= boss 2026-09-25 directive:
+    /// "same topic research edits existing doc, not creates new").
+    /// If an entry with the same case-insensitive trimmed title
+    /// already exists in the layer, its body + updatedAt are refreshed;
+    /// otherwise a new reference is created.
+    func upsertReference(
+        title: String,
+        bodyMarkdown: String,
+        layer: ReferenceLayer,
+        category: EntityCategory? = nil,
+        source: String? = nil,
+        url: String? = nil,
+        entityType: EntityType = .other,
+        summary: String = ""
+    ) throws -> Reference {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedTitle = trimmed.lowercased()
+
+        // 1. Look up existing by case-insensitive trimmed title.
+        let existing = (try? loadReferences(layer: layer)) ?? []
+        if let match = existing.first(where: { ref in
+            ref.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedTitle
+        }) {
+            // 2. Update existing; preserve id + createdAt; bump updatedAt.
+            var updated = match
+            updated.title = trimmed
+            updated.summary = summary
+            if let source { updated.source = source }
+            if let url { updated.url = url }
+            if layer == .layerEntities, let category { updated.category = category }
+            updated.updatedAt = Date()
+            try replaceReference(updated, bodyMarkdown: bodyMarkdown)
+            return updated
+        }
+
+        // 3. Create new.
+        let newRef = Reference(
+            title: trimmed,
+            source: source,
+            url: url,
+            layer: layer,
+            category: layer == .layerEntities ? category : nil,
+            entityType: entityType,
+            summary: summary
+        )
+        try saveReference(newRef, bodyMarkdown: bodyMarkdown)
+        return newRef
     }
 
     func deleteReference(id: UUID) throws {
