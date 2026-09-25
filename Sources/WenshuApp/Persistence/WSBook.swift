@@ -37,13 +37,13 @@ final class WSBook {
     /// Inverse relationship target (= declared on WSBookShelf.books)
     var shelf: WSBookShelf?
 
-    /// 1↔N WSWorld (= per-book world-building entries)
-    @Relationship(deleteRule: .cascade, inverse: \WSWorld.book)
-    var worlds: [WSWorld] = []
-
-    /// 1↔N WSCharacter (= per-book fictional people)
-    @Relationship(deleteRule: .cascade, inverse: \WSCharacter.book)
-    var characters: [WSCharacter] = []
+    /// 1↔N WSEntity (= per-book entities of any kind: person /
+    /// location / object / ability / event). Replaces the v2.0
+    /// `worlds` + `characters` relationships with a single
+    /// `entities` collection (= kind-discriminated; = see
+    /// WSEntity.swift for the 5-kind enum).
+    @Relationship(deleteRule: .cascade, inverse: \WSEntity.book)
+    var entities: [WSEntity] = []
 
     /// 1↔N WSOutlineDocument (= per-book outline .md files; = metadata index)
     @Relationship(deleteRule: .cascade, inverse: \WSOutlineDocument.book)

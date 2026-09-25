@@ -44,20 +44,18 @@ struct LibraryStores: Sendable {
     let referenceLibraryRoot: URL
     let referenceStore: ReferenceStoring
 
-    /// Construct per-book WorldStoring + CharacterStoring for a given
-    /// book directory. v0.27 follows the standard "data source switch"
-    /// pattern (= Apple HIG canonical for app-level stores).
+    /// Construct per-book FileSystemEntityStore (= unified v2.3 entity
+    /// storage; = replaces the v2.0 WorldStoring + CharacterStoring
+    /// pair with a single kind-discriminated store). v0.27 follows
+    /// the standard "data source switch" pattern (= Apple HIG
+    /// canonical for app-level stores).
     func makeBookStores(for bookDirectory: URL) -> PerBookStores {
-        PerBookStores(
-            worldStore: FileSystemWorldStore(bookDirectory: bookDirectory),
-            characterStore: FileSystemCharacterStore(bookDirectory: bookDirectory)
-        )
+        PerBookStores(entityStore: FileSystemEntityStore(bookDirectory: bookDirectory))
     }
 }
 
 struct PerBookStores: Sendable {
-    let worldStore: WorldStoring
-    let characterStore: CharacterStoring
+    let entityStore: FileSystemEntityStore
 }
 
 struct LibraryLaunchResult: Sendable {
