@@ -1,5 +1,5 @@
 //
-//  CommandPaletteRegistry.swift · Wenshu · CHATBOX-002 (2026-09-04)
+//  CommandPaletteRegistry.swift · Wenshu ·  (2026-09-04)
 //
 //  Searchable registry of all ⌘K palette actions (= commands, skills,
 //  navigation). Mirrors hermes slash_registry.py + commands.py.
@@ -67,7 +67,7 @@ struct CommandPaletteItem: Identifiable, Hashable, Sendable {
 /// were rejected (Swift 6 Sendable), and a stringly-typed action would
 /// lose type safety. This enum is the middle ground.
 enum CommandPaletteAction: Sendable, Equatable, Hashable {
-    /// Invoke a skill (= same path as SkillAdapter.parseAndInvoke in CHATBOX-001).
+    /// Invoke a skill (= same path as SkillAdapter.parseAndInvoke in ).
     /// args = the keyword args to pass (mostly empty in v1; future
     /// skill args land here).
     case invokeSkill(skillName: String, args: [String: String])
