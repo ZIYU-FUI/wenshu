@@ -1,7 +1,7 @@
 //
-//  Persistence/WSPlaceholder.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSPlaceholder.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 17/21: WSPlaceholder.
+//   : WSPlaceholder.
 //  Mirrors the JSON sidecar Placeholder struct from
 //  PlaceholderScannerTools.swift.
 //
