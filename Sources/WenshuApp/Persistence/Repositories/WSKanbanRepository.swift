@@ -48,7 +48,7 @@ final class WSKanbanRepository {
             assignee: assignee,
             modelOverride: modelOverride
         )
-        // Lifecycle hooks (Phase 5 ticket 6 parity with legacy KanbanStore actor:
+        // Lifecycle hooks ( parity with legacy KanbanStore actor:
         // startedAt auto-set when status = .running at add time, completedAt
         // auto-set when status = .done or .failed at add time).
         if status == .running {
