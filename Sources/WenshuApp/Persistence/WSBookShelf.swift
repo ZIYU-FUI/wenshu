@@ -1,7 +1,7 @@
 //
-//  Persistence/WSBookShelf.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSBookShelf.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 15/21: WSBookShelf.
+//   : WSBookShelf.
 //  Mirrors implicit "shelves" container (= wenshu has 1+ shelves per library;
 //  = shelves = directories under .ws/shelves/, = no DB row in old schema but
 //  SwiftData benefits from explicit representation).
