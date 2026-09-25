@@ -119,12 +119,13 @@ actor ToolExecutor {
         /// `_apply_tool_request_middleware_for_agent` L247). Returns
         /// the (possibly transformed) input dictionary. Throws to
         /// abort.
-        /// Default = `WenshuSandbox.preDispatchValidator` (= enforce
+        /// Default = `PathGuard.preDispatchValidator` wrapped with a
+        /// `[String: String]` ↔ `PathGuardInput` adapter (= enforce
         /// library-root path allow-list; = any path-bearing key that
         /// resolves outside .ws/ throws
-        /// `ToolExecutorError.sandboxViolation` before the tool is
+        /// `ToolExecutorError.pathGuardViolation` before the tool is
         /// invoked).
-        preDispatchValidator: @escaping @Sendable (String, [String: String]) async throws -> [String: String] = WenshuSandbox.preDispatchValidator,
+        preDispatchValidator: @escaping @Sendable (String, [String: String]) async throws -> [String: String] = ToolExecutor.defaultPathGuardValidator,
         postDispatchValidator: @escaping @Sendable (String, String) async throws -> String = ToolExecutor.defaultPostDispatchValidator
     ) {
         self.hookChain = hookChain
@@ -153,6 +154,18 @@ actor ToolExecutor {
 
     /// Default pre-dispatch validator: identity.
     static let defaultPreDispatchValidator: @Sendable (String, [String: String]) async throws -> [String: String] = { _, input in input }
+
+    /// Default pre-dispatch validator with PathGuard wired in.
+    /// Adapts `[String: String]` ↔ `PathGuardInput` so the typed
+    /// PathGuard layer can stay Sendable + sync while the closure
+    /// shim maintains ToolExecutor's `async throws` contract.
+    static let defaultPathGuardValidator: @Sendable (String, [String: String]) async throws -> [String: String] = { toolName, input in
+        let typed = PathGuardInput(raw: input)
+        let result = try PathGuard.preDispatchValidator(toolName: toolName, input: typed)
+        return result.allKeys.reduce(into: [String: String]()) { acc, key in
+            acc[key] = input[key]
+        }
+    }
 
     /// Default post-dispatch validator: identity.
     static let defaultPostDispatchValidator: @Sendable (String, String) async throws -> String = { _, output in output }

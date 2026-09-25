@@ -89,6 +89,14 @@ struct FileToolsAgentTests {
 
     @Test("ReadFileTool integrates with ToolExecutor (end-to-end dispatch)")
     func testToolExecutorIntegration() async throws {
+        // wt/path-guard-v2-2026-09-25: the executor's preDispatchValidator
+        // (= defaultPathGuardValidator) rejects any path that resolves
+        // outside the .ws library root. Set the library root to /tmp so
+        // the test's temp file path is in-scope.
+        let tmpRoot = "/tmp"
+        UserDefaultsStore.shared.setString(tmpRoot, forKey: .libraryPath)
+        defer { UserDefaultsStore.shared.remove(.libraryPath) }
+
         let tmpPath = "/tmp/wenshu-exec-test-\(UUID().uuidString).md"
         try FileTools().write(path: tmpPath, content: "executor dispatched this")
 
