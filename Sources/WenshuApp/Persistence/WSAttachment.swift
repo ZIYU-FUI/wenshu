@@ -1,7 +1,7 @@
 //
-//  Persistence/WSAttachment.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSAttachment.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 9/21: WSAttachment.
+//   : WSAttachment.
 //  Mirrors `attachments` table from WenshuWorkspace.swift.
 //
 //  Polymorphic design (= old schema used `parent_table` + `parent_id`):
