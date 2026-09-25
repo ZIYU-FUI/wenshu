@@ -22,7 +22,7 @@ import Foundation
 import Testing
 @testable import WenshuApp
 
-@Suite("v1.75 apple-sidebar-mvvm T1a — SidebarOpenOps (sidebar open-book + open-folder dedup)", .serialized)
+@Suite("v1.75 apple-sidebar-mvvm T1a — SidebarOpenOps (sidebar open-book + open-folder dedup)")
 @MainActor
 struct SidebarOpenOpsTests {
 
