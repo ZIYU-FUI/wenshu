@@ -15,7 +15,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("BookChapterTool (v2.0)")
+@Suite("BookChapterTool (v2.0)", .serialized)
 struct BookChapterToolTests {
 
     // MARK: - Helpers
@@ -28,6 +28,13 @@ struct BookChapterToolTests {
 
     private static func makeActor() throws -> BookChapterActor {
         let dir = try makeBookDirectory()
+        // wt/path-guard-v2-2026-09-25: set libraryPath to the
+        // canonical /tmp (= resolves through /private/tmp symlink
+        // so PathGuard's canonical-root comparison matches).
+        UserDefaultsStore.shared.setString(
+            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
+            forKey: .libraryPath
+        )
         return BookChapterActor(
             bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { nil }

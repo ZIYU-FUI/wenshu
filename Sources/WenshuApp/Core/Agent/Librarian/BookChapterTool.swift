@@ -119,6 +119,14 @@ actor BookChapterActor {
                 reason: "no chat session book bound (= scope guard should have caught this earlier)"
             )
         }
+        // wt/path-guard-v2-2026-09-25: PathGuard.assertInsideLibrary
+        // is the second line of defense (= the first is
+        // WenshuConductor.wireBookScopeGuard, which only protects
+        // against a wrong book_id in the JSON envelope). If a
+        // future caller wires bookDirectoryProvider to return a
+        // directory outside .ws/ (= e.g. a misconfigured library
+        // override), the tool body still refuses to write.
+        try PathGuard.assertInsideLibrary(path: LibraryPath(rawValue: dir.path))
         return FileSystemChapterStore(bookDirectory: dir)
     }
 
