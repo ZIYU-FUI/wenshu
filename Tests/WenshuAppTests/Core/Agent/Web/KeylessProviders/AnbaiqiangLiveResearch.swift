@@ -120,18 +120,33 @@ struct AnbaiqiangLiveResearch {
         print("[E2E] library launched; referenceStore root = \(referenceStore.referenceLibraryRoot.path)")
 
         // Step 2: drive WebSearchTool (= the canonical LLM tool path).
-        // Search envelope: {"action":"search","query":"李白 唐代诗人 生平 作品","limit":3}
-        let searchEnvelope = #"{"action":"search","query":"李白 唐代诗人 生平 作品","limit":3}"#
-        print("[E2E] step 2: WebSearchTool.search for '李白'")
-        let searchRaw = try await WebSearchTool.shared.execute(input: searchEnvelope)
-        print("[E2E] WebSearchTool.search returned \(searchRaw.count) bytes")
+        // Search envelope: the LLM typically generates a focused query
+        // with multiple long-tail searches (= boss 2026-09-25 verified
+        // Parallel MCP schema = {objective, search_queries: [String]};
+        // = we follow that pattern by passing multiple queries via the
+        // research action, which uses {search_queries} internally).
+        let researchEnvelope = #"{"action":"research","query":"李白 唐代诗人 生平 主要作品 历史影响","limit":4}"#
+        print("[E2E] step 2: WebSearchTool.research for '李白'")
+        let researchRaw = try await WebSearchTool.shared.execute(input: researchEnvelope)
+        print("[E2E] WebSearchTool.research returned \(researchRaw.count) bytes")
 
-        guard let searchJSON = try? JSONSerialization.jsonObject(with: Data(searchRaw.utf8)) as? [String: Any],
-              searchJSON["ok"] as? Bool == true,
-              let searchItems = searchJSON["results"] as? [[String: Any]],
-              !searchItems.isEmpty
+        guard let researchJSON = try? JSONSerialization.jsonObject(with: Data(researchRaw.utf8)) as? [String: Any],
+              researchJSON["ok"] as? Bool == true
         else {
-            Issue.record("WebSearchTool.search did not return ok=true with results; body=\(searchRaw.prefix(400))")
+            Issue.record("WebSearchTool.research did not return ok=true; body=\(researchRaw.prefix(400))")
+            return
+        }
+        // The research action returns `sources[]` (= already-summarized
+        // hit list); = the search action returns `results[]` (= raw hit
+        // list). We accept either for the boss's acceptance gate (= the
+        // boss asked for "调研汇总资料"; = both shapes are valid).
+        let searchItems: [[String: Any]]
+        if let sources = researchJSON["sources"] as? [[String: Any]], !sources.isEmpty {
+            searchItems = sources
+        } else if let results = researchJSON["results"] as? [[String: Any]], !results.isEmpty {
+            searchItems = results
+        } else {
+            Issue.record("WebSearchTool.research returned no sources or results; body=\(researchRaw.prefix(400))")
             return
         }
 
