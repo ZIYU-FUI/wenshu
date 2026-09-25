@@ -400,7 +400,17 @@ actor WenshuConductor {
                 // this closure as each block arrives from the LLM
                 // connector's SSE stream (= ChatView renders the
                 // token-by-token). Legacy callers (= tests) pass nil.
-                streamCallback: streamCallback
+                streamCallback: streamCallback,
+                // P5-AGENT-STREAMING-VISIBILITY (2026-09-25): forward
+                // tool schemas so the LLM is told what tools it can
+                // call (= ChatView then sees .toolUse blocks land and
+                // renders the corresponding tool card live). Schemas
+                // come from the canonical registry (= ToolRegistry.shared)
+                // via getDefinitions; = drops schemas whose handlers
+                // did not register (= hermes get_definitions parity).
+                toolSchemas: await ToolRegistry.shared.getDefinitions(
+                    toolNames: Set(tools.keys)
+                )
             )
             // Step 4: shape the ConversationResult into the canonical
             // (reply, totalTokens, thinking) tuple expected by ChatView.
