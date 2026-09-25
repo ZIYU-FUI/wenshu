@@ -75,12 +75,19 @@ struct ZoneModuleView: View {
             if dirName == "__root__" {
                 return .referenceScope(nil)
             }
-            if let cat = EntityCategory.allCases.first(where: {
-                $0.directoryName == dirName
-            }) {
-                return .referenceScope(cat)
+            let upper = dirName.uppercased()
+            if dirName == "其它" {
+                return .referenceScope(.z)
             }
-            return .empty
+            if let raw = EntityCategory(rawValue: upper) {
+                return .referenceScope(raw)
+            }
+            return .referenceScope(nil)
+        case .tag:
+            // v2.6 facet model: tag selection maps to the reference
+            // library root with the active tag-filter applied (= the
+            // preview pane reads shell.activeTagFilter to scope).
+            return .referenceScope(nil)
         }
     }
 

@@ -113,6 +113,11 @@ struct WorkspaceView: View {
                 return .referenceScope(cat)
             }
             return .empty
+        case .tag:
+            // v2.6 facet model: tag selection maps to the reference
+            // library root (= the preview pane reads shell.activeTagFilter
+            // to apply the tag-filter when rendering the card grid).
+            return .referenceScope(nil)
         }
     }
 

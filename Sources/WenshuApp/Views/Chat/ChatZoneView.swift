@@ -230,7 +230,11 @@ struct ChatZoneView: View {
                 bookID = id
             case .folder(let id, _):
                 bookID = id
-            case .shelf, .referenceCategory, .referenceLibraryRoot, nil:
+            case .shelf, .referenceCategory, .referenceLibraryRoot, .tag, nil:
+                // v2.6 facet: tag selection maps to no specific book
+                // (= the chat panel scopes to the global un-attached
+                // bucket). All non-book selections clear the per-book
+                // chat scope.
                 bookID = nil
             }
             vm.setCurrentBookID(bookID.map { BookID(rawValue: $0.uuidString) })

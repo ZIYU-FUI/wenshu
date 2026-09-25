@@ -177,6 +177,11 @@ struct ShellMiddleColumn: View {
             return .shelfScope(shelfId: shelfId)
         case .folder(let bookId, let folderName):
             return .bookScope(bookId: bookId, folderName: folderName)
+        case .tag(let tagString):
+            // v2.6 facet model: a tag selection maps to the reference
+            // library root with a tag-filter applied (= the preview
+            // pane reads appState.tagFilter to scope its card grid).
+            return .referenceScope(nil)
         case nil:
             return .referenceScope(nil)
         }
