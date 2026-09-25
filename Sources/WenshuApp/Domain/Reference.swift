@@ -101,22 +101,35 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// subdirectory under `reference-library/`.
     var layer: ReferenceLayer
 
-    /// Library-taxonomy category (= assigned at save time by
-    /// `EntityClassifier`). Optional for backward compatibility
-    /// (= legacy raw materials may not have a category).
+    /// Library-taxonomy category (= optional primary CLC bucket for
+    /// users who want library-style browsing). Assigned at save time
+    /// by `EntityClassifier.classify()`. Optional for backward
+    /// compatibility (= legacy raw materials may not have a category).
+    ///
+    /// In the v2.6 facet model: `category` is ONE facet among several
+    /// (= `tags` + `entityType` are cross-cutting facets). A document
+    /// can be browsed by category, by entity type, OR by tag filter;
+    /// = the physical file is metadata-flat (= entities/<uuid>.md).
+    /// See AGENTS.md §11.16 for the full design rationale.
     var category: EntityCategory?
 
-    /// Optional 2nd-level subcategory code (= e.g. "I2" for "in progress").
-    /// Set by the LLM classifier when it picks a fine-grained match.
-    /// Optional (= most entities fit in the top-level bucket).
-    var subcategory: String?
+    /// Free-form tags (= the cross-cutting facet in the v2.6 facet
+    /// model). A document may carry any number of tags (= multi-tag),
+    /// enabling queries like "all references tagged 唐朝" or
+    /// "all references tagged 文学 AND 唐朝". Tags are populated by
+    /// `EntityClassifier.classify()` (= LLM-suggested or keyword-derived)
+    /// and editable by the user.
+    ///
+    /// Tags are **orthogonal** to `category` and `entityType`. A
+    /// single reference can have:
+    /// - 0 or 1 `category` (= primary CLC bucket)
+    /// - 1 `entityType` (= character / location / event / etc.)
+    /// - 0..N `tags` (= any string, CJK + EN)
+    var tags: Set<String>
 
-    /// Entity-type (= orthogonal to category). 9 cases (= character /
-    /// location / event / concept / artifact / organization / era /
-    /// work / other). The first explicit entity-definition rule
-    /// wenshu has; = previous versions relied on hermes Python's 4
-    /// regex surface-form rules, not semantic type. Defaults to
-    /// `.other` for legacy entities (= Codable migration).
+    /// Entity-type (= orthogonal facet, unchanged from previous).
+    /// 9 cases: character / location / event / concept / artifact /
+    /// organization / era / work / other.
     ///
     /// Custom Codable: accepts BOTH string ("character") AND integer
     /// representations on decode. The seed-script writes integers
@@ -137,7 +150,8 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     // (= matches LLM promptNumber), human-readable exports use strings.
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, source, url, layer, category, subcategory
+        case id, title, source, url, layer, category
+        case tags
         case entityType, summary, characterRefIds, worldRefIds
         case bookRefIds, createdAt, updatedAt
     }
@@ -150,7 +164,10 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         url = try c.decodeIfPresent(String.self, forKey: .url)
         layer = try c.decode(ReferenceLayer.self, forKey: .layer)
         category = try c.decodeIfPresent(EntityCategory.self, forKey: .category)
-        subcategory = try c.decodeIfPresent(String.self, forKey: .subcategory)
+        // tags is new in v2.6 facet model. Legacy entities.json files
+        // (= written before this commit) lack the field; = default to
+        // empty set. Forward-compatible: future saves will round-trip.
+        tags = try c.decodeIfPresent(Set<String>.self, forKey: .tags) ?? []
         // entityType may be encoded as String ("character") OR Int (1).
         // Try Int first (= matches seed-script + LLM prompt format), fall
         // back to String (= matches human-readable format).
@@ -178,7 +195,9 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         try c.encodeIfPresent(url, forKey: .url)
         try c.encode(layer, forKey: .layer)
         try c.encodeIfPresent(category, forKey: .category)
-        try c.encodeIfPresent(subcategory, forKey: .subcategory)
+        // Encode tags sorted for stable on-disk output (= idempotent
+        // writes; = easier diff inspection).
+        try c.encode(tags.sorted(), forKey: .tags)
         // Encode as string (= human-readable; readers without EntityType
         // knowledge can still interpret "character" / "location" / etc.).
         try c.encode(entityType.rawValue, forKey: .entityType)
@@ -214,7 +233,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         url: String? = nil,
         layer: ReferenceLayer = .layerRaw,
         category: EntityCategory? = nil,
-        subcategory: String? = nil,
+        tags: Set<String> = [],
         entityType: EntityType = .other,
         summary: String = "",
         characterRefIds: [UUID] = [],
@@ -229,7 +248,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         self.url = url
         self.layer = layer
         self.category = category
-        self.subcategory = subcategory
+        self.tags = tags
         self.entityType = entityType
         self.summary = summary
         self.characterRefIds = characterRefIds
@@ -244,17 +263,18 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         "\(id.uuidString).md"
     }
 
-    /// Full on-disk path. Entities live at
-    /// `reference-library/entities/<category>/<uuid>.md` (= category
-    /// subdirectory). Raw materials stay flat at
-    /// `reference-library/raw/<uuid>.md`. Other layers flat.
+    /// Full on-disk path. v2.6 facet model: file path is metadata-flat
+    /// (= `entities/<uuid>.md`). The `category` field is preserved as
+    /// metadata in entities.json (= sidebar browsing uses the index, not
+    /// the directory tree). Multi-tag references live in 1 folder; =
+    /// tag-filtered views are produced by SwiftData queries, not by
+    /// file location.
+    ///
+    /// Older reference libraries may still have files at
+    /// `entities/<category>/<uuid>.md` (= pre-v2.6 layout); =
+    /// `FileSystemReferenceStore.loadReferences` performs a one-shot
+    /// migration to the flat path on first load (= see issue 002).
     func onDiskPath(under referenceLibraryRoot: URL) -> URL {
-        if layer == .layerEntities, let category = category {
-            return referenceLibraryRoot
-                .appendingPathComponent("entities")
-                .appendingPathComponent(category.directoryName)
-                .appendingPathComponent(filename)
-        }
         return referenceLibraryRoot
             .appendingPathComponent(layer.directoryName)
             .appendingPathComponent(filename)

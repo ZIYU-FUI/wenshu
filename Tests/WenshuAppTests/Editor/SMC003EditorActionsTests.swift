@@ -38,7 +38,7 @@ struct SMC003EditorActionsTests {
             url: nil,
             layer: .layerEntities,
             category: .k,
-            subcategory: nil,
+            tags: [],
             entityType: .other,
             summary: title,
             characterRefIds: [],
