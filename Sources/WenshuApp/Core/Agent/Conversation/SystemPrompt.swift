@@ -269,7 +269,8 @@ enum SystemPrompt {
             skillGuidance: false,
             kanbanGuidance: nil,
             parallelToolGuidance: true,
-            taskCompletionGuidance: true
+            taskCompletionGuidance: true,
+            speakingStyle: AgentBehavior.currentSpeakingStyle()
         )
     }
 
@@ -284,7 +285,8 @@ enum SystemPrompt {
         parallelToolGuidance: Bool,
         taskCompletionGuidance: Bool,
         userName: String? = nil,
-        bookTitle: String? = nil
+        bookTitle: String? = nil,
+        speakingStyle: SpeakingStyle = .literary
     ) -> String {
         var sections: [String] = []
 
@@ -328,6 +330,13 @@ enum SystemPrompt {
         if parallelToolGuidance {
             sections.append(universalGuidance("parallel_tool_call"))
         }
+
+        // Speaking style (= v2.4; = read from AgentBehavior
+        // settings; = closed-enum preset so users can only pick
+        // from wenshu-provided options, never free-text). Appended
+        // last so it sits closest to the LLM's reply context
+        // (= late-stage system prompt attention bias).
+        sections.append(speakingStyle.promptGuidance)
 
         return sections.joined(separator: "\n\n---\n\n")
     }
