@@ -78,7 +78,11 @@ enum RequestHelpers {
         /// reasoning effort from user setting.
         /// Maps to Anthropic `thinking.budget_tokens` (= low=1024, medium=8192, high=16384, max=32768).
         /// nil = no thinking block (= connector default).
-        reasoningEffort: String? = nil
+        reasoningEffort: String? = nil,
+        /// Tool schemas to advertise to the model. Empty (= default)
+        /// omits the `tools` field. Anthropic wire shape: top-level
+        /// `tools` array of `{name, description, input_schema}` objects.
+        tools: [ToolRegistrySchema] = []
     ) throws -> Data {
         var body: [String: Any] = [
             "model": model,
@@ -90,6 +94,31 @@ enum RequestHelpers {
                 "text": sys,
                 "cache_control": ["type": "ephemeral"]
             ]
+        }
+        if !tools.isEmpty {
+            // Anthropic native shape: tools[] of {name, description,
+            // input_schema}. The input_schema goes under the
+            // `input_schema` key (= not `parameters` = different from
+            // the OpenAI shape; = Anthropic docs Anthropic Messages API
+            // Tools section).
+            body["tools"] = tools.map { schema -> [String: Any] in
+                var dict: [String: Any] = [
+                    "name": schema.name,
+                    "description": schema.description
+                ]
+                if !schema.inputSchema.isEmpty || !schema.required.isEmpty {
+                    var props: [String: Any] = [:]
+                    for (key, prop) in schema.inputSchema {
+                        props[key] = prop.toJSON()
+                    }
+                    dict["input_schema"] = [
+                        "type": "object",
+                        "properties": props,
+                        "required": schema.required
+                    ]
+                }
+                return dict
+            }
         }
         // wire reasoningEffort → Anthropic thinking block.
         // Apple canonical effort → budget_tokens mapping (= per Anthropic docs).
