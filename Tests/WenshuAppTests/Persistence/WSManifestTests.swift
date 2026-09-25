@@ -6,7 +6,7 @@
 //    - WenshuApp builds with SwiftData import
 //    - WSManifest instantiates with the documented init signature
 //    - Properties persist + retrieve from an in-memory ModelContainer
-//    - migratedFromRawSqliteAt defaults to nil (= Phase 4 will populate)
+//    - migratedFromRawSqliteAt defaults to nil (=  will populate)
 //
 // 
 
@@ -50,7 +50,7 @@ struct WSManifestTests {
         #expect(fetched[0].wenshuVersion == "0.72.0")
     }
 
-    @Test("WSManifest default value: migratedFromRawSqliteAt = nil (= Phase 4 not yet run)")
+    @Test("WSManifest default value: migratedFromRawSqliteAt = nil (=  not yet run)")
     @MainActor
     func migratedFromRawSqliteAtDefaultsNil() throws {
         let container = try makeContainer()
