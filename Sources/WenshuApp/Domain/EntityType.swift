@@ -49,7 +49,9 @@ enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, Hashable
 
     var id: String { rawValue }
 
-    /// Chinese display name.
+    /// Chinese display name. Active caller = EntityClassifier.swift LLM
+    /// prompt (= the classifier prompt embeds Chinese labels so the LLM
+    /// can map raw output back to the canonical entity type).
     var displayName: String {
         switch self {
         case .character: return "人物"
@@ -64,21 +66,6 @@ enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, Hashable
         }
     }
 
-    /// Full Chinese name (= 2-4 chars, plenty of sidebar space).
-    /// Used as inline prefix in sidebar (= '[] Li Bai').
-    var shortName: String {
-        switch self {
-        case .character: return "人物"
-        case .location: return "地点"
-        case .event: return "事件"
-        case .concept: return "概念"
-        case .artifact: return "物品"
-        case .organization: return "组织"
-        case .era: return "朝代"
-        case .work: return "作品"
-        case .other: return "其他"
-        }
-    }
     /// SF Symbols 6 icon name (= for sidebar tree display; outline-only
     /// = no .fill variant).
     var icon: String {

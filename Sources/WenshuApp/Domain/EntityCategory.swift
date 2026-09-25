@@ -96,35 +96,6 @@ enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiable, Hash
         }
     }
 
-    /// Short Chinese label (= used in tight UI like sidebar chips,
-    /// 1-2 char per CLC convention).
-    var shortName: String {
-        switch self {
-        case .a: return "马列毛邓"
-        case .b: return "哲学"
-        case .c: return "社科总论"
-        case .d: return "政法"
-        case .e: return "军事"
-        case .f: return "经济"
-        case .g: return "文教科"
-        case .h: return "语言"
-        case .i: return "文学"
-        case .j: return "艺术"
-        case .k: return "史地"
-        case .n: return "自科总论"
-        case .o: return "数理化"
-        case .p: return "天球"
-        case .q: return "生物"
-        case .r: return "医药"
-        case .s: return "农业"
-        case .t: return "工业"
-        case .u: return "交通"
-        case .v: return "航天"
-        case .x: return "环境"
-        case .z: return "其它"
-        }
-    }
-
     /// Filesystem directory name (= the on-disk folder under
     /// `reference-library/entities/`). Stable across rename (= Apple
     /// HIG: directory = identity, not the category's display label).
