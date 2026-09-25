@@ -300,7 +300,7 @@ struct ZoneContentView: View {
     /// types; = 0 callers across the entire codebase; = the
     /// wrapper was the v0.34 SpecializedTools tab bar scaffold
     /// that was replaced by PaneTabBar in v0.28 followup per
-    /// the inline comment line above (= "Phase 3 of refactor;
+    /// the inline comment line above (= "SwiftData migration;
     /// ZoneContentTabBar body now delegates to the new PaneTabBar
     /// generic component"); = the docstring is preserved as a
     /// historical note; = no behavior change; = ~80 LOC removed).
