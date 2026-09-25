@@ -119,7 +119,8 @@ enum OpenAIStreamingWireupFactory {
         maxTokens: Int,
         systemPrompt: String?,
         messages: [LLMMessage],
-        bearerToken: String?
+        bearerToken: String?,
+        tools: [ToolRegistrySchema] = []
     ) -> AsyncStream<String> {
         let request = buildRequest(
             credentials: credentials,
@@ -127,7 +128,8 @@ enum OpenAIStreamingWireupFactory {
             maxTokens: maxTokens,
             systemPrompt: systemPrompt,
             messages: messages,
-            bearerToken: bearerToken
+            bearerToken: bearerToken,
+            tools: tools
         )
         let wireup = OpenAIStreamingWireup()
         let stream: AsyncStream<String> = AsyncStream { continuation in
@@ -153,7 +155,8 @@ enum OpenAIStreamingWireupFactory {
         maxTokens: Int,
         systemPrompt: String?,
         messages: [LLMMessage],
-        bearerToken: String?
+        bearerToken: String?,
+        tools: [ToolRegistrySchema] = []
     ) -> URLRequest {
         guard let baseURL = URL(string: "\(credentials.baseURL)/chat/completions") else {
             preconditionFailure("OpenAIStreamingWireup: invalid URL built from credentials.baseURL=\(credentials.baseURL)")
@@ -183,10 +186,48 @@ enum OpenAIStreamingWireupFactory {
             "stream": true,
             "messages": buildMessagesArray(systemPrompt: systemPrompt, messages: messages)
         ]
-        request.httpBody = try? JSONSerialization.data(
-            withJSONObject: body,
-            options: [.sortedKeys]
-        )
+        // OpenAI chat completions tools shape: top-level `tools` array
+        // of `{type: "function", function: {name, description,
+        // parameters}}` objects. Empty array = omit the key (=
+        // behavior parity with the pre-tools wire format for callers
+        // that don't advertise tools).
+        if !tools.isEmpty {
+            let wireTools: [[String: Any]] = tools.map { schema in
+                var props: [String: Any] = [:]
+                for (key, prop) in schema.inputSchema {
+                    props[key] = prop.toJSON()
+                }
+                let function: [String: Any] = {
+                    var f: [String: Any] = [
+                        "name": schema.name,
+                        "description": schema.description
+                    ]
+                    if !props.isEmpty || !schema.required.isEmpty {
+                        f["parameters"] = [
+                            "type": "object",
+                            "properties": props,
+                            "required": schema.required
+                        ]
+                    }
+                    return f
+                }()
+                return [
+                    "type": "function",
+                    "function": function
+                ]
+            }
+            var mutableBody = body
+            mutableBody["tools"] = wireTools
+            request.httpBody = try? JSONSerialization.data(
+                withJSONObject: mutableBody,
+                options: [.sortedKeys]
+            )
+        } else {
+            request.httpBody = try? JSONSerialization.data(
+                withJSONObject: body,
+                options: [.sortedKeys]
+            )
+        }
         return request
     }
 

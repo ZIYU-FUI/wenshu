@@ -104,19 +104,27 @@ struct LLMCallOptions: Sendable {
     /// wired from SettingView picker through to connector adapters
     /// (= Anthropic thinking budget_tokens, OpenAI reasoning_effort, Gemini thinkingBudget).
     let reasoningEffort: String?
+    /// Tool schemas made available to the model for this call.
+    /// When non-empty, the connector serializes them into the provider's
+    /// `tools` parameter so the model can issue `tool_use` blocks.
+    /// Empty (= default) preserves the prior behavior of omitting the
+    /// `tools` field from the request body.
+    let tools: [ToolRegistrySchema]
 
     init(
             model: String,
             maxTokens: Int = 1024,
             systemPrompt: String? = nil,
             temperature: Double? = nil,
-            reasoningEffort: String? = nil
+            reasoningEffort: String? = nil,
+            tools: [ToolRegistrySchema] = []
         ) {
         self.model = model
         self.maxTokens = maxTokens
         self.systemPrompt = systemPrompt
         self.temperature = temperature
         self.reasoningEffort = reasoningEffort
+        self.tools = tools
     }
 }
 

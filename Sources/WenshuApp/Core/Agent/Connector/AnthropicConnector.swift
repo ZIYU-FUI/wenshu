@@ -64,7 +64,8 @@ actor AnthropicConnector: LLMConnector {
             messages: cachedMessages,
             maxTokens: options.maxTokens,
             systemPrompt: options.systemPrompt,
-            reasoningEffort: options.reasoningEffort
+            reasoningEffort: options.reasoningEffort,
+            tools: options.tools
         )
 
         var request = URLRequest(url: url)
@@ -143,7 +144,8 @@ actor AnthropicConnector: LLMConnector {
             model: options.model,
             maxTokens: options.maxTokens,
             systemPrompt: options.systemPrompt,
-            messages: cachedMessages
+            messages: cachedMessages,
+            tools: options.tools
         )
         // T11b-WIRE-ANTHROPIC-STATEFUL (2026-09-18): use the stateful
         // converter variant (= accumulates tool_use blocks across 3 SSE

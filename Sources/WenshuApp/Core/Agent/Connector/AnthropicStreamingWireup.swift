@@ -131,14 +131,16 @@ enum AnthropicStreamingWireupFactory {
         model: String,
         maxTokens: Int,
         systemPrompt: String?,
-        messages: [LLMMessage]
+        messages: [LLMMessage],
+        tools: [ToolRegistrySchema] = []
     ) -> AsyncStream<AnthropicStreamingChunk> {
         let request = buildRequest(
             credentials: credentials,
             model: model,
             maxTokens: maxTokens,
             systemPrompt: systemPrompt,
-            messages: messages
+            messages: messages,
+            tools: tools
         )
         let wireup = AnthropicStreamingWireup()
         // connect() is actor-isolated; AsyncStream.init is sync nonisolated.
@@ -163,7 +165,8 @@ enum AnthropicStreamingWireupFactory {
         model: String,
         maxTokens: Int,
         systemPrompt: String?,
-        messages: [LLMMessage]
+        messages: [LLMMessage],
+        tools: [ToolRegistrySchema] = []
     ) -> URLRequest {
         // Inline URLRequest builder (= ticket 004 sub-step 4; the
         // AnthropicStreamingRequest helper was scoped to ticket 004
@@ -212,10 +215,41 @@ enum AnthropicStreamingWireupFactory {
                 ]
             }
         ]
-        request.httpBody = try? JSONSerialization.data(
-            withJSONObject: body,
-            options: [.sortedKeys]
-        )
+        // Anthropic native tools shape (= array of
+        // {name, description, input_schema}). Empty array = omit the key
+        // (= the model never sees the field; = behavior parity with the
+        // pre-tools wire format for callers that don't advertise tools).
+        if !tools.isEmpty {
+            let wireTools: [[String: Any]] = tools.map { schema in
+                var dict: [String: Any] = [
+                    "name": schema.name,
+                    "description": schema.description
+                ]
+                if !schema.inputSchema.isEmpty || !schema.required.isEmpty {
+                    var props: [String: Any] = [:]
+                    for (key, prop) in schema.inputSchema {
+                        props[key] = prop.toJSON()
+                    }
+                    dict["input_schema"] = [
+                        "type": "object",
+                        "properties": props,
+                        "required": schema.required
+                    ]
+                }
+                return dict
+            }
+            var mutableBody = body
+            mutableBody["tools"] = wireTools
+            request.httpBody = try? JSONSerialization.data(
+                withJSONObject: mutableBody,
+                options: [.sortedKeys]
+            )
+        } else {
+            request.httpBody = try? JSONSerialization.data(
+                withJSONObject: body,
+                options: [.sortedKeys]
+            )
+        }
         return request
     }
 }
