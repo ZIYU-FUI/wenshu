@@ -1,7 +1,7 @@
 //
-//  Persistence/ContainerTests.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/ContainerTests.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Test commit 21/21: WSPersistenceContainer = ModelContainer setup.
+//  Test : WSPersistenceContainer = ModelContainer setup.
 //  Validates that all 23 @Model classes can co-exist in one container
 //  (= no schema conflicts; = SwiftData accepts the union).
 
