@@ -1,5 +1,5 @@
 //
-//  CronjobToolsTests.swift · Wenshu · HERMES-PARTIAL-010 (2026-09-04)
+//  CronjobToolsTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the CronjobTools LLM-facing dispatcher
 // (= hermes cronjob_tools.py = 1,137 LOC):
@@ -14,7 +14,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("CronjobTools (HERMES-PARTIAL-010)")
+@Suite("CronjobTools ()")
 struct CronjobToolsTests {
 
     // MARK: - Test 1: Create + list

@@ -15,7 +15,7 @@ struct WenshuCoreIntegrationTests {
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSMemoryRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
-    /// Phase 5 ticket 8 migration from MemoryStore actor.
+    ///  migration from MemoryStore actor.
     @MainActor
     private static func makeMemoryRepository() throws -> WSMemoryRepository {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
@@ -27,7 +27,7 @@ struct WenshuCoreIntegrationTests {
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
-    /// Phase 5 ticket 7 migration from TodoStore actor.
+    ///  migration from TodoStore actor.
     @MainActor
     private static func makeTodoRepository() throws -> WSTodoRepository {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
@@ -37,7 +37,7 @@ struct WenshuCoreIntegrationTests {
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
-    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    ///  migration from KanbanStore actor.
     @MainActor
     private static func makeKanbanRepository() throws -> WSKanbanRepository {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
@@ -48,7 +48,7 @@ struct WenshuCoreIntegrationTests {
     @Test("Memory + Skill + Kanban + Todo 全 Core 集成")
     @MainActor
     func testAllCoreIntegration() async throws {
-        // 1. WSMemoryRepository (= Phase 5 ticket 8; = no MemoryStore actor)
+        // 1. WSMemoryRepository (= ; = no MemoryStore actor)
         let memResult = try await MainActor.run {
             try WSMemoryRepository.shared.add(userId: "u1", content: "test memory")
         }

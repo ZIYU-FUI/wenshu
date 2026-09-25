@@ -1,8 +1,8 @@
 //
-//  ConversationLoopRunTurnTests.swift · Wenshu · HERMES-PARTIAL-001 (2026-09-04)
+//  ConversationLoopRunTurnTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the runTurn() orchestrator + the new per-turn
-//  setup + post-turn hooks added in HERMES-PARTIAL-001:
+//  setup + post-turn hooks added in :
 //    1. testRunSimpleChat              — plain text round-trip (no tools)
 //    2. testRunWithSingleToolCall      — LLM emits 1 tool_use → dispatch → result
 //    3. testRunWithMultipleToolCalls   — LLM emits 2 tool_use blocks (sequential)
@@ -21,7 +21,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("ConversationLoopRunTurn (HERMES-PARTIAL-001)")
+@Suite("ConversationLoopRunTurn ()")
 struct ConversationLoopRunTurnTests {
 
     // MARK: - Test 1: Simple chat

@@ -201,7 +201,7 @@ struct EditorPlaceholder: View {
                 Text(WenshuI18n.t("workspace.editor.discard_changes_confirm"))
             }
 
-            // Body: placeholder content. Ticket 05 swaps this for
+            // Body: placeholder content.  swaps this for
             // swift-markdown rendered Text when mode = .preview; ticket 07
             // swaps for Apple TextEditor when mode = .edit.
             ZStack {

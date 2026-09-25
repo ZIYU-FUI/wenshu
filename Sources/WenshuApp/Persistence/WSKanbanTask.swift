@@ -1,9 +1,9 @@
 //
-//  Persistence/WSKanbanTask.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSKanbanTask.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 19/21: WSKanbanTask.
+//   : WSKanbanTask.
 //  Mirrors kanban_tasks table from WenshuWorkspace.swift (= v0.23 ticket 013.003).
-//  (= Phase 5 ticket 6 deleted Core/Kanban/KanbanStore.swift; the canonical
+//  (=  deleted Core/Kanban/KanbanStore.swift; the canonical
 //  domain type is now Core/Kanban/KanbanDomain.swift's KanbanTask struct.)
 //
 //  NOTE: Similar to WSTodo but separate domain (= kanban = workspace-level
@@ -20,7 +20,7 @@ final class WSKanbanTask {
     var title: String
     /// Status string (= matches KanbanStatus enum rawValues: .new / .triage /
     ///  .ready / .running / .blocked / .review / .done / .failed; = 8 cases per
-    ///  Core/Kanban/KanbanDomain.swift; = Phase 5 ticket 6 preserved the enum)
+    ///  Core/Kanban/KanbanDomain.swift; =  preserved the enum)
     var status: String
     /// 0 = low, 5 = normal, 10 = urgent
     var priority: Int

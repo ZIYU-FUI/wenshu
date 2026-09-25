@@ -1,5 +1,5 @@
 //
-//  ContextEngineBundleTests.swift · Wenshu · HERMES-PARTIAL-013 (2026-09-04)
+//  ContextEngineBundleTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the ContextEngine ABC surface (= hermes
 //  context_engine.py = 231 LOC):
@@ -13,7 +13,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("ContextEngineBundle (HERMES-PARTIAL-013)")
+@Suite("ContextEngineBundle ()")
 struct ContextEngineBundleTests {
 
     // MARK: - Test 1: Assemble bundle

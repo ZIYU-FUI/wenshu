@@ -19,7 +19,7 @@
 //    across WindowGroup boundaries). We re-construct the same
 //    BookStore from the shared `library` URL (= kanban persistence is now
 //    SwiftData-backed via WSKanbanRepository.shared; = the KanbanStore
-//    actor was deleted in Phase 5 ticket 6)
+//    actor was deleted in )
 //    (= the same .ws package the main window uses; = both
 //    windows read + write to the same on-disk JSON files via
 //    BookKanbanStore; = edits in the kanban window are
@@ -39,7 +39,7 @@ import SwiftUI
 /// construct a fresh BookStore here that points at the same .ws
 /// root as the main window). Kanban persistence is the shared
 /// WSKanbanRepository.shared (= @MainActor SwiftData wrapper;
-/// = Phase 5 ticket 6 deleted the KanbanStore actor).
+/// =  deleted the KanbanStore actor).
 struct KanbanWindow: View {
     let library: WenshuLibrary
 
@@ -60,7 +60,7 @@ struct KanbanWindow: View {
             // self)` crashes if BookStore is not in the env chain
             // (= 'No Observable object of type BookStore found').
             //
-            // Note: KanbanView does NOT need the KanbanStore actor (= deleted in Phase 5 ticket 6); kanban reads go through WSKanbanRepository
+            // Note: KanbanView does NOT need the KanbanStore actor (= deleted in ); kanban reads go through WSKanbanRepository
             // actor injected (= the view does all its file I/O
             // via the BookKanbanStore helper, which is
             // constructed per-call from the BookStore books).

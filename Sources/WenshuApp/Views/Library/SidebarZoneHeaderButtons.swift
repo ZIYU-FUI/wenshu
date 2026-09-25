@@ -91,7 +91,7 @@ private struct SidebarZoneHeaderIconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: iconName)
-                .font(.system(size: 18, weight: .regular))
+                .imageScale(.medium)
         }
         .buttonStyle(.borderless)
         .help(help)

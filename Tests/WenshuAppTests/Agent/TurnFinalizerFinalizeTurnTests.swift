@@ -1,5 +1,5 @@
 //
-//  TurnFinalizerFinalizeTurnTests.swift · Wenshu · HERMES-PARTIAL-008 (2026-09-04)
+//  TurnFinalizerFinalizeTurnTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the extended TurnFinalizer surface (= hermes
 //  turn_finalizer.py = 507 LOC):
@@ -13,7 +13,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("TurnFinalizerFinalizeTurn (HERMES-PARTIAL-008)")
+@Suite("TurnFinalizerFinalizeTurn ()")
 struct TurnFinalizerFinalizeTurnTests {
 
     // MARK: - Test 1: Adjacent text coalescing

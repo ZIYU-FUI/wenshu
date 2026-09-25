@@ -1,7 +1,7 @@
 //
-//  Persistence/Container.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/Container.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 21/21: ModelContainer setup (= the LAST phase 1 commit;
+//   : ModelContainer setup (= the LAST phase 1 commit;
 //  = introduced Container.swift but no new @Model class).
 //  Schema contains 23 entity types (= all explicit @Model classes from
 //  phase 1 commits 1-10 + 12-20, with commits 15/16/17/19 each introducing
@@ -11,35 +11,35 @@
 //  correspond to explicit @Model class declarations).
 //  Per AGENTS.md §11.4 SwiftData migration roadmap.
 //
-//  This is the FINAL commit of Phase 1. It defines the ModelContainer
+//  This is the FINAL commit of . It defines the ModelContainer
 //  (= single store) that aggregates all 23 @Model classes.
 //
-//  BEFORE Phase 1: 10 raw sqlite3 stores, 20+ tables, hand-rolled
+//  BEFORE SwiftData migration: 10 raw sqlite3 stores, 20+ tables, hand-rolled
 //  migration (= WenshuWorkspace.swift mega-store + 9 separate stores
 //  with duplicate tables for chat_messages / chat_summaries /
 //  sub_agent_runs / kanban_tasks / bookmarks / memory_entries).
 //
-//  AFTER Phase 1: 1 SwiftData ModelContainer holding all 23 @Model
+//  AFTER SwiftData migration: 1 SwiftData ModelContainer holding all 23 @Model
 //  classes. Tables still physically exist (= SwiftData uses Core Data's
 //  SQLite under the hood on macOS) but the API surface is unified:
 //  ModelContext.fetch(FetchDescriptor<WSXxx>()) replaces every per-store
 //  Actor API.
 //
-//  Phase 2 introduced Repository classes (= preserves the public
+//   introduced Repository classes (= preserves the public
 //  API of the existing Actors so callers don't need to change).
-//  Phase 3 switched callers to the Repository APIs.
-//  Phase 4 added the one-time data migration from raw sqlite3
+//   switched callers to the Repository APIs.
+//   added the one-time data migration from raw sqlite3
 //  (= WSMigrationPerStore / WSMigrationRunner).
-//  Phase 5 deleted all 7 of the planned raw sqlite3 store files
+//   deleted all 7 of the planned raw sqlite3 store files
 //  (= KanbanStore + TodoStore + MemoryStore + LinkIndex via tickets
 //  6 + 7 + 8 + 9, then ChatSessionStore via ticket 10a, then
 //  BookmarkStore + WenshuWorkspace via ticket 10b). The phase 5
 //  spec is 100% complete; no further tickets remain in the roadmap.
-//  Phase 6 (= AGENTS §11.4 doc updates) is the canonical phase 5
+//   (= AGENTS §11.4 doc updates) is the canonical phase 5
 //  roadmap spec (= see AGENTS.md §11.4.2).
 // d (= boss 2026-09-21 '数据库不要在用sqlite3 了') deleted
 //  WSMigrationPerStore + WSMigrationRunner + SQLiteConstants (= the
-//  Phase 4 raw-sqlite3 one-shot importer + its driver + the shared
+//   raw-sqlite3 one-shot importer + its driver + the shared
 //  SQLITE_TRANSIENT helper; = see AGENTS.md §11.7d). Post-v1.55d no
 //  file in the production source tree imports SQLite3, opens a raw
 //  sqlite3 connection, or reads `.ws/*.sqlite` (= legacy files become
@@ -130,7 +130,7 @@ enum WSPersistenceContainer {
     /// Active warehouse container (= set by AppDelegate at launch time).
     /// nil = use `shared` (= Application Support path; = current default behavior).
     ///
-    /// Phase 5 ticket 1 sub-task 1b.1 (= warehouse container lifecycle).
+    ///  sub-task 1b.1 (= warehouse container lifecycle).
     /// Backward compatible: callers that use WSPersistenceContainer.shared
     /// directly are unaffected. Callers that switch to `current` (= the
     /// new resolver) automatically pick up the warehouse path when set.
@@ -155,7 +155,7 @@ enum WSPersistenceContainer {
     ///
     /// Migration path: existing callers using `WSPersistenceContainer.shared`
     /// stay on Application Support. New callers (= ticket 1b.2+) use `current`.
-    /// Post-Phase 5 (= tickets 1 + 6 + 7 + 8 + 9 + 10a + 10b): all 7 of
+    /// Post-SwiftData migration: all 7 of
     /// the planned sqlite stores are deleted (= KanbanStore + TodoStore +
     /// MemoryStore + LinkIndex + ChatSessionStore + BookmarkStore +
     /// WenshuWorkspace). The phase 5 spec is 100% complete; new
@@ -169,9 +169,9 @@ enum WSPersistenceContainer {
     /// Make a file-backed container at a custom URL (= warehouse path for
     /// boss 8/25 OOB "chat.sqlite must live in .ws warehouse" rule).
     ///
-    /// Phase 5 ticket 1 sub-task 1a (= SwiftData warehouse path support).
+    ///  sub-task 1a (= SwiftData warehouse path support).
     /// Replaces the per-file SQLite Actor pattern (= all 7 of the planned
-    /// Phase 5 sqlite3 stores — KanbanStore, TodoStore, MemoryStore,
+    ///  sqlite3 stores — KanbanStore, TodoStore, MemoryStore,
     /// LinkIndex, ChatSessionStore, BookmarkStore, WenshuWorkspace — were
     /// deleted via tickets 6/7/8/9 + 10a + 10b; = each file used to open
     /// its own sqlite3 handle at a custom path; = the warehouse container

@@ -31,7 +31,7 @@
 //      atomically (= per spec v5 ticket 026). On every add / status
 //      change / delete, the view reloads from disk + writes back.
 //
-//  Phase 5 ticket 3: removed TodoStore subscription mechanism
+//  : removed TodoStore subscription mechanism
 //  (formerly WIRE-OPENBOX-002). The "recent LLM todo activity" banner
 //  above the list is dropped. Production path: LLM `todo_create` writes
 //  via WSTodoRepository (= already migrated in phase 3 deferred commit 45);
@@ -88,7 +88,7 @@ struct TodoListView: View {
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
         .onChange(of: scope) { _, _ in reloadFromDisk() }
-        // Phase 5 ticket 3: dropped TodoStore subscription (= the
+        // : dropped TodoStore subscription (= the
         // recent-LLM-todo-activity banner). LLM-driven todo changes are
         // visible on next reloadFromDisk (= manual refresh button +
         // .onChange triggers). Production path: TodoStoreTool writes

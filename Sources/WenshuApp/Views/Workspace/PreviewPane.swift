@@ -14,7 +14,7 @@
 //
 // 'entity classification is the last layer in the directory tree, after clicking,
 // the entity document should display in the material management area in a wenshu-style card stream layout, and double-clicking the card opens it
-// in the editor. That's why I said implementing the editor and data flow requires finishing these prerequisites first'. Ticket 2 (= the entity card flow).
+// in the editor. That's why I said implementing the editor and data flow requires finishing these prerequisites first'.  (= the entity card flow).
 //
 // s documents, control directory range': extended PreviewScope to cover both reference
 // library (= existing) AND book folder docs. File renamed from
@@ -35,7 +35,7 @@
 // 2. Category/folder-scoped grid (= filter active).
 // 3. Document detail (= single card with full body).
 //
-// Double-click on a card (= will be wired to editor in Ticket 3 = boss:
+// Double-click on a card (= will be wired to editor in  = boss:
 // 'double-click to open in editor'). For now, single-click selects.
 //
 // Grid uses LazyVGrid (= Apple standard for variable-height grid;
@@ -1463,7 +1463,7 @@ struct PreviewPane: View {
 
 /// Card view for a single entity in the grid.
 /// Tap = select (= not wired yet). Double-click = open in editor (= boss
-/// Ticket 3 hook).
+///  hook).
 ///
 /// Boss OOB v0.30: 'card, '. Thumbnail
 /// strategy: since Reference entities are text-only (= .md bodies with
@@ -1590,7 +1590,9 @@ private struct Card: View {
                 // Trade-off: .tint(.opacity 0.85) blue is replaced by
                 // default .secondary blue tint via .foregroundStyle.
                 Image(systemName: source.iconName)
-                    .font(.system(size: 64, weight: .ultraLight))
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 64, height: 64)
                     .symbolRenderingMode(.monochrome)
                     .foregroundStyle(.tint.opacity(0.85))
             }

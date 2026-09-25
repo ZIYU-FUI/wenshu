@@ -1,7 +1,7 @@
 //
-//  Persistence/WSChapter.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSChapter.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 16/21: WSChapter.
+//   : WSChapter.
 //  Mirrors chapters = filesystem directories (= .ws/shelves/<shelf-id>/books/<book-id>/chapters/).
 //  Old schema had no chapters table (= chapters were filesystem-only);
 //  SwiftData introduces explicit representation.

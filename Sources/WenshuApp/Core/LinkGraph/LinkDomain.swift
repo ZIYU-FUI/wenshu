@@ -1,5 +1,5 @@
 //
-//  Core/LinkGraph/LinkDomain.swift · Wenshu · v0.72 SwiftData migration Phase 5 ticket 9
+//  Core/LinkGraph/LinkDomain.swift · Wenshu · v0.72 SwiftData migration 
 //
 //  Domain types (Link) extracted from the deleted
 //  Core/LinkGraph/LinkIndex.swift (= sqlite3 legacy actor, now obsolete).
@@ -33,8 +33,8 @@ struct Link: Equatable, Sendable {
 
 
 /// Reserved for future-hook callers (= no consumers yet; = the
-/// pre-Phase 5 deleted LinkIndex actor's error type was extracted
-/// in Phase 5 ticket 9 and renamed here; = currently dead code but
+/// pre-migration deleted LinkIndex actor's error type was extracted
+/// in  and renamed here; = currently dead code but
 /// preserved for potential future callers that want the legacy
 /// 4-case error shape from the old actor's sqlite3 failures).
 

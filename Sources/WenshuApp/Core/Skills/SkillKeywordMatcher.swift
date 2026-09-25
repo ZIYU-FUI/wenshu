@@ -1,5 +1,5 @@
 //
-//  SkillKeywordMatcher.swift · Wenshu · v0.72 SwiftData migration Phase 5
+//  SkillKeywordMatcher.swift · Wenshu · v0.72 SwiftData migration 
 //
 //  Keyword-based skill matching (= fallback for when semantic embeddings
 //  are unavailable; = scores a skill's description against a user query

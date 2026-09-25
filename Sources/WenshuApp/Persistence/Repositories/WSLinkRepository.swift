@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSLinkRepository.swift · Wenshu · v0.72 SwiftData migration Phase 2
+//  Persistence/Repositories/WSLinkRepository.swift · Wenshu · v0.72 SwiftData migration 
 //
 //  Migration commit 27 of 42: WSLinkRepository.
 //  Per AGENTS.md §11.4.
@@ -17,7 +17,7 @@
 //  line + offset + createdAt).
 //
 //  Composite id: "<sourceDocID>:<line>:<targetRef>" (= unique per source +
-//  line + target; = matches WSLink.init + Phase 5 ticket 5 fix).
+//  line + target; = matches WSLink.init +  fix).
 
 import Foundation
 import SwiftData
@@ -33,7 +33,7 @@ final class WSLinkRepository {
 
     func add(_ link: Link) throws {
         // Composite id must match WSLink.init (= sourceDocID + line + targetRef; =
-        // Phase 5 ticket 5 added targetRef so 2 [[name]] links on same line
+        //  added targetRef so 2 [[name]] links on same line
         // don't collide). Lookup using truncated id here would miss the
         // existing row and trigger @Attribute(.unique) insert failure.
         let id = "\(link.sourceDocId):\(link.line):\(link.targetRef)"

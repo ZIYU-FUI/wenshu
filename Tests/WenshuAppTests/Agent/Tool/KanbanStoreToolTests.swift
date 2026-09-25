@@ -41,7 +41,7 @@ struct KanbanStoreToolTests {
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
-    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    ///  migration from KanbanStore actor.
     @MainActor
     private static func makeKanbanRepository() throws -> WSKanbanRepository {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
@@ -57,7 +57,7 @@ struct KanbanStoreToolTests {
     /// per call and the OS reclaims tmp files on reboot).
     /// Async because KanbanStore.bootstrap() is actor-isolated.
     /// Build a fresh WSKanbanRepository backed by an in-memory SwiftData
-    /// container. Phase 5 ticket 6 migration from KanbanStore actor.
+    /// container.  migration from KanbanStore actor.
     @MainActor
     private static func makeKanbanStore() throws -> WSKanbanRepository {
         let container = try WSPersistenceContainer.makeInMemoryContainer()

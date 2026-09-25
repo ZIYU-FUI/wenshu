@@ -3,7 +3,7 @@
 //
 // SwiftData @Model: per-session sub-agent run (= 1↔N to WSSession;
 // = e.g. the kanban tool spawns a worker agent per task).
-// SwiftData migration Phase 1 (= see CHANGELOG.md v0.72 section).
+// SwiftData migration  (= see CHANGELOG.md v0.72 section).
 //
 
 import Foundation

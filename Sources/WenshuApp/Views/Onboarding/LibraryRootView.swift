@@ -310,7 +310,10 @@ Group {
     } else {
         // Fallback: SF Symbols 6 canonical 'text.book.closed' if PNG load fails
         // (boss 2026-09-02: SF Symbol fully replaced).
-        Image(systemName: "text.book.closed").font(.system(size: 96, weight: .regular))
+        Image(systemName: "text.book.closed")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 96, height: 96)
             .foregroundStyle(.white)
     }
 }

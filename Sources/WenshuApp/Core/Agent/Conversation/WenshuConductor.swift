@@ -48,7 +48,7 @@ actor WenshuConductor {
     /// / writes kanban + chat persistence (= formerly via
     /// `WSKanbanRepository.shared` / `WSChatRepository.shared` static
     /// singletons). Inject the @MainActor-isolated
-    /// `WSRepositoryContainer` (= matches the Phase 6 protocol
+    /// `WSRepositoryContainer` (= matches the  protocol
     /// pattern that `LiveChatRepository` already implements for
     /// chat). Falls back to `.shared` (= the v0.72 global
     /// singleton) when the caller does not pass a container; =

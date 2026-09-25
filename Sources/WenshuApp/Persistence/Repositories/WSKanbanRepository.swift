@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSKanbanRepository.swift · Wenshu · v0.72 SwiftData migration Phase 2
+//  Persistence/Repositories/WSKanbanRepository.swift · Wenshu · v0.72 SwiftData migration 
 //
 //  Migration commit 26 of 42: WSKanbanRepository.
 //  Per AGENTS.md §11.4.
@@ -48,7 +48,7 @@ final class WSKanbanRepository {
             assignee: assignee,
             modelOverride: modelOverride
         )
-        // Lifecycle hooks (Phase 5 ticket 6 parity with legacy KanbanStore actor:
+        // Lifecycle hooks ( parity with legacy KanbanStore actor:
         // startedAt auto-set when status = .running at add time, completedAt
         // auto-set when status = .done or .failed at add time).
         if status == .running {

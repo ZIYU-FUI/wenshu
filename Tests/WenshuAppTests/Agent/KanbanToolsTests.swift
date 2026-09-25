@@ -1,5 +1,5 @@
 //
-//  KanbanToolsTests.swift · Wenshu · HERMES-PARTIAL-011 (2026-09-04)
+//  KanbanToolsTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the KanbanTools LLM-facing dispatcher
 // (= hermes kanban_tools.py = 1,672 LOC):
@@ -14,12 +14,12 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("KanbanTools (HERMES-PARTIAL-011)")
+@Suite("KanbanTools ()")
 struct KanbanToolsTests {
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
-    /// Phase 5 ticket 6 migration from KanbanStore actor.
+    ///  migration from KanbanStore actor.
     @MainActor
     private static func makeKanbanRepository() throws -> WSKanbanRepository {
         let container = try WSPersistenceContainer.makeInMemoryContainer()

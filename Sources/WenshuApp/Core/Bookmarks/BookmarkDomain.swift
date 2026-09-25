@@ -1,5 +1,5 @@
 //
-//  BookmarkDomain.swift · Wenshu · v0.72 SwiftData migration Phase 5 ticket 10b
+//  BookmarkDomain.swift · Wenshu · v0.72 SwiftData migration 
 //
 //  Domain types for the bookmarks feature (= preserved from
 //  the now-deleted BookmarkStore.swift actor).
@@ -7,7 +7,7 @@
 //  History:
 //    - v0.19 ticket 22: Bookmark struct + BookmarkStore actor
 //      (= SQLite-backed; = Obsidian replica).
-//    - Phase 5 ticket 10b: BookmarkStore deleted; pure value types
+//    - : BookmarkStore deleted; pure value types
 //      preserved here (= no SQLite dependency). SwiftData persistence
 //      lives in WSBookmark @Model + WSBookmarkRepository.swift.
 //

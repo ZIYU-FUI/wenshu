@@ -1,5 +1,5 @@
 //
-//  Tests/Core/Memory/WSMemoryProviderTests.swift · Wenshu · v0.72 SwiftData migration Phase 3 deferred
+//  Tests/Core/Memory/WSMemoryProviderTests.swift · Wenshu · v0.72 SwiftData migration  deferred
 //
 //  Test commit 43: WSMemoryProvider (= SwiftData-backed MemoryProvider impl).
 

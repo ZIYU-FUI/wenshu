@@ -1,10 +1,10 @@
 //
-//  SubAgentMentionParserTests.swift · Wenshu · CHATBOX-003 (2026-09-04)
+//  SubAgentMentionParserTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for SubAgentMentionParser (= `@subagent_slug <task>`
 //  syntax in chat input).
 //
-//  Acceptance (= boss OOB 'B' / CHATBOX-003 spec):
+//  Acceptance (= boss OOB 'B' /  spec):
 //    1. testParse_singleMention — single `@slug task` parses
 //    2. testParse_noMention_returnsNil — plain text returns nil
 //    3. testParseAll_multipleMentions — multi-mention parseAll
@@ -20,7 +20,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("CHATBOX-003 — @-mention subagent parser")
+@Suite(" — @-mention subagent parser")
 struct SubAgentMentionParserTests {
 
     /// 

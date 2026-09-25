@@ -1,7 +1,7 @@
 //
-//  Persistence/WSWorld.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSWorld.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 20/21: WSWorld.
+//   : WSWorld.
 //  Mirrors WorldEntry struct from Domain/World.swift (= per-book
 //  world-building entry; = geography / lore / event / object / other).
 //

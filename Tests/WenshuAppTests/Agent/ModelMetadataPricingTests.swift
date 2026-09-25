@@ -1,5 +1,5 @@
 //
-//  ModelMetadataPricingTests.swift · Wenshu · HERMES-PARTIAL-015 (2026-09-04)
+//  ModelMetadataPricingTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for ModelMetadata extensions (= hermes
 //  model_metadata.py = 2,434 LOC):
@@ -14,7 +14,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("ModelMetadataPricing (HERMES-PARTIAL-015)")
+@Suite("ModelMetadataPricing ()")
 struct ModelMetadataPricingTests {
 
     // MARK: - Test 1: Per-model context window

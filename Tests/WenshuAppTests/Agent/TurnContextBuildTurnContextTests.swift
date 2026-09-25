@@ -1,5 +1,5 @@
 //
-//  TurnContextBuildTurnContextTests.swift · Wenshu · HERMES-PARTIAL-007 (2026-09-04)
+//  TurnContextBuildTurnContextTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for TurnContextBuilder (= hermes build_turn_context
 //  = 565 LOC) + the per-turn setup helper closures:
@@ -14,7 +14,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("TurnContextBuildTurnContext (HERMES-PARTIAL-007)")
+@Suite("TurnContextBuildTurnContext ()")
 struct TurnContextBuildTurnContextTests {
 
     // MARK: - Test 1: All hooks fire in hermes order

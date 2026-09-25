@@ -1,5 +1,5 @@
 //
-//  SystemPromptProviderLocaleTests.swift · Wenshu · HERMES-PARTIAL-012 (2026-09-04)
+//  SystemPromptProviderLocaleTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the per-provider + per-locale + dynamic-tier
 //  SystemPrompt extensions (= hermes system_prompt.py = 536 LOC):
@@ -14,7 +14,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("SystemPromptProviderLocale (HERMES-PARTIAL-012)")
+@Suite("SystemPromptProviderLocale ()")
 struct SystemPromptProviderLocaleTests {
 
     // MARK: - Test 1: ProviderGuidance enum

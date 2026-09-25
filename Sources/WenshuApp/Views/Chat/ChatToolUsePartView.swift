@@ -44,8 +44,8 @@ struct ChatToolUsePartView: View {
                 // error = red). T44 replaces it with a small
                 // SF Symbol that matches the status (= hourglass
                 // for running / checkmark for complete / xmark for
-                // error). The icon uses .font(.system(size: 9))
-                // (= smaller than the tool-icon size 11 = the
+                // error). The status icon uses .imageScale(.small)
+                // (= smaller than the tool-icon scale = the
                 // status icon is a "secondary" visual cue, not the
                 // primary one).
                 // T45-STATUS-PULSE (2026-09-18): when status = .running,

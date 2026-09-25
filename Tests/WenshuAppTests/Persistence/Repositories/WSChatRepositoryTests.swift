@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSChatRepositoryTests.swift · Wenshu · v0.72 SwiftData migration Phase 2
+//  Persistence/Repositories/WSChatRepositoryTests.swift · Wenshu · v0.72 SwiftData migration 
 
 import Foundation
 import SwiftData
@@ -110,7 +110,7 @@ struct WSChatRepositoryTests {
         let archived = try repo.createSession(sessionID: "old", title: "old")
         archived.archive()
         // Need to save context — call createSession again with different ID to flush;
-        // or expose a save method on the repo (= added in Phase 3). For now this
+        // or expose a save method on the repo (= added in ). For now this
         // commit's archive() will be persisted on next save call (= next operation).
         // The test still verifies the API; archive state may not be flushed yet.
         let _ = try repo.listSessions(includeArchived: false)

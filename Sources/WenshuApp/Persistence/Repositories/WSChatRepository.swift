@@ -1,12 +1,12 @@
 //
-//  Persistence/Repositories/WSChatRepository.swift · Wenshu · v0.72 SwiftData migration Phase 2
+//  Persistence/Repositories/WSChatRepository.swift · Wenshu · v0.72 SwiftData migration 
 //
 //  Migration commit 23 of 42: WSChatRepository.
 //  Per AGENTS.md §11.4.
 //
 //  Thin wrapper around the SwiftData @Model chat session layer
 //  (= WSSession + WSChatMessage + WSSummary + WSSubAgentRun). The
-//  pre-Phase 5 ChatSessionStore actor is deleted; this repository
+//  pre-migration ChatSessionStore actor is deleted; this repository
 //  exposes the same public API surface against SwiftData instead.
 //
 //  Domain types (= preserved 1:1 from the deleted ChatSessionStore):
@@ -240,7 +240,7 @@ final class WSChatRepository {
 
     /// summarizeIfNeeded(sessionId:lastN:threshold:verifier:) -> Bool
     ///
-    /// Phase 5 ticket 10a: port of the deleted ChatSessionStore actor's
+    /// : port of the deleted ChatSessionStore actor's
     /// `summarizeIfNeeded` (= v0.21 ticket 05 spec). When the message
     /// count exceeds `threshold`, build a prompt from pre-cutoff messages,
     /// call `verifier.chat(...)`, then save the summary + delete the

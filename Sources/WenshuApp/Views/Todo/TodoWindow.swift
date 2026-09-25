@@ -20,7 +20,7 @@
 //    uses; = the BookTodoStore on-disk file is shared; = both
 //    windows see the same todos in real time). Todo persistence
 //    is the shared WSTodoRepository.shared (= @MainActor SwiftData
-//    wrapper; = Phase 5 ticket 7 deleted the TodoStore actor).
+//    wrapper; =  deleted the TodoStore actor).
 //
 
 import SwiftUI
@@ -32,7 +32,7 @@ import SwiftUI
 /// main window's BookStore is held by LibraryRootView's
 /// `@State` and is not reachable from a sibling scene; = the
 /// simplest fix is to construct a fresh BookStore (= TodoStore actor
-/// was deleted in Phase 5 ticket 7; todo persistence is
+/// was deleted in ; todo persistence is
 /// WSTodoRepository.shared)
 /// here that points at the same .ws root as the main window).
 struct TodoWindow: View {
