@@ -343,36 +343,6 @@ extension PromptBuilder {
     }
 }
 
-// MARK: - Skill summary formatting (= hermes build_skills_system_prompt)
-
-extension PromptBuilder {
-    /// Build a compact skill summary (= hermes `build_skills_system_prompt`).
-    ///
-    /// Layout (per AGENTS.md §11.3 wenshu-side wins pattern; matches the
-    /// hermes output shape byte-for-byte where applicable):
-    ///   - Empty when no skills
-    ///   - Otherwise a `Available skills:` header + one bullet per skill
-    ///     in the form `- <name>: <description>`
-    ///   - Skills sorted alphabetically by name (= deterministic output)
-    ///
-    /// Note: the full hermes implementation includes a 2-layer cache
-    /// (in-process LRU + disk snapshot), per-category grouping, demotion
-    /// for compact-mode (= names-only line), and tool/environment
-    /// filtering. The wenshu port delegates cache + filtering to
-    /// `SkillAdapter.listSkills()` (= the wenshu-side wins pattern;
-    /// SkillAdapter already calls SkillRegistry.load which handles
-    /// frontmatter parse + frontmatter-level filtering). The rendering
-    /// below is the post-cache, post-filter summary.
-    static func formatSkillsSummary(_ skills: [SkillAdapter.Skill]) -> String {
-        let enabled = skills.filter { $0.enabled }
-        if enabled.isEmpty {
-            return ""
-        }
-        let sorted = enabled.sorted { $0.name < $1.name }
-        let lines = sorted.map { "- \($0.name): \($0.description)" }
-        return "Available skills:\n" + lines.joined(separator: "\n")
-    }
-}
 
 // MARK: - Environment hints (= hermes build_environment_hints)
 

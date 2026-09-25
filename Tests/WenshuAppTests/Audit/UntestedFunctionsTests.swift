@@ -63,32 +63,6 @@ struct UntestedFunctionsTests {
     // These tests construct minimal in-memory mocks to verify the public methods
     // exist and gracefully handle unavailable registries.
 
-    @Test("WenshuConductor.availableSkills returns [] when skill registry is nil")
-    @MainActor
-    func testAvailableSkillsEmpty() async throws {
-        let runtime = AgentRuntime()  // actor — needs no args
-        let verifier = WenshuVerifier(baseURL: "test://", apiKey: nil, model: .m3)
-        let conductor = await WenshuConductor(
-            runtime: runtime,
-            verifier: verifier,
-            // sessionStore / memoryStore / skillRegistry = nil
-        )
-        let skills = await conductor.availableSkills()
-        #expect(skills.isEmpty)
-    }
-
-    @Test("WenshuConductor.invokeSkill returns empty string when registry is nil")
-    @MainActor
-    func testInvokeSkillEmpty() async throws {
-        let runtime = AgentRuntime()
-        let verifier = WenshuVerifier(baseURL: "test://", apiKey: nil, model: .m3)
-        let conductor = await WenshuConductor(
-            runtime: runtime,
-            verifier: verifier,
-        )
-        let result = await conductor.invokeSkill(name: "non-existent", input: "")
-        #expect(result.isEmpty)
-    }
 
     // MARK: - FileTools.pathHasBlockedSymlink (gap 2 fix function)
 

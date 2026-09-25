@@ -142,14 +142,6 @@ enum CommandPaletteRegistrySeeder {
                 category: "command",
                 shortcutHint: nil,
                 action: .openSettings(tab: "memory")
-            ),
-            CommandPaletteItem(
-                id: "palette.settings.skills",
-                title: "Open Settings — Skills",
-                subtitle: "Browse installed skills + slash commands",
-                category: "command",
-                shortcutHint: nil,
-                action: .openSettings(tab: "skills")
             )
         ]
     }

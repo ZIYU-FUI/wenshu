@@ -66,7 +66,6 @@ enum WSPersistenceContainer {
         WSTodo.self,
         WSBookmark.self,
         WSLink.self,
-        WSSkill.self,
         WSPreference.self,
         WSProviderKey.self,
         WSAttachment.self,
