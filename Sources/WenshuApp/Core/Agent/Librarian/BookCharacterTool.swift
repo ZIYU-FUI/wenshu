@@ -96,7 +96,11 @@ enum BookCharacterError: Error, LocalizedError, Sendable, Equatable {
 // MARK: - Actor
 
 actor BookCharacterActor {
-    private let characterStore: any CharacterStoring
+    /// Closure returning the book directory for the current chat
+    /// session's bound book (= nil when no chat book is bound).
+    /// Resolved on every CRUD call so the user can switch books
+    /// mid-conversation without the actor holding a stale root.
+    private let bookDirectoryProvider: @Sendable () -> URL?
 
     /// Closure returning the chat session's currently-bound book
     /// (= nil when the chat session has no bound book). See
@@ -104,21 +108,31 @@ actor BookCharacterActor {
     private let currentChatBookIDProvider: @Sendable () -> UUID?
 
     init(
-        characterStore: any CharacterStoring,
+        bookDirectoryProvider: @escaping @Sendable () -> URL?,
         currentChatBookIDProvider: @escaping @Sendable () -> UUID? = { nil }
     ) {
-        self.characterStore = characterStore
+        self.bookDirectoryProvider = bookDirectoryProvider
         self.currentChatBookIDProvider = currentChatBookIDProvider
-    }
-
-    var bookDirectory: URL {
-        characterStore.bookDirectory
     }
 
     /// Test-only body accessor (mirrors BookWorldActor.readBodyForTest).
     func readBodyForTest(id: UUID) async -> String? {
-        let store = FileSystemCharacterStore(bookDirectory: characterStore.bookDirectory)
+        guard let dir = bookDirectoryProvider() else { return nil }
+        let store = FileSystemCharacterStore(bookDirectory: dir)
         return store.loadCharacterBody(id: id)
+    }
+
+    /// Resolve the current book directory (= raises `invalidInput`
+    /// if the chat session has no bound book, which the scope guard
+    /// should already have rejected). Then construct a fresh
+    /// FileSystemCharacterStore rooted at that directory.
+    private func resolveStore() throws -> FileSystemCharacterStore {
+        guard let dir = bookDirectoryProvider() else {
+            throw BookCharacterError.invalidInput(
+                reason: "no chat session book bound (= scope guard should have caught this earlier)"
+            )
+        }
+        return FileSystemCharacterStore(bookDirectory: dir)
     }
 
     // MARK: - CRUD
@@ -146,7 +160,10 @@ actor BookCharacterActor {
             summary: summary
         )
         do {
-            try characterStore.saveCharacter(character, bodyMarkdown: bodyMarkdown)
+            let store = try resolveStore()
+            try store.saveCharacter(character, bodyMarkdown: bodyMarkdown)
+        } catch let err as BookCharacterError {
+            throw err
         } catch {
             throw BookCharacterError.underlying(String(describing: error))
         }
@@ -155,11 +172,12 @@ actor BookCharacterActor {
 
     func readCharacter(id: UUID) async throws -> (CharacterDescriptor, String?) {
         do {
-            let characters = try characterStore.loadCharacters()
+            let store = try resolveStore()
+            let characters = try store.loadCharacters()
             guard let character = characters.first(where: { $0.id == id }) else {
                 throw BookCharacterError.entryNotFound(id: id)
             }
-            let body = characterStore.loadCharacterBody(id: id)
+            let body = store.loadCharacterBody(id: id)
             return (CharacterDescriptor(character), body)
         } catch let err as BookCharacterError {
             throw err
@@ -181,9 +199,10 @@ actor BookCharacterActor {
         guard !trimmed.isEmpty else {
             throw BookCharacterError.emptyName
         }
+        let store = try resolveStore()
         let characters: [Character]
         do {
-            characters = try characterStore.loadCharacters()
+            characters = try store.loadCharacters()
         } catch {
             throw BookCharacterError.underlying(String(describing: error))
         }
@@ -204,7 +223,7 @@ actor BookCharacterActor {
         if let summary { updated.summary = summary }
         updated.updatedAt = Date()
         do {
-            try characterStore.replaceCharacter(updated, bodyMarkdown: bodyMarkdown)
+            try store.replaceCharacter(updated, bodyMarkdown: bodyMarkdown)
         } catch {
             throw BookCharacterError.underlying(String(describing: error))
         }
@@ -213,16 +232,20 @@ actor BookCharacterActor {
 
     func deleteCharacter(id: UUID) async throws {
         do {
-            try characterStore.deleteCharacter(id: id)
+            let store = try resolveStore()
+            try store.deleteCharacter(id: id)
+        } catch let err as BookCharacterError {
+            throw err
         } catch {
             throw BookCharacterError.underlying(String(describing: error))
         }
     }
 
     func listCharacters(bookId: UUID) async throws -> [CharacterDescriptor] {
+        let store = try resolveStore()
         let characters: [Character]
         do {
-            characters = try characterStore.loadCharacters()
+            characters = try store.loadCharacters()
         } catch {
             throw BookCharacterError.underlying(String(describing: error))
         }
@@ -233,9 +256,10 @@ actor BookCharacterActor {
 
     func findCharacter(bookId: UUID, name: String) async throws -> CharacterDescriptor? {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let store = try resolveStore()
         let characters: [Character]
         do {
-            characters = try characterStore.loadCharacters()
+            characters = try store.loadCharacters()
         } catch {
             throw BookCharacterError.underlying(String(describing: error))
         }
@@ -587,7 +611,11 @@ extension BookCharacterTool {
     nonisolated static let shared: BookCharacterTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-character-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        let store = FileSystemCharacterStore(bookDirectory: tmpRoot)
-        return BookCharacterTool(actor: BookCharacterActor(characterStore: store))
+        return BookCharacterTool(
+            actor: BookCharacterActor(
+                bookDirectoryProvider: { tmpRoot },
+                currentChatBookIDProvider: { nil }
+            )
+        )
     }()
 }
