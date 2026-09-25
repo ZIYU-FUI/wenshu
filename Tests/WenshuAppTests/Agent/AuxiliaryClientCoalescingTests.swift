@@ -1,5 +1,5 @@
 //
-//  AuxiliaryClientCoalescingTests.swift · Wenshu · HERMES-PARTIAL-002 (2026-09-04)
+//  AuxiliaryClientCoalescingTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the AuxiliaryClient surface (= hermes
 //  auxiliary_client.py = 7,469 LOC):
@@ -17,7 +17,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("AuxiliaryClientCoalescing (HERMES-PARTIAL-002)")
+@Suite("AuxiliaryClientCoalescing ()")
 struct AuxiliaryClientCoalescingTests {
 
     // MARK: - Test 1: Single SSE event passes through
