@@ -30,7 +30,7 @@ struct ProviderCatalogTests {
         #expect(slugs.contains("custom"))
     }
 
-    @Test("Provider 都需要 non-empty name + baseURL 或 custom")
+    @Test("Every Provider has non-empty name + baseURL (or custom)")
     func testSanity() {
         for p in Provider.all {
             #expect(!p.name.isEmpty)
