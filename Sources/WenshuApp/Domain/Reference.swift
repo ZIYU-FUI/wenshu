@@ -90,6 +90,15 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// convention).
     var title: String
 
+    /// Optional front-end-only show label. Persisted separately from
+    /// `title` (= which is the searchable user/LLM-supplied name).
+    /// When nil, the front-end falls back to `title` via
+    /// `effectiveDisplayTitle`. Generated lazily by the storage layer
+    /// after the reference is first saved (= it is derived from
+    /// `title`, never user-input), = keeps the on-disk file naming
+    /// (= UUID) and the user-visible card title independent.
+    var displayTitle: String?
+
     /// Optional bibliographic source (= e.g. ', 'Smith 2020').
     /// Display-only (= does not affect search or cross-ref matching).
     var source: String?
@@ -101,22 +110,35 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// subdirectory under `reference-library/`.
     var layer: ReferenceLayer
 
-    /// Library-taxonomy category (= assigned at save time by
-    /// `EntityClassifier`). Optional for backward compatibility
-    /// (= legacy raw materials may not have a category).
+    /// Library-taxonomy category (= optional primary CLC bucket for
+    /// users who want library-style browsing). Assigned at save time
+    /// by `EntityClassifier.classify()`. Optional for backward
+    /// compatibility (= legacy raw materials may not have a category).
+    ///
+    /// In the v2.6 facet model: `category` is ONE facet among several
+    /// (= `tags` + `entityType` are cross-cutting facets). A document
+    /// can be browsed by category, by entity type, OR by tag filter;
+    /// = the physical file is metadata-flat (= entities/<uuid>.md).
+    /// See AGENTS.md §11.16 for the full design rationale.
     var category: EntityCategory?
 
-    /// Optional 2nd-level subcategory code (= e.g. "I2" for "in progress").
-    /// Set by the LLM classifier when it picks a fine-grained match.
-    /// Optional (= most entities fit in the top-level bucket).
-    var subcategory: String?
+    /// Free-form tags (= the cross-cutting facet in the v2.6 facet
+    /// model). A document may carry any number of tags (= multi-tag),
+    /// enabling queries like "all references tagged 唐朝" or
+    /// "all references tagged 文学 AND 唐朝". Tags are populated by
+    /// `EntityClassifier.classify()` (= LLM-suggested or keyword-derived)
+    /// and editable by the user.
+    ///
+    /// Tags are **orthogonal** to `category` and `entityType`. A
+    /// single reference can have:
+    /// - 0 or 1 `category` (= primary CLC bucket)
+    /// - 1 `entityType` (= character / location / event / etc.)
+    /// - 0..N `tags` (= any string, CJK + EN)
+    var tags: Set<String>
 
-    /// Entity-type (= orthogonal to category). 9 cases (= character /
-    /// location / event / concept / artifact / organization / era /
-    /// work / other). The first explicit entity-definition rule
-    /// wenshu has; = previous versions relied on hermes Python's 4
-    /// regex surface-form rules, not semantic type. Defaults to
-    /// `.other` for legacy entities (= Codable migration).
+    /// Entity-type (= orthogonal facet, unchanged from previous).
+    /// 9 cases: character / location / event / concept / artifact /
+    /// organization / era / work / other.
     ///
     /// Custom Codable: accepts BOTH string ("character") AND integer
     /// representations on decode. The seed-script writes integers
@@ -137,7 +159,8 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     // (= matches LLM promptNumber), human-readable exports use strings.
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, source, url, layer, category, subcategory
+        case id, title, displayTitle, source, url, layer, category
+        case tags
         case entityType, summary, characterRefIds, worldRefIds
         case bookRefIds, createdAt, updatedAt
     }
@@ -146,11 +169,19 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)
         title = try c.decode(String.self, forKey: .title)
+        // displayTitle is new in v2.6 (= the front-end-only show
+        // label). Legacy entities.json files (= written before this
+        // commit) lack the field; = default to nil. Computed
+        // `effectiveDisplayTitle` falls back to `title` when nil.
+        displayTitle = try c.decodeIfPresent(String.self, forKey: .displayTitle)
         source = try c.decodeIfPresent(String.self, forKey: .source)
         url = try c.decodeIfPresent(String.self, forKey: .url)
         layer = try c.decode(ReferenceLayer.self, forKey: .layer)
         category = try c.decodeIfPresent(EntityCategory.self, forKey: .category)
-        subcategory = try c.decodeIfPresent(String.self, forKey: .subcategory)
+        // tags is new in v2.6 facet model. Legacy entities.json files
+        // (= written before this commit) lack the field; = default to
+        // empty set. Forward-compatible: future saves will round-trip.
+        tags = try c.decodeIfPresent(Set<String>.self, forKey: .tags) ?? []
         // entityType may be encoded as String ("character") OR Int (1).
         // Try Int first (= matches seed-script + LLM prompt format), fall
         // back to String (= matches human-readable format).
@@ -174,11 +205,14 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
         try c.encode(title, forKey: .title)
+        try c.encodeIfPresent(displayTitle, forKey: .displayTitle)
         try c.encodeIfPresent(source, forKey: .source)
         try c.encodeIfPresent(url, forKey: .url)
         try c.encode(layer, forKey: .layer)
         try c.encodeIfPresent(category, forKey: .category)
-        try c.encodeIfPresent(subcategory, forKey: .subcategory)
+        // Encode tags sorted for stable on-disk output (= idempotent
+        // writes; = easier diff inspection).
+        try c.encode(tags.sorted(), forKey: .tags)
         // Encode as string (= human-readable; readers without EntityType
         // knowledge can still interpret "character" / "location" / etc.).
         try c.encode(entityType.rawValue, forKey: .entityType)
@@ -210,11 +244,12 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     init(
         id: UUID = UUID(),
         title: String,
+        displayTitle: String? = nil,
         source: String? = nil,
         url: String? = nil,
         layer: ReferenceLayer = .layerRaw,
         category: EntityCategory? = nil,
-        subcategory: String? = nil,
+        tags: Set<String> = [],
         entityType: EntityType = .other,
         summary: String = "",
         characterRefIds: [UUID] = [],
@@ -225,11 +260,12 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     ) {
         self.id = id
         self.title = title
+        self.displayTitle = displayTitle
         self.source = source
         self.url = url
         self.layer = layer
         self.category = category
-        self.subcategory = subcategory
+        self.tags = tags
         self.entityType = entityType
         self.summary = summary
         self.characterRefIds = characterRefIds
@@ -244,17 +280,18 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         "\(id.uuidString).md"
     }
 
-    /// Full on-disk path. Entities live at
-    /// `reference-library/entities/<category>/<uuid>.md` (= category
-    /// subdirectory). Raw materials stay flat at
-    /// `reference-library/raw/<uuid>.md`. Other layers flat.
+    /// Full on-disk path. v2.6 facet model: file path is metadata-flat
+    /// (= `entities/<uuid>.md`). The `category` field is preserved as
+    /// metadata in entities.json (= sidebar browsing uses the index, not
+    /// the directory tree). Multi-tag references live in 1 folder; =
+    /// tag-filtered views are produced by SwiftData queries, not by
+    /// file location.
+    ///
+    /// Older reference libraries may still have files at
+    /// `entities/<category>/<uuid>.md` (= pre-v2.6 layout); =
+    /// `FileSystemReferenceStore.loadReferences` performs a one-shot
+    /// migration to the flat path on first load (= see issue 002).
     func onDiskPath(under referenceLibraryRoot: URL) -> URL {
-        if layer == .layerEntities, let category = category {
-            return referenceLibraryRoot
-                .appendingPathComponent("entities")
-                .appendingPathComponent(category.directoryName)
-                .appendingPathComponent(filename)
-        }
         return referenceLibraryRoot
             .appendingPathComponent(layer.directoryName)
             .appendingPathComponent(filename)
@@ -268,4 +305,74 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
+
+    /// The string the front-end should render as the reference card
+    /// title. Returns the explicit `displayTitle` when set; = falls
+    /// back to the user/LLM-supplied `title` otherwise. Never returns
+    /// the opaque UUID — that's a storage concern, not a UX concern.
+    var effectiveDisplayTitle: String {
+        displayTitle?.isEmpty == false ? displayTitle! : title
+    }
+
+    /// Generate (= or refresh) the front-end display title from
+    /// `title`. Used by the storage layer to backfill the field on
+    /// first save (= no user input) and on legacy data migration
+    /// (= older entries lack `displayTitle`).
+    ///
+    /// Output rules:
+    ///  1. Trim whitespace.
+    ///  2. Collapse internal whitespace runs to single spaces.
+    ///  3. Strip trailing punctuation (= quotes, periods, parens
+    ///     left open by sloppy LLM output).
+    ///  4. Result is always non-empty (= a sanitization-only input
+    ///     falls back to `title` verbatim so the user always sees
+    ///     something).
+    ///
+    /// Note: reference library entities are unique by title (= the
+    /// upsert path dedupes by case-insensitive trimmed title; = two
+    /// references sharing a title are merged, not duplicated). So no
+    /// UUID-suffix disambiguation is needed here.
+    mutating func ensureDisplayTitle() {
+        // No-op when displayTitle is already set (= callers use this
+        // method as a backfill for entries that lack the field; = an
+        // explicit displayTitle is treated as the authoritative value).
+        guard displayTitle == nil else { return }
+        let sanitized = Self.sanitizeDisplayTitle(title)
+        displayTitle = sanitized.isEmpty ? title : sanitized
+    }
+
+    /// Strip whitespace / trailing punctuation from a user-supplied
+    /// title. CJK characters survive intact (= most references carry
+    /// Chinese names per boss 2026-09-25 e2e tests).
+    static func sanitizeDisplayTitle(_ raw: String) -> String {
+        let collapsed = raw
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Strip trailing ASCII noise (= stray quotes / periods / parens
+        // from LLM output).
+        var trimmed = collapsed
+        // Strip trailing ASCII noise (= stray quotes / periods / parens
+        // from LLM output). Single-character literals are typed as
+        // Character directly.
+        while let last = trimmed.last, Self.trailingNoise.contains(last) {
+            trimmed.removeLast()
+        }
+        return trimmed.trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Static noise set (= single-character literals work here
+    /// because Swift infers Character directly from a 1-char string
+    /// literal in a Set<Character> context).
+    /// Static noise characters stripped from the trailing edge of a
+    /// user-supplied title. ASCII punctuation + closing brackets /
+    /// quotes LLM output sometimes leaves dangling.
+    private static let trailingNoise: [Swift.Character] = {
+        let raw = "\u{22}\u{27}\u{2E}\u{2C}\u{3B}\u{3A}\u{29}\u{5D}\u{7D}\u{3F}"
+        var out: [Swift.Character] = []
+        out.reserveCapacity(raw.count)
+        for c in raw {
+            out.append(c)
+        }
+        return out
+    }()
 }

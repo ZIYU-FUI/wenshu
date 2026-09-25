@@ -147,6 +147,13 @@ enum SidebarContextMenuBuilder {
             return AnyView(EmptyView())
         case .referenceCategory:
             return AnyView(EmptyView())
+        case .tag:
+            // Tags are reference-library navigation; no destructive
+            // context-menu actions on a tag row itself (= deleting a
+            // tag from the sidebar would only happen by removing it
+            // from every reference that carries it; = a different
+            // UX flow not in v2.6 scope).
+            return AnyView(EmptyView())
         }
     }
 }

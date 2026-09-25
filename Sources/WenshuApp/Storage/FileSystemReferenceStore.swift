@@ -86,6 +86,24 @@ protocol ReferenceStoring: Sendable {
         summary: String
     ) throws -> Reference
 
+    /// Upsert-with-tags overload (= v2.6 facet model). When `tags`
+    /// is non-nil, it replaces the existing tags (the caller is
+    /// expected to have done the merge already in the agent layer).
+    /// When `tags` is nil, the existing tags are preserved (the
+    /// legacy upsert path). See `FileSystemReferenceStore.upsertReference`
+    /// for the implementation.
+    func upsertReference(
+        title: String,
+        bodyMarkdown: String,
+        layer: ReferenceLayer,
+        category: EntityCategory?,
+        tags: Set<String>?,
+        source: String?,
+        url: String?,
+        entityType: EntityType,
+        summary: String
+    ) throws -> Reference
+
     /// Remove a reference. Idempotent.
     func deleteReference(id: UUID) throws
 
@@ -189,6 +207,15 @@ struct FileSystemReferenceStore: ReferenceStoring {
 
     func loadReferences(layer: ReferenceLayer) throws -> [Reference] {
         let indexURL = layerDirectory(layer).appendingPathComponent("\(layer.directoryName).json")
+        // v2.6 facet-model migration: scan for legacy files under
+        // `entities/<category>/<uuid>.md` (= pre-v2.6 layout) and move
+        // them to the flat `entities/<uuid>.md` path. Idempotent —
+        // re-running after migration is a no-op. The entities.json
+        // index already carries each entry's `category` as metadata,
+        // so the file move does not lose classification data.
+        if layer == .layerEntities {
+            migrateLegacyEntitySubdirectoryLayoutIfNeeded()
+        }
         guard FileManager.default.fileExists(atPath: indexURL.path) else {
             return []
         }
@@ -236,6 +263,15 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 if normalized.layer == .layerEntities && normalized.category == nil {
                     normalized.category = .z
                 }
+                // Backfill displayTitle for legacy / freshly-loaded
+                // references (= set once on read; = persist back to
+                // entities.json on next save via writeIndex).
+                // The disambiguation suffix is NOT applied here (= the
+                // siblingTitles set isn't yet known at this layer);
+                // use the basic sanitization only.
+                if normalized.displayTitle == nil {
+                    normalized.ensureDisplayTitle()
+                }
                 return normalized
             }
         } catch {
@@ -255,8 +291,20 @@ struct FileSystemReferenceStore: ReferenceStoring {
 
         try atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: refURL)
 
+        // Build the sibling-titles lookup from the just-loaded set
+        // (= before appending the new reference; = we want to know
+        // which titles are already taken, not the new one).
+        // Reference library entities are unique by title (= the upsert
+        // path dedupes by case-insensitive trimmed title; = two
+        // references sharing a title are merged, not duplicated). So
+        // no sibling-title lookup is needed for displayTitle.
+        var referenceToStore = reference
+        if referenceToStore.displayTitle == nil {
+            referenceToStore.ensureDisplayTitle()
+        }
+
         var current = (try? loadReferences(layer: reference.layer)) ?? []
-        current.append(reference)
+        current.append(referenceToStore)
         try writeIndex(current, for: reference.layer)
     }
 
@@ -295,6 +343,44 @@ struct FileSystemReferenceStore: ReferenceStoring {
         entityType: EntityType = .other,
         summary: String = ""
     ) throws -> Reference {
+        // Legacy entry point (= no `tags` param). The agent layer is
+        // expected to call the overload below when tags are part of
+        // the upsert payload; = here we preserve the existing tags.
+        return try upsertReference(
+            title: title,
+            bodyMarkdown: bodyMarkdown,
+            layer: layer,
+            category: category,
+            tags: nil,
+            source: source,
+            url: url,
+            entityType: entityType,
+            summary: summary
+        )
+    }
+
+    /// Upsert by title within a layer (= the recurring-research path).
+    /// If an entry with the same case-insensitive trimmed title
+    /// already exists in the layer, its body + summary + source +
+    /// url + tags + updatedAt are refreshed in place; = otherwise a
+    /// new reference is created.
+    ///
+    /// When `tags` is nil (= the legacy agent path), existing tags
+    /// are preserved. When `tags` is non-nil (= the v2.6 facet-model
+    /// path), the supplied tag set replaces the existing one (= the
+    /// agent layer is expected to have done a union-merge if it wants
+    /// monotonic growth).
+    func upsertReference(
+        title: String,
+        bodyMarkdown: String,
+        layer: ReferenceLayer,
+        category: EntityCategory? = nil,
+        tags: Set<String>? = nil,
+        source: String? = nil,
+        url: String? = nil,
+        entityType: EntityType = .other,
+        summary: String = ""
+    ) throws -> Reference {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedTitle = trimmed.lowercased()
 
@@ -310,6 +396,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
             if let source { updated.source = source }
             if let url { updated.url = url }
             if layer == .layerEntities, let category { updated.category = category }
+            if let tags { updated.tags = tags }
             updated.updatedAt = Date()
             try replaceReference(updated, bodyMarkdown: bodyMarkdown)
             return updated
@@ -322,11 +409,15 @@ struct FileSystemReferenceStore: ReferenceStoring {
             url: url,
             layer: layer,
             category: layer == .layerEntities ? category : nil,
+            tags: tags ?? [],
             entityType: entityType,
             summary: summary
         )
         try saveReference(newRef, bodyMarkdown: bodyMarkdown)
-        return newRef
+        // saveReference backfills displayTitle; = re-read to surface
+        // the post-backfill value to the caller.
+        let reloaded = (try? loadReferences(layer: layer))?.first(where: { $0.id == newRef.id })
+        return reloaded ?? newRef
     }
 
     func deleteReference(id: UUID) throws {
@@ -411,6 +502,75 @@ struct FileSystemReferenceStore: ReferenceStoring {
             .appendingPathComponent(effectiveCategory.directoryName)
         if !FileManager.default.fileExists(atPath: categoryDir.path) {
             try FileManager.default.createDirectory(at: categoryDir, withIntermediateDirectories: true)
+        }
+    }
+
+    /// v2.6 facet-model migration: scan `entities/<category>/` subdirs
+    /// (= the pre-v2.6 layout) and move every `<uuid>.md` file into
+    /// the flat `entities/` directory (= the post-v2.6 layout). Move
+    /// uses `replaceItemAt` so the operation is atomic on the same
+    /// volume; = if any move fails, the legacy file remains in place
+    /// (= safe to retry on next launch).
+    ///
+    /// After migration, the now-empty category subdirs are removed
+    /// (= no orphan directories). Idempotent — when called twice,
+    /// the second call finds no legacy files and returns immediately.
+    private func migrateLegacyEntitySubdirectoryLayoutIfNeeded() {
+        let entitiesDir = referenceLibraryRoot
+            .appendingPathComponent("entities")
+        guard FileManager.default.fileExists(atPath: entitiesDir.path) else {
+            return
+        }
+        // Iterate the subdirs of entities/ (= each is a category
+        // directory like `i/` or `k/`). If a subdir contains .md files,
+        // move each .md to the flat entities/ dir.
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: entitiesDir,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return
+        }
+        for entry in contents {
+            // Only descend into directories (= skip entities.json, etc.).
+            var isDir: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir),
+                  isDir.boolValue else { continue }
+            // The flat-uuid .md files we already migrated would land
+            // at entities/<uuid>.md (= top-level); = we don't recurse.
+            // Only files inside a category subdir need moving.
+            guard let subEntries = try? FileManager.default.contentsOfDirectory(
+                at: entry,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            ) else { continue }
+            for subEntry in subEntries where subEntry.pathExtension == "md" {
+                let flatDestination = entitiesDir.appendingPathComponent(subEntry.lastPathComponent)
+                // If the flat destination already exists (= the same
+                // reference was migrated in a prior run, OR a new save
+                // landed at the flat path), skip (= avoid clobber).
+                if FileManager.default.fileExists(atPath: flatDestination.path) {
+                    // Best-effort cleanup of the legacy copy.
+                    try? FileManager.default.removeItem(at: subEntry)
+                    continue
+                }
+                do {
+                    try FileManager.default.moveItem(at: subEntry, to: flatDestination)
+                } catch {
+                    // Move failed (cross-device? permission?); = leave
+                    // the legacy file in place so a future retry can
+                    // complete the migration.
+                    continue
+                }
+            }
+            // After moving all .md files out of the category subdir,
+            // best-effort remove the now-empty dir. If non-empty
+            // (= contains other index/cache files), the remove fails
+            // silently and the subdir is left for the user.
+            if let remaining = try? FileManager.default.contentsOfDirectory(at: entry, includingPropertiesForKeys: nil),
+               remaining.isEmpty {
+                try? FileManager.default.removeItem(at: entry)
+            }
         }
     }
 

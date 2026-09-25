@@ -126,7 +126,7 @@ struct PreviewPaneOpsTests {
         return (0..<count).map { i in
             // Synthesise minimal Reference from a JSON blob.
             let json = """
-            {"id":"\(UUID().uuidString)","title":"title-\(i)","source":null,"url":null,"layer":"layerEntities","category":null,"subcategory":null,"entityType":1,"summary":"","characterRefIds":[],"worldRefIds":[],"bookRefIds":[],"createdAt":0,"updatedAt":0}
+            {"id":"\(UUID().uuidString)","title":"title-\(i)","source":null,"url":null,"layer":"layerEntities","category":null,"tags":[],"entityType":1,"summary":"","characterRefIds":[],"worldRefIds":[],"bookRefIds":[],"createdAt":0,"updatedAt":0}
             """
             let data = json.data(using: .utf8)!
             return try! JSONDecoder().decode(Reference.self, from: data)

@@ -31,8 +31,10 @@ import Foundation
 struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     let id: UUID
     let title: String
+    let displayTitle: String?
     let layer: String
     let category: String?
+    let tags: [String]
     let entityType: String
     let summary: String
     let source: String?
@@ -43,8 +45,10 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     init(
         id: UUID,
         title: String,
+        displayTitle: String? = nil,
         layer: String,
         category: String?,
+        tags: [String],
         entityType: String,
         summary: String,
         source: String?,
@@ -54,8 +58,10 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     ) {
         self.id = id
         self.title = title
+        self.displayTitle = displayTitle
         self.layer = layer
         self.category = category
+        self.tags = tags
         self.entityType = entityType
         self.summary = summary
         self.source = source
@@ -67,12 +73,17 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     init(_ reference: Reference) {
         self.id = reference.id
         self.title = reference.title
+        self.displayTitle = reference.displayTitle
         // Map ReferenceLayer.wire_internal raw values (= "layerRaw" /
         // "layerEntities") to the LLM-friendly wire names (= "raw" /
         // "entities"). The internal case names are verbose because
         // the domain enum predates the agent tool surface.
         self.layer = Self.wireLayer(reference.layer)
         self.category = reference.category?.rawValue
+        // Tags are emitted sorted for stable on-the-wire output (= the
+        // LLM emits them in any order; = the agent UI / tests can
+        // depend on sorted form).
+        self.tags = reference.tags.sorted()
         self.entityType = reference.entityType.rawValue
         self.summary = reference.summary
         self.source = reference.source
@@ -152,6 +163,7 @@ actor ReferenceLibraryActor {
         bodyMarkdown: String,
         layer: String = "raw",
         category: String? = nil,
+        tags: Set<String> = [],
         entityType: String = "other",
         source: String? = nil,
         url: String? = nil,
@@ -170,6 +182,7 @@ actor ReferenceLibraryActor {
             url: url,
             layer: parsedLayer,
             category: parsedLayer == .layerEntities ? parsedCategory : nil,
+            tags: tags,
             entityType: parsedType,
             summary: summary
         )
@@ -287,13 +300,16 @@ actor ReferenceLibraryActor {
     /// Upsert by title within a layer (= the recurring-research path).
     /// If an entry with the same case-insensitive trimmed title
     /// already exists in the layer, its body + summary + source +
-    /// url + updatedAt are refreshed in place; otherwise a new
-    /// reference is created with a fresh UUID.
+    /// url + tags + updatedAt are refreshed in place (= tags from
+    /// the new payload are merged with existing tags, not replaced,
+    /// so the cross-cutting facet is monotonically growing);
+    /// otherwise a new reference is created with a fresh UUID.
     func upsertReference(
         title: String,
         bodyMarkdown: String,
         layer: String = "raw",
         category: String? = nil,
+        tags: Set<String> = [],
         entityType: String = "other",
         source: String? = nil,
         url: String? = nil,
@@ -307,11 +323,27 @@ actor ReferenceLibraryActor {
         let parsedCategory = category.flatMap { EntityCategory(rawValue: $0) }
         let parsedType = EntityType(rawValue: entityType) ?? .other
         do {
+            // Tag merge strategy: for an existing entry, the new tags
+            // are unioned with the existing tags (= the user/LLM can
+            // add tags over time without losing previously-classified
+            // ones). For a fresh entry, the tags land as-is.
+            let existingRefs = (try? referenceStore.loadReferences(layer: parsedLayer)) ?? []
+            let normalizedTitle = trimmed.lowercased()
+            let existingMatch = existingRefs.first { ref in
+                ref.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedTitle
+            }
+            let mergedTags: Set<String>
+            if let existingTags = existingMatch?.tags {
+                mergedTags = existingTags.union(tags)
+            } else {
+                mergedTags = tags
+            }
             let result = try referenceStore.upsertReference(
                 title: trimmed,
                 bodyMarkdown: bodyMarkdown,
                 layer: parsedLayer,
                 category: parsedLayer == .layerEntities ? parsedCategory : nil,
+                tags: mergedTags,
                 source: source,
                 url: url,
                 entityType: parsedType,
@@ -399,6 +431,11 @@ actor ReferenceLibraryActor {
                 let title = envelope["title"] as? String ?? ""
                 let layer = envelope["layer"] as? String ?? "raw"
                 let category = envelope["category"] as? String
+                // Tags is an optional [String] in the envelope. Accept
+                // both `["a","b"]` (= canonical) and `nil` (= LLM didn't
+                // provide any tags).
+                let tagsArray = envelope["tags"] as? [String] ?? []
+                let tags = Set(tagsArray)
                 let entityType = envelope["entity_type"] as? String ?? "other"
                 let source = envelope["source"] as? String
                 let url = envelope["url"] as? String
@@ -409,6 +446,7 @@ actor ReferenceLibraryActor {
                     bodyMarkdown: body,
                     layer: layer,
                     category: category,
+                    tags: tags,
                     entityType: entityType,
                     source: source,
                     url: url,
@@ -468,6 +506,8 @@ actor ReferenceLibraryActor {
                 let title = envelope["title"] as? String ?? ""
                 let layer = envelope["layer"] as? String ?? "raw"
                 let category = envelope["category"] as? String
+                let tagsArray = envelope["tags"] as? [String] ?? []
+                let tags = Set(tagsArray)
                 let entityType = envelope["entity_type"] as? String ?? "other"
                 let source = envelope["source"] as? String
                 let url = envelope["url"] as? String
@@ -478,6 +518,7 @@ actor ReferenceLibraryActor {
                     bodyMarkdown: body,
                     layer: layer,
                     category: category,
+                    tags: tags,
                     entityType: entityType,
                     source: source,
                     url: url,
@@ -589,6 +630,7 @@ actor ReferenceLibraryActor {
         var dict: [String: Any] = [
             "id": d.id.uuidString,
             "title": d.title,
+            "displayTitle": d.displayTitle ?? d.title,
             "layer": d.layer,
             "entity_type": d.entityType,
             "summary": d.summary,
@@ -598,6 +640,11 @@ actor ReferenceLibraryActor {
         if let category = d.category { dict["category"] = category }
         if let source = d.source { dict["source"] = source }
         if let url = d.url { dict["url"] = url }
+        // Tags are emitted sorted (= the LLM / agent UI sees a
+        // deterministic ordering regardless of insertion order). Even
+        // when the set is empty, the key is present (= forward-compat
+        // — consumers don't need to handle missing-key vs nil).
+        dict["tags"] = d.tags
         return dict
     }
 
