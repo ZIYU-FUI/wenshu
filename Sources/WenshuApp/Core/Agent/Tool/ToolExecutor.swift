@@ -115,7 +115,16 @@ actor ToolExecutor {
         outputTruncator: @escaping @Sendable (String, String) -> String = ToolExecutor.defaultOutputTruncator,
         errorClassifier: @escaping @Sendable (String, Error) -> String = ToolExecutor.defaultErrorClassifier,
         resultFormatter: @escaping @Sendable (String, String) -> String = ToolExecutor.defaultResultFormatter,
-        preDispatchValidator: @escaping @Sendable (String, [String: String]) async throws -> [String: String] = ToolExecutor.defaultPreDispatchValidator,
+        /// Pre-dispatch validator (= hermes
+        /// `_apply_tool_request_middleware_for_agent` L247). Returns
+        /// the (possibly transformed) input dictionary. Throws to
+        /// abort.
+        /// Default = `WenshuSandbox.preDispatchValidator` (= enforce
+        /// library-root path allow-list; = any path-bearing key that
+        /// resolves outside .ws/ throws
+        /// `ToolExecutorError.sandboxViolation` before the tool is
+        /// invoked).
+        preDispatchValidator: @escaping @Sendable (String, [String: String]) async throws -> [String: String] = WenshuSandbox.preDispatchValidator,
         postDispatchValidator: @escaping @Sendable (String, String) async throws -> String = ToolExecutor.defaultPostDispatchValidator
     ) {
         self.hookChain = hookChain
