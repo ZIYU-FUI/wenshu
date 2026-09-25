@@ -221,4 +221,51 @@ struct MCPJSONRPCClientTests {
         #expect(captured?.value(forHTTPHeaderField: "Content-Type") == "application/json")
         #expect(captured?.value(forHTTPHeaderField: "Accept")?.contains("application/json") == true)
     }
+
+    @Test("call parses SSE-framed JSON-RPC response (= Exa MCP wire format)")
+    func callParsesSSEFramedResponse() async throws {
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
+        // SSE format: event: message\ndata: {json}\n\n
+        // The data payload is a single JSON-RPC envelope with a result
+        // containing a content[0].text string (= the Exa MCP wire shape).
+        let envelope = """
+        {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"Title: Foo\\nURL: https://foo.example/\\nHighlights: hello"}],"isError":false}}
+        """
+        stub.responseData = Data("event: message\ndata: \(envelope)\n\n".utf8)
+        stub.responseStatusCode = 200
+        let session = Self.makeSession(for: stubProtocolClass)
+        let client = MCPJSONRPCClient(
+            endpoint: URL(string: "https://mcp.example.com/mcp")!,
+            userAgent: "wenshu-test",
+            session: session
+        )
+
+        let text = try await client.call(tool: "web_search_exa", arguments: ["q": "test"])
+
+        #expect(text.contains("Title: Foo"))
+        #expect(text.contains("URL: https://foo.example/"))
+    }
+
+    @Test("call parses the first JSON-RPC result envelope when multiple are present")
+    func callParsesMultipleSSEFrames() async throws {
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
+        // Two SSE result frames in one response. wenshu parses the
+        // first JSON-RPC envelope (= later frames are silently ignored;
+        // = matches the hermes `walk_ring` pattern of taking the first
+        // usable payload).
+        let first = #"{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"first frame wins"}],"isError":false}}"#
+        let second = #"{"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"second frame"}],"isError":false}}"#
+        let body = "event: message\ndata: \(first)\n\nevent: message\ndata: \(second)\n\n"
+        stub.responseData = Data(body.utf8)
+        stub.responseStatusCode = 200
+        let session = Self.makeSession(for: stubProtocolClass)
+        let client = MCPJSONRPCClient(
+            endpoint: URL(string: "https://mcp.example.com/mcp")!,
+            userAgent: "wenshu-test",
+            session: session
+        )
+
+        let text = try await client.call(tool: "any", arguments: [:])
+        #expect(text == "first frame wins")
+    }
 }

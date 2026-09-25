@@ -121,9 +121,19 @@ struct MCPJSONRPCClient: Sendable {
             throw MCPError.http(status: http.statusCode, body: body)
         }
 
+        // MCP Streamable HTTP servers may respond with one of:
+        //   - application/json: a single JSON-RPC envelope (= e.g. Parallel MCP).
+        //   - text/event-stream: SSE format with "event: message\ndata: {json}\n\n"
+        //     (= e.g. Exa MCP). Multiple frames may arrive in one response.
+        // We parse both shapes uniformly by extracting every JSON
+        // payload from the SSE stream first (= if any), then falling
+        // back to a direct JSONSerialization on the raw bytes.
+        let candidateBodies = Self.extractSSEJSONPayloads(from: data)
+        let jsonPayload: Data = candidateBodies.first ?? data
+
         let parsed: Any
         do {
-            parsed = try JSONSerialization.jsonObject(with: data)
+            parsed = try JSONSerialization.jsonObject(with: jsonPayload)
         } catch {
             throw MCPError.badResponse
         }
@@ -153,5 +163,33 @@ struct MCPJSONRPCClient: Sendable {
             throw MCPError.emptyContent
         }
         return first
+    }
+
+    /// Extract the JSON payload(s) from an MCP Streamable HTTP SSE response.
+    /// Returns the bytes between `data: ` and the next `\n` for every
+    /// frame (= one per line that starts with `data: `). Returns empty
+    /// when the response is not SSE.
+    ///
+    /// Sample SSE response:
+    ///
+    ///     event: message
+    ///     data: {"jsonrpc":"2.0","id":1,"result":{...}}
+    ///
+    /// This produces one frame (`{"jsonrpc":"2.0","id":1,"result":{...}}`).
+    private static func extractSSEJSONPayloads(from data: Data) -> [Data] {
+        guard let text = String(data: data, encoding: .utf8) else { return [] }
+        // Fast bail: if the body does not contain the SSE "data: " prefix,
+        // treat the whole body as a JSON payload (= non-SSE case).
+        guard text.contains("data: ") else { return [] }
+        var payloads: [Data] = []
+        for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("data: ") else { continue }
+            let jsonText = String(trimmed.dropFirst("data: ".count))
+            if let payload = jsonText.data(using: .utf8) {
+                payloads.append(payload)
+            }
+        }
+        return payloads
     }
 }

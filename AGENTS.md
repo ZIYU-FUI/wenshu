@@ -1478,6 +1478,19 @@ All three vendors respond to direct HTTP calls without any API key or account. V
 - The wenshu code already passes the correct schema for Parallel (= `objective` + `search_queries` + `session_id`).
 - The wenshu code already passes the correct schema for Keenable (= `max_results` + `X-Keenable-Title`).
 - The wenshu code initially passed only `query + numResults` for Exa (= missing the required `objective` field); = 2026-09-25 patch added `objective: query` (= keeps the WebSearchProvider protocol free of provider-specific parameters).
+- Exa responds in **SSE format** (= `event: message\ndata: {json}\n\n`) per the MCP Streamable HTTP spec (= `https://modelcontextprotocol.io`). Parallel responds in plain JSON. The wenshu `MCPJSONRPCClient` initially called `JSONSerialization.jsonObject` on the raw bytes (= failed on Exa's SSE-wrapped payload = throw `MCPError.badResponse`); = 2026-09-25 patch added `extractSSEJSONPayloads(from:)` helper that parses SSE frames before falling back to plain JSON (= now both vendors work end-to-end through the shared client).
+
+## Live validation evidence (= end-to-end test suite, 2026-09-25)
+
+A new live integration test suite (`KeylessProvidersLiveAPITests`) drives the full wenshu LLM-agent-style tool-call flow against the real anonymous-free-tier vendor endpoints. The tests are gated by the `WENSHU_LIVE_API_TESTS=1` env var (= default off; = CI may opt in).
+
+| # | Test | Vendor | Result | Time |
+|---|---|---|---|---|
+| 1 | `endToEndParallel` (= LLM tool-call envelope → `WebSearchTool.shared.execute` → Parallel MCP) | Parallel | 7687 bytes returned, 3 real results (Apple HIG docs) | 1.0 s |
+| 2 | `ringFailoverWithLiveExa` (= ring with Exa only) | Exa | 3 real results | 1.4 s |
+| 3 | `ringFailoverWithLiveKeenable` (= ring with Keenable only) | Keenable | 3 real results | 0.8-10 s (= cold start) |
+
+These tests prove the canonical wenshu LLM agent loop (= LLM emits tool-call JSON envelope → `WebSearchTool.execute` → `WebSearch` actor → `KeylessRing` walk → vendor → real HTTP → parsed results) works end-to-end from a domestic Chinese network with zero API keys.
 
 ## Closed-enum policy (= how to add a new keyless vendor)
 
