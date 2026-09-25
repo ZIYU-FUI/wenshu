@@ -697,10 +697,15 @@ actor WenshuConductor {
         "ReadFile",         // Core/Agent/Tool/ReadFileTool.swift
         "WriteFile",        // Core/Agent/Tool/WriteFileTool.swift
         "av",               // Core/Tools/AVMediaTools.swift
+        "book_character",   // Core/Agent/Librarian/BookCharacterTool.swift
+        "book_chapter",     // Core/Agent/Librarian/BookChapterTool.swift
         "book_manager",     // Core/Agent/Librarian/BookManagerTool.swift
+        "book_outline",     // Core/Agent/Librarian/BookOutlineTool.swift
+        "book_world",       // Core/Agent/Librarian/BookWorldTool.swift
         "file",             // Core/Tools/FileTools.swift
         "kanban",           // Core/Agent/Tool/KanbanStoreTool.swift
         "process",          // Core/Tools/ProcessTools.swift
+        "reference_library",// Core/Agent/Librarian/ReferenceLibraryTool.swift
         "skill_bundles",    // Core/Agent/Tool/SkillBundlesTool.swift  (= v0.73 ticket 001-wire-skillbundles)
         "todo",             // Core/Tool/TodoStoreTool.swift
         "todo_hermes",      // Core/Agent/Todo/HermesTodoTool.swift

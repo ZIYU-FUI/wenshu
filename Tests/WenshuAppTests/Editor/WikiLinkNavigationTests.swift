@@ -73,6 +73,16 @@ private struct MockReferenceStore: ReferenceStoring {
     }
     func saveReference(_ reference: Reference, bodyMarkdown: String) throws { fatalError("unused") }
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws { fatalError("unused") }
+    func upsertReference(
+        title: String,
+        bodyMarkdown: String,
+        layer: ReferenceLayer,
+        category: EntityCategory?,
+        source: String?,
+        url: String?,
+        entityType: EntityType,
+        summary: String
+    ) throws -> Reference { fatalError("unused") }
     func deleteReference(id: UUID) throws { /* unused */ }
     func referenceExists(id: UUID) -> Bool {
         entities.contains(where: { $0.id == id })
