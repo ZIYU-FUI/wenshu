@@ -148,10 +148,8 @@ struct EmptyStateView: View {
             // the icon INVISIBLE under the IndefiniteSymbolEffect path.
             // Resizable Image with explicit frame (= canonical Apple path
             // for SF Symbol icons >= 40 PT where .imageScale does not apply).
-            // .thin weight preserved via .font(.system(.thin)) on the glyph.
             Image(systemName: icon)
                 .resizable()
-                .font(.system(.thin))
                 .aspectRatio(contentMode: .fit)
                 .frame(width: DesignTokens.emptyStateIconSize, height: DesignTokens.emptyStateIconSize)
                 .symbolRenderingMode(.monochrome)
