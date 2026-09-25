@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSMemoryRepository.swift · Wenshu · v0.72 SwiftData migration Phase 2
+//  Persistence/Repositories/WSMemoryRepository.swift · Wenshu · v0.72 SwiftData migration 
 //
 //  Thin wrapper that exposes the same public API as the prior
 //  MemoryStore actor (= hermes mem0 port).
@@ -140,7 +140,7 @@ final class WSMemoryRepository {
 }
 
 /// Repository-specific error (= distinct from the pre-Phase-5
-/// MemoryStore actor error; = Phase 3
+/// MemoryStore actor error; = 
 /// switch will require call sites to handle this error type).
 enum WSMemoryRepositoryError: Error {
     case notFound
