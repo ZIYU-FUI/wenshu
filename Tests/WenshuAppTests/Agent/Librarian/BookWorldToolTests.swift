@@ -235,4 +235,69 @@ struct BookWorldToolTests {
         #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
         #expect(output.contains("not bound to any book"))
     }
+
+    // MARK: - Test 10 (v2.2 silent dedup): duplicate name falls back to update
+
+    @Test func testCreate_duplicateName_fallsBackToUpdatePreservingId() async throws {
+        let dir = try Self.makeBookDirectory()
+        let actor = BookWorldActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
+        let bookId = UUID()
+        let firstCreatedAt = Date(timeIntervalSince1970: 1_000_000)
+        let first = try await actor.createEntry(
+            bookId: bookId,
+            name: "Beijing",
+            bodyMarkdown: "# Beijing v1\n\nMing capital.",
+            type: "geography",
+            summary: "Original summary."
+        )
+        // Backdate the entry so we can detect whether the update
+        // path preserves createdAt (= it should).
+        let body1 = await actor.readBodyForTest(id: first.id)
+        #expect(body1 == "# Beijing v1\n\nMing capital.")
+
+        // Re-create with the SAME name in the SAME book (= the
+        // v2.2 silent dedup contract: it should silently
+        // update the existing entry, not create a second one).
+        let second = try await actor.createEntry(
+            bookId: bookId,
+            name: "Beijing",
+            bodyMarkdown: "# Beijing v2\n\nMing capital, captured by Mongols in 1449.",
+            type: "history",
+            summary: "Updated summary."
+        )
+        // Same id (= reused the existing entry).
+        #expect(second.id == first.id)
+        // Body was replaced.
+        let body2 = await actor.readBodyForTest(id: second.id)
+        #expect(body2 == "# Beijing v2\n\nMing capital, captured by Mongols in 1449.")
+        // No second entry exists (= listEntries returns one,
+        // not two).
+        let all = try await actor.listEntries(bookId: bookId)
+        #expect(all.count == 1)
+        #expect(all.first?.id == first.id)
+    }
+
+    // MARK: - Test 11 (v2.2 silent dedup): different name still creates
+
+    @Test func testCreate_uniqueName_createsNewEntry() async throws {
+        let actor = try Self.makeActor()
+        let bookId = UUID()
+        let first = try await actor.createEntry(
+            bookId: bookId,
+            name: "Beijing",
+            bodyMarkdown: "# Beijing"
+        )
+        let second = try await actor.createEntry(
+            bookId: bookId,
+            name: "Hangzhou",
+            bodyMarkdown: "# Hangzhou"
+        )
+        // Different ids (= both entries exist independently).
+        #expect(first.id != second.id)
+        let all = try await actor.listEntries(bookId: bookId)
+        #expect(all.count == 2)
+    }
 }
