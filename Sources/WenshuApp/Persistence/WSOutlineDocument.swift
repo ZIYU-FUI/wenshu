@@ -1,7 +1,7 @@
 //
-//  Persistence/WSOutlineDocument.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSOutlineDocument.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 18/21: WSOutlineDocument.
+//   : WSOutlineDocument.
 //  New SwiftData @Model class (= no pre-v0.72 sqlite source — outline
 //  documents were filesystem-only before; = Domain/Document.swift was
 //  the in-memory struct; = this is the first persistence layer).
