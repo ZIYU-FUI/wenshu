@@ -136,10 +136,11 @@ fi
 
 # 6. i18n 双套: en.lproj + zh-Hans.lproj both updated if any key added
 echo -n "  [6/7] i18n 双套 (= en + zh-Hans both updated) ... "
-I18N_CHANGED=$(git diff --name-only "$BEFORE" "$AFTER" | grep -E "\.lproj/Localizable")
+# Use || true to prevent set -e exit when grep matches 0 lines (= the no-i18n-change case)
+I18N_CHANGED=$(git diff --name-only "$BEFORE" "$AFTER" | { grep -E "\.lproj/Localizable" || true; })
 if [ -n "$I18N_CHANGED" ]; then
-    EN=$(echo "$I18N_CHANGED" | grep -c "en.lproj" || echo 0)
-    ZH=$(echo "$I18N_CHANGED" | grep -c "zh-Hans.lproj" || echo 0)
+    EN=$(echo "$I18N_CHANGED" | { grep -c "en.lproj" || true; })
+    ZH=$(echo "$I18N_CHANGED" | { grep -c "zh-Hans.lproj" || true; })
     if [ "$EN" = "$ZH" ] && [ "$EN" -gt 0 ]; then
         echo "OK (en=$EN zh-Hans=$ZH)"
     else
