@@ -37,7 +37,7 @@ struct ParagraphAIToolbarButtons: View {
             Button {
                 onApply(.expand)
             } label: {
-                Image(systemName: "arrow.up.left.and.arrow.down.right").font(.system(size: 16, weight: .regular))
+                Image(systemName: "arrow.up.left.and.arrow.down.right").imageScale(.small)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.chromePaddingVertical)
@@ -58,7 +58,7 @@ struct ParagraphAIToolbarButtons: View {
             Button {
                 onApply(.shorten)
             } label: {
-                Image(systemName: "arrow.down.right.and.arrow.up.left").font(.system(size: 16, weight: .regular))
+                Image(systemName: "arrow.down.right.and.arrow.up.left").imageScale(.small)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.chromePaddingVertical)
@@ -78,7 +78,7 @@ struct ParagraphAIToolbarButtons: View {
             Button {
                 onApply(.rephrase)
             } label: {
-                Image(systemName: "arrow.clockwise").font(.system(size: 16, weight: .regular))
+                Image(systemName: "arrow.clockwise").imageScale(.small)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.chromePaddingVertical)
@@ -106,7 +106,7 @@ struct ParagraphAIToolbarButtons: View {
                 Button(WenshuI18n.t("b5.paragraphaitoolbarbuttons.l106.h64972328")) { onApply(.dramatize) }
                     .disabled(selectedText.isEmpty || isApplying)
             } label: {
-                Image(systemName: "ellipsis").font(.system(size: 16, weight: .regular))
+                Image(systemName: "ellipsis").imageScale(.small)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.chromePaddingSmall)
