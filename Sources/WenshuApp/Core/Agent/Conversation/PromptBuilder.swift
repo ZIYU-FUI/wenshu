@@ -60,14 +60,33 @@
 //                                            → SkillAdapter.listSkills() (delegated)
 //      L1417-1685 build_skills_system_prompt  → PromptBuilder.formatSkillsSummary
 //      L1686-1755 build_nous_subscription_prompt
-//                                                → (out of scope = hermes-only)
+//                                                → (out of scope = hermes-only;
+//                                                   = wenshu does NOT load
+//                                                   SOUL.md or any user-
+//                                                   editable markdown per
+//                                                   v2.4 boss拍 2026-09-25:
+//                                                   commercial product must
+//                                                   not let users redefine
+//                                                   the agent / style / soul)
 //      L1756-1795 _truncate_content(...)      → PromptBuilder.truncateContent
-//      L1796-1824 load_soul_md(...)           → (out of scope = hermes-only)
+//      L1796-1824 load_soul_md(...)           → (out of scope = hermes-only;
+//                                                   = wenshu explicitly does
+//                                                   NOT implement SOUL.md
+//                                                   loading; = see AGENTS.md
+//                                                   §11.14 = Agent Behavior
+//                                                   settings live as closed-
+//                                                   enum pickers instead)
 //      L1827-1921 _load_hermes_md +
 //                       _load_agents_md +
 //                       _load_claude_md +
 //                       _load_cursorrules
-//                                                → (out of scope = hermes-only)
+//                                                → (out of scope = hermes-only;
+//                                                   = wenshu does not load
+//                                                   any user-editable agent
+//                                                   definition file; = the
+//                                                   agent identity is owned
+//                                                   by wenshu source code;
+//                                                   = see AGENTS.md §11.14)
 //      L1924-1971 build_context_files_prompt  → (out of scope = hermes-only)
 //
 //  system_prompt.py (the caller that builds parts dict from prompt_builder):
@@ -115,11 +134,16 @@ struct PromptBuilder: Sendable {
     ///
     /// - Parameters:
     ///   - systemPrompt: The byte-stable source (= wenshu's
-    ///     `SystemPrompt.stableTier()` is the v0.35 hardcoded identity;
-    ///     future tickets may swap in a SOUL.md-backed variant). Parameter
-    ///     is unused at the call site (= the tier comes from
-    ///     `SystemPrompt.stableTier()` directly); kept on the signature
-    ///     for future per-caller override scenarios.
+    ///     `SystemPrompt.stableTier()` is the canonical identity
+    ///     surface owned by wenshu source code; = per v2.4 boss拍
+    ///     2026-09-25 wenshu does NOT load SOUL.md or any user-
+    ///     editable markdown; = agent identity is wenshu-managed
+    ///     only; = see AGENTS.md §11.14). Parameter is unused
+    ///     at the call site (= the tier comes from
+    ///     `SystemPrompt.stableTier()` directly); kept on the
+    ///     signature for test injection (= lets tests stub the
+    ///     identity source without touching the production
+    ///     caller).
     ///   - contextBundle: Result of `ContextEngine.aggregateContextForTurn`.
     ///     Empty bundle = dynamic tier contains only caller extras +
     ///     ephemeral hint.
