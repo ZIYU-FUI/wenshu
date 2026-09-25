@@ -196,6 +196,21 @@ actor BookWorldActor {
         guard !trimmed.isEmpty else {
             throw BookWorldError.emptyName
         }
+
+        // Silent dedup (= v2.2, 2026-09-25): if an entry with
+        // the same name already exists in this book, fall back to
+        // an in-place update (= preserves id / createdAt /
+        // original type). The LLM never sees an error.
+        if let existing = try await findEntry(bookId: bookId, name: trimmed) {
+            return try await updateEntry(
+                id: existing.id,
+                name: trimmed,
+                bodyMarkdown: bodyMarkdown,
+                type: type,
+                summary: summary.isEmpty ? nil : summary
+            )
+        }
+
         let parsedType = WorldEntryType(rawValue: type) ?? .other
                 let entry = WorldEntry(
                     bookId: bookId,
