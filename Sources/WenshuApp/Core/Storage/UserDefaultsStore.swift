@@ -26,6 +26,12 @@
 //    that don't fit @AppStorage)
 //  - UUID / UUID? (= round-trip via uuidString)
 //
+//  Dynamic-key escape hatch (= for keys whose name is computed at
+//  runtime, e.g. `wenshu.tabIndex.<zoneSlug>` in ZoneContentView):
+//  - Int only (= the dynamic-key call sites in wenshu all store Int)
+//  - `forDynamicKey:` String-typed parameter (= typo-prone by design;
+//    prefer `WenshuDefaultsKey.<case>` when the key is static)
+//
 
 import Foundation
 
@@ -144,5 +150,29 @@ public struct UserDefaultsStore: @unchecked Sendable {
 
     public func remove(_ key: WenshuDefaultsKey) {
         defaults.removeObject(forKey: key.rawValue)
+    }
+
+    // MARK: - Dynamic-key Int (= runtime-computed key names)
+
+    /// Dynamic-key variant (= the key is computed at the call site
+    /// from a runtime value, e.g. `wenshu.tabIndex.<zoneSlug>`).
+    ///
+    /// Prefer the typed `WenshuDefaultsKey.<case>` overload when the
+    /// key is static (= typo-proof; = one place to audit). The
+    /// dynamic-key variant exists so dynamic-key call sites (= e.g.
+    /// per-zone stored tab indices) still route through this wrapper
+    /// instead of going raw to `UserDefaults.standard`.
+    public func int(forDynamicKey key: String) -> Int {
+        defaults.integer(forKey: key)
+    }
+
+    /// Dynamic-key variant. See `int(forDynamicKey:)` for the rationale.
+    public func setInt(_ value: Int, forDynamicKey key: String) {
+        defaults.set(value, forKey: key)
+    }
+
+    /// Dynamic-key variant. See `int(forDynamicKey:)` for the rationale.
+    public func remove(forDynamicKey key: String) {
+        defaults.removeObject(forKey: key)
     }
 }

@@ -189,4 +189,58 @@ struct UserDefaultsStoreTests {
         // would read this exact key path.
         #expect(UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector") == "anthropic")
     }
+
+    // MARK: - Dynamic-key Int (= runtime-computed key names)
+
+    private let dynamicTabKey = "wenshu.tabIndex.testZone"
+
+    @Test("int(forDynamicKey:) returns 0 fallback when key absent")
+    func dynamicKeyIntFallback() {
+        resetDefaults()
+        UserDefaultsStore.shared.remove(forDynamicKey: dynamicTabKey)
+        #expect(UserDefaultsStore.shared.int(forDynamicKey: dynamicTabKey) == 0)
+    }
+
+    @Test("int(forDynamicKey:) round-trips through set + get")
+    func dynamicKeyIntRoundTrip() {
+        resetDefaults()
+        UserDefaultsStore.shared.setInt(7, forDynamicKey: dynamicTabKey)
+        #expect(UserDefaultsStore.shared.int(forDynamicKey: dynamicTabKey) == 7)
+    }
+
+    @Test("setInt(_:forDynamicKey:) writes through to raw UserDefaults (= interop)")
+    func dynamicKeyIntInteropWithRawUserDefaults() {
+        resetDefaults()
+        UserDefaultsStore.shared.setInt(42, forDynamicKey: dynamicTabKey)
+        // A raw UserDefaults.standard read of the same key path returns
+        // the same value (= proves the dynamic-key path shares backing
+        // with the static-key path).
+        #expect(UserDefaults.standard.integer(forKey: dynamicTabKey) == 42)
+    }
+
+    @Test("two dynamic-key writes to different keys do not collide")
+    func dynamicKeyIsolation() {
+        resetDefaults()
+        let keyA = "wenshu.tabIndex.zoneA"
+        let keyB = "wenshu.tabIndex.zoneB"
+        UserDefaultsStore.shared.setInt(3, forDynamicKey: keyA)
+        UserDefaultsStore.shared.setInt(5, forDynamicKey: keyB)
+        #expect(UserDefaultsStore.shared.int(forDynamicKey: keyA) == 3)
+        #expect(UserDefaultsStore.shared.int(forDynamicKey: keyB) == 5)
+    }
+
+    @Test("dynamic-key write does not appear under a static WenshuDefaultsKey")
+    func dynamicKeyDoesNotPolluteStaticKeys() {
+        resetDefaults()
+        // Dynamic-key write to a name that does NOT match any
+        // WenshuDefaultsCase rawValue (= the key namespace is shared
+        // but each entry is unique). Confirm the static keys remain
+        // untouched after the dynamic write.
+        let dynamicKey = "wenshu.tabIndex.someZone"
+        UserDefaultsStore.shared.setInt(11, forDynamicKey: dynamicKey)
+        // Static keys should still be absent (= resetDefaults cleared).
+        #expect(UserDefaultsStore.shared.string(forKey: .llmModel) == "")
+        #expect(UserDefaultsStore.shared.bool(forKey: .useNSSplitView) == false)
+        #expect(UserDefaultsStore.shared.int(forKey: .inspectorPage) == 0)
+    }
 }

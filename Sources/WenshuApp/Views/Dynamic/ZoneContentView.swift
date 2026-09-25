@@ -266,10 +266,16 @@ struct ZoneContentView: View {
         // Restore selected tab from UserDefaults (or default to first tab).
         // bossverificationfix: handle invalid saved value (e.g. tab list changed)
         // by falling back to first tab + resetting stored index.
-        let savedIndex = UserDefaults.standard.integer(forKey: self.storageKey)
+        //
+        // NOTE: storageKey is dynamic (= per-zone 'wenshu.tabIndex.<slug>'),
+        // so this falls outside WenshuDefaultsKey's static enum. Use the
+        // dynamic-key API on UserDefaultsStore (= the canonical typed
+        // wrapper for both static + dynamic keys; = same backing as
+        // @AppStorage views).
+        let savedIndex = UserDefaultsStore.shared.int(forDynamicKey: self.storageKey)
         if !mapped.indices.contains(savedIndex) {
             // Reset stored index to 0 so future launches start at first tab.
-            UserDefaults.standard.set(0, forKey: self.storageKey)
+            UserDefaultsStore.shared.setInt(0, forDynamicKey: self.storageKey)
         }
         _selectedTabId = State(initialValue: mapped.first?.label ?? "")
     }
@@ -280,8 +286,9 @@ struct ZoneContentView: View {
             set: { newId in
                 selectedTabId = newId
                 // Persist current tab index for next launch.
+                // (= dynamic per-zone key; = see note above on storageKey)
                 if let idx = tabs.firstIndex(where: { $0.id == newId }) {
-                    UserDefaults.standard.set(idx, forKey: storageKey)
+                    UserDefaultsStore.shared.setInt(idx, forDynamicKey: storageKey)
                 }
             }
         )
