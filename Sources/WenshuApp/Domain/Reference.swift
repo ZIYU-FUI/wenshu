@@ -324,25 +324,21 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     ///  2. Collapse internal whitespace runs to single spaces.
     ///  3. Strip trailing punctuation (= quotes, periods, parens
     ///     left open by sloppy LLM output).
-    ///  4. If two references share the same sanitized title in the
-    ///     loaded layer, append the 6-char UUID prefix to disambiguate
-    ///     (= only when a `siblingTitles` lookup is provided; = the
-    ///     default behavior leaves the title as-is).
-    ///  5. Result is always non-empty (= a sanitization-only input
+    ///  4. Result is always non-empty (= a sanitization-only input
     ///     falls back to `title` verbatim so the user always sees
     ///     something).
-    mutating func ensureDisplayTitle(siblingTitles: Set<String> = []) {
+    ///
+    /// Note: reference library entities are unique by title (= the
+    /// upsert path dedupes by case-insensitive trimmed title; = two
+    /// references sharing a title are merged, not duplicated). So no
+    /// UUID-suffix disambiguation is needed here.
+    mutating func ensureDisplayTitle() {
+        // No-op when displayTitle is already set (= callers use this
+        // method as a backfill for entries that lack the field; = an
+        // explicit displayTitle is treated as the authoritative value).
+        guard displayTitle == nil else { return }
         let sanitized = Self.sanitizeDisplayTitle(title)
-        let candidate = sanitized.isEmpty ? title : sanitized
-        if siblingTitles.contains(candidate) {
-            // Disambiguate by appending the 6-char UUID prefix (= the
-            // opaque id acts as a unique-enough suffix; = the user
-            // sees the title + a short tag instead of a full UUID).
-            let suffix = String(id.uuidString.prefix(6))
-            displayTitle = "?\(candidate) ·\(suffix)"
-        } else {
-            displayTitle = candidate
-        }
+        displayTitle = sanitized.isEmpty ? title : sanitized
     }
 
     /// Strip whitespace / trailing punctuation from a user-supplied

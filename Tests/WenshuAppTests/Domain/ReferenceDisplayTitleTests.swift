@@ -65,23 +65,16 @@ struct ReferenceDisplayTitleTests {
         #expect(ref.effectiveDisplayTitle == "李白")
     }
 
-    @Test("ensureDisplayTitle disambiguates with a 6-char uuid suffix when sibling title exists")
-    func disambiguateWithSibling() {
-        let idA = UUID()
-        var ref = Reference(id: idA, title: "李白")
-        ref.ensureDisplayTitle(siblingTitles: ["李白"])
-        #expect(ref.displayTitle != "李白", "must be disambiguated")
-        #expect(ref.displayTitle?.contains("李白") == true)
-        let expectedSuffix = String(idA.uuidString.prefix(6))
-        #expect(ref.displayTitle?.contains(expectedSuffix) == true,
-                "disambiguated title must include the 6-char UUID prefix; got: \(ref.displayTitle ?? "nil")")
-    }
-
-    @Test("ensureDisplayTitle leaves title alone when no sibling")
-    func noSiblingNoChange() {
+    @Test("ensureDisplayTitle is a no-op when displayTitle is already set")
+    func noOpWhenSet() {
         var ref = Reference(title: "李白")
-        ref.ensureDisplayTitle(siblingTitles: ["杜甫"])
-        #expect(ref.displayTitle == "李白")
+        // Caller pre-set an explicit displayTitle.
+        ref.displayTitle = "诗仙"
+        // ensureDisplayTitle should NOT clobber it (= idempotent for
+        // the explicit-set case; = callers use this method only as a
+        // backfill for entries that lack the field).
+        ref.ensureDisplayTitle()
+        #expect(ref.displayTitle == "诗仙", "explicit displayTitle must not be overwritten")
     }
 
     @Test("Codable round-trip preserves displayTitle")

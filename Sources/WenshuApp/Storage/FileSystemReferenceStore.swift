@@ -294,15 +294,13 @@ struct FileSystemReferenceStore: ReferenceStoring {
         // Build the sibling-titles lookup from the just-loaded set
         // (= before appending the new reference; = we want to know
         // which titles are already taken, not the new one).
+        // Reference library entities are unique by title (= the upsert
+        // path dedupes by case-insensitive trimmed title; = two
+        // references sharing a title are merged, not duplicated). So
+        // no sibling-title lookup is needed for displayTitle.
         var referenceToStore = reference
-        let loadedSiblings = (try? loadReferences(layer: reference.layer)) ?? []
-        let siblings = Set(
-            loadedSiblings
-                .filter { $0.id != reference.id }
-                .map { $0.effectiveDisplayTitle }
-        )
         if referenceToStore.displayTitle == nil {
-            referenceToStore.ensureDisplayTitle(siblingTitles: siblings)
+            referenceToStore.ensureDisplayTitle()
         }
 
         var current = (try? loadReferences(layer: reference.layer)) ?? []
