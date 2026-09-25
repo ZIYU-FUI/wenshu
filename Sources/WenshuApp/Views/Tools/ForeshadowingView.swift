@@ -168,7 +168,7 @@ struct ForeshadowingView: View {
                 Button {
                     Task { await addForeshadowing() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.foreshadowingview.l203.h64306591")) } icon: { Image(systemName: "plus").font(.system(size: 16, weight: .regular)) }
+                    Label { Text(WenshuI18n.t("b5.foreshadowingview.l203.h64306591")) } icon: { Image(systemName: "plus").imageScale(.small) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
@@ -261,7 +261,7 @@ struct ForeshadowingView: View {
     private func foreshadowingRow(_ row: Foreshadowing) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: row.status.icon).font(.system(size: 16, weight: .regular))
+                Image(systemName: row.status.icon).imageScale(.small)
                     .foregroundStyle(.tint)
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
@@ -303,7 +303,7 @@ struct ForeshadowingView: View {
                 Button(role: .destructive) {
                     Task { await removeForeshadowing(row) }
                 } label: {
-                    Image(systemName: "trash").font(.system(size: 14, weight: .regular))
+                    Image(systemName: "trash").imageScale(.small)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
@@ -327,7 +327,7 @@ struct ForeshadowingView: View {
     private var staleSection: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.triangle").font(.system(size: 14, weight: .regular))
+                Image(systemName: "exclamationmark.triangle").imageScale(.small)
                     .foregroundStyle(Color(nsColor: .systemOrange))
                 Text(WenshuI18n.t("b5.foreshadowingview.l360.h31137580"))
                     .font(.callout)
@@ -354,7 +354,7 @@ struct ForeshadowingView: View {
 
     private func staleRow(_ row: Foreshadowing) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: row.status.icon).font(.system(size: 12, weight: .regular))
+            Image(systemName: row.status.icon).imageScale(.small)
                 .foregroundStyle(.secondary)
                 .frame(width: DesignTokens.iconStandardSize)
             Text(row.title)
