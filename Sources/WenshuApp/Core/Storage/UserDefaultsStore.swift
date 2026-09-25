@@ -170,4 +170,9 @@ public struct UserDefaultsStore: @unchecked Sendable {
     public func setInt(_ value: Int, forDynamicKey key: String) {
         defaults.set(value, forKey: key)
     }
+
+    /// Dynamic-key variant. See `int(forDynamicKey:)` for the rationale.
+    public func remove(forDynamicKey key: String) {
+        defaults.removeObject(forKey: key)
+    }
 }
