@@ -8,16 +8,32 @@
 //  transport layer for Parallel MCP and Exa MCP). Keenable uses plain
 //  REST instead, so it does not go through this client.
 //
+//  MCPJSONRPCClient is a `struct` (= NOT an `actor`):
+//
+//  - The only async work is the URLSession call (= inherently async).
+//  - Holding the client as an actor would add an unnecessary isolation
+//    hop: callers must `await` across the actor boundary even though
+//    the only async work is the URLSession call itself. The actor + URLSession
+//    callback interleaving is the §11.5 Minimax-style combined-run
+//    flake pattern (= Swift Testing runs multiple connector suites
+//    concurrently; = the actor continuations from one suite interleave
+//    with URLSession callbacks from another).
+//  - All fields are `Sendable` (URL, String, TimeInterval, URLSession),
+//    so the struct conforms to `Sendable` automatically.
+//  - Cross-test isolation in Swift Testing is provided by
+//    `URLProtocolStub.makeIsolatedStub()` (= per-test URLProtocol
+//    subclass with associated stub); no global URLProtocolStub state
+//    is shared.
 //
 
 import Foundation
 
-actor MCPJSONRPCClient {
+struct MCPJSONRPCClient: Sendable {
 
     let endpoint: URL
     let userAgent: String
     let timeout: TimeInterval
-    private let session: URLSession
+    let session: URLSession
 
     init(
         endpoint: URL,
