@@ -197,7 +197,7 @@ struct UserDefaultsStoreTests {
     @Test("int(forDynamicKey:) returns 0 fallback when key absent")
     func dynamicKeyIntFallback() {
         resetDefaults()
-        UserDefaultsStore.shared.remove(dynamicTabKey)
+        UserDefaultsStore.shared.remove(forDynamicKey: dynamicTabKey)
         #expect(UserDefaultsStore.shared.int(forDynamicKey: dynamicTabKey) == 0)
     }
 
