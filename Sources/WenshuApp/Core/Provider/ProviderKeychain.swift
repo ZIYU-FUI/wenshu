@@ -162,9 +162,10 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     }
 
     func saveKeySync(_ key: String, for provider: Provider) throws {
-        // delegate to KeychainOps (= canonical shared
-        // helper; = eliminates the 16% dry_violation flagged by repowise
-        // between this file and SearchAPIKeychain.swift). Behavior is
+        //  delegate to KeychainOps (= canonical shared
+               // helper; = eliminates the 16% dry_violation flagged by repowise
+               // before SearchAPIKeychain.swift was deleted in the v2.5
+               // keyless rewrite). Behavior is
         // preserved: identical short-circuit + identical OSStatus error
         // mapping (= via ProviderKeychainError.from(_:)).
         //

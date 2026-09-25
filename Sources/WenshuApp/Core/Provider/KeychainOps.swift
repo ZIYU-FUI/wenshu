@@ -6,10 +6,13 @@
 //  (= web-search API keys).
 //
 //  Per repowise dry_violation finding (v0.84 spec §ticket-001):
-//  - SearchAPIKeychain.swift and ProviderKeychain.swift were 16% duplicated
-//    (= ~30 LOC of SecItemAdd / SecItemCopyMatching / SecItemDelete code).
-//  - This module extracts the shared primitives (= `save` / `load` / `delete`)
-//    so both providers can call into one canonical implementation.
+//  - ProviderKeychain.swift used to be ~16% duplicated with the
+//    now-removed SearchAPIKeychain.swift (= ~30 LOC of SecItemAdd /
+//    SecItemCopyMatching / SecItemDelete code).
+//  - This module extracts the shared primitives (= `save` / `load` /
+//    `delete`) so ProviderKeychain can call into one canonical
+//    implementation. SearchAPIKeychain was deleted in the v2.5
+//    keyless rewrite (= no API keys needed; = see AGENTS.md §11.15).
 //
 //  Per AGENTS.md §11.1: NO third-party deps (= Foundation + Security only).
 //  Per Q173 ponytail: extraction is minimal — only the Security framework

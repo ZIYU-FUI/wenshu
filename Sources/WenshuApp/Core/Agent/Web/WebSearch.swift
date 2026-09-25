@@ -1,26 +1,13 @@
 //
-//  WebSearch.swift · Wenshu · HERMES-INTERNAL-001 (2026-09-04)
+//  WebSearch.swift · Wenshu
 //
-//  1:1 port of hermes web_search.py + web_search_provider.py
-// 
+//  Actor that owns the keyless search ring.
+//  Pool = KeylessRing.defaultProviders() (= Parallel / Exa / Keenable).
+//  Zero configuration: works on first launch with no API key.
 //
-//  Five search providers: EXA, TAVILY, BRAVE, PARALLEL, SEARXNG.
-//  Firecrawl is the scraper-only backend (= research convenience
-//  fetches page bodies for search hits).
-//
-//  Wenshu-side: thin Swift surface that delegates to the configured
-//  provider list. Auto-rotation on failure: tries every provider in
-//  order until one returns results or all fail. Provider implementations
-//  live as separate types conforming to WebSearchProvider (= EXAProvider,
-//  TAVILYProvider, BRAVEProvider, PARALLELProvider, SEARXNGProvider).
-//
-//  Hard rule preserved: NO external third-party SDKs for HTTP.
-//  All provider implementations use Foundation URLSession.
 //
 
 import Foundation
-
-// MARK: - Result
 
 struct WebSearchResult: Sendable, Codable, Equatable {
     let title: String
@@ -36,76 +23,42 @@ struct WebSearchResult: Sendable, Codable, Equatable {
     }
 }
 
-// MARK: - Provider protocol
-
 protocol WebSearchProvider: Sendable {
     var name: String { get }
     func search(query: String, limit: Int) async throws -> [WebSearchResult]
 }
 
-// MARK: - Actor
-
 actor WebSearch {
-    /// Canonical module-singleton with an empty provider list
-    /// (= matches the `SkillBundles.shared` pattern from v0.73 ticket 001).
-    /// Added in v0.74 ticket 002 so the LLM-facing `WebSearchTool`
-    /// (= `Core/Agent/Tool/WebSearchTool.swift`) can default-instantiate
-    /// without leaking the WebSearchProvider plumbing.
-    ///
-    /// When users configure API keys (= EXA / TAVILY / BRAVE / PARALLEL /
-    /// SEARXNG = the 5 provider types from `Core/Agent/Web/Providers/`),
-    /// a future ticket will swap this singleton's empty provider list for
-    /// a populated one (= per AGENTS.md §11, keys come from ProviderKeychain).
-    static let shared: WebSearch = WebSearch(providers: [])
+    /// Module-singleton with the canonical keyless ring
+    /// (= Parallel / Exa / Keenable). No configuration: works on
+    /// first launch.
+    static let shared: WebSearch = WebSearch(ring: KeylessRing.defaultRing())
 
-    private let providers: [any WebSearchProvider]
+    private let ring: KeylessRing
 
-    init(providers: [any WebSearchProvider]) {
-        self.providers = providers
+    init(ring: KeylessRing) {
+        self.ring = ring
     }
 
-    /// Search across all configured providers. Auto-rotation: tries every
-    /// provider in order and returns the first non-empty result set. If
-    /// every provider fails, throws the last collected error so callers
-    /// can surface a single actionable message.
     func search(query: String, limit: Int = 10) async throws -> [WebSearchResult] {
-        guard !providers.isEmpty else {
-            throw WebSearchError.noProvidersConfigured
-        }
-
-        var lastError: Error = WebSearchError.noProvidersConfigured
-        for provider in providers {
-            do {
-                let results = try await provider.search(query: query, limit: limit)
-                if !results.isEmpty {
-                    return results
-                }
-                // Empty results: try next provider rather than short-circuit.
-                lastError = WebSearchError.emptyResults(providerName: provider.name)
-            } catch {
-                lastError = error
-                continue
-            }
-        }
-        throw lastError
+        try await ring.search(query: query, limit: limit)
     }
 
-    /// Convenience: search + summarize. Aggregates top hits from the search
-    /// results and synthesizes a ResearchReport. No LLM call (= pure local
-    /// aggregation from snippets + titles). Sufficient for the wenshu
-    /// internal-infrastructure use case.
     func research(query: String, limit: Int = 5) async throws -> ResearchReport {
         let sources = try await search(query: query, limit: limit)
-        let summary = Self.summarize(query: query, sources: sources)
         return ResearchReport(
             query: query,
             sources: sources,
-            summary: summary,
+            summary: Self.summarize(query: query, sources: sources),
             generatedAt: Date()
         )
     }
 
-    // MARK: - Summarization (local, no LLM)
+    /// Internal: returns the configured ring for assertion in tests.
+    /// (= hermes does not expose this; = wenshu-side test helper.)
+    func ringSnapshot() -> KeylessRing {
+        ring
+    }
 
     /// Synthesize a short summary from the search results. Joins the top
     /// titles + snippets into a single readable paragraph. Deterministic
@@ -125,8 +78,6 @@ actor WebSearch {
     }
 }
 
-// MARK: - Report
-
 struct ResearchReport: Sendable, Equatable {
     let query: String
     let sources: [WebSearchResult]
@@ -141,27 +92,14 @@ struct ResearchReport: Sendable, Equatable {
     }
 }
 
-// MARK: - Errors
-
-enum WebSearchError: Error, Sendable, Equatable {
+enum WebSearchError: Error, Sendable, Equatable, LocalizedError {
     case noProvidersConfigured
-    case emptyResults(providerName: String)
-    /// A specific provider's HTTP call failed (= non-2xx, parse error,
-    /// network error, or other transport-level failure). Added in v0.74
-    /// ticket 001-websearch-providers-stub so the 5 provider implementations
-    /// (= EXAProvider / TAVILYProvider / BRAVEProvider / PARALLELProvider /
-    /// SEARXNGProvider) have a typed way to signal failure distinct from
-    /// `emptyResults` (= "tried but got nothing back").
     case providerFailure(name: String, underlying: String)
-}
 
-extension WebSearchError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noProvidersConfigured:
             return "No web search providers are configured."
-        case .emptyResults(let providerName):
-            return "Provider \(providerName) returned no results."
         case .providerFailure(let name, let underlying):
             return "Provider \(name) failed: \(underlying)"
         }

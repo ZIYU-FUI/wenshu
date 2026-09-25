@@ -1372,4 +1372,125 @@ Per-book "项目设定" (= chapter length, narrative POV, tense, plot structure)
 | 6 | Q112 standing rule | 1 source + 1 test per commit (= all 2 commits hold) |
 | 7 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved) |
 
-This §11.14 section is the canonical record of v2.4 arc (= up-to-date as of 2026-09-25). Future arc amendments (= §11.15+) land below.
+
+
+# §11.15 v2.5 keyless web search arc closure (= 2026-09-25)
+
+Per (see OOB.md #2026-09-25): the previous web search layer (= EXA / TAVILY / BRAVE / PARALLEL / SEARXNG paid providers + SearchAPIKeychain + WebSearchConfigurator + a no-op Settings UI) was deleted. wenshu now ships with a single, zero-configuration keyless web search ring: **Parallel MCP** -> **Exa MCP** -> **Keenable REST**. All three are anonymous public free tiers (= no API key, no account, no configuration; = the user opens wenshu and web search works).
+
+## Product philosophy (= binding for all future search work)
+
+| Surface | Pre-v2.5 | Post-v2.5 (= this arc) |
+|---|---|---|
+| Per-provider API keys | Required (= AppleKeychain) | **Gone** (= no key needed) |
+| Per-provider Settings UI | Section "搜索引擎" with 5 sub-rows | **Gone** (= no UI) |
+| Provider selection | User picks one of 5 | **Fixed order in code** (= Parallel -> Exa -> Keenable) |
+| Failover | None (= errors propagate) | **Rate-limit-aware round walk** (= hermes `_walk_ring` 1:1 port) |
+| User cost | API key required (= some vendors paid) | **Free** (= anonymous free tier) |
+| New provider | Add a paid provider stub + Settings row | **Add to the default ring in `KeylessRing.defaultProviders()`** (= test-only) |
+
+The user has zero configuration authority over web search. (= same product philosophy as §11.14 agent behavior: wenshu sacrifices user expression freedom for system-managed stable output.)
+
+## Files added (= 5 source + 5 test, all in `Core/Agent/Web/KeylessProviders/`)
+
+| # | Path | Role |
+|---|---|---|
+| 1 | `MCPJSONRPCClient.swift` (= 156 LOC) | JSON-RPC 2.0 client over URLSession. Used by ParallelKeylessProvider and ExaKeylessProvider. |
+| 2 | `ParallelKeylessProvider.swift` (= 73 LOC) | Vendor 1 (= `https://search.parallel.ai/mcp`). Returns parsed `result.content[0].text` (= Parallel's JSON-enveloped hit list). |
+| 3 | `ExaKeylessProvider.swift` (= 105 LOC) | Vendor 2 (= `https://mcp.exa.ai/mcp`). Parses the plain-text response with `Title:/URL:/Published:/Author:/Highlights:` blocks separated by `\n---\n`. |
+| 4 | `KeenableKeylessProvider.swift` (= 96 LOC) | Vendor 3 (= `https://api.keenable.ai/v1/search/public`). REST, JSON, requires `X-Keenable-Title: wenshu` header. |
+| 5 | `KeylessRing.swift` (= ~110 LOC) | The hermes `_walk_ring` 1:1 port (= actor with `defaultProviders()`, `defaultRing()`, `search(query:limit:)`, `RingError`). Failover rules in the file header. |
+| 6-10 | 5 matching test files (= 27 new tests total) | URLProtocolStub-isolated suite per vendor + ring (= 1:1 with v1.16+ URLProtocolStub pattern from §11.6 closure) |
+
+## Files removed (= 11 = 7 source + 1 test + 3 marginal)
+
+| # | Path | Removed in |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Core/Agent/Web/Providers/EXAProvider.swift` | issue 008 |
+| 2 | `Sources/WenshuApp/Core/Agent/Web/Providers/TAVILYProvider.swift` | issue 008 |
+| 3 | `Sources/WenshuApp/Core/Agent/Web/Providers/BRAVEProvider.swift` | issue 008 |
+| 4 | `Sources/WenshuApp/Core/Agent/Web/Providers/PARALLELProvider.swift` | issue 008 |
+| 5 | `Sources/WenshuApp/Core/Agent/Web/Providers/SEARXNGProvider.swift` | issue 008 |
+| 6 | `Sources/WenshuApp/Core/Agent/Web/WebSearchConfigurator.swift` | issue 009 |
+| 7 | `Sources/WenshuApp/Core/Provider/SearchAPIKeychain.swift` | issue 009 |
+| 8 | `Tests/WenshuAppTests/Core/Agent/SearchAPIKeychainTests.swift` | issue 009 |
+| 9 | `Sources/WenshuApp/Core/Agent/Web/Providers/` directory | issue 008 (= rmdir after last file deletion) |
+
+The "Settings → 搜索引擎" UI section was already removed in earlier arcs (= it had no effect on the user-facing flow because no Settings pane ever reached it; = boss 2026-09-25 OOB calls this "当前的实现... 是无效的，需要清理").
+
+## Files rewritten (= 3 source + 2 test, atomic-coupled)
+
+| # | Path | Change |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Core/Agent/Web/WebSearch.swift` | Actor now holds `ring: KeylessRing` (= was `providers: [WebSearchProvider]`). Drops `WebSearchError.emptyResults` case (= `RingError.allProvidersThrottled` covers it). |
+| 2 | `Sources/WenshuApp/Core/Agent/Tool/WebSearchTool.swift` | Error envelopes no longer mention API keys or per-provider configuration (= no API key is needed). ToolRegistry schema description updated to say "no API key or configuration is needed". |
+| 3 | `Tests/WenshuAppTests/Core/Agent/Web/WebSearchTests.swift` | Switched to `WebSearch(ring: KeylessRing(...))`; renamed private stubs to `WebSearchStubProvider` / `WebSearchFailingProvider` to avoid colliding with `KeylessRingTests.swift`; added 3 new tests for `summarize` and the canonical `shared` ring. |
+| 4 | `Tests/WenshuAppTests/Core/Agent/WebSearchToolTests.swift` | Switched to the new `ring:` API; updated "no providers" expectations to match the `RingError.allProvidersThrottled` envelope. |
+
+## Files with comment-only patches (= 2 source)
+
+| # | Path | Patch |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Core/Provider/KeychainOps.swift` | Header rewritten to reflect that SearchAPIKeychain.swift was deleted (= the "16% duplication" reference is now historical). |
+| 2 | `Sources/WenshuApp/Core/Provider/ProviderKeychain.swift` | saveKeySync comment rewritten from "between this file and SearchAPIKeychain.swift" to "before SearchAPIKeychain.swift was deleted in the v2.5 keyless rewrite". |
+
+## Final stats
+
+| # | Metric | Value |
+|---|---|---|
+| 1 | Commits | 15 (= 6 vendor + 5 tests + 1 MCPJSONRPCClient actor→struct fix + 2 ring + 3 rewrite/commit + 2 deletion/commit + AGENTS.md/CHANGELOG) |
+| 2 | Source files added | 5 (= KeylessProviders/*.swift) |
+| 3 | Source files deleted | 7 (= 5 Providers + Configurator + SearchAPIKeychain) |
+| 4 | Source files rewritten | 2 (= WebSearch.swift + WebSearchTool.swift) |
+| 5 | Source files with comment-only patches | 2 (= KeychainOps.swift + ProviderKeychain.swift) |
+| 6 | New tests | 27 (= 8 MCPJSONRPCClient + 6 Parallel + 6 Exa + 7 Keenable + 9 ring + 3 new WebSearch + 1 new WebSearchTool rewrite assertions; = old WebSearchTests was 4 tests, now 9) |
+| 7 | Old tests removed (= via deletion) | 8 (= SearchAPIKeychainTests.swift) |
+| 8 | `import SearchAPIKeychain` callers | **0** post-arc |
+| 9 | `EXAProvider`/`TAVILYProvider`/`BRAVEProvider`/`SEARXNGProvider` callers | **0** post-arc (= `PARALLELProvider` was a separate stub unrelated to `ParallelKeylessProvider`; = different files; = safe to delete) |
+| 10 | Swift Package Manager dependencies added | **0** (= all 3 vendors speak HTTP+JSON or HTTP+MCP JSON-RPC; = URLSession + JSONSerialization only) |
+| 11 | `swift build --target WenshuApp` | clean (= no errors, no new warnings) |
+| 12 | `swift test --filter <each new suite>` | 100% pass isolated (= §11.5 combined-run race is pre-existing; = not introduced by this arc) |
+
+## Failover rules (= hermes `_walk_ring` 1:1 port, recorded here for posterity)
+
+1. Provider returns non-empty results -> return that set immediately.
+2. Provider returns empty results -> advance to the next vendor.
+3. Provider throws an error whose message matches any of `rate limit` / `rate-limit` / `ratelimit` / `too many requests` / `429` / `quota exceeded` / `slow down` -> advance to the next vendor.
+4. Provider throws any OTHER error -> STOP and rethrow (= a malformed query fails everywhere; = don't silently round-robin).
+5. All providers tried -> throw `RingError.allProvidersThrottled(attempted: [String], lastMessage: String)`.
+
+## Closed-enum policy (= how to add a new keyless vendor)
+
+Any future keyless vendor follows this exact pattern (= Q112 = 1 source + 1 test per commit):
+
+1. Add a new file under `Core/Agent/Web/KeylessProviders/`. Name it `<Vendor>KeylessProvider.swift`.
+2. Conform to `WebSearchProvider` (= `name: String`, `search(query:limit:) async throws -> [WebSearchResult]`).
+3. Add the provider to `KeylessRing.defaultProviders()` (= canonical vendor set).
+4. Add the corresponding `<Vendor>KeylessProviderTests.swift` under `Tests/WenshuAppTests/Core/Agent/Web/KeylessProviders/`.
+5. Update this §11.15 table.
+
+**Never implement**:
+- A new API-key-driven provider (= explicit v2.5 stance; = use KeylessProviders).
+- A Settings UI for web search (= explicit v2.5 stance; = no configuration surface exists).
+- A new vendor that requires an account / OAuth / paid tier (= the user has zero authority over web search).
+- A persistent cache / index / rate-limit-marker across launches (= wenshu is a writing tool; = search is stateless).
+
+## Why Firecrawl was dropped (= hermes has it, wenshu doesn't)
+
+Firecrawl is hermes's 4th keyless vendor. We empirically validated (2026-09-25) that `https://api.firecrawl.dev/v2/search` returns HTTP 403 to anonymous requests. Their free tier requires a Firecrawl account (= API key). Since the v2.5 philosophy is "no API key", Firecrawl is dropped. If Firecrawl later opens a true anonymous tier (= no account, no key), add `FirecrawlKeylessProvider.swift` following the Closed-enum policy above.
+
+## Acceptance
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Web search works on first launch with zero configuration | yes (= `WebSearch.shared` uses `KeylessRing.defaultRing()`; = no `ProviderKeychain` lookup; = no UI) |
+| 2 | All 3 vendors are reachable from `KeylessRing.defaultProviders()` | yes (= Parallel, Exa, Keenable; in that order) |
+| 3 | Rate-limit-shaped errors advance the ring | yes (= 7 marker strings match; = `KeylessRingTests.isRateLimitish detects each marker`) |
+| 4 | `import SearchAPIKeychain` anywhere in production | **0 hits** |
+| 5 | Any reference to EXAProvider / TAVILYProvider / BRAVEProvider / SEARXNGProvider / WebSearchConfigurator | **0 hits** in production (= only historical mentions in deleted-file headers and AGENTS.md §11.15) |
+| 6 | Swift Package Manager dependency count | unchanged (= no new SPM deps) |
+| 7 | `swift build --target WenshuApp` after the arc | green |
+| 8 | `swift test --filter "MCPJSONRPCClient\|ParallelKeylessProvider\|ExaKeylessProvider\|KeenableKeylessProvider\|KeylessRing\|WebSearchTests\|WebSearchToolTests"` isolated | 27 + 9 + 9 = 45 tests pass |
+| 9 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved; = verbatim OOB quote archived to OOB.md only) |
+
+This §11.15 section is the canonical record of the v2.5 keyless web search arc (= up-to-date as of 2026-09-25). Future arc amendments (= §11.16+) land below.

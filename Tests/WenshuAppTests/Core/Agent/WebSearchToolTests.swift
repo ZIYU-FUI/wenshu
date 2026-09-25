@@ -39,13 +39,13 @@ struct WebSearchToolTests {
     /// Build a tool backed by a WebSearch actor with a single mock provider.
     private static func makeToolWithMock(_ results: [WebSearchResult]) -> WebSearchTool {
         let mock = MockProvider(fixedResults: results)
-        let engine = WebSearch(providers: [mock])
+        let engine = WebSearch(ring: KeylessRing(providers: [mock]))
         return WebSearchTool(engine: engine)
     }
 
     /// Build a tool backed by an empty WebSearch (= matches WebSearch.shared).
     private static func makeToolEmpty() -> WebSearchTool {
-        let engine = WebSearch(providers: [])
+        let engine = WebSearch(ring: KeylessRing(providers: []))
         return WebSearchTool(engine: engine)
     }
 
@@ -66,14 +66,14 @@ struct WebSearchToolTests {
         #expect(error.contains("query"))
     }
 
-    @Test("search returns noProvidersConfigured when no providers wired")
+    @Test("search returns rate-limited error when ring has no providers")
     func searchEmptyProviders() async throws {
         let tool = Self.makeToolEmpty()
         let result = try await tool.execute(input: #"{"action":"search","query":"wenshu writing tool"}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == false)
         let error = env["error"] as? String ?? ""
-        #expect(error.contains("no search providers"))
+        #expect(error.contains("rate-limited") || error.contains("no providers"))
     }
 
     // MARK: - search delegation (= proves we delegate, not stub)
@@ -126,14 +126,14 @@ struct WebSearchToolTests {
         #expect(error.contains("query"))
     }
 
-    @Test("research returns noProvidersConfigured when no providers wired")
+    @Test("research returns rate-limited error when ring has no providers")
     func researchEmptyProviders() async throws {
         let tool = Self.makeToolEmpty()
         let result = try await tool.execute(input: #"{"action":"research","query":"novel outline"}"#)
         let env = try Self.decodeEnvelope(result)
         #expect(env["ok"] as? Bool == false)
         let error = env["error"] as? String ?? ""
-        #expect(error.contains("no search providers"))
+        #expect(error.contains("rate-limited") || error.contains("no providers"))
     }
 
     @Test("research with mock provider returns synthesized report")
