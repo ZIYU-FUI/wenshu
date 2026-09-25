@@ -44,7 +44,7 @@ struct ContextReferencesPersistenceTests {
             .appendingPathComponent("test-context-refs-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: tmpFile) }
 
-        // Phase 1: write some references.
+        // Step: write some references.
         let store1 = ContextReferences(persistencePath: tmpFile)
         let id1 = UUID()
         let id2 = UUID()
@@ -61,7 +61,7 @@ struct ContextReferencesPersistenceTests {
         ), session: "session-1")
         try await store1.persist()
 
-        // Phase 2: load in a fresh actor.
+        // Step: load in a fresh actor.
         let store2 = ContextReferences(persistencePath: tmpFile)
         let ref1 = await store2.reference(for: id1)
         let ref2 = await store2.reference(for: id2)
