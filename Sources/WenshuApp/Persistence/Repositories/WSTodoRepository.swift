@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSTodoRepository.swift · Wenshu · v0.72 SwiftData migration Phase 2
+//  Persistence/Repositories/WSTodoRepository.swift · Wenshu · v0.72 SwiftData migration 
 //
 //  Migration commit 24 of 42: WSTodoRepository.
 //  Per AGENTS.md §11.4.
