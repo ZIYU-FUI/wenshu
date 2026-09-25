@@ -14,7 +14,7 @@ struct TodoStoreTests {
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
-    /// Phase 5 ticket 7 migration from TodoStore actor.
+    ///  migration from TodoStore actor.
     @MainActor
     private static func makeTodoRepository() throws -> WSTodoRepository {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
