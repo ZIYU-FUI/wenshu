@@ -13,7 +13,7 @@ import SwiftUI
 @testable import WenshuApp
 
 @MainActor
-@Suite("RuntimeCWDDisplayChip (= Batch 2.4 UI component)")
+@Suite("RuntimeCWDDisplayChip (= Batch 2.4 UI component)", .serialized)
 struct RuntimeCWDDisplayChipTests {
 
     @Test("RuntimeCWDDisplayChip: instantiates without crash")
