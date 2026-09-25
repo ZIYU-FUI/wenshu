@@ -1,5 +1,5 @@
 //
-//  Core/Kanban/KanbanDomain.swift · Wenshu · v0.72 SwiftData migration Phase 5 ticket 6
+//  Core/Kanban/KanbanDomain.swift · Wenshu · v0.72 SwiftData migration 
 //
 //  Domain types (KanbanStatus + KanbanTask) extracted from the deleted
 //  Core/Kanban/KanbanStore.swift (= sqlite3 legacy actor, now obsolete).
