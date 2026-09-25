@@ -1,10 +1,10 @@
 //
-//  ChatInputRoutingTests.swift · Wenshu · CHATBOX-001 (2026-09-04)
+//  ChatInputRoutingTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for ChatViewModel.routeInput (= slash /<skill> triggers
 //  SkillAdapter.parseAndInvoke BEFORE falling through to the LLM path).
 //
-//  Acceptance (= boss OOB 'B' / CHATBOX-001 spec):
+//  Acceptance (= boss OOB 'B' /  spec):
 //    1. /skill_name + remainder → routes through SkillAdapter, never reaches send()
 //    2. plain text (no slash prefix) → falls through to existing send() path
 //    3. empty input → no-op, no message appended, no skill invocation
@@ -17,7 +17,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("CHATBOX-001 — ChatView ↔ SkillAdapter routing")
+@Suite(" — ChatView ↔ SkillAdapter routing")
 struct ChatInputRoutingTests {
 
     /// 
