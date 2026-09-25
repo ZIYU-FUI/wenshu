@@ -1,5 +1,5 @@
 //
-//  MessageSanitizationRepairTests.swift · Wenshu · HERMES-PARTIAL-009 (2026-09-04)
+//  MessageSanitizationRepairTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the extended MessageSanitization surface
 //  (= hermes message_sanitization.py = 477 LOC):
@@ -15,7 +15,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("MessageSanitizationRepair (HERMES-PARTIAL-009)")
+@Suite("MessageSanitizationRepair ()")
 struct MessageSanitizationRepairTests {
 
     // MARK: - Test 1: Well-formed JSON passes through
