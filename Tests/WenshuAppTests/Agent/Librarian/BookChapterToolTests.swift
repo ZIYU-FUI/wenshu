@@ -20,14 +20,18 @@ struct BookChapterToolTests {
 
     // MARK: - Helpers
 
-    private static func makeChapterStore() throws -> FileSystemChapterStore {
+    private static func makeBookDirectory() throws -> URL {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-v2-chapter-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        return FileSystemChapterStore(bookDirectory: tmpRoot)
+        return tmpRoot
     }
 
     private static func makeActor() throws -> BookChapterActor {
-        try BookChapterActor(chapterStore: makeChapterStore())
+        let dir = try makeBookDirectory()
+        return BookChapterActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
     }
 
     // MARK: - Test 1: create
@@ -105,8 +109,11 @@ struct BookChapterToolTests {
     // MARK: - Test 5: list
 
     @Test func testListChapters_filtersByBookId() async throws {
-        let store = try Self.makeChapterStore()
-        let actor = BookChapterActor(chapterStore: store)
+        let dir = try Self.makeBookDirectory()
+        let actor = BookChapterActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
         let bookA = UUID()
         let bookB = UUID()
         _ = try await actor.createChapter(bookId: bookA, title: "A1", bodyMarkdown: "a1")
@@ -141,10 +148,10 @@ struct BookChapterToolTests {
     // MARK: - Test 7: LLM dispatcher
 
     @Test func testExecute_createAction_parsesAndCreates() async throws {
-        let store = try Self.makeChapterStore()
+        let dir = try Self.makeBookDirectory()
         let bookId = UUID()
         let actor = BookChapterActor(
-            chapterStore: store,
+            bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { bookId }
         )
         let tool = BookChapterTool(actor: actor)
@@ -158,11 +165,11 @@ struct BookChapterToolTests {
     }
 
     @Test func testExecute_crossBookWrite_rejectedByScopeGuard() async throws {
-        let store = try Self.makeChapterStore()
+        let dir = try Self.makeBookDirectory()
         let chatBook = UUID()
         let requestedBook = UUID()
         let actor = BookChapterActor(
-            chapterStore: store,
+            bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { chatBook }
         )
         let tool = BookChapterTool(actor: actor)
@@ -177,10 +184,10 @@ struct BookChapterToolTests {
     }
 
     @Test func testExecute_noChatBook_rejectedByScopeGuard() async throws {
-        let store = try Self.makeChapterStore()
+        let dir = try Self.makeBookDirectory()
         let requestedBook = UUID()
         let actor = BookChapterActor(
-            chapterStore: store,
+            bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { nil }
         )
         let tool = BookChapterTool(actor: actor)
