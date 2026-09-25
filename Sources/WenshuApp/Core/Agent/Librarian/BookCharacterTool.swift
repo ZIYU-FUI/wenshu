@@ -150,6 +150,23 @@ actor BookCharacterActor {
         guard !trimmed.isEmpty else {
             throw BookCharacterError.emptyName
         }
+
+        // Silent dedup (= v2.2, 2026-09-25): if a character with
+        // the same name already exists in this book, fall back to
+        // an in-place update (= preserves id / createdAt /
+        // original role / age / arc). LLM never sees an error.
+        if let existing = try await findCharacter(bookId: bookId, name: trimmed) {
+            return try await updateCharacter(
+                id: existing.id,
+                name: trimmed,
+                bodyMarkdown: bodyMarkdown,
+                role: role,
+                age: age,
+                arc: arc,
+                summary: summary.isEmpty ? nil : summary
+            )
+        }
+
         let parsedRole = CharacterRole(rawValue: role) ?? .other
         let character = Character(
             bookId: bookId,

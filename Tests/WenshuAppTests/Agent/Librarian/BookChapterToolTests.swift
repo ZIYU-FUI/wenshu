@@ -199,4 +199,56 @@ struct BookChapterToolTests {
         #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
         #expect(output.contains("not bound to any book"))
     }
+
+    // MARK: - Test 10 (v2.2 silent dedup): duplicate title falls back to update
+
+    @Test func testCreate_duplicateTitle_fallsBackToUpdatePreservingId() async throws {
+        let dir = try Self.makeBookDirectory()
+        let actor = BookChapterActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
+        let bookId = UUID()
+        let first = try await actor.createChapter(
+            bookId: bookId,
+            title: "Chapter 1",
+            bodyMarkdown: "# Chapter 1 v1\n\nOpening scene."
+        )
+        let body1 = await actor.readBodyForTest(id: first.id)
+        #expect(body1 == "# Chapter 1 v1\n\nOpening scene.")
+
+        // Re-create with the SAME title in the SAME book: silent
+        // dedup reuses the existing id + body gets replaced.
+        let second = try await actor.createChapter(
+            bookId: bookId,
+            title: "Chapter 1",
+            bodyMarkdown: "# Chapter 1 v2\n\nOpening scene, rewritten."
+        )
+        #expect(second.id == first.id)
+        let body2 = await actor.readBodyForTest(id: second.id)
+        #expect(body2 == "# Chapter 1 v2\n\nOpening scene, rewritten.")
+        let all = try await actor.listChapters(bookId: bookId)
+        #expect(all.count == 1)
+        #expect(all.first?.id == first.id)
+    }
+
+    // MARK: - Test 11 (v2.2 silent dedup): different title still creates
+
+    @Test func testCreate_uniqueTitle_createsNewChapter() async throws {
+        let actor = try Self.makeActor()
+        let bookId = UUID()
+        let first = try await actor.createChapter(
+            bookId: bookId,
+            title: "Chapter 1",
+            bodyMarkdown: "# Chapter 1"
+        )
+        let second = try await actor.createChapter(
+            bookId: bookId,
+            title: "Chapter 2",
+            bodyMarkdown: "# Chapter 2"
+        )
+        #expect(first.id != second.id)
+        let all = try await actor.listChapters(bookId: bookId)
+        #expect(all.count == 2)
+    }
 }

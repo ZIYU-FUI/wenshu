@@ -205,4 +205,60 @@ struct BookCharacterToolTests {
         #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
         #expect(output.contains("not bound to any book"))
     }
+
+    // MARK: - Test 10 (v2.2 silent dedup): duplicate name falls back to update
+
+    @Test func testCreate_duplicateName_fallsBackToUpdatePreservingId() async throws {
+        let dir = try Self.makeBookDirectory()
+        let actor = BookCharacterActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
+        let bookId = UUID()
+        let first = try await actor.createCharacter(
+            bookId: bookId,
+            name: "Lin Fan",
+            bodyMarkdown: "# Lin Fan v1\n\nApprentice.",
+            role: "antagonist",
+            summary: "Original summary."
+        )
+        let body1 = await actor.readBodyForTest(id: first.id)
+        #expect(body1 == "# Lin Fan v1\n\nApprentice.")
+
+        // Re-create with the SAME name in the SAME book: silent
+        // dedup reuses the existing id + body gets replaced.
+        let second = try await actor.createCharacter(
+            bookId: bookId,
+            name: "Lin Fan",
+            bodyMarkdown: "# Lin Fan v2\n\nConstable.",
+            role: "protagonist",
+            summary: "Updated summary."
+        )
+        #expect(second.id == first.id)
+        let body2 = await actor.readBodyForTest(id: second.id)
+        #expect(body2 == "# Lin Fan v2\n\nConstable.")
+        let all = try await actor.listCharacters(bookId: bookId)
+        #expect(all.count == 1)
+        #expect(all.first?.id == first.id)
+    }
+
+    // MARK: - Test 11 (v2.2 silent dedup): different name still creates
+
+    @Test func testCreate_uniqueName_createsNewCharacter() async throws {
+        let actor = try Self.makeActor()
+        let bookId = UUID()
+        let first = try await actor.createCharacter(
+            bookId: bookId,
+            name: "Lin Fan",
+            bodyMarkdown: "# Lin Fan"
+        )
+        let second = try await actor.createCharacter(
+            bookId: bookId,
+            name: "Wang Yuyan",
+            bodyMarkdown: "# Wang Yuyan"
+        )
+        #expect(first.id != second.id)
+        let all = try await actor.listCharacters(bookId: bookId)
+        #expect(all.count == 2)
+    }
 }

@@ -134,6 +134,20 @@ actor BookChapterActor {
         guard !trimmed.isEmpty else {
             throw BookChapterError.emptyTitle
         }
+
+        // Silent dedup (= v2.2, 2026-09-25): if a chapter with
+        // the same title already exists in this book, fall back to
+        // an in-place update (= preserves id / createdAt). LLM
+        // never sees an error.
+        if let existing = try await findChapter(bookId: bookId, title: trimmed) {
+            return try await updateChapter(
+                id: existing.id,
+                title: trimmed,
+                bodyMarkdown: bodyMarkdown,
+                summary: summary.isEmpty ? nil : summary
+            )
+        }
+
         let document = Document(
             bookId: bookId,
             category: .chapter,

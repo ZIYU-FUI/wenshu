@@ -142,6 +142,22 @@ actor BookOutlineActor {
         guard !trimmed.isEmpty else {
             throw BookOutlineError.emptyTitle
         }
+
+        // Silent dedup (= v2.2, 2026-09-25): if an outline with
+        // the same title already exists in this book, fall back to
+        // an in-place update (= preserves id / createdAt /
+        // parent / order). LLM never sees an error.
+        if let existing = try await findOutline(bookId: bookId, title: trimmed) {
+            return try await updateOutline(
+                id: existing.id,
+                title: trimmed,
+                bodyMarkdown: bodyMarkdown,
+                summary: summary.isEmpty ? nil : summary,
+                parent: parent,
+                order: order == 0 ? nil : order
+            )
+        }
+
         let entry = OutlineEntry(
             bookId: bookId,
             title: trimmed,
