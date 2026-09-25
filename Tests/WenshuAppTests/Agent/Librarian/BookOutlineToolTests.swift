@@ -18,14 +18,18 @@ import Foundation
 @Suite("BookOutlineTool (v2.0)")
 struct BookOutlineToolTests {
 
-    private static func makeOutlineStore() throws -> FileSystemOutlineStore {
+    private static func makeBookDirectory() throws -> URL {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-v2-outline-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        return FileSystemOutlineStore(bookDirectory: tmpRoot)
+        return tmpRoot
     }
 
     private static func makeActor() throws -> BookOutlineActor {
-        try BookOutlineActor(outlineStore: makeOutlineStore())
+        let dir = try makeBookDirectory()
+        return BookOutlineActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
     }
 
     @Test func testCreateOutline_persistsBody() async throws {
@@ -96,8 +100,11 @@ struct BookOutlineToolTests {
     }
 
     @Test func testListOutlines_filtersByBookIdAndSortsByOrder() async throws {
-        let store = try Self.makeOutlineStore()
-        let actor = BookOutlineActor(outlineStore: store)
+        let dir = try Self.makeBookDirectory()
+        let actor = BookOutlineActor(
+            bookDirectoryProvider: { dir },
+            currentChatBookIDProvider: { nil }
+        )
         let bookA = UUID()
         let bookB = UUID()
         _ = try await actor.createOutline(bookId: bookA, title: "A-3", bodyMarkdown: "a3", order: 3)
@@ -128,10 +135,10 @@ struct BookOutlineToolTests {
     }
 
     @Test func testExecute_createAction_parsesAndCreates() async throws {
-        let store = try Self.makeOutlineStore()
+        let dir = try Self.makeBookDirectory()
         let bookId = UUID()
         let actor = BookOutlineActor(
-            outlineStore: store,
+            bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { bookId }
         )
         let tool = BookOutlineTool(actor: actor)
@@ -146,11 +153,11 @@ struct BookOutlineToolTests {
     }
 
     @Test func testExecute_crossBookWrite_rejectedByScopeGuard() async throws {
-        let store = try Self.makeOutlineStore()
+        let dir = try Self.makeBookDirectory()
         let chatBook = UUID()
         let requestedBook = UUID()
         let actor = BookOutlineActor(
-            outlineStore: store,
+            bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { chatBook }
         )
         let tool = BookOutlineTool(actor: actor)
@@ -165,10 +172,10 @@ struct BookOutlineToolTests {
     }
 
     @Test func testExecute_noChatBook_rejectedByScopeGuard() async throws {
-        let store = try Self.makeOutlineStore()
+        let dir = try Self.makeBookDirectory()
         let requestedBook = UUID()
         let actor = BookOutlineActor(
-            outlineStore: store,
+            bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { nil }
         )
         let tool = BookOutlineTool(actor: actor)
