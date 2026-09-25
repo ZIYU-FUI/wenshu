@@ -189,6 +189,15 @@ struct FileSystemReferenceStore: ReferenceStoring {
 
     func loadReferences(layer: ReferenceLayer) throws -> [Reference] {
         let indexURL = layerDirectory(layer).appendingPathComponent("\(layer.directoryName).json")
+        // v2.6 facet-model migration: scan for legacy files under
+        // `entities/<category>/<uuid>.md` (= pre-v2.6 layout) and move
+        // them to the flat `entities/<uuid>.md` path. Idempotent —
+        // re-running after migration is a no-op. The entities.json
+        // index already carries each entry's `category` as metadata,
+        // so the file move does not lose classification data.
+        if layer == .layerEntities {
+            migrateLegacyEntitySubdirectoryLayoutIfNeeded()
+        }
         guard FileManager.default.fileExists(atPath: indexURL.path) else {
             return []
         }
@@ -411,6 +420,75 @@ struct FileSystemReferenceStore: ReferenceStoring {
             .appendingPathComponent(effectiveCategory.directoryName)
         if !FileManager.default.fileExists(atPath: categoryDir.path) {
             try FileManager.default.createDirectory(at: categoryDir, withIntermediateDirectories: true)
+        }
+    }
+
+    /// v2.6 facet-model migration: scan `entities/<category>/` subdirs
+    /// (= the pre-v2.6 layout) and move every `<uuid>.md` file into
+    /// the flat `entities/` directory (= the post-v2.6 layout). Move
+    /// uses `replaceItemAt` so the operation is atomic on the same
+    /// volume; = if any move fails, the legacy file remains in place
+    /// (= safe to retry on next launch).
+    ///
+    /// After migration, the now-empty category subdirs are removed
+    /// (= no orphan directories). Idempotent — when called twice,
+    /// the second call finds no legacy files and returns immediately.
+    private func migrateLegacyEntitySubdirectoryLayoutIfNeeded() {
+        let entitiesDir = referenceLibraryRoot
+            .appendingPathComponent("entities")
+        guard FileManager.default.fileExists(atPath: entitiesDir.path) else {
+            return
+        }
+        // Iterate the subdirs of entities/ (= each is a category
+        // directory like `i/` or `k/`). If a subdir contains .md files,
+        // move each .md to the flat entities/ dir.
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: entitiesDir,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return
+        }
+        for entry in contents {
+            // Only descend into directories (= skip entities.json, etc.).
+            var isDir: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir),
+                  isDir.boolValue else { continue }
+            // The flat-uuid .md files we already migrated would land
+            // at entities/<uuid>.md (= top-level); = we don't recurse.
+            // Only files inside a category subdir need moving.
+            guard let subEntries = try? FileManager.default.contentsOfDirectory(
+                at: entry,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            ) else { continue }
+            for subEntry in subEntries where subEntry.pathExtension == "md" {
+                let flatDestination = entitiesDir.appendingPathComponent(subEntry.lastPathComponent)
+                // If the flat destination already exists (= the same
+                // reference was migrated in a prior run, OR a new save
+                // landed at the flat path), skip (= avoid clobber).
+                if FileManager.default.fileExists(atPath: flatDestination.path) {
+                    // Best-effort cleanup of the legacy copy.
+                    try? FileManager.default.removeItem(at: subEntry)
+                    continue
+                }
+                do {
+                    try FileManager.default.moveItem(at: subEntry, to: flatDestination)
+                } catch {
+                    // Move failed (cross-device? permission?); = leave
+                    // the legacy file in place so a future retry can
+                    // complete the migration.
+                    continue
+                }
+            }
+            // After moving all .md files out of the category subdir,
+            // best-effort remove the now-empty dir. If non-empty
+            // (= contains other index/cache files), the remove fails
+            // silently and the subdir is left for the user.
+            if let remaining = try? FileManager.default.contentsOfDirectory(at: entry, includingPropertiesForKeys: nil),
+               remaining.isEmpty {
+                try? FileManager.default.removeItem(at: entry)
+            }
         }
     }
 
