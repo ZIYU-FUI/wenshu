@@ -114,16 +114,14 @@ enum WebSearchConfigurator {
 
     /// Build the provider instance for a given name (= returns nil for
     /// unknown names; = matches the "unknown provider" silent-skip pattern).
+    ///
+    /// Returns nil for every name now (= post-v2.5 keyless rewrite; =
+    /// no API-key-driven providers exist; = the keyless ring in
+    /// WebSearch.shared is the only configuration surface). This
+    /// stub stays so the existing UI affordances (= `searchAPIKeysEnabled`,
+    /// `supportedProviders`) keep compiling until issue 009 deletes the
+    /// entire file.
     private static func provider(for name: String, apiKey: String) -> (any WebSearchProvider)? {
-        switch name {
-        case "exa": return EXAProvider(apiKey: apiKey)
-        case "tavily": return TAVILYProvider(apiKey: apiKey)
-        case "brave": return BRAVEProvider(apiKey: apiKey)
-        case "parallel": return PARALLELProvider(apiKey: apiKey)
-        case "searxng":
-            // SEARXNG uses endpoint URL not API key (= handled by future ticket)
-            return nil
-        default: return nil
-        }
+        return nil
     }
 }
