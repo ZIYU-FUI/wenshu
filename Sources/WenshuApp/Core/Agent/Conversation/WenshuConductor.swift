@@ -86,7 +86,13 @@ actor WenshuConductor {
     /// registrations with provider-bound instances (= see
     /// `wireBookScopeGuard`). actor-isolated (= safe to mutate from
     /// any conductor method).
-    private var tools: [String: any Tool]
+    ///
+    /// Marked internal (= not private) so @testable imports can
+    /// inspect the dictionary in the WenshuConductorBookScopeGuardTests
+    /// integration suite. Production code uses only the read-only
+    /// `registeredToolNames` accessor + the `wireBookScopeGuard`
+    /// writer.
+    var tools: [String: any Tool]
 
     init(
         runtime: AgentRuntime,
@@ -996,5 +1002,14 @@ actor WenshuConductor {
         tools["book_character"] = BookCharacterTool(actor: characterActor)
         tools["book_chapter"] = BookChapterTool(actor: chapterActor)
         tools["book_outline"] = BookOutlineTool(actor: outlineActor)
+    }
+
+    /// Test-only: inject a tool directly into the tools dict. Used
+    /// by the WenshuConductorBookScopeGuardTests integration suite
+    /// to verify that `wireBookScopeGuard` does NOT overwrite
+    /// (= e.g.) the `reference_library` key. Production code never
+    /// calls this method.
+    func setToolForTest(_ name: String, _ tool: any Tool) {
+        tools[name] = tool
     }
 }
