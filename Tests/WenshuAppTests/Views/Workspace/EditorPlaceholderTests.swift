@@ -7,7 +7,7 @@
 //
 // 
 // (= WorkspaceView test coverage expansion). v0.93 ticket 001 =
-// EditorPaperCanvas (8 tests). Ticket 002 = ZoneModuleView (6 tests).
+// EditorPaperCanvas (8 tests).  = ZoneModuleView (6 tests).
 // This ticket = EditorPlaceholder (= the most complex; =
 // source-level structural only; = ViewInspector behavior tests would
 // require significant mock scaffolding per v0.77 spec deferral).
