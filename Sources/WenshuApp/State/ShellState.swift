@@ -91,9 +91,9 @@ final class ShellState {
             guard oldValue != sidebarSelection else { return }
             if let item = sidebarSelection,
                let data = try? JSONEncoder().encode(item) {
-                UserDefaults.standard.set(data, forKey: Self.sidebarSelectionKey)
+                UserDefaultsStore.shared.setData(data, forKey: .sidebarSelection)
             } else {
-                UserDefaults.standard.removeObject(forKey: Self.sidebarSelectionKey)
+                UserDefaultsStore.shared.remove(.sidebarSelection)
             }
         }
     }
@@ -153,7 +153,7 @@ final class ShellState {
         // wrapper semantics; = didSet is suppressed during init).
         // So this read is purely load-side (= no UserDefaults
         // write during launch = no extra disk churn).
-        if let data = UserDefaults.standard.data(forKey: Self.sidebarSelectionKey),
+        if let data = UserDefaultsStore.shared.data(forKey: .sidebarSelection),
            let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data) {
             self.sidebarSelection = decoded
         }

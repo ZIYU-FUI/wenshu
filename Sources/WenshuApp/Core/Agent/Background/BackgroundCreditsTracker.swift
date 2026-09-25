@@ -83,8 +83,8 @@ actor BackgroundCreditsTracker {
     /// Per-session counter (= reset on new session; lives in actor state).
     private var sessionStart: Date = Date()
     /// Per-month counter (= persisted to UserDefaults; survives restart).
-    private let monthlyKey = "wenshu.credits.monthly"
-    private let monthlyResetKey = "wenshu.credits.monthlyReset"
+    private var monthlyKey: WenshuDefaultsKey { .creditsMonthly }
+    private var monthlyResetKey: WenshuDefaultsKey { .creditsMonthlyReset }
 
     init() {}
 
@@ -94,7 +94,7 @@ actor BackgroundCreditsTracker {
         // Persist monthly counter (= append input + output tokens).
         let monthly = currentMonthlyTotal()
         let newTotal = monthly + consumption.totalTokens
-        UserDefaults.standard.set(newTotal, forKey: monthlyKey)
+        UserDefaultsStore.shared.setInt(newTotal, forKey: monthlyKey)
     }
 
     /// Current session summary (= in-memory history only).

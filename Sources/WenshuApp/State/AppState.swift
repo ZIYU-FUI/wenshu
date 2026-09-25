@@ -154,7 +154,7 @@ final class AppState {
             // during init, even though didSet is suppressed during init
             // per Swift property wrapper semantics, = safety belt).
             guard oldValue != activeTabId else { return }
-            UserDefaults.standard.set(activeTabId.uuidString, forKey: AppState.activeTabIdKey)
+            UserDefaultsStore.shared.setUUID(activeTabId, forKey: .activeTabId)
         }
     }
 
@@ -310,7 +310,7 @@ final class AppState {
     var llmModel: String = "" {
         didSet {
             guard oldValue != llmModel else { return }
-            UserDefaults.standard.set(llmModel, forKey: "wenshu.llm.model")
+            UserDefaultsStore.shared.setString(llmModel, forKey: .llmModel)
         }
     }
 
@@ -323,7 +323,7 @@ final class AppState {
         // not called during init (= Swift property wrapper semantics),
         // so this assignment does NOT trigger a write back to
         // UserDefaults on launch (= pure read-side migration).
-        self.llmModel = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
+        self.llmModel = UserDefaultsStore.shared.string(forKey: .llmModel)
         // boss 9/7 OOB: restore persisted open tabs BEFORE
         // any view reads appState.openTabs (= EditorPlaceholder's
         // .onAppear reads it). Sets openTabs via the regular
