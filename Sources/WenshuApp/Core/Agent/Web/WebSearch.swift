@@ -54,6 +54,12 @@ actor WebSearch {
         )
     }
 
+    /// Internal: returns the configured ring for assertion in tests.
+    /// (= hermes does not expose this; = wenshu-side test helper.)
+    func ringSnapshot() -> KeylessRing {
+        ring
+    }
+
     /// Synthesize a short summary from the search results. Joins the top
     /// titles + snippets into a single readable paragraph. Deterministic
     /// (= no LLM call) so the convenience method is fully offline.

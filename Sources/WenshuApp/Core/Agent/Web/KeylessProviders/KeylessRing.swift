@@ -39,6 +39,11 @@ actor KeylessRing {
         self.providers = providers
     }
 
+    /// Snapshot of the provider names (= test inspection helper).
+    func providerNames() -> [String] {
+        providers.map(\.name)
+    }
+
     /// The canonical wenshu vendor set, in failover order.
     static func defaultProviders() -> [any WebSearchProvider] {
         [
