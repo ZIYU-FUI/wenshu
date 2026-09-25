@@ -1,46 +1,22 @@
 //
-//  WebSearchTool.swift · Wenshu · v0.74 ticket 003-websearch-tool-wire
+//  WebSearchTool.swift · Wenshu
 //
-//  LLM-facing wrapper for `Sources/WenshuApp/Core/Agent/Web/WebSearch.swift`
-//  (= the 1:1 hermes port of `web_search.py` shipped in HERMES-INTERNAL-001
-//  + v0.74 ticket 001 adding 5 provider classes). The actor was orphaned
-//  from the LLM tool surface (= no Tool wrapper); this ticket wires it in.
-//
-//  Per AGENTS.md §11.3 wenshu-side wins pattern: this Tool is a thin
-//  adapter that delegates to `WebSearch.shared`. We do NOT re-implement
-//  provider rotation; the actor owns that.
-//
-//  Actions (= matches the spec):
-//  - search(query, limit?, providers?)  — multi-provider rotation search
-//  - research(query, limit?)            — search + local summary aggregation
-//
-// reuse `WebSearch.shared` actor. NO duplicate resolver logic.
-//  Per AGENTS.md §11.1: Apple Foundation only. NO third-party deps.
-//  Per Q187-Q190: doc-only header preserved verbatim (English only).
-//
-//  Tool name: "web_search"  · toolset: "research"
+//  LLM-facing wrapper over WebSearch.shared. Uses the keyless ring
+//  (= Parallel / Exa / Keenable anonymous free tier). No API key needed.
+//  JSON envelope shape matches the hermes search_ok / search_fail contract.
 //
 //
 
 import Foundation
 
-// MARK: - Tool
-
-/// LLM-facing wrapper around the canonical `WebSearch` actor.
-///
-/// Round-trips JSON envelopes (= matches the `SkillBundlesTool` pattern
-/// from v0.73 ticket 001). The LLM sends `{"action": "search", "query": "..."}`
-/// and receives a JSON envelope `{"ok": true, "results": [...]}`. Errors
-/// come back as `{"ok": false, "error": "..."}`.
 final class WebSearchTool: Tool, @unchecked Sendable {
 
-    /// Module-singleton (= matches `SkillBundlesTool.shared` pattern).
     static let shared = WebSearchTool()
 
     private let engine: WebSearch
 
     /// Designated init (= allows tests to inject a `WebSearch` with
-    /// custom provider list).
+    /// custom ring).
     init(engine: WebSearch = WebSearch.shared) {
         self.engine = engine
     }
@@ -60,8 +36,6 @@ final class WebSearchTool: Tool, @unchecked Sendable {
             return jsonError(action: action, message: "unknown action '\(action)'; expected one of: search, research")
         }
     }
-
-    // MARK: - Actions
 
     private func handleSearch(payload: [String: Any]) async -> String {
         guard let query = payload["query"] as? String, !query.isEmpty else {
@@ -86,6 +60,8 @@ final class WebSearchTool: Tool, @unchecked Sendable {
                 "results": items,
                 "count": items.count
             ])
+        } catch let error as KeylessRing.RingError {
+            return jsonError(action: "search", message: error.errorDescription ?? "search failed")
         } catch let error as WebSearchError {
             return jsonError(action: "search", message: webSearchErrorMessage(error))
         } catch {
@@ -113,6 +89,8 @@ final class WebSearchTool: Tool, @unchecked Sendable {
                 "sources": sources,
                 "generated_at": ISO8601DateFormatter().string(from: report.generatedAt)
             ])
+        } catch let error as KeylessRing.RingError {
+            return jsonError(action: "research", message: error.errorDescription ?? "research failed")
         } catch let error as WebSearchError {
             return jsonError(action: "research", message: webSearchErrorMessage(error))
         } catch {
@@ -123,15 +101,11 @@ final class WebSearchTool: Tool, @unchecked Sendable {
     private func webSearchErrorMessage(_ error: WebSearchError) -> String {
         switch error {
         case .noProvidersConfigured:
-            return "no search providers configured; user must populate API keys for at least one provider (= exa / tavily / brave / parallel / searxng)"
-        case .emptyResults(let name):
-            return "provider '\(name)' returned empty results; rotation tried all providers"
+            return "no search providers configured"
         case .providerFailure(let name, let underlying):
             return "provider '\(name)' failed: \(underlying)"
         }
     }
-
-    // MARK: - JSON envelope (= matches SkillBundlesTool convention)
 
     private func parseJSON(_ input: String) -> [String: Any] {
         guard let data = input.data(using: .utf8),
@@ -165,11 +139,8 @@ final class WebSearchTool: Tool, @unchecked Sendable {
     }
 }
 
-// MARK: - ToolRegistry bootstrap (= matches SkillBundlesTool pattern)
-
 extension WebSearchTool {
 
-    /// Module-load registration with `ToolRegistry.shared`. Idempotent.
     static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
@@ -178,16 +149,12 @@ extension WebSearchTool {
                 schema: ToolRegistrySchema(
                     name: "web_search",
                     description: """
-                    Multi-provider web search with automatic rotation (= hermes-port \
-                    `web_search.py` per HERMES-INTERNAL-001 + v0.74 ticket 001). Five \
-                    providers configured: EXA / TAVILY / BRAVE / PARALLEL / SEARXNG. \
-                    Actions: search / research. The `search` action rotates across \
-                    configured providers (= tries each one in order, returns first \
-                    non-empty result set). The `research` action calls search then \
-                    synthesizes a local summary from the top hits (= NO LLM call). \
-                    Providers are stubbed when API keys are missing (= returns empty \
-                    results → rotation moves to next provider). Configure API keys via \
-                    ProviderKeychain (= AGENTS.md §11) to enable real searches.
+                    Web search via the keyless anonymous public free tier ring \
+                    (= Parallel / Exa / Keenable, in that order). No API key \
+                    or configuration is needed; works on first launch. \
+                    Actions: search (= multi-vendor ring with rate-limit failover), \
+                    research (= search + local summary aggregation). \
+                    Returns ranked results with title / url / snippet.
                     """,
                     inputSchema: [
                         "action": ToolRegistrySchemaProperty(
@@ -207,19 +174,9 @@ extension WebSearchTool {
                     required: []
                 ),
                 handler: WebSearchTool.shared,
-                description: """
-                Multi-provider web search with automatic rotation. \
-                Actions: search / research.
-                """,
+                description: "Web search via the keyless anonymous free tier ring.",
                 emoji: "🔍"
             )
         }
     }()
 }
-
-// NOTE: Swift 6 forbids top-level expressions, so the static let
-// `_registryBootstrap` initializer runs lazily on first type access
-// (= Swift equivalent of Python module-load statement). Production code
-// paths that touch this type (= e.g. ChatView constructing
-// `SkillBundlesTool.shared`, WenshuConductor constructing
-// `WebSearchTool.shared`) automatically trigger the bootstrap.

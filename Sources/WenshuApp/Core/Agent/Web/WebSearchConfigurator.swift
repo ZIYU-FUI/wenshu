@@ -91,7 +91,7 @@ enum WebSearchConfigurator {
             return provider(for: name, apiKey: apiKey)
         }
 
-        return WebSearch(providers: providers)
+        return WebSearch(ring: KeylessRing(providers: providers.compactMap { $0 }))
     }
 
     /// Return the set of provider names (= not key names) that currently
