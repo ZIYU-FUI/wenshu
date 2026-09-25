@@ -1,7 +1,7 @@
 //
-//  Persistence/WSBookmark.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSBookmark.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 4/21: WSBookmark.
+//   : WSBookmark.
 //  SwiftData @Model for bookmarks. Replaces `bookmarks` table from
 //  BookmarkStore.swift (=  deleted BookmarkStore).
 //
