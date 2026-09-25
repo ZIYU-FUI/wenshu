@@ -27,7 +27,7 @@ import Foundation
 import Testing
 @testable import WenshuApp
 
-@Suite("v1.73 tab close button — AppState.closeTab (= X button business)")
+@Suite("v1.73 tab close button — AppState.closeTab (= X button business)", .serialized)
 @MainActor
 struct AppStateCloseTabTests {
 

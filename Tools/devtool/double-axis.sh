@@ -155,7 +155,11 @@ echo -n "  [7/7] No magic number in new code (= prefer DesignTokens) ... "
 DIFF=$(git diff "$BEFORE" "$AFTER" -- 'Sources/*.swift' 2>/dev/null)
 # Heuristic: .frame(width: <number>) .frame(height: <number>) .padding(<number>) inline magic number
 # Full pass requires visual review; this just counts occurrences
-MAGIC=$(echo "$DIFF" | grep -cE '\.(frame|padding|font|offset)\([^A-Za-z]*[0-9]+\)' || echo 0)
+# Use `wc -l` (not `grep -c`) to get a clean integer (= grep -c emits "0\n" multi-line on no-match,
+# which breaks `[ "$X" -eq 0 ]` with `[: 0\n0:` integer expression error).
+# Use `|| true` to prevent set -e from exiting on the 0-match grep case.
+MAGIC=$(echo "$DIFF" | { grep -cE '\.(frame|padding|font|offset)\([^A-Za-z]*[0-9]+\)' || true; } | tr -d ' \n' || echo 0)
+if [ -z "$MAGIC" ]; then MAGIC=0; fi
 if [ "$MAGIC" -eq 0 ]; then
     echo "OK"
 else
