@@ -54,7 +54,7 @@ enum UserFacingError: Error, LocalizedError {
             // usually resolves; we don't surface a "check your
             // router" instruction because that wastes the user's
             // time on a transient outage).
-            return "网络断开，请检查连接后重试。"
+            return WenshuI18n.t("error.network.failure")
 
         case .apiKeyMissing:
             // Provider-agnostic (= doesn't mention any specific
@@ -63,13 +63,13 @@ enum UserFacingError: Error, LocalizedError {
             // is preserved for callers that want to inspect it (=
             // e.g. logging / analytics), but the user-visible
             // message is generic.
-            return "未配置 LLM API 密钥。请前往 设置 → 服务配置 任选一个 LLM 连接器 (= Anthropic / OpenAI / DeepSeek / Gemini / Ollama / OpenRouter / MiniMax) 填写。"
+            return WenshuI18n.t("error.api_key.missing")
 
         case .apiKeyInvalid:
             // Same generic treatment as apiKeyMissing (= no provider
             // name in user-visible text; = works for any of the 7
             // connectors).
-            return "LLM API 密钥无效或已过期。请前往 设置 → 服务配置 更新您的连接器密钥。"
+            return WenshuI18n.t("error.api_key.invalid")
 
         case .rateLimited(let provider):
             // Provider-specific rate-limit messages stay provider-bound
@@ -77,48 +77,51 @@ enum UserFacingError: Error, LocalizedError {
             // Generic fallback for any provider that returns 429
             // with an empty/unknown provider name.
             if provider.isEmpty || provider == "当前 Provider" {
-                return "LLM 限流中，请稍后再试。"
+                return WenshuI18n.t("error.rate_limit.generic")
             }
-            return "\(provider) 限流中，请稍后再试。"
+            return WenshuI18n.ts("error.rate_limit.provider", provider)
 
         case .outputTooLong(let model):
-            return "本次输出超过 \(model) 的长度上限，模型已自动截断。请缩小输入或拆分为多次请求。"
+            return WenshuI18n.ts("error.output_too_long", model)
 
         case .modelRefusal(let reason):
             if let reason {
-                return "模型拒绝生成：\(reason)。请修改输入后重试。"
+                return WenshuI18n.ts("error.model_refusal.with_reason", reason)
             }
-            return "模型拒绝生成。请修改输入后重试。"
+            return WenshuI18n.t("error.model_refusal.generic")
 
         case .contextTooLong(let tokenCount):
             if let tokenCount {
-                return "对话上下文超过模型限制（当前约 \(tokenCount) tokens）。请开启新对话或精简历史。"
+                return WenshuI18n.tf("error.context_too_long.with_count", tokenCount)
             }
-            return "对话上下文超过模型限制。请开启新对话或精简历史。"
+            return WenshuI18n.t("error.context_too_long.generic")
 
         case .fileWriteFailure(let path, _):
             if let path {
-                return "文件写入失败：\(path)。请检查磁盘空间或文件权限。"
+                return WenshuI18n.ts("error.file_write.with_path", path)
             }
-            return "文件写入失败。请检查磁盘空间或文件权限。"
+            return WenshuI18n.t("error.file_write.generic")
 
         case .databaseError(let operation, _):
-            return "数据库 \(operation) 失败。请重试或重启应用。"
+            return WenshuI18n.ts("error.database.operation_failed", operation)
 
         case .invalidUserInput(let field, let reason):
-            if let field {
-                return "输入无效：\(field)\(reason.map { "（\($0)" } ?? "")"
+            if let field, let reason {
+                return WenshuI18n.ts("error.invalid_input.with_field_reason", "\(field)（\(reason)）")
             }
-            return "输入无效，请检查后重试。"
+            if let field {
+                return WenshuI18n.ts("error.invalid_input.with_reason", field)
+            }
+            return WenshuI18n.t("error.invalid_input.generic")
 
         case .timeout(let operation, let seconds):
             if let seconds {
-                return "\(operation) 超时（\(Int(seconds)) 秒）。请稍后重试。"
+                return WenshuI18n.tf("error.timeout.with_seconds", operation, Int(seconds))
             }
-            return "\(operation) 超时。请稍后重试。"
+            return WenshuI18n.ts("error.timeout.generic", operation)
 
         case .unknown:
-            return "未知错误，请稍后重试或重启应用。"
+            return WenshuI18n.t("error.unknown")
         }
     }
     /// Map any `Error` to a `UserFacingError` (= best-effort
