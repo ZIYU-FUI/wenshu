@@ -1,10 +1,10 @@
 //
-//  CommandPaletteViewTests.swift · Wenshu · CHATBOX-002 (2026-09-04)
+//  CommandPaletteViewTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for CommandPaletteRegistry + CommandPaletteModel +
 //  CommandPaletteController (= ⌘K palette surface).
 //
-//  Acceptance (= boss OOB 'B' / CHATBOX-002 spec):
+//  Acceptance (= boss OOB 'B' /  spec):
 //    1. testRegister_itemAppearsInList — register an item, allItems
 //       returns it
 //    2. testFilter_queryMatches — query matches title substring
@@ -23,7 +23,7 @@ import Foundation
 import AppKit
 @testable import WenshuApp
 
-@Suite("CHATBOX-002 — ⌘K command palette")
+@Suite(" — ⌘K command palette")
 struct CommandPaletteViewTests {
 
     /// 
