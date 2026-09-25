@@ -1,7 +1,7 @@
 //
-//  Persistence/WSSkill.swift · Wenshu · v0.72 SwiftData migration Phase 1
+//  Persistence/WSSkill.swift · Wenshu · v0.72 SwiftData migration 
 //
-//  Phase 1 commit 6/21: WSSkill.
+//   : WSSkill.
 //  Mirrors `skills` table from WenshuWorkspace.swift (= v0.18 ticket 02
 //  local Skills loader, replica of hermes skills_hub).
 //
