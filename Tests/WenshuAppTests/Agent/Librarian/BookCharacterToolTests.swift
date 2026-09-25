@@ -147,16 +147,55 @@ struct BookCharacterToolTests {
 
     @Test func testExecute_createAction_parsesAndCreates() async throws {
         let store = try Self.makeCharacterStore()
-        let actor = BookCharacterActor(characterStore: store)
+        let bookId = UUID()
+        let actor = BookCharacterActor(
+            characterStore: store,
+            currentChatBookIDProvider: { bookId }
+        )
         let tool = BookCharacterTool(actor: actor)
-        let bookId = UUID().uuidString
         let input = """
-        {"action":"create","book_id":"\(bookId)","name":"Wei Zhongxian","role":"antagonist","markdown":"# Wei"}
+        {"action":"create","book_id":"\(bookId.uuidString)","name":"Wei Zhongxian","role":"antagonist","markdown":"# Wei"}
         """
         let output = try await tool.execute(input: input)
         #expect(output.contains("\"ok\":true"))
         #expect(output.contains("\"action\":\"create\""))
         #expect(output.contains("\"name\":\"Wei Zhongxian\""))
         #expect(output.contains("\"role\":\"antagonist\""))
+    }
+
+    @Test func testExecute_crossBookWrite_rejectedByScopeGuard() async throws {
+        let store = try Self.makeCharacterStore()
+        let chatBook = UUID()
+        let requestedBook = UUID()
+        let actor = BookCharacterActor(
+            characterStore: store,
+            currentChatBookIDProvider: { chatBook }
+        )
+        let tool = BookCharacterTool(actor: actor)
+        let input = """
+        {"action":"create","book_id":"\(requestedBook.uuidString)","name":"Forbidden","markdown":"# F"}
+        """
+        let output = try await tool.execute(input: input)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
+        #expect(output.contains(chatBook.uuidString))
+        #expect(output.contains(requestedBook.uuidString))
+    }
+
+    @Test func testExecute_noChatBook_rejectedByScopeGuard() async throws {
+        let store = try Self.makeCharacterStore()
+        let requestedBook = UUID()
+        let actor = BookCharacterActor(
+            characterStore: store,
+            currentChatBookIDProvider: { nil }
+        )
+        let tool = BookCharacterTool(actor: actor)
+        let input = """
+        {"action":"create","book_id":"\(requestedBook.uuidString)","name":"Forbidden","markdown":"# F"}
+        """
+        let output = try await tool.execute(input: input)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("\"error_kind\":\"book_scope_violation\""))
+        #expect(output.contains("not bound to any book"))
     }
 }

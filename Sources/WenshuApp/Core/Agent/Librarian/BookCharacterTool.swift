@@ -98,8 +98,17 @@ enum BookCharacterError: Error, LocalizedError, Sendable, Equatable {
 actor BookCharacterActor {
     private let characterStore: any CharacterStoring
 
-    init(characterStore: any CharacterStoring) {
+    /// Closure returning the chat session's currently-bound book
+    /// (= nil when the chat session has no bound book). See
+    /// BookWorldActor's matching field for the contract.
+    private let currentChatBookIDProvider: @Sendable () -> UUID?
+
+    init(
+        characterStore: any CharacterStoring,
+        currentChatBookIDProvider: @escaping @Sendable () -> UUID? = { nil }
+    ) {
         self.characterStore = characterStore
+        self.currentChatBookIDProvider = currentChatBookIDProvider
     }
 
     var bookDirectory: URL {
@@ -270,6 +279,25 @@ actor BookCharacterActor {
             )
         }
 
+        // Scope guard: every action MUST carry a `book_id` that matches
+        // the chat session's currently-bound book. See BookWorldActor
+        // (= identical contract).
+        do {
+            try BookScopeGuard.validate(
+                providedBookID: Self.parseUUID(envelope["book_id"]),
+                currentChatBookIDProvider: currentChatBookIDProvider
+            )
+        } catch let violation as BookScopeViolation {
+            return Self.encodeFailureScopeViolation(action: action, error: violation)
+        } catch {
+            return Self.encodeFailure(
+                action: action,
+                error: BookCharacterError.invalidInput(
+                    reason: "scope guard failed: \(error.localizedDescription)"
+                )
+            )
+        }
+
         do {
             switch action {
             case .create:
@@ -430,6 +458,23 @@ actor BookCharacterActor {
         if let action {
             payload["action"] = action.rawValue
         }
+        return encodeJSON(payload)
+    }
+
+    /// Encode a BookScopeViolation into the standard failure envelope.
+    /// See BookWorldTool.encodeFailureScopeViolation for the
+    /// matching contract (= identical shape across the 4 book_X
+    /// tools).
+    private static func encodeFailureScopeViolation(
+        action: BookCharacterAction,
+        error: BookScopeViolation
+    ) -> String {
+        let payload: [String: Any] = [
+            "ok": false,
+            "action": action.rawValue,
+            "error": error.errorDescription ?? "unknown error",
+            "error_kind": "book_scope_violation"
+        ]
         return encodeJSON(payload)
     }
 
