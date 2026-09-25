@@ -120,10 +120,7 @@ final class BookStore {
     /// Init: takes the LibraryStores bundle from the launch result.
     init(stores: LibraryStores) {
         self.stores = stores
-        self.worldStore = stores.makeBookStores(for: stores.shelvesRoot)
-            .worldStore  // (= valid per-book store if shelvesRoot is a book dir; v0.27 upgrades to currentBookDirectory at reload)
-        self.characterStore = stores.makeBookStores(for: stores.shelvesRoot)
-            .characterStore
+        self.entityStore = FileSystemEntityStore(bookDirectory: stores.shelvesRoot)
         self.referenceStore = stores.referenceStore
     }
 
@@ -137,15 +134,36 @@ final class BookStore {
     /// the aggregate root). Passthrough methods on `BookStore` are
     /// the canonical surface (= callers depend on the root, not
     /// the underlying stores).
-    private let worldStore: WorldStoring
-    private let characterStore: CharacterStoring
+    private let entityStore: FileSystemEntityStore
     private let referenceStore: ReferenceStoring
 
     // MARK: - Reach-through passthroughs
 
-    /// Load all characters for the active book.
+    /// Load all characters (= entities with kind = .person) for the
+    /// active book. v2.3 facade: maps EntityDescriptor to the
+    /// legacy `Character` shape so existing views continue to work
+    /// during the migration window. Long-term T13 deletes this
+    /// facade once views switch to EntityDescriptor.
     func loadCharacters() throws -> [Character] {
-        try characterStore.loadCharacters()
+        let bookId = selectedBookId
+            ?? UUID(uuidString: "00000000-0000-0000-0000-000000000000")
+            ?? UUID()
+        let entities = try entityStore.loadEntities().filter {
+            $0.kind == .person
+        }
+        return entities.map { entity in
+            Character(
+                id: UUID(uuidString: entity.id.rawValue) ?? UUID(),
+                bookId: UUID(uuidString: entity.bookIDRaw) ?? bookId,
+                name: entity.name,
+                age: entity.attributes["age"].flatMap { Int($0) },
+                role: CharacterRole(rawValue: entity.tags.first ?? "other") ?? .other,
+                arc: entity.attributes["arc"],
+                summary: entity.description,
+                createdAt: entity.createdAt,
+                updatedAt: entity.updatedAt
+            )
+        }
     }
 
     /// Load all reference items for the active book.

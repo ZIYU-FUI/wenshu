@@ -83,9 +83,9 @@ enum WSPersistenceContainer {
         WSForeshadowing.self,
         WSPlaceholder.self,
         WSOutlineDocument.self,
-        WSCharacter.self,
         WSKanbanTask.self,
-        WSWorld.self
+        WSEntity.self,
+        WSBody.self
     ])
 
     /// The shared ModelContainer (= lazily initialized on first access).

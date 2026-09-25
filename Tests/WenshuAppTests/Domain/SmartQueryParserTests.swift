@@ -18,8 +18,7 @@ struct SmartQueryParserTests {
         try? FileManager.default.createDirectory(at: bookDir, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: refLib, withIntermediateDirectories: true)
         return SmartQueryEngine(
-            worldStore: FileSystemWorldStore(bookDirectory: bookDir),
-            characterStore: FileSystemCharacterStore(bookDirectory: bookDir),
+            entityStore: FileSystemEntityStore(bookDirectory: bookDir),
             referenceStore: FileSystemReferenceStore(referenceLibraryRoot: refLib)
         )
     }
@@ -73,7 +72,23 @@ struct SmartQueryParserTests {
     func namePatternEvaluate() throws {
         let engine = makeEngine()
         let character = Character(bookId: UUID(), name: "张三", role: .protagonist)
-        try engine.characterStore.saveCharacter(character, bodyMarkdown: "# 张三\n")
+        try engine.entityStore.saveEntity(
+            EntityDescriptor(
+                id: EntityID(rawValue: character.id.uuidString),
+                bookID: BookID(rawValue: character.bookId.uuidString),
+                kind: .person,
+                name: character.name,
+                aliases: [],
+                tags: [character.role.rawValue],
+                description: character.summary,
+                attributes: [:],
+                kindSpecific: .empty,
+                bodyExcerpt: BodyExcerpt.make(from: "# 张三\n"),
+                createdAt: character.createdAt,
+                updatedAt: character.updatedAt
+            ),
+            bodyMarkdown: "# 张三\n"
+        )
         let query = SmartQuery(name: "找张三", queryJSON: try SmartQueryPredicate.namePattern("张三").encodedJSON())
         let result = try engine.run(query: query)
         #expect(result.results.count == 1)
@@ -84,7 +99,23 @@ struct SmartQueryParserTests {
     func worldNamePatternEvaluate() throws {
         let engine = makeEngine()
         let entry = WorldEntry(bookId: UUID(), type: .geography, name: "Beijing", summary: "首都")
-        try engine.worldStore.saveEntry(entry, bodyMarkdown: "# Beijing\n")
+        try engine.entityStore.saveEntity(
+            EntityDescriptor(
+                id: EntityID(rawValue: entry.id.uuidString),
+                bookID: BookID(rawValue: entry.bookId.uuidString),
+                kind: .location,
+                name: entry.name,
+                aliases: [],
+                tags: [entry.type.rawValue],
+                description: entry.summary,
+                attributes: [:],
+                kindSpecific: .empty,
+                bodyExcerpt: BodyExcerpt.make(from: "# Beijing\n"),
+                createdAt: entry.createdAt,
+                updatedAt: entry.updatedAt
+            ),
+            bodyMarkdown: "# Beijing\n"
+        )
         let query = SmartQuery(name: "找北京", queryJSON: try SmartQueryPredicate.namePattern("Beijing").encodedJSON())
         let result = try engine.run(query: query)
         #expect(result.results.count == 1)
@@ -108,9 +139,41 @@ struct SmartQueryParserTests {
     func entityTypeEvaluate() throws {
         let engine = makeEngine()
         let character = Character(bookId: UUID(), name: "李四", role: .supporting)
-        try engine.characterStore.saveCharacter(character, bodyMarkdown: "# 李四\n")
+        try engine.entityStore.saveEntity(
+            EntityDescriptor(
+                id: EntityID(rawValue: character.id.uuidString),
+                bookID: BookID(rawValue: character.bookId.uuidString),
+                kind: .person,
+                name: character.name,
+                aliases: [],
+                tags: [character.role.rawValue],
+                description: character.summary,
+                attributes: [:],
+                kindSpecific: .empty,
+                bodyExcerpt: BodyExcerpt.make(from: "# 李四\n"),
+                createdAt: character.createdAt,
+                updatedAt: character.updatedAt
+            ),
+            bodyMarkdown: "# 李四\n"
+        )
         let entry = WorldEntry(bookId: UUID(), type: .object, name: "Sword", summary: "")
-        try engine.worldStore.saveEntry(entry, bodyMarkdown: "# Sword\n")
+        try engine.entityStore.saveEntity(
+            EntityDescriptor(
+                id: EntityID(rawValue: entry.id.uuidString),
+                bookID: BookID(rawValue: entry.bookId.uuidString),
+                kind: .location,
+                name: entry.name,
+                aliases: [],
+                tags: [entry.type.rawValue],
+                description: entry.summary,
+                attributes: [:],
+                kindSpecific: .empty,
+                bodyExcerpt: BodyExcerpt.make(from: "# Sword\n"),
+                createdAt: entry.createdAt,
+                updatedAt: entry.updatedAt
+            ),
+            bodyMarkdown: "# Sword\n"
+        )
         let query = SmartQuery(name: "characters only", queryJSON: try SmartQueryPredicate.entityType(.character).encodedJSON())
         let result = try engine.run(query: query)
         #expect(result.results.count == 1)
