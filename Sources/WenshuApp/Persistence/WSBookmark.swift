@@ -3,7 +3,7 @@
 //
 //  Phase 1 commit 4/21: WSBookmark.
 //  SwiftData @Model for bookmarks. Replaces `bookmarks` table from
-//  BookmarkStore.swift (= Phase 5 ticket 10b deleted BookmarkStore).
+//  BookmarkStore.swift (=  deleted BookmarkStore).
 //
 //  Polymorphic design: a bookmark can anchor to EITHER a document OR a book
 //  (= old schema used `doc_id` only). At least one of docID / bookID must be set
