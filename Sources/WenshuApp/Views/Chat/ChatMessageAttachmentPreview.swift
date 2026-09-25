@@ -14,6 +14,17 @@
 //  - Future UI variants (= e.g. a video thumbnail, a PDF preview)
 //    plug in by adding more leaves next to this one.
 //
+//  Sandbox note (wt/sandbox-tighten-2026-09-25): the imagePath here
+//  is constructed by the app (= ChatSessionViewModel.attachImageIntoLibrary
+//  writes to <libraryPath>/cache/chat-uploads/<uuid>.ext), not by
+//  the LLM. Because that path lives inside the .ws library root,
+//  it is in-scope of WenshuSandbox (= not an exemption; = users
+//  pasting files into the chat also lands in this directory).
+//  This view reads the path directly without going through
+//  ToolExecutor, so the sandbox pre-dispatch validator is not in
+//  the call chain (= see WenshuSandbox.swift header for the policy
+//  scope).
+//
 // (= Apple MVVM canonical):
 //  This file is UI-only (= no @Observable classes, no business
 //  logic, no FileManager calls). The image bytes are already on
