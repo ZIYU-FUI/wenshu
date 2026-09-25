@@ -130,7 +130,7 @@ enum WSPersistenceContainer {
     /// Active warehouse container (= set by AppDelegate at launch time).
     /// nil = use `shared` (= Application Support path; = current default behavior).
     ///
-    /// Phase 5 ticket 1 sub-task 1b.1 (= warehouse container lifecycle).
+    ///  sub-task 1b.1 (= warehouse container lifecycle).
     /// Backward compatible: callers that use WSPersistenceContainer.shared
     /// directly are unaffected. Callers that switch to `current` (= the
     /// new resolver) automatically pick up the warehouse path when set.
@@ -169,7 +169,7 @@ enum WSPersistenceContainer {
     /// Make a file-backed container at a custom URL (= warehouse path for
     /// boss 8/25 OOB "chat.sqlite must live in .ws warehouse" rule).
     ///
-    /// Phase 5 ticket 1 sub-task 1a (= SwiftData warehouse path support).
+    ///  sub-task 1a (= SwiftData warehouse path support).
     /// Replaces the per-file SQLite Actor pattern (= all 7 of the planned
     /// Phase 5 sqlite3 stores — KanbanStore, TodoStore, MemoryStore,
     /// LinkIndex, ChatSessionStore, BookmarkStore, WenshuWorkspace — were
