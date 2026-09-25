@@ -1,5 +1,5 @@
 //
-//  AgentBootstrapperTests.swift · Wenshu · HERMES-PARTIAL-005 (2026-09-04)
+//  AgentBootstrapperTests.swift · Wenshu ·  (2026-09-04)
 //
 //  Round-trip tests for the AgentBootstrapper surface (= hermes
 //  agent_init.py = 2,103 LOC):
@@ -13,7 +13,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("AgentBootstrapper (HERMES-PARTIAL-005)")
+@Suite("AgentBootstrapper ()")
 struct AgentBootstrapperTests {
 
     // MARK: - Test 1: All success
