@@ -205,7 +205,7 @@ struct WenshuSandboxTests {
         }
     }
 
-    @Test("preDispatchValidator checks all path-bearing keys (from/to/cwd)")
+    @Test("preDispatchValidator checks all path-bearing keys (from/to/cwd/rootDir)")
     func testPreDispatchValidatorChecksAllPathKeys() {
         setLibraryRoot()
         // `from` and `to` keys (used by file copy/move style tools).
@@ -213,6 +213,13 @@ struct WenshuSandboxTests {
             _ = try WenshuSandbox.preDispatchValidator(
                 toolName: "file",
                 input: ["from": "\(libraryRoot)/a.txt", "to": "/etc/passwd"]
+            )
+        }
+        // `rootDir` key (used by FileTools search operation).
+        #expect(throws: ToolExecutorError.self) {
+            _ = try WenshuSandbox.preDispatchValidator(
+                toolName: "file",
+                input: ["op": "search", "rootDir": "/etc", "pattern": "x"]
             )
         }
     }

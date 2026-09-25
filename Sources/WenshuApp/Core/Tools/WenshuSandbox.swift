@@ -119,8 +119,8 @@ enum WenshuSandbox {
 
     /// Default validator closure for `ToolExecutor.preDispatchValidator`.
     /// Inspects the input dictionary for known path keys
-    /// (`path`, `file`, `cwd`, `from`, `to`) and rejects any value
-    /// that resolves outside the library root.
+    /// (`path`, `file`, `cwd`, `from`, `to`, `rootDir`) and rejects any
+    /// value that resolves outside the library root.
     ///
     /// Path keys that DO NOT contain a filesystem path (= e.g. URLs
     /// for web tools, regex strings for search) are ignored here;
@@ -135,7 +135,7 @@ enum WenshuSandbox {
         toolName: String,
         input: [String: String]
     ) throws -> [String: String] {
-        let pathKeys = ["path", "file", "cwd", "from", "to"]
+        let pathKeys = ["path", "file", "cwd", "from", "to", "rootDir"]
         for key in pathKeys {
             guard let value = input[key], !value.isEmpty else { continue }
             do {
