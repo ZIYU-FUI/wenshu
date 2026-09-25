@@ -240,7 +240,7 @@ final class WSChatRepository {
 
     /// summarizeIfNeeded(sessionId:lastN:threshold:verifier:) -> Bool
     ///
-    /// Phase 5 ticket 10a: port of the deleted ChatSessionStore actor's
+    /// : port of the deleted ChatSessionStore actor's
     /// `summarizeIfNeeded` (= v0.21 ticket 05 spec). When the message
     /// count exceeds `threshold`, build a prompt from pre-cutoff messages,
     /// call `verifier.chat(...)`, then save the summary + delete the
