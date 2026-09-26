@@ -218,10 +218,123 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
             SelfScreenshot.run()
         }
+
+        // bossverificationfix (v2.7d, boss 2026-09-26 '团队链路通'):
+        // Start the sub-agent runner drain loop after all other
+        // bootstraps (= the SwiftData container + conductor + runtime
+        // + connector must be ready before the runner first fires).
+        // The runner reads from AsyncDelegationRegistry.shared (= the
+        // singleton the LLM-facing DelegateResearchTool writes to; =
+        // see v2.7 arc §11.17 history note for the shared-singleton
+        // rationale). Idempotent: calling startSubAgentDrainLoop
+        // twice is a no-op.
+        Self.startSubAgentDrainLoop()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // bossverificationfix (v2.7d): cancel the sub-agent drain
+        // loop (= future handles do not start; = the in-flight LLM
+        // call, if any, continues to completion via the runner's own
+        // cancellation-handling path).
+        Self.stopSubAgentDrainLoop()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
+    }
+
+    /// Sub-agent runner (= the engine that drains pending
+    /// `BackgroundDelegationHandle` records and runs each sub-agent
+    /// in its own `ConversationLoop`). One per app (= process-lifetime).
+    /// Created lazily on first drain (= after `AsyncDelegationRegistry.shared`
+    /// is reachable).
+    private nonisolated(unsafe) static var sharedSubAgentRunner: SubAgentRunner?
+
+    /// Background Task that calls `runner.drainPending()` on a loop
+    /// (= 1s sleep when no handles are pending; = no sleep when handles
+    /// are running). Cancelled in `applicationWillTerminate`.
+    private nonisolated(unsafe) static var subAgentDrainTask: Task<Void, Never>?
+
+    /// Start the sub-agent runner drain loop (= v2.7d, boss 2026-09-26
+    /// "团队链路通"): every 1s (= or sooner when a new handle lands),
+    /// the runner picks up pending `BackgroundDelegationHandle` records
+    /// from `AsyncDelegationRegistry.shared` (= the source-of-truth
+    /// the LLM-facing `DelegateResearchTool` writes to) and runs
+    /// each sub-agent in its own `ConversationLoop` with the
+    /// sub-agent's system prompt + tool subset.
+    ///
+    /// Threading:
+    ///   - The drain task is `Task.detached(priority: .background)`
+    ///     (= runs off MainActor; = the LLM round-trip inside the
+    ///     runner does not block UI).
+    ///   - The runner itself is `@MainActor` (= its `drainPending`
+    ///     method hops to MainActor per call).
+    ///   - Cancel via `subAgentDrainTask?.cancel()` in
+    ///     `applicationWillTerminate` (= the in-flight LLM call
+    ///     continues to completion; = future handles do not start).
+    ///
+    /// Idempotency: calling `startSubAgentDrainLoop` twice is a no-op
+    /// (= the second call returns immediately if `subAgentDrainTask`
+    /// is already non-nil). This makes the method safe to call from
+    /// any post-launch hook (= e.g. a future "reconnect" path).
+    @MainActor
+    static func startSubAgentDrainLoop() {
+        // Idempotency guard (= already running).
+        guard subAgentDrainTask == nil else { return }
+
+        // Lazy runner creation (= resolves the active LLM connector
+        // at startup time; = mirrors `WenshuAppDelegate.activeLLMConnector()`
+        // used by the main agent's ChatView). ToolRegistry.shared is
+        // safe to read here (= it's an actor; = init is synchronous).
+        //
+        // v2.7d storage adapters: Archivist + Auditor sub-agents
+        // bypass the LLM tool dispatch path (= their domains are
+        // deterministic storage / memory reads). Inject
+        // LiveArchivistStorage + LiveAuditorStorage at startup so
+        // the runner's per-agent dispatch can route Archivist +
+        // Auditor to the storage path instead of runRealSubAgent.
+        let archiveRoot: URL
+        if let path = UserDefaults.standard.string(forKey: "wenshu.libraryPath") {
+            archiveRoot = URL(fileURLWithPath: path).appendingPathComponent("archives", isDirectory: true)
+        } else {
+            archiveRoot = URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent("wenshu-archives", isDirectory: true)
+        }
+        let archivist = LiveArchivistStorage(archiveRoot: archiveRoot)
+        let auditor = LiveAuditorStorage()
+        let runner = SubAgentRunner(
+            connector: activeLLMConnector(),
+            toolRegistry: ToolRegistry.shared,
+            archivistStorage: archivist,
+            auditorStorage: auditor
+        )
+        sharedSubAgentRunner = runner
+
+        subAgentDrainTask = Task.detached(priority: .background) {
+            // Detached loop: drain pending handles; = sleep 1s when
+            // nothing pending (= no busy-wait). The runner's
+            // `drainPending()` method processes up to `maxBatchSize`
+            // handles per call (= 3 by default; = caps burst rate).
+            while !Task.isCancelled {
+                let n = await runner.drainPending()
+                if n == 0 {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                }
+            }
+        }
+        NSLog("[wenshu.subagent] drain loop started")
+    }
+
+    /// Stop the sub-agent runner drain loop (= v2.7d cancel path).
+    /// Called from `applicationWillTerminate`. The in-flight LLM
+    /// call (= if any) continues to completion; = future handles do
+    /// not start.
+    @MainActor
+    static func stopSubAgentDrainLoop() {
+        subAgentDrainTask?.cancel()
+        subAgentDrainTask = nil
+        sharedSubAgentRunner = nil
+        NSLog("[wenshu.subagent] drain loop stopped")
     }
 
     /// 
