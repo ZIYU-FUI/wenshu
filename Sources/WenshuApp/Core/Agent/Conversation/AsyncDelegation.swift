@@ -426,3 +426,26 @@ func delegate(
         ]
     )
 }
+
+/// Shared `AsyncDelegationRegistry` (= the canonical singleton
+/// for production code). The SubAgentRunner reads/writes here; =
+/// DelegateResearchTool routes to here so the runner picks up
+/// the handles.
+///
+/// Tests that need an isolated registry (= no cross-test pollution)
+/// can construct a fresh `AsyncDelegationRegistry()` actor locally
+/// and inject it via `delegate(..., registry: local)` directly;
+/// = the delegate(...) free function takes a registry parameter
+/// and does NOT touch the shared singleton. The shared singleton
+/// is only used by the LLM-facing tool (`DelegateResearchTool`)
+/// where the LLM cannot pass a registry (= it doesn't know about
+/// actor injection).
+///
+/// v2.7 fix (= boss 2026-09-26 "团队链路通"): before this commit,
+/// `DelegateResearchTool` created a fresh registry per call (= the
+/// runner never saw the handle; = the team link was broken). Now
+/// the tool routes to `shared`, so the runner's `drainPending()`
+/// can pick up pending handles.
+extension AsyncDelegationRegistry {
+    static let shared: AsyncDelegationRegistry = AsyncDelegationRegistry()
+}

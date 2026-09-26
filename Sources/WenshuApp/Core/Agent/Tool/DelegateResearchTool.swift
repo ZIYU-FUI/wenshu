@@ -81,8 +81,21 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
     ///    board)
     /// 3. Returns the consolidated JSON envelope
     private func handleDelegate(payload: [String: Any]) async throws -> String {
-        guard let nounsArray = payload["nouns"] as? [String],
-              !nounsArray.isEmpty else {
+        // The dispatch layer (= ToolDispatchInputParser.parse) coerces
+        // array values into JSON-encoded strings (= the wire format is
+        // [String: String]). Accept both shapes: a real [String]
+        // (= when the tool is called outside the executor path)
+        // AND a JSON-encoded string (= the executor path).
+        var nounsArray: [String] = []
+        if let arr = payload["nouns"] as? [String] {
+            nounsArray = arr
+        } else if let encoded = payload["nouns"] as? String,
+                  let data = encoded.data(using: .utf8),
+                  let parsed = try? JSONSerialization.jsonObject(with: data) as? [String]
+        {
+            nounsArray = parsed
+        }
+        guard !nounsArray.isEmpty else {
             return jsonError(
                 action: "delegate",
                 message: "missing required field: nouns (= array of concrete proper nouns to research; = non-empty)"
@@ -106,13 +119,11 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
 
             // Register the delegation handle (= source-of-truth
             // record; = when the runner lands it will pick up
-            // pending handles from here). Uses the singleton
-            // registry (= ChatSessionViewModel.delegationRegistry
-            // is created lazily; = we instantiate our own local
-            // registry here so the tool is independent of the
-            // chat session lifecycle). Future ticket will unify
-            // both via a shared singleton.
-            let registry = AsyncDelegationRegistry()
+            // pending handles from here). Uses the shared
+            // singleton registry (= boss 2026-09-26 "团队链路通"
+            // fix; = before v2.7 the tool created a fresh registry
+            // per call and the runner never saw the handle).
+            let registry = AsyncDelegationRegistry.shared
             let result = try await delegate(
                 subagentProfile: SubAgentIdentity.Name.researcher.rawValue,
                 task: taskPrompt,
