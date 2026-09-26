@@ -146,6 +146,14 @@ struct SwiftDataBackedLiveE2ETests {
         // the search hit (= the auditor's "verdict:pass" path),
         // we seed the memory row with text that overlaps with
         // the auditor's userMessage (= "偏好").
+        //
+        // Cross-test state hygiene (= @Suite(.serialized) means the
+        // tests run sequentially; = the per-test SwiftData container
+        // may have residue from a prior run on disk if the in-memory
+        // container was somehow swapped for the disk one). Purge
+        // any pre-existing memory rows so the seed below is the
+        // only row in scope.
+        try? WSMemoryRepository.shared.purgeOlderThan(userId: "default", retentionDays: 0)
         let memoryContent = "用户的偏好是唐代题材与长安相关的历史研究"
         _ = try? WSMemoryRepository.shared.add(userId: "default", content: memoryContent)
 
