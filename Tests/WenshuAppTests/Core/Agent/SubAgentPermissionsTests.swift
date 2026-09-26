@@ -86,18 +86,47 @@ struct SubAgentPermissionsTests {
 
     // MARK: - Sub-agent tool lists
 
-    @Test("archivist does not have memory tool (hermes parity)")
+    @Test("archivist does not have memory tool (v2.5: storage adapter path; empty LLM tools)")
     func testArchivistHasNoMemoryTool() {
+        // v2.5 arc: bookmark / backup storage moved to
+        // WSBookmarkRepository.shared + filesystem direct path
+        // (per SubAgentIdentity.archivistPrompt). The archivist
+        // tools(name:) list is therefore empty; the LLM tool path
+        // is no longer involved.
         let tools = SubAgentIdentity.tools(name: .archivist)
-        #expect(!tools.contains("memory"))
-        #expect(tools.contains("bookmark"))
-        #expect(tools.contains("backup"))
+        // Hermetic parity assertion (= what we actually want to assert):
+        // archivist MUST NOT carry a memory tool (= memory writes are
+        // main-agent exclusive per hermes DELEGATE_BLOCKED_TOOLS).
+        #expect(!tools.contains("memory"),
+               "archivist must NOT carry memory writes (= hermes DELEGATE_BLOCKED_TOOLS parity)")
+        // The pre-v2.5 LLM-tool expectation (= archivist exposes
+        // bookmark + backup on the LLM tool surface) is replaced by
+        // the v2.5 storage-adapter expectation: archivist has zero
+        // LLM tools. bookmark / backup are no longer LLM tools; =
+        // archivist instead drives WSBookmarkRepository.shared
+        // directly through the storage adapter (= no tool-dispatch
+        // round-trip).
+        #expect(tools.isEmpty,
+               "archivist must NOT expose LLM tools post-v2.5 (= storage adapters relocate to WSBookmarkRepository.shared)")
     }
 
-    @Test("auditor has memory tool (read-only access via system prompt)")
+    @Test("auditor has memory tool (read-only access via system prompt) -- v2.4 moves memory off the LLM tool surface")
     func testAuditorHasMemoryTool() {
+        // v2.4 contract: memory is removed from the LLM-facing tool
+        // surface (= the deleted skill system + memory rewire arc).
+        // Auditor reads via WSMemoryProvider.shared directly (the
+        // SubAgentRunner.runAuditorSubAgent path), NOT through an
+        // LLM-emitted tool_use block. Therefore the auditor's
+        // tools(name:) list is empty even though the auditor can
+        // still inspect memory (= the read path moved from LLM
+        // dispatch to direct actor dispatch).
         let tools = SubAgentIdentity.tools(name: .auditor)
-        #expect(tools.contains("memory"))
+        #expect(tools.isEmpty,
+               "auditor must NOT expose memory on the LLM tool surface post-v2.4 (= direct WSMemoryProvider.shared path)")
+        // Hermetic: pre-v2.4 contract surfaced memory on the LLM
+        // tool surface; post-v2.4 contract removes it.
+        #expect(!tools.contains("memory"),
+               "legacy: auditor must no longer carry memory (= v2.4 memory-rewire)")
     }
 
     @Test("researcher / writer / analyst do not have memory tool")
