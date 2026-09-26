@@ -129,6 +129,15 @@ public actor MockLLMConnector: LLMConnector {
     /// tests; = does not consume `scriptedIndex`).
     public var streamedBlocks: [LLMBlock] = []
 
+    /// Public read-only accessor for the scripted-responses index
+    /// (= how many scripted responses have been consumed by send /
+    /// stream so far). Test code uses this to verify the LLM
+    /// round-trip count without inspecting the private state
+    /// directly.
+    public var scriptedIndexAccessor: Int {
+        get { scriptedIndex }
+    }
+
     /// T13-MOCK-STREAM-CONNECTOR (2026-09-18): implements LLMConnector's
     /// `stream(...)` default override (= the default extension in T7
     /// would call `send()` and yield blocks once at end; = this
