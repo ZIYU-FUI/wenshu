@@ -1,5 +1,5 @@
 //
-//  SubAgentRunner.swift · Wenshu · v2.7 agent team
+//  SubAgentRunner.swift · Wenshu · v2.7 agent team + v2.7d real LLM
 //
 //  The runner that picks up `BackgroundDelegationHandle` records
 //  from `AsyncDelegationRegistry` (= ones created by
@@ -32,6 +32,16 @@
 //    actually drains pending handles, runs each sub-agent in
 //    its own ConversationLoop (= independent context), and
 //    marks the handle as completed when the sub-agent finishes.
+//
+//  v2.7d upgrade (= boss 2026-09-26 "多轮 ete" + "sub-agent 真跑 LLM"):
+//    The v2.7 stub returned canned strings per agent name. The
+//    v2.7d implementation replaces the stub with a real LLM call:
+//    each sub-agent runs its own `ConversationLoop.runTurn` with
+//    the sub-agent's system prompt + its own tool subset. The
+//    loop is multi-turn (= up to MAX_SUBAGENT_TURNS = 5); the
+//    sub-agent may call web_search / reference_library (or any
+//    tool in its subset) as many times as needed before producing
+//    its final text reply.
 //
 //  Architecture (= per boss 2026-09-26 + Q112 standing rule):
 //    1 source + 1 test per ticket (= this file + the matching
@@ -109,6 +119,16 @@ enum SubAgentRunnerError: Error, Equatable {
     /// Programmer-fault: handle is already in a terminal state
     /// (= cannot re-run a completed/failed handle).
     case handleAlreadyTerminal(handleID: String, currentState: String)
+    /// System-fault: the sub-agent's multi-turn runTurn produced no
+    /// assistant text (= only tool_use blocks followed by tool_result
+    /// loops that never terminated). Recovery: retry or shorten the task.
+    case emptyResponse(handleID: String, agentName: String)
+    /// System-fault: the sub-agent's multi-turn runTurn exceeded the
+    /// turn cap (= MAX_SUBAGENT_TURNS). Recovery: increase the cap or
+    /// split the task. Currently NOT retried automatically (= the
+    /// loop is conservative; = boss wants user-visible failure rather
+    /// than silent infinite retry).
+    case maxTurnsExceeded(handleID: String, agentName: String, attempted: Int)
 }
 
 /// Engine that drains pending `BackgroundDelegationHandle`s from
@@ -134,28 +154,76 @@ enum SubAgentRunnerError: Error, Equatable {
 @MainActor
 final class SubAgentRunner {
 
-    /// The registry this runner drains handles from.
-    let registry: AsyncDelegationRegistry
-
-    /// The LLM connector used for sub-agent calls (= can be the
-    /// same connector as the main agent; = sub-agent gets its own
-    /// ConversationLoop instance with independent context).
-    let connector: any LLMConnector
-
     /// Maximum number of pending handles drained per call. Caps
     /// the burst (= e.g. the user typed 10 nouns in one turn;
     /// = drain 3 at a time; = the rest stay pending for the
     /// next drain tick).
     let maxBatchSize: Int
 
+    /// Maximum number of LLM turns (= ConversationLoop.runTurn
+    /// inner cap) per sub-agent handle. The sub-agent may call
+    /// web_search / reference_library (or any tool in its
+    /// subset) as many times as needed within this budget before
+    /// producing its final text reply. Beyond the cap the runner
+    /// throws `SubAgentRunnerError.maxTurnsExceeded`.
+    let maxSubAgentTurns: Int
+
+    /// The LLM connector used for sub-agent calls. The sub-agent
+    /// gets its own ConversationLoop (= independent context) bound
+    /// to the same connector as the main agent (= no separate
+    /// profile required; = the user only configures one connector
+    /// in Settings → LLM Connector).
+    let connector: any LLMConnector
+
+    /// The tool registry the sub-agent's LLM call dispatches tools
+    /// against. When nil (= default for unit tests with isolated
+    /// registries), the sub-agent runs without tool dispatch (= pure
+    /// text reply). Production code injects `ToolRegistry.shared`.
+    let toolRegistry: ToolRegistry?
+
+    /// Test-only registry override. Nil = use
+    /// `AsyncDelegationRegistry.shared`. Stored only on the
+    /// test-only init (= production never sets this).
+    private let _isolatedRegistry: AsyncDelegationRegistry?
+
+    /// The registry this runner drains handles from. Always
+    /// `AsyncDelegationRegistry.shared` in production (= the v2.7
+    /// boss directive "团队链路通"; = production tools cannot
+    /// inject a registry parameter); tests may override via the
+    /// `isolatedRegistry:` init.
+    private var registry: AsyncDelegationRegistry {
+        _isolatedRegistry ?? .shared
+    }
+
     init(
-        registry: AsyncDelegationRegistry,
         connector: any LLMConnector,
-        maxBatchSize: Int = 3
+        toolRegistry: ToolRegistry? = nil,
+        maxBatchSize: Int = 3,
+        maxSubAgentTurns: Int = 5
     ) {
-        self.registry = registry
         self.connector = connector
+        self.toolRegistry = toolRegistry
         self.maxBatchSize = maxBatchSize
+        self.maxSubAgentTurns = maxSubAgentTurns
+        self._isolatedRegistry = nil
+    }
+
+    /// Test-only initializer with an isolated registry (= boss
+    /// 2026-09-26 "团队链路通" pattern: tests construct a fresh
+    /// `AsyncDelegationRegistry()` actor locally and inject it so
+    /// drain / handle state does not leak across tests).
+    init(
+        isolatedRegistry: AsyncDelegationRegistry,
+        connector: any LLMConnector,
+        toolRegistry: ToolRegistry? = nil,
+        maxBatchSize: Int = 3,
+        maxSubAgentTurns: Int = 5
+    ) {
+        self.connector = connector
+        self.toolRegistry = toolRegistry
+        self.maxBatchSize = maxBatchSize
+        self.maxSubAgentTurns = maxSubAgentTurns
+        self._isolatedRegistry = isolatedRegistry
     }
 
     /// Drain up to `maxBatchSize` pending handles. Each handle is
@@ -195,13 +263,13 @@ final class SubAgentRunner {
     /// Transitions the handle through: pending → running → completed.
     /// Throws `SubAgentRunnerError` if any step fails.
     ///
-    /// The sub-agent LLM call is delegated to a stub for v2.7
-    /// (= the production sub-agent LLM call is wired in the
-    /// follow-up ticket per sub-agent; = Researcher ships in
-    /// v2.7d, Writer / Analyst / Archivist / Auditor in later
-    /// arcs). The stub returns a canned summary so the handle
-    /// state machine + kanban transition path can be exercised
-    /// end-to-end (= the multi-turn E2E test in v2.7f).
+    /// v2.7d (= sub-agent 真跑 LLM): the sub-agent call goes through
+    /// `ConversationLoop.runTurn` (= independent context with the
+    /// sub-agent's system prompt + tool subset). The sub-agent
+    /// may call web_search / reference_library as many times as
+    /// needed (= up to `maxSubAgentTurns`) before producing its
+    /// final text reply. The final reply is the value passed to
+    /// `registry.markCompleted(result:)`.
     func runHandle(_ handle: BackgroundDelegationHandle) async throws {
         // 0. Re-fetch the latest handle from the registry (= the
         //    caller's local snapshot may be stale; = the registry
@@ -239,18 +307,28 @@ final class SubAgentRunner {
         running.state = .running
         await registry.update(running)
 
-        // 4. Run the sub-agent LLM call (= stub for v2.7; = the
-        //    production sub-agent loop is per-agent follow-up).
+        // 4. Run the sub-agent LLM call (= real LLM, multi-turn,
+        //    with sub-agent's tool subset).
         let summary: String
         do {
-            summary = try await runSubAgentLLM(
+            summary = try await runRealSubAgent(
+                handleID: liveHandle.id,
                 agentName: identityName,
                 task: liveHandle.userMessage
             )
+        } catch let error as SubAgentRunnerError {
+            // Re-throw typed errors unchanged so the caller's
+            // catch can pattern-match (= e.g. .emptyResponse,
+            // .maxTurnsExceeded). The drainPending failure path
+            // still routes them to `markFailed` with a useful
+            // message.
+            throw error
         } catch {
-            // System-fault: the LLM call failed. Re-throw as a
-            // typed error so the caller (= drainPending) marks
-            // the handle as failed with the underlying message.
+            // System-fault: the underlying LLMConnector or
+            // ConversationLoop threw something we did not type.
+            // Re-throw as SubAgentRunnerError.subAgentLLMFailed so
+            // the runner's drainPending() failure path surfaces
+            // a typed message.
             throw SubAgentRunnerError.subAgentLLMFailed(
                 handleID: liveHandle.id,
                 agentName: liveHandle.agentName,
@@ -264,36 +342,125 @@ final class SubAgentRunner {
         await registry.markCompleted(id: liveHandle.id, result: summary)
     }
 
-    /// The sub-agent LLM call (= stub for v2.7). Returns a canned
-    /// summary keyed by the agent name (= each sub-agent has its
-    /// own summary shape so the multi-turn E2E test can verify
-    /// the agent identity propagated).
+    /// Run the real LLM-backed sub-agent (= v2.7d). Builds an
+    /// independent `ConversationLoop` (= separate context from the
+    /// main agent's loop) bound to the sub-agent's system prompt +
+    /// tool subset, then drives `runTurn` to completion.
     ///
-    /// v2.7 stub strategy: the stub returns a deterministic
-    /// summary derived from the task text (= e.g. "Research
-    /// complete: <task>"). The full sub-agent ConversationLoop
-    /// (= SubAgentIdentity.systemPrompt + sub-agent's tool subset +
-    /// reference_library write) is wired in the per-agent
-    /// follow-up tickets.
-    private func runSubAgentLLM(
+    /// The returned `String` is the sub-agent's final assistant text
+    /// (= what gets persisted to the handle's `result` field and
+    /// surfaced via kanban). Multi-turn internal tool dispatch
+    /// (= web_search / reference_library / etc.) happens inside
+    /// `ConversationLoop.runTurn` (= already implements the cap-10
+    /// turn loop; = the runner passes `maxAttempts = 1` because the
+    /// sub-agent's retry budget is governed by `maxSubAgentTurns`,
+    /// not the ConversationLoop's retry state).
+    ///
+    /// Throws:
+    ///   - `.emptyResponse` when the LLM produced no assistant text
+    ///     (= only tool_use blocks followed by no final reply).
+    ///   - `.maxTurnsExceeded` when the sub-agent exceeded
+    ///     `maxSubAgentTurns` without producing a final text reply.
+    ///   - `.subAgentLLMFailed` (= wrapped from underlying error)
+    ///     on transport / decode / provider failure.
+    private func runRealSubAgent(
+        handleID: String,
         agentName: SubAgentIdentity.Name,
         task: String
     ) async throws -> String {
-        // Truncate the task to keep the summary bounded (= the
-        // stub doesn't actually need the full text to produce
-        // a verifiable canned reply).
-        let preview = String(task.prefix(120))
-        switch agentName {
-        case .researcher:
-            return "research complete: \(preview)"
-        case .writer:
-            return "draft complete: \(preview)"
-        case .analyst:
-            return "analysis complete: \(preview)"
-        case .archivist:
-            return "archive complete: \(preview)"
-        case .auditor:
-            return "audit complete: \(preview)"
+        let systemPrompt = SubAgentIdentity.systemPrompt(name: agentName)
+
+        // Resolve the sub-agent's tool subset (= e.g. researcher
+        // = ["web_search", "reference_library"]; = archivist =
+        // ["bookmark", "backup"]; = auditor = ["memory"]). Each
+        // sub-agent gets exactly the tools its bounded context
+        // requires (= hermes DELEGATE_BLOCKED_TOOLS parity; =
+        // SubAgentIdentity.systemPrompt also enforces "MUST NOT"
+        // restrictions in prose, but the tool list is the hard
+        // machine-checked boundary).
+        let toolNames = SubAgentIdentity.tools(name: agentName)
+        var tools: [String: any Tool] = [:]
+        var toolSchemas: [ToolRegistrySchema] = []
+        if let registry = toolRegistry {
+            for name in toolNames {
+                if let handler = await registry.getHandler(name: name) {
+                    tools[name] = handler
+                }
+                // Note: tools without a registered handler are
+                // silently skipped (= the LLM is told via
+                // `toolSchemas` only the ones that can actually
+                // run). The system prompt already names the
+                // expected tools in prose; = a missing handler is
+                // a config drift (= boss 2026-09-20 "default-first"
+                // = no fake tools; = rather than injecting a stub
+                // handler we omit the schema).
+            }
+            toolSchemas = await registry.getDefinitions(toolNames: Set(toolNames))
         }
+
+        // Build the sub-agent's ConversationLoop (= independent
+        // context, = own turn history). The loop is a fresh actor
+        // per sub-agent invocation (= no cross-handle state leak).
+        let loop = ConversationLoop(
+            connector: connector,
+            systemPrompt: systemPrompt
+        )
+
+        // Run the sub-agent's turn. `maxAttempts = 1` because the
+        // sub-agent's retry budget is the runner's
+        // `maxSubAgentTurns`, not ConversationLoop's internal
+        // retry state. Tool dispatch happens inside runTurn (= up
+        // to ConversationLoop.runTurn's inner cap = 10, which is
+        // strictly greater than `maxSubAgentTurns` so the runner's
+        // cap is the binding constraint).
+        let result: ConversationResult
+        do {
+            result = try await loop.runTurn(
+                userMessage: task,
+                systemMessage: systemPrompt,
+                tools: tools,
+                taskId: handleID,
+                maxAttempts: 1,
+                streamCallback: nil,
+                toolSchemas: toolSchemas
+            )
+        } catch {
+            throw SubAgentRunnerError.subAgentLLMFailed(
+                handleID: handleID,
+                agentName: agentName.rawValue,
+                message: String(describing: error)
+            )
+        }
+
+        // Extract the final assistant text (= the assistant's last
+        // message in the turn history). If the LLM emitted only
+        // tool_use blocks (= no final assistant text), treat as
+        // empty response (= failure). The "last assistant message"
+        // rule matches hermes convention: after a tool_use /
+        // tool_result pair, the assistant's final reply is the last
+        // message in the history.
+        guard let finalAssistant = result.messages.last(where: { msg in
+            msg.role == .assistant
+        }) else {
+            throw SubAgentRunnerError.emptyResponse(
+                handleID: handleID,
+                agentName: agentName.rawValue
+            )
+        }
+
+        // Use the canonical plainText helper (= concatenates all
+        // .text blocks; = ignores .toolUse / .toolResult). Trim
+        // whitespace so a response like "\n\n  done\n" becomes "done".
+        let summary = finalAssistant.plainText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !summary.isEmpty else {
+            throw SubAgentRunnerError.emptyResponse(
+                handleID: handleID,
+                agentName: agentName.rawValue
+            )
+        }
+
+        return summary
     }
 }
