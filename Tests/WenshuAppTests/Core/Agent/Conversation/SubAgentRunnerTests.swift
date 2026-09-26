@@ -291,28 +291,55 @@ struct SubAgentRunnerTests {
                 "writer sub-agent must receive the Writer system prompt")
     }
 
-    @Test("auditor sub-agent receives the Auditor system prompt")
-    func auditorSystemPrompt() async throws {
+    @Test("archivist sub-agent does NOT call the LLM (storage dispatch)")
+    func archivistBypassesLLM() async throws {
+        // v2.7d: Archivist dispatches to ArchivistStorage, NOT the
+        // LLM. This test guards that invariant (= if a future ticket
+        // accidentally re-routes Archivist through runRealSubAgent,
+        // this test will fail).
         let registry = AsyncDelegationRegistry()
         let stub = ScriptedStubLLMConnector(responses: [
-            .text("audit done")
+            .text("should not be called")
         ])
+        let archivist = ArchivistStorageStubForLLMGuard()
         let runner = SubAgentRunner(
             isolatedRegistry: registry,
-            connector: stub
+            connector: stub,
+            archivistStorage: archivist
         )
 
         let handle = BackgroundDelegationHandle(
-            agentName: SubAgentIdentity.Name.auditor.rawValue,
-            userMessage: "verify chapter 1"
+            agentName: SubAgentIdentity.Name.archivist.rawValue,
+            userMessage: "add doc-1 label-1"
         )
         await registry.register(handle: handle)
         _ = await runner.drainPending()
 
-        let receivedOptions = stub.receivedOptions
-        let sys = receivedOptions.first?.systemPrompt ?? ""
-        #expect(sys.contains("Auditor") == true,
-                "auditor sub-agent must receive the Auditor system prompt")
+        // LLM must NOT have been called.
+        #expect(stub.receivedOptions.isEmpty,
+                "Archivist sub-agent must NOT call the LLM; receivedOptions.count=\(stub.receivedOptions.count)")
+        #expect(stub.receivedMessages.isEmpty,
+                "Archivist sub-agent must NOT call the LLM; receivedMessages.count=\(stub.receivedMessages.count)")
+        // Storage adapter must have been called.
+        #expect(archivist.addCount == 1)
+    }
+}
+
+/// Minimal ArchivistStorage stub used by `archivistBypassesLLM`.
+/// Counts addBookmark calls so the test can assert the storage
+/// path was reached (= Archivist dispatched to storage, not LLM).
+private final class ArchivistStorageStubForLLMGuard: ArchivistStorage, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _addCount = 0
+    var addCount: Int { lock.withLock { _addCount } }
+
+    func addBookmark(docID: String, label: String) async throws {
+        lock.withLock { _addCount += 1 }
+    }
+    func listBookmarks() async throws -> [ArchivistBookmark] { [] }
+    func removeBookmark(id: String) async throws {}
+    func writeBackup(label: String, contents: String) async throws -> URL {
+        URL(fileURLWithPath: "/tmp/\(label)-backup.md")
     }
 }
 

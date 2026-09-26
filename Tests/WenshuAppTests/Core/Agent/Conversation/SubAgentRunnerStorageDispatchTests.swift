@@ -30,6 +30,32 @@ struct SubAgentRunnerStorageDispatchTests {
 
     // MARK: - Stubs
 
+    /// Storage stubs shared between `SubAgentRunnerTests`
+    /// (= the LLM-dispatch tests that verify Archivist does NOT
+    /// call the LLM) and `SubAgentRunnerStorageDispatchTests` (= the
+    /// full storage-path coverage). Exposed at file scope so the
+    /// cross-file reference compiles.
+    enum StorageDispatchTestStubs {
+        /// In-memory ArchivistStorage (= no SwiftData coupling).
+        final class StubArchivistStorage: ArchivistStorage, @unchecked Sendable {
+            private let lock = NSLock()
+            private var _addCount = 0
+            var addCount: Int { lock.withLock { _addCount } }
+
+            func addBookmark(docID: String, label: String) async throws {
+                lock.withLock { _addCount += 1 }
+            }
+
+            func listBookmarks() async throws -> [ArchivistBookmark] { [] }
+
+            func removeBookmark(id: String) async throws {}
+
+            func writeBackup(label: String, contents: String) async throws -> URL {
+                URL(fileURLWithPath: "/tmp/\(label)-backup.md")
+            }
+        }
+    }
+
     /// In-memory ArchivistStorage (= no SwiftData coupling).
     private final class StubArchivistStorage: ArchivistStorage, @unchecked Sendable {
         private let lock = NSLock()
