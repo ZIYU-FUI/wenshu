@@ -75,7 +75,6 @@ struct E2ETeamLinkTests {
         // Before the fix, the test created a fresh registry and
         // the runner never saw the handles (= 0 drained).
         let runner = SubAgentRunner(
-            registry: AsyncDelegationRegistry.shared,
             connector: MockLLMConnector(),
             maxBatchSize: 10
         )
@@ -317,7 +316,7 @@ struct E2ETeamLinkTests {
     func handleLifecycleEndToEnd() async throws {
         let registry = AsyncDelegationRegistry()
         let runner = SubAgentRunner(
-            registry: registry,
+            isolatedRegistry: registry,
             connector: MockLLMConnector(),
             maxBatchSize: 10
         )
