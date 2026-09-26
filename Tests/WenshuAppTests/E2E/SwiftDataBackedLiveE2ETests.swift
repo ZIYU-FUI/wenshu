@@ -85,17 +85,26 @@ struct SwiftDataBackedLiveE2ETests {
         try setUpInMemoryContainer()
         defer { tearDownContainer() }
 
+        // Cross-test state hygiene (= @Suite(.serialized) means the
+        // tests run sequentially; = the per-test AsyncDelegationRegistry
+        // must be isolated from prior tests, OR handle state from a
+        // prior run leaks into the current run (= the runner
+        // detects the handle as already terminal and markFailed it).
+        // Use an isolated registry (= fresh actor instance) to avoid
+        // the singleton contamination.
+        let registry = AsyncDelegationRegistry()
+
         // LiveArchivistStorage.init requires an archiveRoot URL
         // (= for writeBackup). Use a per-test tmp directory so
         // the test does not touch the user's filesystem.
         let archiveRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("wenshu-archivist-e2e-\(UUID().uuidString)", isDirectory: true)
         let runner = SubAgentRunner(
+            isolatedRegistry: registry,
             connector: MinimaxConnector(),
             toolRegistry: nil,
             archivistStorage: LiveArchivistStorage(archiveRoot: archiveRoot)
         )
-        let registry = AsyncDelegationRegistry.shared
 
         // The archivist handle routes to runArchivistSubAgent (= no
         // LLM call). Per SubAgentRunner.runArchivistSubAgent:
@@ -134,6 +143,15 @@ struct SwiftDataBackedLiveE2ETests {
         try setUpInMemoryContainer()
         defer { tearDownContainer() }
 
+        // Cross-test state hygiene (= @Suite(.serialized) means the
+        // tests run sequentially; = the per-test AsyncDelegationRegistry
+        // must be isolated from prior tests, OR handle state from a
+        // prior run leaks into the current run (= the runner
+        // detects the handle as already terminal and markFailed it).
+        // Use an isolated registry (= fresh actor instance) to avoid
+        // the singleton contamination.
+        let registry = AsyncDelegationRegistry()
+
         // Seed a memory row first (= the auditor reads pre-existing
         // memories; = if the store is empty the auditor's prefetch
         // returns [] and the handle's result is the empty summary
@@ -158,11 +176,11 @@ struct SwiftDataBackedLiveE2ETests {
         _ = try? WSMemoryRepository.shared.add(userId: "default", content: memoryContent)
 
         let runner = SubAgentRunner(
+            isolatedRegistry: registry,
             connector: MinimaxConnector(),
             toolRegistry: nil,
             auditorStorage: LiveAuditorStorage()
         )
-        let registry = AsyncDelegationRegistry.shared
 
         let handle = BackgroundDelegationHandle(
             agentName: SubAgentIdentity.Name.auditor.rawValue,
