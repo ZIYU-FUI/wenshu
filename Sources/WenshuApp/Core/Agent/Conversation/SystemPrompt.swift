@@ -559,16 +559,59 @@ enum SystemPrompt {
             - Emit the web_search tool_use blocks in PARALLEL in
               your FIRST assistant turn (= the Anthropic tool_use
               content block format; = NOT markdown ```tool_call,
-              NOT a <function_calls> wrapper). After tool results
-              land, follow up with `reference_library.create` (= or
-              `upsert` for follow-ups) to persist a per-noun
-              summary. Use layer="entities" for people / places /
-              events / professions; layer="raw" for general
-              research.
+              NOT a <function_calls> wrapper).
+
+            Reference-library self-evolution (= the LLM-driven
+            accumulation pattern; = NO redundant re-research):
+
+            - After each web_search lands, BEFORE persisting,
+              call `reference_library.find` with title=<the
+              canonical noun>. If `found: true`, you already
+              have a document from a previous turn.
+            - If found: prefer `reference_library.extend`
+              (= id=<existing.id>, section_title=<the new
+              context (= "明朝的西安" / "水盆羊肉" / "入殓师的工作
+              流程"), section_body=<the search-grounded
+              summary>, tags=[<new context tags]>) over
+              `reference_library.create`. Extend appends (= or
+              merges if the section already exists) a new
+              `## <section_title>` section WITHOUT rewriting
+              the prior body. Tags are unioned across extends.
+            - Only call `reference_library.create` when `find`
+              returns no match (= first time we hear the noun).
+            - This pattern (= first-create, then-extend) is how
+              the library grows over many turns without
+              clobbering accumulated research. Example trajectory:
+                Turn 1: user says "主角出生在西安" -> find("西安")
+                  returns no match -> create("西安", body=西安概况,
+                  tags=[西安])
+                Turn 2: user says "主角生活在明朝" -> find("西安")
+                  returns match -> web_search("明朝 西安") ->
+                  extend(id=existing.id, section_title="明朝的西安",
+                  section_body=<search-grounded>, tags=[明朝, 明代])
+                Turn 3: user says "主角在西安吃了一碗水盆羊肉" ->
+                  find("西安") still matches ->
+                  web_search("水盆羊肉 西安") ->
+                  extend(id=existing.id, section_title="水盆羊肉",
+                  section_body=<search-grounded>, tags=[水盆羊肉,
+                  陕西小吃])
+              The library document for "西安" now carries three
+              sections (= 概要 / 明朝的西安 / 水盆羊肉) instead
+              of being overwritten three times.
+
+            - After tool results land (= web_search or
+              reference_library), follow up with
+              `reference_library.create` (= when no match found)
+              or `reference_library.extend` (= when a match
+              exists) to persist the research. Use layer="entities"
+              for people / places / events / professions; layer="raw"
+              for general research.
+
             - Then write your user-facing reply grounded in the
               search results. If a noun's search returns no usable
               hits, say so plainly — do NOT fabricate details
               about a specific profession / place / event.
+
             - Edge case: if the user's prompt is purely
               conversational (= "hi", "thanks", "好的") with NO
               concrete noun, skip this rule (= no research).

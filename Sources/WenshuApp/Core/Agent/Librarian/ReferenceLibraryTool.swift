@@ -114,6 +114,15 @@ enum ReferenceLibraryAction: String, Sendable, Codable, CaseIterable, Equatable 
     case list
     case find
     case upsert
+    /// Append a new section to an existing reference's body (= the
+    /// self-evolution mechanism). When the user prompt adds more
+    /// context to a noun (= 主角出生在西安 -> 主角生活在明朝 ->
+    /// 主角在西安吃了一碗水盆羊肉), the agent extends the existing
+    /// '西安' reference with new sections rather than rewriting
+    /// the body from scratch. Sections whose `section_title` already
+    /// exists are merged (= later occurrences update the older
+    /// section instead of creating duplicates).
+    case extend
 }
 
 // MARK: - Errors
@@ -253,6 +262,145 @@ actor ReferenceLibraryActor {
         } catch {
             throw ReferenceLibraryError.underlying(String(describing: error))
         }
+    }
+
+    /// Append a new section to an existing reference's body (= the
+    /// self-evolution mechanism). When the user prompt adds more
+    /// context to a noun (= 主角出生在西安 -> 主角生活在明朝 ->
+    /// 主角在西安吃了一碗水盆羊肉), the agent extends the existing
+    /// '西安' reference with new sections rather than rewriting the
+    /// body from scratch. Sections whose `section_title` already
+    /// exists are merged (= later occurrences update the older
+    /// section content instead of creating duplicates).
+    ///
+    /// Wire-format:
+    ///   - id (UUID, required): the reference to extend (= the agent
+    ///     should `find` the existing reference by title first, then
+    ///     call extend with that id).
+    ///   - section_title (string, required): the section heading to
+    ///     add or merge. Prepended with `## ` (= h2) in the body.
+    ///   - section_body (string, required): the new content for the
+    ///     section. Markdown is preserved.
+    ///   - tags (array of strings, optional): tags to add (= unioned
+    ///     with existing tags; = never replaces).
+    ///   - summary (string, optional): if non-empty, replaces the
+    ///     existing summary (the latest high-level blurb wins).
+    ///   - source / url (strings, optional): if non-empty, replaces
+    ///     existing source / url.
+    ///
+    /// Returns the updated `ReferenceDescriptor`. Throws
+    /// `entryNotFound` if the id doesn't exist.
+    func extendReference(
+        id: UUID,
+        sectionTitle: String,
+        sectionBody: String,
+        tags: Set<String> = [],
+        summary: String? = nil,
+        source: String? = nil,
+        url: String? = nil
+    ) async throws -> ReferenceDescriptor {
+        let trimmedTitle = sectionTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else {
+            throw ReferenceLibraryError.invalidInput(
+                reason: "extend: section_title was empty"
+            )
+        }
+        let references = (try? referenceStore.loadAllReferences()) ?? []
+        guard let existing = references.first(where: { $0.id == id }) else {
+            throw ReferenceLibraryError.entryNotFound(id: id)
+        }
+        // Load existing body (may be nil for legacy entries without
+        // a .md file — fall back to empty string).
+        let existingBody = referenceStore.loadReferenceBody(id: id) ?? ""
+        let mergedBody = Self.mergeSection(
+            into: existingBody,
+            sectionTitle: trimmedTitle,
+            sectionBody: sectionBody
+        )
+        // Tag merge: union (= never replace).
+        let mergedTags = existing.tags.union(tags)
+        // Field updates: only overwrite summary / source / url when
+        // the caller explicitly provides non-empty values. Optional
+        // nil keeps the existing value (= boss 2026-09-25 directive:
+        // the latest high-level blurb wins; = don't drop a known-good
+        // summary just because the extend call didn't pass one).
+        do {
+            let updated = try referenceStore.upsertReference(
+                title: existing.title,
+                bodyMarkdown: mergedBody,
+                layer: existing.layer,
+                category: existing.category,
+                tags: mergedTags,
+                source: source ?? existing.source,
+                url: url ?? existing.url,
+                entityType: existing.entityType,
+                summary: summary ?? existing.summary
+            )
+            return ReferenceDescriptor(updated)
+        } catch {
+            throw ReferenceLibraryError.underlying(String(describing: error))
+        }
+    }
+
+    /// Merge `## <sectionTitle>` into `existingBody`. If a section
+    /// with that title already exists, its content is replaced with
+    /// the new body (= the most recent research wins; = no duplicate
+    /// sections). If no section with that title exists, the section
+    /// is appended at the end of the body.
+    ///
+    /// Markdown section parser: splits on lines that start with
+    /// exactly `## ` (= h2 sections; = we don't merge into h1 titles
+    /// or h3+ subsections because the reference body's top-level
+    /// structure is h2 per the writer convention).
+    static func mergeSection(
+        into existingBody: String,
+        sectionTitle: String,
+        sectionBody: String
+    ) -> String {
+        let heading = "## \(sectionTitle)"
+        let newSection = "\(heading)\n\n\(sectionBody.trimmingCharacters(in: .whitespacesAndNewlines))\n"
+        // Look for an existing `## <sectionTitle>` heading line.
+        // We match the heading line prefix only (= the section ends
+        // at the next `## ` heading or at end-of-body).
+        var lines = existingBody.components(separatedBy: "\n")
+        var headingLineIndex: Int?
+        for (idx, line) in lines.enumerated() {
+            if line.trimmingCharacters(in: .whitespaces) == heading {
+                headingLineIndex = idx
+                break
+            }
+        }
+        if let start = headingLineIndex {
+            // Find the next `## ` heading after `start`, or end-of-
+            // body, to bound the existing section's content.
+            var endIndex = lines.count
+            for idx in (start + 1)..<lines.count {
+                let trimmed = lines[idx].trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("## ") {
+                    endIndex = idx
+                    break
+                }
+            }
+            // Replace lines[start..<end] with the new section (= the
+            // heading + body, plus a trailing newline separator).
+            let replacementLines = newSection.components(separatedBy: "\n")
+            lines.replaceSubrange(start..<endIndex, with: replacementLines)
+        } else {
+            // No existing section — append. Insert a blank-line
+            // separator if the body is non-empty and doesn't end
+            // with one.
+            if !existingBody.isEmpty,
+               !existingBody.hasSuffix("\n\n") {
+                if existingBody.hasSuffix("\n") {
+                    lines.append("")
+                } else {
+                    lines.append("")
+                    lines.append("")
+                }
+            }
+            lines.append(contentsOf: newSection.components(separatedBy: "\n"))
+        }
+        return lines.joined(separator: "\n")
     }
 
     func listReferences(layer: String? = nil) async throws -> [ReferenceDescriptor] {
@@ -529,6 +677,51 @@ actor ReferenceLibraryActor {
                 // the update branch.
                 let wasCreated = Date().timeIntervalSince(reference.createdAt) < 1.0
                 return Self.encodeSuccess(action: action, reference: reference, created: wasCreated)
+
+            case .extend:
+                // Self-evolution mechanism. The agent finds an
+                // existing reference via `find` first, then calls
+                // extend with the id + a `section_title` + the new
+                // section body. We append (= or merge if the section
+                // already exists) rather than rewriting the body.
+                let id = envelope["id"] as? String
+                    ?? (envelope["id"] as? [String: Any])?["value"] as? String
+                let sectionTitle = envelope["section_title"] as? String ?? ""
+                let sectionBody = envelope["section_body"] as? String
+                    ?? envelope["markdown"] as? String
+                    ?? envelope["body"] as? String
+                    ?? ""
+                let tagsArray = envelope["tags"] as? [String] ?? []
+                let tags = Set(tagsArray)
+                let summary = envelope["summary"] as? String
+                let source = envelope["source"] as? String
+                let url = envelope["url"] as? String
+                guard let idRaw = id, let parsed = UUID(uuidString: idRaw) else {
+                    return Self.encodeFailure(
+                        action: action,
+                        error: .invalidInput(
+                            reason: "extend: id is required and must be a UUID (= use `find` first to get it)"
+                        )
+                    )
+                }
+                guard !sectionTitle.isEmpty else {
+                    return Self.encodeFailure(
+                        action: action,
+                        error: .invalidInput(
+                            reason: "extend: section_title is required (= the heading for the new section)"
+                        )
+                    )
+                }
+                let reference = try await extendReference(
+                    id: parsed,
+                    sectionTitle: sectionTitle,
+                    sectionBody: sectionBody,
+                    tags: tags,
+                    summary: summary,
+                    source: source,
+                    url: url
+                )
+                return Self.encodeSuccess(action: action, reference: reference, created: false)
             }
         } catch let error as ReferenceLibraryError {
             return Self.encodeFailure(action: action, error: error)
@@ -664,7 +857,7 @@ actor ReferenceLibraryActor {
 
 actor ReferenceLibraryTool: Tool {
     let name = "reference_library"
-    let description = "Library-public reference CRUD with dedup-by-title upsert (= wraps FileSystemReferenceStore). LLM-friendly verbs: create / read / update / delete / list / find / upsert."
+    let description = "Library-public reference CRUD with self-evolution support. LLM-friendly verbs: create / read / update / delete / list / find / upsert / extend. **Self-evolution protocol (= boss 2026-09-25 directive)**: before creating a brand-new entry, ALWAYS `find` by title (= case-insensitive exact) to check whether the noun already exists in `raw` or `entities`. If found, prefer `extend` (id + section_title + section_body) over `create` — extend appends (= or merges if section_title already exists) a new `## <section_title>` section WITHOUT rewriting the prior body. This is the self-evolution mechanism: the first time the user mentions a noun, `create` writes the initial document; subsequent turns that add context (= 'the user later defines the protagonist lives in Ming-dynasty Xi'an' or 'the user mentions a Xi'an water-basin lamb dish') call `extend` so each refinement accumulates in its own section instead of clobbering the base research. Tags are unioned across extends; = summary / source / url only overwrite when explicitly provided."
 
     private let actor: ReferenceLibraryActor
 
@@ -688,20 +881,20 @@ extension ReferenceLibraryTool {
                 toolset: "library",
                 schema: ToolRegistrySchema(
                     name: "reference_library",
-                    description: "Library-public reference CRUD with dedup-by-title upsert (= wraps FileSystemReferenceStore). Same-title research edits the existing document instead of creating a new one (= boss 2026-09-25 directive).",
+                    description: "Library-public reference CRUD with self-evolution support (= wraps FileSystemReferenceStore). Same-title research edits the existing document instead of creating a new one (= boss 2026-09-25 directive). **Self-evolution protocol**: before creating a new entry, ALWAYS `find` by title; = if found, prefer `extend` (id + section_title + section_body) over `create` — extend appends a new `## <section_title>` section without rewriting the prior body. Tags are unioned across extends.",
                     inputSchema: [
                         "action": ToolRegistrySchemaProperty(
                             type: "string",
-                            description: "The reference operation to perform.",
-                            enumValues: ["create", "read", "update", "delete", "list", "find", "upsert"]
+                            description: "The reference operation to perform. Self-evolution pattern: use `find` first (= returns the existing id), then `extend` (= id + section_title + section_body) instead of `create`/`upsert`. Use `create` only when `find` returns no match (= first time we hear the noun).",
+                            enumValues: ["create", "read", "update", "delete", "list", "find", "upsert", "extend"]
                         ),
                         "id": ToolRegistrySchemaProperty(
                             type: "string",
-                            description: "Reference id (UUID). Required for read / update / delete."
+                            description: "Reference id (UUID). Required for read / update / delete / extend. Get it via `find` first when extending (= the self-evolution pattern)."
                         ),
                         "title": ToolRegistrySchemaProperty(
                             type: "string",
-                            description: "Reference title. Required for create / find / upsert. For upsert, same-title = edit-in-place."
+                            description: "Reference title. Required for create / find / upsert. For upsert, same-title = edit-in-place (= full body rewrite). Prefer `extend` instead (= section append)."
                         ),
                         "layer": ToolRegistrySchemaProperty(
                             type: "string",
@@ -726,11 +919,24 @@ extension ReferenceLibraryTool {
                         ),
                         "summary": ToolRegistrySchemaProperty(
                             type: "string",
-                            description: "1-line summary."
+                            description: "1-line summary. For extend: only replaces when explicitly non-empty."
                         ),
                         "markdown": ToolRegistrySchemaProperty(
                             type: "string",
-                            description: "Full .md body. Alias: 'body'."
+                            description: "Full .md body. Alias: 'body'. For extend, prefer `section_title` + `section_body` (= append-mode)."
+                        ),
+                        "section_title": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "extend-only. The `## <section_title>` heading to add or merge into the existing body. If a section with this title already exists, its content is replaced (most recent research wins). Required when action='extend'."
+                        ),
+                        "section_body": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "extend-only. The markdown body for the new section. Required when action='extend'."
+                        ),
+                        "tags": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Tags to attach (string OR JSON array of strings). For create / upsert: replaces existing tags. For extend: unioned with existing tags (= never replaces).",
+                            enumValues: []  // open set; = LLM supplies
                         )
                     ],
                     required: ["action"]
