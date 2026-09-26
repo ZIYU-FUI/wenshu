@@ -286,9 +286,27 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // at startup time; = mirrors `WenshuAppDelegate.activeLLMConnector()`
         // used by the main agent's ChatView). ToolRegistry.shared is
         // safe to read here (= it's an actor; = init is synchronous).
+        //
+        // v2.7d storage adapters: Archivist + Auditor sub-agents
+        // bypass the LLM tool dispatch path (= their domains are
+        // deterministic storage / memory reads). Inject
+        // LiveArchivistStorage + LiveAuditorStorage at startup so
+        // the runner's per-agent dispatch can route Archivist +
+        // Auditor to the storage path instead of runRealSubAgent.
+        let archiveRoot: URL
+        if let path = UserDefaults.standard.string(forKey: "wenshu.libraryPath") {
+            archiveRoot = URL(fileURLWithPath: path).appendingPathComponent("archives", isDirectory: true)
+        } else {
+            archiveRoot = URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent("wenshu-archives", isDirectory: true)
+        }
+        let archivist = LiveArchivistStorage(archiveRoot: archiveRoot)
+        let auditor = LiveAuditorStorage()
         let runner = SubAgentRunner(
             connector: activeLLMConnector(),
-            toolRegistry: ToolRegistry.shared
+            toolRegistry: ToolRegistry.shared,
+            archivistStorage: archivist,
+            auditorStorage: auditor
         )
         sharedSubAgentRunner = runner
 

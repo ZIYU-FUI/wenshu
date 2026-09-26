@@ -186,6 +186,17 @@ final class SubAgentRunner {
     /// test-only init (= production never sets this).
     private let _isolatedRegistry: AsyncDelegationRegistry?
 
+    /// Archivist sub-agent storage adapter (= bookmark + backup CRUD).
+    /// Nil = Archivist sub-agent handles complete with a no-op summary
+    /// (= the runner can't dispatch to bookmark/backup without this).
+    /// Production code injects `LiveArchivistStorage`.
+    let archivistStorage: ArchivistStorage?
+
+    /// Auditor sub-agent storage adapter (= read-only memory access).
+    /// Nil = Auditor sub-agent handles complete with a no-op summary.
+    /// Production code injects `LiveAuditorStorage`.
+    let auditorStorage: AuditorStorage?
+
     /// The registry this runner drains handles from. Always
     /// `AsyncDelegationRegistry.shared` in production (= the v2.7
     /// boss directive "团队链路通"; = production tools cannot
@@ -199,12 +210,16 @@ final class SubAgentRunner {
         connector: any LLMConnector,
         toolRegistry: ToolRegistry? = nil,
         maxBatchSize: Int = 3,
-        maxSubAgentTurns: Int = 5
+        maxSubAgentTurns: Int = 5,
+        archivistStorage: ArchivistStorage? = nil,
+        auditorStorage: AuditorStorage? = nil
     ) {
         self.connector = connector
         self.toolRegistry = toolRegistry
         self.maxBatchSize = maxBatchSize
         self.maxSubAgentTurns = maxSubAgentTurns
+        self.archivistStorage = archivistStorage
+        self.auditorStorage = auditorStorage
         self._isolatedRegistry = nil
     }
 
@@ -217,12 +232,16 @@ final class SubAgentRunner {
         connector: any LLMConnector,
         toolRegistry: ToolRegistry? = nil,
         maxBatchSize: Int = 3,
-        maxSubAgentTurns: Int = 5
+        maxSubAgentTurns: Int = 5,
+        archivistStorage: ArchivistStorage? = nil,
+        auditorStorage: AuditorStorage? = nil
     ) {
         self.connector = connector
         self.toolRegistry = toolRegistry
         self.maxBatchSize = maxBatchSize
         self.maxSubAgentTurns = maxSubAgentTurns
+        self.archivistStorage = archivistStorage
+        self.auditorStorage = auditorStorage
         self._isolatedRegistry = isolatedRegistry
     }
 
@@ -309,13 +328,26 @@ final class SubAgentRunner {
 
         // 4. Run the sub-agent LLM call (= real LLM, multi-turn,
         //    with sub-agent's tool subset).
+        //
+        //    v2.7d storage dispatch: Archivist + Auditor sub-agents
+        //    use a domain-specific storage path (= ArchivistStorage /
+        //    AuditorStorage, injected at init) instead of the LLM
+        //    tool dispatch path. Researcher / Writer / Analyst fall
+        //    through to the existing real-LLM runTurn path.
         let summary: String
         do {
-            summary = try await runRealSubAgent(
-                handleID: liveHandle.id,
-                agentName: identityName,
-                task: liveHandle.userMessage
-            )
+            switch identityName {
+            case .archivist:
+                summary = try await runArchivistSubAgent(handle: liveHandle)
+            case .auditor:
+                summary = try await runAuditorSubAgent(handle: liveHandle)
+            default:
+                summary = try await runRealSubAgent(
+                    handleID: liveHandle.id,
+                    agentName: identityName,
+                    task: liveHandle.userMessage
+                )
+            }
         } catch let error as SubAgentRunnerError {
             // Re-throw typed errors unchanged so the caller's
             // catch can pattern-match (= e.g. .emptyResponse,
@@ -462,5 +494,130 @@ final class SubAgentRunner {
         }
 
         return summary
+    }
+
+    // MARK: - Storage-dispatch sub-agents (v2.7d)
+
+    /// Run the Archivist sub-agent (= bookmark + backup CRUD via
+    /// `ArchivistStorage`). The Archivist does NOT round-trip the LLM
+    /// (= its domain is deterministic storage; = an LLM call would
+    /// add latency without value). The handle completes with a JSON
+    /// summary of the storage operations performed.
+    ///
+    /// Task format (= from `DelegateArchiveTool` or future callers):
+    ///   "add <docID> <label>"        — add a bookmark
+    ///   "list"                       — list all bookmarks
+    ///   "delete <bookmarkID>"        — remove a bookmark
+    ///   "backup <label> <contents>"  — write a backup snapshot
+    ///
+    /// Unknown tasks fall back to a `{"stored": 0, "action": "noop",
+    /// "reason": "unknown task"}` summary (= §11 baseline 'no fake
+    /// success').
+    private func runArchivistSubAgent(
+        handle: BackgroundDelegationHandle
+    ) async throws -> String {
+        guard let storage = archivistStorage else {
+            // No storage adapter injected (= misconfigured runner).
+            // Per §11 baseline 'no fake success', we throw so the
+            // handle ends up .failed (not .completed with a fake
+            // summary).
+            throw SubAgentRunnerError.subAgentLLMFailed(
+                handleID: handle.id,
+                agentName: SubAgentIdentity.Name.archivist.rawValue,
+                message: "ArchivistStorage not injected (= runner misconfigured; = production should pass LiveArchivistStorage)"
+            )
+        }
+
+        let task = handle.userMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = task.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+        guard let action = parts.first.map(String.init) else {
+            return #"{"stored":0,"action":"noop","reason":"empty task"}"#
+        }
+
+        let restAfterAction = parts.count > 1 ? String(parts[1]) : ""
+
+        switch action {
+        case "add":
+            // "add <docID> <label>" — split restAfterAction on first space.
+            let addParts = restAfterAction.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+            guard addParts.count == 2 else {
+                return #"{"stored":0,"action":"add","reason":"expected: add <docID> <label>"}"#
+            }
+            let docID = String(addParts[0])
+            let label = String(addParts[1])
+            try await storage.addBookmark(docID: docID, label: label)
+            return #"{"stored":1,"action":"add","docID":"\#(docID)","label":"\#(label)"}"#
+
+        case "list":
+            let bookmarks = try await storage.listBookmarks()
+            let ids = bookmarks.map { $0.id }.joined(separator: ",")
+            return #"{"stored":\#(bookmarks.count),"action":"list","ids":"\#(ids)"}"#
+
+        case "delete":
+            let bmID = restAfterAction.trimmingCharacters(in: .whitespaces)
+            guard !bmID.isEmpty else {
+                return #"{"stored":0,"action":"delete","reason":"missing bookmark id"}"#
+            }
+            try await storage.removeBookmark(id: bmID)
+            return #"{"stored":1,"action":"delete","id":"\#(bmID)"}"#
+
+        case "backup":
+            // "backup <label> <contents>" — split restAfterAction on first space.
+            let backupParts = restAfterAction.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+            guard backupParts.count == 2 else {
+                return #"{"stored":0,"action":"backup","reason":"expected: backup <label> <contents>"}"#
+            }
+            let label = String(backupParts[0])
+            let contents = String(backupParts[1])
+            let url = try await storage.writeBackup(label: label, contents: contents)
+            return #"{"stored":1,"action":"backup","path":"\#(url.path)"}"#
+
+        default:
+            return #"{"stored":0,"action":"noop","reason":"unknown action: \#(action)"}"#
+        }
+    }
+
+    /// Run the Auditor sub-agent (= read-only memory access via
+    /// `AuditorStorage`). The Auditor fetches canonical memory for
+    /// the user's task and produces a verdict JSON envelope. The
+    /// verdict is deterministic (= based on memory presence, not
+    /// LLM judgment; = keeps the auditor predictable for downstream
+    /// stage-gate checks).
+    ///
+    /// Verdict envelope (= returned as the sub-agent's final text):
+    ///   {
+    ///     "verdict": "pass" | "warn" | "skip",
+    ///     "memory_snippet_count": <int>,
+    ///     "first_snippet": "<first 80 chars of canonical memory>" | null
+    ///   }
+    ///
+    /// "pass" = memory snippet found AND content non-empty.
+    /// "warn" = memory snippet found but empty.
+    /// "skip" = no memory snippet (= nothing to verify against).
+    private func runAuditorSubAgent(
+        handle: BackgroundDelegationHandle
+    ) async throws -> String {
+        guard let storage = auditorStorage else {
+            throw SubAgentRunnerError.subAgentLLMFailed(
+                handleID: handle.id,
+                agentName: SubAgentIdentity.Name.auditor.rawValue,
+                message: "AuditorStorage not injected (= runner misconfigured)"
+            )
+        }
+
+        let memory = await storage.readMemory(forUserMessage: handle.userMessage)
+        let trimmed = memory.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmed.isEmpty {
+            return #"{"verdict":"skip","memory_snippet_count":0,"first_snippet":null}"#
+        }
+
+        let snippetCount = trimmed
+            .components(separatedBy: "\n\n")
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .count
+
+        let firstSnippet = String(trimmed.prefix(80))
+        return #"{"verdict":"pass","memory_snippet_count":\#(snippetCount),"first_snippet":"\#(firstSnippet)"}"#
     }
 }
