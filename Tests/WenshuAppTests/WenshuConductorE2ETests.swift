@@ -1,7 +1,7 @@
 //
 //  WenshuConductorE2ETests.swift · Wenshu · v0.23 ticket 007 (end-to-end pipeline test)
 //
-// 
+//
 //
 //  This test exercises the FULL conductor pipeline WITHOUT calling real LLM:
 //    1. handle() entry point
@@ -22,17 +22,6 @@ import Testing
 
 @Suite("WenshuConductor E2E (主 agent 派单, 全流程)")
 struct WenshuConductorE2ETests {
-    /// Per-test in-memory SwiftData container (= tests don't share state via
-    /// WSPersistenceContainer.shared). Each WSKanbanRepository is its own
-    /// @MainActor-isolated object with its own ModelContext.
-    /// (= v0.72 SwiftData migration from KanbanStore actor).
-    @MainActor
-    private static func makeKanbanRepository() throws -> WSKanbanRepository {
-        let container = try WSPersistenceContainer.makeInMemoryContainer()
-        return WSKanbanRepository(container: container)
-    }
-
-
 
     /// Pipeline test: handle() with no API key → graceful degradation end-to-end.
     /// Verifies state writes (WSKanbanRepository + WSChatRepository) even when
@@ -40,20 +29,63 @@ struct WenshuConductorE2ETests {
     @Test("e2e pipeline: handle → graceful degradation → state writes")
     @MainActor
     func testE2EGracefulDegradation() async throws {
-        // Set up all stores (real SQLite, tmp paths)
-        let kanban = try Self.makeKanbanRepository()
+        // Set up an isolated repository container (= in-memory SwiftData)
+        // so the test never observes rows from the global
+        // WSRepositoryContainer.shared (= which is used when the
+        // conductor's repositories param is nil). The v0.23 setup
+        // pre-dated WSRepositoryContainer (per §11.4 SwiftData
+        // migration) and used the now-removed KanbanStore actor; =
+        // the v2.7d handle() chain reads .kanban via
+        // `self.repositories.kanban` (= WS* repository singletons
+        // inside WSRepositoryContainer).
+        let testContainer = try WSPersistenceContainer.makeInMemoryContainer()
+        let testRepositories = WSRepositoryContainer(container: testContainer)
         // (= v0.72 SwiftData migration; sessionStore param
         // removed from WenshuConductor init). Sub-agent run persistence now lives
         // exclusively in WSChatRepository.shared (= @MainActor SwiftData wrapper).
         let runtime = AgentRuntime()
-        let verifier = WenshuVerifier()  // no API key → all LLM calls fail
+        let verifier = WenshuVerifier()  // no API key → verifier.chat throws missingAPIKey
+                                         // (= all LLM calls fail → totalTokens stays 0)
 
         let conductor = WenshuConductor(
             runtime: runtime,
-            verifier: verifier
+            verifier: verifier,
+            repositories: testRepositories
         )
 
-        // Step 1: handle entry point
+        // Step 1: handle entry point.
+        // Hermetic backend override (= per Q186 + §11.6 v1.09
+        // TaskLocal backend infrastructure): the v0.23 setup
+        // relied on `WenshuVerifier()` failing because keychain
+        // was empty in the test sandbox. That assumption broke
+        // when resolveCredentials() = keychain lookup became
+        // the default path (= dev env had a real keychain entry
+        // for minimax; = intent call went through and totalTokens
+        // accumulated, = L65 failed). The post-fix test installs
+        // an empty InMemoryKeychainStore via
+        // `ProviderKeychain.setBackendForTesting` and restores the
+        // default backend in `defer { ... }`.
+        //
+        // Global mutation is acceptable in this exact path because
+        // (1) the suite does not run concurrent test bodies that
+        // share the keychain backend (= only one test at a time
+        // touches it here), and (2) the post-fix restore via
+        // `defer` returns the global backend to its default
+        // (= AppleKeychainStore) so subsequent test classes see
+        // the production path. Without this path
+        // (`ProviderKeychain.withBackendForTesting` was the
+        // TaskLocal alternative) the closure executes on a
+        // non-MainActor isolation, which cannot call
+        // MainActor-isolated `conductor.handle` (= Swift 6
+        // region-isolation rule fires).
+        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+        defer {
+            // restore the production backend (= AppleKeychainStore)
+            // after the test body returns = subsequent test
+            // bodies (across the test bundle) see the default.
+            ProviderKeychain.setBackendForTesting(AppleKeychainStore())
+        }
+
         let result = await conductor.handle(
             userMessage: "测试 query",
             sessionId: "default",
@@ -64,8 +96,8 @@ struct WenshuConductorE2ETests {
         #expect(!result.reply.isEmpty, "synthesis graceful degradation should return non-empty reply")
         #expect(result.totalTokens == 0, "no LLM calls succeeded → totalTokens should be 0")
 
-        // Step 7: WSKanbanRepository has the conductor parent task (from handle step 1)
-        let kanbanTasks = try await kanban.list()
+        // Step 7: testRepositories.kanban has the conductor parent task (from handle step 1)
+        let kanbanTasks = try await testRepositories.kanban.list()
         #expect(kanbanTasks.count >= 1, "conductor should write parent kanban task")
         let conductorTask = kanbanTasks.first { $0.title.contains("conductor:") }
         #expect(conductorTask != nil, "should have a conductor:* title task")
@@ -73,7 +105,7 @@ struct WenshuConductorE2ETests {
         // Step 6: sub_agent_runs table should be empty (no sub-agents dispatched since LLM failed)
         // (= v0.72 SwiftData migration; sub-agent runs now live in
         // WSChatRepository.shared (= @MainActor SwiftData wrapper).
-        let subAgentRuns = try WSChatRepository.shared.loadSubAgentRuns(sessionId: "default")
+        let subAgentRuns = try testRepositories.chat.loadSubAgentRuns(sessionId: "default")
         #expect(subAgentRuns.isEmpty, "no LLM → no sub-agent runs persisted")
     }
 
@@ -131,15 +163,14 @@ struct WenshuConductorE2ETests {
         #expect(!note.isEmpty)
         // The note documents the single-key contract (= 1 verifier per
         // conductor, 1 apiKey per verifier, 6 agents sharing the same
-        // key). The exact reference string may evolve ("Boss 2026-08-23
-        // 拍" / "老板 2026-08-23 OOB" / "ag-2026-08-23" / whatever the
-        // canonical OOB-pointer format becomes) = this test asserts the
-        // contract is documented but does NOT assert the exact wording
-        // (= which has already drifted once; = the test was the stale
-        // party, not the doc). The previous assertion
-        // `note.contains("Boss 2026-08-23 拍")` is removed; future
-        // tickets may pin a canonical format and tighten this back if
-        // the design needs it (= future ticket; Q112 1 commit scope).
+        // key). The exact pointer string may evolve ("Boss 2026-08-23
+        // 拍" / "老板 2026-08-23 OOB" / whatever the canonical
+        // pointer format becomes) — this test asserts the contract
+        // is documented but does NOT assert the exact wording
+        // (= which has already drifted once). The previous assertion
+        // `note.contains("Boss 2026-08-23 拍")` was removed; future
+        // tickets may pin a canonical format and tighten this back
+        // if design needs it (= future ticket; 1 commit scope).
         #expect(note.contains("WenshuVerifier"))
         #expect(note.contains("1 key") || note.contains("single key") || note.contains("apiKey") || note.contains("one api key"))
         #expect(note.contains("6 agents") || note.contains("6 agent") || note.contains("1 main") || note.contains("agents") || note.contains("sub"))
@@ -162,7 +193,7 @@ struct WenshuConductorE2ETests {
     @MainActor
     func testSubAgentsHaveNoKey() {
         // Sub-agent identity is just system prompts + tool lists + display names.
-        // No key, no config — boss 8/23: userchange sub-agent config.
+        // No key, no config — boss 8/23: no user-edit sub-agent config.
         for name in SubAgentIdentity.Name.allCases {
             // Verify the public API surface has no key field.
             // (Compile-time guarantee: SubAgentIdentity only exposes
