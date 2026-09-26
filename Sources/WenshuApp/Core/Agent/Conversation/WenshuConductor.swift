@@ -718,6 +718,7 @@ actor WenshuConductor {
         "book_manager",     // Core/Agent/Librarian/BookManagerTool.swift
         "book_outline",     // Core/Agent/Librarian/BookOutlineTool.swift
         "file",             // Core/Tools/FileTools.swift
+        "delegate_research", // Core/Agent/Tool/DelegateResearchTool.swift  (= v2.7 self-evolution: main agent delegates research to researcher sub-agent async; = main agent does NOT block on web_search)
         "kanban",           // Core/Agent/Tool/KanbanStoreTool.swift
         "process",          // Core/Tools/ProcessTools.swift
         "reference_library",// Core/Agent/Librarian/ReferenceLibraryTool.swift
@@ -726,7 +727,7 @@ actor WenshuConductor {
         "todo_hermes",      // Core/Agent/Todo/HermesTodoTool.swift
         "vision",           // Core/Tools/VisionTools.swift
         "web",              // Core/Tools/WebTools.swift  (= URL fetch only)
-        "web_search"        // Core/Agent/Tool/WebSearchTool.swift  (= v0.74 ticket 003-websearch-tool-wire)
+        "web_search"        // Core/Agent/Tool/WebSearchTool.swift  (= v0.74 ticket 003-websearch-tool-wire) — main agent has this for synchronous lookups; = for noun research, prefer `delegate_research` (fire-and-forget)
     ]
 
     /// Maximum time `buildToolsSync(from:)` will wait for the
