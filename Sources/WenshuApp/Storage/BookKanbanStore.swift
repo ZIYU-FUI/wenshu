@@ -38,19 +38,27 @@ struct KanbanTicket: Identifiable, Hashable, Codable, Sendable {
     var status: KanbanStatus
     var createdAt: Date
     var updatedAt: Date
+    /// Agent-written markdown body. 2026-09-28 kanban-markdown arc
+    /// (mirrors hermes 0.21.5 commit 63f5bc0999). Mirrors the
+    /// SwiftData `KanbanTask.body` field (= same write-through path
+    /// in `KanbanOps.add`); this struct is the JSON-file shape that
+    /// KanbanCard renders.
+    var body: String?
 
     init(
         id: UUID = UUID(),
         title: String,
         status: KanbanStatus = .new,
         createdAt: Date = .now,
-        updatedAt: Date = .now
+        updatedAt: Date = .now,
+        body: String? = nil
     ) {
         self.id = id
         self.title = title
         self.status = status
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.body = body
     }
 }
 

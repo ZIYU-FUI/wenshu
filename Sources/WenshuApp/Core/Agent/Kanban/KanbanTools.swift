@@ -224,7 +224,14 @@ actor KanbanTools {
             let task = try await store.add(
                 title: title,
                 priority: params.priority ?? 3,
-                assignee: params.assignee
+                assignee: params.assignee,
+                // Phase 1 T4 (2026-09-28): pass the LLM-authored body
+                // through to the @Model column. Mirrors hermes 0.21.5
+                // commit 63f5bc0999 (feat(kanban): render task text as
+                // markdown) — the LLM tool schema at
+                // KanbanStoreTool.swift:333 already exposes body; the
+                // create() method now writes it through.
+                body: params.body
             )
             return KanbanToolResult(
                 success: true,

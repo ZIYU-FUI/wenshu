@@ -30,12 +30,18 @@ final class WSKanbanTask {
     var completedAt: Date?
     /// Model override (= "claude-sonnet-4.5" etc)
     var modelOverride: String?
+    /// Agent-written body (markdown). 2026-09-28 kanban-markdown arc:
+    /// mirrors hermes 0.21.5 commit 63f5bc0999 (feat(kanban): render
+    /// task text as markdown). KanbanStoreTool already exposes this
+    /// argument to the LLM (= `body / description` at
+    /// KanbanStoreTool.swift:333), but the @Model had no column.
+    var body: String?
     var createdAt: Date
     var updatedAt: Date
 
     init(id: String, title: String, status: String = "new", priority: Int = 5,
          assignee: String? = nil, startedAt: Date? = nil, completedAt: Date? = nil,
-         modelOverride: String? = nil) {
+         modelOverride: String? = nil, body: String? = nil) {
         self.id = id
         self.title = title
         self.status = status
@@ -44,6 +50,7 @@ final class WSKanbanTask {
         self.startedAt = startedAt
         self.completedAt = completedAt
         self.modelOverride = modelOverride
+        self.body = body
         self.createdAt = Date()
         self.updatedAt = Date()
     }

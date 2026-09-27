@@ -382,9 +382,23 @@ private struct KanbanCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
+            // Phase 1 T5/T8 (2026-09-28): render ticket.body when
+            // present, going through the same inline-markdown parser
+            // chat uses (= ChatTextPartView.parseMarkdown). Mirrors
+            // hermes 0.21.5 commit 63f5bc0999: the kanban drawer
+            // reuses MessageTextContent. wenshu's reuse keeps ONE
+            // markdown pipeline across the app — no per-surface parser.
+            if let body = ticket.body, !body.isEmpty {
+                Text(ChatTextPartView.parseMarkdown(body))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(6)
+                    .textSelection(.enabled)
+            }
             Text(ticket.title)
                 .font(.body)
                 .lineLimit(3)
+                .textSelection(.enabled)
             HStack(spacing: 4) {
                 Menu {
                     ForEach(KanbanStatus.allCases, id: \.self) { s in
