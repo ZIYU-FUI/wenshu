@@ -280,6 +280,23 @@ struct EditorPlaceholder: View {
                     // a document lines up with what Pages would show.
                     EditorPaperCanvas {
                         Group {
+                            // chapter-dialog 2026-09-28 T3: small
+                            // inline banner above the editor when
+                            // the LLM holds the cursor (= the
+                            // wrapper cleared the focus lock + is
+                            // mid-edit on this chapter). Apple HIG
+                            // canonical "editing" affordance (= small
+                            // label + spinner; = same shape as Pages'
+                            // 'Saving...' badge). When the LLM edit
+                            // completes, the wrapper restores the
+                            // snapshot (= focusedChapterPath reverts
+                            // = badge disappears, editor reloads
+                            // with the LLM's changes).
+                            if appState.focusedChapterPath != nil
+                                && appState.focusedChapterPath == currentTabDocumentPath
+                                && !shellState.chatVisible {
+                                ChapterFocusLockBadge()
+                            }
                             if mode == .preview {
                         // boss 9/7 OOB 'editor, yes,
                         // shouldgroup': preview mode uses the
