@@ -59,6 +59,11 @@ struct KanbanView: View {
     /// per-book scope, OR the library is not bootstrapped).
     @State private var scopeDir: URL? = nil
 
+    /// kanban-detail-sheet 2026-09-28: nil means no sheet is open.
+    /// The identity is the ticket itself (= sheet(items:) requires
+    /// Identifiable input on macOS; KanbanTicket is already Identifiable).
+    @State private var sheetTicket: KanbanTicket?
+
     init() {}
 
     var body: some View {
@@ -86,6 +91,23 @@ struct KanbanView: View {
         // reloadFromDisk() action re-reads the kanban.json from disk,
         // = useful when the user edits the JSON file externally.
         .refreshable { reloadFromDisk() }
+        // kanban-detail-sheet 2026-09-28: tapping a KanbanCard opens
+        // this read-only body modal. Apple HIG canonical sheet (= no
+        // custom chrome wrapper). .sheet(item:) gives us the ticket
+        // identity (= sheet auto-dismisses when sheetTicket = nil).
+        .sheet(item: $sheetTicket) { ticket in
+            KanbanTicketDetailSheet(
+                ticket: ticket,
+                onDismiss: { sheetTicket = nil }
+            )
+        }
+    }
+
+    /// kanban-detail-sheet 2026-09-28: callback from KanbanCard.onOpen.
+    /// Stashes the ticket into sheetTicket; = the .sheet(item:) binding
+    /// observes the change and animates the modal in.
+    private func onOpenSheet(_ ticket: KanbanTicket) {
+        sheetTicket = ticket
     }
 
     // MARK: - Subviews
@@ -213,7 +235,11 @@ struct KanbanView: View {
                             },
                             onDelete: { ticket in
                                 deleteTicket(ticket)
-                            }
+                            },
+                            // kanban-detail-sheet 2026-09-28:
+                            // open request bubbles up to KanbanView
+                            // (= the View owns the sheetTicket state).
+                            onOpen: { ticket in onOpenSheet(ticket) }
                         )
                     }
                 }
@@ -315,6 +341,9 @@ private struct KanbanColumn: View {
     let tickets: [KanbanTicket]
     let onMove: (KanbanTicket, KanbanStatus) -> Void
     let onDelete: (KanbanTicket) -> Void
+    // kanban-detail-sheet 2026-09-28: column forwards the open
+    // request upward (KanbanView owns the sheet state).
+    let onOpen: (KanbanTicket) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -339,7 +368,10 @@ private struct KanbanColumn: View {
                             KanbanCard(
                                 ticket: ticket,
                                 onMove: { newStatus in onMove(ticket, newStatus) },
-                                onDelete: { onDelete(ticket) }
+                                onDelete: { onDelete(ticket) },
+                                // kanban-detail-sheet 2026-09-28:
+                                // tapping a card surfaces the body sheet.
+                                onOpen: { onOpen(ticket) }
                             )
                         }
                     }
@@ -375,10 +407,16 @@ private struct KanbanColumn: View {
 /// Single Kanban ticket card. Title + status-stepper menu + delete
 /// button. Status stepper lets the user drag a ticket across columns
 /// (= state machine transitions per v0.23 ticket 013.003).
+///
+/// kanban-detail-sheet 2026-09-28: tap target added on the card body
+/// (= Menu area excluded so the status-stepper still works). Clicking
+/// the card opens the read-only body sheet (= Phase 2 of the kanban-
+/// markdown arc; = mirrors hermes 0.21.5 drawer opening on card click).
 private struct KanbanCard: View {
     let ticket: KanbanTicket
     let onMove: (KanbanStatus) -> Void
     let onDelete: () -> Void
+    let onOpen: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -423,13 +461,22 @@ private struct KanbanCard: View {
             }
         }
         .padding(DesignTokens.chromePaddingVertical)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 4))
-        .overlay(
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(.separator, lineWidth: 0.5)
-        )
-    }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.background, in: RoundedRectangle(cornerRadius: 4))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(.separator, lineWidth: 0.5)
+                )
+                // kanban-detail-sheet 2026-09-28: tap on the card body opens
+                // the read-only body sheet. The trailing control row (status
+                // stepper + delete) keeps its own gestures; = contentShape
+                // limits the tap target to the card surface (= excluding the
+                // Menu label / Button hit areas so the existing per-control
+                // handlers still win).
+                .contentShape(Rectangle())
+                .onTapGesture { onOpen() }
+                .hoverWash()
+            }
 
     private func label(for status: KanbanStatus) -> String {
         switch status {

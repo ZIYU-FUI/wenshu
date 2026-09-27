@@ -2,9 +2,9 @@
 //  KanbanTicketDetailSheet.swift · Wenshu · kanban-detail-sheet 2026-09-28
 //
 //  Phase 2 of the kanban-markdown arc. Opens a sheet (= modal) for a
-//  single KanbanTicket so the user can read the full agent-written
-//  body (= markdown = `**Goal:**`, lists, inline code, links) past
-//  the card's `.lineLimit(6)` truncation.
+//  single KanbanTicket so the full agent-written body (= markdown =
+//  `**Goal:**`, lists, inline code, links) can be read past the card's
+//  `.lineLimit(6)` truncation.
 //
 //  Apple HIG components used (= no custom chrome):
 //    - .sheet(isPresented:)
