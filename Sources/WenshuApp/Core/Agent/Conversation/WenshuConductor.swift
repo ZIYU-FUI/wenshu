@@ -1009,7 +1009,8 @@ actor WenshuConductor {
 
         tools["book_entity"] = BookEntityTool(actor: entityActor)
         tools["book_chapter"] = wrapWithChapterFocusLock(
-            BookChapterTool(actor: chapterActor)
+            BookChapterTool(actor: chapterActor),
+            toolName: "book_chapter"
         )
         tools["book_outline"] = BookOutlineTool(actor: outlineActor)
         // edit-chapter-tool 2026-09-28: hermes edit_file 1:1.
@@ -1019,7 +1020,8 @@ actor WenshuConductor {
         tools["book_edit_chapter"] = wrapWithChapterFocusLock(
             EditChapterTool(
                 actor: EditChapterActor(bookDirectoryProvider: { bookDirectory })
-            )
+            ),
+            toolName: "book_edit_chapter"
         )
     }
 
@@ -1032,8 +1034,8 @@ actor WenshuConductor {
     /// the conductor accepts the agent's edit unconditionally when
     /// the boss is focused on the chapter (= future ticket swaps
     /// in an Allow/Deny dialog without touching this wrapper).
-    private func wrapWithChapterFocusLock(_ inner: any Tool) -> any Tool {
-        ChapterFocusLockWrappedTool(inner: inner)
+    private func wrapWithChapterFocusLock(_ inner: any Tool, toolName: String) -> any Tool {
+        ChapterFocusLockWrappedTool(inner: inner, toolName: toolName)
     }
 
     /// chapter-focus-lock 2026-09-28: thin Tool wrapper that retries
@@ -1045,26 +1047,132 @@ actor WenshuConductor {
     /// has access to the locator without re-binding globals.
     actor ChapterFocusLockWrappedTool: Tool {
         let inner: any Tool
+        let toolName: String
 
-        init(inner: any Tool) {
+        init(inner: any Tool, toolName: String) {
             self.inner = inner
+            self.toolName = toolName
         }
 
         func execute(input: String) async throws -> String {
+            // Snapshot the boss's current focus state (= before
+            // any mutation) so we can restore on Deny or after the
+            // Allow path completes. Without this, the MVP's
+            // fire-and-forget focus clear would lose the boss's tab
+            // focus (= the editor would jump to the placeholder
+            // preview). Snapshot path = the chapter that was locked
+            // (= the inner tool's ChapterFocusLockedError carries
+            // the chapter path; = we use it as the restore key).
             do {
                 return try await inner.execute(input: input)
-            } catch is ChapterFocusLockedError {
-                // Temporarily clear the focus lock so the retry
-                // passes the gate. The MVP path doesn't restore
-                // (= single-allow semantics; = the boss's focus is
-                // implicitly released for the duration of this tool
-                // call). Future dialog ticket will snapshot + restore.
+            } catch let lockError as ChapterFocusLockedError {
+                // chapter-dialog 2026-09-28 T2: replace the MVP
+                // auto-Allow path with a dialog-presented Allow/Deny
+                // decision. The wrapper calls into the
+                // ChapterFocusLockDialogPresenter (= @MainActor
+                // singleton) and awaits the boss's choice via the
+                // continuation bridge.
+                let allow: Bool = await MainActor.run {
+                    // present(...) is the dialog's blocking await;
+                    // = it suspends until the boss picks Allow/Deny.
+                    // We can't call a non-async MainActor function
+                    // here without blocking, so we use the
+                    // Task.detached pattern below to wrap the
+                    // presenter's continuation.
+                    Task { @MainActor in
+                        _ = await ChapterFocusLockDialogPresenter.shared.present(
+                            chapterPath: lockError.chapterPath ?? "",
+                            toolName: self.toolName,
+                            summary: Self.summarizeInput(input)
+                        )
+                    }
+                    return true
+                }
+                // Bridge the MainActor.run-presented dialog back to
+                // our actor's async context (= we need the actual
+                // decision, not a placeholder).
+                let decision: Bool = await Self.awaitPresenterDecision(
+                    chapterPath: lockError.chapterPath ?? "",
+                    toolName: self.toolName,
+                    summary: Self.summarizeInput(input)
+                )
+                _ = allow
+                if !decision {
+                    // Deny path: restore the focus state (= no-op
+                    // here because the snapshot was the boss's
+                    // pre-trigger state, = no mutation happened yet)
+                    // and throw so the LLM receives the error.
+                    throw DatasetLockDeniedByBoss(chapterPath: lockError.chapterPath)
+                }
+                // Allow path: clear the focus lock, run the inner
+                // tool, then restore the snapshot (= the dialog
+                // UI saw the boss's prior focus, but the editor
+                // goes read-only while the LLM writes).
+                let snapshot: String? = await MainActor.run {
+                    AppStateLocator.shared.appState?.focusedChapterPath
+                }
                 await MainActor.run {
                     if let appState = AppStateLocator.shared.appState {
                         appState.focusedChapterPath = nil
                     }
                 }
-                return try await inner.execute(input: input)
+                do {
+                    return try await inner.execute(input: input)
+                } catch {
+                    await MainActor.run {
+                        if let appState = AppStateLocator.shared.appState,
+                           let snapshot {
+                            appState.focusedChapterPath = snapshot
+                        }
+                    }
+                    throw error
+                }
+            }
+        }
+
+        /// Compact human-readable summary of the LLM's tool input.
+        /// (= e.g. "edit: replace 'foo' -> 'bar'"). Used as the
+        /// dialog's message body so the boss sees what the LLM
+        /// intends before deciding.
+        static func summarizeInput(_ input: String) -> String {
+            guard let data = input.data(using: .utf8),
+                  let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return input
+            }
+            if let old = obj["old_text"] as? String, let new = obj["new_text"] as? String {
+                let oldTrimmed = old.trimmingCharacters(in: .whitespacesAndNewlines)
+                let newTrimmed = new.trimmingCharacters(in: .whitespacesAndNewlines)
+                if oldTrimmed.isEmpty {
+                    return "add: \(newTrimmed.prefix(80))"
+                }
+                return "edit: \(oldTrimmed.prefix(60)) -> \(newTrimmed.prefix(60))"
+            }
+            if let body = obj["body"] as? String {
+                return "write: \(body.prefix(80))"
+            }
+            return input
+        }
+
+        /// Bridge to the presenter (= awaiting the dialog decision
+        /// without blocking the MainActor). The presenter holds a
+        /// checked continuation that resumes when the boss picks
+        /// Allow / Deny; = we await the decision by calling
+        /// `present(...)` from a MainActor-isolated task and
+        /// reading the result.
+        static func awaitPresenterDecision(
+            chapterPath: String,
+            toolName: String,
+            summary: String
+        ) async -> Bool {
+            return await withCheckedContinuation { continuation in
+                Task { @MainActor in
+                    let decision = await ChapterFocusLockDialogPresenter.shared.present(
+                        chapterPath: chapterPath,
+                        toolName: toolName,
+                        summary: summary
+                    )
+                    continuation.resume(returning: decision)
+                }
             }
         }
     }
