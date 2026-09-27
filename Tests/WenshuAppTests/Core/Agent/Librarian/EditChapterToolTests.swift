@@ -139,59 +139,12 @@ struct EditChapterActorTests {
     }
 }
 
-// MARK: - Forward-declared types (RED: not yet implemented)
-
-/// Mirror of the hermes edit_file tool surface (= wenshu chat scene).
-/// Patch-style chapter edits = replace `old_text` with `new_text`
-/// in the chapter's body, returning a unified-diff envelope.
-actor EditChapterActor {
-    private let bookDirectoryProvider: @Sendable () -> URL?
-    private let currentChatBookIDProvider: @Sendable () -> UUID?
-
-    init(
-        bookDirectoryProvider: @escaping @Sendable () -> URL?,
-        currentChatBookIDProvider: @escaping @Sendable () -> UUID? = { nil }
-    ) {
-        self.bookDirectoryProvider = bookDirectoryProvider
-        self.currentChatBookIDProvider = currentChatBookIDProvider
-    }
-
-    struct EditResult: Equatable, Sendable {
-        let envelope: EditDiffEnvelope
-    }
-
-    /// Replace `oldText` with `newText` inside the chapter body.
-    /// Throws `EditChapterError.oldTextNotFound` when `oldText` is
-    /// not a substring of the body.
-    func editChapter(
-        chapterId: UUID,
-        bookId: UUID,
-        oldText: String,
-        newText: String,
-        summary: String?
-    ) async throws -> EditResult {
-        fatalError("T4 GREEN will land this")
-    }
-}
-
-struct EditDiffEnvelope: Equatable, Sendable {
-    let kind: String
-    let path: String
-    let oldText: String
-    let newText: String
-    let addedChars: Int
-    let removedChars: Int
-    let addedLines: Int
-    let removedLines: Int
-
-    var stats: Stats { Stats(addedChars: addedChars, removedChars: removedChars) }
-    struct Stats: Equatable, Sendable {
-        let addedChars: Int
-        let removedChars: Int
-    }
-}
-
-enum EditChapterError: Error, Equatable {
-    case oldTextNotFound
-    case chapterNotFound
-}
+// MARK: - Diff envelope (= canonical shape emitted by both
+// EditChapterActor (= the new actor in
+// Core/Agent/Librarian/EditChapterActor.swift) and
+// BookChapterActor.update. The struct is defined in the actor
+// file so both call sites use one type.)
+//
+// (Forward declarations are NOT mirrored here — the test imports
+// `@testable import WenshuApp` and resolves the canonical types
+// from the actor file directly.)
