@@ -344,13 +344,34 @@ actor BookChapterActor {
                 let title = envelope["title"] as? String ?? ""
                 let summary = envelope["summary"] as? String
                 let body = Self.extractMarkdown(envelope)
+                // Read the existing body before the update so the success
+                // envelope can carry a unified-diff block (= the chat
+                // tool-result preview surfaces the change to the human).
+                // Mirrors hermes 0.21.5 tool-fallback.tsx, which augments
+                // file-edit tool results with `diff` + `old_text` +
+                // `new_text` for the in-chat preview card.
+                let oldBody: String
+                do {
+                    let (_, existing) = try await readChapter(id: id)
+                    oldBody = existing ?? ""
+                } catch {
+                    // If the chapter didn't exist (= treat as create-flavored
+                    // update), we still want to surface the diff; = empty
+                    // old body means the entire new body is "+" lines.
+                    oldBody = ""
+                }
                 let chapter = try await updateChapter(
                     id: id,
                     title: title,
                     bodyMarkdown: body,
                     summary: summary
                 )
-                return Self.encodeSuccess(action: action, chapter: chapter)
+                return Self.encodeSuccessUpdate(
+                    action: action,
+                    chapter: chapter,
+                    oldBody: oldBody,
+                    newBody: body
+                )
 
             case .delete:
                 guard let id = Self.parseUUID(envelope["id"]) else {
@@ -425,6 +446,161 @@ actor BookChapterActor {
             "body": body ?? ""
         ]
         return encodeJSON(payload)
+    }
+
+    /// Variant for the `update` action — enriches the envelope with a
+    /// unified-diff block so `ChatToolResultPartView` can route the
+    /// result into `ChatToolDiffPreview` (= the hermes 0.21.5
+    /// file-edit preview card surface, 1:1 mirrored here).
+    ///
+    /// Schema:
+    ///   kind    = "diff"
+    ///   diff    = { path, old_text, new_text, stats: { added_chars,
+    ///               removed_chars, added_lines, removed_lines } }
+    ///   diff_stats_canonical = same stats block at the top level for
+    ///         tooling that already routes on `kind:"diff"` (= our chat
+    ///         layer reads `diff.stats`).
+    private static func encodeSuccessUpdate(
+        action: BookChapterAction,
+        chapter: ChapterDescriptor,
+        oldBody: String,
+        newBody: String
+    ) -> String {
+        let diff = Self.computeUnifiedDiff(old: oldBody, new: newBody)
+        let stats = ChatToolDiffPreview.LineStats(
+            addedLines: diff.addedLines,
+            removedLines: diff.removedLines,
+            addedChars: diff.addedChars,
+            removedChars: diff.removedChars
+        )
+        let diffBlock: [String: Any] = [
+            "path": "chapters/\(chapter.id.uuidString).md",
+            "old_text": oldBody,
+            "new_text": newBody,
+            "stats": [
+                "added_chars": stats.addedChars,
+                "removed_chars": stats.removedChars,
+                "added_lines": stats.addedLines,
+                "removed_lines": stats.removedLines
+            ] as [String: Int]
+        ]
+        let payload: [String: Any] = [
+            "ok": true,
+            "action": action.rawValue,
+            "chapter": descriptorToJSON(chapter),
+            "kind": "diff",
+            "diff": diffBlock,
+            "diff_text": diff.text
+        ]
+        return encodeJSON(payload)
+    }
+
+    /// Plain unified-diff product (= text + line / char counts). Pure
+    /// function so it's reachable from unit tests without an actor.
+    struct UnifiedDiff: Equatable, Sendable {
+        let text: String
+        let addedLines: Int
+        let removedLines: Int
+        let addedChars: Int
+        let removedChars: Int
+    }
+
+    /// Compute a minimal unified diff between two strings (= the
+    /// form hermes `tool-fallback.tsx` renders). This is NOT a full
+    /// Myers diff; = it's the `diff` algorithm's "intraline + line
+    /// block" variant (= same lines → kept, changed → +/- lines).
+    /// The body split is line-by-line, so trailing-newline-only edits
+    /// surface as expected by the user-facing metric.
+    ///
+    /// Schema (one hunk, no header noise):
+    ///   "--- old\n+++ new\n@@\n-removed line\n+added line\n context\n"
+    static func computeUnifiedDiff(old: String, new: String) -> UnifiedDiff {
+        let oldLines = old.components(separatedBy: "\n")
+        let newLines = new.components(separatedBy: "\n")
+        // Trailing-newline guard: split(separator:) drops empty trailing
+        // element. Bring it back so the diff stays newline-faithful.
+        var oldSplit = oldLines
+        var newSplit = newLines
+        if old.hasSuffix("\n") && oldSplit.last == "" { oldSplit.removeLast() }
+        if new.hasSuffix("\n") && newSplit.last == "" { newSplit.removeLast() }
+
+        // Two-pointer LCS walk (= the canonical intraline diff surface).
+        let lcs = lcsTable(oldSplit, newSplit)
+        let lines = backtrackDiff(old: oldSplit, new: newSplit, lcs: lcs)
+        var addedLines = 0
+        var removedLines = 0
+        var addedChars = 0
+        var removedChars = 0
+        for entry in lines {
+            switch entry {
+            case .added(let body):
+                addedLines += 1
+                addedChars += body.count
+            case .removed(let body):
+                removedLines += 1
+                removedChars += body.count
+            case .context: continue
+            }
+        }
+        var text = "--- old\n+++ new\n@@\n"
+        for entry in lines {
+            switch entry {
+            case .added(let body): text += "+\(body)\n"
+            case .removed(let body): text += "-\(body)\n"
+            case .context(let body): text += " \(body)\n"
+            }
+        }
+        return UnifiedDiff(
+            text: text,
+            addedLines: addedLines,
+            removedLines: removedLines,
+            addedChars: addedChars,
+            removedChars: removedChars
+        )
+    }
+
+    private enum DiffEntry: Equatable, Sendable {
+        case added(String)
+        case removed(String)
+        case context(String)
+    }
+
+    private static func lcsTable(_ a: [String], _ b: [String]) -> [[Int]] {
+        var table = Array(repeating: Array(repeating: 0, count: b.count + 1), count: a.count + 1)
+        for i in 1...a.count {
+            for j in 1...b.count {
+                if a[i - 1] == b[j - 1] {
+                    table[i][j] = table[i - 1][j - 1] + 1
+                } else {
+                    table[i][j] = max(table[i - 1][j], table[i][j - 1])
+                }
+            }
+        }
+        return table
+    }
+
+    private static func backtrackDiff(
+        old: [String],
+        new: [String],
+        lcs: [[Int]]
+    ) -> [DiffEntry] {
+        var entries: [DiffEntry] = []
+        var i = old.count
+        var j = new.count
+        while i > 0 || j > 0 {
+            if i > 0 && j > 0 && old[i - 1] == new[j - 1] {
+                entries.append(.context(old[i - 1]))
+                i -= 1
+                j -= 1
+            } else if j > 0 && (i == 0 || lcs[i][j - 1] >= lcs[i - 1][j]) {
+                entries.append(.added(new[j - 1]))
+                j -= 1
+            } else if i > 0 {
+                entries.append(.removed(old[i - 1]))
+                i -= 1
+            }
+        }
+        return entries.reversed()
     }
 
     private static func encodeSuccessFind(
