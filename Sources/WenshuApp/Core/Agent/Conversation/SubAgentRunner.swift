@@ -181,6 +181,16 @@ final class SubAgentRunner {
     /// text reply). Production code injects `ToolRegistry.shared`.
     let toolRegistry: ToolRegistry?
 
+    /// Test-only tool registry override. Nil = use the `toolRegistry`
+    /// property (= which defaults to `ToolRegistry.shared` in production
+    /// or nil in unit tests). The override is stored only on the
+    /// test-only init (= production never sets this). Tests that need
+    /// to drive the production tool dispatch path without triggering
+    /// the ToolRegistry.shared + WebSearchTool._registryBootstrap
+    /// Swift concurrency runtime issue use this to inject a fresh
+    /// ToolRegistry actor with only the tools the test needs.
+    private let _isolatedToolRegistry: ToolRegistry?
+
     /// Test-only registry override. Nil = use
     /// `AsyncDelegationRegistry.shared`. Stored only on the
     /// test-only init (= production never sets this).
@@ -206,6 +216,15 @@ final class SubAgentRunner {
         _isolatedRegistry ?? .shared
     }
 
+    /// The tool registry this runner dispatches sub-agent tool calls
+    /// against. Priority: `_isolatedToolRegistry` (= test-only fresh
+    /// actor injected via the isolatedToolRegistry init), then
+    /// `toolRegistry` (= production or nil for unit tests without
+    /// tool dispatch).
+    fileprivate var resolvedToolRegistry: ToolRegistry? {
+        _isolatedToolRegistry ?? toolRegistry
+    }
+
     init(
         connector: any LLMConnector,
         toolRegistry: ToolRegistry? = nil,
@@ -221,6 +240,7 @@ final class SubAgentRunner {
         self.archivistStorage = archivistStorage
         self.auditorStorage = auditorStorage
         self._isolatedRegistry = nil
+        self._isolatedToolRegistry = nil
     }
 
     /// Test-only initializer with an isolated registry (= boss
@@ -243,6 +263,37 @@ final class SubAgentRunner {
         self.archivistStorage = archivistStorage
         self.auditorStorage = auditorStorage
         self._isolatedRegistry = isolatedRegistry
+        self._isolatedToolRegistry = nil
+    }
+
+    /// Test-only initializer that bypasses ToolRegistry.shared. Use
+    /// this when the test exercises the production tool dispatch
+    /// path (= real KeylessRing HTTP round-trip) but cannot tolerate
+    /// the ToolRegistry.shared + WebSearchTool._registryBootstrap
+    /// Swift concurrency runtime issue (= signal 5 abort). The
+    /// `isolatedToolRegistry` is a fresh ToolRegistry actor with
+    /// only the tools the test needs (= typically just `web_search`).
+    ///
+    /// Per Q46 stop-rule (= 2026-09-26 Gap 3 follow-up): this
+    /// initializer exists solely to enable the live sub-agent
+    /// web_search E2E without crashing the test process.
+    init(
+        isolatedRegistry: AsyncDelegationRegistry,
+        isolatedToolRegistry: ToolRegistry,
+        connector: any LLMConnector,
+        maxBatchSize: Int = 3,
+        maxSubAgentTurns: Int = 5,
+        archivistStorage: ArchivistStorage? = nil,
+        auditorStorage: AuditorStorage? = nil
+    ) {
+        self.connector = connector
+        self.toolRegistry = nil
+        self.maxBatchSize = maxBatchSize
+        self.maxSubAgentTurns = maxSubAgentTurns
+        self.archivistStorage = archivistStorage
+        self.auditorStorage = auditorStorage
+        self._isolatedRegistry = isolatedRegistry
+        self._isolatedToolRegistry = isolatedToolRegistry
     }
 
     /// Drain up to `maxBatchSize` pending handles. Each handle is
@@ -413,7 +464,7 @@ final class SubAgentRunner {
         let toolNames = SubAgentIdentity.tools(name: agentName)
         var tools: [String: any Tool] = [:]
         var toolSchemas: [ToolRegistrySchema] = []
-        if let registry = toolRegistry {
+        if let registry = resolvedToolRegistry {
             for name in toolNames {
                 if let handler = await registry.getHandler(name: name) {
                     tools[name] = handler
