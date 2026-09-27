@@ -2,14 +2,12 @@
 //  Core/Agent/Librarian/BookChapterToolDiffTests.swift · chat-diff-preview 2026-09-28 T2
 //
 //  RED tests for Phase 2: BookChapterTool.update's success envelope
-//  carries a `kind:"diff"` block (= {diff, old_text, new_text,
-//  added_chars, removed_chars}) so ChatToolResultPartView can route
+//  carries a `kind:"diff"` block so ChatToolResultPartView can route
 //  the result into ChatToolDiffPreview. Mirrors hermes 0.21.5
-//  `tool-fallback.tsx` augmenting the diff metadata for file-edit
-//  tools (= write_file, edit_file, patch).
+//  tool-fallback.tsx augmenting the diff metadata for file-edit tools
+//  (write_file / edit_file / patch).
 //
-//  The test runs against an in-memory chapter store (= on-disk
-//  fixture pattern used elsewhere in BookChapterTool tests).
+//  Async Swift Testing — drives the actor directly via its async API.
 //
 
 import Foundation
@@ -20,109 +18,106 @@ import Testing
 struct BookChapterToolDiffEnvelopeTests {
 
     @Test("update envelope carries kind='diff' with diff text and +/- char counts")
-    func updateEnvelopeHasDiff() throws {
-        // Drive the actor with a fresh on-disk chapter = real BookChapterTool
-        // path. We point its bookDirectoryProvider at a tmp dir; = chapter
-        // ID is generated, body is written, then update with new body
-        // should produce a diff envelope.
-        let tmp = FileManager.default.temporaryDirectory
-            .appendingPathComponent("BookChapterToolDiffEnvelopeTests-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: tmp) }
+    func updateEnvelopeHasDiff() async throws {
+        let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-diff-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmpRoot) }
 
-        let actor = BookChapterActor(
-            bookDirectoryProvider: { tmp },
-            currentChatBookIDProvider: { nil }
+        UserDefaultsStore.shared.setString(
+            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
+            forKey: .libraryPath
         )
-        // Use the structured execute API (= same as ToolExecutor.invokeTool).
-        let createdEnvelope: [String: Any] = [
-            "action": "create",
-            "title": "第一章 测试",
-            "summary": "测试用",
-            "markdown": "第一行原文。\n第二行原文。\n"
-        ]
-        guard let createdJSON = try JSONSerialization.data(
-            withJSONObject: createdEnvelope,
-            options: []
-        ).toJSONString() else {
-            Issue.record("JSONSerialization failed"); return
+
+        let bookId = UUID()
+        let actor = BookChapterActor(
+            bookDirectoryProvider: { tmpRoot },
+            currentChatBookIDProvider: { bookId }
+        )
+
+        let createInput = """
+        {"action":"create","title":"第一章 测试","summary":"测试用","book_id":"\(bookId.uuidString)","markdown":"第一行原文。\\n第二行原文。\\n"}
+        """
+        let createOutput = try await actor.execute(input: createInput)
+        let createPayload = try jsonObject(createOutput)
+        guard let chapter = createPayload["chapter"] as? [String: Any] else {
+            Issue.record("create did not return a chapter object: \(createPayload)")
+            return
         }
-        let createdResult = try awaitDirect(actor: actor, input: createdJSON)
-        // createdResult.ok == true + id present
-        guard case .success(let payload) = createdResult,
-              let chapter = payload["chapter"] as? [String: Any],
-              let idString = chapter["id"] as? String,
-              let id = UUID(uuidString: idString) else {
-            Issue.record("create did not return a chapter id"); return
+        guard let idString = chapter["id"] as? String else {
+            Issue.record("chapter object missing id: \(chapter)")
+            return
         }
 
-        // Now update with a different body.
-        let updateEnvelope: [String: Any] = [
-            "action": "update",
-            "id": idString,
-            "title": "第一章 测试",
-            "markdown": "第一行原文改成新增。\n第二行原文。\n第三行全新。\n"
-        ]
-        guard let updateJSON = try JSONSerialization.data(
-            withJSONObject: updateEnvelope,
-            options: []
-        ).toJSONString() else {
-            Issue.record("JSONSerialization failed"); return
+        let updateInput = """
+        {"action":"update","id":"\(idString)","title":"第一章 测试","book_id":"\(bookId.uuidString)","markdown":"第一行原文改成新增。\\n第二行原文。\\n第三行全新。\\n"}
+        """
+        let updateOutput = try await actor.execute(input: updateInput)
+        let updatePayload = try jsonObject(updateOutput)
+
+        // 1. Kind marker.
+        let kind = updatePayload["kind"] as? String
+        #expect(kind == "diff")
+
+        // 2. Diff block.
+        guard let diffPayload = updatePayload["diff"] as? [String: Any] else {
+            Issue.record("update envelope must carry a diff block")
+            return
         }
-        let updateResult = try awaitDirect(actor: actor, input: updateJSON)
-        guard case .success(let updatePayload) = updateResult else {
-            Issue.record("update did not succeed"); return
+
+        // 3. Diff stats.
+        guard let stats = diffPayload["stats"] as? [String: Any] else {
+            Issue.record("diff block must carry stats")
+            return
         }
-        // The envelope must carry the diff-friendly block.
-        #expect(updatePayload["kind"] as? String == "diff")
-        let diffPayload = updatePayload["diff"] as? [String: Any]
-        #expect(diffPayload != nil, "update envelope must carry a diff block")
-        #expect(diffPayload?["path"] as? String == "chapters/<id>.md" || diffPayload?["path"] is String)
-        let stats = diffPayload?["stats"] as? [String: Any]
-        #expect(stats?["added_chars"] is Int)
-        #expect(stats?["removed_chars"] is Int)
-        let addedChars = stats?["added_chars"] as? Int ?? 0
-        let removedChars = stats?["removed_chars"] as? Int ?? 0
-        // The new text added ~10 chars on the first changed line + new line 3.
+        let addedChars = stats["added_chars"] as? Int ?? -1
+        let removedChars = stats["removed_chars"] as? Int ?? -1
         #expect(addedChars > 0)
         #expect(removedChars > 0)
     }
-}
 
-// Local helpers (= avoid spreading JSON wrappers across the suite).
+    @Test("update envelope diff block's old_text and new_text mirror the chapter body")
+    func updateEnvelopeCarriesOldAndNew() async throws {
+        let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-diff-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmpRoot) }
 
-enum BookChapterTestToolResult {
-    case success([String: Any])
-    case failure(String)
-}
+        UserDefaultsStore.shared.setString(
+            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
+            forKey: .libraryPath
+        )
 
-private func awaitDirect(actor: BookChapterActor, input: String) throws -> BookChapterTestToolResult {
-    // BookChapterActor.execute is async — wrap synchronously via a semaphore
-    // so the @Test bodies stay non-async.
-    let sema = DispatchSemaphore(value: 0)
-    var captured: BookChapterTestToolResult = .failure("did-not-run")
-    Task.detached {
-        let text = try await actor.execute(input: input)
-        let data = Data(text.utf8)
-        if let obj = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-            if obj["ok"] as? Bool == true {
-                captured = .success(obj)
-            } else {
-                captured = .failure(obj["error"] as? String ?? "unknown")
-            }
-        } else {
-            captured = .failure("not-json: \(text)")
+        let bookId = UUID()
+        let actor = BookChapterActor(
+            bookDirectoryProvider: { tmpRoot },
+            currentChatBookIDProvider: { bookId }
+        )
+
+        let createInput = "{\"action\":\"create\",\"title\":\"T\",\"book_id\":\"\(bookId.uuidString)\",\"markdown\":\"before\\n\"}"
+        let createOutput = try await actor.execute(input: createInput)
+        let createPayload = try jsonObject(createOutput)
+        guard let chapter = createPayload["chapter"] as? [String: Any],
+              let idString = chapter["id"] as? String else {
+            Issue.record("create failed")
+            return
         }
-        sema.signal()
+        let updateInput = "{\"action\":\"update\",\"id\":\"\(idString)\",\"title\":\"T\",\"book_id\":\"\(bookId.uuidString)\",\"markdown\":\"after\\n\"}"
+        let updateOutput = try await actor.execute(input: updateInput)
+        let updatePayload = try jsonObject(updateOutput)
+        guard let diff = updatePayload["diff"] as? [String: Any] else {
+            Issue.record("update envelope missing diff block")
+            return
+        }
+        let oldText = diff["old_text"] as? String
+        let newText = diff["new_text"] as? String
+        #expect(oldText == "before\n")
+        #expect(newText == "after\n")
     }
-    sema.wait()
-    return captured
 }
 
-private extension Data {
-    /// Wrap Data -> JSON string for the input pipeline.
-    func toJSONString() -> String? {
-        guard let s = String(data: self, encoding: .utf8) else { return nil }
-        return s
+private func jsonObject(_ raw: String) throws -> [String: Any] {
+    let data = Data(raw.utf8)
+    guard let obj = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+        throw NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "not a JSON object: \(raw)"])
     }
+    return obj
 }
