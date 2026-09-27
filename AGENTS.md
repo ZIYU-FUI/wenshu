@@ -1924,3 +1924,110 @@ RED-first per topic per Q112.)
 - It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 are unchanged).
 
 This §11.20 section is the canonical record of chat-diff-preview arc (= up-to-date as of 2026-09-28). Future amendments (§11.21+) land below.
+
+# §11.21 edit-chapter-tool arc (= boss 2026-09-28 OOB '继续复刻 — hermes edit_file 1:1')
+
+Per boss 2026-09-28 OOB (= continue + the chat-diff-preview arc
+leaves an explicit future ticket for `EditChapterTool` / hermes
+`edit_file` 1:1), this arc lands the patch-style chapter edit
+surface (= substring `old_text`/`new_text` replace) so the
+LLM can edit a chapter in place instead of replacing the
+whole body.
+
+Hermes 真值: hermes 0.21.5 ships three file-edit tools
+(`write_file`, `edit_file`, `patch`) — all of them route to
+the same `ChatToolDiffPreview` surface. Wenshu mirrors this
+with two surfaces:
+  - `BookChapterTool.update` (= the v1.85 `write_file` analogue)
+  - `EditChapterTool.edit` (= this arc's `edit_file` analogue)
+
+Both emit the same `kind:"diff"` envelope so ChatToolResultPartView's
+diff-routing path (= §11.20) is stable.
+
+## Arc shape (= 2 commits on `wt/edit-chapter-tool-2026-09-28`)
+
+| # | Commit | Scope |
+|---|---|---|
+| T4 RED+GREEN | `e24be58e5` | `EditChapterActorTests` (3 tests) + `EditChapterActor` (NEW actor + diff envelope + LCS algorithm) + delete forward-declared types from test file |
+| T5 RED+GREEN | `e30b7e4e0` | `EditChapterToolWireTests` (3 tests) + `EditChapterTool` (thin actor wrapper) + `WenshuConductor.tools["book_edit_chapter"]` wire + `bookScopeGuardedToolNames` registration |
+
+## Files changed (= 5)
+
+| # | Path | Type |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Core/Agent/Librarian/EditChapterActor.swift` | NEW (242 LOC) |
+| 2 | `Sources/WenshuApp/Core/Agent/Librarian/EditChapterTool.swift` | NEW (47 LOC) |
+| 3 | `Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift` | MODIFY (+8 / -1) |
+| 4 | `Tests/WenshuAppTests/Core/Agent/Librarian/EditChapterToolTests.swift` | NEW (3 tests) |
+| 5 | `Tests/WenshuAppTests/Core/Agent/Librarian/EditChapterToolWireTests.swift` | NEW (3 tests) |
+
+## Why this shape (= design decisions)
+
+1. **Separate actor + tool (= not a new action on BookChapterActor)**:
+   hermes splits `write_file` / `edit_file` / `patch` into separate
+   tools with separate dispatcher surfaces. Wenshu mirrors that
+   for clarity (= SSOT per surface; = no shared state to coordinate).
+2. **Shared diff envelope schema (= `EditDiffEnvelope`)**:
+   `BookChapterTool.update` and `EditChapterActor.edit` both emit
+   the canonical `{kind, diff:{path, old_text, new_text, stats},
+   diff_text}` shape. `ChatToolResultPartView.extractDiffPayload`
+   reads either envelope (= 1 routing seam, 2 producers).
+3. **LCS-based diff (= same algorithm as BookChapterActor.update)**:
+   the two surfaces have independent implementations of the diff
+   (= Q112 prefers separate actors per tool surface); = the
+   algorithm is the same (= straightforward LCS walk). Future
+   ticket can factor out a `DiffUtilities.swift` shared module
+   if a 3rd surface appears (= but Q112 currently forbids it for
+   only 2 surfaces).
+4. **Book-scope guard integration**: `book_edit_chapter` joins the
+   `bookScopeGuardedToolNames` set (= editing a chapter requires
+   the chat session to be bound to that book; = mirrors
+   `book_chapter` / `book_entity` / `book_outline`).
+5. **`old_text` substring match (= hermes edit_file semantics)**:
+   when `old_text` isn't a substring of the body, the tool throws
+   `old_text_not_found` (= the LLM re-issues with tighter context).
+   No fuzzy match (= would be hermes-side policy drift).
+
+## Acceptance (= per Q112 + Q99 dual-axis)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 = 1 source + 1 test per commit | YES (T4 / T5 each = 1 source + 1 test, atomic) |
+| 2 | `swift build --target WenshuApp{Tests}` clean | YES (0 errors / 0 warnings introduced) |
+| 3 | `swift test --filter "EditChapter"` | 6/6 pass (= 3 actor + 3 tool wire-up) |
+| 4 | `swift test --filter "Chat\|Kanban\|BookChapter\|EditChapter"` combined | 688/688 pass (= +6 from this arc, 0 regression) |
+| 5 | New SPM dependency count | 0 (= LCS-based diff is built-in; = no new deps) |
+| 6 | `import SQLite3` count in production | 0 (= unchanged from §11.7d closure) |
+| 7 | `public` declaration count change | 0 (no public surface touched) |
+| 8 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved) |
+| 9 | `bash Tools/devtool/double-axis.sh main HEAD` | spec axis 5/5 PASS / standards axis 7/7 PASS |
+
+## What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | `BookChapterTool.update` envelope (= v1.85 / §11.20) | unchanged — this arc adds a sibling surface (= `book_edit_chapter`), not a replacement |
+| 2 | `ChatToolResultPartView.extractDiffPayload` (= §11.20) | unchanged — already handles any envelope carrying `kind:"diff"` + `diff` block |
+| 3 | `ChatToolDiffPreview` (= §11.20) | unchanged — already renders any unified-diff body |
+| 4 | `FileSystemChapterStore.replaceChapter` | unchanged — `EditChapterActor` calls it with the patched body (= write path is identical to `BookChapterActor.update`) |
+| 5 | `PathGuard v2` (= `/tmp` library root) | unchanged — test fixtures reuse the v2.0 / v2.2 makeBookDirectory pattern |
+
+## Future tickets (= NOT done in this arc)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | Factor out a `DiffUtilities.swift` shared module (= LCS + diff envelope schema) | Q112 prefers separate actors per tool surface; = the algorithm duplication is bounded at 2 surfaces today |
+| 2 | Multi-hunk diff (= chapter edits >100KB) | current LCS implementation is single-hunk; = future ticket when boss hits a chapter that needs multi-hunk |
+| 3 | `ChatToolDiffPreview` tap-to-expand sheet (= long-diff → sheet) | §11.20 future ticket 3; = future arc when boss asks |
+| 4 | `WriteFileTool` path-whitelist + `kind:"diff"` envelope (= write to research-report.md outside chapters) | Q112 scope; = separate arc when boss extends WriteFileTool's allow-list |
+| 5 | Mirror `EditChapterTool` schema into the `book_edit_chapter` ToolRegistry entry (= currently WenshuConductor only) | Q112 scope; = future ticket when boss wants a non-conductor path (= e.g. standalone test rig) |
+
+## What this section (§11.21) does NOT do
+
+- It does not amend AGENTS.md §11 baseline (= English-only, no forbidden vocab, no xianxia family, 老板 only).
+- It does not touch §11.1 third-party library policy (= zero new SPM deps).
+- It does not touch §11.4 SwiftData migration (= no schema changes).
+- It does not touch §11.7 sqlite3-zero migration (= unchanged).
+- It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 are unchanged).
+
+This §11.21 section is the canonical record of the edit-chapter-tool arc (= up-to-date as of 2026-09-28). Future amendments (§11.22+) land below.
