@@ -34,6 +34,14 @@ struct EditorEditContent: View {
     @Binding var draft: String
     let originalBody: String
     let onSave: () -> Void
+    // chapter-focus-lock 2026-09-28: caller (= EditorPlaceholder)
+    // computes this from AppState.focusedChapterPath vs the tab's
+    // documentPath. When true, the LLM holds the cursor for this
+    // chapter path (= the boss has the editor focused); = the
+    // editor flips to read-only so the boss can't type. Pure
+    // rendering surface (= no AppState coupling) is preserved by
+    // keeping the predicate decision at the caller boundary.
+    let isChapterLockedByLLM: Bool
     // word count callback (= char count → host writes to
     // AppState.editorWordCount, which chrome reads for the bottom-bar
     // left field). Decoupled from AppState so EditorEditContent
@@ -88,7 +96,15 @@ struct EditorEditContent: View {
             // : edit mode = editable NSTextView
             // (= same engine wrapper as preview, = no scaling
             // between modes).
-            isEditable: true
+            //
+            // chapter-focus-lock 2026-09-28: when the boss has this
+            // chapter's editor tab active (= AppState.focusedChapterPath
+            // matches the tab's documentPath), flip isEditable to
+            // false so the boss can't type while the LLM holds the
+            // cursor (= single-focus model per boss 2026-09-28 OOB
+            // '互锁编辑权限'). Other chapters (= the LLM is editing
+            // a different chapter) keep isEditable: true.
+            isEditable: !isChapterLockedByLLM
         )
             // (= per-keystroke; = Foundation-only recompute). Host
             // (EditorPlaceholder) routes the value into

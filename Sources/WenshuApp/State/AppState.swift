@@ -142,6 +142,20 @@ final class AppState {
             persistOpenTabs()
         }
     }
+    // chapter-focus-lock 2026-09-28: single-focus source of truth
+    // for chapter editing (= boss 2026-09-28 OOB '互锁编辑权限').
+    // nil = no tab is open OR the active tab has no document
+    // (= LLM can edit). non-nil = the boss has this chapter's tab
+    // open AND that tab is the currently-active one (= LLM tool
+    // calls into this path throw `chapterFocusedByBoss`). The
+    // chatVisible gate (= LLM can edit when boss is in chat) lives
+    // at the call site (= EditorPlaceholder computes the final
+    // isChapterLockedByLLM using its @Environment(ShellState.self)
+    // because AppState cannot hold @Environment-bound state).
+    var focusedChapterPath: String? {
+        guard let tab = openTabs.first(where: { $0.id == activeTabId }) else { return nil }
+        return tab.documentPath
+    }
     var activeTabId: UUID = UUID() {
         didSet {
             // 
