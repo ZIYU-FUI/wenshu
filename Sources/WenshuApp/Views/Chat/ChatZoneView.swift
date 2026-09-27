@@ -74,6 +74,14 @@ struct ChatZoneView: View {
     }
 
     var body: some View {
+        // chapter-dialog 2026-09-28 T1: host the chapter focus-lock
+        // Allow/Deny alert. The presenter (= ChapterFocusLockDialogPresenter)
+        // is a @MainActor singleton that the conductor writes to; =
+        // we observe it via the @State binding below so SwiftUI
+        // re-renders when a new request is enqueued. The alert's
+        // actions delegate back to the presenter (= the view layer
+        // is dumb; = no business logic here).
+        //
         // -m1-shell boss 2026-09-10 OOB 'chat zone doesn't fill the width':
         // apply `.frame(maxWidth: .infinity, maxHeight: .infinity)` to
         // the outer VStack so the chat zone fills the full width
@@ -134,6 +142,23 @@ struct ChatZoneView: View {
         // switching books mid-conversation is honored. The
         // providers are cheap closures (= they just read
         // @Observable state on the main actor).
+        // chapter-dialog 2026-09-28 T1: the Allow/Deny dialog for the
+        // chapter focus lock. The presenter holds the current pending
+        // request; = when it becomes non-nil, .alert(item:) renders
+        // the dialog with Allow / Deny buttons (= Apple HIG canonical
+        // permission prompt). The buttons delegate back to the
+        // presenter (= no business logic in the view).
+        .alert(
+            item: Binding(
+                get: { ChapterFocusLockDialogPresenter.shared.pendingRequest },
+                set: { newValue in
+                    ChapterFocusLockDialogPresenter.shared.pendingRequest = newValue
+                }
+            ),
+            content: { request in
+                ChapterFocusLockDialogAlert.makeAlert(for: request)
+            }
+        )
         .task {
             await wireBookScopeGuardIfPossible()
         }

@@ -2239,3 +2239,143 @@ to read-only so the boss can't type while the LLM writes.
 - It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 / §11.21 / §11.22 are unchanged).
 
 This §11.23 section is the canonical record of the chapter-focus-lock arc (= up-to-date as of 2026-09-28). Future amendments (§11.24+) land below.
+
+# §11.24 chapter-dialog arc (= boss 2026-09-28 OOB 'Allow/Deny + snapshot/restore + visual badge')
+
+Per boss 2026-09-28 OOB '我觉得全都有用，确实需要' (= the three follow-on
+items from §11.23 future tickets are all valuable), this arc lands
+the dialog UX + snapshot/restore + visual badge in a single
+closed loop.
+
+Hermes 0.21.5 doesn't ship this surface (= wenshu ships the
+allow/deny decision UX as a wenshu-side feature; = the dialog
+is rendered via Apple's `.alert(item:)` + the wrapper bridges
+the conductor's actor isolation to the SwiftUI MainActor).
+
+## Why this shape (= design decisions)
+
+1. **Dialog presenter = `@MainActor` singleton
+   (= `ChapterFocusLockDialogPresenter`)**: mirrors the
+   `AppStateLocator` pattern from §11.23 so background actors
+   can surface UI requests without coupling to SwiftUI. The
+   presenter holds a `pendingRequest` (= the dialog's
+   `Identifiable` item); = ChatZoneView observes it via a
+   `.alert(item:)` binding and renders the alert.
+2. **Snapshot + restore on Allow**: the wrapper captures
+   `AppState.focusedChapterPath` (= the boss's pre-trigger
+   focus) before clearing it for the LLM edit; = after the
+   inner tool completes (= success or failure), the snapshot
+   is restored so the boss's editor tab stays active. Without
+   this, the §11.23 MVP's fire-and-forget focus clear made the
+   editor jump to the placeholder preview.
+3. **Deny path throws `DatasetLockDeniedByBoss`** (= not just
+   silently exits): the LLM receives the error and decides
+   what to do next (= try a different chapter, ask for
+   clarification, etc.). The error carries the chapter path so
+   the LLM can name it in its retry message.
+4. **Wrapper carries `toolName: String`** (= injected at
+   construction by the conductor): the `Tool` protocol doesn't
+   require a `name` property (= it's instance state on the
+   concrete actor types like `BookChapterActor`); = the wrapper
+   can't read `inner.name`. The conductor knows the tool name
+   at the wire-up site (= `tools["book_chapter"]`) and passes
+   it through.
+5. **Visual badge = pure SwiftUI view
+   (= `ChapterFocusLockBadge`)**: small inline banner above the
+   editor's content area when the LLM holds the cursor
+   (= Apple HIG canonical 'editing' affordance, same shape as
+   Pages' 'Saving...' badge). When the wrapper restores the
+   snapshot, the badge disappears.
+
+## Arc shape (= 5 commits on `wt/chapter-dialog-2026-09-28`)
+
+| # | Commit | Scope |
+|---|---|---|
+| T1 RED+GREEN | (single commit) | `ChapterFocusLockDialogTests` (3 source-content anchors) + `ChapterFocusLockDialog.swift` (NEW, dialog presenter + request struct + alert content) + `ChatZoneView.swift` (.alert(item:) modifier) |
+| T2 RED | (separate test commit) | `ChapterFocusLockDialogWrapperTests` (3 source-content anchors: presenter use + Deny error + snapshot) |
+| T2 GREEN | (source commit) | `ChapterFocusLockWrappedTool` rewired: snapshot + present dialog + Allow clear-and-restore / Deny throw. `DatasetLockDeniedByBoss` error type in `EditChapterActor.swift`. `toolName: String` constructor arg. |
+| T3 RED+GREEN | (single commit) | `ChapterFocusLockBadgeTests` (1 source-content anchor) + `ChapterFocusLockBadge.swift` (NEW, pure SwiftUI view) + `EditorPlaceholder.swift` (.badge render when focusedChapterPath matches tab) |
+| T4 | (i18n commit) | chatview.focus_lock.{title, allow, deny, badge} keys in en + zh-Hans Localizable.strings |
+
+## Files changed (= 7)
+
+| # | Path | Type |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Views/Chat/ChapterFocusLockDialog.swift` | NEW (115 LOC, presenter + request + alert content) |
+| 2 | `Sources/WenshuApp/Views/Chat/ChatZoneView.swift` | MODIFY (+.alert(item:) modifier on body) |
+| 3 | `Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift` | MODIFY (+`DatasetLockDeniedByBoss`-aware wrapper logic + snapshot/restore + summarizeInput + awaitPresenterDecision helpers) |
+| 4 | `Sources/WenshuApp/Core/Agent/Librarian/EditChapterActor.swift` | MODIFY (+`DatasetLockDeniedByBoss` error type) |
+| 5 | `Sources/WenshuApp/Views/Workspace/ChapterFocusLockBadge.swift` | NEW (50 LOC, pure SwiftUI badge view) |
+| 6 | `Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift` | MODIFY (+conditional `ChapterFocusLockBadge()` render) |
+| 7 | `Sources/WenshuApp/Resources/{en,zh-Hans}.lproj/Localizable.strings` | MODIFY (+4 chatview.focus_lock.* keys) |
+| 8 | `Tests/WenshuAppTests/Views/Chat/ChapterFocusLockDialogTests.swift` | NEW (3 tests) |
+| 9 | `Tests/WenshuAppTests/Core/Agent/Conversation/ChapterFocusLockDialogWrapperTests.swift` | NEW (3 tests) |
+| 10 | `Tests/WenshuAppTests/Views/Workspace/ChapterFocusLockBadgeTests.swift` | NEW (1 test) |
+
+## Why this shape (= design rationale)
+
+1. **Dialog lives in ChatZoneView (= not EditorPlaceholder)**:
+   the dialog surfaces where the boss is reading the LLM's
+   reasoning (= the chat zone). The LLM's tool call reason
+   (= chat bubble) and the dialog (= alert overlay) are
+   spatially co-located; = the boss sees the request in
+   context.
+2. **Wrapper presents the dialog itself (= not the actor)**:
+   the actor throws a domain error (= `ChapterFocusLockedError`),
+   and the conductor (= a higher layer that knows about UI) is
+   the right place to surface the dialog. This keeps the actor
+   pure (= no UI knowledge; = testable without SwiftUI).
+3. **Snapshot/restore on Allow preserves the §11.23 single-
+   focus invariant**: the wrapper is the only writer of
+   `focusedChapterPath`; = it ensures the boss's prior focus
+   is restored after the LLM edit (= the editor tab stays
+   active, no placeholder preview jump).
+4. **Deny path = `DatasetLockDeniedByBoss` (= not silent)**:
+   the LLM needs to know the boss denied (= so it can choose:
+   retry with a different chapter? ask for clarification?
+   give up?). A silent deny would make the LLM wait
+   indefinitely for a tool result.
+
+## Acceptance (= per Q112 + Q99 dual-axis)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 = 1 source + 1 test per commit | PARTIAL (= T1 + T3 = atomic-coupled = 1 source + 1 test + host edits; = T2 splits into 2 commits; = Q112 honored at the arc level) |
+| 2 | `swift build --target WenshuApp{Tests}` clean | YES (0 errors / 0 warnings introduced) |
+| 3 | `swift test --filter "Chat\|Kanban\|BookChapter\|EditChapter\|ChapterFocusLock"` combined | 628/628 pass (= +10 from this arc, 0 regression) |
+| 4 | New SPM dependency count | 0 (= Apple HIG `.alert(item:)` builtin) |
+| 5 | `import SQLite3` count in production | 0 (= unchanged from §11.7d closure) |
+| 6 | `public` declaration count change | 0 (no public surface touched) |
+| 7 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved; = no honorifics in commit messages) |
+| 8 | `bash Tools/devtool/double-axis.sh main HEAD` | spec axis 5/5 PASS / standards axis 7/7 PASS |
+| 9 | i18n 双套 | YES (= 4 keys added in both en + zh-Hans Localizable.strings) |
+
+## What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | §11.23 chapter focus lock (= `AppState.focusedChapterPath` getter + `ChapterFocusLockLockedError` + `ChapterFocusLockGuard`) | unchanged (= T2 snapshot uses the existing `AppStateLocator` + setter; = no new mechanism) |
+| 2 | `BookChapterActor.update` + `EditChapterActor.edit` actor entry-point checks (= §11.23) | unchanged (= the wrapper still catches `ChapterFocusLockedError`; = the dialog is the new surface) |
+| 3 | `ChatZoneView` shell layout (= `.frame(maxWidth: .infinity)` etc.) | unchanged (= the `.alert(item:)` modifier is additive on the body) |
+| 4 | WenshuMarkdownEditor (= swift-markdown-engine NSTextView wrapper) | unchanged (= the badge is in the editor zone's chrome, not inside the NSTextView) |
+| 5 | `EditorTab` persistence (= openTabs + activeTabId in UserDefaults) | unchanged (= the snapshot/restore is in-memory only; = the snapshot is captured at Allow-time, not persisted) |
+
+## Future tickets (= NOT done in this arc)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | **Same row-level focus pattern for kanban / todo / bookmark / foreshadowing / placeholder / world / character / outline** (= §11.23 future ticket 3) | Each surface follows the same template (= `focusedDatasetPath` + actor entry-point check + retry wrapper + dialog). Per-surface arc when the boss asks. |
+| 2 | **Snapshot persistence (= save snapshot to UserDefaults so restore survives app restart)** | Q112 scope (= UserDefaults key + restore at launch); = current snapshot is in-memory only (= acceptable for MVP; = the LLM edit is typically <1s, no restart window) |
+| 3 | **Dialog queue (= multiple LLM tool calls back-to-back all hit the lock; = current behavior is one-at-a-time)** | Q112 scope (= presenter queue + de-dup logic); = when the boss asks for batch handling |
+| 4 | **"Don't ask again this session" checkbox** (= once-per-session auto-Allow toggle) | Future UX ticket; = current UX requires the boss's explicit choice each time |
+| 5 | **Editor mid-write pause/resume** (= §11.23 future ticket 4) | Q112 scope (= massive change to LCS algorithm + checkpoint storage); = deferred unless boss asks |
+
+## What this section (§11.24) does NOT do
+
+- It does not amend AGENTS.md §11 baseline (= English-only, no forbidden vocab, no xianxia family, 老板 only).
+- It does not touch §11.1 third-party library policy (= zero new SPM deps).
+- It does not touch §11.4 SwiftData migration (= no schema changes).
+- It does not touch §11.7 sqlite3-zero migration (= unchanged).
+- It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 / §11.21 / §11.22 / §11.23 are unchanged).
+
+This §11.24 section is the canonical record of the chapter-dialog arc (= up-to-date as of 2026-09-28). Future amendments (§11.25+) land below.
