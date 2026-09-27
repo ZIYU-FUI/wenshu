@@ -1008,15 +1008,65 @@ actor WenshuConductor {
         )
 
         tools["book_entity"] = BookEntityTool(actor: entityActor)
-        tools["book_chapter"] = BookChapterTool(actor: chapterActor)
+        tools["book_chapter"] = wrapWithChapterFocusLock(
+            BookChapterTool(actor: chapterActor)
+        )
         tools["book_outline"] = BookOutlineTool(actor: outlineActor)
         // edit-chapter-tool 2026-09-28: hermes edit_file 1:1.
         // Patch-style chapter edit (= substring replace) returns
         // the same kind:"diff" envelope as BookChapterTool.update,
         // so ChatToolDiffPreview's input is stable across both.
-        tools["book_edit_chapter"] = EditChapterTool(
-            actor: EditChapterActor(bookDirectoryProvider: { bookDirectory })
+        tools["book_edit_chapter"] = wrapWithChapterFocusLock(
+            EditChapterTool(
+                actor: EditChapterActor(bookDirectoryProvider: { bookDirectory })
+            )
         )
+    }
+
+    /// chapter-focus-lock 2026-09-28: wrap a Tool whose entry point
+    /// may throw `ChapterFocusedByBossError` (= BookChapterTool,
+    /// EditChapterTool) in a retry wrapper that temporarily
+    /// releases the boss's editor focus (= AppStateLocator.shared
+    /// .appState?.focusedChapterPath = nil) so the agent's second
+    /// attempt passes the gate. This is the auto-Allow MVP path:
+    /// the conductor accepts the agent's edit unconditionally when
+    /// the boss is focused on the chapter (= future ticket swaps
+    /// in an Allow/Deny dialog without touching this wrapper).
+    private func wrapWithChapterFocusLock(_ inner: any Tool) -> any Tool {
+        ChapterFocusLockWrappedTool(inner: inner)
+    }
+
+    /// chapter-focus-lock 2026-09-28: thin Tool wrapper that retries
+    /// once after releasing the chapter focus lock when the inner
+    /// tool throws ChapterFocusedByBossError. The MVP auto-Allow
+    /// path (= the conductor treats a focused boss as approval to
+    /// proceed; = see `wrapWithChapterFocusLock` for the future
+    /// Allow/Deny UI ticket). Nested inside WenshuConductor so it
+    /// has access to the locator without re-binding globals.
+    actor ChapterFocusLockWrappedTool: Tool {
+        let inner: any Tool
+
+        init(inner: any Tool) {
+            self.inner = inner
+        }
+
+        func execute(input: String) async throws -> String {
+            do {
+                return try await inner.execute(input: input)
+            } catch is ChapterFocusedByBossError {
+                // Temporarily clear the focus lock so the retry
+                // passes the gate. The MVP path doesn't restore
+                // (= single-allow semantics; = the boss's focus is
+                // implicitly released for the duration of this tool
+                // call). Future dialog ticket will snapshot + restore.
+                await MainActor.run {
+                    if let appState = AppStateLocator.shared.appState {
+                        appState.focusedChapterPath = nil
+                    }
+                }
+                return try await inner.execute(input: input)
+            }
+        }
     }
 
     /// Test-only: inject a tool directly into the tools dict. Used
