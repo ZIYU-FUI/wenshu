@@ -56,6 +56,12 @@ struct EditorPlaceholder: View {
     // WindowGroup root in App.swift + LibraryRootView, per
     // fix pattern).
     @Environment(BookStore.self) private var bookStore
+    // chapter-focus-lock 2026-09-28: editor flips to read-only when
+    // the boss has this tab focused AND the chat zone isn't visible
+    // (= the LLM is rewriting this chapter). The chatVisible gate
+    // lives here because AppState cannot hold @Environment-bound
+    // state (= ShellState is environment-injected per P2-06 split).
+    @Environment(ShellState.self) private var shellState
 
     // P2 #19 (WIRE-PARAGRAPH-002): live editor selection snapshot
     // (= the text the paragraph_ai buttons operate on). The
@@ -331,6 +337,18 @@ struct EditorPlaceholder: View {
                             ),
                             originalBody: originalBody,
                             onSave: { saveDraft() },
+                            // chapter-focus-lock 2026-09-28:
+                            // compute the single-focus predicate at
+                            // the caller boundary (= no AppState /
+                            // ShellState coupling inside the editor
+                            // view). When the active tab's path
+                            // matches AppState.focusedChapterPath
+                            // AND the boss isn't in chat, the editor
+                            // flips to read-only so the LLM holds
+                            // the cursor.
+                            isChapterLockedByLLM: appState.focusedChapterPath != nil
+                                && !shellState.chatVisible
+                                && appState.focusedChapterPath == currentTabDocumentPath,
                             // route live word count into shared
                             // AppState.editorWordCount (= chrome bottom-bar
                             // left field reads it). Recompute is per-
@@ -514,6 +532,15 @@ struct EditorPlaceholder: View {
     }
     private var activeTabIndex: Int? {
         appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId })
+    }
+
+    // chapter-focus-lock 2026-09-28: convenience accessor for the
+    // single-focus lock predicate (= AppState.focusedChapterPath
+    // vs the active tab's path). Mirrors what AppState already
+    // computes, but here at the call site we can also gate on
+    // shellState.chatVisible (= the LLM-can-edit gate).
+    private var currentTabDocumentPath: String? {
+        activeTab?.documentPath
     }
 
     private var draft: String {

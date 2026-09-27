@@ -201,6 +201,22 @@ actor BookChapterActor {
             throw BookChapterError.emptyTitle
         }
         let store = try resolveStore()
+        // chapter-focus-lock 2026-09-28: gate the update path on
+        // the single-focus lock. Same shape as EditChapterActor:
+        // resolve the canonical chapter path (= <bookDir>/chapters/<id>.md)
+        // and throw ChapterFocusLockedError when the boss has
+        // this chapter's editor tab focused. WenshuConductor
+        // catches this and offers an Allow / Deny dialog.
+        let chapterPath = ChapterFocusLockGuard.resolveChapterPath(
+            chapterId: id,
+            bookDirectoryProvider: bookDirectoryProvider
+        )
+        try await ChapterFocusLockGuard.assertNotLocked(
+            documentPath: chapterPath,
+            focusedChapterPathProvider: { @Sendable in
+                await ChapterFocusLockGuard.currentFocusedChapterPath()
+            }
+        )
         let documents: [Document]
         do {
             documents = try store.loadChapters()

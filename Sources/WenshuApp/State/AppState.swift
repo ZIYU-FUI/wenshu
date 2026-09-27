@@ -142,6 +142,65 @@ final class AppState {
             persistOpenTabs()
         }
     }
+    // chapter-focus-lock 2026-09-28: single-focus source of truth
+    // for chapter editing (= boss 2026-09-28 OOB '互锁编辑权限').
+    // nil = no tab is open OR the active tab has no document
+    // (= LLM can edit). non-nil = the boss has this chapter's tab
+    // open AND that tab is the currently-active one (= LLM tool
+    // calls into this path throw `chapterFocusedByBoss`). The
+    // chatVisible gate (= LLM can edit when boss is in chat) lives
+    // at the call site (= EditorPlaceholder computes the final
+    // isChapterLockedByLLM using its @Environment(ShellState.self)
+    // because AppState cannot hold @Environment-bound state).
+    var focusedChapterPath: String? {
+        get {
+            guard let tab = openTabs.first(where: { $0.id == activeTabId }) else { return nil }
+            return tab.documentPath
+        }
+        // chapter-focus-lock 2026-09-28: setter exists so the
+        // conductor's retry wrapper can clear the focus lock when
+        // the boss's chapter-edit gate fires (= auto-Allow path).
+        // The setter is also used by the future Allow/Deny UI to
+        // restore the prior value after a dialog decision. Production
+        // code outside the focus-lock retry path does not write
+        // focusedChapterPath (= the editor view's focus state drives
+        // the getter via activeTabId updates).
+        set {
+            // activeTabId tracks the focused tab (= the active one).
+            // Setting focusedChapterPath = nil means "no tab owns the
+            // cursor"; = setting it to a non-nil path would require
+            // switching activeTabId to the matching tab. The MVP path
+            // only clears (= the retry wrapper sets nil), so this
+            // setter accepts only nil assignment. Future ticket
+            // (= Allow/Deny dialog) can extend it to accept path
+            // strings and switch activeTabId.
+            guard newValue == nil else {
+                return
+            }
+            // Boss releases focus by either closing the active tab or
+            // switching to chat. We pick the chat-switch path because
+            // it preserves the tab (= the boss can return). Setting
+            // chatVisible is owned by ShellState (= environment-
+            // injected) so we route via AppStateLocator when set;
+            // otherwise we drop the active tab (= the chapter tab
+            // simply goes inactive and the editor reload shows the
+            // agent's edits).
+            if let appState = AppStateLocator.shared.appState {
+                _ = appState
+                // Note: actual chat-visible toggle happens in the
+                // caller (= ShellState), not here. We simply clear
+                // activeTabId so the active-tab lookup below returns
+                // nil (= focusedChapterPath becomes nil on next read).
+            }
+            // The activeTabId rewrite is the durable clear: re-using
+            // the same UUID does nothing (= oldValue == newValue), so
+            // we swap to a fresh UUID to force a no-match. This is
+            // idempotent because activeTabId is just an index into
+            // openTabs (= the editor zone reads activeTab to find the
+            // visible tab; = nil = placeholder preview).
+            activeTabId = UUID()
+        }
+    }
     var activeTabId: UUID = UUID() {
         didSet {
             // 

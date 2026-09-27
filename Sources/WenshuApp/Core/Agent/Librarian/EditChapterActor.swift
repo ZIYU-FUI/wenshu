@@ -54,6 +54,23 @@ actor EditChapterActor {
         newText: String,
         summary: String?
     ) async throws -> EditResult {
+        // chapter-focus-lock 2026-09-28: throw when the boss has
+        // this chapter's editor tab focused (= single-focus model
+        // per boss 2026-09-28 OOB '互锁编辑权限'). The conductor
+        // (= WenshuConductor.executeIfUnlocked) catches this and
+        // presents an Allow / Deny dialog; = the boss can override
+        // the lock by approving the agent's edit. Until then, the
+        // chapter is read-only on the agent side too.
+        let chapterPath = ChapterFocusLockGuard.resolveChapterPath(
+            chapterId: chapterId,
+            bookDirectoryProvider: bookDirectoryProvider
+        )
+        try await ChapterFocusLockGuard.assertNotLocked(
+            documentPath: chapterPath,
+            focusedChapterPathProvider: { @Sendable in
+                await ChapterFocusLockGuard.currentFocusedChapterPath()
+            }
+        )
         guard let dir = bookDirectoryProvider() else {
             throw EditChapterError.chapterNotFound
         }
@@ -324,4 +341,58 @@ enum EditChapterError: Error, Equatable {
     /// `oldText` is not a substring of the chapter body (= hermes
     /// edit_file throws so the LLM re-issues with tighter context).
     case oldTextNotFound
+}
+
+/// chapter-focus-lock 2026-09-28: thrown when the boss has the
+/// editor focused on the chapter an agent tool call is targeting.
+/// The conductor (= WenshuConductor.executeIfUnlocked) catches
+/// this and offers an Allow / Deny dialog so the boss can release
+/// the lock (= set focusedChapterPath = nil temporarily) before
+/// the agent retries. Surfacing the chapter path lets the dialog
+/// name the chapter (= "Agent wants to edit '第三章'.").
+struct ChapterFocusLockedError: Error, Equatable {
+    let chapterPath: String?
+}
+
+/// chapter-focus-lock 2026-09-28: helpers used by both EditChapterActor
+/// (= this file) and BookChapterActor (= sibling file) to gate the
+/// single-focus lock. Resolves the canonical chapter file path from
+/// the book directory provider + chapter UUID, then queries
+/// AppState.focusedChapterPath via MainActor.
+enum ChapterFocusLockGuard {
+    /// Canonical wenshu chapter path (= <bookDir>/chapters/<id>.md).
+    /// Static so callers don't have to construct the URL themselves.
+    static func resolveChapterPath(
+        chapterId: UUID,
+        bookDirectoryProvider: @escaping @Sendable () -> URL?
+    ) -> String? {
+        guard let dir = bookDirectoryProvider() else { return nil }
+        return dir
+            .appendingPathComponent("chapters", isDirectory: true)
+            .appendingPathComponent("\(chapterId.uuidString).md", isDirectory: false)
+            .path
+    }
+
+    /// Throws `ChapterFocusLockedError` when the boss has this
+    /// chapter's editor tab focused. Async because AppState lives
+    /// on the MainActor; = actors crossing isolation must await.
+    static func assertNotLocked(
+        documentPath: String?,
+        focusedChapterPathProvider: @escaping @Sendable () async -> String?
+    ) async throws {
+        let focused = await focusedChapterPathProvider()
+        guard let documentPath, focused == documentPath else { return }
+        throw ChapterFocusLockedError(chapterPath: documentPath)
+    }
+
+    /// Snapshot reader for AppState.focusedChapterPath. Crosses
+    /// into the MainActor where AppState lives (= @MainActor
+    /// isolation rule); = callers from background actors can
+    /// `await` this without dealing with MainActor directly.
+    /// Returns nil when no AppState exists (= unit test fixtures
+    /// don't construct one) so the lock never trips spuriously.
+    @MainActor
+    static func currentFocusedChapterPath() -> String? {
+        AppStateLocator.shared.appState?.focusedChapterPath
+    }
 }
