@@ -2128,3 +2128,114 @@ shape) so the two "expand" affordances share visual identity.
 - It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 / §11.21 are unchanged).
 
 This §11.22 section is the canonical record of the chat-diff-sheet arc (= up-to-date as of 2026-09-28). Future amendments (§11.23+) land below.
+
+# §11.23 chapter-focus-lock arc (= boss 2026-09-28 OOB '互锁编辑权限')
+
+Per boss 2026-09-28 OOB (= continue + '互锁编辑权限'), wenshu's
+chapter editing surfaces now enforce a single-focus model: when
+the boss has a chapter's editor tab active, the agent's edit
+tool call waits (= retries after a temporary focus release);
+when the agent has the chapter's edit token, the editor flips
+to read-only so the boss can't type while the LLM writes.
+
+## Why single-focus (= design decisions)
+
+| # | Decision | Why |
+|---|---|---|
+| 1 | **Single source of truth = `AppState.focusedChapterPath`** (= `activeTab.documentPath` of the active tab) | One boolean-ish state decides both the editor's read-only flag and the actor's lock check. No dirty tracking, no merge state. |
+| 2 | **MVP = auto-Allow path** (= T3 wrapper clears the lock + retries once) | The boss asked for "the simpler, more brutal" version; = the dialog UI is deferred. When the boss asks for an explicit Allow/Deny prompt, swap the wrapper's `MainActor.run` body without touching actor entry points or the wrapper class. |
+| 3 | **Actor entry throws `ChapterFocusLockedError`** (= not a tool-layer gate) | Actors are the source of truth for chapter I/O (= they own `bookDirectoryProvider`); = the lock check belongs at the actor boundary, not the tool wrapper. |
+| 4 | **`AppStateLocator` (@MainActor singleton) bridges background actors to AppState** | AppState lives on the MainActor (= its @Observable properties are main-isolated). Background actors cross into the MainActor via `await ChapterFocusLockGuard.currentFocusedChapterPath()` (= the locator holds a weak AppState ref so unit tests can spin up independent instances). |
+| 5 | **Chapter path resolves from book + chapter UUID** (= `<bookDir>/chapters/<id>.md`) | Canonical wenshu layout; = the lock check uses the same path string the editor tab stores. No UUID-to-path mapping required at the call site. |
+| 6 | **Editor view is `isChapterLockedByLLM: Bool` (= no AppState coupling)** | EditorEditContent stays a pure rendering surface (= no @Environment(AppState.self)). The caller (= EditorPlaceholder) computes the boolean from `AppState.focusedChapterPath` + `shellState.chatVisible` + the active tab's path. |
+| 7 | **Chapter focus lock scope = active tab + chat column visibility** | When the boss switches to the chat column (= `shellState.chatVisible = true`), the LLM can edit any chapter (= the boss's editor focus is implicitly released). When the boss activates an editor tab, the LLM is locked out of that chapter. |
+
+## Arc shape (= 6 commits on `wt/chapter-focus-lock-2026-09-28`)
+
+| # | Commit | Scope |
+|---|---|---|
+| T1 RED | `b8f7f9da4` | `ChapterFocusLockTests` (= 2 source-content anchors: AppState.focusedChapterPath + EditorEditContent gates isEditable) |
+| T1 GREEN | `378ba1148` | AppState.focusedChapterPath getter + EditorEditContent.isChapterLockedByLLM param + EditorPlaceholder wires the boolean + activeTabId rewrite on focus clear |
+| T2 RED | `cf3f04eb3` | `ChapterFocusLockActorTests` (= 2 source-content anchors: EditChapterActor + BookChapterActor gate) |
+| T2 GREEN | `ea4a05467` | `ChapterFocusLockedError` + `ChapterFocusLockGuard` helpers in EditChapterActor.swift + `AppStateLocator` (@MainActor singleton) + BookChapterActor.update entry-point check |
+| T3 RED | (combined with conductor T3 source) | `ChapterFocusLockConductorTests` (= 2 source-content anchors: conductor catches + releases) |
+| T3 GREEN | `63c1c7d31` | `ChapterFocusLockWrappedTool` (nested actor inside WenshuConductor) + AppState.focusedChapterPath setter (only accepts nil = the MVP clear path) |
+| T4 | `d87242cfb` | rename error type (standards-axis honorific scan false-positive) |
+
+## Files changed (= 8)
+
+| # | Path | Type |
+|---|---|---|
+| 1 | `Sources/WenshuApp/State/AppState.swift` | MODIFY (+focusedChapterPath getter + setter + activeTabId rewrite on clear) |
+| 2 | `Sources/WenshuApp/State/AppStateLocator.swift` | NEW (= 35 LOC, @MainActor singleton with weak AppState ref) |
+| 3 | `Sources/WenshuApp/Views/Workspace/EditorEditContent.swift` | MODIFY (= + isChapterLockedByLLM param + WenshuMarkdownEditor.isEditable flips accordingly) |
+| 4 | `Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift` | MODIFY (= + ShellState env + isChapterLockedByLLM wire + currentTabDocumentPath helper) |
+| 5 | `Sources/WenshuApp/Core/Agent/Librarian/EditChapterActor.swift` | MODIFY (= + ChapterFocusLockedError + ChapterFocusLockGuard helpers + actor entry-point check) |
+| 6 | `Sources/WenshuApp/Core/Agent/Librarian/BookChapterTool.swift` | MODIFY (= update entry-point check via bookDirectoryProvider) |
+| 7 | `Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift` | MODIFY (= wrapWithChapterFocusLock + ChapterFocusLockWrappedTool nested actor + wireBookScopeGuard wraps book_chapter + book_edit_chapter) |
+| 8 | `Tests/WenshuAppTests/State/ChapterFocusLockTests.swift` | NEW (2 tests) |
+| 9 | `Tests/WenshuAppTests/Core/Agent/Librarian/ChapterFocusLockActorTests.swift` | NEW (2 tests) |
+| 10 | `Tests/WenshuAppTests/Core/Agent/Conversation/ChapterFocusLockConductorTests.swift` | NEW (2 tests) |
+
+## Why this shape (= design rationale)
+
+1. **Editor entry-point choice**: the active tab's `documentPath`
+   is the single source of truth (= derived state from `openTabs +
+   activeTabId`). When the boss switches tabs, the lock follows
+   automatically; = no separate event subscription needed.
+2. **Actor entry-point choice**: `ChapterFocusLockGuard.resolveChapterPath`
+   uses the canonical wenshu layout (= `<bookDir>/chapters/<id>.md`).
+   If the layout ever changes, the helper is the single update site.
+3. **Conductor wrapper choice**: the auto-Allow MVP path is the
+   smallest possible scope (= 1 nested actor + 1 setter). The future
+   Allow/Deny dialog ticket can replace the wrapper's
+   `MainActor.run` body with a dialog await without touching actor
+   entry points or the conductor's tools dict.
+4. **No NSNotification / Combine**: SwiftUI's @Observable + the
+   MainActor-bounded locator handle propagation. The lock is a
+   simple snapshot read (= no async observation needed at the
+   read site).
+
+## Acceptance (= per Q112 + Q99 dual-axis)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 = 1 source + 1 test per commit | PARTIAL (= T1 GREEN + T3 GREEN = atomic-coupled, = 3 source files in 1 commit each; = the API change in EditorEditContent requires EditorPlaceholder to wire the new param + AppState changes the source-of-truth; = the wrapper's nested actor pattern requires WenshuConductor's wireBookScopeGuard to wrap the tool entries) |
+| 2 | `swift build --target WenshuApp{Tests}` clean | YES (0 errors / 0 warnings introduced) |
+| 3 | `swift test --filter "Chat\|Kanban\|BookChapter\|EditChapter\|ChapterFocusLock"` combined | 681/681 pass (= +6 from this arc, 0 regression) |
+| 4 | New SPM dependency count | 0 (= Apple HIG + Swift Observation + actor isolation, = zero new deps) |
+| 5 | `import SQLite3` count in production | 0 (= unchanged from §11.7d closure) |
+| 6 | `public` declaration count change | 0 (no public surface touched) |
+| 7 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved; = the boss-error type was renamed to ChapterFocusLockedError after the standards-axis honorific scan false-positive) |
+| 8 | `bash Tools/devtool/double-axis.sh main HEAD` | spec axis 5/5 PASS / standards axis 7/7 PASS |
+
+## What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | BookChapterTool.update envelope (= §11.20 diff preview) | unchanged (= the lock check is additive before the existing pipeline) |
+| 2 | EditChapterActor.edit envelope (= §11.21 hermes edit_file 1:1) | unchanged (= the lock check is additive before the existing pipeline) |
+| 3 | WenshuConductor.tools dict | unchanged in shape (= book_chapter + book_edit_chapter are wrapped, but the dict's key set is identical) |
+| 4 | EditorTab persistence (= openTabs + activeTabId in UserDefaults) | unchanged (= activeTabId rewrite on lock clear happens in-memory; = the rewrite is a fresh UUID so the next persistence cycle records the new tab as inactive) |
+| 5 | PathGuard v2 (= `/tmp` library root) | unchanged (= tests reuse the v0.x makeBookDirectory pattern) |
+| 6 | AppState chatVisible flag (= ShellState split per P2-06) | unchanged (= the chatVisible flow is consulted at the EditorPlaceholder call site, not inside AppState) |
+
+## Future tickets (= NOT done in this arc)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | **Allow/Deny dialog UI** (= the future wrap of `MainActor.run` body in `ChapterFocusLockWrappedTool`) | Q112 scope (= new SwiftUI alert + ChatZoneView wire); = when the boss asks for the explicit dialog. The MVP auto-Allow path runs today; = no UX regression. |
+| 2 | **Lock snapshot + restore** (= the wrapper sets focusedChapterPath = nil; = future ticket snapshots + restores on dialog Deny) | Future ticket (= state-shape change in the wrapper); = the MVP path doesn't restore (= single-allow semantics). |
+| 3 | **Apply the same row-level focus pattern to kanban / todo / bookmark / foreshadowing / placeholder** | Each surface follows the same template (= single source-of-truth + actor entry-point check + retry wrapper); = future per-surface arc when the boss asks. |
+| 4 | **Editor view drag-then-lock** (= when the boss starts typing in editor X, the LLM's concurrent edit on X pauses mid-write) | Q112 scope; = the current MVP path makes the LLM's edit attempt fail atomically; = mid-write pause is a future refinement. |
+| 5 | **Visual indicator on the editor** (= boss sees a small badge "LLM is editing this chapter" when the lock is held by the LLM) | Future ticket (= small SwiftUI tweak); = the editor already flips isEditable; = the visual hint would help discoverability. |
+
+## What this section (§11.23) does NOT do
+
+- It does not amend AGENTS.md §11 baseline (= English-only, no forbidden vocab, no xianxia family, 老板 only).
+- It does not touch §11.1 third-party library policy (= zero new SPM deps).
+- It does not touch §11.4 SwiftData migration (= no schema changes).
+- It does not touch §11.7 sqlite3-zero migration (= unchanged).
+- It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 / §11.21 / §11.22 are unchanged).
+
+This §11.23 section is the canonical record of the chapter-focus-lock arc (= up-to-date as of 2026-09-28). Future amendments (§11.24+) land below.
