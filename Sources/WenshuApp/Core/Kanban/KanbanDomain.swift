@@ -47,6 +47,9 @@ struct KanbanTask: Equatable, Sendable {
     var completedAt: Date?
     /// .003: model used for this task (e.g. "MiniMax-M3", "claude-3.7-sonnet").
     var modelOverride: String?
+    /// Agent-written markdown body. 2026-09-28 kanban-markdown arc:
+    /// mirrors WSKanbanTask.body (= the SwiftData column added in T1).
+    var body: String?
 
     init(
         id: String = UUID().uuidString,
@@ -58,7 +61,8 @@ struct KanbanTask: Equatable, Sendable {
         assignee: String? = nil,
         startedAt: Date? = nil,
         completedAt: Date? = nil,
-        modelOverride: String? = nil
+        modelOverride: String? = nil,
+        body: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -70,5 +74,6 @@ struct KanbanTask: Equatable, Sendable {
         self.startedAt = startedAt
         self.completedAt = completedAt
         self.modelOverride = modelOverride
+        self.body = body
     }
 }

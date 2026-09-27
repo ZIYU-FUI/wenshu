@@ -33,9 +33,24 @@ struct KanbanDomainBodyTests {
 
     @Test("KanbanTask equality considers body")
     func equalityIncludesBody() {
-        let a = KanbanTask(title: "t", body: "x")
-        let b = KanbanTask(title: "t", body: "x")
-        let c = KanbanTask(title: "t", body: "y")
+        // Anchor every nondeterministic field so the only difference is `body`.
+        let fixedId = "fixed-equality-id"
+        let fixedDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let a = KanbanTask(
+            id: fixedId, title: "t",
+            createdAt: fixedDate, updatedAt: fixedDate,
+            body: "x"
+        )
+        let b = KanbanTask(
+            id: fixedId, title: "t",
+            createdAt: fixedDate, updatedAt: fixedDate,
+            body: "x"
+        )
+        let c = KanbanTask(
+            id: fixedId, title: "t",
+            createdAt: fixedDate, updatedAt: fixedDate,
+            body: "y"
+        )
         #expect(a == b)
         #expect(a != c)
     }
