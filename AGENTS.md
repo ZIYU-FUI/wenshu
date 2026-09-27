@@ -1676,3 +1676,81 @@ Per boss 2026-09-25 OOB (= user-edit on SOUL/AGENTS/.cursorrules/skill markdown 
 - It does not delete `WSMemoryProvider.swift` (= it stays as the canonical SwiftData-backed MemoryProvider implementation; = the wenshu-side wins pattern per §11.3).
 
 This §11.17 section is the canonical record of the v2.4 skill cleanup + memory rewire arc (= up-to-date as of 2026-09-25). Future amendments (= §11.18+) land below.
+
+# §11.18 v1.85 kanban-markdown render arc (= boss 2026-09-28 OOB)
+
+Per boss 2026-09-28 OOB (= mirrors hermes 0.21.5 commit `63f5bc0999 feat(kanban): render task text as markdown and drop the duplicated feed label`): wenshu kanban task bodies go through the same inline-markdown parser chat uses (= `ChatTextPartView.parseMarkdown`). One markdown pipeline, no per-surface parser.
+
+## Why this arc exists
+
+Hermes 0.21.5 changed the kanban drawer so description / result / latest summary / comment bodies all render through `MessageTextContent` (= the chat-side markdown component). Before this arc, wenshu's `KanbanStoreTool` already declared `body / description` to the LLM (= `KanbanStoreTool.swift:333`) but the body silently dropped between the tool envelope and the rendered card:
+
+| # | Layer | Before arc | After arc |
+|---|---|---|---|
+| 1 | `KanbanStoreTool.buildParams` parsed body into `params.body` | yes | yes |
+| 2 | `KanbanTools.create(params:)` forwarded body into `store.add(...)` | **no** (= silent drop) | yes |
+| 3 | `WSKanbanTask @Model` had a `body` column | **no** | yes |
+| 4 | `KanbanTask` domain struct had `body` | **no** | yes |
+| 5 | `WSKanbanRepository.add` and `mapToDomain` carried body | partial (only `modelOverride`) | yes |
+| 6 | `KanbanTicket` (JSON-side, what `KanbanCard` renders) had `body` | **no** | yes |
+| 7 | `KanbanOps.addTicket` accepted body | **no** | yes |
+| 8 | `KanbanCard` rendered body via MD parser | **no** (= plain `Text(ticket.title)`) | yes |
+
+Result: LLM-authored `**Goal:** ...`, lists, inline code on kanban task bodies now render the same way as chat messages.
+
+## Files changed (= 8 commits = 4 RED + 4 GREEN)
+
+| # | File | Change |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Persistence/WSKanbanTask.swift` | +`body: String?` column + init param |
+| 2 | `Sources/WenshuApp/Core/Kanban/KanbanDomain.swift` | +`body: String?` on `KanbanTask` |
+| 3 | `Sources/WenshuApp/Persistence/Repositories/WSKanbanRepository.swift` | `add(...)` accepts body; `mapToDomain` passes body through |
+| 4 | `Sources/WenshuApp/Core/Agent/Kanban/KanbanTools.swift` | `create(params:)` forwards `params.body` to `store.add` |
+| 5 | `Sources/WenshuApp/Storage/BookKanbanStore.swift` | +`body: String?` on JSON-side `KanbanTicket` |
+| 6 | `Sources/WenshuApp/Views/Kanban/KanbanOps.swift` | `addTicket(bookId:scope:resolver:title:body:to:)` |
+| 7 | `Sources/WenshuApp/Views/Kanban/KanbanView.swift` | `KanbanCard` renders `ticket.body` via `ChatTextPartView.parseMarkdown` (above title, `.callout` / `.secondary`, `.lineLimit(6)`, `.textSelection(.enabled)`) |
+| 8 | 7 new test files (16 tests across 7 suites; all RED-GREEN paired) | T1 `WSKanbanTaskBodyTests`, T2 `KanbanDomainBodyTests`, T3 `WSKanbanRepositoryBodyTests`, T4 `KanbanStoreToolBodyTests`, T5 `KanbanCardBodyMDTests`, T6 `KanbanTicketBodyTests`, T7 `KanbanOpsAddBodyTests` |
+
+## Acceptance
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 standing rule | 16 commits = 8 RED + 8 GREEN (= 4 RED tests + 4 source-driven REDs paired into commits) |
+| 2 | `swift build --target WenshuApp{Tests}` | clean (= 0 errors introduced; pre-existing `#UnnecessaryEffectMarker` warnings unrelated) |
+| 3 | `swift test --filter "KanbanTaskBody\|KanbanDomainBody\|WSKanbanRepositoryBody\|KanbanStoreToolBody\|KanbanCardBodyMD\|KanbanTicketBody\|KanbanOpsAddBody"` isolated | 16/16 tests pass across 7 suites |
+| 4 | `swift test --filter Kanban` isolated | 102/102 tests pass across 20 suites (no regression) |
+| 5 | `public` declaration count change | 0 (= no public surface touched) |
+| 6 | New SPM dependency | 0 (= Apple `AttributedString(markdown: .inlineOnlyPreservingWhitespace)` + the existing `ChatTextPartView.parseMarkdown` helper = zero new deps) |
+| 7 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved) |
+
+## Why a single markdown pipeline (= design stance)
+
+Hermes 0.21.5 chose `MessageTextContent` (= the chat-side markdown component) for kanban. Wenshu follows 1:1: the kanban card parses body through `ChatTextPartView.parseMarkdown` (= the wenshu equivalent). One source of truth for inline markdown = any change to chat's parser automatically flows to kanban. Per `wenshu-apple-api-first` and `boss 2026-09-02 OOB '排查 apple api 自造代码'`, custom parsers are forbidden.
+
+## What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | `KanbanStoreTool.execute(input:)` non-body actions | unchanged (= body was the only addition) |
+| 2 | `WSKanbanTask` schema migration | additive (= new column; = existing rows read with `body = nil`; = per §11.4 standing rule no manual `ALTER TABLE` required) |
+| 3 | `KanbanTicket` JSON-file round-trip | additive (= new field with default `nil`; = existing `kanban.json` files decodable) |
+| 4 | `ChatTextPartView.parseMarkdown` = nonisolated static | unchanged (= reused by KanbanCard; = no signature drift) |
+| 5 | `KanbanOps.addTicket(bookId:scope:resolver:title:to:)` callers | unchanged (= body has default `nil`; = caller-side signature drift is zero for the in-tree `KanbanView` add-row call site) |
+
+## What is NOT done (= future tickets)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | Detail sheet for kanban task body (= hermes-style drawer / panel) | Q112 scope (= new sheet file + sheet host wiring in `KanbanView` + click handler on `KanbanCard`); = when boss asks for "click card → full body" |
+| 2 | Wire `KanbanOps.addTicket` to the LLM tool path (= `KanbanTools.create` in `KanbanTools.swift` already uses the **SwiftData** store, not `KanbanOps`; = the JSON-side `KanbanOps.addTicket` here is the **View** add-row path; = body written via the LLM lands in SwiftData via T4's fix, NOT the JSON file the View reads) | Follow-up ticket; = the View reads from JSON, the LLM writes to SwiftData; = when unifying paths (= per §11.4 phase 5 ticket 6+, View should migrate to SwiftData) |
+| 3 | Cut kanban body on `lineLimit(6)` truncation in the card (= the existing `ChatTextPartView` lineLimit fix from §11.7e doesn't apply here; = per-line trimming is a future ticket) | cosmetic |
+
+## What this section (§11.18) does NOT do
+
+- It does not amend AGENTS.md §11 baseline (= English-only, no forbidden vocab, no xianxia family, 老板 only).
+- It does not touch §11.1 third-party library policy (= no new SPM deps added).
+- It does not touch §11.4 SwiftData migration (= additive on the existing 23 @Model classes; = no schema version bump).
+- It does not touch §11.7 sqlite3-zero migration (= writes go through SwiftData where applicable).
+- It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.16 / §11.17 are unchanged).
+
+This §11.18 section is the canonical record of the kanban-markdown arc (= up-to-date as of 2026-09-28). Future amendments (§11.19+) land below.
