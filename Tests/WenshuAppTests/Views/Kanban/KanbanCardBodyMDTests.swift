@@ -28,9 +28,11 @@ import Testing
 struct KanbanCardBodyMDTests {
 
     private func repoRootFromTestFile() -> URL {
-        // Tests/WenshuAppTests/<sub>/Tests.swift → repo root = 4 dirs up.
+        // Tests/WenshuAppTests/Views/Kanban/Tests.swift → 5 dirs up to
+        // reach the repo root (= KanbanCardBodyMDTests.swift sits one
+        // level deeper than the persistence tests).
         var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
+        for _ in 0..<5 { url.deleteLastPathComponent() }
         return url
     }
 
