@@ -204,7 +204,7 @@ actor BookChapterActor {
         // chapter-focus-lock 2026-09-28: gate the update path on
         // the single-focus lock. Same shape as EditChapterActor:
         // resolve the canonical chapter path (= <bookDir>/chapters/<id>.md)
-        // and throw ChapterFocusedByBossError when the boss has
+        // and throw ChapterFocusLockedError when the boss has
         // this chapter's editor tab focused. WenshuConductor
         // catches this and offers an Allow / Deny dialog.
         let chapterPath = ChapterFocusLockGuard.resolveChapterPath(

@@ -2,7 +2,7 @@
 //  ChapterFocusLockConductorTests.swift · wenshu · chapter-focus-lock 2026-09-28 T3
 //
 //  RED tests for the conductor-side retry behavior. When a tool
-//  throws ChapterFocusedByBossError, the conductor (= WenshuConductor
+//  throws ChapterFocusLockedError, the conductor (= WenshuConductor
 //  or its executeTool layer) temporarily clears focusedChapterPath,
 //  retries the tool, and surfaces the result. This is the
 //  auto-Allow path (= no UI dialog yet = T4 scope when the
@@ -19,11 +19,11 @@ import Testing
 @Suite("ChapterFocusLockConductor (chapter-focus-lock 2026-09-28 T3)")
 struct ChapterFocusLockConductorTests {
 
-    @Test("WenshuConductor catches ChapterFocusedByBossError and retries")
+    @Test("WenshuConductor catches ChapterFocusLockedError and retries")
     func conductorCatchesAndRetries() throws {
         let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
-        #expect(source.contains("ChapterFocusedByBossError"))
+        #expect(source.contains("ChapterFocusLockedError"))
         #expect(source.contains("focusedChapterPath"))
     }
 

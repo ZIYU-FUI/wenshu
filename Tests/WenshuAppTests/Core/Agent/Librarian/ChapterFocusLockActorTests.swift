@@ -2,7 +2,7 @@
 //  ChapterFocusLockActorTests.swift · wenshu · chapter-focus-lock 2026-09-28 T2
 //
 //  RED tests for the actor-side lock check. Both BookChapterActor.update
-//  and EditChapterActor.edit throw ChapterFocusedByBossError when the
+//  and EditChapterActor.edit throw ChapterFocusLockedError when the
 //  boss has the editor focused on the target chapter path (= single-
 //  focus model per boss 2026-09-28 OOB '互锁编辑权限'). When the lock
 //  is empty (= boss not focused on any chapter, OR boss in chat zone),
@@ -20,11 +20,11 @@ import Testing
 @Suite("ChapterFocusLockActor (chapter-focus-lock 2026-09-28 T2)")
 struct ChapterFocusLockActorTests {
 
-    @Test("EditChapterActor declares ChapterFocusedByBossError and reads the lock")
+    @Test("EditChapterActor declares ChapterFocusLockedError and reads the lock")
     func editActorDeclaresError() throws {
         let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Librarian/EditChapterActor.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
-        #expect(source.contains("ChapterFocusedByBossError"))
+        #expect(source.contains("ChapterFocusLockedError"))
         #expect(source.contains("focusedChapterPath"))
     }
 
@@ -36,7 +36,7 @@ struct ChapterFocusLockActorTests {
         // honor the lock. The book_chapter tool exposes update
         // (= full replace), so the actor.update entry point is
         // the gate site (= matches EditChapterActor.edit).
-        #expect(source.contains("ChapterFocusedByBossError") ||
+        #expect(source.contains("ChapterFocusLockedError") ||
                 source.contains("focusedChapterPath"))
     }
 

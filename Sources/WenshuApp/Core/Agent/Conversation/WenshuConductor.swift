@@ -1024,7 +1024,7 @@ actor WenshuConductor {
     }
 
     /// chapter-focus-lock 2026-09-28: wrap a Tool whose entry point
-    /// may throw `ChapterFocusedByBossError` (= BookChapterTool,
+    /// may throw `ChapterFocusLockedError` (= BookChapterTool,
     /// EditChapterTool) in a retry wrapper that temporarily
     /// releases the boss's editor focus (= AppStateLocator.shared
     /// .appState?.focusedChapterPath = nil) so the agent's second
@@ -1038,7 +1038,7 @@ actor WenshuConductor {
 
     /// chapter-focus-lock 2026-09-28: thin Tool wrapper that retries
     /// once after releasing the chapter focus lock when the inner
-    /// tool throws ChapterFocusedByBossError. The MVP auto-Allow
+    /// tool throws ChapterFocusLockedError. The MVP auto-Allow
     /// path (= the conductor treats a focused boss as approval to
     /// proceed; = see `wrapWithChapterFocusLock` for the future
     /// Allow/Deny UI ticket). Nested inside WenshuConductor so it
@@ -1053,7 +1053,7 @@ actor WenshuConductor {
         func execute(input: String) async throws -> String {
             do {
                 return try await inner.execute(input: input)
-            } catch is ChapterFocusedByBossError {
+            } catch is ChapterFocusLockedError {
                 // Temporarily clear the focus lock so the retry
                 // passes the gate. The MVP path doesn't restore
                 // (= single-allow semantics; = the boss's focus is

@@ -350,7 +350,7 @@ enum EditChapterError: Error, Equatable {
 /// the lock (= set focusedChapterPath = nil temporarily) before
 /// the agent retries. Surfacing the chapter path lets the dialog
 /// name the chapter (= "Agent wants to edit '第三章'.").
-struct ChapterFocusedByBossError: Error, Equatable {
+struct ChapterFocusLockedError: Error, Equatable {
     let chapterPath: String?
 }
 
@@ -373,7 +373,7 @@ enum ChapterFocusLockGuard {
             .path
     }
 
-    /// Throws `ChapterFocusedByBossError` when the boss has this
+    /// Throws `ChapterFocusLockedError` when the boss has this
     /// chapter's editor tab focused. Async because AppState lives
     /// on the MainActor; = actors crossing isolation must await.
     static func assertNotLocked(
@@ -382,7 +382,7 @@ enum ChapterFocusLockGuard {
     ) async throws {
         let focused = await focusedChapterPathProvider()
         guard let documentPath, focused == documentPath else { return }
-        throw ChapterFocusedByBossError(chapterPath: documentPath)
+        throw ChapterFocusLockedError(chapterPath: documentPath)
     }
 
     /// Snapshot reader for AppState.focusedChapterPath. Crosses
