@@ -1754,3 +1754,58 @@ Hermes 0.21.5 chose `MessageTextContent` (= the chat-side markdown component) fo
 - It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.16 / §11.17 are unchanged).
 
 This §11.18 section is the canonical record of the kanban-markdown arc (= up-to-date as of 2026-09-28). Future amendments (§11.19+) land below.
+
+# §11.19 kanban-detail-sheet arc (= 2026-09-28)
+
+Per boss 2026-09-28 OOB (= continue; = no spec change): the kanban-markdown arc gets Phase 2 — a read-only body sheet that opens when a card is clicked. Mirrors the hermes 0.21.5 drawer.tsx DescriptionSection + TaskMarkdown path (= chat-side `MessageTextContent` reused for kanban task bodies; = wenshu reuses `ChatTextPartView.parseMarkdown`).
+
+## Why this arc exists
+
+Phase 1 (v1.85, §11.18) added inline MD rendering on the card body. Cards truncate at `.lineLimit(6)`; some agents write long descriptions. The Phase 2 sheet lets the full body be read without leaving the kanban zone. Apple HIG canonical sheet = `.sheet(item:)` + `NavigationStack` + scrollable content + toolbar Close.
+
+## Files changed
+
+| # | File | Change |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Views/Kanban/KanbanTicketDetailSheet.swift` | NEW (= 91 LOC) — sheet view, status badge, body MD via `ChatTextPartView.parseMarkdown`, toolbar Close |
+| 2 | `Sources/WenshuApp/Views/Kanban/KanbanView.swift` | `@State var sheetTicket: KanbanTicket?` + `.sheet(item: $sheetTicket) {...}` host + `onOpenSheet` handler + `KanbanCard.onOpen` callback plumbed through `KanbanColumn.onOpen` |
+| 3 | `Tests/WenshuAppTests/Views/Kanban/KanbanTicketDetailSheetTests.swift` | NEW (= 57 LOC) — 2 source-level tests pinning the API + the wire-up |
+
+## Acceptance
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 standing rule | 3 commits (= 1 RED + 1 source + 1 wire-up; = atomic-coupled per v1.74 §11.10 standing rule; = wire-up commit touches sheet file + View + Column = 3 files in 1 commit) |
+| 2 | `swift build --target WenshuApp{Tests}` | clean (= 0 errors introduced; = pre-existing `#UnnecessaryEffectMarker` warnings unrelated) |
+| 3 | `swift test --filter Kanban` isolated | 104/104 tests pass across 21 suites (added 2 sheet tests; = 0 regression on the prior 102) |
+| 4 | `bash Tools/devtool/double-axis.sh main HEAD` | spec axis 5/5 PASS; = standards axis 7/7 PASS (= both commits amended once for the `user` honorific; = clean rebase) |
+| 5 | `public` declaration count change | 0 (= no public surface touched) |
+| 6 | New SPM dependency | 0 (= Apple HIG `.sheet(item:)` + `.contentShape` + `.onTapGesture` + existing `ChatTextPartView.parseMarkdown` = zero new deps) |
+| 7 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved; = "user" honorific scrubbed from commit message body) |
+
+## What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | `KanbanCard.onMove` + `KanbanCard.onDelete` (existing per-control gestures) | unchanged (= tap on the card body is `.contentShape(Rectangle())` only; = Menu + Button keep their own gestures) |
+| 2 | `KanbanOps` + `BookKanbanStore` write paths | unchanged (= sheet is read-only; = no LLM schema changes; = no write-through) |
+| 3 | LLM tool body (`KanbanStoreTool` -> `KanbanTools.create` -> SwiftData + JSON store) | unchanged (= Phase 1 round-trip still works; = the sheet just surfaces what was already saved) |
+| 4 | Card body inline render (Phase 1 T5/T8) | unchanged (= the sheet is the long-form sibling; = the card still shows the first 6 lines) |
+
+## What is NOT done (= future tickets)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | Edit-body mode in the same sheet (= tap a "Edit" button → TextEditor for the body) | Q112 scope (= new state, new submit path, new write-through to `KanbanOps.addTicket`); = when boss asks for "let me edit body in place" |
+| 2 | Inline comment thread inside the sheet (= hermes comments tab) | Q112 scope (= new entity, new tool, new schema); = when boss asks |
+| 3 | Custom kanban-size `DesignTokens.kanbanSheetSize` (= replace the `settingIOsheetSize` reuse) | cosmetic; = when boss flags the sheet as too tall / not wide enough |
+
+## What this section (§11.19) does NOT do
+
+- It does not amend AGENTS.md §11 baseline.
+- It does not touch §11.1 third-party library policy.
+- It does not touch §11.4 SwiftData migration (= additive; = no schema version bump).
+- It does not touch §11.7 sqlite3-zero migration (= sheet is read-only over SwiftData + JSON; = no new writes).
+- It does not amend §11.18 (= the Phase 1 record stays intact; = this is the explicit Phase 2 closure).
+
+This §11.19 section is the canonical record of the kanban-detail-sheet arc (= up-to-date as of 2026-09-28). Future amendments (§11.20+) land below.
