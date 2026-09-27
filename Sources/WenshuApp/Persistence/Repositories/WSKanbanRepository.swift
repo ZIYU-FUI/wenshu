@@ -36,7 +36,8 @@ final class WSKanbanRepository {
         status: KanbanStatus = .new,
         priority: Int = 5,
         assignee: String? = nil,
-        modelOverride: String? = nil
+        modelOverride: String? = nil,
+        body: String? = nil
     ) throws -> KanbanTask {
         let id = UUID().uuidString
         let now = Date()
@@ -46,7 +47,8 @@ final class WSKanbanRepository {
             status: status.rawValue,
             priority: priority,
             assignee: assignee,
-            modelOverride: modelOverride
+            modelOverride: modelOverride,
+            body: body
         )
         // Lifecycle hooks ( parity with legacy KanbanStore actor:
         // startedAt auto-set when status = .running at add time, completedAt
@@ -68,7 +70,8 @@ final class WSKanbanRepository {
             assignee: assignee,
             startedAt: model.startedAt,
             completedAt: model.completedAt,
-            modelOverride: modelOverride
+            modelOverride: modelOverride,
+            body: model.body
         )
     }
 
@@ -152,7 +155,8 @@ final class WSKanbanRepository {
             assignee: model.assignee,
             startedAt: model.startedAt,
             completedAt: model.completedAt,
-            modelOverride: model.modelOverride
+            modelOverride: model.modelOverride,
+            body: model.body
         )
     }
 }
