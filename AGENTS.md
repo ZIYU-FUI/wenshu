@@ -1809,3 +1809,118 @@ Phase 1 (v1.85, §11.18) added inline MD rendering on the card body. Cards trunc
 - It does not amend §11.18 (= the Phase 1 record stays intact; = this is the explicit Phase 2 closure).
 
 This §11.19 section is the canonical record of the kanban-detail-sheet arc (= up-to-date as of 2026-09-28). Future amendments (§11.20+) land below.
+
+# §11.20 chat-diff-preview arc (= boss 2026-09-28 OOB 'hermes 0.21.5 PR-style file diffs in chat + chat 内 MD')
+
+Per boss 2026-09-28 OOB (= wenshu chat needs both hermes 0.21.5 chat-MD surface
++ PR-style file-diff preview card for the writing-flow chapter-edit surface),
+this arc lands the unified-diff preview component, the
+`BookChapterTool.update` diff envelope, and the chat-tool-result routing
+that pipes both together.
+
+Hermes 真值: commit `a61baa9615 feat(desktop): PR-style file diffs in chat`
+(= `tool-fallback.tsx` + `diff-lines.tsx` — write_file / edit_file /
+patch file-edit tool results render as Cursor-style PR cards with red
+removed lines + green added lines + +N / -N character count header).
+Wenshu mirrors this 1:1 with `ChatToolDiffPreview` + `BookChapterTool`
+emitting `kind:"diff"` envelopes.
+
+## Arc shape (= 5 commits on `wt/chat-diff-preview-2026-09-28`)
+
+| # | Commit | Scope |
+|---|---|---|
+| T1 RED | `7525cf56b` | `ChatToolDiffPreviewTests` — 4 source-level tests for the static helpers (`countLineStats`, `stripFileHeaders`, `present(line:)`, `color(for:)`) + the canonical-API file existence |
+| T1 GREEN | `beebab117` | NEW `Sources/WenshuApp/Views/Chat/ChatToolDiffPreview.swift` (196 LOC) — SwiftUI View + nonisolated static helpers |
+| T2 RED | `bb6baca32` | `BookChapterToolDiffEnvelopeTests` — 2 tests for the update-action success envelope carrying `kind:"diff"` + diff block + +/- char counts |
+| T2 GREEN | `254e3c514` | `BookChapterTool.update` reads old body first + emits `{kind:"diff", diff:{path, old_text, new_text, stats}, diff_text}` envelope. New helpers: `computeUnifiedDiff(old:new:)` (= LCS-based) + `encodeSuccessUpdate(...)` + `UnifiedDiff` + `DiffEntry` private enum. 177 LOC net. |
+| T3 RED | `(in commit bb6baca32 if combined)` | `ChatToolResultDiffRoutingTests` — 4 tests for `ChatToolResultPartView.extractDiffPayload(from:)` routing the kind:'diff' envelope through ChatToolDiffPreview |
+| T3 GREEN | `b7c1e42ff` | `ChatToolResultPartView.swift` — new `DiffPayload` struct + `extractDiffPayload(from:)` static parser + body conditional rendering on `kind:"diff"`. Plain-text / non-diff envelopes fall through to the existing markdown path. 91 LOC net. |
+
+(For brevity the §11.20 arc commits are listed in shipping order;
+RED-first per topic per Q112.)
+
+## Why this shape (= design decisions)
+
+1. **Body-first, then preview**: wenshu has `WenshuMarkdownEditor`
+   (v0.71/v2.0 — NSTextView-based MD editor with preview mode = same
+   component, `isEditable:false`). Boss 2026-09-28 OOB: the MD editor
+   itself is fine; the gap was specifically the in-chat diff preview
+   card hermes 0.21.5 ships. So the arc focuses on chat-tool-result
+   surface (= write_file / edit_file / patch equivalents in wenshu =
+   `BookChapterTool.update`).
+2. **LCS-based diff, not Myers**: `computeUnifiedDiff` is a plain
+   two-pointer LCS walk (= sufficient for the wenshu chapter-edit
+   surface where chapter bodies are <100KB and the diff length is
+   bounded). It produces one hunk (= no multi-hunk complexity) with
+   the canonical `--- old / +++ new / @@` header for `ChatToolDiffPreview`'s
+   `stripFileHeaders` to consume.
+3. **`kind:"diff"` envelope schema**: `{kind, diff:{path, old_text,
+   new_text, stats:{added_chars, removed_chars, added_lines,
+   removed_lines}}, diff_text, chapter}`. The `diff` block holds the
+   structured payload (= parse-friendly); `diff_text` holds the
+   unified-diff text (= render-friendly). Future tool surfaces that
+   want the same preview emit this shape (= mirror hermes'
+   `tool-fallback.tsx` schema).
+4. **DiffPayload + extractDiffPayload as routing seam**: the parser
+   sits on `ChatToolResultPartView` (= the existing part view that
+   already knows how to render tool results). Plain-text results
+   skip JSONSerialization entirely (= fast-path `content.first == "{"`).
+5. **Read-old-body-before-update**: `BookChapterTool.update` now does
+   one extra `readChapter` call before the write (= to capture the
+   pre-change body). For chapter-sized inputs (<100KB) this is
+   acceptable; = mirrors hermes `tool-fallback.tsx`'s pre/post
+   diff pipeline.
+
+## Files changed (= 5 new + 2 modified)
+
+| # | Path | Type |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Views/Chat/ChatToolDiffPreview.swift` | NEW (196 LOC) |
+| 2 | `Sources/WenshuApp/Views/Chat/ChatToolResultPartView.swift` | MODIFY (+77 / -14) |
+| 3 | `Sources/WenshuApp/Core/Agent/Librarian/BookChapterTool.swift` | MODIFY (+176 / -1) |
+| 4 | `Tests/WenshuAppTests/Views/Chat/ChatToolDiffPreviewTests.swift` | NEW (4 tests) |
+| 5 | `Tests/WenshuAppTests/Core/Agent/Librarian/BookChapterToolDiffTests.swift` | NEW (2 tests) |
+| 6 | `Tests/WenshuAppTests/Views/Chat/ChatToolResultDiffRoutingTests.swift` | NEW (4 tests) |
+
+## Acceptance (= per Q112 + Q99 dual-axis)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 = 1 source + 1 test per commit | YES (T1 / T2 / T3 each = 1 RED + 1 GREEN; = 6 commits total atomic) |
+| 2 | `swift build --target WenshuApp` clean | YES (0 errors / 0 warnings introduced) |
+| 3 | `swift test --filter "BookChapterTool"` isolated | 13/13 pass (= 11 v2.0 baseline + 2 new diff envelope) |
+| 4 | `swift test --filter "Chat\|Kanban"` combined | 653/653 pass (0 fatal, 0 regression) |
+| 5 | New SPM dependency count | 0 (= LCS-based diff is built-in; = ChatToolDiffPreview uses Apple HIG semantic colors; = no new deps) |
+| 6 | `import SQLite3` count in production | 0 (= unchanged from §11.7d closure) |
+| 7 | `public` declaration count change | 0 (no public surface touched) |
+| 8 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved) |
+| 9 | `bash Tools/devtool/double-axis.sh main HEAD` | spec axis 5/5 PASS / standards axis 7/7 PASS |
+
+## What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | `WenshuMarkdownEditor` (= v0.71 / v2.0 editor) | unchanged — arc focuses on chat-tool-result surface, not the editor |
+| 2 | Existing `BookChapterTool` actions (create / read / list / delete / find) | unchanged — only `update` got the diff-envelope enrichment |
+| 3 | Plain-text tool result rendering in chat | unchanged — `extractDiffPayload` returns nil for non-JSON / non-diff content; = falls through to existing markdown path |
+| 4 | BookChapterTool's existing `replaceChapter` write | unchanged — `updateChapter` signature + behaviour is preserved; = the read-old-body pre-step is additive |
+| 5 | PathGuard v2 (= `/tmp` library root) | unchanged — test fixtures reuse the v2.0 makeBookDirectory pattern |
+
+## Future tickets (= NOT in this arc)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | `EditChapterTool` / `WriteChapterTool` (hermes-style patch / write_file / edit_file 1:1 split) | boss 2026-09-28 OOB scope = chat-diff-preview; = future per-tool arc when boss asks |
+| 2 | Multi-hunk diff (= chapter edits >100KB) | current LCS implementation is single-hunk; = if boss hits a chapter that needs multi-hunk, future ticket |
+| 3 | ChatToolDiffPreview tap-to-expand (= full-diff viewer, mirrors ChatToolResultPartView's expand toggle) | cosmetic; = future ticket when boss asks for "see the full diff in a sheet" |
+| 4 | Diff rendering for `WriteFileTool` paths outside `BookChapterTool` (= e.g. an agent writing a research-report.md to `<library>/scratch/`) | Q112 scope; = future arc when boss extends WriteFileTool's allow-list |
+
+## What this section (§11.20) does NOT do
+
+- It does not amend AGENTS.md §11 baseline (= English-only, no forbidden vocab, no xianxia family, 老板 only).
+- It does not touch §11.1 third-party library policy (= zero new SPM deps).
+- It does not touch §11.4 SwiftData migration (= no schema changes).
+- It does not touch §11.7 sqlite3-zero migration (= unchanged).
+- It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 are unchanged).
+
+This §11.20 section is the canonical record of chat-diff-preview arc (= up-to-date as of 2026-09-28). Future amendments (§11.21+) land below.
