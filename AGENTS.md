@@ -2031,3 +2031,100 @@ diff-routing path (= §11.20) is stable.
 - It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 are unchanged).
 
 This §11.21 section is the canonical record of the edit-chapter-tool arc (= up-to-date as of 2026-09-28). Future amendments (§11.22+) land below.
+
+# §11.22 chat-diff-sheet arc (= boss 2026-09-28 OOB '继续复刻 — chat 长 diff sheet')
+
+Per boss 2026-09-28 OOB (= continue) + §11.20 future ticket 3, this
+arc ships the long-diff tap-to-expand sheet so the user can read
+the full unified-diff text (= not truncated to lineLimit(6)) when
+the LLM produces a multi-line chapter edit.
+
+Hermes 真值: chat-tool-result surface in hermes 0.21.5 has no
+explicit "open in sheet" affordance (= it just renders the diff
+inline; = the user scrolls). Wenshu mirrors the inline preview
+shape (= lineLimit(6)) AND adds the sheet (= Apple HIG `.sheet(item:)`
++ `NavigationStack` + toolbar Close) so long diffs stay legible.
+Mirrors the kanban-detail-sheet arc (= same `KanbanTicketDetailSheet`
+shape) so the two "expand" affordances share visual identity.
+
+## Arc shape (= 5 commits on `wt/chat-diff-sheet-2026-09-28`)
+
+| # | Commit | Scope |
+|---|---|---|
+| Part 0 | `5cb0406ad` | `fix(wenshu)` — restore `EditChapterActor.execute(input:)` (= missed in T5 GREEN of edit-chapter-tool arc; = the forward-only wrapper depended on an actor method that never landed). Q112 honored: 1 source + 1 test (= the test file's hardcoded worktree path was also fixed). |
+| T6 RED | `b29a3b9ed` | `ChatToolDiffPreviewSheetTests` (3 source-content anchors) |
+| T6 GREEN | `(in arc; = see git log)` | NEW `Sources/WenshuApp/Views/Chat/ChatToolDiffPreviewSheet.swift` (107 LOC) |
+| T7 RED | `(in arc; = see git log)` | `ChatToolResultDiffSheetTapTests` (3 source-content anchors) |
+| T7 GREEN | `(in arc; = see git log)` | `ChatToolResultPartView.swift` — `.sheet(item:)` host + `.contentShape(Rectangle())` + `.onTapGesture` + `DiffPayload: Identifiable` conformance |
+
+## Files changed (= 5)
+
+| # | Path | Type |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Views/Chat/ChatToolDiffPreviewSheet.swift` | NEW (107 LOC) |
+| 2 | `Sources/WenshuApp/Views/Chat/ChatToolResultPartView.swift` | MODIFY (+44 / -1) |
+| 3 | `Sources/WenshuApp/Core/Agent/Librarian/EditChapterActor.swift` | MODIFY (= restore `execute(input:)` JSON parser) |
+| 4 | `Tests/WenshuAppTests/Views/Chat/ChatToolDiffPreviewSheetTests.swift` | NEW (3 tests) |
+| 5 | `Tests/WenshuAppTests/Views/Chat/ChatToolResultDiffSheetTapTests.swift` | NEW (3 tests) |
+| 6 | `Tests/WenshuAppTests/Core/Agent/Librarian/EditChapterToolWireTests.swift` | MODIFY (= update hardcoded worktree path; = Q112 1 source + 1 test rule) |
+
+## Why this shape (= design decisions)
+
+1. **Same surface helpers (`ChatToolDiffPreview.countLineStats` /
+   `stripFileHeaders` / `present` / `color`)**: the sheet reuses
+   the same per-line color + gutter-strip logic as the inline
+   preview. User sees the same visual model in both states (= no
+   cognitive switch between inline + expanded).
+2. **`.sheet(item: $sheetDiff)` (= nil = closed)**: same shape as
+   KanbanView's kanban-card sheet host. `DiffPayload` gains
+   `Identifiable` with a default UUID (= no upstream API churn).
+3. **No auto-open threshold (= user-driven only)**: short diffs
+   stay inline-only; = tapping them opens an empty sheet, which
+   is annoying. The `ChatToolResultPartView`'s existing
+   `needsExpandToggle` heuristic (= >8 lines OR >480 chars)
+   decides when the expand toggle is shown; = the sheet tap is
+   added on the inline card so the user can re-open for any diff.
+4. **Apple HIG sheet (`.sheet(item:)` + `NavigationStack`)**:
+   mirrors `KanbanTicketDetailSheet`. Shared visual identity
+   across the two expand surfaces.
+
+## Acceptance (= per Q112 + Q99 dual-axis)
+
+| # | Property | Value |
+|---|---|---|
+| 1 | Q112 = 1 source + 1 test per commit | YES (atomic-coupled Part 0 fix; = T6 / T7 each = 1 source + 1 test) |
+| 2 | `swift build --target WenshuApp{Tests}` clean | YES (0 errors / 0 warnings introduced) |
+| 3 | `swift test --filter "Chat\|Kanban\|BookChapter\|EditChapter"` combined | 658/658 pass (= +6 from this arc, 0 regression) |
+| 4 | New SPM dependency count | 0 (= Apple `.sheet(item:)` + `NavigationStack` builtin) |
+| 5 | `import SQLite3` count in production | 0 (= unchanged from §11.7d closure) |
+| 6 | `public` declaration count change | 0 (no public surface touched) |
+| 7 | AGENTS.md §11 hard rule | clean (= all new prose in English; = "老板" preserved; = no `user` honorific) |
+| 8 | `bash Tools/devtool/double-axis.sh main HEAD` | spec axis 5/5 PASS / standards axis 7/7 PASS |
+
+## What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | `ChatToolDiffPreview` (= §11.20 inline preview) | unchanged — the sheet reuses its helpers |
+| 2 | `ChatToolResultPartView.extractDiffPayload` (= §11.20 router) | unchanged — `DiffPayload` just got `Identifiable` (= additive) |
+| 3 | Plain-text tool-result markdown render path | unchanged — only the `kind:"diff"` branch gains the tap-to-expand host |
+| 4 | `KanbanTicketDetailSheet` (= §11.19) | unchanged — different surface, same structural pattern |
+| 5 | EditChapterTool + EditChapterActor (`book_edit_chapter`) | unchanged functionally — Part 0 of this arc restored the missing `actor.execute(input:)` so the wire-up compiles end-to-end |
+
+## Future tickets (= NOT done in this arc)
+
+| # | Item | Why deferred |
+|---|---|---|
+| 1 | Auto-open threshold (= when diff > N lines, open sheet on arrival; = no tap required) | Q112 scope (= new threshold + state); = future ticket when boss asks |
+| 2 | Sheet content edit (= user can adjust `old_text` / `new_text` inside the sheet before applying) | Q112 scope (= new state, new submit path); = future when boss wants "let me fix the patch in place" |
+| 3 | Compare-against-base button (= show the chapter body as it exists on disk next to the proposed diff) | Q112 scope (= new file viewer + diff side-by-side); = future when boss wants diff-context |
+
+## What this section (§11.22) does NOT do
+
+- It does not amend AGENTS.md §11 baseline (= English-only, no forbidden vocab, no xianxia family, 老板 only).
+- It does not touch §11.1 third-party library policy (= zero new SPM deps).
+- It does not touch §11.4 SwiftData migration (= no schema changes).
+- It does not touch §11.7 sqlite3-zero migration (= unchanged).
+- It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 / §11.21 are unchanged).
+
+This §11.22 section is the canonical record of the chat-diff-sheet arc (= up-to-date as of 2026-09-28). Future amendments (§11.23+) land below.

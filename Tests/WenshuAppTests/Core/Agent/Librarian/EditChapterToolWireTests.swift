@@ -119,7 +119,7 @@ struct EditChapterToolWireTests {
     // (= Tests/WenshuAppTests/Core/Agent/Librarian/<file>.swift
     //  => /Volumes/ANAN/Engineering/wenshu/wt/<wt-name>/Sources/...).
     private static func repoSourcePath(_ relativeFromRepoRoot: String) -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/wt/edit-chapter-tool-2026-09-28/\(relativeFromRepoRoot)"
+        let path = "/Volumes/ANAN/Engineering/wenshu/wt/chat-diff-sheet-2026-09-28/\(relativeFromRepoRoot)"
         return path
     }
 }

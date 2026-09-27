@@ -19,6 +19,10 @@ struct ChatToolResultPartView: View {
     let isOutgoing: Bool
 
     @State private var isExpanded: Bool = false
+    // chat-diff-sheet 2026-09-28: holds the parsed diff payload
+    // (= nil = sheet closed) so the long-diff card can present
+    // a tap-to-expand affordance into ChatToolDiffPreviewSheet.
+    @State private var sheetDiff: DiffPayload?
 
     init(toolResult: ChatMessagePart.ToolResultPart, isOutgoing: Bool) {
         self.toolResult = toolResult
@@ -53,9 +57,19 @@ struct ChatToolResultPartView: View {
             // preview card instead of the markdown fallback (= hermes
             // 0.21.5 file-edit preview surface, 1:1 mirrored).
             // Fall-through for plain text / non-diff envelopes.
+            //
+            // chat-diff-sheet 2026-09-28: long-diff cards are
+            // tappable (= tap opens ChatToolDiffPreviewSheet for
+            // the full untruncated diff). Short diffs stay inline
+            // (= the tap target = the card body; = sheet would be
+            // empty otherwise).
             if let diff = Self.extractDiffPayload(from: toolResult.content) {
                 ChatToolDiffPreview(diff: diff.body, filename: diff.path)
                     .padding(.top, DesignTokens.chromePaddingMicro)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        sheetDiff = diff
+                    }
             } else {
                 // T16-TOOL-RESULT-MARKDOWN (2026-09-18): render the result
                 // content as inline markdown (= same parseMarkdown call as
@@ -99,6 +113,13 @@ struct ChatToolResultPartView: View {
                 .strokeBorder(borderColor, lineWidth: 1)
         )
         .frame(maxWidth: 360)
+        // chat-diff-sheet 2026-09-28: long-diff tap-to-expand host.
+        // (= same .sheet(item:) pattern as KanbanView's kanban-card
+        // sheet per the kanban-detail-sheet arc; = nil state means
+        // sheet closed.)
+        .sheet(item: $sheetDiff) { diff in
+            ChatToolDiffPreviewSheet(diff: diff.body, filename: diff.path)
+        }
     }
 
     /// T16: show the expand toggle only when the content exceeds the
@@ -128,13 +149,36 @@ struct ChatToolResultPartView: View {
     /// lines instead of a flat text blob (= `BookChapterTool`'s
     /// update action emits this envelope; future `WriteChapterTool`
     /// and `EditChapterTool` should follow the same contract).
-    struct DiffPayload: Equatable, Sendable {
+    ///
+    /// `Identifiable` so the chat-tool-result part view can use
+    /// it as the `item:` parameter of `.sheet(item:)` for the
+    /// long-diff tap-to-expand affordance.
+    struct DiffPayload: Equatable, Sendable, Identifiable {
+        let id: String
         let path: String
         let oldText: String
         let newText: String
         let body: String           // unified diff text (= rendered)
         let addedChars: Int
         let removedChars: Int
+
+        init(
+            id: String = UUID().uuidString,
+            path: String,
+            oldText: String,
+            newText: String,
+            body: String,
+            addedChars: Int,
+            removedChars: Int
+        ) {
+            self.id = id
+            self.path = path
+            self.oldText = oldText
+            self.newText = newText
+            self.body = body
+            self.addedChars = addedChars
+            self.removedChars = removedChars
+        }
     }
 
     /// Parse the tool result content into a `DiffPayload` if it's a

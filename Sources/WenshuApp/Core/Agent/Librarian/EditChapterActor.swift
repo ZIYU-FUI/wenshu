@@ -99,6 +99,100 @@ actor EditChapterActor {
         return EditResult(envelope: envelope)
     }
 
+    /// Tool-call dispatch entry point (= hermes-style tool-call
+    /// envelope). Parses the JSON input, calls `editChapter(...)`,
+    /// and serializes the result back as a JSON envelope so the
+    /// `EditChapterTool` wrapper (= which forwards here) returns
+    /// the canonical wire shape to the LLM dispatcher.
+    func execute(input: String) async throws -> String {
+        guard let envelope = try? JSONSerialization.jsonObject(
+            with: Data(input.utf8),
+            options: []
+        ) as? [String: Any] else {
+            return Self.encodeFailure(reason: "input is not a JSON object")
+        }
+        guard let idString = envelope["id"] as? String,
+              let id = UUID(uuidString: idString) else {
+            return Self.encodeFailure(reason: "edit requires 'id' (UUID string)")
+        }
+        guard let bookIdString = envelope["book_id"] as? String,
+              let bookId = UUID(uuidString: bookIdString) else {
+            return Self.encodeFailure(reason: "edit requires 'book_id' (UUID string)")
+        }
+        guard let oldText = envelope["old_text"] as? String else {
+            return Self.encodeFailure(reason: "edit requires 'old_text'")
+        }
+        guard let newText = envelope["new_text"] as? String else {
+            return Self.encodeFailure(reason: "edit requires 'new_text'")
+        }
+        let summary = envelope["summary"] as? String
+
+        let result: EditResult
+        do {
+            result = try await editChapter(
+                chapterId: id,
+                bookId: bookId,
+                oldText: oldText,
+                newText: newText,
+                summary: summary
+            )
+        } catch let error as EditChapterError {
+            switch error {
+            case .chapterNotFound:
+                return Self.encodeFailure(reason: "chapter not found", errorKind: "chapter_not_found")
+            case .oldTextNotFound:
+                return Self.encodeFailure(reason: "old_text not found in chapter body", errorKind: "old_text_not_found")
+            }
+        } catch {
+            return Self.encodeFailure(reason: String(describing: error))
+        }
+        return Self.encodeSuccess(result: result)
+    }
+
+    // MARK: - JSON envelope (= same shape as BookChapterTool.update)
+
+    private static func encodeSuccess(result: EditResult) -> String {
+        let diff = result.envelope
+        let payload: [String: Any] = [
+            "ok": true,
+            "action": "edit",
+            "kind": diff.kind,
+            "diff": [
+                "path": diff.path,
+                "old_text": diff.oldText,
+                "new_text": diff.newText,
+                "stats": [
+                    "added_chars": diff.addedChars,
+                    "removed_chars": diff.removedChars,
+                    "added_lines": diff.addedLines,
+                    "removed_lines": diff.removedLines
+                ] as [String: Int]
+            ] as [String: Any]
+        ]
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: payload,
+            options: []
+        ), let text = String(data: data, encoding: .utf8) else {
+            return "{\"ok\":false,\"error\":\"json-encode-failed\"}"
+        }
+        return text
+    }
+
+    private static func encodeFailure(
+        reason: String,
+        errorKind: String? = nil
+    ) -> String {
+        var payload: [String: Any] = ["ok": false, "error": reason]
+        if let errorKind { payload["error_kind"] = errorKind }
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: payload,
+            options: []
+        ), let text = String(data: data, encoding: .utf8) else {
+            return "{\"ok\":false,\"error\":\"json-encode-failed\"}"
+        }
+        return text
+    }
+
     // MARK: - Diff (= shared algorithm with BookChapterTool)
 
     struct UnifiedDiff: Equatable, Sendable {
