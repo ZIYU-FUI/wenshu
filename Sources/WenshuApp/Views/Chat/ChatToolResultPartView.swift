@@ -47,20 +47,31 @@ struct ChatToolResultPartView: View {
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
             }
-            // T16-TOOL-RESULT-MARKDOWN (2026-09-18): render the result
-            // content as inline markdown (= same parseMarkdown call as
-            // ChatTextPartView) so multi-line tool outputs render with
-            // bold / italic / inline code / links instead of raw text.
-            // Collapsed state: lineLimit(8) (= inline preview). Expanded
-            // state: full content (= tap the card to toggle; = mirrors
-            // ChatToolUsePartView's click-to-expand affordance).
-            Text(Self.parseMarkdown(toolResult.content))
-                .font(.caption)
-                .foregroundStyle(DesignTokens.statusForeground)
-                .textSelection(.enabled)
-                .lineLimit(isExpanded ? nil : 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, DesignTokens.chromePaddingMicro)
+            // chat-diff-preview 2026-09-28: when the tool result is a
+            // kind:'diff' envelope (= BookChapterTool.update + future
+            // file-edit surfaces emit this), render the unified-diff
+            // preview card instead of the markdown fallback (= hermes
+            // 0.21.5 file-edit preview surface, 1:1 mirrored).
+            // Fall-through for plain text / non-diff envelopes.
+            if let diff = Self.extractDiffPayload(from: toolResult.content) {
+                ChatToolDiffPreview(diff: diff.body, filename: diff.path)
+                    .padding(.top, DesignTokens.chromePaddingMicro)
+            } else {
+                // T16-TOOL-RESULT-MARKDOWN (2026-09-18): render the result
+                // content as inline markdown (= same parseMarkdown call as
+                // ChatTextPartView) so multi-line tool outputs render with
+                // bold / italic / inline code / links instead of raw text.
+                // Collapsed state: lineLimit(8) (= inline preview). Expanded
+                // state: full content (= tap the card to toggle; = mirrors
+                // ChatToolUsePartView's click-to-expand affordance).
+                Text(Self.parseMarkdown(toolResult.content))
+                    .font(.caption)
+                    .foregroundStyle(DesignTokens.statusForeground)
+                    .textSelection(.enabled)
+                    .lineLimit(isExpanded ? nil : 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, DesignTokens.chromePaddingMicro)
+            }
             // T16 expansion toggle (= shown only when the result is
             // actually long enough to truncate; = the lineLimit vs nil
             // difference is invisible if there are <= 8 lines).
@@ -105,6 +116,72 @@ struct ChatToolResultPartView: View {
     /// treatment; = preserves whitespace).
     nonisolated static func parseMarkdown(_ raw: String) -> AttributedString {
         ChatTextPartView.parseMarkdown(raw)
+    }
+
+    /// Parsed `kind:"diff"` payload, surface that feeds
+    /// `ChatToolDiffPreview`. nil = fall through to the markdown
+    /// render path (= the existing behaviour).
+    ///
+    /// Mirrors the hermes 0.21.5 file-edit preview card surface:
+    /// any tool result carrying `kind:"diff"` routes here so the
+    /// chat panel renders +N/−N char counts and red/green diff
+    /// lines instead of a flat text blob (= `BookChapterTool`'s
+    /// update action emits this envelope; future `WriteChapterTool`
+    /// and `EditChapterTool` should follow the same contract).
+    struct DiffPayload: Equatable, Sendable {
+        let path: String
+        let oldText: String
+        let newText: String
+        let body: String           // unified diff text (= rendered)
+        let addedChars: Int
+        let removedChars: Int
+    }
+
+    /// Parse the tool result content into a `DiffPayload` if it's a
+    /// `kind:"diff"` envelope (= a JSON object with `"kind":"diff"`).
+    /// Returns nil for plain-text / non-diff envelopes (= those fall
+    /// through to the existing markdown render).
+    nonisolated static func extractDiffPayload(from content: String) -> DiffPayload? {
+        // Fast path: must look like a JSON envelope (= starts with '{').
+        // This avoids paying JSONSerialization on every tool result.
+        guard content.first == "{" else { return nil }
+        let data = Data(content.utf8)
+        guard let obj = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+            return nil
+        }
+        guard obj["kind"] as? String == "diff" else { return nil }
+        guard let diff = obj["diff"] as? [String: Any] else { return nil }
+        let stats = diff["stats"] as? [String: Any] ?? [:]
+        let body = (obj["diff_text"] as? String)
+            ?? (diff["text"] as? String)
+            ?? Self.reconstructDiffBody(diff: diff)
+        return DiffPayload(
+            path: diff["path"] as? String ?? "untitled.md",
+            oldText: diff["old_text"] as? String ?? "",
+            newText: diff["new_text"] as? String ?? "",
+            body: body,
+            addedChars: stats["added_chars"] as? Int ?? 0,
+            removedChars: stats["removed_chars"] as? Int ?? 0
+        )
+    }
+
+    /// Best-effort reconstruction of a unified-diff body when only
+    /// `old_text` / `new_text` are present (= useful for tool
+    /// envelopes from other surfaces that didn't emit `diff_text`).
+    /// The result still carries +N/-N counts through `ChatToolDiffPreview`.
+    private nonisolated static func reconstructDiffBody(diff: [String: Any]) -> String {
+        let oldText = diff["old_text"] as? String ?? ""
+        let newText = diff["new_text"] as? String ?? ""
+        let oldLines = oldText.components(separatedBy: "\n")
+        let newLines = newText.components(separatedBy: "\n")
+        var out = "--- old\n+++ new\n@@\n"
+        for line in oldLines where !line.isEmpty {
+            out += "-\(line)\n"
+        }
+        for line in newLines where !line.isEmpty {
+            out += "+\(line)\n"
+        }
+        return out
     }
 
     private var cardFill: AnyShapeStyle {
