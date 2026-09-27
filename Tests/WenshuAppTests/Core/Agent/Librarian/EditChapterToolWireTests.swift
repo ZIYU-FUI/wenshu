@@ -100,12 +100,27 @@ struct EditChapterToolWireTests {
         #expect(payload["error_kind"] as? String == "old_text_not_found")
     }
 
-    @Test("EditChapterTool is registered with ToolRegistry under the canonical name")
-    func isRegisteredWithToolRegistry() async {
-        // The static bootstrap runs at module load. Verify the tool
-        // is reachable from ToolRegistry.shared by the canonical name.
-        let handler = await ToolRegistry.shared.getHandler(name: "book_edit_chapter")
-        #expect(handler != nil)
+    @Test("WenshuConductor wires EditChapterTool under book_edit_chapter")
+    func isWiredInWenshuConductor() throws {
+        // Source-content anchor: verify the WenshuConductor's tool
+        // declarations and tools dict both contain book_edit_chapter.
+        // (= mirrors the v1.85 hermes 0.21.5 wire-up; = same shape
+        // as BookChapterTool / BookEntityTool.)
+        let conductorPath = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift")
+        let source = try String(contentsOfFile: conductorPath, encoding: .utf8)
+        #expect(source.contains("\"book_edit_chapter\""), "conductor must declare the new tool name")
+        #expect(source.contains("EditChapterTool("), "conductor must wire EditChapterTool into tools dict")
+    }
+
+    // MARK: - Repo-root path helper (= Q112 source-content anchor)
+    //
+    // Tests live at Tests/WenshuAppTests/Core/Agent/Librarian/,
+    // which is 4 dirs deep under Tests/, plus the worktree
+    // (= Tests/WenshuAppTests/Core/Agent/Librarian/<file>.swift
+    //  => /Volumes/ANAN/Engineering/wenshu/wt/<wt-name>/Sources/...).
+    private static func repoSourcePath(_ relativeFromRepoRoot: String) -> String {
+        let path = "/Volumes/ANAN/Engineering/wenshu/wt/edit-chapter-tool-2026-09-28/\(relativeFromRepoRoot)"
+        return path
     }
 }
 

@@ -714,6 +714,7 @@ actor WenshuConductor {
         "WriteFile",        // Core/Agent/Tool/WriteFileTool.swift
         "av",               // Core/Tools/AVMediaTools.swift
         "book_chapter",     // Core/Agent/Librarian/BookChapterTool.swift
+        "book_edit_chapter", // Core/Agent/Librarian/EditChapterTool.swift  (= v1.85 hermes 0.21.5 edit_file 1:1)
         "book_entity",      // Core/Agent/Librarian/BookEntityTool.swift  (= v2.3 entity schema redesign)
         "book_manager",     // Core/Agent/Librarian/BookManagerTool.swift
         "book_outline",     // Core/Agent/Librarian/BookOutlineTool.swift
@@ -973,6 +974,7 @@ actor WenshuConductor {
     private static let bookScopeGuardedToolNames: Set<String> = [
         "book_entity",
         "book_chapter",
+        "book_edit_chapter",  // edit-chapter-tool 2026-09-28: hermes edit_file 1:1 also subject to book scope (= editing a chapter requires the chat session to be bound to that book)
         "book_outline"
     ]
 
@@ -1008,6 +1010,13 @@ actor WenshuConductor {
         tools["book_entity"] = BookEntityTool(actor: entityActor)
         tools["book_chapter"] = BookChapterTool(actor: chapterActor)
         tools["book_outline"] = BookOutlineTool(actor: outlineActor)
+        // edit-chapter-tool 2026-09-28: hermes edit_file 1:1.
+        // Patch-style chapter edit (= substring replace) returns
+        // the same kind:"diff" envelope as BookChapterTool.update,
+        // so ChatToolDiffPreview's input is stable across both.
+        tools["book_edit_chapter"] = EditChapterTool(
+            actor: EditChapterActor(bookDirectoryProvider: { bookDirectory })
+        )
     }
 
     /// Test-only: inject a tool directly into the tools dict. Used
