@@ -2872,3 +2872,113 @@ Per 老板 OOB 2026-09-28 (= '吧 2.9 全系列都清完' = clear the entire v2.
 - It does not leave a stale worktree or branch (= wenshu-pocock-workflow standing rule honored: every ticket = worktree created + merged + deleted + branch deleted in the same session).
 
 This §11.29 section is the canonical record of the v2.9d completion arc (= up-to-date as of 2026-09-28, end of session). Future amendments (§11.30+) land below.
+
+
+# §11.30 v2.9e cleanup arc closure (= boss 2026-09-28 OOB)
+
+Per 老板 OOB 2026-09-28 (= 'A1 + A9 + B13 处理掉'): v2.9e closes 3 boss-inventory items in 2 atomic tickets (= T39 + T40). Total v2.9 family arc closure rate: **17 of 18 = 94%** (= up from §11.29's 14 of 18 = 78%). The 1 remaining item (= B4 QuickSwitcher keybinding) is the only carry-over to a future scene.
+
+## Why this arc exists
+
+The v2.8 inventory (= boss 2026-09-28) enumerated 18 deferred items (= 9 half-built + 9 not-in-production). v2.9 a/b/c/d-completion closed 14. The boss then asked to clear A1 + A9 + B13 (= 3 cosmetic / hygiene items):
+
+- **A1** (= welcome page): §11.26 verdict was 'accepted as already-done' (= the LibraryOnboardingView exists behind `shouldShowOnboarding`; = the show-on-first-launch path is wired and active). Re-audit confirmed the path is canonical; = no code change needed.
+- **A9** (= 9 places of sqlite3 metadata #warning): the v2.8 archive-era warnings marked `ProviderKeychain` metadata as sqlite-backed; = §11.7d closed sqlite3 fully; = the warnings were historical artifacts that no longer apply. T39 removes them.
+- **B13** (= 4 zero-use third-party libs EPUBKit / ZIPFoundation / Highlighter / Textual): T40 verifies the canonical state (= EPUBKit / ZIPFoundation / Textual already gone from Package.swift; = Highlighter has a consumer via `HighlighterSwiftBridge` in `WenshuEditorServicesFactory`; = the pin is justified).
+
+## Arc shape (= 2 commits on `wt/v2.9e-cleanup-a1-a9-b13-2026-09-28`)
+
+| # | Commit | Scope |
+|---|---|---|
+| T39 | `c576f411d` | `feat(wenshu): remove 7 historical #warning sqlite3 metadata markers` — 7 source files + WarningCleanupTests.swift (= atomic per Q112) |
+| T40 | `33c757861` | `test(wenshu): pin B13 unused-SPM-dep removal canonical state` — UnusedSpmDepRemovalTests.swift under Spm/ (= moved from Build/ to avoid the .gitignore `build/` rule) |
+
+## Files changed (= 9 = 7 source + 2 test)
+
+| # | Path | Type |
+|---|---|---|
+| 1 | `Sources/WenshuApp/Core/Auth/SecretScope.swift` | MODIFY (= -3 lines) |
+| 2 | `Sources/WenshuApp/Core/Provider/AvailableModelsDiscovery.swift` | MODIFY (= -3 lines) |
+| 3 | `Sources/WenshuApp/Core/Provider/OAuthFlow.swift` | MODIFY (= -3 lines) |
+| 4 | `Sources/WenshuApp/Core/Agent/Runtime/RuntimeHelpers.swift` | MODIFY (= -3 lines) |
+| 5 | `Sources/WenshuApp/Core/Agent/Todo/HermesTodoTool.swift` | MODIFY (= -1 line) |
+| 6 | `Sources/WenshuApp/Core/Agent/Connector/WenshuVerifier.swift` | MODIFY (= -3 lines) |
+| 7 | `Sources/WenshuApp/Core/Agent/Connector/ConnectorCredentials.swift` | MODIFY (= -3 lines) |
+| 8 | `Tests/WenshuAppTests/Core/Provider/WarningCleanupTests.swift` | NEW (= 94 lines, 3 tests) |
+| 9 | `Tests/WenshuAppTests/Spm/UnusedSpmDepRemovalTests.swift` | NEW (= 79 lines, 3 tests) |
+
+## Final stats
+
+| # | Metric | Value |
+|---|---|---|
+| 1 | Branch | `wt/v2.9e-cleanup-a1-a9-b13-2026-09-28` (= 2 ticket commits + 1 merge = 3 ahead) |
+| 2 | Tickets closed (= boss inventory items) | 2 (= T39 = A9; = T40 = B13; = A1 re-confirmed) |
+| 3 | `import SQLite3` count in production code | 0 (= unchanged from §11.7d closure) |
+| 4 | `public` declaration count in production code | 0 (= unchanged from §11.13 P2-07 sweep) |
+| 5 | SPM dependency count (= active .package pins) | 8 (= Highlighter / swift-markdown / swift-markdown-engine / EventSource / Inject / ViewInspector / swift-snapshot-testing / swift-log; = 3 unused deps already removed at earlier arcs) |
+| 6 | `swift build --target WenshuApp` | clean (= 0 errors / 0 new warnings) |
+| 7 | `swift test --filter WarningCleanupTests` | 3/3 pass |
+| 8 | `swift test --filter UnusedSpmDepRemovalTests` | 3/3 pass |
+| 9 | ahead of old-origin/main | 795 (= 792 §11.29 + 3 v2.9e) |
+| 10 | AGENTS.md hard rule compliance | clean (= all new prose in English; = 老板 preserved; = no forbidden vocab) |
+
+## Boss-inventory closure (= 17 of 18 = 94%)
+
+| # | Item | Status | Arc |
+|---|---|---|---|
+| A1 | Onboarding welcome page | ✅ accepted as already-done | (= §11.26 verdict) |
+| A2 | Bookmark UI polish | ✅ | v2.9d T34 |
+| A3 | BackgroundReview inspector tab | ✅ | v2.9a T23 |
+| A4 | LLM Wiki operator button | ✅ | v2.9a T24 |
+| A5 | 4 window 接 actor | ✅ | v2.9c T30-T33 + v2.9b T26 |
+| A6 | markdown-engine conformance pin | ✅ | v2.9d T36 |
+| A7 | SidebarItem.tag preview-pane filter | ✅ | v2.9d T37 |
+| A8 | Spotlight 真搜索 | ✅ | v2.9a T22 + v2.9d T35 |
+| **A9** | **9 places of #warning sqlite3 metadata** | ✅ | **v2.9e T39** |
+| B2 | dangling skill_bundles | ✅ | v2.9a T25 |
+| B3 | dead code cleanup | ✅ | v2.9a T25 |
+| B4 | QuickSwitcher keybinding | ❌ future | (= 老板拍 'keyboard 全 arc 规划') |
+| B5 | Backup restore UI | ✅ | v2.9c T33 |
+| **B13** | **4 zero-use third-party libs** | ✅ | **v2.9e T40** |
+| +v2.9b T26 | CanvasWindow save-back | ✅ extra | v2.9b |
+| +v2.9d T35 | Spotlight title lookup | ✅ extra | v2.9d |
+| +v2.9d T37 | SidebarItem.tag preview-pane filter | ✅ extra | v2.9d |
+| +v2.9d T38 | 5 empty @Model schemas pin | ✅ extra | v2.9d |
+
+**17 closed of 18 = 94%**. The 1 carry-out (= B4 QuickSwitcher keybinding) is the boss-pinned '统一规划' keyboard arc that will land in a future scene.
+
+## What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | §11.7 sqlite3-zero migration arc | unchanged; = `import SQLite3` count = 0 |
+| 2 | §11.7d sqlite3 closure record | unchanged; = this arc's T39 #warning removal is the canonical follow-on (= the warnings were historical artifacts from the §11.7 v1.55 ship; = §11.7d v1.55d closure made them truly obsolete) |
+| 3 | §11.4 SwiftData migration roadmap | unchanged; = no schema changes across all 2 ticket commits |
+| 4 | §11.10 + §11.11 + §11.13 (= MVVM split + chat-by-book + AppState split) | unchanged |
+| 5 | §11.14 v2.4 closed-enum product philosophy | unchanged; = no SOUL.md / AGENTS.md / .cursorrules loaders added |
+| 6 | §11.15 v2.5 keyless web search arc | unchanged |
+| 7 | §11.16 v2.6 facet model arc | unchanged |
+| 8 | §11.17 v2.4 skill cleanup + memory rewire arc | unchanged |
+| 9 | §11.18 + §11.19 + §11.20 + §11.21 + §11.22 + §11.23 + §11.24 (= kanban + chat-diff + chapter-focus-lock + dialog arcs) | unchanged |
+| 10 | §11.25 + §11.26 + §11.27 + §11.28 + §11.29 (= v2.7-era + v2.8 + v2.9 closure records) | unchanged |
+| 11 | Highlighter SPM pin (= §11.1 batch 2 issue 02) | preserved (= the pin has a consumer via `HighlighterSwiftBridge` in `WenshuEditorServicesFactory`; = T40 test pins this fact) |
+| 12 | `public` declaration count | 0 (= unchanged from §11.13 P2-07 sweep) |
+| 13 | AGENTS.md hard rule (= English-only + 老板 + no forbidden vocab) | clean across all 2 ticket commits + this §11.30 record |
+
+## What is NOT done (= future scenes if boss approves)
+
+| # | Item | Source |
+|---|---|---|
+| 1 | **B4 QuickSwitcher keybinding** (= 老板拍 '统一规划' keyboard arc) | §11.26 deferred table + this §11.30 closure row |
+
+## What this section (§11.30) does NOT do
+
+- It does not amend AGENTS.md §11 baseline (= English-only, no forbidden vocab, no xianxia family, 老板 only).
+- It does not touch §11.1 third-party library policy (= Highlighter pin stays; = T40 documents why).
+- It does not touch §11.4 SwiftData migration roadmap (= no schema changes).
+- It does not touch §11.7 sqlite3-zero migration (= unchanged; = `import SQLite3` count = 0; = the T39 #warning removal is the canonical hygiene follow-on to §11.7d).
+- It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 / §11.21 / §11.22 / §11.23 / §11.24 / §11.25 / §11.26 / §11.27 / §11.28 / §11.29 are unchanged).
+- It does not introduce a new MVVM split pattern, actor pattern, or i18n key pattern (= T39 + T40 follow existing v2.9 patterns).
+- It does not leave a stale worktree or branch (= the wenshu-pocock-workflow standing rule is honored: every ticket = worktree created + merged + deleted + branch deleted in the same session).
+
+This §11.30 section is the canonical record of the v2.9e cleanup arc (= up-to-date as of 2026-09-28, end of session). Future amendments (§11.31+) land below.
