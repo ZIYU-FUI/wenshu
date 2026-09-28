@@ -107,6 +107,9 @@ struct LibraryRootView: View {
     @State private var bookStore: BookStore?
     @State private var commandPaletteModel = CommandPaletteModel()
     @State private var commandPaletteVisible: Bool = false
+    // v2.8a (boss 2026-09-28 OOB B2): Spotlight search sheet
+    // visibility (= driven by the Cmd-F ⌘F keyboard binding).
+    @State private var spotlightVisible: Bool = false
     @State private var editMode = LayoutEditMode()
     @Environment(\.openSettings) private var openSettings
 
@@ -169,6 +172,25 @@ struct LibraryRootView: View {
                 CommandPaletteView(model: commandPaletteModel)
                     .navigationTitle(WenshuI18n.t("command_palette.title"))
             }
+            // v2.8a (boss 2026-09-28 OOB B2): Cmd-F ⌘F triggers the
+            // Spotlight search sheet (= Apple HIG hidden-button +
+            // keyboardShortcut pattern; = the binding lives here so
+            // the sheet is available regardless of which zone is
+            // focused).
+            .sheet(isPresented: $spotlightVisible) {
+                    SpotlightSearchSheet(onPick: handleSpotlightPick)
+                }
+                .background(
+                    // Hidden activation button (= .frame(width: 0, height: 0) +
+                    // .opacity(0) + .accessibilityHidden(true) = the canonical
+                    // Apple HIG pattern for routing keyboard shortcuts through
+                    // a SwiftUI view without a visible chrome element).
+                    Button("") { spotlightVisible = true }
+                        .keyboardShortcut("f", modifiers: .command)
+                        .frame(width: 0, height: 0)
+                        .opacity(0)
+                        .accessibilityHidden(true)
+                )
             .onReceive(NotificationCenter.default.publisher(for: .wenshuShowCommandPalette)) { _ in
                 commandPaletteVisible = true
                 commandPaletteModel.show()
@@ -229,6 +251,17 @@ struct LibraryRootView: View {
             // on the loading spinner (= exactly what boss saw).
             NSLog("[wenshu.library.lifecycle] runLaunch failed: %@", String(describing: error))
         }
+    }
+
+    /// v2.8a (boss 2026-09-28 OOB B2): handle a Spotlight result
+    /// pick. Currently the dispatcher is a stub (= logs the docId
+    /// + dismisses the sheet); = future tickets can wire this to
+    /// chapter / reference / outline navigation once the
+    /// search-index pipeline is feeding real docs into the
+    /// CSSearchableIndexSearch actor (= §11.7 LLM Wiki pipeline;
+    /// = see v2.8d ticket cluster).
+    private func handleSpotlightPick(docId: String) {
+        NSLog("[wenshu.spotlight] pick docId=%@", docId)
     }
 }
 
