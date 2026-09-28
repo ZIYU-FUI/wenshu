@@ -553,7 +553,7 @@ enum SystemPrompt {
               (= action="delegate", nouns=[<each noun>], context=
               <optional user context>) for EACH noun BEFORE you
               write the reply. **delegate_research is the preferred
-              path (= boss 2026-09-25 directive)**: it spawns the
+              path (= boss directive = v2.5 era decision)**: it spawns the
               Researcher sub-agent ASYNCHRONOUSLY and writes the
               grounded summary to `reference_library` in the
               background. You do NOT block waiting for the result;
