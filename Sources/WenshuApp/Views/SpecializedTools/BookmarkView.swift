@@ -148,33 +148,38 @@ struct BookmarkView: View {
         }
     }
 
+    // v2.9d (boss 2026-09-28 OOB A2 follow-up): MVVM split
+    // lifted the inline reload / addBookmark / removeBookmark
+    // funcs to `BookmarkOps`. The view now renders the result
+    // of a single @MainActor enum call (= §11.13 P2-06 +
+    // §11.10 v1.74 MVVM split template).
     private func reload() async {
-        guard activeBookId != nil else {
+        let outcome = BookmarkOps.load(
+            repository: repository,
+            activeBookId: activeBookId
+        )
+        switch outcome {
+        case .empty:
             bookmarks = []
-            return
-        }
-        status = .loading
-        do {
-            bookmarks = try repository.list()
+            status = .loaded
+        case .loaded(let rows):
+            bookmarks = rows
             status = .loaded
             errorText = nil
-        } catch {
-            errorText = String(describing: error)
-            status = .failed(String(describing: error))
+        case .failed(let message):
+            errorText = message
+            status = .failed(message)
         }
     }
 
     private func addBookmark() async {
+        guard let bookID = activeBookId else { return }
         let trimmed = draftLabel.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, let bookID = activeBookId else { return }
-        // Synthesize a chapter UUID from a stable, per-book prefix
-        // (= the bookmark anchors to the active book; = docID is
-        // unknown at this layer; = polymorphic design per WSBookmark
-        // requires exactly one of docID / bookID set; = we set
-        // bookID and leave docID nil).
-        let bookmark = Bookmark(
-            docId: "book:\(bookID.uuidString):default",
-            label: trimmed
+        guard !trimmed.isEmpty else { return }
+        let bookmark = BookmarkOps.add(
+            repository: repository,
+            label: trimmed,
+            activeBookId: bookID
         )
         do {
             try repository.add(bookmark)
@@ -186,11 +191,17 @@ struct BookmarkView: View {
     }
 
     private func removeBookmark(id: String) async {
-        do {
-            try repository.remove(id: id)
+        let outcome = BookmarkOps.remove(
+            repository: repository,
+            id: id
+        )
+        switch outcome {
+        case .empty:
             await reload()
-        } catch {
-            errorText = String(describing: error)
+        case .loaded:
+            await reload()
+        case .failed(let message):
+            errorText = message
         }
     }
 }
