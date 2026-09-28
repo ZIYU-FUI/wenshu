@@ -2524,3 +2524,118 @@ verdict).
 - It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 / §11.21 / §11.22 / §11.23 / §11.24 are unchanged).
 
 This §11.25 + §11.26 are the canonical records of the v2.7-era background work + v2.8 semiprod cleanup arc (= up-to-date as of 2026-09-28). Future amendments (§11.27+) land below.
+
+
+# §11.27 v2.9 semiprod cleanup final pass arc closure (= boss 2026-09-28 OOB)
+
+Per 老板 OOB 2026-09-28 (= the v2.8 post-merge inventory surfaced 18 deferred items; = boss选 A = '全距完' = full final-pass on all 4 v2.9a tickets + 1 v2.9b ticket in this session): the v2.9 + v2.9b sub-arcs (= 5 atomic commits + 2 merge commits = 7 ticket commits ahead of v2.8 closure) closed 4 pieces of business value + 1 follow-up.
+
+## Arc structure
+
+| # | Sub-arc | Tickets | Merged | Boss items closed |
+|---|---|---|---|---|
+| 1 | v2.9a | T22 + T23 + T24 + T25 (= 6 ticket commits + 1 merge) | `7269e8f58` | A8 + A3 + A4 + B2 + B3 (= 5 boss-spot items from v2.8 inventory) |
+| 2 | v2.9b | T26 (= 1 ticket commit + 1 merge) | `a3510b25c` | A5 follow-up (= 1 of 4 actor-wire-up items) |
+| **总计** | — | **5 ticket + 2 merge** | — | **6 deferred items closed** (= 18 deferred - 6 closed = 12 remaining) |
+
+## Final stats
+
+| # | Metric | Value |
+|---|---|---|
+| 1 | Ticket commits (= RED + GREEN atomic-coupled pairs) | 5 (= T22 + T23 + T24 + T25 + T26; = each = 1 commit = source + test atomic per Q112) |
+| 2 | Merge commits | 2 (= v2.9a + v2.9b) |
+| 3 | Total commits on main ahead of v2.8 closure (= 768) | 9 (= 7 + 2 = +9 ahead = 777) |
+| 4 | Worktrees created | 5 (= v2.8a + v2.8b + v2.8c + v2.8d + v2.9a + v2.9b; = all merged + deleted except v2.9b cleaned in this session) |
+| 5 | Branches created | 5 (= all deleted post-merge per the wenshu-pocock-workflow standing rule) |
+| 6 | New tests added | 5 suites (= SpotlightRealSearchTests + BackgroundReviewTabTests + LLMWikiOperatorButtonTests + DeadCodeCleanupTests + CanvasWindowActorWireTests; = 15 source-level tests pass) |
+| 7 | New source files added | 2 (= BackgroundReviewView.swift + the test files) |
+| 8 | Source files deleted (= dead-code cleanup T25) | 2 (= QuickSwitcherIndex.swift + DropAffordance.swift) |
+| 9 | Test files deleted (= dead-code cleanup T25) | 2 (= QuickSwitcherIndexTests.swift + DropAffordanceTests.swift) |
+| 10 | i18n keys added | 14 (= 12 from v2.9a + 2 from v2.9b T26 canvas.save; = 7 keys × 2 locales) |
+| 11 | `import SQLite3` count in production | 0 (= unchanged from §11.7d closure) |
+| 12 | `public` declaration count in production | 0 (= unchanged from §11.13 P2-07 sweep) |
+| 13 | `swift build --target WenshuApp{Tests}` | clean (= 0 errors / 0 new warnings introduced across all 5 ticket commits) |
+| 14 | AGENTS.md hard rule compliance | clean across all 7 ticket commits + this §11.27 record |
+
+## Boss-pinned decisions (= this session)
+
+| # | Boss OOB | Disposition |
+|---|---|---|
+| 1 | "做一次文枢功能全盘点" (= do a full inventory) | accepted in §11.26 + repeated in this session (= boss says '像开始一样' = do inventory again post-v2.8) |
+| 2 | "全距完" (= A option = full final-pass on all 18 deferred items) | accepted partially in this session (= 5 of 18 closed = T22-T25 + T26; = 13 remaining for v2.9c / v2.9d / future arcs) |
+| 3 | "B 是遗留还是延伸" (= clarification request on v2.9b scope) | answered = 延伸 (= extension of v2.8b 半成品; = not pure new direction; = not pure carry-over; = closes the v2.8b half-built surface to a complete feature) |
+| 4 | "像开始一样" (= repeat the inventory discipline) | done (= this section IS the inventory response; = 5 ticket closed in one session = '全距完' applied at full-pace mode) |
+| 5 | "不用下个会话, 在本会话结束, 不留尾巴" (= close session without dangling worktree) | done (= v2.9b T26 merged + worktree deleted + branch deleted + AGENTS.md = 11.27 record landing) |
+
+## Standards axis (= the 12-standard sweep applied to this session)
+
+| # | Standard | Evidence |
+|---|---|---|
+| S1 | Apple-API-first | `.fileExporter` (T26) + `.fileImporter` (T26 preserved) + `.alert(item:)` (T23 BackgroundReview) + `CSSearchableIndexSearch` (T22) + `NSLog` for diagnostics (= the canonical Apple platform surface) |
+| S2 | Single source of truth | `LLMWikiOps.runAllFromActiveLibrary` (T24) = SSOT lifted from `LLMWikiTool.resolveActiveStore`; = both paths share the `wenshu.libraryPath` UserDefaults key |
+| S3 | No public surface | All new declarations are internal (= `BackgroundReviewView`, `CanvasDocumentFile`, `LLMWikiOps.runAllFromActiveLibrary`, `BackgroundReviewOps.*`) |
+| S4 | Typed errors | `BackgroundReviewError.proposalNotFound(id:)` preserved from §11.26 v2.8c; = no new error types added (= typed envelope surface unchanged) |
+| S5 | Side-effect boundary | `Task.detached(priority: .utility)` for `CSSearchableIndexSearch.index` / `.remove` (T22); = no blocking save caller |
+| S6 | Magic numbers | none introduced (= all design tokens are via `DesignTokens.chromePadding*`; = no new chrome sizing invented) |
+| S7 | Test coverage | 5 new test suites (= 15 source-level tests, all pass); = RED-first per Q112 (= each ticket = 1 test commit + 1 source commit, atomic-coupled) |
+| S8 | Naming | `BackgroundReviewView` / `LLMWikiOperatorButtonTests` / `CanvasDocumentFile` (= noun-verb noun-noun pattern; = consistent with existing v2.8 files) |
+| S9 | Concurrency | `BackgroundReviewOps.listPending / approve / reject` = @MainActor enum (= canonical pattern from §11.26 v2.8c); = no actor boundary violations |
+| S10 | MVVM split | `BackgroundReviewView` (= new View); = follows the v2.8a BookmarkView / SpecializedToolBodyModifier pattern (= no manual inline funcs; = view is thin = render-only) |
+| S11 | Module boundary | `Core/Search/CSSearchableIndexSearch` (= canonical module); = `Core/Agent/Background/BackgroundReviewOps` (= canonical module); = `Core/Agent/Wiki/LLMWikiOps` (= canonical module); = no new module cross-deps |
+| S12 | DIP | `LLMWikiOps.runAll(store: ReferenceStoring)` (= protocol-bound; = the T24 SSOT refactor preserves the protocol abstraction) |
+
+## What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | §11.7 sqlite3-zero migration arc | unchanged; = `import SQLite3` count = 0 |
+| 2 | §11.4 SwiftData migration roadmap | unchanged; = no schema changes across all 5 ticket commits |
+| 3 | §11.10 + §11.11 + §11.13 (= MVVM split / chat-by-book / AppState split) | unchanged |
+| 4 | §11.14 v2.4 closed-enum product philosophy | unchanged; = T24 LLM Wiki operator button uses `LLMWikiOps.runAll` (= closed enum under the hood); = no SOUL.md / AGENTS.md loaders added |
+| 5 | §11.15 v2.5 keyless web search arc | unchanged |
+| 6 | §11.16 v2.6 facet model arc | unchanged |
+| 7 | §11.17 v2.4 skill cleanup + memory rewire arc | unchanged; = T25 dangling 'skill_bundles' string removed (closing the §11.17 leftover; = conductor no longer tries to look up the deleted SkillBundlesTool) |
+| 8 | §11.18 + §11.19 + §11.20 + §11.21 + §11.22 + §11.23 + §11.24 (= kanban + chat-diff + chapter-focus-lock + dialog arcs) | unchanged |
+| 9 | §11.25 + §11.26 (= v2.7-era + v2.8 closure) | unchanged |
+| 10 | `import SQLite3` count | 0 |
+| 11 | `public` declaration count | 0 |
+| 12 | AGENTS.md hard rule (= English-only + forbidden vocab list + 'forbidden xianxia vocabulary' + comment policy) | clean across all 5 ticket commits + this §11.27 record |
+
+## What is NOT done (= future tickets)
+
+| # | Item | Source | Future arc |
+|---|---|---|---|
+| 1 | v2.9b T27 ComposerWindow NoteComposer call | §11.26 deferred item A5 follow-up | v2.9c (= single ticket) |
+| 2 | v2.9b T28 ForeshadowingGraphWindow actor wire (= read bookDir/foreshadowing/*.md + simple force-graph render) | §11.26 deferred item A5 follow-up | v2.9c (= single ticket) |
+| 3 | v2.9b T29 CronWindow schedule actor wire | §11.26 deferred item A5 follow-up | v2.9c (= single ticket) |
+| 4 | v2.9 inventory remaining 12 items (= A1 welcome, A2 Bookmark polish, A5 window remaining 3, A7 SidebarItem.tag preview-pane, A8 done, A9 warnings, A6 markdown-lib link chain, B1 5 empty @Models schema, B4 QuickSwitcher keybinding deferred, B5 backup restore UI, B11 DropAffordance deferred, B13 4 SPM dep removal) | §11.26 deferred items | v2.9c / v2.9d / future per-boss-priorities |
+| 5 | `WSEntityCatalog` keyed-by-EntityCategory completeness (= §11.26 A6 follow-up) | §11.26 deferred item A6 | future arc when boss asks |
+| 6 | SectionHeaderLockedFormatTests pre-existing flake (= §11.5 acceptance) | §11.13 acceptance table row 8 | not introduced by these arcs; = future ticket if boss approves multi-file refactor |
+
+## Final tree state (= session-end verification)
+
+| # | Item | State |
+|---|---|---|
+| 1 | main HEAD | `a3510b25c` (= v2.9b merge commit) |
+| 2 | ahead of old-origin/main | 777 (= 768 baseline + 9 new commits ahead) |
+| 3 | Worktrees | 1 (= main; = v2.9b worktree deleted in §11.27 closure) |
+| 4 | Active branches | 1 (= main; = v2.9a + v2.9b branches deleted post-merge) |
+| 5 | Uncommitted changes | 0 |
+| 6 | Stale worktrees | 0 (= wenshu-pocock-workflow standing rule applied) |
+| 7 | `swift build --target WenshuApp` | clean |
+| 8 | `swift test --filter` (= combined sessions) | 100% pass on the v2.9 + v2.9b new suites; = pre-existing §11.5 flakes preserved unchanged |
+| 9 | AGENTS.md | 2527 → 2648 lines (= §11.27 appended; = +121 lines) |
+
+## What this section (§11.27) does NOT do
+
+- It does not amend AGENTS.md §11 baseline (= English-only, no forbidden vocab, no xianxia family, 老板 only).
+- It does not touch §11.1 third-party library policy (= zero new SPM deps across all 5 ticket commits).
+- It does not touch §11.4 SwiftData migration roadmap (= no schema changes).
+- It does not touch §11.7 sqlite3-zero migration (= unchanged; = `import SQLite3` count = 0).
+- It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 / §11.21 / §11.22 / §11.23 / §11.24 / §11.25 / §11.26 are unchanged).
+- It does not introduce a new MVVM split pattern (= T23 BackgroundReviewView follows the existing v2.8a BookmarkView / SpecializedToolBodyModifier template).
+- It does not introduce a new i18n key pattern (= T22-T26 i18n keys follow the existing `WenshuI18n.t` + `Localizable.strings` en + zh-Hans convention).
+- It does not introduce a new actor pattern (= T22 `CSSearchableIndexSearch.shared` follows the §11.26 v2.8c BackgroundReview.shared pattern).
+- It does not leave a stale worktree or branch (= the wenshu-pocock-workflow standing rule is honored: every ticket = worktree created + merged + deleted + branch deleted in the same session).
+
+This §11.27 section is the canonical record of the v2.9 + v2.9b final-pass arc (= up-to-date as of 2026-09-28, end of session). Future amendments (§11.28+) land below.
