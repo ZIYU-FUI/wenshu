@@ -19,18 +19,22 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Independent Canvas window (= MVP per boss 2026-09-28 OOB B6).
+/// Independent Canvas window (= MVP per boss 2026-09-28 OOB B6;
+///  v2.9b boss 2026-09-28 OOB follow-up wires save-back to close
+///  the read-only gap).
 ///
-/// Renders + edits one JSON Canvas document (= the
+/// Renders + edits + saves a JSON Canvas document (= the
 /// `JSONCanvasCodec` spec = https://jsoncanvas.org/spec/1.0).
-/// File is selected via `.fileImporter` (= Apple HIG canonical
-/// file-open surface).
+/// File is selected via `.fileImporter` and saved via
+/// `.fileExporter` (= Apple HIG canonical open / save surface).
 @MainActor
 struct CanvasWindow: View {
 
     @State private var document: CanvasDocument?
     @State private var draft: String = ""
     @State private var importerVisible: Bool = false
+    @State private var exporterVisible: Bool = false
+    @State private var loadedURL: URL?
     @State private var errorText: String?
 
     init() {}
@@ -50,6 +54,22 @@ struct CanvasWindow: View {
                             }
                         }
                     }
+                    // v2.9b (boss 2026-09-28 OOB B6 follow-up):
+                    // save-back toolbar button. Disabled when no
+                    // document is loaded (= no in-memory state to
+                    // persist).
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            exporterVisible = true
+                        } label: {
+                            Label {
+                                Text(WenshuI18n.t("canvas.save"))
+                            } icon: {
+                                Image(systemName: "square.and.arrow.down")
+                            }
+                        }
+                        .disabled(document == nil)
+                    }
                 }
                 .fileImporter(
                     isPresented: $importerVisible,
@@ -57,6 +77,14 @@ struct CanvasWindow: View {
                     allowsMultipleSelection: false
                 ) { result in
                     handleFileImporter(result)
+                }
+                .fileExporter(
+                    isPresented: $exporterVisible,
+                    document: document.map { CanvasDocumentFile(document: $0) },
+                    contentType: .json,
+                    defaultFilename: loadedURL?.deletingPathExtension().lastPathComponent ?? "canvas"
+                ) { result in
+                    handleFileExporter(result)
                 }
         }
         .frame(minWidth: 640, minHeight: 480)
@@ -97,6 +125,7 @@ struct CanvasWindow: View {
                 let data = try Data(contentsOf: url)
                 let decoded = try JSONCanvasCodec.decode(data)
                 document = decoded
+                loadedURL = url
                 errorText = nil
             } catch {
                 errorText = String(describing: error)
@@ -104,6 +133,41 @@ struct CanvasWindow: View {
         case .failure(let error):
             errorText = String(describing: error)
         }
+    }
+
+    private func handleFileExporter(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            loadedURL = url
+            errorText = nil
+        case .failure(let error):
+            errorText = String(describing: error)
+        }
+    }
+}
+
+/// Apple HIG `.fileExporter` requires a `FileDocument` wrapper;
+/// = CanvasDocument is plain Codable, so we wrap it here so the
+/// save-back path can call JSONCanvasCodec.encode (= SSOT on the
+/// codec; = the view never touches Codable directly).
+private struct CanvasDocumentFile: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+    let document: CanvasDocument
+
+    init(document: CanvasDocument) {
+        self.document = document
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        self.document = try JSONCanvasCodec.decode(data)
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        let data = try JSONCanvasCodec.encode(document)
+        return FileWrapper(regularFileWithContents: data)
     }
 }
 
