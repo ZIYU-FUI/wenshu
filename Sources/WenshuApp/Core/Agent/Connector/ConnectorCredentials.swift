@@ -18,14 +18,6 @@
 
 import Foundation
 
-// Reads metadata via `ProviderKeychain.loadMetadata` (= pre-SwiftData legacy path).
-// (= the old sqlite-backed metadata path). Migration is deferred because
-// (= per AGENTS.md §11) ProviderKeychain is a Keychain-backed store (= not
-// sqlite) and the metadata side-table is the only sqlite piece here. The SwiftData
-// migration target is WSProviderKey (= metadata index only; = encrypted blob
-// stays in AppleKeychain). Future ticket should switch the metadata load to
-// WSProviderKeyRepository.
-#warning("wenshu.connector-credentials: metadata load is sqlite-backed; = migrate to WSProviderKeyRepository in future ticket")
 
 struct ConnectorCredentials: Sendable {
     let provider: Provider

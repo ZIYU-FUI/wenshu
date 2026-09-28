@@ -81,7 +81,6 @@ import Foundation
 // covered by AGENTS.md §11.4 SwiftData migration). The store lives in
 // hermes-side scratchpad (= re-injected after context compression; =
 // lives on AIAgent). Kept as-is.
-#warning("wenshu.hermes-port: HermesTodoTool/HermesTodoStore are hermes-side scratchpad (= not sqlite); = not migrated to SwiftData")
 
 // MARK: - Module-level bounds (= mirrors todo_tool.py module header)
 
