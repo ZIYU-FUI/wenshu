@@ -31,10 +31,16 @@ import SwiftUI
 @MainActor
 struct ForeshadowingGraphWindow: View {
 
-    @State private var entries: [ForeshadowingEntry] = []
+    @Environment(BookStore.self) private var bookStore
 
-    /// One foreshadowing entry (= the row shape; = mapped from the
-    /// future ForeshadowingGraph actor's data).
+    @State private var entries: [ForeshadowingEntry] = []
+    @State private var errorText: String?
+
+    /// Active book (= mirrors ForeshadowingView's pattern).
+    private var activeBookId: UUID? { bookStore.selectedBookId }
+
+    /// One foreshadowing entry (= the row shape; = mapped from
+    /// the ForeshadowingTracker actor's data).
     struct ForeshadowingEntry: Identifiable, Equatable {
         let id: String
         let title: String
@@ -50,34 +56,70 @@ struct ForeshadowingGraphWindow: View {
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button {
-                            // future ticket: wire to ForeshadowingGraph
-                            // actor (per §11.1 batch 2 issue 05 =
-                            // Grape::ForceSimulation layout).
+                            Task { await reload() }
                         } label: {
                             Label {
-                                Text(WenshuI18n.t("foreshadowing_graph.layout"))
+                                Text(WenshuI18n.t("foreshadowing_graph.refresh"))
                             } icon: {
-                                Image(systemName: "rectangle.3.group.fill")
+                                Image(systemName: "arrow.clockwise")
                             }
                         }
+                        .disabled(activeBookId == nil)
                     }
                 }
         }
         .frame(minWidth: 540, minHeight: 400)
+        .task(id: activeBookId) {
+            await reload()
+        }
     }
 
     @ViewBuilder
     private var contentBody: some View {
         if entries.isEmpty {
-            EmptyStateView(
-                icon: "arrow.triangle.branch",
-                title: WenshuI18n.t("foreshadowing_graph.empty.title"),
-                body: WenshuI18n.t("foreshadowing_graph.empty.body")
-            )
+            if activeBookId == nil {
+                EmptyStateView(
+                    icon: "book.closed",
+                    title: WenshuI18n.t("foreshadowing_graph.no_book.title"),
+                    body: WenshuI18n.t("foreshadowing_graph.no_book.body")
+                )
+            } else {
+                EmptyStateView(
+                    icon: "arrow.triangle.branch",
+                    title: WenshuI18n.t("foreshadowing_graph.empty.title"),
+                    body: WenshuI18n.t("foreshadowing_graph.empty.body")
+                )
+            }
         } else {
             List(entries) { entry in
                 Text(entry.displayName)
             }
+        }
+    }
+
+    // v2.9c (boss 2026-09-28 OOB A5): load via ForeshadowingTracker
+    // actor (= the canonical persistence per AGENTS.md §11 baseline;
+    // = the view never reads the sidecar directly). Pattern mirrors
+    // ForeshadowingView (= same actor + same BookStore environment).
+    private func reload() async {
+        guard let bookId = activeBookId else {
+            entries = []
+            return
+        }
+        do {
+            let tracker = ForeshadowingTracker(bookStore: bookStore)
+            let rows = try await tracker.list(bookId: bookId)
+            entries = rows.map { row in
+                ForeshadowingEntry(
+                    id: row.id.uuidString,
+                    title: row.title,
+                    status: row.status.rawValue
+                )
+            }
+            errorText = nil
+        } catch {
+            errorText = String(describing: error)
+            entries = []
         }
     }
 }
