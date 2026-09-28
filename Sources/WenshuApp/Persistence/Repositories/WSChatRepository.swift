@@ -88,7 +88,20 @@ final class WSChatRepository {
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID),
             sortBy: [SortDescriptor(\.position)]
         )
-        return try context.fetch(descriptor).map { model in
+        let raw = try context.fetch(descriptor)
+        // In-memory bookID filter (= the SwiftData #Predicate macro
+        // does not reliably translate Optional<String> == nil to SQL
+        // IS NULL; = we filter post-fetch). The chat message set per
+        // sessionId is bounded (= O(thousands) per book); = an O(n)
+        // in-memory filter is acceptable.
+        let filtered: [WSChatMessage]
+        if let bookID {
+            let bookIDRaw = bookID.rawValue
+            filtered = raw.filter { $0.bookID == bookIDRaw }
+        } else {
+            filtered = raw.filter { $0.bookID == nil }
+        }
+        return filtered.map { model in
             StoredChatMessage(
                 id: model.id,
                 source: model.role,
@@ -134,7 +147,25 @@ final class WSChatRepository {
         // Reads (= loadMessages) can then filter by message.bookID without
         // traversing the optional $0.session relationship keyPath (= which
         // has historic fragility in SwiftData #Predicate macros).
-        let effectiveBookID: BookID? = bookID ?? BookID(rawValue: session.bookID ?? "")
+        //
+        // Pre-fix bug: `BookID(rawValue: "")` produced a non-nil BookID
+        // (= the empty-string sentinel), so a session-less append
+        // (= bookID: nil) wrote `bookID = ""` to the message row.
+        // loadMessages(_, bookID: nil) then queried `$0.bookID == nil`
+        // (= the post-§11.30 §11.30 contract) and missed the message.
+        // Chat history was silently dropped on the global un-attached
+        // bucket.
+        //
+        // Fix: only fall through to session.bookID if it is non-nil;
+        // otherwise leave the message row's bookID = nil (= global bucket).
+        let effectiveBookID: BookID?
+        if let bookID {
+            effectiveBookID = bookID
+        } else if let sessionBookIDRaw = session.bookID, !sessionBookIDRaw.isEmpty {
+            effectiveBookID = BookID(rawValue: sessionBookIDRaw)
+        } else {
+            effectiveBookID = nil
+        }
         let model = WSChatMessage(
             id: message.id,
             sessionID: sessionId,
@@ -159,8 +190,17 @@ final class WSChatRepository {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID)
         )
-        let models = try context.fetch(descriptor)
-        for model in models {
+        let raw = try context.fetch(descriptor)
+        // In-memory bookID filter (= same SwiftData #Predicate limitation
+        // as loadMessages; = see chatMessagePredicate for the rationale).
+        let filtered: [WSChatMessage]
+        if let bookID {
+            let bookIDRaw = bookID.rawValue
+            filtered = raw.filter { $0.bookID == bookIDRaw }
+        } else {
+            filtered = raw.filter { $0.bookID == nil }
+        }
+        for model in filtered {
             context.delete(model)
         }
         try context.save()
@@ -183,8 +223,16 @@ final class WSChatRepository {
                 createdBefore: beforeTimestamp
             )
         )
-        let models = try context.fetch(descriptor)
-        for model in models {
+        let raw = try context.fetch(descriptor)
+        // In-memory bookID filter (= see chatMessagePredicate).
+        let filtered: [WSChatMessage]
+        if let bookID {
+            let bookIDRaw = bookID.rawValue
+            filtered = raw.filter { $0.bookID == bookIDRaw }
+        } else {
+            filtered = raw.filter { $0.bookID == nil }
+        }
+        for model in filtered {
             context.delete(model)
         }
         try context.save()
@@ -197,17 +245,23 @@ final class WSChatRepository {
     /// summarised (= the (count - keepLastN)-th message's timestamp).
     /// Returns nil if no summarization is needed (= count <= keepLastN).
     func summaryCutoffTimestamp(sessionId: String, keepLastN: Int, bookID: BookID? = nil) throws -> Date? {
-        let total = try count(sessionId: sessionId, bookID: bookID)
-        guard total > keepLastN else { return nil }
-        let offset = total - keepLastN
-        var descriptor = FetchDescriptor<WSChatMessage>(
-            predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID),
+        // In-memory filter on bookID (= same SwiftData #Predicate
+        // limitation as loadMessages; = see chatMessagePredicate).
+        let allDescriptor = FetchDescriptor<WSChatMessage>(
+            predicate: #Predicate { $0.sessionID == sessionId },
             sortBy: [SortDescriptor(\.createdAt, order: .forward)]
         )
-        descriptor.fetchOffset = offset
-        descriptor.fetchLimit = 1
-        guard let cutoffMsg = try context.fetch(descriptor).first else { return nil }
-        return cutoffMsg.createdAt
+        let raw = try context.fetch(allDescriptor)
+        let filtered: [WSChatMessage]
+        if let bookID {
+            let bookIDRaw = bookID.rawValue
+            filtered = raw.filter { $0.bookID == bookIDRaw }
+        } else {
+            filtered = raw.filter { $0.bookID == nil }
+        }
+        guard filtered.count > keepLastN else { return nil }
+        let offset = filtered.count - keepLastN
+        return filtered[offset].createdAt
     }
 
     /// messagesBeforeCutoff(sessionId:cutoff:) -> [StoredChatMessage]
@@ -282,10 +336,18 @@ final class WSChatRepository {
     }
 
     func count(sessionId: String, bookID: BookID? = nil) throws -> Int {
-        let descriptor = FetchDescriptor<WSChatMessage>(
-            predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID)
+        // Same SwiftData #Predicate limitation as loadMessages (= the
+        // macro does not reliably translate Optional<String> == nil
+        // to SQL IS NULL). Fetch all and filter in-memory.
+        let allDescriptor = FetchDescriptor<WSChatMessage>(
+            predicate: #Predicate { $0.sessionID == sessionId }
         )
-        return try context.fetchCount(descriptor)
+        let all = try context.fetch(allDescriptor)
+        if let bookID {
+            let bookIDRaw = bookID.rawValue
+            return all.filter { $0.bookID == bookIDRaw }.count
+        }
+        return all.filter { $0.bookID == nil }.count
     }
 
     // MARK: - Summary
@@ -370,10 +432,20 @@ final class WSChatRepository {
     /// Predicate matching one session by ID + optional book scope.
     private static func sessionPredicate(sessionID: String, bookID: BookID?) -> Predicate<WSSession> {
         if let bookID {
-            let bookIDRaw = bookID.rawValue
-            return #Predicate { $0.sessionID == sessionID && $0.bookID == bookIDRaw }
+            // SwiftData #Predicate macro: lifted Optional<String> local
+            // (= see chatMessagePredicate for the macro expansion
+            // rules around nil comparisons).
+            let bookIDLocal: String? = bookID.rawValue
+            return #Predicate { $0.sessionID == sessionID && $0.bookID == bookIDLocal }
         } else {
-            return #Predicate { $0.sessionID == sessionID }
+            // Global un-attached bucket only. Without this filter
+            // (= the pre-§11.30 form: `$0.sessionID == sessionID`),
+            // `getSession(bookID: nil)` returns the first session
+            // matching sessionID regardless of bookID; = append with
+            // bookID = nil auto-fills the wrong bookID (= the bug
+            // surfaced by WSChatRepositoryBookIDContractTests).
+            let nilBookID: String? = nil
+            return #Predicate { $0.sessionID == sessionID && $0.bookID == nilBookID }
         }
     }
 
@@ -384,10 +456,11 @@ final class WSChatRepository {
             let bookIDRaw = bookID.rawValue
             return #Predicate { $0.bookID == bookIDRaw }
         } else {
-            // #Predicate { true } is rejected by the SwiftData macro (= the
-            // predicate must reference $0); = use a trivially-true comparison
-            // against a stored property that always exists.
-            return #Predicate { $0.sessionID == $0.sessionID }
+            // Per §11.11: global bucket = `bookID == nil` only.
+            // Pre-v1.79 predicate leaked per-book sessions into the
+            // global includeArchived=true view (= mirror of the
+            // combinedPredicate bug fixed in §11.30).
+            return #Predicate { $0.bookID == nil }
         }
     }
 
@@ -397,7 +470,12 @@ final class WSChatRepository {
             let bookIDRaw = bookID.rawValue
             return #Predicate { $0.archivedAt == nil && $0.bookID == bookIDRaw }
         } else {
-            return #Predicate { $0.archivedAt == nil }
+            // Per §11.11 v1.79 chat-by-book row-level split: the
+            // global un-attached bucket is exactly those sessions
+            // whose `bookID` column is nil (= not "all sessions").
+            // The pre-v1.79 predicate (= `archivedAt == nil` alone)
+            // leaked per-book sessions into the global view.
+            return #Predicate { $0.archivedAt == nil && $0.bookID == nil }
         }
     }
 
@@ -407,9 +485,28 @@ final class WSChatRepository {
     /// books; = if you find one, it's a bug or legacy data).
     private static func chatMessagePredicate(sessionId: String, bookID: BookID?) -> Predicate<WSChatMessage> {
         if let bookID {
-            let bookIDRaw = bookID.rawValue
-            return #Predicate { $0.sessionID == sessionId && $0.bookID == bookIDRaw }
+            // SwiftData #Predicate macro requires Optional<String>==
+            // String? comparisons to be expressed via a lifted local
+            // (`bookIDLocal: String? = "<book-id>"`) for the macro to
+            // translate to SQL `<col> = ?` (= the bare `$0.bookID == bookIDRaw`
+            // syntax compiles but the macro expansion can collapse the
+            // Optional wrapping and produce a `bookID == NULL OR bookID = ?`
+            // predicate = the per-book view leaks the global bucket).
+            let bookIDLocal: String? = bookID.rawValue
+            return #Predicate { $0.sessionID == sessionId && $0.bookID == bookIDLocal }
         } else {
+            // Per §11.11: global bucket = `bookID == nil` only.
+            // Pre-v1.79 predicate leaked per-book messages into the
+            // global view (= mirror of the listSessions bug).
+            //
+            // SwiftData #Predicate macro does NOT reliably translate
+            // `$0.optionalString == nil` to SQL `IS NULL` (= the macro
+            // expansion drops the comparison in some SDK versions; =
+            // the global bucket was empty). Lifted `nilBookID: String?`
+            // local also fails. The robust path is to skip the
+            // SQL-level filter and apply an in-memory filter after
+            // fetch (= the global bucket is small enough that
+            // .filter(...) is acceptable).
             return #Predicate { $0.sessionID == sessionId }
         }
     }
@@ -424,7 +521,8 @@ final class WSChatRepository {
             let bookIDRaw = bookID.rawValue
             return #Predicate { $0.sessionID == sessionId && $0.bookID == bookIDRaw && $0.createdAt < createdBefore }
         } else {
-            return #Predicate { $0.sessionID == sessionId && $0.createdAt < createdBefore }
+            // Per §11.11: global bucket = `bookID == nil` only.
+            return #Predicate { $0.sessionID == sessionId && $0.bookID == nil && $0.createdAt < createdBefore }
         }
     }
 

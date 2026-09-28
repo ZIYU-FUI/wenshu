@@ -137,8 +137,12 @@ struct WSChatRepositoryTests {
         #expect(sessionsForA[0].sessionID == "sess-book-A")
         #expect(sessionsForB.count == 1)
         #expect(sessionsForB[0].sessionID == "sess-book-B")
-        // bookID: nil (= "all sessions") returns every session
-        #expect(sessionsGlobal.count == 3)
+        // bookID: nil returns ONLY the global un-attached bucket
+        // (= §11.11 v1.79 row-level split contract; = the pre-v1.79
+        // "all sessions" interpretation is rejected by the fix in the
+        // bug-sweep-2026-09-28 arc).
+        #expect(sessionsGlobal.count == 1)
+        #expect(sessionsGlobal[0].sessionID == "sess-global")
     }
 
     @Test("append + loadMessages are scoped by bookID; cross-book append auto-creates a sibling session")
@@ -178,15 +182,22 @@ struct WSChatRepositoryTests {
             bookID: BookID(rawValue: "book-B")
         )
 
-        // Global (bookID = nil) sees all 3 messages (m-A1 + m-B1 + m-cross)
-        // via their session FKs (= global un-attached reads use
-        // sessionID alone; = the cross-scope message now has its own
-        // session row under book-B so loadMessages(sessionId: "sess-A")
-        // returns both m-A1 and m-cross).
+        // Global (= bookID: nil) views must respect the §11.11 row-level split
+        // (= the global bucket contains ONLY messages whose own bookID
+        // is nil; = m-A1 and m-cross both have non-nil bookIDs and
+        // belong to per-book buckets).
         let messagesGlobalA = try repo.loadMessages(sessionId: "sess-A")
         let messagesGlobalB = try repo.loadMessages(sessionId: "sess-B")
-        #expect(messagesGlobalA.count == 2)
-        #expect(messagesGlobalB.count == 1)
+        #expect(messagesGlobalA.isEmpty)
+        #expect(messagesGlobalB.isEmpty)
+
+        // Per-book scope returns the right message.
+        let crossBookB = try repo.loadMessages(
+            sessionId: "sess-A",
+            bookID: BookID(rawValue: "book-B")
+        )
+        #expect(crossBookB.count == 1)
+        #expect(crossBookB[0].id == "m-cross")
     }
 
     @Test("count + clear respect bookID scope")

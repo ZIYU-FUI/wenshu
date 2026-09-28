@@ -54,11 +54,12 @@ struct LiveChatRepositoryTests {
         #expect(loaded.count == 1)
         #expect(loaded[0].content == "in book A")
 
-        // Load with bookID: nil = legacy global behavior (= still sees the message
-        // because the message exists in the session; = the scope guard doesn't
-        // filter rows when caller passes nil).
+        // Load with bookID: nil returns the global un-attached bucket
+        // only (= §11.11 v1.79 row-level split contract). The
+        // per-book message above has bookID = "book-A" so it does
+        // not appear in the global view.
         let loadedGlobal = try await live.loadMessages(sessionId: "sess-A", bookID: nil)
-        #expect(loadedGlobal.count == 1)
+        #expect(loadedGlobal.isEmpty)
     }
 
     @Test("append with nil bookID stores under global un-attached scope")
