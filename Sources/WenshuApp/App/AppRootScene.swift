@@ -433,5 +433,29 @@ struct AppRootScene: Scene {
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
+        // v2.8b (boss 2026-09-28 OOB B6 + B7 + B9): 4 new
+        // independent windows for previously-unwired features.
+        // Per boss '和老板 todo 一样' (= same shape as the existing
+        // kanban + todo windows).
+        Window(WenshuI18n.t("window.canvas"), id: WindowID.canvas) {
+            CanvasWindow()
+        }
+        .windowResizability(.contentSize)
+        .windowToolbarStyle(.unified)
+        Window(WenshuI18n.t("window.composer"), id: WindowID.composer) {
+            ComposerWindow()
+        }
+        .windowResizability(.contentSize)
+        .windowToolbarStyle(.unified)
+        Window(WenshuI18n.t("window.foreshadowing_graph"), id: WindowID.foreshadowingGraph) {
+            ForeshadowingGraphWindow()
+        }
+        .windowResizability(.contentSize)
+        .windowToolbarStyle(.unified)
+        Window(WenshuI18n.t("window.cron"), id: WindowID.cron) {
+            CronWindow()
+        }
+        .windowResizability(.contentSize)
+        .windowToolbarStyle(.unified)
     }
 }

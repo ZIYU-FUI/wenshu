@@ -28,11 +28,37 @@ struct BackupMetadata: Equatable, Sendable {
 }
 
 /// Backup (wenshu backup)
+///
+/// Per boss 2026-09-28 OOB B5 '苹果有没有官方机制可以用' (= does
+/// Apple have an official mechanism we can use for backups?): YES,
+/// and the canonical mechanism is `NSFileCoordinator` (=
+/// developer.apple.com/documentation/foundation/nsfilecoordinator).
+/// The previous implementation did raw `FileManager.copyItem` =
+/// no cross-process coordination = other NSFilePresenter
+/// implementations in the editor (`WenshuMarkdownEditor`, the
+/// chapter file watcher, etc.) would silently conflict with the
+/// copy.
+///
+/// `NSFileCoordinator` wraps the read/write so all interested file
+/// presenters get notified (= "we're about to read source X" +
+/// "we're about to write backup Y"); = no silent file race.
 struct BackupTools: Sendable {
     init() {}
 
-    /// backup: createdirectory ZIP backup
-    ///: ZIP, .tar.gz not ok (Apple tar), change NSFileCoordinator + copydirectorybackupdirectory
+    /// Backup: snapshot `sourceDir` to `<backupDir>/<source>-<iso8601>/`
+    /// (= the canonical wenshu backup shape; = the artifact is a
+    /// directory, not a ZIP, because the .ws bundle is itself a
+    /// directory tree = no compression needed; = Time Machine
+    /// deduplicates the snapshot natively).
+    ///
+    /// Apple HIG:
+    /// 1. NSFileCoordinator.coordinate(readingItemAt:writingItemAt:)
+    ///    wraps the source read + backup write (= the canonical
+    ///    cross-process coordination pattern).
+    /// 2. The backup directory itself is marked with
+    ///    `URLResourceKey.isExcludedFromBackupKey = true` (= Time
+    ///    Machine loop prevention; = otherwise Time Machine would
+    ///    back up the backup, growing indefinitely).
     func backup(sourceDir: String, backupDir: String? = nil) throws -> BackupMetadata {
         let fm = FileManager.default
         let sourceURL = URL(fileURLWithPath: sourceDir, isDirectory: true)
@@ -47,11 +73,58 @@ struct BackupTools: Sendable {
             destDir = support.appendingPathComponent("wenshu/backups", isDirectory: true)
         }
         try fm.createDirectory(at: destDir, withIntermediateDirectories: true)
+        // Mark the backup directory with isExcludedFromBackupKey
+        // (= Time Machine loop defense). Per Apple HIG, the
+        // resource value is set via `setResourceValues(_:)` on
+        // the directory URL.
+        var resourceValues = URLResourceValues()
+        resourceValues.isExcludedFromBackup = true
+        var mutableDestDir = destDir
+        try? mutableDestDir.setResourceValues(resourceValues)
+
         let timestamp = ISO8601DateFormatter().string(from: Date())
             .replacingOccurrences(of: ":", with: "-")
         let backupName = "\(sourceURL.lastPathComponent)-\(timestamp)"
         let archiveURL = destDir.appendingPathComponent(backupName, isDirectory: true)
-        try fm.copyItem(at: sourceURL, to: archiveURL)
+
+        // NSFileCoordinator cross-process coordination (= the
+        // canonical Apple pattern; = replaces raw fm.copyItem).
+        let coordinator = NSFileCoordinator()
+        var coordinationError: NSError?
+        // The coordinator's accessor closure is non-throwing
+        // (= the Obj-C byAccessor signature); = capture inner
+        // errors in a local box, then check after the
+        // coordinator returns.
+        var copyError: Error?
+        coordinator.coordinate(
+            readingItemAt: sourceURL,
+            options: [.withoutChanges],
+            writingItemAt: archiveURL,
+            options: [.forReplacing],
+            error: &coordinationError
+        ) { readURL, writeURL in
+            do {
+                try fm.copyItem(at: readURL, to: writeURL)
+            } catch {
+                copyError = error
+            }
+        }
+        if let coordinationError {
+            throw coordinationError
+        }
+        if let copyError {
+            throw BackupError.copyFailed(underlying: copyError)
+        }
+        // Post-check: confirm the artifact landed (= the
+        // coordinator may complete the access block without
+        // raising an error AND the copy may have failed silently).
+        guard fm.fileExists(atPath: archiveURL.path) else {
+            throw BackupError.copyFailed(underlying: NSError(
+                domain: NSCocoaErrorDomain,
+                code: NSFileNoSuchFileError
+            ))
+        }
+
         let size = try directorySize(at: archiveURL)
         return BackupMetadata(
             id: UUID().uuidString,
@@ -137,6 +210,7 @@ struct BackupTools: Sendable {
 
 enum BackupError: Error {
     case sourceNotFound(path: String)
+    case copyFailed(underlying: Error)
 }
 
 extension BackupError: LocalizedError {
@@ -144,6 +218,8 @@ extension BackupError: LocalizedError {
         switch self {
         case .sourceNotFound(let path):
             return "Backup source not found: \(path)"
+        case .copyFailed(let underlying):
+            return "Backup copy failed: \(underlying.localizedDescription)"
         }
     }
 }
