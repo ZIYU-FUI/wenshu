@@ -27,7 +27,7 @@
 import SwiftUI
 
 /// Single specialized tool = the data-layer type for the right
-/// column's specializedTools zone. Owned by `InspectorCatalog` (= 12
+/// column's specializedTools zone. Owned by `InspectorCatalog` (= 13
 /// static entries) and `InspectorPage.tools` (ticket 02 = the
 /// business-layer routing, which returns `[InspectorTool]`).
 ///
@@ -156,10 +156,22 @@ enum InspectorCatalog {
         view: { AnyView(BookSettingConstraintsView()) }
     )
 
-    /// All 12 tools in catalog order. Used by ticket 02
+    // v2.8a (boss 2026-09-28 OOB): bookmark tab for the
+    // specializedTools pane. WSBookmark @Model + WSBookmarkRepository
+    // (= SwiftData per AGENTS.md §11.4 phase 5 ticket 10b) are
+    // already canonical; = this entry just wires the view into
+    // the inspector catalog.
+    static let bookmark = InspectorTool(
+        id: "tab.title.bookmark",
+        icon: "bookmark",
+        title: WenshuI18n.t("tab.title.bookmark"),
+        view: { AnyView(BookmarkView()) }
+    )
+
+    /// All 13 tools in catalog order. Used by ticket 02
     /// `InspectorPage.tools` (= business layer routing) to return the
     /// 3 tools per page. Used by ticket 04 tests for catalog
-    /// completeness assertions (= `count == 12` + unique IDs).
+    /// completeness assertions (= `count == 13` + unique IDs).
     static let allTools: [InspectorTool] = [
         InspectorCatalog.foreshadowing,
         InspectorCatalog.placeholder,
@@ -172,6 +184,7 @@ enum InspectorCatalog {
         InspectorCatalog.characterLifecycle,
         InspectorCatalog.tagManager,
         InspectorCatalog.ideaLibrary,
-        InspectorCatalog.bookSettingConstraints
+        InspectorCatalog.bookSettingConstraints,
+        InspectorCatalog.bookmark
     ]
 }

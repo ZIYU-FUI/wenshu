@@ -351,6 +351,23 @@ struct ShellDetailColumn: View {
                     }
                 }
                 .help(WenshuI18n.t("window.todo.help"))
+
+                // v2.8a (boss 2026-09-28 OOB B3): explicit
+                // CommandPalette toolbar button. The palette
+                // sheet host in LibraryRootView already listens
+                // for `.wenshuShowCommandPalette` notifications;
+                // = this button is the visible trigger (= posts
+                // the notification via CommandPaletteController.show).
+                Button {
+                    CommandPaletteController.show()
+                } label: {
+                    Label {
+                        Text(WenshuI18n.t("command_palette.open"))
+                    } icon: {
+                        Image(systemName: "command")
+                    }
+                }
+                .help(WenshuI18n.t("command_palette.open.help"))
             }
         }
         // Re-inject AppState into the env chain. SwiftUI 6+ breaks

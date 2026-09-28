@@ -329,7 +329,7 @@ struct NavigationSplitShell: View {
 /// control and gets the full column width for the chosen
 /// page's content; = no per-tab horizontal scrolling).
 ///
-/// 4 pages × 3 tools = 12 tools (= every tool in the
+/// 4 pages × 3 tools + 1 bookmark = 13 tools (= every tool in the
 /// specializedTools zone gets a page; = the actual page→tool
 /// mapping is provisional).
 ///
@@ -416,10 +416,16 @@ enum InspectorPage: Hashable, CaseIterable {
         case .projectManagement:
             // Page 4 = Project Management + Ideas / Tags / Book Settings
             // (= cross-document project scaffolding).
+            // v2.8a (boss 2026-09-28 OOB): bookmark tab joins this page
+            // (= cross-document reference; = the existing 3 + 1 = 4
+            // tools per page rule is intentionally broken here; = the
+            // boss picked project-management as the natural home for
+            // bookmarks next to tagManager).
             return [
                 InspectorCatalog.ideaLibrary,
                 InspectorCatalog.tagManager,
-                InspectorCatalog.bookSettingConstraints
+                InspectorCatalog.bookSettingConstraints,
+                InspectorCatalog.bookmark
             ]
         }
     }
