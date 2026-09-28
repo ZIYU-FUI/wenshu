@@ -130,6 +130,62 @@ struct ComposerWindow: View {
                     Text(WenshuI18n.t("composer.section.result"))
                 }
             }
+
+            // v2.9c (boss 2026-09-28 OOB A5): Run button =
+            // call NoteComposer per the selected operation.
+            // NoteComposer.rename / merge / split are the
+            // canonical composer surfaces per AGENTS.md §11
+            // baseline (= this view is the UI host).
+            Section {
+                Button(WenshuI18n.t("composer.run")) {
+                    runOperation()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+    }
+
+    private func runOperation() {
+        switch selectedOperation {
+        case .rename:
+            resultText = NoteComposer.rename(
+                oldName: oldName,
+                newName: newName,
+                content: sourceNoteId
+            )
+        case .merge:
+            // NoteComposer.merge takes a list of source
+            // contents (= not just one body); = wrap the
+            // current sourceNoteId as a single-item list.
+            // Swift array literals cannot infer tuple element
+            // labels from the parameter declaration; = use
+            // an explicit (name:content:) tuple literal so
+            // the call matches NoteComposer's signature.
+            let pair: (name: String, content: String) = (name: sourceNoteId, content: sourceNoteId)
+            resultText = NoteComposer.merge(
+                targetName: targetNoteId,
+                sourceContents: [pair]
+            )
+        case .split:
+            let start = Int(startLine) ?? 0
+            let end = Int(endLine) ?? 0
+            // NoteComposer.split throws and returns a tuple
+            // (= first: String = before-split body; = second:
+            // String = after-split body); = the MVP path
+            // shows the first part in the result panel
+            // (= the second part is also available via the
+            // = a future ticket can add a second text
+            // field to render both).
+            do {
+                let split = try NoteComposer.split(
+                    content: sourceNoteId,
+                    startLine: start,
+                    endLine: end
+                )
+                resultText = "first: \(split.first)\nsecond: \(split.second)"
+            } catch {
+                resultText = "split failed: \(error)"
+            }
         }
     }
 }
