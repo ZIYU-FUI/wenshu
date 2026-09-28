@@ -49,7 +49,11 @@ struct ChatToolResultDiffSheetTapTests {
 
     // MARK: - Repo-root path helper
     private static func repoSourcePath(_ relativeFromRepoRoot: String) -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/wt/chat-diff-sheet-2026-09-28/\(relativeFromRepoRoot)"
+        // Resolve via wenshu project root (= the canonical Sources path
+        // post-merge; = the worktree path `wt/chat-diff-sheet-2026-09-28/`
+        // was the T7 RED/GREEN worktree, now merged + cleaned per the
+        // wenshu-pocock-workflow standing rule).
+        let path = "/Volumes/ANAN/Engineering/wenshu/\(relativeFromRepoRoot)"
         return path
     }
 }

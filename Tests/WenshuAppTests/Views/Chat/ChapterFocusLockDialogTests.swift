@@ -57,7 +57,7 @@ struct ChapterFocusLockDialogTests {
 
     // MARK: - Repo-root path helper
     private static func repoSourcePath(_ relativeFromRepoRoot: String) -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/wt/chapter-dialog-2026-09-28/\(relativeFromRepoRoot)"
+        let path = "/Volumes/ANAN/Engineering/wenshu/\(relativeFromRepoRoot)"
         return path
     }
 }

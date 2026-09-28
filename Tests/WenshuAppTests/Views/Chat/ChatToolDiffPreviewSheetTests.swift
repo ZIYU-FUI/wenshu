@@ -59,7 +59,7 @@ struct ChatToolDiffPreviewSheetTests {
     // (= Tests/WenshuAppTests/Views/Chat/<file>.swift
     //  => /Volumes/ANAN/Engineering/wenshu/wt/<wt-name>/Sources/...).
     private static func repoSourcePath(_ relativeFromRepoRoot: String) -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/wt/chat-diff-sheet-2026-09-28/\(relativeFromRepoRoot)"
+        let path = "/Volumes/ANAN/Engineering/wenshu/\(relativeFromRepoRoot)"
         return path
     }
 }

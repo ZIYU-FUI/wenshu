@@ -30,7 +30,10 @@ struct ChapterFocusLockActorTests {
 
     @Test("BookChapterActor also gates the update path on the focused-chapter lock")
     func bookActorGatesUpdate() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Librarian/BookChapterActor.swift")
+        // v1.85 chat-diff-preview arc (= §11.20) consolidated BookChapterActor
+        // into BookChapterTool.swift (= the actor + tool live in the same
+        // file). Tests assert against the canonical file containing the actor.
+        let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Librarian/BookChapterTool.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         // Both `update` and the patch-style `edit` surfaces must
         // honor the lock. The book_chapter tool exposes update
@@ -42,7 +45,7 @@ struct ChapterFocusLockActorTests {
 
     // MARK: - Repo-root path helper
     private static func repoSourcePath(_ relativeFromRepoRoot: String) -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/wt/chapter-focus-lock-2026-09-28/\(relativeFromRepoRoot)"
+        let path = "/Volumes/ANAN/Engineering/wenshu/\(relativeFromRepoRoot)"
         return path
     }
 }
