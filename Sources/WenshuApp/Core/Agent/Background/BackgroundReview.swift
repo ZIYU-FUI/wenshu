@@ -23,6 +23,11 @@ import Foundation
 
 /// Type of background proposal (= what kind of change is being proposed).
 enum ProposalKind: String, Sendable, Equatable, Codable {
+    // v2.8c (boss 2026-09-28 OOB B8): auto-call hook =
+    // ConversationLoop submits a .turnSummary proposal per turn
+    // (= the operator reviews the turn in the inspector's
+    // BackgroundReview tab).
+    case turnSummary        // auto-call hook: agent submits turn summary
     case entityCreation       // create new reference-library entity
     case entityUpdate         // modify existing entity
     case entityDeletion       // remove entity
@@ -76,6 +81,11 @@ struct BackgroundProposal: Sendable, Equatable, Codable, Identifiable {
 /// Per ADR-0009 (= wenshu-side wins, no duplicate approval engine;
 /// delegates to existing wenshu approval flow via Notification).
 actor BackgroundReview {
+
+    /// v2.8c (boss 2026-09-28 OOB B8): canonical shared instance
+    /// (= the consolidation surface for both manual + auto
+    /// callers via BackgroundReviewOps).
+    static let shared = BackgroundReview()
 
     private var pending: [UUID: BackgroundProposal] = [:]
     private var decided: [BackgroundProposal] = []

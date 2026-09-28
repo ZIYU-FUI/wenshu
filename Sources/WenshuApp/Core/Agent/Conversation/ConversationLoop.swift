@@ -546,6 +546,36 @@ actor ConversationLoop {
                     bookId: nil
                 )
 
+                // step 9: "Submitting background-review proposals".
+                // The agent-side auto-call hook per boss 2026-09-28
+                // OOB B8 '自动也可以手动也可以'. The agent scans
+                // the response for background-worthy events (= file
+                // writes, entity changes, schedule edits) and submits
+                // a proposal per event via BackgroundReviewOps.
+                // For v2.8c MVP the hook is the simplest possible:
+                // always submit one proposal per turn whose kind =
+                // .turnSummary (= the operator reviews the turn in
+                // the inspector's BackgroundReview tab; = the manual
+                // surface remains BackgroundReviewOps.approve / reject).
+                await progressTracker.setStep(
+                    id: progressEntry.id,
+                    stepNumber: 9,
+                    label: "Submitting background-review proposal",
+                    etaSeconds: nil
+                )
+                let turnSummary = result.response.blocks.first(where: { if case .text = $0 { return true } else { return false } })
+                    .map { block -> String in
+                        if case .text(let s) = block { return s }
+                        return ""
+                    } ?? ""
+                let autoProposal = BackgroundProposal(
+                    kind: .turnSummary,
+                    title: "Turn summary: \(turnSummary.prefix(80))",
+                    description: turnSummary,
+                    proposedChanges: []
+                )
+                await BackgroundReviewOps.submit(autoProposal)
+
                 // mark the entry as succeeded.
                 await progressTracker.complete(id: progressEntry.id, status: .succeeded)
 
