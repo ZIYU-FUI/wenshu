@@ -725,7 +725,6 @@ actor WenshuConductor {
         "llm_wiki",         // Core/Agent/Tool/LLMWikiTool.swift  (= v2.8d boss OOB B10: LLM Wiki 4-layer pipeline manual + auto surface)
         "process",          // Core/Tools/ProcessTools.swift
         "reference_library",// Core/Agent/Librarian/ReferenceLibraryTool.swift
-        "skill_bundles",    // Core/Agent/Tool/SkillBundlesTool.swift  (= v0.73 ticket 001-wire-skillbundles)
         "todo",             // Core/Tool/TodoStoreTool.swift
         "todo_hermes",      // Core/Agent/Todo/HermesTodoTool.swift
         "vision",           // Core/Tools/VisionTools.swift
