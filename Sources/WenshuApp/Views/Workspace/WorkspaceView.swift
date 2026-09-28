@@ -397,7 +397,13 @@ struct WorkspaceView: View {
                         // so it opens THIS card (= not the topmost one).
                         openCardInEditor(source: source)
                     },
-                    previewSortOrder: $workspaceUI.previewSortOrder
+                    previewSortOrder: $workspaceUI.previewSortOrder,
+                    // v2.9d T37 (boss 2026-09-28 OOB A7 follow-up):
+                    // pipe workspaceUI.activeTag (= set by the sidebar
+                    // .tag(String) selection) into PreviewPane's tag
+                    // filter. The preview pane renders only references
+                    // whose tags set contains this string.
+                    activeTag: $workspaceUI.activeTag
                 ))),
                 (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ], trailingButton: AnyView(

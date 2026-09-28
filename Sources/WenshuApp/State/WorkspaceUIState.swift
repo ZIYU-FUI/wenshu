@@ -31,14 +31,14 @@
 import Foundation
 
 /// Per-window observable for column-local UI state (= preview
-/// sort order + layout edit mode).
+/// sort order + layout edit mode + active tag filter).
 ///
 /// Owned by `WenshuApp` (= the App struct, = per-window via
 /// `@State`), injected via `.environment(workspaceUI)` on
 /// WiredShell. Descendants read it with
 /// `@Environment(WorkspaceUIState.self) private var workspaceUI`.
 ///
-/// Both fields are in-memory only (= no UserDefaults
+/// All fields are in-memory only (= no UserDefaults
 /// persistence); = column-local; = matches the boss's
 /// 'should disappear on restart' expectation for ephemeral UI
 /// state.
@@ -64,6 +64,15 @@ final class WorkspaceUIState {
     /// share one instance (= per-window via WenshuApp's @State).
     /// Hotkey binding lives in `EditModeHotkey.swift`.
     var editMode = LayoutEditMode()
+
+    /// v2.9d T37 (boss 2026-09-28 OOB A7 follow-up): the
+    /// active tag filter (= the user clicked a `.tag(String)`
+    /// sidebar item; = the preview pane renders only
+    /// references whose `tags` set contains this string).
+    /// = nil means "no tag filter" (= show all references).
+    /// Lives on WorkspaceUIState (= the §11.13 P2-06 split
+    /// pattern; = per-window via @State in WenshuApp).
+    var activeTag: String?
 
     init() {
         // In-memory only (= no UserDefaults read).
