@@ -455,11 +455,52 @@ struct ShellDetailColumn: View {
                                     }
                                 }
                                 .help(WenshuI18n.t("llm_wiki.operator.help"))
+
+                                // v2.9c (boss 2026-09-28 OOB B5
+                // follow-up): Restore operator (= the Backup
+                // restore UI per AGENTS.md §11 baseline; = the
+                // canonical backup path is
+                // `BackupTools.list` / `BackupTools.restore`
+                // wrapped in @MainActor enum AppBackupOps).
+                Button {
+                                    Task { await restoreLatestBackup() }
+                                } label: {
+                                    Label(WenshuI18n.t("backup.operator.open"), systemImage: "arrow.uturn.backward.circle")
+                                }
+                                .help(WenshuI18n.t("backup.operator.help"))
                 }
         }
         // Re-inject AppState into the env chain. SwiftUI 6+ breaks
         // the @Environment chain across NavigationSplitView's
         // 3-column boundary.
         .environment(appState)
+    }
+
+    /// v2.9c (boss 2026-09-28 OOB B5 follow-up): restore from the
+    /// latest available backup (= the user-facing restore
+    /// surface per AGENTS.md §11 baseline).
+    ///
+    /// Pattern: pull the active library path from the canonical
+    /// UserDefaults key (`wenshu.libraryPath`), list backups via
+    /// `AppBackupOps.list()`, restore the newest (= alphabetical
+    /// sort on the timestamped backup name is the canonical
+    /// ordering used by `BackupTools.list`).
+    private func restoreLatestBackup() async {
+        guard let sourceDir = UserDefaults.standard.string(forKey: "wenshu.libraryPath"),
+              FileManager.default.fileExists(atPath: sourceDir) else {
+            NSLog("[wenshu.backup.operator] no active library bound (= wenshu.libraryPath missing or .ws absent)")
+            return
+        }
+        do {
+            let backups = try AppBackupOps.list()
+            guard let latest = backups.last else {
+                NSLog("[wenshu.backup.operator] no backups available in default backup dir")
+                return
+            }
+            try AppBackupOps.restore(backupName: latest.id, to: sourceDir)
+            NSLog("[wenshu.backup.operator] restored backup %@ to %@", latest.id, sourceDir)
+        } catch {
+            NSLog("[wenshu.backup.operator] failed: %@", String(describing: error))
+        }
     }
 }
