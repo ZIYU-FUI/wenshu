@@ -20,20 +20,36 @@
 
 import SwiftUI
 
-/// One cron schedule row (= the shape we'll display + edit;
-/// = the underlying storage is the future CronScheduler actor).
+/// One cron schedule row (= the shape we display + edit; =
+/// the underlying storage is the canonical CronjobStore
+/// actor per AGENTS.md §11 baseline).
+///
+/// Maps to the canonical Cronjob struct (= name + command +
+/// schedule); = the window displays the cron expression and
+/// the command (= the LLM-or-shell payload) per row.
 struct CronSchedule: Identifiable, Equatable {
     let id: String
     let cronExpression: String
-    let prompt: String
-    var displayName: String { "\(cronExpression) → \(prompt)" }
+    let command: String
+    var displayName: String { "\(cronExpression) → \(command)" }
 }
 
-/// Independent Cron window (= MVP per boss 2026-09-28 OOB B9).
+/// Independent Cron window (= MVP per boss 2026-09-28 OOB B9;
+/// v2.9c boss 2026-09-28 OOB A5 follow-up wires to the
+/// canonical CronjobStore actor).
 @MainActor
 struct CronWindow: View {
 
     @State private var schedules: [CronSchedule] = []
+    @State private var draftSchedule: String = ""
+    @State private var draftCommand: String = ""
+    @State private var draftName: String = ""
+    @State private var errorText: String?
+
+    /// Canonical cron store (= the actor that owns the
+    /// LaunchAgent plist generation per AGENTS.md §11
+    /// baseline).
+    private let store = CronjobStore()
 
     init() {}
 
@@ -43,33 +59,118 @@ struct CronWindow: View {
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button {
-                            // future ticket: wire to CronScheduler
-                            // actor (= the agent-team cron backend).
+                            Task { await reload() }
                         } label: {
                             Label {
-                                Text(WenshuI18n.t("cron.add"))
+                                Text(WenshuI18n.t("cron.refresh"))
                             } icon: {
-                                Image(systemName: "plus")
+                                Image(systemName: "arrow.clockwise")
                             }
                         }
                     }
                 }
         }
         .frame(minWidth: 540, minHeight: 400)
+        .task { await reload() }
     }
 
     @ViewBuilder
     private var contentBody: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+            // v2.9c: inline add-form for a new cron schedule
+            // (= the actor path adds directly via store.add).
+            addFormBody
+        }
+    }
+
+    @ViewBuilder
+    private var addFormBody: some View {
         if schedules.isEmpty {
-            EmptyStateView(
-                icon: "clock",
-                title: WenshuI18n.t("cron.empty.title"),
-                body: WenshuI18n.t("cron.empty.body")
-            )
+            VStack {
+                EmptyStateView(
+                    icon: "clock",
+                    title: WenshuI18n.t("cron.empty.title"),
+                    body: WenshuI18n.t("cron.empty.body")
+                )
+                newScheduleForm
+            }
         } else {
-            List(schedules) { schedule in
-                Text(schedule.displayName)
+            List {
+                Section {
+                    ForEach(schedules) { schedule in
+                        Text(schedule.displayName)
+                    }
+                }
+                Section {
+                    newScheduleForm
+                } header: {
+                    Text(WenshuI18n.t("cron.add_section"))
+                }
             }
         }
+    }
+
+    private var newScheduleForm: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+            TextField(
+                WenshuI18n.t("cron.field.schedule"),
+                text: $draftSchedule
+            )
+            .textFieldStyle(.roundedBorder)
+            TextField(
+                WenshuI18n.t("cron.field.name"),
+                text: $draftName
+            )
+            .textFieldStyle(.roundedBorder)
+            TextField(
+                WenshuI18n.t("cron.field.command"),
+                text: $draftCommand
+            )
+            .textFieldStyle(.roundedBorder)
+            Button(WenshuI18n.t("cron.add")) {
+                Task { await addSchedule() }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(draftSchedule.isEmpty || draftCommand.isEmpty || draftName.isEmpty)
+            if let errorText {
+                Text(errorText)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+    }
+
+    // v2.9c (boss 2026-09-28 OOB A5): wire to the canonical
+    // CronjobStore actor (= the view never reads the plist
+    // directly; = SSOT on CronjobStore).
+    private func reload() async {
+        let rows = await store.list()
+        schedules = rows.map { row in
+            CronSchedule(
+                id: row.id,
+                cronExpression: row.schedule,
+                command: row.command
+            )
+        }
+    }
+
+    private func addSchedule() async {
+        // Cronjob struct (= id / name / schedule / command /
+        // enabled / createdAt); = the MVP path generates a
+        // UUID here and persists via the canonical actor.
+        let job = Cronjob(
+            id: UUID().uuidString,
+            name: draftName,
+            schedule: draftSchedule,
+            command: draftCommand,
+            enabled: true,
+            createdAt: Date()
+        )
+        await store.add(job)
+        draftSchedule = ""
+        draftCommand = ""
+        draftName = ""
+        errorText = nil
+        await reload()
     }
 }
