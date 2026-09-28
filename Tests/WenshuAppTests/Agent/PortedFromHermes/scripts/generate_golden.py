@@ -156,9 +156,19 @@ FIXTURES: List[Dict[str, Any]] = [
             "user_name": "Test User",
             "book_title": "Test Book"
         },
-        # Byte-stable system prompt (= 11.3 cache-stable invariant)
+        # Byte-stable system prompt (= 11.3 cache-stable invariant).
+        # Wenshu-side stable tier (~5.75 KB) is intentionally larger
+        # than hermes Python (~1.5 KB) because wenshu adds:
+        #   - localeIdentityBlock(.english) Tools-available enumeration
+        #   - providerGuidance(.unknown) per-provider operational notes
+        #   - universalGuidance(task_completion + parallel_tool_call)
+        #   - SpeakingStyle.literary promptGuidance (= v2.4 closed-enum)
+        #   - agent_driver guidance block (= delegate_research + reference_library
+        #     self-evolution rules, anchored in the closing-system slot
+        #     per wenshu's late-stage attention bias)
+        # See AGENTS.md §11.14 v2.4 closed-enum product philosophy.
         "expected_output": {
-            "bytes": 256,
+            "bytes": 5750,
             "contains_user": True,
             "contains_book": True
         }
@@ -201,17 +211,20 @@ FIXTURES: List[Dict[str, Any]] = [
             "relevance_threshold": 0.7
         }
     },
-    {
-        "module": "skill_registry",
-        "function": "list_enabled",
-        "input": {
-            "scope": "all"
-        },
-        "expected_output": {
-            "enabled_count": 12,
-            "available_count": 15
-        }
-    }
+    # §11.17 v2.4 skill-cleanup arc removed the user-editable
+    # skill authoring layer (SkillBundles + SkillRegistry). The
+    # hermes `skill_registry.list_enabled` fixture below is dead
+    # (no Swift surface exists to satisfy it) and is intentionally
+    # NOT included here (= the golden test file generator skips
+    # this module name; = the test that asserts on the deleted
+    # fixture is expected to be retired in a follow-up arc).
+    # Original fixture (= comment-only, kept for archeology):
+    # {
+    #     "module": "skill_registry",
+    #     "function": "list_enabled",
+    #     "input": {"scope": "all"},
+    #     "expected_output": {"enabled_count": 12, "available_count": 15}
+    # }
 ]
 
 

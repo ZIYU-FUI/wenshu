@@ -293,7 +293,13 @@ struct HermesPortGoldenParityTests {
         if containsBook {
             #expect(prompt.contains("Test Book"))
         }
-        // Byte size is in range (golden is rough estimate)
+        // Byte size is in range (golden reflects wenshu-side stable tier
+        // ~5.75 KB; = wenshu intentionally extends hermes' ~1.5 KB stable tier
+        // with localeIdentityBlock Tools-available enumeration + agent_driver
+        // guidance block (= delegate_research + reference_library self-evolution
+        // rules) per AGENTS.md §11.14 v2.4 closed-enum product philosophy.
+        // Upper bound * 2 is generous to allow future wenshu-side extensions
+        // without re-bumping this golden.
         #expect(prompt.utf8.count > 0)
         #expect(prompt.utf8.count < hermesBytes * 2)  // generous upper bound
     }
@@ -358,17 +364,27 @@ struct HermesPortGoldenParityTests {
         #expect(hermesThreshold <= 1.0)
     }
 
-    @Test("skill_registry.list_enabled: counts match")
-    func testSkillRegistryListEnabled() throws {
-        let golden = try loadGolden(module: "skill_registry", function: "list_enabled", inputHash: "ad912f7b3df7")
-        guard let output = golden["output"] as? [String: Any] else {
-            Issue.record("Golden output malformed")
-            return
-        }
-
-        // Swift port (= SkillRegistry from existing wenshu source)
-        let hermesEnabled = output["enabled_count"] as? Int ?? 0
-        let hermesAvailable = output["available_count"] as? Int ?? 0
-        #expect(hermesEnabled <= hermesAvailable)
-    }
+    // §11.17 v2.4 skill-cleanup arc removed the user-editable
+    // skill authoring layer (SkillBundles + SkillRegistry). The
+    // hermes `skill_registry.list_enabled` golden fixture is dead
+    // (no Swift surface exists to satisfy it; = test would never
+    // produce a passing expectation because hermes counts a
+    // user-managed surface we no longer ship). The test is
+    // commented out until a follow-up arc decides whether to
+    // bring back a closed-enum skill surface (= see AGENTS.md
+    // §11.14 v2.4 closed-enum product philosophy = no, but the
+    // comment remains for any reader tempted to "fix" this).
+    //
+    // @Test("skill_registry.list_enabled: counts match")
+    // func testSkillRegistryListEnabled() throws {
+    //     let golden = try loadGolden(module: "skill_registry", function: "list_enabled", inputHash: "ad912f7b3df7")
+    //     guard let output = golden["output"] as? [String: Any] else {
+    //         Issue.record("Golden output malformed")
+    //         return
+    //     }
+    //     // Swift port (= SkillRegistry from existing wenshu source)
+    //     let hermesEnabled = output["enabled_count"] as? Int ?? 0
+    //     let hermesAvailable = output["available_count"] as? Int ?? 0
+    //     #expect(hermesEnabled <= hermesAvailable)
+    // }
 }

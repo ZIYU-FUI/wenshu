@@ -1,14 +1,15 @@
 {
   "function": "build_system_prompt",
-  "generator": "generate_golden.py v0.36 (revised for v0.38 wenshu-side expansion)",
+  "generator": "generate_golden.py v0.36 (revised for v2.4 wenshu-side expansion)",
   "input": {
     "book_title": "Test Book",
     "user_name": "Test User"
   },
   "module": "system_prompt",
   "output": {
-    "bytes": 1500,
+    "bytes": 5750,
     "contains_book": true,
-    "contains_user": true
+    "contains_user": true,
+    "wenshu_side_divergence": "Stable tier includes (a) localeIdentityBlock with Tools-available enumeration (~1.1 KB), (b) providerGuidance(.unknown) (~250 B), (c) universalGuidance(task_completion + parallel_tool_call) (~500 B), (d) closed-enum speaking style (.literary default, ~150 B), (e) agent_driver guidance block (~3 KB) = the wenshu-side design choice to surface the delegate_research + reference_library self-evolution rules in the closing-system slot (see wenshu Sources/WenshuApp/Core/Agent/Conversation/SystemPrompt.swift L347-359 comment). Hermes' canonical stable tier is ~1.5 KB; wenshu's is ~5.75 KB. Per AGENTS.md §11.14 v2.4 closed-enum product philosophy, this divergence is canonical (= wenshu source code owns agent definition, hermes stays the parity reference)."
   }
 }
