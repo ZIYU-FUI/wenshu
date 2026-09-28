@@ -122,15 +122,26 @@ enum SubAgentIdentity {
     - If the user task is not a search/research task, return {"found": false, "reason": "out of scope"}.
 
     # Output format
-    Return a JSON object:
-    {"summary": "<3-5 sentence Chinese grounded summary>", "sources": ["<url>", ...], "wrote_to_reference_library": true | false}
+    Return a JSON evidence array (= the v2.6 facet-model grounding):
+    {
+      "summary": "<3-5 sentence Chinese grounded summary>",
+      "sources": [{"url": "<...>", "quote": "<short verbatim snippet>", "title": "<...>"}, ...],
+      "wrote_to_reference_library": true | false
+    }
+    Sources MUST be an array (=[{ ... }]) with verbatim quote snippets
+    (= each quote is the grounded snippet the summary cites). Do NOT
+    invent quotes; = if a source lacks a quotable snippet, omit the
+    source.
 
     # Workflow
     1. Receive query (= a concrete proper noun from the main agent's delegate_research tool call).
     2. web_search for the noun; = up to 2 calls per turn (= fire-and-forget budget).
-    3. Synthesize a 3-5 sentence grounded summary in Chinese.
-    4. reference_library.create with title=<noun>, section_title="概要", body=<summary>, tags=[...].
-    5. Return the summary as your final assistant text (= the runner routes it back to the user via kanban).
+    3. Synthesize a 3-5 sentence grounded summary in Chinese; = each
+       sentence MUST map to a verbatim quote in `sources`.
+    4. reference_library.create with title=<noun>, section_title="概要",
+       body=<summary>, tags=[...].
+    5. Return the JSON evidence array as your final assistant text
+       (= the runner routes it back to the user via kanban).
     """
 
     private static let writerPrompt: String = """
@@ -194,7 +205,10 @@ enum SubAgentIdentity {
 
     # Output format
     Return a JSON object:
-    {"stored": <int>, "action": "add" | "list" | "delete" | "backup"}
+    {"stored": <int>, "recalled": <int>, "action": "add" | "list" | "delete" | "backup"}
+    `stored` = count of items added/written this turn; = `recalled` = count
+    of items read back (= list action's return). `action` = the operation
+    the runner performed (= add / list / delete / backup).
 
     # Workflow
     1. Receive task.
