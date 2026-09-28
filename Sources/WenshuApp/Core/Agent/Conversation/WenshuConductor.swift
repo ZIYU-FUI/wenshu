@@ -722,6 +722,7 @@ actor WenshuConductor {
         "file",             // Core/Tools/FileTools.swift
         "delegate_research", // Core/Agent/Tool/DelegateResearchTool.swift  (= v2.7 self-evolution: main agent delegates research to researcher sub-agent async; = main agent does NOT block on web_search)
         "kanban",           // Core/Agent/Tool/KanbanStoreTool.swift
+        "llm_wiki",         // Core/Agent/Tool/LLMWikiTool.swift  (= v2.8d boss OOB B10: LLM Wiki 4-layer pipeline manual + auto surface)
         "process",          // Core/Tools/ProcessTools.swift
         "reference_library",// Core/Agent/Librarian/ReferenceLibraryTool.swift
         "skill_bundles",    // Core/Agent/Tool/SkillBundlesTool.swift  (= v0.73 ticket 001-wire-skillbundles)

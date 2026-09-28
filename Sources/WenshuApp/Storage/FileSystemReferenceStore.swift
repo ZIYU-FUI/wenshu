@@ -306,6 +306,24 @@ struct FileSystemReferenceStore: ReferenceStoring {
         var current = (try? loadReferences(layer: reference.layer)) ?? []
         current.append(referenceToStore)
         try writeIndex(current, for: reference.layer)
+
+        // v2.8d (boss 2026-09-28 OOB B10): auto-call the LLM Wiki
+        // pipeline when a new raw reference lands (= the agent-side
+        // auto-call hook per boss OOB '需要不完整' = the pipeline
+        // must complete end to end). The hook fires off-task via
+        // Task.detached so the synchronous caller (= saveReference)
+        // is not blocked on the derivation (= a large library may
+        // take seconds to walk raw/ and write abstracts/).
+        if reference.layer == .layerRaw {
+            let storeSnapshot = self
+            Task.detached(priority: .utility) {
+                do {
+                    _ = try await LLMWikiOps.runDerivation(store: storeSnapshot)
+                } catch {
+                    NSLog("[wenshu.llm_wiki.auto] derivation failed after save: %@", String(describing: error))
+                }
+            }
+        }
     }
 
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws {
