@@ -42,28 +42,28 @@ struct LLMWikiPipelineWireTests {
 
     private var wenshuConductorPath: String {
         var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<6 { url.deleteLastPathComponent() }
+        for _ in 0..<4 { url.deleteLastPathComponent() }
         url.appendPathComponent("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift")
         return url.path
     }
 
     private var llmWikiOpsPath: String {
         var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<6 { url.deleteLastPathComponent() }
+        for _ in 0..<4 { url.deleteLastPathComponent() }
         url.appendPathComponent("Sources/WenshuApp/Core/Agent/Wiki/LLMWikiOps.swift")
         return url.path
     }
 
     private var llmWikiToolPath: String {
         var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<6 { url.deleteLastPathComponent() }
+        for _ in 0..<4 { url.deleteLastPathComponent() }
         url.appendPathComponent("Sources/WenshuApp/Core/Agent/Tool/LLMWikiTool.swift")
         return url.path
     }
 
     private var fileSystemReferenceStorePath: String {
         var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<6 { url.deleteLastPathComponent() }
+        for _ in 0..<4 { url.deleteLastPathComponent() }
         url.appendPathComponent("Sources/WenshuApp/Storage/FileSystemReferenceStore.swift")
         return url.path
     }
