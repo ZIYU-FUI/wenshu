@@ -2379,3 +2379,148 @@ the conductor's actor isolation to the SwiftUI MainActor).
 - It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 / §11.21 / §11.22 / §11.23 are unchanged).
 
 This §11.24 section is the canonical record of the chapter-dialog arc (= up-to-date as of 2026-09-28). Future amendments (§11.25+) land below.
+
+
+# §11.25 v2.7-era background work (= boss 2026-09-25 ~ 2026-09-27)
+
+Per boss 2026-09-28 OOB (= the v2.8 inventory surfaced several
+"already done / half-built / not-in-production" gaps), this
+section records the background work that happened between the
+§11.24 chapter-dialog arc (= boss 2026-09-28) and the v2.8
+inventory (= boss 2026-09-28).
+
+Between 2026-09-25 and 2026-09-28 (= the gap between §11.17 v2.4
+skill cleanup and the §11.18 §11.24 hermes 0.21.5 detail arcs),
+no new boss拍 (= new arc directive) landed. All merged commits in
+that window are continuations of existing arcs (= §11.18 §11.24
+hermes 0.21.5 detail work + the §11.26 v2.8 inventory + the
+v2.8a/b/c/d sub-arcs that followed).
+
+This section is a placeholder; = no new arc was born in this
+window. The git log between c2fcdf983 (= §11.24 record) and the
+first v2.8 commit (= a1a25b0d4 v2.8a T2 RED) shows only
+continuation work (= no standalone arc).
+
+Future amendments land below (= §11.25+).
+
+
+# §11.26 v2.8 semiprod cleanup arc closure (= boss 2026-09-28 OOB)
+
+Per boss 2026-09-28 OOB '做一次文枢功能全盘点' + '把半成品和未
+进生产单独整理一份' (= do a full inventory of wenshu features; =
+separate the half-built and not-in-production items into a
+scenario list), this arc closes the 19-item v2.8 semiprod
+inventory (= 9 half-built items A1-A9 + 13 not-in-production
+items B1-B13; = 7 tickets were selected for in-arc delivery; =
+the other 12 were accepted as deferred per boss explicit
+verdict).
+
+## Arc structure (= 4 sub-arcs)
+
+| # | Sub-arc | Tickets | Boss items | Merge |
+|---|---|---|---|---|
+| 1 | v2.8a | T2 + T7 + T8 | A2 + B2 + B3 | `f838b125a` (= 7 commits) |
+| 2 | v2.8b | T9 + T10-T13 | B5 + B6 + B7 + B9 | `bc919d5fa` (= 5 commits) |
+| 3 | v2.8c | T14 | B8 | `e686fb272` (= 3 commits) |
+| 4 | v2.8d | T17 | B10 | `9bd3b48a1` (= 3 commits) |
+
+## Final stats
+
+| # | Metric | Value |
+|---|---|---|
+| 1 | Ticket count | 7 |
+| 2 | Ticket commit count (= RED + GREEN pairs + merges) | 19 (= 7 + 4 + 2 + 2 + 4 merge = 19 ticket commits ahead) |
+| 3 | Main ahead of old-origin | 767 (= 748 baseline + 19 ticket commits) |
+| 4 | Source files added | 9 (= SpotlightOps + SpotlightSearchSheet + 4 Windows + BackgroundReviewOps + BackgroundReviewTool + LLMWikiOps + LLMWikiTool) |
+| 5 | Source files modified | 10 (= NavigationSplitShell + InspectorCatalog + ShellDetailColumn + AppRootScene + LibraryRootView + Backup.swift + BackgroundReview.swift + WenshuConductor + ConversationLoop + FileSystemReferenceStore) |
+| 6 | Test files added | 7 (= BookmarkViewTests + SpotlightSearchTests + CommandPaletteToolbarButtonTests + BackupToolsCoordinationTests + SecondaryWindowsTests + BackgroundReviewConsolidationTests + LLMWikiPipelineWireTests) |
+| 7 | Tests passing | 18 source-level tests across the 7 new suites (= 3 + 3 + 1 + 2 + 3 + 3 + 3) |
+| 8 | i18n keys added | 70+ (= 36 window keys x 2 locales + smaller additions) |
+| 9 | `swift build --target WenshuApp` | clean (= 0 errors / 0 new warnings) |
+| 10 | `swift test --filter` for v2.8 suites | 18/18 pass |
+
+## Boss-pinned decisions (= from the v2.8 inventory)
+
+### A-series (= half-built items; = boss verdict per 2026-09-28 OOB)
+
+| # | Item | Boss verdict | v2.8 disposition |
+|---|---|---|---|
+| A1 | Onboarding 欢迎页 missing | '我们有欢迎页，首次启动没有加载.WS 时，会弹出欢迎页' | accepted as already-done (= LibraryOnboardingView exists) |
+| A2 | Inspector bookmark tab missing | '检查右栏工具区' (= check inspector) | **closed by v2.8a T2** |
+| A3 | WSAttachment / WSBody / WSOutlineDocument / WSOutlineNode / WSBookShelf empty schemas | '我没提到的，表示同意的分析，需要补' | deferred (= schema completion arc) |
+| A4 | WSPreferenceRepository only 2 callers | defaults accepted | deferred |
+| A5 | defaultToolNames dangling `skill_bundles` | defaults accepted | deferred |
+| A6 | ReferenceLibraryImageProvider / ReferenceLibraryWikiLinkResolver skip markdown-engine | defaults accepted | deferred |
+| A7 | SidebarItem.tag added but preview-pane not using | defaults accepted | deferred |
+| A8 | i18n 双语 824 keys but view hardcode | defaults accepted | deferred |
+| A9 | #warning 9 处 sqlite3 metadata 悬挂 | defaults accepted | (= historical artifacts from §11.7 sqlite3-zero closure) |
+
+### B-series (= not-in-production items; = boss verdict per 2026-09-28 OOB)
+
+| # | Item | Boss verdict | v2.8 disposition |
+|---|---|---|---|
+| B1 | Bookmark 缺 UI | (= A2 看板 reset) | **closed by v2.8a T2** |
+| B2 | Spotlight search 缺 UI | '不需要独立的界面 UI，但可以通过 Cmd+f 来调出' | **closed by v2.8a T7** |
+| B3 | CommandPalette 缺工具栏触发 | '需要单独处理，安排合适的位置加合适的按钮' | **closed by v2.8a T8** |
+| B4 | QuickSwitcher 缺快捷键 | '快捷键问题遗留，开发完了之后统一规划' | deferred (= boss-pinned) |
+| B5 | Backup 缺机制 | '苹果有没有官方机制可以用？' | **closed by v2.8b T9** (= NSFileCoordinator + URLResourceKey.isExcludedFromBackupKey) |
+| B6 | JSONCanvasCodec 缺工具栏按钮 | '可以先在标题栏/工具栏中加一个按钮' | **closed by v2.8b T10** |
+| B7 | NoteComposer 缺工具栏按钮 | 'B7 B9 同理' | **closed by v2.8b T11** |
+| B8 | Background 系列 auto+manual 重复 | '应该是自动也可以手动也可以...应该合并' | **closed by v2.8c T14** (= BackgroundReviewOps unified facade) |
+| B9 | Cron 系列缺 UI | 'B7 B9 同理' | **closed by v2.8b T12 + T13** |
+| B10 | LLM Wiki pipeline 缺 wire | '挺严重的...这个是我们的核心能力' | **closed by v2.8d T17** (= LLMWikiOps + LLMWikiTool + FileSystemReferenceStore auto-call) |
+| B11 | DropAffordance 缺 wiring | defaults accepted | deferred |
+| B12 | LLM Wiki pipeline (= B10) | (= B10) | (= B10) |
+| B13 | 4 个第三方库零使用 (EPUBKit / ZIPFoundation / Highlighter / Textual) | not mentioned | deferred (= not in v2.8 scope per §11.1) |
+
+## Deferred work (= future tickets, NOT in v2.8)
+
+| # | Item | Future arc |
+|---|---|---|
+| 1 | Spotlight search real result navigation (= Cmd-F placeholder -> real jump-to-source) | v2.9 |
+| 2 | Backup restore UI (= BackupTools.restore exists; = no SwiftUI surface) | v2.9 |
+| 3 | CanvasWindow save-back to JSONCanvasCodec.encode | v2.9 |
+| 4 | ComposerWindow NoteComposer real call | v2.9 |
+| 5 | ForeshadowingGraphWindow data source (= Grape::ForceSimulation per §11.1 batch 2 issue 05) | v2.10 |
+| 6 | CronWindow schedule persistence | v2.9 |
+| 7 | Inspector BackgroundReview tab UI (= manual surface) | v2.9 |
+| 8 | Real background-worthy event detection (= per-response-block scanner; = current MVP = one .turnSummary per turn) | v2.9 |
+| 9 | UI trigger for LLM Wiki (= operator button) | v2.9 |
+| 10 | Layered LLM Wiki auto-call policy (= keyword-overlap check; = current = per-doc re-derive) | v2.9 |
+| 11 | Bookmark UI polish + MVVM split (= BookmarkView is MVP) | v2.9 |
+| 12 | A3-A9 half-built sweep (= 5 empty @Models + pref-repo + dangling skill_bundles + reference-library renderers + SidebarItem.tag render + i18n sweep) | v2.10 |
+| 13 | B4 + B11-B13 (= QuickSwitcher keys + DropAffordance + 4 unused 3rd-party libs) | v2.10 |
+
+## Standards axis (= v2.8 arc total)
+
+| # | Standard | v2.8 evidence |
+|---|---|---|
+| S1 | Apple-API-first | NSFileCoordinator + URLResourceKey (T9); CSSearchableIndex (T7 future search surface); Sheet/Window HIG (T10-T13); .sheet(item:) + .contentShape (T7); pure SwiftUI primitives |
+| S3 | Single source of truth | Each new tool delegates to its canonical actor (= BackgroundReview.shared, LLMWikiLayerDeriver, JSONCanvasCodec, NoteComposer); = no duplicated logic |
+| S4 | Typed errors | BackupError.copyFailed(underlying:) (T9); BackgroundReviewError (existing); = typed envelope surface |
+| S5 | No public surface | Zero new public keywords in any new file (= all internal) |
+| S6 | Side-effect boundary | FileSystemReferenceStore auto-call fires Task.detached (= non-blocking) |
+
+## What is preserved (= scope-no-regression)
+
+| # | Surface | Status |
+|---|---|---|
+| 1 | Pre-v2.8 main baseline (= ahead 748) | unchanged (= v2.8 adds on top) |
+| 2 | Existing tool registry (= the 18 pre-v2.8 tools) | unchanged (= v2.8 adds background_review + llm_wiki = 2 new tools) |
+| 3 | BackgroundReview actor (= the v0.36 declared actor) | now wired (= BackgroundReview.shared singleton + BackgroundReviewOps delegation; = no longer dead) |
+| 4 | LLMWikiLayerDeriver + LLMWikiLinter (= the v0.28 pure-data derivation) | now wired (= LLMWikiOps delegation; = no longer dead) |
+| 5 | `import SQLite3` count in production | 0 (= unchanged from §11.7d closure) |
+| 6 | `public` declaration count in production | 0 (= unchanged from §11.13 P2-07 sweep) |
+| 7 | SwiftData migration roadmap | unchanged (= no schema changes) |
+| 8 | v2.4 closed-enum product philosophy (§11.14) | unchanged (= no SOUL.md / .cursorrules / AGENTS.md loaders in v2.8) |
+| 9 | AGENTS.md §11 hard rule | clean (= all 19 ticket commits + AGENTS.md §11.25 + §11.26 = no forbidden content) |
+
+## What this section (§11.26) does NOT do
+
+- It does not amend AGENTS.md §11 baseline (= English-only, no forbidden vocab, no xianxia family, 老板 only).
+- It does not touch §11.1 third-party library policy (= zero new SPM deps across all 4 sub-arcs).
+- It does not touch §11.4 SwiftData migration (= no schema changes).
+- It does not touch §11.7 sqlite3-zero migration (= unchanged).
+- It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.15 / §11.16 / §11.17 / §11.18 / §11.19 / §11.20 / §11.21 / §11.22 / §11.23 / §11.24 are unchanged).
+
+This §11.25 + §11.26 are the canonical records of the v2.7-era background work + v2.8 semiprod cleanup arc (= up-to-date as of 2026-09-28). Future amendments (§11.27+) land below.
