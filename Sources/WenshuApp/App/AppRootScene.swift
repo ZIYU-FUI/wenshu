@@ -67,6 +67,7 @@ struct AppRootScene: Scene {
                 .environment(shell)
                 .environment(workspaceUI)
                 .environment(sheetRequests)
+                .environment(editorCounters)
                 .environment(repositories)
         }
 // .windowToolbarStyle(.unified) = 52 PT macOS native titlebar

@@ -49,6 +49,16 @@ actor KanbanTools {
     // cache check never returns a hit after the SwiftData migration).
     // This eliminates the nonisolated(unsafe) mutable static var.
 
+    /// v1.55d+ (boss 2026-09-28 OOB A option): `init` is now
+    /// `@MainActor` so `WSKanbanRepository.shared` (= @MainActor
+    /// accessor) can be referenced directly without a runtime
+    /// `MainActor.assumeIsolated` wrap (= which itself trapped
+    /// under Swift 6 strict concurrency when invoked from an
+    /// actor's serial executor). The `@MainActor` static-let
+    /// initializer on `KanbanStoreTool.shared` (= main-actor
+    /// caller) makes this safe (= Swift 6 strict-concurrency
+    /// contract).
+    @MainActor
     init(store: WSKanbanRepository? = nil) {
         // Tests can pass an explicit store; otherwise we lazily build one
         // (= throws on init so we cache a fallback to /tmp/kanban-test.db).
@@ -56,13 +66,12 @@ actor KanbanTools {
             self.store = store
             return
         }
-        // SwiftData-backed: just use the shared repository directly.
-        // dual-axis audit (Round 1.2): callers MUST be on MainActor
-        // when invoking this init without an explicit store (=
-        // WSKanbanRepository.shared is @MainActor). Future refactor:
-        // mark this init @MainActor and update KanbanStoreTool.shared
-        // to construct via MainActor.assumeIsolated or to be @MainActor.
-        self.store = MainActor.assumeIsolated { WSKanbanRepository.shared }
+        // Production: `KanbanStoreTool.shared` is `@MainActor static
+        // let` (= Swift 6 strict-concurrency contract that the init
+        // runs on the main actor). `WSKanbanRepository.shared` is
+        // also `@MainActor` (= the same executor), so the unwrapped
+        // access is safe.
+        self.store = WSKanbanRepository.shared
     }
 
 

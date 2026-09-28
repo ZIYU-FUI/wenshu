@@ -77,24 +77,22 @@ struct KanbanStoreTool: Tool, Sendable {
     /// production wiring still constructs dedicated instances via
     /// the existing `init(kanbanTools:)` initializer (= e.g.
     /// ChatView pre-populates the conductor with a per-library
-    /// instance).
-    ///
-    /// `nonisolated(unsafe)` is required because the initializer
-    /// constructs the actor-isolated `KanbanTools` from a `static let`
-    /// (= nonisolated context); the closure runs synchronously at
-    /// first access (= before any actor isolation becomes relevant)
-    /// so the unsafe escape hatch is safe here. `KanbanTools(store:
-    /// nil)` falls through to `WSKanbanRepository.shared` (=
-    /// @MainActor SwiftData wrapper; = no /tmp sqlite3 fallback
-    /// after the deleted legacy actor was replaced by WSKanbanRepository).
-    /// Q99 dual-axis audit (Round 1.3): callers MUST construct
-    /// this singleton from a MainActor context (= the @MainActor
-    /// accessor on `WSKanbanRepository.shared` traps if accessed
-    /// off-main). In practice the module-load bootstrap path
     /// (= `KanbanStoreTool._registryBootstrap`) runs after
     /// `WenshuAppDelegate.applicationDidFinishLaunching` (= main
     /// thread) so the trap never fires in production.
-    nonisolated static let shared: KanbanStoreTool = KanbanStoreTool(kanbanTools: KanbanTools())
+    ///
+    /// v1.55d+ (boss 2026-09-28 OOB A option): promoted to
+    /// `@MainActor static let` so Swift 6 strict concurrency
+    /// ensures first access lands on the main actor (= eliminates
+    /// the SIGTRAP/`dispatch_assert_queue_fail` that previously
+    /// fired when the static-let initializer ran from a background
+    /// queue such as `_dispatch_once_callout` on
+    /// `com.apple.root.utility-qos.cooperative`). The
+    /// `KanbanTools()` constructor still uses `MainActor.assumeIsolated`
+    /// internally to fetch `WSKanbanRepository.shared`, but that
+    /// call is now provably on the main thread because the surrounding
+    /// static-let initializer is itself `@MainActor`.
+    @MainActor static let shared: KanbanStoreTool = KanbanStoreTool(kanbanTools: KanbanTools(store: WSKanbanRepository.shared))
 
     /// Tool name. ToolExecutor routes one tool_use block to one Tool
     /// by name (= matches the convention other wenshu tools use:

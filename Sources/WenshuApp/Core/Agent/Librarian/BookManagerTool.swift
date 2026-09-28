@@ -588,7 +588,19 @@ actor BookManagerTool: Tool {
     /// (= nonisolated context). The closure runs synchronously at
     /// first access, before any concurrency becomes relevant, so the
     /// unsafe escape hatch is safe here.
-    nonisolated static let shared: BookManagerTool = {
+    ///
+    /// v1.55d+ (boss 2026-09-28 OOB A option): promoted to
+    /// `@MainActor static let` so Swift 6 strict concurrency ensures
+    /// first access lands on the main actor (= eliminates the
+    /// SIGTRAP/`dispatch_assert_queue_fail` that previously fired
+    /// when the static-let initializer ran from a background queue
+    /// such as `_dispatch_once_callout` on
+    /// `com.apple.root.utility-qos.cooperative`). The inner
+    /// `MainActor.assumeIsolated` wrappers on BookStore construction
+    /// (= which themselves trapped when invoked from a background
+    /// thread under Swift 6) are now safe because the surrounding
+    /// static-let initializer is itself `@MainActor`.
+    @MainActor static let shared: BookManagerTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-books-\(UUID().uuidString)", isDirectory: true)
         // surface createDirectory failures via NSLog (= was silent `try?`).
         do {

@@ -70,13 +70,18 @@ struct TodoStoreTool: Tool, Sendable {
     /// singleton from a MainActor context. Production path runs
     /// after `WenshuAppDelegate.applicationDidFinishLaunching` so the
     /// trap never fires.
-    nonisolated static let shared: TodoStoreTool = {
-        MainActor.assumeIsolated {
-            TodoStoreTool(
-                hermesTodo: HermesTodoTool(store: HermesTodoStore()),
-                todoRepository: WSTodoRepository.shared
-            )
-        }
+    ///
+    /// v1.55d+ (boss 2026-09-28 OOB A option): promoted to
+    /// `@MainActor static let` so Swift 6 strict concurrency ensures
+    /// first access lands on the main actor (= eliminates the
+    /// SIGTRAP that previously fired when the static-let initializer
+    /// ran from `_dispatch_once_callout` on
+    /// `com.apple.root.utility-qos.cooperative`).
+    @MainActor static let shared: TodoStoreTool = {
+        TodoStoreTool(
+            hermesTodo: HermesTodoTool(store: HermesTodoStore()),
+            todoRepository: WSTodoRepository.shared
+        )
     }()
 
 
