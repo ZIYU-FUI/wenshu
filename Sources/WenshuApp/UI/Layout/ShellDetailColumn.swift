@@ -368,6 +368,58 @@ struct ShellDetailColumn: View {
                     }
                 }
                 .help(WenshuI18n.t("command_palette.open.help"))
+
+                // v2.8b (boss 2026-09-28 OOB B6 + B7 + B9): 4
+                // toolbar buttons that open 4 independent windows
+                // for previously-unwired features (= same shape as
+                // kanban + todo).
+                Button {
+                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.canvas)")
+                    openWindow(id: WindowID.canvas)
+                } label: {
+                    Label {
+                        Text(WenshuI18n.t("window.canvas.open"))
+                    } icon: {
+                        Image(systemName: "rectangle.3.group")
+                    }
+                }
+                .help(WenshuI18n.t("window.canvas.help"))
+
+                Button {
+                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.composer)")
+                    openWindow(id: WindowID.composer)
+                } label: {
+                    Label {
+                        Text(WenshuI18n.t("window.composer.open"))
+                    } icon: {
+                        Image(systemName: "arrow.triangle.merge")
+                    }
+                }
+                .help(WenshuI18n.t("window.composer.help"))
+
+                Button {
+                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.foreshadowingGraph)")
+                    openWindow(id: WindowID.foreshadowingGraph)
+                } label: {
+                    Label {
+                        Text(WenshuI18n.t("window.foreshadowing_graph.open"))
+                    } icon: {
+                        Image(systemName: "arrow.triangle.branch")
+                    }
+                }
+                .help(WenshuI18n.t("window.foreshadowing_graph.help"))
+
+                Button {
+                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.cron)")
+                    openWindow(id: WindowID.cron)
+                } label: {
+                    Label {
+                        Text(WenshuI18n.t("window.cron.open"))
+                    } icon: {
+                        Image(systemName: "clock")
+                    }
+                }
+                .help(WenshuI18n.t("window.cron.help"))
             }
         }
         // Re-inject AppState into the env chain. SwiftUI 6+ breaks

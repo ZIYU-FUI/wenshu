@@ -462,6 +462,14 @@ enum InspectorContent: Hashable, CaseIterable {
 enum WindowID {
     static let kanban = "wenshu-kanban"
     static let todo = "wenshu-todo"
+    // v2.8b (boss 2026-09-28 OOB B6 + B7 + B9): 4 new
+    // independent windows for previously-unwired features.
+    // Per boss '和老板 todo 一样' (= same shape as the existing
+    // kanban + todo windows).
+    static let canvas = "wenshu-canvas"
+    static let composer = "wenshu-composer"
+    static let foreshadowingGraph = "wenshu-foreshadowing-graph"
+    static let cron = "wenshu-cron"
 }
 
 

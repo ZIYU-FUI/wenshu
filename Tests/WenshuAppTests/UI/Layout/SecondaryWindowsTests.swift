@@ -58,18 +58,27 @@ struct SecondaryWindowsTests {
     @Test("WindowID exposes canvas + composer + foreshadowingGraph + cron cases (= v2.8b boss B6+B7+B9 surface)")
     func testWindowIDExposesFourCases() throws {
         let source = try String(contentsOfFile: navigationShellPath, encoding: .utf8)
-        for windowID in ["canvas", "composer", "foreshadowingGraph", "cron"] {
-            #expect(source.contains("static let \(windowID) = \"wenshu-\(windowID)\""),
-                    "WindowID.\(windowID) must be declared (= wenshu-\(windowID) identifier)")
+        // (name, identifier) pairs; = windowID matches the
+        // Swift enum case name; = identifier matches the
+        // raw wenshu-stable identifier string (= the kebab
+        // convention used by the existing kanban + todo IDs).
+        for (windowID, identifier) in [
+            ("canvas", "wenshu-canvas"),
+            ("composer", "wenshu-composer"),
+            ("foreshadowingGraph", "wenshu-foreshadowing-graph"),
+            ("cron", "wenshu-cron"),
+        ] {
+            #expect(source.contains("static let \(windowID) = \"\(identifier)\""),
+                    "WindowID.\(windowID) must be declared (= \(identifier) identifier)")
         }
     }
 
     @Test("AppRootScene declares 4 new Window(id:) scene declarations (= the v2.8b 4 windows)")
     func testAppRootSceneDeclaresFourWindows() throws {
         let source = try String(contentsOfFile: appRootScenePath, encoding: .utf8)
-        for windowID in ["wenshu-canvas", "wenshu-composer", "wenshu-foreshadowingGraph", "wenshu-cron"] {
-            #expect(source.contains("id: \"\(windowID)\""),
-                    "AppRootScene must declare a Window with id=\(windowID)")
+        for windowID in ["canvas", "composer", "foreshadowingGraph", "cron"] {
+            #expect(source.contains("id: WindowID.\(windowID)"),
+                    "AppRootScene must declare a Window with id=WindowID.\(windowID)")
         }
     }
 
