@@ -37,7 +37,7 @@
 //
 //    3. testSpotlightSheetOnPickNavigatesToDocument —
 //       SpotlightSearchSheet / SpotlightOps handle a pick
-//       (= the jump-to-source navigation path; = the
+//       (= the jump-to-source navigation path; =
 //       LibraryRootView.handleSpotlightPick method or
 //       SpotlightOps delegate).
 //
@@ -55,62 +55,46 @@ import Foundation
 @Suite("Spotlight real search (v2.9a — boss 2026-09-28 OOB A8)")
 struct SpotlightRealSearchTests {
 
-    private var chapterStorePath: String {
+    private func resolve(_ relative: String) -> String {
         var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Storage/FileSystemChapterStore.swift")
-        return url.path
-    }
-
-    private var bookmarkRepoPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Persistence/Repositories/WSBookmarkRepository.swift")
-        return url.path
-    }
-
-    private var spotlightSearchSheetPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/Search/SpotlightSearchSheet.swift")
-        return url.path
-    }
-
-    private var spotlightOpsPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/UI/Search/SpotlightOps.swift")
+        for _ in 0..<5 { url.deleteLastPathComponent() }
+        url.appendPathComponent(relative)
         return url.path
     }
 
     @Test("FileSystemChapterStore.saveChapter bootstraps into CSSearchableIndexSearch (= chapters surface in Cmd-F)")
     func testSpotlightIndexBootstrapOnChapterSave() throws {
-        let source = try String(contentsOfFile: chapterStorePath, encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Storage/FileSystemChapterStore.swift"), encoding: .utf8)
         #expect(source.contains("CSSearchableIndexSearch") || source.contains("SpotlightOps"),
                 "FileSystemChapterStore.saveChapter must bootstrap the chapter into the Spotlight index (= the boss A8 real-search fix)")
     }
 
     @Test("WSBookmarkRepository.add bootstraps into CSSearchableIndexSearch (= bookmarks surface in Cmd-F)")
     func testSpotlightIndexBootstrapOnBookmarkAdd() throws {
-        let source = try String(contentsOfFile: bookmarkRepoPath, encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Persistence/Repositories/WSBookmarkRepository.swift"), encoding: .utf8)
         #expect(source.contains("CSSearchableIndexSearch") || source.contains("SpotlightOps"),
                 "WSBookmarkRepository.add must bootstrap the bookmark into the Spotlight index (= the boss A8 real-search fix)")
     }
 
     @Test("SpotlightSearchSheet.onPick navigates to the picked document (= real jump-to-source, not NSLog)")
     func testSpotlightSheetOnPickNavigatesToDocument() throws {
-        let sheetSource = try String(contentsOfFile: spotlightSearchSheetPath, encoding: .utf8)
-        let opsSource = try String(contentsOfFile: spotlightOpsPath, encoding: .utf8)
-        // Either the sheet or ops layer wires navigation; =
-        // the surface must reference the canonical "open the
-        // picked document" path (= no NSLog-only stub).
+        let sheetSource = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Search/SpotlightSearchSheet.swift"), encoding: .utf8)
+        let opsSource = try String(contentsOfFile: resolve("Sources/WenshuApp/UI/Search/SpotlightOps.swift"), encoding: .utf8)
+        let libraryRootSource = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift"), encoding: .utf8)
+        // The pick-handling layer can be in the sheet, in
+        // SpotlightOps, or in LibraryRootView.handleSpotlightPick
+        // (= the canonical v2.9a path; = the surface wires
+        // openTabs.append + activeTabId = real jump-to-source).
         let hasNavigationInSheet = sheetSource.contains("openDocument") ||
                                    sheetSource.contains("navigateTo") ||
                                    sheetSource.contains("onPickNavigate")
         let hasNavigationInOps = opsSource.contains("openDocument") ||
                                  opsSource.contains("navigateTo") ||
                                  opsSource.contains("onPickNavigate")
-        #expect(hasNavigationInSheet || hasNavigationInOps,
-                "SpotlightSearchSheet / SpotlightOps must wire a real jump-to-source path on result pick (= boss A8 = 'Cmd-F 找到东西但不能跳过去')")
+        let hasNavigationInLibraryRoot = libraryRootSource.contains("handleSpotlightPick") &&
+                                         libraryRootSource.contains("openTabs.append") &&
+                                         libraryRootSource.contains("activeTabId")
+        #expect(hasNavigationInSheet || hasNavigationInOps || hasNavigationInLibraryRoot,
+                "SpotlightSearchSheet / SpotlightOps / LibraryRootView must wire a real jump-to-source path on result pick (= boss A8 = 'Cmd-F 找到东西但不能跳过去')")
     }
 }

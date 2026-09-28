@@ -324,6 +324,24 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 }
             }
         }
+
+        // v2.9a (boss 2026-09-28 OOB A8): bootstrap the new
+        // reference into the Spotlight index (= Cmd-F should
+        // surface references alongside chapters + bookmarks).
+        let refID = reference.id.uuidString
+        let refTitle = reference.title
+        let refBody = reference.summary
+        Task.detached(priority: .utility) {
+            do {
+                try await CSSearchableIndexSearch.shared.index(
+                    docId: refID,
+                    title: refTitle,
+                    body: refBody
+                )
+            } catch {
+                NSLog("[wenshu.spotlight.auto] index failed after reference save: %@", String(describing: error))
+            }
+        }
     }
 
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws {

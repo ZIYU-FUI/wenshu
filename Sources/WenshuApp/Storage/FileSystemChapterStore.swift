@@ -130,6 +130,24 @@ struct FileSystemChapterStore: ChapterStoring {
         var current = (try? loadChapters()) ?? []
         current.append(chapter)
         try writeIndex(current)
+
+        // v2.9a (boss 2026-09-28 OOB A8): bootstrap the new
+        // chapter into the Spotlight index (= the Cmd-F real-
+        // search fix). Off-task so the synchronous saveChapter
+        // caller is not blocked.
+        let chapterTitle = chapter.title ?? chapter.id.uuidString
+        let chapterID = chapter.id.uuidString
+        Task.detached(priority: .utility) {
+            do {
+                try await CSSearchableIndexSearch.shared.index(
+                    docId: chapterID,
+                    title: chapterTitle,
+                    body: bodyMarkdown
+                )
+            } catch {
+                NSLog("[wenshu.spotlight.auto] index failed after chapter save: %@", String(describing: error))
+            }
+        }
     }
 
     func replaceChapter(_ chapter: Document, bodyMarkdown: String) throws {
@@ -154,6 +172,23 @@ struct FileSystemChapterStore: ChapterStoring {
         }
         current[idx] = chapter
         try writeIndex(current)
+
+        // v2.9a (boss 2026-09-28 OOB A8): re-index the chapter
+        // (= the title or body may have changed; = the Spotlight
+        // index entry needs to match).
+        let chapterTitle = chapter.title ?? chapter.id.uuidString
+        let chapterID = chapter.id.uuidString
+        Task.detached(priority: .utility) {
+            do {
+                try await CSSearchableIndexSearch.shared.index(
+                    docId: chapterID,
+                    title: chapterTitle,
+                    body: bodyMarkdown
+                )
+            } catch {
+                NSLog("[wenshu.spotlight.auto] index failed after chapter replace: %@", String(describing: error))
+            }
+        }
     }
 
     func deleteChapter(id: UUID) throws {
@@ -169,6 +204,14 @@ struct FileSystemChapterStore: ChapterStoring {
         current.removeAll { $0.id == id }
         if current.count != before {
             try writeIndex(current)
+        }
+
+        // v2.9a (boss 2026-09-28 OOB A8): remove the chapter
+        // from the Spotlight index (= deletes must clean up
+        // the index entry too; = stale entries are
+        // Cmd-F noise).
+        Task.detached(priority: .utility) {
+            try? await CSSearchableIndexSearch.shared.remove(docId: id.uuidString)
         }
     }
 
