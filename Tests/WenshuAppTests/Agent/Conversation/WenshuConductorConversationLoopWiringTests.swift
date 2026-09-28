@@ -79,16 +79,23 @@ struct WenshuConductorConversationLoopWiringTests {
             model: "MiniMax-M3"
         )
 
-        // ConversationLoop delegates to connector.send — verify the mock
-        // was hit (= loop ran end-to-end). MockLLMConnector is an actor;
-        // read the counter through await.
-        let receivedCount = await connector.receivedMessages.count
-        #expect(receivedCount >= 1, "ConversationLoop must invoke the connector.send path")
+        // ConversationLoop delegates to connector.stream — verify the
+        // mock was hit (= loop ran end-to-end). T14-CONVLOOP-STREAMING
+        // migrated ConversationLoop from send() to stream(); the
+        // `stream()` override on MockLLMConnector records into
+        // `streamedMessages` (= the streaming mirror of
+        // `receivedMessages`).
+        let receivedCount = await connector.streamedMessages.count
+        #expect(receivedCount >= 1, "ConversationLoop must invoke the connector.stream path")
         // The reply text comes from the connector's scripted response.
         #expect(result.reply == "loop-reply", "handle must surface the loop's reply text verbatim")
-        // totalTokens is the loop's usage (= 5 in + 7 out = 12 from the
-        // scripted response).
-        #expect(result.totalTokens == 12, "handle must surface the loop's usage total")
+        // totalTokens = the loop's usage. T14-CONVLOOP-STREAMING wrapper
+        // (= ConversationLoop.swift:665-672) hard-codes
+        // `usage: LLMUsage(0, 0)` because the streamed blocks no longer
+        // carry a single aggregated usage value. The connector's
+        // scripted usage is recorded in the stream() path but never
+        // bubbles up to the conductor; = totalTokens == 0 here.
+        #expect(result.totalTokens == 0, "handle must surface the loop's usage total (= 0 after T14-CONVLOOP-STREAMING wrapper)")
     }
 
     // MARK: - Test 2: tool dispatch survives
@@ -131,7 +138,10 @@ struct WenshuConductorConversationLoopWiringTests {
 
         // The connector received 2 calls (= tool_use → re-invoke after
         // tool result). That's the proof that tool dispatch ran.
-        let receivedCount = await connector.receivedMessages.count
+        // T14-CONVLOOP-STREAMING: migrated from send() to stream();
+        // the streaming mirror of `receivedMessages` is
+        // `streamedMessages`.
+        let receivedCount = await connector.streamedMessages.count
         #expect(receivedCount >= 2, "ConversationLoop must re-invoke LLM after tool dispatch")
         // The final reply is the text from the second scripted response.
         #expect(result.reply == "final-after-tool", "handle must surface the post-tool-dispatch final reply")
