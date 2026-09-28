@@ -713,6 +713,7 @@ actor WenshuConductor {
         "ReadFile",         // Core/Agent/Tool/ReadFileTool.swift
         "WriteFile",        // Core/Agent/Tool/WriteFileTool.swift
         "av",               // Core/Tools/AVMediaTools.swift
+        "background_review", // Core/Agent/Tool/BackgroundReviewTool.swift  (= v2.8c boss OOB B8: manual + auto BackgroundReview consolidation surface)
         "book_chapter",     // Core/Agent/Librarian/BookChapterTool.swift
         "book_edit_chapter", // Core/Agent/Librarian/EditChapterTool.swift  (= v1.85 hermes 0.21.5 edit_file 1:1)
         "book_entity",      // Core/Agent/Librarian/BookEntityTool.swift  (= v2.3 entity schema redesign)
