@@ -421,11 +421,16 @@ enum InspectorPage: Hashable, CaseIterable {
             // tools per page rule is intentionally broken here; = the
             // boss picked project-management as the natural home for
             // bookmarks next to tagManager).
+            // v2.9a (boss 2026-09-28 OOB A3): backgroundReview tab joins
+            // this page (= LLM auto-call proposals show next to bookmarks
+            // + book settings + tags; = 4 + 1 = 5 tools per page;
+            // = intentionally broken rule, consistent with bookmark).
             return [
                 InspectorCatalog.ideaLibrary,
                 InspectorCatalog.tagManager,
                 InspectorCatalog.bookSettingConstraints,
-                InspectorCatalog.bookmark
+                InspectorCatalog.bookmark,
+                InspectorCatalog.backgroundReview
             ]
         }
     }

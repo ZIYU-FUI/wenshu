@@ -39,13 +39,13 @@ struct InspectorCatalogTests {
 
     @Test("InspectorCatalog.allTools count = 13 (= boss 'three per page × four pages + bookmark' (= v2.8a bookmark tab joins project-management page at index 13))")
         func testAllToolsCountIs13() {
-            #expect(InspectorCatalog.allTools.count == 13)
+            #expect(InspectorCatalog.allTools.count == 14)
         }
 
         @Test("InspectorCatalog.allTools IDs unique (= Q244 'Duplicated Code' smell defense)")
         func testAllToolsIDsUnique() {
             let ids = InspectorCatalog.allTools.map(\.id)
-            #expect(Set(ids).count == 13, "all 13 IDs must be unique")
+            #expect(Set(ids).count == 14, "all 13 IDs must be unique")
         }
 
     @Test("InspectorCatalog.allTools IDs match i18n catalog (tab.title.* keys)")
@@ -102,10 +102,10 @@ struct InspectorCatalogTests {
         #expect(tools.contains(InspectorCatalog.emotionCurve))
     }
 
-    @Test("InspectorPage.projectManagement.tools = 4 + matches v1.43 inline真值 (= v2.8a bookmark tab joins)")
+    @Test("InspectorPage.projectManagement.tools = 5 + matches v2.9a 真值 (= v2.8a bookmark + v2.9a backgroundReview join)")
     func projectManagementRouting() {
         let tools = InspectorPage.projectManagement.tools
-        #expect(tools.count == 4)
+        #expect(tools.count == 5)
         #expect(tools.contains(InspectorCatalog.ideaLibrary))
         #expect(tools.contains(InspectorCatalog.tagManager))
         #expect(tools.contains(InspectorCatalog.bookSettingConstraints))
@@ -127,7 +127,7 @@ struct InspectorCatalogTests {
         for page in InspectorPage.allCases {
             union.formUnion(page.tools.map(\.id))
         }
-        #expect(union.count == 13, "4 pages × 3 + 1 bookmark = 13, no overlap, no missing")
+        #expect(union.count == 14, "4 pages × 3 + 2 (= v2.8a bookmark + v2.9a backgroundReview) = 14, no overlap, no missing")
     }
 
     // MARK: - Test 3: i18n key resolution (= silent rename defense)

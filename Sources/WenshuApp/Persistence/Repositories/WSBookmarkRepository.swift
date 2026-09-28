@@ -38,6 +38,23 @@ final class WSBookmarkRepository {
         )
         context.insert(model)
         try context.save()
+
+        // v2.9a (boss 2026-09-28 OOB A8): bootstrap the new
+        // bookmark into the Spotlight index (= Cmd-F should
+        // surface bookmarks alongside chapters + references).
+        let title = bookmark.label
+        let docID = bookmark.id
+        Task.detached(priority: .utility) {
+            do {
+                try await CSSearchableIndexSearch.shared.index(
+                    docId: docID,
+                    title: title,
+                    body: title
+                )
+            } catch {
+                NSLog("[wenshu.spotlight.auto] index failed after bookmark add: %@", String(describing: error))
+            }
+        }
     }
 
     func remove(id: String) throws {
@@ -47,6 +64,13 @@ final class WSBookmarkRepository {
         if let model = try context.fetch(descriptor).first {
             context.delete(model)
             try context.save()
+
+            // v2.9a (boss 2026-09-28 OOB A8): remove the
+            // bookmark from the Spotlight index (= keeps the
+            // index clean).
+            Task.detached(priority: .utility) {
+                try? await CSSearchableIndexSearch.shared.remove(docId: id)
+            }
         }
     }
 

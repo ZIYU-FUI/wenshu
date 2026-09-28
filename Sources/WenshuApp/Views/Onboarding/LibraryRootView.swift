@@ -262,6 +262,27 @@ struct LibraryRootView: View {
     /// = see v2.8d ticket cluster).
     private func handleSpotlightPick(docId: String) {
         NSLog("[wenshu.spotlight] pick docId=%@", docId)
+
+        // v2.9a (boss 2026-09-28 OOB A8): jump-to-source for the
+        // picked Spotlight result (= Cmd-F must open the
+        // document, not just NSLog + close). The MVP path
+        // appends an EditorTab with the docId as the
+        // documentPath (= canonical wenshu tab shape) and
+        // sets activeTabId so the editor zone re-renders.
+        if !appState.openTabs.contains(where: { $0.documentPath == docId }) {
+            let newTab = EditorTab(
+                id: UUID(),
+                documentPath: docId,
+                draft: "",
+                originalBody: "",
+                mode: .preview,
+                title: docId
+            )
+            appState.openTabs.append(newTab)
+            appState.activeTabId = newTab.id
+        } else if let existing = appState.openTabs.first(where: { $0.documentPath == docId }) {
+            appState.activeTabId = existing.id
+        }
     }
 }
 

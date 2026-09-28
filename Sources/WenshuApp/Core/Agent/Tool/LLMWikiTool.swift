@@ -97,8 +97,13 @@ final class LLMWikiTool: Tool, @unchecked Sendable {
         // surface the rest of the app uses). Falls back to nil
         // (= caller receives a typed error) when no library is
         // bound (= the inspector's "no library" state).
-        let path = UserDefaults.standard.string(forKey: "wenshu.libraryPath")
-        guard let path, !path.isEmpty else { return nil }
+        //
+        // v2.9a (boss 2026-09-28 OOB A4): delegate to
+        // LLMWikiOps.runAllFromActiveLibrary's resolution
+        // (= SSOT = both the LLM tool path and the
+        // operator-button path read the same wenshu.libraryPath).
+        guard let path = UserDefaults.standard.string(forKey: "wenshu.libraryPath"),
+              !path.isEmpty else { return nil }
         let url = URL(fileURLWithPath: path)
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         return FileSystemReferenceStore(referenceLibraryRoot: url)

@@ -168,10 +168,23 @@ enum InspectorCatalog {
         view: { AnyView(BookmarkView()) }
     )
 
-    /// All 13 tools in catalog order. Used by ticket 02
+    // v2.9a (boss 2026-09-28 OOB A3): BackgroundReview tab = the
+    // manual surface for the v2.8c BackgroundReview agent surface.
+    // BackgroundReviewOps.listPending / approve / reject (= @MainActor
+    // enum 4 entry points) are already canonical; = this entry wires
+    // the view into the inspector catalog (= the boss A3
+    // 'manual surface 缺一半' fix).
+    static let backgroundReview = InspectorTool(
+        id: "tab.title.background_review",
+        icon: "checkmark.circle.badge.questionmark",
+        title: WenshuI18n.t("tab.title.background_review"),
+        view: { AnyView(BackgroundReviewView()) }
+    )
+
+    /// All 14 tools in catalog order. Used by ticket 02
     /// `InspectorPage.tools` (= business layer routing) to return the
     /// 3 tools per page. Used by ticket 04 tests for catalog
-    /// completeness assertions (= `count == 13` + unique IDs).
+    /// completeness assertions (= `count == 14` + unique IDs).
     static let allTools: [InspectorTool] = [
         InspectorCatalog.foreshadowing,
         InspectorCatalog.placeholder,
@@ -185,6 +198,7 @@ enum InspectorCatalog {
         InspectorCatalog.tagManager,
         InspectorCatalog.ideaLibrary,
         InspectorCatalog.bookSettingConstraints,
-        InspectorCatalog.bookmark
+        InspectorCatalog.bookmark,
+        InspectorCatalog.backgroundReview
     ]
 }

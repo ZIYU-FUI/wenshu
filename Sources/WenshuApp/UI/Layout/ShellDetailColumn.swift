@@ -410,17 +410,52 @@ struct ShellDetailColumn: View {
                 .help(WenshuI18n.t("window.foreshadowing_graph.help"))
 
                 Button {
-                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.cron)")
-                    openWindow(id: WindowID.cron)
-                } label: {
-                    Label {
-                        Text(WenshuI18n.t("window.cron.open"))
-                    } icon: {
-                        Image(systemName: "clock")
-                    }
+                                    NSLog("[wenshu.window] click: openWindow id=\\(WindowID.cron)")
+                                    openWindow(id: WindowID.cron)
+                                } label: {
+                                    Label {
+                                        Text(WenshuI18n.t("window.cron.open"))
+                                    } icon: {
+                                        Image(systemName: "clock")
+                                    }
+                                }
+                                .help(WenshuI18n.t("window.cron.help"))
+
+                                // v2.9a (boss 2026-09-28 OOB A4): LLM Wiki
+                                // operator button = the manual surface for
+                                // LLMWikiOps.runAll. LLM can already call the
+                                // 'llm_wiki' tool (= v2.8d T17), and every
+                                // raw reference save auto-triggers derivation
+                                // (= v2.8d auto-call hook), but the operator
+                                // (= the boss) has no direct "Re-derive wiki
+                                // now" affordance. This button closes A4.
+                                Button {
+                                    Task {
+                                        do {
+                                            if let result = try await LLMWikiOps.runAllFromActiveLibrary() {
+                                                let s = result.stats
+                                                NSLog("[wenshu.llm_wiki.operator] ranAt=%@ raw=%d abstracts=%d indexes=%d lint=%d",
+                                                      String(describing: result.ranAt),
+                                                      s?.rawCount ?? 0,
+                                                      s?.abstractsWritten ?? 0,
+                                                      s?.indexesWritten ?? 0,
+                                                      result.lintFindings?.count ?? 0)
+                                            } else {
+                                                NSLog("[wenshu.llm_wiki.operator] no active library bound (= wenshu.libraryPath missing or .ws absent)")
+                                            }
+                                        } catch {
+                                            NSLog("[wenshu.llm_wiki.operator] failed: %@", String(describing: error))
+                                        }
+                                    }
+                                } label: {
+                                    Label {
+                                        Text(WenshuI18n.t("llm_wiki.operator.open"))
+                                    } icon: {
+                                        Image(systemName: "book.circle")
+                                    }
+                                }
+                                .help(WenshuI18n.t("llm_wiki.operator.help"))
                 }
-                .help(WenshuI18n.t("window.cron.help"))
-            }
         }
         // Re-inject AppState into the env chain. SwiftUI 6+ breaks
         // the @Environment chain across NavigationSplitView's

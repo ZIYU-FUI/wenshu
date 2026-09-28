@@ -97,6 +97,14 @@ actor CSSearchableIndexSearch {
         // Public init = mirror empty; load from disk on first await via `bootstrap()`.
     }
 
+    /// v2.9a (boss 2026-09-28 OOB A8): shared singleton so
+    /// `Task.detached` auto-call hooks (= chapter / reference /
+    /// bookmark save) can index documents without owning the
+    /// actor instance. Mirrors the `BackgroundReview.shared`
+    /// (§11.26 v2.8c) + `LLMWikiLayerDeriver` (§11.26 v2.8d)
+    /// pattern (= shared actor for cross-task indexing).
+    static let shared = CSSearchableIndexSearch()
+
     /// Bootstrap the search index (= call once at app launch).
     /// Apple HIG: CSSearchableIndex.default() returns the system Spotlight index
     /// (= created lazily by macOS on first write).
