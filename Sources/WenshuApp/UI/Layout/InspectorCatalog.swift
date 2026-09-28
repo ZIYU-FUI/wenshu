@@ -27,7 +27,7 @@
 import SwiftUI
 
 /// Single specialized tool = the data-layer type for the right
-/// column's specializedTools zone. Owned by `InspectorCatalog` (= 12
+/// column's specializedTools zone. Owned by `InspectorCatalog` (= 13
 /// static entries) and `InspectorPage.tools` (ticket 02 = the
 /// business-layer routing, which returns `[InspectorTool]`).
 ///

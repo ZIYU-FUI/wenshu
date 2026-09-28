@@ -37,16 +37,16 @@ struct InspectorCatalogTests {
 
     // MARK: - Test 1: 12 tool catalog completeness
 
-    @Test("InspectorCatalog.allTools count = 12 (= boss 'three per page × four pages'真值)")
-    func allToolsCount() {
-        #expect(InspectorCatalog.allTools.count == 12)
-    }
+    @Test("InspectorCatalog.allTools count = 13 (= boss 'three per page × four pages + bookmark' (= v2.8a bookmark tab joins project-management page at index 13))")
+        func testAllToolsCountIs13() {
+            #expect(InspectorCatalog.allTools.count == 13)
+        }
 
-    @Test("InspectorCatalog.allTools IDs unique (= Q244 'Duplicated Code' smell defense)")
-    func allToolsIdsUnique() {
-        let ids = InspectorCatalog.allTools.map(\.id)
-        #expect(Set(ids).count == 12, "all 12 IDs must be unique")
-    }
+        @Test("InspectorCatalog.allTools IDs unique (= Q244 'Duplicated Code' smell defense)")
+        func testAllToolsIDsUnique() {
+            let ids = InspectorCatalog.allTools.map(\.id)
+            #expect(Set(ids).count == 13, "all 13 IDs must be unique")
+        }
 
     @Test("InspectorCatalog.allTools IDs match i18n catalog (tab.title.* keys)")
     func allToolsIdsAreI18nKeys() {
@@ -102,13 +102,14 @@ struct InspectorCatalogTests {
         #expect(tools.contains(InspectorCatalog.emotionCurve))
     }
 
-    @Test("InspectorPage.projectManagement.tools = 3 + matches v1.43 inline真值")
+    @Test("InspectorPage.projectManagement.tools = 4 + matches v1.43 inline真值 (= v2.8a bookmark tab joins)")
     func projectManagementRouting() {
         let tools = InspectorPage.projectManagement.tools
-        #expect(tools.count == 3)
+        #expect(tools.count == 4)
         #expect(tools.contains(InspectorCatalog.ideaLibrary))
         #expect(tools.contains(InspectorCatalog.tagManager))
         #expect(tools.contains(InspectorCatalog.bookSettingConstraints))
+        #expect(tools.contains(InspectorCatalog.bookmark))
     }
 
     @Test("page tools IDs unique per page (= no duplicate within page)")
@@ -120,13 +121,13 @@ struct InspectorCatalogTests {
         }
     }
 
-    @Test("sum of all page tools = 12 (no overlap, no missing)")
+    @Test("sum of all page tools = 13 (no overlap, no missing; = v2.8a adds bookmark to page 4)")
     func sumOfAllPageTools() {
         var union: Set<String> = []
         for page in InspectorPage.allCases {
             union.formUnion(page.tools.map(\.id))
         }
-        #expect(union.count == 12, "4 pages × 3 = 12, no overlap, no missing")
+        #expect(union.count == 13, "4 pages × 3 + 1 bookmark = 13, no overlap, no missing")
     }
 
     // MARK: - Test 3: i18n key resolution (= silent rename defense)
