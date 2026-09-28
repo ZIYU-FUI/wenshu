@@ -76,6 +76,13 @@ struct SearchDocMirrorEntry: Equatable, Sendable {
     let title: String
     let body: String
     let tokens: [String]   // pre-tokenized for token-overlap ranking
+    /// v2.9d T35 (boss 2026-09-28 OOB A8 polish): the
+    /// canonical title to display when the user picks a
+    /// Spotlight result (= the editor tab title; = falls
+    /// back to the docId when the mirror has no entry).
+    var displayTitle: String {
+        title.isEmpty ? docId : title
+    }
 }
 
 /// CSSearchableIndexSearch: Core Spotlight primary + SwiftData fallback ranking.
@@ -148,6 +155,16 @@ actor CSSearchableIndexSearch {
         mirror.removeValue(forKey: docId)
         pendingRemove.append(CSSearchDomain.itemIdentifier(for: docId))
         try flushPending()
+    }
+
+    /// v2.9d T35 (boss 2026-09-28 OOB A8 polish): look up the
+    /// canonical display title for a docId (= the mirror's
+    /// stored title; = falls back to the docId when the mirror
+    /// has no entry). The editor tab title uses this so the
+    /// user sees the friendly chapter / reference / bookmark
+    /// name instead of the raw docId.
+    func title(forDocId docId: String) -> String {
+        mirror[docId]?.displayTitle ?? docId
     }
 
     /// Search (BM25-equivalent: Apple Spotlight relevance OR token-overlap fallback).

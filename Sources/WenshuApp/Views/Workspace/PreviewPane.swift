@@ -404,6 +404,13 @@ struct PreviewPane: View {
     /// `.searchable` modifier).
     @Binding var searchQuery: String?
 
+    /// v2.9d T37 (boss 2026-09-28 OOB A7 follow-up): the
+    /// active tag filter (= the user clicked a `.tag(String)`
+    /// sidebar item; = the preview pane renders only
+    /// references whose `tags` set contains this string).
+    /// = nil means "no tag filter" (= show all references).
+    @Binding var activeTag: String?
+
     /// 'move the position: below the title
     /// and divider, above the first card': per the boss's request, the
     /// search field renders BELOW the 'Assets' section header + Divider
@@ -476,12 +483,14 @@ struct PreviewPane: View {
         onDoubleClick: @escaping (CardSource) -> Void,
         previewSortOrder: Binding<EntitySortOrder>,
         searchQuery: Binding<String?> = .constant(nil),
-        customLeadingSearch: AnyView? = nil
+        customLeadingSearch: AnyView? = nil,
+        activeTag: Binding<String?> = .constant(nil)
     ) {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
         self._previewSortOrder = previewSortOrder
         self._searchQuery = searchQuery
+        self._activeTag = activeTag
         self.customLeadingSearch = customLeadingSearch
     }
 /// : 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
@@ -983,7 +992,19 @@ struct PreviewPane: View {
         // search filter (= previewSearchQuery) on top of the
         // category filter. Both filters compose (= all entities →
         // search filter → category filter).
-        let allEntities = searchFilteredEntities(loadAllEntities())
+        let searched = searchFilteredEntities(loadAllEntities())
+        // v2.9d T37 (boss 2026-09-28 OOB A7 follow-up):
+        // apply the tag filter (= self.activeTag) on top
+        // of the search + category filter. tag nil = show all
+        // (= the user picked the reference library root).
+        let allEntities: [Reference] = {
+            guard let activeTag else {
+                return searched
+            }
+            return searched.filter { entity in
+                entity.tags.contains(activeTag)
+            }
+        }()
         VStack(spacing: 0) {
             Group {
                 if let cat = category {

@@ -178,9 +178,14 @@ struct ShellMiddleColumn: View {
         case .folder(let bookId, let folderName):
             return .bookScope(bookId: bookId, folderName: folderName)
         case .tag(let tagString):
-            // v2.6 facet model: a tag selection maps to the reference
-            // library root with a tag-filter applied (= the preview
-            // pane reads appState.tagFilter to scope its card grid).
+            // v2.9d T37 (boss 2026-09-28 OOB A7 follow-up):
+            // a tag selection now sets workspaceUI.activeTag
+            // (= PreviewPane reads workspaceUI.activeTag
+            // to filter its card grid by tag). Previously
+            // the tag route fell through to .referenceScope
+            // (= no real filter applied; = tag chip was a
+            // dead UI affordance).
+            workspaceUI.activeTag = tagString
             return .referenceScope(nil)
         case nil:
             return .referenceScope(nil)
