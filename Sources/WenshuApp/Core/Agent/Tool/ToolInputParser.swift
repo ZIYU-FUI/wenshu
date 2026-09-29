@@ -1,13 +1,12 @@
+// ToolInputParser.swift · WenshuApp · v0.35
 //
-//  ToolInputParser.swift · Wenshu · v0.35 ticket 001 sub-step 6 followup
+// Single source of truth for tool input JSON parsing. Originally
+// each tool hand-rolled a regex-free substring scan (= fragile,
+// duplicated in `ReadFileTool` + `WriteFileTool`); extracted here
+// per Standards-axis S3 Duplicated Code smell.
 //
-//  Single source of truth for tool input JSON parsing. Originally
-//  each tool hand-rolled a regex-free substring scan (= fragile,
-//  duplicated in ReadFileTool + WriteFileTool); extracted here per
-//  Standards-axis S3 Duplicated Code smell.
-//
-//  Uses Apple Foundation JSONSerialization (= wenshu §11 hard rule:
-//  Apple stack exclusive; no third-party parser).
+// Uses Apple Foundation `JSONSerialization` (= wenshu §11 hard
+// rule: Apple stack exclusive; no third-party parser).
 //
 
 import Foundation
