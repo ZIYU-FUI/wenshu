@@ -1,13 +1,12 @@
+// ContextEngine.swift · WenshuApp · v0.35
 //
-//  ContextEngine.swift · Wenshu · v0.35 ticket 003 sub-step 3
-// .
-//
-//  Context aggregation facade. Maps to hermes context_engine.py
-//  (= 231 LOC ABC interface). Wenshu-side wins per AGENTS.md §11.3:
-//  the existing wenshu Core/Memory/* subsystem already implements
-//  world/character/foreshadow prefetch + retrieval (= MemoryManager +
-//  MemoryProvider + MemoryConsolidator). This ContextEngine is a thin
-//  facade that exposes a unified API over those existing primitives.
+// Context aggregation facade. Maps to hermes `context_engine.py`
+// (= ABC interface). Wenshu-side wins per AGENTS.md §11.3:
+// the existing wenshu `Core/Memory/*` subsystem already implements
+// world / character / foreshadow prefetch + retrieval (=
+// `MemoryManager` + `MemoryProvider` + `MemoryConsolidator`).
+// This `ContextEngine` is a thin facade that exposes a unified
+// API over those existing primitives.
 //
 //  Responsibilities:
 //    - aggregateContextForTurn(bookId:userMessage:) -> ContextBundle
@@ -34,7 +33,7 @@ import Foundation
 
 // Migrated to `WSMemoryRepository.shared`.
 // subsequent step (= `makeDefaultMemoryManager` returns MemoryManager() with
-// no args = uses WSMemoryRepository.shared by default per ticket 4.1 design).
+// no args = uses WSMemoryRepository.shared by default.
 
 actor ContextEngine {
 
@@ -140,12 +139,12 @@ actor ContextEngine {
     /// → preconditionFailure) was deleted. The MemoryManager default
     /// initializer now reads from WSMemoryRepository.shared (= the
     /// @MainActor SwiftData wrapper for the `WSMemory` @Model class).
-    /// This removes the last production MemoryStore instantiation
-    /// (= MemoryStore.swift deletion is gated on phase 3 deferred
-    /// MemoryProvider + WenshuConductor migration = future ticket 8).
+    /// This removes the last production `MemoryStore` instantiation
+    /// (= `MemoryStore.swift` deletion is gated on the phase 3
+    /// deferred `MemoryProvider` + `WenshuConductor` migration).
     private static func makeDefaultMemoryManager() async -> MemoryManager {
-        // Empty MemoryManager (= no args = default = nil store = uses
-        // WSMemoryRepository.shared per ticket 4.1's optional store design).
+        // Empty `MemoryManager` (= no args = default = nil store = uses
+        // `WSMemoryRepository.shared`).
         return MemoryManager()
     }
 
@@ -170,18 +169,18 @@ actor ContextEngine {
 
     /// Overload that accepts an explicit `MemoryManager`. The default
     /// `aggregateContextForTurn(bookId:userMessage:)` uses a freshly-built
-    /// in-memory default manager (= ticket-009 wiring baseline);
-    /// callers that own a persisted MemoryStore can inject it here so
-    /// per-book Character/World retrieval can land in a followup ticket
+    /// in-memory default manager (= the wiring baseline); callers
+    /// that own a persisted `MemoryStore` can inject it here so
+    /// per-book Character / World retrieval can land in a follow-up
     /// without changing this entry point.
     func aggregateContextForTurn(
         bookId: String?,
         userMessage: String,
         memoryManager: MemoryManager
     ) async -> ContextBundle {
-        // ticket-009 step 1: wire MemoryManager.prefetch. Character/World
-        // retrieval remains pending (= per-book Character/World stores
-        // land in a followup ticket per the original TODO scope).
+        // Wire `MemoryManager.prefetch`. Character / World retrieval
+        // remains pending (= per-book Character / World stores land
+        // in a follow-up per the original TODO scope).
         _ = bookId
         let result = await memoryManager.prefetch(userMessage: userMessage)
         let memories: [MemoryEntry]
