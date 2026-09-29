@@ -1,17 +1,18 @@
-// LibraryBootstrapper.swift · Wenshu () · v0.26 (FCP library replica)
+// LibraryBootstrapper.swift · WenshuApp · v2.6
 //
 // One-time setup + ongoing self-heal for the .ws library structure.
-// Per spec v5 ticket 021:
-// - On first launch with a new .ws (= missing shelves/, reference-library/,
-//   cache/): create them
-// - On missing Info.plist: create with defaults (= defensive; LibraryRootView
-//   normally creates it at onboarding, but if user dragged a folder in
-//   without Info.plist, this recovers)
-// - Remove empty chapters/ + books/ at .ws root IF they exist and are
-//   empty (= orphan from early onboarding iteration)
+//
+// - On first launch with a new .ws (= missing shelves/,
+//   reference-library/, cache/): create them
+// - On missing Info.plist: create with defaults (= defensive;
+//   LibraryRootView normally creates it at onboarding, but if user
+//   dragged a folder in without Info.plist, this recovers)
+// - Remove empty chapters/ + books/ at .ws root IF they exist and
+//   are empty (= orphan from early onboarding iteration)
 // - For each book discovered under shelves/<shelf>/books/<book-id/>,
-//   verify all 8 standard folders + 2 data files exist; create missing
-//   ones (= defensive for books created before v0.26 or by external tools)
+//   verify all 8 standard folders + 2 data files exist; create
+//   missing ones (= defensive for books created by older versions
+//   or by external tools)
 // - Never deletes user data (= .md bodies + chat.sqlite + attachments)
 
 import Foundation
@@ -40,7 +41,7 @@ struct LibraryBootstrapper: Sendable {
                 try fm.createDirectory(at: url, withIntermediateDirectories: true)
             }
         }
-        // 3. Create reference-library/indexes/saved-searches/ (= ticket 016).
+        // 3. Create reference-library/indexes/saved-searches/.
         let savedSearches = wsRoot
             .appendingPathComponent("reference-library", isDirectory: true)
             .appendingPathComponent("indexes", isDirectory: true)
@@ -55,8 +56,8 @@ struct LibraryBootstrapper: Sendable {
         }
         // 5. Remove empty chapters/ + books/ at .ws root IF they exist
         // and are empty (= orphan from early onboarding; safe to remove).
-        // NOTE: do NOT touch shelves/ at .ws root here (= canonical book
-        // container per ticket 022; bootstrapper CREATES it, not deletes).
+        // NOTE: do NOT touch shelves/ at .ws root here (= canonical
+        // book container; bootstrapper CREATES it, not deletes).
         for orphan in ["chapters", "books"] {
             let url = wsRoot.appendingPathComponent(orphan, isDirectory: true)
             if fm.fileExists(atPath: url.path), isEmptyDirectory(url) {
