@@ -1,30 +1,19 @@
-// Sources/WenshuApp/Storage/EntityClassifier.swift
+// EntityClassifier.swift · WenshuApp · v1.85
 //
-// 'entities need to be organized into multiple folders by category, here we display
-// these category folders directly, e.g. history, science, such categories,
-// you can refer to the library classification system, this one rule, auto-classify entities. Category folders grow with the content,
-// not all at once laid out':
+// Auto-classify Reference entities into library-taxonomy categories
+// (EntityCategory). 2-pass strategy:
 //
-// = Auto-classify Reference entities into library-taxonomy categories
-// (EntityCategory). Uses a 2-pass strategy:
-//   1st pass: keyword matching (= fast, no LLM call, ~95% accuracy)
-//   2nd pass: LLM classifier (= if 1st pass low confidence)
+//   1. Keyword matching (sync, fast, no LLM call, ~95% accuracy)
+//   2. LLM classifier (fallback for low-confidence keyword results)
 //
-// Why not LLM-everything?
-// - Cost: every entity save = 1 LLM call = $$$  + latency
-// - Speed: keyword match is <1ms vs LLM ~500ms
-// - Determinism: keyword match is reproducible (= same input → same
-//   category), LLM is stochastic
-// - Offline: keyword match works without LLM credentials, LLM requires
-//   network
+// RATIONALE: keyword pass exists because LLM-everything is too costly
+// (= every save = 1 LLM call), too slow (LLM ~500ms vs keyword <1ms),
+// non-deterministic (= LLM is stochastic), and offline-blocked (= LLM
+// needs network + credentials). The LLM pass only fires for the ~5%
+// of entities without an obvious keyword signal.
 //
-// So we use keyword for the easy cases, and LLM only for the ambiguous
-// ones (= ~5% of entities that don't have obvious keyword signals).
-//
-// "" (incremental) rule: the sidebar only shows categories that
-// have at least 1 entity. Empty categories = hidden. So as entities
-// are added, new category folders appear in the sidebar (= exactly
-// what boss wants).
+// Categories grow incrementally (= the sidebar only shows categories
+// that have at least 1 entity; = empty categories = hidden).
 
 import Foundation
 
@@ -36,26 +25,20 @@ import Foundation
 ///
 /// **Two-pass strategy**:
 /// 1. **Keyword pass** (default, no LLM): scan title + summary for
-/// category-specific keywords (= e.g. "" → E Military, "" → K
-/// History, "" → Q Biology). If a clear winner emerges (= 1 category
+///    category-specific keywords (= e.g. Biology = Q, History = K,
+///    Military = E). If a clear winner emerges (= 1 category
 ///    has 2x score of any other), use it directly.
 /// 2. **LLM pass** (fallback for ambiguous): if keyword scores are tied
 ///    or all categories score < 2 points, ask the LLM to classify with
-///    a structured prompt (= returns 1 EntityCategory + confidence).
+///    a structured prompt (= returns 1 EntityCategory + confidence +
+///    tags + entity type).
 ///
-/// The LLM pass is opt-in (= boss can set `useLLMFallback = false` in
-/// Settings to force keyword-only classification = no LLM cost).
-/// Multi-facet classification result (= v2.6 facet model).
-///
-/// The classifier no longer returns a single `(category, entityType)`
-/// tuple; = it returns a `ClassificationResult` that carries the
-/// primary category, the entity-type facet, AND a list of free-form
-/// tags. A document can carry:
-/// - 0 or 1 `category` (= primary CLC bucket; = the LLM may decline
-///   to assign one, in which case the sidebar falls back to .z)
-/// - 1 `entityType` (= orthogonal facet)
-/// - 0..N `tags` (= cross-cutting; = any string the LLM thinks is
-///   useful for retrieval; = CJK + EN; = max 10 to avoid spam)
+/// `useLLMFallback = false` in Settings forces keyword-only (= no LLM
+/// cost). Result is always a multi-facet `ClassificationResult`:
+/// - 0 or 1 `category` (primary CLC bucket; = nil when the LLM declines)
+/// - 1 `entityType` (orthogonal facet)
+/// - 0..N `tags` (cross-cutting; = any string the LLM thinks is useful;
+///   = CJK + EN; = capped at `Self.maxTags` to avoid spam)
 struct ClassificationResult: Sendable, Equatable {
     let category: EntityCategory?
     let tags: [String]
@@ -86,7 +69,7 @@ struct EntityClassifier: Sendable {
     /// at least one fact (= falls back to .z + empty tags + .other
     /// if both passes fail).
     ///
-    /// Two-pass strategy (= unchanged from pre-v2.6):
+    /// Two-pass strategy:
     /// 1. Keyword pass (sync, fast, no LLM cost). If confident, return.
     /// 2. LLM pass (fallback). Returns multi-facet JSON.
     func classify(
@@ -101,8 +84,8 @@ struct EntityClassifier: Sendable {
 
         // If keyword result is confident (= clear winner), return it
         // with tags derived from the matched category's display name
-        // (= "文学" for category .i, "历史" for .k, etc.) + the raw
-        // category letter ("I" / "K"). This gives the user a starting
+        // (= the CLC letter "I" for Literature, "K" for History, etc.)
+        // + the raw category letter. This gives the user a starting
         // tag set even when the LLM pass is skipped.
         if keywordResult.confidence >= 0.6 {
             let tags = Self.deriveKeywordTags(category: keywordResult.category)
@@ -148,7 +131,7 @@ struct EntityClassifier: Sendable {
 
     /// Derive a starter tag set from a keyword-classified category.
     /// The tag set includes the category's display name + the raw
-    /// letter (= so the user sees both "文学" and "I" in the tag
+    /// letter (= so the user sees both "Literature" and "I" in the tag
     /// cloud; = useful for cross-facet filter expressions).
     private static func deriveKeywordTags(category: EntityCategory) -> [String] {
         [category.displayName, category.rawValue]
@@ -212,7 +195,7 @@ struct EntityClassifier: Sendable {
     /// Ask the LLM to classify (= returns JSON with category + tags +
     /// entity_type). The JSON shape is:
     /// ```
-    /// { "category": "I", "tags": ["诗人","唐朝","浪漫主义"], "entity_type": "character" }
+    /// { "category": "I", "tags": ["poet","dynasty","style"], "entity_type": "character" }
     /// ```
     /// Tags are capped at `Self.maxTags` (= 10) to avoid spam.
     private func llmClassifier(
@@ -222,11 +205,11 @@ struct EntityClassifier: Sendable {
         llmCallback: LLMCallback
     ) async throws -> LLMResult {
         // Build a structured prompt (= request JSON for fast parse).
+        // List both EntityCategory (= subject area) AND EntityType (= object
+        // nature) so the LLM can return a multi-facet result.
         let categoriesList = EntityCategory.allCases
             .map { "\($0.rawValue) = \($0.displayName)" }
             .joined(separator: "\n")
-        // include EntityType (= 9 types) so LLM can classify both
-        // the subject area AND the object nature.
         let typesList = EntityType.allCases
             .map { "\($0.promptNumber) = \($0.displayName): \($0.description)" }
             .joined(separator: "\n")
@@ -268,8 +251,7 @@ struct EntityClassifier: Sendable {
             let type = EntityType.fromPromptNumber(typeNum)
             return ClassificationResult(category: cat, tags: tags, entityType: type)
         }
-        // Fallback to legacy "K 3" format for backward-compat with
-        // older LLM responses that don't emit JSON.
+        // Backward-compat: legacy "K 3" format (= 2-token reply).
         let parts = trimmed.split(separator: " ", maxSplits: 1).map(String.init)
         if parts.count == 2,
            let cat = EntityCategory(rawValue: parts[0].uppercased()),
@@ -290,12 +272,12 @@ struct EntityClassifier: Sendable {
     ///
     /// Keywords are LOWER-CASE Chinese + English (= covers both).
     /// They should be:
-    /// - Domain-specific (= "" → Biology, not Medicine)
-    /// - Common in fiction (= "" → Military, "" → Politics or Literature)
+    /// - Domain-specific (= "DNA" → Biology, not Medicine)
+    /// - Common in fiction (= "gun" → Military, "congress" → Politics)
     /// - Not too generic (= "the", "and" would match everything = useless)
     ///
-    /// For ambiguous entities (= e.g. "" = politics K/D or
-    /// history K), the LLM pass is the tie-breaker.
+    /// For ambiguous entities (= e.g. "constitution" = Politics or History),
+    /// the LLM pass is the tie-breaker.
     static let keywords: [EntityCategory: [String]] = [
         // A- Marx Lenin Mao Zedong Deng.
         .a: ["马克思", "列宁", "毛泽东", "邓小平", "共产主义", "社会主义", "共产党宣言", "资本论", "mao", "lenin", "marx", "communism"],
