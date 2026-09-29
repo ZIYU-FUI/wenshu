@@ -1,17 +1,13 @@
+// Sources/WenshuApp/Views/Workspace/EditorContentPlaceholder.swift
 //
-//  EditorContentPlaceholder.swift · Wenshu · v0.40 apple-001 Q2 slice 9a
+// The empty `Color.clear` placeholder for the editor pane.
+// Pane background uniformity is applied by `ZonePerRegionChrome`
+// (= the editor placeholder is just empty since the `Color.white
+// .opacity(0.55)` overlay was removed).
 //
-//  Extracted from WorkspaceView.swift (formerly inline private
-// struct at line 887). Q2 boss split WorkspaceView. Slice 9a
-//  = the empty Color.clear placeholder for the editor pane.
-//  Pane background uniformity is now applied by ZonePerRegionChrome
-//  (= the editor placeholder is just empty since v0.28 Boss UX
-//  round 37 removed the Color.white.opacity(0.55) overlay).
-//
-//  Apple HIG = one view per file. EditorContentPlaceholder is the
-//  smallest extractable view left (= 11 LOC, pure stateless).
-//  No params, no @State, no @Binding, no @Environment.
-//
+// One view per file (Apple HIG). `EditorContentPlaceholder` is
+// the smallest extractable view left (= 11 LOC, pure stateless).
+// No params, no `@State`, no `@Binding`, no `@Environment`.
 
 import SwiftUI
 
