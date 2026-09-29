@@ -1,57 +1,54 @@
+// ConversationLoop.swift · WenshuApp · v0.35
 //
-//  ConversationLoop.swift · Wenshu · v0.35 ticket 001 sub-step 3
-//  + TICKET-HERMES-GAP-001 refactor (2026-09-04).
+// ConversationLoop actor = the Swift port of hermes'
+// `conversation_loop.run_conversation` (= L523-L546, 9-param entry).
 //
-//  ConversationLoop actor = the Swift port of hermes'
-//  conversation_loop.run_conversation (= L523-L546, 9-param entry).
+// This is the agent main loop engine. Each user turn:
+//   1. Builds the message list (= history + new user message).
+//   2. Invokes `LLMConnector.send(messages:options:)` (= one
+//      round-trip to the active connector profile).
+//   3. Appends the assistant response to the message list.
+//   4. Returns `ConversationResult` (= response + full message
+//      history + taskId for tracing).
 //
-//  This is the agent main loop engine. Each user turn:
-//    1. Builds the message list (= history + new user message)
-//    2. Invokes the LLMConnector.send(messages:options:) (= one round-trip
-//       to the active connector profile)
-//    3. Appends the assistant response to the message list
-//    4. Returns ConversationResult (= response + full message history +
-//       taskId for tracing)
+// This file implements the minimum surface that lets the rest of
+// the agent stack (= `ToolExecutor`, `ConversationCompression`)
+// compose against it. Tool dispatch loop, fallback chain,
+// preflight compression, post-turn hooks, background nudges = NOT
+// in this file (= they live in follow-on tickets).
 //
-// sub-step 3 implements the MINIMUM surface that lets the rest of
-//  the agent stack (= ToolExecutor in sub-step 5, ConversationCompression
-//  in ticket 003) compose against it. Tool dispatch loop, fallback chain,
-//  preflight compression, post-turn hooks, background nudges = NOT in
-//  sub-step 3 (= they live in subsequent sub-steps / tickets per spec).
+// Invariants (= AGENTS.md §11.3 + §11 product-positioning):
+//   1. ConversationLoop is BYOK (= delegates to
+//      `LLMConnector.send` which calls `ConnectorCredentials.resolve`).
+//   2. No metering / billing / quota tracking added (= §11).
+//   3. No default provider (= caller specifies connector
+//      explicitly).
+//   4. Cache-stable system prompt (= `PromptCaching` layer;
+//      layered with the cache-stable invariant).
 //
-//  Invariants (= AGENTS.md §11.3 + §11 product-positioning):
-//    1. ConversationLoop is BYOK (= delegates to LLMConnector.send which
-//       calls ConnectorCredentials.resolve).
-//    2. No metering / billing / quota tracking added (= §11).
-//    3. No default provider (= caller specifies connector explicitly).
-//    4. Cache-stable system prompt (= ticket 002 PromptCaching layer;
-//       not yet wired in sub-step 3, lands as part of sub-step 3 followup).
+// Hermes correspondence:
+//   L523-L546: 9-param entry + return Dict[str, Any]
+//   L558-590: `build_turn_context` (= pre-turn setup; = lands in
+//     TurnContext.swift).
+//   L590-880: turn loop body with retries / fallbacks / compression
+//     (= minimum surface here; full loop body lands in follow-on
+//     tickets).
 //
-//  Hermes correspondence:
-//    L523-L546: 9-param entry + return Dict[str, Any]
-//    L558-590: build_turn_context (= pre-turn setup; lands in TurnContext.swift sub-step 4)
-//    L590-880: turn loop body with retries / fallbacks / compression
-//      (= sub-step 3 implements the minimum surface, full loop body lands
-//      incrementally in tickets 003-005)
+// wire-up: ConversationLoop holds an optional `RuntimeHelpers`
+// reference (default = a fresh actor instance per ConversationLoop;
+// callers may inject a custom one for deterministic-test paths).
+// The runtime is consulted via `await runtime.now()` whenever the
+// loop needs a timestamp (= hermes-port Z-contract hard requirement).
+// No literal `Date()` calls remain in the loop body — see
+// `Sources/WenshuApp/Core/Agent/Runtime/RuntimeHelpers.swift` for
+// the actor surface.
 //
-// sub-step 3 of 8 for ticket 001.
-//
-// wire-up (2026-09-04): ConversationLoop now
-//  holds an optional `RuntimeHelpers` reference (default = a fresh actor
-//  instance per ConversationLoop; callers may inject a custom one for
-//  deterministic-test paths). The runtime is consulted via `await
-//  runtime.now()` whenever the loop needs a timestamp (= hermes-port
-//  Z-contract hard requirement per v0.36 ticket 014). No literal `Date()`
-//  calls remain in the loop body — see `Sources/WenshuApp/Core/Agent/
-//  Runtime/RuntimeHelpers.swift` for the actor surface.
-//
-// (v0.41 P2 #21): ConversationLoop now drives an
-//  `AgentProgressTracker` (= library-level, ephemeral, actor). The
-//  tracker emits step events as the turn progresses so the OpenBox
-//  panel (= DynamicZoneView progress strip) can render real-time
-//  feedback to the user. Default = `.noop` (= zero overhead for
-//  unit tests + callers that don't care about progress emission).
-//
+// ConversationLoop drives an `AgentProgressTracker` (=
+// library-level, ephemeral, actor). The tracker emits step events
+// as the turn progresses so the OpenBox panel
+// (= DynamicZoneView progress strip) can render real-time
+// feedback to the user. Default = `.noop` (= zero overhead for
+// unit tests + callers that don't care about progress emission).
 
 import Foundation
 
@@ -100,11 +97,11 @@ actor ConversationLoop {
     ///     Anthropic, OpenAI, Gemini, DeepSeek, Ollama, OpenRouter).
     ///   - systemPrompt: Optional byte-stable system prompt prefix (= per
     ///     AGENTS.md §11.3 cache-stable invariant; full cache_control marker
-    ///     lands in ticket 002 PromptCaching.swift).
-    ///   - runtime: Optional runtime helper (= TICKET-HERMES-GAP-003).
+    ///     lands in `PromptCaching.swift`).
+    ///   - runtime: Optional runtime helper.
     ///     When nil, a default actor instance is created with no mock-time
     ///     and no verbose/debug flags. Callers wanting deterministic-test
-    ///     injection (= v0.36 ticket 014) should pass a runtime built with
+    ///     injection should pass a runtime built with
     ///     `RuntimeHelpers(state: .init(mockTime: ...))`.
     ///   - shellHookChain: Optional shell hook chain (= wenshu port).
     ///     When nil, a default empty chain is used (= no behavior change for
@@ -249,22 +246,23 @@ actor ConversationLoop {
         messages.append(LLMMessage.user(sanitizedUser))
 
         // Resolve system prompt (= systemMessage override > persistent systemPrompt)
-        // Per TICKET-HERMES-GAP-001 (2026-09-04): compose stable + dynamic tiers
+        // Per hermes-port wire-up: compose stable + dynamic tiers
         // via PromptBuilder instead of the v0.35 placeholder string that
-        // wrapped the ephemeral hint with a Context: prefix. The dynamic tier
-        // composes from ContextEngine + MemoryAdapter + SkillAdapter + caller
-        // extras; for this sub-step, those are empty (= ticket 009 wires
-        // ContextEngine + ticket 010 wires SkillAdapter), so the dynamic tier
-        // reduces to the ephemeral hint as a final block. The placeholder
-        // Swift template no longer appears anywhere in the source tree.
+        // wrapped the ephemeral hint with a Context: prefix. The dynamic
+        // tier composes from ContextEngine + MemoryAdapter + SkillAdapter
+        // + caller extras; for the minimum surface, those are empty
+        // (= ContextEngine + SkillAdapter land in follow-on tickets),
+        // so the dynamic tier reduces to the ephemeral hint as a final
+        // block. The placeholder Swift template no longer appears
+        // anywhere in the source tree.
         let effectiveSystemPrompt = await composeSystemPrompt(
             override: systemMessage,
             persistent: systemPrompt
         )
 
         // Build call options (= model defaults to first defaultModel of
-        // the active connector profile; per-call override not yet wired in
-        // sub-step 3, lands in ticket 002 cache layer)
+        // the active connector profile; per-call override lands in
+        // the PromptCaching cache layer).
         let defaultModel = defaultModelForConnector()
         // read user-selected reasoning effort from
         // UserDefaults (= set by SettingView picker; = "low"/"medium"/"high"/
@@ -547,14 +545,14 @@ actor ConversationLoop {
                 )
 
                 // step 9: "Submitting background-review proposals".
-                // The agent-side auto-call hook per boss 2026-09-28
-                // OOB B8 '自动也可以手动也可以'. The agent scans
-                // the response for background-worthy events (= file
-                // writes, entity changes, schedule edits) and submits
-                // a proposal per event via BackgroundReviewOps.
-                // For v2.8c MVP the hook is the simplest possible:
-                // always submit one proposal per turn whose kind =
-                // .turnSummary (= the operator reviews the turn in
+                // The agent-side auto-call hook per the auto+manual
+                // merge stance: the agent scans the response for
+                // background-worthy events (= file writes, entity
+                // changes, schedule edits) and submits a proposal
+                // per event via `BackgroundReviewOps`. For the MVP
+                // the hook is the simplest possible: always submit
+                // one proposal per turn whose kind = .turnSummary
+                // (= the operator reviews the turn in
                 // the inspector's BackgroundReview tab; = the manual
                 // surface remains BackgroundReviewOps.approve / reject).
                 await progressTracker.setStep(
@@ -675,10 +673,11 @@ actor ConversationLoop {
     /// Resolve the default model for the active connector (= first model
     /// in the provider's defaultModels list).
     ///
-    /// In production, this comes from ConnectorProfile (= ticket 006's
-    /// Settings → LLM Connector pane). In sub-step 3 we read from the
-    /// connector's Provider enum directly (= fine for unit tests; production
-    /// ticket 006 wires the actual user-selected model).
+    /// In production, this comes from `ConnectorProfile` (= the
+    /// Settings → LLM Connector pane). In the minimum surface we
+    /// read from the connector's `Provider` enum directly (= fine
+    /// for unit tests; production wires the actual user-selected
+    /// model via the Settings pane).
     private nonisolated func defaultModelForConnector() -> String {
         // Provider enum lookup by connectorID (= thin integration in sub-step 3)
         if let provider = Provider.all.first(where: { $0.slug == connector.connectorID }) {
@@ -724,10 +723,11 @@ actor ConversationLoop {
     ///      default behavior).
     ///
     /// Dynamic-tier composition pulls in ContextEngine + MemoryAdapter +
-    /// SkillAdapter; in this sub-step those dependencies are not yet wired
-    /// into the loop (= ticket 009 + ticket 010), so the dynamic tier
-    /// reduces to the ephemeral hint as the final block. Future tickets
-    /// can extend this method to read live data from those adapters.
+    /// SkillAdapter; in the minimum surface those dependencies are not
+    /// yet wired into the loop (= ContextEngine + SkillAdapter land in
+    /// follow-on tickets), so the dynamic tier reduces to the
+    /// ephemeral hint as the final block. Future tickets can extend
+    /// this method to read live data from those adapters.
     private func composeSystemPrompt(
         override: String?,
         persistent: String?
