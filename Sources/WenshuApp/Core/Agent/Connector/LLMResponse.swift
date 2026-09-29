@@ -1,19 +1,18 @@
+// LLMResponse.swift · WenshuApp · v0.35
 //
-//  LLMResponse.swift · Wenshu · v0.35 ticket 001 sub-step 2
+// Cross-connector response type (= `LLMConnector.send` return value).
+// Mirrors hermes' `Dict[str, Any]` return shape from
+// `conversation_loop.run_conversation` (= final response + message
+// history).
 //
-//  Cross-connector response type (= LLMConnector.send return value).
-//  Mirrors hermes' `Dict[str, Any]` return shape from
-//  conversation_loop.run_conversation (= final response + message history).
-//
-//  Shape:
-//    - id: provider-assigned response id (= for tracing + retries)
-//    - model: the model that produced the response (= for billing + cache log)
-//    - blocks: list of content blocks (= text / thinking / tool_use)
-//    - stopReason: why the model stopped (= end_turn / tool_use / max_tokens)
-//    - usage: token counts (= input + output)
-//
-// sub-step 2 of 8 for ticket 001.
-//
+// Shape:
+//   - `id`: provider-assigned response id (= for tracing + retries)
+//   - `model`: the model that produced the response (= for billing
+//     + cache log)
+//   - `blocks`: list of content blocks (= text / thinking / tool_use)
+//   - `stopReason`: why the model stopped (= end_turn / tool_use /
+//     max_tokens)
+//   - `usage`: token counts (= input + output)
 
 import Foundation
 
