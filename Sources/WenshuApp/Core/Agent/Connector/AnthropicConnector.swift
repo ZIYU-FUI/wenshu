@@ -1,25 +1,21 @@
+// AnthropicConnector.swift · WenshuApp · v0.35
 //
-//  AnthropicConnector.swift · Wenshu · v0.35 ticket 004 sub-step 1
-// (request marshaling extracted)
-//  Anthropic native connector (= ticket 004 sub-step 1).
-//  P0 connector profile, full wire format support per AGENTS.md §11.2.
+// Anthropic native connector. P0 connector profile, full wire format
+// support per AGENTS.md §11.2.
 //
-//  Anthropic Messages API native features (vs MinimaxConnector which
-//  is the Anthropic-compatible thin wrapper for non-Anthropic providers):
-//    - Cache control markers (4 breakpoints, see PromptCaching.swift)
-//    - Thinking blocks (extended thinking + signatures)
-//    - Tool use round-trip (= tool_use + tool_result blocks)
-//    - SSE streaming (lands in ticket 004 sub-step 2)
+// Anthropic Messages API native features (vs `MinimaxConnector` which
+// is the Anthropic-compatible thin wrapper for non-Anthropic
+// providers):
+//   - Cache control markers (4 breakpoints, see `PromptCaching.swift`)
+//   - Thinking blocks (extended thinking + signatures)
+//   - Tool use round-trip (= `tool_use` + `tool_result` blocks)
+//   - SSE streaming (= lives in `AnthropicStreaming.swift`)
 //
-//  Per TICKET-HERMES-GAP-002 (= hermes-port gap audit §2.1 #8), the
-//  request-body + response-decoding marshaling has been extracted to
-//  `Connector/RequestHelpers.swift` so each connector is a thin
-//  wrapper over the shared helpers. Connector-specific concerns
-//  remaining here: credential resolution, URL building, auth headers,
-//  transport send, and HTTP-status error path.
-//
-// (= 1 of N sub-steps).
-//
+// The request-body + response-decoding marshaling lives in
+// `Connector/RequestHelpers.swift` so each connector is a thin
+// wrapper over the shared helpers. Connector-specific concerns
+// remaining here: credential resolution, URL building, auth headers,
+// transport send, and HTTP-status error path.
 
 import Foundation
 
@@ -45,7 +41,7 @@ actor AnthropicConnector: LLMConnector {
             throw LLMConnectorError.unsupportedProvider(slug: connectorID)
         }
 
-        // Apply prompt caching (= ticket 002 PromptCaching.applyCacheControl).
+        // Apply prompt caching (= `PromptCaching.applyCacheControl`).
         // System prompt gets a structured cache_control marker in the request
         // body (= built by `RequestHelpers.buildAnthropicRequest`); the last
         // 3 non-system messages get per-message + per-text-block markers.
@@ -57,7 +53,7 @@ actor AnthropicConnector: LLMConnector {
             )
             : messages
 
-        // Build request body via shared helper (= TICKET-HERMES-GAP-002).
+        // Build request body via shared helper.
         // pass reasoningEffort from user setting.
         let body = try RequestHelpers.buildAnthropicRequest(
             model: options.model,
@@ -85,7 +81,7 @@ actor AnthropicConnector: LLMConnector {
             throw LLMConnectorError.transport(provider: connectorID, statusCode: http.statusCode, body: bodyPreview)
         }
 
-        // Decode via shared helper (= TICKET-HERMES-GAP-002).
+        // Decode via shared helper.
         return try RequestHelpers.decodeAnthropicResponse(
             data: data,
             model: options.model,
