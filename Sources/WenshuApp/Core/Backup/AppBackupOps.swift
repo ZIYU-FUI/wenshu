@@ -1,13 +1,11 @@
+// AppBackupOps.swift · WenshuApp · v2.9c
 //
-//  AppBackupOps.swift · Wenshu · v2.9c ticket T33 (boss 2026-09-28 OOB B5 follow-up)
+// `@MainActor` enum that wraps the canonical `BackupTools`
+// struct (= the view never calls `BackupTools` directly; = all
+// backup surfaces go through `AppBackupOps`).
 //
-//  @MainActor enum that wraps the canonical `BackupTools`
-//  struct (= per AGENTS.md §11 baseline; = the view never
-//  calls BackupTools directly; = all backup surfaces go
-//  through AppBackupOps).
-//
-//  Per the v2.8c BackgroundReviewOps + v2.9a LLMWikiOps
-//  template:
+// Per the v2.8c `BackgroundReviewOps` + v2.9a `LLMWikiOps`
+// template:
 //   - @MainActor enum (= single-source-of-truth per surface)
 //   - public-ish (internal) Result types
 //   - static func entry points (= each blocks on the actor
@@ -25,9 +23,8 @@
 
 import Foundation
 
-/// v2.9c (boss 2026-09-28 OOB B5 follow-up): the @MainActor
-/// backup surface (= the canonical bridge between SwiftUI views
-/// and the synchronous `BackupTools` struct).
+/// `@MainActor` backup surface (= the canonical bridge between
+/// SwiftUI views and the synchronous `BackupTools` struct).
 @MainActor
 enum AppBackupOps {
 
