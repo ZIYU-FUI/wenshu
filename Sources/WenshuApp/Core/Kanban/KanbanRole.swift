@@ -1,15 +1,16 @@
+// KanbanRole.swift · WenshuApp · v0.23
 //
-//  KanbanRole.swift · Wenshu · v0.23 ticket 013.006 (hermes gap 6)
+// Worker / orchestrator role gate (= the hermes
+// `_require_orchestrator_tool` parity; see
+// github.com/NousResearch/hermes-agent/blob/main/tools/kanban_tools.py:467).
 //
-// hermes _require_orchestrator_tool parity.
-//  Source: github.com/NousResearch/hermes-agent/blob/main/tools/kanban_tools.py:467
+// - Workers (sub-agents dispatched by main) can ONLY do:
+//   kanban_complete / kanban_block / kanban_heartbeat / kanban_comment
+// - Orchestrators (main agent) can do: kanban_create /
+//   kanban_request_review / etc.
 //
-//  Hermes pattern: workers (sub-agents dispatched by main) can ONLY do:
-//    kanban_complete / kanban_block / kanban_heartbeat / kanban_comment
-//  Orchestrators (main agent) can do: kanban_create / kanban_request_review / etc.
-//
-//  wenshu impl: KanbanRole enum + guard at write sites.
-//
+// Wenshu implements this as a `KanbanRole` enum + guard at the
+// write sites.
 
 import Foundation
 
