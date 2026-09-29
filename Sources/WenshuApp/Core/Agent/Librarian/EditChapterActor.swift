@@ -54,11 +54,10 @@ actor EditChapterActor {
         newText: String,
         summary: String?
     ) async throws -> EditResult {
-        // chapter-focus-lock 2026-09-28: throw when the boss has
-        // this chapter's editor tab focused (= single-focus model
-        // per boss 2026-09-28 OOB '互锁编辑权限'). The conductor
+        // chapter-focus-lock (= single-focus model): throws when the user's
+        // editor tab is focused on this chapter. The conductor
         // (= WenshuConductor.executeIfUnlocked) catches this and
-        // presents an Allow / Deny dialog; = the boss can override
+        // presents an Allow / Deny dialog; = the user can override
         // the lock by approving the agent's edit. Until then, the
         // chapter is read-only on the agent side too.
         let chapterPath = ChapterFocusLockGuard.resolveChapterPath(
@@ -356,7 +355,7 @@ struct DatasetLockDeniedByBoss: Error, Equatable {
 /// The conductor (= WenshuConductor) catches this and presents
 /// an Allow / Deny dialog so the focus can be released before the
 /// agent retries. Surfacing the chapter path lets the dialog
-/// name the chapter (= "Agent wants to edit '第三章'.").
+/// name the chapter (= e.g. "Agent wants to edit 'Chapter 3'.").
 struct ChapterFocusLockedError: Error, Equatable {
     let chapterPath: String?
 }
