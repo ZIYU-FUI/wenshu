@@ -1,11 +1,9 @@
+// NoteComposer.swift · WenshuApp · v0.19
 //
-// NoteComposer.swift · Wenshu · v0.19 ticket 16 (Obsidian replica, do first)
-// 2026-08-19 evening Obsidian A + ', '.
-//
-// Note Composer: merge / split / rename + auto [[name]] link.
-// Obsidian Note Composer plugin ok (https://obsidian.md/help/plugins/note-composer).
-// Apple HIG: Foundation String + regex replace [[name]] link.
-//
+// Note composer: merge / split / rename + auto `[[name]]` link.
+// Mirrors the Obsidian Note Composer plugin behavior
+// (https://obsidian.md/help/plugins/note-composer) using Foundation
+// String + regex.
 
 import Foundation
 
