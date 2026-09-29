@@ -1,17 +1,12 @@
+// Sources/WenshuApp/Views/Workspace/ParagraphAIToolbarButtons.swift
 //
-//  ParagraphAIToolbarButtons.swift · Wenshu · v0.40 apple-001 Q2 slice 3
-//
-//  Extracted from WorkspaceView.swift (formerly inline private
-// struct at line 2097). Q2 boss split WorkspaceView; after
-//  slice 2 (= FormatToolbarButtons extracted) this slice pulls
-//  the next self-contained view = the paragraph AI toolbar
-//  (= 3 primary transform buttons + 1 dropdown Menu for 3 more).
-//
-//  Apple HIG = one view per file. ParagraphAIToolbarButtons
-//  has 0 @State / 0 @Environment (= fully stateless = 3 let
-//  parameters: selectedText, isApplying, onApply callback).
-//  The EditorTransform enum (= the 6 transform cases) lives
-//  in Sources/WenshuApp/Core/Agent/Specialized/EditorTools.swift
+// The paragraph AI toolbar (= 3 primary transform buttons + 1
+// dropdown Menu for 3 more). One view per file (Apple HIG).
+// `ParagraphAIToolbarButtons` has 0 `@State` / 0 `@Environment`
+// (= fully stateless = 3 `let` parameters: `selectedText`,
+// `isApplying`, `onApply` callback).
+// The `EditorTransform` enum (= the 6 transform cases) lives
+// in `Sources/WenshuApp/Core/Agent/Specialized/EditorTools.swift`.
 //  and is public, so this file just imports it.
 //
 //  Only call site = WorkspaceView's editor toolbar HStack, invoked
