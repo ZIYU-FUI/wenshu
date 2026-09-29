@@ -1,13 +1,11 @@
+// Sources/WenshuApp/Views/Workspace/EditModeBadge.swift
 //
-//  EditModeBadge.swift · Wenshu · v0.40 apple-001 Q2 slice 4
+// The smallest + most self-contained view left after the
+// format-toolbar / paragraph-AI extractions (= 33 LOC +
+// 1 `@Binding`, otherwise stateless).
 //
-//  Extracted from WorkspaceView.swift (formerly inline private
-// struct at line 2104). Q2 boss split WorkspaceView. Slice 4
-//  = the smallest + most self-contained view left after slices 2
-//  and 3 (= 33 LOC + 1 @Binding, otherwise stateless).
-//
-//  Apple HIG = one view per file. EditModeBadge has 1 @Binding
-//  (isEnabled: Bool) and otherwise = pure stateless presentation.
+// One view per file (Apple HIG). `EditModeBadge` has 1 `@Binding`
+// (`isEnabled: Bool`) and otherwise = pure stateless presentation.
 //  Already uses DesignTokens.chromePaddingChipHorizontal + .regularMaterial
 //  (= Apple macOS 27 Liquid Glass canonical pattern per
 //  apple-self-check §2 row F). Already uses WenshuI18n.t
