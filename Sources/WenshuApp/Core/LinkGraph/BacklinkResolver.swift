@@ -1,15 +1,12 @@
+// BacklinkResolver.swift · WenshuApp · v0.19
 //
-//  BacklinkResolver.swift · Wenshu · v0.19 ticket 12 (Obsidian replica, backend first)
-// 
-//
-//  Async parse markdown content + insert into WSLinkRepository (= @MainActor SwiftData wrapper), get bidirectional index. (=  deleted LinkIndex actor.)
-//  API aligned with Obsidian Backlinks plugin ground truth:
-//  - resolve(content, sourceDocId, documentIndex): parse + clear old links + batch insert
-//  - backlinks(forDocId): reverse-query all sources (Backlinks panel)
-//  - forwardLinks(forDocId): forward-query all targets (Outgoing links panel)
-//
-//  Same actor + Sendable + Task pattern as v0.18 ticket 04 AgentRuntime.
-//
+// Async parse markdown content + insert into `WSLinkRepository`
+// (= @MainActor SwiftData wrapper) for a bidirectional index. API:
+//   - `resolve(content, sourceDocId, documentIndex)`: parse +
+//     clear old links + batch insert
+//   - `backlinks(forDocId)`: reverse-query all sources (Backlinks panel)
+//   - `forwardLinks(forDocId)`: forward-query all targets
+//     (Outgoing links panel)
 
 import Foundation
 
