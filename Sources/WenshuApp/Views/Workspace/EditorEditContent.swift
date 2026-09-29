@@ -1,15 +1,12 @@
+// Sources/WenshuApp/Views/Workspace/EditorEditContent.swift
 //
-//  EditorEditContent.swift · Wenshu · v0.40 apple-001 Q2 slice 8
+// The SwiftUI live-edit surface for the editor pane. Wraps
+// `nodes-app/swift-markdown-engine` (TextKit 2) via
+// `WenshuMarkdownEditor` (`NSViewRepresentable`). Forwards the
+// engine-side wiki-link clicks back to the host.
 //
-//  Extracted from WorkspaceView.swift (formerly inline private
-// struct at line 1820). Q2 boss split WorkspaceView. Slice 8
-//  = the SwiftUI live-edit surface for the editor pane. Wraps
-//  nodes-app/swift-markdown-engine (TextKit 2) via
-//  WenshuMarkdownEditor (NSViewRepresentable). Forwards the
-//  engine-side wiki-link clicks back to the host.
-//
-//  Apple HIG = one view per file. EditorEditContent has 1 @Binding
-//  (draft: String) + 7 let parameters (originalBody, onSave,
+// One view per file (Apple HIG). `EditorEditContent` has 1 `@Binding`
+// (draft: `String`) + 7 `let` parameters (`originalBody`, `onSave`,
 //  onWordCountChange, onDirtyChange, configuration, draftId,
 //  onLinkClick) + 1 computed property (isDirty). No @State /
 //  @Environment / @Observable = pure rendering surface.
@@ -55,7 +52,7 @@ struct EditorEditContent: View {
     // 9/2 OOB flagged as inefficient). Decoupled from Task internals
     // (= EditorEditContent doesn't know about Task).
     let onDirtyChange: (Bool) -> Void
-    // ticket 001: pre-built markdown engine configuration. Host
+    // Pre-built markdown engine configuration. Host
     // (WorkspaceView) builds this once per active-tab switch via
     // WenshuEditorServicesFactory.make(referenceLibraryRoot:activeBookRoot:).
     // The configuration owns the 4 service protocols (= wenshu implements
@@ -63,11 +60,9 @@ struct EditorEditContent: View {
     // HighlighterSwiftBridge is transitive via MarkdownEngineCodeBlocks;
     // LaTeX is not wired in 001).
     let configuration: MarkdownEditorConfiguration
-    // ticket 001: stable per-tab id, passed to engine as
-    // `documentId` so undo history + pending replacements are scoped
-    // to each editor instance (= prevents cross-tab state bleed).
+    // Stable per-tab id, passed to engine as `documentId`
     let draftId: String
-    // SMC ticket 003: forwarded engine-side link-click callback.
+    // Forwarded engine-side link-click callback.
     // The engine fires this when the user clicks a `[[Name]]`
     // token in the live editor surface.
     var onLinkClick: ((String) -> Void)? = nil
@@ -76,7 +71,7 @@ struct EditorEditContent: View {
     private var isDirty: Bool { draft != originalBody }
 
     var body: some View {
-        // ticket 001: nodes-app/swift-markdown-engine (TextKit 2,
+        // `nodes-app/swift-markdown-engine` (TextKit 2,
         // live markdown styling, wiki-link resolution, image embeds,
         // code-fence syntax highlight via transitive HighlighterSwift
         // bridge) replaces Apple SwiftUI TextEditor. The engine's
@@ -85,8 +80,8 @@ struct EditorEditContent: View {
         // WenshuMarkdownEditor is a thin NSViewRepresentable wrapper
         // (= keeps EditorEditContent a pure rendering surface).
         //
-        // SMC ticket 003: pass the host's onLinkClick through the
-        // WenshuMarkdownEditor seam so wiki-link clicks in the live
+        // Pass the host's `onLinkClick` through the
+        // `WenshuMarkdownEditor` seam so wiki-link clicks in the live
         // editor surface reach the navigation flow.
         WenshuMarkdownEditor(
             text: $draft,
@@ -100,10 +95,11 @@ struct EditorEditContent: View {
             // chapter-focus-lock 2026-09-28: when the boss has this
             // chapter's editor tab active (= AppState.focusedChapterPath
             // matches the tab's documentPath), flip isEditable to
-            // false so the boss can't type while the LLM holds the
-            // cursor (= single-focus model per boss 2026-09-28 OOB
-            // '互锁编辑权限'). Other chapters (= the LLM is editing
-            // a different chapter) keep isEditable: true.
+            // so the user can't type while the LLM holds the
+            // cursor (= single-focus model; = the canonical edit
+            // lockout for chapter edits by the LLM). Other chapters
+            // (= the LLM is editing a different chapter) keep
+            // `isEditable: true`.
             isEditable: !isChapterLockedByLLM
         )
             // (= per-keystroke; = Foundation-only recompute). Host
@@ -137,7 +133,7 @@ struct EditorEditContent: View {
             // Dirty status surfaced to the host via the `onSave` closure
             // (= not strictly needed by the editor itself; the host reads
             // `draft` and `originalBody` to decide dirty highlighting
-            // on the Save button at ticket 08). Kept here so future
+            // on the Save button). Kept here so future
             // status-bar additions (= line count, dirty indicator)
             // have a clear anchor.
     }
