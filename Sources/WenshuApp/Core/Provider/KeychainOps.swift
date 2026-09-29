@@ -1,24 +1,21 @@
+// KeychainOps.swift · WenshuApp · v0.84
 //
-//  KeychainOps.swift · Wenshu · v0.84 ticket 001
+// Shared low-level Apple `Security` framework wrappers used by BOTH
+// `AppleKeychainStore` (= LLM provider keys) and
+// `AppleSearchKeychainStore` (= web-search API keys).
 //
-//  Shared low-level Apple Security framework wrappers used by BOTH
-//  `AppleKeychainStore` (LLM provider keys) and `AppleSearchKeychainStore`
-//  (= web-search API keys).
+// Rationale: `ProviderKeychain.swift` used to be ~16% duplicated
+// with the now-removed `SearchAPIKeychain.swift` (= ~30 LOC of
+// `SecItemAdd` / `SecItemCopyMatching` / `SecItemDelete` code).
+// This module extracts the shared primitives (= `save` / `load` /
+// `delete`) so `ProviderKeychain` can call into one canonical
+// implementation. `SearchAPIKeychain` was deleted in the v2.5
+// keyless rewrite (= no API keys needed; = see AGENTS.md §11.15).
 //
-//  Per repowise dry_violation finding (v0.84 spec §ticket-001):
-//  - ProviderKeychain.swift used to be ~16% duplicated with the
-//    now-removed SearchAPIKeychain.swift (= ~30 LOC of SecItemAdd /
-//    SecItemCopyMatching / SecItemDelete code).
-//  - This module extracts the shared primitives (= `save` / `load` /
-//    `delete`) so ProviderKeychain can call into one canonical
-//    implementation. SearchAPIKeychain was deleted in the v2.5
-//    keyless rewrite (= no API keys needed; = see AGENTS.md §11.15).
-//
-//  Per AGENTS.md §11.1: NO third-party deps (= Foundation + Security only).
-//  Per Q173 ponytail: extraction is minimal — only the Security framework
-//  glue (= the per-provider error mapping stays in each provider file
-//  because the error types differ).
-//
+// Per AGENTS.md §11.1: NO third-party deps (= Foundation +
+// `Security` only). Extraction is minimal — only the `Security`
+// framework glue (= the per-provider error mapping stays in each
+// provider file because the error types differ).
 
 import Foundation
 import Security
