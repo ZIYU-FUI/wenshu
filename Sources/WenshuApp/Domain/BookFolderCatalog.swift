@@ -42,22 +42,20 @@
 //  BookFolderSpec literal here (= 1 site edit) + register it
 //  in BookFolderCatalog.allBookFolders (= 1 site edit) = done.
 //
-// displays the sidebar name + card name differently on
-//  purpose (= sidebar uses the full phrasing like '小说正文' to
-//  tell the user the folder's purpose; = the card uses the
-//  short label like '章节' to fit the grid cell width). Both
-//  names are stored in this catalog (= sidebarDisplayName /
-//  cardDisplayName). If a future v2 ticket collapses the
-//  names (= e.g. always '章节' both surfaces), change the
-//  catalog fields and the two derived sites pick up the new
-//  values automatically.
+// displays the sidebar name + card name differently on purpose:
+//  sidebar uses the full phrasing (e.g. the long form of the
+//  chapter title) to tell the user the folder's purpose; the card
+//  uses the short label (e.g. 'Chapter') to fit the grid cell
+//  width. Both names are stored in this catalog
+//  (= sidebarDisplayName / cardDisplayName). If a future
+//  ticket collapses the names, change the catalog fields and the
+//  two derived sites pick up the new values automatically.
 //
-// '8 个目录, 不需要都定义 ICON, 因为
-//  我们过滤掉 3 个, 用户永远不可见, 所以, 其实可见的 ICON
-//  只有五个': the icon field is optional (= nil for internal
-//  folders = sessions / foreshadowing / placeholders, which
-//  have no UI row to render into; = the catalog still defines
-//  the folder for filesystem / scope purposes, but the
+// '8 folders total, but only 5 are user-visible; the icon field
+//  is optional (= nil for the 3 internal folders: sessions /
+//  foreshadowing / placeholders, which have no UI row to render
+//  into; = the catalog still defines the folder for filesystem /
+//  scope purposes, but the
 //  icon field is not meaningful). The `isUserFacing` flag is
 //  the canonical way to check whether the icon will ever
 //  draw. A future ticket could collapse sidebarIcon + cardIcon
@@ -82,13 +80,13 @@ struct BookFolderSpec: Sendable, Equatable {
     /// diverges from its directory name, e.g. a renamed
     /// legacy folder).
     let directoryName: String
-    /// User-facing Chinese label rendered in the sidebar row
-    /// (= full phrasing like '小说正文' = the user knows what
-    /// the folder holds at a glance).
+    /// User-facing label rendered in the sidebar row (= the
+    /// full phrasing = the user knows what the folder holds at
+    /// a glance).
     let sidebarDisplayName: String
-    /// User-facing Chinese label rendered in the card grid
-    /// header (= short phrasing like '章节' = fits the 2-line
-    /// grid cell without truncation).
+    /// User-facing label rendered in the card grid header (= the
+    /// short phrasing = fits the 2-line grid cell without
+    /// truncation).
     let cardDisplayName: String
     /// SF Symbol 6 outline glyph for the folder icon. Nil for
     /// internal folders (= sessions / foreshadowing /
@@ -117,24 +115,22 @@ struct BookFolderSpec: Sendable, Equatable {
 /// literals.
 ///
 /// Naming convention:
-/// - `world` = 世界观 (= the user's mental model of the book
-///   universe = places, rules, magic systems)
-/// - `characters` = 角色 (= named entities with relationships)
-/// - `outlines` = 章节大纲 (= pre-write planning = beat
-///   sheets, plot structure, foreshadowing seeds)
-/// - `chapters` = 小说正文 (= the published body of the
-///   novel = chapter .md files)
-/// - `drafts` = 小说草稿 (= in-progress / experimental
-///   drafts)
-/// - `sessions` = 会话 (= LLM chat transcripts that produced
-///   the book = INTERNAL = not sidebar-visible)
-/// - `foreshadowing` = 伏笔 (= cross-chapter plant /
-///   payoff tracking = INTERNAL = not sidebar-visible)
-/// - `placeholders` = 占位符 (= TODO / hint markers the
-///   user plants during drafting = INTERNAL = not
-///   sidebar-visible)
+/// - `world` = the book's mental model (places, rules, magic
+///   systems)
+/// - `characters` = named entities with relationships
+/// - `outlines` = pre-write planning (beat sheets, plot
+///   structure, foreshadowing seeds)
+/// - `chapters` = the published body of the novel (= chapter
+///   .md files)
+/// - `drafts` = in-progress / experimental drafts
+/// - `sessions` = LLM chat transcripts that produced the book
+///   (INTERNAL = not sidebar-visible)
+/// - `foreshadowing` = cross-chapter plant / payoff tracking
+///   (INTERNAL = not sidebar-visible)
+/// - `placeholders` = TODO / hint markers the user plants
+///   during drafting (INTERNAL = not sidebar-visible)
 enum BookFolderCatalog {
-    /// 世界观 (= the book universe)
+    /// The book universe
     static let world = BookFolderSpec(
         id: "world",
         directoryName: "world",
@@ -144,7 +140,7 @@ enum BookFolderCatalog {
         isUserFacing: true
     )
 
-    /// 角色 (= named characters)
+    /// Named characters
     static let characters = BookFolderSpec(
         id: "characters",
         directoryName: "characters",
@@ -154,7 +150,7 @@ enum BookFolderCatalog {
         isUserFacing: true
     )
 
-    /// 章节大纲 (= pre-write outline; = beat sheets)
+    /// Pre-write outline (= beat sheets)
     static let outlines = BookFolderSpec(
         id: "outlines",
         directoryName: "outlines",
@@ -164,7 +160,7 @@ enum BookFolderCatalog {
         isUserFacing: true
     )
 
-    /// 小说正文 (= the published body; = chapter .md files
+    /// The published body (= chapter .md files
     /// live here)
     static let chapters = BookFolderSpec(
         id: "chapters",
@@ -175,7 +171,7 @@ enum BookFolderCatalog {
         isUserFacing: true
     )
 
-    /// 小说草稿 (= in-progress drafts)
+    /// In-progress drafts
     static let drafts = BookFolderSpec(
         id: "drafts",
         directoryName: "drafts",
@@ -185,7 +181,7 @@ enum BookFolderCatalog {
         isUserFacing: true
     )
 
-    /// 会话 (= LLM chat transcripts; = internal folder; = NOT
+    /// LLM chat transcripts (= internal folder; = NOT
     /// shown in the sidebar; = no icon (= never rendered))
     static let sessions = BookFolderSpec(
         id: "sessions",
@@ -196,7 +192,7 @@ enum BookFolderCatalog {
         isUserFacing: false
     )
 
-    /// 伏笔 (= cross-chapter foreshadowing tracker; = internal
+    /// Cross-chapter foreshadowing tracker (= internal
     /// folder; = NOT shown in the sidebar; = no icon (= never
     /// rendered))
     static let foreshadowing = BookFolderSpec(
@@ -208,7 +204,7 @@ enum BookFolderCatalog {
         isUserFacing: false
     )
 
-    /// 占位符 (= TODO / hint placeholders the user plants
+    /// TODO / hint placeholders the user plants
     /// during drafting; = internal folder; = NOT shown in the
     /// sidebar; = no icon (= never rendered))
     static let placeholders = BookFolderSpec(
