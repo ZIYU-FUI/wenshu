@@ -1,12 +1,9 @@
+// AgentRuntime.swift · WenshuApp · v0.18
 //
-//  AgentRuntime.swift · Wenshu · v0.18 ticket 04 (hermes replica)
-//
-// agent runtime (hermes delegation / gateway spawn worker).
-// 2026-08-19 "need agent need a2a " + " Apple ".
-//
-//: agent registry + spawn + delegateTask (hermes delegation.py).
-// Apple HIG: actor + Sendable actor + Task (Swift).
-//
+// Agent runtime (= hermes `delegation` / `gateway spawn worker`
+// parity). Uses Swift `actor` + `Sendable` actor + `Task` (= Apple
+// Swift concurrency; = the agent registry + spawn + delegateTask
+// surface).
 
 import Foundation
 
