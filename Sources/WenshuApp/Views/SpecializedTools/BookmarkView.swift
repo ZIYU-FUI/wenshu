@@ -1,19 +1,12 @@
+// BookmarkView.swift · WenshuApp · v2.8a
 //
-//  BookmarkView.swift · Wenshu · v2.8a ticket T2 (boss 2026-09-28 OOB)
-//
-//  SpecializedTools pane tab 13: Bookmark Manager.
-//
-//  Per the v1.44 specialized-tools P1 hermes-port batch pattern
-//  (= 12 tabs in the specializedTools pane; = tagManagerView
-//  + characterLifecycleView etc. as the template), this view is
-//  the REAL implementation for the Bookmark Manager tab (= the
-//  13th tab added in v2.8a per boss 2026-09-28 OOB).
-//
-//  Renders:
-//    - Top header (= icon + tab title + active book scope + bookmark count).
-//    - "Add bookmark" row (= label TextField + add button).
-//    - Bookmarks list (= one row per bookmark; shows the label +
-//      doc/book anchor + remove button).
+// SpecializedTools pane tab 13: Bookmark Manager. Renders:
+//   - Top header (= icon + tab title + active book scope +
+//     bookmark count).
+//   - "Add bookmark" row (= label `TextField` + add button).
+//   - Bookmarks list (= one row per bookmark; shows the label +
+//     target reference + delete button).
+//     doc/book anchor + remove button).
 //    - Empty state (= unified EmptyStateView when no bookmarks).
 //
 //  State source: `WSBookmarkRepository` (= SwiftData-backed per
@@ -59,9 +52,8 @@ struct BookmarkView: View {
     @State private var status: SpecializedToolLoadStatus = .idle
     @State private var errorText: String?
 
-    /// SwiftData repository (= canonical persistence per
-    /// AGENTS.md §11.4 phase 5 ticket 10b; = @MainActor
-    /// singleton lives on WSPersistenceContainer.shared).
+    /// SwiftData repository (= canonical persistence).
+    /// `@MainActor` singleton lives on `WSPersistenceContainer.shared`.
     private var repository: WSBookmarkRepository {
         WSBookmarkRepository(container: WSPersistenceContainer.shared)
     }
@@ -148,11 +140,10 @@ struct BookmarkView: View {
         }
     }
 
-    // v2.9d (boss 2026-09-28 OOB A2 follow-up): MVVM split
-    // lifted the inline reload / addBookmark / removeBookmark
-    // funcs to `BookmarkOps`. The view now renders the result
-    // of a single @MainActor enum call (= §11.13 P2-06 +
-    // §11.10 v1.74 MVVM split template).
+    // v2.9d: MVVM split lifted the inline reload / addBookmark /
+    // removeBookmark funcs to `BookmarkOps`. The view now renders
+    // the result of a single @MainActor enum call (= the canonical
+    // MVVM split template).
     private func reload() async {
         let outcome = BookmarkOps.load(
             repository: repository,
