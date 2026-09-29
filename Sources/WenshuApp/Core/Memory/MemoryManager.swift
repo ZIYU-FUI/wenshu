@@ -1,15 +1,12 @@
+// MemoryManager.swift · WenshuApp · v0.23
 //
-//  MemoryManager.swift · Wenshu · v0.23 ticket 013.009 (hermes gap 8)
+// hermes `MemoryManager.prefetch_all` + `sync_all` parity. Wenshu-side
+// wins: this is the canonical Swift-side type per AGENTS.md §11.3;
+// the hermes-port adapter (`MemoryAdapter`) delegates here.
 //
-// hermes MemoryManager.prefetch_all + sync_all parity.
-//  Source: github.com/NousResearch/hermes-agent/blob/main/agent/memory_manager.py:11
-//
-//  Hermes pattern:
-//    pre-turn:  prefetch_all(user_message) → context
-//    post-turn: sync_all(user_msg, assistant_response) → persist
-//
-//  wenshu impl: MemoryManager.prefetch / sync / queuePrefetch (background).
-//
+// Hermes pattern:
+//   pre-turn:  prefetch_all(user_message) → context
+//   post-turn: sync_all(user_msg, assistant_response) → persist
 
 import Foundation
 
@@ -71,9 +68,9 @@ actor MemoryManager {
         return .prefetched(memories: prefetched, totalChars: totalChars)
     }
 
-    /// prefetch: pre-turn with explicit candidate limit. Used by the
-    /// ContextEngine wiring (ticket-009 followup) so callers can pin
-    /// the up-to-N ceiling without rebuilding the char budget.
+    /// prefetch: pre-turn with explicit candidate limit. Used by
+    /// ContextEngine so callers can pin the up-to-N ceiling
+    /// without rebuilding the char budget.
     /// hermes parity: same signature shape as `prefetch_all(user_message)`
     /// with a caller-supplied top-K.
     func prefetch(userMessage: String, limit: Int) async -> PrefetchResult {
@@ -94,10 +91,9 @@ actor MemoryManager {
     }
 
     /// fetch: raw top-N memory rows, ignoring char budget. Used by
-    /// ContextEngine wiring where the downstream bundle assembly
-    /// decides its own truncation policy (= ticket-009 baseline).
-    /// Limit defaults to 20 to match the ContextEngine "up to 20
-    /// relevant memory items" surface documented in the ticket spec.
+    /// ContextEngine where the downstream bundle assembly decides
+    /// its own truncation policy. Limit defaults to 20 (= the
+    /// ContextEngine 'up to 20 relevant memory items' surface).
     func fetch(limit: Int = 20) async -> [Memory] {
         guard limit > 0 else { return [] }
         return await searchMemory(userId: "default", query: "", limit: limit)
@@ -105,7 +101,7 @@ actor MemoryManager {
 
     /// sync: post-turn — persist assistant's response (or important info from turn).
     /// hermes equivalent: `sync_all(user_msg, assistant_response)`.
-    /// Goes through MemoryWriteGate (ticket 013.001) per hermes _apply_write_gate.
+    /// Goes through `MemoryWriteGate` (= hermes `_apply_write_gate` parity).
     func sync(userMessage: String, assistantResponse: String) async -> SyncResult {
         // Combine user + assistant for memory write (hermes does the same).
         let content = "user: \(userMessage.prefix(200))\nassistant: \(assistantResponse.prefix(200))"
