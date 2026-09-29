@@ -1,12 +1,10 @@
 // Sources/WenshuApp/UI/PaneTabBar.swift
 //
-// Generic wrapper for a list of PaneIconTab + optional trailing buttons.
-// Listed in ComponentIndex.md Level 3.2.
+// Generic wrapper for a list of `PaneIconTab` + optional trailing
+// buttons. Listed in `ComponentIndex.md` Level 3.2.
 //
-// Replaces ZoneContentTabBar (166 LOC) + DynamicZoneTabBar (135 LOC) +
-// the chat-zone wrapper (74 LOC, since deleted) = 375 LOC of duplicated
-// tab bar code. Only DynamicZoneTabBar survives (= enum↔string binding
-// shim).
+// Only `DynamicZoneTabBar` survives from the legacy tab bar set
+// (= the enum↔string binding shim).
 //
 // Use this for ANY per-pane top tab bar (= sidebar/preview/editor/tools/
 // chat/dynamic). Don't write a new tab bar component from scratch.
