@@ -1,15 +1,13 @@
+// MessageContent.swift · WenshuApp · v0.35
 //
-//  MessageContent.swift · Wenshu · v0.35 ticket 001 sub-step 4
+// Message block canonicalization. Maps to hermes
+// `message_content.py` (= canonicalizes block lists: drops empty
+// blocks, coalesces adjacent text blocks, preserves non-text
+// blocks in order).
 //
-//  Message block canonicalization. Maps to hermes message_content.py
-//  (= "~400 LOC" — canonicalizes block lists: drops empty blocks, coalesces
-//  adjacent text blocks, preserves non-text blocks in order).
-//
-//  Static utility (= no state). TurnFinalizer calls canonicalize at turn end;
-//  callers can also use coalesceAdjacentText independently for streaming display.
-//
-// sub-step 4 of 8 for ticket 001.
-//
+// Static utility (= no state). `TurnFinalizer` calls
+// `canonicalize` at turn end; = callers can also use
+// `coalesceAdjacentText` independently for streaming display.
 
 import Foundation
 
@@ -75,12 +73,12 @@ enum MessageContent {
     // `/Volumes/ANAN/.hermes/agent/message_content.py`).
     //
     // Per AGENTS.md §11.3 wenshu-side wins:
-    //   - Pre-existing canonicalize + coalesceAdjacentText
-    //     preserved (= Q112 no regressions).
-    //   - The hermes _NON_TEXT_PART_TYPES set (= image /
-    //     image_url / input_image / audio / input_audio)
+    //   - Pre-existing `canonicalize` + `coalesceAdjacentText`
+    //     preserved (= the no-regressions invariant).
+    //   - The hermes `_NON_TEXT_PART_TYPES` set (= image /
+    //     `image_url` / `input_image` / audio / `input_audio`)
     //     preserved 1:1.
-    //   - The hermes TEXT_KEYS tuple (= text / content /
+    //   - The hermes `TEXT_KEYS` tuple (= text / content /
     //     input_text / output_text / summary_text) preserved
     //     1:1.
     //   - The Mapping/duck-typed fallback (= hermes
