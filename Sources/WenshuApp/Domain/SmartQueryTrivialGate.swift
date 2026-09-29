@@ -1,24 +1,20 @@
-// SmartQueryTrivialGate.swift · Wenshu · v0.28
+// Sources/WenshuApp/Domain/SmartQueryTrivialGate.swift
 //
-// Verbatim port from hermes-agent/plugins/memory/query_rewrite.py
-// (= wenshu M5 ticket 13 = hermes-port batch 3 second ticket).
-//
-// Source: hermes-agent/plugins/memory/query_rewrite.py L28-83
-// (= the trivial-prompt gate = the 5 regex-based validation rules
-// applied to a memory-retrieval query before/after an LLM rewrite step).
+// Verbatim port from `hermes-agent/plugins/memory/query_rewrite.py`.
 //
 // Scope of this port:
-// - The 5 regex patterns + the normalize function (verbatim, byte-for-byte
-//   semantics matching hermes Python `re` semantics in Swift NSRegularExpression).
-// - The trivial-prompt gate is a deterministic pre-filter (= decides whether
-//   a candidate query is acceptable without invoking the LLM rewrite step).
+// - The 5 regex patterns + the normalize function (= byte-for-byte
+//   semantics matching hermes Python `re` semantics in Swift
+//   `NSRegularExpression`).
+// - The trivial-prompt gate is a deterministic pre-filter (= decides
+//   whether a candidate query is acceptable without invoking the LLM
+//   rewrite step).
 //
-// Out of scope (= not ported in this ticket):
-// - The LLM rewrite call itself (= already covered by WenshuConductor
-//   intent-classify path, = v0.23 ticket 13 implementation per
-//   .scratch/2026-08-23-agent-identity/spec.md).
-// - The auxiliary memory_query_rewrite config.yaml routing (= wenshu
-//   does not use auxiliary routing per AGENTS.md single-user local-only).
+// Out of scope (= not ported here):
+// - The LLM rewrite call itself (= covered by `WenshuConductor`
+//   intent-classify path).
+// - The auxiliary `memory_query_rewrite` config.yaml routing (= wenshu
+//   does not use auxiliary routing per single-user local-only).
 //
 // The gate is used by:
 // - ticket M5-13 caller = SmartQueryEvaluator (= wenshu Domain layer)
