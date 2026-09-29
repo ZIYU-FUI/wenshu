@@ -1,57 +1,53 @@
+// ToolExecutor.swift · WenshuApp · v0.35
 //
-//  ToolExecutor.swift · Wenshu · v0.35 ticket 001 sub-step 5
-// (hook chain wiring)
-// (dispatch hook chain)
-// (2026-09-04, 6 helpers wired)
+// Tool dispatch actor. Maps to hermes `tool_executor.py` (=
+// `execute_tool_calls_concurrent` at L306,
+// `execute_tool_calls_sequential` at L965).
 //
-//  Tool dispatch actor. Maps to hermes tool_executor.py
-//  (= execute_tool_calls_concurrent at L306, execute_tool_calls_sequential
-//  at L965).
+// Both hermes entry points take
+// `(agent, assistant_message, messages, effective_task_id,
+// api_call_count=0)` and mutate the `messages` list in place (=
+// append `.tool` messages for each tool-use block in the
+// assistant response).
 //
-//  Both hermes entry points take
-//  (agent, assistant_message, messages, effective_task_id, api_call_count=0)
-//  and mutate the `messages` list in place (= append .tool messages for
-//  each tool_use block in the assistant response).
+// Swift port preserves this in-place mutation pattern:
+//   - `executeConcurrent(assistantMessage:messages:taskId:apiCallCount:tools:)`
+//     runs tool-use blocks in parallel via `TaskGroup`.
+//   - `executeSequential(assistantMessage:messages:taskId:apiCallCount:tools:)`
+//     runs tool-use blocks one at a time.
 //
-//  Swift port preserves this in-place mutation pattern:
-//    - executeConcurrent(assistantMessage:messages:taskId:apiCallCount:tools:)
-//      runs tool_use blocks in parallel via TaskGroup
-//    - executeSequential(assistantMessage:messages:taskId:apiCallCount:tools:)
-//      runs tool_use blocks one at a time
+// Per-tool-call pipeline (wenshu port = full surface):
+//   1. Permission gate (= hermes `DELEGATE_BLOCKED_TOOLS` via
+//      wenshu `SubAgentPermissions`). Rejected tools emit a denial
+//      `toolResult` without any I/O.
+//   2. `ShellHookChain.preToolCall`. Empty chain = no-op.
+//   3. `ToolDispatchHookChain.firePreDispatch`. Empty chain = no-op.
+//   4. Pre-dispatch validator (= hermes
+//      `_apply_tool_request_middleware_for_agent`). Default =
+//      identity.
+//   5. `tool.execute(input:)` (= returns `String` output).
+//   6. Error classifier (= hermes `tool_result_classification`).
+//      Invoked in the catch path.
+//   7. Output truncator (= hermes `enforce_turn_budget`). Default
+//      no-op.
+//   8. Post-dispatch validator (= hermes
+//      `_run_agent_tool_execution_middleware`). Default = identity.
+//   9. Result formatter (= hermes `make_tool_result_message`).
+//      Default identity (= output passes through).
+//  10. `ShellHookChain.postToolCall`.
+//  11. `ToolDispatchHookChain.firePostDispatch`.
+//  12. Append `.toolResult(toolUseID:output:)` `LLMBlock` to
+//      messages.
 //
-//  Per-tool-call pipeline (wenshu port = full 6-helper surface):
-//    1. Permission gate (= hermes DELEGATE_BLOCKED_TOOLS via wenshu
-//       SubAgentPermissions). Rejected tools emit a denial toolResult
-//       without any I/O.
-//    2. ShellHookChain.preToolCall (= TICKET-HERMES-GAP-004). Empty
-//       chain = no-op.
-//    3. ToolDispatchHookChain.firePreDispatch (= TICKET-HERMES-GAP-008).
-//       Empty chain = no-op.
-//    4. Pre-dispatch validator (= hermes
-//       _apply_tool_request_middleware_for_agent). Default = identity.
-//    5. tool.execute(input:) (= returns String output).
-//    6. Error classifier (= hermes tool_result_classification). Invoked
-//       in the catch path.
-//    7. Output truncator (= hermes enforce_turn_budget). Default no-op.
-//    8. Post-dispatch validator (= hermes _run_agent_tool_execution_middleware).
-//       Default = identity.
-//    9. Result formatter (= hermes make_tool_result_message). Default
-//       identity (= output passes through).
-//   10. ShellHookChain.postToolCall (= TICKET-HERMES-GAP-004).
-//   11. ToolDispatchHookChain.firePostDispatch (= TICKET-HERMES-GAP-008).
-//   12. Append .toolResult(toolUseID:output:) LLMBlock to messages.
+// Errors from individual tools are caught + reported as
+// `toolResult` with `isError` flag (= hermes
+// `_emit_terminal_post_tool_call` pattern).
 //
-//  Errors from individual tools are caught + reported as toolResult
-//  with isError flag (= hermes _emit_terminal_post_tool_call pattern).
-//
-// (2026-09-04, boss OOB 'B' = port 18 partial modules):
-//    The 6 helpers (permission gate, output truncator, error classifier,
-//    result formatter, pre-dispatch validator, post-dispatch validator)
-//    are now configurable via init. Defaults preserve pre-existing
-//    behavior (= no behavior change for callers using `ToolExecutor()`).
-//
-// sub-step 5 of 8 for ticket 001.
-//
+// The 6 helpers (permission gate, output truncator, error
+// classifier, result formatter, pre-dispatch validator,
+// post-dispatch validator) are configurable via init. Defaults
+// preserve pre-existing behavior (= no behavior change for
+// callers using `ToolExecutor()`).
 
 import Foundation
 
@@ -449,9 +445,10 @@ actor ToolExecutor {
 // tool_executor.py`).
 //
 // Per AGENTS.md §11.3 wenshu-side wins:
-//   - Pre-existing ToolExecutor actor + executeConcurrent +
-//     executeSequential + ShellHookChain + ToolDispatchHookChain
-//     preserved (= Q112 no regressions).
+//   - Pre-existing `ToolExecutor` actor + `executeConcurrent`
+//     + `executeSequential` + `ShellHookChain` +
+//     `ToolDispatchHookChain` preserved (= the no-regressions
+//     invariant).
 //   - The interpreter-shutdown check is hermes-specific
 //     (= Python's asyncio interpreter shutdown = "cannot
 //     schedule new futures after interpreter shutdown");
