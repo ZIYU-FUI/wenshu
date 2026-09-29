@@ -1,26 +1,14 @@
+// Sources/WenshuApp/Views/Workspace/PreviewSortMenuButton.swift
 //
-//  PreviewSortMenuButton.swift · Wenshu · v0.40 apple-001 Q2 slice 5
-//
-//  Extracted from WorkspaceView.swift (formerly inline private
-// struct at line 2128). Q2 boss split WorkspaceView. Slice 5
-//  = the sort-order cycle button on the preview pane top-right.
-//
-//  Apple HIG = one view per file. PreviewSortMenuButton has 1
-//  @Binding (sortOrder) + 1 @State (isHover for the .onHover
-//  tracking) and is otherwise self-contained. Already uses
+// The sort-order cycle button on the preview pane top-right.
+// One view per file (Apple HIG). `PreviewSortMenuButton` has
+// 1 `@Binding` (`sortOrder`) + 1 `@State` (`isHover` for the
+// `.onHover` tracking) and is otherwise self-contained.
 //  DesignTokens.paneTabHotArea + DesignTokens.tabIconSize.
 //
-//  This slice ALSO bundles an AGENTS.md English-only sweep:
-// the original line 2157 = `.help(": \(sortOrder.rawValue)")`
-// (= the literal Chinese word = "sort method"). The
-//  new value = `WenshuI18n.t("workspace.preview.sort_method_help")`
-//  with a `ts(_:arg:)` variant (= the WenshuI18n.ts signature takes
-//  a String interpolation arg). Both en + zh-Hans Localizable.strings
-//  receive the new key in this same commit (= I18n parity invariant).
-//
-//  Only call site = WorkspaceView's preview pane top-right; invoked
-//  as `PreviewSortMenuButton(sortOrder: $previewSortOrder)`.
-//  Extracting it does not change any caller signature.
+// Only call site = WorkspaceView's preview pane top-right;
+// invoked as `PreviewSortMenuButton(sortOrder: $previewSortOrder)`.
+// Extracting it does not change any caller signature.
 //
 
 import SwiftUI
@@ -30,9 +18,8 @@ struct PreviewSortMenuButton: View {
     @State private var isHover: Bool = false
 
     var body: some View {
-        // ticket 01 of v0.30-topbar-card-alignment: PaneIconTab
-        // pattern exactly (= Color.clear base + overlay icon +
-        // contentShape). The previous "plain Button + LucideIcon
+        // PaneIconTab pattern (= `Color.clear` base + overlay icon
+        // + `contentShape`). The previous "plain Button + LucideIcon
         // (= SF Symbol via Image(systemName:)) + .frame(width:
         // DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)"
         // pattern collapsed to zero size inside ZoneContentView's
