@@ -1,73 +1,73 @@
-// AgentLifecycleTracker.swift · Wenshu · v0.28
+// AgentLifecycleTracker.swift · WenshuApp · v0.28
 //
-//  DEFERRED (v0.73 spec decision):
-//  This file's production caller is undecided. See
-//  Sources/WenshuApp/Core/Agent/Conversation/AgentLifecycleTrackerDesign.md
-//  for the wiring decision matrix (= Option A vs B vs C). Future
-//  ticket (= v0.74+) will land the recommended path per the design
-//  doc (= Option B = parallel call site in AsyncDelegation, leave UI
-//  alone).
+// Deferred per spec decision: the production caller is undecided.
+// See
+// `Sources/WenshuApp/Core/Agent/Conversation/AgentLifecycleTrackerDesign.md`
+// for the wiring decision matrix (= Option A vs B vs C). Future
+// ticket will land the recommended path per the design doc (=
+// Option B = parallel call site in `AsyncDelegation`, leave UI
+// alone).
 //
-//  This file is NOT dead code (= per Q57: 3rd-party verdict ≠
-//  authority); it documents the deferred surface and remains as a
-//  reference for future work.
+// This file is NOT dead code; it documents the deferred surface
+// and remains as a reference for future work.
 //
 // Verbatim port from hermes-agent/agent/subagent_lifecycle.py
-// (= wenshu M6 ticket 17 = hermes-port batch 3 seventh ticket).
+// + `agent/agent_init.py` + `agent/onboarding.py`.
 //
 // Source (= hermes Python):
-// - agent/subagent_lifecycle.py L1-542 (= spawn / track / cancel /
+// - `agent/subagent_lifecycle.py` L1-542 (= spawn / track / cancel /
 //   result-collect / error-fallback for sub-agents; heartbeat-based
 //   liveness checks; dispatch-time budget enforcement; result-callback
-//   routing)
-// - agent/agent_init.py L1-3125 (= per-profile agent bootstrap
-//   + identity resolution + permission check at spawn time)
-// - agent/onboarding.py L1-266 (= first-launch guidance hints +
-//   default identity setup + sub-agent permission defaults)
+//   routing).
+// - `agent/agent_init.py` L1-3125 (= per-profile agent bootstrap +
+//   identity resolution + permission check at spawn time).
+// - `agent/onboarding.py` L1-266 (= first-launch guidance hints +
+//   default identity setup + sub-agent permission defaults).
 //
 // Target (= wenshu Swift):
-// - Sources/WenshuApp/Core/Agent/Conversation/AgentLifecycleTracker.swift (this
-//   file, ~250 LOC) = per-sub-agent lifecycle tracker (= spawn,
-//   heartbeat, complete, fail, cancel). Provides the onResult /
-//   onError callback surface that hermes subagent_lifecycle.py
-//   exposes but wenshu's AsyncDelegation does not.
-// - AgentInitDefaults = per-profile defaults extracted at spawn time
-//   (= boss OOB "engineering" -> MVP defaults aligned with hermes);
-//   defined LOCALLY in this same file (= no separate
-//   Core/Agent/AgentInitDefaults.swift; = the previous v0.28
+// - `Sources/WenshuApp/Core/Agent/Conversation/AgentLifecycleTracker.swift`
+//   (= this file, ~250 LOC) = per-sub-agent lifecycle tracker (=
+//   spawn, heartbeat, complete, fail, cancel). Provides the onResult
+//   / onError callback surface that hermes
+//   `subagent_lifecycle.py` exposes but wenshu's `AsyncDelegation`
+//   does not.
+// - `AgentInitDefaults` = per-profile defaults extracted at spawn
+//   time (= aligned with hermes MVP defaults); defined LOCALLY in
+//   this same file (= no separate
+//   `Core/Agent/AgentInitDefaults.swift`; = the previous v0.28
 //   spec header described a planned-but-never-created file).
-// - Tests/WenshuAppTests/Core/Agent/AgentLifecycleTrackerTests.swift
-//   (~120 LOC, ~10 tests).
+// - `Tests/WenshuAppTests/Core/Agent/AgentLifecycleTrackerTests.swift`
+//   (= ~120 LOC, ~10 tests).
 //
-// Scope refactor (= per Q109 doc-first + Q35 commit-description vs truth):
-// The hermes subagent_lifecycle.py + agent_init.py + onboarding.py
-// system is 3933 LOC across 3 files. Wenshu already has the basic
-// identity + permissions + dispatch surface (= SubAgentIdentity +
-// SubAgentPermissions + AsyncDelegation). What this ticket adds is the
-// **lifecycle tracker** (= per-spawn bookkeeping = status transitions
-// + heartbeat + result routing + error fallback) that hermes ships
-// but wenshu's AsyncDelegation does not. The agent_init onboarding
-// surface is OUT of scope (= wenshu's LibraryRootView already covers
-// the first-launch UX).
+// Scope refactor: the hermes `subagent_lifecycle.py` +
+// `agent_init.py` + `onboarding.py` system is 3933 LOC across 3
+// files. Wenshu already has the basic identity + permissions +
+// dispatch surface (= `SubAgentIdentity` + `SubAgentPermissions`
+// + `AsyncDelegation`). What this file adds is the lifecycle
+// tracker (= per-spawn bookkeeping = status transitions +
+// heartbeat + result routing + error fallback) that hermes ships
+// but wenshu's `AsyncDelegation` does not. The agent_init
+// onboarding surface is OUT of scope (= wenshu's `LibraryRootView`
+// already covers the first-launch UX).
 //
 // Wenshu-specific notes:
-// - Heartbeat cadence = 30s (vs hermes 60s) per boss 2026-08-25 OOB
-//   'macOS verify recipe' (= more frequent liveness checks since
-//   wenshu runs single-process on the user's Mac, not a multi-process
-//   gateway).
-// - Dispatch timeout = 5 minutes default (vs hermes 10 minutes).
-//   Wenshu's smaller-scope tasks don't need the longer hermes budget.
-// - Result callback surface = onResult (Data) -> Void + onError
-//   (AgentLifecycleError) -> Void (= same shape as hermes).
+// - Heartbeat cadence = 30s (= twice the hermes default; = more
+//   frequent liveness checks since wenshu runs single-process on
+//   the user's Mac, not a multi-process gateway).
+// - Dispatch timeout = 5 minutes default (= half the hermes
+//   default; = wenshu's smaller-scope tasks don't need the
+//   longer hermes budget).
+// - Result callback surface = `onResult (Data) -> Void` + `onError
+//   (AgentLifecycleError) -> Void` (= same shape as hermes).
 //
-// per AGENTS.md Section 8 pollution-defense hex-encoding rule:
+// Per AGENTS.md Section 8 pollution-defense hex-encoding rule:
 // this file does NOT contain the 12-token forbidden vocab literal;
 // the rule enumeration is referenced semantically only.
 
 import Foundation
 
-/// Lifecycle state for a single spawned sub-agent (= wenshu M6 ticket 17).
-/// Mirrors hermes subagent_lifecycle.py:SubAgentStatus state machine.
+/// Lifecycle state for a single spawned sub-agent. Mirrors hermes
+/// `subagent_lifecycle.py:SubAgentStatus` state machine.
 enum AgentLifecycleStatus: String, Sendable, Hashable, Codable {
     case pending
     case running
@@ -133,11 +133,11 @@ enum AgentLifecycleError: Error, Sendable, Hashable {
 /// hermes subagent_lifecycle.py state machine + heartbeat surface.
 final class AgentLifecycleTracker: @unchecked Sendable {
 
-    /// Canonical module-singleton (= matches the `SkillBundles.shared` pattern
-    /// from v0.73 ticket 001 + `WebSearch.shared` from v0.74 ticket 002).
-    /// Added in v0.74 ticket 004 so `AsyncDelegation.delegate(...)` can route
-    /// spawn / complete / fail events into the tracker without leaking a
-    /// constructor across the actor boundary.
+    /// Canonical module-singleton (= matches the `SkillBundles.shared`
+    /// singleton pattern + `WebSearch.shared` singleton pattern).
+    /// Added so `AsyncDelegation.delegate(...)` can route
+    /// spawn / complete / fail events into the tracker without
+    /// leaking a constructor across the actor boundary.
     ///
     /// `nonisolated(unsafe)` because AgentLifecycleTracker is a final class
     /// (= not an actor) — the `queue: DispatchQueue` inside handles thread
