@@ -1,25 +1,27 @@
+// MessageSanitization.swift · WenshuApp · v0.35
 //
-//  MessageSanitization.swift · Wenshu · v0.35 ticket 001 sub-step 4
-// .
+// Message text sanitization. Maps to hermes `message_sanitization.py`
+// (= `_sanitize_surrogates`, `_repair_tool_call_arguments`,
+// `close_interrupted_tool_sequence`,
+// `_escape_invalid_chars_in_json_strings`, `_strip_non_ascii`,
+// partial-JSON repair).
 //
-//  Message text sanitization. Maps to hermes message_sanitization.py
-//  (= 477 LOC; provides _sanitize_surrogates, _repair_tool_call_arguments,
-//  close_interrupted_tool_sequence, _escape_invalid_chars_in_json_strings,
-//  _strip_non_ascii, partial-JSON repair).
-//
-//  In sub-step 4 we implemented the minimum: strip C0 control characters
-//  + sanitize(). the full hermes surface:
-//    - repairToolCallArguments(_:toolName:) — malformed JSON repair
-//    - closeInterruptedToolSequence(_:fallbackResponse:) — synthetic
-//      closing assistant when a /stop interrupt leaves a tool tail
-//    - escapeInvalidCharsInJSONStrings(_:) — escape unescaped controls
-//    - stripNonASCII(_:) — strip non-ASCII characters (hermes does this
-//      for tool-call args to avoid downstream encoding bugs)
-//    - sanitizeSurrogates(_:) — full hermes surrogate-handling table
-//    - sanitizeAll(_:) — runs the entire sanitization pipeline
-//
-// sub-step 4 of 8 for ticket 001.
-//
+// Implemented surface (= the minimum needed for the canonical
+// pipeline; = the full hermes surface is listed below as future
+// extensions):
+//   - `repairToolCallArguments(_:toolName:)` — malformed JSON
+//     repair.
+//   - `closeInterruptedToolSequence(_:fallbackResponse:)` —
+//     synthetic closing assistant when a `/stop` interrupt leaves
+//     a tool tail.
+//   - `escapeInvalidCharsInJSONStrings(_:)` — escape unescaped
+//     controls.
+//   - `stripNonASCII(_:)` — strip non-ASCII characters (= hermes
+//     does this for tool-call args to avoid downstream encoding
+//     bugs).
+//   - `sanitizeSurrogates(_:)` — full hermes surrogate-handling
+//     table.
+// `sanitizeAll(_:)` — runs the entire sanitization pipeline.
 
 import Foundation
 
@@ -172,7 +174,7 @@ enum MessageSanitization {
         // `repairToolCallArguments` on already-valid JSON must NOT mutate
         // the input. The downstream wire format accepts both `"/foo"`
         // and `"\/foo"` as identical JSON values, but tool-call argument
-        // diffing (= per-ticket 005 dry-run preview) compares strings
+        // diffing (= the dry-run preview) compares strings
         // byte-for-byte, so escape-only round-trip would silently
         // invalidate the dry-run preview for every tool call.
         if let data = raw.data(using: .utf8),
