@@ -1,12 +1,7 @@
+// Backup.swift · WenshuApp · v0.18
 //
-//  Backup.swift · Wenshu · v0.18 ticket 26 (hermes replica)
-//
-// localbackup (hermes backup).
-// 2026-08-19 ", Apple " + "can".
-//
-// wenshu = SwiftUI app. Backup (ZIP backup / restore).
-// Apple HIG: Foundation FileManager + URL + Data .
-//
+// Local ZIP backup + restore (= hermes `backup` parity). Uses
+// Foundation `FileManager` + `URL` + `Data`.
 
 import Foundation
 
@@ -29,10 +24,9 @@ struct BackupMetadata: Equatable, Sendable {
 
 /// Backup (wenshu backup)
 ///
-/// Per boss 2026-09-28 OOB B5 '苹果有没有官方机制可以用' (= does
-/// Apple have an official mechanism we can use for backups?): YES,
-/// and the canonical mechanism is `NSFileCoordinator` (=
-/// developer.apple.com/documentation/foundation/nsfilecoordinator).
+/// The canonical Apple mechanism for safe file copy / move in a
+/// sandboxed app is `NSFileCoordinator`
+/// (= developer.apple.com/documentation/foundation/nsfilecoordinator).
 /// The previous implementation did raw `FileManager.copyItem` =
 /// no cross-process coordination = other NSFilePresenter
 /// implementations in the editor (`WenshuMarkdownEditor`, the
