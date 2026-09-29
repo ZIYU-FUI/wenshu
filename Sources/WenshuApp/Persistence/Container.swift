@@ -31,10 +31,9 @@
 //   added the one-time data migration from raw sqlite3
 //  (= WSMigrationPerStore / WSMigrationRunner).
 //   deleted all 7 of the planned raw sqlite3 store files
-//  (= KanbanStore + TodoStore + MemoryStore + LinkIndex via tickets
-//  6 + 7 + 8 + 9, then ChatSessionStore via ticket 10a, then
-//  BookmarkStore + WenshuWorkspace via ticket 10b). The phase 5
-//  spec is 100% complete; no further tickets remain in the roadmap.
+//  (= KanbanStore + TodoStore + MemoryStore + LinkIndex + ChatSessionStore
+//  + BookmarkStore + WenshuWorkspace). The phase 5 spec is 100%
+//  complete; no further tickets remain in the roadmap.
 //   (= AGENTS §11.4 doc updates) is the canonical phase 5
 //  roadmap spec (= see AGENTS.md §11.4.2).
 //  WSMigrationPerStore + WSMigrationRunner + SQLiteConstants (= the
