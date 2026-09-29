@@ -1,4 +1,4 @@
-// LayoutTreeState.swift · Wenshu () · v0.28 ticket 028-003
+// Sources/WenshuApp/State/LayoutTreeState.swift
 //
 // Bumped from v1 (= flat array of panes) to v2 (= recursive split tree).
 // 1:1 port of /Volumes/ANAN/.hermes/hermes-agent/apps/desktop/src/
@@ -13,9 +13,9 @@
 // structure canonical (no empty groups, no single-child or same-
 // orientation nested splits).
 //
-// Atomic-coupling with LayoutTreeStore.swift (ticket 028-003, same commit):
-// the schema and its migration logic are inseparable — see ticket spec
-// §"Atomic-coupling justification". Shipped together per boss 8/22 rule.
+// Atomic-coupling with LayoutTreeStore.swift (= the schema and its
+// migration logic are inseparable — see ticket spec for the
+// justification; = shipped together per the standing rule).
 
 import Foundation
 import CoreGraphics
@@ -63,7 +63,7 @@ enum TabKind: String, Codable {
 
 /// PaneNode — a single pane (= holds 0 or more tabs).
 ///
-/// Carried over from v1 (= ticket 027-32) unchanged: a pane owns
+/// Carried over from v1 unchanged: a pane owns
 /// its sizing (frame) and the ordered list of tab IDs it renders.
 /// The tree in v2 (= `LayoutNode`) does NOT carry this metadata
 /// directly; instead, the tree references panes via `PaneID`, and
