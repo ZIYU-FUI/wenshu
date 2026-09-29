@@ -1,11 +1,10 @@
+// SubAgentRunner.swift · WenshuApp · v2.7
 //
-//  SubAgentRunner.swift · Wenshu · v2.7 agent team + v2.7d real LLM
+// The runner that picks up `BackgroundDelegationHandle` records
+// from `AsyncDelegationRegistry` (= ones created by
+// `DelegateResearchTool`, etc.; = pending) and runs each one.
 //
-//  The runner that picks up `BackgroundDelegationHandle` records
-//  from `AsyncDelegationRegistry` (= ones created by
-//  `DelegateResearchTool`, etc.; = pending) and runs each one.
-//
-//  Status at v2.7 (= post v2.4 soul cleanup + memory rewire):
+// Status at v2.7 (= post v2.4 soul cleanup + memory rewire):
 //
 //    Main agent (wenshu)
 //       │
@@ -25,32 +24,30 @@
 //       ▼
 //    reference_library / kanban (= research output lands)
 //
-//  Why this file exists:
-//    Before v2.7, AsyncDelegationRegistry only stored handles.
-//    The "sub-agent LLM call" was never wired up (= the boss
-//    quote: "团队链路现在没有通"). This file is the engine that
-//    actually drains pending handles, runs each sub-agent in
-//    its own ConversationLoop (= independent context), and
-//    marks the handle as completed when the sub-agent finishes.
+// Why this file exists:
+//    Before v2.7, `AsyncDelegationRegistry` only stored handles.
+//    The "sub-agent LLM call" was never wired up (= the team link
+//    was broken end to end). This file is the engine that actually
+//    drains pending handles, runs each sub-agent in its own
+//    `ConversationLoop` (= independent context), and marks the
+//    handle as completed when the sub-agent finishes.
 //
-//  v2.7d upgrade (= boss 2026-09-26 "多轮 ete" + "sub-agent 真跑 LLM"):
-//    The v2.7 stub returned canned strings per agent name. The
-//    v2.7d implementation replaces the stub with a real LLM call:
-//    each sub-agent runs its own `ConversationLoop.runTurn` with
-//    the sub-agent's system prompt + its own tool subset. The
-//    loop is multi-turn (= up to MAX_SUBAGENT_TURNS = 5); the
-//    sub-agent may call web_search / reference_library (or any
-//    tool in its subset) as many times as needed before producing
-//    its final text reply.
+// v2.7d upgrade: replaces the v2.7 stub (= canned strings per
+// agent name) with a real LLM call. Each sub-agent runs its own
+// `ConversationLoop.runTurn` with the sub-agent's system prompt
+// + its own tool subset. The loop is multi-turn (= up to
+// `MAX_SUBAGENT_TURNS = 5`); the sub-agent may call web_search /
+// reference_library (or any tool in its subset) as many times as
+// needed before producing its final text reply.
 //
-//  Architecture (= per boss 2026-09-26 + Q112 standing rule):
-//    1 source + 1 test per ticket (= this file + the matching
-//    SubAgentRunnerTests.swift).
+// Architecture:
+//   1 source + 1 test per ticket (= this file + the matching
+//   SubAgentRunnerTests.swift).
 //
-//  Engineering standards (= per pocock-engineering-design-check,
-//  all 12 categories reviewed before this commit):
+// Engineering standards (= per pocock-engineering-design-check,
+// all 12 categories reviewed before this commit):
 //
-//    1. SSOT: handle state lives in AsyncDelegationRegistry only.
+//    1. SSOT: handle state lives in `AsyncDelegationRegistry` only.
 //       The runner reads + writes via the registry's actor methods;
 //       = no shadow state.
 //
@@ -208,10 +205,10 @@ final class SubAgentRunner {
     let auditorStorage: AuditorStorage?
 
     /// The registry this runner drains handles from. Always
-    /// `AsyncDelegationRegistry.shared` in production (= the v2.7
-    /// boss directive "团队链路通"; = production tools cannot
-    /// inject a registry parameter); tests may override via the
-    /// `isolatedRegistry:` init.
+    /// `AsyncDelegationRegistry.shared` in production (= the canonical
+    /// shared registry; = production tools cannot inject a registry
+    /// parameter); tests may override via the `isolatedRegistry:`
+    /// init.
     private var registry: AsyncDelegationRegistry {
         _isolatedRegistry ?? .shared
     }
@@ -243,10 +240,10 @@ final class SubAgentRunner {
         self._isolatedToolRegistry = nil
     }
 
-    /// Test-only initializer with an isolated registry (= boss
-    /// 2026-09-26 "团队链路通" pattern: tests construct a fresh
-    /// `AsyncDelegationRegistry()` actor locally and inject it so
-    /// drain / handle state does not leak across tests).
+    /// Test-only initializer with an isolated registry (=
+    /// tests construct a fresh `AsyncDelegationRegistry()` actor
+    /// locally and inject it so drain / handle state does not leak
+    /// across tests).
     init(
         isolatedRegistry: AsyncDelegationRegistry,
         connector: any LLMConnector,
@@ -274,7 +271,7 @@ final class SubAgentRunner {
     /// `isolatedToolRegistry` is a fresh ToolRegistry actor with
     /// only the tools the test needs (= typically just `web_search`).
     ///
-    /// Per Q46 stop-rule (= 2026-09-26 Gap 3 follow-up): this
+    /// Per stop-rule (= the 2026-09-26 Gap 3 follow-up): this
     /// initializer exists solely to enable the live sub-agent
     /// web_search E2E without crashing the test process.
     init(
@@ -333,12 +330,11 @@ final class SubAgentRunner {
     /// Transitions the handle through: pending → running → completed.
     /// Throws `SubAgentRunnerError` if any step fails.
     ///
-    /// v2.7d (= sub-agent 真跑 LLM): the sub-agent call goes through
-    /// `ConversationLoop.runTurn` (= independent context with the
-    /// sub-agent's system prompt + tool subset). The sub-agent
-    /// may call web_search / reference_library as many times as
-    /// needed (= up to `maxSubAgentTurns`) before producing its
-    /// final text reply. The final reply is the value passed to
+    /// sub-agent gets a fresh `ConversationLoop.runTurn` (= independent
+    /// context with the sub-agent's system prompt + tool subset). The
+    /// sub-agent may call `web_search` / `reference_library` as many
+    /// times as needed (= up to `maxSubAgentTurns`) before producing
+    /// its final text reply. The final reply is the value passed to
     /// `registry.markCompleted(result:)`.
     func runHandle(_ handle: BackgroundDelegationHandle) async throws {
         // 0. Re-fetch the latest handle from the registry (= the
