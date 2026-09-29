@@ -49,9 +49,9 @@ actor KanbanTools {
     // cache check never returns a hit after the SwiftData migration).
     // This eliminates the nonisolated(unsafe) mutable static var.
 
-    /// v1.55d+ (boss 2026-09-28 OOB A option): `init` is now
-    /// `@MainActor` so `WSKanbanRepository.shared` (= @MainActor
-    /// accessor) can be referenced directly without a runtime
+    /// v1.55d+ (A option): `init` is now `@MainActor` so
+    /// `WSKanbanRepository.shared` (= @MainActor accessor) can be
+    /// referenced directly without a runtime
     /// `MainActor.assumeIsolated` wrap (= which itself trapped
     /// under Swift 6 strict concurrency when invoked from an
     /// actor's serial executor). The `@MainActor` static-let
