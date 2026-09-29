@@ -1,18 +1,12 @@
-// CrossRefInject_v2.swift · Wenshu · v0.28
+// Sources/WenshuApp/Domain/CrossRefInject_v2.swift
 //
-// Verbatim port from hermes-agent/agent/context_references.py
-// (= wenshu M5 ticket 14 = hermes-port batch 3 third ticket).
+// Verbatim port from `hermes-agent/agent/context_references.py`.
+// The hermes source reference is preserved below for cross-check.
 //
-// Source: hermes-agent/agent/context_references.py
-// - L29-65 = ContextReferenceProvider ABC + BUILTIN_PREFIXES + plugin registry
-// - L239-325 = preprocess_context_references_async (= the per-reference
-//   prefix-fill + drop-on-overflow logic that the wenshu FIFO token-budget
-//   behavior adapts from)
-//
-// Scope refactor (= per Q109 doc-first + Q35 commit-description vs truth):
-// The full hermes `context_references` system is a plugin-registered
-// `@<prefix>:<target>` autocomplete + expansion infrastructure (= 720
-// LOC of ABC + plugin lifecycle + completion + expand methods).
+// Scope refactor (= doc-first; = commit description mirrors source
+// truth): the full hermes `context_references` system is a
+// plugin-registered `@<prefix>:<target>` autocomplete + expansion
+// infrastructure.
 // Wenshu's CrossRefInject is a more constrained surface (= inject entity
 // refs into chapter .md frontmatter, NOT a chat-input autocomplete).
 // The port that lands in this ticket is the **token-budget** subset of
@@ -38,10 +32,9 @@
 
 import Foundation
 
-/// Token-budgeted cross-ref injection (= wenshu M5 ticket 14).
-///
-/// Replaces `CrossRefInject` (= v0.27 MVP, rule-based surface-form
-/// matching with no token cap). This v2 adds:
+/// Token-budgeted cross-ref injection.
+/// Replaces `CrossRefInject` (= the v0.27 MVP, rule-based
+/// surface-form matching with no token cap). This v2 adds:
 /// 1. Token budget (= `maxTokens` parameter on `runInjection`):
 ///    references are dropped FIFO (= lowest usage-count first) until
 ///    the total response text fits within the budget. Mirrors hermes
