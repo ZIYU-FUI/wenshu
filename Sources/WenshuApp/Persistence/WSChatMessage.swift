@@ -19,12 +19,12 @@ final class WSChatMessage {
     @Attribute(.unique) var id: String
     /// FK to WSSession.sessionID (= string FK, = legacy)
     var sessionID: String
-    // chat-by-book row-level split (boss 2026-09-24 OOB):
-    // denormalized bookID copied from the parent WSSession at write time.
-    // Why denormalize (= avoid relying on `$0.session?.bookID` keyPath
-    // in SwiftData #Predicate macros, which has historic fragility
-    // across SDK versions): each message row carries its own bookID,
-    // matching the WSChatMessage.sessionID pattern (= FK by convention).
+    // chat-by-book row-level split: denormalized bookID copied from
+    // the parent WSSession at write time. Why denormalize (= avoid
+    // relying on `$0.session?.bookID` keyPath in SwiftData #Predicate
+    // macros, which has historic fragility across SDK versions):
+    // each message row carries its own bookID, matching the
+    // WSChatMessage.sessionID pattern (= FK by convention).
     //
     // Invariant (= maintained by WSChatRepository.append): message.bookID
     // MUST equal session.bookID for the session this message belongs to.
@@ -36,16 +36,15 @@ final class WSChatMessage {
     var role: String
     var status: String
     var content: String
-    // -cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示' (= the
     // assistant reasoning content was streaming into parts[] in memory
-    // but never persisted to SwiftData; = on reload from the warehouse
-    // .ws/WenshuStore.store, the parts[] was empty and the
-    // thinking section collapsed to zero bytes). New string column
-    // (= nullable for pre-v1.65-cleanup messages; = SwiftData
-    // auto-handles additive schema changes for optional stored
-    // properties; = no migration step required for existing user
-    // libraries). Stores the joined reasoning part text (= multiple
-    // reasoning blocks joined by '\n\n'; = the streaming path emits
+    // but never persisted to SwiftData (= on reload from the
+    // warehouse, the parts[] was empty and the thinking section
+    // collapsed to zero bytes). New string column (= nullable for
+    // pre-v1.65-cleanup messages; = SwiftData auto-handles additive
+    // schema changes for optional stored properties; = no migration
+    // step required for existing user libraries). Stores the joined
+    // reasoning part text (= multiple reasoning blocks joined by
+    // '\n\n'; = the streaming path emits
     // separate .reasoning parts, = persistence collapses them into
     // one thinking string for fast restore).
     var thinking: String?
