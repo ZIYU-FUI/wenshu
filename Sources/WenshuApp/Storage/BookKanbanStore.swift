@@ -1,24 +1,16 @@
-// BookKanbanStore.swift · Wenshu
+// BookKanbanStore.swift · WenshuApp · v1.85
 //
-// Per-(book × scope) kanban JSON store. Replaces v0.25.x app-level KanbanStore (SQLite) with a
-// per-book JSON file (books/<book-id>/kanban.json).
-//
-// 
-//
-// The scope picker lets the user target one of
-// 8 standard sub-folders inside the active book (= `chapters/`,
-// `world/`, ...), the book root, or the reference library. The scope is
-// a view filter, not a data-layer change: each scope variant writes to a
+// Per-(book × scope) kanban JSON store. Each scope variant writes to a
 // different JSON file in the resolved directory:
 //
 //   - .book             → <dir>/kanban.json
 //   - .folder(.chapters)→ <dir>/kanban-chapters.json
-//   - ... (other folders)
+//   - .folder(<other>)  → <dir>/kanban-<folder>.json
 //   - .referenceLibrary → <dir>/library-kanban.json
 //
-// FCP library replica spec at
-// `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 026.
-// spec at `.scratch/2026-09-04-b-13-scope-unification.md`.
+// 8 standard sub-folders per book: chapters, world, characters, outlines,
+// drafts, sessions, foreshadowing, placeholders. The scope is a view filter,
+// not a data-layer change.
 
 import Foundation
 
@@ -30,7 +22,7 @@ protocol BookDataStoring: Sendable {
     func save(_ data: [Element]) throws
 }
 
-// MARK: - Kanban ticket (= reuses v0.25.x KanbanTicket shape)
+// MARK: - Kanban ticket
 
 struct KanbanTicket: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
@@ -38,11 +30,8 @@ struct KanbanTicket: Identifiable, Hashable, Codable, Sendable {
     var status: KanbanStatus
     var createdAt: Date
     var updatedAt: Date
-    /// Agent-written markdown body. 2026-09-28 kanban-markdown arc
-    /// (mirrors hermes 0.21.5 commit 63f5bc0999). Mirrors the
-    /// SwiftData `KanbanTask.body` field (= same write-through path
-    /// in `KanbanOps.add`); this struct is the JSON-file shape that
-    /// KanbanCard renders.
+    /// Agent-written markdown body. Mirrors the SwiftData `KanbanTask.body`
+    /// field; this struct is the JSON-file shape that `KanbanCard` renders.
     var body: String?
 
     init(
@@ -62,7 +51,7 @@ struct KanbanTicket: Identifiable, Hashable, Codable, Sendable {
     }
 }
 
-// KanbanStatus enum: see WenshuApp.Core.Kanban.KanbanStatus (v0.25.x, 7 cases: new / triage / ready / running / blocked / review / done / failed)
+// KanbanStatus enum: see WenshuApp.Core.Kanban.KanbanStatus.
 
 // MARK: - BookKanbanStore
 
@@ -80,19 +69,15 @@ struct BookKanbanStore: BookDataStoring {
     /// name (= `kanban.json` / `kanban-<folder>.json` / `library-kanban.json`).
     let scope: TaskScope
 
-    // backward-compat init: pre-B-13 callers (= existing tests +
-    // KanbanView in the middle of a code review) used `init(bookId:
-    // bookDirectory:)`. Preserved as a thin wrapper that defaults
-    // `scope = .book` and `directory = bookDirectory` (= unchanged
-    // semantics for the book-root case).
+    // backward-compat init. Defaults `scope = .book` and `directory = bookDirectory`
+    // (= unchanged semantics for the book-root case).
     init(bookId: UUID, bookDirectory: URL) {
         self.bookId = bookId
         self.directory = bookDirectory
         self.scope = .book
     }
 
-    /// scope-aware init (= the canonical entry point after the
-    /// unification). `directory` is whatever `BookStore.scopeDirectory`
+    /// scope-aware init. `directory` is whatever `BookStore.scopeDirectory`
     /// returns for the active `(bookId, scope)` pair.
     init(bookId: UUID, directory: URL, scope: TaskScope) {
         self.bookId = bookId
