@@ -2,7 +2,7 @@
 //  Persistence/WSLink.swift · Wenshu · v0.72 SwiftData migration 
 //
 //   : WSLink.
-//  Mirrors links table schema (= v0.19 ticket 12 Internal Link).
+//  Mirrors links table schema.
 //  (=  deleted Core/LinkGraph/LinkIndex.swift; the canonical
 //  domain type is now Core/LinkGraph/LinkDomain.swift's Link struct.)
 //
@@ -32,8 +32,8 @@ final class WSLink {
         // targetRef, line"). The previous "sourceDocId:line" id collided
         // when multiple [[name]] links live on the same line (= the
         // BacklinkResolverTests resolve test inserts 2 such links).
-        // Discovered when ticket 5 migrated BacklinkResolver + tests
-        // onto WSLinkRepository (= the old LinkIndex actor hid this
+        // Discovered when migrating BacklinkResolver + tests onto
+        // WSLinkRepository (= the old LinkIndex actor hid this
         // collision behind a manual dedupe; = WSLinkRepository relies on
         // SwiftData's @Attribute(.unique) enforcement).
         self.id = "\(sourceDocID):\(line):\(targetRef)"

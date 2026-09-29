@@ -2,7 +2,7 @@
 //  Persistence/WSKanbanTask.swift · Wenshu · v0.72 SwiftData migration 
 //
 //   : WSKanbanTask.
-//  Mirrors kanban_tasks table from WenshuWorkspace.swift (= v0.23 ticket 013.003).
+//  Mirrors kanban_tasks table from WenshuWorkspace.swift.
 //  (=  deleted Core/Kanban/KanbanStore.swift; the canonical
 //  domain type is now Core/Kanban/KanbanDomain.swift's KanbanTask struct.)
 //

@@ -13,7 +13,7 @@
 //    abstraction; = per spec v2.3).
 //  - 5 kindSpecific fields (= per EntityKindSpecific).
 //  - aliases / tags / attributes as the structured free-form
-//    surface (= "主角" / "师父" / "剑修" all live as tags).
+//    surface (= "protagonist" / "mentor" / "swordsman" all live as tags).
 //  - body is stored in a separate WSBody row (= body markdown
 //    is potentially large; = the @Model main row stays small for
 //    index queries).

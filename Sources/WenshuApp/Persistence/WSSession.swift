@@ -14,10 +14,10 @@ final class WSSession {
     var createdAt: Date
     var updatedAt: Date
     var archivedAt: Date?
-    // chat-by-book row-level split (boss 2026-09-24 OOB):
-    // every chat session now belongs to exactly one book OR is a
-    // global un-attached session (= used for onboarding-before-book-
-    // selection chats and future "create a book via chat" workflows).
+    // chat-by-book row-level split: every chat session now belongs to
+    // exactly one book OR is a global un-attached session (= used
+    // for onboarding-before-book-selection chats and future "create
+    // a book via chat" workflows).
     //
     // String FK by convention (= matches WSChatMessage.sessionID).
     // NOT @Relationship: we don't cascade-delete chat sessions when a

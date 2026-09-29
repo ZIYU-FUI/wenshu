@@ -2,7 +2,7 @@
 //  Persistence/WSTodo.swift · Wenshu · v0.72 SwiftData migration 
 //
 //   : WSTodo.
-//  Mirrors todos table schema (= v0.18 ticket 06 local Todo).
+//  Mirrors todos table schema.
 //  (=  deleted Core/Todo/TodoStore.swift; the canonical
 //  domain type is now Core/Todo/TodoDomain.swift's TodoItem struct.)
 //
