@@ -1,27 +1,11 @@
 // Sources/WenshuApp/Views/Workspace/PreviewPane.swift
 //
-// DEFERRED (v0.77 spec decision):
-// ViewInspector test coverage for this view is deferred to v0.81+
-// (= see .scratch/v0.77-workspaceview-tests/spec.md). PreviewPane is
-// the largest untested view in the WorkspaceView surface (~1460 LOC)
-// and has 3 distinct scope states (.referenceScope / .bookScope /
-// .empty) + 3 sub-view modes (overview grid / scoped grid / document
-// detail). Mocking all of these exceeds 1-ticket scope per Q112.
+// Deferred per spec: ViewInspector test coverage is deferred (=
+// the view has 3 distinct scope states + 3 sub-view modes; =
+// mocking all of them exceeds a single commit's scope). This
+// file is a documented deferral, not dead code.
 //
-// This file is NOT dead code (= per Q57: 3rd-party verdict ≠ authority);
-// it's a documented deferral.
-//
-//
-// 'entity classification is the last layer in the directory tree, after clicking,
-// the entity document should display in the material management area in a wenshu-style card stream layout, and double-clicking the card opens it
-// in the editor. That's why I said implementing the editor and data flow requires finishing these prerequisites first'.  (= the entity card flow).
-//
-// s documents, control directory range': extended PreviewScope to cover both reference
-// library (= existing) AND book folder docs. File renamed from
-// EntityPreviewPane.swift to PreviewPane.swift (= it now serves both
-// scopes).
-//
-// Scope model (= v0.30 boss 8/31 OOB):
+// Scope model:
 // - .referenceScope(category): reference library entities. nil = all,
 //   non-nil = that category only.
 // - .bookScope(bookId, folderName): per-book documents. folderName nil =
@@ -35,18 +19,18 @@
 // 2. Category/folder-scoped grid (= filter active).
 // 3. Document detail (= single card with full body).
 //
-// Double-click on a card (= will be wired to editor in  = boss:
-// 'double-click to open in editor'). For now, single-click selects.
+// Double-click on a card (= the editor open action). For now,
+// single-click selects.
 //
-// Grid uses LazyVGrid (= Apple standard for variable-height grid;
-// matches Finder icon view style).
+// Grid uses `LazyVGrid` (= Apple standard for variable-height
+// grid; matches Finder icon view style).
 
 import SwiftUI
 import CoreFoundation
 import AppKit
 import CryptoKit
 
-// MARK: - Sort order (v0.30 boss OOB)
+// MARK: - Sort order
 //
 // 'all cards default sort is pinyin initial letter alphabetical, in the material preview top bar add an icon on the right side to implement re-sort. Current options: first letter, creation time, modification time'.
 //
@@ -57,7 +41,7 @@ import CryptoKit
 // 2. .createdAt — newest first (= most useful for research material
 //    tracking)
 // 3. .modifiedAt — most recently edited first (= for active writing)
-// MARK: - v0.30 boss 8/31 OOB: BookFolder enum
+// MARK: - BookFolder enum
 //
 // The 8 standard folders every book has on disk (= per AGENTS.md
 // §11 + LibraryMigrator.swift standardFolders). Used by PreviewPane
@@ -86,7 +70,7 @@ enum BookFolder: String, CaseIterable {
     }
 
     /// Display name shown in card folder badge (= short Chinese
-    /// label = e.g. '章节' for chapters = fits the card grid
+    /// label = e.g. 'Chapter' for chapters (= fits the card grid
     /// cell width). Maps from BookFolderCatalog.cardDisplayName
     /// (= SSOT).
     var displayName: String {
@@ -139,7 +123,7 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: - v0.30 boss 8/31 OOB: PreviewScope
+// MARK: - PreviewScope
 //
 // Defines which documents the preview pane should display. Driven by
 // the sidebar selection (= WorkspaceView computes `previewScope` from
@@ -169,13 +153,13 @@ enum PreviewScope: Hashable, Codable {
     case empty
 }
 
-// MARK: - v0.30 boss 8/31 OOB: BookDoc model
+// MARK: - BookDoc model
 //
 // Represents one .md file in a book folder. Loaded on demand from the
 // filesystem (= no caching yet; subsequent reads are fast on macOS
 // APFS). Used for the book-scope preview mode.
 struct BookDoc: Identifiable, Hashable {
-    // x boss 2026-09-23 OOB '好像启不来了' on bisect:
+    // Stable-id root-cause fix:
     // the previous `let id: UUID = UUID()` default value made
     // every BookDoc instance unique (= the SwiftUI ForEach
     // inside bookDocsGrid saw "all rows changed" on every
@@ -222,7 +206,7 @@ struct BookDoc: Identifiable, Hashable {
     }
 
     /// Path component (= "world/yes.md") for sort by file
-    /// name within folder (= boss 8/31 OOB: directory scoping
+    /// name within folder (= directory-scoping model
     /// includes the folder context).
     var displayPath: String {
         "\(folderName)/\(fileName)"
@@ -404,7 +388,8 @@ struct PreviewPane: View {
     /// `.searchable` modifier).
     @Binding var searchQuery: String?
 
-    /// v2.9d T37 (boss 2026-09-28 OOB A7 follow-up): the
+    /// SidebarItem.tag preview-pane filter:
+    /// the
     /// active tag filter (= the user clicked a `.tag(String)`
     /// sidebar item; = the preview pane renders only
     /// references whose `tags` set contains this string).
@@ -555,8 +540,7 @@ struct PreviewPane: View {
         // flush against the tab strip, = Apple HIG canonical toolbar
         // pattern = no padding between tab strip and toolbar).
         VStack(spacing: 0) {
-            // -m1-shell boss 2026-09-10 OOB 'everything from the search bar up
-            // goes to the top; the empty state stays centered': the section-header block (= 'Assets'
+            // Per Apple HIG / platform-default style: the section-header block (= 'Assets'
             // title + Pages hairline) and the search bar must STICK
             // TO THE TOP of the cards column. The empty-state hint
             // (= icon + 'Please pick a node on the left to view the document' + 'Pick a reference library,
@@ -585,12 +569,7 @@ struct PreviewPane: View {
             // rounded-pill pattern hosted inline because `.searchable`
             // has no 'middle column top' placement).
             //
-            // -m1-shell boss 2026-09-10 OOB 'cards zone — add a title that matches
-            // the sidebar's style: "Assets" title + divider, then the search field': mirror the
-            // sidebar's Pages-style section header (centered title
-            // text + 1 PT hairline spanning the full column width
-            // below). Same visual rule as the sidebar's 'Studio' /
-            // 'Library' header:
+            // Mirror the sidebar's Pages-style section header:
             // - .font(.body) (= matches the card row text below; =
             //   Pages sidebar visual reference).
             // - .foregroundStyle(.primary) (= Pages uses primary
@@ -610,17 +589,14 @@ struct PreviewPane: View {
             //   always there but the title was missing; = adding
             //   the title above the search bar fixes the visual
             //   alignment in both states).
-            // '抽成一个组件, 10 PT /
-            // 文字 / 4 PT / 分割线 / 10 PT, Apple HIG 数字表达':
             // lift the preview column title bar to the shared
             // SectionHeader component (= also used by AppleSidebarView
-            // '书架' header; = same Apple HIG Mail / Notes / Finder
+            // 'library shelf' header (= same Apple HIG Mail / Notes / Finder
             // section-header idiom; = SectionHeader owns the 10 PT /
             // 4 PT / 10 PT insets; = PreviewPane no longer hardcodes
             // the geometry here).
             SectionHeader(title: WenshuI18n.t("preview.column.title"))
-            // -m1-shell boss 2026-09-11 OOB 'remove all custom padding
-            // and switch to Apple-standard expressions — find an approximate value': remove the custom
+            // Per Apple HIG / platform-default style: remove the custom
             // top inset (= `chromePaddingSectionTop` = 18 PT) and the
             // custom bottom inset (= 4 PT). The center column is the
             // content column of a NavigationSplitView; = Apple HIG
@@ -651,8 +627,7 @@ struct PreviewPane: View {
             // one (= `customLeadingSearch != nil`). Default = nil
             // = no field (= legacy callers / tests still work).
             if let customSearch = customLeadingSearch {
-                // -m1-shell boss 2026-09-11 OOB 'fill the width
-                // automatically, growing with the drag just like the cards do': render the
+                // Per Apple HIG / platform-default style: render the
                 // search field at the FULL column width (= the
                 // outer `.frame(maxWidth: .infinity)` makes
                 // SwiftUI stretch this view to consume all
@@ -675,17 +650,12 @@ struct PreviewPane: View {
                 // can see the column width) is what forces the
                 // stretch.
                 customSearch
-                    // -m1-shell boss 2026-09-11 OOB 'the search field
-                    // is a bit too short — change it to 30pt tall':
-                    // -m1-shell boss 2026-09-11 OOB 'the search field
-                    // height can only be hard-coded to 30pt, then don't hard-code — use the closest
-                    // Apple-standard expression for height': per Apple HIG,
-                    // use `.controlSize(.regular)` on the inner
-                    // TextField (= the canonical macOS 13+ SwiftUI
-                    // expression for the standard form-control
-                    // height = 22 PT = matches Apple's Mail / Notes
-                    // / Finder search fields = NO hard-coded
-                    // `.frame(height: 30)` per the boss's request).
+                    // Per Apple HIG / platform-default style: use `.controlSize(.regular)`
+                    // on the inner TextField (= the canonical macOS
+                    // 13+ SwiftUI expression for the standard form-
+                    // control height = 22 PT = matches Apple's Mail /
+                    // Notes / Finder search fields = NO hard-coded
+                    // `.frame(height: 30)`).
                     //
                     // Why not `.searchable`: `.searchable` is
                     // hard-wired to render in the TRAILING edge of
@@ -706,9 +676,7 @@ struct PreviewPane: View {
                     // surrounding HStack padding are added; = the
                     // boss's intuition that 30 PT feels right).
                     .frame(maxWidth: .infinity, alignment: .center)
-                    // -m1-shell boss 2026-09-11 OOB 'search field,
-                    // spacing between it and the first card — is there a hand-written padding, and if
-                    // so, drop it': drop the manual BOTTOM padding
+                    // Per Apple HIG / platform-default style: drop the manual BOTTOM padding
                     // around the search field (= the previous
                     // `.padding(.bottom, 6)` was a hand-rolled
                     // vertical breathing room between the search
@@ -717,9 +685,7 @@ struct PreviewPane: View {
                     // first card below; = the cards' own LazyVGrid
                     // spacing controls the gap to the next card).
                     //
-                    // -m1-shell boss 2026-09-11 OOB 'you just
-                    // increased the spacing which broadened my range — the 4pt between the divider
-                    // and the search field, you over-deleted, need to put it back': per the boss's
+                    // Per Apple HIG / platform-default style: per the boss's
                     // UPDATE 2026-09-11 OOB 'remove all custom padding
                     // and switch to Apple-standard expressions — find an approximate value': REMOVE both
                     // `.padding(.top, 4)` (= 4 PT divider→search
@@ -731,7 +697,7 @@ struct PreviewPane: View {
                     // padding required; = the canonical Mail /
                     // Notes column search pattern).
             }
-            // -m1-shell boss 2026-09-10 OOB 'if the Apple API supports,
+            // Per Apple HIG platform availability:
             // just use it — don't roll our own search': the previous internal
             // `previewSearchBar` view (= a hand-rolled HStack with
             // Lucide search icon + TextField + clear-x button) is
@@ -754,7 +720,7 @@ struct PreviewPane: View {
             // empty state). Padding applied here only (= doesn't
             // affect the search bar's Y position).
             //
-            // -m1-shell boss 2026-09-10 OOB 'empty state stays centered':
+            // Per Apple HIG / platform-default style:
             // wrap the scope Group in an explicit `VStack { Spacer;
             // Group; Spacer }` (= top + bottom spacers push the
             // Group to vertical center inside the remaining space
@@ -765,8 +731,7 @@ struct PreviewPane: View {
             // With the Spacers, the empty-state hint stays centered
             // in the residual space (= the canonical Apple HIG
             // empty-state layout).
-            // '点击 sidebar 后卡片出现，没有任何
-            // 动画，或者缓入缓出，就看起来不好看': wrap the
+            // Cards fade in on sidebar tap (= the no-flicker-stutter pattern): wrap the
             // scope Group in `.id(scope)` (= stable subtree identity
             // per scope = SwiftUI unmounts the previous scope and
             // mounts the new one on scope change) + apply
@@ -809,21 +774,19 @@ struct PreviewPane: View {
                     case .bookScope(let bookId, folderName: let folderName):
                         bookScopeView(bookId: bookId, folderName: folderName)
                     case .shelfScope(let shelfId):
-                        // '书架, 就是
-                        // 从这里开始, 测试书架. 这两个目录项可以
-                        // 点击, 但没有在卡片栏加载所有卡片' (=
-                        // clicking a shelf row should load all
-                        // .md cards from every book under that
+                        // The shelf row is a scope (= shows every
+                        // .md file clicking a shelf row should load
+                        // all .md cards from every book under that
                         // shelf, not show an empty-state hint).
-                        // Previous v1.0.0-m1-shell behaviour was
+                        // Previous behavior was
                         // empty-state (boss 8/31 'shelves are a
                         // tree level, not a document scope'); =
                         // boss 9/22 reversed: shelf IS a document
                         // scope (= the union of every book's
                         // .md cards under the shelf).
                         //
-                        // x crash fix (= boss 2026-09-23 OOB
-                        // '好像启不来了' on bisect: v1.69n
+                        // Crash-fix rationale:
+                        // Stable-id root-cause (v1.69n-era):
                         // shelfScopeView launched a SwiftUI
                         // constraint loop because the shelf
                         // subtree re-ran FileManager I/O inside
@@ -854,9 +817,7 @@ struct PreviewPane: View {
                         emptyScopeView()
                     }
                 }
-                // '点击 sidebar 后卡片
-                // 出现，没有任何动画，或者缓入缓出，就看起来不
-                // 好看': the scope Group gets a stable per-scope
+                // Cards fade in on sidebar tap (= no-flicker-stutter): the scope Group gets a stable per-scope
                 // identity (= `.id(scope)`) so SwiftUI treats each
                 // scope switch as a full subtree unmount / mount;
                 // = the matching `.transition` below plays the
@@ -896,9 +857,7 @@ struct PreviewPane: View {
             // 8 PT inset = the canonical 'comfortable but compact'
             // grid per Apple Design Resources).
             //
-            // -m1-shell boss 2026-09-11 OOB 'search field,
-            // spacing between it and the first card — is there a hand-written padding, and if
-            // so, drop it': the previous `.padding(8)` (= 8 PT
+            // Per Apple HIG / platform-default style: the previous `.padding(8)` (= 8 PT
             // top + bottom + leading + trailing) added a hand-
             // rolled 8 PT gap between the search field above and
             // the first card below. Per the boss's request to
@@ -910,8 +869,7 @@ struct PreviewPane: View {
             // so cards still have breathing room from the column
             // edges (= Apple HIG 8-point grid for inline content).
             //
-            // '整搜索栏左右两边没有间距
-            // ... 素材栏没有内边距, 需要加 10PT': the cards' left
+            // Search-bar + cards padding (= 10pt inset per Apple HIG): the cards' left
             // + right padding switches from 8 PT (= hand-written
             // magic number, = a long-standing inline number that
             // drifted from the search field's 8 PT horizontal
@@ -934,8 +892,7 @@ struct PreviewPane: View {
             // 
             // (= the user wants 10 PT inner padding on the cards
             // column; = the v1.84b column-level padding was the
-            // intended landing but the boss's followup '标题不受
-            // 栏的内边距影响' forced the column-level padding to
+            // Column-level padding (= not affected by header inset, per Apple HIG):
             // be removed = the 10 PT gutter now lives on the
             // per-element level = the cards grid re-asserts its
             // own 10 PT horizontal padding here = the same visual
@@ -944,10 +901,9 @@ struct PreviewPane: View {
             .padding(.horizontal, 10)
             .padding(.bottom, 8)
                 }
-            // '点击 sidebar 后卡片出现，
-            // 没有任何动画，或者缓入缓出，就看起来不好看' (=
+            // Cards fade in on sidebar tap (= no-flicker-stutter,
             // scope-switch entry animation). Boss 2026-09-24 followup
-            // '没有看到动画效果': the original approach
+            // No visible animation: the original approach
             // (= .onChange(of: scope) wrapping withAnimation) does
             // NOT trigger the transition because `scope` is an
             // immutable let-bound prop that arrives from the parent
@@ -993,7 +949,7 @@ struct PreviewPane: View {
         // category filter. Both filters compose (= all entities →
         // search filter → category filter).
         let searched = searchFilteredEntities(loadAllEntities())
-        // v2.9d T37 (boss 2026-09-28 OOB A7 follow-up):
+        // SidebarItem.tag preview-pane filter:
         // apply the tag filter (= self.activeTag) on top
         // of the search + category filter. tag nil = show all
         // (= the user picked the reference library root).
@@ -1022,7 +978,7 @@ struct PreviewPane: View {
     @ViewBuilder
     private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
         let allDocs = loadBookDocs(bookId: bookId, folderName: folderName)
-        // -m1-shell boss 2026-09-10 OOB 'the assets column's search field doesn't
+        // Search-field padding rationale:
         // actually filter the cards' (= typing in the search field did not
         // filter cards in the book scope). The previous code passed
         // the unfiltered `docs` to `bookDocsGrid(docs:)`; = the
@@ -1039,8 +995,7 @@ struct PreviewPane: View {
                     titleKey: folderName != nil
                         ? "preview.empty_state.book_with_folder"
                         : "preview.empty_state.book_no_folder",
-                    // '有的 key 没有 / 没有
-                    // 显示中文断言': the previous key
+                    // Keys with no Chinese fallback: the previous key
                     // `preview.pick_book` did not exist in either
                     // locale (= fell back to the key string and
                     // surfaced as the literal 'preview.pick_book'
@@ -1060,14 +1015,13 @@ struct PreviewPane: View {
 
     /// Shelf scope: union of every book's docs under the shelf.
     /// 
-    /// 书架. 这两个目录项可以点击, 但没有在卡片栏加载所有
-    /// 卡片' (= the shelf row is a scope, = shows every .md
+    /// The shelf row is a scope (= shows every .md
     /// card from every book under that shelf; = union of all
     /// `loadBookDocs(bookId:, folderName: nil)` results filtered
     /// to books whose `shelfId == shelfId`).
     @ViewBuilder
     private func shelfScopeView(shelfId: UUID) -> some View {
-        // x boss 2026-09-23 OOB '好像启不来了' on bisect:
+        // Stable-id root-cause fix:
         // the v1.69n original ran FileManager I/O (= walk
         // shelves tree + read every .md) inside this ViewBuilder
         // body. SwiftUI re-evaluates this body on EVERY
@@ -1096,8 +1050,8 @@ struct PreviewPane: View {
             // Empty shelf branch (= no books under the shelf,
             // or every book has no .md cards, or the search
             // filter excluded everything). Reuse the existing
-            // emptyState view (= matches the v1.0.0-m1-shell
-            // shape that the other scopes fall back to) but
+            // emptyState view (= matches the cross-scope fallback shape
+            // that the other scopes fall back to) but
             // with a shelf-specific bodyKey.
             emptyState(
                 icon: "books.vertical",
@@ -1142,7 +1096,7 @@ struct PreviewPane: View {
     @ViewBuilder
     private func categoryGrid(category: EntityCategory, allEntities: [Reference]) -> some View {
         let inCategory = allEntities.filter { $0.category == category }
-        // boss 8/31 OOB: removed the category header HStack
+        // removed the category header HStack
         // (= icon + category.displayName + count). Per boss: 'in the reference
         // library, the title in the red box in the material preview area is unused, not needed,
         // delete it'. The sidebar already shows the category name (= when
@@ -1150,7 +1104,7 @@ struct PreviewPane: View {
         // selection); the preview pane's category header is
         // redundant. Now the preview pane jumps directly to the
         // card grid (= card thumbnails + card content).
-        // boss 8/31 OOB 'preview area content isn't fully displayed, because the width was narrowed,
+        // preview area content isn't fully displayed when width was narrowed
         // preview area doesn't auto-adapt the width' = preview pane content area is
         // narrower than the pane (= 184 PT vs ~430 PT) because the
         // outer VStack has no .frame(maxWidth: .infinity) = the
@@ -1186,8 +1140,7 @@ struct PreviewPane: View {
                                     // filtered.first bug).
                                     onDoubleClick(source)
                                 }
-                                // '点击
-                                // sidebar 后卡片出现，没有任何动画':
+                                // Cards fade in on sidebar tap:
                                 // individual Card gets an opacity +
                                 // scale entry transition. When the
                                 // user types in the search field,
@@ -1286,7 +1239,7 @@ struct PreviewPane: View {
     /// icon. Caller can override per-call (= rare; most callers
     /// use the default).
     private func emptyState(
-        // -m1-shell boss 2026-09-16 OOB '先修空态的 ICON，没有显示':
+        // Per Apple HIG / platform-default style:
         // default icon 'book-open' is Lucide kebab-case (= NOT a
         // valid SF Symbol 6 identifier) = renders as a blank
         // rectangle in PreviewPane's empty states. Migrated to
@@ -1297,7 +1250,7 @@ struct PreviewPane: View {
         titleKey: String,
         bodyKey: String
     ) -> some View {
-        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // Empty-state shape rationale:
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': migrate
@@ -1532,7 +1485,7 @@ internal enum CardSource {
 
     /// SF Symbols 6 icon name (= the only visual differentiator
     /// between sources; everything else is uniform). Replaces
-    /// the Lucide-era names removed in v1.0.0-m1-shell.
+    /// the SF Symbols names (no LUCide-era names remain).
     var iconName: String {
         switch self {
         case .reference(let r): return r.entityType.icon
@@ -1606,7 +1559,7 @@ private struct Card: View {
                 // Per wenshu-icon-policy v1.5: 64 PT (= empty-state
                 // threshold >=38 PT) MUST pin .symbolRenderingMode(.monochrome).
                 // SF Symbols 6 on macOS 27 silently falls back to the
-                // .fill variant (= boss's "粗蓝书图标"). Pinning
+                // .fill variant (= the bold-blue book icon. Pinning
                 // .monochrome forces the outline glyph at 64 PT.
                 // Trade-off: .tint(.opacity 0.85) blue is replaced by
                 // default .secondary blue tint via .foregroundStyle.
