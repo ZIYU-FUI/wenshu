@@ -1,31 +1,29 @@
-// CronScheduleParser.swift · Wenshu · v0.28
+// CronScheduleParser.swift · WenshuApp · v0.28
 //
 // Verbatim port from hermes-agent/cron/scheduler.py cron expression
-// parsing subset (= wenshu M6 ticket 20 = hermes-port batch 3 tenth
-// and final ticket).
+// parsing subset.
 //
 // Source (= hermes Python):
-// - cron/scheduler.py L1-8138 (= full cron scheduler with file-based
-//   tick lock + session management + drift guard + interrupt handling
-//   + subprocess execution + fallback chain)
-// - cron/jobs.py L1-4207 (= cron job CRUD + expression validation +
-//   next-fire computation + lifecycle guard)
+//   - `cron/scheduler.py` (= full cron scheduler with file-based
+//     tick lock + session management + drift guard + interrupt
+//     handling + subprocess execution + fallback chain).
+//   - `cron/jobs.py` (= cron job CRUD + expression validation +
+//     next-fire computation + lifecycle guard).
 //
 // Target (= wenshu Swift):
-// - Sources/WenshuApp/Core/Cron/CronScheduleParser.swift (this file,
-//   ~350 LOC) = cron expression parser (= 5-field classic format =
-//   minute hour day-of-month month day-of-week) + next-fire-time
-//   computation. Pure-data layer (= no subprocess execution; wenshu
-//   uses macOS LaunchAgent for that).
+//   - `Sources/WenshuApp/Core/Cron/CronScheduleParser.swift`
+//     (this file) = cron expression parser (= 5-field classic
+//     format = minute hour day-of-month month day-of-week) +
+//     next-fire-time computation. Pure-data layer (= no subprocess
+//     execution; wenshu uses macOS `LaunchAgent` for that).
 //
-// Scope refactor (= per Q109 doc-first + Q35 commit-description vs truth):
-// The hermes cron/ system is 16627 LOC across 11 files. Wenshu already
-// has Cronjob + CronjobStore + CronPromptScanner (= v0.18 ticket 21
-// = 161 LOC). What lands in this commit is the **expression parser**
-// + **next-fire-time computation** that hermes ships but wenshu does
-// not (= wenshu's Cronjob stores the schedule string but never
+// The hermes cron/ system is 16,627 LOC across 11 files. Wenshu
+// already has `Cronjob` + `CronjobStore` + `CronPromptScanner`
+// (= 161 LOC). What lands here is the expression parser +
+// next-fire-time computation that hermes ships but wenshu does
+// not (= wenshu's `Cronjob` stores the schedule string but never
 // parses it).
-//
+
 // The scheduler.py orchestrator (= file locks, session DB, drift
 // guard, interrupt handling) is OUT of scope (= wenshu uses macOS
 // LaunchAgent for the actual scheduling; hermes's file-lock-based
