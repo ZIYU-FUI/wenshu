@@ -1,4 +1,4 @@
-// EditModeHotkey.swift · Wenshu () · v0.28 ticket 028-006
+// Sources/WenshuApp/State/EditModeHotkey.swift
 //
 // SwiftUI view modifier that attaches the ⌘⇧\ (= Cmd+Shift+\) hotkey
 // for toggling LayoutEditMode, plus an Escape key handler that

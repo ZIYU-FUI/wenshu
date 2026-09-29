@@ -1,4 +1,4 @@
-// LayoutEditMode.swift · Wenshu () · v0.28 ticket 028-006
+// Sources/WenshuApp/State/LayoutEditMode.swift
 //
 // Layout edit mode singleton (= hermes `$layoutEditMode` atom port).
 //
