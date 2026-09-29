@@ -124,10 +124,10 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
 
     /// Free-form tags (= the cross-cutting facet in the v2.6 facet
     /// model). A document may carry any number of tags (= multi-tag),
-    /// enabling queries like "all references tagged 唐朝" or
-    /// "all references tagged 文学 AND 唐朝". Tags are populated by
-    /// `EntityClassifier.classify()` (= LLM-suggested or keyword-derived)
-    /// and editable by the user.
+    /// enabling queries like "all references tagged <dynasty>" or
+    /// "all references tagged <genre> AND <dynasty>". Tags are
+    /// populated by `EntityClassifier.classify()` (= LLM-suggested
+    /// or keyword-derived) and editable by the user.
     ///
     /// Tags are **orthogonal** to `category` and `entityType`. A
     /// single reference can have:
