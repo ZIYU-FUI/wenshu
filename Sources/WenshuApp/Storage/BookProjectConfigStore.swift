@@ -1,56 +1,33 @@
-// BookProjectConfigStore.swift · Wenshu () · B-07 ticket 015.015 (2026-09-04)
+// BookProjectConfigStore.swift · WenshuApp · v1.85
 //
-// Per-book project-level configuration JSON store. Mirrors the
-// BookKanbanStore / BookTodoStore persistence pattern but stores a
-// single typed config struct (= `BookProjectConfig`) instead of a
-// list. The file lives at:
+// Per-book project-level configuration JSON store. The file lives at:
 //
 //   <ws>/shelves/<shelf-uuid>/books/<book-uuid>/project-config.json
 //
 // Scope = per-book only (= no `.folder(...)` or `.referenceLibrary`
-// variants; project-level config is always book-scoped by
-// definition — the spec is book-level metadata, not folder-level).
-//
-// BookProjectConfig carries the 4 user-tunable knobs the
-// 015.015 spec calls out:
+// variants). `BookProjectConfig` carries 4 user-tunable knobs:
 //
 //   1. autosaveCadenceSeconds  — debounce interval for auto-save
 //                                (= default 60).
 //   2. defaultChapterTemplate  — seed text injected on new chapter
 //                                creation (= default empty string).
 //   3. kanbanEnabled           — toggle the per-book kanban UI
-//                                (= default true; matches the
-//                                ship-stance where kanban is on).
+//                                (= default true).
 //   4. todoEnabled             — toggle the per-book todo UI
-//                                (= default true; same rationale).
+//                                (= default true).
 //
 // `updatedAt` is bumped on every save (= no external clock — the
-// store sets it on write, mirroring the BookKanbanStore /
-// BookTodoStore `updatedAt: .now` convention).
-//
-// The store is an actor (= same Swift 6 concurrency shape as
-// `WenshuLibrary` / `AsyncDelegationRegistry`) so writes serialize
-// cleanly across the SwiftUI view layer + any background tasks.
-//
-// Lookup strategy: the store walks `shelves/<shelf>/books/<book>/`
-// on every load/save to resolve the book directory. The walk is
-// O(shelves × books-per-shelf) per call but that's trivial in
-// practice (= v0.24 boss-target library is single-shelf + ≤ 100
-// books; walk completes in microseconds). If perf becomes a concern
-// (= batch reads in a future UI), a ShelfCache map can be added
-// without breaking the public surface.
+// store sets it on write).
 
 import Foundation
 
 /// Per-book project-level configuration. Persisted as JSON inside
 /// the book's directory (= `shelves/<shelf>/books/<book>/project-config.json`).
 ///
-/// The fields are deliberately narrow: just the 4 knobs the
-/// 015.015 spec calls out. New knobs (= e.g. per-book color theme,
-/// per-book default export format) can be appended in follow-up
-/// tickets; the struct stays additive as long as new fields have
-/// `Codable` defaults (= so older `project-config.json` files on
-/// disk still decode against the new struct).
+/// The fields are deliberately narrow: just the 4 knobs above.
+/// New fields must have `Codable` defaults (= so older
+/// `project-config.json` files on disk still decode against the
+/// new struct).
 struct BookProjectConfig: Codable, Sendable, Equatable {
     let bookId: UUID
     var autosaveCadenceSeconds: Int
@@ -76,13 +53,13 @@ struct BookProjectConfig: Codable, Sendable, Equatable {
     }
 }
 
-/// Per-book project-config JSON store (= B-07 ticket 015.015).
+/// Per-book project-config JSON store.
 ///
 /// Resolves `<projectRoot>/shelves/<shelf>/books/<book>/` on every
 /// load / save by walking the shelves directory. The walk is
 /// forgiving (= missing shelves dir, missing book folder, or
 /// multiple matches = first match wins + log nothing — the
-/// canonical Wenshu invariant is one book in one shelf).
+/// canonical wenshu invariant is one book in one shelf).
 actor BookProjectConfigStore {
     private let projectRoot: URL
     private let fileManager: FileManager
@@ -156,23 +133,14 @@ actor BookProjectConfigStore {
     /// `shelves/` root is missing or the book is not found.
     ///
     /// Also checks the legacy `books/<book>/` path (= single-book
-    /// `projectRoot` setups used by some integration tests + the
-    /// standalone PlotThreadToolsTests fixture, which writes
-    /// `shelves/s/books/<book>/` because that's what the
-    /// `bookStore.bookDirectory(bookId:)` shape produces).
+    /// `projectRoot` setups that pass a per-book or per-tool
+    /// directory as `projectRoot`).
     private func resolveBookDirectory(bookId: UUID) -> URL? {
-        // First try the canonical shelves-rooted layout (= mirrors
-        // `BookStore.bookDirectory(bookId:)` which is the production
-        // lookup for per-book sidecars).
+        // First try the canonical shelves-rooted layout.
         if let shelvesURL = resolveShelvesLayout(bookId: bookId) {
             return shelvesURL
         }
-        // Fallback: `books/<bookId>/` directly under projectRoot. This
-        // path shape is used by callers that pass a per-book or
-        // per-tool directory as `projectRoot` (= e.g. the
-        // IntegrationPlanEndToEndTests P1 #8 step, which builds
-        // `projectRoot/books/<bookId>/` directly to avoid coupling
-        // to a specific shelf UUID).
+        // Fallback: `books/<bookId>/` directly under projectRoot.
         let directCandidate = projectRoot
             .appendingPathComponent("books", isDirectory: true)
             .appendingPathComponent(bookId.uuidString, isDirectory: true)
@@ -206,9 +174,8 @@ actor BookProjectConfigStore {
         return nil
     }
 
-    /// Atomic write (= tmp file → rename). Mirrors the
-    /// BookKanbanStore / BookTodoStore atomic-write helper so a
-    /// crash mid-save never leaves a half-written config.
+    /// Atomic write (= tmp file → rename). A crash mid-save never
+    /// leaves a half-written config.
     private func atomicWrite(_ data: Data, to url: URL) throws {
         let tmpURL = url.appendingPathExtension("tmp")
         try data.write(to: tmpURL, options: .atomic)
