@@ -21,15 +21,14 @@
 //      context actions.
 //    - Empty state when no book selected / no items.
 //
-// (= boss 2026-09-04 OOB "both Kanban views have the same problem"): the scope
+// (= "both Kanban views have the same problem" directive): the scope
 //  picker (= .menu Picker over the 8 standard sub-folders + book root
 //  + reference library) drives which JSON file the view reads from /
 //  writes to. Scope is a view filter, not a data-layer change.
 //
-//  Persistence:
 //    - BookTodoStore.save([PerBookTodoItem]) writes the whole array
-//      atomically (= per spec v5 ticket 026). On every add / status
-//      change / delete, the view reloads from disk + writes back.
+//      atomically. On every add / status change / delete, the view
+//      reloads from disk + writes back.
 //
 //  : removed TodoStore subscription mechanism
 //  (formerly WIRE-OPENBOX-002). The "recent LLM todo activity" banner
@@ -286,11 +285,12 @@ struct TodoListView: View {
     /// `KanbanView.reloadFromDisk` for the symmetric flow.
     /// lift the disk-IO + state-transition logic into
     /// `TodoOps` (= the stateless business layer at
-    /// `Sources/WenshuApp/Views/Todo/TodoOps.swift`). Per ADR-0009
-    /// (= UI/业务/数据 separation), the View is now a pure consumer:
-    /// it holds the @State (items / newItemTitle / newItemPriority /
-    /// scopeDir / loadError), reads via @Environment for the
-    /// BookStore, and delegates every mutation to TodoOps.
+    /// `Sources/WenshuApp/Views/Todo/TodoOps.swift`). Per the
+    /// UI / business / data separation principle, the View is now
+    /// a pure consumer: it holds the @State (`items` / `newItemTitle`
+    /// / `newItemPriority` / `scopeDir` / `loadError`), reads via
+    /// `@Environment` for the `BookStore`, and delegates every
+    /// mutation to `TodoOps`.
     private func reloadFromDisk() {
         let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
         let result = TodoOps.loadItems(
@@ -485,10 +485,9 @@ private struct TodoRow: View {
     }
 
     private func chipStyle(for priority: TodoPriority) -> (String, Color, Color) {
-        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
-        // audit ticket 8): HierarchicalShapeStyle.tertiary is
-        // the Apple semantic ShapeStyle that auto-adapts to
-        // dark mode + Liquid Glass. Color.secondary.opacity(N)
+        // macOS 27 doc-alignment: `HierarchicalShapeStyle.tertiary`
+        // is the Apple semantic `ShapeStyle` that auto-adapts to
+        // dark mode + Liquid Glass. `Color.secondary.opacity(N)`
         // is a static gray that does NOT adapt.
         //
         // Implementation note (= reason we keep
