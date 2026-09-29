@@ -1,12 +1,8 @@
+// FileTools.swift · WenshuApp · v0.18
 //
-//  FileTools.swift · Wenshu · v0.18 ticket 07 (hermes replica)
-//
-// local file tools (hermes file tool).
-// 2026-08-19 ", Apple " + "can".
-//
-// wenshu = SwiftUI app. FileTools (read / write / patch / search / list).
-// Apple HIG: FileManager + URL + Data + String.
-//
+// Local file tools (= hermes `file` parity). Uses Apple `FileManager`
+// + `URL` + `Data` + `String` for the read / write / patch / search /
+// list surface.
 
 import Foundation
 
@@ -37,7 +33,7 @@ struct PatchHunk: Sendable {
     }
 }
 
-/// FileToolError: errors thrown by FileTools (v0.23 ticket 008: path guard).
+/// Errors thrown by `FileTools` (= the path-guard rejection surface).
 enum FileToolError: Error, LocalizedError {
     case pathDenied(path: String)
 
