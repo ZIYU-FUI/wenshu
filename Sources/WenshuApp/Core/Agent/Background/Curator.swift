@@ -1,24 +1,18 @@
+// Curator.swift · WenshuApp · v0.36
 //
-//  Curator.swift · Wenshu · v0.36 ticket 016 sub-step 4
+// Background entity curator. Periodically reviews reference-library
+// entities to:
+//   1. Detect duplicates (= near-identical entities)
+//   2. Detect stale entries (= no access in N days)
+//   3. Detect orphans (= no cross-references from other entities)
 //
-//  Background entity curator (= spec §3.1 L227-231 Background/
-//  sub-directory, file 3 of 5).
+// Curator produces a `CurationReport` (= advisory only = no
+// destructive actions). The user reviews the report and decides what
+// to merge / archive / delete. Per wenshu §11 product-positioning
+// rule, wenshu never deletes user data without consent.
 //
-//  Periodically reviews reference-library entities to:
-//  1. Detect duplicates (= near-identical entities)
-//  2. Detect stale entries (= no access in N days)
-//  3. Detect orphans (= no cross-references from other entities)
-//
-//  Curator produces a CurationReport (= advisory only = no destructive
-//  actions). User reviews the report and decides what to merge / archive /
-//  delete. Per wenshu §11 product-positioning rule, wenshu never deletes
-//  user data without consent.
-//
-//  Per ADR-0011 (= no LLM calls in curator path = pure data analysis).
-//  Per §11 hard rule (= Apple Foundation only; no external deps).
-//
-// sub-step 4 of 4 for ticket 016.
-//
+// ADR-0011 (= no LLM calls in curator path = pure data analysis).
+// §11 hard rule (= Apple Foundation only; no external deps).
 
 import Foundation
 
