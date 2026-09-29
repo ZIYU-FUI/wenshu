@@ -1,12 +1,8 @@
+// ProcessTools.swift · WenshuApp · v0.18
 //
-//  ProcessTools.swift · Wenshu · v0.18 ticket 08 (hermes replica)
-//
-// local process tools (hermes terminal / process tool).
-// 2026-08-19 ", Apple " + "can".
-//
-// wenshu = SwiftUI app. ProcessTools (/).
-// Apple HIG: Foundation Process .
-//
+// Local process tools (= hermes `terminal` / `process` parity). Uses
+// Foundation `Process` for subprocess execution; chat-triggered shell
+// shell is blocked by default (= path guard + read-only allowlist).
 
 import Foundation
 
@@ -33,10 +29,11 @@ struct ProcessResult: Equatable, Sendable {
     }
 }
 
-/// ProcessToolError: errors thrown by ProcessTools (v0.23 ticket 008: chat-triggered shell deny).
+/// Errors thrown by `ProcessTools` (= the chat-shell-deny surface
+/// + read-only allowlist rejection).
 enum ProcessToolError: Error, LocalizedError {
     case chatShellDenied(command: String)
-    case readOnlyDenied(command: String, reason: String)  // .011
+    case readOnlyDenied(command: String, reason: String)
 
     var errorDescription: String? {
         switch self {
@@ -67,9 +64,9 @@ struct ProcessTools: Tool, Sendable {
         throw ProcessToolError.chatShellDenied(command: "process tool blocked from chat")
     }
 
-    /// runShell: v0.23 ticket 008.002: blocked from chat path by default (boss 8/23).
-    /// Use wenshu-devtool CLI for legitimate shell access.
-    /// .011: read-only commands are now allowed via `runReadOnlyShell`.
+    /// runShell: blocked from chat path by default. Use the
+    /// `wenshu-devtool` CLI for legitimate shell access.
+    /// Read-only commands are allowed via `runReadOnlyShell`.
     func runShell(_ command: String, workingDirectory: String? = nil) throws -> ProcessResult {
         throw ProcessToolError.chatShellDenied(command: command)
     }
@@ -90,10 +87,11 @@ struct ProcessTools: Tool, Sendable {
         guard Self.readOnlyCommands.contains(baseCmd) else {
             throw ProcessToolError.readOnlyDenied(command: command, reason: "command '\(baseCmd)' not in read-only whitelist. allowed: \(Self.readOnlyCommands.sorted().joined(separator: ", "))")
         }
-        // Reject shell metacharacters that could be used for command injection.
-        // NOTE: use Swift.Character explicitly because WenshuApp.Character (this
-        // project's Character enum = ticket 002) shadows the standard library
-        // Character type in this scope.
+        // Reject shell metacharacters that could be used for command
+        // injection.
+        // NOTE: use `Swift.Character` explicitly because
+        // `WenshuApp.Character` (= this project's domain enum) shadows
+        // the standard library `Character` type in this scope.
         let dangerousChars: Set<Swift.Character> = [";", "&", "|", ">", "<", "`", "$", "(", ")", "{", "}", "*", "?", "[", "]", "!", "~", "#"]
         for char in trimmed {
             if dangerousChars.contains(char) {
@@ -193,9 +191,11 @@ struct ProcessTools: Tool, Sendable {
         )
     }
 
-    /// runShell: — v0.23 ticket 008: chat-triggered shell blocked (boss 8/23).
-    /// Use wenshu-devtool CLI for legitimate shell access.
-    /// (stub below replaced by the deny-only runShell earlier in this file.)
+    /// runShell: chat-triggered shell is blocked (= defense against
+    /// command injection from LLM-emitted commands). Use the
+    /// `wenshu-devtool` CLI for legitimate shell access.
+    /// (= the deny-only `runShell` earlier in this file replaces the
+    /// stub below.)
 
     /// isRunning: process yesno (Apple Process)
     func isRunning(processID: Int32) -> Bool {
