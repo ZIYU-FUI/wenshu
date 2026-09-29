@@ -1,7 +1,6 @@
-// AppRootScene.swift · Wenshu · v0.40 apple-001 phase 1 Q1 slice 2
+// Sources/WenshuApp/App/AppRootScene.swift
 //
-// Root Scene assembly (= the WindowGroup + Settings + 2 secondary
-// Windows = kanban / todo). State owners stay on the App struct
+// Root Scene assembly (= the WindowGroup + Settings + secondary windows).
 // (library / appearanceMode / appState / shell / workspaceUI /
 // repositories); AppRootScene receives them as constructor params.
 //
@@ -107,10 +106,10 @@ struct AppRootScene: Scene {
         // The onboarding form already has its own
         // `.frame(minWidth:idealWidth:maxWidth:minHeight:...)`
         // (= 640 x 720) so `.contentSize` does NOT collapse the
-        // onboarding window (= the previous v1.0.0-m1-shell OOB
-        // 'APP initial size, very small' was caused by `.contentMinSize`
-        // ignoring the onboarding's outer frame as a hint; =
-        // `.contentSize` actually DOES honour the outer frame as
+        // onboarding window (= the earlier 'APP initial size, very small'
+        // bug was caused by `.contentMinSize` ignoring the
+        // onboarding's outer frame as a hint; = `.contentSize`
+        // honours the outer frame as a hint and lets the user grow
         // the intrinsic content size).
         //
         // have it — write it in, seems like it needs to be patched': the `.contentSize` resizability
@@ -158,11 +157,10 @@ struct AppRootScene: Scene {
         // append `.defaultPosition(.center)` after `.defaultSize`.
         // macOS 13+ (= wenshu target = macOS 27).
         .defaultPosition(.center)
-        // '默认首次启动 1400 980, 用户可以
-        // 自己设置, 然后就持久化用户的': Apple HIG default restoration
-        // (= `.automatic` = SwiftUI default = persist the window frame
-        // to the system-level `NSWindow Frame <bundleID>` UserDefaults
-        // key on app quit; = read it back on next launch). Per Apple
+        // Apple HIG default restoration (= `.automatic` = SwiftUI
+        // default = persist the window frame to the system-level
+        // `NSWindow Frame <bundleID>` UserDefaults key on app quit; =
+        // read it back on next launch). Per Apple
         // developer.apple.com/documentation/swiftui/restorationbehavior
         // '.automatic: The system uses its default behavior for the
         // scene.' Combined with `.defaultSize(width: 1400, height: 980)`
@@ -181,10 +179,11 @@ struct AppRootScene: Scene {
         // Per Apple HIG developer.apple.com/documentation/swiftui/
         // view/windowresizability: 'contentMinSize: The window
         // can't be smaller than its content's minimum size, but
-        // can be larger.' = matches the v1.67 boss OOB '把 max
-        // width, max height 取消掉, 其它不动' intent (= the NSV
-        // `.frame(minWidth: 1100, minHeight: 600)` above enforces
-        // the min floor; = the max is unbounded so macOS's
+        // 'contentMinSize: The window can't be smaller than its
+        // content's minimum size, but can be larger.' = matches the
+        // intent of letting the window grow to fill the display
+        // while enforcing the NSV `.frame(minWidth: 1100, minHeight: 600)`
+        // above (= the min floor; = the max is unbounded so macOS's
         // system-level zoom gesture (= double-click on title bar /
         // click green traffic-light button / choose Window > Zoom)
         // can fill the window to the display's visibleRect). Note
@@ -424,20 +423,17 @@ struct AppRootScene: Scene {
             KanbanWindow(library: library)
         }
         .windowResizability(.contentSize)
-        // macOS 27 doc-alignment (audit ticket 3): kanban + todo
-        // secondary windows match the main window's
-        // `.unified` (= 52 PT default macOS toolbar) for
-        // consistency.
+        // macOS 27 doc-alignment: kanban + todo secondary windows
+        // match the main window's `.unified` (= 52 PT default
+        // macOS toolbar) for consistency.
         .windowToolbarStyle(.unified)
         Window("待办", id: WindowID.todo) {
             TodoWindow(library: library)
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
-        // v2.8b (boss 2026-09-28 OOB B6 + B7 + B9): 4 new
-        // independent windows for previously-unwired features.
-        // Per boss '和老板 todo 一样' (= same shape as the existing
-        // kanban + todo windows).
+        // 4 new independent windows for previously-unwired features.
+        // Per the same shape as the existing kanban + todo windows.
         Window(WenshuI18n.t("window.canvas"), id: WindowID.canvas) {
             CanvasWindow()
         }
