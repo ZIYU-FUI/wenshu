@@ -1,25 +1,18 @@
+// GeminiNativeConnector.swift · WenshuApp · v0.35
 //
-//  GeminiNativeConnector.swift · Wenshu · v0.35 ticket 007
-// (request marshaling extracted)
+// Gemini native connector. Google GenAI protocol
+// (= `generateContent` endpoint). `apiMode = 'google_genai'` (per
+// `Provider` enum).
 //
-//  Gemini native connector (= P1, ticket 007).
-//  Google GenAI protocol (= generateContent endpoint).
-//  apiMode = 'google_genai' (per Provider enum).
+// The request-body + response-decoding marshaling lives in
+// `Connector/RequestHelpers.swift` so each connector is a thin
+// wrapper. Connector-specific concerns remaining here: credential
+// resolution, URL building (= `?key=` query param), transport send,
+// and HTTP-status error path.
 //
-//  Per TICKET-HERMES-GAP-002 (= hermes-port gap audit §2.1 #8), the
-//  request-body + response-decoding marshaling has been extracted to
-//  `Connector/RequestHelpers.swift` so each connector is a thin wrapper.
-//  Connector-specific concerns remaining here: credential resolution,
-// URL
-//  building (= ?key= query param), transport send, and HTTP-status
-//  error path.
-//
-//  Note: DeepSeek + Ollama are already covered by OpenAICompatibleConnector
-//  (= ticket 005, since they use the OpenAI chat completions protocol).
-//  This file adds only the Google-specific wire format.
-//
-// (= 1 commit covering Gemini native).
-//
+// Note: DeepSeek + Ollama are already covered by
+// `OpenAICompatibleConnector` (= they use the OpenAI chat completions
+// protocol). This file adds only the Google-specific wire format.
 
 import Foundation
 
