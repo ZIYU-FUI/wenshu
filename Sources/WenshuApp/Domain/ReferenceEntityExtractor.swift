@@ -1,10 +1,7 @@
-// ReferenceEntityExtractor.swift · Wenshu  · v0.28
+// Sources/WenshuApp/Domain/ReferenceEntityExtractor.swift
 //
-// Verbatim port from hermes-agent/plugins/memory/holographic/store.py::_extract_entities
-// (= wenshu M5 ticket 12 = hermes-port batch 3 first ticket).
-//
-// Source: hermes-agent/plugins/memory/holographic/store.py L448-481
-// (= Python `_extract_entities` method).
+// Verbatim port from
+// `hermes-agent/plugins/memory/holographic/store.py::_extract_entities`.
 //
 // Rules applied (in order, matching hermes verbatim):
 // 1. Capitalized multi-word phrases  e.g. "John Doe"
@@ -12,20 +9,18 @@
 // 3. Single-quoted terms             e.g. 'pytest'
 // 4. AKA patterns                    e.g. "Guido aka BDFL" -> two entities
 //
-// Returns a deduplicated list preserving first-seen order (= dedup by
-// case-insensitive lowercased comparison).
+// Returns a deduplicated list preserving first-seen order (= dedup
+// by case-insensitive lowercased comparison).
 //
 // Public surface:
-// - ReferenceEntityExtractor.extract(_:) -> [String]
+// - `ReferenceEntityExtractor.extract(_:) -> [String]`
 //
-// (Earlier draft advertised a -> [IngestionRequest] convenience overload,
-//  but the type `IngestionRequest` is internal (= not public) so the
-//  overload would not compile if declared public. Removed; downstream
-//  callers (= ticket M5-13 smart-query rewriter, ticket M5-15 LLM Wiki
-//  pipeline) compose [String] -> [IngestionRequest] at their own
-//  call site per Q124 atomic-coupling = each consumer owns its own
-//  IngestionRequest construction.)
-//
+// Earlier draft advertised a `-> [IngestionRequest]` convenience
+// overload, but `IngestionRequest` is internal so the overload
+// would not compile if declared public. Removed; downstream
+// callers compose `[String] -> [IngestionRequest]` at their own
+// call site per atomic-coupling (= each consumer owns its own
+// `IngestionRequest` construction).
 // Per AGENTS.md Section 8 pollution-defense hex-encoding rule: this file
 // does NOT contain the 12-token forbidden vocab literal; if any
 // reference to that list is needed, describe semantically.
