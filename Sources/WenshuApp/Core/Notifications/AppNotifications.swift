@@ -1,24 +1,16 @@
-// AppNotifications.swift · Wenshu () · v0.34
+// AppNotifications.swift · WenshuApp · v2.6
 //
-// Notification.Name
-// naming convention scattered (= 6 wenshu.X + 5 com.wenshu.X across
-// 2 extension blocks in App.swift). Moved to this single source of
-// truth + unified to Apple's reverse-DNS naming convention (=
-// "com.wenshu.X" for Notification.Name raw values per
-// developer.apple.com/documentation/foundation/nsnotificationname
-// + Apple Notification Programming Topics).
+// Single source of truth for `Notification.Name` raw values. Unified
+// on Apple's reverse-DNS naming convention (= "com.wenshu.X"; see
+// developer.apple.com/documentation/foundation/nsnotificationname +
+// Apple Notification Programming Topics).
 //
 // Grouped into 3 semantic enums (= backward-compat accessors exposed
-// as static lets on each enum case so existing callers compile
-// unchanged):
-//   - AppCommands:    toolbar / menu-driven commands (= actions from user)
-//   - AppStateEvents: lifecycle events posted by core systems
-//                     (= chat store ready, provider keychain change)
-//   - LayoutEvents:   layout / edit-mode state changes
-//
-// Single file location for ALL Notification.Name values makes the
-// surface area discoverable (= `grep AppNotifications.swift Sources/`
-// enumerates the complete cross-instance signaling contract in one shot).
+// as `static let`s on `Notification.Name` so existing callers
+// compile unchanged):
+//   - `AppCommands`:    toolbar / menu-driven commands
+//   - `AppStateEvents`: lifecycle events posted by core systems
+//   - `LayoutEvents`:   layout / edit-mode state changes
 
 import Foundation
 
@@ -27,11 +19,6 @@ import Foundation
 // Toolbar / menu-driven commands. Posted from .commands { Button } and
 // other AppKit menu item surfaces. Listened by views that don't share
 // a direct @Environment / @Binding with the menu source.
-//
-// 
-// substitute for these specific notifications (= .commands Button -> View
-// is the reverse direction from @FocusedValue's View -> commands
-// capability; v0.34 commit 85f87a68f Apple-API-first #6 documented this).
 enum AppCommands: String, CaseIterable {
     /// Toggle one of the 6 zones (= sidebar / preview / editor / tools /
     /// chat / dynamic). Object payload: ZoneSlot.
@@ -50,8 +37,7 @@ enum AppCommands: String, CaseIterable {
 
     /// Request to present the NewChoiceSheet (= new project / new book /
     /// new shelf picker). Posted by zone-header buttons, consumed by
-    /// AppleSidebarView body. v0.30 boss 8/31 OOB #2 'popupmenurestore'
-    /// tracks this notification's lifecycle.
+    /// AppleSidebarView body.
     case choiceRequested = "com.wenshu.choiceRequested"
 
     /// Request to export (= zip current .ws bundle).
@@ -91,34 +77,26 @@ enum LayoutEvents: String, CaseIterable {
 
     /// Toggle layout edit mode (= View menu "Layout edit mode" entry,
     /// ⌘⇧\ hotkey). Listened by WorkspaceView's LayoutEditMode singleton.
-    /// -006.
     case toggleEditMode = "com.wenshu.toggleEditMode"
 
     /// Editor expand/shrink toggle (= editor top-bar right-side expand icon).
     /// Object payload: Bool (= true = expand, false = shrink). Posted by
     /// EditorExpandShrinkTrailingButton when @AppStorage("wenshu.editorMaximized")
     /// changes. Listened by PaneNSController.handleEditorMaximizedChanged(:_)
-    /// which snapshots 6-zone visibility + editor weight BEFORE hiding other
-    /// zones (= shrink restore per Q38 boss "status snapshot" decision).
-    /// (= spec: .scratch/v0.34-editor-preview-and-expand/spec.md).
+    /// which snapshots 6-zone visibility + editor weight BEFORE hiding
+    /// other zones (= so the unmaximize path can restore them).
     case editorMaximizedChanged = "com.wenshu.editorMaximizedChanged"
 }
 
 // MARK: - Backward-compat accessors
 //
-// Existing callers reference these notifications as
-// `.wenshuToggleZone` (= the legacy static lets on Notification.Name
-// defined IN THIS FILE (= AppNotifications.swift) at L127+, NOT in
-// App.swift L40-69; = the App.swift L47 extension was reduced to a
-// placeholder after the definitions moved here). To preserve all
-// 17 call sites without renaming them, expose static accessors on
-// each enum case that map to the legacy `Notification.Name.wenshuXxx`
-// keys.
+// Existing callers reference these notifications as `.wenshuXxx`
+// (= the legacy `static let`s on `Notification.Name` defined here).
+// To preserve all 17 call sites without renaming them, expose
+// `static let`s on `Notification.Name` that map to the enum cases.
 //
 // New code SHOULD reference the enum case directly (= cleaner intent)
-// but the legacy path remains functional for the migration window.
-// Future PR (= v0.35+): rename callers to use the enum cases, then
-// delete these static accessors.
+// but the legacy path remains functional.
 extension Notification.Name {
     // AppCommands
     static let wenshuToggleZone = Notification.Name(AppCommands.toggleZone.rawValue)
@@ -130,14 +108,10 @@ extension Notification.Name {
 
     // AppStateEvents
     static let wenshuProviderKeychainChanged = Notification.Name(AppStateEvents.providerKeychainChanged.rawValue)
-    // wenshuChatStoreReady removed (= v0.72 SwiftData migration; see CHANGELOG.md).
     static let wenshuDefocusChatInput = Notification.Name(AppStateEvents.defocusChatInput.rawValue)
 
-    // Migration note: original local symbol in RuntimeCWDDisplayChip.swift
-    // was named `runtimeCWDDidChange` (no wenshu prefix). Preserve that
-    // exact name so existing call sites (.onReceive + test addObserver)
-    // compile unchanged. The underlying raw value is now the unified
-    // AppStateEvents.runtimeCWDDidChange enum case (Apple reverse-DNS).
+    /// Local symbol for `runtimeCWDDidChange` (no `wenshu` prefix to
+    /// match the existing call sites in RuntimeCWDDisplayChip + tests).
     static let runtimeCWDDidChange = Notification.Name(AppStateEvents.runtimeCWDDidChange.rawValue)
 
     // LayoutEvents
