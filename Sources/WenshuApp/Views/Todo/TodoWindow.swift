@@ -1,14 +1,11 @@
+// Sources/WenshuApp/Views/Todo/TodoWindow.swift
 //
-//  TodoWindow.swift · Wenshu · v1.0.0-m1-shell boss 2026-09-11 OOB
-//
-//  Todo as an independent macOS window (= the SwiftUI macOS 14+
-//  WindowGroup(id: "wenshu-todo") per boss 2026-09-11 OOB
-//  'Kanban and Todo — show in dedicated windows'. Companion to KanbanWindow;
-//  same multi-window pattern (= Pages / Numbers / Keynote /
-//  Photos / Mail each open independent surfaces in their own
-//  windows so the user can keep the todo list pinned to the
-//  side of the screen while editing).
-//
+// Todo as an independent macOS window (= the SwiftUI macOS 14+
+// `WindowGroup(id: "wenshu-todo")` pattern). Companion to
+// `KanbanWindow`; same multi-window pattern (= Pages / Numbers
+// / Keynote / Photos / Mail each open independent surfaces in
+// their own windows so the user can keep the todo list pinned
+// to the side of the screen while editing).
 //  Window composition:
 //  - TodoListView (= the existing todo list view, takes the
 //    full window body; = no extra NavigationSplitView chrome
