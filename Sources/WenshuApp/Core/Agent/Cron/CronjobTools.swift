@@ -13,7 +13,7 @@
 //  per AGENTS.md §11.2; LLM-side cron dispatcher is over-engineering.
 //  Future ticket (= v0.74+) may wire it IF the user requests cron-via-chat.
 //
-//  This file is NOT dead code (= per Q57: 3rd-party verdict ≠ authority);
+//  This file is NOT dead code (= 3rd-party verdict ≠ authority);
 //  it documents the deferred surface and remains as a reference for future work.
 //
 //  Per spec §2.3: cron is a wenshu-side-wins surface (= wenshu's existing
@@ -40,8 +40,8 @@
 //  directives detection) so the LLM-side tool refuses to create
 //  jobs with injection-prone prompts.
 //
-// ticket 21 (= user-side cron in Cronjob.swift) +
-// (2026-09-04) for the LLM-side surface.
+// User-side cron surface lives in Cronjob.swift (= the LLM-side
+// tool dispatcher is out of scope per AGENTS.md §11.2).
 //
 
 import Foundation
