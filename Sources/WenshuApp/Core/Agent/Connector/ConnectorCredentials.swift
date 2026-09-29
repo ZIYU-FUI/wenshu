@@ -1,20 +1,20 @@
+// ConnectorCredentials.swift · WenshuApp · v0.35
 //
-//  ConnectorCredentials.swift · Wenshu · v0.35 ticket 001 sub-step 2
+// Thin resolver that delegates to existing wenshu `ProviderKeychain`
+// (= AGENTS.md §11.3 wenshu-side wins pattern: do not re-implement
+// keychain; reuse the existing `ProviderKeychainStoring` protocol
+// verbatim).
 //
-//  Thin resolver that delegates to existing wenshu ProviderKeychain
-//  (= AGENTS.md §11.3 wenshu-side wins pattern: do not re-implement
-//  keychain; reuse the existing ProviderKeychainStoring protocol verbatim).
+// Resolves the active connector profile (= `Provider` enum) to:
+//   - `apiKey: String` (= "" for providers without auth, e.g. Ollama)
+//   - `baseURL: String` (= `Provider.defaultBaseURL`, or
+//     user-customized via Settings)
+//   - `provider: Provider` (= the source of truth for slug / auth /
+//     wire format)
 //
-//  Resolves the active connector profile (= Provider enum) to:
-//    - apiKey: String (= "" for providers without auth, e.g.g. Ollama)
-//    - baseURL: String (= Provider.defaultBaseURL, or user-customized via Settings)
-//    - provider: Provider (= the source of truth for slug / auth / wire format)
-//
-//  This is the minimum credential surface needed by LLMConnector.send.
-//  Full credential pool with OAuth flow + key rotation lands in ticket 006.
-//
-// sub-step 2 of 8 for ticket 001.
-//
+// This is the minimum credential surface needed by `LLMConnector.send`.
+// Full credential pool with OAuth flow + key rotation lands in a
+// future wiring.
 
 import Foundation
 
