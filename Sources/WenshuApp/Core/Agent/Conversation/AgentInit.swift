@@ -8,10 +8,10 @@
 // Hermes `agent_init.py` is the implementation of `AIAgent.__init__`
 // (= 60+ parameters, 1400 lines of attribute initialization +
 // provider auto-detection + credential resolution + context-engine
-// bootstrap). The full `init_agent` body is too large to port in
-// a single ticket (= would exceed the 1-ticket-1-file scope), so
-// this ticket ports only the 3 hermes PURE HELPERS that are
-// reusable outside the `AIAgent` class:
+// bootstrap). The full `init_agent` body is too large to port as
+// a single-file change (= would exceed the 1-file-1-purpose
+// scope), so this file ports only the 3 hermes PURE HELPERS that
+// are reusable outside the `AIAgent` class:
 //
 //   1. `_resolve_compression_threshold` (= hermes L93-L120).
 //   2. `_normalized_custom_base_url` (= hermes L183-L187).
