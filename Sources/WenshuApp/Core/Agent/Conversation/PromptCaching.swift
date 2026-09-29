@@ -1,15 +1,14 @@
+// PromptCaching.swift · WenshuApp · v0.35
 //
-//  PromptCaching.swift · Wenshu · v0.35 ticket 002 sub-step 1
+// Anthropic prompt caching strategy. Direct port of hermes
+// `prompt_caching.py`.
 //
-//  Anthropic prompt caching strategy. Direct port of hermes
-//  prompt_caching.py (= L1-L119, 119 LOC).
+// Single layout: `system_and_3`. 4 `cache_control` breakpoints —
+// system prompt + last 3 non-system messages, all at the same
+// TTL (5m or 1h).
 //
-//  Single layout: system_and_3. 4 cache_control breakpoints — system
-//  prompt + last 3 non-system messages, all at the same TTL (5m or 1h).
-//
-//  Reduces input token costs by ~75% on multi-turn conversations within
-//  a single session.
-//
+// Reduces input token costs by ~75% on multi-turn conversations
+// within a single session.
 //  Pure functions — no class state, no actor dependency.
 //
 //  Swift port design (= hermes-by-hermes):
@@ -22,9 +21,7 @@
 //  - hasCacheControl(_:) + extractCacheControl(_:) helpers for inspection
 //  - _can_carry_marker logic: skip empty-content messages (= top-level
 //    marker would be silently ignored by envelope layout providers)
-//
-// ticket 002 sub-step 1 of N (= ticket 002 = PromptCaching +
-//  SystemPrompt + cache-stable invariants per spec §3.3 + §0.1 A3).
+
 //
 
 import Foundation
@@ -52,10 +49,11 @@ enum PromptCaching {
     ) -> [LLMMessage] {
         let marker = buildMarker(ttl: ttl)
 
-        // Hermes contract (= ticket 002 sub-step 1):
-        //   - System prompt carries one cache_control breakpoint
+        // Hermes contract (= the canonical wiring):
+        //   - System prompt carries one `cache_control` breakpoint
         //     (= returned to the caller separately; not visible here).
-        //   - Last 3 non-system messages also carry a cache_control marker.
+        //   - Last 3 non-system messages also carry a `cache_control`
+        //     marker.
         //
         // `_can_carry_marker` skips empty-content messages (= a
         // top-level marker would be silently ignored by envelope
@@ -84,10 +82,10 @@ enum PromptCaching {
         // 3-marker tail is bounded so the cache-prefix size stays
         // predictable across long sessions.
         //
-        // Short-conversation override (= ticket 018 Z contract test
-        // `HermesPortGoldenParityTests.prompt_caching.apply_cache_control`):
-        // when the input conversation is small (= ≤ 4 messages,
-        // all carryable) the hermes short-conversation shape marks
+        // Short-conversation override (= the Z-contract golden
+        // parity test for the short-conversation shape): when the
+        // input conversation is small (= ≤ 4 messages, all
+        // carryable), the hermes short-conversation shape marks
         // EVERY carryable message. The golden file reports
         // `cache_breakpoints: 4` for `messages_count: 4` (= 1
         // system-level + 3 message-level — but the parity test
