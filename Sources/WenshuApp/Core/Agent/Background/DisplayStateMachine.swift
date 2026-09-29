@@ -1,20 +1,14 @@
+// DisplayStateMachine.swift · WenshuApp · v0.36
 //
-//  DisplayStateMachine.swift · Wenshu · v0.36 ticket 016 sub-step 2
+// Finite state machine for background task display. Each background
+// task (= indexing, search, sync, etc.) runs through a predictable
+// state machine: idle → running → success | error | cancelled.
+// `DisplayStateMachine` ensures the UI shows consistent state
+// transitions (= no flickering 'running → running → done' or stuck
+// 'running' on errors).
 //
-//  Finite state machine for background task display (= spec §3.1 L227-231
-//  Background/ sub-directory, file 5 of 5).
-//
-//  Each background task (= indexing, search, sync, etc.) runs through a
-//  predictable state machine: idle -> running -> success | error | cancelled.
-//  DisplayStateMachine ensures the UI shows consistent state transitions
-//  (= no flickering 'running -> running -> done' or stuck 'running' on
-//  errors).
-//
-//  Pure enum (= no actor, no state = thread-safe by definition). Callers
-//  observe transitions and update UI accordingly.
-//
-// sub-step 2 of 4 for ticket 016.
-//
+// Pure enum (= no actor, no state = thread-safe by definition).
+// Callers observe transitions and update UI accordingly.
 
 import Foundation
 
@@ -107,15 +101,16 @@ struct DisplayStateMachine: Sendable {
         self.startedAt = Date()
     }
 
-    /// Manual `Equatable` implementation (= ticket 016 Z contract test
+    /// Manual `Equatable` implementation (Z contract test
     /// `DisplayStateMachine: Equatable`): two machines with the same
     /// `state` + `taskName` are equal, regardless of their `startedAt`
-    /// timestamps. The synthesized Equatable from the struct would
+    /// timestamps. The synthesized `Equatable` from the struct would
     /// include `startedAt`, which is a wall-clock timestamp set in
     /// `init` and always differs between two freshly-constructed
-    /// instances (= nanoseconds apart). Tests assert that two machines
-    /// with identical task + state are equal for diffing purposes; the
-    /// creation time is observability metadata, not identity.
+    /// instances (= nanoseconds apart). Tests assert that two
+    /// machines with identical task + state are equal for diffing
+    /// purposes; = the creation time is observability metadata, not
+    /// identity.
     static func == (lhs: DisplayStateMachine, rhs: DisplayStateMachine) -> Bool {
         return lhs.state == rhs.state && lhs.taskName == rhs.taskName
     }
@@ -134,14 +129,15 @@ struct DisplayStateMachine: Sendable {
 
     /// Convenience: mark running with progress.
     ///
-    /// Per ticket 016 sub-step 2 Z contract: the `progress` value is
-    /// clamped to 0..1 regardless of caller input (= robustness against
-    /// rounding drift in upstream token-budget calculations). When the
-    /// machine is already in a `running` state, the clamped progress
-    /// replaces the existing progress directly (= monotonic check is
-    /// skipped because the clamp itself guarantees the value is bounded;
-    /// a backward jump from running(1.0) to running(0.0) is a legitimate
-    /// "estimate refined" event, not an illegal transition).
+    /// Per the Z contract: the `progress` value is clamped to 0..1
+    /// regardless of caller input (= robustness against rounding drift
+    /// in upstream token-budget calculations). When the machine is
+    /// already in a `running` state, the clamped progress replaces the
+    /// existing progress directly (= monotonic check is skipped
+    /// because the clamp itself guarantees the value is bounded;
+    /// a backward jump from `running(1.0)` to `running(0.0)` is a
+    /// legitimate 'estimate refined' event, not an illegal
+    /// transition).
     ///
     /// When the machine is in `.idle`, this performs a normal transition
     /// to `.running(progress:)`. From any terminal state, callers must
