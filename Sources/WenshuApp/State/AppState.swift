@@ -77,35 +77,17 @@ final class AppState {
     // a separate concern from cross-zone state + openTabs +
     // llmModel = the only remaining AppState contents).
 
-    // -m1-shell boss 2026-09-10 OOB 'the sidebar tree syntax does not match
-    // Apple API': 3 sheet-request triggers moved from
-    // NotificationCenter (.wenshuNewBookRequested /
-    // .wenshuNewShelfRequested / .wenshuChoiceRequested) into
-    // @Observable shared state. The toolbar Menu in AppRootScene
-    // (.keyboardShortcut("n", modifiers: .command)) and the
-    // sidebar's own New buttons (zoneHeaderButtons +
-    // sidebarBottomNewButton) all need to flip the same `showNewX
-    // Sheet` @State on the sidebar body. Cross-component writes
-    // belong in shared @Observable state, not in a Notification
-    // channel (= NotificationCenter is fire-and-forget, no observed
-    // binding, requires manual @State copy on receiver side, =
-    // fragile data flow). The pattern: the toolbar Menu or
-    // sidebar button mutates appState.newBookRequestCount += 1;
-    // the sidebar body observes via .onChange(of: appState.
-    // newBookRequestCount) and flips its local showNewBookSheet.
-    // Same approach for newShelfRequestCount + choiceRequestCount.
-    // 3 sheet-request triggers (= newBook / newShelf / choice)
-    // moved to SheetRequestState.swift (= P2-06 split batch 4).
+    // 3 sheet-request triggers (= newBook / newShelf / choice) moved
+    // to SheetRequestState.swift (= the P2-06 split batch 4 host).
     // The counters are fire-and-forget triggers (= toolbar Menu
     // bumps the counter = sidebar body observes .onChange and
     // flips its local @State showXSheet). Same pattern in 3
     // places, all bundled on SheetRequestState.
 
-    // -m1-shell boss 2026-09-10 OOB 'global search': promote
-    // the search text to AppState (= a single source of truth
+    // The search text lives in AppState (= a single source of truth
     // shared across all `.searchable` modifiers attached to
     // different column views). Per Apple SwiftUI docs, multiple
-    // `.searchable` modifiers on the same binding (= Binding<String>
+    // `.searchable` modifiers on the same binding (= `Binding<String>`
     // bound to this @Observable property) will all reflect the
     // same live value, but only the active-focused column's
     // search field is rendered visible (= the others auto-focus
@@ -142,12 +124,11 @@ final class AppState {
             persistOpenTabs()
         }
     }
-    // chapter-focus-lock 2026-09-28: single-focus source of truth
-    // for chapter editing (= boss 2026-09-28 OOB '互锁编辑权限').
-    // nil = no tab is open OR the active tab has no document
-    // (= LLM can edit). non-nil = the boss has this chapter's tab
-    // open AND that tab is the currently-active one (= LLM tool
-    // calls into this path throw `chapterFocusedByBoss`). The
+    // chapter-focus-lock: single-focus source of truth
+    // for chapter editing. nil = no tab is open OR the active tab
+    // has no document (= LLM can edit). non-nil = the user has this
+    // chapter's tab open AND that tab is the currently-active one
+    // (= LLM tool calls into this path throw `chapterFocusedByBoss`).
     // chatVisible gate (= LLM can edit when boss is in chat) lives
     // at the call site (= EditorPlaceholder computes the final
     // isChapterLockedByLLM using its @Environment(ShellState.self)
@@ -224,7 +205,7 @@ final class AppState {
     static let openTabsKey = "wenshu.editor.openTabs.v1"
     static let activeTabIdKey = "wenshu.editor.activeTabId.v1"
 
-    /// Persist openTabs to UserDefaults as JSON (= v0.40 boss 9/7).
+    /// Persist openTabs to UserDefaults as JSON.
 
     // MARK: - P2-06 extracted concerns (= openTabs persistence lives in AppState+Tabs.swift)
 
@@ -270,13 +251,12 @@ final class AppState {
         activeTabId = openTabs[0].id
     }
 
-    // tab close button (= boss 2026-09-22 OOB 'TEB 没有叉,
-    // 导致文档只能打开关不掉' + '需要加 X, 同时确保自动保存有用'):
-    // the business entry point for the new X button on the editor
-    // tab strip (= closes one tab by id; = flushes dirty drafts
-    // synchronously so closing doesn't lose pending edits).
+    // Tab close button: the business entry point for the new X
+    // button on the editor tab strip (= closes one tab by id; =
+    // flushes dirty drafts synchronously so closing doesn't lose
+    // pending edits).
     //
-    // Auto-save guarantee (= per boss spec '确保自动保存有用'):
+    // Auto-save guarantee (= the canonical invariant):
     // - dirty tab + pending auto-save Task (= 3-second debounce
     //   mid-flight): cancel the Task (= prevents it from resuming
     //   on a deleted tab = potential crash + stale write) + flush
@@ -312,7 +292,7 @@ final class AppState {
         EditorFileWatcher.stop(tab: tab)
 
         // 3. Flush the dirty draft synchronously if needed (= the
-        // boss's '确保自动保存有用' invariant). clean tabs compare
+        // canonical auto-save invariant). clean tabs compare
         // equal so the EditorPersistence.save is skipped (= idempotent).
         if tab.draft != tab.originalBody {
             EditorPersistence.save(tab: tab, bookStore: bookStore)
@@ -408,8 +388,7 @@ struct PersistedEditorTab: Codable {
     let draft: String
     let originalBody: String
     let mode: String  // EditorMode.rawValue (= "preview" / "edit")
-    // -m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
-    // persist the card title (= 'Red Cliffs' / 'Du Fu' etc.) so the
+    // Persist the card title (= 'Red Cliffs' / 'Du Fu' etc.) so the
     // tab strip shows the real name after relaunch (= instead of
     // 'preview-sample').
     let title: String?
@@ -433,21 +412,19 @@ final class EditorTab: Identifiable {
     var draft: String
     var originalBody: String
     var mode: EditorMode
-    // -m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
     // when openCardInEditor opens a reference-library card (= no
-    // documentPath = no absolute path = the ticket 027-35 deferred
-    // path-resolution path), the tab strip used to render
-    // 'preview-sample' as a placeholder (= ugly = the user sees a
-    // non-meaningful name in the tab strip). Populate `title` at
-    // openCardInEditor time (= the entity / book-doc title =
-    // 'Red Cliffs' / 'Du Fu' / 'What is Wenshu' etc.) so tabDisplayTitle
-    // can show it instead of 'preview-sample'. When the real
-    // documentPath lands (ticket 027-35), the basename wins (= same
-    // precedence as the existing fallback chain).
+    // documentPath = no absolute path = the deferred path-resolution
+    // path), the tab strip used to render 'preview-sample' as a
+    // placeholder (= ugly = the user sees a non-meaningful name in
+    // the tab strip). Populate `title` at openCardInEditor time (=
+    // the entity / book-doc title = 'Red Cliffs' / 'Du Fu' /
+    // 'What is Wenshu' etc.) so `tabDisplayTitle` can show it instead
+    // of 'preview-sample'. When the real documentPath lands, the
+    // basename wins (= same precedence as the existing fallback
+    // chain).
     var title: String?
 
-    // boss 9/7 OOB 'card zoneshouldshowin progress
-    // card': capture the scope where this doc was opened
+    // capture the scope where this doc was opened
     // from (= drives sidebar selection + preview cards on
     // restore). = .referenceScope(cat) for library refs,
     // = .bookScope(bookId, folder) for book docs, etc. Optional
@@ -471,7 +448,7 @@ final class EditorTab: Identifiable {
     // change overwrites dirty user edits (= saves them to .local-wenshu-conflict-...md).
     var externalChangeNotice: String?
 
-    // ticket 09: dirty-discard alert (= only relevant in edit mode).
+    // dirty-discard alert (= only relevant in edit mode).
     var showDirtyDiscardConfirm: Bool = false
 
     init(
@@ -479,19 +456,19 @@ final class EditorTab: Identifiable {
         documentPath: String?,
         draft: String,
         originalBody: String,
-        // ticket 001-A-extended: default to .edit (= was .preview
-        // in v0.34; = the reason the placeholder tab and any caller that
-        // uses the default init landed users in raw-text preview mode
-        // rather than the live-styling editor). openCardInEditor passes
-        // .edit explicitly too, but this default is the one the placeholder
-        // tab + 027-35 document-load ticket use, so it must match.
+        // default to `.edit` (= was `.preview` in v0.34; = the reason the
+        // placeholder tab and any caller that uses the default init
+        // landed users in raw-text preview mode rather than the
+        // live-styling editor). openCardInEditor passes `.edit`
+        // explicitly too, but this default is the one the placeholder
+        // tab + 027-35 document-load path use, so it must match.
         mode: EditorMode = .edit,
-        // -m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
-        // when documentPath is nil (= reference-library entity; =
-        // path resolution deferred to ticket 027-35), the tab strip
-        // displays `title` (= 'Red Cliffs' / 'Du Fu' etc.) instead of
-        // the 'preview-sample' placeholder. Default nil = no override
-        // (= the existing fallback chain shows 'preview-sample').
+        // when `documentPath` is nil (= reference-library entity; =
+        // the deferred path-resolution path), the tab strip
+        // displays `title` (= 'Red Cliffs' / 'Du Fu' etc.) instead
+        // of the 'preview-sample' placeholder. Default nil = no
+        // override (= the existing fallback chain shows
+        // 'preview-sample').
         title: String? = nil
     ) {
         self.id = id
@@ -503,10 +480,9 @@ final class EditorTab: Identifiable {
         self.title = title
     }
 
-    // -m1-shell boss 2026-09-12 OOB 'tab is not showing the filename bug':
-    // the canonical display title for a tab (= the value shown in
+    // The canonical display title for a tab (= the value shown in
     // the tab strip). Single source of truth = `EditorTab.displayTitle`
-    // (= v0.71 P1 batch 4 dual-axis fix removed the duplicate
+    // (= the v0.71 P1 batch 4 dual-axis fix removed the duplicate
     // wrappers in WorkspaceView + PreviewPane; this comment was
     // updated to reflect the now-eliminated drift risk).
     //
@@ -516,12 +492,12 @@ final class EditorTab: Identifiable {
     //      basename is non-empty, use it.
     //   2. tab.title (= the entity / book-doc title = 'Red Cliffs'
     //      / 'Du Fu' / 'What is Wenshu' etc.). For reference-library
-    //      cards without a real documentPath (= ticket 027-35
-    //      deferred path resolution), this is the only source of
-    //      a meaningful name.
+    //      cards without a real documentPath (= the deferred
+    //      path resolution), this is the only source of a
+    //      meaningful name.
     //   3. 'preview-sample' (= the legacy placeholder; = only
     //      reached when neither documentPath nor title is set;
-    //      = the ticket 027-35 path-resolution will narrow this
+    //      = the deferred path-resolution will narrow this
     //      fallback to the empty / placeholder tabs).
     static func displayTitle(_ tab: EditorTab) -> String {
         if let path = tab.documentPath, !path.isEmpty {
