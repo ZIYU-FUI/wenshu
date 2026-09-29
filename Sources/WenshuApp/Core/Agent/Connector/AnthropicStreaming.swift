@@ -1,14 +1,12 @@
+// AnthropicStreaming.swift · WenshuApp · v0.35
 //
-//  AnthropicStreaming.swift · Wenshu · v0.35 ticket 004 sub-step 2 + 3
+// Anthropic SSE streaming + tool_use round-trip helpers for
+// `AnthropicConnector`. The original `AnthropicConnector.swift`
+// shipped only the synchronous `send()` path; SSE streaming +
+// tool_use round-trip live here.
 //
-//  Anthropic SSE streaming + tool_use round-trip helpers for AnthropicConnector.
-//  Originally ticket 004 sub-step 1 (AnthropicConnector.swift) shipped only
-//  the synchronous send() path; SSE streaming and tool_use round-trip landed
-//  here per Spec-axis (c)-2 finding (= ticket 004 L28-36 acceptance).
-//
-//  This file uses mattt/EventSource 1.5.1 (= already in Package.swift per
-//  AGENTS.md §11.1 third-party library policy; macOS-first MIT, 116 stars).
-//
+// Uses `mattt/EventSource` 1.5.1 (= per AGENTS.md §11.1
+// third-party library policy; macOS-first MIT, 116 stars).
 
 import Foundation
 import EventSource
@@ -124,4 +122,4 @@ enum AnthropicSSEDecoder {
 /// Anthropic tool_use round-trip state machine.
 /// Tracks in-progress tool calls (= received content_block_start with type=tool_use,
  /// collecting input deltas until content_block_stop), then emits a LLMBlock.toolUse
- /// for downstream ToolExecutor dispatch (= ticket 001 sub-step 5 ToolExecutor).
+ /// for downstream `ToolExecutor` dispatch.
