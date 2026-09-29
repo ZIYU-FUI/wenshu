@@ -1,18 +1,13 @@
+// ErrorClassifier.swift · WenshuApp · v0.36
 //
-//  ErrorClassifier.swift · Wenshu · v0.36 ticket 015 sub-step 2
+// Classify errors from `LLMConnector.send()` into actionable categories
+// (= rate-limit, auth, network, server, bad-request, unknown). The
+// classifier enables the caller (= `ChatViewModel`) to surface
+// user-friendly error messages + decide retry policy without
+// inspecting raw URLSession / Foundation errors.
 //
-//  Classify errors from LLMConnector.send() into actionable categories
-//  (= rate-limit, auth, network, server, bad-request, unknown).
-//
-//  Per spec §3.1 L209-210 + hermes-port: enables caller (= ChatViewModel)
-//  to surface user-friendly error messages + decide retry policy
-//  without inspecting raw URLSession / Foundation errors.
-//
-//  Pure Swift (= no external deps; per wenshu §11 hard rule + ADR-0011
-//  no LLM calls in classifier path).
-//
-// sub-step 2 of 3 for ticket 015.
-//
+// Pure Swift (= no external deps; per wenshu §11 hard rule + ADR-0011
+// no LLM calls in classifier path).
 
 import Foundation
 
