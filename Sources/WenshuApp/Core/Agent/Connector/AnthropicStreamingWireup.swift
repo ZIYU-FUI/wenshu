@@ -1,18 +1,18 @@
+// AnthropicStreamingWireup.swift · WenshuApp · v0.35
 //
-//  AnthropicStreamingWireup.swift · Wenshu · v0.35 ticket 004 sub-step 4
+// Wires `EventSource` 1.5.1 (= `mattt/EventSource`, already in
+// `Package.swift`) into `AnthropicConnector` for SSE streaming.
 //
-//  Wires EventSource 1.5.1 (= mattt/EventSource, already in Package.swift)
-//  into AnthropicConnector for SSE streaming (= ticket 004 L31 acceptance).
-//
-//  Per /code-review Spec re-review, prior attempts hit Swift6 strict
-//  concurrency blockers (= @Sendable (Event) async -> Void callback vs
-//  AsyncThrowingStream init closure). This file solves via:
-//  1. EventSource nonisolated onMessage setter (= internally wraps in
-//     Task { await self.setOnMessageCallback(newValue) })
-//  2. AnthropicStreamingWireup is its own actor (= thread-safe state)
-//  3. Returning AsyncStream (= Swift-native async sequence, non-throwing
-//     variant of AsyncThrowingStream, simpler init closure = avoids
-//     @Sendable capture issue)
+// Prior attempts hit Swift 6 strict-concurrency blockers
+// (= `@Sendable (Event) async -> Void` callback vs
+// `AsyncThrowingStream` init closure). This file solves via:
+//   1. EventSource nonisolated `onMessage` setter (= internally
+//      wraps in `Task { await self.setOnMessageCallback(newValue) }`)
+//   2. `AnthropicStreamingWireup` is its own actor (= thread-safe
+//      state)
+//   3. Returning `AsyncStream` (= Swift-native async sequence,
+//      non-throwing variant of `AsyncThrowingStream`, simpler init
+//      closure = avoids `@Sendable` capture issue)
 //
 //  Per ADR-0009 (wenshu-side wins) + §11.3: this is a thin adapter over
 //  EventSource. No duplicate SSE parser (= EventSource.Parser is the
@@ -168,10 +168,9 @@ enum AnthropicStreamingWireupFactory {
         messages: [LLMMessage],
         tools: [ToolRegistrySchema] = []
     ) -> URLRequest {
-        // Inline URLRequest builder (= ticket 004 sub-step 4; the
-        // AnthropicStreamingRequest helper was scoped to ticket 004
-        // sub-step 2+3 = uncommitted AnthropicStreaming.swift. Inlining
-        // here keeps the wire-up self-contained per sub-step 4 scope.)
+        // Inline URLRequest builder (= the AnthropicStreamingRequest helper
+        // was scoped to AnthropicStreaming.swift; inlining here keeps
+        // the wire-up self-contained).
         // 
         // replaced `URL(string: \"...\")!` (= audit's LOW smell; =
         // force-unwrap on a runtime-built string) with explicit
