@@ -1,4 +1,4 @@
-// FileSystemReferenceStore.swift · Wenshu () · v0.26 (FCP library replica)
+// FileSystemReferenceStore.swift · WenshuApp · v2.6
 //
 // Reference-library storage layer.
 //
@@ -13,10 +13,6 @@
 // per library; sibling to user-created shelves/). Reference struct
 // holds structured metadata; the .md body holds the free-form
 // research material.
-//
-// Implementation pattern matches FileSystemWorldStore +
-// FileSystemCharacterStore, with the addition of a
-// ReferenceLayer-aware subdirectory and a Library-level metadata file.
 
 import Foundation
 
@@ -36,10 +32,9 @@ protocol ReferenceStoring: Sendable {
     func saveMetadata(_ metadata: ReferenceLibraryMetadata) throws
 
     /// Returns the parsed index of all references, across all 4 LLM
-    /// Wiki layers. Missing files = [], corrupt = []. v0.26 only
-    /// surfaces the `layerRaw` + `layerEntities` entries (= per spec
-    /// v5 isUserFacing flag); `layerabstracts` + `layerindexes` are
-    /// hidden from the UI.
+    /// Wiki layers. Missing files = [], corrupt = []. Only
+    /// `layerRaw` + `layerEntities` are surfaced to the UI; the
+    /// `layerabstracts` + `layerindexes` entries are hidden.
     func loadAllReferences() throws -> [Reference]
 
     /// Returns the references in a single layer (= used by the second-
@@ -53,8 +48,8 @@ protocol ReferenceStoring: Sendable {
     /// Update an existing reference in place.
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws
 
-    /// Upsert by title within a layer (= boss 2026-09-25 directive:
-    /// "same topic research edits existing doc, not creates new").
+    /// Upsert by title within a layer (= the recurring-research path:
+    /// same topic research edits existing doc, not creates new).
     ///
     /// Behavior:
     ///   - Looks up an existing reference whose `title` (case-insensitive
@@ -86,12 +81,13 @@ protocol ReferenceStoring: Sendable {
         summary: String
     ) throws -> Reference
 
-    /// Upsert-with-tags overload (= v2.6 facet model). When `tags`
-    /// is non-nil, it replaces the existing tags (the caller is
-    /// expected to have done the merge already in the agent layer).
-    /// When `tags` is nil, the existing tags are preserved (the
-    /// legacy upsert path). See `FileSystemReferenceStore.upsertReference`
-    /// for the implementation.
+    /// Upsert-with-tags overload (= the facet-model path). When
+    /// `tags` is non-nil, it replaces the existing tags (= the
+    /// caller is expected to have done the merge already in the
+    /// agent layer). When `tags` is nil, the existing tags are
+    /// preserved (= the legacy upsert path). See
+    /// `FileSystemReferenceStore.upsertReference` for the
+    /// implementation.
     func upsertReference(
         title: String,
         bodyMarkdown: String,
@@ -207,12 +203,11 @@ struct FileSystemReferenceStore: ReferenceStoring {
 
     func loadReferences(layer: ReferenceLayer) throws -> [Reference] {
         let indexURL = layerDirectory(layer).appendingPathComponent("\(layer.directoryName).json")
-        // v2.6 facet-model migration: scan for legacy files under
-        // `entities/<category>/<uuid>.md` (= pre-v2.6 layout) and move
-        // them to the flat `entities/<uuid>.md` path. Idempotent —
-        // re-running after migration is a no-op. The entities.json
-        // index already carries each entry's `category` as metadata,
-        // so the file move does not lose classification data.
+        // Idempotent migration from the pre-facet-model layout
+        // (`entities/<category>/<uuid>.md`) to the flat layout
+        // (`entities/<uuid>.md`). The entities.json index already
+        // carries each entry's `category` as metadata, so the file
+        // move does not lose classification data.
         if layer == .layerEntities {
             migrateLegacyEntitySubdirectoryLayoutIfNeeded()
         }
@@ -221,22 +216,14 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
         do {
             let data = try Data(contentsOf: indexURL)
-            // Support BOTH date encodings on read (= writeIndex uses
-            // the default JSONEncoder which serializes Date as a Double
-            // Unix timestamp; some legacy seed scripts / external tools
-            // write ISO8601 strings). The default `.iso8601` strategy
-            // only accepts ISO8601 strings — it would silently fail
-            // (= swallowed by the catch below → [] returned) for files
-            // written by writeIndex, breaking the save→load roundtrip.
-            // The closure below tries ISO8601 first, falls back to a
-            // Unix timestamp Double.
+            // Accept BOTH date encodings on read: writeIndex emits a
+            // Unix-timestamp Double (= the JSONEncoder default), but
+            // some external seed scripts write ISO8601 strings.
+            // The default `.iso8601` strategy only accepts ISO8601
+            // strings and would silently fail the save→load
+            // roundtrip for files written by writeIndex. Try
+            // ISO8601 first, fall back to a Unix Double.
             let decoder = JSONDecoder()
-            // The closure below tries ISO8601 first, falls back to a
-            // Unix timestamp Double. ISO8601DateFormatter is a
-            // Foundation class (= non-Sendable) that captures badly
-            // inside .custom decoding closures (= @Sendable). Use
-            // Date.ISO8601FormatStyle (= Swift-native Sendable value
-            // type) instead.
             let isoStyleWithFrac = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
             let isoStyleNoFrac = Date.ISO8601FormatStyle(includingFractionalSeconds: false)
             decoder.dateDecodingStrategy = .custom { dec in
@@ -291,13 +278,10 @@ struct FileSystemReferenceStore: ReferenceStoring {
 
         try atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: refURL)
 
-        // Build the sibling-titles lookup from the just-loaded set
-        // (= before appending the new reference; = we want to know
-        // which titles are already taken, not the new one).
-        // Reference library entities are unique by title (= the upsert
-        // path dedupes by case-insensitive trimmed title; = two
-        // references sharing a title are merged, not duplicated). So
-        // no sibling-title lookup is needed for displayTitle.
+        // No sibling-titles lookup needed here: reference-library
+        // entities are unique by title (= the upsert path dedupes by
+        // case-insensitive trimmed title; = two references sharing
+        // a title are merged, not duplicated).
         var referenceToStore = reference
         if referenceToStore.displayTitle == nil {
             referenceToStore.ensureDisplayTitle()
@@ -307,13 +291,11 @@ struct FileSystemReferenceStore: ReferenceStoring {
         current.append(referenceToStore)
         try writeIndex(current, for: reference.layer)
 
-        // v2.8d (boss 2026-09-28 OOB B10): auto-call the LLM Wiki
-        // pipeline when a new raw reference lands (= the agent-side
-        // auto-call hook per boss OOB '需要不完整' = the pipeline
-        // must complete end to end). The hook fires off-task via
-        // Task.detached so the synchronous caller (= saveReference)
-        // is not blocked on the derivation (= a large library may
-        // take seconds to walk raw/ and write abstracts/).
+        // Auto-call the LLM Wiki derivation pipeline when a new raw
+        // reference lands. RATIONALE: Task.detached keeps the
+        // synchronous saveReference caller from blocking on the
+        // derivation (= a large library may take seconds to walk
+        // raw/ and write abstracts/).
         if reference.layer == .layerRaw {
             let storeSnapshot = self
             Task.detached(priority: .utility) {
@@ -325,9 +307,8 @@ struct FileSystemReferenceStore: ReferenceStoring {
             }
         }
 
-        // v2.9a (boss 2026-09-28 OOB A8): bootstrap the new
-        // reference into the Spotlight index (= Cmd-F should
-        // surface references alongside chapters + bookmarks).
+        // Bootstrap the new reference into the Spotlight index so
+        // Cmd-F surfaces references alongside chapters + bookmarks.
         let refID = reference.id.uuidString
         let refTitle = reference.title
         let refBody = reference.summary
@@ -379,9 +360,9 @@ struct FileSystemReferenceStore: ReferenceStoring {
         entityType: EntityType = .other,
         summary: String = ""
     ) throws -> Reference {
-        // Legacy entry point (= no `tags` param). The agent layer is
-        // expected to call the overload below when tags are part of
-        // the upsert payload; = here we preserve the existing tags.
+        // Legacy entry point (= no `tags` param). The agent layer
+        // calls the overload below when tags are part of the
+        // payload; = here we preserve the existing tags.
         return try upsertReference(
             title: title,
             bodyMarkdown: bodyMarkdown,
@@ -402,7 +383,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
     /// new reference is created.
     ///
     /// When `tags` is nil (= the legacy agent path), existing tags
-    /// are preserved. When `tags` is non-nil (= the v2.6 facet-model
+    /// are preserved. When `tags` is non-nil (= the facet-model
     /// path), the supplied tag set replaces the existing one (= the
     /// agent layer is expected to have done a union-merge if it wants
     /// monotonic growth).
@@ -450,7 +431,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
             summary: summary
         )
         try saveReference(newRef, bodyMarkdown: bodyMarkdown)
-        // saveReference backfills displayTitle; = re-read to surface
+        // saveReference backfills displayTitle; re-read to surface
         // the post-backfill value to the caller.
         let reloaded = (try? loadReferences(layer: layer))?.first(where: { $0.id == newRef.id })
         return reloaded ?? newRef
@@ -541,12 +522,12 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
     }
 
-    /// v2.6 facet-model migration: scan `entities/<category>/` subdirs
-    /// (= the pre-v2.6 layout) and move every `<uuid>.md` file into
-    /// the flat `entities/` directory (= the post-v2.6 layout). Move
-    /// uses `replaceItemAt` so the operation is atomic on the same
-    /// volume; = if any move fails, the legacy file remains in place
-    /// (= safe to retry on next launch).
+    /// Migrate from the pre-facet-model layout
+    /// (`entities/<category>/<uuid>.md`) to the flat layout
+    /// (`entities/<uuid>.md`). Move uses `replaceItemAt` so the
+    /// operation is atomic on the same volume; = if any move fails,
+    /// the legacy file remains in place (= safe to retry on next
+    /// launch).
     ///
     /// After migration, the now-empty category subdirs are removed
     /// (= no orphan directories). Idempotent — when called twice,
