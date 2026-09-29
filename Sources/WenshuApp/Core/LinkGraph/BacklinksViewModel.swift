@@ -1,7 +1,7 @@
+// BacklinksViewModel.swift · WenshuApp · v1.28
 //
-// BacklinksViewModel.swift · Wenshu · extracted from Core/LinkGraph/BacklinksPanel.swift in v1.28 A1.1
-// (= v0.19 ticket 12 Obsidian replica; SwiftUI import removed; logic-only)
-//
+// @MainActor Observable for the Backlinks panel (= SwiftUI-free:
+// the SwiftUI surface lives in `BacklinksPanel`).
 
 import Foundation
 
