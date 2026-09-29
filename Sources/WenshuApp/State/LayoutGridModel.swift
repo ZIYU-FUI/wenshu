@@ -1,4 +1,4 @@
-// GridModel.swift · Wenshu () · v0.28 ticket 028-008
+// Sources/WenshuApp/State/LayoutGridModel.swift
 //
 // FancyZones grid model — faithful port of hermes
 // `grid-model.ts` (= PowerToys' `FancyZonesEditor/GridLayoutModel.cs`
@@ -19,9 +19,7 @@
 //     (= extending it until no zone is partially cut) — the
 //     signature FancyZones merge feel.
 //
-// Per ticket 028-008 §"Acceptance criteria" #1: this is the
-// `GridModel.swift` file referenced in the spec. v0.28 MVP scope
-// (= no drag-resizers / rubber-band-select / SHIFT-flip).
+// MVP scope (= no drag-resizers / rubber-band-select / SHIFT-flip).
 //
 import Foundation
 
