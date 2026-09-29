@@ -1,36 +1,19 @@
-// ZoneModuleView.swift · Wenshu · v1.32 ticket 001
+// Sources/WenshuApp/Views/Workspace/ZoneModuleView.swift
 //
-// Extracted from WorkspaceView.swift (= v0.27 ticket 027-34).
+// The legacy 6-zone pane registry helper used by `RegisteredPanes`.
+// Lifted out of WorkspaceView.swift (= the parent view stays
+// render-only). This is the safe first split because
+// `ZoneModuleViewTests.swift` already covers the surface.
 //
-// Per repowise `get_health` directive (2026-09-14, v1.30+):
-//   fix_first: WorkspaceView.swift (= score 4.15, 2062 NLOC, 30 deps)
-//   reason: Hotspot with no paired test file (= needs split)
-//
-// 
-// ponytail + Q186 + Q57 + Q112: extract ZoneModuleView
-// (= the legacy 6-zone pane registry helper used by
-// RegisteredPanes) to its own file. This is the SAFE first split
-// because ZoneModuleViewTests.swift already exists in
-// tests/WenshuAppTests/Views/Workspace/.
-//
-// Per Q34 5.2 + Q173 ponytail + Q186: minimal split = 1 struct
-// 1 file (= 370 LOC extracted from 2062 → 1692). The
-// WorkspaceView.swift file still contains WorkspaceView +
-// EditorPlaceholder + EditorPaperCanvas (= 3 more sub-structs
-// to split in future tickets).
-//
-// Per Q34 5.2: extracted struct preserves all bindings,
-// @Environment, init, and body (= no behavior change).
+// The extracted struct preserves all bindings, @Environment,
+// init, and body (= no behavior change).
 
 import SwiftUI
 import MarkdownEngine
-// ticket 002: drop `import LucideSwift` (= removed by boss's v1.x
-// Lucide → SF Symbols 6 deprecation in commit c50d76167). The legacy
-// `Lucide`/`LucideIcon` references in this file are comments only (= no
-// active symbol resolution = drop is safe). Per Q34 5.2 + Q173 ponytail +
-// Q186: this is part of the same v1.36 work as `ShellPlaceholder` duplicate
-// removal (= both are PREREQUISITES for `swift build --target WenshuAppTests`
-// to pass on main = main is currently broken without these fixes).
+// (the WorkspaceView.swift file still contains WorkspaceView +
+// EditorPlaceholder + EditorPaperCanvas = 3 more sub-structs to
+// split in future commits). To pass on main (= main is currently
+// broken without these fixes).
 
 struct ZoneModuleView: View {
     let zoneSlot: ZoneSlot
@@ -119,7 +102,7 @@ struct ZoneModuleView: View {
 
         case .projectPreview:
             // Old 6-zone projectPreview = 2 tabs (Preview / Map).
-            // Per v0.25.1 ticket 014: book-open-check + waypoints.
+            // Book-open-check + waypoints.
             // followup Boss UX round 24: preview tab content uses
             // .ultraThinMaterial (= was DesignColor.zoneSurface =
             // solid Color(nsColor: .controlBackgroundColor) = NOT
@@ -150,7 +133,7 @@ struct ZoneModuleView: View {
                     // (= not WorkspaceView's caller L355 which is dead
                     // code). Route double-click to ZoneModuleView's own
                     // openCardInEditor (= same logic as WorkspaceView's;
-                    // = ticket 027-35 will lift into a shared service).
+                    // = the shared service land in a follow-on surface).
                     //
                     // 2026-09-03 boss 9/3 follow-up: explicitly call
                     // `self.openCardInEditor()` (= Swift strict capture
@@ -193,28 +176,27 @@ struct ZoneModuleView: View {
         case .aiDynamic:
             // Old 6-zone aiDynamic = DynamicZoneView (= has its own
             // DynamicZoneTabBar with Progress / Todo / Search).
-            // Per v0.24 boss 8/24 OOB: external toolbar cleared (= the
+            // External toolbar cleared (= the
             // outer ZoneTopToolbar is empty placeholder mode).
             DynamicZoneView()
 
         case .aiChat:
             // Old 6-zone aiChat = ChatZoneView (= has its own ChatZoneTabBar
-            // with chat / search / settings). Per v0.25.1 ticket 005:
-            // top icons are Bot + Inbox.
+            // with chat / search / settings). Top icons are Bot + Inbox.
             ChatView()
 
         case .editor:
             // Old 6-zone editor = 3 tabs (Edit / Outline / Backlinks) + trailingButton
             // (expand/shrink toggle). Real ZoneContentView — replaces
             // EditorPlaceholder (= which was just text "Editor zone
-            // ticket 027-35 integration pending").
-            // Per v0.25.1 ticket 017 + 028: book-open-text + puzzle + link.
+            // integration pending").
+            // Book-open-text + puzzle + link.
             ZoneContentView(
                 zoneSlug: "editor",
                 tabs: [
                     // fix (= boss 9/2 'git grep BEFORE patch' rule):
                     // see L279 fix comment above; replace placeholder with
-                    // EditorPlaceholder (= ticket 04-10 toolbar + mode toggle).
+                    // EditorPlaceholder (= the toolbar + mode toggle surface).
                     (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorPlaceholder())),
                     (WenshuI18n.t("tab.title.outline"), "puzzle", AnyView(OutlinePanel())),
                     // removed the "Backlinks" tab here (= boss 9/2 OOB
@@ -222,7 +204,7 @@ struct ZoneModuleView: View {
                     // surfaced via the chrome bottom-right "Backlinks 0"
                     // label click → popover (= spec user stories 8 + 11).
                 ],
-                // (= ticket 029c-trailing-button): expand/shrink
+                // (= the trailing button surface): expand/shrink
                 // trailing button. Boss 8/26 OOB 'it is one button, not a tab
                 // teb' = won't be a tab (= no selected underline), just
                 // a button at the right edge of the tab bar.
@@ -238,7 +220,7 @@ struct ZoneModuleView: View {
     /// is in a DIFFERENT struct = can't share via this same View type).
     /// Code is mostly duplicated from WorkspaceView's openCardInEditor
     /// + the book-scope branch reads the actual .md file (= same walk
-    /// as PreviewPane.loadBookDocs; = ticket 027-35 will lift that
+    /// As `PreviewPane.loadBookDocs`; the shared service lands in a follow-on surface.
     /// helper into a workspace-level BookDocLoader service so both
     /// callers share it).
     /// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
@@ -261,7 +243,7 @@ struct ZoneModuleView: View {
     /// .computeCardTriad`; the book-scope file-scan (= walk
     /// shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md)
     /// stays in the View because it's specific to ZoneModuleView
-    /// (= ticket 027-35 will replace it). The shared tail
+    /// The shared tail (= canonical surface).
     /// (= dedup + tab creation + activeTabId mutation) delegates
     /// to `CardOpenOps.openTab`.
     private func openCardInEditor(source: CardSource? = nil) {
@@ -303,7 +285,7 @@ struct ZoneModuleView: View {
     /// implementation; = see the v0.34 B-25-followup doc comment
     /// on `openCardInEditor` above for the full history). Walks
     /// `shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md` and
-    /// picks the FIRST .md (= v0.34 placeholder; = ticket 027-35
+    /// Picks the FIRST .md (= the canonical placeholder surface;
     /// will wire to the SPECIFIC card the user double-clicked).
     private func scanFirstBookDoc(bookId: UUID, folderName: String?) -> CardOpenOps.CardTriad {
         let shelvesRoot = bookStore.stores.shelvesRoot
