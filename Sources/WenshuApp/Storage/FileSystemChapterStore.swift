@@ -1,25 +1,14 @@
+// FileSystemChapterStore.swift · WenshuApp · v2.0
 //
-//  FileSystemChapterStore.swift · Wenshu · v2.0 (2026-09-25)
+// Per-book chapter storage layer.
 //
-//  Per-Book chapter storage layer.
+// Storage path:
+//   <.ws>/shelves/<shelf-uuid>/books/<book-uuid>/
+//     chapters/<chapter-uuid>.md   <- free-form chapter body
+//     chapters.json                <- index = [Document]
 //
-//  Storage path (= per spec v5):
-//    <.ws>/shelves/<shelf-uuid>/books/<book-uuid>/
-//      chapters/<chapter-uuid>.md   <- free-form chapter body
-//      chapters.json                <- index = [Document]
-//
-//  Book-private (= each Book has its own chapters/ folder; no cross-
-//  book sharing). Uses the existing `Document` domain struct (= the
-//  canonical metadata shape that powers the chapter card UI) with
-//  `category = .chapter`. Reuses the existing FileSystemLibraryStore
-//  where possible; this store is a thin dedicated entry point that
-//  mirrors World/Character's storage shape (1 .md + 1 index.json).
-//
-//  Implementation pattern matches FileSystemWorldStore (ticket 004)
-//  and FileSystemCharacterStore (ticket 005) — atomic writes via
-//  tmp + replaceItemAt, Codable JSON for the index, id-based
-//  filesystem identity per Apple HIG document-based convention.
-//
+// Book-private (= each Book has its own chapters/ folder; no cross-book
+// sharing). Uses the `Document` domain struct with `category = .chapter`.
 
 import Foundation
 
@@ -86,9 +75,10 @@ struct FileSystemChapterStore: ChapterStoring {
         do {
             let data = try Data(contentsOf: indexURL)
             let decoder = JSONDecoder()
-            // Match the FileSystemReferenceStore forgiving-date
-            // strategy so chapter indexes written by either style
-            // round-trip cleanly.
+            // ASSUMPTION: chapter indexes written by either
+            // FileSystemReferenceStore or older wenshu versions use
+            // different date formats; = the forgiving-date strategy
+            // (= ISO8601 + numeric fallback) lets both round-trip.
             decoder.dateDecodingStrategy = .custom { dec in
                 let container = try dec.singleValueContainer()
                 if let double = try? container.decode(Double.self) {
@@ -106,7 +96,8 @@ struct FileSystemChapterStore: ChapterStoring {
             }
             return try decoder.decode([Document].self, from: data)
         } catch {
-            // Apple HIG forgiving reset.
+            // Apple HIG forgiving reset (= corrupt index = empty list,
+            // not a throw that bricks the per-book UI surface).
             return []
         }
     }
@@ -131,10 +122,9 @@ struct FileSystemChapterStore: ChapterStoring {
         current.append(chapter)
         try writeIndex(current)
 
-        // v2.9a (boss 2026-09-28 OOB A8): bootstrap the new
-        // chapter into the Spotlight index (= the Cmd-F real-
-        // search fix). Off-task so the synchronous saveChapter
-        // caller is not blocked.
+        // Bootstrap the new chapter into the Spotlight index so Cmd-F
+        // finds it. RATIONALE: Task.detached keeps the synchronous
+        // saveChapter caller from blocking on the Spotlight write.
         let chapterTitle = chapter.title ?? chapter.id.uuidString
         let chapterID = chapter.id.uuidString
         Task.detached(priority: .utility) {
@@ -173,9 +163,8 @@ struct FileSystemChapterStore: ChapterStoring {
         current[idx] = chapter
         try writeIndex(current)
 
-        // v2.9a (boss 2026-09-28 OOB A8): re-index the chapter
-        // (= the title or body may have changed; = the Spotlight
-        // index entry needs to match).
+        // Re-index the chapter in Spotlight (= title or body may have
+        // changed; = the index entry must match the new content).
         let chapterTitle = chapter.title ?? chapter.id.uuidString
         let chapterID = chapter.id.uuidString
         Task.detached(priority: .utility) {
@@ -192,8 +181,7 @@ struct FileSystemChapterStore: ChapterStoring {
     }
 
     func deleteChapter(id: UUID) throws {
-        // Find the .md file matching the UUID; remove it; then drop
-        // the index row. Mirrors FileSystemWorldStore.deleteEntry.
+        // Remove the .md body, then drop the index row.
         let chapterURL = chaptersDirectory
             .appendingPathComponent("\(id.uuidString).md")
         if FileManager.default.fileExists(atPath: chapterURL.path) {
@@ -206,10 +194,8 @@ struct FileSystemChapterStore: ChapterStoring {
             try writeIndex(current)
         }
 
-        // v2.9a (boss 2026-09-28 OOB A8): remove the chapter
-        // from the Spotlight index (= deletes must clean up
-        // the index entry too; = stale entries are
-        // Cmd-F noise).
+        // Remove the chapter from the Spotlight index (= stale
+        // entries are Cmd-F noise).
         Task.detached(priority: .utility) {
             try? await CSSearchableIndexSearch.shared.remove(docId: id.uuidString)
         }
