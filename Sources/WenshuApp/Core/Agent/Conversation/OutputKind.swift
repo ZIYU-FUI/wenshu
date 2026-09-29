@@ -1,6 +1,4 @@
-//
-//  OutputKind.swift · Wenshu · v0.21 ticket 49 (LLM output classification)
-//
+// OutputKind.swift · WenshuApp · v0.21
 
 import Foundation
 

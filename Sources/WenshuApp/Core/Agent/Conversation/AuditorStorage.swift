@@ -3,13 +3,12 @@
 //
 //  Read-only memory adapter for the Auditor sub-agent.
 //
-//  Background (= v2.7d, boss 2026-09-26 '团队链路通'):
+//  Background:
 //  Auditor's domain (= verifying other sub-agents' outputs against
-//  canonical memory) was wired through the LLM-facing ToolRegistry in
-//  v0.23 (= hermes port with a `memory` tool). v2.4 removed `memory`
-//  from the tool surface (= the memory rewire moved the read/write
-//  path to `WSMemoryProvider.shared` directly; = the LLM-facing tool
-//  surface was deleted).
+//  canonical memory) was wired through the LLM-facing ToolRegistry
+//  in v0.23 (= hermes port with a `memory` tool). The memory
+//  rewire moved the read/write path to `WSMemoryProvider.shared`
+//  directly; = the LLM-facing tool surface was removed.
 //
 //  v2.7d: Auditor reads `WSMemoryProvider.shared.prefetch(...)`
 //  directly (= same path the main agent uses on every turn). No

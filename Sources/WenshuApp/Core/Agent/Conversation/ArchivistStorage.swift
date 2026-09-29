@@ -3,13 +3,13 @@
 //
 //  Storage adapter for the Archivist sub-agent.
 //
-//  Background (= v2.7d, boss 2026-09-26 '团队链路通'):
-//  Archivist's domain (= bookmark CRUD + filesystem backup) does NOT
-//  have an LLM-facing tool in `ToolRegistry.shared` (the bookmark /
-//  backup tools were never ported). The Archivist sub-agent writes
-//  to the canonical SwiftData store via `WSBookmarkRepository.shared`
-//  + filesystem directly (same pattern as
-//  DelegateResearchTool.addKanbanTask).
+//  Background:
+//  Archivist's domain (= bookmark CRUD + filesystem backup) does
+//  NOT have an LLM-facing tool in `ToolRegistry.shared` (= the
+//  bookmark / backup tools were never ported). The Archivist
+//  sub-agent writes to the canonical SwiftData store via
+//  `WSBookmarkRepository.shared` + filesystem directly (same
+//  pattern as `DelegateResearchTool.addKanbanTask`).
 //
 //  This protocol isolates the storage calls so the runner can be
 //  tested without a real SwiftData container (= the test passes an
