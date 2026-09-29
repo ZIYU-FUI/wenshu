@@ -1,10 +1,8 @@
+// BaseParser.swift · WenshuApp · v0.19
 //
-// BaseParser.swift · Wenshu · v0.19 ticket 18 (Obsidian replica, do first)
-// 2026-08-19 evening Obsidian A + ', '.
-//
-// .base YAML file. Obsidian Bases (https://obsidian.md/help/bases/syntax).
-// Apple HIG: Foundation String, YAML .
-//
+// `.base` YAML file parser (= Obsidian Bases syntax; see
+// https://obsidian.md/help/bases/syntax). Uses Foundation String
+// + a hand-rolled YAML subset.
 
 import Foundation
 
