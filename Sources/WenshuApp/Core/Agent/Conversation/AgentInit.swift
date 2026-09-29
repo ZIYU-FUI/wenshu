@@ -1,4 +1,4 @@
-// AgentInit.swift · WenshuApp · v0.36
+// AgentInit.swift · WenshuApp · v0.35 · P9-AGENT-INIT-HERMES-PORT
 //
 // `AIAgent` bootstrap helpers. Faithful 1:1 port of hermes
 // `agent/agent_init.py` pure helpers.
