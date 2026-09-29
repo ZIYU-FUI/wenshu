@@ -1,15 +1,10 @@
+// MemoryWriteGate.swift · WenshuApp · v0.23
 //
-//  MemoryWriteGate.swift · Wenshu · v0.23 ticket 013.001 (hermes gap 1)
-//
-// ', 3' (effect).
-//  Source: github.com/NousResearch/hermes-agent/blob/main/tools/memory_tool.py:949 _apply_write_gate
-//
-//  Hermes pattern: every memory write (add/replace/remove) goes through a gate
-//  that classifies the operation as allow / block / stage-for-approval.
-//  Wenshu implements the gate but defaults to auto-allow for non-destructive
-//  ops (boss 8/23 security + UX tradeoff: don't ask user to approve every
-//  memory add; only gate destructive ones).
-//
+// hermes `_apply_write_gate` parity (= every memory write goes
+// through a gate that classifies the operation as allow / block /
+// stage-for-approval). Wenshu implements the gate but defaults to
+// auto-allow for non-destructive ops (= security + UX tradeoff:
+// only gate destructive ops, not every memory add).
 
 import Foundation
 
