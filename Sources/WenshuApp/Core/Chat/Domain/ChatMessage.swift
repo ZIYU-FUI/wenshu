@@ -141,7 +141,8 @@ struct ChatMessage: Equatable, Identifiable, Sendable {
     }
 }
 
-/// Chat role ground truth (compatible with v0.20 ticket 01; actual display uses source)
+/// Chat role ground truth (= the actual display uses the source
+/// text, not the role's display name).
 enum ChatRole: String, Equatable, Sendable {
     case user
     case agent

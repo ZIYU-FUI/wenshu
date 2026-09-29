@@ -110,7 +110,9 @@ init(container: ModelContainer) {
         // The Bool return value (= "did we summarize?") is dropped
         // here on purpose: the protocol caller doesn't surface it.
         // Callers that need the flag should query the repository
-        // directly (= Q112 seam: protocol stays minimal).
+        // directly (= the minimal-seam rule: protocol stays
+        // narrow, callers needing richer behavior hit the
+        // concrete repository type).
         _ = try await self.repository(bookID: bookID).summarizeIfNeeded(
             sessionId: sessionId,
             lastN: lastN,
