@@ -1,16 +1,25 @@
-// LibraryMigrator.swift · Wenshu · v0.26 (FCP library replica)
+// Sources/WenshuApp/Storage/LibraryMigrator.swift
 //
-// The "co_change_scatter" repowise signal (= 25 distinct files) is a
-// historical artifact from v0.26 launch + v0.40-v0.73 era, not a current
-// shotgun surgery pattern. See .scratch/v0.78-librarymigrator-defer/spec.md
-// for the full investigation. Per Q46: do NOT refactor this stable file.
-// Touch it only if a future migration step is actually needed.
+// The `co_change_scatter` repowise signal (= 25 distinct files) is
+// a historical artifact from v0.26 launch + v0.40-v0.73 era, not a
+// current shotgun-surgery pattern. Touch only if a future migration
+// step is actually needed.
 //
-// One-time v0.x → v0.26 .ws layout migration. Detects v0.x .ws (= has
-// books/ at .ws root, OR no WSSchemaVersion key in Info.plist) and
-// migrates to v0.26 layout.
+// CARVE-OUT (= documented for this file): the CJK blocks inside the
+// `"""..."""` string literals (= e.g. `worldBody`, `kanbanOutline`,
+// `featureBody`, `roadmapBody`, `agentBody`) are seed text written
+// verbatim into the user's `.md` files at first launch. They are
+// FUNCTIONAL DATA (= seed content for the user's onboarding), NOT
+// code comments. The scanner flags them as `cat10-cjk-in-comment`
+// because it cannot distinguish triple-quoted string literals from
+// doc-comments. These must remain Chinese (= the user's onboarding
+// experience is Chinese-first per the seed-content product stance).
 //
-// Per spec v5 ticket 022:
+// One-time v0.x → v0.26 `.ws` layout migration. Detects v0.x `.ws`
+// (= has `books/` at `.ws` root, OR no `WSSchemaVersion` key in
+// `Info.plist`) and migrates to v0.26 layout.
+//
+// Per spec (= PRESERVE / DROP / CREATE rules):
 // - PRESERVE: Info.plist + chat.sqlite + Icon + assets/ + backups/ +
 //   books/ (the v0.x books/ at root is moved into a default shelf)
 // - DROP only-if-empty: chapters/ at .ws root, books/ at .ws root
@@ -163,10 +172,9 @@ struct LibraryMigrator: Sendable {
             let updated = try JSONEncoder().encode(existing)
             try updated.write(to: shelfJSONURL)
         }
-        // 2b. v0.30 boss 8/31 OOB (sidebar feedback bundle #1):
-        // rename existing default book title ' → '
+        // 2b. Rename the existing default book title ' → '
         // (= disambiguates from the parent shelf name; applies to
-        // existing .ws installations so old libraries upgrade).
+        // existing `.ws` installations so old libraries upgrade).
         // Both possible book IDs are checked (= the current
         // '00000000-0000-0000-0000-000000000001' canonical id and
         // the legacy '11111111-1111-1111-1111-111111111111' id
