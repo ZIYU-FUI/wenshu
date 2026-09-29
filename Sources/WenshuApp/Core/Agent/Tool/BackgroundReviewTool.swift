@@ -1,49 +1,46 @@
+// BackgroundReviewTool.swift · WenshuApp · v2.8c
 //
-//  BackgroundReviewTool.swift · Wenshu · v2.8c ticket T14-T16 (boss 2026-09-28 OOB B8)
+// LLM-facing tool that lets the agent submit background-review
+// proposals (= the auto-call surface per the auto+manual
+// consolidation stance).
 //
-//  LLM-facing tool that lets the agent submit background-review
-//  proposals (= the auto-call surface per boss 2026-09-28 OOB
-//  '自动也可以手动也可以').
+// Per the consolidation: manual + auto callers go through
+// `BackgroundReviewOps` (= the unified facade). This tool is the
+// auto-call surface; manual callers (= the operator in the
+// inspector tab) call `BackgroundReviewOps` directly.
 //
-//  Per boss 2026-09-28 OOB B8 (= consolidation): manual + auto
-//  callers go through BackgroundReviewOps (= the unified
-//  façade). This tool is the auto-call surface; = manual callers
-//  (operator in the inspector tab) call BackgroundReviewOps
-//  directly.
+// Why this exists:
+//   - `BackgroundReview` actor (= declared in v0.36) had zero
+//     callers (= dead actor per §11 baseline).
+//   - The inspector's BackgroundReview tab was unused.
+//   - The agent's auto-call hook was missing.
+//   - ONE unified surface was the chosen design (= this tool +
+//     the manual tab + the agent's `ConversationLoop` auto-call
+//     hook all go through `BackgroundReviewOps`).
 //
-//  Why this exists:
-//      - BackgroundReview actor (= declared in v0.36) had ZERO
-//        callers (= dead actor per §11 baseline).
-//      - The inspector's BackgroundReview tab was unused.
-//      - The agent's auto-call hook was missing.
-//      - boss asked for ONE unified surface (= this tool + the
-//        manual tab + the agent's ConversationLoop auto-call hook
-//        all go through BackgroundReviewOps).
+// Wire format (= the LLM tool-use input):
+//   {
+//     "action": "submit" (= the only action for the MVP;
+//     "list" / "approve" / "reject" are follow-up tickets),
+//     "kind": "<ProposalKind rawValue>",
+//     "summary": "<one-line proposal summary>",
+//     "details": "<optional free-text details>"
+//   }
 //
-//  Wire format (= the LLM tool_use input):
-//      {
-//        "action": "submit" (= the only action for v2.8c MVP;
-//        "list" / "approve" / "reject" are follow-up tickets),
-//        "kind": "<ProposalKind rawValue>",
-//        "summary": "<one-line proposal summary>",
-//        "details": "<optional free-text details>"
-//      }
+// Result (= the tool-use output):
+//   {
+//     "ok": true,
+//     "action": "submit",
+//     "proposal_id": "<UUID>"
+//   }
 //
-//  Result (= the tool_use output):
-//      {
-//        "ok": true,
-//        "action": "submit",
-//        "proposal_id": "<UUID>"
-//      }
-//
-//  Scope (= Q112 = 1 source + 1 test per commit):
-//      This commit adds the tool + registers it. It does NOT
-//      add the inspector tab UI (= that is a follow-up ticket).
-//      It does NOT add the agent's auto-call hook into
-//      ConversationLoop (= that is a separate ticket that wires
-//      ConversationLoop -> BackgroundReviewOps.submit; = the
-//      current ticket only adds the LLM-call surface so the
-//      agent can explicitly invoke the tool).
+// Scope: this commit adds the tool + registers it. It does NOT
+// add the inspector tab UI (= follow-up ticket). It does NOT add
+// the agent's auto-call hook into `ConversationLoop` (= separate
+// ticket that wires `ConversationLoop` ->
+// `BackgroundReviewOps.submit`; the current surface only adds
+// the LLM-call entry point so the agent can explicitly invoke
+// the tool).
 
 import Foundation
 
