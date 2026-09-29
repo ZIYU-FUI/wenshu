@@ -56,7 +56,7 @@ import Foundation
 /// helper (= no silent unification across providers).
 enum RequestHelpers {
 
-    // MARK: - Anthropic native (= ticket 004)
+    // MARK: - Anthropic native
 
     /// Build the request body for the Anthropic Messages API native wire
     /// format. Matches the pre-refactor `AnthropicConnector.send`
@@ -278,14 +278,14 @@ enum RequestHelpers {
     // MARK: - Minimax-compatible (= thin Anthropic wrapper for minimax cn)
 
     /// Build the request body for the Minimax-compatible Anthropic wire
-    /// format (= ticket 001 sub-step 7). Differs from native Anthropic
-    /// in 2 places (preserved for parity):
+    /// format. Differs from native Anthropic in 2 places (preserved
+    /// for parity):
     ///   1. `system` is a plain string (= NOT a structured dict with
-    ///      cache_control). Minimax does not honor the Anthropic
+    ///      `cache_control`). Minimax does not honor the Anthropic
     ///      `system` block shape.
     ///   2. `content` is a joined `"\n"`-separated string (= NOT a
-    ///      block array). tool_use / tool_result blocks are dropped
-    ///      (= MinimaxConnector sub-step 7 is text-only).
+    ///      block array). `tool_use` / `tool_result` blocks are
+    ///      dropped (= `MinimaxConnector` is text-only).
     /// Per-message `cache_control` markers are preserved (= the 4
     /// breakpoints from `PromptCaching.applyCacheControl`).
     static func buildMinimaxRequest(
@@ -417,7 +417,7 @@ enum RequestHelpers {
         return try JSONSerialization.data(withJSONObject: body)
     }
 
-    // MARK: - OpenAI chat completions (= ticket 005)
+    // MARK: - OpenAI chat completions
 
     /// Build the request body for the OpenAI chat completions wire
     /// format. Matches `OpenAIConnector` + `OpenAICompatibleConnector`
@@ -556,7 +556,7 @@ enum RequestHelpers {
         )
     }
 
-    // MARK: - Gemini native (= ticket 007)
+    // MARK: - Gemini native
 
     /// Build the request body for the Google GenAI `generateContent`
     /// wire format. Matches `GeminiNativeConnector` byte-for-byte.
