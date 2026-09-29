@@ -1,17 +1,14 @@
+// FileSystemOutlineStore.swift · WenshuApp · v2.0
 //
-//  FileSystemOutlineStore.swift · Wenshu · v2.0 (2026-09-25)
+// Per-book outline storage layer.
 //
-//  Per-Book outline storage layer.
+// Storage path:
+//   <.ws>/shelves/<shelf-uuid>/books/<book-uuid>/
+//     outlines/<outline-uuid>.md   <- free-form outline body
+//     outlines.json                <- index = [OutlineEntry]
 //
-//  Storage path (= per spec v5):
-//    <.ws>/shelves/<shelf-uuid>/books/<book-uuid>/
-//      outlines/<outline-uuid>.md   <- free-form outline body
-//      outlines.json                <- index = [OutlineEntry]
-//
-//  Book-private. Mirrors FileSystemWorldStore (1 source + 1 index,
-//  atomic writes via tmp + replaceItemAt, Codable JSON, id-based
-//  filesystem identity).
-//
+// Book-private (= each Book has its own outlines/ folder; no
+// cross-book sharing).
 
 import Foundation
 
