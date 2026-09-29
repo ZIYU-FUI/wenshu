@@ -206,10 +206,10 @@ struct NoopShellHook: ShellHook {
 // / _parse_hooks_block / _parse_single_entry / _spawn /
 // _make_callback / _prompt_and_record / _record_approval /
 // _utc_now_iso / revoke / _command_script_path / etc.) are
-// intentionally NOT ported in this ticket — they fall into
-// separate wenshu-side wins patterns (= wenshu uses
-// ToolExecutor for the runtime dispatch; = per Q112 = one
-// ticket per file).
+// intentionally NOT ported here — they fall into separate
+// wenshu-side wins patterns (= wenshu uses `ToolExecutor` for
+// the runtime dispatch; = the dispatch path is split across
+// multiple files per the no-mega-file scope rule).
 //
 // Hermes Python line range cited in doc-comments below (= for
 // traceability back to `/Volumes/ANAN/.hermes/agent/
