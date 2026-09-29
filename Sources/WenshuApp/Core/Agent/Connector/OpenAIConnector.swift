@@ -1,18 +1,18 @@
+// OpenAIConnector.swift · WenshuApp · v0.35
 //
-//  OpenAIConnector.swift · Wenshu · v0.35 ticket 005
-// (request marshaling extracted)
+// OpenAI native + OpenAI-compatible connector.
 //
-//  OpenAI native + OpenAI-compatible connector (= ticket 005, P0).
+// Two connector profiles in one file (= reuse the same wire format):
+//   - `OpenAIConnector`: OpenAI native (gpt-5, gpt-4.1, etc.) via
+//     `api.openai.com`
+//   - `OpenAICompatibleConnector`: thin wrappers over minimax cn +
+//     DeepSeek + Ollama + OpenRouter (= all use the OpenAI chat
+//     completions protocol)
 //
-//  Two connector profiles in one file (= reuse the same wire format):
-//    - OpenAIConnector: OpenAI native (gpt-5, gpt-4.1, etc.) via api.openai.com
-//    - OpenAICompatibleConnector: thin wrappers over minimax cn + DeepSeek
-//      + Ollama + OpenRouter (= all use the OpenAI chat completions protocol)
-//
-//  Per TICKET-HERMES-GAP-002 (= hermes-port gap audit §2.1 #8), the
-//  request-body + response-decoding marshaling has been extracted to
-//  `Connector/RequestHelpers.swift`. Both connectors now share
-//  `RequestHelpers.buildOpenAIRequest` + `RequestHelpers.decodeOpenAIResponse`.
+// The request-body + response-decoding marshaling lives in
+// `Connector/RequestHelpers.swift`. Both connectors share
+// `RequestHelpers.buildOpenAIRequest` +
+// `RequestHelpers.decodeOpenAIResponse`.
 //  Connector-specific concerns remaining here: credential resolution, URL
 //  building, auth headers (= Bearer for OpenAI native, optional Bearer
 //  for OpenAI-compatible to support Ollama's no-auth local), transport
