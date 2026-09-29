@@ -1,24 +1,21 @@
+// Tool.swift · WenshuApp · v0.35
 //
-//  Tool.swift · Wenshu · v0.35 ticket 001 sub-step 5
+// Tool protocol = the contract every wenshu tool (= ReadFileTool,
+// WriteFileTool, KanbanTool, etc.) must satisfy.
 //
-//  Tool protocol = the contract every wenshu tool (= ReadFileTool,
-//  WriteFileTool, KanbanTool, etc.) must satisfy.
+// A `Tool` is a Sendable async function: `String` input (typically
+// JSON) -> `String` output (typically JSON). The `ToolExecutor`
+// calls `execute(input:)` at most once per tool invocation, with
+// the tool-use block's `input` field passed through verbatim.
 //
-//  A Tool is a Sendable async function: String input (typically JSON)
-//  -> String output (typically JSON). The ToolExecutor calls
-//  execute(input:) at most once per tool invocation, with the tool_use
-//  block's `input` field passed through verbatim.
-//
-// sub-step 5 of 8 for ticket 001.
-//
-//  Error cases updated in wt/path-guard-v2-2026-09-25:
-//    - `sandboxViolation` renamed to `pathGuardViolation` (= PathGuard
-//      replaces the v1 WenshuSandbox enum; = "sandbox" implied Apple
-//      kernel sandbox; = "pathGuard" is the allow-list policy name).
-//    - The closure passed into `preDispatchValidator` is now
-//      `(String, PathGuardInput) throws -> PathGuardInput` (= typed
-//      input wrapper; = v1 used raw [String: String]).
-//
+// Error cases updated in the path-guard v2:
+//   - `sandboxViolation` renamed to `pathGuardViolation` (=
+//     `PathGuard` v2 uses the canonical wenshu path-guard surface;
+//     = "sandbox" implied Apple kernel sandbox; = "pathGuard"
+//     is the allow-list policy name).
+//   - The closure passed into `preDispatchValidator` is now
+//     `(String, PathGuardInput) throws -> PathGuardInput` (= typed
+//     input wrapper; = v1 used raw `[String: String]`).
 
 import Foundation
 
