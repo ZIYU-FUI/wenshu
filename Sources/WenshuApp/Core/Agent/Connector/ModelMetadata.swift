@@ -1,28 +1,25 @@
+// ModelMetadata.swift · WenshuApp · v0.35
 //
-//  ModelMetadata.swift · Wenshu · v0.35 ticket 008
-// .
+// Per-provider model catalog. Port of hermes `model_metadata.py`
+// (= 2,434 LOC; contains per-provider model lists, capabilities,
+// context window, pricing awareness).
 //
-//  Per-provider model catalog. Port of hermes model_metadata.py
-//  (= 2,434 LOC, contains per-provider model lists, capabilities,
-//  context window, pricing awareness).
+// In wenshu-side wins mode (= AGENTS.md §11.3): the `Provider` enum
+// already has `defaultModels` arrays per profile. This file is a
+// thin aggregator that surfaces the catalog in a UI-friendly shape.
 //
-//  In wenshu-side wins mode (= AGENTS.md §11.3): the Provider enum
-//  already has defaultModels arrays per profile. This file is a thin
-//  aggregator that surfaces the catalog in a UI-friendly shape.
-//
-// extends the v0.35 surface with three new capabilities:
-//    - Pricing per model (= hermes _extract_pricing: input / cached-input /
-//      output $/MTok rates, populated from the OpenRouter catalog or the
-//      wenshu-side hardcoded table when the catalog is unavailable).
-//    - Context-window per model (= hermes _resolve_endpoint_context_length
-//      + _get_model_context_length: per-model token counts that override
-//      the per-provider defaults).
-//    - Feature matrix (= hermes _is_claude_model + supports_reasoning_effort
-//      + _forbids_sampling_params: a per-model feature table for vision,
-//      tools, streaming, reasoning effort, adaptive thinking).
-//
-// ticket 008.
-//
+// Extends the v0.35 surface with three capabilities:
+//   - Pricing per model (= hermes `_extract_pricing`: input /
+//     cached-input / output $/MTok rates, populated from the
+//     OpenRouter catalog or the wenshu-side hardcoded table when
+//     the catalog is unavailable).
+//   - Context-window per model (= hermes `_resolve_endpoint_context_length`
+//     + `_get_model_context_length`: per-model token counts that
+//     override the per-provider defaults).
+//   - Feature matrix (= hermes `_is_claude_model` +
+//     `supports_reasoning_effort` + `_forbids_sampling_params`: a
+//     per-model feature table for vision, tools, streaming,
+//     reasoning effort, adaptive thinking).
 
 import Foundation
 
@@ -174,7 +171,7 @@ struct WenshuModelCatalog: Sendable, Equatable {
 
     /// Hardcoded pricing table (= hermes _extract_pricing fallback when
     /// the OpenRouter catalog is unavailable). Values match current
-    /// public list prices for the major models (= 2026-Q3).
+    /// public list prices for the major models (third quarter of 2026).
     private static func defaultPricing(for provider: Provider, model: String) -> Pricing? {
         switch provider.slug {
         case "anthropic":
@@ -353,8 +350,7 @@ struct WenshuModelCatalog: Sendable, Equatable {
     // interruptible_streaming_api_call / etc.) are intentionally
     // NOT ported in this ticket — they fall into separate wenshu-side
     // wins patterns (= ConversationLoop owns the request-building
-    // + interruptible-call concerns; = per Q112 = one ticket per
-    // file).
+    // + interruptible-call concerns; = each ticket is one file).
     //
     // Hermes Python line range cited in doc-comment below (= for
     // traceability back to `/Volumes/ANAN/.hermes/agent/
@@ -445,11 +441,11 @@ struct WenshuModelCatalog: Sendable, Equatable {
 // model_metadata.py`).
 //
 // Per AGENTS.md §11.3 wenshu-side wins:
-//   - Pre-existing WenshuModelCatalog + ModelInfo + Pricing
-//     + Features preserved (= Q112 no regressions).
+//   - Pre-existing `WenshuModelCatalog` + `ModelInfo` + `Pricing`
+//     + `Features` preserved (= the no-regressions invariant).
 //   - The 7 regex patterns from hermes L1076-L1084 preserved
-//     1:1 (= vLLM "max_model_len" + Anthropic "max context
-//     length" + OpenAI "context_length_exceeded" etc.).
+//     1:1 (= vLLM `max_model_len` + Anthropic `max context length`
+//     + OpenAI `context_length_exceeded` etc.).
 //   - The sanity check `1024 <= limit <= 10_000_000`
 //     preserved (= hermes explicit sanity range).
 //   - The "lower than current" filter (= hermes
