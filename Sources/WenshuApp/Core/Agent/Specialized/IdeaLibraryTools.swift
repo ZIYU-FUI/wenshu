@@ -514,7 +514,7 @@ actor IdeaLibrary {
     ///     link id replaces the existing link).
     ///   - Dedupe by (target, targetId): if the idea already has
     ///     a link to the same (target, targetId) pair, the new
-    ///     link replaces it (= so users can update the context
+    ///     link wins (= so users can update the context
     ///     sentence without accumulating duplicates).
     ///   - Throws `.ideaNotFound` if no idea with that id exists.
     func link(ideaId: UUID, link: IdeaLink) async throws {
