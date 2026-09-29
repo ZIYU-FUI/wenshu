@@ -1,47 +1,8 @@
+// AsyncDelegation.swift · WenshuApp · v0.23
 //
-//  AsyncDelegation.swift · Wenshu · v0.23 ticket 013.010 (hermes gap 9)
-//                          + wenshu port wire-up (2026-09-04)
-//
-// 
-// Source: Gythub.com/NosResearch/hermes-agent/blob/main/tools/async delegation.py
-// Reference (=canonical Python source-of-truth):
-// /Volumes/ANAN/.hermes/tools/delegate tool.py(3,459 LOC)
-//
-// You know, I'm not sure if you're gonna be able to help me.
-// I'm sorry, but I'm sorry.
-// When can keep working.
-//
-// Background Delegation Handle and Async Delegation
-// No UI input in v0.23(UI integration discussed to v0.24+).
-//
-// Hermes-PARTIAL-018 (2026-09-04, boss OOB 'B' = port 18 partial modules):
-// The emerging cross reviewer/update/ getting/ running list/
-// I'm sorry, but I'm sorry, but I'm sorry.
-// From the 18th partal inventory
-// ...scratch/2026-09-04-hermes-agent-capabilities-inventory.md §A.3):
-// 1. Deletate(...) public event — the canonical 3-arg call shape
-// (=hermes delegate tool.delegate task (goal, context, tasks, ...))
-// 2. Mission date - sub-agent can't call disallowed tools
-// (=hermes Delegate BLONKED TOOLS→ Wenshu SubAgentPermissions)
-// Progress reporting - callback fired on state transfers
-// (=hermes build child process callback)
-// 4. Sub-regional tracker information
-// == sync, corrected by elderman == @elder man
-// Result routing — callback when sub-agents
-// (=hermes complement-Que push)
-//
-// This picket ADDS these 5 pieces without returning any emerging public
-// Per Wenshu-side Wins.
-// AsyncDelegationRegistry is the source of truth; delegate(...) is a
-// I'm sorry, but I'm sorry, but I'm sorry.
-//
-// The AsyncThrowingStream API
-// I'm sorry, sir.
-// I'm going to take a look at this.
-// The `delegate(... ) 'entry below emits
-// You know, both the legacy background handsome AND a stream element so both
-// I'm sorry, sir.
-//
+// Source (= hermes Python): `tools/async delegation.py`.
+// Reference (= canonical Python source-of-truth):
+// `/Volumes/ANAN/.hermes/tools/delegate tool.py` (3,459 LOC).
 
 import Foundation
 
@@ -441,11 +402,10 @@ func delegate(
 /// where the LLM cannot pass a registry (= it doesn't know about
 /// actor injection).
 ///
-/// v2.7 fix (= boss 2026-09-26 "团队链路通"): before this commit,
-/// `DelegateResearchTool` created a fresh registry per call (= the
-/// runner never saw the handle; = the team link was broken). Now
-/// the tool routes to `shared`, so the runner's `drainPending()`
-/// can pick up pending handles.
+/// Fix: previously `DelegateResearchTool` created a fresh registry
+/// per call (= the runner never saw the handle; = the team link
+/// was broken). Now the tool routes to `shared`, so the runner's
+/// `drainPending()` can pick up pending handles.
 extension AsyncDelegationRegistry {
     static let shared: AsyncDelegationRegistry = AsyncDelegationRegistry()
 }
