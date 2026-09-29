@@ -1,12 +1,11 @@
+//  AuthPool.swift · WenshuApp · v2.6
 //
-//  AuthPool.swift · Wenshu · HERMES-DISPATCH-001
-//
-//  Multi-key credential pool with status state machine + disk persistence.
-//  Ported from hermes-agent `agent/credential_pool.py` (2,384 LOC Python)
-//  + `agent/credential_persistence.py` (174 LOC). Boss 2026-09-04 OOB 'A'
-//  requested the dispatch layer (= AuthPool / FallbackChain / KeychainSelector
-//  / AutoRotation) so the wenshu 7-connector + BYOK stack survives the first
-//  429 / 503 / 401 it encounters.
+//  Multi-key credential pool with status state machine + optional
+//  disk persistence. Ported from hermes-agent
+//  `agent/credential_pool.py` (2,384 LOC Python) +
+//  `agent/credential_persistence.py` (174 LOC) per the dispatch-layer
+//  spec (= the wenshu 7-connector + BYOK stack survives the first
+//  429 / 503 / 401 it encounters).
 //
 //  Per AGENTS.md §11.3 wenshu-side wins pattern:
 //    - Python `threading.Lock` over dataclass list -> Swift `actor` over
@@ -32,8 +31,6 @@
 //  Public API is `Sendable` (= safe for Swift 6 strict concurrency). Pool state
 //  lives inside the actor (= Swift 6 actor isolation). Public API mirrors
 //  hermes' `CredentialPool` shape (register / list / pick / mark-* / persist).
-//
-// dispatch layer 1 of 4. Refs: boss OOB 'A' 2026-09-04.
 //
 
 import Foundation
