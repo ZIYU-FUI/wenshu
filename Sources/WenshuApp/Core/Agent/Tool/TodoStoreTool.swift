@@ -66,16 +66,15 @@ struct TodoStoreTool: Tool, Sendable {
     /// @MainActor SwiftData wrapper). The inner MainActor.assumeIsolated
     /// ONLY matters for `WSTodoRepository.shared` access (=
     /// @MainActor accessor).
-    /// Q99 dual-axis audit (Round 1.3): callers MUST construct this
+    /// Q-number dual-axis audit (Round 1.3): callers MUST construct this
     /// singleton from a MainActor context. Production path runs
     /// after `WenshuAppDelegate.applicationDidFinishLaunching` so the
     /// trap never fires.
     ///
-    /// v1.55d+ (boss 2026-09-28 OOB A option): promoted to
-    /// `@MainActor static let` so Swift 6 strict concurrency ensures
-    /// first access lands on the main actor (= eliminates the
-    /// SIGTRAP that previously fired when the static-let initializer
-    /// ran from `_dispatch_once_callout` on
+    /// promoted to `@MainActor static let` so Swift 6 strict
+    /// concurrency ensures first access lands on the main actor (=
+    /// eliminates the SIGTRAP that previously fired when the
+    /// static-let initializer ran from `_dispatch_once_callout` on
     /// `com.apple.root.utility-qos.cooperative`).
     @MainActor static let shared: TodoStoreTool = {
         TodoStoreTool(
