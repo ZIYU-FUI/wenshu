@@ -5,7 +5,7 @@
 //  (= hermes' AIAgent runtime state dict = verbose / debug / sandbox / mock-time
 //  flags + credential resolution chain). Wenshu previously had no equivalent
 //  surface — any code path wanting deterministic-test injection of "now" (= the
-//  hermes-port Z-contract hard requirement per v0.36 ticket 014) had to reach
+//  hermes-port Z-contract hard requirement) had to reach
 //  into ProcessInfo or fake Date via subclassing. This module centralizes
 //  that state into a single Sendable, actor-isolated value that any consumer
 //  (ConversationLoop, ContextCompressor, TurnRetryState, future modules) can
@@ -74,8 +74,8 @@ struct RuntimeState: Sendable, Equatable {
 
     /// Mock-time injection point. When set, `RuntimeHelpers.now()` returns
     /// this value instead of `Date()`. Required for hermes-port Z-contract
-    /// tests that need deterministic timestamps in conversation transcripts,
-    /// rate-limit reset windows, and trajectory dumps (= v0.36 ticket 014).
+    /// tests that need deterministic timestamps in conversation transcripts
+    /// + rate-limit reset windows + trajectory dumps.
     var mockTime: Date?
 
     /// Active runtime profile override (= hermes `agent.profile_override`).
@@ -346,7 +346,7 @@ actor RuntimeHelpers {
 // ported in this ticket — they fall into separate wenshu-side
 // wins patterns (= ConversationLoop / WenshuConductor /
 // PromptCaching own the message-sequence + credential-pool
-// concerns; = per Q112 = one ticket per file).
+// concerns).
 //
 // Hermes Python line range cited in doc-comment below (= for
 // traceability back to `/Volumes/ANAN/.hermes/agent/
