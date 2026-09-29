@@ -1,12 +1,7 @@
+// Cronjob.swift · WenshuApp · v0.18
 //
-//  Cronjob.swift · Wenshu · v0.18 ticket 21 (hermes replica)
-//
-// local Cron task (hermes cronjob).
-// 2026-08-19 ", Apple " + "can".
-//
-// wenshu = SwiftUI app. Cronjob (autosave / / backup).
-// Apple HIG: macOS LaunchAgent (launchd).
-//
+// Local cron job scheduling (= hermes `cronjob` parity). Uses
+// macOS `LaunchAgent` (`launchd`) as the canonical scheduler.
 
 import Foundation
 

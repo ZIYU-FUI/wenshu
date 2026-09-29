@@ -1,10 +1,11 @@
+// CronPromptScanner.swift · WenshuApp · v0.23
 //
-//  CronPromptScanner.swift · Wenshu · v0.23 ticket 013.007 (hermes gap 7)
-//
-// hermes _scan_cron_prompt parity.
-//  Source: github.com/NousResearch/hermes-agent/blob/main/tools/cronjob_tools.py:260
-//
-//  Hermes pattern:
+// Prompts the user to confirm a cron schedule scan (= hermes
+// `_scan_cron_prompt` parity). The scan detects invisible unicode /
+// emoji ZWJ sequences in user-provided cron expressions; = the
+// user is asked before the schedule is registered.
+
+import Foundation
 //    - _scan_cron_prompt detects invisible unicode / emoji ZWJ sequences in
 //      cron prompts (LLM prompt injection vectors).
 //    - _check_invisible_unicode blocks ZWJ, RLO, RTL, zero-width chars.
