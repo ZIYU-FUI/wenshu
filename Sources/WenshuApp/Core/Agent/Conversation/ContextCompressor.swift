@@ -1,27 +1,30 @@
+// ContextCompressor.swift · WenshuApp · v0.35
 //
-//  ContextCompressor.swift · Wenshu · v0.35 ticket 003 sub-step 1
+// Context compression actor. Maps to hermes `context_compressor.py`
+// + `conversation_compression.py` `compress_context()`.
 //
-//  Context compression actor. Maps to hermes context_compressor.py
-//  (= 3082 LOC) + conversation_compression.py `compress_context()` (L435-L987).
+// Design divergence from hermes (= wenshu §11 baseline "no
+// external AI platform calls" + wenshu-side wins):
+//   - Hermes `compress_context()` invokes an aux LLM to summarize
+//     (= external AI platform dependency, banned by §11).
+//   - Wenshu `ContextCompressor` uses deterministic truncation
+//     policy:
+//       1. Preserve the last `keepRecentTurns` messages (= recent
+//          context).
+//       2. Replace earlier messages with a single synthetic
+//          summary message (placeholder =
+//          `"[Earlier conversation summarized: N turns omitted]"`).
+//       3. Token budget guard: stop early if estimated token count
+//          fits.
+//   - This is a wenshu-side decision (= §11.3 wenshu-side wins):
+//     the existing wenshu memory subsystem (`MemoryManager`)
+//     already maintains a write gate + retrieval policy;
+//     compression policy reuses those primitives without
+//     introducing new dependencies.
 //
-//  Design divergence from hermes (= wenshu §11 baseline "no external AI
-//  platform calls" + wenshu-side wins):
-//    - Hermes `compress_context()` invokes an aux LLM to summarize
-//      (= external AI platform dependency, banned by §11).
-//    - Wenshu ContextCompressor uses deterministic truncation policy:
-//        1. Preserve the last `keepRecentTurns` messages (= recent context)
-//        2. Replace earlier messages with a single synthetic summary message
-//           (placeholder = "[Earlier conversation summarized: N turns omitted]")
-//        3. Token budget guard: stop early if estimated token count fits
-//    - This is a wenshu-side decision (= spec §3.6 "wenshu-side wins"):
-//      the existing wenshu memory subsystem (MemoryManager) already
-//      maintains a write gate + retrieval policy; compression policy
-//      reuses those primitives without introducing new dependencies.
-//
-// ticket 003 sub-step 1 (= 6 sub-steps total for ticket 003:
-//  ContextCompressor + ConversationCompression + ContextEngine +
-//  ChatView compression pill + manual button + e2e tests).
-//
+// The full compression ticket covers 6 surfaces: `ContextCompressor`
+// + `ConversationCompression` + `ContextEngine` + ChatView
+// compression pill + manual button + e2e tests.
 
 import Foundation
 
