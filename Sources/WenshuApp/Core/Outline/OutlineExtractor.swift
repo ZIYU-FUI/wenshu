@@ -1,10 +1,9 @@
+// OutlineExtractor.swift · WenshuApp · v0.19
 //
-//  OutlineExtractor.swift · Wenshu · v0.19 ticket 21 (Obsidian replica, backend first)
-// 
-//
-//  Markdown heading parse (H1-H6). Aligned with Obsidian Outline plugin behavior (https://obsidian.md/help/plugins/outline).
-//  Apple HIG: NSRegularExpression parses # / ## / ### / #### / ##### / ###### at line start.
-//
+// Markdown heading parser (H1-H6). Aligned with Obsidian's
+// Outline plugin behavior (https://obsidian.md/help/plugins/outline).
+// Uses `NSRegularExpression` to match `# / ## / ### / #### / #####
+// / ######` at line start.
 
 import Foundation
 
