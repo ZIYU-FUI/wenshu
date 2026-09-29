@@ -1,15 +1,17 @@
+// AgentProtocol.swift · WenshuApp · v0.18
 //
-//  AgentProtocol.swift · Wenshu · v0.18 ticket 03 (hermes replica)
+// A2A (= Google A2A spec): JSON-RPC 2.0 style, agent message + task.
+// In-process actor message (= the URLSession HTTP server surface is
+// separately layered on top).
 //
-// A2A (Google A2A spec): JSON-RPC 2.0 style, agent message + task.
-// 2026-08-19 "need agent need a2a ".
-//: in-process actor message (ticket 04 URLSession HTTP server).
-//
-//:
-//  - AgentMessage: { role: .user / .agent, content: String, metadata: [String: String] }
-//  - AgentTask: { id: UUID, status: .pending / .running / .completed / .failed, messages: [AgentMessage] }
-//  - A2ARequest: { method: "message/send" / "task/get", params: JSON }
-//  - A2AResponse: { result: JSON?, error: A2AError? }
+// Surface:
+//   - `AgentMessage`:
+//     `{ role: .user / .agent, content: String, metadata: [String: String] }`
+//   - `AgentTask`:
+//     `{ id: UUID, status: .pending / .running / .completed / .failed, messages: [AgentMessage] }`
+//   - `A2ARequest`:
+//     `{ method: "message/send" / "task/get", params: JSON }`
+//   - `A2AResponse`: `{ result: JSON?, error: A2AError? }`
 //
 // Apple HIG: actor (Swift 6 strict concurrency) + Sendable actor.
 //
@@ -147,8 +149,8 @@ enum A2AResult: Codable, Sendable {
 
 // MARK: - Agent Protocol Actor (in-process A2A)
 
-/// AgentProtocol: A2A (in-process actor, ticket 04 agent + URLSession HTTP)
-/// Apple HIG: actor + Sendable
+/// A2A (= in-process actor + URLSession HTTP server).
+/// Apple HIG: actor + `Sendable`.
 actor AgentProtocol {
     private var tasks: [UUID: AgentTask] = [:]
     private var tasksByAgent: [String: [UUID]] = [:]
@@ -164,7 +166,7 @@ actor AgentProtocol {
         agentCard
     }
 
-    /// handle: A2A Request (ticket 04 URLServer)
+    /// handle: A2A request (= the canonical entry point).
     func handle(_ request: A2ARequest) async -> A2AResponse {
         switch request.method {
         case .messageSend:
@@ -184,8 +186,8 @@ actor AgentProtocol {
         task.status = .running
         task.messages.append(message)
         task.updatedAt = Date()
-        //: WenshuVerifier agent (v0.21 ticket 03 + code-review S3 spec violation)
-        // verifier, verifier → throw (spec ticket 03 step 1 ' echo ')
+        //  WenshuVerifier agent (= the canonical verifier surface)
+        // verifier → throw (= no verifier configured).
         guard let verifier = verifier else {
             task.status = .failed
             task.updatedAt = Date()
