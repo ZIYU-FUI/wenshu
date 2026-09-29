@@ -1,12 +1,11 @@
 //
-//  ComposerWindow.swift · Wenshu · v2.8b ticket T10-T13 (boss 2026-09-28 OOB B7)
+// Sources/WenshuApp/Views/Windows/_FILE_.swift
 //
 //  Independent Composer window (= NoteComposer operating surface).
 //
-//  Per boss 2026-09-28 OOB B7 '和老板 todo 一样' (= same shape as
-//  the existing kanban + todo windows): an MVP composer surface
-//  that calls into NoteComposer (= the rename / merge / split
-//  helpers).
+//  Per the existing kanban + todo window pattern: an MVP composer
+//  surface that calls into `NoteComposer` (= the rename / merge /
+//  split helpers).
 //
 //  Standards axis:
 //    S1 (Apple-API-first): pure SwiftUI primitives + SF Symbols 6
@@ -18,11 +17,11 @@
 
 import SwiftUI
 
-/// Independent Composer window (= MVP per boss 2026-09-28 OOB B7).
+/// Independent Composer window (= the multi-window MVP).
 ///
-/// Provides a form to call NoteComposer's rename / merge / split
-/// helpers (= NoteComposer is the canonical composer surface per
-/// AGENTS.md §11 baseline; = this view is the UI host).
+/// Provides a form to call `NoteComposer`'s rename / merge / split
+/// helpers (= `NoteComposer` is the canonical composer surface;
+/// = this view is the UI host).
 @MainActor
 struct ComposerWindow: View {
 
@@ -131,11 +130,10 @@ struct ComposerWindow: View {
                 }
             }
 
-            // v2.9c (boss 2026-09-28 OOB A5): Run button =
-            // call NoteComposer per the selected operation.
-            // NoteComposer.rename / merge / split are the
-            // canonical composer surfaces per AGENTS.md §11
-            // baseline (= this view is the UI host).
+            // Run button = call `NoteComposer` per the selected
+            // operation. `NoteComposer.rename` / `merge` / `split`
+            // are the canonical composer surfaces (= this view is
+            // the UI host).
             Section {
                 Button(WenshuI18n.t("composer.run")) {
                     runOperation()

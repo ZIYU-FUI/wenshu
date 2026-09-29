@@ -1,12 +1,11 @@
 //
-//  CronWindow.swift · Wenshu · v2.8b ticket T10-T13 (boss 2026-09-28 OOB B9)
+// Sources/WenshuApp/Views/Windows/_FILE_.swift
 //
 //  Independent Cron window (= the previously-unwired cron schedule
 //  + prompt-scanner surface).
 //
-//  Per boss 2026-09-28 OOB B9 '和老板 todo 一样' (= same shape as
-//  the existing kanban + todo windows): build an MVP independent
-//  Cron window that lists + edits cron schedules (= the future
+//  Per the existing kanban + todo window pattern: build an MVP
+//  independent Cron window that lists + edits cron schedules (= the future
 //  ticket wires to the underlying CronScheduler actor; = this
 //  view is the UI host).
 //
@@ -34,8 +33,8 @@ struct CronSchedule: Identifiable, Equatable {
     var displayName: String { "\(cronExpression) → \(command)" }
 }
 
-/// Independent Cron window (= MVP per boss 2026-09-28 OOB B9;
-/// v2.9c boss 2026-09-28 OOB A5 follow-up wires to the
+/// Independent dedicated window (= the multi-window MVP):
+/// The canonical actor wiring lives in the follow-on surface.
 /// canonical CronjobStore actor).
 @MainActor
 struct CronWindow: View {
@@ -140,9 +139,8 @@ struct CronWindow: View {
         }
     }
 
-    // v2.9c (boss 2026-09-28 OOB A5): wire to the canonical
-    // CronjobStore actor (= the view never reads the plist
-    // directly; = SSOT on CronjobStore).
+    // Wire to the canonical `CronjobStore` actor (= the view
+    // never reads the plist directly; = SSOT on `CronjobStore`).
     private func reload() async {
         let rows = await store.list()
         schedules = rows.map { row in

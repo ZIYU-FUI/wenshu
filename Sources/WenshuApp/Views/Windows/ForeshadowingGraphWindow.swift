@@ -1,11 +1,11 @@
 //
-//  ForeshadowingGraphWindow.swift · Wenshu · v2.8b ticket T10-T13 (boss 2026-09-28 OOB B9)
+// Sources/WenshuApp/Views/Windows/_FILE_.swift
 //
 //  Independent Foreshadowing Graph window (= the previously-unwired
 //  graph view; = the inspector's ForeshadowingView is a list;
 //  = this window hosts the graph-style overview).
 //
-//  Per boss 2026-09-28 OOB B9 '在标题栏/工具栏中加一个按钮':
+// Per the multi-window pattern:
 //  build an MVP independent Foreshadowing Graph window (= a graph
 //  overview that complements the inspector's list view).
 //
@@ -17,7 +17,7 @@
 //        from the same WSBookmark / Foreshadowing persistence as
 //        the inspector's ForeshadowingView (= no second store).
 //
-//  NOTE (= boss 2026-09-28 OOB B9 '和老板 todo 一样' = same
+// NOTE (= the same shape as the todo pattern:
 //  shape; = the underlying graph rendering is intentionally a
 //  placeholder for the future ticket that adds Spring-Force
 //  layout via Grape::ForceSimulation per §11.1 batch 2 issue 05;
@@ -97,10 +97,10 @@ struct ForeshadowingGraphWindow: View {
         }
     }
 
-    // v2.9c (boss 2026-09-28 OOB A5): load via ForeshadowingTracker
-    // actor (= the canonical persistence per AGENTS.md §11 baseline;
-    // = the view never reads the sidecar directly). Pattern mirrors
-    // ForeshadowingView (= same actor + same BookStore environment).
+    // Load via the canonical `ForeshadowingTracker` actor (= the
+    // view never reads the sidecar directly). Pattern mirrors
+    // `ForeshadowingView` (= same actor + same `BookStore`
+    // environment).
     private func reload() async {
         guard let bookId = activeBookId else {
             entries = []

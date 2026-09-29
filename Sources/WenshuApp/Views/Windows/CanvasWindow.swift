@@ -1,10 +1,9 @@
 //
-//  CanvasWindow.swift · Wenshu · v2.8b ticket T10-T13 (boss 2026-09-28 OOB B6)
+// Sources/WenshuApp/Views/Windows/_FILE_.swift
 //
 //  Independent Canvas window (= JSONCanvasCodec 1:1 renderer).
 //
-//  Per boss 2026-09-28 OOB B6 '在标题栏/工具栏中加一个按钮，和老板
-//  todo 一样，打开一个独立 windows 先构建一个独立功能页面':
+// Per the multi-window pattern:
 //  build an MVP independent Canvas window (= renders + edits a
 //  .canvas file using the existing JSONCanvasCodec codepath).
 //
@@ -19,8 +18,8 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Independent Canvas window (= MVP per boss 2026-09-28 OOB B6;
-///  v2.9b boss 2026-09-28 OOB follow-up wires save-back to close
+/// Independent dedicated window (= the multi-window MVP):
+/// The save-back wiring lives in the follow-on surface.
 ///  the read-only gap).
 ///
 /// Renders + edits + saves a JSON Canvas document (= the
@@ -54,8 +53,7 @@ struct CanvasWindow: View {
                             }
                         }
                     }
-                    // v2.9b (boss 2026-09-28 OOB B6 follow-up):
-                    // save-back toolbar button. Disabled when no
+                    //                     // save-back toolbar button. Disabled when no
                     // document is loaded (= no in-memory state to
                     // persist).
                     ToolbarItem(placement: .primaryAction) {
