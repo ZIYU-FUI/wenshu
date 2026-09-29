@@ -1,11 +1,8 @@
+// JSONCanvasCodec.swift · WenshuApp · v0.19
 //
-// JSONCanvasCodec.swift · Wenshu · v0.19 ticket 13 (Obsidian replica, do first)
-// 2026-08-19 evening Obsidian A + ', '.
-//
-// JSON Canvas fileformat 1:1 (https://jsoncanvas.org/spec/1.0, open MIT).
-// Apple HIG: Codable .canvas file (nodes[] + edges[]).
-// Obsidian / SilverBullet / .
-//
+// JSON Canvas file format (https://jsoncanvas.org/spec/1.0, MIT).
+// Uses `Codable` to encode/decode `.canvas` files (= nodes[] +
+// edges[]).
 
 import Foundation
 
