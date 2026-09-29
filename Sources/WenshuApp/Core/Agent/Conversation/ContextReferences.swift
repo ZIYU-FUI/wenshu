@@ -1,52 +1,48 @@
+// ContextReferences.swift · WenshuApp · v0.36
 //
-//  ContextReferences.swift · Wenshu · v0.36 ticket 014 sub-step 2
-// .
+// Cross-reference table between `LLMMessage.id` and source file
+// paths.
 //
-//  DEFERRED (v0.73 spec decision):
-//  This 1:1 port of hermes context_references.py (598 LOC) is
-//  intentionally NOT wired into ContextEngine (= grep returns zero
-//  callers referencing ContextReferences from ContextEngine.swift).
-//  Per AGENTS.md §11 single-shelf model + wenshu's existing
-//  BacklinkResolver (= WSLinkRepository.shared), cross-file /
-//  cross-session graph is over-implementation for v0.73.
-//  Future ticket (= v0.74+) may wire it IF user requests
-//  cross-book reference UI.
+// When a message is compressed (= older non-cached messages get
+// truncated), the user may want to navigate back to the original
+// source file (= e.g. a character description in `world/` or
+// `characters/` folder). `ContextReferences` maintains a
+// `LLMMessage.id → file URL` mapping that survives compression
+// (= the chat transcript's id-based lookup preserves the
+// original source across compression).
 //
-//  This file is NOT dead code (= per Q57: 3rd-party verdict ≠
-//  authority); it documents the deferred surface and remains as a
-//  reference for future work.
+// Per ADR-0011 (deterministic compression policy) + ADR-0009
+// (wenshu-side wins), `ContextReferences` is a pure data layer
+// (= no LLM calls, no filesystem I/O at runtime; the map is
+// populated at message-construction time when the message is
+// loaded from disk).
 //
-//  Cross-reference table between LLMMessage.id and source file paths
-//  (= ticket 003 L40 acceptance criterion + spec §3.1 L198-199).
+// Status: deferred from the v0.73 spec decision. This 1:1 port of
+// hermes `context_references.py` is intentionally NOT wired into
+// `ContextEngine` (= grep returns zero callers referencing
+// `ContextReferences` from `ContextEngine.swift`). Per AGENTS.md
+// §11 single-shelf model + wenshu's existing `BacklinkResolver`
+// (= `WSLinkRepository.shared`), cross-file / cross-session graph
+// is over-implementation for v0.73. Future ticket may wire it if
+// the user requests cross-book reference UI.
 //
-//  When a message is compressed (= older non-cached messages get truncated),
-// the user may want to navigate back to the original source file
-// (= e.g. a character description in `world/` or `characters/` folder).
-// ContextReferences maintains a LLMMessage.id → file URL mapping that
-// survives compression (= the chat transcript's id-based lookup
-// preserves the original source across compression).
+// This file is NOT dead code; it documents the deferred surface
+// and remains as a reference for future work.
 //
-//  Per ADR-0011 (deterministic compression policy) + ADR-0009 (wenshu-side
-//  wins), ContextReferences is a pure data layer (= no LLM calls, no
-//  filesystem I/O at runtime; the map is populated at message-construction
-//  time when the message is loaded from disk).
-//
-// extends the v0.36 sub-step 2 surface with the
-//  hermes context_references.py surface:
-//    - on-disk persistence (= the references survive session reset;
-//      loaded from a JSON file at actor init time).
-//    - cross-session reference graph (= each session keeps its own
-//      references; sessions can reference each other via shared file
-//      URLs, forming a graph that survives the in-memory cache).
-//    - parse-context-references helper (= hermes parse_context_references:
-//      extract @-references like @file:/foo/bar.md#L10-L20 from a
-//      user message and emit ContextReference entries).
-//    - reference expansion (= hermes _expand_file_reference +
-//      _expand_folder_reference + _expand_git_reference: turn the
-//      target token into the actual file contents).
-//
-// sub-step 2 of 2 for ticket 014.
-//
+// Layered surface (built on top of the v0.36 sub-step 2 minimum):
+//   - On-disk persistence (= the references survive session
+//     reset; = loaded from a JSON file at actor init time).
+//   - Cross-session reference graph (= each session keeps its own
+//     references; sessions can reference each other via shared
+//     file URLs, forming a graph that survives the in-memory
+//     cache).
+//   - `parse-context-references` helper (= hermes
+//     `parse_context_references`: extract `@`-references like
+//     `@file:/foo/bar.md#L10-L20` from a user message and emit
+//     `ContextReference` entries).
+//   - Reference expansion (= hermes `_expand_file_reference` +
+//     `_expand_folder_reference` + `_expand_git_reference`: turn
+//     target token into the actual file contents).
 
 import Foundation
 
