@@ -1,23 +1,19 @@
+// OAuthFlow.swift · WenshuApp · v0.36
 //
-//  OAuthFlow.swift · Wenshu · v0.36 ticket 012 sub-step 4
+// OAuth 2.0 authorization code flow + `refresh_token` grant for LLM
+// providers (= thin adapter over `URLSession` + `JSONSerialization`;
+// Apple Foundation only).
 //
-//  OAuth 2.0 authorization code flow + refresh_token grant for LLM providers
-//  (= thin adapter over URLSession + JSONSerialization; Apple Foundation
-//  only per wenshu §11 hard rule).
+// Per ADR-0008 + §11.3 wenshu-side wins: this is a thin layer over
+// the existing `ProviderKeychain` (= where OAuth tokens are
+// persisted). The actual token storage = `ProviderKeychainMetadata`
+// (= the canonical persistence layer).
 //
-//  Per ADR-0008 + §11.3 wenshu-side wins: this is a thin layer over the
-//  existing ProviderKeychain (= where OAuth tokens are persisted). The
-//  actual token storage = ProviderKeychainMetadata (= ticket 012
-//  sub-step 1 + 2).
-//
-//  Per AGENTS.md §11 + §11.2: wenshu is a writing tool, not an LLM platform.
-//  OAuth flows here are FOR the user's own credentials (= BYOK) — not for
-//  reselling tokens. After the user completes OAuth once, the refresh
-//  token rotates silently in the background. No user-visible OAuth screen
-//  beyond the standard browser redirect.
-//
-// sub-step 4 of 5 for ticket 012.
-//
+// Per AGENTS.md §11 + §11.2: wenshu is a writing tool, not an LLM
+// platform. OAuth flows here are FOR the user's own credentials
+// (= BYOK) — not for reselling tokens. After the user completes
+// OAuth once, the refresh token rotates silently in the background.
+// No user-visible OAuth screen beyond the standard browser redirect.
 
 import Foundation
 
