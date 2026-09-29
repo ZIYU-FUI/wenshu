@@ -1,18 +1,8 @@
+// BookmarkDomain.swift · WenshuApp · v0.72
 //
-//  BookmarkDomain.swift · Wenshu · v0.72 SwiftData migration 
-//
-//  Domain types for the bookmarks feature (= preserved from
-//  the now-deleted BookmarkStore.swift actor).
-//
-//  History:
-//    - v0.19 ticket 22: Bookmark struct + BookmarkStore actor
-//      (= SQLite-backed; = Obsidian replica).
-//    - : BookmarkStore deleted; pure value types
-//      preserved here (= no SQLite dependency). SwiftData persistence
-//      lives in WSBookmark @Model + WSBookmarkRepository.swift.
-//
-//  Per AGENTS.md §11.4 SwiftData migration spec, raw sqlite3 stores
-//  are being phased out (= SwiftData @Model replaces them).
+// Domain types for the bookmarks feature (= pure value types; no
+// SQLite dependency). SwiftData persistence lives in `WSBookmark`
+// @Model + `WSBookmarkRepository`.
 //
 
 import Foundation
