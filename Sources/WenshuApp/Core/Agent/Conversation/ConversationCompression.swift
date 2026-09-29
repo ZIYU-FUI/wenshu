@@ -1,21 +1,17 @@
+// ConversationCompression.swift · WenshuApp · v0.35
 //
-//  ConversationCompression.swift · Wenshu · v0.35 ticket 003 sub-step 2
+// Caller-facing wrapper around `ContextCompressor`. Maps to
+// hermes `conversation_compression.conversation_history_after_compression`
+// (= the public entry that `ConversationLoop` calls after every
+// turn to update the persisted history).
 //
-//  Caller-facing wrapper around ContextCompressor. Maps to hermes
-//  conversation_compression.conversation_history_after_compression
-//  (= L371 in conversation_compression.py, = the public entry that
-//  ConversationLoop calls after every turn to update the persisted
-//  history).
-//
-//  Provides:
-//    - historyAfterCompression(messages:) -> [LLMMessage]?
-//      (= Optional return = hermes pattern: nil when compression aborts;
-//      caller detects no-op via nil result and stops retry loop)
-//    - manualTrigger(messages:) for explicit user-initiated
-//      compression (= ChatView manual button in sub-step 5)
-//
-// ticket 003 sub-step 2 of N.
-//
+// Provides:
+//   - `historyAfterCompression(messages:) -> [LLMMessage]?`
+//     (= `Optional` return = hermes pattern: `nil` when
+//     compression aborts; the caller detects a no-op via `nil`
+//     result and stops the retry loop).
+//   - `manualTrigger(messages:)` for explicit user-initiated
+// compression (= `ChatView` manual button).
 
 import Foundation
 
@@ -102,10 +98,10 @@ actor ConversationCompression {
 // `/Volumes/ANAN/.hermes/agent/conversation_compression.py`).
 //
 // Per AGENTS.md §11.3 wenshu-side wins:
-//   - Pre-existing ConversationCompression actor +
-//     historyAfterCompression + manualTrigger preserved
-//     (= Q112 no regressions).
-//   - The hermes any()-short-circuit check (= early return
+//   - Pre-existing `ConversationCompression` actor +
+//     `historyAfterCompression` + `manualTrigger` preserved
+//     (= the no-regressions invariant).
+//   - The hermes `any()`-short-circuit check (= early return
 //     if compressed already contains a user turn) is
 //     preserved 1:1.
 //   - The reversed(original_messages) walk (= append the
@@ -130,10 +126,9 @@ actor ConversationCompression {
 // conversation_history_after_compression /
 // compress_context / _compress_context_via_codex_app_server
 // / try_shrink_image_parts_in_messages / etc.) are
-// intentionally NOT ported in this ticket — they fall
-// into separate wenshu-side wins patterns (= actor-state-
-// bound + LLMConnector-bound; = per Q112 = one ticket per
-// file).
+// intentionally NOT ported here — they fall into separate
+// wenshu-side wins patterns (= actor-state-bound +
+// `LLMConnector`-bound).
 //
 // Per AGENTS.md §11 hard rule: Apple Foundation only. No
 // third-party imports.
