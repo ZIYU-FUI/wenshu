@@ -85,7 +85,7 @@ enum AutoRotationError: Error, LocalizedError, Sendable, Equatable {
 
 /// Abstraction over the inner connector + key the wrapper rotates on.
 ///
-/// Production wiring (= ticket 013) supplies a closure that:
+/// Production wiring supplies a closure that:
 ///   1. Reads the active AuthKey from AuthPool (= picks a key for the
 ///      provider, ignores status = .ok cooldown = not active).
 ///   2. Resolves the connector + credentials via ProviderKeychain +
@@ -133,8 +133,8 @@ actor AutoRotatingConnector {
         @Sendable (DispatchRequest, AutoRotationSendContext) async throws -> LLMResponse
 
     /// Unused for send path (kept for the public init signature contract).
-    /// Reserved for the future ticket 014 wiring (= "send with primary
-    /// first, rotate only after primary fails").
+    /// Reserved for a future wiring (= "send with primary first, rotate
+    /// only after primary fails").
     private let _primaryConnector: (any LLMConnector)?
 
     init(
