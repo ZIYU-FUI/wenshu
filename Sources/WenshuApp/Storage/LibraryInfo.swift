@@ -1,23 +1,22 @@
-// LibraryInfo.swift · Wenshu () · v0.26 (FCP library replica)
+// LibraryInfo.swift · WenshuApp · v2.6
 //
 // Reads the .ws library's Info.plist metadata (= Apple HIG bundle
-// pattern). Per spec v5 ticket 018:
-// - Bundle.url(<.ws>/Info.plist) reads CFBundlePackageType (= "WSPC")
-//   + WSSchemaVersion (= custom key for v0.26 schema versioning)
-// - Compares schemaVersion against CURRENT_SCHEMA_VERSION
-// - Returns LibraryInfoError.missingInfoPlist if bundle is nil
-//   (= user dragged a folder without Info.plist; LibraryBootstrapper
-//   will recreate it on next launch)
+// pattern).
 //
-// FCP library replica spec at
-// `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 018.
+// - `Bundle(url: <.ws>/Info.plist)` reads `CFBundlePackageType`
+//   (= "WSPC") + `WSSchemaVersion` (= custom key for schema
+//   versioning).
+// - Compares `schemaVersion` against `CURRENT_SCHEMA_VERSION`.
+// - Throws `LibraryInfoError.missingInfoPlist` if the bundle is nil
+//   (= user dragged a folder without Info.plist; LibraryBootstrapper
+//   will recreate it on next launch).
 
 import Foundation
 
-/// Canonical schema version for v0.26 (= must match the WSSchemaVersion
-/// key written by LibraryRootView.swift when creating a new .ws).
-/// Bump on breaking changes to the .ws directory structure (= spec v5
-/// ticket 022 LibraryMigrator triggers when WSSchemaVersion < this).
+/// Canonical schema version (= must match the WSSchemaVersion key
+/// written by LibraryRootView when creating a new .ws). Bump on
+/// breaking changes to the .ws directory structure (= LibraryMigrator
+/// triggers when `WSSchemaVersion` is below this).
 let CURRENT_SCHEMA_VERSION = 1
 
 /// Library metadata read from the .ws directory's Info.plist.
