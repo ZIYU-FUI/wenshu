@@ -1,6 +1,4 @@
-//
-//  Provider.swift · v0.21 ticket 01
-//
+// Provider.swift · WenshuApp · v0.21
 
 import Foundation
 
@@ -143,8 +141,8 @@ struct Provider: Identifiable, Hashable, Sendable {
 
     // sub-step 2 (= hermes-core-translation spec §3.2):
     // 3 new connector profiles added per AGENTS.md §11.2 (P1/P1/P1).
-    // Other 4 (= Anthropic / OpenAI / minimax cn / OpenRouter) were already
-    // present in the existing wenshu Provider enum (= v0.21 ticket 01).
+    // Other 4 (= Anthropic / OpenAI / minimax cn / OpenRouter) were
+    // already present in the existing wenshu `Provider` enum.
 
     static let gemini = Provider(
         slug: "gemini",
