@@ -4,9 +4,10 @@
 //  Standalone @Model for entity body markdown.
 //
 //  Reasoning: entity body markdown can be arbitrarily large
-//  (= 几万 chars for a major character biography). Keeping it
-//  in the WSEntity main row would bloat the index query (=
-//  every list / find query would drag the body bytes).
+//  (= tens of thousands of characters for a major character
+//  biography). Keeping it in the WSEntity main row would bloat
+//  the index query (= every list / find query would drag the
+//  body bytes).
 //
 //  Pattern (= per Aggregate Root in design-check #8):
 //  - WSEntity is the root; = WSBody is its child object.
