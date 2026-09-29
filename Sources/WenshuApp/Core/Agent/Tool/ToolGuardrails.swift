@@ -1,23 +1,21 @@
+// ToolGuardrails.swift · WenshuApp · v0.36
 //
-//  ToolGuardrails.swift · Wenshu · v0.36 ticket 015 sub-step 1
+// Pre-tool check layer that wraps existing wenshu
+// `FileTools.pathDenied` (= §11.3 wenshu-side wins: do NOT
+// duplicate sandbox / path / permission logic; extend the
+// existing `FileTools` canonical implementation).
 //
-//  Tool invocation guardrails (= ticket 001 L48 acceptance criterion).
+// Per spec §3.1:
+//   - Path validation (= delegate to `FileTools.pathDenied`).
+//   - Tool whitelist (= only `Tool` protocol conformers with a
+//     valid name).
+//   - Input size cap (= reject inputs > 1 MB to prevent memory
+//     exhaustion).
+//   - Rate-limit coordination (= delegate to `RateLimitTracker`).
 //
-//  Pre-tool check layer that wraps existing wenshu FileTools.pathDenied
-//  (= §11.3 wenshu-side wins: do NOT duplicate sandbox/path/permission
-//  logic; extend the existing FileTools canonical implementation).
-//
-//  Per spec §3.1 L233-234 + ticket 001 L48:
-//  - path validation (= delegate to FileTools.pathDenied)
-//  - tool whitelist (= only Tool protocol conformers with valid name)
-//  - input size cap (= reject inputs > 1 MB to prevent memory exhaustion)
-//  - rate limit coordination (= delegate to RateLimitTracker, ticket 015 sub-step 3)
-//
-//  Per ADR-0009 (wenshu-side wins), this file is a thin façade (= delegates
-//  to canonical wenshu Core). No duplicate sandbox/permission engine.
-//
-// sub-step 1 of 3 for ticket 015.
-//
+// Per ADR-0009 (wenshu-side wins), this file is a thin facade (=
+// delegates to canonical wenshu Core). No duplicate sandbox /
+// permission engine).
 
 import Foundation
 
