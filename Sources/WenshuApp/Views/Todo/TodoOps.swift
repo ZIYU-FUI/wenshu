@@ -48,19 +48,19 @@
 //    - The TodoRow sub-view's checkbox / priority chip / due-date
 //      rendering (= pure layout; = no business logic).
 //
-//  Honest scope note (= Q46 stop-rule boundary):
-//    TodoListView's `addItem` had two SwiftUI-side resets on
-//    success (= newItemTitle = "" + newItemPriority = .medium).
+// Honest scope note (stop-rule boundary):
+//    `TodoListView.addItem` had two SwiftUI-side resets on
+//    success (= `newItemTitle = ""` + `newItemPriority = .medium`).
 //    Both stay in the View (= SwiftUI binding resets, not business
-//    rules). The helper returns a WriteResult; the View decides
+//    rules). The helper returns a `WriteResult`; the View decides
 //    whether to reset the two bindings based on `result.didSave`.
 
 import Foundation
 
 /// Stateless business layer for the per-book todo list. Lifts the
 /// disk-IO + state-transition logic out of `TodoListView` per the
-/// UI / 业务 / 数据 separation audit (= ADR-0009; = the TodoWindow
-/// sibling of the KanbanWindow split).
+/// UI / business / data separation audit (= the TodoWindow sibling
+/// of the KanbanWindow split).
 @MainActor
 enum TodoOps {
 
