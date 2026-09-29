@@ -1,17 +1,13 @@
+// Sources/WenshuApp/Views/Workspace/FormatToolbarButtons.swift
 //
-//  FormatToolbarButtons.swift · Wenshu · v0.40 apple-001 Q2 slice 2
+// The format toolbar buttons on the editor pane top-right
+// (= bold / italic / code / link / heading / list / etc.).
+// Fully self-contained = no `@State`, no `@Environment`, no
+// `@Observable`; just `@Binding var draft` + two file-local
+// helpers `wrapSelection` / `prefixCurrentLine` that mutate the
+// binding.
 //
-//  Extracted from WorkspaceView.swift (formerly inline private
-// struct at line 2097). Q2 boss split WorkspaceView; this
-//  slice = the lowest-risk, highest-payoff extraction (= the
-//  view is fully self-contained = no @State, no @Environment,
-//  no @Observable; just @Binding var draft + two file-local
-//  helpers wrapSelection / prefixCurrentLine that mutate the
-//  binding). Removing it from WorkspaceView = -160 lines from
-//  the 2500-line monolith (smallest Apple-canonical file
-//  per the AVG ≈ 180 LOC finding in apple-self-check §2 row B).
-//
-//  Apple HIG = one view per file. FormatToolbarButtons is
+// Apple HIG = one view per file. FormatToolbarButtons is
 //  invoked from WorkspaceView's editor-toolbar HStack as
 //  `FormatToolbarButtons(draft: $editorTab.draft)` and is
 //  otherwise fully self-contained. Splitting it here does
@@ -114,9 +110,9 @@ struct EditorParagraphAI {
     ///   - connector: the active `LLMConnector` (= injected for
     ///     testability; production calls
     ///     `WenshuAppDelegate.activeLLMConnector()` (= the
-    ///     module-internal bridge added in apple-001 Q1 slice 2 so
-    ///     the test target can resolve a connector without mounting
-    ///     the full WorkspaceView); tests inject `MockLLMConnector`).
+    ///     module-internal bridge so the test target can resolve
+    ///     a connector without mounting the full WorkspaceView);
+    ///     tests inject `MockLLMConnector`).
     ///   - options: the per-call `LLMCallOptions` (= model +
     ///     maxTokens).
     /// - Returns: the rewritten paragraph (= the first .text
