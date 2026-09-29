@@ -1,9 +1,9 @@
+// AvailableModelsDiscovery.swift · WenshuApp · v0.23
 //
-//  AvailableModelsDiscovery.swift · Wenshu · v0.23 ticket 011.001
-//
-// 'chat zoneyesnoconfigfile,
-// key, shouldgroup'.
-//
+// Discovers available models for a provider (= the live list
+// populated from the provider's `/models` endpoint when reachable,
+// with the canonical `Provider.defaultModels` fallback when the
+// endpoint is offline).
 
 import Foundation
 
