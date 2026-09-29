@@ -1,11 +1,9 @@
-// LibraryLifecycleHook.swift · Wenshu () · v0.27 (FCP library replica wiring)
+// Sources/WenshuApp/State/LibraryLifecycleHook.swift
 //
-// -01 = App.swift wiring deferred from v0.26 ticket 019.
-//
-// Strategy: instead of touching App.swift (v0.25.1 streak touched it
-// 41+ times; high regression risk), this file introduces the launch
-// sequence (= LibraryMigrator + LibraryBootstrapper + store
-// construction) without invasive @Environment rewrites.
+// Strategy: instead of touching App.swift (the v0.25.1 streak touched
+// it 41+ times; = high regression risk), this file introduces the
+// launch sequence (= LibraryMigrator + LibraryBootstrapper + store
+// construction) without invasive `@Environment` rewrites.
 
 import Foundation
 import SwiftUI
@@ -65,7 +63,7 @@ struct LibraryLaunchResult: Sendable {
 // MARK: - BookStore construction
 
 extension LibraryLaunchResult {
-    /// Build the singleton BookStore (= v0.27 ticket 027-01 wiring).
+    /// Build the singleton `BookStore` (= the canonical wiring).
     /// This is the one place that constructs the @Observable; App.swift
     /// wiring (= WiredShell in LibraryRootView) passes it to LayoutShellView
     /// via .environment(bookStore).
