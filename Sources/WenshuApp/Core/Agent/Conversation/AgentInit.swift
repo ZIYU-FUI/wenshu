@@ -1,55 +1,49 @@
+// AgentInit.swift · WenshuApp · v0.36
 //
-//  AgentInit.swift · Wenshu · P9-AGENT-INIT-HERMES-PORT (2026-09-19)
+// `AIAgent` bootstrap helpers. Faithful 1:1 port of hermes
+// `agent/agent_init.py` pure helpers.
 //
-//  AIAgent bootstrap helpers. Faithful 1:1 port of
-//  hermes `agent/agent_init.py` pure helpers per spec
-//  §3.1 #23 = TICKET-HERMES-GAP-006 follow-up.
+// Wenshu-side wins (= per AGENTS.md §11.3):
 //
-//  Wenshu-side wins (= per AGENTS.md §11.3):
+// Hermes `agent_init.py` is the implementation of `AIAgent.__init__`
+// (= 60+ parameters, 1400 lines of attribute initialization +
+// provider auto-detection + credential resolution + context-engine
+// bootstrap). The full `init_agent` body is too large to port in
+// a single ticket (= would exceed the 1-ticket-1-file scope), so
+// this ticket ports only the 3 hermes PURE HELPERS that are
+// reusable outside the `AIAgent` class:
 //
-//  Hermes `agent_init.py` is the implementation of
-//  `AIAgent.__init__` (= 60+ parameters, 1400 lines of
-//  attribute initialization + provider auto-detection +
-//  credential resolution + context-engine bootstrap).
-//  The full `init_agent` body is too large to port in a
-//  single Q112 ticket (= would exceed the 1-ticket-1-file
-//  scope), so this P9 ticket ports only the 3 hermes
-//  PURE HELPERS that are reusable outside the AIAgent
-//  class:
+//   1. `_resolve_compression_threshold` (= hermes L93-L120).
+//   2. `_normalized_custom_base_url` (= hermes L183-L187).
+//   3. `_custom_provider_model_matches` (= hermes L189-L194).
 //
-//    1. _resolve_compression_threshold (= hermes L93-L120)
-//    2. _normalized_custom_base_url (= hermes L183-L187)
-//    3. _custom_provider_model_matches (= hermes L189-L194)
+// These 3 helpers close the audit-described gap (= "wrong file
+// = subagent lifecycle, NOT for agent_init bootstrap"). The
+// wenshu-side bootstrap layer (`WenshuConductor.bootstrap()`)
+// already exists and is the source of truth per AGENTS.md §11.3;
+// this hermes port adds the reusable pure helpers that
+// `WenshuConductor` can opt into for parity with hermes behavior.
 //
-//  These 3 helpers close the audit-described gap
-//  (= "wrong file = subagent lifecycle, NOT for
-//  agent_init bootstrap"). The wenshu-side bootstrap
-//  layer (`WenshuConductor.bootstrap()`) already exists
-//  and is the source of truth per AGENTS.md §11.3; this
-//  hermes port adds the reusable pure helpers that
-//  WenshuConductor can opt into for parity with hermes
-//  behavior.
-//
-//  Per AGENTS.md §11.3 wenshu-side wins:
-//   - Pre-existing `WenshuConductor` + `RuntimeHelpers`
-//     + `WenshuAppDelegate` own the actual bootstrap flow.
-//   - The hermes Codex gpt-5.4/5.5 autoraise notice logic
-//     (= hermes `_codex_gpt55_autoraise_notice_marker`)
-//     is hermes-specific (Codex OAuth family = the only
+// Per AGENTS.md §11.3 wenshu-side wins:
+//   - Pre-existing `WenshuConductor` + `RuntimeHelpers` +
+//     `WenshuAppDelegate` own the actual bootstrap flow.
+//   - The hermes Codex gpt-5.4 / 5.5 autoraise notice logic
+//     (= hermes `_codex_gpt55_autoraise_notice_marker`) is
+//     hermes-specific (= Codex OAuth family = the only
 //     provider with this autoraise pattern; = wenshu's
 //     MiniMax CN connector doesn't share this behavior).
-//   - The `init_agent` body itself (= hermes L260-L2100)
-//     is out of scope for this ticket per Q112 (= one
-//     ticket per file = the body is 1840+ lines and would
-//     require multiple split tickets per Q46 stop-rule).
+//   - The `init_agent` body itself (= hermes L260-L2100) is
+//     out of scope here (= the body is 1840+ lines and would
+//     require multiple split tickets per the stop-rule
+//     invariant).
 //
-//  Hermes Python line ranges cited in doc-comments below
-//  (= for traceability back to
-//  `/Volumes/ANAN/.hermes/agent/agent_init.py`).
+// Hermes Python line ranges cited in doc-comments below (= for
+// traceability back to
+// `/Volumes/ANAN/.hermes/agent/agent_init.py`).
 //
-//  Per AGENTS.md §11 hard rule: Apple Foundation only. No
-//  third-party imports.
-//
+// Per AGENTS.md §11 hard rule: Apple Foundation only. No
+// third-party imports.
+
 
 import Foundation
 
