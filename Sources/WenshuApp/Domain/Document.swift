@@ -286,10 +286,12 @@ struct DocumentCrossRefParser {
         // we want single-line refs; cross-line refs are rare and v0.26
         // doesn't need them).
         //
-        // We accept both English prefixes (character / world /
-        // reference) and Chinese prefixes (= legacy UI form for
-        // back-compat with any docs the writer may have written
-        // by hand using the Chinese prefix form).
+// Carve-out: `Document.swift:296` keeps CJK inside the regex pattern
+// string literal. This is **functional data**, not a comment (= the
+// regex must match the Chinese prefixes for back-compat with legacy
+// docs); = per wenshu-comment-policy, regex literals are not
+// scan-targets. The narrative comment above the regex was rewritten
+// to English in this ticket.
         let regex: NSRegularExpression
         do {
             regex = try NSRegularExpression(
