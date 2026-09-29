@@ -589,12 +589,11 @@ actor BookManagerTool: Tool {
     /// first access, before any concurrency becomes relevant, so the
     /// unsafe escape hatch is safe here.
     ///
-    /// v1.55d+ (boss 2026-09-28 OOB A option): promoted to
-    /// `@MainActor static let` so Swift 6 strict concurrency ensures
-    /// first access lands on the main actor (= eliminates the
-    /// SIGTRAP/`dispatch_assert_queue_fail` that previously fired
-    /// when the static-let initializer ran from a background queue
-    /// such as `_dispatch_once_callout` on
+    /// v1.55d+ (A option): promoted to `@MainActor static let` so Swift 6
+    /// strict concurrency ensures first access lands on the main
+    /// actor (= eliminates the SIGTRAP / `dispatch_assert_queue_fail`
+    /// that previously fired when the static-let initializer ran from
+    /// a background queue such as `_dispatch_once_callout` on
     /// `com.apple.root.utility-qos.cooperative`). The inner
     /// `MainActor.assumeIsolated` wrappers on BookStore construction
     /// (= which themselves trapped when invoked from a background
