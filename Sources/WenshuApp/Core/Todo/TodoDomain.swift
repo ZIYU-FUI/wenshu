@@ -1,15 +1,9 @@
+// TodoDomain.swift · WenshuApp · v0.72
 //
-//  Core/Todo/TodoDomain.swift · Wenshu · v0.72 SwiftData migration 
-//
-//  Domain types (TodoStatus + TodoPriority + TodoItem) extracted
-//  from the deleted Core/Todo/TodoStore.swift (= sqlite3 legacy actor, now obsolete).
-//
-//  These types are the canonical wenshu-side public API surface for todo items.
-//  The SwiftData-backed persistence lives in Persistence/WSTodo (@Model) and is
-//  wrapped by Persistence/Repositories/WSTodoRepository (@MainActor).
-//
-//  Moved 2026-09-13 (= phase 5 ticket 7 — see AGENTS.md §11.4.2).
-//
+// Canonical domain types for todo items (= `TodoStatus` +
+// `TodoPriority` + `TodoItem`). Pure value types (= no SQLite
+// dependency). SwiftData persistence lives in `WSTodo` @Model +
+// `WSTodoRepository`.
 
 import Foundation
 
