@@ -1,8 +1,8 @@
-// LayoutTreeStore.swift · Wenshu · v0.28 ticket 028-003
+// Sources/WenshuApp/State/LayoutTreeStore.swift
 //
 // Persistence + preset management for the user-customizable workspace.
 //
-// Atomic-coupling with LayoutTreeState.swift (same commit): the
+// Atomic-coupling with LayoutTreeState.swift (= the
 // store reads / writes the LayoutTreeState schema; without one, the
 // other has no purpose. Shipped together per atomic-coupling rule.
 // This commit ALSO bumps the built-in default preset
@@ -35,8 +35,8 @@ final class LayoutTreeStore {
 
     /// Schema versions (= on breaking schema changes, bump
     /// `currentSchemaVersion` and migrate in `migrateState`).
-    /// - 1: flat pane array (= v0.27 ticket 027-32)
-    /// - 2: recursive split tree (= v0.28 ticket 028-003, this commit)
+    /// - 1: flat pane array
+    /// - 2: recursive split tree
     private static let currentSchemaVersion = 2
 
     /// Current workspace state (= ObservableObject for SwiftUI
