@@ -1,7 +1,7 @@
-// SmartQueryParser.swift · Wenshu () · v0.27 (FCP library replica)
+// Sources/WenshuApp/Domain/SmartQueryParser.swift
 //
-// Search predicate parser + evaluator (= ticket 027-02 = v0.27
-// placeholder for SmartQuery engine; v0.26 only had schema + UI).
+// Search predicate parser + evaluator. v0.26 only had schema + UI;
+// this file is the v0.27 placeholder for the `SmartQuery` engine.
 //
 // SmartQuery.queryJSON is a JSON-encoded predicate of one of 4 kinds:
 // 1. namePattern — substring match against entity name (= name contains X)
