@@ -246,8 +246,8 @@ private final class HandlerBoxIdentity: Sendable {}
 ///   - If `override=true`, the new registration replaces the existing
 ///     entry.
 ///   - If the new registration matches the existing toolset, it
-///     always replaces silently (= re-registration by the same owner
-///     is idempotent).
+///     silently wins (= re-registration by the same owner is
+///     idempotent).
 ///
 /// Generation counter (mirrors hermes `_generation`): bumped on every
 /// mutation (= `register`, `deregister`, `clear`). External callers
