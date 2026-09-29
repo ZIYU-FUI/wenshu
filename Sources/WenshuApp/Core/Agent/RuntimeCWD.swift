@@ -1,22 +1,17 @@
+// RuntimeCWD.swift · WenshuApp · v0.36
 //
-//  RuntimeCWD.swift · Wenshu · v0.36 ticket 017
+// Runtime current working directory tracker. Tracks the CWD
+// (= absolute file URL) for tool execution. Default = the `.ws`
+// library root selected at onboarding (= `UserDefaults
+// wenshu.libraryPath` per AGENTS.md §11 baseline). Tools that
+// need relative paths resolve them against this CWD.
 //
-//  Runtime current working directory tracker (= spec §3.1 L238).
+// ADR-0009 (wenshu-side wins) + §11.3: thin tracker over existing
+// FileManager + the library path stored in UserDefaults (= no
+// duplicate filesystem abstraction).
 //
-//  Tracks the CWD (= absolute file URL) for tool execution. Defaults to
-//  the .ws library root selected at onboarding (= UserDefaults
-//  wenshu.libraryPath per AGENTS.md §11 baseline). Tools that need
-//  relative paths resolve them against this CWD.
-//
-//  Per ADR-0009 (wenshu-side wins) + §11.3: this is a thin tracker over
-//  existing FileManager + the library path stored in UserDefaults. No
-//  duplicate filesystem abstraction.
-//
-//  Per ADR-0011 + §11 hard rule: pure Swift actor; no LLM calls; no
-//  external deps.
-//
-// ticket 017 (= single-commit ticket per boss cadence '1 RULE 1 commit').
-//
+// ADR-0011 + §11 hard rule: pure Swift actor; no LLM calls; no
+// external deps.
 
 import Foundation
 
