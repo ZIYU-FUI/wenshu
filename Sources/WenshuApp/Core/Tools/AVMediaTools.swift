@@ -1,12 +1,8 @@
+// AVMediaTools.swift · WenshuApp · v0.18
 //
-//  AVMediaTools.swift · Wenshu · v0.18 ticket 11 (hermes replica)
-//
-// local AV media (hermes tts).
-// 2026-08-19 ", Apple " + "can".
-//
-// wenshu = SwiftUI app. AVMediaTools (/).
-// Apple HIG: AVFoundation AVSpeechSynthesizer.
-//
+// Local AV media tools (= hermes `tts` parity). Uses
+// `AVSpeechSynthesizer` for text-to-speech (Apple Foundation
+// default = Apple HIG canonical).
 
 import Foundation
 #if canImport(AVFoundation)
