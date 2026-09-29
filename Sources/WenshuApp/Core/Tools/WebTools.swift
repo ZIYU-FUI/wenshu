@@ -1,12 +1,7 @@
+// WebTools.swift · WenshuApp · v0.18
 //
-//  WebTools.swift · Wenshu · v0.18 ticket 09 (hermes replica)
-//
-// local web (hermes web).
-// 2026-08-19 ", Apple " + "can".
-//
-// wenshu = SwiftUI app. WebTools (/).
-// Apple HIG: URLSession + URL .
-//
+// Local web tools (= hermes `web` parity). Uses Foundation
+// `URLSession` + `URL` parsing.
 
 import Foundation
 
