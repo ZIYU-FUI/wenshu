@@ -10,8 +10,8 @@
 // `[WorldEntry]` with id + structured fields. The .md body holds the
 // free-form world lore.
 //
-// The shape of WorldEntry is locked by the spec + the contract
-// tests in ticket 023.
+// The shape of `WorldEntry` is locked by the spec + the contract
+// tests.
 
 import Foundation
 
