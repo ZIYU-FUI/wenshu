@@ -1,11 +1,9 @@
+// TemplateEngine.swift · WenshuApp · v0.19
 //
-//  TemplateEngine.swift · Wenshu · v0.19 ticket 15 (Obsidian replica, backend first)
-// 
-//
-//  Template engine: date tokens + variable substitution.
-//  Aligned with Obsidian Templates plugin ground truth (https://help.obsidian.md/Plugins/Templates).
-//  Borrows SilverBullet Space Lua 'variable + template' design idea (ticket 17 MIT reference).
-//
+// Template engine: date tokens + variable substitution. Aligned
+// with Obsidian's Templates plugin
+// (https://help.obsidian.md/Plugins/Templates). Borrows the
+// SilverBullet Space Lua 'variable + template' design.
 
 import Foundation
 
