@@ -1,16 +1,16 @@
-// WorkspaceView.swift · Wenshu · v0.27 ticket 027-34
+// Sources/WenshuApp/Views/Workspace/WorkspaceView.swift
 //
 // DEFERRED (v0.77 spec decision):
 // ViewInspector test coverage for this view is deferred to v0.78+
 // (= see .scratch/v0.77-workspaceview-tests/spec.md). The view's
 // ownership of LayoutTreeStore + PaneSplitHost + WorkspaceMode requires
 // significant mock scaffolding (~150-200 LOC tests) that exceeds
-// 1-ticket scope per Q112. Future tickets ship ViewInspector tests
+// exceeds a single commit's scope; = a documented deferral.
 // in priority order: subcomponents first (EditModeBadge /
 // EditorContentPlaceholder / PreviewSortMenuButton / LayoutPicker),
 // then this view as a whole.
 //
-// This file is NOT dead code (= per Q57: 3rd-party verdict ≠ authority);
+// This file is NOT dead code;
 // it's a documented deferral, not a dead file.
 //
 //
@@ -124,8 +124,8 @@ struct WorkspaceView: View {
     /// BookStore env (= for reference loading in preview pane).
     @Environment(BookStore.self) private var bookStore
 
-    /// Layout edit mode state (= v0.28 ticket 028-006). v0.40
-    /// apple-001 Q3 surgical: hoisted to `appState.editMode` (= the
+    /// Layout edit mode state.
+    /// hoisted to `appState.editMode` (= the
     /// shared AppState instance) so all workspace descendants read
     /// the same one. The hotkey binding lives in
     /// `EditModeHotkey.swift` (= ⌘⇧\ toggle, Escape exit); the
@@ -152,13 +152,13 @@ struct WorkspaceView: View {
     /// multi-tab data model).
     ///
     /// Why content-based duplicate check (= not path-based)? The card
-    /// doesn't currently carry its file path; = ticket 027-35 will
+    /// Doesn't currently carry its file path; the real document
     /// add explicit per-card tracking (= Card → URL → tab match).
     /// For now we approximate with first-200-char content hash (= if
     /// another tab is showing the same .md body = match).
     ///
     /// Reference scope reads via ReferenceStore (= real Read API).
-    /// Book scope is deferred to ticket 027-35 (= PreviewPane's
+    /// Book scope is deferred (= PreviewPane's
     /// private `loadBookDocs` walker is the source of truth; = no
     /// shortcut path through WorkspaceView without lifting the helper).
     /// No .alert, no popup = simplest possible (= Apple HIG TextEdit
@@ -197,7 +197,7 @@ struct WorkspaceView: View {
 
     var body: some View {
         // the legacy PaneRenderer path
-        // (= v0.28 ticket 028-004 hand-rolled split-tree renderer)
+        // (= hand-rolled split-tree renderer)
         // was deleted per boss OOB (= the new NSSplitView code
         // fully replicates the old behavior). WorkspaceView now
         // ALWAYS renders the NSSplitView path (= PaneSplitHost +
@@ -219,7 +219,7 @@ struct WorkspaceView: View {
         //
         // component-arc: inlined `PaneSplitHost` here (= was a
         // 1-caller NSViewControllerRepresentable wrapper around
-        // `PaneNSController`; = the v0.30 ticket 02/4 stub layer is
+        // `PaneNSController` (= the stub layer is
         // removed). Layout construction now goes directly through
         // `PaneNSController(store:appState:bookStore:layoutID:)`,
         // which is the actual NSSplitViewController subclass that
@@ -247,7 +247,7 @@ struct WorkspaceView: View {
                         .padding(DesignTokens.chromePaddingVertical)
                 }
             }
-            // ticket 028-006: View menu's "Layout edit mode"
+            // View menu's "Layout edit mode"
             // entry posts this notification (= ⌘⇧\); WorkspaceView
             // listens and flips the LayoutEditMode singleton so the
             // menu and the hotkey share the same state.
@@ -256,7 +256,7 @@ struct WorkspaceView: View {
             }
             // fix: the View menu's "Restore Default
             // Layout" item (= ⌘⇧R; both the SwiftUI Commands entry
-            // (= the App.swift:567 + 1442 references are stale per the Q2 boss
+            // (= the App.swift references are stale per the codebase audit
             // split moved the legacy NSMenu to AppRootScene.swift)
             // posts .wenshuResetLayout. Without this onReceive, the
             // notification had no observer and the menu item was
@@ -291,7 +291,7 @@ struct WorkspaceView: View {
                     ?? NSApp.windows.first(where: { $0.contentViewController != nil })?.contentViewController
                 findPaneController(in: root)?.restoreAllZones()
             }
-            // ticket 028-007: floating TreeEditBar with the
+            // Floating TreeEditBar with the
             // LayoutPicker (= preset grid + new-grid button +
             // save-current-as-preset input reveal). Shown only
             // when edit mode is on (= per spec §"Acceptance
@@ -339,12 +339,12 @@ struct WorkspaceView: View {
                 (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(AppleSidebarView())),
             ], trailingButton: AnyView(SidebarZoneHeaderButtons()))
         case .projectPreview:
-            // followup Boss UX round 45 (Boss 2026-08-29 OOB
-            // 'top and bottom bars are not aligned' = Preview/Tools were using old
-            // ZoneModuleView (= renders BOTH outer ZoneTopToolbar 30 PT
-            // + internal ZoneContentView tab bar 30 PT = DOUBLE chrome
-            // = 60 PT total, while Sidebar/Editor use only ZoneContentView
-            // = 30 PT SINGLE chrome). Y misalignment = 30 PT difference.
+            // Top/bottom bars were misaligned: Preview/Tools were
+            // using the old ZoneModuleView (= renders BOTH outer
+            // ZoneTopToolbar 30 PT + internal ZoneContentView tab
+            // bar 30 PT = DOUBLE chrome = 60 PT total, while
+            // Sidebar/Editor use only ZoneContentView = 30 PT
+            // SINGLE chrome). Y misalignment = 30 PT difference.
             // Fix = convert Preview/Tools to use ZoneContentView directly
             // (= single 30 PT chrome layer = matches Sidebar/Editor).
             //
@@ -390,7 +390,7 @@ struct WorkspaceView: View {
                     // library entity path (= wenshu internal). For card
                     // = .bookDoc: path = book's folder/file .md.
                     // Falls back to a sample body if the file doesn't
-                    // exist (= ticket 027-35 will wire to real paths).
+                    // exist (= real paths land in a follow-on surface).
                     onDoubleClick: { source in
                         // BOSS 9/8 'clicking the Dufu card opens a tab with wrong name':
                         // forward the clicked CardSource to openCardInEditor
@@ -398,7 +398,7 @@ struct WorkspaceView: View {
                         openCardInEditor(source: source)
                     },
                     previewSortOrder: $workspaceUI.previewSortOrder,
-                    // v2.9d T37 (boss 2026-09-28 OOB A7 follow-up):
+                    // SidebarItem.tag preview-pane filter:
                     // pipe workspaceUI.activeTag (= set by the sidebar
                     // .tag(String) selection) into PreviewPane's tag
                     // filter. The preview pane renders only references
@@ -423,11 +423,11 @@ struct WorkspaceView: View {
             ZoneContentView(zoneSlug: "editor", tabs: [
                 // fix (= boss 9/2 'git grep BEFORE patch' rule):
                 // EditorContentPlaceholder was the OLD text-only placeholder
-                // (= deleted by tonight's v0.34 commit chain). All ticket 04-10
+                // (= the commit-chain cleanup). The 04-10 era
                 // patches (= mode toggle / preview/edit / toolbar / close + hotkeys)
                 // landed on EditorPlaceholder, but WorkspaceView kept instantiating
                 // the dead EditorContentPlaceholder. Replace with EditorPlaceholder
-                // (= the ticket 04-10 patched one with toolbar + mode toggle +
+                // (= the patched one with toolbar + mode toggle +
                 // save + expand + close; BacklinksPanel in preview mode;
                 // TextEditor in edit mode).
                 (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorPlaceholder())),
@@ -554,13 +554,13 @@ struct WorkspaceView: View {
 // constructor signature).
 //
 // For v0.27 we defer the full ZoneModule integration (= which requires
-// its LayoutShellViewModel parameter; = see ticket 027-35 followup).
+// its LayoutShellViewModel parameter (= see follow-on surface).
 // For now this view renders a placeholder color (= a sane default
 // that the user can see + interact with while the integration lands).
-// ZoneModuleView — verbatim port of the old v0.27 `ZoneModule` (=
-// App.swift:2060-2220 references are stale per the Q2 boss split
-// (= App.swift shrank to 460 LOC; = the OLD 6-zone layout was the
-// pre-split implementation now superseded by the NSV 4-column layout).
+// ZoneModuleView — verbatim port of the old v0.27 `ZoneModule`
+// (the App.swift references are stale per the codebase audit;
+// = the OLD 6-zone layout was the pre-split implementation
+// now superseded by the NSV 4-column layout).
 // The OLD 6-zone layout had a 3-layer chrome per zone:
 // 1. ZoneTopToolbar (30 PT) with zone actions (Graph / Search / expand
 //    trailing etc.). This layer is now an outer RegionPerRegionChrome.
@@ -568,13 +568,13 @@ struct WorkspaceView: View {
 //    — Apple HIG canonical tab bar (= 28×28 hot area + SF Symbols 6 icon +
 
 /// Editor main content placeholder (= replaces old DesignColor overlay).
-/// Real editor content view = ticket 027-35 followup; for now we
+/// Real editor content view (= see follow-on surface); for now we
 /// render a subtle placeholder background matching the old 6-zone
 /// "Color.white.opacity(0.55) with 4 PT vertical inset" treatment.
 // followup Boss UX round 21: .regularMaterial replaces the
 /// DesignColor.zoneSurface (= solid) so the placeholder matches the
 /// Liquid Glass design language used everywhere else.
-// followup Boss UX round 31 (Boss 2026-08-29 OOB 'material preview zone,
+// Material preview zone:
 // dynamic zone, this zone's Liquid Glass effect is different from other zones'): uses
 // RegionContentBackground (= single source of truth for per-pane
 // content backgrounds = .regularMaterial = standard Liquid Glass tint).
@@ -589,26 +589,26 @@ struct WorkspaceView: View {
 // surface).
 
 
-/// Editor expand/shrink trailing button (= old v0.25.1 ticket 029c).
-/// State + snapshot lives in @AppStorage (= ticket 01, v0.34).
+/// Editor expand/shrink trailing button.
+/// State + snapshot lives in `@AppStorage`.
 /// action closure now posts the .wenshuEditorMaximizedChanged
-/// notification (= PaneNSController listener installed by ticket 02 handles
+/// Notification (= `PaneNSController` listener handles
 /// the actual layout mutation). The button stays a thin View-local proxy:
 /// read @AppStorage, write @AppStorage, post notification.
 
 /// EditorPlaceholder — temporary view for the editor zone (= the real
 
-/// EditorPreviewContent (= ticket 05): renders markdown body using
+/// EditorPreviewContent: renders markdown body using
 /// swift-markdown (= AGENTS.md §11.1) AttributedString + converts
 /// [[wikilink]] occurrences (= via wenshu's existing InternalLinkParser)
 /// into clickable Button instances that surface the target ref via the
-/// `wikilinkTarget` closure (= ticket 027-35 wires navigation).
+/// `wikilinkTarget` closure (= wikilink navigation lands in a follow-on surface).
 ///
 /// append wenshu's existing BacklinksPanel (= Core/LinkGraph/
-/// BacklinksPanel.swift, = v0.19 ticket 12 Obsidian replica) below the
+/// BacklinksPanel.swift (= the Obsidian-replica backlinks panel) below the
 /// rendered markdown. ViewModel loads on `.task` (= Apple HIG async task
 /// lifecycle). Doc id is the placeholder sample body filename for now;
-/// ticket 027-35 will wire to the real open document.
+/// Will wire to the real open document once the editor wiring lands.
 ///
 /// Spec user stories covered:
 ///   US-2 (preview mode renders markdown headers/bold/italic/lists/code)
@@ -617,9 +617,9 @@ struct WorkspaceView: View {
 ///   US-11 (BacklinksPanel at bottom of preview, = Obsidian parity)
 ///   US-12 (uses pinned swift-markdown 0.4.0)
 
-/// EditorEditContent (= v0.34 ticket 07, v0.39 ticket 001 upgrade):
+/// EditorEditContent:
 /// Markdown editor surface. v0.34 used Apple SwiftUI TextEditor
-/// (= HIG multi-line text input). v0.39 ticket 001 swaps it for
+/// (= HIG multi-line text input). Swapped for
 /// nodes-app/swift-markdown-engine via the wenshu-side wrapper
 /// `WenshuMarkdownEditor` (NSViewRepresentable around the engine's
 /// NativeTextViewWrapper). Engine gives us TextKit 2 layout, live
@@ -635,14 +635,14 @@ struct WorkspaceView: View {
 /// Spec user stories covered:
 ///   US-6 (Edit mode = markdown-aware editor, v0.39 swap)
 ///   US-7 (Save button highlights when dirty, = .tint on draft != original)
-///   US-8 (Close button placeholder; see ticket 09)
+///   US-8 (= Close button placeholder)
 ///   US-13 (no hand-rolled NSTextView wrapper — engine wraps it)
 ///   US-22 (character-level dirty detection)
 
 /// FormatToolbarButtons (= boss 9/2 OOB 'format toolbar' =
 /// 'all can do'). 5 inline MD formatting buttons: bold / italic /
 /// heading / inline code / bullet list. Sits in the editor top-bar
-/// left slot (= Q21-boss answer = "editor top toolbar left side"). Shown
+/// Left slot (= the editor top toolbar left side). Shown
 /// only in .edit mode (= formatting raw MD source; = no-op on the
 /// rendered preview).
 ///
@@ -668,13 +668,13 @@ struct WorkspaceView: View {
 // corner of WorkspaceView when layout edit mode is on. Click to
 // toggle off (= same effect as pressing ⌘⇧\ again).
 ///
-/// Per ticket 028-006 §"Acceptance criteria": the badge is the
+/// The badge is the
 /// only edit-mode-related UI shipped in 028-006 (= the TreeEditBar
 /// and LayoutPicker are 028-007 / 028-009).
 
 // MARK: - PreviewTabBackground (= preview pane content background)
 //
-// followup Boss UX round 42 (Boss 2026-08-29 OOB 'missing three zones,
+// Missing three zones:
 // project manager, tools, chat, none entered your stylesheet'): REMOVED the inline
 // RegionContentBackground call. The background is now applied
 // uniformly by ZonePerRegionChrome (= single source of truth for
