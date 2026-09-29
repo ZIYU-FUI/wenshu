@@ -81,12 +81,11 @@ struct KanbanStoreTool: Tool, Sendable {
     /// `WenshuAppDelegate.applicationDidFinishLaunching` (= main
     /// thread) so the trap never fires in production.
     ///
-    /// v1.55d+ (boss 2026-09-28 OOB A option): promoted to
-    /// `@MainActor static let` so Swift 6 strict concurrency
-    /// ensures first access lands on the main actor (= eliminates
-    /// the SIGTRAP/`dispatch_assert_queue_fail` that previously
-    /// fired when the static-let initializer ran from a background
-    /// queue such as `_dispatch_once_callout` on
+    /// promoted to `@MainActor static let` so Swift 6 strict
+    /// concurrency ensures first access lands on the main actor (=
+    /// eliminates the SIGTRAP / `dispatch_assert_queue_fail` that
+    /// previously fired when the static-let initializer ran from a
+    /// background queue such as `_dispatch_once_callout` on
     /// `com.apple.root.utility-qos.cooperative`). The
     /// `KanbanTools()` constructor still uses `MainActor.assumeIsolated`
     /// internally to fetch `WSKanbanRepository.shared`, but that
