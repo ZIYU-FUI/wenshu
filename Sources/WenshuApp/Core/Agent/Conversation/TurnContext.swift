@@ -1,30 +1,26 @@
+// TurnContext.swift · WenshuApp · v0.35
 //
-//  TurnContext.swift · Wenshu · port-window
+// Per-turn state bundle + per-turn setup helpers. Direct port of
+// hermes `agent/turn_context.py` (= `build_turn_context` = the
+// once-per-turn prologue that `ConversationLoop` used to inline as
+// ~470 lines of straight-line setup before the tool loop ever
+// started).
 //
-//  Per-turn state bundle + per-turn setup helpers.
-//  Direct port of hermes agent/turn_context.py (= 565 LOC; provides
-//  build_turn_context = the once-per-turn prologue that conversation_loop
-//  used to inline as ~470 lines of straight-line setup before the tool
-//  loop ever started).
+// Per hermes `turn_context.py` L2-15:
 //
-//  Per hermes turn_context.py L2-15:
+//   "All once-per-turn setup — stdio guarding, runtime-main wiring,
+//    retry-counter resets, user-message sanitization, todo /
+//    nudge-counter hydration, system-prompt restore-or-build,
+//    crash-resilience persistence, preflight context compression,
+//    the `pre_llm_call` plugin hook, and external-memory
+//    prefetch — lives in `build_turn_context`."
 //
-//    "All once-per-turn setup -- stdio guarding, runtime-main wiring,
-//     retry-counter resets, user-message sanitization, todo/nudge-counter
-//     hydration, system-prompt restore-or-build, crash-resilience
-//     persistence, preflight context compression, the pre_llm_call plugin
-//     hook, and external-memory prefetch -- lives in build_turn_context."
-//
-//  In sub-step 4 (= the original v0.35 minimum surface) TurnContext was a
-//  pure value type bundling the inputs ConversationLoop already used.
-// adds the build_turn_context() side-effect driver
-//  that performs the actual setup (= reset retry counters, install safe
-//     stdio, restore system prompt, refresh credentials) and returns the
-//  value type. ConversationLoop.runTurn now calls this once per turn.
-//
-// sub-step 4 of 8 for ticket 001
-//  for ticket 007.
-//
+// `TurnContext` is a pure value type bundling the inputs
+// `ConversationLoop` already uses. `build_turn_context()` is the
+// side-effect driver that performs the actual setup (= reset
+// retry counters, install safe stdio, restore system prompt,
+// refresh credentials) and returns the value type.
+// `ConversationLoop.runTurn` now calls this once per turn.
 
 import Foundation
 
@@ -66,7 +62,7 @@ struct TurnContext: Sendable, Equatable {
         self.resetCounters = resetCounters
     }
 
-    /// Manual `Equatable` implementation (= ticket 001 Z contract test
+    /// Manual `Equatable` implementation (= Z-contract test
     /// `TurnContext: Equatable`): two contexts with the same content
     /// fields are equal, regardless of their `builtAt` timestamp (= a
     /// wall-clock captured at construction that always differs between
