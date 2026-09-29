@@ -1,37 +1,33 @@
+// BackgroundReviewOps.swift · WenshuApp · v2.8c
 //
-//  BackgroundReviewOps.swift · Wenshu · v2.8c ticket T14-T16 (boss 2026-09-28 OOB B8)
+// Consolidation ops for `BackgroundReview`. Unifies the manual +
+// auto caller paths into a single façade:
 //
-//  BackgroundReview consolidation ops (= the unified manual + auto
-//  façade per boss 2026-09-28 OOB '重复的功能，只是调用机制不同的，
-//  应该合并').
+// - manual = the operator clicks in the inspector's
+//   BackgroundReview tab.
+// - auto  = the agent's `ConversationLoop` detects a
+//   background-worthy event and submits a proposal.
 //
-//  Per boss 2026-09-28 OOB B8: BackgroundReview should support
-//  BOTH manual-call (= operator clicks in the inspector's
-//  BackgroundReview tab) AND auto-call (= the agent's
-//  ConversationLoop detects a background-worthy event and submits
-//  a proposal). Both paths go through these 4 entry points.
+// Both paths go through the 4 entry points below.
 //
-//  Standards axis (= S1 + S3 + S4 + S5):
-//    S1 (Apple-API-first): pure Swift enum + actor delegation.
-//        The BackgroundReview actor (declared in v0.36) is the
-//        source of truth for the pending / decided queues (= the
-//        Swift 6 strict-concurrency actor isolation pattern).
-//    S3 (single source of truth): one set of entry points serves
-//        both manual + auto callers (= the boss-pinned
-//        consolidation).
-//    S4 (typed errors): BackgroundReviewError wraps the
-//        actor's throws (= manual callers receive a typed
-//        domain error).
-//    S5 (no public surface): zero new public keywords.
+// Standards axis:
+//   S1 (Apple-API-first): pure Swift enum + actor delegation.
+//       `BackgroundReview` actor (= declared in v0.36) is the
+//       source of truth for the pending / decided queues (= the
+//       Swift 6 strict-concurrency actor isolation pattern).
+//   S3 (single source of truth): one set of entry points serves
+//       both manual + auto callers.
+//   S4 (typed errors): `BackgroundReviewError` wraps the actor's
+//       throws (= manual callers receive a typed domain error).
+//   S5 (no public surface): zero new public keywords.
 //
-//  Wiring (= v2.8c acceptance):
-//    - WenshuConductor.defaultToolNames contains
-//      "background_review".
-//    - BackgroundReviewTool.swift wraps BackgroundReviewOps.submit
-//      (= the manual LLM tool surface).
-//    - ConversationLoop calls BackgroundReviewOps.submit in the
-//      auto-call hook (= the agent's auto surface per boss OOB
-//      '自动也可以手动也可以').
+// Wiring (v2.8c acceptance):
+//   - `WenshuConductor.defaultToolNames` contains
+//     "background_review".
+//   - `BackgroundReviewTool.swift` wraps `BackgroundReviewOps.submit`
+//     (= the manual LLM tool surface).
+//   - `ConversationLoop` calls `BackgroundReviewOps.submit` in the
+//     auto-call hook (= the agent's auto surface).
 
 import Foundation
 
