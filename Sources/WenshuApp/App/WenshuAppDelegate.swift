@@ -38,8 +38,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone under Swift 6
-    // strict concurrency). Replaced with @MainActor accessors (= Swift 6 strict concurrency; = NSLock not needed) (= safe under any
+    // Swift 6 strict concurrency fix (= the dual-axis sweep pattern):
+    // was `nonisolated(unsafe) static var` (= race-prone).
+    // Replaced with @MainActor accessors (= safe under any
     // concurrency model). Reads via @MainActor; writes via @MainActor.
     @MainActor private static var _openSettings: OpenSettingsAction?
     @MainActor static var openSettings: OpenSettingsAction? {
@@ -77,8 +78,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     // Chat history now lives in
     // WSChatRepository.shared (= @MainActor SwiftData wrapper).
     // No per-actor sqlite3 bootstrap needed.
-    // Q99 dual-axis fix: was `nonisolated(unsafe) static var` (= race-prone).
-    // Replaced with @MainActor accessor (= safe; = SwiftUI-compliant).
+    // Swift 6 strict concurrency fix: was `nonisolated(unsafe) static var`
+    // (= race-prone). Replaced with @MainActor accessor (= safe;
+    // = SwiftUI-compliant).
     @MainActor private static var _sharedConductor: WenshuConductor?
     @MainActor static var sharedConductor: WenshuConductor? {
         get { _sharedConductor }
@@ -115,12 +117,14 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // add NSLog for chat store init + bootstrap errors (silent catch
         // makes debugging hard), and post .wenshuChatStoreReady notification
         // so ChatView can retry load when store becomes available.
-        // SwiftData migration history (= per v1.55 sqlite3-zero arc, boss 2026-09-20
-        // OOB): WSMigrationRunner + WSMigrationPerStore were removed 2026-09-21 (= boss
-        // 2026-09-21 '数据库不要在用sqlite3 了'). Legacy `.ws/chat.sqlite` files (= pre-v0.72
-        // data written by the deleted ChatSessionStore actor) are now treated as
-        // orphaned files (= no importer reads them; = no chat history migrate from raw
-        // sqlite to SwiftData). New chat history lives entirely in SwiftData
+        // SwiftData migration history (= per v1.55 sqlite3-zero arc):
+        // WSMigrationRunner + WSMigrationPerStore were removed (= the
+        // one-shot legacy sqlite3 importer). Legacy `.ws/chat.sqlite`
+        // files (= pre-v0.72 data written by the deleted
+        // ChatSessionStore actor) are now treated as orphaned files
+        // (= no importer reads them; = no chat history migrates from
+        // raw sqlite to SwiftData). New chat history lives entirely
+        // in SwiftData
         // (= WSChatRepository.shared writes to ZWSCHATMESSAGE; = see
         // WenshuAppDelegate.swift:178-204 below).
         //
@@ -160,15 +164,15 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // Post-: all 7 of the planned sqlite3 stores are deleted
         // (= KanbanStore + TodoStore + MemoryStore + LinkIndex + ChatSessionStore +
         // BookmarkStore + WenshuWorkspace). The warehouse container is the canonical
-        // SwiftData home for all live data. Post-v1.55d (= boss 2026-09-21 '数据库不要
-        // 在用sqlite3 了'): the one-shot legacy sqlite3 importer
+        // SwiftData home for all live data. Post-v1.55d (= sqlite3 fully
+        // removed): the one-shot legacy sqlite3 importer
         // (WSMigrationPerStore + WSMigrationRunner + SQLiteConstants) is DELETED
         // (= no legacy `.ws/*.sqlite` file is read by wenshu anymore; = legacy
         // chat.sqlite etc. become orphaned files on disk; = no chat history
         // migration). New chat history is written directly to SwiftData
         // (= WSChatRepository.shared → ZWSCHATMESSAGE).
         // HermesKanbanDB + FullTextSearch were REMOVED in v1.55
-        // sqlite3-zero (= boss 2026-09-20 OOB).
+        // sqlite3-zero (= Apple-default-first + zero SPM dep).
         // `import SQLite3` count in production code = 0 (= was 2 pre-v1.55d:
         // SQLiteConstants.swift SQLITE_TRANSIENT helper + WSMigrationPerStore
         // raw-sqlite3 import; = both files removed).
@@ -219,7 +223,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             SelfScreenshot.run()
         }
 
-        // bossverificationfix (v2.7d, boss 2026-09-26 '团队链路通'):
+        // Sub-agent runner drain loop (= v2.7d team-link consolidation):
         // Start the sub-agent runner drain loop after all other
         // bootstraps (= the SwiftData container + conductor + runtime
         // + connector must be ready before the runner first fires).
@@ -255,8 +259,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// are running). Cancelled in `applicationWillTerminate`.
     private nonisolated(unsafe) static var subAgentDrainTask: Task<Void, Never>?
 
-    /// Start the sub-agent runner drain loop (= v2.7d, boss 2026-09-26
-    /// "团队链路通"): every 1s (= or sooner when a new handle lands),
+    /// Start the sub-agent runner drain loop (= v2.7d team-link
+    /// consolidation): every 1s (= or sooner when a new handle lands),
     /// the runner picks up pending `BackgroundDelegationHandle` records
     /// from `AsyncDelegationRegistry.shared` (= the source-of-truth
     /// the LLM-facing `DelegateResearchTool` writes to) and runs
