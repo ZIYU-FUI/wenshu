@@ -1,10 +1,7 @@
+// InternalLinkParser.swift · WenshuApp · v0.19
 //
-// InternalLinkParser.swift · Wenshu · v0.19 ticket 12 (Obsidian replica, do first)
-// 2026-08-19 evening Obsidian A + ', '.
-//
-// Markdown `[[name]]` . SilverBullet page ref / Obsidian wikilink, .
-// Apple HIG: Foundation NSRegularExpression +, Markdown .
-//
+// Parses Markdown `[[name]]` (= SilverBullet page ref / Obsidian
+// wikilink) using Foundation `NSRegularExpression`.
 
 import Foundation
 
