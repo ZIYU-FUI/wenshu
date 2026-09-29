@@ -1,45 +1,43 @@
+// SystemPrompt.swift · WenshuApp · v0.35
 //
-//  SystemPrompt.swift · Wenshu · v0.35 ticket 002 sub-step 2
-//  + TICKET-HERMES-GAP-001 refactor (2026-09-04).
-// .
+// System prompt builder. Direct port of hermes `system_prompt.py`
+// (= `build_system_prompt_parts` + `build_system_prompt`).
 //
-//  System prompt builder. Direct port of hermes system_prompt.py
-//  (= L113-L507, 536 LOC; provides build_system_prompt_parts +
-//  build_system_prompt).
+// Two-tier architecture (= cache-stable invariant per AGENTS.md
+// §11.3):
+//   - Stable tier (= system identity, byte-stable across all
+//     turns in a session): who the agent is, what it should always
+//     do, language constraints, etc. This is the part that goes
+//     through Anthropic prompt caching (= `PromptCaching.applyCacheControl`
+//     places the 1st `cache_control` breakpoint here).
+//   - Dynamic tier (= turn-specific, NOT cached): ephemeral
+//     context like "today is Tuesday", caller-supplied extra
+//     system message, and the composition of `ContextEngine` +
+//     `MemoryAdapter` + `SkillAdapter` into a single dynamic
+//     block.
 //
-//  Two-tier architecture (= cache-stable invariant per AGENTS.md §11.3):
-//    - Stable tier (= system identity, byte-stable across all turns in a session):
-//      who the agent is, what it should always do, language constraints, etc.
-//      This is the part that goes through Anthropic prompt caching
-//      (= PromptCaching.applyCacheControl places 1st cache_control breakpoint here).
-//    - Dynamic tier (= turn-specific, NOT cached): ephemeral context like
-//      "today is Tuesday", caller-supplied extra system message, and (post
-//      GAP-001) the composition of ContextEngine + MemoryAdapter +
-//      SkillAdapter into a single dynamic block.
+// Three public surfaces layered on the baseline:
+//   - Per-provider guidance blocks (= hermes per-model
+//     operational guidance: anthropic / openai / google / ollama
+//     / openrouter each get model-family-specific tool-use
+//     enforcement + parallel-tool-call patterns).
+//   - Per-locale overrides (= hermes `DEFAULT_AGENT_IDENTITY`
+//     per language = en / zh / ja / ko / fr / de / es; the agent
+//     matches the user's UI language).
+//   - Dynamic tier resolution (= hermes tier composition: when a
+//     fresh `ContextBundle` or memory snapshot arrives, the
+//     dynamic tier rebuilds; = otherwise it returns the cached
+//     version).
 //
-// adds three new public surfaces over the GAP-001 baseline:
-//    - Per-provider guidance blocks (= hermes per-model operational
-//      guidance: anthropic / openai / google / ollama / openrouter each
-//      get model-family-specific tool-use enforcement + parallel-tool
-//      call patterns).
-//    - Per-locale overrides (= hermes DEFAULT_AGENT_IDENTITY per language
-//      = en / zh / ja / ko / fr / de / es; the agent matches the user's
-//      UI language).
-//    - Dynamic tier resolution (= hermes tier composition: when a fresh
-//      ContextBundle or memory snapshot arrives, the dynamic tier rebuilds;
-//      otherwise it returns the cached version).
+// Invariant: identical inputs → byte-identical output (= cache
+// hit on subsequent calls within the same session).
 //
-//  Invariant: identical inputs → byte-identical output (= cache hit on
-//  subsequent calls within the same session).
-//
-// ticket 002 sub-step 2 of N (= ticket 002 = PromptCaching +
-//  SystemPrompt + cache-stable invariants per spec §3.3 + §0.1 A3).
-//
-// refactor (2026-09-04): SystemPrompt is now a thin
-//  wrapper around PromptBuilder. The stable-tier identity string stays
-//  here (= canonical byte-stable source). The dynamic-tier composition
-//  (= ContextEngine + MemoryAdapter + SkillAdapter + caller extras +
-//  ephemeral hint) now lives in PromptBuilder.composeDynamicTier.
+// SystemPrompt is now a thin wrapper around `PromptBuilder`.
+// The stable-tier identity string stays here (= canonical
+// byte-stable source). The dynamic-tier composition
+// (= `ContextEngine` + `MemoryAdapter` + `SkillAdapter` + caller
+// extras + ephemeral hint) now lives in
+// `PromptBuilder.composeDynamicTier`.
 //  buildParts/build forward to PromptBuilder. Public API preserved for
 //  backwards compat (= existing SystemPromptTests + Golden parity tests
 //  keep passing).
@@ -350,10 +348,11 @@ enum SystemPrompt {
         // puts them in the closing-system slot because Anthropic / GPT
         // families both weight closing instructions more strongly than
         // opening ones for imperative compliance). Without this slot,
-        // the LLM treats agent-driver as background context (= observed
-        // in the e2e test for the 入殓师 + 沧州 vague prompt: the
-        // model replied with detailed advice without calling web_search
-        // despite the rule being present in cache prefix).
+        // the LLM treats `agent-driver` as background context (=
+        // observed in an e2e test with a vague prompt about funeral
+        // customs + a specific Chinese city: the model replied with
+        // detailed advice without calling `web_search` despite the
+        // rule being present in the cache prefix).
         if agentDriverGuidance {
             sections.append(universalGuidance("agent_driver"))
         }
