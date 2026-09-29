@@ -1,16 +1,12 @@
+// TurnRetryState.swift · WenshuApp · v0.35
 //
-//  TurnRetryState.swift · Wenshu · v0.35 ticket 001 sub-step 4
+// Per-turn retry budget tracker. Maps to hermes `turn_retry_state.py`
+// + `iteration_budget.py` (= tracks attempt count + max attempts +
+// reset between turns).
 //
-//  Per-turn retry budget tracker. Maps to hermes turn_retry_state.py
-//  + iteration_budget.py (= tracks attempt count + max attempts + reset
-//  between turns).
-//
-//  Mutable struct (= recordAttempt mutates attemptNumber). NOT an actor
-//  (= callers are expected to synchronize in their own actor context, e.g.
-//  ConversationLoop actor owns the retry state).
-//
-// sub-step 4 of 8 for ticket 001.
-//
+// Mutable struct (= `recordAttempt` mutates `attemptNumber`). NOT
+// an actor (= callers are expected to synchronize in their own
+// actor context; = `ConversationLoop` actor owns the retry state).
 
 import Foundation
 
