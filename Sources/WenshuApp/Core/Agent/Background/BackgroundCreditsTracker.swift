@@ -1,22 +1,18 @@
+// BackgroundCreditsTracker.swift · WenshuApp · v0.36
 //
-//  BackgroundCreditsTracker.swift · Wenshu · v0.36 ticket 016 sub-step 1
+// Tracks AI agent credit / token consumption (= hermes parity;
+// = the Background/ directory has 5 files: CreditsTracker /
+// BackgroundReview / Curator / CuratorBackup / DisplayStateMachine).
 //
-//  Tracks AI agent credit / token consumption (= spec §3.1 L227-231
-//  Background/ sub-directory, file 1 of 5 = CreditsTracker (= the credits tracker;
-//  = the Background/ directory has 5 files: CreditsTracker / BackgroundReview /
-//  Curator / CuratorBackup / DisplayStateMachine).
+// ADR-0011 + §11 hard rule: pure Swift actor, no LLM calls, no
+// filesystem I/O at runtime. Periodic persistence to UserDefaults
+// via `@AppStorage` (lazy = only on snapshot save).
 //
-//  Per ADR-0011 + §11 hard rule: pure Swift actor, no LLM calls, no
-//  filesystem I/O at runtime. Periodic persistence to UserDefaults via
-//  @AppStorage (lazy = only on snapshot save).
-//
-//  Per wenshu §11 product-positioning rule: wenshu never charges users
-//  for tokens. This tracker is for the user's own visibility (= how many
-//  tokens their BYOK config has consumed this session / month) — NOT
-//  for billing or metering. Wenshu is a writing tool, not a platform.
-//
-// sub-step 1 of 4 for ticket 016.
-//
+// Per wenshu §11 product-positioning rule: wenshu never charges
+// users for tokens. This tracker is for the user's own visibility
+// (= how many tokens their BYOK config has consumed this session /
+// month) — NOT for billing or metering. Wenshu is a writing tool,
+// not a platform.
 
 import Foundation
 
