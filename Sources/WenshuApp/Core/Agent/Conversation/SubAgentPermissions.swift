@@ -1,17 +1,18 @@
+// SubAgentPermissions.swift · WenshuApp · v0.23
 //
-//  SubAgentPermissions.swift · Wenshu · v0.23 ticket 012
+// Permission gates for sub-agents (= tools sub-agents must NEVER
+// have access to). Mirrors hermes `DELEGATE_BLOCKED_TOOLS` (=
+// `tools/delegate_tool.py`).
 //
-// ' hermes, must'.
-//  Source: https://github.com/NousResearch/hermes-agent/blob/main/tools/delegate_tool.py
+// Hermes `DELEGATE_BLOCKED_TOOLS` (tools sub-agents must NEVER
+// have access to):
+//   - `delegate_task` — no recursive delegation.
+//   - `clarify` — no user interaction from sub-agent.
+//   - `memory` — no writes to shared `MEMORY.md` (READ-ONLY is OK).
+//   - `send_message` — no cross-platform side effects.
+//   - `cronjob` — no scheduling in the parent's name.
 //
-//  Hermes `DELEGATE_BLOCKED_TOOLS` (tools sub-agents must NEVER have access to):
-//    "delegate_task"  — no recursive delegation
-//    "clarify"        — no user interaction from sub-agent
-//    "memory"         — no writes to shared MEMORY.md (READ-ONLY is OK)
-//    "send_message"   — no cross-platform side effects
-//    "cronjob"        — no scheduling in parent's name
-//
-//  This wenshu impl mirrors that contract. Policy:
+// This wenshu impl mirrors that contract. Policy:
 //    - For tools in `writeOnlyBlocked`: sub-agent always blocked (delegate_task, clarify, send_message, cronjob).
 //    - For tools in `memoryOnlyAllowed`: sub-agent allowed ONLY for read-only ops (auditor's `memory` access).
 //    - Memory writes (`memory.add`) from sub-agent: blocked.
