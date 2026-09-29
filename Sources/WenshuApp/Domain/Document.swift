@@ -286,10 +286,10 @@ struct DocumentCrossRefParser {
         // we want single-line refs; cross-line refs are rare and v0.26
         // doesn't need them).
         //
-        // We accept both English prefixes (character / world / reference)
-        // and Chinese prefixes (角色 / 世界观 / 资料) for back-compat with
-        // any docs the writer may have written by hand using the Chinese
-        // UI form.
+        // We accept both English prefixes (character / world /
+        // reference) and Chinese prefixes (= legacy UI form for
+        // back-compat with any docs the writer may have written
+        // by hand using the Chinese prefix form).
         let regex: NSRegularExpression
         do {
             regex = try NSRegularExpression(
