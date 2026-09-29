@@ -116,12 +116,14 @@ enum ReferenceLibraryAction: String, Sendable, Codable, CaseIterable, Equatable 
     case upsert
     /// Append a new section to an existing reference's body (= the
     /// self-evolution mechanism). When the user prompt adds more
-    /// context to a noun (= 主角出生在西安 -> 主角生活在明朝 ->
-    /// 主角在西安吃了一碗水盆羊肉), the agent extends the existing
-    /// '西安' reference with new sections rather than rewriting
-    /// the body from scratch. Sections whose `section_title` already
-    /// exists are merged (= later occurrences update the older
-    /// section instead of creating duplicates).
+    /// context to a noun (= e.g. 'protagonist born in Xi'an'
+    /// → 'protagonist lives in the Ming dynasty' → 'protagonist
+    /// ate a bowl of Yangrou Paomo in Xi'an'), the agent extends
+    /// the existing reference with new sections rather than
+    /// rewriting the body from scratch. Sections whose
+    /// `section_title` already exists are merged (= later
+    /// occurrences update the older section instead of creating
+    /// duplicates).
     case extend
 }
 
@@ -266,12 +268,14 @@ actor ReferenceLibraryActor {
 
     /// Append a new section to an existing reference's body (= the
     /// self-evolution mechanism). When the user prompt adds more
-    /// context to a noun (= 主角出生在西安 -> 主角生活在明朝 ->
-    /// 主角在西安吃了一碗水盆羊肉), the agent extends the existing
-    /// '西安' reference with new sections rather than rewriting the
-    /// body from scratch. Sections whose `section_title` already
-    /// exists are merged (= later occurrences update the older
-    /// section content instead of creating duplicates).
+    /// context to a noun (= e.g. 'protagonist born in Xi'an'
+    /// → 'protagonist lives in the Ming dynasty' → 'protagonist
+    /// ate a bowl of Yangrou Paomo in Xi'an'), the agent extends
+    /// the existing reference with new sections rather than
+    /// rewriting the body from scratch. Sections whose
+    /// `section_title` already exists are merged (= later
+    /// occurrences update the older section content instead of
+    /// creating duplicates).
     ///
     /// Wire-format:
     ///   - id (UUID, required): the reference to extend (= the agent
