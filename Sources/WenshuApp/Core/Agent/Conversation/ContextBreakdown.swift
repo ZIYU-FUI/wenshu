@@ -1,25 +1,22 @@
+// ContextBreakdown.swift · WenshuApp · v0.36
 //
-//  ContextBreakdown.swift · Wenshu · v0.36 ticket 014 sub-step 1
+// Diagnostic breakdown of conversation context composition.
+// Used by `ContextEngine.swift` to report what portion of the
+// context budget each message block occupies. Enables chat UI to
+// display breakdowns like:
 //
-//  Diagnostic breakdown of conversation context composition
-//  (= ticket 003 L40 acceptance criterion from spec §3.1 L198-199).
+//   system: 1,200 tokens (4%)
+//   recent 3 messages: 28,500 tokens (95%)
+//   older compressed: 400 tokens (1%)
 //
-//  Used by ContextEngine.swift (= ticket 003 sub-step 3) to report what
-//  portion of the context budget each message block occupies. Enables
-//  chat UI to display breakdown like:
-//    "system: 1,200 tokens (4%)
-//     recent 3 messages: 28,500 tokens (95%)
-//     older compressed: 400 tokens (1%)"
+// Per ADR-0011 (deterministic compression policy) + ADR-0010
+// (cache-stable invariant), breakdown respects cache markers (=
+// system + last 3 non-system messages are flagged as cacheable).
 //
-//  Per ADR-0011 (deterministic compression policy) + ADR-0010 (cache-stable
-//  invariant), breakdown respects cache markers (= system + last 3
-//  non-system messages are flagged as cacheable).
-//
-//  Per ADR-0009 (wenshu-side wins), uses existing TokenEstimator protocol
-//  (= ticket 003 sub-step 1) — no duplicate estimator.
-//
-// sub-step 1 of 2 for ticket 014.
-//
+// Per ADR-0009 (wenshu-side wins), uses the existing
+// `TokenEstimator` protocol (= no duplicate estimator).
+
+import Foundation
 
 import Foundation
 
@@ -45,8 +42,7 @@ struct ContextBreakdown: Sendable, Codable {
         self.timestamp = timestamp
     }
 
-    /// Manual `Equatable` (= ticket 014 Z contract test
-    /// `ContextBreakdown deterministic`): two breakdowns with the
+    /// Manual `Equatable` (= the deterministic Z-contract test): two breakdowns with the
     /// same component counts are equal, regardless of their
     /// `timestamp` (= wall-clock captured at construction). The
     /// synthesized Equatable would include `timestamp`, which is
@@ -98,7 +94,7 @@ enum ContextBreakdownAnalyzer {
 
     /// Rough character-count estimate for the system prompt.
     /// (= 4 chars per token heuristic, ceil-divided; same convention as
-    /// CharacterBasedEstimator used by ticket 003 sub-step 1).
+    /// CharacterBasedEstimator used by the context-budget consumer).
     private static func estimateSystemTokens(_ text: String) -> Int {
         return max(1, (text.count + 3) / 4)
     }
@@ -149,7 +145,7 @@ enum ContextBreakdownAnalyzer {
     ) -> ContextBreakdown {
         let systemTokens = estimateSystemTokens(systemPrompt)
 
-        // Per ChatMessageBridge (= ticket 003 sub-step 5 followup):
+        // Per ChatMessageBridge (= system-prompt-as-top-level-arg pattern):
         // System prompt travels as top-level parameter, NOT as in-band
         // message. So ALL messages are non-system (= user / assistant /
         // tool). Partition into recent (= cacheable) + older based on
