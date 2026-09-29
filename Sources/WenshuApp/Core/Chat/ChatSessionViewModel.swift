@@ -52,14 +52,16 @@ import Foundation
 ///
 /// `@unchecked Sendable` because the class has mutable state; the
 /// caller (= ChatViewModel.send) guarantees the only mutator is the
-/// streamCallback (= called from ConversationLoop actor = serial
-/// per-turn). v0.71 P1 batch 4 dual-axis audit fix (= Q99 Standards
-/// axis HIGH): added NSLock to enforce serial access (= the previous
-/// `final class ... @unchecked Sendable` declaration was a paper
-/// promise that nothing in the contract enforced; = a future
-/// `Task { @MainActor ... }` hop racing a synchronous read from
-/// `conductor.handle` returning could clobber the `parts[]` array
-/// because both paths target the same mutable state).
+/// streamCallback (= called from `ConversationLoop` actor = serial
+/// per-turn).
+///
+/// `@unchecked Sendable` audit fix: added `NSLock` to enforce
+/// serial access (= the previous `final class ... @unchecked
+/// Sendable` declaration was a paper promise that nothing in the
+/// contract enforced; = a future `Task { @MainActor ... }` hop
+/// racing a synchronous read from `conductor.handle` returning
+/// could clobber the `parts[]` array because both paths target
+/// the same mutable state).
 ///
 /// Reading the accumulator from MainActor is safe because all
 /// mutations happen under `lock` (= thread-safe); the snapshot
@@ -212,12 +214,12 @@ final class ChatViewModel {
     var contextMax: Int = 1_000_000
 
     private let conductor: WenshuConductor?
-    // Chat persistence lives
-    // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper). All
-    // view-side append/load/summarize calls go through the shared repo.
-    // `@MainActor`
-    // isolation replaces nonisolated(unsafe) for Swift 6 concurrency safety.
-    // Mutable so archive flow can replace.
+    // Chat persistence lives in `WSChatRepository.shared` (= a
+    // `@MainActor` SwiftData wrapper). All view-side append /
+    // load / summarize calls go through the shared repo.
+    // `@MainActor` isolation replaces `nonisolated(unsafe)` for
+    // Swift 6 concurrency safety.
+    // Mutable so the archive flow can replace the session id.
     @MainActor private var sessionId: String
 
     // Current scope bookID for all persistence calls.
@@ -248,20 +250,19 @@ final class ChatViewModel {
         Task { await self.loadHistory() }
     }
 
-    // build fix: demote from `public init` to internal `init`. AppState
-    // is internal (= `final class AppState`, no access modifier), and a
-    // `public init` cannot accept an internal type as a parameter. Both
-    // call sites (= the App.swift:1528 reference is stale per the Q2 boss
-    // split moved ChatView init outside App.swift; see AppRootScene.swift
-    // + ChatView.swift:340) are inside the
-    // WenshuApp module, so internal access is sufficient. The class itself
-    // stays `public final class` so existing public surface (currentModel,
-    // messages, send, etc.) is unchanged.
+    // build fix: demote from `public init` to internal `init`.
+    // `AppState` is internal (= `final class AppState`, no access
+    // modifier), and a `public init` cannot accept an internal
+    // type as a parameter. Both call sites (= see `AppRootScene.swift`
+    // + `ChatView.swift` init) are inside the `WenshuApp` module,
+    // so internal access is sufficient. The class itself stays
+    // `public final class` so existing public surface (`currentModel`,
+    // `messages`, `send`, etc.) is unchanged.
     //
-    // C-4 + C-5 (refactor chat-mvvm-3layer): inject ChatRepositoryProtocol
-    // (= the data-layer seam). Default = LiveChatRepository.shared so
-    // existing call sites (= ChatZoneView, ChatView) work unchanged.
-    // Tests pass a fake (= InMemoryChatRepository, future ticket) via
+    // Inject `ChatRepositoryProtocol` (= the data-layer seam).
+    // Default = `LiveChatRepository.shared` so existing call sites
+    // (= `ChatZoneView`, `ChatView`) work unchanged. Tests pass a
+    // fake (= `InMemoryChatRepository`, future ticket) via
     // this parameter to avoid touching SwiftData stack.
     init(
         conductor: WenshuConductor? = nil,
@@ -342,21 +343,21 @@ final class ChatViewModel {
         appState?.llmModel = id
     }
 
-    /// 'UI 层不许直接调数据层'.
-    /// Sets the canonical 'wenshu.settingsTab' to 'providerApi' so
-    /// the Settings window opens on the LLM Connector pane. The
-    /// canonical pattern (= the @AppStorage mirror in Settings reads
-    /// from UserDefaults) is unchanged; = the write moves here from
+    /// UI layer must not call the data layer directly (= the
+    /// canonical separation rule). Sets the canonical
+    /// `wenshu.settingsTab` to `providerApi` so the Settings
+    /// window opens on the LLM Connector pane. The canonical
+    /// pattern (= the `@AppStorage` mirror in Settings reads from
+    /// `UserDefaults`) is unchanged; = the write moves here from
     /// `ChatZoneView` (= UI layer) into the business layer.
     func openSettingsToProviderApi() {
         UserDefaultsStore.shared.setString("providerApi", forKey: .settingsTab)
     }
 
     func loadAvailableModels() async {
-        // Use multi-provider discovery.
-        // Was: fallback to WenshuLLMModel.allCases (3 MiniMax-only cases).
-        // Now: query all configured providers via AvailableModelsDiscovery,
-        // sectioned by provider per ticket 011 spec.
+        // Use multi-provider discovery (= query all configured
+        // providers; = previously fell back to
+        // `WenshuLLMModel.allCases` = 3 MiniMax-only cases).
         let configured = AvailableModelsDiscovery.loadFromKeychain()
         var modelIds: [String] = []
         for section in configured {
@@ -951,12 +952,13 @@ final class ChatViewModel {
         // Per-session persistence directory under NSTemporaryDirectory.
         // HermesGoals.swift's GoalsManager.persistGoal requires the
         // directory to be writable (= tests use the same temp-scoped
-        // pattern; see HermesGoalsTests.makeTempPersistenceDir).
-        // '业务层不许摸基础设施'.
-        // The FileManager.default.temporaryDirectory call moves
-        // into HermesGoals.swift's `temporaryGoalsDirectory(prefix:)`
+        // pattern; see `HermesGoalsTests.makeTempPersistenceDir`).
+        // Business layer must not touch infrastructure directly (=
+        // the canonical separation rule). The
+        // `FileManager.default.temporaryDirectory` call moves into
+        // `HermesGoals.swift`'s `temporaryGoalsDirectory(prefix:)`
         // helper (= data-layer concern). Here we call the helper
-        // instead of FileManager directly.
+        // instead of `FileManager` directly.
         let persistenceDirectory = GoalsManager.temporaryGoalsDirectory(
             prefix: "WenshuGoals"
         )
