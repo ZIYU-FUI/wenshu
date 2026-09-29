@@ -1,11 +1,12 @@
+// SubAgentIdentity.swift · WenshuApp · v0.23
 //
-//  SubAgentIdentity.swift · Wenshu · v0.23 ticket 001 + v2.7d tool mapping
-//
-//  5 sub-agents under WenshuConductor (=):
-// - Researcher: web_search + reference_library
-// - Writer: paragraph_ai
-// - Analyst: (no wenshu tool counterpart yet; = tool list empty)
-// - Archivist: (storage via WSBookmarkRepository + filesystem directly; = tool list empty)
+// 5 sub-agents under `WenshuConductor`:
+//   - Researcher: `web_search` + `reference_library`.
+//   - Writer: `paragraph_ai`.
+//   - Analyst: (= no wenshu tool counterpart yet; = tool list
+//     empty).
+//   - Archivist: (= storage via `WSBookmarkRepository` + filesystem
+//     directly; = tool list empty).
 // - Auditor: (read memory via WSMemoryProvider directly; = tool list empty)
 //
 
@@ -44,14 +45,14 @@ enum SubAgentIdentity {
     /// DELEGATE_BLOCKED_TOOLS parity; = tools not in this list are
     /// blocked by `delegate(...)`).
     ///
-    /// v2.7d fix (= boss 2026-09-26 "团队链路真跑 LLM"): the previous
-    /// tool list used hermes port slugs (= "search", "web", "linkgraph")
-    /// that do not match any wenshu-registered tool (= the runner's
-    /// tool-schema lookups returned empty schemas; = the LLM saw no
-    /// tools). The v2.7d list maps each sub-agent to its REAL wenshu
-    /// tool name(s).
+    /// Fix: the previous tool list used hermes port slugs
+    /// (= `search`, `web`, `linkgraph`) that do not match any
+    /// wenshu-registered tool (= the runner's tool-schema lookups
+    /// returned empty schemas; = the LLM saw no tools). The
+    /// current list maps each sub-agent to its REAL wenshu tool
+    /// name(s).
     ///
-    /// Mapping rationale (= hermes-port slug -> wenshu real tool):
+    /// Mapping rationale (= hermes-port slug → wenshu real tool):
     ///   - researcher: hermes `web` + `linkgraph` collapse into the
     ///     single `web_search` tool (= covers external web + reference
     ///     library lookup; = hermes `search` was never ported as a
