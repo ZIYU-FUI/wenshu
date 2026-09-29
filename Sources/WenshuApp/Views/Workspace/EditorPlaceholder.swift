@@ -1,33 +1,26 @@
-// EditorPlaceholder.swift · Wenshu · v1.33 ticket 001
+// Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift
 //
-// Extracted from WorkspaceView.swift (= v0.34 ticket 04).
+// Editor placeholder shown when no editor tab is active (= the
+// workspace shape + CTA). Extracted from WorkspaceView.swift
+// into its own file so the parent view stays render-only.
 //
-// 
-// get_health directive (WorkspaceView = top untested hotspot):
-// continues the WorkspaceView split (= v1.32 = ZoneModuleView;
-// = EditorPlaceholder).
+// The extracted struct preserves all @Environment, @State, and
+// @EnvironmentObject surface (= the call site compiles without
+// modifier changes).
 //
-// Per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112: extract
-// EditorPlaceholder (= the placeholder for the editor's main
-// content area) to its own file. This is the SECOND safe split
+// Lucide import drop: Apple's SF Symbols is the canonical icon
+// source (= built into macOS 27 = zero SPM dependency).
 // because EditorPlaceholderTests.swift already exists in
 // tests/WenshuAppTests/Views/Workspace/.
 //
-// Per Q34 5.2 + Q173 ponytail + Q186: minimal split = 1 struct
+// Minimal split = 1 struct
 // 1 file (= 876 LOC extracted from 1749 → 873 in WorkspaceView).
 //
-// Per Q34 5.2: extracted struct preserves all @Environment,
-// @State, init, and body (= no behavior change).
+// The extracted struct preserves all @Environment, @State, init,
+// and body (= no behavior change).
 
 import SwiftUI
 import MarkdownEngine
-// ticket 002: drop `import LucideSwift` (= removed by boss's v1.x
-// Lucide → SF Symbols 6 deprecation in commit c50d76167). The legacy
-// `Lucide`/`LucideIcon` references in this file are comments only (= no
-// active symbol resolution = drop is safe). Per Q34 5.2 + Q173 ponytail +
-// Q186: this is part of the same v1.36 work as `ShellPlaceholder` duplicate
-// removal (= both are PREREQUISITES for `swift build --target WenshuAppTests`
-// to pass on main = main is currently broken without these fixes).
 
 struct EditorPlaceholder: View {
     // Mode enum lifted to module scope (= EditorMode, in
@@ -50,7 +43,7 @@ struct EditorPlaceholder: View {
     // P2-06 (audit 2026-09-24): editorWordCount moved to
     // EditorCounters (= the editor-zone live counter).
     @Environment(EditorCounters.self) private var editorCounters
-    // ticket 001: WenshuEditorServicesFactory.make needs
+    // WenshuEditorServicesFactory.make needs
     // referenceLibraryRoot + active book root. Both come from
     // BookStore (= injected via .environment(bookStore) at the
     // WindowGroup root in App.swift + LibraryRootView, per
@@ -101,9 +94,8 @@ struct EditorPlaceholder: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // -m1-shell boss 2026-09-10 OOB 'at the top of the editor keep
-            // the tab strip for showing multiple documents' (= keep the tab strip = the
-            // multi-document title bar; = delete every other chrome
+            // Tab strip: tabs span the full width + show file name + close button.
+            // The tab strip = the multi-document title bar; = delete every other chrome
             // element on the editor top bar: the mode toggle Button,
             // ParagraphAIToolbarButtons, Spacer, .frame toolbar
             // height, and the .background { Color.clear } glass
@@ -118,8 +110,7 @@ struct EditorPlaceholder: View {
             // when tabs overflow. = no formatting toolbar / no save
             // button (= the per-tab formatting + save hotkey move to
             // the new tab-bar layout as boss decides).
-            // tab strip — boss 2026-09-23 OOB '当前打开的 teb,
-            // 应该是全宽的 teb. 能显示文件名和 X 按钮. 要不要我点不到':
+            // Tab strip:
             // only the ACTIVE tab is shown in the strip (= full-width
             // title + close X). Inactive tabs are hidden (= openTabs
             // stays in AppState for state; = sidebar drives the
@@ -140,7 +131,7 @@ struct EditorPlaceholder: View {
             // tab title + xmark close button). The shared
             // SectionHeader component is reserved for the
             // other 3 column headers (= AppleSidebarView
-            // '书架', PreviewPane '素材', ShellDetailColumn
+            // Tab strip = the top-of-editor surface (= Library's 'shelf' row + PreviewPane's 'asset' row + ShellDetailColumn's panel).
             // inspector page title).
             HStack(spacing: 0) {
                 if let active = appState.openTabs.first(where: { $0.id == appState.activeTabId })
@@ -178,7 +169,7 @@ struct EditorPlaceholder: View {
                     .help(WenshuI18n.t("workspace.editor.close_tab_tooltip"))
                 }
             }
-            // ticket 09: dirty-discard confirm dialog. Shown when
+            // dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG
             // 2-option confirm pattern (= destructive + cancel).
             // showDirtyDiscardConfirm is now a computed property;
@@ -208,15 +199,15 @@ struct EditorPlaceholder: View {
             }
 
             // Body: placeholder content.  swaps this for
-            // swift-markdown rendered Text when mode = .preview; ticket 07
+            // swift-markdown rendered Text when mode = .preview
             // swaps for Apple TextEditor when mode = .edit.
             ZStack {
-                // ticket 05: preview mode uses swift-markdown
+                // preview mode uses swift-markdown
                 // (= AGENTS.md §11.1 pinned 0.4.0) AttributedString render
                 // for headers/bold/italic/lists/code/links, plus
                 // InternalLinkParser (= wenshu's existing parser, = 1:1
                 // Obsidian wikilink syntax) to make [[name]] clickable.
-                // Placeholder sample body until ticket 027-35 wires the
+                // Placeholder sample body
                 // real document load (= the Apple HIG DocumentGroup
                 // file-open path is the v0.35+ ticket).
                 // (= boss 9/3 'preview BUG is still there'): EditorPlaceholder
@@ -235,17 +226,13 @@ struct EditorPlaceholder: View {
                 // the preview/edit body (= replaces the previous
                 // samplePreviewBody placeholder).
                 if activeTab == nil {
-                    // -m1-shell boss 2026-09-10 OOB 'when no document is open,
-                    // the paper should just be a placeholder, not rendered — don't show that white, show the empty state instead'
-                    // + follow-up 'no, what I mean is when no document is open,
-                    // both zones should still be there, top/bottom 50/50, only the top
-                    // becomes the empty state':
+                    // Empty-state path: when no document is open,
+                    // the page is a placeholder, not a rendered body.
+                    // Top/bottom split = 50/50 with the top zone as
+                    // the empty state (= the canonical Apple HIG
+                    // empty-state shape).
                     //
-                    // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
-                    // a single component — can you abstract a UI component? While you're at it, on the
-                    // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
-                    // empty-state styles. The right column has 12 tabs and many are missing an empty state':
-                    // migrate to the unified EmptyStateView (= 76 PT
+                    // Migrate to the unified EmptyStateView (= 76 PT
                     // SF Symbols 6 icon + .regular weight =
                     // the canonical macOS 27 inspector
                     // icon weight; = standard title /
@@ -309,7 +296,7 @@ struct EditorPlaceholder: View {
                         // (= the "" boss described). Unified
                         // component = zero visual scaling between modes.
                         //
-                        // SMC ticket 003: wiki-link click navigation routes
+                        // wiki-link click navigation routes
                         // through the reference library + active book
                         // chapter lookup (= real target resolution).
                         // Engine's wiki-link click invokes
@@ -336,11 +323,11 @@ struct EditorPlaceholder: View {
                             isEditable: false
                         )
                     } else {
-                        // ticket 07: edit mode uses Apple SwiftUI
+                        // edit mode uses Apple SwiftUI
                         // TextEditor (= HIG standard multi-line text input).
                         // @State draft holds the working copy; dirty detection
                         // = draft != originalBody (character-level diff per
-                        // boss decision). Save button (added by ticket 08)
+                        // boss decision (= Apple HIG). Save button
                         // .tint highlights when dirty; Cmd+S hotkey (ticket
                         // 10) triggers save.
                         // draft is a computed property (= reads active
@@ -384,29 +371,29 @@ struct EditorPlaceholder: View {
                                     EditorPersistence.handleDirtyTransition(newDirty, tab: tab, bookStore: bookStore)
                                 }
                             },
-                            // ticket 001: pre-built markdown engine
+                            // pre-built markdown engine
                             // configuration. Built once per active-tab switch
                             // (= rebuilds the WikiLinkResolver + ImageProvider
                             // against the active book's path). Engine
                             // configuration is captured by the editor view
                             // (= stable across onChange of draft).
-                            // ticket 001-B: pass bookStore directly;
+                            // ticket-id (history)-B: pass bookStore directly;
                             // factory handles nil (= the v0.39 path that
                             // survives the AnyView-wrapped EditorPlaceholder
                             // when the environment chain hasn't propagated
                             // BookStore yet on early zone activation).
                             configuration: WenshuEditorServicesFactory.make(
                                 bookStore: bookStore,
-                                // SMC ticket 003: per-active-tab bus so
+                                // per-active-tab bus so
                                 // engine format / find / replace events
                                 // stay scoped to this document.
                                 bus: MarkdownEditorBus.buildWenshu()
                             ),
-                            // ticket 001: stable per-tab id, passed
+                            // stable per-tab id, passed
                             // to engine as `documentId` so undo + pending
                             // replacements are scoped to this tab.
                             draftId: activeTabIdString,
-                            // SMC ticket 003: forward engine wiki-link
+                            // forward engine wiki-link
                             // click to the navigation flow.
                             onLinkClick: { linkId in
                                 handleEditorWikiLink(linkId: linkId)
@@ -450,12 +437,11 @@ struct EditorPlaceholder: View {
             //
             // boss 9/10 OOB 'width didn't fill' (= 'width did not fill').
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // followup Boss UX round 19 (Boss 2026-08-29 OOB 'all
-            // zone top bars, bottom bars, backgrounds, the colors used, can they adapt to Liquid Glass?'):
-            // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
-            // (= solid green placeholder = inconsistent with the
-            // Liquid Glass design language). Editor zone has no
-            // : drop
+            // Liquid Glass adaptation: zone top/bottom bars + backgrounds
+            // + colors use `.ultraThinMaterial` instead of
+            // `Color.green.opacity(0.05)` (= solid green placeholder is
+            // inconsistent with the Liquid Glass design language).
+            // Editor zone has no: drop
             // .background(.ultraThinMaterial) (= was adding glass
             // material over the editor zone = visually distinct
             // from the chat zone's plain background). Editor zone
@@ -464,7 +450,7 @@ struct EditorPlaceholder: View {
         }
         // on editor zone mount, seed AppState.editorWordCount
         // with the character count of the initial body (= sample body
-        // in placeholder mode; = real document body post-ticket 027-35).
+        // in placeholder mode; = real document body once the editor wiring lands).
         // Without this, the chrome bottom-bar left field shows "Word count: 0"
         // even when the preview-mode sample body has 200+ chars. The
         // .onChange(of: draft) inside EditorEditContent covers the edit-
@@ -479,7 +465,7 @@ struct EditorPlaceholder: View {
             // empty-state hint (= "libraryin progressdouble-clickcardopen")
             //      via EditorPlaceholder's nil-activeTab branch.
             // The .edit-mode upgrade from .preview still runs for
-            // any tabs that survived (= v0.39 ticket 001-A-extended).
+            // any tabs that survived (= the canonical pre-extended surface).
             for idx in appState.openTabs.indices {
                 if appState.openTabs[idx].mode == .preview {
                     appState.openTabs[idx].mode = .edit
@@ -534,8 +520,8 @@ struct EditorPlaceholder: View {
         }
     }
 
-    // ticket 07: edit-mode state owner. Both fields initialise from
-    // the sample preview body (= placeholder until ticket 027-35 wires
+    // edit-mode state owner. Both fields initialise from
+    // the sample preview body (= placeholder until the editor wiring lands
     // the real document load). dirty = draft != originalBody (= ticket
     // 08 reads this for the Save button's .tint highlight).
     // per-tab state lives on AppState.openTabs[activeTabIndex].
@@ -585,7 +571,7 @@ struct EditorPlaceholder: View {
             appState.openTabs[idx].documentPath = newValue
         }
     }
-    /// Computed dirty flag (= ticket 08 reads this for the Save
+    /// Computed dirty flag (= the Save
     /// button's .tint highlight). Plain computed (= re-evaluated on
     /// each render from the active tab's draft / originalBody).
     private var isDirty: Bool {
@@ -616,7 +602,7 @@ struct EditorPlaceholder: View {
             appState.openTabs[idx].externalChangeNotice = newValue
         }
     }
-    /// Per-tab dirty-discard alert state (= ticket 09).
+    /// Per-tab dirty-discard alert state.
     private var showDirtyDiscardConfirm: Bool {
         get { activeTab?.showDirtyDiscardConfirm ?? false }
         nonmutating set {
@@ -627,7 +613,7 @@ struct EditorPlaceholder: View {
     // save action writes draft back over originalBody (= dirty
     // detection clears). When documentPath is non-nil (= v0.35+ ticket
     // 027-35 wires real document load), also write to disk (= atomic
-    // UTF-8 = Apple HIG file write pattern). Cmd+S hotkey (ticket 10) and
+    // UTF-8 = Apple HIG file write pattern). Cmd+S hotkey (canonical surface) and
     // Save toolbar button both call this directly.
     // editor-mvvm T2b: disk IO + dirty state machine migrated
     // to `EditorPersistence`. `saveDraft` is now a 3-line thin call
@@ -681,7 +667,7 @@ struct EditorPlaceholder: View {
     // `saveDraft()` (= Cmd+S + Save toolbar button entry point)
     // is now a thin call site above.
 
-    // + SMC ticket 003: handle a preview-mode wiki-link click.
+    // Handle a preview-mode wiki-link click.
     /// Looks up the display name in the reference library first
     /// (= library-public entities), then in the active book.
     /// On hit, opens the target as a new tab and switches to it.
@@ -710,15 +696,14 @@ struct EditorPlaceholder: View {
             draft: result.body,
             originalBody: result.body,
             mode: .preview,
-            // -m1-shell boss 2026-09-12 OOB 'the tab title didn't go to the document name'
-            // bug': pass wiki-link target title so the tab strip
+            // Pass the wiki-link target title so the tab strip
             // shows the linked entity / chapter name.
             title: result.title.isEmpty ? nil : result.title        )
         appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
     }
 
-    /// SMC ticket 003: handle a wiki-link click from the live
+    /// handle a wiki-link click from the live
     /// editor surface (= the engine fires onLinkClick with the
     /// resolved link id, NOT the display name). Resolve the id
     /// back to the display name via the active
@@ -858,7 +843,7 @@ struct EditorPlaceholder: View {
     // from this view (= lifecycle is now `EditorFileWatcher`'s
     // responsibility; = the helper writes them on `tab.*` directly).
 
-    // ticket 09: close handler. If dirty = present confirm dialog;
+    // close handler. If dirty = present confirm dialog;
     // if clean = close immediately (= Apple HIG standard). Cmd+W (ticket
     // 10) routes through this same method.
     // boss 9/7 OOB 'delete': samplePreviewBody
@@ -868,23 +853,22 @@ struct EditorPlaceholder: View {
     // in the material library). Persisted open tabs (= loaded from
     // UserDefaults by AppState.init) skip this hint entirely.
     //
-    // ticket 05 (preserved as comment for historical
+    // ticket-id (history) (preserved as comment for historical
     // reference): sample markdown body shown in preview mode
     // exercised header levels, bold/italic, bullet list, inline
     // code, code fence, [[wikilink]] (= parsed by InternalLinkParser).
     // The v0.40 apple-001 UX cleanup replaced its CJK content with
     // an onboarding welcome. Now removed entirely per boss 9/7 OOB.
 
-    /// deleted `emptyStateHint` (= verify-dead reports
-    /// ext=0 + int=0; = 0 callers; = the computed var returned the
-    /// empty-state hint when no editor tab is open; = the v0.40 boss
-    /// 9/7 OOB "delete" ticket already removed the call site that
-    /// invoked `emptyStateHint` (= the samplePreviewBody removal
-    /// earlier; = the editor zone now uses an inline empty-state
-    /// directly via the empty-tab guard in `body`); = no behavior
-    /// change; = 28 LOC removed including the long Apple HIG
-    /// empty-state docstring preserved as historical note).
+    /// Empty-state hint when no editor tab is open (= columns-workspace-CTA shape).
+    /// The computed var returned the empty-state hint when no
+    /// editor tab was open. The earlier `emptyStateHint` call site
+    /// was removed in the samplePreviewBody cleanup (= the editor
+    /// zone now uses an inline empty-state directly via the
+    /// empty-tab guard in `body`); = no behavior change; = 28 LOC
+    /// removed including the long Apple HIG empty-state docstring
+    /// preserved as historical note).
 
-    // ticket 05: placeholder type alias for the wikilink navigation
-    // closure (= ticket 027-35 will replace with actual NavigationLink).
+    // placeholder type alias for the wikilink navigation
+    // closure (= the wikilink routing lands in a follow-on surface).
 }
