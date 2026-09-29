@@ -37,17 +37,15 @@
 //  spec is 100% complete; no further tickets remain in the roadmap.
 //   (= AGENTS §11.4 doc updates) is the canonical phase 5
 //  roadmap spec (= see AGENTS.md §11.4.2).
-// d (= boss 2026-09-21 '数据库不要在用sqlite3 了') deleted
 //  WSMigrationPerStore + WSMigrationRunner + SQLiteConstants (= the
 //   raw-sqlite3 one-shot importer + its driver + the shared
 //  SQLITE_TRANSIENT helper; = see AGENTS.md §11.7d). Post-v1.55d no
 //  file in the production source tree imports SQLite3, opens a raw
 //  sqlite3 connection, or reads `.ws/*.sqlite` (= legacy files become
 //  orphaned; = chat history from the pre-v0.72 ChatSessionStore era
-//  is no longer imported into SwiftData; = per boss '历史没有就没有，
-//  不用修回来'). New chat history lives entirely in SwiftData.
-//  HermesKanbanDB + FullTextSearch were REMOVED in v1.55 sqlite3-zero
-//  (= boss 2026-09-20 OOB).
+//  is no longer imported into SwiftData; = legacy history is not
+//  restored). New chat history lives entirely in SwiftData.
+//  HermesKanbanDB + FullTextSearch were REMOVED in v1.55 sqlite3-zero.
 //
 //  See .scratch/2026-09-13-swiftdata-migration-spec.md for full plan
 //  (= NOT /tmp/...; = the canonical path is .scratch/).
@@ -153,7 +151,7 @@ enum WSPersistenceContainer {
     /// else `shared`). Use this in new code (= e.g. Repository singletons).
     ///
     /// Migration path: existing callers using `WSPersistenceContainer.shared`
-    /// stay on Application Support. New callers (= ticket 1b.2+) use `current`.
+    /// stay on Application Support. New callers use `current`.
     /// Post-SwiftData migration: all 7 of
     /// the planned sqlite stores are deleted (= KanbanStore + TodoStore +
     /// MemoryStore + LinkIndex + ChatSessionStore + BookmarkStore +
