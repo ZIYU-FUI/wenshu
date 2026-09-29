@@ -1,51 +1,44 @@
-// ProviderProfileExt.swift · Wenshu · v0.28
+// ProviderProfileExt.swift · WenshuApp · v0.28
 //
-// Extension to the existing Provider struct (= v0.21 ticket 01) with the
-// optional fields from hermes-agent/providers/base.py ProviderProfile
-// (= wenshu M6 ticket 16 = hermes-port batch 3 sixth ticket).
+// Extension to the existing `Provider` struct with the optional
+// fields from hermes-agent/providers/base.py `ProviderProfile`.
 //
 // Source (= hermes Python):
-// - providers/base.py L41-267 (= ProviderProfile dataclass with 30+
-//   declarative fields = auth, endpoints, client quirks, model metadata,
-//   request-time quirks)
-// - agent/models_dev.py L1-1550 (= models.dev catalog fetcher + parser;
-//   external JSON catalog at https://models.dev/api.json)
-// - agent/model_metadata.py L1-3926 (= per-model metadata = cost,
-//   context_window, capabilities, modalities)
+//   - `providers/base.py` (`ProviderProfile` dataclass with 30+
+//     declarative fields = auth, endpoints, client quirks, model
+//     metadata, request-time quirks).
+//   - `agent/models_dev.py` (= models.dev catalog fetcher + parser;
+//     external JSON catalog at `https://models.dev/api.json`).
+//   - `agent/model_metadata.py` (= per-model metadata = cost,
+//     context_window, capabilities, modalities).
 //
 // Target (= wenshu Swift):
-// - Sources/WenshuApp/Core/Provider/ProviderProfileExt.swift (this file,
-//   ~300 LOC) = optional extension to the existing Provider struct that
-//   carries the hermes-side declarative fields. Pure data; no behavior.
-// - Sources/WenshuApp/Core/Agent/Connector/ModelMetadata.swift (~330 LOC)
-//   = per-model metadata struct (= hermes model_metadata.py ports the
-//   subset relevant to wenshu's v1 minimax-cn-only deployment).
-//   Note: actual path is Core/Agent/Connector/, not Core/Provider/
-//   (= v0.28 spec header described a planned-but-never-created
-//   Provider/ModelMetadata.swift; the real file is in the Connector
-//   namespace = hermes-port placement per §11.3).
-// - Tests/WenshuAppTests/Core/Provider/ProviderProfileExtTests.swift
-//   (~80 LOC, 10 tests covering the extension surface).
+//   - `Sources/WenshuApp/Core/Provider/ProviderProfileExt.swift`
+//     (this file) = optional extension to the existing `Provider`
+//     struct that carries the hermes-side declarative fields.
+//     Pure data; no behavior.
+//   - `Sources/WenshuApp/Core/Agent/Connector/ModelMetadata.swift` =
+//     per-model metadata struct (= hermes `model_metadata.py` ports
+//     the subset relevant to wenshu's v1 minimax-cn-only deployment;
+//     = the actual path is `Core/Agent/Connector/`, not
+//     `Core/Provider/`, per hermes-port placement per §11.3).
+//   - `Tests/WenshuAppTests/Core/Provider/ProviderProfileExtTests.swift`
+//     covers the extension surface.
 //
-// Scope refactor (= per Q109 doc-first + Q35 commit-description vs truth):
-// The hermes ProviderProfile + models_dev + model_metadata system is
-// 5743 LOC across 3 files. Wenshu's v0.21 Provider struct already covers
-// the bulk of the auth + endpoints surface; the additions this ticket
-// brings are the OPTIONAL fields (aliases, display_name, description,
-// signup_url, user_agent_strategy, request_quirks) that hermes uses for
-// advanced provider quirks (= OpenCode Zen WAF bypass, Kimi temperature
-// omission, etc.).
+// The hermes `ProviderProfile` + `models_dev` + `model_metadata`
+// system is 5,743 LOC across 3 files. Wenshu's v0.21 `Provider`
+// struct already covers the bulk of the auth + endpoints surface;
+// the additions here are the OPTIONAL fields (aliases,
+// `display_name`, description, `signup_url`, `user_agent_strategy`,
+// `request_quirks`) that hermes uses for advanced provider quirks
+// (= OpenCode Zen WAF bypass, Kimi temperature omission, etc.).
 //
-// Wenshu's v1 deployment targets minimax cn only (= Anthropic-compatible
-// protocol); the multi-provider complexity in hermes's models_dev
-// catalog is OUT of scope for this ticket. The ModelMetadata struct
-// added here covers ONLY the fields wenshu consumes (= display cost,
-// context_window, capabilities), so a future v1.5+ migration to a
-// second provider has a clean extension point.
-//
-// per AGENTS.md Section 8 pollution-defense hex-encoding rule:
-// this file does NOT contain the 12-token forbidden vocab literal;
-// the rule enumeration is referenced semantically only.
+// Wenshu's v1 deployment targets minimax cn only (= Anthropic-
+// compatible protocol); the multi-provider complexity in hermes's
+// `models_dev` catalog is OUT of scope. The `ModelMetadata` struct
+// added here covers ONLY the fields wenshu consumes (= display
+// cost, `context_window`, capabilities), so a future v1.5+
+// migration to a second provider has a clean extension point.
 
 import Foundation
 
