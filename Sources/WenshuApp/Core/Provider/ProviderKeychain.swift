@@ -1,25 +1,30 @@
+// ProviderKeychain.swift · WenshuApp · v0.86
 //
-//  ProviderKeychain.swift
+// Apple `Security` framework backend for provider API keys
+// (`kSecClassGenericPassword`).
 //
-//  Apple Security framework backend for provider API keys (kSecClassGenericPassword).
-//  Production path = InMemoryKeychainStore stub (B-10 revert 2026-09-04:
-//  avoids SecurityAgent modal + ad-hoc-signing SIGABRT on the Settings
-//  window). Real SecItemAdd/CopyMatching/Delete code is preserved as
-//  comments for future restoration (when boss accepts the SecurityAgent
-//  modal prompt). Tests still use InMemoryKeychainStore via
-//  setBackendForTesting, and the WENSHU_DEBUG_INMEMORY_KEYCHAIN=1
-//  override path in App.swift remains wired for cua / dev / CI.
+// Production path = `InMemoryKeychainStore` stub (in-place revert
+// 2026-09-04: avoids `SecurityAgent` modal + ad-hoc-signing
+// `SIGABRT` on the Settings window). Real `SecItemAdd` /
+// `SecItemCopyMatching` / `SecItemDelete` code is preserved as
+// comments for future restoration (when the user accepts the
+// `SecurityAgent` modal prompt). Tests still use
+// `InMemoryKeychainStore` via `setBackendForTesting`, and the
+// `WENSHU_DEBUG_INMEMORY_KEYCHAIN=1` override path in `App.swift`
+// remains wired for cua / dev / CI.
 //
-//  Backwards-compat shim = ProviderKeychain enum, preserves existing
-//  saveKeySync / loadKeySync / deleteKeySync / listProvidersWithKeys call sites.
-//  Test backend switched via ProviderKeychain.setBackendForTesting(_:).
+// Backwards-compat shim = `ProviderKeychain` enum, preserves
+// existing `saveKeySync` / `loadKeySync` / `deleteKeySync` /
+// `listProvidersWithKeys` call sites. Test backend switched via
+// `ProviderKeychain.setBackendForTesting(_:)`.
 //
-//  Fixes:
-//  - ticket 02 acceptance: enum shim + Storing protocol + 2 backend (not literal actor)
-//  - ticket 02 dev env skip: InMemoryKeychainStore for test isolation
-//  - ticket 03 dev env skip: WenshuVerifierTests.testPingReal returns early without
-//    Issue.record (Apple Swift Testing: record() counts as failure)
-//
+// Acceptance fixes:
+//   - Enum shim + `Storing` protocol + 2 backends (= not a literal
+//     actor).
+//   - Dev env skip: `InMemoryKeychainStore` for test isolation.
+//   - Dev env skip: `WenshuVerifierTests.testPingReal` returns
+//     early without `Issue.record` (= Apple Swift Testing:
+//     `record()` counts as a failure).
 
 import Foundation
 
@@ -34,11 +39,11 @@ enum ProviderKeychainError: Error, LocalizedError {
         }
     }
 
-    /// Map the canonical `KeychainOpsError` (= shared across all keychain
-    /// consumers in wenshu) into the provider-specific error type.
-    /// Added in v0.86 ticket 001: dry_violation partner dedup partner of
+    /// Map the canonical `KeychainOpsError` (= shared across all
+    /// keychain consumers in wenshu) into the provider-specific
+    /// error type. The dry-violation dedup partner:
     /// `AppleKeychainStore` now delegates to `KeychainOps` like
-    /// `AppleSearchKeychainStore` does).
+    /// `AppleSearchKeychainStore` does.
     static func from(_ error: KeychainOpsError) -> ProviderKeychainError {
         switch error {
         case .keychainStatus(let s):
@@ -69,7 +74,7 @@ protocol ProviderKeychainStoring: Sendable {
     func deleteKeySync(for provider: Provider) throws
     func listProvidersWithKeys() -> [String]
 
-    // MARK: - v0.36 ticket 012 credential rotation + OAuth (optional)
+    // MARK: - Credential rotation + OAuth (optional)
 
     /// ProviderKeychainMetadata for the given provider (= expiry timestamp
     /// + OAuth refresh token if applicable). Default = nil (= no rotation
@@ -122,9 +127,11 @@ struct ProviderKeychainMetadata: Sendable, Equatable, Codable {
     }
 }
 
-/// Default production backend — Apple Security framework (`kSecClassGenericPassword`).
+/// Default production backend — Apple `Security` framework
+/// (`kSecClassGenericPassword`).
 ///
-/// EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'):
+/// In-place revert (= avoids `SecurityAgent` modal +
+/// ad-hoc-signing `SIGABRT` on the Settings window):
 /// the public methods below are stubs (= early-return + debug key) so the
 /// macOS Security framework is never invoked at Settings-open time. The
 /// real SecItemAdd / SecItemCopyMatching / SecItemDelete implementations
@@ -259,7 +266,7 @@ final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
         return Array(store.keys).sorted()
     }
 
-    // MARK: - v0.36 ticket 012 metadata (= in-memory for test backend)
+    // MARK: - Metadata (= in-memory for the test backend)
 
     func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? {
         lock.lock(); defer { lock.unlock() }
@@ -288,9 +295,9 @@ enum ProviderKeychain {
     // to InMemory for cua / dev / CI contexts. Tests inject InMemory
     // via setBackendForTesting().
     //
-    // phase B activation (Boss 2026-09-04 OOB 'skipverification,'):
-    // `B10_PHASE_B_ENABLED` Swift compile flag, when set via build setting
-    // (`SWIFT_ACTIVE_COMPILATION_CONDITIONS += B10_PHASE_B_ENABLED`), switches
+    // phase B activation (set via the `B10_PHASE_B_ENABLED` Swift
+    // compile flag in build settings, = `SWIFT_ACTIVE_COMPILATION_CONDITIONS
+    // += B10_PHASE_B_ENABLED`):
     // the default backend to `AppleKeychainStore` IF the running binary carries
     // a real embedded provisioning profile (= Apple Developer Program paid).
     // Otherwise falls through to `InMemoryKeychainStore` (= safe default).
@@ -369,14 +376,13 @@ enum ProviderKeychain {
         backend = store
     }
 
-    // (= per Q34 5.4 fix root cause for the 3
-    // remaining inter-suite OpenAI-compatible connector test
-    // failures): TaskLocal backend reference. Tests that opt into
-    // the TaskLocal pattern via `withBackendForTesting` get
-    // hermetic isolation: the test body's task has its own
-    // `currentBackend` (= a Swift Concurrency TaskLocal), so
-    // concurrent test bodies do NOT race on the global `backend`
-    // static var.
+    // (= root cause fix for the remaining inter-suite
+    // OpenAI-compatible connector test failures): TaskLocal backend
+    // reference. Tests that opt into the TaskLocal pattern via
+    // `withBackendForTesting` get hermetic isolation: the test
+    // body's task has its own `currentBackend` (= a Swift
+    // Concurrency TaskLocal), so concurrent test bodies do NOT
+    // race on the global `backend` static var.
     //
     // The `TaskLocal` pattern is the Swift-native way
     // to give each task its own value (= no global mutation; =
