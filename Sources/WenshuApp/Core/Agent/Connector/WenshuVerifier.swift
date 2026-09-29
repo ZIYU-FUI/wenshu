@@ -1,14 +1,15 @@
+// WenshuVerifier.swift · WenshuApp · v0.18
 //
-//  WenshuVerifier.swift · Wenshu · v0.18 ticket 31 (verify MiniMax key)
+// Verifier that proves the wenshu `AgentProtocol` works against the
+// minimax-cn key.
 //
-//  Verifier that proves the wenshu AgentProtocol works against the minimax-cn key.
-// .
-//
-//  Plain-language summary (boss-readable):
-//  - wenshu AgentProtocol (A2A protocol) → minimax-cn API (Anthropic-compatible protocol)
-//  - Goal: use the minimax-cn key to call the MiniMax-M3 model, verify "ping" returns 200
-//  - Tests: 1) ping returns 200  2) wenshu AgentProtocol integrates with the minimax-cn API
-//
+// Plain-language summary (user-readable):
+//   - wenshu `AgentProtocol` (A2A protocol) → minimax-cn API
+//     (Anthropic-compatible protocol).
+//   - Goal: use the minimax-cn key to call the `MiniMax-M3` model;
+//     verify a "ping" returns HTTP 200.
+//   - Tests: (1) ping returns 200. (2) wenshu `AgentProtocol`
+//     integrates with the minimax-cn API.
 
 import Foundation
 
@@ -67,7 +68,9 @@ enum WenshuLLMBlock: Codable, Sendable, Equatable {
             let input = try c.decode(String.self, forKey: .input)
             self = .toolUse(id: id, name: name, input: input)
         default:
-            // unknown type: graceful fallback (Q26 principle 1 graceful degradation). raw only stores the type name, NSLog already prints allKeys at debug time
+            // unknown type: graceful fallback (= principle 1 graceful
+            // degradation). `raw` only stores the type name; NSLog
+            // already prints allKeys at debug time.
             self = .unknown(type: type, raw: type)
         }
     }
@@ -202,22 +205,22 @@ actor WenshuVerifier {
     /// resolveCredentials: read provider slug from UserDefaults + key from Keychain.
     /// Called on every send() invocation — no caching (Settings page may change key mid-session).
     /// Strategy:
-    ///   1. UserDefaults "wenshu.llm.provider" override (matches @AppStorage in
-    ///      SettingView.swift line 45; = App.swift was split per the Q2 boss
-    ///      split = Settings moved to SettingView.swift in the Views/Settings/
-    ///      folder; the previous "App.swift line 221" reference is stale).
+    ///   1. UserDefaults `wenshu.llm.provider` override (matches the
+    ///      `@AppStorage` binding in `SettingView.swift` line 45; =
+    ///      `App.swift` line 221 reference is stale).
     ///      (if set, use it; else default to model.providerSlug)
-    ///   2. Look up provider in ProviderCatalog
-    ///   3. Load key from AppleKeychain for that provider slug
+    ///   2. Look up provider in `ProviderCatalog`
+    ///   3. Load key from `AppleKeychain` for that provider slug
     ///   4. Return (apiKey, baseURL, providerSlug)
     nonisolated func resolveCredentials(model overrideModel: WenshuLLMModel? = nil) throws -> ResolvedCredentials {
         let modelEnum = overrideModel ?? WenshuLLMModel(rawValue: model) ?? .m3
-        // 1. Provider slug: UserDefaults override (if any), else model.providerSlug.
-        // NOTE: key name 'wenshu.llm.provider' matches @AppStorage in
-        // SettingView.swift line 45 (= App.swift line 221 reference is
-        // stale per the Q2 boss split).
-        // (v0.23 ticket 010.005 fix — was 'wenshu.provider.slug' which never matched the
-        // existing @AppStorage binding, so the override never took effect.)
+        // 1. Provider slug: UserDefaults override (if any), else
+        // model.providerSlug. NOTE: key name `wenshu.llm.provider`
+        // matches the `@AppStorage` binding in `SettingView.swift`
+        // line 45 (= `App.swift` line 221 reference is stale).
+        // v0.23 fix: was `wenshu.provider.slug` (= never matched the
+        // existing `@AppStorage` binding, so the override never took
+        // effect).
         let userDefaultsSlug = UserDefaults.standard.string(forKey: "wenshu.llm.provider")
         // 
         // replaced `userDefaultsSlug?.isEmpty == false ? userDefaultsSlug! : ...`
@@ -259,7 +262,9 @@ actor WenshuVerifier {
         return try await send(request: request, outputKind: .shortText)
     }
 
-    /// chat: 1-message user-content ground-truth probe (v0.21 ticket 03 fallback; AgentProtocol LLM failure routes here through ChatViewModel)
+    /// chat: 1-message user-content ground-truth probe (= the fallback
+    /// when the `AgentProtocol` LLM call fails; = routes here via
+    /// `ChatViewModel`).
     func chat(_ text: String) async throws -> WenshuLLMResponse {
         let request = WenshuLLMRequest(
             model: model,
@@ -356,10 +361,11 @@ actor WenshuVerifier {
         }
     }
 
-    /// sendViaMinimaxConnector: thin facade that delegates to the new
-    /// LLMConnector protocol via MinimaxConnector (= ticket 001 sub-step 8).
+    /// sendViaMinimaxConnector: thin façade that delegates to the new
+    /// `LLMConnector` protocol via `MinimaxConnector`.
     ///
-    /// Translates WenshuLLMRequest ↔ LLMMessage and WenshuLLMResponse ↔ LLMResponse
+    /// Translates `WenshuLLMRequest` ↔ `LLMMessage` and
+    /// `WenshuLLMResponse` ↔ `LLMResponse`
     /// so the existing WenshuLLMRequest-based call sites (= AgentRuntime,
     /// the chat persistence layer) can opt in to the new LLMConnector protocol
     /// without breaking the established send() path.
