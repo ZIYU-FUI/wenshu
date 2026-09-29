@@ -1,31 +1,22 @@
-// BookTodoStore.swift · Wenshu
+// BookTodoStore.swift · WenshuApp · v1.85
 //
-// Per-(book × scope) todo JSON store. Replaces v0.25.x app-level TodoStore (SQLite) with a
-// per-book JSON file (books/<book-id>/todo.json).
-//
-// 
-//
-// The scope picker lets the user target one of
-// 8 standard sub-folders inside the active book, the book root, or the
-// reference library. The scope is a view filter, not a data-layer
-// change: each scope variant writes to a different JSON file in the
-// resolved directory:
+// Per-(book × scope) todo JSON store. Each scope variant writes to a
+// different JSON file in the resolved directory:
 //
 //   - .book             → <dir>/todo.json
 //   - .folder(.chapters)→ <dir>/todo-chapters.json
-//   - ... (other folders)
+//   - .folder(<other>)  → <dir>/todo-<folder>.json
 //   - .referenceLibrary → <dir>/library-todo.json
 //
-// FCP library replica spec at
-// `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 026.
-// spec at `.scratch/2026-09-04-b-13-scope-unification.md`.
+// 8 standard sub-folders per book: chapters, world, characters, outlines,
+// drafts, sessions, foreshadowing, placeholders. The scope is a view filter,
+// not a data-layer change.
 
 import Foundation
 
-/// Per-book JSON-serialized TodoItem (= distinct from v0.25.x
-/// WenshuApp.Core.Todo.TodoItem which is Equatable + Sendable but
-/// not Codable). Used by BookTodoStore for per-book JSON
-/// serialization per boss 2026-08-26 OOB '='.
+/// Per-book JSON-serialized todo item. Codable counterpart to
+/// `WenshuApp.Core.Todo.TodoItem` (= the latter is Equatable + Sendable
+/// but not Codable, so it can't round-trip JSON per-book).
 struct PerBookTodoItem: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var title: String
@@ -66,14 +57,14 @@ struct BookTodoStore: BookDataStoring {
     /// name (= `todo.json` / `todo-<folder>.json` / `library-todo.json`).
     let scope: TaskScope
 
-    // backward-compat init (= see BookKanbanStore for rationale).
+    // backward-compat init. Defaults `scope = .book` and `directory = bookDirectory`.
     init(bookId: UUID, bookDirectory: URL) {
         self.bookId = bookId
         self.directory = bookDirectory
         self.scope = .book
     }
 
-    /// scope-aware init (= canonical entry point).
+    /// scope-aware init.
     init(bookId: UUID, directory: URL, scope: TaskScope) {
         self.bookId = bookId
         self.directory = directory
