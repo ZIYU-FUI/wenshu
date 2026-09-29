@@ -1,51 +1,53 @@
+// DelegateResearchTool.swift · WenshuApp · v2.7
 //
-//  DelegateResearchTool.swift · Wenshu · v2.7 self-evolution
+// LLM-facing tool that the wenshu main agent uses to delegate
+// concrete-noun research to the Researcher sub-agent (= the
+// fire-and-forget pattern).
 //
-//  LLM-facing tool that the wenshu main agent uses to delegate
-//  concrete-noun research to the Researcher sub-agent (= the
-//  fire-and-forget pattern from boss 2026-09-25).
+// Why this exists:
+//   - The wenshu main agent should focus on user-facing novel
+//     building.
+//   - Research (= `web_search` + `reference_library.create/extend`)
+//     is delegated to the Researcher sub-agent.
+//   - The user does NOT wait for research to complete (= the
+//     main agent replies "research delegated" immediately).
+//   - The Kanban board surfaces the in-progress task so the
+//     user can see when research completes.
 //
-//  Why this exists (= boss 2026-09-25 directive):
-//    - wenshu main agent should focus on user-facing novel building
-//    - research (= web_search + reference_library.create/extend) is
-//      delegated to the Researcher sub-agent
-//    - the user does NOT wait for research to complete (= main
-//      agent replies "已发起调研" immediately)
-//    - the kanban surfaces the in-progress task so the user can
-//      see when research completes
+// Wire format (= the LLM tool-use input):
+//   {
+//     "action": "delegate" (= the only action; = reserved for
+//       future "list" / "cancel" / etc.),
+//     "nouns": ["Xi'an", "Ming Dynasty"]  (= the concrete
+//       proper nouns to research; = can be 1..N per call; =
+//       each noun becomes one researcher delegation + one kanban
+//       task),
+//     "context": "User mentions the protagonist born in Xi'an,
+//       living in the Ming Dynasty"  (= optional free-text
+//       context passed to the researcher)
+//   }
 //
-//  Wire format (= the LLM tool_use input):
-//    {
-//      "action": "delegate" (= the only action; = reserved for
-//        future "list" / "cancel" / etc.),
-//      "nouns": ["西安", "明朝"]  (= the concrete proper nouns to
-//        research; = can be 1..N per call; = each noun becomes
-//        one researcher delegation + one kanban task),
-//      "context": "用户提到主角出生在西安，生活在明朝"  (= optional
-//        free-text context passed to the researcher)
-//    }
+// Result (= the tool-use output):
+//   {
+//     "ok": true,
+//     "action": "delegate",
+//     "delegations": [
+//       {"noun": "Xi'an", "handle_id": "<UUID>",
+//        "task_id": "<UUID>", "agent": "researcher",
+//        "status": "pending"},
+//       ...
+//     ],
+//     "kanban_tasks_added": ["<UUID>", ...]
+//   }
 //
-//  Result (= the tool_use output):
-//    {
-//      "ok": true,
-//      "action": "delegate",
-//      "delegations": [
-//        {"noun": "西安", "handle_id": "<UUID>", "task_id": "<UUID>",
-//         "agent": "researcher", "status": "pending"},
-//        ...
-//      ],
-//      "kanban_tasks_added": ["<UUID>", ...]
-//    }
-//
-//  Scope (= Q112 = 1 source + 1 test per commit):
-//    This commit adds the tool + registers it + adds a unit test.
-//    It does NOT implement the actual sub-agent runner (= the
-//    researcher LLM call itself). The runner is a follow-up
-//    ticket; = in the meantime the registered handle + kanban
-//    task are surfaced so the user sees research was kicked
-//    off. When the runner lands, it will pick up handles from
-//    AsyncDelegationRegistry.delegationRegistry (= the
-//    source-of-truth) and execute them in the background.
+// Scope: this commit adds the tool + registers it + adds a unit
+// test. It does NOT implement the actual sub-agent runner (= the
+// researcher LLM call itself). The runner is a follow-up ticket;
+// = in the meantime the registered handle + kanban task are
+// surfaced so the user sees research was kicked off. When the
+// runner lands, it will pick up handles from
+// `AsyncDelegationRegistry.delegationRegistry` (= the source of
+// truth) and execute them in the background.
 //
 
 import Foundation
@@ -120,7 +122,7 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
             // Register the delegation handle (= source-of-truth
             // record; = when the runner lands it will pick up
             // pending handles from here). Uses the shared
-            // singleton registry (= boss 2026-09-26 "团队链路通"
+            // singleton registry (= the team-link consolidation
             // fix; = before v2.7 the tool created a fresh registry
             // per call and the runner never saw the handle).
             let registry = AsyncDelegationRegistry.shared
@@ -138,7 +140,7 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
             let spawnID = result.handle.trackerSpawnID?.uuidString ?? ""
 
             // Add a kanban task for user-visible progress (= the
-            // kanban view surfaces "research: 西安" so the user
+            // kanban view surfaces the research noun so the user
             // sees the in-flight research and can later see it
             // transition to done when the runner completes).
             let kanbanTaskID = await addKanbanTask(
