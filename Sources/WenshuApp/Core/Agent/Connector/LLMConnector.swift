@@ -1,31 +1,28 @@
+// LLMConnector.swift · WenshuApp · v0.35
 //
-//  LLMConnector.swift · Wenshu · v0.35 ticket 001 sub-step 2
+// `LLMConnector` protocol = the public-facing façade for all 7 LLM
+// provider adapters (= AGENTS.md §11.2). The protocol abstracts the
+// cross-connector wire format so callers (= `ConversationLoop`, tool
+// executor, `WenshuVerifier`) do not depend on any specific provider.
 //
-//  LLMConnector protocol = the public-facing façade for all 7 LLM
-//  provider adapters (= AGENTS.md §11.2). The protocol abstracts the
-//  cross-connector wire format so callers (= ConversationLoop, Tool
-//  executor, WenshuVerifier) do not depend on any specific provider.
+// 7 conformers:
+//   - `OpenAICompatibleConnector` (= minimax cn, DeepSeek, Ollama,
+//     OpenRouter)
+//   - `AnthropicConnector`
+//   - `OpenAIConnector`
+//   - `GeminiNativeConnector`
+//   - 3 thin wrappers for DeepSeek / Ollama / OpenRouter
 //
-//  7 conformers (per spec §3.2 + ticket list):
-//    - OpenAICompatibleConnector (= minimax cn, DeepSeek, Ollama, OpenRouter)
-//    - AnthropicConnector (= ticket 004)
-//    - OpenAIConnector (= ticket 005)
-//    - GeminiNativeConnector (= ticket 007)
-//    - 3 thin wrappers in tickets 007-008 (= DeepSeek / Ollama / OpenRouter)
-//
-//  Design invariants (= AGENTS.md §11.3 + §11 product-positioning):
-//    1. Protocol is BYOK = ConnectorCredentials resolves keys via existing
-//       ProviderKeychain (= wenshu-side wins, no parallel keychain).
-//    2. No metering / billing / quota tracking in this layer
-//       (= §11 product-positioning).
-//    3. No default profile = caller must specify active profile.
-//    4. send(messages:) is the only public method = minimum interface.
-//       Streaming + use = out of scope for sub-step 2 (lands in
-//       subsequent sub-steps via LLMStreamingConnector).
-//
-// sub-step 2 of 8 for ticket 001 (= TB-B tracer-bullet).
-//  Refs: .scratch/2026-09-03-hermes-core-translation/spec.md §3.1, §3.2, §6.4
-//
+// Design invariants (= AGENTS.md §11.3 + §11 product-positioning):
+//   1. Protocol is BYOK = `ConnectorCredentials` resolves keys via
+//      the existing `ProviderKeychain` (= wenshu-side wins, no
+//      parallel keychain).
+//   2. No metering / billing / quota tracking in this layer (= §11
+//      product-positioning).
+//   3. No default profile = caller must specify active profile.
+//   4. `send(messages:)` is the only public method = minimum
+//      interface. Streaming + use live in subsequent
+//      `LLMStreamingConnector` work.
 
 import Foundation
 
