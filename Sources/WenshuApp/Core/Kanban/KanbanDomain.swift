@@ -1,22 +1,15 @@
+// KanbanDomain.swift · WenshuApp · v0.72
 //
-//  Core/Kanban/KanbanDomain.swift · Wenshu · v0.72 SwiftData migration 
-//
-//  Domain types (KanbanStatus + KanbanTask) extracted from the deleted
-//  Core/Kanban/KanbanStore.swift (= sqlite3 legacy actor, now obsolete).
-//
-//  These types are the canonical wenshu-side public API surface for
-//  kanban tickets. The SwiftData-backed persistence lives in
-//  Persistence/WSKanbanTask (@Model) and is wrapped by
-//  Persistence/Repositories/WSKanbanRepository (@MainActor). The actor
-//  that dispatches the LLM-facing kanban tool lives in
-//  Core/Agent/Kanban/KanbanTools.swift.
-//
-//  Moved 2026-09-13 (= phase 5 ticket 6 — see AGENTS.md §11.4.2).
-//
+// Canonical domain types for kanban tickets (= `KanbanStatus` +
+// `KanbanTask`). Pure value types (= no SQLite dependency).
+// SwiftData persistence lives in `WSKanbanTask` @Model +
+// `WSKanbanRepository`.
 
 import Foundation
 
-/// Kanban task status (= hermes kanban state machine: new → triage → ready → running → blocked → review → done; = wenshu also adds .failed per v0.23 ticket 013.003)
+/// Kanban task status. Mirrors the hermes kanban state machine
+/// (= new → triage → ready → running → blocked → review → done);
+/// wenshu adds an extra `.failed` case.
 enum KanbanStatus: String, Codable, Sendable, CaseIterable {
     case new
     case triage
