@@ -1,23 +1,18 @@
-// EditorPaperCanvas.swift · Wenshu · v1.34 ticket 001
+// Sources/WenshuApp/Views/Workspace/EditorPaperCanvas.swift
 //
-// real fix (= per Q34 5.4 + Q173 ponytail + Q186 + Q57 + Q112):
-// extracted from `Sources/WenshuApp/Views/Workspace/WorkspaceView.swift`
-// (= the v0.27 ticket 027-34 monolith). = same module, no new import.
+// Extracted from `Sources/WenshuApp/Views/Workspace/WorkspaceView.swift`
+// (= the legacy monolith). Same module, no new import.
 //
-// Consumer: `Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift:220`
-// (= the v1.33 extraction; = calls `EditorPaperCanvas { ... }` to render
-// the markdown editor surface inside an A4-shaped white sheet).
+// Consumer: `Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift`
+// (= calls `EditorPaperCanvas { ... }` to render the markdown
+// editor surface inside an A4-shaped white sheet).
 //
-// DEFERRED: ViewInspector test coverage for this view is deferred to v0.78+
-// (= see `.scratch/v0.77-workspaceview-tests/spec.md`). Per Q34 step 4
-// "structural test path" precedent (= v1.30 PlaceholderView tests): future
-// ticket adds a source-level structural test that verifies the public
-// initializer + generic-View constraint; = no SwiftUI rendering in test
-// (per Q112 = 1 ticket 1 commit, this ticket is the extraction only).
-//
-// This file is NOT dead code (= per Q57: 3rd-party verdict ≠ authority);
-// it's the structural twin of `EditorPlaceholder` (= same extract arc
-// = consumer lives one file away = already wired in v1.33's merge).
+// DEFERRED: ViewInspector test coverage is deferred (= the view
+// is the structural twin of `EditorPlaceholder` = no SwiftUI
+// rendering path required for the consumer = structural tests
+// are sufficient). This file is NOT dead code (= the third-party
+// verdict does not have authority here); the extract arc landed
+// in the same merge as `EditorPlaceholder`.
 
 
 import SwiftUI
@@ -69,15 +64,13 @@ struct EditorPaperCanvas<Content: View>: View {
                 .padding(Self.paperMargin)
                 .frame(width: Self.paperWidth, alignment: .topLeading)
                 .frame(minHeight: 842)          // A4 height
-                // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
-                // audit ticket 7): Color.white kept here because
-                // this is the A4 paper background (= explicit
-                // "white paper" semantic; = not a status tint).
-                // Color(nsColor: .textBackgroundColor) would
-                // also work (= Apple dynamic white) but
-                // .textBackgroundColor darkens on dark mode
-                // (= defeats the A4-white-paper semantic).
-                // = Color.white is the semantic constant here.
+                // macOS 27 doc-alignment: `Color.white` is the
+                // explicit A4-paper background (= not a status
+                // tint; = the canonical "white paper" semantic).
+                // `Color(nsColor: .textBackgroundColor)` would
+                // also work (= Apple dynamic white) but it
+                // darkens on dark mode (= defeats the A4-white-
+                // paper semantic).
                 // = NOT a wenshu-apple-api-first violation because
                 // Apple doesn't ship a "static white" semantic
                 // NSColor (= .textBackgroundColor / .windowBackgroundColor
