@@ -1,27 +1,17 @@
-// LLMWikiLinter.swift · Wenshu · v0.28
+// LLMWikiLinter.swift · WenshuApp · v2.6
 //
-// Linter for the LLM Wiki 4-layer reference-library
-// (= wenshu M5 ticket 15 second file).
+// Linter for the LLM Wiki 4-layer reference-library.
 //
-// Source (= hermes Python):
-// - skills/research/llm-wiki/SKILL.md L213-244 (= the linter checks:
-//   orphan pages, broken wikilinks, index completeness, schema drift).
-//
-// Target (= wenshu Swift):
-// - Sources/WenshuApp/Storage/LLMWikiLinter.swift (this file,
-//   ~150 LOC) = static analysis of the reference-library 4-layer
-//   structure. Returns a list of `LintFinding` records; no I/O
-//   mutation (= the deriver is the writer, the linter is the reader).
-//
-// Per AGENTS.md Section 8 pollution-defense hex-encoding rule:
-// this file does NOT contain the 12-token forbidden vocab literal;
-// the rule enumeration is referenced semantically only.
+// Static analysis (= no I/O mutation; = the deriver is the writer,
+// the linter is the reader). Mirrors hermes SKILL.md's linter
+// protocol (= orphan pages, broken wikilinks, index completeness,
+// schema drift).
 
 import Foundation
 
-/// Linter for the LLM Wiki 4-layer reference-library.
-/// Mirrors hermes SKILL.md L213-244 linter protocol (= orphan pages,
-/// broken wikilinks, index completeness, schema drift).
+/// Linter for the LLM Wiki 4-layer reference-library. Runs four
+/// checks (orphan pages, broken wikilinks, index completeness,
+/// abstracts recency) and returns a `LintFinding` for each issue.
 struct LLMWikiLinter: Sendable {
 
     let store: ReferenceStoring
