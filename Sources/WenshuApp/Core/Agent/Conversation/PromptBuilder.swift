@@ -64,7 +64,7 @@
 //                                                   = wenshu does NOT load
 //                                                   SOUL.md or any user-
 //                                                   editable markdown per
-//                                                   v2.4 boss拍 2026-09-25:
+//                                                   AGENTS.md §11.14:
 //                                                   commercial product must
 //                                                   not let users redefine
 //                                                   the agent / style / soul)
@@ -135,12 +135,11 @@ struct PromptBuilder: Sendable {
     /// - Parameters:
     ///   - systemPrompt: The byte-stable source (= wenshu's
     ///     `SystemPrompt.stableTier()` is the canonical identity
-    ///     surface owned by wenshu source code; = per v2.4 boss拍
-    ///     2026-09-25 wenshu does NOT load SOUL.md or any user-
-    ///     editable markdown; = agent identity is wenshu-managed
-    ///     only; = see AGENTS.md §11.14). Parameter is unused
-    ///     at the call site (= the tier comes from
-    ///     `SystemPrompt.stableTier()` directly); kept on the
+    ///     surface owned by wenshu source code; = wenshu does NOT
+    ///     load SOUL.md or any user-editable markdown per AGENTS.md
+    ///     §11.14; = agent identity is wenshu-managed only).
+    ///     Parameter is unused at the call site (= the tier comes
+    ///     from `SystemPrompt.stableTier()` directly); kept on the
     ///     signature for test injection (= lets tests stub the
     ///     identity source without touching the production
     ///     caller).
@@ -677,10 +676,10 @@ extension PromptBuilder {
     /// `agent/prompt_builder.py` L1047-L1185.
     ///
     /// Wenshu-side wins (= per AGENTS.md §11.3):
-    ///   - Wenshu is macOS-only (= per AGENTS.md §11 = current target
-    ///     = macOS-only single platform, 老板 8/18 拍).
-    ///   - Wenshu uses Apple stack exclusive (= per AGENTS.md §11.1 =
-    ///     SwiftUI / AppKit only by default).
+    ///   - Wenshu is macOS-only (= per AGENTS.md §11 = current
+    ///     target = macOS-only single platform).
+    ///   - Wenshu uses Apple stack exclusive (= per AGENTS.md §11.1
+    ///     = SwiftUI / AppKit only by default).
     ///   - Wenshu has its own backend (= chat.sqlite + per-book
     ///     JSON + GRDB.swift).
     ///
