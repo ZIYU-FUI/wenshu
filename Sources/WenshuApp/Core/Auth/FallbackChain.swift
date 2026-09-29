@@ -170,9 +170,8 @@ struct ResolvedConnector: Sendable {
 ///
 /// This is the seam that lets FallbackChain work with wenshu's existing
 /// connector layer (= `LLMConnector` protocol from `LLMConnector.swift`)
-/// without re-implementing any auth logic. The resolver is the place where
-/// production wiring lands in a follow-up ticket (= ticket 013 per the
-/// integration gap analysis).
+/// without re-implementing any auth logic. The resolver is the place
+/// where production wiring threads the per-provider apiKey through.
 protocol FallbackConnectorResolver: Sendable {
     /// Resolve the connector + credentials for a provider slug.
     /// Returns nil if the provider is not registered (= caller should skip
@@ -274,9 +273,8 @@ actor FallbackChainExecutor {
         attempt: Int
     ) async throws -> FallbackExecutionResult {
         // 1. Pick best key from AuthPool (= nil = no usable credential).
-        // We don't need the key itself here (= production ticket 013
-        // will thread the apiKey through the connector); the call is
-        // a health-check on the pool's view of the provider.
+        // The pool's view of the provider is the health check; the
+        // resolved apiKey is threaded through by the resolver below.
         guard try await pool.pickBestKey(for: provider) != nil else {
             throw FallbackChainError.noUsableKey(provider: provider)
         }
@@ -327,8 +325,8 @@ actor FallbackChainExecutor {
         provider: String,
         timeout: TimeInterval
     ) async throws -> LLMResponse {
-        // `_ = apiKey` — production wiring (= ticket 013) injects apiKey into
-        // the connector's per-call options / transport layer. The base
+        // `_ = apiKey` — production wiring injects apiKey into the
+        // connector's per-call options / transport layer. The base
         // `LLMConnector.send(messages:options:)` signature does NOT take
         // apiKey; each connector resolves it internally via
         // `ConnectorCredentials.resolve(for:)`. So this executor delegates
