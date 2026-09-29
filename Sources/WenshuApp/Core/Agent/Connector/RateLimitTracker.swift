@@ -1,19 +1,14 @@
+// RateLimitTracker.swift · WenshuApp · v0.36
 //
-//  RateLimitTracker.swift · Wenshu · v0.36 ticket 015 sub-step 3
+// Per-provider request rate tracking (= hermes `RateLimitTracker`
+// pattern). Tracks recent requests per `Provider` (= LLM connector
+// profile) to enable:
+//   - early backoff when approaching rate limit (= before 429 hits)
+//   - request queuing (= serialize high-volume agent flows)
+//   - error classifier integration (= `retryAfterSeconds` hint)
 //
-//  Per-provider request rate tracking (= hermes RateLimitTracker pattern).
-//
-//  Tracks recent requests per Provider (= LLM connector profile) to
-//  enable:
-//  - early backoff when approaching rate limit (= before 429 hits)
-//  - request queuing (= serialize high-volume agent flows)
-//  - error classifier integration (= retryAfterSeconds hint)
-//
-//  Pure Swift (= no external deps; Apple Foundation only per wenshu
-//  §11 hard rule + ADR-0011 no LLM calls in tracking path).
-//
-// sub-step 3 of 3 for ticket 015.
-//
+// Pure Swift (= no external deps; Apple Foundation only per wenshu
+// §11 hard rule + ADR-0011 no LLM calls in tracking path).
 
 import Foundation
 
@@ -65,13 +60,13 @@ actor RateLimitTracker {
     /// is in this set, `currentBudget(providerSlug:)` returns `nil` even
     /// though the limit entry is still configured. The next
     /// `recordRequest(providerSlug:)` removes the slug from the set
-    /// (= activity resumes normal budget reporting). Per ticket 015
-    /// Z contract: `clear()` must reset the budget snapshot back to
-    /// `nil` so callers can distinguish "fresh session after reset" from
-    /// "session with full quota remaining"; without the sentinel,
-    /// `currentBudget` would emit a full-budget snapshot for every
-    /// configured provider (= indistinguishable from pre-clear state
-    /// for providers that never recorded a request).
+    /// (= activity resumes normal budget reporting). Per the Z
+    /// contract: `clear()` must reset the budget snapshot back to
+    /// `nil` so callers can distinguish "fresh session after reset"
+    /// from "session with full quota remaining"; without the
+    /// sentinel, `currentBudget` would emit a full-budget snapshot
+    /// for every configured provider (= indistinguishable from
+    /// pre-clear state for providers that never recorded a request).
     private var postClear: Set<String> = []
 
     init() {}
@@ -127,13 +122,13 @@ actor RateLimitTracker {
     ///   (= the `postClear` sentinel is still set; `recordRequest`
     ///   removes it).
     ///
-    /// Per ticket 015 Z contract: `clear()` must reset the budget
-    /// snapshot back to `nil` so callers (= tests, UI status bars)
-    /// can distinguish "fresh session after reset" from "session with
+    /// Per the Z contract: `clear()` must reset the budget snapshot
+    /// back to `nil` so callers (= tests, UI status bars) can
+    /// distinguish "fresh session after reset" from "session with
     /// full quota remaining". Without the sentinel, a freshly-cleared
     /// tracker would emit a full-budget snapshot for every provider
-    /// that had `setLimit(_:)` called before `clear()` (= exactly the
-    /// residual-budget ambiguity the Z contract forbids).
+    /// that had `setLimit(_:)` called before `clear()` (= exactly
+    /// the residual-budget ambiguity the Z contract forbids).
     func currentBudget(providerSlug: String) -> RateLimitBudget? {
         // Post-clear sentinel takes precedence over the limit entry.
         if postClear.contains(providerSlug) { return nil }
