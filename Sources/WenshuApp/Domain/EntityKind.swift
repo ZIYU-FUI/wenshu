@@ -2,11 +2,11 @@
 //  EntityKind.swift · Wenshu · v2.3 (2026-09-25)
 //
 //  The 5-layer kind taxonomy (= person / location / object /
-//  ability / event). Top-level enum = closed (= per boss
-//  2026-09-25 "we can keep updating until release"). All fine-
-//  grained roles (= 主角 / 师父 / 灵兽 / 剑修) are expressed as
-//  tags on the Person / Object / Ability entries — not as enum
-//  cases.
+//  ability / event). Top-level enum = closed (= the v2.4 product
+//  stance: closed-enum pickers, not free-text role entry). All
+//  fine-grained roles (= "mentor" / "spirit beast" / "swordsman")
+//  are expressed as tags on the Person / Object / Ability entries —
+//  not as enum cases.
 //
 //  Value object (= immutable struct / enum; = no identity). Used
 //  by WSEntity, FileSystemEntityStore, BookEntityTool, etc.
@@ -26,9 +26,9 @@ enum EntityKind: String, Codable, Sendable, CaseIterable {
 
 // MARK: - Person role sub-enum
 
-/// Sub-role for the .person kind. Open-ish (= a tag is allowed
+/// Sub-role for the `.person` kind. Open-ish (= a tag is allowed
 /// to differ from a role); the role here is the LLM-prompted
-/// default. A "师父" is `.supporting` with `tags: ["师父"]`.
+/// default. A "mentor" is `.supporting` with `tags: ["mentor"]`.
 enum PersonRole: String, Codable, Sendable {
     case protagonist
     case antagonist
