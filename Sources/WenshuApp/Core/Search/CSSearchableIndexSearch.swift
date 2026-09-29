@@ -1,40 +1,23 @@
+// CSSearchableIndexSearch.swift · WenshuApp · v2.9a
 //
-// CSSearchableIndexSearch.swift · Wenshu · v1.55 sqlite3-zero T2a (boss 2026-09-20)
-//
-// REPLACES: FullTextSearch.swift (207 LOC SQLite FTS5 actor, removed in v1.55).
-//
-// + A1
-// 'Apple-default-first = Core Spotlight 替代 FTS5':
-// canonical search layer = Apple Core Spotlight (= built into macOS 27 = zero
-// SPM dependency). The SQLite FTS5 actor is REPLACED by `CSSearchableIndex`
-// + `CSSearchQuery` (= Apple HIG-recommended full-text search; = Spotlight
-// powers cmd-space system-wide search on macOS).
-//
-// Public API matches `FullTextSearch` 1:1 (= same method signatures
-// `index(docId:title:body:)` / `remove(docId:)` / `search(query:limit:)`) so
-// callers do not change. The actor isolation is preserved (= wenshu search is
-// called from background queues per the original contract).
+// Canonical search layer for wenshu docs (= Apple Core Spotlight,
+// built into macOS 27 = zero SPM dependency). Replaces the v1.55
+// SQLite FTS5 actor (= `FullTextSearch.swift`, removed in §11.7).
+// Public API matches `FullTextSearch` 1:1 (= `index(docId:title:body:)`,
+// `remove(docId:)`, `search(query:limit:)`) so callers do not change.
 //
 // Ranking model:
-//   - CSSearchableIndex primary path: indexes user docs into Apple's system
-//     Spotlight; queries via CSSearchQuery return CSSearchableItem hits with
-//     built-in relevance score from the system indexer.
-//   - SwiftData fallback ranking (TokenOverlapRanking): when the system
-//     Spotlight indexer is disabled by the user (= Settings → Siri & Spotlight
-//     → Search Results → uncheck "Documents"), CSSearchQuery.start() returns
-//     zero results. Fallback loads all indexed docs from a SwiftData-side
-//     mirror and computes token-overlap score in-process.
-//
-// The SwiftData mirror lives in this actor (= SearchDocMirrorPersistence
-// helper; = no longer imported from WSMigrationPerStore, which was
-// 
-// The mirror is written on every `index(docId:title:body:)` so that the
-// fallback always has fresh data.
-//
-// Q112: 1 source + 1 test per ticket (= this file + CSSearchableIndexSearchTests).
-//
-// AUDIT (v1.55 spec): §11.7 v1.55 sqlite3-zero migration arc T2a.
-// See AGENTS.md §11.7 for the full ticket roadmap + acceptance.
+//   - CSSearchableIndex primary path: indexes user docs into Apple's
+//     system Spotlight; queries via CSSearchQuery return
+//     CSSearchableItem hits with built-in relevance score from the
+//     system indexer.
+//   - SwiftData fallback ranking (TokenOverlapRanking): when the
+//     system Spotlight indexer is disabled by the user
+//     (= Settings → Siri & Spotlight → Search Results → uncheck
+//     "Documents"), CSSearchQuery.start() returns zero results.
+//     Fallback loads all indexed docs from a SwiftData-side mirror
+//     and computes token-overlap score in-process. The mirror is
+//     written on every `index(docId:title:body:)` so it stays fresh.
 
 import Foundation
 import CoreSpotlight
@@ -76,10 +59,8 @@ struct SearchDocMirrorEntry: Equatable, Sendable {
     let title: String
     let body: String
     let tokens: [String]   // pre-tokenized for token-overlap ranking
-    /// v2.9d T35 (boss 2026-09-28 OOB A8 polish): the
-    /// canonical title to display when the user picks a
-    /// Spotlight result (= the editor tab title; = falls
-    /// back to the docId when the mirror has no entry).
+    /// Display title for this doc entry (= falls back to the docId
+    /// when the title is empty).
     var displayTitle: String {
         title.isEmpty ? docId : title
     }
@@ -104,12 +85,10 @@ actor CSSearchableIndexSearch {
         // Public init = mirror empty; load from disk on first await via `bootstrap()`.
     }
 
-    /// v2.9a (boss 2026-09-28 OOB A8): shared singleton so
-    /// `Task.detached` auto-call hooks (= chapter / reference /
-    /// bookmark save) can index documents without owning the
-    /// actor instance. Mirrors the `BackgroundReview.shared`
-    /// (§11.26 v2.8c) + `LLMWikiLayerDeriver` (§11.26 v2.8d)
-    /// pattern (= shared actor for cross-task indexing).
+    /// Shared singleton so `Task.detached` auto-call hooks (= chapter /
+    /// reference / bookmark save) can index documents without owning
+    /// the actor instance. Mirrors the `BackgroundReview.shared` +
+    /// `LLMWikiLayerDeriver` pattern.
     static let shared = CSSearchableIndexSearch()
 
     /// Bootstrap the search index (= call once at app launch).
@@ -157,12 +136,11 @@ actor CSSearchableIndexSearch {
         try flushPending()
     }
 
-    /// v2.9d T35 (boss 2026-09-28 OOB A8 polish): look up the
-    /// canonical display title for a docId (= the mirror's
-    /// stored title; = falls back to the docId when the mirror
-    /// has no entry). The editor tab title uses this so the
-    /// user sees the friendly chapter / reference / bookmark
-    /// name instead of the raw docId.
+    /// Look up the canonical display title for a docId (= the
+    /// mirror's stored title; = falls back to the docId when the
+    /// mirror has no entry). The editor tab title uses this so the
+    /// user sees the friendly chapter / reference / bookmark name
+    /// instead of the raw docId.
     func title(forDocId docId: String) -> String {
         mirror[docId]?.displayTitle ?? docId
     }
