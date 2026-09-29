@@ -1,11 +1,8 @@
+// GraphBuilder.swift · WenshuApp · v0.19
 //
-// GraphBuilder.swift · Wenshu · v0.19 ticket 14 (Obsidian replica, do first)
-// 2026-08-19 evening Obsidian A + ', '.
-//
-// vault build + simplelayout.
-// Obsidian Graph view ok (https://obsidian.md/help/plugins/graph).
-// Apple HIG: simple spring force, Apple HIG .
-//
+// Vault build + simple spring-force layout. Mirrors the Obsidian
+// Graph view (https://obsidian.md/help/plugins/graph) using a
+// hand-rolled spring-force simulator.
 
 import Foundation
 
