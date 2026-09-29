@@ -1,38 +1,38 @@
+// AnthropicStreamingChunkToLLMBlock.swift · WenshuApp
 //
-//  AnthropicStreamingChunkToLLMBlock.swift · Wenshu · T6-ANTHROPIC-STREAMING-THINKING
-//                                                  T11-ANTHROPIC-TOOL-USE-STREAM-AGG
+// Pure converter from `AnthropicStreamingChunk` events → cross-
+// connector `LLMBlock`. The converter is the missing link between
+// the SSE wire-up (= `AnthropicStreamingWireup.swift`) and the chat
+// zone's `LLMBlock.thinking` render path. Without this converter
+// the stream events never reach the chat view as `.thinking`
+// blocks (= `AnthropicConnector.send()` takes the synchronous path;
+// = even when the wire-up exists, no one converts its chunks into
+// the cross-connector block type).
 //
-//  Pure converter from Anthropic SSE chunks -> cross-connector LLMBlock.
+// Two extensions land here:
+//   1. Thinking-block conversion (= exposes the model's internal
+//      reasoning to the chat view via `.thinking(text, signature:)`).
+//   2. Tool-use-block aggregation across 3 SSE event types
+//      (`content_block_start` with type=tool_use +
+//      `content_block_delta` with `input_delta` +
+//      `content_block_stop`). Before this was added, `input_delta`
+//      chunks were dropped (= the full tool_use JSON never reached
+//      the chat view).
 //
-//  Boss symptom (2026-09-18 'thinking 不可见'): T1 hides the legacy
-//  DisclosureGroup when message.parts contains a .reasoning part; but
-//  no reasoning part ever arrives (= the streamCallback never gets a
-//  .thinking block). Root cause: AnthropicConnector.send() goes through
-//  the synchronous path (= no streaming); even when the streaming
-//  wire-up exists (= AnthropicStreamingWireup.swift), no one converts
-//  its AnthropicStreamingChunk events into LLMBlock.thinking.
-//
-//  T6 scope (= wenshu-pocock-workflow §11.1 minimal change):
-//    1. Add this converter (= single-purpose pure function).
-//    2. Test it (= hermes-style: input a sequence of AnthropicStreamingChunks,
-//       assert the output LLMBlock stream contains .thinking blocks).
-//    3. NOT wired into AnthropicConnector (= that's a separate ticket;
-//       = the converter sits in place so a future T7 ticket only has
-//       to thread the stream through, not write the conversion).
-//
-//  T11 extension: aggregate tool_use blocks across 3 SSE event types
-//  (= content_block_start with type=tool_use + content_block_delta with
-//  input_delta + content_block_stop). Until T11, input_delta chunks
-//  were dropped (= the full tool_use JSON never reached ChatView).
-//
-//  Conversion rules (per Anthropic SSE spec + wenshu LLMBlock contract):
-//    - contentBlockStart(.text, ...)                   -> no LLMBlock
-//    - contentBlockStart(.thinking, ...)              -> no LLMBlock
-//    - contentBlockStart(.tool_use, ...)               -> no LLMBlock (= record state)
-//    - contentBlockDelta(textDelta:...)               -> .text(textDelta)
-//    - contentBlockDelta(thinkingDelta:...)           -> .thinking(text, signature: nil)
-//    - contentBlockDelta(inputDelta:...)              -> no LLMBlock (= append to buffer)
-//    - contentBlockStop                                -> emit .toolUse if state has one
+// Conversion rules (= Anthropic SSE spec + wenshu `LLMBlock`
+// contract):
+//   - `contentBlockStart(.text, ...)`             → no LLMBlock
+//   - `contentBlockStart(.thinking, ...)`         → no LLMBlock
+//   - `contentBlockStart(.tool_use, ...)`         → no LLMBlock
+//                                                  (= record state)
+//   - `contentBlockDelta(textDelta: ...)`         → `.text(textDelta)`
+//   - `contentBlockDelta(thinkingDelta: ...)`     →
+//                                                  `.thinking(text,
+//                                                   signature: nil)`
+//   - `contentBlockDelta(inputDelta: ...)`        → no LLMBlock
+//                                                  (= append to buffer)
+//   - `contentBlockStop`                          → emit `.toolUse`
+//                                                  if state has one
 //                                                        (= drops .toolResult on the floor;
 //                                                        = ToolExecutor in T2 already emits
 //                                                        the real .toolResult from the
