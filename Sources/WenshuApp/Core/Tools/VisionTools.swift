@@ -1,12 +1,9 @@
+// VisionTools.swift · WenshuApp · v0.18
 //
-//  VisionTools.swift · Wenshu · v0.18 ticket 10 (hermes replica)
-//
-// local vision (hermes vision_analyze).
-// 2026-08-19 ", Apple " + "can".
-//
-// wenshu = SwiftUI app. VisionTools (/ /).
-// Apple HIG: Vision framework (VNRecognizeTextRequest / VNGenerateImageFeaturePrintRequest / VNClassifyImageRequest).
-//
+// Local vision tools (= hermes `vision_analyze` parity). Uses
+// Apple `Vision` framework (`VNRecognizeTextRequest` +
+// `VNGenerateImageFeaturePrintRequest` +
+// `VNClassifyImageRequest`).
 
 import Foundation
 #if canImport(Vision)
