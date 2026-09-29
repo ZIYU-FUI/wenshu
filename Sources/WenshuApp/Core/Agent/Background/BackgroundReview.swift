@@ -1,32 +1,25 @@
+// BackgroundReview.swift · WenshuApp · v0.36
 //
-//  BackgroundReview.swift · Wenshu · v0.36 ticket 016 sub-step 3
+// Background review workflow. When a background task proposes
+// changes (= entity creation, file edits, etc.), the user reviews
+// the diff and approves or rejects. BackgroundReview captures the
+// proposal lifecycle (= pending → approved / rejected /
+// auto-approved) and ensures no background modification happens
+// without user consent.
 //
-//  Background review workflow (= spec §3.1 L227-231 Background/
-//  sub-directory, file 2 of 5).
+// Per wenshu §11 product-positioning: wenshu is a writing tool, NOT
+// an LLM platform. Background review is purely for the user's
+// own visibility (= what changes their LLM-driven agents proposed).
 //
-//  When a background task proposes changes (= entity creation, file
-//  edits, etc.), the user reviews the diff and approves or rejects.
-//  BackgroundReview captures the proposal lifecycle (= pending →
-//  approved / rejected / auto-approved) and ensures no background
-//  modification happens without user consent.
-//
-//  Per wenshu §11 product-positioning: wenshu is a writing tool, NOT
-//  an LLM platform. Background review is purely for the user's
-//  own visibility (= what changes their LLM-driven agents proposed).
-//
-//  Per ADR-0011 + §11 hard rule: pure Swift, no LLM calls.
-//
-// sub-step 3 of 4 for ticket 016.
-//
+// ADR-0011 + §11 hard rule: pure Swift, no LLM calls.
 
 import Foundation
 
 /// Type of background proposal (= what kind of change is being proposed).
 enum ProposalKind: String, Sendable, Equatable, Codable {
-    // v2.8c (boss 2026-09-28 OOB B8): auto-call hook =
-    // ConversationLoop submits a .turnSummary proposal per turn
-    // (= the operator reviews the turn in the inspector's
-    // BackgroundReview tab).
+    // v2.8c (B8): auto-call hook = ConversationLoop submits a
+    // .turnSummary proposal per turn (= the operator reviews the
+    // turn in the inspector's BackgroundReview tab).
     case turnSummary        // auto-call hook: agent submits turn summary
     case entityCreation       // create new reference-library entity
     case entityUpdate         // modify existing entity
@@ -82,9 +75,9 @@ struct BackgroundProposal: Sendable, Equatable, Codable, Identifiable {
 /// delegates to existing wenshu approval flow via Notification).
 actor BackgroundReview {
 
-    /// v2.8c (boss 2026-09-28 OOB B8): canonical shared instance
-    /// (= the consolidation surface for both manual + auto
-    /// callers via BackgroundReviewOps).
+    /// v2.8c (B8): canonical shared instance (= the consolidation
+    /// surface for both manual + auto callers via
+    /// `BackgroundReviewOps`).
     static let shared = BackgroundReview()
 
     private var pending: [UUID: BackgroundProposal] = [:]
