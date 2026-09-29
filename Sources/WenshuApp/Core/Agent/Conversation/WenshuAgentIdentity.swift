@@ -1,8 +1,9 @@
+// WenshuAgentIdentity.swift · WenshuApp · v0.22
 //
-//  WenshuAgentIdentity.swift · Wenshu · v0.22 ticket 001 (Wenshu agent base identity)
-//
-// 
-//  before, no different from a bare LLM API call).
+// Wenshu agent base identity (= the canonical identity type
+// shared by every wenshu agent loop; = without it, every chat
+// turn would be a bare LLM API call).
+
 //  Prepended to every LLM call as the first system message.
 //
 
