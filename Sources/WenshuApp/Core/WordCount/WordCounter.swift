@@ -1,10 +1,9 @@
+// WordCounter.swift · WenshuApp · v0.19
 //
-// WordCounter.swift · Wenshu · v0.19 ticket 20 (Obsidian replica, do first)
-// 2026-08-19 evening Obsidian A + ', '.
-//
-// Apple HIG . in progress, word (Obsidian Word count plugin ok).
-// Apple HIG: String.enumerateSubstrings(.byComposedCharacterSequences / .byWords).
-//
+// Word count: characters, characters-no-spaces, words, in-progress
+// (mirrors the Obsidian Word Count plugin). Uses Foundation
+// String.enumerateSubstrings(.byComposedCharacterSequences /
+// .byWords) — supports CJK via Apple's word-segmentation rules.
 
 import Foundation
 
