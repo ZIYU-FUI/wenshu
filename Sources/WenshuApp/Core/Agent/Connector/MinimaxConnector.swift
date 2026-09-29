@@ -1,37 +1,31 @@
+// MinimaxConnector.swift · WenshuApp · v0.35
 //
-//  MinimaxConnector.swift · Wenshu · v0.35 ticket 001 sub-step 7
-// (request marshaling extracted)
+// Minimax cn connector (= thin Anthropic-compatible wire format
+// wrapper). Per AGENTS.md §11.2: Minimax cn is one of 7 LLM connector
+// profiles, uses Anthropic Messages API protocol, base URL =
+// `https://api.minimaxi.com/anthropic`.
 //
-//  Minimax cn connector (= thin Anthropic-compatible wire format wrapper).
+// Implements the minimum surface that lets the rest of the agent
+// stack run end-to-end:
+//   - `send(messages:options:)` → `LLMResponse` via URLSession
+//   - `x-api-key` + `anthropic-version` headers
+//   - text-only request/response (= no tool_use yet; that lands in
+//     `AnthropicConnector`)
+//   - streaming not yet wired (= the SSE path lives in
+//     `AnthropicStreaming.swift`)
 //
-//  Per hermes-core-translation spec §3.2 + AGENTS.md §11.2:
-//  Minimax cn is one of 7 LLM connector profiles, uses Anthropic Messages
-//  API protocol, base URL = https://api.minimaxi.com/anthropic.
+// `AnthropicConnector` is the fuller surface (= cache markers,
+// thinking blocks, tool_use round-trip, streaming).
 //
-//  In sub-step 7 (= TB-B tracer-bullet's first connector), we implement
-//  the MINIMUM surface that lets the rest of the agent stack run end-to-end:
-//:
-//    - send(messages:options:) -> LLMResponse via URLSession
-//    - x-api-key + anthropic-version headers
-//    - text-only request/response (= no tool_use yet, lands in ticket 004)
-//    - streaming not yet wired (= SSEClient.swift path continues in ticket 004)
+// Pre-tool guardrail: reuses `ConnectorCredentials` (= AGENTS.md
+// §11.3 wenshu-side wins: thin wrapper over existing
+// `ProviderKeychain`).
 //
-//  future ticket will generalize this to a full AnthropicConnector (= cache
-//  markers, thinking blocks, tool_use round-trip, streaming). For sub-step 7
-//  the goal is end-to-end TB-B verification: wenshu can talk to minimax cn
-//  via the LLMConnector protocol.
-//
-//  Pre-tool guardrail: reuses ConnectorCredentials (= AGENTS.md §11.3
-//  wenshu-side wins: thin wrapper over existing ProviderKeychain).
-//
-//  Per TICKET-HERMES-GAP-002 (= hermes-port gap audit §2.1 #8), the
-//  request-body marshaling is in `Connector/RequestHelpers.swift`
-//  (= `buildMinimaxRequest`). The response decoder is shared with
-//  `AnthropicConnector` (= `decodeAnthropicResponse`) since Minimax
-//  returns Anthropic-shaped content blocks.
-//
-// sub-step 7 of 8 for ticket 001.
-//
+// The request-body marshaling lives in
+// `Connector/RequestHelpers.swift` (= `buildMinimaxRequest`). The
+// response decoder is shared with `AnthropicConnector` (=
+// `decodeAnthropicResponse`) since Minimax returns Anthropic-shaped
+// content blocks.
 
 import Foundation
 
@@ -57,7 +51,7 @@ actor MinimaxConnector: LLMConnector {
             throw LLMConnectorError.unsupportedProvider(slug: connectorID)
         }
 
-        // Apply prompt caching (= ticket 002 PromptCaching.applyCacheControl).
+        // Apply prompt caching (= `PromptCaching.applyCacheControl`).
         // Per-message cache_control marker on the last 3 non-system messages
         // (= the Anthropic-compatible 4th-breakpoint on system is NOT wired
         // for Minimax; Minimax does not honor structured `system` blocks).
