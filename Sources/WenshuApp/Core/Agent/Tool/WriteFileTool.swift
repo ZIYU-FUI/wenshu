@@ -1,18 +1,16 @@
+// WriteFileTool.swift · WenshuApp · v0.35
 //
-//  WriteFileTool.swift · Wenshu · v0.35 ticket 001 sub-step 6
+// Writes UTF-8 content to a file at the given path (= wenshu-side
+// wins thin wrapper over existing `Core/Tools/FileTools.swift.write`,
+// per AGENTS.md §11.3).
 //
-//  Writes UTF-8 content to a file at the given path (= wenshu-side wins
-//  thin wrapper over existing Core/Tools/FileTools.swift.write, per
-//  AGENTS.md §11.3).
+// Pre-tool guardrail = `FileTools.pathDenied` (= reuses existing
+// safety checks).
 //
-//  Pre-tool guardrail = FileTools.pathDenied (= reuses existing safety
-//  checks).
-//
-// sub-step 6 of 8 for ticket 001.
-//
-//  Standards-axis S3 fix: input parsing delegated to ToolInputParser
-//  (= single source of truth for tool input JSON; replaces hand-rolled
-//  regex-free substring scan + ad-hoc unescape loop).
+// Standards-axis S3 fix: input parsing delegated to
+// `ToolInputParser` (= single source of truth for tool input JSON;
+// = replaces hand-rolled regex-free substring scan + ad-hoc
+// unescape loop).
 //
 
 import Foundation
