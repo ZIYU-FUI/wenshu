@@ -1,26 +1,23 @@
+// TurnFinalizer.swift · WenshuApp · v0.35
 //
-//  TurnFinalizer.swift · Wenshu · v0.35 ticket 001 sub-step 4
-// .
+// Turn-end normalization (= the post-loop finalization lifted
+// verbatim from hermes `run_conversation`). Mirrors hermes
+// `turn_finalizer.py` (= trajectory save, VM/browser cleanup,
+// session persistence, max-iterations summary, kanban failure
+// recording, drop-trailing-empty-response scaffolding,
+// close-interrupted tool sequence).
 //
-//  Turn-end normalization. Mirrors hermes turn_finalizer.py
-//  (= 507 LOC; provides finalize_turn = the post-loop finalization
-//  lifted verbatim from run_conversation = trajectory save, VM/browser
-//  cleanup, session persistence, max-iterations summary, kanban failure
-//  recording, drop-trailing-empty-response scaffolding, close-interrupted
-//  tool sequence).
+// Per hermes `turn_finalizer.py`:
+//   - Drop empty text blocks (= keeps `.text(\"\")` → nothing).
+//   - Propagate `stopReason` + usage (= pass-through).
+//   - Coalesce adjacent `.text` blocks into one.
+//   - Close interrupted tool sequences.
+//   - Surface post-turn hooks (= `_cleanup_errors` →
+//     `result.cleanupErrors`).
 //
-//  Per hermes turn_finalizer.py:
-//    - Drop empty text blocks (= keeps .text("") → nothing)
-//    - Propagate stopReason + usage (= pass-through)
-//    - Coalesce adjacent .text blocks into one
-//    - Close interrupted tool sequences
-//    - Surface post-turn hooks (= _cleanup_errors → result.cleanupErrors)
-//
-//  Static utility (= no state). ConversationLoop.runConversation invokes
-//  this at the end of each turn before returning ConversationResult.
-//
-// sub-step 4 of 8 for ticket 001.
-//
+// Static utility (= no state). `ConversationLoop.runConversation`
+// invokes this at the end of each turn before returning
+// `ConversationResult`.
 
 import Foundation
 
