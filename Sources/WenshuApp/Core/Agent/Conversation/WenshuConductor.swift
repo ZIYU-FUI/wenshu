@@ -1,16 +1,26 @@
+// WenshuConductor.swift · WenshuApp · v0.21
 //
-//  WenshuConductor.swift · Wenshu · v0.21 ticket 04 (Wenshu single-display, multi-agent hidden)
-//                          P0 #1 (WIRE-AGENT-001, 2026-09-04)
-//                          P0 #2 (WIRE-AGENT-002, 2026-09-04)
+// Wenshu main agent orchestrator (= single-display surface; multi-
+// agent hidden):
+//   1. Receives the user message.
+//   2. Calls the LLM intent classifier to pick the 0-N sub-agents
+//      (= Writer / Analyst / Researcher / Auditor / Memory).
+//   3. Dispatches the selected sub-agents in parallel (= via
+//      `TaskGroup`).
+//   4. Waits for all results.
+//   5. Calls the LLM to synthesize the final reply.
 //
-//  Wenshu main agent orchestrator: receives user message → calls LLM intent classify → dispatches 0-N v0.19 module agents → waits for results → calls LLM to synthesize final reply.
-//  Dispatch progress goes through WSKanbanRepository (= user checks Kanban board), ChatView does not show sub-agents (hidden) (per the 2026-08 chat-arc OOB). ([historical actor removed] actor.)
+// Dispatch progress goes through `WSKanbanRepository` (= the user
+// checks the Kanban board to see sub-agent progress; the chat
+// surface itself hides sub-agent activity).
 //
-//  Reuses v0.19 12-module backend (LinkGraph / Search / Template / Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier;
-    //  note: `WenshuVerifier` lives at `Core/Agent/Connector/WenshuVerifier.swift`,
-    //  not under a separate `Core/Verifier/` path; = modules are
-    //  organized by feature, not in a flat Core/ namespace),
-    //  pattern matches AgentRuntime (actor in-process truth).
+// Reuses the 12-module backend (= LinkGraph / Search / Template /
+// Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount /
+// Outline / Bookmarks / Verifier; = `WenshuVerifier` lives at
+// `Core/Agent/Connector/WenshuVerifier.swift`, not under a
+// separate `Core/Verifier/` path; = modules are organized by
+// feature, not in a flat `Core/` namespace). The pattern matches
+// `AgentRuntime` (= the in-process actor source of truth).
 //
 //  P0 #2 (WIRE-AGENT-002): the conductor now accepts a `tools: [String:
 //  any Tool]` registry at construction time. When the loop path runs
@@ -104,11 +114,10 @@ actor WenshuConductor {
         // a registry but no connector still keep their tools in case
         // the loop path is enabled later in the same lifetime).
         // subsequent migration step: kanbanStore param was removed entirely from
-        // both init signatures (= ticket 6 also deleted the KanbanStore
-        // actor; = there is no kanbanStore arg to pass). KanbanStore
-        // persistence is now exclusively via `repositories.kanban`
-        /// (= @MainActor SwiftData wrapper via WSRepositoryContainer;
-        /// = .shared fallback when nil).
+        // both init signatures (= the kanbanStore param was removed).
+        // KanbanStore persistence is now exclusively via `repositories.kanban`
+        // (= @MainActor SwiftData wrapper via WSRepositoryContainer;
+        // = .shared fallback when nil).
         self.init(
             runtime: runtime,
             verifier: verifier,
@@ -137,8 +146,9 @@ actor WenshuConductor {
     /// conductor without a connector today).
     ///
     /// `runtime` is optional and passed to ConversationLoop for
-    /// deterministic-test injection (= ticket v0.36 ticket 014). When nil,
-    /// ConversationLoop falls back to a fresh RuntimeHelpers() actor.
+    /// deterministic-test injection (= via explicit `runtime:` init arg).
+    /// When nil, `ConversationLoop` falls back to a fresh `RuntimeHelpers()`
+    /// actor.
     init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
@@ -516,7 +526,7 @@ actor WenshuConductor {
         // intent classify fail → selectedAgents still empty [] → S4 graceful degradation
         // filter unknown agent names to prevent invalid dispatch
         selectedAgents = selectedAgents.filter { ["writer", "analyst", "researcher", "auditor", "memory"].contains($0) }
-        // Step 3: dispatch 0-N sub-agents in parallel (TaskGroup) + collect results (v0.23 ticket 002)
+        // Step 3: dispatch 0-N sub-agents in parallel (TaskGroup) + collect results.
         // TaskGroup parallel dispatch replaces serial for-loop.
         // Each sub-agent has independent system prompt (SubAgentIdentity.systemPrompt).
         var subResults: [(String, String)] = []
@@ -538,7 +548,7 @@ actor WenshuConductor {
                         continue  // skip unknown sub-agent name
                     }
                     group.addTask { [self] in
-                        // Each sub-agent gets its own system prompt + tools (v0.23 ticket 001)
+                        // Each sub-agent gets its own system prompt + tools.
                         let agentPrompt = """
                         \(SubAgentIdentity.systemPrompt(name: identityName))
 
@@ -729,7 +739,7 @@ actor WenshuConductor {
         "todo_hermes",      // Core/Agent/Todo/HermesTodoTool.swift
         "vision",           // Core/Tools/VisionTools.swift
         "web",              // Core/Tools/WebTools.swift  (= URL fetch only)
-        "web_search"        // Core/Agent/Tool/WebSearchTool.swift  (= v0.74 ticket 003-websearch-tool-wire) — main agent has this for synchronous lookups; = for noun research, prefer `delegate_research` (fire-and-forget)
+        "web_search"        // Core/Agent/Tool/WebSearchTool.swift — main agent has this for synchronous lookups; = for noun research, prefer `delegate_research` (fire-and-forget)
     ]
 
     /// Maximum time `buildToolsSync(from:)` will wait for the
@@ -842,7 +852,7 @@ actor WenshuConductor {
         // = current implementation = pure cooperative pool = OK).
         // Future ticket: convert to async/await with Task group + timeout.
         //
-        // SAFETY (= the Q99 Standards axis HIGH finding): this
+        // SAFETY (= the cross-context review blocker): this
         // bridge is safe ONLY when `buildTools(from:)` does NOT
         // await any MainActor work (= current implementation =
         // pure cooperative pool = OK). If a future `buildTools`
