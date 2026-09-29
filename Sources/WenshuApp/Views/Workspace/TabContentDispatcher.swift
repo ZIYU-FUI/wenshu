@@ -1,23 +1,12 @@
-// TabContentDispatcher.swift · Wenshu () · v0.28 ticket 028-004
+// Sources/WenshuApp/Views/Workspace/TabContentDispatcher.swift
 //
-// Extracted from PaneRenderer.swift on 2026-09-01 (= when the
-// legacy PaneRenderer/PaneSplitRenderer/NativeSplitter/PaneSplitter
-// were deleted as dead code per boss OOB "
-//, candon't"). The TabContentDispatcher struct
-// itself is still alive (= used by PaneNSController to host each
-// pane's SwiftUI content via NSHostingController), so it moved to its
-// own file instead of being deleted.
+// Dispatches a `TabKind` (= .projectSidebar / .projectPreview /
+// .editor / .specializedTools / .aiChat / .aiDynamic) to the
+// correct zone view. Reads `AppState` + `BookStore` from
+// `@Environment` (= no `@Binding` chain; = the cross-zone
+// communication path).
 //
-// Per ticket 028-004: dispatches a TabKind (= .projectSidebar /
-// .projectPreview / .editor / .specializedTools / .aiChat /
-// .aiDynamic) to the correct zone view. Reads AppState + BookStore
-// from @Environment (= no @Binding chain; per v0.30 boss 8/31 OOB
-// "option A for cross-zone communication").
-///
-/// Per ticket 028-004 §"Out of scope", the recursive PaneRenderer
-/// dispatches tabs through this shim; future tickets (= 028-007
-/// tab-drag, 028-008 ZoneEditor) can introduce a more sophisticated
-/// registry if needed.
+// The recursive `PaneRenderer` dispatches tabs through this shim;
 
 import SwiftUI
 
@@ -74,10 +63,8 @@ struct TabContentDispatcher: View {
     var body: some View {
         switch kind {
         case .projectSidebar:
-            // followup Boss UX round 14 (Boss 2026-08-29 OOB
-            // ZoneTopToolbar outer 30 PT) — the internal
-            // ZoneContentTabBar (= 1 tab + trailing /
-            // buttons) IS the top chrome. Otherwise we'd have 2 layers
+            // Top chrome = single tab + trailing buttons (= the
+            // canonical 30 PT zone chrome). Otherwise we'd have 2 layers
             // (= 30 PT outer + 28 PT inner ZoneContentTabBar = 58 PT
             // per-pane chrome = ugly).
             //
@@ -125,7 +112,6 @@ struct TabContentDispatcher: View {
                 ZoneModuleView(zoneSlot: .specializedTools)
 
         case .aiChat:
-            // followup Boss UX round 16 (Boss 2026-08-29 OOB
             // Old 6 had ChatZoneTabBar (= 3 tabs: dialog / search / Settings
             // + archive button on right). The new ChatView doesn't
             // have an internal tab bar.
@@ -195,12 +181,12 @@ struct TabContentDispatcher: View {
 /// > 1 pane (= the FCP Browser / VS Code pattern). Selecting a tab
 /// front-s it (= sets `active` on the owning group).
 ///
-/// Per ticket 028-004b2: each tab is `.draggable` (= String payload
+/// Each tab is `.draggable` (= `String` payload
 /// = the PaneID UUID string), so the user can drag a tab from one
 /// group to another (= or to the same group to reorder). The drop
 /// target is the pane host (= see paneHost(.dropDestination)).
 ///
-/// Per ticket 028-004b3: each tab has a close button (= X glyph)
+/// Each tab has a close button (= X glyph)
 /// that calls `onClose` (= dispatches to LayoutTreeStore.removePane
 /// per the hermes pane-close semantics).
 private struct GroupTabStrip: View {
@@ -229,7 +215,8 @@ private struct GroupTabStrip: View {
                     }
                     .buttonStyle(.plain)
                     // Drag handle: drag a tab to drop it into another
-                    // pane (= ticket 028-004b2). String payload = the
+                    // pane (= `.draggable` per the multi-pane
+                    // drag-reorder semantics). String payload = the
                     // PaneID's UUID string (= the receiver parses it back
                     // into a PaneID in the dropDestination closure).
                     .draggable(paneID.raw.uuidString) {
@@ -242,7 +229,7 @@ private struct GroupTabStrip: View {
                             .padding(.vertical, LayoutTokens.chromePaddingSmall)
                             .background(.tint.opacity(0.25))
                     }
-                    // Close button (= ticket 028-004b3): per
+                    // Close button (= the canonical X glyph): per
                     // VSCode / FCP Browser convention, a small X
                     // glyph at the tab's right edge. Hidden if the
                     // group has only 1 pane left (= can't close
@@ -260,7 +247,9 @@ private struct GroupTabStrip: View {
                 // Bottom 1 PT separator.
                 // followup Boss UX round 26: Apple HierarchicalShapeStyle
                 // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
-                // replaces Color.secondary.opacity(0.3) (= solid muted gray)
+                // Uses `.separator` (= the canonical macOS
+                // semantic separator color) instead of
+                // `Color.secondary.opacity(0.3)` (= solid muted gray).
                 // for the group header bottom border.
                 .overlay(
                     Rectangle()
