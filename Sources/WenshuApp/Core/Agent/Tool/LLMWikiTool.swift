@@ -1,49 +1,47 @@
+// LLMWikiTool.swift · WenshuApp · v2.8d
 //
-//  LLMWikiTool.swift · Wenshu · v2.8d ticket T17-T19 (boss 2026-09-28 OOB B10)
+// LLM-facing tool that lets the agent run the LLM Wiki
+// derivation + lint (= the auto-call surface per the core-
+// capability directive: research-to-document pipeline =
+// wenshu's central capability, used for grounded novel writing).
 //
-//  LLM-facing tool that lets the agent run the LLM Wiki
-//  derivation + lint (= the auto-call surface per boss 2026-09-28
-//  OOB '调研生成文档，辅助写作，协助用户创建合理的剧情，这个是
-//  我们的核心能力').
+// Per the pipeline-must-be-complete directive: the LLM Wiki
+// pipeline (= `LLMWikiLayerDeriver` + `LLMWikiLinter`) was dead
+// code per §11 baseline (= zero callers). Wiring covers:
+//   1. Manual tool-call (= LLM invokes the `llm_wiki` tool).
+//      This file is the manual surface.
+//   2. Auto-call (= `FileSystemReferenceStore.create` triggers
+//      `LLMWikiOps.runDerivation`).
+//   3. UI trigger (= the reference-library inspector's
+//      'Re-derive wiki' button for the operator; follows).
 //
-//  Per boss 2026-09-28 OOB B10: the LLM Wiki pipeline
-//  (= LLMWikiLayerDeriver + LLMWikiLinter) was dead code per §11
-//  baseline (= zero callers). boss asked for it to be wired to:
-//    1. Manual tool-call (= LLM invokes `llm_wiki` tool). This
-//       file is the manual surface.
-//    2. Auto-call (= FileSystemReferenceStore.create triggers
-//       LLMWikiOps.runDerivation).
-//    3. UI trigger (= the reference-library inspector's
-//       'Re-derive wiki' button for the operator; = follows).
+// Wire format (= the LLM tool-use input):
+//   {
+//     "action": "runAll" | "runDerivation" | "runLint" | "status",
+//     "library_path": "/path/to/.ws"  (= optional; = derived
+//       from the active library when omitted)
+//   }
 //
-//  Wire format (= the LLM tool_use input):
-//      {
-//        "action": "runAll" | "runDerivation" | "runLint" | "status",
-//        "library_path": "/path/to/.ws"  (= optional; = derived
-//          from the active library when omitted)
-//      }
+// Result (= the tool-use output):
+//   {
+//     "ok": true,
+//     "action": "runAll",
+//     "stats": {
+//       "raw_count": 5,
+//       "abstracts_written": 5,
+//       "indexes_written": 12,
+//       "duration_ms": 8
+//     },
+//     "lint_findings": [
+//       {"severity": "warning", "code": "LLM-ORPHAN-ENTITY",
+//        "message": "Entity 'X' has no provenance link"}
+//     ]
+//   }
 //
-//  Result (= the tool_use output):
-//      {
-//        "ok": true,
-//        "action": "runAll",
-//        "stats": {
-//          "raw_count": 5,
-//          "abstracts_written": 5,
-//          "indexes_written": 12,
-//          "duration_ms": 8
-//        },
-//        "lint_findings": [
-//          {"severity": "warning", "code": "LLM-ORPHAN-ENTITY",
-//           "message": "Entity 'X' has no provenance link"}
-//        ]
-//      }
-//
-//  Scope (= Q112 = 1 source + 1 test per commit):
-//      This commit adds the tool + registers it. The
-//      FileSystemReferenceStore.create auto-call hook is in this
-//      same ticket (= boss OOB B10 '需要不完整' = the pipeline
-//      must complete end to end; = manual + auto in one arc).
+// Scope: this commit adds the tool + registers it. The
+// `FileSystemReferenceStore.create` auto-call hook is in this
+// same commit (= the pipeline must complete end to end; =
+// manual + auto in one arc).
 
 import Foundation
 
@@ -98,10 +96,9 @@ final class LLMWikiTool: Tool, @unchecked Sendable {
         // (= caller receives a typed error) when no library is
         // bound (= the inspector's "no library" state).
         //
-        // v2.9a (boss 2026-09-28 OOB A4): delegate to
-        // LLMWikiOps.runAllFromActiveLibrary's resolution
-        // (= SSOT = both the LLM tool path and the
-        // operator-button path read the same wenshu.libraryPath).
+        // v2.9a: delegate to `LLMWikiOps.runAllFromActiveLibrary`'s
+        // resolution (= SSOT = both the LLM tool path and the
+        // operator-button path read the same `wenshu.libraryPath`).
         guard let path = UserDefaults.standard.string(forKey: "wenshu.libraryPath"),
               !path.isEmpty else { return nil }
         let url = URL(fileURLWithPath: path)
