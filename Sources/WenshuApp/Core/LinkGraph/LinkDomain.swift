@@ -1,15 +1,8 @@
+// LinkDomain.swift · WenshuApp · v0.72
 //
-//  Core/LinkGraph/LinkDomain.swift · Wenshu · v0.72 SwiftData migration 
-//
-//  Domain types (Link) extracted from the deleted
-//  Core/LinkGraph/LinkIndex.swift (= sqlite3 legacy actor, now obsolete).
-//
-//  These types are the canonical wenshu-side public API surface for wiki links.
-//  The SwiftData-backed persistence lives in Persistence/WSLink (@Model) and is
-//  wrapped by Persistence/Repositories/WSLinkRepository (@MainActor).
-//
-//  Moved 2026-09-13 (= phase 5 ticket 9 — see AGENTS.md §11.4.2).
-//
+// Canonical domain type for wiki links (= `Link`). Pure value
+// type (= no SQLite dependency). SwiftData persistence lives in
+// `WSLink` @Model + `WSLinkRepository`.
 
 import Foundation
 
