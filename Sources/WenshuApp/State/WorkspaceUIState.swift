@@ -58,18 +58,16 @@ final class WorkspaceUIState {
     /// WorkspaceUIState split from AppState).
     var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
-    /// Layout edit mode state (= v0.28 ticket 028-006; =
-    /// ⌘⇧\ toggle / Escape exit). v0.40 apple-001 Q3 surgical:
-    /// hoisted to `appState.editMode` so all workspace descendants
-    /// share one instance (= per-window via WenshuApp's @State).
+    /// Layout edit mode state (= `⌘⇧\` toggle / `Escape` exit).
+    /// Hoisted to `appState.editMode` so all workspace descendants
+    /// share one instance (= per-window via WenshuApp's `@State`).
     /// Hotkey binding lives in `EditModeHotkey.swift`.
     var editMode = LayoutEditMode()
 
-    /// v2.9d T37 (boss 2026-09-28 OOB A7 follow-up): the
-    /// active tag filter (= the user clicked a `.tag(String)`
-    /// sidebar item; = the preview pane renders only
-    /// references whose `tags` set contains this string).
-    /// = nil means "no tag filter" (= show all references).
+    /// Active tag filter (= the user clicked a `.tag(String)`
+    /// sidebar item; = the preview pane renders only references
+    /// whose `tags` set contains this string). `nil` means
+    /// "no tag filter" (= show all references).
     /// Lives on WorkspaceUIState (= the §11.13 P2-06 split
     /// pattern; = per-window via @State in WenshuApp).
     var activeTag: String?
