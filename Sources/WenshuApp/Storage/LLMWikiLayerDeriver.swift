@@ -1,71 +1,31 @@
-// LLMWikiLayerDeriver.swift · Wenshu · v0.28
+// LLMWikiLayerDeriver.swift · WenshuApp · v2.6
 //
-// Verbatim port from hermes-agent/skills/research/llm-wiki/SKILL.md v2.1.0
-// (= wenshu M5 ticket 15 = hermes-port batch 3 fifth ticket).
+// Pure-data derivation layer for the LLM Wiki 4-layer architecture
+// (= raw + entities + abstracts + indexes). Mirrors hermes's
+// "entities: abstracts" + "indexes" conventions from
+// skills/research/llm-wiki/SKILL.md.
 //
-// Source (= hermes Python):
-// - skills/research/llm-wiki/SKILL.md L46-58 (= Three-Layer architecture:
-//   raw -> entities/abstracts/indexes per Karpathy's LLM Wiki pattern)
-// - skills/research/llm-wiki/SKILL.md L213-244 (= linter: orphan pages,
-//   broken wikilinks, index completeness)
-// - skills/research/llm-wiki/SKILL.md L390-410 (= resume session ritual:
-//   SCHEMA + index + log read before ingest)
-//
-// Target (= wenshu Swift):
-// - Sources/WenshuApp/Storage/LLMWikiLayerDeriver.swift (this file,
-//   ~280 LOC) = orchestrates the LLM Wiki 4-layer derivation:
-//     layerRaw -> layerAbstracts + layerIndexes
-// - Sources/WenshuApp/Storage/LLMWikiLinter.swift (next file, ~120 LOC)
-//   = orphan / broken-wikilink / index-completeness audit checks.
-//
-// Scope refactor (= per Q109 doc-first + Q35 commit-description vs truth):
-// The hermes llm-wiki SKILL is 507 lines of pattern documentation + LLM-
-// call-driven ingestor recipes (= user asks "add X to my wiki" and the
-// agent follows the SKILL steps). Wenshu's M5-15 ticket asks for the
-// **pure derivation** layer (= take raw .md files and produce entities +
-// abstracts + indexes entries deterministically, with no LLM call). The
-// LLM-driven part of the SKILL lands with v0.29+ (= the v0.27 chat-driven
-// reference extraction that's already stubbed via ReferenceEntityExtractor
-// from M5-12).
-//
-// This commit delivers the deterministic pure-data derivation:
-// 1. Abstracts layer (= a short summary per raw .md, derived from the
-//    first non-heading paragraph). Mirrors hermes's "entities: abstracts"
-//    convention (= abstracts are short, derived, no LLM involvement).
-// 2. Indexes layer (= a reverse index from keyword -> source .md files
-//    that contain the keyword). Mirrors hermes's "indexes" convention.
-// 3. Linter (= orphan check + broken-wikilink check + index-completeness
-//    check). Mirrors hermes SKILL.md L213-244 linter protocol.
-//
-// The wenshu 4-layer architecture (= raw/entities/abstracts/indexes)
-// differs from hermes's 3-layer (= raw + entities/concepts/comparisons/
-// queries grouped + SCHEMA + index + log). The structural concept maps
-// 1:1: hermes "entities/concepts/comparisons/queries" = wenshu's
-// "entities" layer; hermes "abstracts" = wenshu's "abstracts" layer;
-// hermes "index.md" + "log.md" = wenshu's "indexes" layer. The SCHEMA
-// equivalent is the existing ReferenceLayer enum (= ticket 006 in FCP
-// library replica spec).
-//
-// per AGENTS.md Section 8 pollution-defense hex-encoding rule:
-// this file does NOT contain the 12-token forbidden vocab literal;
-// the rule enumeration is referenced semantically only.
+// The wenshu 4-layer architecture differs from hermes's 3-layer:
+// hermes "entities/concepts/comparisons/queries" = wenshu's
+// "entities"; hermes "abstracts" = wenshu's "abstracts"; hermes
+// "index.md" + "log.md" = wenshu's "indexes". The SCHEMA equivalent
+// is the existing ReferenceLayer enum.
 
 import Foundation
 
-/// Orchestrator for the LLM Wiki 4-layer derivation pipeline
-/// (= wenshu M5 ticket 15 = hermes-port batch 3 fifth ticket).
+/// Orchestrator for the LLM Wiki 4-layer derivation pipeline.
 ///
-/// Takes a ReferenceStoring (= the production FileSystemReferenceStore)
-// and runs the deterministic pure-data derivations:
-// 1. Build abstracts (= one short summary per raw .md body, derived
+/// Takes a `ReferenceStoring` (= the production
+/// `FileSystemReferenceStore`) and runs the deterministic pure-data
+/// derivations:
+/// 1. Build abstracts (= one short summary per raw .md body, derived
 ///    from the first non-heading paragraph). Writes to `abstracts/`
 ///    layer (= hidden from the UI per `ReferenceLayer.isUserFacing`).
 /// 2. Build indexes (= reverse-index keyword -> raw .md UUIDs).
 ///    Writes to `indexes/` layer (= hidden from the UI).
 ///
 /// The pipeline is idempotent (= re-running overwrites previous derived
-/// content with the latest raw layer). Mirrors hermes's "always
-/// re-derive before querying" SKILL.md ritual.
+/// content with the latest raw layer).
 struct LLMWikiLayerDeriver: Sendable {
 
     let store: ReferenceStoring
@@ -92,14 +52,15 @@ struct LLMWikiLayerDeriver: Sendable {
         var abstractsWritten = 0
         var indexesWritten = 0
 
-        // Stage 1: build abstracts (= idempotent: replace if exists, save if new)
-        // We use ref.id (= raw ref's UUID) so the abstract links to its raw
-        // source in the index. replaceReference throws if the ref is not in
-        // the abstract layer's index; we catch and fall back to saveReference.
+        // Stage 1: build abstracts (= idempotent: replace if exists,
+        // save if new). The abstract id equals the raw ref's UUID so
+        // the abstract links to its raw source in the index.
+        // replaceReference throws if the abstract isn't in the layer's
+        // index yet; = fall back to saveReference on the catch path.
         for ref in rawRefs {
             guard let body = store.loadReferenceBody(id: ref.id) else { continue }
             let summary = Self.firstParagraph(fromMarkdown: body)
-            // Skip if the body is empty (= no first paragraph to summarize)
+            // Skip if the body is empty (= no first paragraph to summarize).
             guard !summary.isEmpty else { continue }
             let abstractRef = Reference(
                 id: ref.id,
@@ -110,21 +71,21 @@ struct LLMWikiLayerDeriver: Sendable {
             do {
                 try store.replaceReference(abstractRef, bodyMarkdown: summary)
             } catch {
-                // Abstract doesn't exist yet (= first run or new raw ref) -> saveReference
+                // First run or new raw ref: the abstract doesn't
+                // exist in the layer's index yet.
                 try store.saveReference(abstractRef, bodyMarkdown: summary)
             }
             abstractsWritten += 1
         }
 
-        // Stage 2: build indexes (= per-keyword unique UUID; clear-before-write
-        // because new UUIDs are generated each call).
+        // Stage 2: build indexes (= per-keyword unique UUID; clear-
+        // before-write because new UUIDs are generated each call).
+        // deleteReference scans all layers for <id>.md; index UUIDs
+        // are unique to .layerIndexes so the scan only finds the
+        // index entries (= safe).
         let indexMap = Self.buildKeywordIndex(references: rawRefs, store: store)
-        // Clear existing indexes (each UUID is unique per call)
         let existingIndexes = try store.loadReferences(layer: .layerIndexes)
         for ref in existingIndexes {
-            // Use replaceReference-with-empty then delete to avoid the raw-uuid
-            // collision bug (= deleteReference scans all layers for <id>.md).
-            // Index UUIDs are unique to .layerIndexes so delete works.
             try? store.deleteReference(id: ref.id)
         }
         for (keyword, refIds) in indexMap {
