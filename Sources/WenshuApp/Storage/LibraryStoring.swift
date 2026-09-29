@@ -1,20 +1,14 @@
-// LibraryStoring.swift · Wenshu (Wenshu) · v0.02.0 (bookshelf module)
+// LibraryStoring.swift · WenshuApp · v0.02.0
 //
-// Owner 8/15 15:55: 'needok,, refactor'.
-//
-// This file is the architectural root of the wenshu library system.
-// LibraryStoring defines the contract that all storage backends must
-// satisfy. v0.02.0 ships one implementation (FileSystemLibraryStore);
-// future versions can swap it for MetadataQuery / CoreData / CloudKit
-// without touching the view layer (= the contract tests in
-// Tests/WenshuAppTests/Storage/LibraryStoringContractTests.swift
-// guarantee no conformance drift).
+// Contract for all storage backends (= the FileSystem impl ships today;
+// future impls = MetadataQuery / CoreData / CloudKit can be swapped in
+// without touching the view layer).
 //
 // Apple HIG document-based-app convention:
 //   ~/Documents/wenshu/<shelf-id-uuid>/
 //     shelf.json     ← encoded Bookshelf (the metadata)
-//     books/         ← v0.02.1: book subdirs land here
-//     chapters/      ← v0.02.1: chapter .md files land here
+//     books/         ← book subdirs land here
+//     chapters/      ← chapter .md files land here
 //
 // Writes are atomic (= write-to-temp + rename) so a crash mid-write
 // leaves the existing file intact. This matches the Apple HIG pattern
@@ -68,18 +62,16 @@ struct LibraryStoringError: Error, Sendable {
     }
 }
 
-// MARK: - Search hit (v0.03.0 will populate; v0.02.0 stays empty)
+// MARK: - Search hit
 
 struct SearchHit: Sendable, Hashable {
     /// The shelf that contains the hit. Even when search expands to books
-    /// / chapters (= v0.02.1+), the shelf is always part of the result so
-    /// the UI can route the user to the right container without an extra
-    /// lookup.
+    /// or chapters, the shelf is always part of the result so the UI can
+    /// route the user to the right container without an extra lookup.
     let shelfId: UUID
     let shelfName: String
-    /// Free-form context for the hit. v0.02.0 is unused (= the protocol
-    /// returns []); v0.02.1+ will populate this with a short snippet
-    /// (= NSMetadataQuery result.snippet).
+    /// Free-form context for the hit (= a short snippet from the
+    /// underlying search engine, e.g. NSMetadataQuery result.snippet).
     let matchContext: String
 }
 
@@ -110,18 +102,16 @@ protocol LibraryStoring: Sendable {
     /// app and the app should reconcile, not crash.)
     func deleteShelf(id: UUID) throws
 
-    /// Search stub for v0.03.0 (= NSMetadataQuery on ~/Documents/wenshu).
-    /// 
-    /// can wire up its search bar without an API change later.
-    /// Owner 8/15 15:55: lock the contract now, not when search ships.
+    /// Search stub. The contract is locked now so the UI can wire up
+    /// its search bar without an API change when the search engine
+    /// ships (= future: NSMetadataQuery on `~/Documents/wenshu`).
     func search(query: String) throws -> [SearchHit]
 
-    // MARK: - Book operations (v0.02.1, = book module end-to-end)
+    // MARK: - Book operations
     //
-    // Added in v0.02.1, after the shelf module shipped (v0.02.0). The
-    // protocol extension is purely additive (= existing implementations
-    // must satisfy these too; the contract test suite is extended
-    // alongside).
+    // Added after the shelf module shipped. The protocol extension is
+    // purely additive (= existing implementations must satisfy these
+    // too; the contract test suite is extended alongside).
 
     /// Returns the books in a given shelf, sorted by updatedAt desc
     /// (= same convention as loadShelves).
@@ -135,41 +125,39 @@ protocol LibraryStoring: Sendable {
     func saveBook(_ book: Book) throws
 
     /// Removes a book's directory and contents. Idempotent (no-op
-    /// if the book is already gone). Search index consistency: callers
-    /// that wrap this with NSMetadataQuery (v0.03.0) get a removal
-    /// notification automatically (= Spotlight tracks the directory).
+    /// if the book is already gone). Callers that wrap this with
+    /// NSMetadataQuery get a removal notification automatically
+    /// (= Spotlight tracks the directory).
     func deleteBook(id: UUID) throws
 
-    /// 
-    /// shelves. The book id alone doesn't carry its shelfId, so the
-    /// store must scan (= same forgiveness as loadBooks: missing
-    /// shelves / corrupt book.json are skipped, returns nil if no
-    /// match). Required by WenshuLibrary.renameBook.
+    /// Scans all shelves to find the book (= the book id alone doesn't
+    /// carry its shelfId). Missing shelves / corrupt book.json are
+    /// skipped; returns nil if no match.
     func loadBook(id: UUID) throws -> Book?
 
-    // MARK: - Document operations (v0.03.0, = document module end-to-end)
+    // MARK: - Document operations
     //
-    // v53 (= 8/15 17:48 '3, cardshowin progress'). The library
-    // grew document operations: each book has three categories of MD
-    // files (= chapters / settings / research). The storage layer reads
-    // the .md bytes, extracts the title (= first H1, falling back to a
-    // generic placeholder) and the summary (= first ~100 chars after
+    // Each book has three categories of MD files (= chapters /
+    // settings / research). The storage layer reads the .md bytes,
+    // extracts the title (= first H1, falling back to a generic
+    // placeholder) and the summary (= first ~100 chars after
     // stripping frontmatter / collapsing newlines), and exposes a
-    // Document metadata record for the view's card grid. The full body
-    // is available via loadDocumentContent (the EDITOR reads this).
+    // Document metadata record for the view's card grid. The full
+    // body is available via loadDocumentContent (the EDITOR reads
+    // this).
     //
-    // The 4-method split mirrors the Book API: a list call, a single-
-    // item load (= the content the EDITOR will edit), a save (= the
-    // EDITOR's 'Save' action), and a delete (= the context menu).
+    // The 4-method split mirrors the Book API: a list call, a
+    // single-item load (= the content the EDITOR will edit), a save
+    // (= the EDITOR's 'Save' action), and a delete (= the context
+    // menu).
     //
-    // saveDocument on an existing id REPLACES the file (overwrite).
-    // This is different from saveBook's first-save-wins policy: when
-    // the user clicks 'Save' in the editor, they explicitly want
-    // their in-memory edit to land on disk. The first-save-wins
-    // contract for Book exists because books have a richer identity
-    // (= shelfId, createdAt) that we want to preserve; documents
-    // are pure content (= just bytes), so overwriting is the
-    // expected behavior.
+    // RATIONALE: saveDocument on an existing id REPLACES the file
+    // (= overwrite). This is different from saveBook's first-save-wins
+    // policy: when the user clicks 'Save' in the editor, they
+    // explicitly want their in-memory edit to land on disk. Books
+    // have a richer identity (= shelfId, createdAt) we want to
+    // preserve; documents are pure content (= just bytes), so
+    // overwriting is the expected behavior.
 
     /// List all documents in a given category for a book (= one
     /// category per call: chapters / settings / research). Empty
@@ -195,7 +183,7 @@ protocol LibraryStoring: Sendable {
     /// source of truth; removing the file removes the document).
     func deleteDocument(id: UUID, bookId: UUID, category: BookCategory) throws
 
-    // MARK: - Folder document count (v0.40 apple-001 Q4 incremental)
+    // MARK: - Folder document count
 
     /// Count of .md files in a per-book folder (= e.g. "chapters" /
     /// "world" / "characters" / "outlines"). Used by the project-sidebar
