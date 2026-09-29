@@ -1,12 +1,8 @@
-// FileSystemLibraryStore.swift · Wenshu (Wenshu) · v0.02.0 (bookshelf module)
+// FileSystemLibraryStore.swift · WenshuApp · v0.02.0
 //
-// Filesystem-backed LibraryStoring implementation. The v0.02.0 default;
-// swap for MetadataQuery / CoreData / CloudKit later without changing
-// the contract (= LibraryStoring) or any caller (= view layer).
-//
-// Owner 8/15 15:55: 'needok,, refactor
-// '. By satisfying LibraryStoringContractTests, this implementation
-// is the architectural reference: any future impl must behave the same.
+// Filesystem-backed LibraryStoring implementation. Swap for MetadataQuery /
+// CoreData / CloudKit later without changing the contract (= LibraryStoring)
+// or any caller (= view layer).
 //
 // Apple HIG document-based-app convention (= Pages / TextEdit / Numbers):
 //   ~/Documents/wenshu/<shelf-id-uuid>/
@@ -60,13 +56,13 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
                 let shelf = try JSONDecoder().decode(Bookshelf.self, from: data)
                 shelves.append(shelf)
             } catch {
-                // Per the Apple HIG document-based pattern, a corrupt
-                // shelf.json is a recoverable condition: log it (= skipped
-                // here to keep the protocol free of logging deps), leave
-                // the file alone, and continue loading the rest. The
-                // contract test for "corrupt shelf" is in v0.02.0+ (= not
-                // , since we haven't built a corruption recovery UI
-                // yet); land with the FileSystem-specific tests in v39b.
+                // RATIONALE: corrupt shelf.json is a recoverable
+                // condition (= the user can hand-edit it back or
+                // re-create from the UI). Skip this shelf, leave the
+                // file alone (= the contract test for "corrupt shelf"
+                // covers the recoverable case), continue loading the
+                // rest. Logging is deferred (= the protocol stays
+                // free of logging deps).
                 continue
             }
         }
@@ -135,18 +131,18 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
             )
         }
 
-        // Pre-create the books/ and chapters/ subdirs so that the storage
-        // layout is consistent before v0.02.1 adds anything inside them.
-        // (= Apple HIG: a document's bundle structure is set up once at
-        // creation, not lazily as files appear.)
+        // Pre-create the books/ and chapters/ subdirs so the storage
+        // layout is consistent. ASSUMPTION: a document's bundle
+        // structure is set up once at creation, not lazily as files
+        // appear (= Apple HIG document-based-app convention).
         let booksDir = dir.appendingPathComponent("books")
         let chaptersDir = dir.appendingPathComponent("chapters")
         do {
             try fm.createDirectory(at: booksDir, withIntermediateDirectories: true)
             try fm.createDirectory(at: chaptersDir, withIntermediateDirectories: true)
         } catch {
-            // Non-fatal: shelves can exist without these subdirs. v0.02.1
-            // will create them on demand.
+            // Non-fatal: shelves can exist without these subdirs
+            // (= created on demand by the next save).
         }
     }
 
@@ -171,12 +167,11 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
         return []
     }
 
-    // MARK: - Book ops (v0.02.1, = book module end-to-end)
+    // MARK: - Book ops
     //
     // Mirrors the shelf ops above: loadBooks reads, saveBook writes
     // atomically (= tmp + replaceItemAt), deleteBook is idempotent.
-    // The books/ subdir under each shelf was pre-created by saveShelf in
-    // (= the v39 commit); this method just writes into it.
+    // The books/ subdir under each shelf was pre-created by saveShelf.
 
     func loadBooks(shelfId: UUID) throws -> [Book] {
         let fm = FileManager.default
@@ -274,9 +269,9 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
             )
         }
 
-        // Pre-create chapters/ subdir so v0.03.0 (= chapter content)
-        // has a consistent bundle structure (= Apple HIG: set up the
-        // document's bundle once at creation, not lazily).
+        // Pre-create chapters/ subdir so chapter content writes have
+        // a consistent bundle structure (= Apple HIG document-based-app
+        // convention: set up the bundle once at creation).
         let chaptersDir = bookDir.appendingPathComponent("chapters")
         try? fm.createDirectory(at: chaptersDir, withIntermediateDirectories: true)
     }
@@ -334,20 +329,19 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
         return nil
     }
 
-    // MARK: - Document ops (v0.03.0)
+    // MARK: - Document ops
     //
-    // Layout (= 8/15 15:55 'needok,,
-    // refactor'):
+    // Layout:
     //   ~/Documents/wenshu/<shelf>/<book>/
     //     book.json
     //     chapters/<docId>.md   BookCategory.chapter
     //     settings/<docId>.md   BookCategory.setting
     //     research/<docId>.md   BookCategory.research
     //
-    // Document metadata is NOT separately stored (= the .md IS the
-    // source of truth; loadDocuments reads the .md, extracts title +
-    // summary, fills Document fields). This matches the Boss 15:55
-    // principle: storage layer never holds a derived copy of the .md.
+    // RATIONALE: document metadata is NOT separately stored (= the
+    // .md IS the source of truth; = loadDocuments reads the .md,
+    // extracts title + summary, fills Document fields). The storage
+    // layer never holds a derived copy of the .md.
 
     func loadDocuments(bookId: UUID, category: BookCategory) throws -> [Document] {
         let fm = FileManager.default
@@ -510,8 +504,6 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     }
 
     /// <root>/<shelf-id>/books/<book-id>/<category.directoryName>/<docId>.md
-    /// 
-    /// (corrupted state), throw instead of crashing.
     private func documentPath(id: UUID, bookId: UUID, category: BookCategory) throws -> URL {
         guard let dir = categoryDirectory(bookId: bookId, category: category) else {
             throw LibraryStoringError(kind: .parentBookNotFound(bookId))
@@ -555,9 +547,10 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     }
 
     /// First ~100 chars of the MD body, with frontmatter stripped and
-    /// newlines collapsed to spaces. This is the 'in progress' the user
-    /// sees at a glance in the card. (v0.04+ adds an explicit
-    /// `summary` frontmatter field to override.)
+    /// newlines collapsed to spaces. RATIONALE: the summary is shown
+    /// in a fixed-width card body (= roughly 80-120 chars depending
+    /// on font), so multi-line summaries would force the card to grow
+    /// unpredictably.
     static func extractSummary(from body: String) -> String {
         var content = body
         // Strip frontmatter (= lines between the first '---' and the
