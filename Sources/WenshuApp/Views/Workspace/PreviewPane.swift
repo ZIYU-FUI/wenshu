@@ -895,11 +895,11 @@ struct PreviewPane: View {
             // Column-level padding (= not affected by header inset, per Apple HIG):
             // be removed = the 10 PT gutter now lives on the
             // per-element level = the cards grid re-asserts its
-            // own 10 PT horizontal padding here = the same visual
-            // result as v1.84b but without affecting the
-            // SectionHeader).
-            .padding(.horizontal, 10)
-            .padding(.bottom, 8)
+            // own chromePaddingContentHorizontal (= 10 PT) horizontal
+            // padding here = the same visual result as v1.84b but
+            // without affecting the SectionHeader.
+            .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
+            .padding(.bottom, DesignTokens.chromePaddingVertical)
                 }
             // Cards fade in on sidebar tap (= no-flicker-stutter,
             // scope-switch entry animation). Boss 2026-09-24 followup
