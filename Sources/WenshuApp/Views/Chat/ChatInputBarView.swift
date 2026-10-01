@@ -162,8 +162,8 @@ struct ChatInputBarView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 8)
-            .padding(.horizontal, 8)
+            .padding(.vertical, DesignTokens.chromePaddingVertical)
+            .padding(.horizontal, DesignTokens.chromePaddingLeading)
         }
         // (2026-09-23): boss 'token 计数的那个底栏，需要加上一个
         // 背景色，现在是全透明的，或者说是没有背景的，加上一个背景'.
@@ -235,7 +235,7 @@ struct ChatInputBarView: View {
             goalButton
             sendButton
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
         .padding(.bottom, DesignTokens.chromePaddingChatBottom)
         .fileImporter(
             isPresented: $showingImageImporter,
@@ -328,10 +328,11 @@ struct ChatInputBarView: View {
         .textFieldStyle(.plain)
         // (2026-09-23): boss '输入消息...距离聊天框左边需要加个 10PT'.
         // Apple Messages chat input pattern: the placeholder /
-        // typed text starts 10 PT from the inner-left of the
-        // capsule (= the SF Symbol icons in macOS Messages chat
-        // input are followed by the same padding to the text).
-        .padding(.leading, 10)
+        // typed text starts chromePaddingContentHorizontal (= 10 PT)
+        // from the inner-left of the capsule (= the SF Symbol icons
+        // in macOS Messages chat input are followed by the same
+        // padding to the text).
+        .padding(.leading, DesignTokens.chromePaddingContentHorizontal)
         .frame(minHeight: 36, maxHeight: 36)
         .frame(maxWidth: .infinity)
         .disabled(!hasUsableKey)
