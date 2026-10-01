@@ -79,7 +79,7 @@ struct BackgroundReviewView: View {
                     .buttonStyle(.bordered)
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, DesignTokens.chromePaddingMicro)
         }
     }
 
