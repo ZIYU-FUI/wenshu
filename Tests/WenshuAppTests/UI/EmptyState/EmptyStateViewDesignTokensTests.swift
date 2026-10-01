@@ -51,24 +51,24 @@ struct EmptyStateViewDesignTokensTests {
     }
 
     /// 
-    /// `DesignTokens.chromePaddingEmptyStateGap`.
+    /// `DesignTokens.spacingSection`.
     @Test("icon_title_gap_usesDesignTokens_chromePaddingEmptyStateGap")
     func icon_title_gap_usesDesignTokens_chromePaddingEmptyStateGap() throws {
         let src = try Self.loadEmptyStateSource()
         #expect(
-            src.contains("DesignTokens.chromePaddingEmptyStateGap"),
-            "EmptyStateView must reference DesignTokens.chromePaddingEmptyStateGap"
+            src.contains("DesignTokens.spacingSection"),
+            "EmptyStateView must reference DesignTokens.spacingSection"
         )
     }
 
     /// 
-    /// `DesignTokens.chromePaddingSmall`.
+    /// `DesignTokens.spacingTight`.
     @Test("title_body_gap_usesDesignTokens_chromePaddingSmall")
     func title_body_gap_usesDesignTokens_chromePaddingSmall() throws {
         let src = try Self.loadEmptyStateSource()
         #expect(
-            src.contains("DesignTokens.chromePaddingSmall"),
-            "EmptyStateView must reference DesignTokens.chromePaddingSmall"
+            src.contains("DesignTokens.spacingTight"),
+            "EmptyStateView must reference DesignTokens.spacingTight"
         )
     }
 
@@ -100,8 +100,8 @@ struct EmptyStateViewDesignTokensTests {
             "DesignTokens.emptyStateIconSize must be 76 PT"
         )
         #expect(
-            tokens.contains("chromePaddingEmptyStateGap: CGFloat = 22"),
-            "DesignTokens.chromePaddingEmptyStateGap must be 22 PT"
+            tokens.contains("spacingSection: CGFloat = 24"),
+            "DesignTokens.spacingSection must be 24 PT (= the v3.0 HIG calibration; = empty-state icon→title gap)"
         )
     }
 }
