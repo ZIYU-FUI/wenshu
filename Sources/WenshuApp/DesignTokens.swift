@@ -235,43 +235,6 @@ enum DesignTokens {
     /// icon-to-text gap.
     static let spacingSection: CGFloat = 24
 
-    // MARK: - Deprecated alias (= chromePadding*)
-    //
-    // Retained as deprecated (= `= spacingXXX` alias) for the
-    // v3.0 spacing-HIG-rename migration arc (= Phase A landed
-    // 2026-09-30; = Phase B replaces call sites; = Phase C
-    // deletes these aliases once call sites are zero). Boss
-    // 2026-09-30 '我觉得名字不如就按 Apple HIG 命名 / 应用位置
-    // 不如写在注释里': all position-bound names
-    // (= chromePaddingContentHorizontal / chromePaddingPickerItem /
-    // chromePaddingSectionHeaderTop / etc.) collapse into a
-    // single Apple HIG semantic name (= spacingModerate for the
-    // 10/12 PT range; = spacingHero for the 20 PT range; = etc.).
-
-    static let chromePaddingLeading: CGFloat = spacingStandard
-    static let chromePaddingTrailing: CGFloat = spacingStandard
-    static let chromePaddingVertical: CGFloat = spacingStandard
-    static let chromePaddingSectionTop: CGFloat = spacingLoose
-    static let chromePaddingSectionHeaderTop: CGFloat = spacingModerate
-    static let chromePaddingSectionHeaderBottom: CGFloat = spacingModerate
-    static let chromePaddingSectionHeaderGap: CGFloat = spacingIconic
-    static let chromePaddingMicro: CGFloat = spacingIconic
-    static let chromePaddingNano: CGFloat = spacingCaption
-    static let chromePaddingPico: CGFloat = spacingHairline
-    static let chromePaddingContentHorizontal: CGFloat = spacingModerate
-    static let chromePaddingSmall: CGFloat = spacingTight
-    static let chromePaddingXS: CGFloat = spacingIconic
-    static let chromePaddingMedium: CGFloat = spacingModerate
-    static let chromePaddingLarge: CGFloat = spacingLoose
-    static let chromePaddingXLarge: CGFloat = spacingSection
-    static let chromePaddingPickerItem: CGFloat = spacingModerate
-    static let chromePaddingHero: CGFloat = spacingHero
-    static let chromePaddingChatBottom: CGFloat = spacingModerate
-    static let chromePaddingChipHorizontal: CGFloat = spacingModerate
-    static let chromePaddingHotkeyVertical: CGFloat = spacingHairline
-    static let chromePaddingClusterGap: CGFloat = spacingIconic
-    static let chromePaddingEmptyStateGap: CGFloat = spacingSection
-
     // MARK: - Tab metrics
 
     /// Per-pane tab button hot area (= 28×28 PT). Matches Apple HIG
@@ -530,9 +493,9 @@ enum DesignTokens {
     /// ContentUnavailableView sample measured value). v1.0.0-m1-shell
     /// EmptyStateView.swift uses this for the icon→title vertical
     /// spacing. Single source of truth (= single owner at v0.71).
-    /// (= v3.0 spacing-HIG-rename: collapsed into spacingSection; =
-    /// the old position-bound name remains a deprecated alias below).
-    static let chromePaddingEmptyStateGap_DEPRECATED_REMOVE: CGFloat = 22
+    /// (= v3.0 spacing-HIG-rename: collapsed into spacingSection;
+    /// = old `chromePaddingEmptyStateGap` reference deleted in
+    /// Phase C = the value lives only as `spacingSection` = 24 PT).
 
     /// Sub-agent icon button size (= 22 PT, Apple HIG compact icon
     /// button standard). Replaces `.frame(width: DesignTokens.iconButtonSmall, height: DesignTokens.iconButtonSmall)`.
