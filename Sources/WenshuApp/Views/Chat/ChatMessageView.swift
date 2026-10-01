@@ -391,9 +391,10 @@ struct ChatMessageView: View {
                     // dropped the inline `.padding(.horizontal, 12)` (= L1 in
                     // ChatView.swift is now the single source of truth for
                     // chat-column horizontal padding; = maintenance = one place
-                    // to change). Kept the vertical 8 PT (= row vertical breathing
-                    // room; = matches Apple HIG py-2 vertical row gap convention).
-                    .padding(.vertical, 8)
+                    // to change). Kept the vertical chromePaddingVertical
+                    // (= 8 PT; = row vertical breathing room; = matches Apple
+                    // HIG py-2 vertical row gap convention).
+                    .padding(.vertical, DesignTokens.chromePaddingVertical)
                     .wenshuChatHover()
                 }
                 // T19-MESSAGE-TIMESTAMP (2026-09-18): render a small
@@ -512,11 +513,13 @@ private struct UserGlassCardModifier: ViewModifier {
             // = chat transcript content sits flush against the chat
             // column edge; = the user card L2 inner padding below is
             // the SOLE source of horizontal padding for user cards; =
-            // user card text ↔ card edge = 10 PT; = preserved per E7).
-            // Vertical 6 PT retained (= card height breathing room).
+            // user card text ↔ card edge = chromePaddingContentHorizontal
+            // (= 10 PT; = preserved per E7).
+            // Vertical chromePaddingSmall (= 6 PT) retained (= card height
+            // breathing room).
             content
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
+                .padding(.vertical, DesignTokens.chromePaddingSmall)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 // -cleanup E9 boss 2026-09-21 '现在改用户说话的枢，加液态玻璃':
                 // apply the macOS 27 `.glassEffect(.regular)` API
