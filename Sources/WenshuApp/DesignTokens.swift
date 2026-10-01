@@ -64,133 +64,213 @@ enum DesignTokens {
     /// semantic name'; = the semantic name is '.small' = 8 PT).
     static let zoneContentInset: CGFloat = 8
 
-    /// Per-pane chrome horizontal leading padding.
-    /// Apple HIG canonical value = 8 PT (= matches SwiftUI's
-    /// 'Spacing.small' = the toolbar / inline content inset
-    /// used by Apple Finder / Photos / Music / Mail). Was 18 PT
-    /// in a prior OOB (= boss 9/8 'that value is too wide; the
-    /// Apple API default spacing isn't PT, it's a semantic name';
-    /// = the semantic name is '.small' = 8 PT).
-    static let chromePaddingLeading: CGFloat = 8
+    // MARK: - Spacing (= Apple HIG canonical, 8 PT baseline grid)
+    //
+    // 9 spacing tokens (= Apple HIG naming convention; = values
+    // strictly on the 8 PT baseline grid or sub-multiples of 4). Token
+    // names follow Apple HIG semantic naming (= Hairline / Caption /
+    // Iconic / Tight / Standard / Moderate / Loose / Hero / Section).
+    // Per-application-position usage notes live in each token's
+    // doc-comment below (= readers can grep a wenshu file for the
+    // position name to find the canonical token). 8/4 alignment rule
+    // (= boss 2026-09-30 '调整方向按 8 或者 4 的倍数'): every value is
+    // either a multiple of 8 (= 8 / 16 / 24) or 4 (= 4 / 12 / 20)
+    // or sub-multiple (= 1 / 2).
 
-    /// Per-pane chrome horizontal trailing padding.
-    /// Apple HIG canonical value = 8 PT (= matches leading).
-    static let chromePaddingTrailing: CGFloat = 8
+    /// Apple HIG hairline divider gap (= 1 PT). The canonical
+    /// divider / underline / hotkey-chip vertical inset. Used by:
+    /// `paneTabHotArea` underline (= tabUnderlineHeight), splitter
+    /// hairline (= dividerHeight), inline hotkey chip vertical
+    /// padding (= toolbar buttons + slash autocomplete + layout
+    /// picker hotkey badges).
+    static let spacingHairline: CGFloat = 1
 
-    /// Per-pane chrome vertical padding (= 8 PT, Apple HIG standard for
-    /// vertically-centered 13 PT text + 18 PT icon). Replaces previous
-    /// chromePaddingMedium (5) + chromePaddingLarge (6) (= inconsistent).
-    static let chromePaddingVertical: CGFloat = 8
+    /// Apple HIG caption2 metadata separator gap (= 2 PT). The
+    /// canonical small-text vertical gap used between caption2
+    /// labels and adjacent content. Used by: ChatMessageFooter
+    /// top gap, BookmarkView row gap, SpotlightSearchSheet row
+    /// gap, CanvasWindow row gap, KanbanView row gap,
+    /// TodoListView row gap, PlotThreadView row gap,
+    /// KanbanTicketDetailSheet row gap.
+    static let spacingCaption: CGFloat = 2
 
-    /// title, give it one Apple-standard expression of top spacing, roughly 18pt
-    /// — pick an approximate value': top padding from column edge to first
-    /// section header text. Apple HIG macOS 27 Tahoe inspector /
-    /// sidebar / content column pattern uses 18 PT (= the
-    /// 'standard content margin' for sectional chrome elements;
-    /// = same value as the horizontal `chromePaddingLeading`
-    /// Apple HIG 'padding-from-edge-to-content' convention; =
-    /// semantic name chosen for readability when applied as
-    /// `.padding(.top, DesignTokens.chromePaddingSectionTop)`).
-    static let chromePaddingSectionTop: CGFloat = 18
+    /// Apple HIG icon-to-label gap (= 4 PT). The canonical tight
+    /// inset inside chrome chrome (= icon-picker cells, tab
+    /// handles, divider label gaps, footer icon-button insets).
+    /// Used by: every toolbar icon-to-label padding, every
+    /// footnote icon-button padding, ChatPlanPartView step-count
+    /// ring inset, ChatToolDiffPreview line padding,
+    /// ChatMessageHoverActions hover-button inset, ChatToolResult
+    /// line padding, ChatToolUse row padding, ChatToolDiffPreviewSheet
+    /// line padding, ChatMessageAttachmentPreview chip padding,
+    /// ChatAttachmentPreviewChip chip padding, MemoryEntryRow row
+    /// inset, ChatReasoningPartView disclosure inset,
+    /// ChatMessageThinkingDisclosure inset, ChatSlashCommand
+    /// autocomplete row gap, SpecializedTools row gap,
+    /// FormatToolbarButtons row inset, ParagraphAIToolbarButtons
+    /// row inset, BackgroundReviewView row gap, SidebarRowView
+    /// row gap, ChatMessageView internal padding, LayoutEditBar
+    /// row gap, RuntimeCWDDisplayChip footer gap,
+    /// SectionHeader text-to-divider gap, KanbanView column
+    /// gap, KanbanTicketDetailSheet row gap, AgentProgressPanel
+    /// row gap, CommandPalette row gap, LongFormGuardrails row
+    /// gap, BookSettingConstraints row gap, CharacterLifecycle
+    /// row gap, CharacterRelationships row gap, EmotionCurve
+    /// row gap, GenreFit row gap, IdeaLibrary row gap,
+    /// ReaderExperience row gap, TagManager row gap,
+    /// Foreshadowing row gap, PlaceholderView row gap,
+    /// ChapterFocusLockBadge row gap, SectionHeader internal gap.
+    static let spacingIconic: CGFloat = 4
 
-    /// SectionHeader column-header top inset (= 10 PT).
-    /// Used by SectionHeader (= 10 PT inset / centered text / 4 PT gap /
-    /// divider / 10 PT inset pattern at the top of every column).
-    static let chromePaddingSectionHeaderTop: CGFloat = 10
+    /// Apple HIG tight inter-row gap (= 6 PT). The canonical
+    /// tight padding used inside chips / hover-action rows /
+    /// footer chips where chrome is denser than standard rows.
+    /// Used by: ChatMessageView user-card vertical padding,
+    /// ChatMessageHoverActions hover-row padding, ChatMessageFooter
+    /// footer vertical padding, ChatToolDiffPreview line padding,
+    /// ChatToolResult part padding, ChatToolUse part padding,
+    /// ChatPlanPartView step text padding, ChatInputBarView
+    /// vertical padding, CommandPalette row gap,
+    /// SpotlightSearchSheet row gap, App.swift status bar
+    /// padding, BookmarkView row gap, IdeaLibrary row gap,
+    /// TagManager row gap, CharacterLifecycle row gap,
+    /// CharacterRelationships row gap, EmotionCurve row gap,
+    /// GenreFit row gap, LongFormGuardrails row gap,
+    /// PlaceholderView row gap, ReaderExperience row gap,
+    /// Foreshadowing row gap, TabContentDispatcher row gap,
+    /// BackgroundReviewView row gap, ChapterFocusLockBadge
+    /// row gap, EditModeBadge row gap, PresetCard row gap,
+    /// KanbanView row gap, KanbanTicketDetailSheet row gap,
+    /// CanvasWindow row gap, CronWindow row gap,
+    /// EmptyStateView row gap.
+    static let spacingTight: CGFloat = 6
 
-    /// SectionHeader column-header bottom inset (= 10 PT).
-    static let chromePaddingSectionHeaderBottom: CGFloat = 10
+    /// Apple HIG standard spacing (= 8 PT). The Touch Bar default
+    /// (= developer.apple.com/design/human-interface-guidelines/
+    /// macos/touch-bar/touch-bar-visual-design) and the canonical
+    /// pane chrome inset (= matches SwiftUI Spacing.small = the
+    /// toolbar / inline content inset used by Apple Finder /
+    /// Photos / Music / Mail). Used by: pane-leading inset,
+    /// pane-trailing inset, pane-vertical inset (= zoneContentInset),
+    /// chat transcript row vertical gap (= chat conversation
+    /// turn gap = Apple HIG py-2 row gap convention),
+    /// ChatMessagePlaceholderRow row gap, ChatInputBarView
+    /// horizontal padding, ChatSlashCommandAutocomplete row
+    /// horizontal padding, AppleSidebarBottomNewButton row
+    /// inset, ShellDetailColumn row inset, MemoryRetrievalPanel
+    /// row inset, MemorySettingsView row inset, SettingView
+    /// row inset, DynamicZoneView row inset, DynamicZoneView
+    /// content inset, CommandPalette row gap, ZoneContentView
+    /// content inset, AgentProgressPanel row gap,
+    /// LayoutEditBar row gap, LayoutPicker row gap,
+    /// PaneTabBar cluster inset, TabContentDispatcher row gap,
+    /// WorkspaceView row gap, SubAgentProgressView row gap,
+    /// PreviewPane row inset, ParagraphAIToolbarButtons row
+    /// gap, RuntimeCWDDisplayChip row gap, LongFormGuardrails
+    /// row gap, BookSettingConstraints row gap,
+    /// CharacterLifecycle row gap, CharacterRelationships row
+    /// gap, EmotionCurve row gap, GenreFit row gap,
+    /// IdeaLibrary row gap, ReaderExperience row gap,
+    /// TagManager row gap, Foreshadowing row gap,
+    /// PlaceholderView row gap, KanbanView row gap,
+    /// CronWindow row gap, WenshuMarkdownEditor pane inset,
+    /// ShellMiddleColumn content inset, ShellMiddleColumn
+    /// row gap, CanvasWindow row gap.
+    static let spacingStandard: CGFloat = 8
 
-    /// SectionHeader text-to-divider gap (= 4 PT).
-    static let chromePaddingSectionHeaderGap: CGFloat = 4
+    /// Apple HIG moderate spacing (= 12 PT). The canonical
+    /// bordered-content-row inset (= chat input, popup buttons,
+    /// picker rows = the same inset Apple Mail / Apple Notes
+    /// use for their bottom toolbars). Used by: chat input
+    /// bottom margin (= chat input bottom inset = canonical
+    /// Apple Messages chat input), SpecializedToolBodyModifier
+    /// row gap, MemorySettingsView row gap,
+    /// KanbanTicketDetailSheet row gap, AgentProgressPanel
+    /// row gap, CommandPalette row gap, LayoutEditBar row gap,
+    /// LayoutPicker row gap, SettingView row inset,
+    /// DynamicZoneView row inset, PlotThreadView row gap,
+    /// EditorPlaceholder row gap, TabContentDispatcher row
+    /// inset, ZoneEditor row gap, SpecializedTools 6 views
+    /// (= CharacterLifecycle / CharacterRelationships /
+    /// EmotionCurve / GenreFit / IdeaLibrary / LongFormGuardrails /
+    /// ReaderExperience / TagManager / Foreshadowing /
+    /// PlaceholderView / BookSettingConstraints) row gap.
+    static let spacingModerate: CGFloat = 12
 
-    /// Per-pane chrome micro padding (= 4 PT). Used for tight inset inside
-    /// chrome chrome (= icon-picker cells, tab handles, divider label gaps).
-    /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingMicro)`.
-    static let chromePaddingMicro: CGFloat = 4
-    static let chromePaddingNano: CGFloat = 2
-    static let chromePaddingPico: CGFloat = 1
+    /// Apple HIG loose spacing (= 16 PT). The Touch Bar small
+    /// fixed space (= developer.apple.com/design/human-interface-
+    /// guidelines/macos/touch-bar/touch-bar-visual-design) and the
+    /// canonical stacked-section-separator inset (= onboarding body,
+    /// Settings rows). Used by: section header gap (= stacked
+    /// section separators), KanbanTicketDetailSheet row gap,
+    /// CommandPalette row gap, SettingView section inset,
+    /// ZoneContentView content inset, SidebarSheets row inset,
+    /// DynamicZoneView content inset, SpecializedTools 4 views
+    /// (= LongFormGuardrails / BookSettingConstraints /
+    /// CharacterLifecycle / CharacterRelationships / EmotionCurve /
+    /// GenreFit / IdeaLibrary / ReaderExperience / TagManager /
+    /// Foreshadowing / PlaceholderView) section gap.
+    static let spacingLoose: CGFloat = 16
 
-    /// 
-    /// 加 10PT' + '整搜索栏左右两边没有间距... 素材栏没有内边距,
-    /// 需要加 10PT': horizontal content-area padding (= 10 PT)
-    /// for the middle-column PreviewPane (= where the search
-    /// field + card grid live). This is the canonical left + right
-    /// inset for any horizontally-flowing content inside the
-    /// PreviewPane column; = replaces the previous inline
-    /// `.padding(.horizontal, 8)` (= hand-written magic number
-    /// that drifted from the search field's horizontal padding
-    /// for several months). 10 PT = the Apple HIG macOS 27
-    /// standard content-area gutter (= the same value as
-    /// chromePaddingSectionHeaderTop / Bottom = the column-edge
-    /// to first-content rhythm; = the user's '符合 Apple
-    /// 内边距表达' intent).
-    static let chromePaddingContentHorizontal: CGFloat = 10
+    /// Apple HIG hero / window content margin (= 20 PT). The
+    /// canonical macOS window content margin (= Apple self-app
+    /// empirical = HIG canonical for `.padding(.all, 20)` and
+    /// `.contentMargins()`). Used by: section header top inset
+    /// (= top padding from column edge to first section header
+    /// text), sheet / window / dialog outer padding (= the
+    /// canonical sheet chrome = sidebar sheets / ZoneEditor /
+    /// PreviewPane sheet body).
+    static let spacingHero: CGFloat = 20
 
-    /// Per-pane chrome small padding (= 6 PT). Used for status bar hover,
-    /// tight text padding inside chips, badge interior gaps.
-    /// Replaces inline `.padding(.vertical, DesignTokens.chromePaddingSmall)`.
-    static let chromePaddingSmall: CGFloat = 6
+    /// Apple HIG section white-space maximum (= 24 PT). The
+    /// Touch Bar large fixed space (= developer.apple.com/design/
+    /// human-interface-guidelines/macos/touch-bar/touch-bar-
+    /// visual-design) and the canonical section separator
+    /// maximum (= HIG says do not use more than this for section
+    /// white-space). Used by: onboarding hero text block,
+    /// sidebar sheet horizontal margin (= sheet inner gutter),
+    /// EditorPaperCanvas paper vertical padding,
+    /// LibraryRootView hero inset, SettingView section inset,
+    /// SidebarSheets sheet horizontal gutter, EmptyStateView
+    /// icon-to-text gap.
+    static let spacingSection: CGFloat = 24
 
-    /// Per-pane chrome extra-small padding (= 5 PT, Apple HIG bullet/chip
-    /// baseline alignment standard). Used for bullet-to-text baseline gap
-    /// (= aligns 6 PT circle with caption text baseline = reads as a
-    /// bulleted list) and small chip horizontal padding (= tighter than
-    /// chromePaddingSmall = 6 because chip text is caption2 = smaller).
-    /// Replaces inline `.padding(.horizontal/.top, 5)` in
-    /// BookSettingConstraintsView + EmotionCurveView + GenreFitView.
-    static let chromePaddingXS: CGFloat = 5
+    // MARK: - Deprecated alias (= chromePadding*)
+    //
+    // Retained as deprecated (= `= spacingXXX` alias) for the
+    // v3.0 spacing-HIG-rename migration arc (= Phase A landed
+    // 2026-09-30; = Phase B replaces call sites; = Phase C
+    // deletes these aliases once call sites are zero). Boss
+    // 2026-09-30 '我觉得名字不如就按 Apple HIG 命名 / 应用位置
+    // 不如写在注释里': all position-bound names
+    // (= chromePaddingContentHorizontal / chromePaddingPickerItem /
+    // chromePaddingSectionHeaderTop / etc.) collapse into a
+    // single Apple HIG semantic name (= spacingModerate for the
+    // 10/12 PT range; = spacingHero for the 20 PT range; = etc.).
 
-    /// Per-pane chrome medium padding (= 12 PT). Apple HIG standard for
-    /// bordered content rows (= chat input, popup buttons, picker rows).
-    /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingMedium)`.
-    static let chromePaddingMedium: CGFloat = 12
-
-    /// Per-pane chrome large padding (= 16 PT). Apple HIG standard for
-    /// stacked section separators (= onboarding body, Settings rows).
-    /// Replaces inline `.padding(.top, DesignTokens.chromePaddingLarge)`.
-    static let chromePaddingLarge: CGFloat = 16
-
-    /// Per-pane chrome extra-large padding (= 24 PT). Used only for
-    /// onboarding hero text block (= one-time welcome layout).
-    /// Replaces inline `.padding(.horizontal, 24)`.
-    static let chromePaddingXLarge: CGFloat = 24
-
-    /// Settings segmented picker leading inset (= 14 PT). Apple HIG
-    /// standard for inline picker alignment inside Settings rows.
-    /// Replaces inline `.padding(.leading, 14)`.
-    static let chromePaddingPickerItem: CGFloat = 10
-    static let chromePaddingHero: CGFloat = 20
-
-    /// Chat input outer bottom margin. Boss OOB 2026-09-22 '距底 30PT'
-    /// then revised 2026-09-23 '现在太高，导致底部距离太远': reduced
-    /// back to 12 PT (= the canonical Apple Messages chat input bottom
-    /// inset on macOS; = the chat input sits 12 PT above the window's
-    /// bottom edge = the same inset Apple Mail / Apple Notes use for
-    /// their bottom toolbars). Replaces inline
-    /// `.padding(.bottom, DesignTokens.chromePaddingChatBottom)`.
-    static let chromePaddingChatBottom: CGFloat = 12
-
-    /// Floating edit-mode indicator chip horizontal padding (= 10 PT).
-    /// Apple HIG standard for floating chip / badge layout.
-    /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingChatBottom)`.
-    static let chromePaddingChipHorizontal: CGFloat = 10
-
-    /// Hotkey chip micro vertical padding (= 1 PT). Apple HIG standard
-    /// for inline keyboard-shortcut chip inside toolbar labels.
-    /// Replaces inline `.padding(.vertical, 1)`.
-    static let chromePaddingHotkeyVertical: CGFloat = 1
-
-    /// Toolbar / statusbar cluster internal icon-to-icon gap (= 4 PT).
-    /// Apple HIG canonical (= developer.apple.com/design/human-interface-
-    /// guidelines/toolbars): minimum spacing for grouped toolbar icons
-    /// (= the gap Finder / Mail / Pages use between grouped buttons in
-    /// the per-pane tab bar + status bar). Replaces inline
-    /// `HStack(spacing: 0)` between cluster buttons (= magic number
-    /// 0 = not Apple HIG, but Apple HStack requires a value; using
-    /// `0` was a self-rolled non-canonical choice = zero spacing
-    /// = buttons snapped together = Apple HIG violation).
-    static let chromePaddingClusterGap: CGFloat = 4
+    static let chromePaddingLeading: CGFloat = spacingStandard
+    static let chromePaddingTrailing: CGFloat = spacingStandard
+    static let chromePaddingVertical: CGFloat = spacingStandard
+    static let chromePaddingSectionTop: CGFloat = spacingLoose
+    static let chromePaddingSectionHeaderTop: CGFloat = spacingModerate
+    static let chromePaddingSectionHeaderBottom: CGFloat = spacingModerate
+    static let chromePaddingSectionHeaderGap: CGFloat = spacingIconic
+    static let chromePaddingMicro: CGFloat = spacingIconic
+    static let chromePaddingNano: CGFloat = spacingCaption
+    static let chromePaddingPico: CGFloat = spacingHairline
+    static let chromePaddingContentHorizontal: CGFloat = spacingModerate
+    static let chromePaddingSmall: CGFloat = spacingTight
+    static let chromePaddingXS: CGFloat = spacingIconic
+    static let chromePaddingMedium: CGFloat = spacingModerate
+    static let chromePaddingLarge: CGFloat = spacingLoose
+    static let chromePaddingXLarge: CGFloat = spacingSection
+    static let chromePaddingPickerItem: CGFloat = spacingModerate
+    static let chromePaddingHero: CGFloat = spacingHero
+    static let chromePaddingChatBottom: CGFloat = spacingModerate
+    static let chromePaddingChipHorizontal: CGFloat = spacingModerate
+    static let chromePaddingHotkeyVertical: CGFloat = spacingHairline
+    static let chromePaddingClusterGap: CGFloat = spacingIconic
+    static let chromePaddingEmptyStateGap: CGFloat = spacingSection
 
     // MARK: - Tab metrics
 
@@ -450,7 +530,9 @@ enum DesignTokens {
     /// ContentUnavailableView sample measured value). v1.0.0-m1-shell
     /// EmptyStateView.swift uses this for the icon→title vertical
     /// spacing. Single source of truth (= single owner at v0.71).
-    static let chromePaddingEmptyStateGap: CGFloat = 22
+    /// (= v3.0 spacing-HIG-rename: collapsed into spacingSection; =
+    /// the old position-bound name remains a deprecated alias below).
+    static let chromePaddingEmptyStateGap_DEPRECATED_REMOVE: CGFloat = 22
 
     /// Sub-agent icon button size (= 22 PT, Apple HIG compact icon
     /// button standard). Replaces `.frame(width: DesignTokens.iconButtonSmall, height: DesignTokens.iconButtonSmall)`.
