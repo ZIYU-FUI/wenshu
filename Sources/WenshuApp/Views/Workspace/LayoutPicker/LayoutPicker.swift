@@ -69,8 +69,8 @@ struct LayoutPicker: View {
                     )
                 }
             }
-            .padding(.horizontal, DesignTokens.chromePaddingMedium)
-            .padding(.top, DesignTokens.chromePaddingMedium)
+            .padding(.horizontal, DesignTokens.spacingModerate)
+            .padding(.top, DesignTokens.spacingModerate)
 
             // Custom presets section (= user-saved = NOT built-in;
             // hidden if empty per spec §"Acceptance criteria" #4).
@@ -83,7 +83,7 @@ struct LayoutPicker: View {
                             .foregroundStyle(.secondary)
                         Spacer()
                     }
-                    .padding(.horizontal, DesignTokens.chromePaddingMedium)
+                    .padding(.horizontal, DesignTokens.spacingModerate)
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(customPresets) { preset in
                             PresetCard(
@@ -98,7 +98,7 @@ struct LayoutPicker: View {
                             )
                         }
                     }
-                    .padding(.horizontal, DesignTokens.chromePaddingMedium)
+                    .padding(.horizontal, DesignTokens.spacingModerate)
                 }
             }
 
@@ -113,7 +113,7 @@ struct LayoutPicker: View {
                         .font(.caption)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, DesignTokens.chromePaddingVertical)
+                .padding(.vertical, DesignTokens.spacingStandard)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
@@ -121,12 +121,12 @@ struct LayoutPicker: View {
                 )
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, DesignTokens.chromePaddingMedium)
+            .padding(.horizontal, DesignTokens.spacingModerate)
             .sheet(isPresented: $showingZoneEditor) {
                 ZoneEditor(store: store)
             }
 
-            Divider().padding(.horizontal, DesignTokens.chromePaddingMedium)
+            Divider().padding(.horizontal, DesignTokens.spacingModerate)
 
             // Save-current-as-preset input reveal (= the button
             // shows initially; on click it expands into a text
@@ -145,12 +145,12 @@ struct LayoutPicker: View {
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignTokens.chromePaddingVertical)
+                    .padding(.vertical, DesignTokens.spacingStandard)
                     
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                .padding(.bottom, DesignTokens.chromePaddingMedium)
+                .padding(.horizontal, DesignTokens.spacingModerate)
+                .padding(.bottom, DesignTokens.spacingModerate)
             }
         }
         .frame(width: DesignTokens.layoutPickerWidth)
@@ -203,12 +203,12 @@ struct LayoutPicker: View {
                 }
                 .buttonStyle(.borderless)
             }
-            .padding(.horizontal, DesignTokens.chromePaddingMedium)
+            .padding(.horizontal, DesignTokens.spacingModerate)
             Text(WenshuI18n.t("auto.layoutpicker.l210.h18923044"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                .padding(.bottom, DesignTokens.chromePaddingMedium)
+                .padding(.horizontal, DesignTokens.spacingModerate)
+                .padding(.bottom, DesignTokens.spacingModerate)
         }
     }
 

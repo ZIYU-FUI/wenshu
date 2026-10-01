@@ -74,7 +74,7 @@ struct ReaderExperienceView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             pickerRow
             inputSection
             Divider()
@@ -85,7 +85,7 @@ struct ReaderExperienceView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(DesignTokens.chromePaddingMedium)
+        .padding(DesignTokens.spacingModerate)
         .task {
             ensureAnalyzer()
         }
@@ -94,7 +94,7 @@ struct ReaderExperienceView: View {
     // MARK: - Picker
 
     private var pickerRow: some View {
-        HStack(spacing: DesignTokens.chromePaddingVertical) {
+        HStack(spacing: DesignTokens.spacingStandard) {
             Text(WenshuI18n.t("b5.readerexperienceview.l130.h50931159"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -118,8 +118,8 @@ struct ReaderExperienceView: View {
     // MARK: - Input
 
     private var inputSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
-            HStack(spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 Text(WenshuI18n.t("b5.readerexperienceview.l155.h15975486"))
                     .font(.callout)
                     .foregroundStyle(.primary)
@@ -131,9 +131,9 @@ struct ReaderExperienceView: View {
             TextEditor(text: $chapterText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
-                .padding(DesignTokens.chromePaddingSmall)
+                .padding(DesignTokens.spacingTight)
                 
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
@@ -175,8 +175,8 @@ struct ReaderExperienceView: View {
 
 
     private func resultSection(for report: ReaderExperienceReport) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingVertical) {
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 Image(systemName: report.kind.icon).imageScale(.small)
                     .foregroundStyle(.tint)
                 Text(report.kind.displayName)
@@ -198,7 +198,7 @@ struct ReaderExperienceView: View {
                 suggestionsSection(report.suggestions)
             }
         }
-        .padding(DesignTokens.chromePaddingPickerItem)
+        .padding(DesignTokens.spacingModerate)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         
     }
@@ -212,8 +212,8 @@ struct ReaderExperienceView: View {
         return Text(WenshuI18n.t("b5.readerexperienceview.l247.h50530381"))
             .font(.caption2)
             .foregroundStyle(.primary)
-            .padding(.horizontal, DesignTokens.chromePaddingSmall)
-            .padding(.vertical, DesignTokens.chromePaddingPico)
+            .padding(.horizontal, DesignTokens.spacingTight)
+            .padding(.vertical, DesignTokens.spacingHairline)
             .background(
                 RoundedRectangle(cornerRadius: 3)
                     .fill(color)
@@ -221,18 +221,18 @@ struct ReaderExperienceView: View {
     }
 
     private func highlightsSection(_ highlights: [ReaderExperienceHighlight]) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.readerexperienceview.l260.h48696486"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 ForEach(Array(highlights.enumerated()), id: \.offset) { _, h in
-                    HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
+                    HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                         Text(h.label)
                             .font(.caption2)
                             .foregroundStyle(.tint)
-                            .padding(.horizontal, DesignTokens.chromePaddingMicro)
-                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            .padding(.horizontal, DesignTokens.spacingIconic)
+                            .padding(.vertical, DesignTokens.spacingHairline)
                             
                         Text(WenshuI18n.t("b5.readerexperienceview.l275.h51340592"))
                             .font(.caption)
@@ -246,13 +246,13 @@ struct ReaderExperienceView: View {
     }
 
     private func suggestionsSection(_ suggestions: [ReaderExperienceSuggestion]) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.readerexperienceview.l288.h40277958"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { _, s in
-                    HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
+                    HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                         Text(WenshuI18n.t("b5.readerexperienceview.l294.h54608200"))
                             .font(.caption)
                             .foregroundStyle(.tint)

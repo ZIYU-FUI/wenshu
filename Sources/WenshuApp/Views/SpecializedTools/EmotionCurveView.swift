@@ -81,7 +81,7 @@ struct EmotionCurveView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             pickerRow
             inputSection
             Divider()
@@ -92,7 +92,7 @@ struct EmotionCurveView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(DesignTokens.chromePaddingMedium)
+        .padding(DesignTokens.spacingModerate)
         .task {
             ensureAnalyzer()
         }
@@ -101,7 +101,7 @@ struct EmotionCurveView: View {
     // MARK: - Picker
 
     private var pickerRow: some View {
-        HStack(spacing: DesignTokens.chromePaddingVertical) {
+        HStack(spacing: DesignTokens.spacingStandard) {
             Text(WenshuI18n.t("b5.emotioncurveview.l137.h23463773"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -123,8 +123,8 @@ struct EmotionCurveView: View {
     // MARK: - Input
 
     private var inputSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
-            HStack(spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 Text(WenshuI18n.t("b5.emotioncurveview.l167.h48770099"))
                     .font(.callout)
                     .foregroundStyle(.primary)
@@ -136,9 +136,9 @@ struct EmotionCurveView: View {
             TextEditor(text: $chapterText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
-                .padding(DesignTokens.chromePaddingSmall)
+                .padding(DesignTokens.spacingTight)
                 
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
@@ -183,7 +183,7 @@ struct EmotionCurveView: View {
         VStack(alignment: .leading, spacing: 10) {
             curveChart(for: report)
                 .frame(height: DesignTokens.zoneEditorWidth)
-                .padding(DesignTokens.chromePaddingVertical)
+                .padding(DesignTokens.spacingStandard)
                 
             HStack(spacing: 10) {
                 metricBadge(title: "Overall", value: String(format: "%+.2f", report.overallScore))
@@ -191,7 +191,7 @@ struct EmotionCurveView: View {
                 metricBadge(title: "Flat spots", value: "\(report.flatSpots.count)")
                 metricBadge(title: "Lifts", value: "\(report.suggestedLifts.count)")
             }
-            HStack(alignment: .top, spacing: DesignTokens.chromePaddingMedium) {
+            HStack(alignment: .top, spacing: DesignTokens.spacingModerate) {
                 indexColumn(title: "Flat spots",
                             items: report.flatSpots.map { String($0) },
                             tint: Color(nsColor: .systemGray))
@@ -204,7 +204,7 @@ struct EmotionCurveView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(DesignTokens.chromePaddingPickerItem)
+        .padding(DesignTokens.spacingModerate)
         
     }
 
@@ -217,29 +217,29 @@ struct EmotionCurveView: View {
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.primary)
         }
-        .padding(.horizontal, DesignTokens.chromePaddingVertical)
-        .padding(.vertical, DesignTokens.chromePaddingMicro)
+        .padding(.horizontal, DesignTokens.spacingStandard)
+        .padding(.vertical, DesignTokens.spacingIconic)
         .frame(minWidth: 64, alignment: .leading)
         
     }
 
     private func indexColumn(title: String, items: [String], tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 if items.isEmpty {
                     Text(WenshuI18n.t("b5.emotioncurveview.l280.h69702322"))
                         .font(.caption)
                         .foregroundStyle(DesignTokens.statusForeground)
                 } else {
                     ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                        HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
+                        HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                             Circle()
                                 .fill(tint)
                                 .frame(width: DesignTokens.bulletSizeTiny, height: DesignTokens.bulletSizeTiny)
-                                .padding(.top, DesignTokens.chromePaddingXS)
+                                .padding(.top, DesignTokens.spacingIconic)
                             Text(item)
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.primary)

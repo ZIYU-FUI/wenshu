@@ -37,11 +37,11 @@ struct SectionHeader: View {
     }
 
     var body: some View {
-        VStack(spacing: DesignTokens.chromePaddingSectionHeaderGap) {
+        VStack(spacing: DesignTokens.spacingIconic) {
             // 10 PT top inset (= the column-header pattern; = the
             // rest of the panes keep the older 18 PT top inset
             // unchanged).
-            Color.clear.frame(height: DesignTokens.chromePaddingSectionHeaderTop)
+            Color.clear.frame(height: DesignTokens.spacingModerate)
 
             HStack {
                 Spacer()
@@ -60,7 +60,7 @@ struct SectionHeader: View {
             // the hairline a settled 'pad' before the content
             // starts; = matches the previous PreviewPane .padding
             // (.bottom, 4) + sidebar (no inset) net visual weight).
-            Color.clear.frame(height: DesignTokens.chromePaddingSectionHeaderBottom)
+            Color.clear.frame(height: DesignTokens.spacingModerate)
         }
     }
 }

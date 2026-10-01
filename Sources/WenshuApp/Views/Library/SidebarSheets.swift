@@ -94,7 +94,7 @@ struct NewChoiceSheet: View {
         VStack(spacing: 24) {
             Text(WenshuI18n.t("new_choice_sheet_title"))
                 .font(.title2.weight(.semibold))
-                .padding(.top, DesignTokens.chromePaddingLarge)
+                .padding(.top, DesignTokens.spacingLoose)
             HStack(spacing: 16) {
                 NewChoiceCard(
                     title: WenshuI18n.t("new_choice_shelf_title"),
@@ -118,7 +118,7 @@ struct NewChoiceSheet: View {
             // body VStack; = Apple has no system API for non-scrollable
             // outer padding; = scrollable containers use
             // .contentMargins instead (= not applicable here)).
-            .padding(.horizontal, DesignTokens.chromePaddingXLarge)
+            .padding(.horizontal, DesignTokens.spacingSection)
             Spacer(minLength: 0)
             HStack {
                 Spacer()
@@ -130,8 +130,8 @@ struct NewChoiceSheet: View {
             // non-scrollable sheet body VStack; = Apple has no system
             // API for non-scrollable outer padding; = scrollable
             // containers use .contentMargins instead).
-            .padding(.horizontal, DesignTokens.chromePaddingXLarge)
-            .padding(.bottom, DesignTokens.chromePaddingLarge)
+            .padding(.horizontal, DesignTokens.spacingSection)
+            .padding(.bottom, DesignTokens.spacingLoose)
         }
         .frame(minWidth: 480, minHeight: 280)
     }
@@ -165,7 +165,7 @@ private struct NewChoiceCard: View {
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, minHeight: 140)
-            .padding(DesignTokens.chromePaddingLarge)
+            .padding(DesignTokens.spacingLoose)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(.tint.opacity(hovering ? 0.12 : 0.06))
@@ -240,7 +240,7 @@ struct NewShelfSheet: View {
             // chromePaddingHero (= 20 PT all-around) kept as DesignTokens
             // (= static non-scrollable sheet VStack; = Apple has no
             // system API for non-scrollable outer padding).
-            .padding(DesignTokens.chromePaddingHero)
+            .padding(DesignTokens.spacingHero)
             .navigationTitle(WenshuI18n.t("new_shelf_sheet_title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -395,7 +395,7 @@ struct NewBookSheet: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(.vertical, DesignTokens.chromePaddingMicro)
+                        .padding(.vertical, DesignTokens.spacingIconic)
                     }
                     .frame(maxHeight: 220)
             }
@@ -403,7 +403,7 @@ struct NewBookSheet: View {
             // chromePaddingHero (= 20 PT all-around) kept as DesignTokens
             // (= static non-scrollable sheet VStack; = Apple has no
             // system API for non-scrollable outer padding).
-            .padding(DesignTokens.chromePaddingHero)
+            .padding(DesignTokens.spacingHero)
             .navigationTitle(WenshuI18n.t("new_book_sheet_title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -492,7 +492,7 @@ struct RenameItemSheet: View {
             // chromePaddingHero (= 20 PT all-around) kept as DesignTokens
             // (= static non-scrollable sheet VStack; = Apple has no
             // system API for non-scrollable outer padding).
-            .padding(DesignTokens.chromePaddingHero)
+            .padding(DesignTokens.spacingHero)
             .navigationTitle(WenshuI18n.t("rename_item_sheet_title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

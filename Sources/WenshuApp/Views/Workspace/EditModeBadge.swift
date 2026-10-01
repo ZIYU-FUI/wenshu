@@ -6,7 +6,7 @@
 //
 // One view per file (Apple HIG). `EditModeBadge` has 1 `@Binding`
 // (`isEnabled: Bool`) and otherwise = pure stateless presentation.
-//  Already uses DesignTokens.chromePaddingChipHorizontal + .regularMaterial
+//  Already uses DesignTokens.spacingModerate + .regularMaterial
 //  (= Apple macOS 27 Liquid Glass canonical pattern per
 //  apple-self-check §2 row F). Already uses WenshuI18n.t
 //  for the label (= "workspace.layoutEditMode").
@@ -33,8 +33,8 @@ struct EditModeBadge: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
-            .padding(.vertical, DesignTokens.chromePaddingSmall)
+            .padding(.horizontal, DesignTokens.spacingModerate)
+            .padding(.vertical, DesignTokens.spacingTight)
             // followup Boss UX round 24: .regularMaterial
             // replaces the solid Color.secondary.opacity(0.15) tint
             // for the edit-mode badge background (= the floating

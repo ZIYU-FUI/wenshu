@@ -140,7 +140,7 @@ struct IdeaLibraryView: View {
     // MARK: - Body
 
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             addIdeaRow
             Divider()
             searchAndFilterRow
@@ -161,11 +161,11 @@ struct IdeaLibraryView: View {
     // MARK: - Add-idea row
 
     private var addIdeaRow: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             Text(WenshuI18n.t("b5.idealibraryview.l203.h90934644"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 TextField(WenshuI18n.t("b5.idealibraryview.l207.h52593776"), text: $draftTitle, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
@@ -211,11 +211,11 @@ struct IdeaLibraryView: View {
     // MARK: - Search + filter row
 
     private var searchAndFilterRow: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             Text(WenshuI18n.t("b5.idealibraryview.l253.h1120848"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 TextField(WenshuI18n.t("b5.idealibraryview.l257.h16271775"), text: $searchText, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
@@ -260,7 +260,7 @@ struct IdeaLibraryView: View {
     // MARK: - Ideas list
 
     private var ideasListSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.idealibraryview.l302.h76254562"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -271,7 +271,7 @@ struct IdeaLibraryView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                         ForEach(ideas) { idea in
                             ideaRow(idea)
                         }
@@ -283,21 +283,21 @@ struct IdeaLibraryView: View {
     }
 
     private func ideaRow(_ idea: Idea) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
-            HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
+            HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
                 Image(systemName: idea.status.icon).imageScale(.small)
                     .foregroundStyle(.tint)
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: DesignTokens.chromePaddingSmall) {
+                    HStack(spacing: DesignTokens.spacingTight) {
                         Text(idea.title)
                             .font(.callout)
                             .foregroundStyle(.primary)
                         Text(idea.status.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            .padding(.horizontal, DesignTokens.spacingTight)
+                            .padding(.vertical, DesignTokens.spacingHairline)
                             
                         if idea.links.count > 0 {
                             Text(WenshuI18n.t("b5.idealibraryview.l344.h94081771"))
@@ -313,13 +313,13 @@ struct IdeaLibraryView: View {
                     }
                     if !idea.tags.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: DesignTokens.chromePaddingMicro) {
+                            HStack(spacing: DesignTokens.spacingIconic) {
                                 ForEach(idea.tags, id: \.self) { tag in
                                     Text(tag)
                                         .font(.caption2)
                                         .foregroundStyle(.primary)
-                                        .padding(.horizontal, DesignTokens.chromePaddingXS)
-                                        .padding(.vertical, DesignTokens.chromePaddingPico)
+                                        .padding(.horizontal, DesignTokens.spacingIconic)
+                                        .padding(.vertical, DesignTokens.spacingHairline)
                                         .background(
                                             RoundedRectangle(cornerRadius: 3)
                                                 .fill(.tint.opacity(0.15))
@@ -340,8 +340,8 @@ struct IdeaLibraryView: View {
                 .help(WenshuI18n.t("b5.idealibraryview.l381.h13095850"))
             }
         }
-        .padding(.vertical, DesignTokens.chromePaddingSmall)
-        .padding(.horizontal, DesignTokens.chromePaddingVertical)
+        .padding(.vertical, DesignTokens.spacingTight)
+        .padding(.horizontal, DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
         
     }
@@ -349,7 +349,7 @@ struct IdeaLibraryView: View {
     // MARK: - Link section
 
     private var linkSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             Text(WenshuI18n.t("b5.idealibraryview.l397.h59697849"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -358,7 +358,7 @@ struct IdeaLibraryView: View {
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             } else {
-                HStack(spacing: DesignTokens.chromePaddingVertical) {
+                HStack(spacing: DesignTokens.spacingStandard) {
                     Picker("Idea", selection: Binding(
                         get: { draftLinkIdeaId ?? ideas.first?.id ?? UUID() },
                         set: { draftLinkIdeaId = $0 }
@@ -392,7 +392,7 @@ struct IdeaLibraryView: View {
 
                     Spacer(minLength: 0)
                 }
-                HStack(spacing: DesignTokens.chromePaddingVertical) {
+                HStack(spacing: DesignTokens.spacingStandard) {
                     TextField(
                         "Context (1-sentence: where it appears)",
                         text: $draftLinkContext,
@@ -430,7 +430,7 @@ struct IdeaLibraryView: View {
     private var linksListForSelectedIdea: some View {
         if let ideaId = draftLinkIdeaId,
            let selectedIdea = ideas.first(where: { $0.id == ideaId }) {
-            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 Text("Links for \"\(selectedIdea.title)\" (\(selectedIdea.links.count))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -440,7 +440,7 @@ struct IdeaLibraryView: View {
                         .foregroundStyle(DesignTokens.statusForeground)
                 } else {
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+                        LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                             ForEach(selectedIdea.links) { link in
                                 linkRow(link, for: ideaId)
                             }
@@ -455,17 +455,17 @@ struct IdeaLibraryView: View {
     }
 
     private func linkRow(_ link: IdeaLink, for ideaId: UUID) -> some View {
-        HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
+        HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
             Image(systemName: link.target.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: DesignTokens.chromePaddingSmall) {
+                HStack(spacing: DesignTokens.spacingTight) {
                     Text(link.target.displayName)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, DesignTokens.chromePaddingMicro)
-                        .padding(.vertical, DesignTokens.chromePaddingPico)
+                        .padding(.horizontal, DesignTokens.spacingIconic)
+                        .padding(.vertical, DesignTokens.spacingHairline)
                         
                     Text(WenshuI18n.t("b5.idealibraryview.l517.h19641342"))
                         .font(.caption2)
@@ -488,17 +488,17 @@ struct IdeaLibraryView: View {
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("b5.idealibraryview.l536.h25568576"))
         }
-        .padding(.vertical, DesignTokens.chromePaddingNano)
+        .padding(.vertical, DesignTokens.spacingCaption)
     }
 
     // MARK: - Suggest section
 
     private var suggestSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             Text(WenshuI18n.t("b5.idealibraryview.l545.h14750556"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 TextField(
                     "Context keywords (e.g. mirror water recognition)",
                     text: $draftSuggestContext,
@@ -521,9 +521,9 @@ struct IdeaLibraryView: View {
             }
             if !suggestions.isEmpty {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                         ForEach(suggestions) { idea in
-                            HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
+                            HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                                 Image(systemName: idea.status.icon).imageScale(.small)
                                     .foregroundStyle(.tint)
                                     .frame(width: DesignTokens.iconStandardSize)
@@ -535,7 +535,7 @@ struct IdeaLibraryView: View {
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
-                            .padding(.vertical, DesignTokens.chromePaddingNano)
+                            .padding(.vertical, DesignTokens.spacingCaption)
                         }
                     }
                 }

@@ -77,7 +77,7 @@ struct KanbanView: View {
             }
             content
         }
-        .padding(DesignTokens.chromePaddingVertical)
+        .padding(DesignTokens.spacingStandard)
         // bossverificationfix: flexible size (was: 480x320 min forcing zone to grow).
         // "=" per ticket 026 v0.26).
         // re-load when the active scope changes (= user picked a
@@ -243,7 +243,7 @@ struct KanbanView: View {
                         )
                     }
                 }
-                .padding(.vertical, DesignTokens.chromePaddingMicro)
+                .padding(.vertical, DesignTokens.spacingIconic)
             }
         }
     }
@@ -354,13 +354,13 @@ private struct KanbanColumn: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, DesignTokens.chromePaddingMicro)
+            .padding(.horizontal, DesignTokens.spacingIconic)
             Divider()
             if tickets.isEmpty {
                 Text(WenshuI18n.t("auto.kanbanview.l343.h97636928"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
-                    .padding(.horizontal, DesignTokens.chromePaddingMicro)
+                    .padding(.horizontal, DesignTokens.spacingIconic)
             } else {
                 ScrollView(.vertical, showsIndicators: true) {
                     LazyVStack(alignment: .leading, spacing: 6) {
@@ -379,7 +379,7 @@ private struct KanbanColumn: View {
                 .frame(maxHeight: 360)
             }
         }
-        .padding(DesignTokens.chromePaddingVertical)
+        .padding(DesignTokens.spacingStandard)
         .frame(width: DesignTokens.sidebarNarrowWidth)
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: 6))
         .overlay(
@@ -445,8 +445,8 @@ private struct KanbanCard: View {
                 } label: {
                     Text(label(for: ticket.status))
                         .font(.caption)
-                        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                        .padding(.vertical, DesignTokens.chromePaddingNano)
+                        .padding(.horizontal, DesignTokens.spacingTight)
+                        .padding(.vertical, DesignTokens.spacingCaption)
                         .background(.tint.opacity(0.18), in: Capsule())
                 }
                 .menuStyle(.borderlessButton)
@@ -460,7 +460,7 @@ private struct KanbanCard: View {
                 .foregroundStyle(.secondary)
             }
         }
-        .padding(DesignTokens.chromePaddingVertical)
+        .padding(DesignTokens.spacingStandard)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.background, in: RoundedRectangle(cornerRadius: 4))
                 .overlay(

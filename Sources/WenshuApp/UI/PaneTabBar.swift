@@ -125,7 +125,7 @@ struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
         // RegionTabBar wrapper removed: the tab bar IS the direct
         // content (= no chrome wrapper above). The PaneTabBar IS
         // the chrome (= Apple-style flat tab bar).
-        HStack(spacing: DesignTokens.chromePaddingClusterGap) {
+        HStack(spacing: DesignTokens.spacingIconic) {
             ForEach(items) { item in
                 PaneIconTab(
                     id: item[keyPath: idKeyPath],
@@ -166,7 +166,7 @@ struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
             // trailing value). Now both sides use chromePaddingLeading
             // (= 8 PT = Apple HIG canonical 'Spacing.small' for
             // inline toolbar items) = Apple HIG symmetric.
-            .padding(.horizontal, DesignTokens.chromePaddingLeading)
+            .padding(.horizontal, DesignTokens.spacingStandard)
             // ponytail fix: the inner HStack had only intrinsic width
             // (= sum of children), so the Spacer(minLength: 0) before
             // trailing() had zero extra space to consume = trailing

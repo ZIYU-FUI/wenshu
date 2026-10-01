@@ -75,7 +75,7 @@ struct CronWindow: View {
 
     @ViewBuilder
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             // v2.9c: inline add-form for a new cron schedule
             // (= the actor path adds directly via store.add).
             addFormBody
@@ -110,7 +110,7 @@ struct CronWindow: View {
     }
 
     private var newScheduleForm: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             TextField(
                 WenshuI18n.t("cron.field.schedule"),
                 text: $draftSchedule

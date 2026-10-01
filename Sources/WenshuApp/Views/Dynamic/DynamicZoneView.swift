@@ -98,8 +98,8 @@ struct DynamicZoneView: View {
             // of the DynamicZone (= memory preview is global to all tabs).
             MemoryRetrievalPanel(entries: memoryEntries)
                 .frame(height: DesignTokens.cardPreviewHeight)
-                .padding(.horizontal, DesignTokens.chromePaddingLeading)
-                .padding(.bottom, DesignTokens.chromePaddingVertical)
+                .padding(.horizontal, DesignTokens.spacingStandard)
+                .padding(.bottom, DesignTokens.spacingStandard)
         }
         // removed
         // .regionContentBackground() (= per Plan A = the pane

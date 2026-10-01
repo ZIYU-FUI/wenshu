@@ -30,7 +30,7 @@ struct MemoryEntryRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(entry.snippet)
                 .font(compact ? .caption2 : .caption)
                 .lineLimit(2)
@@ -52,7 +52,7 @@ struct MemoryEntryRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(DesignTokens.chromePaddingMicro)
+        .padding(DesignTokens.spacingIconic)
         .background(
             // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
             // audit ticket 8): HierarchicalShapeStyle.tertiary

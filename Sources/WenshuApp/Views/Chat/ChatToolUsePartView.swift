@@ -36,8 +36,8 @@ struct ChatToolUsePartView: View {
         // Apple HIG inline card (= rounded rect + thin left border +
         // monospaced font for the tool name = the canonical "tool call"
         // visual = same pattern as Xcode / Mail "Show Details" blocks).
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
-            HStack(spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 // Status indicator (= T2 dot + T44 icon overlay).
                 // T2 introduced the colored Circle status dot
                 // (= running = secondary / complete = green /
@@ -119,11 +119,11 @@ struct ChatToolUsePartView: View {
                     .foregroundStyle(DesignTokens.statusForeground)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, DesignTokens.chromePaddingMicro)
+                    .padding(.top, DesignTokens.spacingIconic)
             }
         }
-        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-        .padding(.vertical, DesignTokens.chromePaddingMicro)
+        .padding(.horizontal, DesignTokens.spacingTight)
+        .padding(.vertical, DesignTokens.spacingIconic)
         .background(toolCardFill, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             // Thin left border (= Apple Mail "block quote" indicator).

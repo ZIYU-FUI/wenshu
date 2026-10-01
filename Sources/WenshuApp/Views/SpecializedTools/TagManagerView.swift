@@ -136,7 +136,7 @@ struct TagManagerView: View {
     // MARK: - Body
 
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             addTagRow
             Divider()
             tagsListSection
@@ -159,11 +159,11 @@ struct TagManagerView: View {
     // MARK: - Add-tag row
 
     private var addTagRow: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             Text(WenshuI18n.t("b5.tagmanagerview.l199.h92873556"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 TextField(WenshuI18n.t("b5.tagmanagerview.l203.h87808991"), text: $draftLabel, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
@@ -196,7 +196,7 @@ struct TagManagerView: View {
     // MARK: - Tags list
 
     private var tagsListSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.tagmanagerview.l236.h12934415"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -207,7 +207,7 @@ struct TagManagerView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                         ForEach(tags) { tag in
                             tagRow(tag)
                         }
@@ -219,20 +219,20 @@ struct TagManagerView: View {
     }
 
     private func tagRow(_ tag: Tag) -> some View {
-        HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
+        HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
             Image(systemName: tag.category.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: DesignTokens.chromePaddingSmall) {
+                HStack(spacing: DesignTokens.spacingTight) {
                     Text(tag.label)
                         .font(.callout)
                         .foregroundStyle(.primary)
                     Text(tag.category.displayName)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                        .padding(.vertical, DesignTokens.chromePaddingPico)
+                        .padding(.horizontal, DesignTokens.spacingTight)
+                        .padding(.vertical, DesignTokens.spacingHairline)
                         
                     let appCount = applications.filter { $0.tagId == tag.id }.count
                     if appCount > 0 {
@@ -252,8 +252,8 @@ struct TagManagerView: View {
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("b5.tagmanagerview.l292.h29196125"))
         }
-        .padding(.vertical, DesignTokens.chromePaddingSmall)
-        .padding(.horizontal, DesignTokens.chromePaddingVertical)
+        .padding(.vertical, DesignTokens.spacingTight)
+        .padding(.horizontal, DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
         
     }
@@ -261,7 +261,7 @@ struct TagManagerView: View {
     // MARK: - Apply row
 
     private var applyRow: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             Text(WenshuI18n.t("b5.tagmanagerview.l307.h96892915"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -270,7 +270,7 @@ struct TagManagerView: View {
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 Picker("Tag", selection: Binding(
                     get: { draftApplyTagId ?? tags.first?.id ?? UUID() },
                     set: { draftApplyTagId = $0 }
@@ -322,7 +322,7 @@ struct TagManagerView: View {
     // MARK: - Applications
 
     private var applicationsSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.tagmanagerview.l368.h75731289"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -333,7 +333,7 @@ struct TagManagerView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                         ForEach(applications) { application in
                             applicationRow(application)
                         }
@@ -345,20 +345,20 @@ struct TagManagerView: View {
     }
 
     private func applicationRow(_ application: TagApplication) -> some View {
-        HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
+        HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
             Image(systemName: application.target.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: DesignTokens.chromePaddingSmall) {
+                HStack(spacing: DesignTokens.spacingTight) {
                     Text(tagLabel(for: application.tagId))
                         .font(.caption)
                         .foregroundStyle(.primary)
                     Text(application.target.displayName)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, DesignTokens.chromePaddingMicro)
-                        .padding(.vertical, DesignTokens.chromePaddingPico)
+                        .padding(.horizontal, DesignTokens.spacingIconic)
+                        .padding(.vertical, DesignTokens.spacingHairline)
                         
                     Text(WenshuI18n.t("b5.tagmanagerview.l408.h8961516"))
                         .font(.caption2)
@@ -375,13 +375,13 @@ struct TagManagerView: View {
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("b5.tagmanagerview.l421.h66833572"))
         }
-        .padding(.vertical, DesignTokens.chromePaddingNano)
+        .padding(.vertical, DesignTokens.spacingCaption)
     }
 
     // MARK: - Tag cloud
 
     private var cloudSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.tagmanagerview.l430.h82273461"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -392,7 +392,7 @@ struct TagManagerView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                         ForEach(cloud) { entry in
                             cloudRow(entry)
                         }
@@ -404,7 +404,7 @@ struct TagManagerView: View {
     }
 
     private func cloudRow(_ entry: TagCloudEntry) -> some View {
-        HStack(spacing: DesignTokens.chromePaddingSmall) {
+        HStack(spacing: DesignTokens.spacingTight) {
             Image(systemName: entry.tag.category.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.iconStandardSize)
@@ -415,17 +415,17 @@ struct TagManagerView: View {
             Text(WenshuI18n.t("b5.tagmanagerview.l460.h65001910"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                .padding(.vertical, DesignTokens.chromePaddingPico)
+                .padding(.horizontal, DesignTokens.spacingTight)
+                .padding(.vertical, DesignTokens.spacingHairline)
                 
         }
-        .padding(.vertical, DesignTokens.chromePaddingNano)
+        .padding(.vertical, DesignTokens.spacingCaption)
     }
 
     // MARK: - Filter
 
     private var filterSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             Text(WenshuI18n.t("b5.tagmanagerview.l477.h41034022"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -434,7 +434,7 @@ struct TagManagerView: View {
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             } else {
-                HStack(spacing: DesignTokens.chromePaddingVertical) {
+                HStack(spacing: DesignTokens.spacingStandard) {
                     Picker("Tag", selection: Binding(
                         get: { draftFilterTagId ?? tags.first?.id ?? UUID() },
                         set: { draftFilterTagId = $0 }
@@ -472,7 +472,7 @@ struct TagManagerView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(Array(filterMatches.enumerated()), id: \.offset) { _, id in
-                            HStack(spacing: DesignTokens.chromePaddingSmall) {
+                            HStack(spacing: DesignTokens.spacingTight) {
                                 Image(systemName: draftFilterTarget.icon).imageScale(.small)
                                     .foregroundStyle(.tint)
                                     .frame(width: DesignTokens.iconStandardSize)
@@ -484,7 +484,7 @@ struct TagManagerView: View {
                             }
                         }
                     }
-                    .padding(.vertical, DesignTokens.chromePaddingNano)
+                    .padding(.vertical, DesignTokens.spacingCaption)
                 }
             }
         }

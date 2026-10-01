@@ -23,7 +23,7 @@ struct ParagraphAIToolbarButtons: View {
     let onApply: (EditorTransform) -> Void
 
     var body: some View {
-        HStack(spacing: DesignTokens.chromePaddingMicro) {
+        HStack(spacing: DesignTokens.spacingIconic) {
             // Expand (= ⌘⇧E). SF Symbol:
             // `arrow.up.left.and.arrow.down.right` = Apple's
             // built-in expand icon (= "up-left arrow + down-right
@@ -35,8 +35,8 @@ struct ParagraphAIToolbarButtons: View {
                 Image(systemName: "arrow.up.left.and.arrow.down.right").imageScale(.small)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, DesignTokens.chromePaddingVertical)
-                    .padding(.vertical, DesignTokens.chromePaddingMicro)
+                    .padding(.horizontal, DesignTokens.spacingStandard)
+                    .padding(.vertical, DesignTokens.spacingIconic)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -56,8 +56,8 @@ struct ParagraphAIToolbarButtons: View {
                 Image(systemName: "arrow.down.right.and.arrow.up.left").imageScale(.small)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, DesignTokens.chromePaddingVertical)
-                    .padding(.vertical, DesignTokens.chromePaddingMicro)
+                    .padding(.horizontal, DesignTokens.spacingStandard)
+                    .padding(.vertical, DesignTokens.spacingIconic)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -76,8 +76,8 @@ struct ParagraphAIToolbarButtons: View {
                 Image(systemName: "arrow.clockwise").imageScale(.small)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, DesignTokens.chromePaddingVertical)
-                    .padding(.vertical, DesignTokens.chromePaddingMicro)
+                    .padding(.horizontal, DesignTokens.spacingStandard)
+                    .padding(.vertical, DesignTokens.spacingIconic)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -104,8 +104,8 @@ struct ParagraphAIToolbarButtons: View {
                 Image(systemName: "ellipsis").imageScale(.small)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                    .padding(.vertical, DesignTokens.chromePaddingMicro)
+                    .padding(.horizontal, DesignTokens.spacingTight)
+                    .padding(.vertical, DesignTokens.spacingIconic)
                     .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)

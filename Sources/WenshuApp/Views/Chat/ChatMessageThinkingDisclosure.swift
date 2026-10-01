@@ -56,7 +56,7 @@ struct ChatMessageThinkingDisclosure<Label: View>: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
-                .padding(.top, DesignTokens.chromePaddingMicro)
+                .padding(.top, DesignTokens.spacingIconic)
                 .transition(.opacity)
         } label: {
             collapsedLabel

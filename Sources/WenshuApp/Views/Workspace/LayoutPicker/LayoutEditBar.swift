@@ -115,8 +115,8 @@ struct LayoutEditBar: View {
                     Text(HotkeyFormatter.editModeCombo)
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, DesignTokens.chromePaddingMicro)
-                        .padding(.vertical, DesignTokens.chromePaddingHotkeyVertical)
+                        .padding(.horizontal, DesignTokens.spacingIconic)
+                        .padding(.vertical, DesignTokens.spacingHairline)
                         // (' apple api
                         // default'): use bare Apple Material catalog
                         // directly (= the canonical SwiftUI .thin
@@ -140,8 +140,8 @@ struct LayoutEditBar: View {
             }
             .buttonStyle(.bordered)
         }
-        .padding(.horizontal, DesignTokens.chromePaddingMedium)
-        .padding(.vertical, DesignTokens.chromePaddingVertical)
+        .padding(.horizontal, DesignTokens.spacingModerate)
+        .padding(.vertical, DesignTokens.spacingStandard)
         // boss real-device test 2026-09-07: removed
         // .regularMaterial (= Liquid Glass background); now uses
         // Color.clear (= no background).

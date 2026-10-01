@@ -75,7 +75,7 @@ struct ZoneEditor: View {
             // non-scrollable outer padding; = scrollable containers use
             // .contentMargins instead (= not applicable here)).
             gridCanvas
-                .padding(DesignTokens.chromePaddingHero)
+                .padding(DesignTokens.spacingHero)
         }
         .frame(minWidth: 720, minHeight: 540)
         // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
@@ -142,7 +142,7 @@ struct ZoneEditor: View {
                   ? "Save this grid as a new preset"
                   : "This grid can't be expressed as a guillotine tree (= non-guillotine = pinwheel arrangement)")
         }
-        .padding(DesignTokens.chromePaddingMedium)
+        .padding(DesignTokens.spacingModerate)
     }
 
     /// Grid canvas (= translucent numbered zones + rubber-band overlay +

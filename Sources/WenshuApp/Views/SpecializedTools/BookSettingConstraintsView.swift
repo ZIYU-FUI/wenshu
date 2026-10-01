@@ -124,7 +124,7 @@ struct BookSettingConstraintsView: View {
     // MARK: - Body
 
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             addRow
             Divider()
             listSection
@@ -142,7 +142,7 @@ struct BookSettingConstraintsView: View {
     // MARK: - Add row
 
     private var addRow: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             Text(WenshuI18n.t("b5.booksettingconstraintsview.l185.h87583031"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -159,7 +159,7 @@ struct BookSettingConstraintsView: View {
             .font(.caption)
             .lineLimit(2...4)
             .help(WenshuI18n.t("b5.booksettingconstraintsview.l200.h58963992"))
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 Picker("Severity", selection: $draftSeverity) {
                     ForEach(ConstraintSeverity.allCases) { severity in
                         Label(severity.displayName, systemImage: severity.icon).tag(severity)
@@ -212,7 +212,7 @@ struct BookSettingConstraintsView: View {
     // MARK: - List
 
     private var listSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.booksettingconstraintsview.l255.h54115638"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -223,7 +223,7 @@ struct BookSettingConstraintsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                         ForEach(constraints) { constraint in
                             constraintRow(constraint)
                         }
@@ -235,27 +235,27 @@ struct BookSettingConstraintsView: View {
     }
 
     private func constraintRow(_ constraint: BookSettingConstraint) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
-            HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
+            HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
                 Image(systemName: constraint.severity.icon).imageScale(.small)
                     .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(.tint))
                     .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: DesignTokens.chromePaddingSmall) {
+                    HStack(spacing: DesignTokens.spacingTight) {
                         Text(constraint.title)
                             .font(.callout)
                             .foregroundStyle(.primary)
                         Text(constraint.severity.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            .padding(.horizontal, DesignTokens.spacingTight)
+                            .padding(.vertical, DesignTokens.spacingHairline)
                             
                         Text(constraint.scope.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            .padding(.horizontal, DesignTokens.spacingTight)
+                            .padding(.vertical, DesignTokens.spacingHairline)
                             .background(
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(.tint.opacity(0.15))
@@ -274,13 +274,13 @@ struct BookSettingConstraintsView: View {
                     }
                     if !constraint.forbiddenPatterns.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: DesignTokens.chromePaddingMicro) {
+                            HStack(spacing: DesignTokens.spacingIconic) {
                                 ForEach(constraint.forbiddenPatterns, id: \.self) { pattern in
                                     Text(pattern)
                                         .font(.caption2)
                                         .foregroundStyle(.primary)
-                                        .padding(.horizontal, DesignTokens.chromePaddingXS)
-                                        .padding(.vertical, DesignTokens.chromePaddingPico)
+                                        .padding(.horizontal, DesignTokens.spacingIconic)
+                                        .padding(.vertical, DesignTokens.spacingHairline)
                                         .background(
                                             RoundedRectangle(cornerRadius: 3)
                                                 .fill(Color(nsColor: .systemRed).opacity(0.15))
@@ -301,8 +301,8 @@ struct BookSettingConstraintsView: View {
                 .help(WenshuI18n.t("b5.booksettingconstraintsview.l343.h49822929"))
             }
         }
-        .padding(.vertical, DesignTokens.chromePaddingSmall)
-        .padding(.horizontal, DesignTokens.chromePaddingVertical)
+        .padding(.vertical, DesignTokens.spacingTight)
+        .padding(.horizontal, DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
         
     }
@@ -310,18 +310,18 @@ struct BookSettingConstraintsView: View {
     // MARK: - Check section
 
     private var checkSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             Text(WenshuI18n.t("b5.booksettingconstraintsview.l359.h58742514"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
+            HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
                 TextEditor(text: $chapterText)
                     .font(.caption)
                     .frame(minHeight: 100, maxHeight: 160)
-                    .padding(DesignTokens.chromePaddingMicro)
+                    .padding(DesignTokens.spacingIconic)
                     
                     .help(WenshuI18n.t("b5.booksettingconstraintsview.l371.h65632517"))
-                VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+                VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                     Button {
                         Task { await runCheck() }
                     } label: {
@@ -353,13 +353,13 @@ struct BookSettingConstraintsView: View {
     }
 
     private func violationRow(_ violation: ConstraintViolation) -> some View {
-        HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
+        HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
             Image(systemName: violation.severity == .hard ? "octagon" : "exclamationmark.triangle")
                 .imageScale(.small)
                 .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(Color(nsColor: .systemOrange)))
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: DesignTokens.chromePaddingMicro) {
+                HStack(spacing: DesignTokens.spacingIconic) {
                     Text(violation.title)
                         .font(.caption)
                         .foregroundStyle(.primary)
@@ -382,7 +382,7 @@ struct BookSettingConstraintsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, DesignTokens.chromePaddingNano)
+        .padding(.vertical, DesignTokens.spacingCaption)
     }
 
     // MARK: - Helpers

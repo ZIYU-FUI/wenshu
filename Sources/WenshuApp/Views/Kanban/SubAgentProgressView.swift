@@ -100,7 +100,7 @@ private struct TaskRowView: View {
             }
             Spacer()
         }
-        .padding(DesignTokens.chromePaddingVertical)
+        .padding(DesignTokens.spacingStandard)
         // followup Boss UX round 24: .regularMaterial replaces
         // boss real-device test 2026-09-07: removed
         // .regularMaterial (= Liquid Glass sub-agent card);

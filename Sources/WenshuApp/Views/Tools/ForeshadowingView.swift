@@ -99,7 +99,7 @@ struct ForeshadowingView: View {
                 contentBody
             }
         }
-        .padding(DesignTokens.chromePaddingMedium)
+        .padding(DesignTokens.spacingModerate)
         .task(id: activeBookId) {
             await reload()
         }
@@ -272,8 +272,8 @@ struct ForeshadowingView: View {
                         Text(row.status.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            .padding(.horizontal, DesignTokens.spacingTight)
+                            .padding(.vertical, DesignTokens.spacingHairline)
                             // removed .background(RoundedRectangle.fill(.quaternary))
                             // (= macOS 12 chrome tier; = macOS 27
                             // Tahoe has no 4-tier hierarchy). Now
@@ -310,8 +310,8 @@ struct ForeshadowingView: View {
                 .help(WenshuI18n.t("b5.foreshadowingview.l341.h68314578"))
             }
         }
-        .padding(.vertical, DesignTokens.chromePaddingSmall)
-        .padding(.horizontal, DesignTokens.chromePaddingVertical)
+        .padding(.vertical, DesignTokens.spacingTight)
+        .padding(.horizontal, DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
         // removed .background(RoundedRectangle.fill(.quaternary.opacity(0.5)))
         // (= v0.44 boss 2026-09-09 OOB 'macOS 27 = 1 glass surface
@@ -365,8 +365,8 @@ struct ForeshadowingView: View {
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
         }
-        .padding(.vertical, DesignTokens.chromePaddingNano)
-        .padding(.horizontal, DesignTokens.chromePaddingMicro)
+        .padding(.vertical, DesignTokens.spacingCaption)
+        .padding(.horizontal, DesignTokens.spacingIconic)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 

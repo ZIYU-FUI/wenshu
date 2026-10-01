@@ -394,7 +394,7 @@ struct ChatMessageView: View {
                     // to change). Kept the vertical chromePaddingVertical
                     // (= 8 PT; = row vertical breathing room; = matches Apple
                     // HIG py-2 vertical row gap convention).
-                    .padding(.vertical, DesignTokens.chromePaddingVertical)
+                    .padding(.vertical, DesignTokens.spacingStandard)
                     .wenshuChatHover()
                 }
                 // T19-MESSAGE-TIMESTAMP (2026-09-18): render a small
@@ -518,8 +518,8 @@ private struct UserGlassCardModifier: ViewModifier {
             // Vertical chromePaddingSmall (= 6 PT) retained (= card height
             // breathing room).
             content
-                .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
-                .padding(.vertical, DesignTokens.chromePaddingSmall)
+                .padding(.horizontal, DesignTokens.spacingModerate)
+                .padding(.vertical, DesignTokens.spacingTight)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 // -cleanup E9 boss 2026-09-21 '现在改用户说话的枢，加液态玻璃':
                 // apply the macOS 27 `.glassEffect(.regular)` API

@@ -78,7 +78,7 @@ struct ChatMessagePlaceholderRow<Pulse: View>: View {
         // convention). Horizontal padding lives on the chat transcript
         // outer (= single source of truth = ChatView.swift, not this
         // leaf).
-        .padding(.vertical, DesignTokens.chromePaddingVertical)
+        .padding(.vertical, DesignTokens.spacingStandard)
     }
 
     /// Format an elapsed-seconds value as "5.3s" / "1m 23s" /

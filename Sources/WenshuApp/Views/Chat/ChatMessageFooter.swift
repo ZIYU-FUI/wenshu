@@ -113,7 +113,7 @@ struct ChatMessageFooter: View {
                     .foregroundStyle(.quaternary)
             }
         }
-        .padding(.top, DesignTokens.chromePaddingNano)
+        .padding(.top, DesignTokens.spacingCaption)
         // -cleanup E6: vertical chromePaddingNano (= 2 PT) top (= row separator gap;
         // = matches Apple HIG caption2 metadata vertical gap).
         .frame(maxWidth: .infinity, alignment: .leading)

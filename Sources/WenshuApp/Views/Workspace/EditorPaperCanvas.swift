@@ -78,7 +78,7 @@ struct EditorPaperCanvas<Content: View>: View {
                 .background(Color.white)
                 .environment(\.colorScheme, .light)
                 .shadow(color: .black.opacity(0.35), radius: 8, y: 2)
-                .padding(.vertical, DesignTokens.chromePaddingXLarge)
+                .padding(.vertical, DesignTokens.spacingSection)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
         .defaultScrollAnchor(.center)

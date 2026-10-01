@@ -24,7 +24,7 @@ import SwiftUI
 /// business logic; = the host decides when to render it).
 struct ChapterFocusLockBadge: View {
     var body: some View {
-        HStack(spacing: DesignTokens.chromePaddingMicro) {
+        HStack(spacing: DesignTokens.spacingIconic) {
             // Apple HIG spinner (= ProgressView infinite) signals
             // ongoing activity without stealing focus from the
             // editor's read-only text view.
@@ -38,8 +38,8 @@ struct ChapterFocusLockBadge: View {
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-        .padding(.vertical, DesignTokens.chromePaddingMicro)
+        .padding(.horizontal, DesignTokens.spacingTight)
+        .padding(.vertical, DesignTokens.spacingIconic)
         .background(.quinary.opacity(0.4))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(WenshuI18n.t("chatview.focus_lock.badge"))

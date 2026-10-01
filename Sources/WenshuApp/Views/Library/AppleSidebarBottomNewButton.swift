@@ -33,7 +33,7 @@ struct AppleSidebarBottomNewButton: View {
                 }
                 .frame(width: nil, height: DesignTokens.chromeHeight)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, DesignTokens.chromePaddingLeading)
+                .padding(.horizontal, DesignTokens.spacingStandard)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

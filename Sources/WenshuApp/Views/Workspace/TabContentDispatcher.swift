@@ -103,7 +103,7 @@ struct TabContentDispatcher: View {
             .popover(isPresented: $showBacklinksPopover, arrowEdge: .bottom) {
                 BacklinksPanel(viewModel: backlinksVM)
                     .frame(width: DesignTokens.popoverCompactSize.width, height: DesignTokens.popoverCompactSize.height)
-                    .padding(DesignTokens.chromePaddingVertical)
+                    .padding(DesignTokens.spacingStandard)
             }
         case .specializedTools:
             // No outer top (= internal ZoneContentTabBar for /

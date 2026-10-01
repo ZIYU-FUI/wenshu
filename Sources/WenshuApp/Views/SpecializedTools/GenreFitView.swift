@@ -76,7 +76,7 @@ struct GenreFitView: View {
     init() {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             pickerRow
             inputSection
             Divider()
@@ -87,7 +87,7 @@ struct GenreFitView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(DesignTokens.chromePaddingMedium)
+        .padding(DesignTokens.spacingModerate)
         .task {
             ensureAnalyzer()
         }
@@ -96,7 +96,7 @@ struct GenreFitView: View {
     // MARK: - Picker
 
     private var pickerRow: some View {
-        HStack(spacing: DesignTokens.chromePaddingVertical) {
+        HStack(spacing: DesignTokens.spacingStandard) {
             Text(WenshuI18n.t("b5.genrefitview.l132.h73166390"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -120,8 +120,8 @@ struct GenreFitView: View {
     // MARK: - Input
 
     private var inputSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
-            HStack(spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 Text(WenshuI18n.t("b5.genrefitview.l157.h55071280"))
                     .font(.callout)
                     .foregroundStyle(.primary)
@@ -133,9 +133,9 @@ struct GenreFitView: View {
             TextEditor(text: $chapterText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
-                .padding(DesignTokens.chromePaddingSmall)
+                .padding(DesignTokens.spacingTight)
                 
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
@@ -177,8 +177,8 @@ struct GenreFitView: View {
 
 
     private func resultSection(for report: GenreFitReport) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingVertical) {
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 Image(systemName: report.genre.icon).imageScale(.small)
                     .foregroundStyle(.tint)
                 Text(report.genre.displayName)
@@ -187,7 +187,7 @@ struct GenreFitView: View {
                 Spacer(minLength: 0)
                 scoreBadge(report.score)
             }
-            HStack(alignment: .top, spacing: DesignTokens.chromePaddingMedium) {
+            HStack(alignment: .top, spacing: DesignTokens.spacingModerate) {
                 column(title: "Matched beats (\(report.matchedBeats.count))",
                        items: report.matchedBeats,
                        tint: Color(nsColor: .systemGreen))
@@ -195,7 +195,7 @@ struct GenreFitView: View {
                        items: report.missingBeats,
                        tint: Color(nsColor: .systemOrange))
             }
-            HStack(alignment: .top, spacing: DesignTokens.chromePaddingMedium) {
+            HStack(alignment: .top, spacing: DesignTokens.spacingModerate) {
                 column(title: "Expected vocab used (\(report.expectedVocabUsed.count))",
                        items: report.expectedVocabUsed,
                        tint: Color(nsColor: .systemBlue))
@@ -207,7 +207,7 @@ struct GenreFitView: View {
                    items: report.forbiddenHits,
                    tint: Color(nsColor: .systemRed))
         }
-        .padding(DesignTokens.chromePaddingPickerItem)
+        .padding(DesignTokens.spacingModerate)
         .frame(maxWidth: .infinity, alignment: .topLeading)
 
     }
@@ -221,8 +221,8 @@ struct GenreFitView: View {
         return Text(WenshuI18n.t("b5.genrefitview.l256.h78050164"))
             .font(.caption2)
             .foregroundStyle(.primary)
-            .padding(.horizontal, DesignTokens.chromePaddingSmall)
-            .padding(.vertical, DesignTokens.chromePaddingPico)
+            .padding(.horizontal, DesignTokens.spacingTight)
+            .padding(.vertical, DesignTokens.spacingHairline)
             .background(
                 RoundedRectangle(cornerRadius: 3)
                     .fill(color)
@@ -230,22 +230,22 @@ struct GenreFitView: View {
     }
 
     private func column(title: String, items: [String], tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 if items.isEmpty {
                     Text(WenshuI18n.t("b5.genrefitview.l274.h53280066"))
                         .font(.caption)
                         .foregroundStyle(DesignTokens.statusForeground)
                 } else {
                     ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                        HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
+                        HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                             Circle()
                                 .fill(tint)
                                 .frame(width: DesignTokens.bulletSizeTiny, height: DesignTokens.bulletSizeTiny)
-                                .padding(.top, DesignTokens.chromePaddingXS)
+                                .padding(.top, DesignTokens.spacingIconic)
                             Text(item)
                                 .font(.caption)
                                 .foregroundStyle(.primary)

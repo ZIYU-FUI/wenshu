@@ -74,14 +74,14 @@ struct ChatMessageAttachmentPreview: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: 240, maxHeight: 240)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .padding(.bottom, DesignTokens.chromePaddingMicro)
+                    .padding(.bottom, DesignTokens.spacingIconic)
             }
             .buttonStyle(.plain)
         } else {
             Text(WenshuI18n.t("chat.message.imageMissing"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .padding(.bottom, DesignTokens.chromePaddingMicro)
+                .padding(.bottom, DesignTokens.spacingIconic)
         }
     }
 }

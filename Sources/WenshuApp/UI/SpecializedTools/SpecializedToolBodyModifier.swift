@@ -3,14 +3,14 @@
 //
 //  View modifier that wraps the 6 SpecializedTools view bodies'
 //  verbatim duplicated pattern:
-//    VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+//    VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
 //        if activeBookId == nil {
 //            emptyState
 //        } else {
 //            contentBody
 //        }
 //    }
-//    .padding(DesignTokens.chromePaddingMedium)
+//    .padding(DesignTokens.spacingModerate)
 //  (= 8 LOC × 6 files = 48 LOC verbatim copy-paste; = "Pervasive
 //  Duplications" audit entry).
 //
@@ -43,13 +43,13 @@ extension View {
         @ViewBuilder emptyContent: () -> some View,
         @ViewBuilder mainContent: () -> some View
     ) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             if activeBookId == nil {
                 emptyContent()
             } else {
                 mainContent()
             }
         }
-        .padding(DesignTokens.chromePaddingMedium)
+        .padding(DesignTokens.spacingModerate)
     }
 }

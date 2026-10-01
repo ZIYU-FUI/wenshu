@@ -146,8 +146,8 @@ struct CommandPaletteView: View {
                     .buttonStyle(.borderless)
                 }
             }
-            .padding(.horizontal, DesignTokens.chromePaddingLarge)
-            .padding(.vertical, DesignTokens.chromePaddingMedium)
+            .padding(.horizontal, DesignTokens.spacingLoose)
+            .padding(.vertical, DesignTokens.spacingModerate)
 
             Divider()
 
@@ -178,8 +178,8 @@ struct CommandPaletteView: View {
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
-            .padding(.horizontal, DesignTokens.chromePaddingLarge)
-            .padding(.vertical, DesignTokens.chromePaddingVertical)
+            .padding(.horizontal, DesignTokens.spacingLoose)
+            .padding(.vertical, DesignTokens.spacingStandard)
         }
         .frame(width: DesignTokens.settingIOsheetSize.width, height: DesignTokens.settingIOsheetSize.height)
         // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
@@ -239,22 +239,22 @@ private struct CommandPaletteRow: View {
                 Text(hint)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                    .padding(.vertical, DesignTokens.chromePaddingNano)
+                    .padding(.horizontal, DesignTokens.spacingTight)
+                    .padding(.vertical, DesignTokens.spacingCaption)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
                             .fill(.regularMaterial)
                     )
             }
         }
-        .padding(.horizontal, DesignTokens.chromePaddingLarge)
-        .padding(.vertical, DesignTokens.chromePaddingVertical)
+        .padding(.horizontal, DesignTokens.spacingLoose)
+        .padding(.vertical, DesignTokens.spacingStandard)
         .background(
             isSelected ?
                 RoundedRectangle(cornerRadius: 6).fill(.selection.opacity(0.6)) :
                 nil
         )
-        .padding(.horizontal, DesignTokens.chromePaddingMicro)
+        .padding(.horizontal, DesignTokens.spacingIconic)
     }
 
     private var categorySymbol: String {

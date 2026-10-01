@@ -29,7 +29,7 @@ struct MemorySettingsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             Text(WenshuI18n.t("settings.memory.title"))
                 .font(.headline)
             Text(WenshuI18n.t("settings.memory.subtitle"))
@@ -96,10 +96,10 @@ struct MemorySettingsView: View {
                 Text(WenshuI18n.t("settings.memory.recent.empty"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .padding(.vertical, DesignTokens.chromePaddingSmall)
+                    .padding(.vertical, DesignTokens.spacingTight)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+                    VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                         ForEach(recentEntries) { entry in
                             MemoryEntryRow(entry: entry, compact: false)
                         }
@@ -108,7 +108,7 @@ struct MemorySettingsView: View {
                 .frame(maxHeight: DesignTokens.settingsListMaxHeight)
             }
         }
-        .padding(DesignTokens.chromePaddingMedium)
+        .padding(DesignTokens.spacingModerate)
         // Removed the chrome tier background tint (= .windowBackgroundColor
         // = #1E = creates a visible lighter strip = gone per the
         // 'go up another layer and remove the background' cleanup).

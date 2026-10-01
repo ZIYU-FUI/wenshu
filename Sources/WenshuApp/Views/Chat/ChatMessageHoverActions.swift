@@ -31,7 +31,7 @@ struct ChatMessageHoverActions: View {
     }
 
     var body: some View {
-        HStack(spacing: DesignTokens.chromePaddingSmall) {
+        HStack(spacing: DesignTokens.spacingTight) {
             // Copy button (= SF Symbols 6 `document.on.document` icon;
             // = copies the message text to NSPasteboard).
             Button {
@@ -66,8 +66,8 @@ struct ChatMessageHoverActions: View {
             .controlSize(.small)
             .help(WenshuI18n.t("chatview.message_action.delete"))
         }
-        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-        .padding(.vertical, DesignTokens.chromePaddingMicro)
+        .padding(.horizontal, DesignTokens.spacingTight)
+        .padding(.vertical, DesignTokens.spacingIconic)
         .background(.regularMaterial, in: Capsule())
         .opacity(isHovering ? 1 : 0)
         .animation(.easeInOut(duration: 0.15), value: isHovering)

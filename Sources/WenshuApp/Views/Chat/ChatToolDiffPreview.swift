@@ -34,14 +34,14 @@ struct ChatToolDiffPreview: View {
     private var stats: LineStats { Self.countLineStats(display) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             header
             diffBody
         }
         // Mirror ChatToolResultPartView's card chrome so the preview
         // reads as the same surface family.
-        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-        .padding(.vertical, DesignTokens.chromePaddingMicro)
+        .padding(.horizontal, DesignTokens.spacingTight)
+        .padding(.vertical, DesignTokens.spacingIconic)
         .background(
             AnyShapeStyle(.quinary.opacity(0.5)),
             in: RoundedRectangle(cornerRadius: 8)
@@ -54,7 +54,7 @@ struct ChatToolDiffPreview: View {
     }
 
     private var header: some View {
-        HStack(spacing: DesignTokens.chromePaddingSmall) {
+        HStack(spacing: DesignTokens.spacingTight) {
             Image(systemName: "doc.text")
                 .imageScale(.small)
                 .foregroundStyle(.secondary)
@@ -89,7 +89,7 @@ struct ChatToolDiffPreview: View {
                     .font(.system(size: 11, weight: .regular, design: .monospaced))
                     .foregroundStyle(Self.color(for: String(line)))
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, DesignTokens.chromePaddingMicro)
+                    .padding(.horizontal, DesignTokens.spacingIconic)
             }
         }
     }

@@ -59,7 +59,7 @@ struct SidebarRowView: View {
         // requirement).
         rowContent
             .listRowInsets(node.kind == .divider
-                            ? EdgeInsets(top: DesignTokens.chromePaddingMicro, leading: 0, bottom: DesignTokens.chromePaddingMicro, trailing: 0)
+                            ? EdgeInsets(top: DesignTokens.spacingIconic, leading: 0, bottom: DesignTokens.spacingIconic, trailing: 0)
                             : EdgeInsets())
             .tag(node)
     }

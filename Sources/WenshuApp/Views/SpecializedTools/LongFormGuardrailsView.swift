@@ -123,7 +123,7 @@ struct LongFormGuardrailsView: View {
     // MARK: - Content body
 
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             actionRow
             guardrailList
             Divider()
@@ -137,7 +137,7 @@ struct LongFormGuardrailsView: View {
     }
 
     private var actionRow: some View {
-        HStack(spacing: DesignTokens.chromePaddingVertical) {
+        HStack(spacing: DesignTokens.spacingStandard) {
             Button {
                 Task { await autoDerive() }
             } label: {
@@ -159,7 +159,7 @@ struct LongFormGuardrailsView: View {
     }
 
     private var guardrailList: some View {
-        VStack(spacing: DesignTokens.chromePaddingSmall) {
+        VStack(spacing: DesignTokens.spacingTight) {
             ForEach(guardrails) { row in
                 guardrailRow(row)
             }
@@ -177,7 +177,7 @@ struct LongFormGuardrailsView: View {
             Image(systemName: row.kind.icon).imageScale(.small)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: DesignTokens.chromePaddingSmall) {
+                HStack(spacing: DesignTokens.spacingTight) {
                     Text(row.name)
                         .font(.callout)
                         .foregroundStyle(.primary)
@@ -185,8 +185,8 @@ struct LongFormGuardrailsView: View {
                         Text(WenshuI18n.t("b5.longformguardrailsview.l216.h73542843"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, DesignTokens.chromePaddingMicro)
-                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            .padding(.horizontal, DesignTokens.spacingIconic)
+                            .padding(.vertical, DesignTokens.spacingHairline)
                             
                     }
                 }
@@ -206,8 +206,8 @@ struct LongFormGuardrailsView: View {
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("b5.longformguardrailsview.l241.h76114491"))
         }
-        .padding(.vertical, DesignTokens.chromePaddingSmall)
-        .padding(.horizontal, DesignTokens.chromePaddingVertical)
+        .padding(.vertical, DesignTokens.spacingTight)
+        .padding(.horizontal, DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
         
     }
@@ -216,8 +216,8 @@ struct LongFormGuardrailsView: View {
         Text(level.rawValue)
             .font(.caption2)
             .foregroundStyle(.secondary)
-            .padding(.horizontal, DesignTokens.chromePaddingSmall)
-            .padding(.vertical, DesignTokens.chromePaddingPico)
+            .padding(.horizontal, DesignTokens.spacingTight)
+            .padding(.vertical, DesignTokens.spacingHairline)
             .background(
                 RoundedRectangle(cornerRadius: 3)
                     .fill(badgeColor(for: level))
@@ -235,8 +235,8 @@ struct LongFormGuardrailsView: View {
     // MARK: - Check section
 
     private var checkSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
-            HStack(spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 Text(WenshuI18n.t("b5.longformguardrailsview.l277.h87864753"))
                     .font(.callout)
                     .foregroundStyle(.primary)
@@ -246,9 +246,9 @@ struct LongFormGuardrailsView: View {
             TextEditor(text: $checkText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 120)
-                .padding(DesignTokens.chromePaddingSmall)
+                .padding(DesignTokens.spacingTight)
                 
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 Button {
                     Task { await runCheck() }
                 } label: {
@@ -280,12 +280,12 @@ struct LongFormGuardrailsView: View {
     }
 
     private var violationsSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.longformguardrailsview.l324.h5287930"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ForEach(Array(lastViolations.enumerated()), id: \.offset) { _, v in
-                HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
+                HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                     Text(severityGlyph(v.severity))
                         .font(.caption)
                         .foregroundStyle(severityColor(v.severity))
@@ -301,7 +301,7 @@ struct LongFormGuardrailsView: View {
                 }
             }
         }
-        .padding(DesignTokens.chromePaddingVertical)
+        .padding(DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
         
     }
@@ -326,7 +326,7 @@ struct LongFormGuardrailsView: View {
 
     private var addSheet: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
                 Form {
                     Picker("Kind", selection: $draftKind) {
                         ForEach(LongFormGuardrailKind.allCases, id: \.self) { kind in
@@ -343,7 +343,7 @@ struct LongFormGuardrailsView: View {
                         .lineLimit(3...6)
                 }
             }
-            .padding(DesignTokens.chromePaddingLarge)
+            .padding(DesignTokens.spacingLoose)
             .frame(width: DesignTokens.guardrailSheetWidth)
             // apple-001 HIG absent batch: .navigationTitle +
             // .toolbar (= Apple HIG standard for sheet title bar +

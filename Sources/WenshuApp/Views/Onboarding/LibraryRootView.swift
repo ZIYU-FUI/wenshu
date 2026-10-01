@@ -392,7 +392,7 @@ Group {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 480)
-                    .padding(.horizontal, DesignTokens.chromePaddingXLarge)
+                    .padding(.horizontal, DesignTokens.spacingSection)
             }
 
             VStack(spacing: 12) {

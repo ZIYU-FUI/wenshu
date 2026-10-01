@@ -81,7 +81,7 @@ struct BookmarkView: View {
 
     @ViewBuilder
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             header
             Divider()
             addRow
@@ -221,6 +221,6 @@ private struct BookmarkRow: View {
             }
             .buttonStyle(.borderless)
         }
-        .padding(.vertical, DesignTokens.chromePaddingNano)
+        .padding(.vertical, DesignTokens.spacingCaption)
     }
 }

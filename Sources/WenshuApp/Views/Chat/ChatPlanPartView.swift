@@ -63,9 +63,9 @@ struct ChatPlanPartView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             // Header: 'Plan: <query>' + connector label.
-            HStack(spacing: DesignTokens.chromePaddingSmall) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 Image(systemName: "list.bullet.rectangle")
                     .imageScale(.small)
                     .symbolRenderingMode(.hierarchical)
@@ -83,7 +83,7 @@ struct ChatPlanPartView: View {
                 ))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                    .padding(.horizontal, DesignTokens.chromePaddingMicro)
+                    .padding(.horizontal, DesignTokens.spacingIconic)
                     .overlay(
                         RoundedRectangle(cornerRadius: 3)
                             .strokeBorder(.quaternary, lineWidth: 0.5)
@@ -136,12 +136,12 @@ struct ChatPlanPartView: View {
             // standard macOS expand/collapse pattern). Default = expanded
             // (= user sees the plan immediately).
             DisclosureGroup(isExpanded: $isExpanded) {
-                VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+                VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                     ForEach(plan.steps, id: \.index) { step in
                         stepRow(step)
                     }
                 }
-                .padding(.top, DesignTokens.chromePaddingSmall)
+                .padding(.top, DesignTokens.spacingTight)
             } label: {
                 HStack(spacing: 4) {
                     Text("\(plan.steps.count) step\(plan.steps.count == 1 ? "" : "s")")
@@ -153,7 +153,7 @@ struct ChatPlanPartView: View {
             // pattern). Decline is just onApprove with the plan dropped
             // (= user dismisses the plan; = the query is still in the
             // chat zone for them to manually retry).
-            HStack(spacing: DesignTokens.chromePaddingSmall) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 Button {
                     onApprove(plan)
                 } label: {
@@ -170,9 +170,9 @@ struct ChatPlanPartView: View {
                 .controlSize(.small)
                 Spacer()
             }
-            .padding(.top, DesignTokens.chromePaddingSmall)
+            .padding(.top, DesignTokens.spacingTight)
         }
-        .padding(DesignTokens.chromePaddingSmall)
+        .padding(DesignTokens.spacingTight)
         .background(cardFill, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)

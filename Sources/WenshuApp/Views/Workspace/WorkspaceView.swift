@@ -244,7 +244,7 @@ struct WorkspaceView: View {
                 if editMode.isEnabled {
                     @Bindable var bindableWorkspaceUI = workspaceUI
                     EditModeBadge(isEnabled: $bindableWorkspaceUI.editMode.isEnabled)
-                        .padding(DesignTokens.chromePaddingVertical)
+                        .padding(DesignTokens.spacingStandard)
                 }
             }
             // View menu's "Layout edit mode"

@@ -32,10 +32,10 @@ struct KanbanTicketDetailSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                 statusBadge
                 ScrollView {
-                    VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+                    VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                         Text(ticket.title)
                             .font(.title2.weight(.semibold))
                             .textSelection(.enabled)
@@ -51,8 +51,8 @@ struct KanbanTicketDetailSheet: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                    .padding(.vertical, DesignTokens.chromePaddingSmall)
+                    .padding(.horizontal, DesignTokens.spacingModerate)
+                    .padding(.vertical, DesignTokens.spacingTight)
                 }
             }
             .frame(idealWidth: DesignTokens.settingIOsheetSize.width,
@@ -69,11 +69,11 @@ struct KanbanTicketDetailSheet: View {
     private var statusBadge: some View {
         Text(statusLabel(ticket.status))
             .font(.caption.weight(.medium))
-            .padding(.horizontal, DesignTokens.chromePaddingSmall)
-            .padding(.vertical, DesignTokens.chromePaddingNano)
+            .padding(.horizontal, DesignTokens.spacingTight)
+            .padding(.vertical, DesignTokens.spacingCaption)
             .background(.tint.opacity(0.18), in: Capsule())
-            .padding(.horizontal, DesignTokens.chromePaddingMedium)
-            .padding(.top, DesignTokens.chromePaddingSmall)
+            .padding(.horizontal, DesignTokens.spacingModerate)
+            .padding(.top, DesignTokens.spacingTight)
     }
 
     private func statusLabel(_ status: KanbanStatus) -> String {

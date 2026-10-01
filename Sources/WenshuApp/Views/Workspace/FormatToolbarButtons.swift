@@ -24,8 +24,8 @@ struct FormatToolbarButtons: View {
         // reuse = consistent visual contract with the rest of the
         // top bar; = Rule 7 system component pattern). Spacing 4 PT
         // between buttons (= tight cluster for inline toolbar; =
-        // DesignTokens.chromePaddingMicro).
-        HStack(spacing: DesignTokens.chromePaddingMicro) {
+        // DesignTokens.spacingIconic).
+        HStack(spacing: DesignTokens.spacingIconic) {
             PaneTrailingIconButton(
                 icon: "bold",
                 tooltip: "加粗 (**)",

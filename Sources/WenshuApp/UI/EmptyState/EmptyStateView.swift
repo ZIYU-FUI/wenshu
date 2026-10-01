@@ -56,7 +56,7 @@
 //    - maxWidth: 360 (= wraps on small inspector columns)
 //
 //  Spacing:
-//    - icon -> title: DesignTokens.chromePaddingEmptyStateGap (= the
+//    - icon -> title: DesignTokens.spacingSection (= the
 //      Apple HIG standard ContentUnavailableView measured value;
 //      = the literal number isn't Apple-default = Apple doesn't
 //      expose this value publicly; = we use a semantic token instead)
@@ -154,8 +154,8 @@ struct EmptyStateView: View {
                 .frame(width: DesignTokens.emptyStateIconSize, height: DesignTokens.emptyStateIconSize)
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(.secondary)
-                .padding(.bottom, DesignTokens.chromePaddingEmptyStateGap)
-            VStack(spacing: DesignTokens.chromePaddingSmall) {
+                .padding(.bottom, DesignTokens.spacingSection)
+            VStack(spacing: DesignTokens.spacingTight) {
                 // Title: plain Text (= common case) OR caller-supplied
                 // titleView (= chat empty state with inline
                 // Settings link). Both render at .headline / .secondary

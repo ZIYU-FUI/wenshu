@@ -101,7 +101,7 @@ struct PlaceholderView: View {
                 contentBody
             }
         }
-        .padding(DesignTokens.chromePaddingMedium)
+        .padding(DesignTokens.spacingModerate)
         .task(id: activeBookId) {
             await reload()
         }
@@ -281,8 +281,8 @@ struct PlaceholderView: View {
                         Text(row.status.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                            .padding(.vertical, DesignTokens.chromePaddingPico)
+                            .padding(.horizontal, DesignTokens.spacingTight)
+                            .padding(.vertical, DesignTokens.spacingHairline)
                             
                     }
                     if !row.context.isEmpty {
@@ -343,8 +343,8 @@ struct PlaceholderView: View {
                 }
             }
         }
-        .padding(.vertical, DesignTokens.chromePaddingSmall)
-        .padding(.horizontal, DesignTokens.chromePaddingVertical)
+        .padding(.vertical, DesignTokens.spacingTight)
+        .padding(.horizontal, DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
         
     }

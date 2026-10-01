@@ -91,7 +91,7 @@ struct CanvasWindow: View {
     @ViewBuilder
     private var contentBody: some View {
         if let document {
-            VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                 Text(String(format: WenshuI18n.t("canvas.nodes.count"), document.nodes.count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -105,7 +105,7 @@ struct CanvasWindow: View {
                         .foregroundStyle(.red)
                 }
             }
-            .padding(DesignTokens.chromePaddingMedium)
+            .padding(DesignTokens.spacingModerate)
         } else {
             EmptyStateView(
                 icon: "rectangle.3.group",
@@ -191,6 +191,6 @@ private struct CanvasNodeRow: View {
                     .lineLimit(2)
             }
         }
-        .padding(.vertical, DesignTokens.chromePaddingNano)
+        .padding(.vertical, DesignTokens.spacingCaption)
     }
 }

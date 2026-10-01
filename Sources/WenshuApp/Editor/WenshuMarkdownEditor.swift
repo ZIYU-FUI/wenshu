@@ -93,7 +93,7 @@ struct WenshuMarkdownEditor: View {
 
     var body: some View {
         // Apply the same horizontal inset as preview mode (= 18 PT
-        // each side = DesignTokens.chromePaddingLeading /
+        // each side = DesignTokens.spacingStandard /
         // chromePaddingTrailing = wenshu standard read-only text
         // inset per the sidebar / chrome spec). Edit mode
         // NativeTextView default textContainerInset is 0

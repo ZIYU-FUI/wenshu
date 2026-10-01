@@ -37,8 +37,8 @@ struct ChatToolDiffPreviewSheet: View {
     var body: some View {
         NavigationStack {
             content
-                .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                .padding(.vertical, DesignTokens.chromePaddingSmall)
+                .padding(.horizontal, DesignTokens.spacingTight)
+                .padding(.vertical, DesignTokens.spacingTight)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .navigationTitle(filename)
@@ -53,14 +53,14 @@ struct ChatToolDiffPreviewSheet: View {
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             header
             diffBody
         }
     }
 
     private var header: some View {
-        HStack(spacing: DesignTokens.chromePaddingSmall) {
+        HStack(spacing: DesignTokens.spacingTight) {
             Image(systemName: "doc.text")
                 .imageScale(.small)
                 .foregroundStyle(.secondary)
@@ -92,12 +92,12 @@ struct ChatToolDiffPreviewSheet: View {
                         .font(.system(size: 12, weight: .regular, design: .monospaced))
                         .foregroundStyle(ChatToolDiffPreview.color(for: String(line)))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, DesignTokens.chromePaddingMicro)
-                        .padding(.vertical, DesignTokens.chromePaddingPico)
+                        .padding(.horizontal, DesignTokens.spacingIconic)
+                        .padding(.vertical, DesignTokens.spacingHairline)
                         .textSelection(.enabled)
                 }
             }
-            .padding(.vertical, DesignTokens.chromePaddingMicro)
+            .padding(.vertical, DesignTokens.spacingIconic)
         }
         .background(
             AnyShapeStyle(.quinary.opacity(0.3)),

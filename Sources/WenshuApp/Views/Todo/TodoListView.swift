@@ -82,7 +82,7 @@ struct TodoListView: View {
             }
             content
         }
-        .padding(DesignTokens.chromePaddingVertical)
+        .padding(DesignTokens.spacingStandard)
         // boss acceptance fix: flexible sizing (zone size controlled by splitter, not view).
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
@@ -400,7 +400,7 @@ private struct TodoRow: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
         }
-        .padding(.vertical, DesignTokens.chromePaddingNano)
+        .padding(.vertical, DesignTokens.spacingCaption)
     }
 
     /// due-date display — shows the date in red when overdue
@@ -478,8 +478,8 @@ private struct TodoRow: View {
         return Text(text)
             .font(.caption2.weight(.semibold))
             .foregroundStyle(fg)
-            .padding(.horizontal, DesignTokens.chromePaddingSmall)
-            .padding(.vertical, DesignTokens.chromePaddingNano)
+            .padding(.horizontal, DesignTokens.spacingTight)
+            .padding(.vertical, DesignTokens.spacingCaption)
             .background(bg, in: Capsule())
             .help(WenshuI18n.t("todolist.priority_label"))
     }

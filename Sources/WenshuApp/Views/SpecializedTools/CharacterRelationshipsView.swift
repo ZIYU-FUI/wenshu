@@ -117,7 +117,7 @@ struct CharacterRelationshipsView: View {
     // MARK: - Body
 
     private var contentBody: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             addRow
             Divider()
             listSection
@@ -134,7 +134,7 @@ struct CharacterRelationshipsView: View {
     // MARK: - Add row
 
     private var addRow: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             Text(WenshuI18n.t("b5.characterrelationshipsview.l179.h77944637"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -143,7 +143,7 @@ struct CharacterRelationshipsView: View {
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
-            HStack(spacing: DesignTokens.chromePaddingVertical) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 Picker("From", selection: Binding(
                     get: { draftFromId ?? characters.first?.id ?? UUID() },
                     set: { draftFromId = $0 }
@@ -208,7 +208,7 @@ struct CharacterRelationshipsView: View {
     // MARK: - List
 
     private var listSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.characterrelationshipsview.l253.h68099009"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -219,7 +219,7 @@ struct CharacterRelationshipsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                         ForEach(relationships) { row in
                             relationshipRow(row)
                         }
@@ -231,12 +231,12 @@ struct CharacterRelationshipsView: View {
     }
 
     private func relationshipRow(_ row: CharacterRelationship) -> some View {
-        HStack(alignment: .top, spacing: DesignTokens.chromePaddingVertical) {
+        HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
             Image(systemName: row.kind.icon).imageScale(.small)
                 .foregroundStyle(.tint)
                 .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: DesignTokens.chromePaddingSmall) {
+                HStack(spacing: DesignTokens.spacingTight) {
                     Text(characterName(for: row.fromCharacterId))
                         .font(.callout)
                         .foregroundStyle(.primary)
@@ -248,8 +248,8 @@ struct CharacterRelationshipsView: View {
                     Text(row.kind.displayName)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                        .padding(.vertical, DesignTokens.chromePaddingPico)
+                        .padding(.horizontal, DesignTokens.spacingTight)
+                        .padding(.vertical, DesignTokens.spacingHairline)
                         
                     if row.isMutual {
                         Text(WenshuI18n.t("b5.characterrelationshipsview.l299.h17838183"))
@@ -274,8 +274,8 @@ struct CharacterRelationshipsView: View {
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("b5.characterrelationshipsview.l319.h19379525"))
         }
-        .padding(.vertical, DesignTokens.chromePaddingSmall)
-        .padding(.horizontal, DesignTokens.chromePaddingVertical)
+        .padding(.vertical, DesignTokens.spacingTight)
+        .padding(.horizontal, DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
         
     }
@@ -283,7 +283,7 @@ struct CharacterRelationshipsView: View {
     // MARK: - Inconsistencies
 
     private var inconsistenciesSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.characterrelationshipsview.l334.h68375167"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -294,7 +294,7 @@ struct CharacterRelationshipsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ForEach(Array(inconsistencies.enumerated()), id: \.offset) { _, issue in
-                    HStack(alignment: .top, spacing: DesignTokens.chromePaddingSmall) {
+                    HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                         Image(systemName: "exclamationmark.triangle").imageScale(.small)
                             .foregroundStyle(Color(nsColor: .systemOrange))
                             .frame(width: DesignTokens.tabIconSize)
@@ -303,7 +303,7 @@ struct CharacterRelationshipsView: View {
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(.vertical, DesignTokens.chromePaddingNano)
+                    .padding(.vertical, DesignTokens.spacingCaption)
                 }
             }
         }

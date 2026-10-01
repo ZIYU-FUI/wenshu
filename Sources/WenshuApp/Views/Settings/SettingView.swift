@@ -150,9 +150,9 @@ struct SettingView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .padding(.horizontal, DesignTokens.chromePaddingXLarge)
-            .padding(.top, DesignTokens.chromePaddingLarge)
-            .padding(.bottom, DesignTokens.chromePaddingVertical)
+            .padding(.horizontal, DesignTokens.spacingSection)
+            .padding(.top, DesignTokens.spacingLoose)
+            .padding(.bottom, DesignTokens.spacingStandard)
             .onChange(of: selectedTab) { _, new in
                 if new == .providerApi { refreshProviderStatus() }
                 if new == .model {
@@ -306,7 +306,7 @@ struct SettingView: View {
                     .contentShape(Rectangle())
                     if apiExpandedProviders.contains(p.slug) {
                         providerApiEditor(for: p)
-                            .padding(.leading, DesignTokens.chromePaddingLeading)
+                            .padding(.leading, DesignTokens.spacingStandard)
                             .transition(.opacity)
                     }
                 }
@@ -535,7 +535,7 @@ struct SettingView: View {
         // isolated file pre-wire) into Settings scene. Scope + retention +
         // recent memory entries rendered.
         MemorySettingsView()
-            .padding(DesignTokens.chromePaddingMedium)
+            .padding(DesignTokens.spacingModerate)
     }
 
 }

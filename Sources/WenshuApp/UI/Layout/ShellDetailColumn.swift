@@ -203,10 +203,10 @@ struct ShellDetailColumn: View {
             .frame(maxWidth: .infinity)
             // Add horizontal padding to the right column (= 8 PT
             // Apple HIG canonical inline content inset via
-            // DesignTokens.chromePaddingLeading; = matches the
+            // DesignTokens.spacingStandard; = matches the
             // sidebar's outer padding added in this commit; =
             // matches the chat history's content rhythm).
-            .padding(.horizontal, DesignTokens.chromePaddingLeading)
+            .padding(.horizontal, DesignTokens.spacingStandard)
         }
         .toolbar {
             // Place the toggle button AFTER the 3-tab Picker in the

@@ -436,8 +436,8 @@ struct ShellMiddleColumn: View {
                     // = shared single source of truth across the chat
                     // transcript = Apple HIG canonical macOS chat column
                     // gutter).
-                    .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
-                    .padding(.vertical, DesignTokens.chromePaddingVertical)
+                    .padding(.horizontal, DesignTokens.spacingModerate)
+                    .padding(.vertical, DesignTokens.spacingStandard)
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)

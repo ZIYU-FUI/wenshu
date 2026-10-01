@@ -30,8 +30,8 @@ struct ChatToolResultPartView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
-            HStack(spacing: DesignTokens.chromePaddingSmall) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 // Success/error icon (= SF Symbol equivalent for the
                 // result type = checkmark / exclamation-mark-triangle).
                 // -m1-shell boss 2026-09-15 OOB 'remove
@@ -65,7 +65,7 @@ struct ChatToolResultPartView: View {
             // empty otherwise).
             if let diff = Self.extractDiffPayload(from: toolResult.content) {
                 ChatToolDiffPreview(diff: diff.body, filename: diff.path)
-                    .padding(.top, DesignTokens.chromePaddingMicro)
+                    .padding(.top, DesignTokens.spacingIconic)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         sheetDiff = diff
@@ -84,7 +84,7 @@ struct ChatToolResultPartView: View {
                     .textSelection(.enabled)
                     .lineLimit(isExpanded ? nil : 8)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, DesignTokens.chromePaddingMicro)
+                    .padding(.top, DesignTokens.spacingIconic)
             }
             // T16 expansion toggle (= shown only when the result is
             // actually long enough to truncate; = the lineLimit vs nil
@@ -102,11 +102,11 @@ struct ChatToolResultPartView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
-                .padding(.top, DesignTokens.chromePaddingMicro / 2)
+                .padding(.top, DesignTokens.spacingIconic / 2)
             }
         }
-        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-        .padding(.vertical, DesignTokens.chromePaddingMicro)
+        .padding(.horizontal, DesignTokens.spacingTight)
+        .padding(.vertical, DesignTokens.spacingIconic)
         .background(cardFill, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)

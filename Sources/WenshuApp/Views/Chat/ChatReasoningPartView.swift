@@ -57,7 +57,7 @@ struct ChatReasoningPartView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
-                .padding(.top, DesignTokens.chromePaddingMicro)
+                .padding(.top, DesignTokens.spacingIconic)
                 .transition(.opacity)
         } label: {
             // -cleanup E2 boss 2026-09-21 OOB 'AI 思考过程不显示'

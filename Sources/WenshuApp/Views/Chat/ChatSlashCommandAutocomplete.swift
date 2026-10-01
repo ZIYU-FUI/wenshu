@@ -133,8 +133,8 @@ struct ChatSlashCommandAutocomplete: View {
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
-                        .padding(.horizontal, DesignTokens.chromePaddingLeading)
-                        .padding(.vertical, DesignTokens.chromePaddingMicro)
+                        .padding(.horizontal, DesignTokens.spacingStandard)
+                        .padding(.vertical, DesignTokens.spacingIconic)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
                     }

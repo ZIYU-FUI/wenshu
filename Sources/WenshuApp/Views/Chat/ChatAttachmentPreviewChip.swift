@@ -42,7 +42,7 @@ struct ChatAttachmentPreviewChip: View {
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("chat.input.attach.clear"))
         }
-        .padding(DesignTokens.chromePaddingMicro)
+        .padding(DesignTokens.spacingIconic)
         .background(
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .fill(.regularMaterial)

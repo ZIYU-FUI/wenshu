@@ -532,7 +532,7 @@ struct PreviewPane: View {
         // the search bar.
         //
         // boss 9/7 OOB 'top barsearchyes':
-        // the .padding(DesignTokens.chromePaddingHero) was wrapping
+        // the .padding(DesignTokens.spacingHero) was wrapping
         // the entire VStack (= search bar + body), = creating a visual
         // gap between the ZoneContentView tab strip and the search
         // bar. The padding belongs ONLY on the body content (= scope
@@ -898,8 +898,8 @@ struct PreviewPane: View {
             // own chromePaddingContentHorizontal (= 10 PT) horizontal
             // padding here = the same visual result as v1.84b but
             // without affecting the SectionHeader.
-            .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
-            .padding(.bottom, DesignTokens.chromePaddingVertical)
+            .padding(.horizontal, DesignTokens.spacingModerate)
+            .padding(.bottom, DesignTokens.spacingStandard)
                 }
             // Cards fade in on sidebar tap (= no-flicker-stutter,
             // scope-switch entry animation). Boss 2026-09-24 followup
@@ -1063,7 +1063,7 @@ struct PreviewPane: View {
             // LazyVGrid + adaptiveColumns(width:) + sort + Card
             // styling as bookScopeView). Avoids the v1.69n-draft
             // duplicate LazyVGrid (= different .padding(24) vs
-            // .padding(.vertical, DesignTokens.chromePaddingVertical);
+            // .padding(.vertical, DesignTokens.spacingStandard);
             // = the user's "width is wrong" complaint was the
             // duplicate-render path bypassing the existing
             // chromePaddingVertical / card chrome contract).
@@ -1225,7 +1225,7 @@ struct PreviewPane: View {
                     // filter add/remove within overviewGrid).
                     .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 }
-                .padding(.vertical, DesignTokens.chromePaddingVertical)
+                .padding(.vertical, DesignTokens.spacingStandard)
             }
         }
     }
@@ -1364,7 +1364,7 @@ struct PreviewPane: View {
                 // per-card animation trigger (= search
                 // filter add/remove within bookDocsGrid).
                 .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
-                .padding(.vertical, DesignTokens.chromePaddingVertical)
+                .padding(.vertical, DesignTokens.spacingStandard)
             }
         }
     }
@@ -1596,7 +1596,7 @@ private struct Card: View {
                         .multilineTextAlignment(.leading)
                 }
             }
-            .padding(DesignTokens.chromePaddingPickerItem)
+            .padding(DesignTokens.spacingModerate)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         // parent component owns style, child component only does function.

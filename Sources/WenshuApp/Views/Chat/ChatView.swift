@@ -343,7 +343,7 @@ struct ChatView: View {
                             }
                         }
                     }
-                    .padding(DesignTokens.chromePaddingVertical)
+                    .padding(DesignTokens.spacingStandard)
                     // 
                     // hermes `--composer-width: 100%` (= not a fixed
                     // pixel cap; = the chat content column fills the

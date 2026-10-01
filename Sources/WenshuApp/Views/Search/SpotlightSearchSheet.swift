@@ -53,7 +53,7 @@ struct SpotlightSearchSheet: View {
 
     var body: some View {
         NavigationStack {
-                VStack(spacing: DesignTokens.chromePaddingMedium) {
+                VStack(spacing: DesignTokens.spacingModerate) {
                     TextField(
                         WenshuI18n.t("spotlight.search.placeholder"),
                         text: $query
@@ -65,7 +65,7 @@ struct SpotlightSearchSheet: View {
                     Divider()
                     resultList
                 }
-                .padding(DesignTokens.chromePaddingMedium)
+                .padding(DesignTokens.spacingModerate)
                 .navigationTitle(WenshuI18n.t("spotlight.search.title"))
         }
         .frame(minWidth: 480, minHeight: 320)
@@ -147,7 +147,7 @@ private struct SpotlightRow: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
-        .padding(.vertical, DesignTokens.chromePaddingNano)
+        .padding(.vertical, DesignTokens.spacingCaption)
     }
 }
 

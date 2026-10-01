@@ -26,7 +26,7 @@ struct PlotThreadView: View {
     @State private var errorText: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             Text(WenshuI18n.t("b5.plotthreadview.l14.h19187540")).font(.headline)
             if let bookId = bookStore.selectedBookId {
                 HStack {
@@ -64,7 +64,7 @@ struct PlotThreadView: View {
                 )
             }
             if let errorText { Text(errorText).foregroundStyle(.red).font(.caption) }
-        }.padding(DesignTokens.chromePaddingMedium).task(id: bookStore.selectedBookId) { await reload() }
+        }.padding(DesignTokens.spacingModerate).task(id: bookStore.selectedBookId) { await reload() }
     }
 
     private func reload() async {

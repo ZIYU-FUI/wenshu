@@ -30,7 +30,7 @@ struct RuntimeCWDDisplayChip: View {
     }
 
     var body: some View {
-        HStack(spacing: DesignTokens.chromePaddingMicro) {
+        HStack(spacing: DesignTokens.spacingIconic) {
             Image(systemName: "folder").imageScale(.small)
                 .font(DesignTokens.runtimeCwdChipFont)
                 .foregroundStyle(.secondary)
@@ -40,7 +40,7 @@ struct RuntimeCWDDisplayChip: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
-        .padding(.horizontal, DesignTokens.chromePaddingSmall)
+        .padding(.horizontal, DesignTokens.spacingTight)
         .padding(.vertical, DesignTokens.badgePaddingVertical)
         .background(
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)

@@ -145,7 +145,7 @@ struct EditorPlaceholder: View {
                     Text(title)
                         .font(DesignTokens.tabTitleFont.weight(.semibold))
                         .foregroundStyle(Color.accentColor)
-                        .padding(.horizontal, DesignTokens.chromePaddingMedium)
+                        .padding(.horizontal, DesignTokens.spacingModerate)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(height: DesignTokens.paneTabHotArea)
                         .background(
