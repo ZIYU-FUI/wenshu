@@ -89,7 +89,7 @@ struct ChatToolDiffPreview: View {
                     .font(.system(size: 11, weight: .regular, design: .monospaced))
                     .foregroundStyle(Self.color(for: String(line)))
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, DesignTokens.chromePaddingMicro)
             }
         }
     }
