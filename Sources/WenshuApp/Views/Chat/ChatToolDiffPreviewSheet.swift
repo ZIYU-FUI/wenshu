@@ -92,8 +92,8 @@ struct ChatToolDiffPreviewSheet: View {
                         .font(.system(size: 12, weight: .regular, design: .monospaced))
                         .foregroundStyle(ChatToolDiffPreview.color(for: String(line)))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
+                        .padding(.horizontal, DesignTokens.chromePaddingMicro)
+                        .padding(.vertical, DesignTokens.chromePaddingPico)
                         .textSelection(.enabled)
                 }
             }

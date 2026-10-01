@@ -74,10 +74,11 @@ struct ChatMessagePlaceholderRow<Pulse: View>: View {
             }
         }
         // -cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
-        // vertical 8 PT (= Apple HIG py-2 row gap convention). Horizontal
-        // padding lives on the chat transcript outer (= single source
-        // of truth = ChatView.swift, not this leaf).
-        .padding(.vertical, 8)
+        // vertical chromePaddingVertical (= 8 PT; = Apple HIG py-2 row gap
+        // convention). Horizontal padding lives on the chat transcript
+        // outer (= single source of truth = ChatView.swift, not this
+        // leaf).
+        .padding(.vertical, DesignTokens.chromePaddingVertical)
     }
 
     /// Format an elapsed-seconds value as "5.3s" / "1m 23s" /

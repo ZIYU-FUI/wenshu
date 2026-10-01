@@ -191,6 +191,6 @@ private struct CanvasNodeRow: View {
                     .lineLimit(2)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DesignTokens.chromePaddingNano)
     }
 }

@@ -221,6 +221,6 @@ private struct BookmarkRow: View {
             }
             .buttonStyle(.borderless)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DesignTokens.chromePaddingNano)
     }
 }

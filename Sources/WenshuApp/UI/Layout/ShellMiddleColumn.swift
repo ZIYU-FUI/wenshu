@@ -431,7 +431,12 @@ struct ShellMiddleColumn: View {
                     // = maxWidth; = the background then draws on
                     // the padded view = the background now stands
                     // 10 PT away from each column edge).
-                    .padding(.horizontal, 10)
+                    // 10 PT away from each column edge (= chat transcript
+                    // content horizontal padding = chromePaddingContentHorizontal
+                    // = shared single source of truth across the chat
+                    // transcript = Apple HIG canonical macOS chat column
+                    // gutter).
+                    .padding(.horizontal, DesignTokens.chromePaddingContentHorizontal)
                     .padding(.vertical, DesignTokens.chromePaddingVertical)
                     .frame(maxWidth: .infinity)
                     .background(
