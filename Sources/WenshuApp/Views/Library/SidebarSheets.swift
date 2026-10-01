@@ -94,7 +94,7 @@ struct NewChoiceSheet: View {
         VStack(spacing: 24) {
             Text(WenshuI18n.t("new_choice_sheet_title"))
                 .font(.title2.weight(.semibold))
-                .padding(.top, 16)
+                .padding(.top, DesignTokens.chromePaddingLarge)
             HStack(spacing: 16) {
                 NewChoiceCard(
                     title: WenshuI18n.t("new_choice_shelf_title"),
@@ -113,15 +113,15 @@ struct NewChoiceSheet: View {
                     onCreate(.book)
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, DesignTokens.chromePaddingXLarge)
             Spacer(minLength: 0)
             HStack {
                 Spacer()
                 Button(WenshuI18n.t("auto.shared.cancel"), action: onCancel)
                     .keyboardShortcut(.cancelAction)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 16)
+            .padding(.horizontal, DesignTokens.chromePaddingXLarge)
+            .padding(.bottom, DesignTokens.chromePaddingLarge)
         }
         .frame(minWidth: 480, minHeight: 280)
     }
@@ -155,7 +155,7 @@ private struct NewChoiceCard: View {
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, minHeight: 140)
-            .padding(16)
+            .padding(DesignTokens.chromePaddingLarge)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(.tint.opacity(hovering ? 0.12 : 0.06))
@@ -227,7 +227,7 @@ struct NewShelfSheet: View {
                         .foregroundStyle(.red)
                 }
             }
-            .padding(20)
+            .padding(DesignTokens.chromePaddingHero)
             .navigationTitle(WenshuI18n.t("new_shelf_sheet_title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -382,12 +382,12 @@ struct NewBookSheet: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, DesignTokens.chromePaddingMicro)
                     }
                     .frame(maxHeight: 220)
             }
             }
-            .padding(20)
+            .padding(DesignTokens.chromePaddingHero)
             .navigationTitle(WenshuI18n.t("new_book_sheet_title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -473,7 +473,7 @@ struct RenameItemSheet: View {
                         .foregroundStyle(.red)
                 }
             }
-            .padding(20)
+            .padding(DesignTokens.chromePaddingHero)
             .navigationTitle(WenshuI18n.t("rename_item_sheet_title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
