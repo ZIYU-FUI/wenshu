@@ -68,6 +68,12 @@ struct ZoneEditor: View {
             toolbar
             Divider()
             // Grid canvas (= translucent numbered zones).
+            // chromePaddingHero (= 20 PT all-around outer-container
+            // padding; = the Apple HIG canonical macOS window content
+            // margin; = kept as DesignTokens because this is a static
+            // non-scrollable grid canvas = Apple has no system API for
+            // non-scrollable outer padding; = scrollable containers use
+            // .contentMargins instead (= not applicable here)).
             gridCanvas
                 .padding(DesignTokens.chromePaddingHero)
         }
