@@ -83,7 +83,7 @@ struct ChatPlanPartView: View {
                 ))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, DesignTokens.chromePaddingMicro)
                     .overlay(
                         RoundedRectangle(cornerRadius: 3)
                             .strokeBorder(.quaternary, lineWidth: 0.5)
