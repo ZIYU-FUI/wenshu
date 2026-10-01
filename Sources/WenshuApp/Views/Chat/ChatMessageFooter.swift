@@ -113,8 +113,8 @@ struct ChatMessageFooter: View {
                     .foregroundStyle(.quaternary)
             }
         }
-        .padding(.top, 2)
-        // -cleanup E6: vertical 2 PT top (= row separator gap;
+        .padding(.top, DesignTokens.chromePaddingNano)
+        // -cleanup E6: vertical chromePaddingNano (= 2 PT) top (= row separator gap;
         // = matches Apple HIG caption2 metadata vertical gap).
         .frame(maxWidth: .infinity, alignment: .leading)
         // T53-FOOTER-COMBO-TOOLTIP: combined tooltip on the
