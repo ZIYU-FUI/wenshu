@@ -113,6 +113,11 @@ struct NewChoiceSheet: View {
                     onCreate(.book)
                 }
             }
+            // chromePaddingXLarge (= 24 PT horizontal) kept as
+            // DesignTokens (= this is a static non-scrollable sheet
+            // body VStack; = Apple has no system API for non-scrollable
+            // outer padding; = scrollable containers use
+            // .contentMargins instead (= not applicable here)).
             .padding(.horizontal, DesignTokens.chromePaddingXLarge)
             Spacer(minLength: 0)
             HStack {
@@ -120,6 +125,11 @@ struct NewChoiceSheet: View {
                 Button(WenshuI18n.t("auto.shared.cancel"), action: onCancel)
                     .keyboardShortcut(.cancelAction)
             }
+            // chromePaddingXLarge (= 24 PT horizontal) + chromePaddingLarge
+            // (= 16 PT bottom) kept as DesignTokens (= static
+            // non-scrollable sheet body VStack; = Apple has no system
+            // API for non-scrollable outer padding; = scrollable
+            // containers use .contentMargins instead).
             .padding(.horizontal, DesignTokens.chromePaddingXLarge)
             .padding(.bottom, DesignTokens.chromePaddingLarge)
         }
@@ -227,6 +237,9 @@ struct NewShelfSheet: View {
                         .foregroundStyle(.red)
                 }
             }
+            // chromePaddingHero (= 20 PT all-around) kept as DesignTokens
+            // (= static non-scrollable sheet VStack; = Apple has no
+            // system API for non-scrollable outer padding).
             .padding(DesignTokens.chromePaddingHero)
             .navigationTitle(WenshuI18n.t("new_shelf_sheet_title"))
             .toolbar {
@@ -387,6 +400,9 @@ struct NewBookSheet: View {
                     .frame(maxHeight: 220)
             }
             }
+            // chromePaddingHero (= 20 PT all-around) kept as DesignTokens
+            // (= static non-scrollable sheet VStack; = Apple has no
+            // system API for non-scrollable outer padding).
             .padding(DesignTokens.chromePaddingHero)
             .navigationTitle(WenshuI18n.t("new_book_sheet_title"))
             .toolbar {
@@ -473,6 +489,9 @@ struct RenameItemSheet: View {
                         .foregroundStyle(.red)
                 }
             }
+            // chromePaddingHero (= 20 PT all-around) kept as DesignTokens
+            // (= static non-scrollable sheet VStack; = Apple has no
+            // system API for non-scrollable outer padding).
             .padding(DesignTokens.chromePaddingHero)
             .navigationTitle(WenshuI18n.t("rename_item_sheet_title"))
             .toolbar {
