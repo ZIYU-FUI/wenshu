@@ -478,7 +478,7 @@ private struct TodoRow: View {
             .help(WenshuI18n.t("todolist.priority_label"))
     }
 
-    private func chipStyle(for priority: TodoPriority) -> (String, Color, Color) {
+    private func chipStyle(for priority: TodoPriority) -> (String, Color, AnyShapeStyle) {
         // macOS 27 doc-alignment: `HierarchicalShapeStyle.tertiary`
         // is the Apple semantic `ShapeStyle` that auto-adapts to
         // dark mode + Liquid Glass. `Color.secondary.opacity(N)`
@@ -495,10 +495,10 @@ private struct TodoRow: View {
         // sites in this audit). Tracked as a follow-up
         // migration in the next audit batch.
         switch priority {
-        case .low: return ("低", Color.secondary, Color.secondary.opacity(0.15))
-        case .medium: return ("中", Color.primary, Color.secondary.opacity(0.2))
-        case .high: return ("高", .orange, .orange.opacity(0.18))
-        case .urgent: return ("紧急", .red, .red.opacity(0.18))
+        case .low: return ("低", Color.secondary, AnyShapeStyle(.secondary.opacity(0.15)))
+        case .medium: return ("中", Color.primary, AnyShapeStyle(.secondary.opacity(0.2)))
+        case .high: return ("高", .orange, AnyShapeStyle(.orange.opacity(DesignTokens.accentTintOpacityHero)))
+        case .urgent: return ("紧急", .red, AnyShapeStyle(.red.opacity(DesignTokens.accentTintOpacityHero)))
         }
     }
 }
