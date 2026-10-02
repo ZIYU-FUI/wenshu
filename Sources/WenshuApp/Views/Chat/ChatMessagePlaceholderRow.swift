@@ -69,7 +69,7 @@ struct ChatMessagePlaceholderRow<Pulse: View>: View {
             TimelineView(.periodic(from: .now, by: 0.5)) { context in
                 let elapsed = context.date.timeIntervalSince(timestamp)
                 Text(Self.formatElapsed(elapsed))
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(.caption2.monospaced())
                     .foregroundStyle(.tertiary)
             }
         }

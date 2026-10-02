@@ -68,7 +68,7 @@ struct ChatPlanPartView: View {
             HStack(spacing: DesignTokens.spacingTight) {
                 SFIcon("list.bullet.rectangle", style: .inlineSmall, color: Color.accentColor)
                 Text("Plan: \(plan.query)")
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.caption.monospaced())
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                 // T32-STEP-COUNT-CHIP (2026-09-18): a small "(N steps)"
@@ -112,7 +112,7 @@ struct ChatPlanPartView: View {
                             .font(.caption2)
                             .foregroundStyle(.quaternary)
                         Text(model)
-                            .font(.system(.caption2, design: .monospaced))
+                            .font(.caption2.monospaced())
                             .foregroundStyle(.tertiary)
                     }
                 }
@@ -177,12 +177,12 @@ struct ChatPlanPartView: View {
     private func stepRow(_ step: PlanStep) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text("\(step.index).")
-                .font(.system(.caption, design: .monospaced).bold())
+                .font(.caption.monospaced().bold())
                 .foregroundStyle(Color.accentColor)
                 .frame(width: DesignTokens.stepNumberColumnWidth, alignment: .trailing)
             VStack(alignment: .leading, spacing: 2) {
                 Text(step.title)
-                    .font(.system(.caption, design: .monospaced).bold())
+                    .font(.caption.monospaced().bold())
                     .foregroundStyle(.primary)
                 if !step.detail.isEmpty {
                     Text(step.detail)

@@ -82,7 +82,7 @@ struct ChatMessageFooter: View {
             // when the message was sealed less than 60s ago.
             if isSealed, Date().timeIntervalSince(timestamp) < 60 {
                 Text("· NEW")
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(.caption2.monospaced())
                     .foregroundStyle(Color.accentColor)
             }
             // T25-TOKEN-FOOTER: token count footer
@@ -101,7 +101,7 @@ struct ChatMessageFooter: View {
                 // T64-DOLLAR-ICON: "$" SF Symbol prefix.
                 SFIcon("dollarsign.circle", style: .inlineSmall, color: IconColor.quaternary)
                 Text(Self.formatTokenCost(tokens))
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(.caption2.monospaced())
                     .foregroundStyle(.quaternary)
             }
         }

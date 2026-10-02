@@ -85,7 +85,7 @@ struct ChatToolUsePartView: View {
                 // for tool identifiers = matches the chat input's
                 // `/command` autocomplete rendering).
                 Text(toolUse.name)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                 // T47-TOOL-DURATION (2026-09-18): show the tool
                 // execution duration when present (= e.g. "1.2s" /
@@ -102,7 +102,7 @@ struct ChatToolUsePartView: View {
                         .font(.caption2)
                         .foregroundStyle(.quaternary)
                     Text(Self.formatDuration(duration))
-                        .font(.system(.caption2, design: .monospaced))
+                        .font(.caption2.monospaced())
                         .foregroundStyle(.tertiary)
                 }
                 Spacer(minLength: 0)
@@ -113,7 +113,7 @@ struct ChatToolUsePartView: View {
                 // Args JSON (= pretty-printed if possible; = wrapped
                 // in a monospaced font for readability).
                 Text(Self.prettyJSON(toolUse.args))
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.caption.monospaced())
                     .foregroundStyle(DesignTokens.statusForeground)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)

@@ -360,7 +360,7 @@ struct NewBookSheet: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(selectedIcon)
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.caption.monospaced())
                         }
                         Spacer()
                     }

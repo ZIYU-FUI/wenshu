@@ -122,7 +122,7 @@ struct ChatSlashCommandAutocomplete: View {
                     } label: {
                         HStack(spacing: DesignTokens.spacingStandard) {
                             Text(row.displayLabel)
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.caption.monospaced())
                                 .foregroundStyle(.primary)
                             Text(row.description)
                                 .font(.caption)
