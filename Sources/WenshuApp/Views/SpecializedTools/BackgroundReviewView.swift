@@ -55,8 +55,11 @@ struct BackgroundReviewView: View {
     private var contentBody: some View {
         List(proposals) { proposal in
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: proposalIcon(for: proposal.kind))
-                    .foregroundStyle(proposalColor(for: proposal.kind))
+                SFIcon(
+                    proposalIcon(for: proposal.kind),
+                    style: .inlineSmall,
+                    color: proposalColor(for: proposal.kind)
+                )
                 VStack(alignment: .leading, spacing: 4) {
                     Text(proposal.title)
                         .font(.headline)
