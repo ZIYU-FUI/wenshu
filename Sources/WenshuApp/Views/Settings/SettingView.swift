@@ -374,7 +374,7 @@ struct SettingView: View {
 
     @ViewBuilder
     private func providerApiEditor(for p: Provider) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.spacingStandard) {
             SecureField(WenshuI18n.t("b5.settingview.l399.h87028237"), text: $apiDraftKey)
                 .textFieldStyle(.roundedBorder)
             Button(WenshuI18n.t("settings.provider.save_button")) {
@@ -394,7 +394,7 @@ struct SettingView: View {
 
     private func providerApiRow(_ p: Provider) -> some View {
         let hasKey = providersWithKeys.contains(p.slug)
-        return HStack(spacing: 12) {
+        return HStack(spacing: DesignTokens.spacingModerate) {
             // -m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
             // canonical LLM-provider key-state glyph = 'key'
             // (SF Symbols 6). Replaces the v0.27 'Lucide key'

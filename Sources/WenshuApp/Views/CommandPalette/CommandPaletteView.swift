@@ -119,7 +119,7 @@ struct CommandPaletteView: View {
             // Search field (Apple HIG TextField .plain = macOS 27 native
             // text-field render; no custom frame / border / Liquid Glass
             // paint = boss 2026-09-02 OOB 'let Apple defaults through').
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.secondary)
                 TextField(WenshuI18n.t("b5.commandpaletteview.l125.h99176598"), text: Binding(
                     get: { model.query },
@@ -215,7 +215,7 @@ private struct CommandPaletteRow: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.spacingModerate) {
             // Category badge (= "command" / "skill" / "navigate" /
             // "chat" / "custom"). SF Symbol fallback is acceptable here
             // because this is a debug/internal UX surface (= not the

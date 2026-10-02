@@ -346,7 +346,7 @@ struct LibraryOnboardingView: View {
     @State private var isImporterPresented: Bool = false
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: DesignTokens.spacingSection) {
             Spacer()
 
 // bossverificationfix (Boss 8/24 OOB): (books.vertical) replace LOGO.
@@ -377,7 +377,7 @@ Group {
     }
 }
 
-            VStack(spacing: 12) {
+            VStack(spacing: DesignTokens.spacingModerate) {
                 Text(WenshuI18n.t("auto.libraryrootview.l366.h45346224"))
                     .font(.title.weight(.semibold))
                 Text(WenshuI18n.t("onboarding.library.choose_location"))
@@ -391,7 +391,7 @@ Group {
                     .padding(.horizontal, DesignTokens.spacingSection)
             }
 
-            VStack(spacing: 12) {
+            VStack(spacing: DesignTokens.spacingModerate) {
                 // bossverificationfix (Boss 8/24: 'don't'):
                 // - 2 buttons = / open (macOS, not)
                 // - ' / '.ws' / 'Final Cut Pro' (boss don't)

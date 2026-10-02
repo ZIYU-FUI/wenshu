@@ -83,7 +83,7 @@ struct AgentProgressPanel: View {
     @ViewBuilder
     private func content(for entry: AgentProgressEntry) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 // Spinning indicator (Apple HIG ProgressView() default).
                 ProgressView()
                     .controlSize(.small)

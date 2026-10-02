@@ -103,7 +103,7 @@ struct ChatPlanPartView: View {
                 // Falls back to 'questionmark.circle' when the slug
                 // is unknown (= forward-compat for future connectors).
                 SFIcon(Self.connectorIcon(plan.connectorID), style: .inlineSmall, color: IconColor.tertiary)
-                HStack(spacing: 2) {
+                HStack(spacing: DesignTokens.spacingCaption) {
                     Text(Provider.by(slug: plan.connectorID)?.name ?? plan.connectorID)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
@@ -137,7 +137,7 @@ struct ChatPlanPartView: View {
                 }
                 .padding(.top, DesignTokens.spacingTight)
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: DesignTokens.spacingIconic) {
                     Text("\(plan.steps.count) step\(plan.steps.count == 1 ? "" : "s")")
                         .font(.caption)
                         .foregroundStyle(.secondary)

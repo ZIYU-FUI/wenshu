@@ -32,7 +32,7 @@ struct PresetThumbnail: View {
         switch node {
         case .split(let split):
             if split.orientation == .row {
-                HStack(spacing: 1) {
+                HStack(spacing: DesignTokens.spacingHairline) {
                     ForEach(split.children.indices, id: \.self) { i in
                         render(node: split.children[i], in: CGSize(
                             width: max(0, size.width * CGFloat(split.weights[i]) / CGFloat(split.weights.reduce(0, +)) - 1),
@@ -41,7 +41,7 @@ struct PresetThumbnail: View {
                     }
                 }
             } else {
-                VStack(spacing: 1) {
+                VStack(spacing: DesignTokens.spacingHairline) {
                     ForEach(split.children.indices, id: \.self) { i in
                         render(node: split.children[i], in: CGSize(
                             width: size.width,

@@ -158,7 +158,7 @@ struct KanbanView: View {
     /// disabled-control feedback).
     private var inputRow: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 TextField(WenshuI18n.t("auto2.kanbanview.l142.h68849992"), text: $newTicketTitle)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addTicket() }
@@ -347,7 +347,7 @@ private struct KanbanColumn: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
+            HStack(spacing: DesignTokens.spacingIconic) {
                 Text(label(for: status))
                     .font(.subheadline.weight(.semibold))
                 Text(WenshuI18n.t("b5.kanbanview.l336.h21576137"))
@@ -437,7 +437,7 @@ private struct KanbanCard: View {
                 .font(.body)
                 .lineLimit(3)
                 .textSelection(.enabled)
-            HStack(spacing: 4) {
+            HStack(spacing: DesignTokens.spacingIconic) {
                 Menu {
                     ForEach(KanbanStatus.allCases, id: \.self) { s in
                         Button(label(for: s)) { onMove(s) }

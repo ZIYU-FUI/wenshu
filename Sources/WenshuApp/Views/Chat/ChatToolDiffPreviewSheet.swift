@@ -67,7 +67,7 @@ struct ChatToolDiffPreviewSheet: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 0)
-            HStack(spacing: 4) {
+            HStack(spacing: DesignTokens.spacingIconic) {
                 Text("+\(stats.addedChars)")
                     .foregroundStyle(Color(nsColor: .systemGreen))
                 Text("−\(stats.removedChars)")

@@ -61,7 +61,7 @@ struct ChatMessageFooter: View {
     }
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: DesignTokens.spacingTight) {
             // T65-CLOCK-PREFIX: clock icon before the timestamp text.
             SFIcon("clock", style: .inlineSmall, color: IconColor.quaternary)
             // T84-DELIVERED-CHECK: checkmark after the timestamp

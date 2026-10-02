@@ -61,7 +61,7 @@ struct ChatMessagePlaceholderRow<Pulse: View>: View {
     }
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: DesignTokens.spacingTight) {
             // Caller-provided pulse (= StatusPulse by default).
             pulse
             Text(hintText)

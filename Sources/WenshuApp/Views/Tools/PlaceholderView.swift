@@ -149,7 +149,7 @@ struct PlaceholderView: View {
             Text(WenshuI18n.t("b5.placeholderview.l180.h65038593"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 TextField(
                     "Chapter UUID",
                     text: $draftChapterText,
@@ -213,7 +213,7 @@ struct PlaceholderView: View {
     // MARK: - Filter row
 
     private var filterRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.spacingStandard) {
             Text(WenshuI18n.t("b5.placeholderview.l248.h36078854"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -272,7 +272,7 @@ struct PlaceholderView: View {
             HStack(alignment: .top, spacing: 8) {
                 SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.tint)
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: DesignTokens.spacingTight) {
                         Text(row.pattern)
                             .font(.callout.monospaced())
                             .foregroundStyle(.primary)
@@ -289,7 +289,7 @@ struct PlaceholderView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
-                    HStack(spacing: 6) {
+                    HStack(spacing: DesignTokens.spacingTight) {
                         Text(WenshuI18n.t("b5.placeholderview.l329.h63216295"))
                             .font(.caption2)
                             .foregroundStyle(DesignTokens.statusForeground)
@@ -299,7 +299,7 @@ struct PlaceholderView: View {
                     }
                 }
                 Spacer(minLength: 0)
-                VStack(spacing: 4) {
+                VStack(spacing: DesignTokens.spacingIconic) {
                     if row.status != .resolved {
                         Button {
                             Task { await resolvePlaceholder(row) }
@@ -351,7 +351,7 @@ struct PlaceholderView: View {
 
     private var scanSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 SFIcon("viewfinder", style: .inlineSmall, color: IconColor.tint)
                     .foregroundStyle(.tint)
                 Text(WenshuI18n.t("b5.placeholderview.l396.h55542836"))
@@ -369,7 +369,7 @@ struct PlaceholderView: View {
                     RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton)
                         .stroke(.quaternary, lineWidth: 1)
                 )
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 Button {
                     Task { await runScan() }
                 } label: {

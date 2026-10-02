@@ -144,7 +144,7 @@ struct TodoListView: View {
     /// (= below) are the two boss-Issue-1 differentiators.
     private var inputRow: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 TextField(WenshuI18n.t("auto2.todolistview.l180.h66445661"), text: $newItemTitle)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addItem() }
@@ -372,7 +372,7 @@ private struct TodoRow: View {
     let onDelete: () -> Void
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: DesignTokens.spacingTight) {
             statusToggle
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
@@ -410,7 +410,7 @@ private struct TodoRow: View {
             let isOverdue = due < Calendar.current.startOfDay(for: .now)
                 && item.status != .completed
                 && item.status != .cancelled
-            HStack(spacing: 4) {
+            HStack(spacing: DesignTokens.spacingIconic) {
                 SFIcon("calendar", style: .inlineSmall, color: IconColor.secondary)
                 Text(Self.dueDateFormatter.string(from: due))
                     .font(.caption)

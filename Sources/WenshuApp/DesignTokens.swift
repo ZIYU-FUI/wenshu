@@ -122,6 +122,18 @@ enum DesignTokens {
     /// ChapterFocusLockBadge row gap, SectionHeader internal gap.
     static let spacingIconic: CGFloat = 4
 
+    /// Relaxed stack spacing (= 10 PT, Apple HIG `.relaxed`
+    /// stack-spacing standard).
+    ///
+    /// Apple HIG source: `View > Layout > Stack > Relaxed spacing` (=
+    /// the macOS 26+ stack spacing between dense-relaxed content
+    /// blocks; = measured from Mail message-list relaxed state).
+    ///
+    /// Used by: EmotionCurveView chart vertical-legend stack
+    /// (= dense data point spacing); LongFormGuardrailsView violation
+    /// list spacing (= dense bullet-to-bullet).
+    static let spacingRelaxed: CGFloat = 10
+
     /// Apple HIG tight inter-row gap (= 6 PT). The canonical
     /// tight padding used inside chips / hover-action rows /
     /// footer chips where chrome is denser than standard rows.

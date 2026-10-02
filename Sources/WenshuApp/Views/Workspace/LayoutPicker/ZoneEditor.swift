@@ -107,7 +107,7 @@ struct ZoneEditor: View {
 
     /// Toolbar.
     private var toolbar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignTokens.spacingModerate) {
             Picker("Template", selection: $template) {
                 ForEach(Template.allCases) { t in
                     Text(t.rawValue).tag(t)

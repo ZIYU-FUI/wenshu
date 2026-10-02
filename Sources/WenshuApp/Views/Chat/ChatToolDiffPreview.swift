@@ -66,7 +66,7 @@ struct ChatToolDiffPreview: View {
     }
 
     private var statsLabel: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DesignTokens.spacingIconic) {
             Text("+\(stats.addedChars)")
                 .foregroundStyle(Color(nsColor: .systemGreen))
             Text("−\(stats.removedChars)")

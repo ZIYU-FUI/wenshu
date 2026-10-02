@@ -121,7 +121,7 @@ struct ChatInputBarView: View {
         // Reference: NewLibraryOutlineView.swift L1760 `sidebarBottomNewButton`.
         // Same primitives (= Apple HIG sidebar-bottom-accessory pattern):
         //   - Divider above
-        //   - HStack(spacing: 6) for label (= just the Text here; = the
+        //   - HStack(spacing: DesignTokens.spacingTight) for label (= just the Text here; = the
         //     "+ 新建" button has `Image + Text`; = we have no action
         //     button = just the text label)
         //   - Text.font(.callout) (= NOT .footnote; = matches the
@@ -140,7 +140,7 @@ struct ChatInputBarView: View {
         // knows how much room they have).
         VStack(spacing: 0) {
             Divider()
-            HStack(spacing: 6) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 if vm.contextUsed >= tokenCompressionContextThreshold {
                     // Over-threshold warning (orange).
                     // (2026-09-23): localized.

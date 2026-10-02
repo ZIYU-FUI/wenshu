@@ -71,7 +71,7 @@ struct BackgroundReviewView: View {
                     }
                 }
                 Spacer()
-                VStack(spacing: 4) {
+                VStack(spacing: DesignTokens.spacingIconic) {
                     Button(WenshuI18n.t("background_review.approve")) {
                         Task { await approve(proposal.id) }
                     }

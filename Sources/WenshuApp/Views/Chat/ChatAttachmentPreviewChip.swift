@@ -21,7 +21,7 @@ struct ChatAttachmentPreviewChip: View {
     let onClear: () -> Void
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: DesignTokens.spacingTight) {
             // 48 PT rounded thumbnail of the attached image. Uses
             // SwiftUI `Image` (= no Nuke; Nuke was retired by
             // DEAD-PIN-CLEANUP-001 per §13 v0.10 ship packet).

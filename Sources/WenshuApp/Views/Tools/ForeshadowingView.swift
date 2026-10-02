@@ -147,7 +147,7 @@ struct ForeshadowingView: View {
             Text(WenshuI18n.t("b5.foreshadowingview.l179.h19059379"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 TextField(
                     "Title (e.g. The silver dagger)",
                     text: $draftTitle,
@@ -174,7 +174,7 @@ struct ForeshadowingView: View {
                 .disabled(!canAdd)
                 .help(WenshuI18n.t("b5.foreshadowingview.l207.h87864084"))
             }
-            HStack(spacing: 8) {
+            HStack(spacing: DesignTokens.spacingStandard) {
                 TextField(
                     "Setup chapter UUID (optional)",
                     text: $draftSetupChapterText,
@@ -204,7 +204,7 @@ struct ForeshadowingView: View {
     // MARK: - Filter row
 
     private var filterRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.spacingStandard) {
             Text(WenshuI18n.t("b5.foreshadowingview.l240.h16934779"))
                 .font(.callout)
                 .foregroundStyle(.primary)
@@ -263,7 +263,7 @@ struct ForeshadowingView: View {
             HStack(alignment: .top, spacing: 8) {
                 SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.tint)
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: DesignTokens.spacingTight) {
                         Text(row.title)
                             .font(.callout)
                             .foregroundStyle(.primary)
@@ -284,7 +284,7 @@ struct ForeshadowingView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
-                    HStack(spacing: 6) {
+                    HStack(spacing: DesignTokens.spacingTight) {
                         if let _ = row.setupChapterId {
                             Text(WenshuI18n.t("b5.foreshadowingview.l322.h55995378"))
                                 .font(.caption2)
@@ -324,7 +324,7 @@ struct ForeshadowingView: View {
 
     private var staleSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 SFIcon("exclamationmark.triangle", style: .inlineSmall, color: IconColor.orange)
                     .foregroundStyle(Color(nsColor: .systemOrange))
                 Text(WenshuI18n.t("b5.foreshadowingview.l360.h31137580"))
@@ -351,7 +351,7 @@ struct ForeshadowingView: View {
     }
 
     private func staleRow(_ row: Foreshadowing) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: DesignTokens.spacingTight) {
             SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.secondary)
             Text(row.title)
                 .font(.caption)

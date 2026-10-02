@@ -104,11 +104,11 @@ struct LayoutEditBar: View {
 
     /// Header (= drag handle + title + reset/done buttons).
     private var header: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.spacingStandard) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(WenshuI18n.t("auto.layouteditbar.l112.h90106758"))
                     .font(.body.weight(.semibold))
-                HStack(spacing: 4) {
+                HStack(spacing: DesignTokens.spacingIconic) {
                     Text(WenshuI18n.t("layout_edit_bar.empty_hint"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)

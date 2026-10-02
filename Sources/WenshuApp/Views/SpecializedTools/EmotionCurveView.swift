@@ -185,7 +185,7 @@ struct EmotionCurveView: View {
                 .frame(height: DesignTokens.zoneEditorWidth)
                 .padding(DesignTokens.spacingStandard)
                 
-            HStack(spacing: 10) {
+            HStack(spacing: DesignTokens.spacingRelaxed) {
                 metricBadge(title: "Overall", value: String(format: "%+.2f", report.overallScore))
                 metricBadge(title: "Volatility", value: String(format: "%.2f", report.volatility))
                 metricBadge(title: "Flat spots", value: "\(report.flatSpots.count)")

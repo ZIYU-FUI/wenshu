@@ -204,7 +204,7 @@ private struct GroupTabStrip: View {
         HStack(spacing: 0) {
             ForEach(panes, id: \.self) { paneID in
                 let label = paneLabels[paneID] ?? "面板"
-                HStack(spacing: 4) {
+                HStack(spacing: DesignTokens.spacingIconic) {
                     Button(action: { onSelect(paneID) }) {
                         Text(label)
                             .font(.caption)

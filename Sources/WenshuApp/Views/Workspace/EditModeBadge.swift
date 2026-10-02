@@ -23,7 +23,7 @@ struct EditModeBadge: View {
 
     var body: some View {
         Button(action: { isEnabled.toggle() }) {
-            HStack(spacing: 6) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 Circle()
                     .fill(Color.accentColor)
                     .frame(width: DesignTokens.indicatorSizeSmall, height: DesignTokens.indicatorSizeSmall)

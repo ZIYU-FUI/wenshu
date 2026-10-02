@@ -373,7 +373,7 @@ struct ShellMiddleColumn: View {
                     set: { newValue in envAppState.searchText = newValue ?? "" }
                 ),
                 customLeadingSearch: AnyView(
-                    HStack(spacing: 4) {
+                    HStack(spacing: DesignTokens.spacingIconic) {
                         SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.secondary)
                         TextField(
                             WenshuI18n.t("preview.search.placeholder"),

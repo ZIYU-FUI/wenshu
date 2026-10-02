@@ -89,7 +89,7 @@ private struct TaskRowView: View {
     let task: KanbanTask
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.spacingStandard) {
             statusIcon
             VStack(alignment: .leading, spacing: 2) {
                 Text(task.title)

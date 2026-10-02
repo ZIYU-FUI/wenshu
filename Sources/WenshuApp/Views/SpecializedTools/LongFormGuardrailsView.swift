@@ -173,7 +173,7 @@ struct LongFormGuardrailsView: View {
     }
 
     private func guardrailRow(_ row: LongFormGuardrail) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: DesignTokens.spacingRelaxed) {
             SFIcon(row.kind.icon, style: .inlineSmall, color: IconColor.tint)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: DesignTokens.spacingTight) {

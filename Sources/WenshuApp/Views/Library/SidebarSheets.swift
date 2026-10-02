@@ -91,11 +91,11 @@ struct NewChoiceSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: DesignTokens.spacingSection) {
             Text(WenshuI18n.t("new_choice_sheet_title"))
                 .font(.title2.weight(.semibold))
                 .padding(.top, DesignTokens.spacingLoose)
-            HStack(spacing: 16) {
+            HStack(spacing: DesignTokens.spacingLoose) {
                 NewChoiceCard(
                     title: WenshuI18n.t("new_choice_shelf_title"),
                     subtitle: WenshuI18n.t("new_choice_shelf_subtitle"),
@@ -150,7 +150,7 @@ private struct NewChoiceCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 12) {
+            VStack(spacing: DesignTokens.spacingModerate) {
                 SFIcon(systemImage, style: .inlineSmall, color: tint)
                 Text(title)
                     .font(.headline)
@@ -348,7 +348,7 @@ struct NewBookSheet: View {
                     }
                 }
                 Section {
-                    HStack(spacing: 12) {
+                    HStack(spacing: DesignTokens.spacingModerate) {
                         ZStack {
                             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                                 .fill(.tint.opacity(0.15))

@@ -91,7 +91,7 @@ struct SidebarRowView: View {
         if node.kind == .divider {
             Divider()
         } else {
-            HStack(spacing: 6) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 SFIcon(node.systemImage, style: .paneTab, color: IconColor.tint)
                     .frame(width: DesignTokens.listRowLeadingIconColumnWidth)
                 VStack(alignment: .leading, spacing: 0) {

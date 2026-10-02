@@ -54,7 +54,7 @@ struct LayoutPicker: View {
     ]
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: DesignTokens.spacingModerate) {
             // Built-in templates section (= 4 builtin presets = the
             // hermes `layout-picker.tsx:117-118` filter).
             LazyVGrid(columns: columns, spacing: 12) {
@@ -107,7 +107,7 @@ struct LayoutPicker: View {
             Button(action: {
                 showingZoneEditor = true
             }) {
-                HStack(spacing: 6) {
+                HStack(spacing: DesignTokens.spacingTight) {
                     SFIcon("plus", style: .inlineSmall, color: IconColor.tint)
                     Text(WenshuI18n.t("auto.layoutpicker.l112.h61862158"))
                         .font(.caption)
@@ -139,7 +139,7 @@ struct LayoutPicker: View {
                         showingSaveInput = true
                     }
                 }) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: DesignTokens.spacingTight) {
                         SFIcon("square.and.arrow.down", style: .inlineSmall, color: IconColor.tint)
                         Text(WenshuI18n.t("auto.layoutpicker.l144.h96188612"))
                             .font(.caption)
@@ -184,8 +184,8 @@ struct LayoutPicker: View {
 
     /// Reveal-state input for "save current layout as preset".
     private var saveCurrentLayoutInput: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 6) {
+        VStack(spacing: DesignTokens.spacingTight) {
+            HStack(spacing: DesignTokens.spacingTight) {
                 TextField(WenshuI18n.t("auto2.layoutpicker.l192.h42077297"), text: $newPresetName)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: .infinity)
