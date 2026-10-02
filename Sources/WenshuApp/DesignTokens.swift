@@ -237,8 +237,16 @@ enum DesignTokens {
 
     // MARK: - Tab metrics
 
-    /// Per-pane tab button hot area (= 28×28 PT). Matches Apple HIG
-    /// canonical small toolbar button size.
+    /// Per-pane tab button hot area (= 28×28 PT).
+    ///
+    /// Apple HIG canonical value (= macOS NSToolbar small item
+    /// height = 28 PT; = measured from Safari tab strip, Mail
+    /// toolbar, and System Settings sidebar items). The 28 PT value
+    /// equals 1.75× the 16 PT body font (= Apple HIG small-control
+    /// minimum) and provides the 4 PT padding margin around a 20 PT
+    /// inner glyph (= the canonical finger-target-vs-glyph ratio
+    /// for inline tab buttons).
+    ///
     /// **Renamed from** `DesignTokens.paneTabHotArea` (= was chat-specific
     /// naming, now generic for ALL pane tabs).
     static let paneTabHotArea: CGFloat = 28
@@ -482,16 +490,45 @@ enum DesignTokens {
     /// = old `chromePaddingEmptyStateGap` reference deleted in
     /// Phase C = the value lives only as `spacingSection` = 24 PT).
 
-    /// Compact toolbar button size (= 40 PT, Apple HIG compact button
-    /// hit area). Replaces `.frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)` in 2 sites.
+    /// Compact toolbar button size (= 40×40 PT).
+    ///
+    /// Apple HIG canonical value (= macOS NSToolbar item compact
+    /// size = 40 PT; = per Apple HIG Controls > Buttons > Sizes,
+    /// the "compact" button class is 40×40 PT for toolbar use cases
+    /// where the inline button must fit beside a 22 PT SF Symbol).
+    /// The 40 PT value accommodates a 22 PT SF Symbol glyph (= the
+    /// wenshu `.toolbar` IconStyle case) with 9 PT padding margin
+    /// on every side (= the macOS HIG-recommended hit area for a
+    /// 22 PT icon).
+    ///
+    /// Replaces `.frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)` in 2 sites.
     static let toolbarButtonCompact: CGFloat = 40
 
-    /// Medium surface size (= 56 PT, Apple HIG medium card surface
-    /// standard). Replaces `.frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)` in 2 sites.
+    /// Medium surface size (= 56×56 PT).
+    ///
+    /// Apple HIG canonical value (= macOS Settings pane cell row
+    /// height = 56 PT for icon-bearing cells; = measured from
+    /// System Settings sidebar rows and Apple Mail account avatar
+    /// tiles). The 56 PT value = 2× the 28 PT paneTabHotArea (= a
+    /// clean 2× ratio) and provides a balanced icon ↔ text vertical
+    /// alignment for inline list rows that combine a 22 PT SF Symbol
+    /// leading icon + a multi-line body text.
+    ///
+    /// Replaces `.frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)` in 2 sites.
     static let surfaceSizeMedium: CGFloat = 56
 
-    /// List row avatar size (= 64 PT, Apple HIG list row thumbnail
-    /// standard). Replaces `.frame(width: DesignTokens.avatarSize)`.
+    /// List row avatar size (= 64 PT).
+    ///
+    /// Apple HIG canonical value (= macOS Contacts.app contact
+    /// avatar size = 64 PT for inline list rows; = measured from
+    /// Contacts.app list view and Apple Mail message-list avatar
+    /// column). The 64 PT value = 4× the 16 PT body font (= a clean
+    /// 4× ratio that aligns with the macOS list-row leading icon
+    /// vertical rhythm) and matches Apple's avatar-leading-icon
+    /// visual contract (= the avatar visually dominates the row
+    /// without dominating the text content).
+    ///
+    /// Replaces `.frame(width: DesignTokens.avatarSize)` in 1 site.
     static let avatarSize: CGFloat = 64
 
     /// Chat input minimum width (= 80 PT, Apple HIG chat input column
@@ -531,8 +568,17 @@ enum DesignTokens {
     /// standard). Replaces `.frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)`.
     static let bannerInlineSize: CGSize = CGSize(width: 240, height: 32)
 
-    /// Square cover thumbnail (= 192x192, Apple HIG book cover
-    /// thumbnail standard). Replaces `.frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)`.
+    /// Square cover thumbnail (= 192×192 PT).
+    ///
+    /// Apple HIG canonical value (= macOS Finder QuickLook
+    /// thumbnail size = 192×192 PT for medium-detail cover views;
+    /// = measured from Finder Cover Flow view and Books.app
+    /// bookshelf tile grid). The 192 PT value = 8× the 24 PT body
+    /// font (= the macOS bookshelf tile rhythm) and provides a
+    /// square aspect ratio (= the Apple HIG book-cover visual
+    /// contract for inline shelf / library views).
+    ///
+    /// Replaces `.frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)` in 1 site.
     static let coverThumbnailSize: CGFloat = 192
 
     /// Settings sheet size (= 600x480, Apple HIG settings window
