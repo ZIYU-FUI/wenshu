@@ -84,7 +84,7 @@ struct ChatToolDiffPreview: View {
         return VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                 Text(Self.present(line: String(line)))
-                    .font(.system(size: 11, weight: .regular, design: .monospaced))
+                    .font(.caption2.monospaced())
                     .foregroundStyle(Self.color(for: String(line)))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, DesignTokens.spacingIconic)
