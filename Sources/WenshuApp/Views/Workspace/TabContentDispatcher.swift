@@ -236,8 +236,7 @@ private struct GroupTabStrip: View {
                     // the last pane — would empty the workspace).
                     if panes.count > 1 {
                         Button(action: { onClose(paneID) }) {
-                            Image(systemName: "xmark").imageScale(.small)
-                                .foregroundStyle(.secondary)
+                            SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)
                                 .frame(width: DesignTokens.bulletSizeSmall, height: DesignTokens.bulletSizeSmall)
                         }
                         .buttonStyle(.plain)
