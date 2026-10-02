@@ -220,9 +220,7 @@ struct TagManagerView: View {
 
     private func tagRow(_ tag: Tag) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
-            Image(systemName: tag.category.icon).imageScale(.small)
-                .foregroundStyle(.tint)
-                .frame(width: DesignTokens.tabIconSize)
+            SFIcon(tag.category.icon, style: .inlineSmall, color: .tint)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     Text(tag.label)
@@ -346,9 +344,7 @@ struct TagManagerView: View {
 
     private func applicationRow(_ application: TagApplication) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
-            Image(systemName: application.target.icon).imageScale(.small)
-                .foregroundStyle(.tint)
-                .frame(width: DesignTokens.tabIconSize)
+            SFIcon(application.target.icon, style: .inlineSmall, color: .tint)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     Text(tagLabel(for: application.tagId))
