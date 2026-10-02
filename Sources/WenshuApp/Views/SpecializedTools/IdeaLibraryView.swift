@@ -331,7 +331,7 @@ struct IdeaLibraryView: View {
                 Button(role: .destructive) {
                     Task { await removeIdea(idea) }
                 } label: {
-                    Image(systemName: "trash").imageScale(.small)
+                    SFIcon("trash", style: .inlineSmall, color: IconColor.secondary)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
@@ -478,7 +478,7 @@ struct IdeaLibraryView: View {
             Button(role: .destructive) {
                 Task { await unlinkIdea(ideaId: ideaId, link: link) }
             } label: {
-                Image(systemName: "xmark").imageScale(.small)
+                SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
