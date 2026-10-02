@@ -157,8 +157,7 @@ struct CharacterRelationshipsView: View {
                 .labelsHidden()
                 .disabled(characters.isEmpty)
 
-                Image(systemName: "arrow.right").imageScale(.small)
-                    .foregroundStyle(DesignTokens.statusForeground)
+                SFIcon("arrow.right", style: .inlineSmall, color: IconColor.tertiary)
 
                 Picker("To", selection: Binding(
                     get: { draftToId ?? characters.dropFirst().first?.id ?? UUID() },
@@ -238,8 +237,7 @@ struct CharacterRelationshipsView: View {
                     Text(characterName(for: row.fromCharacterId))
                         .font(.callout)
                         .foregroundStyle(.primary)
-                    Image(systemName: "arrow.right").imageScale(.small)
-                        .foregroundStyle(DesignTokens.statusForeground)
+                    SFIcon("arrow.right", style: .inlineSmall, color: IconColor.tertiary)
                     Text(characterName(for: row.toCharacterId))
                         .font(.callout)
                         .foregroundStyle(.primary)
