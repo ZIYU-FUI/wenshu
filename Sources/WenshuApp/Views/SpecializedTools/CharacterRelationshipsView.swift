@@ -264,8 +264,7 @@ struct CharacterRelationshipsView: View {
             Button(role: .destructive) {
                 Task { await removeRelationship(row) }
             } label: {
-                Image(systemName: "trash").imageScale(.small)
-                    .foregroundStyle(.secondary)
+                SFIcon("trash", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("b5.characterrelationshipsview.l319.h19379525"))

@@ -78,11 +78,8 @@ struct ChatToolUsePartView: View {
                 //   - Default (unknown tool)         → "wrench.and.screwdriver"
                 // Falls back to "wrench.and.screwdriver" for tools
                 // not in the map (= forward-compat for new tools).
-                Image(systemName: Self.iconName(for: toolUse.name))
-                    .imageScale(.small)
+                SFIcon(Self.iconName(for: toolUse.name), style: .inlineSmall, color: IconColor.secondary)
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 14)
                 // Tool name in monospaced font (= the wenshu convention
                 // for tool identifiers = matches the chat input's
                 // `/command` autocomplete rendering).

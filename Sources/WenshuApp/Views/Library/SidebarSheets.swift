@@ -151,11 +151,7 @@ private struct NewChoiceCard: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 12) {
-                Image(systemName: systemImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 44, height: 44)
-                    .foregroundStyle(tint)
+                SFIcon(systemImage, style: .inlineSmall, color: tint)
                 Text(title)
                     .font(.headline)
                     .foregroundStyle(.primary)
@@ -357,8 +353,7 @@ struct NewBookSheet: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(.tint.opacity(0.15))
                                 .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
-                            Image(systemName: selectedIcon).imageScale(.large)
-                                .foregroundStyle(Color.accentColor)
+                            SFIcon(selectedIcon, style: .toolbarButton, color: IconColor.accent)
                         }
                         VStack(alignment: .leading, spacing: 2) {
                             Text(WenshuI18n.t("new_book_sheet_icon_label"))
@@ -387,9 +382,7 @@ struct NewBookSheet: View {
                                                 width: DesignTokens.toolbarButtonCompact,
                                                 height: DesignTokens.toolbarButtonCompact
                                             )
-                                        Image(systemName: iconName)
-                                            .imageScale(.medium)
-                                            .foregroundStyle(.primary)
+                                        SFIcon(iconName, style: .paneTab, color: IconColor.primary)
                                     }
                                 }
                                 .buttonStyle(.plain)

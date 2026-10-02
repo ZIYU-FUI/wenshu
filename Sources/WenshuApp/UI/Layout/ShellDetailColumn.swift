@@ -281,7 +281,7 @@ struct ShellDetailColumn: View {
                         Label {
                             Text(page.localizedTitle)
                         } icon: {
-                            Image(systemName: page.icon)
+                            SFIcon(page.icon, style: .inlineSmall, color: IconColor.tint)
                         }
                         .tag(page)
                     }
@@ -323,7 +323,7 @@ struct ShellDetailColumn: View {
                     Label {
                         Text(WenshuI18n.t("inspector.toggle.button"))
                     } icon: {
-                        Image(systemName: shell.inspectorVisible ? "sidebar-right" : "sidebar.left")
+                        SFIcon(shell.inspectorVisible ? "sidebar-right" : "sidebar.left", style: .paneTab, color: IconColor.tint)
                     }
                 }
                 .help(WenshuI18n.t("inspector.toggle.help"))
@@ -335,7 +335,7 @@ struct ShellDetailColumn: View {
                     Label {
                         Text(WenshuI18n.t("window.kanban.open"))
                     } icon: {
-                        Image(systemName: "rectangle.split.3x1")
+                        SFIcon("rectangle.split.3x1", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
                 .help(WenshuI18n.t("window.kanban.help"))
@@ -347,7 +347,7 @@ struct ShellDetailColumn: View {
                     Label {
                         Text(WenshuI18n.t("window.todo.open"))
                     } icon: {
-                        Image(systemName: "checklist")
+                        SFIcon("checklist", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
                 .help(WenshuI18n.t("window.todo.help"))
@@ -364,7 +364,7 @@ struct ShellDetailColumn: View {
                     Label {
                         Text(WenshuI18n.t("command_palette.open"))
                     } icon: {
-                        Image(systemName: "command")
+                        SFIcon("command", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
                 .help(WenshuI18n.t("command_palette.open.help"))
@@ -380,7 +380,7 @@ struct ShellDetailColumn: View {
                     Label {
                         Text(WenshuI18n.t("window.canvas.open"))
                     } icon: {
-                        Image(systemName: "rectangle.3.group")
+                        SFIcon("rectangle.3.group", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
                 .help(WenshuI18n.t("window.canvas.help"))
@@ -392,7 +392,7 @@ struct ShellDetailColumn: View {
                     Label {
                         Text(WenshuI18n.t("window.composer.open"))
                     } icon: {
-                        Image(systemName: "arrow.triangle.merge")
+                        SFIcon("arrow.triangle.merge", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
                 .help(WenshuI18n.t("window.composer.help"))
@@ -404,7 +404,7 @@ struct ShellDetailColumn: View {
                     Label {
                         Text(WenshuI18n.t("window.foreshadowing_graph.open"))
                     } icon: {
-                        Image(systemName: "arrow.triangle.branch")
+                        SFIcon("arrow.triangle.branch", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
                 .help(WenshuI18n.t("window.foreshadowing_graph.help"))
@@ -416,7 +416,7 @@ struct ShellDetailColumn: View {
                                     Label {
                                         Text(WenshuI18n.t("window.cron.open"))
                                     } icon: {
-                                        Image(systemName: "clock")
+                                        SFIcon("clock", style: .inlineSmall, color: IconColor.tint)
                                     }
                                 }
                                 .help(WenshuI18n.t("window.cron.help"))
@@ -451,7 +451,7 @@ struct ShellDetailColumn: View {
                                     Label {
                                         Text(WenshuI18n.t("llm_wiki.operator.open"))
                                     } icon: {
-                                        Image(systemName: "book.circle")
+                                        SFIcon("book.circle", style: .inlineSmall, color: IconColor.tint)
                                     }
                                 }
                                 .help(WenshuI18n.t("llm_wiki.operator.help"))

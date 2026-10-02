@@ -97,8 +97,7 @@ struct BookmarkView: View {
 
     private var header: some View {
         HStack {
-            Image(systemName: "bookmark")
-                .font(.system(size: 14, weight: .regular))
+            SFIcon("bookmark", style: .inlineSmall, color: IconColor.tint)
             Text(WenshuI18n.t("tab.title.bookmark"))
                 .font(.headline)
             Spacer()
@@ -217,7 +216,7 @@ private struct BookmarkRow: View {
             }
             Spacer()
             Button(action: onRemove) {
-                Image(systemName: "trash")
+                SFIcon("trash", style: .inlineSmall, color: IconColor.tint)
             }
             .buttonStyle(.borderless)
         }

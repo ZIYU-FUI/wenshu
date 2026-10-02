@@ -19,9 +19,7 @@ struct MemoryRetrievalPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Image(systemName: "brain")
-                    .imageScale(.medium)
-                    .symbolRenderingMode(.hierarchical)
+                SFIcon("brain", style: .paneTab, color: IconColor.tint)
                 Text(WenshuI18n.t("b5.memoryretrievalpanel.l24.h99228791"))
                     .font(.headline)
                 Spacer()

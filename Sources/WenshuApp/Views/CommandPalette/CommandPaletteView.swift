@@ -120,8 +120,7 @@ struct CommandPaletteView: View {
             // text-field render; no custom frame / border / Liquid Glass
             // paint = boss 2026-09-02 OOB 'let Apple defaults through').
             HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").imageScale(.small)
-                    .foregroundStyle(.secondary)
+                SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.secondary)
                 TextField(WenshuI18n.t("b5.commandpaletteview.l125.h99176598"), text: Binding(
                     get: { model.query },
                     set: { newValue in
@@ -140,8 +139,7 @@ struct CommandPaletteView: View {
                     Button {
                         Task { await model.filter(by: "") }
                     } label: {
-                        Image(systemName: "xmark.circle").imageScale(.small)
-                            .foregroundStyle(.secondary)
+                        SFIcon("xmark.circle", style: .inlineSmall, color: IconColor.secondary)
                     }
                     .buttonStyle(.borderless)
                 }

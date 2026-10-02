@@ -31,9 +31,7 @@ struct RuntimeCWDDisplayChip: View {
 
     var body: some View {
         HStack(spacing: DesignTokens.spacingIconic) {
-            Image(systemName: "folder").imageScale(.small)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            SFIcon("folder", style: .inlineSmall, color: IconColor.secondary)
             Text(displayLabel)
                 .font(.caption2)
                 .foregroundStyle(.secondary)

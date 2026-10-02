@@ -453,8 +453,7 @@ private struct KanbanCard: View {
                 .fixedSize()
                 Spacer()
                 Button(action: onDelete) {
-                    Image(systemName: "trash").imageScale(.small)
-                        .font(.caption)
+                    SFIcon("trash", style: .inlineSmall, color: IconColor.tint)
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)

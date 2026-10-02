@@ -40,7 +40,7 @@ struct PlotThreadView: View {
                             HStack {
                                 VStack(alignment: .leading) { Text(thread.title); Text(thread.status.rawValue).font(.caption).foregroundStyle(.secondary) }
                                 Spacer()
-                                Button(role: .destructive) { remove(thread.id) } label: { Image(systemName: "trash").imageScale(.small) }.buttonStyle(.borderless)
+                                Button(role: .destructive) { remove(thread.id) } label: { SFIcon("trash", style: .inlineSmall, color: IconColor.secondary) }.buttonStyle(.borderless)
                             }
                         }
                     }

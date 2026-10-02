@@ -32,12 +32,7 @@ struct ParagraphAIToolbarButtons: View {
             Button {
                 onApply(.expand)
             } label: {
-                Image(systemName: "arrow.up.left.and.arrow.down.right").imageScale(.small)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, DesignTokens.spacingStandard)
-                    .padding(.vertical, DesignTokens.spacingIconic)
-                    .contentShape(Rectangle())
+                SFIcon("arrow.up.left.and.arrow.down.right", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.plain)
             .help(WenshuI18n.t("paragraph.expand"))
@@ -53,12 +48,7 @@ struct ParagraphAIToolbarButtons: View {
             Button {
                 onApply(.shorten)
             } label: {
-                Image(systemName: "arrow.down.right.and.arrow.up.left").imageScale(.small)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, DesignTokens.spacingStandard)
-                    .padding(.vertical, DesignTokens.spacingIconic)
-                    .contentShape(Rectangle())
+                SFIcon("arrow.down.right.and.arrow.up.left", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.plain)
             .help(WenshuI18n.t("paragraph.shorten"))
@@ -73,12 +63,7 @@ struct ParagraphAIToolbarButtons: View {
             Button {
                 onApply(.rephrase)
             } label: {
-                Image(systemName: "arrow.clockwise").imageScale(.small)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, DesignTokens.spacingStandard)
-                    .padding(.vertical, DesignTokens.spacingIconic)
-                    .contentShape(Rectangle())
+                SFIcon("arrow.clockwise", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.plain)
             .help(WenshuI18n.t("paragraph.rephrase"))
@@ -101,12 +86,7 @@ struct ParagraphAIToolbarButtons: View {
                 Button(WenshuI18n.t("b5.paragraphaitoolbarbuttons.l106.h64972328")) { onApply(.dramatize) }
                     .disabled(selectedText.isEmpty || isApplying)
             } label: {
-                Image(systemName: "ellipsis").imageScale(.small)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, DesignTokens.spacingTight)
-                    .padding(.vertical, DesignTokens.spacingIconic)
-                    .contentShape(Rectangle())
+                SFIcon("ellipsis", style: .inlineSmall, color: IconColor.secondary)
             }
             .menuStyle(.borderlessButton)
             .help(WenshuI18n.t("workspace.transforms.moreHelp"))

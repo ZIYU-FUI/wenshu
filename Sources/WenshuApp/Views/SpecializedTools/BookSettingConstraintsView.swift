@@ -292,8 +292,7 @@ struct BookSettingConstraintsView: View {
                 Button(role: .destructive) {
                     Task { await removeConstraint(constraint) }
                 } label: {
-                    Image(systemName: "trash").imageScale(.small)
-                        .foregroundStyle(.secondary)
+                    SFIcon("trash", style: .inlineSmall, color: IconColor.secondary)
                 }
                 .buttonStyle(.borderless)
                 .help(WenshuI18n.t("b5.booksettingconstraintsview.l343.h49822929"))

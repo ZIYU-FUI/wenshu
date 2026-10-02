@@ -108,7 +108,7 @@ struct LayoutPicker: View {
                 showingZoneEditor = true
             }) {
                 HStack(spacing: 6) {
-                    Image(systemName: "plus").imageScale(.small)
+                    SFIcon("plus", style: .inlineSmall, color: IconColor.tint)
                     Text(WenshuI18n.t("auto.layoutpicker.l112.h61862158"))
                         .font(.caption)
                 }
@@ -140,7 +140,7 @@ struct LayoutPicker: View {
                     }
                 }) {
                     HStack(spacing: 6) {
-                        Image(systemName: "square.and.arrow.down").imageScale(.small)
+                        SFIcon("square.and.arrow.down", style: .inlineSmall, color: IconColor.tint)
                         Text(WenshuI18n.t("auto.layoutpicker.l144.h96188612"))
                             .font(.caption)
                     }

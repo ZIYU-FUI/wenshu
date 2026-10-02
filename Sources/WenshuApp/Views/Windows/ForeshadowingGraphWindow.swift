@@ -61,7 +61,7 @@ struct ForeshadowingGraphWindow: View {
                             Label {
                                 Text(WenshuI18n.t("foreshadowing_graph.refresh"))
                             } icon: {
-                                Image(systemName: "arrow.clockwise")
+                                SFIcon("arrow.clockwise", style: .inlineSmall, color: IconColor.tint)
                             }
                         }
                         .disabled(activeBookId == nil)

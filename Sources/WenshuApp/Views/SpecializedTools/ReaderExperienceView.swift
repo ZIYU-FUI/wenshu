@@ -177,8 +177,7 @@ struct ReaderExperienceView: View {
     private func resultSection(for report: ReaderExperienceReport) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
             HStack(spacing: DesignTokens.spacingStandard) {
-                Image(systemName: report.kind.icon).imageScale(.small)
-                    .foregroundStyle(.tint)
+                SFIcon(report.kind.icon, style: .inlineSmall, color: IconColor.tint)
                 Text(report.kind.displayName)
                     .font(.callout)
                     .foregroundStyle(.primary)

@@ -174,8 +174,7 @@ struct LongFormGuardrailsView: View {
 
     private func guardrailRow(_ row: LongFormGuardrail) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: row.kind.icon).imageScale(.small)
-                .foregroundStyle(.tint)
+            SFIcon(row.kind.icon, style: .inlineSmall, color: IconColor.tint)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     Text(row.name)
@@ -200,8 +199,7 @@ struct LongFormGuardrailsView: View {
             Button {
                 Task { await removeRow(row) }
             } label: {
-                Image(systemName: "xmark").imageScale(.small)
-                    .foregroundStyle(.secondary)
+                SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("b5.longformguardrailsview.l241.h76114491"))

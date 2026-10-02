@@ -226,10 +226,7 @@ struct PaneTrailingIconButton: View {
             Color.clear
                 .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                 .overlay(alignment: .center) {
-                    Image(systemName: icon)
-                        .imageScale(.medium)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.secondary)
+                    SFIcon(icon, style: .paneTab, color: IconColor.secondary)
                 }
                 .contentShape(Rectangle())
         }
@@ -284,10 +281,7 @@ struct PaneIconTab: View {
             Color.clear
                 .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                 .overlay(alignment: .center) {
-                    Image(systemName: icon)
-                        .imageScale(.medium)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                    SFIcon(icon, style: .paneTab, color: IconColor.tint)
                 }
                 .contentShape(Rectangle())
                 // Apple HIG canonical selected-state underline:

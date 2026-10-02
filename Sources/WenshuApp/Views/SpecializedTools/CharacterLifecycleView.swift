@@ -272,8 +272,7 @@ struct CharacterLifecycleView: View {
             Button(role: .destructive) {
                 Task { await removeEvent(event) }
             } label: {
-                Image(systemName: "trash").imageScale(.small)
-                    .foregroundStyle(.secondary)
+                SFIcon("trash", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("b5.characterlifecycleview.l324.h5673239"))

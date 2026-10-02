@@ -374,8 +374,7 @@ struct ShellMiddleColumn: View {
                 ),
                 customLeadingSearch: AnyView(
                     HStack(spacing: 4) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
+                        SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.secondary)
                         TextField(
                             WenshuI18n.t("preview.search.placeholder"),
                             text: Binding(

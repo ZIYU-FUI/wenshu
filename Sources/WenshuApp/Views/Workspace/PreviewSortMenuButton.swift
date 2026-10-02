@@ -43,8 +43,7 @@ struct PreviewSortMenuButton: View {
             Color.clear
                 .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                 .overlay(alignment: .center) {
-                    Image(systemName: sortOrder.menuIcon).imageScale(.medium)
-                        .foregroundStyle(Color.secondary)
+                    SFIcon(sortOrder.menuIcon, style: .paneTab, color: IconColor.secondary)
                 }
                 .contentShape(Rectangle())
         }

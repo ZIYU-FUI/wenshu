@@ -63,7 +63,7 @@ struct CronWindow: View {
                             Label {
                                 Text(WenshuI18n.t("cron.refresh"))
                             } icon: {
-                                Image(systemName: "arrow.clockwise")
+                                SFIcon("arrow.clockwise", style: .inlineSmall, color: IconColor.tint)
                             }
                         }
                     }

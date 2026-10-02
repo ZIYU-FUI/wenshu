@@ -179,8 +179,7 @@ struct GenreFitView: View {
     private func resultSection(for report: GenreFitReport) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
             HStack(spacing: DesignTokens.spacingStandard) {
-                Image(systemName: report.genre.icon).imageScale(.small)
-                    .foregroundStyle(.tint)
+                SFIcon(report.genre.icon, style: .inlineSmall, color: IconColor.tint)
                 Text(report.genre.displayName)
                     .font(.callout)
                     .foregroundStyle(.primary)

@@ -49,7 +49,7 @@ struct CanvasWindow: View {
                             Label {
                                 Text(WenshuI18n.t("canvas.open"))
                             } icon: {
-                                Image(systemName: "folder")
+                                SFIcon("folder", style: .inlineSmall, color: IconColor.tint)
                             }
                         }
                     }
@@ -63,7 +63,7 @@ struct CanvasWindow: View {
                             Label {
                                 Text(WenshuI18n.t("canvas.save"))
                             } icon: {
-                                Image(systemName: "square.and.arrow.down")
+                                SFIcon("square.and.arrow.down", style: .inlineSmall, color: IconColor.tint)
                             }
                         }
                         .disabled(document == nil)

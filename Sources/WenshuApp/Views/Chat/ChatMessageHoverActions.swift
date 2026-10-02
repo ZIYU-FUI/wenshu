@@ -37,9 +37,7 @@ struct ChatMessageHoverActions: View {
             Button {
                 copyToPasteboard()
             } label: {
-                Image(systemName: "document.on.document")
-                    .imageScale(.small)
-                    .symbolRenderingMode(.hierarchical)
+                SFIcon("document.on.document", style: .inlineSmall, color: IconColor.tint)
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
@@ -58,9 +56,7 @@ struct ChatMessageHoverActions: View {
                     object: content
                 )
             } label: {
-                Image(systemName: "trash")
-                    .imageScale(.small)
-                    .symbolRenderingMode(.hierarchical)
+                SFIcon("trash", style: .inlineSmall, color: IconColor.tint)
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
