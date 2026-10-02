@@ -390,7 +390,7 @@ struct NewBookSheet: View {
                         }
                         .padding(.vertical, DesignTokens.spacingIconic)
                     }
-                    .frame(maxHeight: 220)
+                    .frame(maxHeight: DesignTokens.panelLargeMaxHeight)
             }
             }
             // chromePaddingHero (= 20 PT all-around) kept as DesignTokens

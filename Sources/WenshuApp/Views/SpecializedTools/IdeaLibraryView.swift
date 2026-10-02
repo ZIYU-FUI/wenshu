@@ -277,7 +277,7 @@ struct IdeaLibraryView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 180)
+                .frame(maxHeight: DesignTokens.panelMediumMaxHeight)
             }
         }
     }
@@ -444,7 +444,7 @@ struct IdeaLibraryView: View {
                             }
                         }
                     }
-                    .frame(maxHeight: 120)
+                    .frame(maxHeight: DesignTokens.textEditorCompactMaxHeight)
                 }
             }
         } else {
@@ -533,7 +533,7 @@ struct IdeaLibraryView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 100)
+                .frame(maxHeight: DesignTokens.panelInlineMaxHeight)
             }
         }
     }

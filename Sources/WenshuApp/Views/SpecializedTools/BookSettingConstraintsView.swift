@@ -229,7 +229,7 @@ struct BookSettingConstraintsView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 180)
+                .frame(maxHeight: DesignTokens.panelMediumMaxHeight)
             }
         }
     }

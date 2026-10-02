@@ -164,7 +164,7 @@ struct CommandPaletteView: View {
                     }
                 }
             }
-            .frame(maxHeight: 320)
+            .frame(maxHeight: DesignTokens.commandPaletteMaxHeight)
 
             // Footer (= item count + shortcut hint).
             HStack {

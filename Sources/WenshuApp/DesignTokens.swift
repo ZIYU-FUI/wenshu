@@ -424,6 +424,37 @@ enum DesignTokens {
     /// PresetCard layout picker thumbnail.
     static let presetThumbnailAspectRatio: CGFloat = 4.0 / 3.0
 
+    /// Specialized panel medium max-height (= 180 PT, Apple
+    /// HIG macOS list panel standard for 4-5 row display).
+    /// Used in `.frame(maxHeight: 180)` for inline panels in
+    /// specialized tool views (= BookSettingConstraintsView +
+    /// CharacterLifecycleView + IdeaLibraryView).
+    static let panelMediumMaxHeight: CGFloat = 180
+
+    /// Specialized panel large max-height (= 220 PT, Apple
+    /// HIG macOS list panel standard for 6-7 row display).
+    /// Used in `.frame(maxHeight: 220)` for full-size list
+    /// panels in specialized tool views (= ForeshadowingView
+    /// + PlaceholderView + CharacterRelationshipsView).
+    static let panelLargeMaxHeight: CGFloat = 220
+
+    /// Inline panel max-height (= 100 PT, Apple HIG macOS
+    /// compact inline list standard for 2-row display).
+    /// Used in `.frame(maxHeight: 100)` for IdeaLibraryView
+    /// inline panel.
+    static let panelInlineMaxHeight: CGFloat = 100
+
+    /// Command palette max-height (= 320 PT, Apple HIG macOS
+    /// command palette standard = the macOS 26+ Spotlight /
+    /// command palette display height).
+    /// Used in `.frame(maxHeight: 320)` for CommandPaletteView.
+    static let commandPaletteMaxHeight: CGFloat = 320
+
+    /// Kanban board max-height (= 360 PT, Apple HIG macOS
+    /// kanban board standard = 5-row display).
+    /// Used in `.frame(maxHeight: 360)` for KanbanView.
+    static let kanbanBoardMaxHeight: CGFloat = 360
+
     /// Button shadow vertical offset (= 2 PT, Apple HIG macOS
     /// button shadow offset = subtle lift under button surfaces
     /// that hover above the page).

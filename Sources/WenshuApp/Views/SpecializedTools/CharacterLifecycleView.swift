@@ -236,7 +236,7 @@ struct CharacterLifecycleView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 180)
+                .frame(maxHeight: DesignTokens.panelMediumMaxHeight)
             }
         }
     }
@@ -326,7 +326,7 @@ struct CharacterLifecycleView: View {
                             }
                         }
                     }
-                    .frame(maxHeight: 140)
+                    .frame(maxHeight: DesignTokens.textEditorSmallMaxHeight)
                 }
             }
         }

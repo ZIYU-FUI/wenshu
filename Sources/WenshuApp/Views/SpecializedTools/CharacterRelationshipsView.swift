@@ -224,7 +224,7 @@ struct CharacterRelationshipsView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 220)
+                .frame(maxHeight: DesignTokens.panelLargeMaxHeight)
             }
         }
     }

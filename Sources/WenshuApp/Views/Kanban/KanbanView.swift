@@ -376,7 +376,7 @@ private struct KanbanColumn: View {
                         }
                     }
                 }
-                .frame(maxHeight: 360)
+                .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
             }
         }
         .padding(DesignTokens.spacingStandard)

@@ -253,7 +253,7 @@ struct ForeshadowingView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 220)
+                .frame(maxHeight: DesignTokens.panelLargeMaxHeight)
             }
         }
     }
@@ -345,7 +345,7 @@ struct ForeshadowingView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 120)
+                .frame(maxHeight: DesignTokens.textEditorCompactMaxHeight)
             }
         }
     }

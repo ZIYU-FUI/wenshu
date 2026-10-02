@@ -213,7 +213,7 @@ struct TagManagerView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 140)
+                .frame(maxHeight: DesignTokens.textEditorSmallMaxHeight)
             }
         }
     }
@@ -337,7 +337,7 @@ struct TagManagerView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 140)
+                .frame(maxHeight: DesignTokens.textEditorSmallMaxHeight)
             }
         }
     }
@@ -394,7 +394,7 @@ struct TagManagerView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 120)
+                .frame(maxHeight: DesignTokens.textEditorCompactMaxHeight)
             }
         }
     }
