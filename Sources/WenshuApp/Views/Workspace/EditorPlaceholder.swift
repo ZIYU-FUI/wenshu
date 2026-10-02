@@ -143,7 +143,7 @@ struct EditorPlaceholder: View {
                     // add a focus ring + accessibility label that
                     // screen readers would announce as a control).
                     Text(title)
-                        .font(DesignTokens.tabTitleFont.weight(.semibold))
+                        .font(.caption.monospacedDigit().weight(.semibold))
                         .foregroundStyle(Color.accentColor)
                         .padding(.horizontal, DesignTokens.spacingModerate)
                         .frame(maxWidth: .infinity, alignment: .leading)
