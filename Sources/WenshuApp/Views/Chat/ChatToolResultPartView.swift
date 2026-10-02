@@ -40,10 +40,11 @@ struct ChatToolResultPartView: View {
                 // LucideIconSystemFallback helper to map SF
                 // names to Lucide names; = now the SF names
                 // are the canonical input directly).
-                Image(systemName: toolResult.isError ? "exclamationmark.triangle" : "checkmark")
-                    .imageScale(.small)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(toolResult.isError ? Color(nsColor: .systemRed) : Color(nsColor: .systemGreen))
+                SFIcon(
+                    toolResult.isError ? "exclamationmark.triangle" : "checkmark",
+                    style: .inlineSmall,
+                    color: toolResult.isError ? Color(nsColor: .systemRed) : Color(nsColor: .systemGreen)
+                )
                 Text(toolResult.isError
                      ? WenshuI18n.t("chatview.tool_result.error")
                      : WenshuI18n.t("chatview.tool_result.success"))
