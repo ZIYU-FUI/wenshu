@@ -63,14 +63,10 @@ struct ChatMessageFooter: View {
     var body: some View {
         HStack(spacing: 6) {
             // T65-CLOCK-PREFIX: clock icon before the timestamp text.
-            Image(systemName: "clock")
-                .font(.caption2)
-                .foregroundStyle(.quaternary)
+            SFIcon("clock", style: .inlineSmall, color: IconColor.quaternary)
             // T84-DELIVERED-CHECK: checkmark after the timestamp
             // (= Apple Messages read-receipts affordance).
-            Image(systemName: "checkmark")
-                .font(.caption2)
-                .foregroundStyle(.quaternary)
+            SFIcon("checkmark", style: .inlineSmall, color: IconColor.quaternary)
             // T26-HOVER-TIMESTAMP: compact form by default
             // (= "14:32"); expanded on hover (= "14:32 · 9月18日").
             Text(timestamp, format: timestampDisplayFormat)
@@ -94,9 +90,7 @@ struct ChatMessageFooter: View {
             // Hidden when tokens is nil OR 0.
             if let tokens, tokens > 0 {
                 // T63-TOKEN-ICON: "number" SF Symbol prefix.
-                Image(systemName: "number")
-                    .font(.caption2)
-                    .foregroundStyle(.quaternary)
+                SFIcon("number", style: .inlineSmall, color: IconColor.quaternary)
                 Text(Self.formatTokenCount(tokens))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -105,9 +99,7 @@ struct ChatMessageFooter: View {
                 // T62-TOKEN-COST: estimated USD cost
                 // (= heuristic: $3/M input + $15/M output).
                 // T64-DOLLAR-ICON: "$" SF Symbol prefix.
-                Image(systemName: "dollarsign.circle")
-                    .font(.caption2)
-                    .foregroundStyle(.quaternary)
+                SFIcon("dollarsign.circle", style: .inlineSmall, color: IconColor.quaternary)
                 Text(Self.formatTokenCost(tokens))
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.quaternary)
