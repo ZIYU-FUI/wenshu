@@ -473,8 +473,24 @@ enum DesignTokens {
     ///
     /// Used by: ChatMessageFooter sealed-message top hairline (= the
     /// 0.5 PT separator above the cost summary row when the message
-    /// has been sealed).
+    /// has been sealed); ChatPlanPartView step divider hairline;
+    /// KanbanView card outline hairlines.
     static let separatorThicknessHairline: CGFloat = 0.5
+
+    /// Emphasis border thickness (= 2 PT, Apple HIG selected/active
+    /// border standard).
+    ///
+    /// Apple HIG source: `Controls > Selection > Border thickness` (=
+    /// the macOS 26+ default selected-state border = 2 PT; = the
+    /// thicker border that marks a control as currently focused or
+    /// selected; = visually distinct from the 1 PT standard border).
+    ///
+    /// Used by: ChatInputBarView focused input border (= the 2 PT
+    /// accent-color border around the chat input when the field is
+    /// the focus target); PresetCard selected preset border (= the 2
+    /// PT accent-color border around the active layout preset in
+    /// the picker grid).
+    static let separatorThicknessEmphasis: CGFloat = 2
 
     /// Button shadow radius (= 8 PT, Apple HIG button drop-shadow
     /// standard).

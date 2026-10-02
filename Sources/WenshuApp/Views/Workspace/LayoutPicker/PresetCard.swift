@@ -97,7 +97,7 @@ struct PresetCard: View {
 private func strokeOverlay(isActive: Bool) -> some View {
     if isActive {
         RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
-            .stroke(Color.accentColor, lineWidth: 2)
+            .stroke(Color.accentColor, lineWidth: DesignTokens.separatorThicknessEmphasis)
     } else {
         // Apple .separator (= canonical Liquid Glass separator,
         // macOS 26 Tahoe = semitransparent + adapts to dark/light).
