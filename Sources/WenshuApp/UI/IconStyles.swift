@@ -12,12 +12,21 @@
 //  (= iconStandardSize, iconSmall, iconLargeSize, iconButtonSmall,
 //  toolbarButtonCompact, paneTabHotArea, tabIconSize, tabCloseFrameSize,
 //  tabCloseGlyphFontSize, emptyStateIconSize, avatarSize, coverThumbnailSize,
-//  surfaceSizeMedium) plus 4 font tokens (= statusFont, runtimeCwdChipFont,
-//  hotkeyComboFont, tabTitleFont). 166 `Image(systemName:)` call sites in
-//  Sources/ + 16 font token call sites = scattered visibility for any change
-//  to the icon or font system. The visual hierarchy rule (= all toolbar
-//  icons same weight, all hero icons same weight) was enforceable only by
-//  grep, not by the type system.
+//  surfaceSizeMedium). The v3.0 icon sweep series (= c5b897507 +
+//  f44266fb7 + ce7510708 + 1fbd0e610 + b56c3c22c + 029295b6b +
+//  638ae8996 + ef15e4595 + 40969fb0c + b9ef4ad7f + 83f5c8c78 +
+//  4d6c02270 + d5aba1d34 + dfe599868 + d55d9b06d + 5b801b8f9 +
+//  bf73ebfb4 + ae14835bf + 21ff18c43 + a39fb4f91) migrated every
+//  production-code call site into IconStyle (= 11 cases: inlineSmall,
+//  small, paneTab, toolbar, nav, hitArea, emptyStateHero, avatar,
+//  cover, toolbarButton, surface) and deleted the 5 token definitions
+//  that became 0-reference (= iconSmall, iconLargeSize, iconButtonSmall,
+//  tabIconSize, iconStandardSize, emptyStateIconSize). The remaining
+//  7 DesignTokens icon-related values (= paneTabHotArea, toolbarButtonCompact,
+//  surfaceSizeMedium, avatarSize, coverThumbnailSize, tabCloseFrameSize,
+//  tabCloseGlyphFontSize) are layout hit-area / container-frame sizes that
+//  SFIcon does not own (= SFIcon owns the icon glyph size; = layout tokens
+//  stay in DesignTokens).
 //
 //  Per boss OOB 2026-10-01:
 //

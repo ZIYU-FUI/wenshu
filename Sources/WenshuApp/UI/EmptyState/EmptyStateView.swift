@@ -65,7 +65,7 @@
 //    - body maxWidth: DesignTokens.guardrailSheetWidth (= 360 PT
 //      = Apple HIG modal sheet width = the empty-state body
 //      should wrap to the same width as a standard modal sheet)
-//    - icon size: DesignTokens.emptyStateIconSize (= 76 PT
+//    - icon size: IconStyle.emptyStateHero (= 76 PT
 //      = 2x the v0.54 38 PT default = the canonical empty-state
 //      icon size; = not a magic number = semantic token)
 
