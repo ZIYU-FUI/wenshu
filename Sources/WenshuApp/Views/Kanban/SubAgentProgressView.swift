@@ -106,7 +106,7 @@ private struct TaskRowView: View {
         // .regularMaterial (= Liquid Glass sub-agent card);
         // now uses Color.clear (= no background).
         .background(Color.clear)
-        .cornerRadius(DesignTokens.surfaceCornerRadiusProgressCard)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))
     }
 
     @ViewBuilder
