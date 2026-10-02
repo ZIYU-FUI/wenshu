@@ -30,9 +30,7 @@ struct ChapterFocusLockBadge: View {
             // editor's read-only text view.
             ProgressView()
                 .controlSize(.small)
-            Image(systemName: "pencil.and.outline")
-                .imageScale(.small)
-                .foregroundStyle(.tertiary)
+            SFIcon("pencil.and.outline", style: .inlineSmall, color: IconColor.tertiary)
             Text(WenshuI18n.t("chatview.focus_lock.badge"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
