@@ -55,9 +55,7 @@ struct ChatToolDiffPreview: View {
 
     private var header: some View {
         HStack(spacing: DesignTokens.spacingTight) {
-            Image(systemName: "doc.text")
-                .imageScale(.small)
-                .foregroundStyle(.secondary)
+            SFIcon("doc.text", style: .inlineSmall, color: IconColor.secondary)
             Text(filename)
                 .font(.caption.weight(.medium))
                 .lineLimit(1)
