@@ -150,7 +150,7 @@ struct EditorPlaceholder: View {
                         .frame(height: DesignTokens.paneTabHotArea)
                         .background(
                             Rectangle()
-                                .fill(Color.accentColor.opacity(0.12))
+                                .fill(Color.accentColor.opacity(DesignTokens.accentTintOpacitySubtle))
                         )
                         .help(title)
 

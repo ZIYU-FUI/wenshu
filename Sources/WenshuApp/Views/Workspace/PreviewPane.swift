@@ -1551,7 +1551,7 @@ private struct Card: View {
             // (= boss OOB: cards need thumbnails).
             ZStack {
                 LinearGradient(
-                    colors: [Color.accentColor.opacity(0.18), Color(nsColor: .quaternaryLabelColor)],
+                    colors: [Color.accentColor.opacity(DesignTokens.accentTintOpacityHero), Color(nsColor: .quaternaryLabelColor)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )

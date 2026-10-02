@@ -73,7 +73,7 @@ struct LayoutEditBar: View {
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow)
                 .stroke(.separator, lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.2), radius: DesignTokens.surfaceShadowRadiusWindow, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.2), radius: DesignTokens.surfaceShadowRadiusWindow, x: 0, y: DesignTokens.surfaceShadowOffsetWindow)
         .offset(x: palettePosition.x + dragOffset.width, y: palettePosition.y + dragOffset.height)
         .gesture(
             DragGesture(minimumDistance: 0)

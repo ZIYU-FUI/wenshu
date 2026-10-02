@@ -376,7 +376,7 @@ struct EmotionCurveView: View {
         fillPath.closeSubpath()
         context.fill(
             fillPath,
-            with: .color(Color.accentColor.opacity(0.12))
+            with: .color(Color.accentColor.opacity(DesignTokens.accentTintOpacitySubtle))
         )
 
         // 7) Score dots.

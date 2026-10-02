@@ -327,6 +327,36 @@ enum DesignTokens {
 
     // MARK: - Surface metrics (Apple HIG, v0.35 +1)
 
+    /// Accent tint opacity at 12% (= Apple HIG Liquid Glass subtle
+    /// accent overlay for inline card highlights + chart strokes).
+    /// Standard for `.fill(Color.accentColor.opacity(0.12))`
+    /// (= the macOS 26+ accent tint that renders through the
+    /// Liquid Glass material without breaking readability).
+    static let accentTintOpacitySubtle: Double = 0.12
+
+    /// Accent tint opacity at 18% (= Apple HIG Liquid Glass
+    /// hero-card gradient start). Slightly stronger than
+    /// `accentTintOpacitySubtle` (= 12%) for top-of-card hero
+    /// regions where the accent should be visible but not
+    /// dominant.
+    static let accentTintOpacityHero: Double = 0.18
+
+    /// Window chrome shadow vertical offset (= 4 PT, Apple HIG
+    /// macOS window shadow offset = the distance the shadow
+    /// renders below the window edge for visual lift).
+    /// Used in `.shadow(color: .black.opacity(0.2), radius:
+    /// surfaceShadowRadiusWindow, x: 0, y: 4)` for floating
+    /// toolbars (= LayoutEditBar pattern).
+    static let surfaceShadowOffsetWindow: CGFloat = 4
+
+    /// Button shadow vertical offset (= 2 PT, Apple HIG macOS
+    /// button shadow offset = subtle lift under button surfaces
+    /// that hover above the page).
+    /// Used in `.shadow(color: .black.opacity(0.35), radius:
+    /// surfaceShadowRadiusButton, y: 2)` for canvas paper
+    /// (= EditorPaperCanvas pattern).
+    static let surfaceShadowOffsetButton: CGFloat = 2
+
     /// Card surface corner radius (= 8 PT, Apple HIG rounded card standard).
     /// Replaces file-scope `cardCornerRadius: CGFloat = 8` in
     /// ConnectorProfileRow + MemorySettingsView + SkillsSettingsView.
