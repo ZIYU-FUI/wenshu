@@ -43,7 +43,7 @@ struct ChatToolResultPartView: View {
                 SFIcon(
                     toolResult.isError ? "exclamationmark.triangle" : "checkmark",
                     style: .inlineSmall,
-                    color: toolResult.isError ? Color(nsColor: .systemRed) : Color(nsColor: .systemGreen)
+                    color: toolResult.isError ? Color.red : Color.green
                 )
                 Text(toolResult.isError
                      ? WenshuI18n.t("chatview.tool_result.error")
@@ -237,7 +237,7 @@ struct ChatToolResultPartView: View {
     }
 
     private var borderColor: Color {
-        (toolResult.isError ? Color(nsColor: .systemRed) : Color(nsColor: .systemGreen)).opacity(0.5)
+        (toolResult.isError ? Color.red : Color.green).opacity(0.5)
     }
 }
 

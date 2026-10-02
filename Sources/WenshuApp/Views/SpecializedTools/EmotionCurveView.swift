@@ -194,10 +194,10 @@ struct EmotionCurveView: View {
             HStack(alignment: .top, spacing: DesignTokens.spacingModerate) {
                 indexColumn(title: "Flat spots",
                             items: report.flatSpots.map { String($0) },
-                            tint: Color(nsColor: .systemGray))
+                            tint: .gray)
                 indexColumn(title: "Suggested lifts",
                             items: report.suggestedLifts.map { String($0) },
-                            tint: Color(nsColor: .systemBlue))
+                            tint: .blue)
             }
             Text(report.pacingHint)
                 .font(.caption)
@@ -400,7 +400,7 @@ struct EmotionCurveView: View {
             let dotRect = CGRect(x: x - 3, y: markerY - 3, width: 6, height: 6)
             context.stroke(
                 Path(ellipseIn: dotRect),
-                with: .color(Color(nsColor: .systemGray)),
+                with: .color(.gray),
                 lineWidth: 1
             )
         }
@@ -417,7 +417,7 @@ struct EmotionCurveView: View {
             triangle.closeSubpath()
             context.fill(
                 triangle,
-                with: .color(Color(nsColor: .systemBlue))
+                with: .color(.blue)
             )
         }
 

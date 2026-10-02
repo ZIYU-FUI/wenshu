@@ -414,7 +414,7 @@ private struct TodoRow: View {
                 SFIcon("calendar", style: .inlineSmall, color: IconColor.secondary)
                 Text(Self.dueDateFormatter.string(from: due))
                     .font(.caption)
-                    .foregroundStyle(isOverdue ? Color(nsColor: .systemRed) : Color.secondary)
+                    .foregroundStyle(isOverdue ? .red : Color.secondary)
                 if isOverdue {
                     Text(WenshuI18n.t("todolist.overdue"))
                         .font(.caption2.weight(.semibold))
@@ -497,8 +497,8 @@ private struct TodoRow: View {
         switch priority {
         case .low: return ("低", Color.secondary, Color.secondary.opacity(0.15))
         case .medium: return ("中", Color.primary, Color.secondary.opacity(0.2))
-        case .high: return ("高", Color(nsColor: .systemOrange), Color(nsColor: .systemOrange).opacity(0.18))
-        case .urgent: return ("紧急", Color(nsColor: .systemRed), Color(nsColor: .systemRed).opacity(0.18))
+        case .high: return ("高", .orange, .orange.opacity(0.18))
+        case .urgent: return ("紧急", .red, .red.opacity(0.18))
         }
     }
 }

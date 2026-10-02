@@ -189,22 +189,22 @@ struct GenreFitView: View {
             HStack(alignment: .top, spacing: DesignTokens.spacingModerate) {
                 column(title: "Matched beats (\(report.matchedBeats.count))",
                        items: report.matchedBeats,
-                       tint: Color(nsColor: .systemGreen))
+                       tint: .green)
                 column(title: "Missing beats (\(report.missingBeats.count))",
                        items: report.missingBeats,
-                       tint: Color(nsColor: .systemOrange))
+                       tint: .orange)
             }
             HStack(alignment: .top, spacing: DesignTokens.spacingModerate) {
                 column(title: "Expected vocab used (\(report.expectedVocabUsed.count))",
                        items: report.expectedVocabUsed,
-                       tint: Color(nsColor: .systemBlue))
+                       tint: .blue)
                 column(title: "Expected vocab missing (\(report.expectedVocabMissing.count))",
                        items: report.expectedVocabMissing,
-                       tint: Color(nsColor: .systemGray))
+                       tint: .gray)
             }
             column(title: "Forbidden hits (\(report.forbiddenHits.count))",
                    items: report.forbiddenHits,
-                   tint: Color(nsColor: .systemRed))
+                   tint: .red)
         }
         .padding(DesignTokens.spacingModerate)
         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -213,9 +213,9 @@ struct GenreFitView: View {
 
     private func scoreBadge(_ score: Double) -> some View {
         let color: Color = {
-            if score >= 70 { return Color(nsColor: .systemGreen).opacity(0.22) }
-            if score >= 40 { return Color(nsColor: .systemOrange).opacity(0.22) }
-            return Color(nsColor: .systemRed).opacity(0.22)
+            if score >= 70 { return .green.opacity(0.22) }
+            if score >= 40 { return .orange.opacity(0.22) }
+            return .red.opacity(0.22)
         }()
         return Text(WenshuI18n.t("b5.genrefitview.l256.h78050164"))
             .font(.caption2)

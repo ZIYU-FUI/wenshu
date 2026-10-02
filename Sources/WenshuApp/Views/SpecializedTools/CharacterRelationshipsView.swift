@@ -126,7 +126,7 @@ struct CharacterRelationshipsView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color(nsColor: .systemRed))
+                    .foregroundStyle(.red)
             }
         }
     }
@@ -250,7 +250,7 @@ struct CharacterRelationshipsView: View {
                     if row.isMutual {
                         Text(WenshuI18n.t("b5.characterrelationshipsview.l299.h17838183"))
                             .font(.caption2)
-                            .foregroundStyle(Color(nsColor: .systemBlue))
+                            .foregroundStyle(.blue)
                     }
                 }
                 if !row.description.isEmpty {

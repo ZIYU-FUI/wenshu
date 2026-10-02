@@ -68,9 +68,9 @@ struct ChatToolDiffPreview: View {
     private var statsLabel: some View {
         HStack(spacing: DesignTokens.spacingIconic) {
             Text("+\(stats.addedChars)")
-                .foregroundStyle(Color(nsColor: .systemGreen))
+                .foregroundStyle(.green)
             Text("−\(stats.removedChars)")
-                .foregroundStyle(Color(nsColor: .systemRed))
+                .foregroundStyle(.red)
         }
         .font(.caption2.monospacedDigit())
         .foregroundStyle(.secondary)
@@ -122,8 +122,8 @@ struct ChatToolDiffPreview: View {
     nonisolated static func color(for line: String) -> Color {
         if line.hasPrefix("@@") { return .secondary }
         if line.hasPrefix("+++") || line.hasPrefix("---") { return .secondary.opacity(0.6) }
-        if line.hasPrefix("+") { return Color(nsColor: .systemGreen) }
-        if line.hasPrefix("-") { return Color(nsColor: .systemRed) }
+        if line.hasPrefix("+") { return .green }
+        if line.hasPrefix("-") { return .red }
         return .primary
     }
 

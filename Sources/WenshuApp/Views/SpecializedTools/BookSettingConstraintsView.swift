@@ -134,7 +134,7 @@ struct BookSettingConstraintsView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color(nsColor: .systemRed))
+                    .foregroundStyle(.red)
             }
         }
     }
@@ -281,7 +281,7 @@ struct BookSettingConstraintsView: View {
                                         .padding(.vertical, DesignTokens.spacingHairline)
                                         .background(
                                             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
-                                                .fill(Color(nsColor: .systemRed).opacity(0.15))
+                                                .fill(.red.opacity(0.15))
                                         )
                                 }
                             }
@@ -330,7 +330,7 @@ struct BookSettingConstraintsView: View {
                     if hasChecked {
                         Text("\(violations.count) violation\(violations.count == 1 ? "" : "s")")
                             .font(.caption)
-                            .foregroundStyle(violations.isEmpty ? Color(nsColor: .systemGreen) : Color(nsColor: .systemOrange))
+                            .foregroundStyle(violations.isEmpty ? .green : .orange)
                     }
                 }
             }
