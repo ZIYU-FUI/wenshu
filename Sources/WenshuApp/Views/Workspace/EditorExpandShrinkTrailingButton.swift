@@ -29,12 +29,12 @@ struct EditorExpandShrinkTrailingButton: View {
     @AppStorage("wenshu.editorExpand.snapshot") private var editorExpandSnapshotJSON: String = "{}"
 
     var body: some View {
-        // 
+        //
         // the editor expand/shrink trailing button was using raw `Lucide(...)`
         // (= no size parameter = Lucide default size, not Apple HIG standard
         // 18 PT tab icon). Migrated to the SAME icon-rendering pattern as
         // PaneIconTab: Color.clear as 28 PT hot area base + icon as centered
-        // .overlay with explicit DesignTokens.tabIconSize (= 18 PT). Now
+        // .overlay at 18 PT (= Apple HIG small-control standard). Now
         // visually identical to the leading tab icons in the same row
         // (= the 6 zones' tab bar visual contract is uniform).
         //

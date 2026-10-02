@@ -47,19 +47,17 @@
 //
 //  ============================ MIGRATION RULE ============================
 //
-//  Pre-v3.0 tokens (`DesignTokens.tabIconSize` etc.) remain in place;
-//  this file adds a NEW canonical surface (= `SFIcon(...)`) on top.
-//  Future PRs migrate call sites one surface at a time (= per Q112 =
-//  1 source + 1 test per ticket). Once a surface is migrated, the
-//  corresponding `DesignTokens.*` token is deleted in the same PR.
-//  Migration lives on the table's MigrationState case per surface.
+//  The v3.0 sweep migrated `DesignTokens.tabIconSize` (18 PT) and
+//  `DesignTokens.iconStandardSize` (16 PT) into the `IconStyle` enum
+//  (= `.paneTab = 18` and `.inlineSmall = 14` cover the previous
+//  call sites). The tokens were deleted in this same PR series;
+//  SFIcon is now the sole canonical surface.
 //
 //  ============================ USAGE NOTES ============================
 //
 //  Production call sites migrate from:
 //
 //      Image(systemName: "paperplane")
-//          .frame(width: DesignTokens.tabIconSize)
 //          .symbolRenderingMode(.hierarchical)
 //          .foregroundStyle(.tint)
 //

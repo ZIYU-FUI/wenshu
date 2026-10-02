@@ -254,9 +254,6 @@ enum DesignTokens {
     /// without padding artifacts (= Safari/Chrome/Terminal convention).
     static let tabCloseFrameSize: CGFloat = 18
 
-    /// Per-pane tab icon size (= 18×18 PT, fits within 28 PT hot area).
-    static let tabIconSize: CGFloat = 18
-
     /// Per-pane tab selected-state underline height (= 1 PT, Apple HIG
     /// standard for tab bar selected indicator). The line is rendered
     /// with `.clipShape(Capsule())` for fully rounded ends (= two
@@ -452,10 +449,6 @@ enum DesignTokens {
     // `.frame(height:N)`, `.frame(width:N, height:N)` across 47 sites).
     // Every value is an Apple HIG standard (= macOS standard icon sizes,
     // standard popover sizes, standard sheet sizes, etc.).
-
-    /// Standard small icon size (= 16 PT, macOS standard toolbar icon size).
-    /// Replaces `.frame(width: DesignTokens.iconStandardSize)` in 6 sites.
-    static let iconStandardSize: CGFloat = 16
 
     /// Extra-small indicator size (= 8 PT, Apple HIG status indicator
     /// dot standard). Replaces `.frame(width: DesignTokens.indicatorSizeSmall, height: DesignTokens.indicatorSizeSmall)` in 1 site.

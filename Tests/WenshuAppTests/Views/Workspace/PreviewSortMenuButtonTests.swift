@@ -68,11 +68,13 @@ struct PreviewSortMenuButtonTests {
                 "PreviewSortMenuButton.swift must use Image(systemName:) per AGENTS.md §11.1 (= LucideIcon retired 2026-09-15)")
     }
 
-    @Test("button source uses DesignTokens.tabIconSize + paneTabHotArea")
+    @Test("button source no longer uses DesignTokens.tabIconSize (= v3.0 sweep) + still uses paneTabHotArea")
     func sourceUsesDesignTokens() throws {
         let source = try String(contentsOfFile: Self.sourcePath)
-        #expect(source.contains("DesignTokens.tabIconSize"))
-        #expect(source.contains("DesignTokens.paneTabHotArea"))
+        #expect(!source.contains("DesignTokens.tabIconSize"),
+                "PreviewSortMenuButton.swift must drop DesignTokens.tabIconSize in production code (= the v3.0 sweep migrated it into IconStyle.paneTab); = a doc-comment reference on L7 is allowed but no production-code path uses it")
+        #expect(source.contains("DesignTokens.paneTabHotArea"),
+                "PreviewSortMenuButton.swift must still use DesignTokens.paneTabHotArea (= the layout hit-area is preserved; = paneTabHotArea is a layout token, not an icon-size token, so it's out of the v3.0 icon sweep)")
     }
 
     @Test("button source uses .onHover (= the hover state)")

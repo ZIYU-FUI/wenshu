@@ -4,7 +4,7 @@
 // One view per file (Apple HIG). `PreviewSortMenuButton` has
 // 1 `@Binding` (`sortOrder`) + 1 `@State` (`isHover` for the
 // `.onHover` tracking) and is otherwise self-contained.
-//  DesignTokens.paneTabHotArea + DesignTokens.tabIconSize.
+//  DesignTokens.paneTabHotArea.
 //
 // Only call site = WorkspaceView's preview pane top-right;
 // invoked as `PreviewSortMenuButton(sortOrder: $previewSortOrder)`.

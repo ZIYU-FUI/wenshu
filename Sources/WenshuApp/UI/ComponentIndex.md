@@ -35,7 +35,6 @@ Each component has:
   DesignTokens.chromePaddingTrailing  // 8 PT (= Apple HIG canonical 'Spacing.small')
   DesignTokens.chromePaddingVertical  // 8 PT
   DesignTokens.paneTabHotArea         // 28 PT (= renamed from chatTabHotArea)
-  DesignTokens.tabIconSize            // 18 PT
   DesignTokens.tabUnderlineHeight     // 3 PT
   DesignTokens.dividerHeight          // 1 PT
   DesignTokens.statusFont             // .system(size: 13)
