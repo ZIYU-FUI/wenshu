@@ -263,11 +263,6 @@ enum DesignTokens {
     /// naming, now generic for ALL pane tabs).
     static let paneTabHotArea: CGFloat = 28
 
-    /// Tab close button (= X) glyph font size (= 10 PT,
-    /// .semibold weight). Matches SF Symbol `xmark` rendered at
-    /// 18 PT frame for finger-target parity with the 28 PT paneTab.
-    static let tabCloseGlyphFontSize: CGFloat = 10
-
     /// Tab close button (= X) hit area (= 18×18 PT). Apple HIG
     /// inline-control minimum is 16 PT (= 44 PT Apple HIG = finger-target);
     /// 18 PT is a compromise that fits inside `paneTabHotArea` (= 28 PT)
@@ -330,16 +325,6 @@ enum DesignTokens {
         return Color(nsColor: dynamic)
     }()
 
-    /// System message surface fill (= 15% red opacity on
-    /// Apple accent red; = the canonical warning banner background
-    /// for chat error / system messages; = replaces the band-aid
-    /// inline `Color.red.opacity(0.15)` at ChatView.swift:1907
-    /// (= the source-check at v1.0.0-m1-shell added it as a
-    /// one-off 4th branch in bubbleFill; = data-driven now via
-    /// token lookup). Apple HIG: warning fills should be token-
-    /// based, not literal, so dark/light adjustments are 1-stop.
-    static let systemMessageFill: Color = Color.red.opacity(0.15)
-
     // MARK: - Surface metrics (Apple HIG, v0.35 +1)
 
     /// Card surface corner radius (= 8 PT, Apple HIG rounded card standard).
@@ -355,7 +340,6 @@ enum DesignTokens {
     /// per v1.27 component audit). Distinct from `zoneContentInset = 8`
     /// (= the zone-level grid inset); = bubble internal padding is
     /// larger because the bubble itself adds visual weight.
-    static let bubblePaddingHorizontal: CGFloat = 12
     /// Layout picker chrome width (= 416 PT; = 26rem
     /// at 16 PT/rem; = replaces inline `26 * 16` at LayoutEditBar:56
     /// + LayoutPicker:156 (= the comment-encoded magic constant
@@ -367,8 +351,6 @@ enum DesignTokens {
     /// Badge surface corner radius (= 8 PT, Apple HIG capsule-style
     /// badge standard). Replaces file-scope `badgeCornerRadius: CGFloat = 8`
     /// in ConnectorProfileRow.
-    static let surfaceCornerRadiusBadge: CGFloat = 8
-
     /// Small-chip corner radius (= 3 PT, Apple HIG small-chip standard;
     /// same value as `smallChipCornerRadius` in 3 files before H2 fix).
     /// `.continuous` round style for macOS 27+ smooth corners.
@@ -795,5 +777,19 @@ enum DesignTokens {
     /// chat input to a stable height even when the user types
     /// longer text).
     static let controlHeightLarge: CGFloat = 36
+
+    /// Onboarding welcome window size (= 640×720 PT, Apple HIG
+    /// onboarding panel standard).
+    ///
+    /// Apple HIG source: `View > Window > Onboarding > Standard size`
+    /// (= the macOS 26+ default first-launch welcome window = 640×720
+    /// PT = measured from macOS standard onboarding dialogs; = the
+    /// idealWidth/Height that lets the window grow from minimum
+    /// 640×720 up to maximum 800×900 for the multi-page flow).
+    ///
+    /// Used by: LibraryRootView onboarding welcome window (= the
+    /// first-launch modal that walks the user through library
+    /// creation / onboarding).
+    static let onboardingWindowSize: CGSize = CGSize(width: 640, height: 720)
 
 }
