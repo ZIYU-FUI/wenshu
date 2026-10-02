@@ -313,18 +313,35 @@ enum IconRendering: Sendable, Equatable {
 struct SFIcon: View {
     let name: String
     let style: IconStyle
-    let color: IconColor
+    let color: Color
     let rendering: IconRendering?
 
     init(
         _ name: String,
         style: IconStyle,
-        color: IconColor = .secondary,
+        color: Color = Color.secondary,
         rendering: IconRendering? = nil
     ) {
         self.name = name
         self.style = style
         self.color = color
+        self.rendering = rendering
+    }
+
+    /// Convenience initializer accepting an `IconColor` semantic token (= the
+    /// canonical Apple HIG color enum; = `.primary / .secondary / .tint / .red`).
+    /// This is the form most call sites use; the underlying `Color` form
+    /// above is the escape hatch for call sites that compute the color from
+    /// a domain enum (= CommandPaletteView category colors).
+    init(
+        _ name: String,
+        style: IconStyle,
+        color: IconColor,
+        rendering: IconRendering? = nil
+    ) {
+        self.name = name
+        self.style = style
+        self.color = color.style
         self.rendering = rendering
     }
 
@@ -334,21 +351,21 @@ struct SFIcon: View {
 
         switch rendering {
         case .monochrome:
-            image.symbolRenderingMode(.monochrome).foregroundStyle(color.style)
+            image.symbolRenderingMode(.monochrome).foregroundStyle(color)
         case .hierarchical:
-            image.symbolRenderingMode(.hierarchical).foregroundStyle(color.style)
+            image.symbolRenderingMode(.hierarchical).foregroundStyle(color)
         case .palette:
-            image.symbolRenderingMode(.palette).foregroundStyle(color.style)
+            image.symbolRenderingMode(.palette).foregroundStyle(color)
         case .multicolor:
-            image.symbolRenderingMode(.multicolor).foregroundStyle(color.style)
+            image.symbolRenderingMode(.multicolor).foregroundStyle(color)
         case nil:
             // No explicit rendering = apply the Apple HIG per-zone default:
             //   ≥38 PT zone (= emptyStateHero / avatar / cover) = .monochrome
             //   <38 PT zone (= everything else) = .hierarchical (= boss 9/15 canonical)
             if style.pointSize >= 38 {
-                image.symbolRenderingMode(.monochrome).foregroundStyle(color.style)
+                image.symbolRenderingMode(.monochrome).foregroundStyle(color)
             } else {
-                image.symbolRenderingMode(.hierarchical).foregroundStyle(color.style)
+                image.symbolRenderingMode(.hierarchical).foregroundStyle(color)
             }
         }
     }
