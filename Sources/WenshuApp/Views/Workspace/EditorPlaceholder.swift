@@ -157,11 +157,7 @@ struct EditorPlaceholder: View {
                     Button(action: {
                         appState.closeTab(id: active.id, bookStore: bookStore)
                     }) {
-                        Image(systemName: "xmark")
-                            .font(.system(
-                                size: DesignTokens.tabCloseGlyphFontSize,
-                                weight: .semibold))
-                            .foregroundStyle(.secondary)
+                        SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)
                             .frame(width: DesignTokens.tabCloseFrameSize,
                                    height: DesignTokens.tabCloseFrameSize)
                     }
