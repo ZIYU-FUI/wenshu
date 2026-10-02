@@ -352,9 +352,7 @@ struct ForeshadowingView: View {
 
     private func staleRow(_ row: Foreshadowing) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: row.status.icon).imageScale(.small)
-                .foregroundStyle(.secondary)
-                .frame(width: DesignTokens.iconStandardSize)
+            SFIcon(row.status.icon, style: .inlineSmall, color: .secondary)
             Text(row.title)
                 .font(.caption)
                 .foregroundStyle(.primary)
