@@ -222,9 +222,7 @@ private struct CommandPaletteRow: View {
             // "chat" / "custom"). SF Symbol fallback is acceptable here
             // because this is a debug/internal UX surface (= not the
             // user-facing app chrome).
-            Image(systemName: categorySymbol).imageScale(.small)
-                .foregroundStyle(categoryColor)
-                .frame(width: DesignTokens.iconStandardSize, height: DesignTokens.iconStandardSize)
+            SFIcon(categorySymbol, style: .inlineSmall, color: categoryColor)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.body)
