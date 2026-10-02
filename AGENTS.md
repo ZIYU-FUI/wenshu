@@ -23,6 +23,15 @@ AGENTS.md
 
 This file = wenshu project baseline + cross-role address hard constraint. Single agent (pocock profile) direct dialog with 老板. No dispatch, no board, no 6-role flow. Version 8/18拍 v0.07 + 2026-09-04/05拍 v0.10 (pocock single agent purified version).
 
+# Split layout (= boss 2026-10-02 OOB 'AGENTS / CLAUDE 两个大文件，需要治理吗' + option C)
+
+This file contains the **head + Hard rule + §11 Project baseline + §11.1 + §11.2 + §11.3** (= the cross-cutting rules every wenshu work touches). The remaining §11.X sections are split across two companion files (= to keep each file within the Hermes context-file 20K-char cap; = the previous single-file layout was 245,067 chars = 12× cap = Hermes head/tail truncation dropped §11.5 / §11.6 / §11.10 / §11.11 / §11.13 entirely; = commit `724a6c2de` on 2026-10-02 closed the split).
+
+- `AGENTS-§11-rules.md` — current ACTIVE rules (= the rules any wenshu view / model / tool file must obey today). Contains §11.4 (SwiftData migration roadmap) + §11.5 (known test flakes = acceptance baseline) + §11.7 (sqlite3-zero migration) + §11.7d + §11.7e + §11.8 (stale-helper migration) + §11.12 (Pocock engineering standards skill set) + §11.14 (v2.4 agent-behavior closed-enum product philosophy) + §11.15 (v2.5 keyless web search) + §11.16 (v2.6 facet model).
+- `AGENTS-§11-history.md` — CLOSED arc records (= the canonical reference for arcs that already shipped; = future amendments land at the bottom of `AGENTS.md` as a new §11.X section, then move to history when fully closed). Contains §11.6 + §11.9 + §11.10 + §11.11 + §11.13 + §11.17-§11.30.
+
+When in doubt about which file owns a §11.X reference: ACTIVE rules affecting current code belong in `AGENTS-§11-rules.md`; CLOSED arc records (anything with "closure" / "arc closure" in the section title) belong in `AGENTS-§11-history.md`.
+
 # §11 Project baseline
 
 - Stack = Swift / SwiftUI + Swift Observation (@Observable) + filesystem JSON + Markdown (per-book private content) + Apple HIG (.fcpbundle-style directory, single-process). NO CoreData. NO external AI platform calls (any code file).
