@@ -437,7 +437,7 @@ Group {
         // from this canonical size (= .contentSize keeps the
         // window resizable; = the .frame(minWidth:idealWidth:
         // maxHeight:) is just a starting size, not a hard cap).
-        .frame(minWidth: 640, idealWidth: 640, maxWidth: 800, minHeight: 720, idealHeight: 720, maxHeight: 900)
+        .frame(minWidth: 640, idealWidth: DesignTokens.onboardingWindowSize.width, maxWidth: 800, minHeight: 720, idealHeight: DesignTokens.onboardingWindowSize.height, maxHeight: 900)
         .background(Color.clear)
         // Apple HIG Inventory 2026-09-06: .fileImporter was 0 hits.
         // Apple-standard sheet for selecting an existing .ws directory.
