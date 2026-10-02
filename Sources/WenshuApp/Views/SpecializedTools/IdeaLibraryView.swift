@@ -285,9 +285,7 @@ struct IdeaLibraryView: View {
     private func ideaRow(_ idea: Idea) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
-                Image(systemName: idea.status.icon).imageScale(.small)
-                    .foregroundStyle(.tint)
-                    .frame(width: DesignTokens.tabIconSize)
+                SFIcon(idea.status.icon, style: .inlineSmall, color: .tint)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: DesignTokens.spacingTight) {
                         Text(idea.title)
@@ -456,9 +454,7 @@ struct IdeaLibraryView: View {
 
     private func linkRow(_ link: IdeaLink, for ideaId: UUID) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
-            Image(systemName: link.target.icon).imageScale(.small)
-                .foregroundStyle(.tint)
-                .frame(width: DesignTokens.tabIconSize)
+            SFIcon(link.target.icon, style: .inlineSmall, color: .tint)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     Text(link.target.displayName)
