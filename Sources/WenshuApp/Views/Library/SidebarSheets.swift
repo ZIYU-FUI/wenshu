@@ -366,7 +366,7 @@ struct NewBookSheet: View {
                     }
                     ScrollView {
                         LazyVGrid(
-                            columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8),
+                            columns: Array(repeating: GridItem(.flexible(), spacing: DesignTokens.spacingStandard), count: 8),
                             spacing: 8
                         ) {
                             ForEach(allSFSymbols, id: \.self) { iconName in

@@ -27,12 +27,12 @@ extension PreviewPane {
         if width >= Self.twoColumnBreakpoint {
             // 2 fixed columns (= 50/50 split with spacing in between)
             return [
-                GridItem(.flexible(), spacing: 16, alignment: .topLeading),
-                GridItem(.flexible(), spacing: 16, alignment: .topLeading),
+                GridItem(.flexible(), spacing: DesignTokens.spacingLoose, alignment: .topLeading),
+                GridItem(.flexible(), spacing: DesignTokens.spacingLoose, alignment: .topLeading),
             ]
         } else {
             // 1 column (= full width)
-            return [GridItem(.flexible(), spacing: 16, alignment: .topLeading)]
+            return [GridItem(.flexible(), spacing: DesignTokens.spacingLoose, alignment: .topLeading)]
         }
     }
 }

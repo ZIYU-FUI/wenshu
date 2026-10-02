@@ -47,10 +47,10 @@ struct LayoutPicker: View {
     @State private var newPresetName: String = ""
 
     private let columns: [GridItem] = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8)
+        GridItem(.flexible(), spacing: DesignTokens.spacingStandard),
+        GridItem(.flexible(), spacing: DesignTokens.spacingStandard),
+        GridItem(.flexible(), spacing: DesignTokens.spacingStandard),
+        GridItem(.flexible(), spacing: DesignTokens.spacingStandard)
     ]
 
     var body: some View {
