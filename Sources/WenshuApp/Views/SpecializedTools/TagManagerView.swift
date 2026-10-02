@@ -244,7 +244,7 @@ struct TagManagerView: View {
             Button(role: .destructive) {
                 Task { await removeTag(tag) }
             } label: {
-                Image(systemName: "trash").imageScale(.small)
+                SFIcon("trash", style: .inlineSmall, color: IconColor.secondary)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
@@ -365,7 +365,7 @@ struct TagManagerView: View {
             Button(role: .destructive) {
                 Task { await unapply(application) }
             } label: {
-                Image(systemName: "xmark").imageScale(.small)
+                SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
