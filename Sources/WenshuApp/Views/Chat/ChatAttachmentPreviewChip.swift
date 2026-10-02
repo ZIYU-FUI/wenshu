@@ -55,12 +55,12 @@ struct ChatAttachmentPreviewChip: View {
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: 48, height: 48)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))
         } else {
             // Fallback: empty 48 PT rounded rect (file missing or
             // unreadable). Still shows the clear button so the user
             // can dismiss.
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                 .fill(.clear)
                 .frame(width: 48, height: 48)
         }

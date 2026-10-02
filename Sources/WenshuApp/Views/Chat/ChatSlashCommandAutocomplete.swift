@@ -144,9 +144,9 @@ struct ChatSlashCommandAutocomplete: View {
                     }
                 }
             }
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                     .strokeBorder(.quaternary, lineWidth: 1)
             )
             .frame(maxWidth: 360)

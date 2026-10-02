@@ -115,7 +115,7 @@ struct LayoutPicker: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, DesignTokens.spacingStandard)
                 .background(
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                         .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         .foregroundStyle(DesignTokens.statusForeground)
                 )

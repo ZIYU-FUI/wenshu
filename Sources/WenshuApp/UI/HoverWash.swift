@@ -9,7 +9,7 @@
 // Migration context: 7 sites in wenshu had self-written
 //   @State private var isHover: Bool = false
 //   .onHover { hovering in isHover = hovering }
-//   .background(RoundedRectangle(cornerRadius: 4).fill(
+//   .background(RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton).fill(
 //       isHover ? AnyShapeStyle(.quaternary) : AnyShapeStyle(Color.clear)))
 // = 7 copies of the same 4-line state plumbing + style block.
 // Replaced by .hoverWash() = single source of truth for the
@@ -21,7 +21,7 @@
 // - .onHover (= Apple canonical SwiftUI macOS hover callback
 //   since macOS 10.15; .hoverEffect is visionOS-only no-op on macOS).
 // - .background (= SwiftUI modifier, Apple canonical).
-// - RoundedRectangle(cornerRadius: 4) (= SwiftUI Shape, Apple
+// - RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton) (= SwiftUI Shape, Apple
 //   canonical 4 PT corner = standard small button hover shape).
 // - AnyShapeStyle (= type-erased ShapeStyle wrapper, Apple API).
 //
@@ -67,7 +67,7 @@ private struct HoverWashModifier: ViewModifier {
                 isHover = hovering
             }
             .background(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton)
                     .fill(isHover
                         ? AnyShapeStyle(.tertiary)
                         : AnyShapeStyle(Color.clear))

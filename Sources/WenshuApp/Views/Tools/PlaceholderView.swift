@@ -366,7 +366,7 @@ struct PlaceholderView: View {
                 .font(.caption.monospaced())
                 .frame(minHeight: 80, maxHeight: 140)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton)
                         .stroke(.quaternary, lineWidth: 1)
                 )
             HStack(spacing: 8) {

@@ -163,11 +163,11 @@ private struct NewChoiceCard: View {
             .frame(maxWidth: .infinity, minHeight: 140)
             .padding(DesignTokens.spacingLoose)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusHeroCard)
                     .fill(.tint.opacity(hovering ? 0.12 : 0.06))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusHeroCard)
                     .strokeBorder(.tint.opacity(hovering ? 0.5 : 0.15), lineWidth: 1)
             )
         }
@@ -350,7 +350,7 @@ struct NewBookSheet: View {
                 Section {
                     HStack(spacing: 12) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                                 .fill(.tint.opacity(0.15))
                                 .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
                             SFIcon(selectedIcon, style: .toolbarButton, color: IconColor.accent)
@@ -374,7 +374,7 @@ struct NewBookSheet: View {
                                     selectedIcon = iconName
                                 } label: {
                                     ZStack {
-                                        RoundedRectangle(cornerRadius: 6)
+                                        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                                             .fill(selectedIcon == iconName
                                                   ? AnyShapeStyle(.tint.opacity(0.25))
                                                   : AnyShapeStyle(Color.clear))

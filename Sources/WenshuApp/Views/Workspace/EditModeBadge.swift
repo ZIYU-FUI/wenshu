@@ -40,11 +40,11 @@ struct EditModeBadge: View {
             // for the edit-mode badge background (= the floating
             // badge that shows when ⌘⇧\ edit mode is on).
             .background(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                     .fill(.regularMaterial)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                     .stroke(.tint.opacity(0.3), lineWidth: 1)
             )
         }

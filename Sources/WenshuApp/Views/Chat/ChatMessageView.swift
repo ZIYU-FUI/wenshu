@@ -554,7 +554,7 @@ private struct UserGlassCardModifier: ViewModifier {
                 // reverted). The same API is used by the chat input
                 // row at ChatView.swift:1960 (= the canonical Apple
                 // HIG pattern across wenshu).
-                .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusHeroCard, style: .continuous))
         } else {
             content
         }
@@ -589,7 +589,7 @@ private struct StatusPulse: View {
         // rounded-[2px] text-midground/80`). SwiftUI's tint is
         // mapped to Color.secondary (= Apple semantic for muted
         // foreground on the assistant transcript).
-        RoundedRectangle(cornerRadius: 2, style: .continuous)
+        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip, style: .continuous)
             .fill(Color.secondary)
             .frame(width: 3, height: 3)
             .opacity(isPulsing ? 0.5 : 1.0)

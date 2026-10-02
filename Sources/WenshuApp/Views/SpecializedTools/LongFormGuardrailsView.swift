@@ -217,7 +217,7 @@ struct LongFormGuardrailsView: View {
             .padding(.horizontal, DesignTokens.spacingTight)
             .padding(.vertical, DesignTokens.spacingHairline)
             .background(
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
                     .fill(badgeColor(for: level))
             )
     }

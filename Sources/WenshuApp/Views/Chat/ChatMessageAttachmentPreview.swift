@@ -73,7 +73,7 @@ struct ChatMessageAttachmentPreview: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: 240, maxHeight: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))
                     .padding(.bottom, DesignTokens.spacingIconic)
             }
             .buttonStyle(.plain)

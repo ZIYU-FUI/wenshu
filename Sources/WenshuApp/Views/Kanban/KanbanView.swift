@@ -381,9 +381,9 @@ private struct KanbanColumn: View {
         }
         .padding(DesignTokens.spacingStandard)
         .frame(width: DesignTokens.sidebarNarrowWidth)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 6))
+        .background(.background.secondary, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))
         .overlay(
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                 .stroke(.separator, lineWidth: 0.5)
         )
     }
@@ -461,9 +461,9 @@ private struct KanbanCard: View {
         }
         .padding(DesignTokens.spacingStandard)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 4))
+                .background(.background, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton)
                         .stroke(.separator, lineWidth: 0.5)
                 )
                 // kanban-detail-sheet 2026-09-28: tap on the card body opens

@@ -82,7 +82,7 @@ struct ChatPlanPartView: View {
                     .foregroundStyle(.tertiary)
                     .padding(.horizontal, DesignTokens.spacingIconic)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 3)
+                        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
                             .strokeBorder(.quaternary, lineWidth: 0.5)
                     )
                 Spacer(minLength: 0)
@@ -165,9 +165,9 @@ struct ChatPlanPartView: View {
             .padding(.top, DesignTokens.spacingTight)
         }
         .padding(DesignTokens.spacingTight)
-        .background(cardFill, in: RoundedRectangle(cornerRadius: 8))
+        .background(cardFill, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .strokeBorder(.quaternary, lineWidth: 1)
         )
         .frame(maxWidth: 420)

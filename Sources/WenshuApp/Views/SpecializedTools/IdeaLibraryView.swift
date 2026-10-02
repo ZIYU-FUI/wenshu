@@ -319,7 +319,7 @@ struct IdeaLibraryView: View {
                                         .padding(.horizontal, DesignTokens.spacingIconic)
                                         .padding(.vertical, DesignTokens.spacingHairline)
                                         .background(
-                                            RoundedRectangle(cornerRadius: 3)
+                                            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
                                                 .fill(.tint.opacity(0.15))
                                         )
                                 }

@@ -99,7 +99,7 @@ struct ChatToolDiffPreviewSheet: View {
         }
         .background(
             AnyShapeStyle(.quinary.opacity(0.3)),
-            in: RoundedRectangle(cornerRadius: 6)
+            in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
         )
     }
 }

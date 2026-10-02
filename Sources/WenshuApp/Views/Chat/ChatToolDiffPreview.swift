@@ -44,10 +44,10 @@ struct ChatToolDiffPreview: View {
         .padding(.vertical, DesignTokens.spacingIconic)
         .background(
             AnyShapeStyle(.quinary.opacity(0.5)),
-            in: RoundedRectangle(cornerRadius: 8)
+            in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .strokeBorder(.separator, lineWidth: 1)
         )
         .frame(maxWidth: 360)

@@ -264,7 +264,7 @@ struct ChatInputBarView: View {
         }
         .overlay {
             if isDropTargeted {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                     .strokeBorder(Color.accentColor, lineWidth: 2)
                     .allowsHitTesting(false)
             }

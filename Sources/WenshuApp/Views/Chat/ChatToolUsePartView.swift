@@ -121,10 +121,10 @@ struct ChatToolUsePartView: View {
         }
         .padding(.horizontal, DesignTokens.spacingTight)
         .padding(.vertical, DesignTokens.spacingIconic)
-        .background(toolCardFill, in: RoundedRectangle(cornerRadius: 8))
+        .background(toolCardFill, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard))
         .overlay(
             // Thin left border (= Apple Mail "block quote" indicator).
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
         .frame(maxWidth: 360)

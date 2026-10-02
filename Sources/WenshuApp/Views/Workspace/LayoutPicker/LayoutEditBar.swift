@@ -61,7 +61,7 @@ struct LayoutEditBar: View {
         // capsule); now uses Color.clear (= no background =
         // shows the underlying zone chrome).
         .background(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow)
                 .fill(Color.clear)
         )
         .overlay(
@@ -70,7 +70,7 @@ struct LayoutEditBar: View {
             // replaces Color(nsColor: .separatorColor) (= solid NSColor).
             // followup Boss UX round 26: confirm .separator style
             // (= matches all other 1 PT splitters across the app).
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow)
                 .stroke(.separator, lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 4)
@@ -124,7 +124,7 @@ struct LayoutEditBar: View {
                         // previous RegionHoverWashStyle wrapper
                         // added an extra type with no semantic value.
                         .background(
-                            RoundedRectangle(cornerRadius: 3)
+                            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
                                 .fill(Color.clear)
                         )
                 }
@@ -146,7 +146,7 @@ struct LayoutEditBar: View {
         // .regularMaterial (= Liquid Glass background); now uses
         // Color.clear (= no background).
         .background(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow)
                 .fill(Color.clear)
         )
         // The header is the drag handle; the rest of the palette

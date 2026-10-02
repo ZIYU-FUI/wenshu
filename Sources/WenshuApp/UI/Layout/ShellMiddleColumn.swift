@@ -439,7 +439,7 @@ struct ShellMiddleColumn: View {
                     .padding(.vertical, DesignTokens.spacingStandard)
                     .frame(maxWidth: .infinity)
                     .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard, style: .continuous)
                             .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     )
                     // The search field,
@@ -480,7 +480,7 @@ struct ShellMiddleColumn: View {
                     // left; = no visual change inside the field).
                     .frame(maxWidth: .infinity)
                     .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard, style: .continuous)
                             .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     )
                     // Search field

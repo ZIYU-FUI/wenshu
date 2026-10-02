@@ -1602,11 +1602,11 @@ private struct Card: View {
         // parent component owns style, child component only does function.
         // Hover tint (= matches PaneIconTab hover pattern).
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow, style: .continuous)
                 .fill(isHovered ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.clear))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow, style: .continuous)
                 .stroke(isHovered
                     ? AnyShapeStyle(.tint.opacity(0.4))
                     : AnyShapeStyle(.tertiary),

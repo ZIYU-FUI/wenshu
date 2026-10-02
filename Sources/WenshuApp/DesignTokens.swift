@@ -362,6 +362,38 @@ enum DesignTokens {
     /// `.continuous` round style for macOS 27+ smooth corners.
     static let surfaceCornerRadiusSmallChip: CGFloat = 3
 
+    /// Window chrome corner radius (= 10 PT, Apple HIG macOS window
+    /// chrome standard for macOS 26+; = measured from Finder / Safari
+    /// window corner radius).
+    ///
+    /// Apple HIG source: `View > Window > Corner radius` (= macOS 26+
+    /// system window default corner = 10 PT continuous).
+    ///
+    /// Used by: layout picker edit bar (top window chrome), preview pane
+    /// card chrome (the agent inspector bottom card).
+    static let surfaceCornerRadiusWindow: CGFloat = 10
+
+    /// Hero card corner radius (= 12 PT, Apple HIG hero card standard).
+    ///
+    /// Apple HIG source: `View > Card > Hero size` (= the macOS 26+
+    /// Liquid Glass hero card corner = 12 PT continuous).
+    ///
+    /// Used by: chat message bubble (= the user/agent message bubble
+    /// outer card; = larger than the 8 PT inline card; = distinguishes
+    /// hero message from inline tool result); sidebar sheets (= the
+    /// new-book + new-shelf sheet hero icon background card).
+    static let surfaceCornerRadiusHeroCard: CGFloat = 12
+
+    /// Small button corner radius (= 5 PT, Apple HIG control standard).
+    ///
+    /// Apple HIG source: `Controls > Buttons > Sizes > Small` (= the
+    /// macOS 26+ default small button corner radius = 5 PT continuous).
+    ///
+    /// Used by: small hover-wash affordances (= button hover background),
+    /// TextEditor chip outline, Kanban card outline, CommandPalette
+    /// .regularMaterial chip background.
+    static let surfaceCornerRadiusSmallButton: CGFloat = 5
+
     /// Form field label column width (= 60 PT, Apple HIG inline form
     /// label standard). Replaces file-scope `labelWidth: CGFloat = 60`
     /// in ConnectorAuthField.

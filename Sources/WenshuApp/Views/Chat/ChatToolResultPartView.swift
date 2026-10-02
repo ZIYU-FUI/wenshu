@@ -108,9 +108,9 @@ struct ChatToolResultPartView: View {
         }
         .padding(.horizontal, DesignTokens.spacingTight)
         .padding(.vertical, DesignTokens.spacingIconic)
-        .background(cardFill, in: RoundedRectangle(cornerRadius: 8))
+        .background(cardFill, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
         .frame(maxWidth: 360)

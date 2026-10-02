@@ -238,7 +238,7 @@ private struct CommandPaletteRow: View {
                     .padding(.horizontal, DesignTokens.spacingTight)
                     .padding(.vertical, DesignTokens.spacingCaption)
                     .background(
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton)
                             .fill(.regularMaterial)
                     )
             }
@@ -247,7 +247,7 @@ private struct CommandPaletteRow: View {
         .padding(.vertical, DesignTokens.spacingStandard)
         .background(
             isSelected ?
-                RoundedRectangle(cornerRadius: 6).fill(.selection.opacity(0.6)) :
+                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard).fill(.selection.opacity(0.6)) :
                 nil
         )
         .padding(.horizontal, DesignTokens.spacingIconic)

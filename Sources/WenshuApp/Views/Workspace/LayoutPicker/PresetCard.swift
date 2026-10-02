@@ -39,7 +39,7 @@ struct PresetCard: View {
                 // thinnest material so the thumbnail content stays
                 // dominant.
                 .background(
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                         .fill(.ultraThinMaterial)
                 )
                 // followup Boss UX round 26: Apple .separator
@@ -92,15 +92,16 @@ struct PresetCard: View {
 // - isActive = false: Apple HierarchicalShapeStyle .separator stroke,
 //   1 PT (= canonical Liquid Glass separator, macOS 26 Tahoe,
 //   semitransparent + adapts to dark/light mode)
+@MainActor
 @ViewBuilder
 private func strokeOverlay(isActive: Bool) -> some View {
     if isActive {
-        RoundedRectangle(cornerRadius: 6)
+        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
             .stroke(Color.accentColor, lineWidth: 2)
     } else {
         // Apple .separator (= canonical Liquid Glass separator,
         // macOS 26 Tahoe = semitransparent + adapts to dark/light).
-        RoundedRectangle(cornerRadius: 6)
+        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
             .stroke(.separator as SeparatorShapeStyle, lineWidth: 1)
     }
 }
