@@ -170,7 +170,7 @@ struct ChatPlanPartView: View {
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .strokeBorder(.quaternary, lineWidth: 1)
         )
-        .frame(maxWidth: 420)
+        .frame(maxWidth: DesignTokens.planListMaxWidth)
     }
 
     /// Single step row (= numbered + monospaced + detail).

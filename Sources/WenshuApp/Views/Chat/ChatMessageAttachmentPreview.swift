@@ -72,7 +72,7 @@ struct ChatMessageAttachmentPreview: View {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: 240, maxHeight: 240)
+                    .frame(maxWidth: DesignTokens.attachmentPreviewMaxSize, maxHeight: DesignTokens.attachmentPreviewMaxSize)
                     .clipShape(RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))
                     .padding(.bottom, DesignTokens.spacingIconic)
             }

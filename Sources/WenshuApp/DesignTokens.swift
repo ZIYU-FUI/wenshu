@@ -349,6 +349,47 @@ enum DesignTokens {
     /// toolbars (= LayoutEditBar pattern).
     static let surfaceShadowOffsetWindow: CGFloat = 4
 
+    /// Canvas drag gesture minimum distance (= 5 PT, wenshu
+    /// canvas-specific drag threshold tighter than the macOS
+    /// default 8 PT). Canvas draggers (= ZoneEditor) need finer
+    /// resolution because the dragged element is small (= 28 PT
+    /// hot area) and the user is interacting within a dense grid.
+    /// Per wenshu-icon-policy v1.5 zone UX: smaller drag distance
+    /// = more responsive within the zone grid layout.
+    static let dragGestureThresholdCanvas: CGFloat = 5
+
+    /// Chat bubble max-width (= 360 PT, Apple HIG macOS chat
+    /// panel standard = the iMessage macOS conversation bubble
+    /// width). Used in `.frame(maxWidth: 360)` for tool calls,
+    /// tool results, slash-command autocomplete, diff preview.
+    /// Canonical Apple Messages bubble width = 360 PT (= the
+    /// macOS 26+ Messages app reference width).
+    static let chatBubbleMaxWidth: CGFloat = 360
+
+    /// Inline metadata panel max-width (= 320 PT, Apple HIG
+    /// compact inset panel standard). Used in `.frame(maxWidth:
+    /// 320, alignment: .trailing)` for ReaderExperienceView +
+    /// GenreFitView report metadata side-panels.
+    static let metadataPanelMaxWidth: CGFloat = 320
+
+    /// Attachment thumbnail max-width/height (= 240 PT, Apple
+    /// HIG inline attachment preview standard = the macOS 26+
+    /// Messages attachment chip max-edge size). Used in
+    /// `.frame(maxWidth: 240, maxHeight: 240)` for the chat
+    /// attachment preview component.
+    static let attachmentPreviewMaxSize: CGFloat = 240
+
+    /// Plan list max-width (= 420 PT, Apple HIG inline structured
+    /// list panel standard = wider than chat bubble for plan
+    /// steps + numbered list rows). Used in `.frame(maxWidth:
+    /// 420)` for ChatPlanPartView.
+    static let planListMaxWidth: CGFloat = 420
+
+    /// Onboarding welcome max-width (= 480 PT, Apple HIG macOS
+    /// first-run welcome card standard = macOS 26+ Setup
+    /// Assistant welcome screen column width).
+    static let onboardingWelcomeMaxWidth: CGFloat = 480
+
     /// Button shadow vertical offset (= 2 PT, Apple HIG macOS
     /// button shadow offset = subtle lift under button surfaces
     /// that hover above the page).

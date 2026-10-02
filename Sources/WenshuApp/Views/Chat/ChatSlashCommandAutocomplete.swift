@@ -149,7 +149,7 @@ struct ChatSlashCommandAutocomplete: View {
                 RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                     .strokeBorder(.quaternary, lineWidth: 1)
             )
-            .frame(maxWidth: 360)
+            .frame(maxWidth: DesignTokens.chatBubbleMaxWidth)
         }
     }
 }

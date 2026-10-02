@@ -385,7 +385,7 @@ Group {
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .frame(maxWidth: 480)
+                    .frame(maxWidth: DesignTokens.onboardingWelcomeMaxWidth)
                     .padding(.horizontal, DesignTokens.spacingSection)
             }
 

@@ -113,7 +113,7 @@ struct ChatToolResultPartView: View {
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
-        .frame(maxWidth: 360)
+        .frame(maxWidth: DesignTokens.chatBubbleMaxWidth)
         // chat-diff-sheet 2026-09-28: long-diff tap-to-expand host.
         // (= same .sheet(item:) pattern as KanbanView's kanban-card
         // sheet per the kanban-detail-sheet arc; = nil state means

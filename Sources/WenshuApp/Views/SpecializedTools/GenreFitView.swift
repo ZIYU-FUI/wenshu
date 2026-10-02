@@ -113,7 +113,7 @@ struct GenreFitView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
-                .frame(maxWidth: 320, alignment: .trailing)
+                .frame(maxWidth: DesignTokens.metadataPanelMaxWidth, alignment: .trailing)
         }
     }
 

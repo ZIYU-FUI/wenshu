@@ -128,7 +128,7 @@ struct ChatToolUsePartView: View {
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
-        .frame(maxWidth: 360)
+        .frame(maxWidth: DesignTokens.chatBubbleMaxWidth)
         .onTapGesture {
             // Toggle args expansion (= single tap target = the card
             // itself = mirrors Hermes' ScaffoldRow click semantics).

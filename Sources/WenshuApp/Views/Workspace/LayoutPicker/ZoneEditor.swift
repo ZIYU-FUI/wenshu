@@ -183,7 +183,7 @@ struct ZoneEditor: View {
                 selectedZones.removeAll()
             }
             .gesture(
-                DragGesture(minimumDistance: 5)
+                DragGesture(minimumDistance: DesignTokens.dragGestureThresholdCanvas)
                     .onChanged { value in
                         dragStart = value.startLocation
                         dragEnd = value.location

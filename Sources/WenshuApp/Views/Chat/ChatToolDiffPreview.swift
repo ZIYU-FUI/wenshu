@@ -50,7 +50,7 @@ struct ChatToolDiffPreview: View {
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
                 .strokeBorder(.separator, lineWidth: 1)
         )
-        .frame(maxWidth: 360)
+        .frame(maxWidth: DesignTokens.chatBubbleMaxWidth)
     }
 
     private var header: some View {
