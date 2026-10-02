@@ -1574,10 +1574,10 @@ private struct Card: View {
             .frame(maxWidth: .infinity)
             .clipShape(
                 UnevenRoundedRectangle(
-                    topLeadingRadius: 10,
+                    topLeadingRadius: DesignTokens.surfaceCornerRadiusWindow,
                     bottomLeadingRadius: 0,
                     bottomTrailingRadius: 0,
-                    topTrailingRadius: 10
+                    topTrailingRadius: DesignTokens.surfaceCornerRadiusWindow
                 )
             )
             // TEXT content below the thumbnail
