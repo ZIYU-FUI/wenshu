@@ -119,7 +119,7 @@ private struct TaskRowView: View {
         case .failed:
             SFIcon("xmark.circle", style: .inlineSmall, color: IconColor.red)
         default:
-            SFIcon("circle", style: .inlineSmall, color: DesignTokens.statusForeground)
+            SFIcon("circle", style: .inlineSmall, color: IconColor.tertiary)
         }
     }
 

@@ -39,7 +39,7 @@ struct SubAgentProgressViewIconMigrationTests {
                 "SubAgentProgressView checkmark.circle status icon must use SFIcon")
         #expect(content.contains("SFIcon(\"xmark.circle\", style: .inlineSmall, color: IconColor.red)"),
                 "SubAgentProgressView xmark.circle status icon must use SFIcon")
-        #expect(content.contains("SFIcon(\"circle\", style: .inlineSmall, color: DesignTokens.statusForeground)"),
+        #expect(content.contains("SFIcon(\"circle\", style: .inlineSmall, color: IconColor.tertiary)"),
                 "SubAgentProgressView default circle status icon must use SFIcon")
     }
 }
