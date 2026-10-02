@@ -220,7 +220,7 @@ struct TagManagerView: View {
 
     private func tagRow(_ tag: Tag) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
-            SFIcon(tag.category.icon, style: .inlineSmall, color: .tint)
+            SFIcon(tag.category.icon, style: .inlineSmall, color: IconColor.tint)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     Text(tag.label)
@@ -344,7 +344,7 @@ struct TagManagerView: View {
 
     private func applicationRow(_ application: TagApplication) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
-            SFIcon(application.target.icon, style: .inlineSmall, color: .tint)
+            SFIcon(application.target.icon, style: .inlineSmall, color: IconColor.tint)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     Text(tagLabel(for: application.tagId))
@@ -401,9 +401,7 @@ struct TagManagerView: View {
 
     private func cloudRow(_ entry: TagCloudEntry) -> some View {
         HStack(spacing: DesignTokens.spacingTight) {
-            Image(systemName: entry.tag.category.icon).imageScale(.small)
-                .foregroundStyle(.tint)
-                .frame(width: DesignTokens.iconStandardSize)
+            SFIcon(entry.tag.category.icon, style: .inlineSmall, color: IconColor.tint)
             Text(entry.tag.label)
                 .font(.caption)
                 .foregroundStyle(.primary)
@@ -469,9 +467,7 @@ struct TagManagerView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(Array(filterMatches.enumerated()), id: \.offset) { _, id in
                             HStack(spacing: DesignTokens.spacingTight) {
-                                Image(systemName: draftFilterTarget.icon).imageScale(.small)
-                                    .foregroundStyle(.tint)
-                                    .frame(width: DesignTokens.iconStandardSize)
+                                SFIcon(draftFilterTarget.icon, style: .inlineSmall, color: IconColor.tint)
                                 Text(id.uuidString)
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
