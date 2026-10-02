@@ -333,7 +333,7 @@ struct ChatInputBarView: View {
         // in macOS Messages chat input are followed by the same
         // padding to the text).
         .padding(.leading, DesignTokens.spacingModerate)
-        .frame(minHeight: 36, maxHeight: 36)
+        .frame(minHeight: DesignTokens.controlHeightLarge, maxHeight: DesignTokens.controlHeightLarge)
         .frame(maxWidth: .infinity)
         .disabled(!hasUsableKey)
         .focused(inputFocused)

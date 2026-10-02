@@ -782,4 +782,18 @@ enum DesignTokens {
     /// keeps the last message visible above the chat input bar).
     static let chatInputBarHeight: CGFloat = 80
 
+    /// Large control height (= 36 PT, Apple HIG macOS control
+    /// standard for `.controlSize(.large)` text input).
+    ///
+    /// Apple HIG source: `Controls > Buttons > Sizes > Large` (= the
+    /// macOS 26+ default large control height = 36 PT; = the
+    /// standard single-line TextField height measured from
+    /// Apple Messages chat input).
+    ///
+    /// Used by: ChatInputBarView single-line input capsule (= the
+    /// 36 PT fixed-height single-line TextField that pins the
+    /// chat input to a stable height even when the user types
+    /// longer text).
+    static let controlHeightLarge: CGFloat = 36
+
 }
