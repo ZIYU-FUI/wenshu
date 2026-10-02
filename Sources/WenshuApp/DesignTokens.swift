@@ -463,6 +463,19 @@ enum DesignTokens {
     /// the layout picker grid).
     static let surfaceShadowRadiusWindow: CGFloat = 12
 
+    /// Liquid Glass separator thickness (= 0.5 PT, Apple HIG macOS
+    /// 26+ hairline separator standard).
+    ///
+    /// Apple HIG source: `View > Separator > Liquid Glass thickness`
+    /// (= the macOS 26+ default separator line = 0.5 PT = the
+    /// sub-pixel hairline that adapts to dark/light via
+    /// `.quaternary` fill).
+    ///
+    /// Used by: ChatMessageFooter sealed-message top hairline (= the
+    /// 0.5 PT separator above the cost summary row when the message
+    /// has been sealed).
+    static let separatorThicknessHairline: CGFloat = 0.5
+
     /// Button shadow radius (= 8 PT, Apple HIG button drop-shadow
     /// standard).
     ///

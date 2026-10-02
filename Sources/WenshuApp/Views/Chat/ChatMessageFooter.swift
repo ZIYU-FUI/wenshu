@@ -120,7 +120,7 @@ struct ChatMessageFooter: View {
             if isSealed && (tokens ?? 0) > 0 {
                 Rectangle()
                     .fill(.quaternary)
-                    .frame(height: 0.5)
+                    .frame(height: DesignTokens.separatorThicknessHairline)
                     .offset(y: -2)
             }
         }
