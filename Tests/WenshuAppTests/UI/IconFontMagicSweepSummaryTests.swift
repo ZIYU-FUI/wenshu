@@ -59,19 +59,24 @@ struct IconFontMagicSweepSummaryTests {
             "Sources/WenshuApp/UI/Layout/ShellPlaceholder.swift",
             "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift",
         ]
-        // Count naked Image(systemName:) outside SFIcon factory / Label icon slot
-        // (= the post-sweep canonical pattern).
-        let viewSources = try String(
-            contentsOf: URL(fileURLWithPath: "Sources/WenshuApp/Views"),
-            encoding: .utf8
-        )
-        // (The standalone Image(systemName:) check is best-effort —
-        // the runtime test would need a parser to be 100% reliable;
-        // = the source-content anchor is sufficient for the v3.0
-        // sweep closure. Existing per-file IconMigrationTests files
-        // provide the per-file coverage.)
-        #expect(viewSources.contains("SFIcon"),
-                "Source tree must use SFIcon central factory (= v3.0 sweep core invariant)")
+        // Source tree uses SFIcon central factory (= v3.0 sweep core invariant).
+        // Walk the source tree and verify at least N files reference SFIcon.
+        let fileManager = FileManager.default
+        let viewsRoot = "Sources/WenshuApp"
+        let enumerator = fileManager.enumerator(atPath: viewsRoot)
+        var sfIconUsageCount = 0
+        var swiftFileCount = 0
+        while let file = enumerator?.nextObject() as? String {
+            guard file.hasSuffix(".swift") else { continue }
+            swiftFileCount += 1
+            let path = "\(viewsRoot)/\(file)"
+            guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { continue }
+            if content.contains("SFIcon") { sfIconUsageCount += 1 }
+        }
+        #expect(sfIconUsageCount >= 30,
+                "Source tree must use SFIcon central factory in many files (= v3.0 sweep core invariant)")
+        #expect(swiftFileCount >= 100,
+                "Source tree must contain many Swift files (= sweep coverage baseline)")
         #expect(exceptionFiles.allSatisfy { FileManager.default.fileExists(atPath: $0) },
                 "Exception files must exist (= sweep boundary definitions)")
     }
