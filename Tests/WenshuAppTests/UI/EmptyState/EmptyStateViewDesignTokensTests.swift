@@ -37,16 +37,18 @@ struct EmptyStateViewDesignTokensTests {
         )
     }
 
-    /// iron-rule 6 = 'no magic numbers in view code'; v0.71 P1 batch 3
-    /// EOB directs to use DesignTokens (= Apple HIG semantic values).
-    /// The empty-state icon size (= 76 PT) MUST come from
-    /// `DesignTokens.emptyStateIconSize`, not a raw literal.
-    @Test("icon_size_usesDesignTokens_emptyStateIconSize")
+    /// iron-rule 6 = 'no magic numbers in view code'; v3.0 sweep
+    /// migrates the 76 PT empty-state icon size into
+    /// `IconStyle.emptyStateHero` (= the canonical Apple HIG surface);
+    /// the v3.0 sweep deleted `DesignTokens.emptyStateIconSize`
+    /// (= commit 63a83f168) because every production-code caller was
+    /// migrated.
+    @Test("icon_size_uses_IconStyle_emptyStateHero")
     func icon_size_usesDesignTokens_emptyStateIconSize() throws {
         let src = try Self.loadEmptyStateSource()
         #expect(
-            src.contains("DesignTokens.emptyStateIconSize"),
-            "EmptyStateView must reference DesignTokens.emptyStateIconSize"
+            src.contains("IconStyle.emptyStateHero") || src.contains(".emptyStateHero"),
+            "EmptyStateView must reference IconStyle.emptyStateHero (= the v3.0 canonical surface; = replaces the pre-v3.0 DesignTokens.emptyStateIconSize)"
         )
     }
 
@@ -91,13 +93,19 @@ struct EmptyStateViewDesignTokensTests {
     /// 
     /// 22 PT gap, 6 PT title-body gap, 360 PT max-width) MUST be defined
     /// in DesignTokens.swift (= the single source of truth).
-    @Test("design_tokens_defines_canonical_empty_state_values")
+    ///
+    /// As of the v3.0 icon sweep (= commit 63a83f168) the
+    /// emptyStateIconSize token is deleted (= the empty-state icon
+    /// size now lives in IconStyle.emptyStateHero); = the test
+    /// pins the canonical contract that the token is gone and the
+    /// value is no longer a magic-number duplicate.
+    @Test("design_tokens_drops_emptyStateIconSize_in_favor_of_IconStyle")
     func design_tokens_defines_canonical_empty_state_values() throws {
         let tokensURL = URL(fileURLWithPath: "Sources/WenshuApp/DesignTokens.swift")
         let tokens = try String(contentsOf: tokensURL, encoding: .utf8)
         #expect(
-            tokens.contains("emptyStateIconSize: CGFloat = 76"),
-            "DesignTokens.emptyStateIconSize must be 76 PT"
+            !tokens.contains("emptyStateIconSize: CGFloat = 76"),
+            "DesignTokens.emptyStateIconSize must be deleted (= the v3.0 sweep migrated all callers into IconStyle.emptyStateHero; = the size now lives in one canonical surface, not two)"
         )
         #expect(
             tokens.contains("spacingSection: CGFloat = 24"),
