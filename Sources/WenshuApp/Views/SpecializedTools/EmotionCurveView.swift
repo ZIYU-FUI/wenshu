@@ -135,7 +135,7 @@ struct EmotionCurveView: View {
             }
             TextEditor(text: $chapterText)
                 .font(.caption)
-                .frame(minHeight: 80, maxHeight: 140)
+                .frame(minHeight: DesignTokens.textEditorSmallMinHeight, maxHeight: DesignTokens.textEditorSmallMaxHeight)
                 .padding(DesignTokens.spacingTight)
                 
             HStack(spacing: DesignTokens.spacingStandard) {

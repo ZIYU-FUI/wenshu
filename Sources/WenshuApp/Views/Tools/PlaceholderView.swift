@@ -364,7 +364,7 @@ struct PlaceholderView: View {
                 .foregroundStyle(.secondary)
             TextEditor(text: $scanChapterText)
                 .font(.caption.monospaced())
-                .frame(minHeight: 80, maxHeight: 140)
+                .frame(minHeight: DesignTokens.textEditorSmallMinHeight, maxHeight: DesignTokens.textEditorSmallMaxHeight)
                 .overlay(
                     RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton)
                         .stroke(.quaternary, lineWidth: 1)

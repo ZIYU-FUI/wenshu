@@ -314,7 +314,7 @@ struct BookSettingConstraintsView: View {
             HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
                 TextEditor(text: $chapterText)
                     .font(.caption)
-                    .frame(minHeight: 100, maxHeight: 160)
+                    .frame(minHeight: DesignTokens.textEditorMediumMinHeight, maxHeight: DesignTokens.textEditorMediumMaxHeight)
                     .padding(DesignTokens.spacingIconic)
                     
                     .help(WenshuI18n.t("b5.booksettingconstraintsview.l371.h65632517"))

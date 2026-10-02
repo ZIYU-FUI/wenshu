@@ -390,6 +390,33 @@ enum DesignTokens {
     /// Assistant welcome screen column width).
     static let onboardingWelcomeMaxWidth: CGFloat = 480
 
+    /// TextEditor small min-height (= 80 PT, Apple HIG macOS
+    /// single-paragraph text input minimum height). Used in
+    /// `.frame(minHeight: 80, maxHeight: 140)` for small
+    /// TextEditor (= 2-paragraph display max).
+    static let textEditorSmallMinHeight: CGFloat = 80
+
+    /// TextEditor small max-height (= 140 PT, Apple HIG macOS
+    /// single-paragraph text input maximum height). Paired with
+    /// `textEditorSmallMinHeight` (= 80) for small TextEditor.
+    static let textEditorSmallMaxHeight: CGFloat = 140
+
+    /// TextEditor medium min-height (= 100 PT, Apple HIG macOS
+    /// 2-3 paragraph text input minimum height). Used in
+    /// `.frame(minHeight: 100, maxHeight: 160)` for medium
+    /// TextEditor (= 3-paragraph display max).
+    static let textEditorMediumMinHeight: CGFloat = 100
+
+    /// TextEditor medium max-height (= 160 PT, Apple HIG macOS
+    /// 2-3 paragraph text input maximum height). Paired with
+    /// `textEditorMediumMinHeight` (= 100) for medium TextEditor.
+    static let textEditorMediumMaxHeight: CGFloat = 160
+
+    /// TextEditor compact max-height (= 120 PT, Apple HIG macOS
+    /// single-paragraph text input maximum height). Paired with
+    /// `textEditorSmallMinHeight` (= 80) for compact TextEditor.
+    static let textEditorCompactMaxHeight: CGFloat = 120
+
     /// Button shadow vertical offset (= 2 PT, Apple HIG macOS
     /// button shadow offset = subtle lift under button surfaces
     /// that hover above the page).

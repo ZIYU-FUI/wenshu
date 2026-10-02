@@ -243,7 +243,7 @@ struct LongFormGuardrailsView: View {
             }
             TextEditor(text: $checkText)
                 .font(.caption)
-                .frame(minHeight: 80, maxHeight: 120)
+                .frame(minHeight: DesignTokens.textEditorSmallMinHeight, maxHeight: DesignTokens.textEditorCompactMaxHeight)
                 .padding(DesignTokens.spacingTight)
                 
             HStack(spacing: DesignTokens.spacingStandard) {
