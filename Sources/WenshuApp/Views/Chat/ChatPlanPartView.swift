@@ -83,7 +83,7 @@ struct ChatPlanPartView: View {
                     .padding(.horizontal, DesignTokens.spacingIconic)
                     .overlay(
                         RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
-                            .strokeBorder(.quaternary, lineWidth: 0.5)
+                            .strokeBorder(.quaternary, lineWidth: DesignTokens.separatorThicknessHairline)
                     )
                 Spacer(minLength: 0)
                 // T27-CONNECTOR-DISPLAY (2026-09-18): show the

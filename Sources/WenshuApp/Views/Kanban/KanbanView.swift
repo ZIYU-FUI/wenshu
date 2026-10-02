@@ -384,7 +384,7 @@ private struct KanbanColumn: View {
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
-                .stroke(.separator, lineWidth: 0.5)
+                .stroke(.separator, lineWidth: DesignTokens.separatorThicknessHairline)
         )
     }
 
@@ -464,7 +464,7 @@ private struct KanbanCard: View {
                 .background(.background, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton))
                 .overlay(
                     RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton)
-                        .stroke(.separator, lineWidth: 0.5)
+                        .stroke(.separator, lineWidth: DesignTokens.separatorThicknessHairline)
                 )
                 // kanban-detail-sheet 2026-09-28: tap on the card body opens
                 // the read-only body sheet. The trailing control row (status
