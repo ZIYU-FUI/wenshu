@@ -19,13 +19,18 @@ import Testing
 @Suite("TodoListView icon sweep")
 struct TodoListViewIconMigrationTests {
 
-    @Test("TodoListView source no longer uses naked Image(systemName:)")
+    @Test("TodoListView source no naked Image(systemName:) in standalone icon sites")
     func sourceNoLongerUsesNakedImage() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Todo/TodoListView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            return !trimmed.hasPrefix("//") && !trimmed.hasPrefix("*") && !trimmed.hasPrefix("/*")
+            // Strip line comments.
+            if trimmed.hasPrefix("//") || trimmed.hasPrefix("*") || trimmed.hasPrefix("/*") { return false }
+            // Skip lines inside `Label { ... } icon: { Image(systemName: ...) }` pattern
+            // (= HIG canonical toolbar button; = preserved per sweep round 3).
+            if trimmed.contains("icon: { Image(systemName:") { return false }
+            return true
         }.joined(separator: "\n")
         #expect(!stripped.contains("Image(systemName:"),
                 "TodoListView must drop naked Image(systemName:) for the v3.0 sweep")
