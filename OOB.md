@@ -100,3 +100,19 @@ Unique dates: 14
 ## 2026-08-30
 
 - `Sources/WenshuApp/UI/PaneTabBar.swift:L3`: "[Historical: this line had CJK content from a boss OOB message; the original text can be recovered via `git blame`; the cleanup commit replaced it with this placeholder because translation was inco..."
+
+## 2026-10-02
+
+- OOB directive (= 来源 = AGENTS commit `724a6c2de`): "AGENTS / CLAUDE 两个大文件，需要治理吗"
+- OOB directive (= 来源 = AGENTS commit `724a6c2de`): "你说的继续，是继续什么"
+- OOB directive (= 来源 = AGENTS commit `724a6c2de` + later commit body): "C" (= option C selection, = 3-tier split AGENTS.md / AGENTS-§11-rules.md / AGENTS-§11-history.md)
+- OOB directive (= 来源 = .hermes.md commit `8bc8b2193`): "颜色已经做完了的话。把今天做的 HIG 直接使用这个规则，还有中央工厂，都需要让之后你写代码的时候自动遵守"
+- OOB directive (= 来源 = .hermes.md commit `8bc8b2193`): "这几个规范性的技能，你在写代码之前能自动加载吗？还有 apple 规范，通用规范。我们不能过一段时间就排查一次，一定要在每次写代码前就知道应该怎么写"
+- OOB directive (= 来源 = color sweep commit `03cfebdff`): "颜色也盘一下"
+- OOB directive (= 来源 = color sweep round 73 commit `d01556698`): "继续" (= continue, = context: color sweep arc continues from previous session)
+- OOB directive (= 来源 = AGENTS.md split commit `719b25848`): "等我自己加什么？你不能操作吗"
+- OOB directive (= 来源 = AGENTS.md split commit `719b25848`): "本会话做一个两轴"
+- OOB directive (= 来源 = sweep round 73 commit `d01556698`): "继续" (= continue, = context: keep pushing sweep arc)
+- OOB directive (= 来源 = sweep round 74 commit `33b5786d8`): "继续" (= continue, = context: keep pushing sweep arc)
+- OOB directive (= 来源 = design-system-rule skill authoring, = derived from session work): "Apple-default-first" (= 颜色 sweep round 73 tokenize .tint.opacity(0.18) to DesignTokens.accentTintOpacityHero, = Apple HIG canonical pattern, = per §11.7 sqlite3-zero + §11.16 facet model precedent)
+- OOB directive (= 来源 = sweep round 74 TodoListView chipStyle AnyShapeStyle, = derived from session work): "颜色已经做完了的话" (= when color sweep closes, = apply to the rest of the codebase)
