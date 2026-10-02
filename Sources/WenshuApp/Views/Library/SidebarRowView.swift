@@ -93,7 +93,7 @@ struct SidebarRowView: View {
         } else {
             HStack(spacing: 6) {
                 SFIcon(node.systemImage, style: .paneTab, color: IconColor.tint)
-                    .frame(width: 18)
+                    .frame(width: DesignTokens.listRowLeadingIconColumnWidth)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(node.title)
                         .font(.body)

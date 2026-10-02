@@ -591,7 +591,7 @@ private struct StatusPulse: View {
         // foreground on the assistant transcript).
         RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip, style: .continuous)
             .fill(Color.secondary)
-            .frame(width: 3, height: 3)
+            .frame(width: DesignTokens.bulletDotSize, height: DesignTokens.bulletDotSize)
             .opacity(isPulsing ? 0.5 : 1.0)
             // 400 ms ease-in-out opacity transition (1 → 0.5 → 1).
             // The single keyframe `from→to` matches hermes's

@@ -179,7 +179,7 @@ struct ChatPlanPartView: View {
             Text("\(step.index).")
                 .font(.system(.caption, design: .monospaced).bold())
                 .foregroundStyle(Color.accentColor)
-                .frame(width: 22, alignment: .trailing)
+                .frame(width: DesignTokens.stepNumberColumnWidth, alignment: .trailing)
             VStack(alignment: .leading, spacing: 2) {
                 Text(step.title)
                     .font(.system(.caption, design: .monospaced).bold())

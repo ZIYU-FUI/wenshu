@@ -65,7 +65,7 @@ struct ChatToolUsePartView: View {
                             : .default,
                         value: runningStatusOpacity
                     )
-                    .frame(width: 14)
+                    .frame(width: DesignTokens.bulletSizeSmall)
                 // T43-TOOL-ICON-SF (2026-09-18): a small SF Symbol
                 // icon that visualises the tool kind (= replaces the
                 // bare tool-name text with a leading glyph). The
@@ -80,6 +80,7 @@ struct ChatToolUsePartView: View {
                 // not in the map (= forward-compat for new tools).
                 SFIcon(Self.iconName(for: toolUse.name), style: .inlineSmall, color: IconColor.secondary)
                     .symbolRenderingMode(.hierarchical)
+                    .frame(width: DesignTokens.bulletSizeSmall)
                 // Tool name in monospaced font (= the wenshu convention
                 // for tool identifiers = matches the chat input's
                 // `/command` autocomplete rendering).

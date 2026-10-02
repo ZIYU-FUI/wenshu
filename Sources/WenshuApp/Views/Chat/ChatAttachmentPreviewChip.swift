@@ -54,7 +54,7 @@ struct ChatAttachmentPreviewChip: View {
             Image(nsImage: nsImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: 48, height: 48)
+                .frame(width: DesignTokens.attachmentThumbnailSize, height: DesignTokens.attachmentThumbnailSize)
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))
         } else {
             // Fallback: empty 48 PT rounded rect (file missing or
@@ -62,7 +62,7 @@ struct ChatAttachmentPreviewChip: View {
             // can dismiss.
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                 .fill(.clear)
-                .frame(width: 48, height: 48)
+                .frame(width: DesignTokens.attachmentThumbnailSize, height: DesignTokens.attachmentThumbnailSize)
         }
     }
 }

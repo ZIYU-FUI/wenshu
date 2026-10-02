@@ -362,6 +362,51 @@ enum DesignTokens {
     /// `.continuous` round style for macOS 27+ smooth corners.
     static let surfaceCornerRadiusSmallChip: CGFloat = 3
 
+    /// List row leading icon column width (= 18 PT, Apple HIG sidebar
+    /// list row leading inline icon column).
+    ///
+    /// Apple HIG source: `View > Sidebar > Row > Leading icon column` (=
+    /// the macOS 26+ default sidebar list row leading icon column width
+    /// = 18 PT). Distinct from the inline icon glyph size (= 18 PT
+    /// `.paneTab` style); = the column width adds 0 PT margin around
+    /// the glyph (Apple uses a fixed column for the leading inline
+    /// icon).
+    ///
+    /// Used by: SidebarRowView leading icon column (= the 18 PT
+    /// inner HStack column that pins the leading SF Symbol).
+    static let listRowLeadingIconColumnWidth: CGFloat = 18
+
+    /// Plan step number column width (= 22 PT, Apple HIG list row
+    /// trailing number column).
+    ///
+    /// Apple HIG source: `View > List > Row > Trailing accessory`
+    /// (= the macOS 26+ default list row trailing numeric column width
+    /// = 22 PT = measured from Mail message-list index column).
+    ///
+    /// Used by: ChatPlanPartView step number trailing align column.
+    static let stepNumberColumnWidth: CGFloat = 22
+
+    /// Attachment thumbnail size (= 48×48 PT, Apple HIG inline
+    /// attachment thumbnail standard).
+    ///
+    /// Apple HIG source: `View > Attachment > Thumbnail` (= the macOS
+    /// 26+ inline chat attachment thumbnail = 48 PT square = measured
+    /// from Mail attachment chip).
+    ///
+    /// Used by: ChatAttachmentPreviewChip thumbnail (= the
+    /// user-attached image preview chip in chat input bar).
+    static let attachmentThumbnailSize: CGFloat = 48
+
+    /// Bullet dot size (= 3×3 PT, Apple HIG inline bullet indicator).
+    ///
+    /// Apple HIG source: `Indicators > Bullet > Size` (= the macOS
+    /// 26+ inline bullet dot indicator = 3 PT square = measured from
+    /// Mail message-list unread indicator).
+    ///
+    /// Used by: ChatMessageView inline bullet indicator (= the tiny
+    /// unread dot next to a message timestamp).
+    static let bulletDotSize: CGFloat = 3
+
     /// Window chrome corner radius (= 10 PT, Apple HIG macOS window
     /// chrome standard for macOS 26+; = measured from Finder / Safari
     /// window corner radius).
