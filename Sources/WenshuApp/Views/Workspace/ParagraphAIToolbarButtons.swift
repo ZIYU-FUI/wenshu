@@ -33,7 +33,7 @@ struct ParagraphAIToolbarButtons: View {
                 onApply(.expand)
             } label: {
                 Image(systemName: "arrow.up.left.and.arrow.down.right").imageScale(.small)
-                    .font(DesignTokens.hotkeyComboFont)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.spacingStandard)
                     .padding(.vertical, DesignTokens.spacingIconic)
@@ -54,7 +54,7 @@ struct ParagraphAIToolbarButtons: View {
                 onApply(.shorten)
             } label: {
                 Image(systemName: "arrow.down.right.and.arrow.up.left").imageScale(.small)
-                    .font(DesignTokens.hotkeyComboFont)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.spacingStandard)
                     .padding(.vertical, DesignTokens.spacingIconic)
@@ -74,7 +74,7 @@ struct ParagraphAIToolbarButtons: View {
                 onApply(.rephrase)
             } label: {
                 Image(systemName: "arrow.clockwise").imageScale(.small)
-                    .font(DesignTokens.hotkeyComboFont)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.spacingStandard)
                     .padding(.vertical, DesignTokens.spacingIconic)
@@ -102,7 +102,7 @@ struct ParagraphAIToolbarButtons: View {
                     .disabled(selectedText.isEmpty || isApplying)
             } label: {
                 Image(systemName: "ellipsis").imageScale(.small)
-                    .font(DesignTokens.hotkeyComboFont)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.spacingTight)
                     .padding(.vertical, DesignTokens.spacingIconic)
