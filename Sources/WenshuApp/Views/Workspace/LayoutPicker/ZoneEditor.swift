@@ -93,7 +93,7 @@ struct ZoneEditor: View {
         //   - Chrome inside the sheet = NSColor.controlBackgroundColor
         // = the Apple-managed 2-layer NSColor micro-differentiation
         // is the boundary, NOT custom per-pane glass overlays.
-        .background { Color(nsColor: .windowBackgroundColor) }
+        .background(.windowBackground)
         .onKeyPress(.escape) {
             dismiss()
             return .handled

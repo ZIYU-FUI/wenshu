@@ -149,7 +149,7 @@ struct BookEditorSheet: View {
         // 的, 我们就不加; 默认带的, 我们就默认带". The canonical
         // pattern = Apple NSColor.windowBackgroundColor for sheet
         // surface.
-        .background { Color(nsColor: .windowBackgroundColor) }
+        .background(.windowBackground)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(WenshuI18n.t("auto2.bookeditorsheet.l160.h80176953")) { dismiss() }

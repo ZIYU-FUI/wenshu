@@ -132,7 +132,7 @@ struct LibraryRootView: View {
             // visible behind the SwiftUI control surface = the entire
             // standard-control surface is missing Apple's Liquid
             // Glass tonal layer). Setting it to
-            // `Color(nsColor: .windowBackgroundColor)` (= Apple-managed
+            // `.windowBackground` (= Apple-managed
             // NSColor, NOT a custom RGB; per boss 9/2 OOB '你所有用的
             // 颜色，都是 API 给的, 不要自定义') gives the window its
             // canonical Apple HIG background tone (= the 1 NSColor
@@ -141,9 +141,7 @@ struct LibraryRootView: View {
             // delta between the two IS the visible boundary between
             // pane content and chrome = the canonical 2-layer pattern
             // from `pane-chrome-canonic-pattern.md`).
-            .containerBackground(for: .window) {
-                Color(nsColor: .windowBackgroundColor)
-            }
+            .containerBackground(.windowBackground, for: .window)
             // s filename shouldn't be shown either':
             // drop the `.navigationSubtitle(libraryPath.lastPathComponent)`.
             // It was originally added (= ticket 008, commit a0e9b509d) to

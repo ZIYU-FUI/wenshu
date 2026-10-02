@@ -186,7 +186,7 @@ struct CommandPaletteView: View {
         // 的, 我们就不加; 默认带的, 我们就默认带". The canonical
         // pattern = Apple NSColor.windowBackgroundColor for sheet
         // surface.
-        .background { Color(nsColor: .windowBackgroundColor) }
+        .background(.windowBackground)
         // Keyboard navigation: arrow keys move selection, return invokes,
         // esc dismisses. Uses Apple's SwiftUI .onKeyPress API (= macOS 14+
         // native; no custom key-event listener needed).

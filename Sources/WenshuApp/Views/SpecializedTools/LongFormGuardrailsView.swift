@@ -368,7 +368,7 @@ struct LongFormGuardrailsView: View {
         // surface = the 2-layer NSColor micro-differentiation
         // boundary (windowBackground vs controlBackground = the
         // visible boundary, NOT custom per-pane glass overlays).
-        .background { Color(nsColor: .windowBackgroundColor) }
+        .background(.windowBackground)
     }
 
     // MARK: - Async actions
