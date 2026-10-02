@@ -37,7 +37,6 @@ Each component has:
   DesignTokens.paneTabHotArea         // 28 PT (= renamed from chatTabHotArea)
   DesignTokens.tabUnderlineHeight     // 3 PT
   DesignTokens.dividerHeight          // 1 PT
-  DesignTokens.statusFont             // .system(size: 13)
   DesignTokens.statusForeground       // .tertiary
   ```
 - **Replaces**: All inline `30`, `18`, `13`, `.tertiary` literals scattered across 16+ files
@@ -107,9 +106,9 @@ Each component has:
   ```swift
   RegionStatusBar {
       HStack(spacing: 0) {
-          Text("书架: 0").font(DesignTokens.statusFont).foregroundStyle(DesignTokens.statusForeground)
+          Text("书架: 0").font(.body).foregroundStyle(DesignTokens.statusForeground)
           Spacer()
-          Text("书: 5").font(DesignTokens.statusFont).foregroundStyle(DesignTokens.statusForeground)
+          Text("书: 5").font(.body).foregroundStyle(DesignTokens.statusForeground)
       }
       .padding(.horizontal, DesignTokens.chromePaddingLeading)
   }

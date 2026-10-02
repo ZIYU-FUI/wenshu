@@ -268,10 +268,6 @@ enum DesignTokens {
 
     // MARK: - Status bar text
 
-    /// Status bar font (= 13 PT, Apple HIG secondary text). Replaces
-    /// `.font(.system(size: 13))` in 10 files.
-    static let statusFont: Font = .system(size: 13)
-
     /// Status bar foreground (= Apple HIG `.tertiary` HierarchicalShapeStyle).
     /// Replaces `.foregroundStyle(.tertiary)` in 16 files.
     static let statusForeground: HierarchicalShapeStyle = .tertiary
@@ -409,8 +405,10 @@ enum DesignTokens {
     // apple-001 Q8 batch 2 site: font size for the runtime CWD
     // display chip (= `.system(size: 11)` = macOS standard secondary
     // caption = 1 step smaller than body for status-bar meta text).
-    // The status-bar font is already \`statusFont\` above; this is
-    // a sibling token for the runtime chip's smaller size.
+    // The sibling status-bar font token (`DesignTokens.statusFont`) was
+    // deleted in commit T17 (= the v3.0 sweep migrated all callers
+    // into SwiftUI's `.font(.body)`); this token (= 11 PT = SwiftUI
+    // `.caption2`) is kept as the runtime chip's smaller size.
     static let runtimeCwdChipFont: Font = .system(size: 11)
 
     // apple-001 Q8 batch 3 site: monospaced hotkey combo label
