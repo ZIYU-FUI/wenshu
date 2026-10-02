@@ -374,7 +374,7 @@ private struct SlashCommandAutocompleteModifier: ViewModifier {
                         inputText = "/\(row.name) "
                     }
                 )
-                .padding(.top, -8)
+                .padding(.top, -DesignTokens.spacingStandard)
                 .offset(y: -DesignTokens.spacingIconic)
             }
         }
