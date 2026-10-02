@@ -285,7 +285,7 @@ struct IdeaLibraryView: View {
     private func ideaRow(_ idea: Idea) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
-                SFIcon(idea.status.icon, style: .inlineSmall, color: .tint)
+                SFIcon(idea.status.icon, style: .inlineSmall, color: IconColor.tint)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: DesignTokens.spacingTight) {
                         Text(idea.title)
@@ -454,7 +454,7 @@ struct IdeaLibraryView: View {
 
     private func linkRow(_ link: IdeaLink, for ideaId: UUID) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
-            SFIcon(link.target.icon, style: .inlineSmall, color: .tint)
+            SFIcon(link.target.icon, style: .inlineSmall, color: IconColor.tint)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     Text(link.target.displayName)
@@ -520,9 +520,7 @@ struct IdeaLibraryView: View {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                         ForEach(suggestions) { idea in
                             HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
-                                Image(systemName: idea.status.icon).imageScale(.small)
-                                    .foregroundStyle(.tint)
-                                    .frame(width: DesignTokens.iconStandardSize)
+                                SFIcon(idea.status.icon, style: .inlineSmall, color: IconColor.tint)
                                 Text(idea.title)
                                     .font(.caption)
                                     .foregroundStyle(.primary)
