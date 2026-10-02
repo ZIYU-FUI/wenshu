@@ -139,7 +139,7 @@ struct GenreFitView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label { Text(WenshuI18n.t("button.analyze")) } icon: { Image(systemName: "play").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("button.analyze")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
@@ -149,7 +149,7 @@ struct GenreFitView: View {
                     report = nil
                     status = .idle
                 } label: {
-                    Label { Text(WenshuI18n.t("button.clear")) } icon: { Image(systemName: "xmark").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("button.clear")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.bordered)
                 .help(WenshuI18n.t("b5.genrefitview.l190.h26662967"))

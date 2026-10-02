@@ -141,7 +141,7 @@ struct LongFormGuardrailsView: View {
             Button {
                 Task { await autoDerive() }
             } label: {
-                Label { Text(WenshuI18n.t("b5.longformguardrailsview.l175.h64020782")) } icon: { Image(systemName: "wand.and.sparkles").imageScale(.small) }
+                Label { Text(WenshuI18n.t("b5.longformguardrailsview.l175.h64020782")) } icon: { SFIcon("wand.and.sparkles", style: .inlineSmall, color: IconColor.tint) }
             }
             .buttonStyle(.bordered)
             .help(WenshuI18n.t("b5.longformguardrailsview.l178.h38811731"))
@@ -149,7 +149,7 @@ struct LongFormGuardrailsView: View {
             Button {
                 showAddSheet = true
             } label: {
-                Label { Text(WenshuI18n.t("button.add")) } icon: { Image(systemName: "plus").imageScale(.small) }
+                Label { Text(WenshuI18n.t("button.add")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
             }
             .buttonStyle(.borderedProminent)
             .help(WenshuI18n.t("b5.longformguardrailsview.l186.h97888008"))
@@ -252,7 +252,7 @@ struct LongFormGuardrailsView: View {
                 Button {
                     Task { await runCheck() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.longformguardrailsview.l295.h18206542")) } icon: { Image(systemName: "play").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.longformguardrailsview.l295.h18206542")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(checkText.isEmpty || guardrails.isEmpty)

@@ -168,7 +168,7 @@ struct ForeshadowingView: View {
                 Button {
                     Task { await addForeshadowing() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.foreshadowingview.l203.h64306591")) } icon: { Image(systemName: "plus").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.foreshadowingview.l203.h64306591")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)

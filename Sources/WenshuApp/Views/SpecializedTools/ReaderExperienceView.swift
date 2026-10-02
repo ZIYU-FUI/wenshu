@@ -137,7 +137,7 @@ struct ReaderExperienceView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l175.h61672688")) } icon: { Image(systemName: "play").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l175.h61672688")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
@@ -147,7 +147,7 @@ struct ReaderExperienceView: View {
                     report = nil
                     status = .idle
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l185.h22504814")) } icon: { Image(systemName: "xmark").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l185.h22504814")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.bordered)
                 .help(WenshuI18n.t("b5.readerexperienceview.l188.h90304051"))

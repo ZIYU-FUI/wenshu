@@ -192,7 +192,7 @@ struct CharacterLifecycleView: View {
                 Button {
                     Task { await addEvent() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723")) } icon: { Image(systemName: "plus").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)

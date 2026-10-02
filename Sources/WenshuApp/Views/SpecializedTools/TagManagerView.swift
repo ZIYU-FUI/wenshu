@@ -180,7 +180,7 @@ struct TagManagerView: View {
                 Button {
                     Task { await addTag() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.tagmanagerview.l219.h42031648")) } icon: { Image(systemName: "plus").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.tagmanagerview.l219.h42031648")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddTag)
@@ -301,7 +301,7 @@ struct TagManagerView: View {
                 Button {
                     Task { await applyTag() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.tagmanagerview.l348.h96054186")) } icon: { Image(systemName: "link").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.tagmanagerview.l348.h96054186")) } icon: { SFIcon("link", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canApply)

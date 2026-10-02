@@ -46,7 +46,7 @@ struct PlotThreadView: View {
                     }
                     Section(WenshuI18n.t("b5.plotthreadview.l31.h89394691")) {
                         ForEach(threads.filter { $0.status == .open || $0.status == .developing }) { thread in
-                            Label { Text(thread.title) } icon: { Image(systemName: "exclamationmark.triangle").imageScale(.small) }
+                            Label { Text(thread.title) } icon: { SFIcon("exclamationmark.triangle", style: .inlineSmall, color: IconColor.tint) }
                         }
                     }
                 }

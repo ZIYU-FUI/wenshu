@@ -179,7 +179,7 @@ struct PlaceholderView: View {
                 Button {
                     Task { await addPlaceholder() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.placeholderview.l213.h26972630")) } icon: { Image(systemName: "plus").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.placeholderview.l213.h26972630")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
@@ -373,7 +373,7 @@ struct PlaceholderView: View {
                 Button {
                     Task { await runScan() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.placeholderview.l415.h37771405")) } icon: { Image(systemName: "plus.circle").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.placeholderview.l415.h37771405")) } icon: { SFIcon("plus.circle", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canScan)

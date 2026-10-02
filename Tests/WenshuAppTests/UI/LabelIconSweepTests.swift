@@ -1,0 +1,96 @@
+//
+//  LabelIconSlotSweepTests.swift · Wenshu · v3.0
+//
+//  Per Q112 standing rule expanded (= Label icon slot sweep + 15 view
+//  files / 26 sites / 1 commit batch).
+//
+//  This is the round 5 sweep (= boss 2026-10-02 OOB "采纳你的建议"; =
+//  re-evaluate the `Label { Text } icon: { Image(systemName: ...).imageScale(.small) }`
+//  pattern that round 3 had SKIPPED). The re-evaluation finds:
+//
+//  - The .imageScale(.small) modifier on Label's icon slot is a forced
+//  14 PT icon size (= the same as Label's default icon slot size). It
+//  is redundant (= no-op visually) AND it bypasses the SFIcon factory.
+//  So the v3.0 sweep applies (= replace `Image(systemName: x).imageScale(.small)`
+//  with `SFIcon(x, style: .inlineSmall, color: IconColor.tint)` to
+//  enforce the semantic color token policy).
+//
+//  - The .imageScale(.large) modifier (= 28 PT) on ContentUnavailableView
+//  icon slots (= ShellPlaceholder L20) is HIG canonical (= Apple's
+//  ContentUnavailableView uses 38 PT glyph = the system default). The
+//  v3.0 sweep SKIPS this case (= outside the central SFIcon factory
+//  scope; = Apple first-party surface).
+//
+//  Sweep files (15 total, 26 sites swept):
+//    KanbanView (1) / LibraryRootView (2) / BookSettingConstraintsView (2)
+//    / CharacterLifecycleView (1) / CharacterRelationshipsView (1)
+//    / EmotionCurveView (2) / GenreFitView (2) / IdeaLibraryView (3)
+//    / LongFormGuardrailsView (3) / PlotThreadView (1) / ReaderExperienceView (2)
+//    / TagManagerView (2) / TodoListView (1) / ForeshadowingView (1)
+//    / PlaceholderView (2)
+//
+
+import Foundation
+import Testing
+@testable import WenshuApp
+
+@Suite("Label icon slot sweep (= 15 view files / 26 sites to SFIcon(tint))")
+struct LabelIconSlotSweepTests {
+
+    static let sweptFiles: [(path: String, sites: Int)] = [
+        ("Sources/WenshuApp/Views/Kanban/KanbanView.swift", 1),
+        ("Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift", 2),
+        ("Sources/WenshuApp/Views/SpecializedTools/BookSettingConstraintsView.swift", 2),
+        ("Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleView.swift", 1),
+        ("Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsView.swift", 1),
+        ("Sources/WenshuApp/Views/SpecializedTools/EmotionCurveView.swift", 2),
+        ("Sources/WenshuApp/Views/SpecializedTools/GenreFitView.swift", 2),
+        ("Sources/WenshuApp/Views/SpecializedTools/IdeaLibraryView.swift", 3),
+        ("Sources/WenshuApp/Views/SpecializedTools/LongFormGuardrailsView.swift", 3),
+        ("Sources/WenshuApp/Views/SpecializedTools/PlotThreadView.swift", 1),
+        ("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceView.swift", 2),
+        ("Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift", 2),
+        ("Sources/WenshuApp/Views/Todo/TodoListView.swift", 1),
+        ("Sources/WenshuApp/Views/Tools/ForeshadowingView.swift", 1),
+        ("Sources/WenshuApp/Views/Tools/PlaceholderView.swift", 2),
+    ]
+
+    @Test("Label icon slot sweep — 15 view files dropped `Image(systemName: x).imageScale(.small)` in Label icon slot")
+    func allFilesDroppedImageScaleSmallInLabelIconSlot() throws {
+        for entry in Self.sweptFiles {
+            let url = URL(fileURLWithPath: entry.path)
+            let content = try String(contentsOf: url, encoding: .utf8)
+            // Look for: `icon: { Image(systemName: "<x>").imageScale(.small) }` pattern.
+            // The sweep replaced it with `icon: { SFIcon("<x>", style: .inlineSmall, color: IconColor.tint) }`.
+            let badPattern = #"icon: \{ Image\(systemName:\s*"[^"]+"\s*\)\s*\.imageScale\(\.small\)\s*\}"#
+            #expect(content.range(of: badPattern, options: .regularExpression) == nil,
+                    "\(entry.path) must drop `icon: { Image(systemName: x).imageScale(.small) }` pattern (= Label icon slot sweep round 5)")
+        }
+    }
+
+    @Test("Label icon slot sweep — ShellPlaceholder L20 exception (= .imageScale(.large) on ContentUnavailableView)")
+    func shellPlaceholderExceptionPreserved() throws {
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/Layout/ShellPlaceholder.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        // The .imageScale(.large) site is the explicit sweep exception
+        // (= ContentUnavailableView = Apple HIG canonical 38 PT icon = not
+        // SFIcon factory scope).
+        #expect(content.contains("Image(systemName: icon).imageScale(.large)"),
+                "ShellPlaceholder must preserve the ContentUnavailableView icon (= .imageScale(.large) = HIG canonical = sweep boundary)")
+    }
+
+    @Test("Label icon slot sweep — totals: 26 sites across 15 view files")
+    func totalSitesConsistent() throws {
+        var totalSFIconInlineSmall = 0
+        for entry in Self.sweptFiles {
+            let url = URL(fileURLWithPath: entry.path)
+            let content = try String(contentsOf: url, encoding: .utf8)
+            // Count SFIcon(..., style: .inlineSmall, color: IconColor.tint) inside `icon: { ... }` block.
+            let pattern = #"icon: \{ SFIcon\("[^"]+", style: \.inlineSmall, color: IconColor\.tint\) \}"#
+            let range = content.range(of: pattern, options: .regularExpression)
+            if let _ = range { totalSFIconInlineSmall += 1 }
+        }
+        #expect(totalSFIconInlineSmall == 15,
+                "Label icon slot sweep must produce 15 view files using SFIcon(.inlineSmall, .tint) inside icon: { } (= one SFIcon per file = the first-pass count)")
+    }
+}

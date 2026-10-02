@@ -403,7 +403,7 @@ Group {
                 Button {
                     showSavePanel()
                 } label: {
-                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l387.h40947105")) } icon: { Image(systemName: "document.badge.plus").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l387.h40947105")) } icon: { SFIcon("document.badge.plus", style: .inlineSmall, color: IconColor.tint) }
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.borderedProminent)
@@ -412,7 +412,7 @@ Group {
                 Button {
                     isImporterPresented = true
                 } label: {
-                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l396.h53178210")) } icon: { Image(systemName: "folder").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l396.h53178210")) } icon: { SFIcon("folder", style: .inlineSmall, color: IconColor.tint) }
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.bordered)

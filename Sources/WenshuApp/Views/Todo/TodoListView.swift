@@ -156,7 +156,7 @@ struct TodoListView: View {
                 .pickerStyle(.menu)
                 .fixedSize()
                 Button(action: addItem) {
-                    Label { Text(WenshuI18n.t("auto2.todolistview.l191.h76640765")) } icon: { Image(systemName: "plus").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("auto2.todolistview.l191.h76640765")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)

@@ -182,7 +182,7 @@ struct IdeaLibraryView: View {
                 Button {
                     Task { await addIdea() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.idealibraryview.l223.h11292365")) } icon: { Image(systemName: "plus").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.idealibraryview.l223.h11292365")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddIdea)
@@ -405,7 +405,7 @@ struct IdeaLibraryView: View {
                     Button {
                         Task { await linkIdea() }
                     } label: {
-                        Label { Text(WenshuI18n.t("b5.idealibraryview.l454.h37139110")) } icon: { Image(systemName: "link").imageScale(.small) }
+                        Label { Text(WenshuI18n.t("b5.idealibraryview.l454.h37139110")) } icon: { SFIcon("link", style: .inlineSmall, color: IconColor.tint) }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canLink)
@@ -509,7 +509,7 @@ struct IdeaLibraryView: View {
                 Button {
                     Task { await runSuggest() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.idealibraryview.l563.h68346633")) } icon: { Image(systemName: "wand.and.rays").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("b5.idealibraryview.l563.h68346633")) } icon: { SFIcon("wand.and.rays", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(draftSuggestContext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

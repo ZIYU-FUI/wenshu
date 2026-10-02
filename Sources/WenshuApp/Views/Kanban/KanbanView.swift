@@ -163,7 +163,7 @@ struct KanbanView: View {
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addTicket() }
                 Button(action: addTicket) {
-                    Label { Text(WenshuI18n.t("auto2.kanbanview.l146.h37112406")) } icon: { Image(systemName: "plus").imageScale(.small) }
+                    Label { Text(WenshuI18n.t("auto2.kanbanview.l146.h37112406")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)
