@@ -304,7 +304,7 @@ struct PlaceholderView: View {
                         Button {
                             Task { await resolvePlaceholder(row) }
                         } label: {
-                            Image(systemName: "checkmark").imageScale(.small)
+                            SFIcon("checkmark", style: .inlineSmall, color: IconColor.green)
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -314,7 +314,7 @@ struct PlaceholderView: View {
                         Button {
                             Task { await reopenPlaceholder(row) }
                         } label: {
-                            Image(systemName: "arrow.counterclockwise").imageScale(.small)
+                            SFIcon("arrow.counterclockwise", style: .inlineSmall, color: IconColor.secondary)
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -324,7 +324,7 @@ struct PlaceholderView: View {
                         Button {
                             Task { await abandonPlaceholder(row) }
                         } label: {
-                            Image(systemName: "xmark.circle").imageScale(.small)
+                            SFIcon("xmark.circle", style: .inlineSmall, color: IconColor.tertiary)
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
@@ -333,7 +333,7 @@ struct PlaceholderView: View {
                     Button(role: .destructive) {
                         Task { await removePlaceholder(row) }
                     } label: {
-                        Image(systemName: "trash").imageScale(.small)
+                        SFIcon("trash", style: .inlineSmall, color: IconColor.secondary)
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
@@ -352,7 +352,7 @@ struct PlaceholderView: View {
     private var scanSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Image(systemName: "viewfinder").imageScale(.small)
+                SFIcon("viewfinder", style: .inlineSmall, color: IconColor.tint)
                     .foregroundStyle(.tint)
                 Text(WenshuI18n.t("b5.placeholderview.l396.h55542836"))
                     .font(.callout)
