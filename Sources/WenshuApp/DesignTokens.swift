@@ -623,20 +623,11 @@ enum DesignTokens {
     /// editor, not a floating window).
     static let surfaceShadowRadiusButton: CGFloat = 8
 
-    /// Form field label column width (= 60 PT, Apple HIG inline form
-    /// label standard). Replaces file-scope `labelWidth: CGFloat = 60`
-    /// in ConnectorAuthField.
-    static let formLabelWidth: CGFloat = 60
-
     /// Settings row label column width (= 80 PT, Apple HIG settings row
     /// label standard = 80 PT accommodates Chinese 4-char label).
     /// Replaces file-scope `rowLabelWidth: CGFloat = 80` in
     /// MemorySettingsView.
     static let settingsRowLabelWidth: CGFloat = 80
-
-    /// Settings row vertical gap (= 8 PT, Apple HIG settings row standard).
-    /// Replaces file-scope `rowSpacing: CGFloat = 8` in ConnectorProfileRow.
-    static let settingsRowSpacing: CGFloat = 8
 
     /// Active surface tint alpha (= 0.2, Apple HIG subtle accent overlay).
     /// Replaces file-scope `activeBadgeAlpha: CGFloat = 0.2` in
@@ -792,10 +783,6 @@ enum DesignTokens {
     /// Replaces `.frame(width: DesignTokens.avatarSize)` in 1 site.
     static let avatarSize: CGFloat = 64
 
-    /// Chat input minimum width (= 80 PT, Apple HIG chat input column
-    /// minimum). Replaces `.frame(width: DesignTokens.chatInputMinWidth)`.
-    static let chatInputMinWidth: CGFloat = 80
-
     /// Zone editor sidebar width (= 140 PT, Apple HIG sidebar zone
     /// picker width). Replaces `.frame(width: DesignTokens.zoneEditorWidth)` + `.frame(height: DesignTokens.zoneEditorWidth)`.
     static let zoneEditorWidth: CGFloat = 140
@@ -808,22 +795,9 @@ enum DesignTokens {
     /// Replaces `.frame(height: DesignTokens.cardPreviewHeight)`.
     static let cardPreviewHeight: CGFloat = 180
 
-    /// Toolbar band height (= 32 PT, Apple HIG toolbar band standard
-    /// for secondary toolbars). Replaces `.frame(height: DesignTokens.toolbarBandHeight)` +
-    /// `.frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)` in 2 sites.
-    static let toolbarBandHeight: CGFloat = 32
-
-    /// Wide surface height (= 320 PT, Apple HIG popover max-height
-    /// standard). Replaces `.frame(height: DesignTokens.popoverMaxHeight)` in 2 sites.
-    static let popoverMaxHeight: CGFloat = 320
-
     /// Popover compact size (= 320x280, Apple HIG small popover
     /// standard). Replaces `.frame(width: DesignTokens.popoverCompactSize.width, height: DesignTokens.popoverCompactSize.height)`.
     static let popoverCompactSize: CGSize = CGSize(width: 320, height: 280)
-
-    /// Chip avatar size (= 110x80, Apple HIG chip avatar standard).
-    /// Replaces `.frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)` in 2 sites.
-    static let chipAvatarSize: CGSize = CGSize(width: 110, height: 80)
 
     /// List row banner size (= 240x32, Apple HIG inline banner
     /// standard). Replaces `.frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)`.
@@ -854,10 +828,6 @@ enum DesignTokens {
     /// Guardrail sheet width (= 360 PT, Apple HIG modal sheet width
     /// for guardrail dialogs). Replaces `.frame(width: DesignTokens.guardrailSheetWidth)`.
     static let guardrailSheetWidth: CGFloat = 360
-
-    /// Form column width (= 120 PT, Apple HIG form column minimum
-    /// for label + value layout). Replaces `.frame(width: DesignTokens.formColumnWidth)`.
-    static let formColumnWidth: CGFloat = 120
 
     /// Sidebar width (= 200 PT, Apple HIG narrow sidebar standard).
     /// Replaces `.frame(width: DesignTokens.sidebarNarrowWidth)`.
