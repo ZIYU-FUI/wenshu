@@ -243,9 +243,7 @@ struct CharacterLifecycleView: View {
 
     private func eventRow(_ event: LifecycleEvent) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
-            Image(systemName: event.stage.icon).imageScale(.small)
-                .foregroundStyle(.tint)
-                .frame(width: DesignTokens.tabIconSize)
+            SFIcon(event.stage.icon, style: .inlineSmall, color: .tint)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     Text(characterName(for: event.characterId))
@@ -367,9 +365,7 @@ struct CharacterLifecycleView: View {
             } else {
                 ForEach(Array(contradictions.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
-                        Image(systemName: "exclamationmark.triangle").imageScale(.small)
-                            .foregroundStyle(Color(nsColor: .systemOrange))
-                            .frame(width: DesignTokens.tabIconSize)
+                        SFIcon("exclamationmark.triangle", style: .inlineSmall, color: .orange)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(characterName(for: issue.characterId))
                                 .font(.caption)
