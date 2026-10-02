@@ -232,9 +232,7 @@ struct CharacterRelationshipsView: View {
 
     private func relationshipRow(_ row: CharacterRelationship) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
-            Image(systemName: row.kind.icon).imageScale(.small)
-                .foregroundStyle(.tint)
-                .frame(width: DesignTokens.tabIconSize)
+            SFIcon(row.kind.icon, style: .inlineSmall, color: .tint)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     Text(characterName(for: row.fromCharacterId))
@@ -295,9 +293,7 @@ struct CharacterRelationshipsView: View {
             } else {
                 ForEach(Array(inconsistencies.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
-                        Image(systemName: "exclamationmark.triangle").imageScale(.small)
-                            .foregroundStyle(Color(nsColor: .systemOrange))
-                            .frame(width: DesignTokens.tabIconSize)
+                        SFIcon("exclamationmark.triangle", style: .inlineSmall, color: .orange)
                         Text(issue.message)
                             .font(.caption)
                             .foregroundStyle(.primary)
