@@ -457,19 +457,6 @@ enum DesignTokens {
     /// Replaces `.frame(width: DesignTokens.iconStandardSize)` in 6 sites.
     static let iconStandardSize: CGFloat = 16
 
-    /// Large icon size (= 24 PT, macOS standard navigation icon size).
-    /// Replaces `.frame(width: DesignTokens.iconLargeSize, height: DesignTokens.iconLargeSize)` in 1 site.
-    static let iconLargeSize: CGFloat = 24
-
-    /// CHROME-ARCH-001 (2026-09-07): small icon size (= 14 PT)
-    /// used by the chrome top bar (= zone identity icon + trailing
-    /// action buttons). = matches Apple HIG standard for "small
-    /// controls" (= 12-16 PT for inline toolbar icons). Avoids
-    /// inline `.frame(width: 14, height: 14)` in the chrome
-    /// stylesheet file (= iron-rule 6 = no magic numbers in view
-    /// code).
-    static let iconSmall: CGFloat = 14
-
     /// Extra-small indicator size (= 8 PT, Apple HIG status indicator
     /// dot standard). Replaces `.frame(width: DesignTokens.indicatorSizeSmall, height: DesignTokens.indicatorSizeSmall)` in 1 site.
     static let indicatorSizeSmall: CGFloat = 8
@@ -496,10 +483,6 @@ enum DesignTokens {
     /// (= v3.0 spacing-HIG-rename: collapsed into spacingSection;
     /// = old `chromePaddingEmptyStateGap` reference deleted in
     /// Phase C = the value lives only as `spacingSection` = 24 PT).
-
-    /// Sub-agent icon button size (= 22 PT, Apple HIG compact icon
-    /// button standard). Replaces `.frame(width: DesignTokens.iconButtonSmall, height: DesignTokens.iconButtonSmall)`.
-    static let iconButtonSmall: CGFloat = 22
 
     /// Compact toolbar button size (= 40 PT, Apple HIG compact button
     /// hit area). Replaces `.frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)` in 2 sites.
