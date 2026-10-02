@@ -25,7 +25,7 @@ struct BookSettingConstraintsViewIconMigrationTests {
     func constraintRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/BookSettingConstraintsView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(constraint.severity.icon, style: .inlineSmall, color: constraint.severity == .hard ? .red : .tint)"),
+        #expect(content.contains("SFIcon(constraint.severity.icon, style: .inlineSmall, color: constraint.severity == .hard ? IconColor.red : IconColor.tint)"),
                 "constraintRow must render severity icon via SFIcon with .red / .tint ternary")
     }
 

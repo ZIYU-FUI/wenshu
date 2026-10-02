@@ -24,7 +24,7 @@ struct IdeaLibraryViewIconMigrationTests {
     func ideaRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/IdeaLibraryView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(idea.status.icon, style: .inlineSmall, color: .tint)"),
+        #expect(content.contains("SFIcon(idea.status.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "ideaRow must render status icon via SFIcon(.inlineSmall, .tint)")
     }
 
@@ -32,7 +32,7 @@ struct IdeaLibraryViewIconMigrationTests {
     func linkRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/IdeaLibraryView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(link.target.icon, style: .inlineSmall, color: .tint)"),
+        #expect(content.contains("SFIcon(link.target.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "linkRow must render target icon via SFIcon(.inlineSmall, .tint)")
     }
 }

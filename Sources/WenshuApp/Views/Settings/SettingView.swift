@@ -399,7 +399,7 @@ struct SettingView: View {
             // canonical LLM-provider key-state glyph = 'key'
             // (SF Symbols 6). Replaces the v0.27 'Lucide key'
             // choice per boss 2026-09-15 reversal.
-            SFIcon("key", style: .inlineSmall, color: hasKey ? .green : .secondary)
+            SFIcon("key", style: .inlineSmall, color: hasKey ? IconColor.green : IconColor.secondary)
             Text(p.name)
                 .font(.body)
             Spacer()
@@ -498,7 +498,7 @@ struct SettingView: View {
                         // AuxTask.icon is already a canonical
                         // SF Symbols 6 identifier (= per the
                         // -m1-shell enum property rename).
-                        SFIcon(task.icon, style: .inlineSmall, color: .secondary)
+                        SFIcon(task.icon, style: .inlineSmall, color: IconColor.secondary)
                         Text(task.label)
                             .font(.body)
                         Spacer()

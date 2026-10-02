@@ -6,7 +6,7 @@
 //  applicationRow) replaced their `Image(systemName: x).imageScale
 //  (.small).foregroundStyle(.tint).frame(width: DesignTokens.tabIcon
 //  Size)` (= 14 PT SF Symbol pinned to a 18 PT wenshu-ad-hoc frame)
-//  with `SFIcon(x, style: .inlineSmall, color: .tint)` (= Apple HIG
+//  with `SFIcon(x, style: .inlineSmall, color: IconColor.tint)` (= Apple HIG
 //  list-row leading inline = 14 PT, no frame pin).
 //
 //  Source-level assertions verify that:
@@ -38,7 +38,7 @@ struct TagManagerViewIconMigrationTests {
     func tagManagerViewTagRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(tag.category.icon, style: .inlineSmall, color: .tint)"),
+        #expect(content.contains("SFIcon(tag.category.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "tagRow must render the category icon via SFIcon(.inlineSmall) (= the migrated inline-leading site)")
     }
 
@@ -46,7 +46,7 @@ struct TagManagerViewIconMigrationTests {
     func tagManagerViewApplicationRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(application.target.icon, style: .inlineSmall, color: .tint)"),
+        #expect(content.contains("SFIcon(application.target.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "applicationRow must render the target icon via SFIcon(.inlineSmall) (= the migrated inline-leading site)")
     }
 

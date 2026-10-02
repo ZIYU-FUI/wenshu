@@ -261,7 +261,7 @@ struct ForeshadowingView: View {
     private func foreshadowingRow(_ row: Foreshadowing) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
-                SFIcon(row.status.icon, style: .inlineSmall, color: .tint)
+                SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.tint)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(row.title)
@@ -352,7 +352,7 @@ struct ForeshadowingView: View {
 
     private func staleRow(_ row: Foreshadowing) -> some View {
         HStack(spacing: 6) {
-            SFIcon(row.status.icon, style: .inlineSmall, color: .secondary)
+            SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.secondary)
             Text(row.title)
                 .font(.caption)
                 .foregroundStyle(.primary)

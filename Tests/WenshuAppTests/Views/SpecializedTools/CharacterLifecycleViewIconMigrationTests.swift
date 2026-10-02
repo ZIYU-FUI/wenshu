@@ -25,7 +25,7 @@ struct CharacterLifecycleViewIconMigrationTests {
     func eventRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(event.stage.icon, style: .inlineSmall, color: .tint)"),
+        #expect(content.contains("SFIcon(event.stage.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "eventRow must render the stage icon via SFIcon(.inlineSmall)")
     }
 
@@ -33,7 +33,7 @@ struct CharacterLifecycleViewIconMigrationTests {
     func contradictionRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(\"exclamationmark.triangle\", style: .inlineSmall, color: .orange)"),
+        #expect(content.contains("SFIcon(\"exclamationmark.triangle\", style: .inlineSmall, color: IconColor.orange)"),
                 "contradiction row must render the triangle icon via SFIcon(.inlineSmall, .orange)")
     }
 }

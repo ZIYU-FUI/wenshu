@@ -270,7 +270,7 @@ struct PlaceholderView: View {
     private func placeholderRow(_ row: Placeholder) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
-                SFIcon(row.status.icon, style: .inlineSmall, color: .tint)
+                SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.tint)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(row.pattern)

@@ -5,7 +5,7 @@
 //  inline-leading icon migration: placeholderRow's
 //  `Image(systemName: row.status.icon).imageScale(.small).foregroundStyle
 //  (.tint).frame(width: DesignTokens.tabIconSize)` replaced with
-//  `SFIcon(row.status.icon, style: .inlineSmall, color: .tint)`.
+//  `SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.tint)`.
 //
 
 import Foundation
@@ -27,7 +27,7 @@ struct PlaceholderViewIconMigrationTests {
     func placeholderViewRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/PlaceholderView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(row.status.icon, style: .inlineSmall, color: .tint)"),
+        #expect(content.contains("SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "placeholderRow must render the status icon via SFIcon(.inlineSmall)")
     }
 }

@@ -5,7 +5,7 @@
 //  inline-leading icon migration: staleRow's
 //  `Image(systemName: x).imageScale(.small).foregroundStyle(.secondary)
 //  .frame(width: DesignTokens.iconStandardSize)` replaced with
-//  `SFIcon(x, style: .inlineSmall, color: .secondary)`.
+//  `SFIcon(x, style: .inlineSmall, color: IconColor.secondary)`.
 //
 
 import Foundation
@@ -27,7 +27,7 @@ struct ForeshadowingViewIconStandardSizeMigrationTests {
     func staleRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/ForeshadowingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(row.status.icon, style: .inlineSmall, color: .secondary)"),
+        #expect(content.contains("SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.secondary)"),
                 "staleRow must render the status icon via SFIcon(.inlineSmall, .secondary)")
     }
 }

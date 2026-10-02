@@ -6,7 +6,7 @@
 //  `Image(systemName: row.status.icon).imageScale(.small).foregroundStyle
 //  (.tint).frame(width: DesignTokens.tabIconSize)` (= 14 PT SF Symbol
 //  pinned to a 18 PT wenshu-ad-hoc frame) replaced with
-//  `SFIcon(row.status.icon, style: .inlineSmall, color: .tint)` (= Apple
+//  `SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.tint)` (= Apple
 //  HIG list-row leading inline = 14 PT, no frame pin).
 //
 //  Source-level assertions verify:
@@ -35,7 +35,7 @@ struct ForeshadowingViewIconMigrationTests {
     func foreshadowingViewRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/ForeshadowingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(row.status.icon, style: .inlineSmall, color: .tint)"),
+        #expect(content.contains("SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "foreshadowingRow must render the status icon via SFIcon(.inlineSmall)")
     }
 }

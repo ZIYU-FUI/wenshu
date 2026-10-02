@@ -25,7 +25,7 @@ struct SettingViewIconMigrationTests {
     func providerKeyRowUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Settings/SettingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(\"key\", style: .inlineSmall, color: hasKey ? .green : .secondary)"),
+        #expect(content.contains("SFIcon(\"key\", style: .inlineSmall, color: hasKey ? IconColor.green : IconColor.secondary)"),
                 "provider key leading must render via SFIcon(.inlineSmall, hasKey ? .green : .secondary)")
     }
 
@@ -33,7 +33,7 @@ struct SettingViewIconMigrationTests {
     func auxTaskLeadingUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Settings/SettingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(task.icon, style: .inlineSmall, color: .secondary)"),
+        #expect(content.contains("SFIcon(task.icon, style: .inlineSmall, color: IconColor.secondary)"),
                 "AuxTask leading must render via SFIcon(.inlineSmall, .secondary)")
     }
 }

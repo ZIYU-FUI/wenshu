@@ -237,7 +237,7 @@ struct BookSettingConstraintsView: View {
     private func constraintRow(_ constraint: BookSettingConstraint) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
-                SFIcon(constraint.severity.icon, style: .inlineSmall, color: constraint.severity == .hard ? .red : .tint)
+                SFIcon(constraint.severity.icon, style: .inlineSmall, color: constraint.severity == .hard ? IconColor.red : IconColor.tint)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: DesignTokens.spacingTight) {
                         Text(constraint.title)
@@ -354,7 +354,7 @@ struct BookSettingConstraintsView: View {
         HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
             SFIcon(violation.severity == .hard ? "octagon" : "exclamationmark.triangle",
                    style: .inlineSmall,
-                   color: violation.severity == .hard ? .red : .orange)
+                   color: violation.severity == .hard ? IconColor.red : IconColor.orange)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: DesignTokens.spacingIconic) {
                     Text(violation.title)
