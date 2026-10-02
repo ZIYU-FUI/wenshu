@@ -301,7 +301,7 @@ struct ForeshadowingView: View {
                 Button(role: .destructive) {
                     Task { await removeForeshadowing(row) }
                 } label: {
-                    Image(systemName: "trash").imageScale(.small)
+                    SFIcon("trash", style: .inlineSmall, color: IconColor.secondary)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
@@ -325,7 +325,7 @@ struct ForeshadowingView: View {
     private var staleSection: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.triangle").imageScale(.small)
+                SFIcon("exclamationmark.triangle", style: .inlineSmall, color: IconColor.orange)
                     .foregroundStyle(Color(nsColor: .systemOrange))
                 Text(WenshuI18n.t("b5.foreshadowingview.l360.h31137580"))
                     .font(.callout)
