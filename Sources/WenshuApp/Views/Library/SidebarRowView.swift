@@ -92,7 +92,7 @@ struct SidebarRowView: View {
             Divider()
         } else {
             HStack(spacing: 6) {
-                Image(systemName: node.systemImage)
+                SFIcon(node.systemImage, style: .paneTab, color: IconColor.tint)
                     .frame(width: 18)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(node.title)
