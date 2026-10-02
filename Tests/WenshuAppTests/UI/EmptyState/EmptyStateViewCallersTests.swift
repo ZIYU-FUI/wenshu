@@ -129,8 +129,8 @@ struct EmptyStateViewCallersTests {
             return !trimmed.hasPrefix("//") && !trimmed.hasPrefix("*") && !trimmed.hasPrefix("/*")
         }.joined(separator: "\n")
         #expect(
-            stripped.contains("Image(systemName:") || stripped.contains("LucideThinIcon("),
-            "EmptyStateView MUST render its icon via Image(systemName:) (= v1.x SF Symbols 6) or LucideThinIcon (= pre-v1.x)"
+            stripped.contains("Image(systemName:") || stripped.contains("LucideThinIcon(") || stripped.contains("SFIcon("),
+            "EmptyStateView MUST render its icon via Image(systemName:) (= v1.x SF Symbols 6), LucideThinIcon (= pre-v1.x), or SFIcon (= v3.0 central factory)"
         )
     }
 }
