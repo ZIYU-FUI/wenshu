@@ -181,8 +181,10 @@ struct IconStylesTests {
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("struct SFIcon: View"),
                 "SFIcon must be a View (= the factory renders the symbol)")
-        #expect(content.contains("init(\n        _ name: String,\n        style: IconStyle,\n        color: IconColor = .secondary,\n        rendering: IconRendering? = nil\n    )"),
-                "SFIcon must expose the 4-argument convenience initializer")
+        #expect(content.contains("color: Color = Color.secondary,\n        rendering: IconRendering? = nil"),
+                "SFIcon must expose the 4-argument convenience initializer with Color (= escape hatch for domain-enum callers like CommandPaletteView)")
+        #expect(content.contains("color: IconColor,\n        rendering: IconRendering? = nil"),
+                "SFIcon must expose the 4-argument convenience initializer with IconColor (= the canonical semantic path)")
     }
 
     // MARK: - SFIcon rendering-mode default per zone
