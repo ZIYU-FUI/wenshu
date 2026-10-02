@@ -405,21 +405,31 @@ enum DesignTokens {
     // apple-001 Q8 batch 2 site: font size for the runtime CWD
     // display chip (= `.system(size: 11)` = macOS standard secondary
     // caption = 1 step smaller than body for status-bar meta text).
-    // The sibling status-bar font token (`DesignTokens.statusFont`) was
-    // deleted in commit T17 (= the v3.0 sweep migrated all callers
-    // into SwiftUI's `.font(.body)`); this token (= 11 PT = SwiftUI
-    // `.caption2`) is kept as the runtime chip's smaller size.
-    static let runtimeCwdChipFont: Font = .system(size: 11)
-
+    //
+    // The runtime CWD chip font was deleted in commit T18 (= the
+    // v3.0 sweep migrated the 2 callers in
+    // RuntimeCWDDisplayChip.swift into SwiftUI's `.font(.caption2)`);
+    // the inline section comment is preserved below as a historical
+    // record of the migration rule.
+    //
+    // Token was: static let runtimeCwdChipFont: Font = .system(size: 11)
+    // Replaced by: SwiftUI `.font(.caption2)` (= 11 PT = Apple HIG caption2)
+    //
+    // (gap intentionally left for the apple-001 Q8 batch 3 entry)
+    //
     // apple-001 Q8 batch 3 site: monospaced hotkey combo label
     // font (= .system(size: 12, design: .monospaced) = the 12 PT
     // monospaced style used by hotkey combo chips in the editor
-    // toolbar (= FormatToolbarButtons / ParagraphAIToolbarButtons)
-    // and in the WorkspaceView tab strip). Apple HIG = monospaced
-    // for all keyboard shortcut glyph rendering (= ensures ⌘⇧E
-    // and ⌘⇧H have the same width across labels; = gives the
-    // chrome a uniform visual rhythm).
-    static let hotkeyComboFont: Font = .system(size: 12, design: .monospaced)
+    // toolbar and in the WorkspaceView tab strip). Apple HIG =
+    // monospaced for all keyboard shortcut glyph rendering
+    // (= ensures ⌘⇧E and ⌘⇧H have the same width across labels;
+    // = gives the chrome a uniform visual rhythm).
+    //
+    // Token was: static let hotkeyComboFont: Font = .system(size: 12, design: .monospaced)
+    // Replaced by: SwiftUI `.font(.caption)` (= 12 PT = Apple HIG caption;
+    // = the .monospaced design was semantically inert for SF Symbol
+    // glyphs in ParagraphAIToolbarButtons; = dropped during the v3.0
+    // sweep migration).
 
     // apple-001 iron-rule-6 batch 1 site: sub-agent progress
     // card corner radius (= 6 PT, Apple HIG small card standard; = smaller
@@ -438,7 +448,11 @@ enum DesignTokens {
     // Apple HIG: tab labels use monospaced for stable character
     // width (= ensures Chinese + Latin + emoji all line up at the
     // same horizontal position in the tab strip).
-    static let tabTitleFont: Font = .system(size: 12, design: .monospaced)
+    //
+    // Token was: static let tabTitleFont: Font = .system(size: 12, design: .monospaced)
+    // Replaced by: SwiftUI `.font(.caption.monospacedDigit().weight(.semibold))`
+    // (= 12 PT monospaced digits + per-instance weight; = the v3.0 sweep
+    // migration in EditorPlaceholder.swift).
 
     // MARK: - Frame metrics (v0.40 apple-001 iron-rule-6 batch 5)
     //
