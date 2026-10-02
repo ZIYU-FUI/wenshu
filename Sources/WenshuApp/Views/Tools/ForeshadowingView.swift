@@ -247,7 +247,7 @@ struct ForeshadowingView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 6) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                         ForEach(rows) { row in
                             foreshadowingRow(row)
                         }
@@ -339,7 +339,7 @@ struct ForeshadowingView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 4) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                         ForEach(staleRows) { row in
                             staleRow(row)
                         }

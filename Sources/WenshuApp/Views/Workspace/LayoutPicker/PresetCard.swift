@@ -29,7 +29,7 @@ struct PresetCard: View {
         VStack(spacing: DesignTokens.spacingIconic) {
             // Thumbnail (= 4:3 aspect ratio).
             PresetThumbnail(workspace: preset.workspace)
-                .aspectRatio(4.0 / 3.0, contentMode: .fit)
+                .aspectRatio(DesignTokens.presetThumbnailAspectRatio, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 // followup Boss UX round 19 (Boss 2026-08-29 OOB
                 // .ultraThinMaterial (= the lightest Liquid Glass

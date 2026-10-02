@@ -326,7 +326,7 @@ struct ChatView: View {
                     // question AI is replying to" affordance). When user
                     // scrolls up, older user bubbles pass through (= CSS
                     // sticky semantics).
-                    LazyVStack(alignment: .leading, spacing: 8, pinnedViews: [.sectionHeaders]) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingStandard, pinnedViews: [.sectionHeaders]) {
                         ForEach(turns) { turn in
                             Section(header: turnHeader(for: turn)) {
                                 ForEach(turn.replies) { reply in

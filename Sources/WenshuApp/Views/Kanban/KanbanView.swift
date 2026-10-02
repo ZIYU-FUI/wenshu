@@ -363,7 +363,7 @@ private struct KanbanColumn: View {
                     .padding(.horizontal, DesignTokens.spacingIconic)
             } else {
                 ScrollView(.vertical, showsIndicators: true) {
-                    LazyVStack(alignment: .leading, spacing: 6) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                         ForEach(tickets) { ticket in
                             KanbanCard(
                                 ticket: ticket,

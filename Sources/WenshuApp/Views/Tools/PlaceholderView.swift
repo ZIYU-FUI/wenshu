@@ -256,7 +256,7 @@ struct PlaceholderView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 6) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                         ForEach(rows) { row in
                             placeholderRow(row)
                         }

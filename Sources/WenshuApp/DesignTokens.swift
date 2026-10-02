@@ -417,6 +417,13 @@ enum DesignTokens {
     /// `textEditorSmallMinHeight` (= 80) for compact TextEditor.
     static let textEditorCompactMaxHeight: CGFloat = 120
 
+    /// Preset thumbnail aspect ratio (= 4:3, Apple HIG classic
+    /// photo / preview thumbnail standard = the macOS 26+
+    /// Finder preview thumbnail ratio). Used in
+    /// `.aspectRatio(4.0 / 3.0, contentMode: .fit)` for the
+    /// PresetCard layout picker thumbnail.
+    static let presetThumbnailAspectRatio: CGFloat = 4.0 / 3.0
+
     /// Button shadow vertical offset (= 2 PT, Apple HIG macOS
     /// button shadow offset = subtle lift under button surfaces
     /// that hover above the page).
