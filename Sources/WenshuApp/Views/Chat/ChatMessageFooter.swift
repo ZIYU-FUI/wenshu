@@ -121,7 +121,7 @@ struct ChatMessageFooter: View {
                 Rectangle()
                     .fill(.quaternary)
                     .frame(height: DesignTokens.separatorThicknessHairline)
-                    .offset(y: -2)
+                    .offset(y: -DesignTokens.spacingCaption)
             }
         }
     }

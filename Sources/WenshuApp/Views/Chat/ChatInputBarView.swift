@@ -375,7 +375,7 @@ private struct SlashCommandAutocompleteModifier: ViewModifier {
                     }
                 )
                 .padding(.top, -8)
-                .offset(y: -4)
+                .offset(y: -DesignTokens.spacingIconic)
             }
         }
     }
