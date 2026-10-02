@@ -237,9 +237,7 @@ struct BookSettingConstraintsView: View {
     private func constraintRow(_ constraint: BookSettingConstraint) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
-                Image(systemName: constraint.severity.icon).imageScale(.small)
-                    .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(.tint))
-                    .frame(width: DesignTokens.tabIconSize)
+                SFIcon(constraint.severity.icon, style: .inlineSmall, color: constraint.severity == .hard ? .red : .tint)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: DesignTokens.spacingTight) {
                         Text(constraint.title)
@@ -354,10 +352,9 @@ struct BookSettingConstraintsView: View {
 
     private func violationRow(_ violation: ConstraintViolation) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
-            Image(systemName: violation.severity == .hard ? "octagon" : "exclamationmark.triangle")
-                .imageScale(.small)
-                .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(Color(nsColor: .systemOrange)))
-                .frame(width: DesignTokens.tabIconSize)
+            SFIcon(violation.severity == .hard ? "octagon" : "exclamationmark.triangle",
+                   style: .inlineSmall,
+                   color: violation.severity == .hard ? .red : .orange)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: DesignTokens.spacingIconic) {
                     Text(violation.title)
