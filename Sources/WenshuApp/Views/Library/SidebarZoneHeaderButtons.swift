@@ -90,8 +90,7 @@ private struct SidebarZoneHeaderIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: iconName)
-                .imageScale(.medium)
+            SFIcon(iconName, style: .paneTab, color: IconColor.tint)
         }
         .buttonStyle(.borderless)
         .help(help)
