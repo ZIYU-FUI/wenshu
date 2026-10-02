@@ -451,6 +451,31 @@ enum DesignTokens {
     /// .regularMaterial chip background.
     static let surfaceCornerRadiusSmallButton: CGFloat = 5
 
+    /// Window shadow radius (= 12 PT, Apple HIG macOS window chrome
+    /// shadow standard).
+    ///
+    /// Apple HIG source: `View > Window > Shadow radius` (= the
+    /// macOS 26+ default window chrome drop-shadow radius = 12 PT;
+    /// = measured from Finder / Safari / System Settings window
+    /// shadow).
+    ///
+    /// Used by: LayoutEditBar (= the floating edit-bar shadow above
+    /// the layout picker grid).
+    static let surfaceShadowRadiusWindow: CGFloat = 12
+
+    /// Button shadow radius (= 8 PT, Apple HIG button drop-shadow
+    /// standard).
+    ///
+    /// Apple HIG source: `Controls > Buttons > Shadow radius` (= the
+    /// macOS 26+ default button shadow = 8 PT; = measured from
+    /// Finder toolbar button shadow).
+    ///
+    /// Used by: EditorPaperCanvas (= the editor paper canvas shadow
+    /// under the text body; = tighter than the floating-window
+    /// shadow because the canvas is a 2-D surface inside the
+    /// editor, not a floating window).
+    static let surfaceShadowRadiusButton: CGFloat = 8
+
     /// Form field label column width (= 60 PT, Apple HIG inline form
     /// label standard). Replaces file-scope `labelWidth: CGFloat = 60`
     /// in ConnectorAuthField.
