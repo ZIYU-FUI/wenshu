@@ -32,10 +32,10 @@ struct RuntimeCWDDisplayChip: View {
     var body: some View {
         HStack(spacing: DesignTokens.spacingIconic) {
             Image(systemName: "folder").imageScale(.small)
-                .font(DesignTokens.runtimeCwdChipFont)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
             Text(displayLabel)
-                .font(DesignTokens.runtimeCwdChipFont)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
