@@ -32,12 +32,7 @@ struct ChatAttachmentPreviewChip: View {
             Button {
                 onClear()
             } label: {
-                Image(systemName: "xmark")
-                    .imageScale(.small)
-                    .symbolRenderingMode(.hierarchical)
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 14, height: 14)
-                    .foregroundStyle(.secondary)
+                SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("chat.input.attach.clear"))
