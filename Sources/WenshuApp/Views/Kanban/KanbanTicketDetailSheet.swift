@@ -71,7 +71,7 @@ struct KanbanTicketDetailSheet: View {
             .font(.caption.weight(.medium))
             .padding(.horizontal, DesignTokens.spacingTight)
             .padding(.vertical, DesignTokens.spacingCaption)
-            .background(.tint.opacity(0.18), in: Capsule())
+            .background(.tint.opacity(DesignTokens.accentTintOpacityHero), in: Capsule())
             .padding(.horizontal, DesignTokens.spacingModerate)
             .padding(.top, DesignTokens.spacingTight)
     }

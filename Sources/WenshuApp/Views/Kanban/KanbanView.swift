@@ -447,7 +447,7 @@ private struct KanbanCard: View {
                         .font(.caption)
                         .padding(.horizontal, DesignTokens.spacingTight)
                         .padding(.vertical, DesignTokens.spacingCaption)
-                        .background(.tint.opacity(0.18), in: Capsule())
+                        .background(.tint.opacity(DesignTokens.accentTintOpacityHero), in: Capsule())
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
