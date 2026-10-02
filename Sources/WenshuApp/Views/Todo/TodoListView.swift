@@ -394,8 +394,7 @@ private struct TodoRow: View {
                 Divider()
                 Button(WenshuI18n.t("auto2.todolistview.l573.h2266275"), role: .destructive) { onDelete() }
             } label: {
-                Image(systemName: "ellipsis").imageScale(.small)
-                    .font(.caption)
+                SFIcon("ellipsis", style: .inlineSmall, color: IconColor.secondary)
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
@@ -412,8 +411,7 @@ private struct TodoRow: View {
                 && item.status != .completed
                 && item.status != .cancelled
             HStack(spacing: 4) {
-                Image(systemName: "calendar").imageScale(.small)
-                    .font(.caption2)
+                SFIcon("calendar", style: .inlineSmall, color: IconColor.secondary)
                 Text(Self.dueDateFormatter.string(from: due))
                     .font(.caption)
                     .foregroundStyle(isOverdue ? Color(nsColor: .systemRed) : Color.secondary)
@@ -445,28 +443,24 @@ private struct TodoRow: View {
         switch item.status {
         case .pending:
             Button(action: { onSetStatus(.inProgress) }) {
-                Image(systemName: "circle").imageScale(.small)
-                    .foregroundStyle(.secondary)
+                SFIcon("circle", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("auto2.todolistview.l630.h96905135"))
         case .inProgress:
             Button(action: { onSetStatus(.completed) }) {
-                Image(systemName: "circle.dotted").imageScale(.small)
-                    .foregroundStyle(.tint)
+                SFIcon("circle.dotted", style: .inlineSmall, color: IconColor.tint)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("auto2.todolistview.l637.h11194739"))
         case .completed:
             Button(action: { onSetStatus(.pending) }) {
-                Image(systemName: "checkmark.circle").imageScale(.small)
-                    .foregroundStyle(.green)
+                SFIcon("checkmark.circle", style: .inlineSmall, color: IconColor.green)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("todolist.reopen"))
         case .cancelled:
-            Image(systemName: "xmark.circle").imageScale(.small)
-                .foregroundStyle(DesignTokens.statusForeground)
+            SFIcon("xmark.circle", style: .inlineSmall, color: IconColor.tertiary)
         }
     }
 
