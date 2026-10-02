@@ -401,7 +401,7 @@ struct ChatView: View {
                     // behind the panel (= the Apple Messages / Slack /
                     // Telegram chat input pattern where the last message
                     // peeks behind the input bar).
-                    .contentMargins(.bottom, 80, for: .scrollContent)
+                    .contentMargins(.bottom, DesignTokens.chatInputBarHeight, for: .scrollContent)
                     // -cleanup E3 boss 2026-09-21 '聊天区的背景能不能
                     // 降低一点颜色，比如用左栏的颜色' (= the chat
                     // transcript area was using the macOS default

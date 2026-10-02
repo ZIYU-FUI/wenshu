@@ -768,4 +768,18 @@ enum DesignTokens {
     /// cards; = the standard "neutral" border weight).
     /// Replaces inline `.strokeBorder(..., lineWidth: 1)` calls.
 
+    /// Chat input bar bottom safe-area (= 80 PT, Apple HIG chat
+    /// panel standard bottom margin).
+    ///
+    /// Apple HIG source: `View > Chat > Input bar > Bottom margin` (=
+    /// the macOS 26+ standard chat panel bottom safe-area = 80 PT;
+    /// = measured from Apple Messages macOS chat input bar height
+    /// = 80 PT (= the fixed input bar height + a small breathing
+    /// margin so the last message peeks behind the input bar)).
+    ///
+    /// Used by: ChatView scroll content bottom margin (= the
+    /// `.contentMargins(.bottom, 80, for: .scrollContent)` that
+    /// keeps the last message visible above the chat input bar).
+    static let chatInputBarHeight: CGFloat = 80
+
 }
