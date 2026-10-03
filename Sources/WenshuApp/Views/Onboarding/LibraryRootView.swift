@@ -93,16 +93,9 @@ struct LibraryRootView: View {
     // hierarchy is WindowGroup -> LibraryRootView -> NavigationSplitView
     // -> column body = the Apple canonical 4 layers.
     @Environment(AppState.self) private var appState
-    // P2-06 (audit 2026-09-24): ShellState = the shell chrome
-    // container (= sidebarSelection + inspector + chatVisible).
-    // LibraryRootView reads it via @Environment and threads it
-    // through to NavigationSplitShell (which then threads to
-    // ShellMiddleColumn).
-    @Environment(ShellState.self) private var shell
-    // P2-06 (audit 2026-09-24): WorkspaceUIState = the column-
-    // local UI state (= previewSortOrder + editMode). Threads
-    // through to NavigationSplitShell (which then threads to
-    // ShellMiddleColumn + WorkspaceView).
+    // 2026-10-03 overabstraction cleanup: ShellState removed (= all
+    // 4 fields migrated to WorkspaceUIState + NavigationSplitShell
+    // @State; = LibraryRootView no longer threads ShellState).
     @Environment(WorkspaceUIState.self) private var workspaceUI
     @State private var bookStore: BookStore?
     @State private var commandPaletteModel = CommandPaletteModel()
@@ -213,7 +206,7 @@ struct LibraryRootView: View {
             // wraps it: it is the direct child of the root view, which is
             // what Apple's NavigationSplitView documentation asks for
             // ("typically use it as the root view in a Scene").
-            NavigationSplitShell(appState: appState, shell: shell, workspaceUI: workspaceUI, bookStore: bookStore, library: library)
+            NavigationSplitShell(appState: appState, workspaceUI: workspaceUI, bookStore: bookStore, library: library)
         } else {
             // BookStore is built asynchronously by LibraryLifecycleHook.
             // Column bodies read it as a non-optional @Environment value,

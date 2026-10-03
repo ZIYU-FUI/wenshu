@@ -57,15 +57,6 @@ struct WorkspaceView: View {
     /// (= for the @AppStorage round-trip via .onChange).
     @Bindable var appState: AppState
 
-    // P2-06 (audit 2026-09-24): sidebarSelection moved to
-    // ShellState. Read goes through `shell` (= the
-    // @Bindable Observable instance = observation tracking on
-    // every previewScope computed access). AppState stays for
-    // unrelated state (= openTabs / llmModel / etc.).
-    @Bindable var shell: ShellState
-
-    // P2-06 (audit 2026-09-24): previewSortOrder + editMode
-    // moved to WorkspaceUIState (= column-local UI state).
     @Bindable var workspaceUI: WorkspaceUIState
 
     // :

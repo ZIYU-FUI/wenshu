@@ -60,10 +60,11 @@ struct NavigationSplitShell: View {
     /// WorkspaceView's owner; = passed by reference via @Bindable
     /// in the body).
     var appState: AppState
-    // Shell chrome state. Threaded into ShellMiddleColumn
-    // (= the @Bindable entry the previewScope() function reads).
-    // Same lifetime as WorkspaceView's owner; = passed by reference.
-    var shell: ShellState
+    /// ShellState was removed in 2026-10-03 overabstraction cleanup
+    /// (= sidebar / inspector / chat visibility / inspector page
+    /// all migrated to WorkspaceUIState + NavigationSplitShell
+    /// @State; = ShellState held 0 fields after Phase 1a-1c).
+
     // Column-local UI state. Threaded into ShellMiddleColumn
     // (= the @Bindable entry the PreviewPane binding reads).
     // Same lifetime as WorkspaceView's owner; = passed by reference.
@@ -171,7 +172,7 @@ struct NavigationSplitShell: View {
             // to the same instance (= wenshu's NSA framework
             // convention; = see ShellMiddleColumn L57-72 for the
             // @Bindable + `let appState` parallel-ownership pattern).
-            ShellMiddleColumn(envAppState: appState, appState: appState, shell: shell, workspaceUI: workspaceUI)
+            ShellMiddleColumn(envAppState: appState, appState: appState, workspaceUI: workspaceUI)
                 // Applied DIRECTLY on the NavigationSplitView content:
                 // { ... } closure body, per Apple's official example:
                 // modifier is on the view INSIDE the closure, NOT on

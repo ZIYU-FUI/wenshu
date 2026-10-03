@@ -60,14 +60,11 @@ struct ShellMiddleColumn: View {
     // observation tracking inside body.
     @Bindable var envAppState: AppState
     let appState: AppState
-    // sidebarSelection lives in ShellState. ShellMiddleColumn's
-    // `previewScope()` reads it via `shell` (= the @Bindable
-    // Observable instance = observation tracking on every body
-    // render).
-    @Bindable var shell: ShellState
-    // previewSortOrder lives in WorkspaceUIState. The card grid's
-    // `previewSortOrder` binding (= passed to PreviewPane) reads
-    // via `workspaceUI`.
+    // previewSortOrder / sidebarSelection / activeTag live in
+    // WorkspaceUIState. The card grid's `previewSortOrder`
+    // binding (= passed to PreviewPane) reads via `workspaceUI`
+    // (= the @Bindable Observable instance = observation
+    // tracking on every body render).
     @Bindable var workspaceUI: WorkspaceUIState
     // `openCardInEditor` needs `BookStore.referenceStore` to load
     // reference bodies for double-clicked cards (= the same env

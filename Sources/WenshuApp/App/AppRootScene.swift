@@ -20,11 +20,10 @@ struct AppRootScene: Scene {
     let library: WenshuLibrary
     @Binding var appearanceMode: AppearanceMode
     let appState: AppState
-    /// Shell chrome state (= sidebar + inspector + chat zone +
-    /// inspector page). Injected via `.environment(shell)` at every
-    /// scene root (= WindowGroup content + Settings scene); = the 2
-    /// injection sites stay parallel.
-    let shell: ShellState
+    /// ShellState was removed in 2026-10-03 overabstraction cleanup
+    /// (= all 4 fields migrated to WorkspaceUIState + NavigationSplitShell
+    /// @State; = ShellState was the only remaining per-window state
+    /// class holding duplicated cross-column state).
     let workspaceUI: WorkspaceUIState
     /// Sheet-request triggers (= fire-and-forget counters for the
     /// .sheet(item:) consumer). Injected via `.environment(sheetRequests)`
@@ -63,7 +62,6 @@ struct AppRootScene: Scene {
             // view layers total = Apple canonical).
             LibraryRootView(library: library, appearanceMode: appearanceMode)
                 .environment(appState)
-                .environment(shell)
                 .environment(workspaceUI)
                 .environment(sheetRequests)
                 .environment(editorCounters)
@@ -351,7 +349,6 @@ struct AppRootScene: Scene {
         // because the Settings scene had no `.environment(appState)`
         // modifier (= only the WindowGroup's content view had one).
         .environment(appState)
-        .environment(shell)
         .environment(repositories)
         // add 2 dedicated `Window` scenes (= the SwiftUI macOS
         // 13+ API for SINGLE-INSTANCE independent windows; = the
