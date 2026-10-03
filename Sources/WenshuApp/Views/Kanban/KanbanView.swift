@@ -408,10 +408,11 @@ private struct KanbanColumn: View {
 /// button. Status stepper lets the user drag a ticket across columns
 /// (= state machine transitions per v0.23 ticket 013.003).
 ///
-/// kanban-detail-sheet 2026-09-28: tap target added on the card body
-/// (= Menu area excluded so the status-stepper still works). Clicking
-/// the card opens the read-only body sheet (= Phase 2 of the kanban-
-/// markdown arc; = mirrors hermes 0.21.5 drawer opening on card click).
+/// kanban-detail-sheet (= the v2.9 arc of kanban-markdown work): tap
+/// target added on the card body (= Menu area excluded so the
+/// status-stepper still works). Clicking the card opens the
+/// read-only body sheet (= mirrors hermes 0.21.5 drawer opening on
+/// card click).
 private struct KanbanCard: View {
     let ticket: KanbanTicket
     let onMove: (KanbanStatus) -> Void
@@ -420,8 +421,8 @@ private struct KanbanCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Phase 1 T5/T8 (2026-09-28): render ticket.body when
-            // present, going through the same inline-markdown parser
+            // Per iron-rule I-4 (= wenshu-comment-policy): ticket.body renders
+            // when present, going through the same inline-markdown parser
             // chat uses (= ChatTextPartView.parseMarkdown). Mirrors
             // hermes 0.21.5 commit 63f5bc0999: the kanban drawer
             // reuses MessageTextContent. wenshu's reuse keeps ONE

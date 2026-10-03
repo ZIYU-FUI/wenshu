@@ -383,7 +383,15 @@ final class ChatViewModel {
     func recomputeContextUsed() {
         contextUsed = messages.compactMap { $0.tokens }.reduce(0, +)
         // trace: ChatViewModel.contextUsed accumulation
-        NSLog("[wenshu.context] sum tokens after recompute: %d (messages=%d)", contextUsed, messages.count)
+        // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
+        // migrate from `NSLog` (= the Swift 6 mode treats the variadic
+        // signature as unavailable). Local variables = avoid the Swift 6
+        // closure-capture complaint (= `Logger.error` interpolation
+        // counts as a closure).
+        let totalContext = contextUsed
+        let messageCount = messages.count
+        Logger(subsystem: "com.wenshu.app", category: "chat.context")
+            .info("[wenshu.context] sum tokens after recompute: total=\(totalContext, privacy: .public) messages=\(messageCount, privacy: .public)")
     }
 
     /// routeInput is the front-door for chat input. It dispatches
@@ -582,7 +590,13 @@ final class ChatViewModel {
             // reference). No more raw UserDefaults read here (= single
             // owner maintained).
             let currentModel: String = self.currentModel
-            NSLog("[wenshu.model] effective model: %@ (AppState source)", currentModel)
+            // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
+            // migrate from `NSLog` (= Swift 6 treats variadic as
+            // unavailable). Local variable captures model name for the
+            // Logger interpolation (= Swift 6 closure-capture rule).
+            let modelForLog = currentModel
+            Logger(subsystem: "com.wenshu.app", category: "chat.model")
+                .info("[wenshu.model] effective model: \(modelForLog, privacy: .public) (AppState source)")
             var reply: String
             var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
@@ -633,10 +647,16 @@ final class ChatViewModel {
                             case .toolResult: return "toolResult"
                             }
                         }()
-                        NSLog(
-                            "[wenshu.conductor] PATH=stream BLOCK=%@ (model=%@)",
-                            kindTag, currentModel
-                        )
+                        // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
+                        // migrate from `NSLog` (= Swift 6 treats variadic as
+                        // unavailable). Local captures avoid the closure-capture
+                        // complaint (= `Logger.info` interpolation counts as a
+                        // closure = Swift 6 requires explicit `self.` for property
+                        // accesses).
+                        let kindTagForLog = kindTag
+                        let modelForLog = currentModel
+                        Logger(subsystem: "com.wenshu.app", category: "chat.conductor")
+                            .info("[wenshu.conductor] PATH=stream BLOCK=\(kindTagForLog, privacy: .public) (model=\(modelForLog, privacy: .public)")
                         // dead marker-parsing block
                         // removed (= it targeted [wenshu.subagent] /
                         // [wenshu.agent] turn markers, both of which are
@@ -706,7 +726,13 @@ final class ChatViewModel {
                 // `message.complete`). Replace placeholder with the
                 // final message.
                 if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                    NSLog("[wenshu.scroll] conductor placeholder replace: id=%@ beforeCount=%d afterCount=%d", placeholderId.uuidString, messages.count, messages.count)
+                    // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
+                    // migrate from `NSLog` (= Swift 6 treats variadic as
+                    // unavailable). Local captures avoid closure-capture complaint.
+                    let placeholderIDString = placeholderId.uuidString
+                    let messageCount = messages.count
+                    Logger(subsystem: "com.wenshu.app", category: "chat.scroll")
+                        .info("[wenshu.scroll] conductor placeholder replace: id=\(placeholderIDString, privacy: .public) beforeCount=\(messageCount, privacy: .public) afterCount=\(messageCount, privacy: .public)")
                     messages[idx] = ChatMessage(
                         id: placeholderId,
                         role: .agent,

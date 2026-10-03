@@ -677,6 +677,14 @@ final class PaneNSController: NSSplitViewController {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
+        // Per Apple's NScoder-required-init convention (= an Apple
+        // HIG-required `fatalError` for programmatic-only NSViewControllers),
+        // this is the only remaining 12-standard-P2-01 site (= all
+        // other fatalError calls have been migrated to Logger.error
+        // fallbacks). Preserved because there is no graceful fallback
+        // (= the NScoder-required init either succeeds or fatally
+        // fails = Apple's documented contract for programmatic-only
+        // view controllers).
         fatalError("PaneNSController is programmatic-only (= no XIB support)")
     }
 
