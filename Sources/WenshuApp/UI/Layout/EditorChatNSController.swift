@@ -227,7 +227,7 @@ final class EditorChatNSController: NSSplitViewController {
             // ChatZoneView reads WenshuLibrary + BookStore via
             // @Environment to drive setCurrentBookID(_:) when the
             // user picks a different book (= wired off
-            // shell.sidebarSelection mutations in ChatZoneView.body).
+            // workspaceUI.sidebarSelection mutations in ChatZoneView.body).
             // Without the env wrapper, the SwiftUI
             // @Environment(WenshuLibrary.self) +
             // @Environment(BookStore.self) wrappers crash with

@@ -146,7 +146,7 @@ struct ShellMiddleColumn: View {
         // (= which doesn't register Observation tracking; = previous
         // code's `previewScope()` read stale data because the body
         // never re-rendered).
-        switch shell.sidebarSelection {
+        switch workspaceUI.sidebarSelection {
         case .referenceLibraryRoot:
             return .referenceScope(nil)
         case .referenceCategory(let dirName):

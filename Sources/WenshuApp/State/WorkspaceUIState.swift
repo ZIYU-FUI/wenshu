@@ -115,7 +115,46 @@ final class WorkspaceUIState {
     /// `$workspaceUI.inspectorPage` (= cross-view state).
     var inspectorPage: InspectorPage = .authoringFiction
 
+    /// Sidebar tree selection (= 5 cases: .book(UUID) / .folder /
+    /// .shelf / .referenceCategory / .referenceLibraryRoot,
+    /// nil = nothing selected). Drives Preview pane scope (= see
+    /// WorkspaceView.previewScope).
+    ///
+    /// Persisted to `wenshu.sidebarSelection` UserDefaults key
+    /// (= JSON via Codable; = set by didSet = write back on every
+    /// change; = read by WorkspaceUIState.init() at launch).
+    /// The previous ShellState behavior is preserved 1:1.
+    var sidebarSelection: SidebarItem? = nil {
+        didSet {
+            // didSet is NOT called during init (= Swift property
+            // wrapper semantics), so this does NOT trigger a write
+            // back to UserDefaults on launch (= pure read-side
+            // migration). Encoded as JSON via the existing
+            // Codable conformance (= SidebarItem: Hashable,
+            // Codable, declared at `Views/Library/SidebarItem.swift`
+            // post-v1.69c split).
+            guard oldValue != sidebarSelection else { return }
+            if let item = sidebarSelection,
+               let data = try? JSONEncoder().encode(item) {
+                UserDefaultsStore.shared.setData(data, forKey: .sidebarSelection)
+            } else {
+                UserDefaultsStore.shared.remove(.sidebarSelection)
+            }
+        }
+    }
+
     init() {
         // In-memory only (= no UserDefaults read).
+        //
+        // Sidebar selection is the one field that persists across
+        // relaunch (= UserDefaults JSON via Codable; = matches the
+        // previous ShellState behavior). The didSet on
+        // `sidebarSelection` writes back, and the explicit read
+        // here in init() restores the last value (= didSet is
+        // suppressed during init = no write-back triggered).
+        if let data = UserDefaultsStore.shared.data(forKey: .sidebarSelection),
+           let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data) {
+            self.sidebarSelection = decoded
+        }
     }
 }

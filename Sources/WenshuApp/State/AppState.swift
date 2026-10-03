@@ -10,11 +10,11 @@
 // Why a global @Observable (= per Apple Observation framework,
 // Swift 5.9+):
 // 1. Instant reactivity (= any descendant view that reads
-//    `shell.sidebarSelection` auto-re-renders on change).
+//    `workspaceUI.sidebarSelection` auto-re-renders on change).
 // 2. Single source of truth (= one place for cross-zone signals).
 // 3. Zero plumbing (= no @Binding chain to thread through new
 //    views).
-// 4. Boss can debug = `print(shell.sidebarSelection)` directly
+// 4. Boss can debug = `print(workspaceUI.sidebarSelection)` directly
 //    (= vs grep NotificationCenter post names across N files).
 // 5. Apple-native (= no 3rd-party dep, AGENTS.md §11.1 stays
 //    unchanged).
@@ -67,7 +67,7 @@ final class AppState {
     // split). Drives Preview pane scope. Persisted to the same
     // UserDefaults key "wenshu.sidebarSelection" (= JSON via Codable).
     // The key string is unchanged so no user-data migration is
-    // needed. Callers now read `shell.sidebarSelection` (= via
+    // needed. Callers now read `workspaceUI.sidebarSelection` (= via
     // `@Environment(ShellState.self)` injected at AppRootScene).
 
     // previewSortOrder + editMode moved to WorkspaceUIState.swift

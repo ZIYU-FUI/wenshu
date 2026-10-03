@@ -71,7 +71,7 @@ struct WorkspaceView: View {
     // :
     // Sidebar selection persistence moved into NewLibraryOutlineView's
     // unified SidebarState (= single AppStorage key 'wenshu.sidebarState').
-    // WorkspaceView only reads shell.sidebarSelection (= single
+    // WorkspaceView only reads workspaceUI.sidebarSelection (= single
     // source of truth); no separate persistence here.
 
     /// card-grid sort order (= shared between
@@ -89,7 +89,7 @@ struct WorkspaceView: View {
     /// for the material management zone. Computed on every render so
     /// it stays in sync with `sidebarSelection`.
     private var previewScope: PreviewScope {
-        guard let item = shell.sidebarSelection else { return .empty }
+        guard let item = workspaceUI.sidebarSelection else { return .empty }
         switch item {
         case .book(let bookId):
             return .bookScope(bookId: bookId, folderName: nil)
