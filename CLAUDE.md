@@ -66,51 +66,54 @@
 ## 3. Directory Structure
 
 ```
-wenshu/                                                ← project root (v0.00.0)
-├── README.md                                          ← project face (landed v0.07)
-├── AGENTS.md                                          ← collaboration rules truth source (2026-08-22 English-only)
-├── CLAUDE.md                                          ← this file (landed v0.08)
+wenshu/                                                ← project root
+├── README.md                                          ← project face
+├── AGENTS.md                                          ← collaboration rules truth source (English-only)
+├── CLAUDE.md                                          ← this file
 ├── CONTEXT.md                                         ← domain glossary (see docs/agents/domain.md)
-├── .hermes/                                           ← design drafts (v0.07 sketch truth source etc.)
-├── wenshu.xcodeproj/                                  ← Xcode project (v0.01.0+)
-├── Package.swift                                      ← SwiftPM entry (v0.01.0+)
+├── .hermes/                                           ← design drafts
+├── Package.swift                                      ← SwiftPM entry (.macOS(.v27) single platform)
 ├── Sources/
-│   ├── WenshuApp/                                     ← SwiftUI App entry (macOS)
-│   ├── WenshuCore/                                    ← core (cross-platform shared)
-│   │   ├── Model/   (CDCharacter / CDChapter / CDNote / CDWorldRule / CDForeshadow / CDRevision / CDAIDraft)
-│   │   ├── Store/   (WenshuStoreActor / PersistenceController / WenshuModel.xcdatamodeld)
-│   │   ├── LLM/     (LLMProvider / connector profiles / SSEParser / LLMMessage)
-│   │   ├── Search/  (ContextAssembler / ChapterSummarizer)
-│   │   ├── Stage/   (StageGate / StageDetector)
-│   │   ├── Marker/  (TodoMarker / ForeshadowMarker / InfoPointMarker / FactCheckMarker)
-│   │   ├── Revision/(RevisionManager / DiffRenderer)
-│   │   └── Style/   (BuiltinStyles / StyleDistiller / StyleInference)
-│   ├── WenshuUI/                                      ← SwiftUI views (cross-platform)
-│   │   ├── ChatView / ProjectListView / DashboardView / EditorView / RelationGraphView / TimelineView / EmotionCurveView / DetailView
-│   └── WenshuPlatform/                                ← platform-specific (macOS / iPadOS / iOS)
+│   └── WenshuApp/                                     ← SwiftUI App entry (macOS)
+│       ├── App.swift                                  ← @main entry + AppRootScene
+│       ├── DesignTokens.swift                         ← Apple HIG-measured spacing / radius / shadow tokens
+│       ├── App/                                       ← scene-level orchestration
+│       ├── Chat/                                      ← chat zone (ChatView, ChatSlashCommandAutocomplete)
+│       ├── Core/                                      ← domain logic (Agent / Chat / LinkGraph / Memory / Provider / Search / Tools / Notifications / Auth / Foundation)
+│       ├── Domain/                                    ← pure value types (Book / BookFolderCatalog / SmartQuery / ...)
+│       ├── Editor/                                    ← markdown editor (EditorActions / EditorView)
+│       ├── Persistence/                               ← SwiftData @Model + Container + Repositories
+│       ├── Resources/                                 ← AppIcon.icns + Info.plist
+│       ├── Settings/                                  ← user settings pane
+│       ├── State/                                     ← @Observable state layer
+│       ├── Storage/                                   ← file-system stores (LibraryMigrator / FileSystemReferenceStore)
+│       ├── UI/                                        ← reusable SwiftUI components (IconStyles / DesignTokens / Layout / Segmented / Memory / PaneTabBar / ComponentIndex.md)
+│       └── Views/                                     ← feature views (Chat / Library / Onboarding / SpecializedTools / Workspace / Kanban / Graph / Outline / LinkGraph / LinkBack / Windows / Tools / Todo / LayoutPicker / Inspection)
 └── Tests/
-    ├── WenshuCoreTests/                               ← unit tests
-    └── WenshuIntegrationTests/                        ← integration tests
+    └── WenshuAppTests/                                ← XCTest + Swift Testing
+        ├── Persistence/                               ← ContainerTests / Repository tests
+        ├── Views/                                     ← feature view tests
+        ├── Agent/                                     ← conductor / connector / tool tests
+        └── Integration/                               ← IntegrationPlanEndToEndTests
 ```
 
 ## 4. Modules (文枢 perspective)
 
 | Module | Path | Responsibility | Deps |
 |--------|------|----------------|------|
-| MainActor chat layer | `Sources/WenshuApp/` | User chat always responsive, stage gate, board render, `@` syntax parse | WenshuCore, WenshuUI |
-| Background tasks | `Sources/WenshuCore/LLM/` + `/Search/` | LLM call, chapter summary, research, revision candidate, style distill | WenshuCore, LLM connector layer |
-| Store actor | `Sources/WenshuApp/Persistence/Repositories/` | SwiftData @Model repositories + ModelContainer, transaction, version mgmt | SwiftData |
-| LLM connector layer | `Sources/WenshuCore/LLM/` | 7 connector profiles (BYOK, see AGENTS.md §11.2), SSE streaming, key mgmt | Connector APIs |
-| Stage gate | `Sources/WenshuCore/Stage/` | Idea / setting / outline / body stage switch, maturity judge | WenshuCore |
-| Marker system | `Sources/WenshuCore/Marker/` | `※` todo / foreshadow / info-point / fact-check | WenshuCore |
-| Revision candidate | `Sources/WenshuCore/Revision/` | Revision generation, redline diff, post-confirm | WenshuCore |
-| Writing style | `Sources/WenshuCore/Style/` | Built-in + user reverse-inference + upload distill | WenshuCore |
-| Context assembly | `Sources/WenshuCore/Search/` | Long-term memory → LLM minimal context | WenshuCore, LLM connector layer |
-| Board | `Sources/WenshuUI/DashboardView.swift` | Main stage smart filter, detail page full expand | WenshuCore |
-| Editor | `Sources/WenshuUI/EditorView.swift` | Body edit, selection right-click, marker, revision display | WenshuCore |
-| Relation graph | `Sources/WenshuUI/RelationGraphView.swift` | Character relationship visualization | WenshuCore |
-| Timeline | `Sources/WenshuUI/TimelineView.swift` | Story timeline | WenshuCore |
-| Emotion curve | `Sources/WenshuUI/EmotionCurveView.swift` | Emotion / pacing / intensity curve | WenshuCore |
+| App entry | `Sources/WenshuApp/App.swift` + `Sources/WenshuApp/App/AppRootScene.swift` | SwiftUI App + NavigationSplitView root scene | SwiftUI |
+| MainActor chat layer | `Sources/WenshuApp/Views/Chat/` | User chat always responsive, slash commands, tool diff preview | Core |
+| Background agent tasks | `Sources/WenshuApp/Core/Agent/` | LLM call, chapter summary, research, revision candidate, style distill, librarian, todo, kanban, specialized tools | Core |
+| SwiftData @Model + Container | `Sources/WenshuApp/Persistence/` | 22 explicit @Model classes + WSPersistenceContainer + 8 Repositories | SwiftData |
+| LLM connector layer | `Sources/WenshuApp/Core/Agent/Connector/` | Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / Minimax connectors (7 BYOK profiles per AGENTS.md §11.2; additional Provider enum cases for OAuth / codex / copilot flow internally) | Connector APIs |
+| Memory + context | `Sources/WenshuApp/Core/Memory/` + `Sources/WenshuApp/Core/Search/` | WSMemoryProvider + CSSearchableIndexSearch | Core |
+| Notifications | `Sources/WenshuApp/Core/Notifications/` | AppNotifications | AppKit |
+| Auth pool | `Sources/WenshuApp/Core/Auth/` | AuthPool | Security |
+| Tools layer | `Sources/WenshuApp/Core/Tools/` | AVMediaTools + cross-tool helpers | Core |
+| Library state | `Sources/WenshuApp/State/` + `Sources/WenshuApp/Views/Library/` | LayoutTreeState + SidebarService + LibraryRootView | App entry |
+| Workspace / Editor / Tools panes | `Sources/WenshuApp/Views/Workspace/` + `Sources/WenshuApp/Editor/` + `Sources/WenshuApp/Views/Tools/` | EditorView + PreviewPane + specialized tools | App entry |
+| Specialized tools UI | `Sources/WenshuApp/Views/SpecializedTools/` | IdeaLibraryView / CharacterLifecycleView / ForeshadowingView / etc. | Core |
+| Kanban + Todo + Bookmark UI | `Sources/WenshuApp/Views/Kanban/` + `Sources/WenshuApp/Views/Todo/` | SubAgentProgressView / TodoListView | Core |
 
 ## 5. Web / IPC Interface (文枢 specific)
 
@@ -119,9 +122,9 @@ wenshu/                                                ← project root (v0.00.0
 | Internal interface | Path | Use |
 |--------------------|------|-----|
 | `WSPersistenceContainer` | `Sources/WenshuApp/Persistence/Container.swift` | SwiftData ModelContainer. Single ModelContainer per app (= 22 @Model classes). |
-| `LLMConnector` protocol | `Sources/WenshuCore/LLM/LLMConnector.swift` | Abstract LLM call. 7 connector profiles conform (Anthropic native / OpenAI native / OpenAI-compatible / Gemini native). See AGENTS.md §11.2. |
-| `ContextAssembler` | `Sources/WenshuCore/Search/ContextAssembler.swift` | Long-term memory → LLM minimal context. |
-| `StageGate` | `Sources/WenshuCore/Stage/StageGate.swift` | Stage gate main controller. |
+| `LLMConnector` protocol | `Sources/WenshuApp/Core/Agent/Connector/LLMConnector.swift` | Abstract LLM call. 7 connector profiles conform (Anthropic native / OpenAI native / OpenAI-compatible / Gemini native). See AGENTS.md §11.2. |
+| `ContextAssembler` (= `CSSearchableIndexSearch`) | `Sources/WenshuApp/Core/Search/CSSearchableIndexSearch.swift` | Long-term memory → LLM minimal context (Apple Core Spotlight backed). |
+| Stage gate | not yet implemented (= pre-pinned for v0.41+ backlog; = see wenshu-pocock-workflow references) | (placeholder; = pending decision per boss) |
 
 ## 6. Project Conventions
 
@@ -222,17 +225,16 @@ swift run swiftlint
 - Ollama: `http://localhost:11434/v1/chat/completions` (OpenAI-compatible; no auth, local).
 - OpenRouter: `https://openrouter.ai/api/v1/chat/completions` (OpenAI-compatible; one key, all models).
 
-**pocock key file list** (v0.08 phase, post-baseline-rewrite):
+**pocock key file list** (current at v0.72 SwiftData + 7-connector era):
 
 - `Sources/WenshuApp/App.swift` — SwiftUI App entry.
-- `Sources/WenshuApp/MainView.swift` — main view.
+- `Sources/WenshuApp/App/AppRootScene.swift` — NavigationSplitView root scene.
 - `Sources/WenshuApp/Persistence/WS*.swift` — SwiftData @Model classes (schema change requires 老板 拍).
 - `Sources/WenshuApp/Persistence/Container.swift` — SwiftData ModelContainer setup (= 22 @Model classes, single container per app).
-- `Sources/WenshuCore/LLM/LLMConnector.swift` — LLM connector protocol (7 profiles conform).
-- `Sources/WenshuCore/LLM/SSEParser.swift` — SSE streaming parser (by event type).
-- `Sources/WenshuCore/Stage/StageGate.swift` — stage gate.
-- `Sources/WenshuCore/Search/ContextAssembler.swift` — long-term memory → LLM context.
-- `Sources/WenshuUI/EditorView.swift` — body editor.
+- `Sources/WenshuApp/Core/Agent/Connector/LLMConnector.swift` — LLM connector protocol (7 BYOK profiles conform per AGENTS.md §11.2).
+- `Sources/WenshuApp/Core/Agent/Connector/SSEParser.swift` — SSE streaming parser (by event type).
+- `Sources/WenshuApp/Core/Search/CSSearchableIndexSearch.swift` — context assembly (Apple Core Spotlight).
+- `Sources/WenshuApp/Editor/EditorView.swift` — body editor.
 
 ## 10. References
 
