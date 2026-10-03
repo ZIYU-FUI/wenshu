@@ -8,7 +8,7 @@
 // (= WorkspaceView test coverage expansion). v0.82-83 covered 3
 // subcomponents; v0.87 covered 4; v0.88 covered the main WorkspaceView;
 // 
-// (= PaneView, EditorPlaceholder, EditorPaperCanvas).
+// (= PaneView, EditorView, EditorPaperCanvas).
 // This ticket covers the simplest = EditorPaperCanvas.
 //
 // EditorPaperCanvas is a generic struct that takes @ViewBuilder
@@ -19,7 +19,7 @@
 // source-level structural assertions per v0.82 pattern.
 //
 // 
-// pattern as v1.33 EditorPlaceholderTests = robust to worktree
+// pattern as v1.33 EditorViewTests = robust to worktree
 // relocations).
 
 import Foundation

@@ -3,16 +3,16 @@
 // Extracted from `Sources/WenshuApp/Views/Workspace/WorkspaceView.swift`
 // (= the legacy monolith). Same module, no new import.
 //
-// Consumer: `Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift`
+// Consumer: `Sources/WenshuApp/Views/Workspace/EditorView.swift`
 // (= calls `EditorPaperCanvas { ... }` to render the markdown
 // editor surface inside an A4-shaped white sheet).
 //
 // DEFERRED: ViewInspector test coverage is deferred (= the view
-// is the structural twin of `EditorPlaceholder` = no SwiftUI
+// is the structural twin of `EditorView` = no SwiftUI
 // rendering path required for the consumer = structural tests
 // are sufficient). This file is NOT dead code (= the third-party
 // verdict does not have authority here); the extract arc landed
-// in the same merge as `EditorPlaceholder`.
+// in the same merge as `EditorView`.
 
 
 import SwiftUI

@@ -31,7 +31,7 @@ struct EditorEditContent: View {
     @Binding var draft: String
     let originalBody: String
     let onSave: () -> Void
-    // chapter-focus-lock 2026-09-28: caller (= EditorPlaceholder)
+    // chapter-focus-lock 2026-09-28: caller (= EditorView)
     // computes this from AppState.focusedChapterPath vs the tab's
     // documentPath. When true, the LLM holds the cursor for this
     // chapter path (= the boss has the editor focused); = the
@@ -103,7 +103,7 @@ struct EditorEditContent: View {
             isEditable: !isChapterLockedByLLM
         )
             // (= per-keystroke; = Foundation-only recompute). Host
-            // (EditorPlaceholder) routes the value into
+            // (EditorView) routes the value into
             // AppState.editorWordCount for the chrome bottom-bar left
             // field. WordCounter.count's charactersNoSpaces matches
             // Obsidian's default Word count plugin behavior (= exclude

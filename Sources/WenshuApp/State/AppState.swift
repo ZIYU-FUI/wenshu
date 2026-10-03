@@ -103,7 +103,7 @@ final class AppState {
     var searchText: String = ""
 
     // editorWordCount moved to EditorCounters.swift (= P2-06 split
-    // batch 5 = editor zone counter). EditorPlaceholder writes via
+    // batch 5 = editor zone counter). EditorView writes via
     // .onChange(of: draft) callback (= the host routes the value);
     // = chrome bottom-bar left field would read via @Environment
     // (= current callers: 0 readers in this commit; = future
@@ -114,7 +114,7 @@ final class AppState {
     // document (= independent draft, mode, auto-save task, file
     // watcher). activeTabId identifies the currently focused tab.
     // Single source of truth across views (= TabContentDispatcher,
-    // EditorPlaceholder, any future cross-zone tab bar).
+    // EditorView, any future cross-zone tab bar).
     // boss 9/7 OOB 'delete, ': persist
     // openTabs + activeTabId across launches (= JSON in UserDefaults).
     // Empty array on launch = no persisted tabs = editor zone shows
@@ -130,7 +130,7 @@ final class AppState {
     // chapter's tab open AND that tab is the currently-active one
     // (= LLM tool calls into this path throw `chapterFocusedByBoss`).
     // chatVisible gate (= LLM can edit when boss is in chat) lives
-    // at the call site (= EditorPlaceholder computes the final
+    // at the call site (= EditorView computes the final
     // isChapterLockedByLLM using its @Environment(ShellState.self)
     // because AppState cannot hold @Environment-bound state).
     var focusedChapterPath: String? {
@@ -217,7 +217,7 @@ final class AppState {
     /// pattern where the tab bar is always visible).
     ///
     /// Why a static welcome tab (= not a "no document" placeholder):
-    /// - EditorPlaceholder's tab strip iterates `appState.openTabs`;
+    /// - EditorView's tab strip iterates `appState.openTabs`;
     ///   = an empty list = zero tabs = no tab strip = the editor
     ///   top tab bar is invisible.
     /// - The welcome tab has `documentPath = nil` (= renders the
@@ -364,7 +364,7 @@ final class AppState {
         // UserDefaults on launch (= pure read-side migration).
         self.llmModel = UserDefaultsStore.shared.string(forKey: .llmModel)
         // boss 9/7 OOB: restore persisted open tabs BEFORE
-        // any view reads appState.openTabs (= EditorPlaceholder's
+        // any view reads appState.openTabs (= EditorView's
         // .onAppear reads it). Sets openTabs via the regular
         // assignment (= triggers didSet → persistOpenTabs = write
         // back the same data; = harmless redundant write).
@@ -395,7 +395,7 @@ struct PersistedEditorTab: Codable {
 }
 
 // per-tab editor state. Holds all data that was previously
-// View-local @State on EditorPlaceholder (= draft, originalBody,
+// View-local @State on EditorView (= draft, originalBody,
 // mode, documentPath, autoSaveTask, fileWatcher). Each tab = one open
 // document with independent state; = when the user opens a 2nd
 // document via double-click (= boss 9/2 OOB scenario), it creates a
@@ -433,7 +433,7 @@ final class EditorTab: Identifiable {
     var sourceScope: PreviewScope?
 
     // (per-tab): auto-save debounce Task. Replaces
-    // EditorPlaceholder's View-local autoSaveTask (= that pattern
+    // EditorView's View-local autoSaveTask (= that pattern
     // worked for one tab but doesn't survive a tab switch; = the
     // 3-second timer must follow the active tab).
     var autoSaveTask: Task<Void, Never>?
@@ -512,10 +512,10 @@ final class EditorTab: Identifiable {
 
 // top-level enum (= EditorTab is a top-level class; = can't
 // reference nested Mode). Mirrors the previous nested enum (= .preview
-// / .edit) but lifted to module scope. Was: EditorPlaceholder.Mode.
+// / .edit) but lifted to module scope. Was: EditorView.Mode.
 // Carries iconName + tooltip (= the format-bar / keyboard-shortcut
 // helpers previously read these from the nested Mode; = kept here
-// so EditorTab / EditorPlaceholder can both reference them).
+// so EditorTab / EditorView can both reference them).
 enum EditorMode: String, CaseIterable, Identifiable {
     case preview
     case edit

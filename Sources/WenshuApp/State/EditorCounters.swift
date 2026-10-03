@@ -48,7 +48,7 @@ final class EditorCounters {
     // Editor zone's live word count, owned globally so
     // both the chrome bottom-bar left field (= ": N" in
     // TabContentDispatcher.editor case) and any future editor-zone
-    // status widgets share one source of truth. EditorPlaceholder
+    // status widgets share one source of truth. EditorView
     // writes via .onChange(of: draft); chrome reads via @Environment.
     var wordCount: Int = 0
 

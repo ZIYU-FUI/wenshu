@@ -16,7 +16,7 @@ import SwiftUI
 struct ShellContentColumn: View {
     let appState: AppState
     // Pass BookStore through to EditorChatSplitHost (= the editor
-    // pane's EditorPlaceholder needs bookStore for
+    // pane's EditorView needs bookStore for
     // WenshuEditorServicesFactory = builds the engine's
     // WikiLinkResolver + ImageProvider against the active book
     // root).
@@ -37,7 +37,7 @@ struct ShellContentColumn: View {
         // pattern is VSplitView.
         //
         // Two .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // modifiers on the direct children (= EditorPlaceholder +
+        // modifiers on the direct children (= EditorView +
         // ChatZoneView) = both children fill the VSplitView slot
         // (= no content-sized shrinkage).
         //
@@ -80,7 +80,7 @@ struct ShellContentColumn: View {
             conductor: WenshuAppDelegate.sharedConductor,
             // Thread AppState + BookStore through the SwiftUI →
             // AppKit boundary (= NSViewControllerRepresentable)
-            // so the editor pane's EditorPlaceholder can read
+            // so the editor pane's EditorView can read
             // appState.openTabs + activeTabId + bookStore for
             // WenshuEditorServicesFactory.
             appState: appState,

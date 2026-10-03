@@ -123,7 +123,7 @@ struct PaneView: View {
             // wrapper (= was ABOVE the tab strip, = wrong position).
             // Search bar now lives inside PreviewPane.body (= same Y
             // as the editor's pencil/arrow toolbar inside
-            // EditorPlaceholder).
+            // EditorView).
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
@@ -187,7 +187,7 @@ struct PaneView: View {
         case .editor:
             // Old 6-zone editor = 3 tabs (Edit / Outline / Backlinks) + trailingButton
             // (expand/shrink toggle). Real ZoneContentView — replaces
-            // EditorPlaceholder (= which was just text "Editor zone
+            // EditorView (= which was just text "Editor zone
             // integration pending").
             // Book-open-text + puzzle + link.
             ZoneContentView(
@@ -195,8 +195,8 @@ struct PaneView: View {
                 tabs: [
                     // fix (= boss 9/2 'git grep BEFORE patch' rule):
                     // see L279 fix comment above; replace placeholder with
-                    // EditorPlaceholder (= the toolbar + mode toggle surface).
-                    (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorPlaceholder())),
+                    // EditorView (= the toolbar + mode toggle surface).
+                    (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorView())),
                     (WenshuI18n.t("tab.title.outline"), "puzzle", AnyView(OutlinePanel())),
                     // removed the "Backlinks" tab here (= boss 9/2 OOB
                     // 'the Backlinks area still has to be removed'). Backlinks are now

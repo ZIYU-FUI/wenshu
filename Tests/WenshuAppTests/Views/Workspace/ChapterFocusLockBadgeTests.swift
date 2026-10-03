@@ -23,7 +23,7 @@ struct ChapterFocusLockBadgeTests {
 
     @Test("Editor placeholder surfaces the badge when the LLM holds the cursor")
     func editorSurfacesBadge() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Workspace/EditorView.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         // The badge sits next to the title when the LLM has the
         // cursor (= focusedChapterPath == tab.documentPath AND
@@ -33,7 +33,7 @@ struct ChapterFocusLockBadgeTests {
         let hasBadgeView = source.contains("ChapterFocusLockBadge") ||
             (source.contains("Image(systemName:") && source.contains("WenshuI18n.t(\"chatview.focus_lock.badge\")"))
         #expect(hasBadgeView,
-                "EditorPlaceholder must render the LLM-editing badge when the LLM holds the cursor")
+                "EditorView must render the LLM-editing badge when the LLM holds the cursor")
     }
 
     // MARK: - Repo-root path helper

@@ -81,7 +81,7 @@ struct FormatToolbarButtons: View {
 /// P2 #19 (WIRE-PARAGRAPH-002): testable static helper that
 /// contains the pure paragraph_ai pipeline (= prompt prefix +
 /// connector send + first .text block extraction). Extracted
-/// out of `EditorPlaceholder.applyParagraphAI` so the test
+/// out of `EditorView.applyParagraphAI` so the test
 /// target can exercise the behavior without instantiating the
 /// SwiftUI view graph (= no AppState, no BookStore, no file
 /// watcher plumbing required).

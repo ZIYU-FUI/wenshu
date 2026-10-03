@@ -7,7 +7,7 @@
 //  magic `.shadow(...y: 4)` / `.shadow(...y: 2)` offsets.
 //
 //  Swept sites (= 5):
-//  - Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift
+//  - Sources/WenshuApp/Views/Workspace/EditorView.swift
 //    L153 .accentColor.opacity(0.12) →
 //    .accentColor.opacity(DesignTokens.accentTintOpacitySubtle)
 //  - Sources/WenshuApp/Views/SpecializedTools/EmotionCurveView.swift
@@ -50,7 +50,7 @@ struct AccentTintOpacityShadowOffsetSweepTests {
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles = [
-            ("Views/Workspace/EditorPlaceholder.swift", "accentTintOpacitySubtle"),
+            ("Views/Workspace/EditorView.swift", "accentTintOpacitySubtle"),
             ("Views/SpecializedTools/EmotionCurveView.swift", "accentTintOpacitySubtle"),
             ("Views/Workspace/PreviewPane.swift", "accentTintOpacityHero"),
             ("Views/Workspace/LayoutPicker/LayoutEditBar.swift", "surfaceShadowOffsetWindow"),

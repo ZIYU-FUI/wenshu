@@ -8,7 +8,7 @@
 //  above the editor content (= same shape as Pages / Numbers'
 //  'Saving...' badge next to the document title).
 //
-//  The badge is rendered by EditorPlaceholder when
+//  The badge is rendered by EditorView when
 //  focusedChapterPath == currentTab.documentPath AND
 //  !shellState.chatVisible (= the boss is looking at the editor,
 //  not the chat column). When the LLM's edit completes, the

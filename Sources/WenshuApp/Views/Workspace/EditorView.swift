@@ -1,4 +1,4 @@
-// Sources/WenshuApp/Views/Workspace/EditorPlaceholder.swift
+// Sources/WenshuApp/Views/Workspace/EditorView.swift
 //
 // Editor placeholder shown when no editor tab is active (= the
 // workspace shape + CTA). Extracted from WorkspaceView.swift
@@ -10,7 +10,7 @@
 //
 // Lucide import drop: Apple's SF Symbols is the canonical icon
 // source (= built into macOS 27 = zero SPM dependency).
-// because EditorPlaceholderTests.swift already exists in
+// because EditorViewTests.swift already exists in
 // tests/WenshuAppTests/Views/Workspace/.
 //
 // Minimal split = 1 struct
@@ -22,10 +22,10 @@
 import SwiftUI
 import MarkdownEngine
 
-struct EditorPlaceholder: View {
+struct EditorView: View {
     // Mode enum lifted to module scope (= EditorMode, in
     // AppState.swift; = so EditorTab can reference it). The nested
-    // Mode enum was removed; = EditorPlaceholder.Mode.iconName /
+    // Mode enum was removed; = EditorView.Mode.iconName /
     // .tooltip helpers became EditorMode.iconName / .tooltip (= same
     // shape; = one-line update at every usage).
     /// mode lives on the active tab (= AppState.openTabs
@@ -208,7 +208,7 @@ struct EditorPlaceholder: View {
                 // Placeholder sample body
                 // real document load (= the Apple HIG DocumentGroup
                 // file-open path is the v0.35+ ticket).
-                // (= boss 9/3 'preview BUG is still there'): EditorPlaceholder
+                // (= boss 9/3 'preview BUG is still there'): EditorView
                 // preview mode previously rendered `Self.samplePreviewBody`
                 // (= static placeholder string) regardless of which tab
                 // was active. Replaced with `self.draft` (= per-tab
@@ -377,7 +377,7 @@ struct EditorPlaceholder: View {
                             // (= stable across onChange of draft).
                             // ticket-id (history)-B: pass bookStore directly;
                             // factory handles nil (= the v0.39 path that
-                            // survives the AnyView-wrapped EditorPlaceholder
+                            // survives the AnyView-wrapped EditorView
                             // when the environment chain hasn't propagated
                             // BookStore yet on early zone activation).
                             configuration: WenshuEditorServicesFactory.make(
@@ -461,7 +461,7 @@ struct EditorPlaceholder: View {
             //      UserDefaults) → use those directly.
             //   2. No persisted tabs → editor zone shows the
             // empty-state hint (= "libraryin progressdouble-clickcardopen")
-            //      via EditorPlaceholder's nil-activeTab branch.
+            //      via EditorView's nil-activeTab branch.
             // The .edit-mode upgrade from .preview still runs for
             // any tabs that survived (= the canonical pre-extended surface).
             for idx in appState.openTabs.indices {
@@ -523,7 +523,7 @@ struct EditorPlaceholder: View {
     // the real document load). dirty = draft != originalBody (= ticket
     // 08 reads this for the Save button's .tint highlight).
     // per-tab state lives on AppState.openTabs[activeTabIndex].
-    // EditorPlaceholder reads/writes the ACTIVE tab (= single source of
+    // EditorView reads/writes the ACTIVE tab (= single source of
     // truth). These computed properties expose the per-tab state to the
     // rest of the view (= the @State versions are gone; = switching
     // tabs switches the active data set; = matches Safari behavior).
@@ -548,7 +548,7 @@ struct EditorPlaceholder: View {
         // boss 9/7 OOB: when no tab is open, return empty string
         // (= no samplePreviewBody placeholder). The editor zone
         // shows its empty-state hint (= "libraryin progressdouble-clickcardopen")
-        // via EditorPlaceholder's nil-activeTab branch.
+        // via EditorView's nil-activeTab branch.
         get { activeTab?.draft ?? "" }
         nonmutating set {
             guard let idx = activeTabIndex else { return }
@@ -737,7 +737,7 @@ struct EditorPlaceholder: View {
     ///    returned text.
     ///
     /// Concurrency: Swift 6 strict concurrency. The view is
-    /// @MainActor (= EditorPlaceholder is a SwiftUI View; = the
+    /// @MainActor (= EditorView is a SwiftUI View; = the
     /// compiler infers MainActor isolation). `await
     /// connector.send(...)` hops off MainActor for the URL
     /// session, then returns; the final `replaceSelectedText`

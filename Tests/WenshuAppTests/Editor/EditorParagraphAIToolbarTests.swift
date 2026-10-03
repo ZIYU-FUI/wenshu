@@ -17,7 +17,7 @@
 //
 //  Per Q182.4: Swift Testing framework (= wenshu convention since
 // 
-//  test (EditorPlaceholder is a SwiftUI View = MainActor).
+//  test (EditorView is a SwiftUI View = MainActor).
 //
 //  Test scope (= per the ticket hard rules): the toolbar struct
 //  itself is `private struct` inside WorkspaceView.swift, so the
@@ -115,7 +115,7 @@ struct EditorParagraphAIToolbarTests {
 
         // Acceptance: the apply helper returns the first .text block
         // (= the LLM-rewritten paragraph). Production wiring
-        // (= EditorPlaceholder.applyParagraphAI) passes this string
+        // (= EditorView.applyParagraphAI) passes this string
         // to replaceSelectedText which writes it back to the draft.
         #expect(result == rewrittenParagraph)
 

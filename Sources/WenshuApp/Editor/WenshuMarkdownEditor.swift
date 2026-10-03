@@ -27,7 +27,7 @@ struct WenshuMarkdownEditor: View {
     // (= zero visual scaling between modes; = Apple HIG canonical
     // for WYSIWYG / preview-vs-edit surfaces).
     //
-    // Caller (= EditorPlaceholder / EditorEditContent) passes
+    // Caller (= EditorView / EditorEditContent) passes
     // `isEditable: (mode == .edit)`. Preview = read-only NSTextView,
     // edit = editable NSTextView, same component, same font scale,
     // same line height, same textContainerInset, same NSTextLayoutManager.

@@ -1,6 +1,6 @@
-// EditorPlaceholderTests.swift · Wenshu · v0.93 ticket 003
+// EditorViewTests.swift · Wenshu · v0.93 ticket 003
 //
-// Source-level structural tests for EditorPlaceholder (= the editor
+// Source-level structural tests for EditorView (= the editor
 // pane's wrapper that holds the tab strip + the editing surface
 // + dirty-discard alert + various handlers; = ~1100 LOC body, the
 // most complex of the 3 helper structs in WorkspaceView.swift).
@@ -8,12 +8,12 @@
 // 
 // (= WorkspaceView test coverage expansion). v0.93 ticket 001 =
 // EditorPaperCanvas (8 tests).  = PaneView (6 tests).
-// This ticket = EditorPlaceholder (= the most complex; =
+// This ticket = EditorView (= the most complex; =
 // source-level structural only; = ViewInspector behavior tests would
 // require significant mock scaffolding per v0.77 spec deferral).
 //
 // Per v0.77 spec + Q34 5.4: ViewInspector behavior tests on
-// EditorPlaceholder (= with @State + @Environment + nested Button +
+// EditorView (= with @State + @Environment + nested Button +
 // .alert + .onChange) require ~150-200 LOC of mock scaffolding that
 // exceeds 1-ticket scope per Q112. Source-level structural assertions
 // capture the boss-spec invariants (= the v0.34 + v0.40 + v1.0.0-m1
@@ -23,13 +23,13 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("EditorPlaceholder (v0.93 — editor pane wrapper with tab strip + dirty alert)")
-struct EditorPlaceholderTests {
+@Suite("EditorView (v0.93 — editor pane wrapper with tab strip + dirty alert)")
+struct EditorViewTests {
     /// 
-    /// EditorPlaceholder source path from THIS test file's path
+    /// EditorView source path from THIS test file's path
     /// (= #filePath). This means the tests work regardless of
     /// where the worktree is mounted (= v1.32 hit a build failure
-    /// when EditorPlaceholder was in a worktree because the old
+    /// when EditorView was in a worktree because the old
     /// hardcoded path pointed to the main worktree).
     private static var editorPlaceholderPath: String {
         let testFileURL = URL(fileURLWithPath: #filePath)
@@ -44,11 +44,11 @@ struct EditorPlaceholderTests {
             .appendingPathComponent("WenshuApp")
             .appendingPathComponent("Views")
             .appendingPathComponent("Workspace")
-            .appendingPathComponent("EditorPlaceholder.swift")
+            .appendingPathComponent("EditorView.swift")
             .path
     }
 
-    private func readEditorPlaceholderSource() throws -> String {
+    private func readEditorViewSource() throws -> String {
         return try String(contentsOfFile: Self.editorPlaceholderPath, encoding: .utf8)
     }
 
@@ -56,36 +56,36 @@ struct EditorPlaceholderTests {
     @Test("struct conforms to View")
     func conformsToView() throws {
         
-        let source = try readEditorPlaceholderSource()
-        let startRange = source.range(of: "struct EditorPlaceholder")!
+        let source = try readEditorViewSource()
+        let startRange = source.range(of: "struct EditorView")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
         let editorPlaceholderSection = String(section[..<endOfStruct])
-        #expect(editorPlaceholderSection.contains("struct EditorPlaceholder: View"),
-                "EditorPlaceholder must conform to View protocol")
+        #expect(editorPlaceholderSection.contains("struct EditorView: View"),
+                "EditorView must conform to View protocol")
     }
 
     @Test("reads AppState + BookStore from environment")
     func readsAppStateAndBookStore() throws {
         
-        let source = try readEditorPlaceholderSource()
-        let startRange = source.range(of: "struct EditorPlaceholder")!
+        let source = try readEditorViewSource()
+        let startRange = source.range(of: "struct EditorView")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
         let editorPlaceholderSection = String(section[..<endOfStruct])
         #expect(editorPlaceholderSection.contains("@Environment(AppState.self) private var appState"),
-                "EditorPlaceholder must read AppState from environment (= v0.34 B-24)")
+                "EditorView must read AppState from environment (= v0.34 B-24)")
         #expect(editorPlaceholderSection.contains("@Environment(BookStore.self) private var bookStore"),
-                "EditorPlaceholder must read BookStore from environment (= v0.39 ticket 001)")
+                "EditorView must read BookStore from environment (= v0.39 ticket 001)")
     }
 
     @Test("mode reads from active tab (= per-tab preview/edit state per Safari)")
     func modeReadsFromActiveTab() throws {
         
-        let source = try readEditorPlaceholderSource()
-        let startRange = source.range(of: "struct EditorPlaceholder")!
+        let source = try readEditorViewSource()
+        let startRange = source.range(of: "struct EditorView")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
@@ -98,16 +98,16 @@ struct EditorPlaceholderTests {
         let codeRegion = codeLines.joined(separator: "\n")
 
         #expect(codeRegion.contains("private var mode: EditorMode {"),
-                "EditorPlaceholder must declare private var mode: EditorMode computed (= v0.34 B-24)")
+                "EditorView must declare private var mode: EditorMode computed (= v0.34 B-24)")
         #expect(codeRegion.contains("appState.openTabs.first(where: { $0.id == appState.activeTabId })?.mode ?? .preview"),
-                "EditorPlaceholder mode must read from active tab (= v0.34 B-24 Safari behavior)")
+                "EditorView mode must read from active tab (= v0.34 B-24 Safari behavior)")
     }
 
     @Test("declares selectedText + isApplyingParagraphAI @State vars (= P2 #19)")
     func declaresSelectionAndApplyingState() throws {
         
-        let source = try readEditorPlaceholderSource()
-        let startRange = source.range(of: "struct EditorPlaceholder")!
+        let source = try readEditorViewSource()
+        let startRange = source.range(of: "struct EditorView")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
@@ -120,29 +120,29 @@ struct EditorPlaceholderTests {
         // Per P2 #19 (WIRE-PARAGRAPH-002): live editor selection snapshot
         // + applyParagraphAI spinner flag.
         #expect(codeRegion.contains("@State private var selectedText: String = \"\""),
-                "EditorPlaceholder must declare @State var selectedText (= P2 #19 WIRE-PARAGRAPH-002)")
+                "EditorView must declare @State var selectedText (= P2 #19 WIRE-PARAGRAPH-002)")
         #expect(codeRegion.contains("@State private var isApplyingParagraphAI: Bool = false"),
-                "EditorPlaceholder must declare @State var isApplyingParagraphAI (= P2 #19 Apple HIG actionable-control-while-busy rule)")
+                "EditorView must declare @State var isApplyingParagraphAI (= P2 #19 Apple HIG actionable-control-while-busy rule)")
     }
 
     @Test("exposes public setSelection(_:) (= engine bridge entry point)")
     func exposesSetSelection() throws {
         
-        let source = try readEditorPlaceholderSource()
-        let startRange = source.range(of: "struct EditorPlaceholder")!
+        let source = try readEditorViewSource()
+        let startRange = source.range(of: "struct EditorView")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
         let editorPlaceholderSection = String(section[..<endOfStruct])
         #expect(editorPlaceholderSection.contains("func setSelection(_ text: String) {"),
-                "EditorPlaceholder must expose public func setSelection(_ text: String) (= engine NSTextViewDelegate bridge entry point per P2 #19)")
+                "EditorView must expose public func setSelection(_ text: String) (= engine NSTextViewDelegate bridge entry point per P2 #19)")
     }
 
     @Test("body starts with VStack + Safari-style tab strip (= v1.0.0-m1 OOB)")
     func bodyUsesSafariStyleTabStrip() throws {
         
-        let source = try readEditorPlaceholderSource()
-        let startRange = source.range(of: "struct EditorPlaceholder")!
+        let source = try readEditorViewSource()
+        let startRange = source.range(of: "struct EditorView")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
@@ -150,18 +150,18 @@ struct EditorPlaceholderTests {
         // Per v1.0.0-m1-shell boss 2026-09-10 OOB: the editor top bar =
         // Safari-style tab strip ONLY (= no formatting toolbar).
         #expect(editorPlaceholderSection.contains("VStack(spacing: 0) {"),
-                "EditorPlaceholder body must wrap tab strip + content in VStack(spacing: 0)")
+                "EditorView body must wrap tab strip + content in VStack(spacing: 0)")
         #expect(editorPlaceholderSection.contains("HStack(spacing: 0)"),
-                "EditorPlaceholder body must render tab strip with HStack(spacing: 0)")
+                "EditorView body must render tab strip with HStack(spacing: 0)")
         #expect(editorPlaceholderSection.contains("if let active = appState.openTabs.first"),
-                "EditorPlaceholder body must locate the active tab via openTabs.first(= v1.73 full-width active-only design)")
+                "EditorView body must locate the active tab via openTabs.first(= v1.73 full-width active-only design)")
     }
 
     @Test("body shows dirty-discard confirm alert on close-with-unsaved-changes")
     func bodyShowsDirtyDiscardAlert() throws {
         
-        let source = try readEditorPlaceholderSource()
-        let startRange = source.range(of: "struct EditorPlaceholder")!
+        let source = try readEditorViewSource()
+        let startRange = source.range(of: "struct EditorView")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
@@ -169,20 +169,20 @@ struct EditorPlaceholderTests {
         // Per v0.34 ticket 09: dirty-discard confirm dialog (= Apple HIG
         // 2-option confirm pattern; = destructive + cancel).
         #expect(editorPlaceholderSection.contains(".alert("),
-                "EditorPlaceholder body must use SwiftUI .alert for dirty-discard confirm")
+                "EditorView body must use SwiftUI .alert for dirty-discard confirm")
         #expect(editorPlaceholderSection.contains("workspace.editor.dirty_discard_alert_title"),
-                "EditorPlaceholder must localize dirty-discard alert title via WenshuI18n (= i18n parity)")
+                "EditorView must localize dirty-discard alert title via WenshuI18n (= i18n parity)")
         #expect(editorPlaceholderSection.contains("role: .destructive"),
-                "EditorPlaceholder dirty-discard alert must use destructive role (= Apple HIG convention)")
+                "EditorView dirty-discard alert must use destructive role (= Apple HIG convention)")
         #expect(editorPlaceholderSection.contains("role: .cancel"),
-                "EditorPlaceholder dirty-discard alert must use cancel role (= Apple HIG 2-option confirm pattern)")
+                "EditorView dirty-discard alert must use cancel role (= Apple HIG 2-option confirm pattern)")
     }
 
     @Test("activeTabIdString uses wenshu-editor-no-tab fallback (= v0.39 ticket 001)")
     func activeTabIdStringFallback() throws {
 
-        let source = try readEditorPlaceholderSource()
-        let startRange = source.range(of: "struct EditorPlaceholder")!
+        let source = try readEditorViewSource()
+        let startRange = source.range(of: "struct EditorView")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
@@ -191,18 +191,18 @@ struct EditorPlaceholderTests {
         // `documentId` for undo + replacement scoping). Falls back to
         // a deterministic placeholder id when no tab is open.
         #expect(editorPlaceholderSection.contains("private var activeTabIdString: String {"),
-                "EditorPlaceholder must declare private var activeTabIdString (= v0.39 ticket 001)")
+                "EditorView must declare private var activeTabIdString (= v0.39 ticket 001)")
         #expect(editorPlaceholderSection.contains("?? \"wenshu-editor-no-tab\""),
-                "EditorPlaceholder activeTabIdString must fall back to 'wenshu-editor-no-tab' deterministic id")
+                "EditorView activeTabIdString must fall back to 'wenshu-editor-no-tab' deterministic id")
     }
 
     // MARK: - v0.93 ticket 006 extensions (= Q34 5.4 deferred ViewInspector scope,
     //        plus post-v0.93 surface growth = 870 LOC, 3 fixes, 11 dependents)
 
-    /// Helper: read the EditorPlaceholder struct section (= private struct
-    /// EditorPlaceholder → next top-level struct).
+    /// Helper: read the EditorView struct section (= private struct
+    /// EditorView → next top-level struct).
     private func editorPlaceholderSection(_ source: String) -> String {
-        let startRange = source.range(of: "struct EditorPlaceholder")!
+        let startRange = source.range(of: "struct EditorView")!
         let section = String(source[startRange.lowerBound...])
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
@@ -219,25 +219,25 @@ struct EditorPlaceholderTests {
 
     @Test("declares per-tab dirty-state vars as computed properties (= v0.34 B-24 single source of truth)")
     func declaresDirtyStateVarsAsComputed() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         // AppState.openTabs[activeTabIndex].
-        // EditorPlaceholder reads/writes the ACTIVE tab via computed properties.
+        // EditorView reads/writes the ACTIVE tab via computed properties.
         // These computed properties expose the per-tab state (= Safari behavior).
         #expect(code.contains("private var draft: String {"),
-                "EditorPlaceholder must declare draft as computed (= per-tab editing buffer)")
+                "EditorView must declare draft as computed (= per-tab editing buffer)")
         #expect(code.contains("private var originalBody: String {"),
-                "EditorPlaceholder must declare originalBody as computed (= for dirty comparison)")
+                "EditorView must declare originalBody as computed (= for dirty comparison)")
         #expect(code.contains("private var documentPath: String? {"),
-                "EditorPlaceholder must declare documentPath as computed (= resolved file path)")
+                "EditorView must declare documentPath as computed (= resolved file path)")
         #expect(code.contains("private var isDirty: Bool {"),
-                "EditorPlaceholder must declare isDirty as computed (= Apple HIG unsaved-changes indicator)")
+                "EditorView must declare isDirty as computed (= Apple HIG unsaved-changes indicator)")
         #expect(code.contains("private var autoSaveTask: Task<Void, Never>? {"),
-                "EditorPlaceholder must declare autoSaveTask as computed (= debounced auto-save Task)")
+                "EditorView must declare autoSaveTask as computed (= debounced auto-save Task)")
     }
 
     @Test("declares file watcher + alert state as computed properties (= v0.34 B-23 + v1.70 T1b)")
     func declaresFileWatcherAndAlertStateAsComputed() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         // 
         // active tab (= appState.openTabs[idx].fileWatcher).
         // `fileWatcher` + `watchedFD` are NO
@@ -247,49 +247,49 @@ struct EditorPlaceholderTests {
         // the user-facing alert state (= externalChangeNotice +
         // showDirtyDiscardConfirm) as computed properties.
         #expect(code.contains("private var externalChangeNotice: String? {"),
-                "EditorPlaceholder must declare externalChangeNotice as computed (= FS event feedback)")
+                "EditorView must declare externalChangeNotice as computed (= FS event feedback)")
         #expect(code.contains("private var showDirtyDiscardConfirm: Bool {"),
-                "EditorPlaceholder must declare showDirtyDiscardConfirm as computed (= alert trigger)")
+                "EditorView must declare showDirtyDiscardConfirm as computed (= alert trigger)")
     }
 
     @Test("only 2 @State vars remain = selectedText + isApplyingParagraphAI (= v0.34 B-24)")
     func onlyTwoStateVarsRemain() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         // After v0.34 B-24 (= per-tab state on AppState.openTabs), only
-        // the engine-bridge @State vars remain in EditorPlaceholder itself:
+        // the engine-bridge @State vars remain in EditorView itself:
         //   - selectedText (= live editor selection snapshot for replaceSelectedText bridge)
         //   - isApplyingParagraphAI (= busy flag for the applyParagraphAI action)
         #expect(code.contains("@State private var selectedText: String = \"\""),
-                "EditorPlaceholder must declare @State var selectedText (= engine bridge)")
+                "EditorView must declare @State var selectedText (= engine bridge)")
         #expect(code.contains("@State private var isApplyingParagraphAI: Bool = false"),
-                "EditorPlaceholder must declare @State var isApplyingParagraphAI (= busy flag)")
+                "EditorView must declare @State var isApplyingParagraphAI (= busy flag)")
     }
 
     @Test("declares 3 private mutation methods = saveDraft + handlePreviewWikiLink + handleEditorWikiLink (= v1.70 T2b)")
     func declaresFiveMutationMethods() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         // writeDraftToDisk + reloadDocumentFromDisk
         // + handleDirtyTransition migrated to EditorPersistence (= the
         // view now has 3 thin call sites + the saveDraft entry point).
         #expect(code.contains("private func saveDraft()"),
-                "EditorPlaceholder must declare saveDraft (= debounced entry point)")
+                "EditorView must declare saveDraft (= debounced entry point)")
         #expect(code.contains("private func handlePreviewWikiLink"),
-                "EditorPlaceholder must declare handlePreviewWikiLink (= preview wikilink tap)")
+                "EditorView must declare handlePreviewWikiLink (= preview wikilink tap)")
         #expect(code.contains("private func handleEditorWikiLink"),
-                "EditorPlaceholder must declare handleEditorWikiLink (= editor wikilink tap)")
+                "EditorView must declare handleEditorWikiLink (= editor wikilink tap)")
     }
 
     @Test("declares 2 lifecycle methods = applyParagraphAI + replaceSelectedText (= v1.70 T2b)")
     func declaresLifecycleMethods() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         // handleDirtyTransition migrated to
         // EditorPersistence.handleDirtyTransition(_:tab:bookStore:).
         // The view no longer holds the dirty-state machine.
         // applyParagraphAI is public (= engine bridge), takes EditorTransform parameter.
         #expect(code.contains("func applyParagraphAI(_ transform: EditorTransform)"),
-                "EditorPlaceholder must declare public func applyParagraphAI(_ transform:) (= P2 #19 WIRE-PARAGRAPH-002 engine bridge)")
+                "EditorView must declare public func applyParagraphAI(_ transform:) (= P2 #19 WIRE-PARAGRAPH-002 engine bridge)")
         #expect(code.contains("private func replaceSelectedText(with newText: String)"),
-                "EditorPlaceholder must declare replaceSelectedText(with:) (= SMC engine bridge)")
+                "EditorView must declare replaceSelectedText(with:) (= SMC engine bridge)")
         // `startFileWatcher` + `stopFileWatcher`
         // migrated to `EditorFileWatcher`. The view no longer declares
         // them (= the helper is the single owner of the fd lifecycle).
@@ -301,11 +301,11 @@ struct EditorPlaceholderTests {
 
     @Test("activeTab / activeTabIndex resolve from appState.openTabs (= v0.34 B-24)")
     func activeTabResolvedFromOpenTabs() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         #expect(code.contains("private var activeTab: EditorTab? {"),
-                "EditorPlaceholder must declare activeTab: EditorTab? computed (= nil when no tabs open)")
+                "EditorView must declare activeTab: EditorTab? computed (= nil when no tabs open)")
         #expect(code.contains("private var activeTabIndex: Int? {"),
-                "EditorPlaceholder must declare activeTabIndex computed (= nil when no tabs open)")
+                "EditorView must declare activeTabIndex computed (= nil when no tabs open)")
         #expect(code.contains("appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId })"),
                 "activeTabIndex must lookup by activeTabId in appState.openTabs")
     }
@@ -385,19 +385,19 @@ struct EditorPlaceholderTests {
 
     @Test("handlePreviewWikiLink + handleEditorWikiLink differentiate scope (= SMC bridge)")
     func wikiLinkHandlersDifferentiateScope() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         // Preview → open as new tab (read-only).
         // Editor → insert inline (write).
         // Both delegate to a shared router (= the engine bridge).
         #expect(code.contains("handlePreviewWikiLink("),
-                "EditorPlaceholder must expose handlePreviewWikiLink (= preview tab opener)")
+                "EditorView must expose handlePreviewWikiLink (= preview tab opener)")
         #expect(code.contains("handleEditorWikiLink("),
-                "EditorPlaceholder must expose handleEditorWikiLink (= inline inserter)")
+                "EditorView must expose handleEditorWikiLink (= inline inserter)")
     }
 
     @Test("applyParagraphAI uses defer for busy flag + gates on non-empty selection (= Apple HIG)")
     func applyParagraphAIGate() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         // Apple HIG actionable-control-while-busy rule: gate on
         // non-empty selection + use defer for the busy flag (= cleanup
         // is exception-safe even if the LLM call throws).
@@ -440,14 +440,14 @@ struct EditorPlaceholderTests {
 
     @Test("isDirty computed compares activeTab.draft != activeTab.originalBody (= v0.34 B-24)")
     func isDirtyComputedComparesActiveTabFields() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         #expect(code.contains("return tab.draft != tab.originalBody"),
                 "isDirty computed must compare activeTab.draft != activeTab.originalBody (= per-tab dirty detection)")
     }
 
     @Test("body uses SwiftUI Observation pattern via appState.openTabs (= B-24)")
     func bodyUsesOpenTabsFromAppState() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         // 
         // computed properties (= single source of truth). The body must
         // iterate over appState.openTabs (= the canonical tab list).
@@ -461,27 +461,27 @@ struct EditorPlaceholderTests {
         let locatesActiveTab = code.contains("if let active = appState.openTabs.first")
             || code.contains("first(where: { $0.id == appState.activeTabId })")
         #expect(iteratesAllTabs || locatesActiveTab,
-                "EditorPlaceholder body must either iterate openTabs (= ForEach) or locate the active tab via openTabs.first(where:)")
+                "EditorView body must either iterate openTabs (= ForEach) or locate the active tab via openTabs.first(where:)")
     }
 
     @Test("Tab close button uses DesignTokens (= no raw numeric literals)")
     func v73dTabCloseButtonUsesDesignTokens() throws {
         // The xmark glyph font size + frame size must reference
         // DesignTokens.tabCloseGlyphFontSize + DesignTokens.tabCloseFrameSize.
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         #expect(code.contains("DesignTokens.tabCloseGlyphFontSize"),
-                "EditorPlaceholder X button glyph font size must use DesignTokens.tabCloseGlyphFontSize (= wenshu-components §2 rule)")
+                "EditorView X button glyph font size must use DesignTokens.tabCloseGlyphFontSize (= wenshu-components §2 rule)")
         #expect(code.contains("DesignTokens.tabCloseFrameSize"),
-                "EditorPlaceholder X button hit area must use DesignTokens.tabCloseFrameSize (= wenshu-components §2 rule)")
+                "EditorView X button hit area must use DesignTokens.tabCloseFrameSize (= wenshu-components §2 rule)")
         #expect(!code.contains(".system(size: 10"),
-                "EditorPlaceholder X button glyph must NOT use raw '.system(size: 10)' literal (= the v1.73d replacement)")
+                "EditorView X button glyph must NOT use raw '.system(size: 10)' literal (= the v1.73d replacement)")
         #expect(!code.contains(".frame(width: 18, height: 18)"),
-                "EditorPlaceholder X button frame must NOT use raw '.frame(width: 18, height: 18)' literal (= the v1.73d replacement)")
+                "EditorView X button frame must NOT use raw '.frame(width: 18, height: 18)' literal (= the v1.73d replacement)")
     }
 
     @Test("reloadFromDiskAndApply fires via EditorFileWatcher's onChange closure (= B-23 + v1.70 T1b + v1.70 T2b)")
     func reloadDocumentFromDiskTriggersOnWriteEvent() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         // 
         // DispatchSource event handler (= .write + .extend) in
         // `EditorFileWatcher`, which invokes the `onChange` closure.
@@ -492,9 +492,9 @@ struct EditorPlaceholderTests {
         // calls EditorPersistence.reloadFromDisk + writes the result
         // back to the active tab + updates the word-count badge).
         #expect(code.contains("EditorFileWatcher.start("),
-                "EditorPlaceholder must invoke EditorFileWatcher.start (= DispatchSource hand-off)")
+                "EditorView must invoke EditorFileWatcher.start (= DispatchSource hand-off)")
         #expect(code.contains("reloadFromDiskAndApply()"),
-                "EditorPlaceholder must pass reloadFromDiskAndApply as the onChange closure (= FS event → UI reload)")
+                "EditorView must pass reloadFromDiskAndApply as the onChange closure (= FS event → UI reload)")
     }
 
     // MARK: - v1.73 tab close button
@@ -503,7 +503,7 @@ struct EditorPlaceholderTests {
     func tabStripRendersXmarkCloseButton() throws {
         // Source-level (= the X button is a pure view artifact;
         // = no behavior is asserted here beyond its presence).
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         #expect(code.contains("Image(systemName: \"xmark\")"),
                 "v1.73 tab strip must render an xmark (= the X close button per boss OOB)")
         #expect(code.contains("appState.closeTab(id: active.id"),
@@ -512,7 +512,7 @@ struct EditorPlaceholderTests {
 
     @Test("v1.73 dirty-discard confirm now delegates to closeTab (= auto-save + remove via single path)")
     func dirtyDiscardHandlerCallsCloseTab() throws {
-        let code = try editorPlaceholderCodeRegion(readEditorPlaceholderSource())
+        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
         #expect(code.contains("closeTab(id: tab.id, bookStore: bookStore)"),
                 "v1.73 dirty-discard handler must call appState.closeTab (= replaces the legacy draft-reset path)")
     }
