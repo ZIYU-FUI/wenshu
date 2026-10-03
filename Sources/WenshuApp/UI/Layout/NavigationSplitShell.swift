@@ -60,10 +60,11 @@ struct NavigationSplitShell: View {
     /// WorkspaceView's owner; = passed by reference via @Bindable
     /// in the body).
     var appState: AppState
-    // Shell chrome state. Threaded into ShellMiddleColumn
-    // (= the @Bindable entry the previewScope() function reads).
-    // Same lifetime as WorkspaceView's owner; = passed by reference.
-    var shell: ShellState
+    /// ShellState was removed in 2026-10-03 overabstraction cleanup
+    /// (= sidebar / inspector / chat visibility / inspector page
+    /// all migrated to WorkspaceUIState + NavigationSplitShell
+    /// @State; = ShellState held 0 fields after Phase 1a-1c).
+
     // Column-local UI state. Threaded into ShellMiddleColumn
     // (= the @Bindable entry the PreviewPane binding reads).
     // Same lifetime as WorkspaceView's owner; = passed by reference.
@@ -78,6 +79,16 @@ struct NavigationSplitShell: View {
     // ChatZoneView can observe library (= the canonical
     // book-selection source mutated by BookshelfListView taps).
     var library: WenshuLibrary?
+
+    /// Apple HIG inspector visibility. Per WWDC23-10161,
+    /// `.inspector(isPresented:)` takes a `Binding<Bool>` that
+    /// the OS reads to drive the right-column drag-collapse and
+    /// the toolbar toggle button. Apple recommends @State here
+    /// (= the inspector is view-local chrome; = no cross-view
+    /// sharing required; = matches the Pages / Numbers / Keynote
+    /// pattern where the inspector state lives in the owning
+    /// split view, not in a shared environment class).
+    @State private var inspectorVisible: Bool = true
 
     /// `.inspector(isPresented:)` is wired with `.constant(true)`
     /// below (= inspector is permanently visible = the same
@@ -161,7 +172,7 @@ struct NavigationSplitShell: View {
             // to the same instance (= wenshu's NSA framework
             // convention; = see ShellMiddleColumn L57-72 for the
             // @Bindable + `let appState` parallel-ownership pattern).
-            ShellMiddleColumn(envAppState: appState, appState: appState, shell: shell, workspaceUI: workspaceUI)
+            ShellMiddleColumn(envAppState: appState, appState: appState, workspaceUI: workspaceUI)
                 // Applied DIRECTLY on the NavigationSplitView content:
                 // { ... } closure body, per Apple's official example:
                 // modifier is on the view INSIDE the closure, NOT on
@@ -201,11 +212,12 @@ struct NavigationSplitShell: View {
                 // can change it with .inspectorColumnWidth. We can
                 // also add a toolbar button to toggle the
                 // presented property.'
-                .inspector(isPresented: Binding(
-                    get: { shell.inspectorVisible },
-                    set: { newValue in shell.inspectorVisible = newValue }
-                )) {
-                    ShellDetailColumn(appState: appState, shell: shell)
+                .inspector(isPresented: $inspectorVisible) {
+                    ShellDetailColumn(
+                        appState: appState,
+                        workspaceUI: workspaceUI,
+                        inspectorVisibleBinding: $inspectorVisible
+                    )
                         // Inspector column width = 240/280/360 PT
                         // (= min/ideal/max) per Apple's
                         // inspectorColumnWidth(min:ideal:max:)

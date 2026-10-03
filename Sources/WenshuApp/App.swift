@@ -191,8 +191,10 @@ struct WenshuApp: App {
     /// `llmModel` + `openTabs` signals (= the persistence-pair
     /// from commit 4b5d94f1f).
     /// Cross-zone shell-chrome state (= sidebar selection, inspector
-    /// visibility, chat zone visibility) lives on `ShellState`
-    /// (= P2-06 audit split). The
+    /// visibility, chat zone visibility) lives on `WorkspaceUIState`
+    /// (= 2026-10-03 overabstraction cleanup merged ShellState +
+    /// WorkspaceUIState into one @Observable class; = the Pages /
+    /// Numbers / Keynote canonical shape). The
     /// `@Environment(AppState.self) var appState` lookup continues
     /// for `llmModel` + `openTabs`.
     /// The 3 other signals declared in the original spec
@@ -200,15 +202,6 @@ struct WenshuApp: App {
     /// are tracked in v0.31 backlog (= see CONTEXT.md AppState row).
     /// Descendants read it via `@Environment(AppState.self) var appState`.
     @State private var appState = AppState()
-
-    /// selection, inspector visibility, chat-zone visibility,
-    /// inspector page). Split out from AppState (= AppState was
-    /// 644 LOC of cross-zone UI signals + openTabs + llmModel;
-    /// = now ~590 LOC and dropping further in the rest of the
-    /// P2-06 arc). Injected via `.environment(shell)` at the
-    /// AppRootScene root; = same per-window @State pattern as
-    /// AppState.
-    @State private var shell = ShellState()
 
     /// sort order + layout edit mode). Split out from AppState.
     /// Injected via `.environment(workspaceUI)` at the AppRootScene
@@ -246,7 +239,6 @@ struct WenshuApp: App {
             library: library,
             appearanceMode: $appearanceMode,
             appState: appState,
-            shell: shell,
             workspaceUI: workspaceUI,
             sheetRequests: sheetRequests,
             editorCounters: editorCounters,

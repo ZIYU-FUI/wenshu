@@ -36,7 +36,7 @@ import SwiftUI
 /// chrome. No custom inspector wrapper needed.'
 struct ShellDetailColumn: View {
     // `@Bindable var appState: AppState` (= the @Observable
-    // binding wrapper; = allows `$shell.inspectorPage` syntax
+    // binding wrapper; = allows `$workspaceUI.inspectorPage` syntax
     // in Picker / Toggle etc.; = single source of truth for
     // inspectorPage, not duplicated @State).
     //
@@ -46,17 +46,25 @@ struct ShellDetailColumn: View {
     //   "To create a binding to a property of an Observable
     //    object, declare a `@Bindable` variable in your View."
     @Bindable var appState: AppState
-    // inspectorPage + inspectorVisible live in ShellState. The
-    // `@Bindable var shell` is the entry the Picker / Toggle /
-    // button read+write (= `$shell.inspectorPage` /
-    // `shell.inspectorVisible.toggle()`).
-    @Bindable var shell: ShellState
+    // inspectorPage lives in WorkspaceUIState. The
+    // `@Bindable var workspaceUI` is the entry the Picker reads
+    // (= `$workspaceUI.inspectorPage`). inspectorPage moved from
+    // ShellState in 2026-10-03 overabstraction cleanup (=
+    // ShellState would otherwise still hold only sidebarSelection
+    // = a 1-property class that is redundant with AppState).
+    @Bindable var workspaceUI: WorkspaceUIState
+    // inspectorVisible is owned by NavigationSplitShell (= its
+    // `@State` source of truth; = the OS reads the binding to
+    // drive right-column drag-collapse). The toolbar toggle in
+    // this view writes back through the binding (= canonical
+    // Apple HIG `.inspector(isPresented:)` contract).
+    @Binding var inspectorVisibleBinding: Bool
 
-    // inspectorPage lives in `shell.inspectorPage` (= single
+    // inspectorPage lives in `workspaceUI.inspectorPage` (= single
     // source of truth; = survives shell lifecycle changes; =
     // future inspector pane embeds can read the same value).
     //
-    // Access pattern: `$shell.inspectorPage` (= appState is
+    // Access pattern: `$workspaceUI.inspectorPage` (= appState is
     // @Observable + injected via init parameter from
     // NavigationSplitShell).
 
@@ -78,14 +86,14 @@ struct ShellDetailColumn: View {
     /// Default init (= the canonical SwiftUI view constructor; =
     /// no @MainActor isolation, no user-facing defaults, no
     /// reactive test isolation). The body's enum-driven Picker
-    /// reads the canonical `shell.inspectorPage` (= single source
+    /// reads the canonical `workspaceUI.inspectorPage` (= single source
     /// of truth) and writes back via the @Bindable binding.
     ///
     /// page → tools route via InspectorPage.tools (= the enum
     /// owns the routing as a computed property; = the catalog
     /// holds the tool metadata; = the view derives via 1 line).
     private var toolsForCurrentPage: [InspectorTool] {
-        shell.inspectorPage.tools
+        workspaceUI.inspectorPage.tools
     }
 
     var body: some View {
@@ -109,7 +117,7 @@ struct ShellDetailColumn: View {
         // State binding crosses column boundaries: `inspectorPage`
         // is `@State` on ShellDetailColumn; = ToolbarItem(placement:
         // .primaryAction) inside the same view's `.toolbar` block
-        // can bind directly to `$shell.inspectorPage`; = the state
+        // can bind directly to `$workspaceUI.inspectorPage`; = the state
         // change in the toolbar Picker propagates to the body below
         // via SwiftUI's normal state binding; = no env-chain work
         // needed (= the binding is local to ShellDetailColumn).
@@ -152,7 +160,7 @@ struct ShellDetailColumn: View {
             // HStack + Divider was the same pattern (= just
             // without the 10 PT insets; = now consistent with the
             // other 3 column headers).
-            SectionHeader(title: shell.inspectorPage.localizedTitle)
+            SectionHeader(title: workspaceUI.inspectorPage.localizedTitle)
             // Remove the custom top inset (= `chromePaddingSectionTop`
             // = 18 PT) and the custom bottom inset (= 4 PT) on the
             // right column's section header. The right column is
@@ -261,7 +269,7 @@ struct ShellDetailColumn: View {
             // revert: `inspectorPage` is `@State` on
             // ShellDetailColumn; = ToolbarItem(placement:
             // .primaryAction) inside the same view's `.toolbar`
-            // block can bind directly to `$shell.inspectorPage`;
+            // block can bind directly to `$workspaceUI.inspectorPage`;
             // = the state change in the toolbar Picker propagates
             // to the inspector body via SwiftUI's normal state
             // binding; = no env-chain work needed (= the binding
@@ -276,7 +284,7 @@ struct ShellDetailColumn: View {
             // segment = intrinsic icon size; = the canonical Apple
             // HIG toolbar style).
             ToolbarItem(placement: .primaryAction) {
-                Picker("Inspector Page", selection: $shell.inspectorPage) {
+                Picker("Inspector Page", selection: $workspaceUI.inspectorPage) {
                     ForEach(InspectorPage.allCases, id: \.self) { page in
                         Label {
                             Text(page.localizedTitle)
@@ -318,12 +326,12 @@ struct ShellDetailColumn: View {
             // items into one ToolbarItemGroup.
             ToolbarItemGroup(placement: .principal) {
                 Button {
-                    shell.inspectorVisible.toggle()
+                    inspectorVisibleBinding.toggle()
                 } label: {
                     Label {
                         Text(WenshuI18n.t("inspector.toggle.button"))
                     } icon: {
-                        SFIcon(shell.inspectorVisible ? "sidebar-right" : "sidebar.left", style: .paneTab, color: IconColor.tint)
+                        SFIcon(inspectorVisibleBinding ? "sidebar-right" : "sidebar.left", style: .paneTab, color: IconColor.tint)
                     }
                 }
                 .help(WenshuI18n.t("inspector.toggle.help"))

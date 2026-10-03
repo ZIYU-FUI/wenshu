@@ -63,7 +63,7 @@
 //
 //  Out of scope (= NOT moved here, stays in View):
 //    - `previewScope` derivation (= the view-local computed var /
-//      func that reads `shell.sidebarSelection`). Ops accepts
+//      func that reads `workspaceUI.sidebarSelection`). Ops accepts
 //      a value `PreviewScope`; = the view computes the value
 //      first then calls Ops.
 //    - The view-local `previewScope` + call sites (= the .button

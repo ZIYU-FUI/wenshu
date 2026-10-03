@@ -47,15 +47,9 @@ struct ChatZoneView: View {
     // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper).
 
     @Environment(AppState.self) private var envAppState
-    // P2-06 (audit 2026-09-24): sidebarSelection moved to
-    // ShellState. Read goes through `shell` (= the
-    // @Environment-tracked Observable instance).
-    @Environment(ShellState.self) private var shell
-    // chat-by-book: WenshuLibrary is the canonical source for
-    // selectedBookId (= see WenshuLibrary.swift L74/L78/L198/L218-
-    // L219/L224 = the only places selectedBookId is mutated).
-    // Threaded through so ChatZoneView can observe it via
-    // @Environment(WenshuLibrary.self).
+    // P2-06 (audit 2026-09-24) + overabstraction cleanup 2026-10-03:
+    // sidebarSelection moved from ShellState to WorkspaceUIState.
+    @Environment(WorkspaceUIState.self) private var workspaceUI
     @Environment(WenshuLibrary.self) private var library
     @Environment(BookStore.self) private var bookStore
 
@@ -233,7 +227,7 @@ struct ChatZoneView: View {
         .environment(appState)
         // chat-by-book (after wire-up audit 2026-09-24):
         // the canonical source for the user's active book is
-        // `shell.sidebarSelection` (= mutated by AppleSidebarView's
+        // `workspaceUI.sidebarSelection` (= mutated by AppleSidebarView's
         // `forwardSelection(_:)` whenever the user clicks a row; = see
         // AppleSidebarView.swift L446-L465). WenshuLibrary.selectedBookId
         // was tried first (= the bookish-named field), but no code in
@@ -248,7 +242,7 @@ struct ChatZoneView: View {
         // - `.shelf / .reference* / nil` → nil (= global
         //   un-attached; = pre-v1.79 behavior when no book
         //   is selected).
-        .onChange(of: shell.sidebarSelection) { _, newSelection in
+        .onChange(of: workspaceUI.sidebarSelection) { _, newSelection in
             let bookID: UUID?
             switch newSelection {
             case .book(let id):

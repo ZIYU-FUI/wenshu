@@ -57,21 +57,12 @@ struct WorkspaceView: View {
     /// (= for the @AppStorage round-trip via .onChange).
     @Bindable var appState: AppState
 
-    // P2-06 (audit 2026-09-24): sidebarSelection moved to
-    // ShellState. Read goes through `shell` (= the
-    // @Bindable Observable instance = observation tracking on
-    // every previewScope computed access). AppState stays for
-    // unrelated state (= openTabs / llmModel / etc.).
-    @Bindable var shell: ShellState
-
-    // P2-06 (audit 2026-09-24): previewSortOrder + editMode
-    // moved to WorkspaceUIState (= column-local UI state).
     @Bindable var workspaceUI: WorkspaceUIState
 
     // :
     // Sidebar selection persistence moved into NewLibraryOutlineView's
     // unified SidebarState (= single AppStorage key 'wenshu.sidebarState').
-    // WorkspaceView only reads shell.sidebarSelection (= single
+    // WorkspaceView only reads workspaceUI.sidebarSelection (= single
     // source of truth); no separate persistence here.
 
     /// card-grid sort order (= shared between
@@ -89,7 +80,7 @@ struct WorkspaceView: View {
     /// for the material management zone. Computed on every render so
     /// it stays in sync with `sidebarSelection`.
     private var previewScope: PreviewScope {
-        guard let item = shell.sidebarSelection else { return .empty }
+        guard let item = workspaceUI.sidebarSelection else { return .empty }
         switch item {
         case .book(let bookId):
             return .bookScope(bookId: bookId, folderName: nil)
