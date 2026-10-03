@@ -175,4 +175,28 @@ struct TypedIDTests {
         let decoded = try! JSONDecoder().decode(ToolCallID.self, from: data)
         #expect(decoded == id)
     }
+
+    @Test("SessionID brand wrapper (= chat-session ID type-safety scaffolding per P2-03 typed-ID rollout)")
+    func sessionIDBrandWrapper() {
+        let id = SessionID(rawValue: "sess-001")
+        #expect(id.rawValue == "sess-001")
+        #expect(id.stringValue == "sess-001")
+
+        let generated = SessionID.newID()
+        #expect(!generated.rawValue.isEmpty)
+
+        let same = SessionID(rawValue: "sess-001")
+        let diff = SessionID(rawValue: "sess-002")
+        #expect(id == same)
+        #expect(id != diff)
+        var set: Set<SessionID> = [id, same, diff]
+        #expect(set.count == 2)
+
+        // Codable round-trip.
+        let encoder = JSONEncoder()
+        let data = try! encoder.encode(id)
+        #expect(String(data: data, encoding: .utf8) == "\"sess-001\"")
+        let decoded = try! JSONDecoder().decode(SessionID.self, from: data)
+        #expect(decoded == id)
+    }
 }
