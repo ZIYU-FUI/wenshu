@@ -795,8 +795,9 @@ struct LayoutTreeState: Codable, Equatable {
     /// Schema version (= current = 2).
     var version: Int
 
-    /// the Apple-native NSSplitView path (= PaneLayout + PaneSplitHost
-    /// + PaneNSController) instead of the legacy hand-rolled PaneRenderer.
+    /// the canonical SwiftUI NavigationSplitView path (= LibraryRootView
+    /// + PaneView per pane + TabKind dispatcher) instead of the legacy
+    /// hand-rolled PaneRenderer.
     ///
     /// Default `false` = existing users see ZERO behavior change on app
     /// upgrade. Set via:

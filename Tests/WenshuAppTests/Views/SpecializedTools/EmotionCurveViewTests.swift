@@ -11,7 +11,7 @@
 //
 //  Per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112: source-level
 //  tests following the v1.30 PlaceholderViewTests + v1.40
-//  PreviewPaneTests + v1.41 PaneNSControllerTests precedent.
+//  PreviewPaneTests precedent.
 //  Pattern: 10 tests per file.
 //
 //  Path is derived from #filePath (= robust to worktree relocations).

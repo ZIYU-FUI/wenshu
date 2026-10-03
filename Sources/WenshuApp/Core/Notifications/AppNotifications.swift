@@ -82,9 +82,12 @@ enum LayoutEvents: String, CaseIterable {
     /// Editor expand/shrink toggle (= editor top-bar right-side expand icon).
     /// Object payload: Bool (= true = expand, false = shrink). Posted by
     /// EditorExpandShrinkTrailingButton when @AppStorage("wenshu.editorMaximized")
-    /// changes. Listened by PaneNSController.handleEditorMaximizedChanged(:_)
-    /// which snapshots 6-zone visibility + editor weight BEFORE hiding
-    /// other zones (= so the unmaximize path can restore them).
+    /// changes. Previously consumed by `PaneNSController` (= the
+    /// wenshu-summary NSSplitView abstraction; = deleted in commit
+    /// 6f after Phase 1-6 NavigationSplitView replacement made it
+    /// unreachable). The notification is still posted (= the
+    /// @AppStorage key is still observed by EditorExpandShrinkTrailingButton)
+    /// but is no longer consumed by any production subscriber.
     case editorMaximizedChanged = "com.wenshu.editorMaximizedChanged"
 }
 
