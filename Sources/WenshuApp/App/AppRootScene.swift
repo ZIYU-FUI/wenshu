@@ -461,5 +461,10 @@ struct AppRootScene: Scene {
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
+        Window(WenshuI18n.t("window.manifest.title"), id: WindowID.manifest) {
+            ManifestWindow()
+        }
+        .windowResizability(.contentSize)
+        .windowToolbarStyle(.unified)
     }
 }
