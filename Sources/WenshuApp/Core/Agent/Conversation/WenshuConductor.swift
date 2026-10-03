@@ -644,14 +644,17 @@ actor WenshuConductor {
 
                 Return your verdict as JSON per your output format.
                 """
-                if let auditorResponse = try? await verifier.chat(
-                    auditorPrompt,
-                    system: SubAgentIdentity.systemPrompt(name: .auditor),
-                    model: model
-                ) {
+                do {
+                    let auditorResponse = try await verifier.chat(
+                        auditorPrompt,
+                        system: SubAgentIdentity.systemPrompt(name: .auditor),
+                        model: model
+                    )
                     let verdict = auditorResponse.content.map(\.displayText).joined()
                     subResults.append(("auditor", verdict))
                     totalTokens += auditorResponse.usage?.total_tokens ?? 0
+                } catch {
+                    WenshuConductor.toolLogger.error("[wenshu.conductor.auditor] auditor verdict threw: \(String(describing: error), privacy: .public)")
                 }
             }
         }
@@ -662,7 +665,8 @@ actor WenshuConductor {
         var finalThinking: String?    // WenshuLLMBlock.thinking
         let finalReply: String
         // prepend Wenshu agent identity for synthesis call.
-        if let response = try? await verifier.chat(synthesisPrompt, system: WenshuConductorIdentity.systemPrompt, model: model) {
+        do {
+            let response = try await verifier.chat(synthesisPrompt, system: WenshuConductorIdentity.systemPrompt, model: model)
             // union decode concat all text blocks (M2.7 has thinking block prefix)
             let text = response.content.map(\.displayText).joined()
             if !text.isEmpty {
@@ -676,8 +680,9 @@ actor WenshuConductor {
             }
             // accumulate synthesis real token usage
             totalTokens += response.usage?.total_tokens ?? 0
-        } else {
+        } catch {
             // S4 graceful degradation: synthesis fail still returns natural reply
+            WenshuConductor.toolLogger.error("[wenshu.conductor.synthesis] synthesis threw: \(String(describing: error), privacy: .public)")
             if subResults.isEmpty {
                 finalReply = "(Wenshu cannot reply right now, please try again later)"
             } else {
