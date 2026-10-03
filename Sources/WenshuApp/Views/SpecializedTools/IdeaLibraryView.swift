@@ -24,10 +24,10 @@
 //      TextField + context TextField + link / unlink buttons +
 //      links list for the selected idea).
 //    - Suggest section (= context TextField + suggest button +
-//      suggestions list).
+//      state.suggestions list).
 //
 //  State source: `IdeaLibrary` actor (= owned per-book, persisted
-//  via per-book JSON sidecar at `books/<bookId>/ideas.json`).
+//  via per-book JSON sidecar at `books/<bookId>/state.ideas.json`).
 //
 //  Entity picker source: a free-form UUID TextField for the
 //  target id (= consistent with how CharacterLifecycleView treats
@@ -78,7 +78,9 @@ struct IdeaLibraryView: View {
     /// @State so SwiftUI keeps the identity across re-renders).
     @State private var library: IdeaLibrary?
 
-    @State private var ideas: [Idea] = []
+    /// Business state mirror (= state.ideas + state.suggestions + status +
+    /// state.errorText). Form drafts stay on the View per §11.3.
+    @State private var state = IdeaLibraryViewState()
 
     // Add-idea picker state.
     @State private var draftTitle: String = ""
@@ -99,10 +101,6 @@ struct IdeaLibraryView: View {
 
     // Suggest picker state.
     @State private var draftSuggestContext: String = ""
-    @State private var suggestions: [Idea] = []
-
-    @State private var status: SpecializedToolLoadStatus = .idle
-    @State private var errorText: String?
 
 
 
@@ -150,7 +148,7 @@ struct IdeaLibraryView: View {
             Divider()
             suggestSection
             Spacer(minLength: 0)
-            if let errorText {
+            if let errorText = state.errorText {
                 Text(errorText)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -264,7 +262,7 @@ struct IdeaLibraryView: View {
             Text(WenshuI18n.t("b5.idealibraryview.l302.h76254562"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if ideas.isEmpty {
+            if state.ideas.isEmpty {
                 Text(WenshuI18n.t("b5.idealibraryview.l306.h5887031"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -272,7 +270,7 @@ struct IdeaLibraryView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        ForEach(ideas) { idea in
+                        ForEach(state.ideas) { idea in
                             ideaRow(idea)
                         }
                     }
@@ -351,18 +349,18 @@ struct IdeaLibraryView: View {
             Text(WenshuI18n.t("b5.idealibraryview.l397.h59697849"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if ideas.isEmpty {
+            if state.ideas.isEmpty {
                 Text(WenshuI18n.t("b5.idealibraryview.l401.h79667379"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             } else {
                 HStack(spacing: DesignTokens.spacingStandard) {
                     Picker("Idea", selection: Binding(
-                        get: { draftLinkIdeaId ?? ideas.first?.id ?? UUID() },
+                        get: { draftLinkIdeaId ?? state.ideas.first?.id ?? UUID() },
                         set: { draftLinkIdeaId = $0 }
                     )) {
                         Text(WenshuI18n.t("b5.idealibraryview.l410.h88496035")).tag(UUID())
-                        ForEach(ideas) { idea in
+                        ForEach(state.ideas) { idea in
                             Text(idea.title).tag(idea.id)
                         }
                     }
@@ -419,7 +417,7 @@ struct IdeaLibraryView: View {
 
     private var canLink: Bool {
         guard let ideaId = draftLinkIdeaId, ideaId != UUID() else { return false }
-        guard ideas.contains(where: { $0.id == ideaId }) else { return false }
+        guard state.ideas.contains(where: { $0.id == ideaId }) else { return false }
         guard UUID(uuidString: draftLinkTargetIdText.trimmingCharacters(in: .whitespacesAndNewlines)) != nil else { return false }
         return true
     }
@@ -427,7 +425,7 @@ struct IdeaLibraryView: View {
     @ViewBuilder
     private var linksListForSelectedIdea: some View {
         if let ideaId = draftLinkIdeaId,
-           let selectedIdea = ideas.first(where: { $0.id == ideaId }) {
+           let selectedIdea = state.ideas.first(where: { $0.id == ideaId }) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 Text("Links for \"\(selectedIdea.title)\" (\(selectedIdea.links.count))")
                     .font(.caption)
@@ -515,10 +513,10 @@ struct IdeaLibraryView: View {
                 .disabled(draftSuggestContext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .help(WenshuI18n.t("b5.idealibraryview.l567.h20248779"))
             }
-            if !suggestions.isEmpty {
+            if !state.suggestions.isEmpty {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-                        ForEach(suggestions) { idea in
+                        ForEach(state.suggestions) { idea in
                             HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                                 SFIcon(idea.status.icon, style: .inlineSmall, color: IconColor.tint)
                                 Text(idea.title)
@@ -569,16 +567,16 @@ struct IdeaLibraryView: View {
             draftDescription = ""
             draftTagsText = ""
             draftStatus = .seedling
-            errorText = nil
+            state.errorText = nil
         }
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
     private func removeIdea(_ idea: Idea) async {
         let actor = ensureLibrary()
         let result = await IdeaLibraryOps.removeIdea(library: actor, idea: idea)
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
@@ -594,9 +592,9 @@ struct IdeaLibraryView: View {
         if result.didSave {
             draftLinkTargetIdText = ""
             draftLinkContext = ""
-            errorText = nil
+            state.errorText = nil
         }
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
@@ -607,7 +605,7 @@ struct IdeaLibraryView: View {
             ideaId: ideaId,
             link: link
         )
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
@@ -619,18 +617,18 @@ struct IdeaLibraryView: View {
             bookId: activeBookId,
             context: draftSuggestContext
         )
-        suggestions = result.suggestions
-        if let error = result.error { errorText = error }
+        state.suggestions = result.suggestions
+        if let error = result.error { state.errorText = error }
     }
 
     private func reload() async {
         guard activeBookId != nil else {
-            status = .idle
-            ideas = []
+            state.status = .idle
+            state.ideas = []
             return
         }
         let actor = ensureLibrary()
-        status = .loading
+        state.status = .loading
         let result = await IdeaLibraryOps.reload(
             library: actor,
             bookId: activeBookId,
@@ -638,11 +636,11 @@ struct IdeaLibraryView: View {
             filterStatus: draftFilterStatus,
             filterTag: draftFilterTag
         )
-        ideas = result.ideas
+        state.ideas = result.ideas
         if let error = result.error {
-            status = .failed(error)
+            state.status = .failed(error)
         } else {
-            status = .loaded
+            state.status = .loaded
         }
     }
 }

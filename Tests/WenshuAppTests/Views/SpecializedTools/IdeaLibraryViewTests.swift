@@ -131,4 +131,42 @@ struct IdeaLibraryViewTests {
         #expect(source.contains("init("),
                 "3/3: init() missing")
     }
+
+    @Test("IdeaLibraryViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
+    func testStateMirrorExists() throws {
+        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        #expect(source.contains("IdeaLibraryViewState"),
+                "IdeaLibraryView must reference IdeaLibraryViewState mirror")
+        #expect(source.contains("@State private var state = IdeaLibraryViewState()"),
+                "IdeaLibraryView must hold state via @State mirror (not bare @State vars)")
+        // The 4 hoisted fields must NOT appear as bare @State vars
+        let bareIdeas = source.contains("@State private var ideas: [Idea]")
+        let bareSuggestions = source.contains("@State private var suggestions: [Idea]")
+        let bareStatus = source.contains("@State private var status: SpecializedToolLoadStatus")
+        let bareErrorText = source.contains("@State private var errorText: String?")
+        #expect(!bareIdeas, "ideas must NOT be a bare @State var (= hoisted to state.ideas)")
+        #expect(!bareSuggestions, "suggestions must NOT be a bare @State var (= hoisted to state.suggestions)")
+        #expect(!bareStatus, "status must NOT be a bare @State var (= hoisted to state.status)")
+        #expect(!bareErrorText, "errorText must NOT be a bare @State var (= hoisted to state.errorText)")
+    }
+
+    @Test("IdeaLibraryViewState mirror file exists (= companion file under Views/SpecializedTools/)")
+    func testStateMirrorFileExists() throws {
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/mvvm-p1/Sources/WenshuApp/Views/SpecializedTools/IdeaLibraryViewState.swift"
+        #expect(FileManager.default.fileExists(atPath: filePath),
+                "IdeaLibraryViewState.swift must exist as a companion file")
+        let source = try String(contentsOfFile: filePath, encoding: .utf8)
+        #expect(source.contains("@Observable"),
+                "mirror struct must use @Observable macro (per §4.13 standing rule)")
+        #expect(source.contains("final class IdeaLibraryViewState"),
+                "mirror must be a final class (per §4.13 standing rule)")
+        #expect(source.contains("var ideas: [Idea]"),
+                "mirror must hold ideas field")
+        #expect(source.contains("var suggestions: [Idea]"),
+                "mirror must hold suggestions field")
+        #expect(source.contains("var status: SpecializedToolLoadStatus"),
+                "mirror must hold status field")
+        #expect(source.contains("var errorText: String?"),
+                "mirror must hold errorText field")
+    }
 }
