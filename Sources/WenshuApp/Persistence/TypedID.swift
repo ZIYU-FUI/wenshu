@@ -119,6 +119,29 @@ struct ToolCallID: TypedID, Equatable, Hashable, Codable, Sendable {
     }
 }
 
+/// Brand wrapper for a chat-session identifier (= the `sessionID`
+/// field on `WSSession` + `WSChatMessage` + `WSSummary`; = the
+/// `sessionId` parameter on `ChatRepositoryProtocol`).
+///
+/// `SessionID` is NOT used as a `@Model` field type (= SwiftData
+/// `@Attribute` doesn't accept brand wrappers yet; = the SwiftData
+/// rows store raw `String` and the public repository protocol
+/// exchanges `SessionID`). The brand wrapper is the in-memory API
+/// surface for chat sessions.
+///
+/// Same one-type-per-commit pattern as `ToolCallID`: this commit
+/// introduces the type only. Future commits per P2-03 will swap
+/// `String` for `SessionID` at the call sites that hold a chat-session
+/// identifier (= the ChatSessionViewModel `sessionId` private + the
+/// `ChatRepositoryProtocol.append/loadMessages/summarize` parameters).
+struct SessionID: TypedID, Equatable, Hashable, Codable, Sendable {
+    let rawValue: String
+
+    init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+}
+
 // MARK: - String interop
 
 extension BookID {
