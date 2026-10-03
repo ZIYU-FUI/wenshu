@@ -79,6 +79,16 @@ struct NavigationSplitShell: View {
     // book-selection source mutated by BookshelfListView taps).
     var library: WenshuLibrary?
 
+    /// Apple HIG inspector visibility. Per WWDC23-10161,
+    /// `.inspector(isPresented:)` takes a `Binding<Bool>` that
+    /// the OS reads to drive the right-column drag-collapse and
+    /// the toolbar toggle button. Apple recommends @State here
+    /// (= the inspector is view-local chrome; = no cross-view
+    /// sharing required; = matches the Pages / Numbers / Keynote
+    /// pattern where the inspector state lives in the owning
+    /// split view, not in a shared environment class).
+    @State private var inspectorVisible: Bool = true
+
     /// `.inspector(isPresented:)` is wired with `.constant(true)`
     /// below (= inspector is permanently visible = the same
     /// pattern Apple Pages / Numbers / Keynote use; = Apple does
@@ -201,11 +211,12 @@ struct NavigationSplitShell: View {
                 // can change it with .inspectorColumnWidth. We can
                 // also add a toolbar button to toggle the
                 // presented property.'
-                .inspector(isPresented: Binding(
-                    get: { shell.inspectorVisible },
-                    set: { newValue in shell.inspectorVisible = newValue }
-                )) {
-                    ShellDetailColumn(appState: appState, shell: shell)
+                .inspector(isPresented: $inspectorVisible) {
+                    ShellDetailColumn(
+                        appState: appState,
+                        shell: shell,
+                        inspectorVisibleBinding: $inspectorVisible
+                    )
                         // Inspector column width = 240/280/360 PT
                         // (= min/ideal/max) per Apple's
                         // inspectorColumnWidth(min:ideal:max:)

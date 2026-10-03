@@ -46,11 +46,15 @@ struct ShellDetailColumn: View {
     //   "To create a binding to a property of an Observable
     //    object, declare a `@Bindable` variable in your View."
     @Bindable var appState: AppState
-    // inspectorPage + inspectorVisible live in ShellState. The
-    // `@Bindable var shell` is the entry the Picker / Toggle /
-    // button read+write (= `$shell.inspectorPage` /
-    // `shell.inspectorVisible.toggle()`).
+    // inspectorPage lives in ShellState. The `@Bindable var shell`
+    // is the entry the Picker reads (= `$shell.inspectorPage`).
     @Bindable var shell: ShellState
+    // inspectorVisible is owned by NavigationSplitShell (= its
+    // `@State` source of truth; = the OS reads the binding to
+    // drive right-column drag-collapse). The toolbar toggle in
+    // this view writes back through the binding (= canonical
+    // Apple HIG `.inspector(isPresented:)` contract).
+    @Binding var inspectorVisibleBinding: Bool
 
     // inspectorPage lives in `shell.inspectorPage` (= single
     // source of truth; = survives shell lifecycle changes; =
@@ -318,12 +322,12 @@ struct ShellDetailColumn: View {
             // items into one ToolbarItemGroup.
             ToolbarItemGroup(placement: .principal) {
                 Button {
-                    shell.inspectorVisible.toggle()
+                    inspectorVisibleBinding.toggle()
                 } label: {
                     Label {
                         Text(WenshuI18n.t("inspector.toggle.button"))
                     } icon: {
-                        SFIcon(shell.inspectorVisible ? "sidebar-right" : "sidebar.left", style: .paneTab, color: IconColor.tint)
+                        SFIcon(inspectorVisibleBinding ? "sidebar-right" : "sidebar.left", style: .paneTab, color: IconColor.tint)
                     }
                 }
                 .help(WenshuI18n.t("inspector.toggle.help"))
