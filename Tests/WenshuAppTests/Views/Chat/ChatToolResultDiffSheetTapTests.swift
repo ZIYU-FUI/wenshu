@@ -1,7 +1,7 @@
 //
 //  ChatToolResultDiffSheetTapTests.swift · wenshu · chat-diff-sheet 2026-09-28 T7
 //
-//  RED tests for tap-to-expand wire-up. Phase 4 of chat-diff-sheet
+//  tap-to-expand wire-up. Phase 4 of chat-diff-sheet
 //  arc. The inline ChatToolDiffPreview card opens ChatToolDiffPreviewSheet
 //  when tapped, IF the diff body exceeds a threshold (= 8 lines or
 //  480 chars; = same heuristic as ChatToolResultPartView's expand

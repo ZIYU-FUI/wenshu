@@ -1,7 +1,6 @@
 //
 //  Core/Agent/Librarian/EditChapterToolTests.swift · wenshu · edit-chapter-tool 2026-09-28 T4
 //
-//  RED tests for Phase 4 of chat-diff-preview arc:
 //  EditChapterTool (= hermes 0.21.5 edit_file 1:1). Patch-style
 //  chapter edits: replace a substring `old_text` with `new_text`,
 //  returning the unified-diff envelope (= the same kind:"diff" shape

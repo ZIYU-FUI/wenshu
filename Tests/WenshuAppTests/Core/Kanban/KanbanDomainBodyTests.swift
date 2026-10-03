@@ -1,7 +1,6 @@
 //
 //  Core/Kanban/KanbanDomainBodyTests.swift · Wenshu · kanban-markdown 2026-09-28
 //
-//  RED tests for Phase 1 T2:
 //  KanbanTask domain struct grows a body: String? field that
 //  mirrors WSKanbanTask.body (= the persistence column added
 //  in T1). Without it, domain mapping in WSKanbanRepository

@@ -1,7 +1,7 @@
 //
 //  ChapterFocusLockDialogWrapperTests.swift · wenshu · chapter-dialog 2026-09-28 T2
 //
-//  RED tests for the dialog-aware wrapper. T1 shipped the dialog
+//  the dialog-aware wrapper. T1 shipped the dialog
 //  surface (= presenter + ChatZoneView alert); = T2 wires the
 //  conductor's ChapterFocusLockWrappedTool to call into the
 //  presenter instead of auto-allowing (= §11.23 MVP). The wrapper

@@ -44,7 +44,6 @@ import Foundation
 /// 'should disappear on restart' expectation for ephemeral UI
 /// state.
 ///
-/// Phase 1b/1c note (= 2026-10-03 overabstraction cleanup):
 /// chatVisible + inspectorPage were previously on `ShellState`
 /// (= a separate 4-property @Observable class). Apple HIG
 /// treats all 5 fields here as the same shape (= view-local UI

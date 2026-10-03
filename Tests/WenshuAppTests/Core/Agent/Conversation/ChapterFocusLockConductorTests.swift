@@ -1,7 +1,7 @@
 //
 //  ChapterFocusLockConductorTests.swift · wenshu · chapter-focus-lock 2026-09-28 T3
 //
-//  RED tests for the conductor-side retry behavior. When a tool
+//  the conductor-side retry behavior. When a tool
 //  throws ChapterFocusLockedError, the conductor (= WenshuConductor
 //  or its executeTool layer) temporarily clears focusedChapterPath,
 //  retries the tool, and surfaces the result. This is the

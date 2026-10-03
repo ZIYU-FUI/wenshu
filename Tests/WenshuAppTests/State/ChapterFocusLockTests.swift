@@ -1,7 +1,7 @@
 //
 //  ChapterFocusLockTests.swift · wenshu · chapter-focus-lock 2026-09-28 T1
 //
-//  RED tests for the single-focus chapter lock (= boss 2026-09-28 OOB
+//  the single-focus chapter lock (= boss 2026-09-28 OOB
 //  '互锁编辑权限'). The lock's source of truth is
 //  `AppState.focusedChapterPath` (= derived from active tab +
 //  chatVisible). The editor view renders read-only when this path

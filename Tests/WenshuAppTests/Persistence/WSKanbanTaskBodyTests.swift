@@ -1,7 +1,6 @@
 //
 //  Persistence/WSKanbanTaskBodyTests.swift · Wenshu · kanban-markdown 2026-09-28
 //
-//  RED tests for kanban-markdown arc Phase 1 T1:
 //  WSKanbanTask gets a `body: String?` column to hold agent-written markdown.
 //  Mirrors the existing WSTodo pattern (in-memory ModelContainer + Schema([WSKanbanTask.self])).
 //

@@ -1,7 +1,6 @@
 //
 //  Core/Agent/Librarian/BookChapterToolDiffTests.swift · chat-diff-preview 2026-09-28 T2
 //
-//  RED tests for Phase 2: BookChapterTool.update's success envelope
 //  carries a `kind:"diff"` block so ChatToolResultPartView can route
 //  the result into ChatToolDiffPreview. Mirrors hermes 0.21.5
 //  tool-fallback.tsx augmenting the diff metadata for file-edit tools

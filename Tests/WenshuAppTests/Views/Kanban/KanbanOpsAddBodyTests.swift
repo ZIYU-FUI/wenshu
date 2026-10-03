@@ -1,7 +1,6 @@
 //
 //  Views/Kanban/KanbanOpsAddBodyTests.swift · kanban-markdown 2026-09-28 T7
 //
-//  RED tests for Phase 1 T7:
 //  KanbanOps.addTicket(...) persists body through to the saved
 //  tickets array. Today, addTicket appends `KanbanTicket(title:, status:)
 //  — no body — and the LLM-authored body never lands in the

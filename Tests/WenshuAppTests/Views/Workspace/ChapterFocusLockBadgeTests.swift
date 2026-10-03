@@ -1,7 +1,7 @@
 //
 //  ChapterFocusLockBadgeTests.swift · wenshu · chapter-dialog 2026-09-28 T3
 //
-//  RED tests for the visual badge. When the LLM has the chapter
+//  the visual badge. When the LLM has the chapter
 //  cursor (= AppState.focusedChapterPath was overridden by the
 //  wrapper's Allow path), the editor view renders a small badge
 //  near the tab title (= "LLM 改中...") so the boss sees why

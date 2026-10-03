@@ -1,7 +1,7 @@
 //
 //  ChapterFocusLockDialogTests.swift · wenshu · chapter-dialog 2026-09-28 T1
 //
-//  RED tests for the Allow/Deny dialog surface. When the LLM
+//  the Allow/Deny dialog surface. When the LLM
 //  tool call hits the chapter focus lock (= §11.23 ChapterFocusLockedError),
 //  the conductor surfaces a dialog request to ChatZoneView instead
 //  of auto-allowing (= §11.23 MVP). The boss picks Allow or Deny;

@@ -1,7 +1,7 @@
 //
 //  ChapterFocusLockActorTests.swift · wenshu · chapter-focus-lock 2026-09-28 T2
 //
-//  RED tests for the actor-side lock check. Both BookChapterActor.update
+//  the actor-side lock check. Both BookChapterActor.update
 //  and EditChapterActor.edit throw ChapterFocusLockedError when the
 //  boss has the editor focused on the target chapter path (= single-
 //  focus model per boss 2026-09-28 OOB '互锁编辑权限'). When the lock
