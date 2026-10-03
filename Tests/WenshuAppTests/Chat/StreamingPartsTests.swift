@@ -152,12 +152,12 @@ struct StreamingPartsTests {
     @Test("toolUseFactory_createsToolUsePartWithRunningStatus")
     func toolUseFactory_createsToolUsePartWithRunningStatus() {
         let part = ChatMessagePart.toolUse(
-            id: "call_abc",
+            id: ToolCallID(rawValue: "call_abc"),
             name: "search",
             args: "{\"query\": \"test\"}"
         )
         if case let .toolUse(tu) = part.kind {
-            #expect(tu.id == "call_abc")
+            #expect(tu.id.rawValue == "call_abc")
             #expect(tu.name == "search")
             #expect(tu.args == "{\"query\": \"test\"}")
             #expect(tu.status == .running)
@@ -174,12 +174,12 @@ struct StreamingPartsTests {
     @Test("toolResultFactory_createsToolResultPart")
     func toolResultFactory_createsToolResultPart() {
         let part = ChatMessagePart.toolResult(
-            toolUseID: "call_abc",
+            toolUseID: ToolCallID(rawValue: "call_abc"),
             content: "search hit 42 results",
             isError: false
         )
         if case let .toolResult(tr) = part.kind {
-            #expect(tr.toolUseID == "call_abc")
+            #expect(tr.toolUseID.rawValue == "call_abc")
             #expect(tr.content == "search hit 42 results")
             #expect(tr.isError == false)
         } else {
@@ -199,7 +199,7 @@ struct StreamingPartsTests {
             .text("先"),
             .reasoning("中间推理"),
             .text("后"),
-            .toolUse(id: "x", name: "y", args: "z"),
+            .toolUse(id: ToolCallID(rawValue: "x"), name: "y", args: "z"),
             .text("最后"),
         ]
         #expect(ChatMessagePart.joinedText(parts) == "先后最后")
@@ -226,7 +226,7 @@ struct StreamingPartsTests {
     func joinedReasoning_nilWhenNoReasoningPart() {
         let parts: [ChatMessagePart] = [
             .text("hello"),
-            .toolUse(id: "x", name: "y", args: "z"),
+            .toolUse(id: ToolCallID(rawValue: "x"), name: "y", args: "z"),
         ]
         #expect(ChatMessagePart.joinedReasoning(parts) == nil)
     }
@@ -337,7 +337,7 @@ struct StreamingPartsTests {
         streamingThinking = "用户用中文, 我用中文回"
         // Round 4: a .tool_use (= the LLM calls a tool).
         streamingParts.append(.toolUse(
-            id: "call_1",
+            id: ToolCallID(rawValue: "call_1"),
             name: "search",
             args: "{\"q\": \"x\"}"
         ))
@@ -356,7 +356,7 @@ struct StreamingPartsTests {
         // the existing .toolUse at idx 2 with a new one whose
         // status has flipped to .complete.
         if let idx = streamingParts.firstIndex(where: { p in
-            if case .toolUse(let tu) = p.kind { return tu.id == "call_1" }
+            if case .toolUse(let tu) = p.kind { return tu.id.rawValue == "call_1" }
             return false
         }) {
             // Find the existing toolUse and replace with an
@@ -374,7 +374,7 @@ struct StreamingPartsTests {
         // shows tool_result as its own part = not merged
         // into the .toolUse).
         streamingParts.append(.toolResult(
-            toolUseID: "call_1",
+            toolUseID: ToolCallID(rawValue: "call_1"),
             content: "found 0 results",
             isError: false
         ))
@@ -430,14 +430,14 @@ struct StreamingPartsTests {
         // internal detail that doesn't surface as a new part
         // in the canonical parts[] array).
         if case let .toolUse(tu) = final.parts[2].kind {
-            #expect(tu.id == "call_1")
+            #expect(tu.id.rawValue == "call_1")
             #expect(tu.name == "search")
             #expect(tu.status == .running)
         } else { Issue.record("part 2 not toolUse") }
         // Part 3: .toolResult (= the .complete status update
         // doesn't add a part; the result content does).
         if case let .toolResult(tr) = final.parts[3].kind {
-            #expect(tr.toolUseID == "call_1")
+            #expect(tr.toolUseID.rawValue == "call_1")
             #expect(tr.content == "found 0 results")
             #expect(tr.isError == false)
         } else { Issue.record("part 3 not toolResult") }

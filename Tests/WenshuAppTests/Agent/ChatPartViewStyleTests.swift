@@ -34,11 +34,11 @@ struct ChatPartViewStyleTests {
             ChatTextPartView(text: "text", isOutgoing: false, isStreaming: false)
             ChatReasoningPartView(text: "reasoning", isRunning: false)
             ChatToolUsePartView(toolUse: ChatMessagePart.ToolUsePart(
-                id: "t1", name: "read_file", args: "{}",
+                id: ToolCallID(rawValue: "t1"), name: "read_file", args: "{}",
                 context: nil, status: .running,
                 result: nil, errorMessage: nil, durationSeconds: nil
             ), isOutgoing: false)
-            ChatToolResultPartView(toolResult: ChatMessagePart.ToolResultPart(toolUseID: "t1", content: "ok", isError: false), isOutgoing: false)
+            ChatToolResultPartView(toolResult: ChatMessagePart.ToolResultPart(toolUseID: ToolCallID(rawValue: "t1"), content: "ok", isError: false), isOutgoing: false)
         }
         // Type-level: stack is a VStack<TupleView<...>> (= the 4
         // types are present).

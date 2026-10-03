@@ -85,7 +85,7 @@ struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
     }
 
     struct ToolUsePart: Equatable, Hashable, Sendable {
-        let id: String                 // hermes `tool_call_id`
+        let id: ToolCallID             // hermes `tool_call_id` (= wrapped)
         let name: String                // hermes `name`
         let args: String                // JSON-encoded args (= hermes args_text)
         let context: String?           // hermes `context` (optional)
@@ -102,7 +102,7 @@ struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
     }
 
     struct ToolResultPart: Equatable, Hashable, Sendable {
-        let toolUseID: String   // hermes `tool_use_id`
+        let toolUseID: ToolCallID   // hermes `tool_use_id` (= wrapped)
         let content: String     // result content
         let isError: Bool       // hermes `is_error`
     }
@@ -118,7 +118,7 @@ struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
     }
 
     static func toolUse(
-        id: String,
+        id: ToolCallID,
         name: String,
         args: String,
         context: String? = nil,
@@ -136,7 +136,7 @@ struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
     }
 
     static func toolResult(
-        toolUseID: String,
+        toolUseID: ToolCallID,
         content: String,
         isError: Bool,
         timestamp: TimeInterval? = nil

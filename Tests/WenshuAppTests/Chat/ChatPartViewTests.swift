@@ -162,7 +162,7 @@ struct ChatPartViewTests {
     @Test("ChatMessageBodyView_toolUseOnlyPart_rendersAsToolUsePart")
     func ChatMessageBodyView_toolUseOnlyPart_rendersAsToolUsePart() {
         let toolPart = ChatMessagePart.ToolUsePart(
-            id: "call_1",
+            id: ToolCallID(rawValue: "call_1"),
             name: "search",
             args: "{\"q\":\"x\"}",
             context: nil,
@@ -193,7 +193,7 @@ struct ChatPartViewTests {
     @Test("ChatMessageBodyView_toolResultOnlyPart_rendersAsToolResultPart")
     func ChatMessageBodyView_toolResultOnlyPart_rendersAsToolResultPart() {
         let resultPart = ChatMessagePart.ToolResultPart(
-            toolUseID: "call_1",
+            toolUseID: ToolCallID(rawValue: "call_1"),
             content: "found 0 results",
             isError: false
         )
@@ -219,7 +219,7 @@ struct ChatPartViewTests {
     @Test("ChatMessageBodyView_fullHermesTurnShape_rendersAll4PartKinds")
     func ChatMessageBodyView_fullHermesTurnShape_rendersAll4PartKinds() {
         let toolPart = ChatMessagePart.ToolUsePart(
-            id: "call_1",
+            id: ToolCallID(rawValue: "call_1"),
             name: "search",
             args: "{\"q\":\"x\"}",
             context: nil,
@@ -229,7 +229,7 @@ struct ChatPartViewTests {
             durationSeconds: 0.5
         )
         let resultPart = ChatMessagePart.ToolResultPart(
-            toolUseID: "call_1",
+            toolUseID: ToolCallID(rawValue: "call_1"),
             content: "found 2 results",
             isError: false
         )
@@ -292,7 +292,7 @@ struct ChatPartViewTests {
     @Test("ToolUsePart_status_isMutable")
     func ToolUsePart_status_isMutable() {
         var tu = ChatMessagePart.ToolUsePart(
-            id: "call_1",
+            id: ToolCallID(rawValue: "call_1"),
             name: "search",
             args: "{}",
             context: nil,
@@ -315,12 +315,12 @@ struct ChatPartViewTests {
     @Test("ToolUsePart_equatable_sameFieldsAreEqual")
     func ToolUsePart_equatable_sameFieldsAreEqual() {
         let a = ChatMessagePart.ToolUsePart(
-            id: "call_1", name: "search", args: "{\"q\":\"x\"}",
+            id: ToolCallID(rawValue: "call_1"), name: "search", args: "{\"q\":\"x\"}",
             context: nil, status: .running,
             result: nil, errorMessage: nil, durationSeconds: nil
         )
         let b = ChatMessagePart.ToolUsePart(
-            id: "call_1", name: "search", args: "{\"q\":\"x\"}",
+            id: ToolCallID(rawValue: "call_1"), name: "search", args: "{\"q\":\"x\"}",
             context: nil, status: .running,
             result: nil, errorMessage: nil, durationSeconds: nil
         )
