@@ -569,7 +569,7 @@ struct AppleSidebarView: View {
     /// Open the book's first chapter (= the
     /// `<book-id>/chapters/<n>.md` file with the lowest `n`) in the
     /// editor's tab strip. If the book has no chapters, open the
-    /// book itself (= the EditorPlaceholder's tab strip handles a
+    /// book itself (= the EditorView's tab strip handles a
     /// missing-documentPath gracefully).
     private func openBookInEditor(bookId: UUID) {
         let result = SidebarOpenOps.openBookInEditor(appState: appState, bookId: bookId)

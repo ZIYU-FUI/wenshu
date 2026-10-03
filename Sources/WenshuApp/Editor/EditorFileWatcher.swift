@@ -1,7 +1,7 @@
 //
 //  EditorFileWatcher.swift · Wenshu
 //
-//  Extracted from `EditorPlaceholder.swift`. Lives at the
+//  Extracted from `EditorView.swift`. Lives at the
 //  module's Editor layer (= the same layer as `DraftPersistence`,
 //  `WikiLinkNavigation`, `EditorActions`).
 //
@@ -44,7 +44,7 @@ import Dispatch
 /// Internal (= not public) because `EditorTab` itself is internal
 /// (= AppState.swift:487 = `final class` with no access modifier).
 /// This matches the v0.34 B-23 legacy code (= `private func`
-/// inside EditorPlaceholder = module-internal).
+/// inside EditorView = module-internal).
 @MainActor
 enum EditorFileWatcher {
 

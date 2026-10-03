@@ -151,7 +151,7 @@ struct InspectorView: View {
             //
             // Lift the Inspector page header to the shared
             // SectionHeader component (= also used by AppleSidebarView '书架',
-            // PreviewPane '素材', and EditorPlaceholder '写作（小说）';
+            // PreviewPane '素材', and EditorView '写作（小说）';
             // = the 4 inspector pages = '写作（小说）' / '写作（风格）' /
             // '写作（人物）' / '项目管理' all share this header; =
             // same Apple HIG Mail / Notes / Finder section-header

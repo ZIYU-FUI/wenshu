@@ -520,7 +520,7 @@ struct PreviewPane: View {
         // caneditor, yes': the search bar
         // belongs BELOW the ZoneContentView's tab strip (= at the same
         // Y as the editor's pencil/arrow/refresh toolbar inside
-        // EditorPlaceholder), NOT above the tab strip. Pattern matches
+        // EditorView), NOT above the tab strip. Pattern matches
         // the editor: ZoneContentView tab strip (= top layer) + tab
         // content (= PreviewPane, = search bar BELOW tab strip + body
         // content below the search bar).
@@ -931,7 +931,7 @@ struct PreviewPane: View {
     /// 
     /// preview-pane search bar (= 30 PT tall, = matches
     /// `LayoutTokens.toolbarHeight` = the editor's pencil/arrow toolbar
-    /// inside EditorPlaceholder). Pattern matches the editor:
+    /// inside EditorView). Pattern matches the editor:
     /// tab strip (ZoneContentView) → search bar (this view) → body content.
     ///
     /// Layout:

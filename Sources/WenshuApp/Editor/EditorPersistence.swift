@@ -1,7 +1,7 @@
 //
 //  EditorPersistence.swift · Wenshu
 //
-//  Extracted from `EditorPlaceholder.swift`. Lives at the
+//  Extracted from `EditorView.swift`. Lives at the
 //  module's Editor layer (= the same layer as `DraftPersistence`,
 //  `WikiLinkNavigation`, `EditorFileWatcher`).
 //

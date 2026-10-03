@@ -3,13 +3,13 @@
 //
 //  Behavior + source-level tests for `EditorFileWatcher` (= the
 //  DispatchSourceFileSystemObject wrapper extracted from
-//  EditorPlaceholder.swift).
+//  EditorView.swift).
 //
 //  Behavior tests cover the public API
 //  (start(path:tab:) + stop(tab:)) with a real temp file + real
 //  DispatchSource (= macOS 27 filesystem event delivery). Source-
 //  level tests assert the new file exists + the legacy code is gone
-//  from EditorPlaceholder.swift (= the inline startFileWatcher
+//  from EditorView.swift (= the inline startFileWatcher
 //  + stopFileWatcher no longer compile against the migrated target).
 //
 //  Pattern (= v0.71 P1 batch 3 + v0.39 ticket 001 precedent):
@@ -117,8 +117,8 @@ struct EditorFileWatcherTests {
     // (= the kqueue/mach channel that backs DispatchSource does
     // not guarantee cross-callback visibility for writes from the
     // observing process). The legacy inline code at
-    // EditorPlaceholder.swift had ZERO behavior-level coverage
-    // for the .write trigger either (= EditorPlaceholderTests.swift
+    // EditorView.swift had ZERO behavior-level coverage
+    // for the .write trigger either (= EditorViewTests.swift
     // L315-343 are all source-level structural assertions). The
     // same pattern is preserved here: source-level tests + state
     // transition tests + DispatchSource presence check. Adding a
@@ -164,7 +164,7 @@ struct EditorFileWatcherTests {
         let sourcePath = testsRoot
             .appendingPathComponent("Sources/WenshuApp/Editor/EditorFileWatcher.swift").path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        // Legacy EditorPlaceholder called `reloadDocumentFromDisk()` (= the
+        // Legacy EditorView called `reloadDocumentFromDisk()` (= the
         // callback closure) directly inside the event handler. The extracted
         // helper takes the callback as a parameter (= `onChange: @escaping () -> Void`)
         // and the event handler closure must invoke it on the .write + .extend

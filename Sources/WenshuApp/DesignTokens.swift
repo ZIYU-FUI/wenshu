@@ -201,7 +201,7 @@ enum DesignTokens {
     /// row gap, CommandPalette row gap, LayoutEditBar row gap,
     /// LayoutPicker row gap, SettingView row inset,
     /// DynamicZoneView row inset, PlotThreadView row gap,
-    /// EditorPlaceholder row gap, TabContentDispatcher row
+    /// EditorView row gap, TabContentDispatcher row
     /// inset, ZoneEditor row gap, SpecializedTools 6 views
     /// (= CharacterLifecycle / CharacterRelationships /
     /// EmotionCurve / GenreFit / IdeaLibrary / LongFormGuardrails /
@@ -712,7 +712,7 @@ enum DesignTokens {
     // Token was: static let tabTitleFont: Font = .system(size: 12, design: .monospaced)
     // Replaced by: SwiftUI `.font(.caption.monospacedDigit().weight(.semibold))`
     // (= 12 PT monospaced digits + per-instance weight; = the v3.0 sweep
-    // migration in EditorPlaceholder.swift).
+    // migration in EditorView.swift).
 
     // MARK: - Frame metrics (v0.40 apple-001 iron-rule-6 batch 5)
     //

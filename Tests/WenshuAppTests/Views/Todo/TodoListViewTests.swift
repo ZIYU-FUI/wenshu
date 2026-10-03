@@ -5,7 +5,7 @@
 // 464 LOC body / 30 in_degree dependents / 6 prior fixes in 90d /
 // bug_magnet (= repowise health score 4.15, untested_hotspot critical).
 //
-// Per Q34 5.4 + v0.77 spec + v0.93 ticket 003 EditorPlaceholder pattern:
+// Per Q34 5.4 + v0.77 spec + v0.93 ticket 003 EditorView pattern:
 // structural source-level assertions capture the boss-spec invariants
 // (= scope picker, status sections, priority chip, due-date overdue,
 // reload trigger conditions, BookTodoStore JSON file naming). ViewInspector
@@ -26,7 +26,7 @@ struct TodoListViewTests {
     /// 
     /// from THIS test file's path. Tests work regardless of where
     /// the worktree is mounted (= v1.32 hit a build failure when
-    /// EditorPlaceholder was in a worktree because the old hardcoded
+    /// EditorView was in a worktree because the old hardcoded
     /// path pointed to the main worktree).
     private static var todoListViewPath: String {
         let testFileURL = URL(fileURLWithPath: #filePath)

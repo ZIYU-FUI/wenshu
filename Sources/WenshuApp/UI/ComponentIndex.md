@@ -381,7 +381,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 
 ### 9.6 EditorPreviewContent
 - **Path**: `Sources/WenshuApp/Views/Workspace/EditorPreviewContent.swift`
-- **Purpose**: The SwiftUI ScrollView-based markdown preview renderer for the editor pane (= parses markdown body into Segment[] via parsedSegments + renders each via renderSegment). 2 let parameters (markdownBody: String + wikilinkTarget: EditorPlaceholder.WikilinkAction).
+- **Purpose**: The SwiftUI ScrollView-based markdown preview renderer for the editor pane (= parses markdown body into Segment[] via parsedSegments + renders each via renderSegment). 2 let parameters (markdownBody: String + wikilinkTarget: EditorView.WikilinkAction).
 - **Use when**: Building a pure-SwiftUI markdown preview (= no live edit; = no NSTextView).
 - **API**: `EditorPreviewContent(markdownBody:..., wikilinkTarget:...)`
 

@@ -9,7 +9,7 @@
 //
 // The same pattern repeats at the top of every column
 // (AppleSidebarView '书架', PreviewPane '素材',
-// EditorPlaceholder tab strip '写作（小说）'). Lifted here so
+// EditorView tab strip '写作（小说）'). Lifted here so
 // future columns use SectionHeader(...) instead of inlining the
 // same HStack + Divider block three times.
 //

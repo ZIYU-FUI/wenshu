@@ -45,7 +45,7 @@ struct TabContentDispatcher: View {
     // (= boss 9/2 OOB follow-up to B-14): the chrome bottom
     // status now reads ": 0 / N" (= replaces the legacy "N%"
     // progress placeholder). BacklinksViewModel lives here too (= own
-    // loader for the chrome status; EditorPlaceholder holds its own
+    // loader for the chrome status; EditorView holds its own
     // copy for the popover content. Slight redundancy vs single source
     // of truth, but matches the existing zone-level loader pattern
     // and avoids threading the popover's @State through the chrome

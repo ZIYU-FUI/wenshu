@@ -105,7 +105,7 @@ final class EditorChatNSController: NSSplitViewController {
     // Inject AppState + BookStore into the editor pane's
     // NSHostingController (= the SwiftUI @Environment chain
     // breaks at the AppKit NSSplitViewController boundary;
-    // = EditorPlaceholder's @Environment(AppState.self) +
+    // = EditorView's @Environment(AppState.self) +
     // @Environment(BookStore.self) won't see the parent
     // NavigationSplitView's environment; = the editor pane
     // would always render the empty-state hint even with tabs
@@ -210,7 +210,7 @@ final class EditorChatNSController: NSSplitViewController {
         self.splitView.autosaveName = Self.autosaveName
 
         // Top pane (= editor).
-        let editorRoot = EditorPlaceholder()
+        let editorRoot = EditorView()
             .applyOptionalEnvironment(appState: appState, bookStore: bookStore)
         let editorItem = NSSplitViewItem(viewController: NSHostingController(
             rootView: editorRoot

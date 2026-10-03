@@ -3,7 +3,7 @@
 //
 //  Behavior tests for `WikiLinkNavigation.handle(displayName:referenceStore:bookStore:)`
 //  (= the SMC ticket 003 wiki-link resolver helper that was extracted
-//  out of EditorPlaceholder at v0.34 but never received test coverage).
+//  out of EditorView at v0.34 but never received test coverage).
 // 
 //  wikilink path "done" (= the helper is the entry point both
 //  `handlePreviewWikiLink(displayName:)` + `handleEditorWikiLink(linkId:)`

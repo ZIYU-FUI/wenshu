@@ -3,7 +3,7 @@
 //
 //  Behavior + source-level tests for `EditorPersistence` (= the
 //  disk IO + conflict-backup + auto-save-task lifecycle extracted
-//  from EditorPlaceholder.swift).
+//  from EditorView.swift).
 //
 //  The persistence helpers are pure (= take
 //  EditorTab + BookStore?, return result structs, mutate tab in
@@ -121,7 +121,7 @@ struct EditorPersistenceTests {
     }
 
     // Note (= see T1a pattern): "legacy methods removed from
-    // EditorPlaceholder" assertions are deferred to T2b (= the
+    // EditorView" assertions are deferred to T2b (= the
     // wiring commit). This suite asserts the helper itself; =
     // the view-side migration lands in T2b.
 
