@@ -243,11 +243,13 @@ struct LibraryRootView: View {
                     workspaceUI: workspaceUI
                 )
             } detail: {
-                ShellContentColumn(
+                EditorChatSplitHost(
+                    conductor: WenshuAppDelegate.sharedConductor,
                     appState: appState,
                     bookStore: bookStore,
                     library: library
                 )
+                .environment(appState)
                 .inspector(isPresented: $inspectorVisible) {
                     InspectorView(
                         appState: appState,
