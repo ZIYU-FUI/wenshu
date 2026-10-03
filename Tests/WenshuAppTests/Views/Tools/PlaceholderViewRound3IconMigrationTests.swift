@@ -46,4 +46,36 @@ struct PlaceholderViewRound3IconMigrationTests {
         #expect(content.contains("SFIcon(\"viewfinder\", style: .inlineSmall, color: IconColor.tint)"),
                 "PlaceholderView viewfinder preview must use SFIcon")
     }
+
+    @Test("PlaceholderViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
+    func testStateMirrorExists() throws {
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/PlaceholderView.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("PlaceholderViewState"),
+                "PlaceholderView must reference PlaceholderViewState mirror")
+        #expect(content.contains("@State private var state = PlaceholderViewState()"),
+                "PlaceholderView must hold state via @State mirror (not bare @State vars)")
+        let bareRows = content.contains("@State private var rows: [Placeholder]")
+        let bareLastScan = content.contains("@State private var lastScanCount: Int? = nil")
+        let bareLoading = content.contains("@State private var loadingState: LoadStatus = .idle")
+        let bareErrorText = content.contains("@State private var errorText: String?")
+        #expect(!bareRows, "rows must NOT be a bare @State var")
+        #expect(!bareLastScan, "lastScanCount must NOT be a bare @State var")
+        #expect(!bareLoading, "loadingState must NOT be a bare @State var (use SpecializedToolLoadStatus)")
+        #expect(!bareErrorText, "errorText must NOT be a bare @State var")
+    }
+
+    @Test("PlaceholderViewState mirror file exists (= companion file under Views/Tools/)")
+    func testStateMirrorFileExists() throws {
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/mvvm-p1/Sources/WenshuApp/Views/Tools/PlaceholderViewState.swift"
+        #expect(FileManager.default.fileExists(atPath: filePath),
+                "PlaceholderViewState.swift must exist as a companion file")
+        let source = try String(contentsOfFile: filePath, encoding: .utf8)
+        #expect(source.contains("@Observable"), "mirror must use @Observable macro")
+        #expect(source.contains("final class PlaceholderViewState"), "mirror must be a final class")
+        #expect(source.contains("var rows: [Placeholder]"), "mirror must hold rows field")
+        #expect(source.contains("var lastScanCount: Int?"), "mirror must hold lastScanCount field")
+        #expect(source.contains("var loadingState: SpecializedToolLoadStatus"), "mirror must hold loadingState field (canonical SpecializedToolLoadStatus)")
+        #expect(source.contains("var errorText: String?"), "mirror must hold errorText field")
+    }
 }
