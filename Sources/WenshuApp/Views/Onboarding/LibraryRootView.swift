@@ -104,6 +104,19 @@ struct LibraryRootView: View {
     // visibility (= driven by the Cmd-F ⌘F keyboard binding).
     @State private var spotlightVisible: Bool = false
     @State private var editMode = LayoutEditMode()
+    /// Apple HIG inspector visibility. Per WWDC23-10161,
+    /// `.inspector(isPresented:)` takes a `Binding<Bool>` that
+    /// the OS reads to drive the right-column drag-collapse and
+    /// the toolbar toggle button. Apple recommends @State here
+    /// (= the inspector is view-local chrome; = no cross-view
+    /// sharing required; = matches the Pages / Numbers / Keynote
+    /// pattern where the inspector state lives in the owning
+    /// split view, not in a shared environment class).
+    ///
+    /// Owner moved here in commit 6b (= the NavigationSplitShell
+    /// wrapper layer was removed; = LibraryRootView is now the
+    /// owning split view, so the inspector state lives on it).
+    @State private var inspectorVisible: Bool = true
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
@@ -202,11 +215,47 @@ struct LibraryRootView: View {
                 libraryPath = url.path
             })
         } else if let bookStore {
-            // NavigationSplitShell is the NavigationSplitView. Nothing
+            // LibraryRootView is the NavigationSplitView. Nothing
             // wraps it: it is the direct child of the root view, which is
             // what Apple's NavigationSplitView documentation asks for
             // ("typically use it as the root view in a Scene").
-            NavigationSplitShell(appState: appState, workspaceUI: workspaceUI, bookStore: bookStore, library: library)
+            //
+            // Commit 6b removed the NavigationSplitShell wrapper layer
+            // (= the wenshu-summary abstraction that conflated wenshu-
+            // specific column-binding plumbing with Apple's
+            // NavigationSplitView). Per boss 2026-10-03 OOB '清多余的
+            // 层' = strip wenshu-summary layers that conflate with the
+            // Apple-canonical shape.
+            //
+            // Column bodies are still wrapped by ShellMiddleColumn /
+            // ShellContentColumn / ShellDetailColumn (= the per-column
+            // wenshu-summary wrappers; = commits 6c/6d/6e strip those
+            // next). For this commit, the NavigationSplitShell wrapper
+            // is removed and the body is inlined here (= the closure
+            // shapes match Apple's documented NavigationSplitView init
+            // exactly; = no init signature changes).
+            NavigationSplitView {
+                AppleSidebarView()
+            } content: {
+                ShellMiddleColumn(
+                    envAppState: appState,
+                    appState: appState,
+                    workspaceUI: workspaceUI
+                )
+            } detail: {
+                ShellContentColumn(
+                    appState: appState,
+                    bookStore: bookStore,
+                    library: library
+                )
+                .inspector(isPresented: $inspectorVisible) {
+                    ShellDetailColumn(
+                        appState: appState,
+                        workspaceUI: workspaceUI,
+                        inspectorVisibleBinding: $inspectorVisible
+                    )
+                }
+            }
         } else {
             // BookStore is built asynchronously by LibraryLifecycleHook.
             // Column bodies read it as a non-optional @Environment value,
