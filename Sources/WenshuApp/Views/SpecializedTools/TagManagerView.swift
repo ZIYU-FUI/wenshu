@@ -21,13 +21,13 @@
 //    - Applications list (= one row per application; shows the
 //      tag label + target kind + target-id fragment + unapply
 //      button).
-//    - Tag cloud (= one row per tag with at least one application,
+//    - Tag state.cloud (= one row per tag with at least one application,
 //      sorted by count descending).
 //    - Filter section (= tag picker + target picker + result
 //      list of matching entity ids).
 //
 //  State source: `TagManager` actor (= owned per-book, persisted
-//  via per-book JSON sidecar at `books/<bookId>/tags.json`).
+//  via per-book JSON sidecar at `books/<bookId>/state.tags.json`).
 //
 //  Entity picker source: a free-form UUID TextField for the
 //  target id (= consistent with how CharacterLifecycleView treats
@@ -54,7 +54,7 @@
 //  required: open SpecializedTools pane, click the new
 //  Tag-Manager tab, add a tag, apply it to an entity (chapter /
 //  character / scene / plot-thread), see the row in the
-//  applications list + the tag cloud + the filter result.
+//  state.applications list + the tag state.cloud + the filter result.
 //
 
 import SwiftUI
@@ -77,9 +77,10 @@ struct TagManagerView: View {
     /// @State so SwiftUI keeps the identity across re-renders).
     @State private var manager: TagManager?
 
-    @State private var tags: [Tag] = []
-    @State private var applications: [TagApplication] = []
-    @State private var cloud: [TagCloudEntry] = []
+    /// Business state mirror (= state.tags + state.applications + state.cloud +
+    /// state.filterMatches + status + state.errorText). Form drafts stay on the
+    /// View per §11.3.
+    @State private var state = TagManagerViewState()
 
     // Add-tag picker state.
     @State private var draftLabel: String = ""
@@ -90,13 +91,9 @@ struct TagManagerView: View {
     @State private var draftApplyTarget: TagTarget = .chapter
     @State private var draftApplyTargetIdText: String = ""
 
-    // Filter picker state.
+    // Filter state.
     @State private var draftFilterTagId: UUID?
     @State private var draftFilterTarget: TagTarget = .chapter
-    @State private var filterMatches: [UUID] = []
-
-    @State private var status: SpecializedToolLoadStatus = .idle
-    @State private var errorText: String?
 
 
 
@@ -148,7 +145,7 @@ struct TagManagerView: View {
             Divider()
             filterSection
             Spacer(minLength: 0)
-            if let errorText {
+            if let errorText = state.errorText {
                 Text(errorText)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -200,7 +197,7 @@ struct TagManagerView: View {
             Text(WenshuI18n.t("b5.tagmanagerview.l236.h12934415"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if tags.isEmpty {
+            if state.tags.isEmpty {
                 Text(WenshuI18n.t("b5.tagmanagerview.l240.h97833218"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -208,7 +205,7 @@ struct TagManagerView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        ForEach(tags) { tag in
+                        ForEach(state.tags) { tag in
                             tagRow(tag)
                         }
                     }
@@ -232,7 +229,7 @@ struct TagManagerView: View {
                         .padding(.horizontal, DesignTokens.spacingTight)
                         .padding(.vertical, DesignTokens.spacingHairline)
                         
-                    let appCount = applications.filter { $0.tagId == tag.id }.count
+                    let appCount = state.applications.filter { $0.tagId == tag.id }.count
                     if appCount > 0 {
                         Text(WenshuI18n.t("b5.tagmanagerview.l278.h7057400"))
                             .font(.caption2)
@@ -263,24 +260,24 @@ struct TagManagerView: View {
             Text(WenshuI18n.t("b5.tagmanagerview.l307.h96892915"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if tags.isEmpty {
+            if state.tags.isEmpty {
                 Text(WenshuI18n.t("b5.tagmanagerview.l311.h83311017"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
             HStack(spacing: DesignTokens.spacingStandard) {
                 Picker("Tag", selection: Binding(
-                    get: { draftApplyTagId ?? tags.first?.id ?? UUID() },
+                    get: { draftApplyTagId ?? state.tags.first?.id ?? UUID() },
                     set: { draftApplyTagId = $0 }
                 )) {
                     Text(WenshuI18n.t("b5.tagmanagerview.l320.h7801028")).tag(UUID())
-                    ForEach(tags) { tag in
+                    ForEach(state.tags) { tag in
                         Text(WenshuI18n.t("b5.tagmanagerview.l322.h1349617")).tag(tag.id)
                     }
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .disabled(tags.isEmpty)
+                .disabled(state.tags.isEmpty)
 
                 Picker("Target", selection: $draftApplyTarget) {
                     ForEach(TagTarget.allCases) { target in
@@ -312,7 +309,7 @@ struct TagManagerView: View {
 
     private var canApply: Bool {
         guard let tagId = draftApplyTagId, tagId != UUID() else { return false }
-        guard tags.contains(where: { $0.id == tagId }) else { return false }
+        guard state.tags.contains(where: { $0.id == tagId }) else { return false }
         guard UUID(uuidString: draftApplyTargetIdText.trimmingCharacters(in: .whitespacesAndNewlines)) != nil else { return false }
         return true
     }
@@ -324,7 +321,7 @@ struct TagManagerView: View {
             Text(WenshuI18n.t("b5.tagmanagerview.l368.h75731289"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if applications.isEmpty {
+            if state.applications.isEmpty {
                 Text(WenshuI18n.t("b5.tagmanagerview.l372.h9838641"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -332,7 +329,7 @@ struct TagManagerView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-                        ForEach(applications) { application in
+                        ForEach(state.applications) { application in
                             applicationRow(application)
                         }
                     }
@@ -374,14 +371,14 @@ struct TagManagerView: View {
         .padding(.vertical, DesignTokens.spacingCaption)
     }
 
-    // MARK: - Tag cloud
+    // MARK: - Tag state.cloud
 
     private var cloudSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             Text(WenshuI18n.t("b5.tagmanagerview.l430.h82273461"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if cloud.isEmpty {
+            if state.cloud.isEmpty {
                 Text(WenshuI18n.t("b5.tagmanagerview.l434.h60440302"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -389,7 +386,7 @@ struct TagManagerView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-                        ForEach(cloud) { entry in
+                        ForEach(state.cloud) { entry in
                             cloudRow(entry)
                         }
                     }
@@ -423,18 +420,18 @@ struct TagManagerView: View {
             Text(WenshuI18n.t("b5.tagmanagerview.l477.h41034022"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if tags.isEmpty {
+            if state.tags.isEmpty {
                 Text(WenshuI18n.t("b5.tagmanagerview.l481.h78063039"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             } else {
                 HStack(spacing: DesignTokens.spacingStandard) {
                     Picker("Tag", selection: Binding(
-                        get: { draftFilterTagId ?? tags.first?.id ?? UUID() },
+                        get: { draftFilterTagId ?? state.tags.first?.id ?? UUID() },
                         set: { draftFilterTagId = $0 }
                     )) {
                         Text(WenshuI18n.t("b5.tagmanagerview.l490.h54878954")).tag(UUID())
-                        ForEach(tags) { tag in
+                        ForEach(state.tags) { tag in
                             Text(WenshuI18n.t("b5.tagmanagerview.l492.h77758122")).tag(tag.id)
                         }
                     }
@@ -458,14 +455,14 @@ struct TagManagerView: View {
 
                     Spacer(minLength: 0)
                 }
-                if filterMatches.isEmpty {
+                if state.filterMatches.isEmpty {
                     Text(WenshuI18n.t("b5.tagmanagerview.l516.h78857770"))
                         .font(.caption)
                         .foregroundStyle(DesignTokens.statusForeground)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     VStack(alignment: .leading, spacing: 2) {
-                        ForEach(Array(filterMatches.enumerated()), id: \.offset) { _, id in
+                        ForEach(Array(state.filterMatches.enumerated()), id: \.offset) { _, id in
                             HStack(spacing: DesignTokens.spacingTight) {
                                 SFIcon(draftFilterTarget.icon, style: .inlineSmall, color: IconColor.tint)
                                 Text(id.uuidString)
@@ -485,7 +482,7 @@ struct TagManagerView: View {
     // MARK: - Helpers (= view-only glue: calls TagManagerOps, assigns @State)
 
     private func tagLabel(for tagId: UUID) -> String {
-        tags.first { $0.id == tagId }?.label ?? tagId.uuidString.prefix(8) + "…"
+        state.tags.first { $0.id == tagId }?.label ?? tagId.uuidString.prefix(8) + "…"
     }
 
     /// Lazily construct (= or fetch) the `TagManager` actor for the
@@ -500,27 +497,27 @@ struct TagManagerView: View {
 
     private func reload() async {
         guard activeBookId != nil else { return }
-        status = .loading
+        state.status = .loading
         let actor = ensureManager()
         let result = await TagManagerOps.reload(manager: actor, bookId: activeBookId)
-        tags = result.tags
-        applications = result.applications
-        cloud = result.cloud
+        state.tags = result.tags
+        state.applications = result.applications
+        state.cloud = result.cloud
         // Default pickers to the first tag (when any).
-        if draftApplyTagId == nil { draftApplyTagId = tags.first?.id }
-        if draftFilterTagId == nil { draftFilterTagId = tags.first?.id }
+        if draftApplyTagId == nil { draftApplyTagId = state.tags.first?.id }
+        if draftFilterTagId == nil { draftFilterTagId = state.tags.first?.id }
         if let error = result.error {
-            errorText = error
-            status = .failed(error)
+            state.errorText = error
+            state.status = .failed(error)
         } else {
-            status = .loaded
+            state.status = .loaded
         }
         await runFilter()
     }
 
     private func runFilter() async {
         guard manager != nil else {
-            filterMatches = []
+            state.filterMatches = []
             return
         }
         let actor = ensureManager()
@@ -530,8 +527,8 @@ struct TagManagerView: View {
             tagId: draftFilterTagId,
             target: draftFilterTarget
         )
-        filterMatches = result.matches
-        if let error = result.error { errorText = error }
+        state.filterMatches = result.matches
+        if let error = result.error { state.errorText = error }
     }
 
     private func addTag() async {
@@ -549,14 +546,14 @@ struct TagManagerView: View {
             // rule, = stays in the view per ADR-0009).
             draftLabel = ""
         }
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
     private func removeTag(_ tag: Tag) async {
         let actor = ensureManager()
         let result = await TagManagerOps.removeTag(manager: actor, tag: tag)
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
@@ -573,14 +570,14 @@ struct TagManagerView: View {
         if result.didSave {
             draftApplyTargetIdText = ""
         }
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
     private func unapply(_ application: TagApplication) async {
         let actor = ensureManager()
         let result = await TagManagerOps.unapply(manager: actor, application: application)
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 }

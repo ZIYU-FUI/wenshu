@@ -131,4 +131,43 @@ struct TagManagerViewTests {
         #expect(source.contains("init("),
                 "3/3: init() missing")
     }
+
+    @Test("TagManagerViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
+    func testStateMirrorExists() throws {
+        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        #expect(source.contains("TagManagerViewState"),
+                "TagManagerView must reference TagManagerViewState mirror")
+        #expect(source.contains("@State private var state = TagManagerViewState()"),
+                "TagManagerView must hold state via @State mirror (not bare @State vars)")
+        let bareTags = source.contains("@State private var tags: [Tag]")
+        let bareApplications = source.contains("@State private var applications: [TagApplication]")
+        let bareCloud = source.contains("@State private var cloud: [TagCloudEntry]")
+        let bareFilterMatches = source.contains("@State private var filterMatches: [UUID]")
+        let bareStatus = source.contains("@State private var status: SpecializedToolLoadStatus")
+        let bareErrorText = source.contains("@State private var errorText: String?")
+        #expect(!bareTags, "tags must NOT be a bare @State var")
+        #expect(!bareApplications, "applications must NOT be a bare @State var")
+        #expect(!bareCloud, "cloud must NOT be a bare @State var")
+        #expect(!bareFilterMatches, "filterMatches must NOT be a bare @State var")
+        #expect(!bareStatus, "status must NOT be a bare @State var")
+        #expect(!bareErrorText, "errorText must NOT be a bare @State var")
+    }
+
+    @Test("TagManagerViewState mirror file exists (= companion file under Views/SpecializedTools/)")
+    func testStateMirrorFileExists() throws {
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/mvvm-p1/Sources/WenshuApp/Views/SpecializedTools/TagManagerViewState.swift"
+        #expect(FileManager.default.fileExists(atPath: filePath),
+                "TagManagerViewState.swift must exist as a companion file")
+        let source = try String(contentsOfFile: filePath, encoding: .utf8)
+        #expect(source.contains("@Observable"),
+                "mirror struct must use @Observable macro")
+        #expect(source.contains("final class TagManagerViewState"),
+                "mirror must be a final class")
+        #expect(source.contains("var tags: [Tag]"), "mirror must hold tags field")
+        #expect(source.contains("var applications: [TagApplication]"), "mirror must hold applications field")
+        #expect(source.contains("var cloud: [TagCloudEntry]"), "mirror must hold cloud field")
+        #expect(source.contains("var filterMatches: [UUID]"), "mirror must hold filterMatches field")
+        #expect(source.contains("var status: SpecializedToolLoadStatus"), "mirror must hold status field")
+        #expect(source.contains("var errorText: String?"), "mirror must hold errorText field")
+    }
 }
