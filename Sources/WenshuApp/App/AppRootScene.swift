@@ -16,6 +16,54 @@
 import SwiftUI
 import AppKit
 
+/// Window IDs for the dedicated secondary scenes (= the SwiftUI
+/// macOS 14+ `WindowGroup(id:)` accepts an `id` parameter that
+/// `openWindow(id:)` resolves; = the canonical way to open
+/// multiple window types from a single App).
+///
+/// Kanban + Todo + Canvas + Composer + ForeshadowingGraph + Cron
+/// + Attachments + Manifest + Summaries = 9 IDs (= the 9
+/// features the boss wants as independent windows per Pages /
+/// Numbers / Keynote's independent document windows pattern).
+///
+/// Originally defined in NavigationSplitShell.swift (= a wenshu-
+/// specific summary layer that conflated column-binding plumbing
+/// with the Apple canonical shape). Moved here in commit 6b when
+/// the NavigationSplitShell wrapper layer was removed (= the
+/// Apple multi-column rewrite strips wenshu-summary wrappers; =
+/// WindowID is a scene-level concern and pairs with AppRootScene).
+///
+/// macOS 27 Tahoe's WindowGroup id-routing has a special case for IDs
+/// that match the legacy Preferences/Settings ID space (= e.g. IDs
+/// containing 'preferences' / 'setting' / 'pref' tokens get routed
+/// to the system's SettingsEnvironmentCapturer scene instead of
+/// opening a new window). The IDs here use short opaque tokens
+/// (= 'wenshu-kanban' / 'wenshu-todo') that avoid that namespace
+/// collision. If a future ticket introduces additional WindowGroup
+/// scenes, prefer this same naming convention.
+enum WindowID {
+    static let kanban = "wenshu-kanban"
+    static let todo = "wenshu-todo"
+    // v2.8b (boss 2026-09-28 OOB B6 + B7 + B9): 4 new
+    // independent windows for previously-unwired features.
+    // Per boss '和老板 todo 一样' (= same shape as the existing
+    // kanban + todo windows).
+    static let canvas = "wenshu-canvas"
+    static let composer = "wenshu-composer"
+    static let foreshadowingGraph = "wenshu-foreshadowing-graph"
+    static let cron = "wenshu-cron"
+    // WS model entry windows (= each opens a dedicated independent
+    // window that lists entries for the corresponding SwiftData
+    // @Model (= WSAttachment / WSManifest / WSSummary). The window
+    // content is intentionally a real list (= fetched via
+    // FetchDescriptor) so the entry is a usable surface today and
+    // becomes the canonical wiring target once each model's real
+    // feature is decided).
+    static let attachments = "wenshu-attachments"
+    static let manifest = "wenshu-manifest"
+    static let summaries = "wenshu-summaries"
+}
+
 struct AppRootScene: Scene {
     let library: WenshuLibrary
     @Binding var appearanceMode: AppearanceMode

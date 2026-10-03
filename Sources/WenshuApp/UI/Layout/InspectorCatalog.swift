@@ -26,6 +26,78 @@
 
 import SwiftUI
 
+/// Inspector page tab selection (= 4 cases per boss spec = the
+/// 4 inspector column pages: Authoring / Style / Characters /
+/// Project Management). Lives in InspectorCatalog (= same file
+/// as InspectorTool = the page → tools mapping reads the
+/// catalog via `InspectorCatalog.<tool>` references).
+///
+/// Originally defined in NavigationSplitShell.swift (= a wenshu-
+/// specific summary layer that conflated column-binding plumbing
+/// with the Apple canonical shape). Moved here in commit 6b
+/// when the NavigationSplitShell wrapper layer was removed (= the
+/// Apple multi-column rewrite strips wenshu-summary wrappers; =
+/// the enum is a data-layer concern and pairs with InspectorTool
+/// in this catalog file).
+enum InspectorPage: Hashable, CaseIterable {
+    case authoringFiction
+    case authoringStyle
+    case authoringCharacters
+    case projectManagement
+
+    var localizedTitle: String {
+        switch self {
+        case .authoringFiction:     return WenshuI18n.t("inspector.page.authoringFiction")
+        case .authoringStyle:       return WenshuI18n.t("inspector.page.authoringStyle")
+        case .authoringCharacters:  return WenshuI18n.t("inspector.page.authoringCharacters")
+        case .projectManagement:    return WenshuI18n.t("inspector.page.projectManagement")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .authoringFiction:     return "book.pages"
+        case .authoringStyle:       return "paintpalette"
+        case .authoringCharacters:  return "person.2"
+        case .projectManagement:    return "folder.badge.gearshape"
+        }
+    }
+
+    /// Page→tools routing. The page enum owns the routing as a
+    /// computed property (= page 跟它的 3 tools 绑一起 = single
+    /// source of truth; = 新增 page 只改 enum 一个地方).
+    var tools: [InspectorTool] {
+        switch self {
+        case .authoringFiction:
+            return [
+                InspectorCatalog.foreshadowing,
+                InspectorCatalog.placeholder,
+                InspectorCatalog.plotThread
+            ]
+        case .authoringStyle:
+            return [
+                InspectorCatalog.longForm,
+                InspectorCatalog.readerExperience,
+                InspectorCatalog.genreFit
+            ]
+        case .authoringCharacters:
+            return [
+                InspectorCatalog.characterRelationships,
+                InspectorCatalog.characterLifecycle,
+                InspectorCatalog.emotionCurve
+            ]
+        case .projectManagement:
+            return [
+                InspectorCatalog.ideaLibrary,
+                InspectorCatalog.tagManager,
+                InspectorCatalog.bookSettingConstraints,
+                InspectorCatalog.bookmark,
+                InspectorCatalog.backgroundReview
+            ]
+        }
+    }
+}
+
 /// Single specialized tool = the data-layer type for the right
 /// column's specializedTools zone. Owned by `InspectorCatalog` (= 13
 /// static entries) and `InspectorPage.tools` (ticket 02 = the
