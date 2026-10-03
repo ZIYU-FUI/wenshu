@@ -455,7 +455,7 @@ enum ToolDispatchUntrustedWrap {
     static func makeToolResultMessage(
         name: String,
         content: Any,
-        toolCallId: String
+        toolCallId: ToolCallID
     ) -> [String: Any] {
         let wrapped = maybeWrapUntrusted(name, content: content)
         return [
@@ -463,7 +463,7 @@ enum ToolDispatchUntrustedWrap {
             "name": name,
             "tool_name": name,  // wenshu-side wins: wenshu's session DB uses `tool_name`
             "content": wrapped,
-            "tool_call_id": toolCallId,
+            "tool_call_id": toolCallId.rawValue,
         ]
     }
 }

@@ -667,10 +667,10 @@ final class ChatViewModel {
                             }
                             accumulator.thinking += t
                         case .toolUse(let id, let name, let input):
-                            accumulator.parts.append(.toolUse(id: id, name: name, args: input))
+                            accumulator.parts.append(.toolUse(id: ToolCallID(rawValue: id), name: name, args: input))
                         case .toolResult(let toolUseID, let output):
                             accumulator.parts.append(.toolResult(
-                                toolUseID: toolUseID, content: output, isError: false
+                                toolUseID: ToolCallID(rawValue: toolUseID), content: output, isError: false
                             ))
                         }
                         // Then dispatch the messages mutation to
@@ -798,7 +798,7 @@ final class ChatViewModel {
                         // the array but the view still renders
                         // legacy `content` until P7 lands.
                         streamingParts.append(.toolUse(
-                            id: id, name: name, args: input
+                            id: ToolCallID(rawValue: id), name: name, args: input
                         ))
                         if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                             messages[idx] = ChatMessage(

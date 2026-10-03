@@ -260,7 +260,7 @@ struct ToolDispatchHelpersHermesGapPortTests {
         let msg = ToolDispatchUntrustedWrap.makeToolResultMessage(
             name: "read_file",
             content: content,
-            toolCallId: "call_abc123"
+            toolCallId: ToolCallID(rawValue: "call_abc123")
         )
         #expect(msg["role"] as? String == "tool")
         #expect(msg["name"] as? String == "read_file")
@@ -278,7 +278,7 @@ struct ToolDispatchHelpersHermesGapPortTests {
         let msg = ToolDispatchUntrustedWrap.makeToolResultMessage(
             name: "format_text",
             content: content,
-            toolCallId: "call_def456"
+            toolCallId: ToolCallID(rawValue: "call_def456")
         )
         #expect(msg["content"] as? String == content)
     }
