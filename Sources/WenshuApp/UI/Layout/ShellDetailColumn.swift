@@ -445,6 +445,18 @@ struct ShellDetailColumn: View {
                                 }
                                 .help(WenshuI18n.t("window.manifest.title"))
 
+                                Button {
+                                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.summaries)")
+                                    openWindow(id: WindowID.summaries)
+                                } label: {
+                                    Label {
+                                        Text(WenshuI18n.t("window.summaries.title"))
+                                    } icon: {
+                                        SFIcon("text.bubble", style: .inlineSmall, color: IconColor.tint)
+                                    }
+                                }
+                                .help(WenshuI18n.t("window.summaries.title"))
+
                                 // v2.9a (boss 2026-09-28 OOB A4): LLM Wiki
                                 // operator button = the manual surface for
                                 // LLMWikiOps.runAll. LLM can already call the
