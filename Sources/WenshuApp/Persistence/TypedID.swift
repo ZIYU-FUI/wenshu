@@ -142,6 +142,23 @@ struct SessionID: TypedID, Equatable, Hashable, Codable, Sendable {
     }
 }
 
+/// Brand wrapper for a memory-entry identifier (= the `memoryId`
+/// field on `MemoryDomain.Memory`; = the in-memory API surface
+/// for `WSMemoryRepository`).
+///
+/// Unlike `ToolCallID` and `SessionID`, the `memoryId` lives on a
+/// pure-domain struct (= `Memory` is NOT a `@Model`). This commit
+/// introduces the type (= no SwiftData-boundary constraint); a
+/// future commit will swap `String` for `MemoryID` in
+/// `MemoryDomain.Memory` + `WSMemoryRepository`.
+struct MemoryID: TypedID, Equatable, Hashable, Codable, Sendable {
+    let rawValue: String
+
+    init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+}
+
 // MARK: - String interop
 
 extension BookID {
