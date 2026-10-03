@@ -58,4 +58,32 @@ struct BookmarkViewTests {
         #expect(source.contains("BookmarkView()"),
                 "InspectorCatalog.bookmark must render `BookmarkView()` directly")
     }
+
+    @Test("BookmarkViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
+    func testStateMirrorExists() throws {
+        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        #expect(source.contains("BookmarkViewState"),
+                "BookmarkView must reference BookmarkViewState mirror")
+        #expect(source.contains("@State private var state = BookmarkViewState()"),
+                "BookmarkView must hold state via @State mirror")
+        #expect(!source.contains("@State private var bookmarks: [Bookmark]"),
+                "bookmarks must NOT be a bare @State var")
+        #expect(!source.contains("@State private var status: SpecializedToolLoadStatus"),
+                "status must NOT be a bare @State var")
+        #expect(!source.contains("@State private var errorText: String?"),
+                "errorText must NOT be a bare @State var")
+    }
+
+    @Test("BookmarkViewState mirror file exists (= companion file under Views/SpecializedTools/)")
+    func testStateMirrorFileExists() throws {
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/p2-mirrors/Sources/WenshuApp/Views/SpecializedTools/BookmarkViewState.swift"
+        #expect(FileManager.default.fileExists(atPath: filePath),
+                "BookmarkViewState.swift must exist as a companion file")
+        let source = try String(contentsOfFile: filePath, encoding: .utf8)
+        #expect(source.contains("@Observable"), "mirror must use @Observable macro")
+        #expect(source.contains("final class BookmarkViewState"), "mirror must be a final class")
+        #expect(source.contains("var bookmarks: [Bookmark]"), "mirror must hold bookmarks field")
+        #expect(source.contains("var status: SpecializedToolLoadStatus"), "mirror must hold status field")
+        #expect(source.contains("var errorText: String?"), "mirror must hold errorText field")
+    }
 }

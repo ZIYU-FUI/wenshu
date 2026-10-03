@@ -17,7 +17,7 @@
 //
 //  State source: `ReaderExperienceAnalyzer` actor (= stateless;
 //  = no BookStore required). Each analyze call returns a fresh
-//  `ReaderExperienceReport`. The view holds the latest report in
+//  `ReaderExperienceReport`. The view holds the latest state.report in
 //  `@State` and re-renders the result panel.
 //
 //  Standards-axis:
@@ -35,7 +35,7 @@
 //  ADDS a 4th tab to the specializedTools pane. Boss acceptance
 //  required: open SpecializedTools pane, click the new
 //  Reader-Experience tab, paste a chapter, run an analyzer, see
-//  the report.
+//  the state.report.
 //
 
 import SwiftUI
@@ -44,7 +44,7 @@ import SwiftUI
 ///
 /// Stateless UI (= the `ReaderExperienceAnalyzer` actor is
 /// stateless). User pastes chapter text, picks a kind, taps
-/// Analyze, sees a report.
+/// Analyze, sees a state.report.
 @MainActor
 struct ReaderExperienceView: View {
 
@@ -52,24 +52,16 @@ struct ReaderExperienceView: View {
     /// instantiated without a BookStore).
     @State private var analyzer: ReaderExperienceAnalyzer?
 
-    /// Currently selected analyzer kind (= drives the report).
+    /// Currently selected analyzer kind (= drives the state.report).
     @State private var selectedKind: ReaderExperienceKind = .tension
 
     /// Chapter text input (= the user pastes a finished chapter
     /// here).
     @State private var chapterText: String = ""
 
-    /// Latest report (= nil until the user runs an analyze).
-    @State private var report: ReaderExperienceReport?
-
-    /// Analyzer status (= idle / running / failed).
-    @State private var status: AnalyzeStatus = .idle
-
-    private enum AnalyzeStatus: Equatable, Sendable {
-        case idle
-        case running
-        case failed(String)
-    }
+    /// Business state mirror (= state.report + status). Picker + input
+    /// stay on the View per §11.3.
+    @State private var state = ReaderExperienceViewState()
 
     init() {}
 
@@ -78,7 +70,7 @@ struct ReaderExperienceView: View {
             pickerRow
             inputSection
             Divider()
-            if let report = report {
+            if let report = state.report {
                 resultSection(for: report)
             } else {
                 emptyState
@@ -140,12 +132,12 @@ struct ReaderExperienceView: View {
                     Label { Text(WenshuI18n.t("b5.readerexperienceview.l175.h61672688")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
+                .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || state.status == .loading)
                 .help(WenshuI18n.t("b5.readerexperienceview.l179.h93248900"))
                 Button {
                     chapterText = ""
-                    report = nil
-                    status = .idle
+                    state.report = nil
+                    state.status = .idle
                 } label: {
                     Label { Text(WenshuI18n.t("b5.readerexperienceview.l185.h22504814")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
                 }
@@ -275,17 +267,17 @@ struct ReaderExperienceView: View {
 
     private func runAnalyze() async {
         ReaderExperienceOps.ensureAnalyzer(analyzer: &analyzer)
-        status = .running
+        state.status = .loading
         let result = await ReaderExperienceOps.runAnalyze(
             analyzer: analyzer,
             chapterText: chapterText,
             kind: selectedKind
         )
-        report = result.report
+        state.report = result.report
         if result.didRun {
-            status = .idle
+            state.status = .idle
         } else if let err = result.error {
-            status = .failed(err)
+            state.status = .failed(err)
         }
     }
 }

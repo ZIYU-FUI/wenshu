@@ -131,4 +131,29 @@ struct EmotionCurveViewTests {
         #expect(source.contains("init("),
                 "3/3: init() missing")
     }
+
+    @Test("EmotionCurveViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
+    func testStateMirrorExists() throws {
+        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        #expect(source.contains("EmotionCurveViewState"),
+                "EmotionCurveView must reference EmotionCurveViewState mirror")
+        #expect(source.contains("@State private var state = EmotionCurveViewState()"),
+                "EmotionCurveView must hold state via @State mirror")
+        #expect(!source.contains("@State private var report: EmotionCurveReport?"),
+                "report must NOT be a bare @State var")
+        #expect(!source.contains("@State private var status: AnalyzeStatus = .idle"),
+                "status must NOT be a bare @State var (AnalyzeStatus moved out)")
+    }
+
+    @Test("EmotionCurveViewState mirror file exists (= companion file under Views/SpecializedTools/)")
+    func testStateMirrorFileExists() throws {
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/p2-mirrors/Sources/WenshuApp/Views/SpecializedTools/EmotionCurveViewState.swift"
+        #expect(FileManager.default.fileExists(atPath: filePath),
+                "EmotionCurveViewState.swift must exist as a companion file")
+        let source = try String(contentsOfFile: filePath, encoding: .utf8)
+        #expect(source.contains("@Observable"), "mirror must use @Observable macro")
+        #expect(source.contains("final class EmotionCurveViewState"), "mirror must be a final class")
+        #expect(source.contains("var report: EmotionCurveReport?"), "mirror must hold report field")
+        #expect(source.contains("var status: SpecializedToolLoadStatus"), "mirror must hold status field")
+    }
 }

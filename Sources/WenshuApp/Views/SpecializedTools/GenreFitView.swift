@@ -19,7 +19,7 @@
 //
 //  State source: `GenreFitAnalyzer` actor (= stateless; = no
 //  BookStore required). Each analyze call returns a fresh
-//  `GenreFitReport`. The view holds the latest report in
+//  `GenreFitReport`. The view holds the latest state.report in
 //  `@State` and re-renders the result panel.
 //
 //  Standards-axis:
@@ -46,7 +46,7 @@ import SwiftUI
 ///
 /// Stateless UI (= the `GenreFitAnalyzer` actor is stateless).
 /// User pastes chapter text, picks a genre, taps Analyze, sees a
-/// report.
+/// state.report.
 @MainActor
 struct GenreFitView: View {
 
@@ -54,24 +54,17 @@ struct GenreFitView: View {
     /// instantiated without a BookStore).
     @State private var analyzer: GenreFitAnalyzer?
 
-    /// Currently selected genre (= drives the report).
+    /// Currently selected genre (= drives the state.report).
     @State private var selectedGenre: LiteraryGenre = .mystery
 
     /// Chapter text input (= the user pastes a finished chapter
     /// here).
     @State private var chapterText: String = ""
 
-    /// Latest report (= nil until the user runs an analyze).
-    @State private var report: GenreFitReport?
-
-    /// Analyzer status (= idle / running / failed).
-    @State private var status: AnalyzeStatus = .idle
-
-    private enum AnalyzeStatus: Equatable, Sendable {
-        case idle
-        case running
-        case failed(String)
-    }
+    /// Latest state.report (= nil until the user runs an analyze).
+    /// Business state mirror (= state.report + status). Picker + input
+    /// stay on the View per §11.3.
+    @State private var state = GenreFitViewState()
 
     init() {}
 
@@ -80,7 +73,7 @@ struct GenreFitView: View {
             pickerRow
             inputSection
             Divider()
-            if let report = report {
+            if let report = state.report {
                 resultSection(for: report)
             } else {
                 emptyState
@@ -142,12 +135,12 @@ struct GenreFitView: View {
                     Label { Text(WenshuI18n.t("button.analyze")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
+                .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || state.status == .loading)
                 .help(WenshuI18n.t("b5.genrefitview.l181.h2218881"))
                 Button {
                     chapterText = ""
-                    report = nil
-                    status = .idle
+                    state.report = nil
+                    state.status = .idle
                 } label: {
                     Label { Text(WenshuI18n.t("button.clear")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
                 }
@@ -267,17 +260,17 @@ struct GenreFitView: View {
 
     private func runAnalyze() async {
         GenreFitOps.ensureAnalyzer(analyzer: &analyzer)
-        status = .running
+        state.status = .loading
         let result = await GenreFitOps.runAnalyze(
             analyzer: analyzer,
             chapterText: chapterText,
             genre: selectedGenre
         )
-        report = result.report
+        state.report = result.report
         if result.didRun {
-            status = .idle
+            state.status = .idle
         } else if let err = result.error {
-            status = .failed(err)
+            state.status = .failed(err)
         }
     }
 }

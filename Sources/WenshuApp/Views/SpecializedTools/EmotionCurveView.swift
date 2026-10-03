@@ -24,7 +24,7 @@
 //
 //  State source: `EmotionCurveAnalyzer` actor (= stateless; = no
 //  BookStore required). Each analyze call returns a fresh
-//  `EmotionCurveReport`. The view holds the latest report in
+//  `EmotionCurveReport`. The view holds the latest state.report in
 //  `@State` and re-renders the curve + result panel.
 //
 //  Standards-axis:
@@ -42,7 +42,7 @@
 //  ADDS a 7th tab to the specializedTools pane. Boss acceptance
 //  required: open SpecializedTools pane, click the new
 //  Emotion-Curve tab, paste a chapter, run analyze, see the
-//  curve visualization + report.
+//  curve visualization + state.report.
 //
 
 import SwiftUI
@@ -51,7 +51,7 @@ import SwiftUI
 ///
 /// Stateless UI (= the `EmotionCurveAnalyzer` actor is
 /// stateless). User pastes chapter text, picks a window count,
-/// taps Analyze, sees a curve + report.
+/// taps Analyze, sees a curve + state.report.
 @MainActor
 struct EmotionCurveView: View {
 
@@ -66,17 +66,10 @@ struct EmotionCurveView: View {
     /// Window count (= mirrors the actor's default).
     @State private var windowCount: Int = EmotionCurveAnalyzer.defaultWindowCount
 
-    /// Latest report (= nil until the user runs an analyze).
-    @State private var report: EmotionCurveReport?
-
-    /// Analyzer status (= idle / running / failed).
-    @State private var status: AnalyzeStatus = .idle
-
-    private enum AnalyzeStatus: Equatable, Sendable {
-        case idle
-        case running
-        case failed(String)
-    }
+    /// Latest state.report (= nil until the user runs an analyze).
+    /// Business state mirror (= state.report + status). Picker + input
+    /// stay on the View per §11.3.
+    @State private var state = EmotionCurveViewState()
 
     init() {}
 
@@ -85,7 +78,7 @@ struct EmotionCurveView: View {
             pickerRow
             inputSection
             Divider()
-            if let report = report {
+            if let report = state.report {
                 resultSection(for: report)
             } else {
                 emptyState
@@ -145,12 +138,12 @@ struct EmotionCurveView: View {
                     Label { Text(WenshuI18n.t("b5.emotioncurveview.l187.h73202981")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
+                .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || state.status == .loading)
                 .help(WenshuI18n.t("b5.emotioncurveview.l191.h43420055"))
                 Button {
                     chapterText = ""
-                    report = nil
-                    status = .idle
+                    state.report = nil
+                    state.status = .idle
                 } label: {
                     Label { Text(WenshuI18n.t("b5.emotioncurveview.l197.h82618035")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
                 }
@@ -453,17 +446,17 @@ struct EmotionCurveView: View {
 
     private func runAnalyze() async {
         EmotionCurveOps.ensureAnalyzer(analyzer: &analyzer)
-        status = .running
+        state.status = .loading
         let result = await EmotionCurveOps.runAnalyze(
             analyzer: analyzer,
             chapterText: chapterText,
             windowCount: windowCount
         )
-        report = result.report
+        state.report = result.report
         if result.didRun {
-            status = .idle
+            state.status = .idle
         } else if let err = result.error {
-            status = .failed(err)
+            state.status = .failed(err)
         }
     }
 }
