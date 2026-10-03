@@ -2,8 +2,8 @@
 //  Persistence/WSForeshadowing.swift · Wenshu · v0.72 SwiftData migration 
 //
 //   : WSForeshadowing (= matches
-//  the "of 21" convention used by all sibling @Model files; = the actual
-//  schema has 23 @Model classes per AGENTS.md §11.4).
+//  the "of 22" convention used by all sibling @Model files; = the actual
+//  schema has 22 @Model classes per AGENTS.md §11.4).
 //  Mirrors the JSON sidecar Foreshadowing struct from
 //  ForeshadowingTrackerTools.swift.
 //

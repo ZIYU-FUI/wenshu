@@ -118,7 +118,7 @@ wenshu/                                                ← project root (v0.00.0
 
 | Internal interface | Path | Use |
 |--------------------|------|-----|
-| `WSPersistenceContainer` | `Sources/WenshuApp/Persistence/Container.swift` | SwiftData ModelContainer. Single ModelContainer per app (= 23 @Model classes). |
+| `WSPersistenceContainer` | `Sources/WenshuApp/Persistence/Container.swift` | SwiftData ModelContainer. Single ModelContainer per app (= 22 @Model classes). |
 | `LLMConnector` protocol | `Sources/WenshuCore/LLM/LLMConnector.swift` | Abstract LLM call. 7 connector profiles conform (Anthropic native / OpenAI native / OpenAI-compatible / Gemini native). See AGENTS.md §11.2. |
 | `ContextAssembler` | `Sources/WenshuCore/Search/ContextAssembler.swift` | Long-term memory → LLM minimal context. |
 | `StageGate` | `Sources/WenshuCore/Stage/StageGate.swift` | Stage gate main controller. |
@@ -227,7 +227,7 @@ swift run swiftlint
 - `Sources/WenshuApp/App.swift` — SwiftUI App entry.
 - `Sources/WenshuApp/MainView.swift` — main view.
 - `Sources/WenshuApp/Persistence/WS*.swift` — SwiftData @Model classes (schema change requires 老板 拍).
-- `Sources/WenshuApp/Persistence/Container.swift` — SwiftData ModelContainer setup (= 23 @Model classes, single container per app).
+- `Sources/WenshuApp/Persistence/Container.swift` — SwiftData ModelContainer setup (= 22 @Model classes, single container per app).
 - `Sources/WenshuCore/LLM/LLMConnector.swift` — LLM connector protocol (7 profiles conform).
 - `Sources/WenshuCore/LLM/SSEParser.swift` — SSE streaming parser (by event type).
 - `Sources/WenshuCore/Stage/StageGate.swift` — stage gate.

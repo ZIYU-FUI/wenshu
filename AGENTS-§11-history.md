@@ -306,7 +306,7 @@ Each session's `sessionID` (= `book:<UUID>:default`) encodes the bookID as a syn
 | 4 | Other per-book datasets (= kanban, todo, bookmark, foreshadowing, placeholder, world, character, outline, attachment) | unchanged (= will adopt the same row-level pattern in future arcs) |
 | 5 | The `BookStore` and `WenshuLibrary` types themselves | unchanged (= `BookStore.selectedBookId` / `WenshuLibrary.selectedBookId` are still dead fields, but documented as 'do not use' for chat purposes) |
 | 6 | AGENTS.md §11 baseline rules (= English-only, no forbidden vocab, no xianxia family, 老板 only) | clean across all 7 commits |
-| 7 | SwiftData migration roadmap (§11.4 phase 1-5) | unchanged (= v1.79 split is additive on top of the existing 23 @Model classes; = no new @Model entities, just new Optional columns on WSSession + WSChatMessage) |
+| 7 | SwiftData migration roadmap (§11.4 phase 1-5) | unchanged (= v1.79 split is additive on top of the existing 22 @Model classes; = no new @Model entities, just new Optional columns on WSSession + WSChatMessage) |
 | 8 | v1.55 sqlite3-zero migration arc (§11.7) | unchanged (= v1.79 SwiftData writes go through WSChatRepository which uses `@Attribute(.unique)` and `@MainActor`-isolated `ModelContext`; = no sqlite3 surface) |
 
 ### What is NOT done (= future tickets if boss approves)
@@ -323,7 +323,7 @@ Each session's `sessionID` (= `book:<UUID>:default`) encodes the bookID as a syn
 
 - It does not amend AGENTS.md §11 baseline (= the baseline is boss拍-pinned).
 - It does not touch AGENTS.md §11.1 third-party library policy (= no new SPM deps added; = all v1.79 storage uses built-in SwiftData).
-- It does not touch AGENTS.md §11.4 SwiftData migration roadmap (= v1.79 is additive on the existing 23 @Model classes; = no schema version bump).
+- It does not touch AGENTS.md §11.4 SwiftData migration roadmap (= v1.79 is additive on the existing 22 @Model classes; = no schema version bump).
 - It does not touch AGENTS.md §11.7 sqlite3-zero migration (= v1.79 writes go through SwiftData only).
 - It does not amend any other §11.XX entry (= §11.10 and earlier are unchanged).
 
@@ -471,7 +471,7 @@ Hermes 0.21.5 chose `MessageTextContent` (= the chat-side markdown component) fo
 
 - It does not amend AGENTS.md §11 baseline (= English-only, no forbidden vocab, no xianxia family, 老板 only).
 - It does not touch §11.1 third-party library policy (= no new SPM deps added).
-- It does not touch §11.4 SwiftData migration (= additive on the existing 23 @Model classes; = no schema version bump).
+- It does not touch §11.4 SwiftData migration (= additive on the existing 22 @Model classes; = no schema version bump).
 - It does not touch §11.7 sqlite3-zero migration (= writes go through SwiftData where applicable).
 - It does not amend any other §11.XX entry (§11.10 / §11.11 / §11.13 / §11.14 / §11.16 / §11.17 are unchanged).
 

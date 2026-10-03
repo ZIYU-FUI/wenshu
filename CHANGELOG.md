@@ -383,11 +383,11 @@ Single source of truth for the v0.72 SwiftData migration that is
 currently referenced in 20+ source file headers as "Phase 5 ticket 10a:
 ChatSessionStore deleted" (= stale if not for this consolidated entry).
 
-### Phase 1 — SwiftData @Model extraction (= 21 commits, 23 @Model classes)
+### Phase 1 — SwiftData @Model extraction (= 22 @Model classes)
 
 - Per AGENTS.md §11.4 SwiftData migration roadmap.
 - Replaced 10 raw sqlite3 stores + 20+ tables with a single SwiftData
-  `ModelContainer` (= Container.swift) holding 23 explicit `@Model`
+  `ModelContainer` (= Container.swift) holding 22 explicit `@Model`
   classes.
 - Source files: `Sources/WenshuApp/Persistence/WS*.swift`.
 
