@@ -70,13 +70,13 @@ struct BackupRestoreUITests {
                 "AppBackupOps.restore must delegate to BackupTools.restore (= SSOT on BackupTools)")
     }
 
-    @Test("ShellDetailColumn.toolbar has the Restore-from-backup button (= i18n key backup.operator.open)")
-    func testShellDetailColumnRestoreButton() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift"), encoding: .utf8)
+    @Test("InspectorView.toolbar has the Restore-from-backup button (= i18n key backup.operator.open)")
+    func testInspectorViewRestoreButton() throws {
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Inspector/InspectorView.swift"), encoding: .utf8)
         let hasButton = source.contains("backup.operator.open")
         let hasHelp = source.contains("backup.operator.help")
         let hasRestoreCall = source.contains("AppBackupOps.restore(backupName:")
         #expect(hasButton && hasHelp && hasRestoreCall,
-                "ShellDetailColumn.toolbar must include the Restore-from-backup button (= boss B5 follow-up = '没 restore UI')")
+                "InspectorView.toolbar must include the Restore-from-backup button (= boss B5 follow-up = '没 restore UI'; = the restore button moved to InspectorView in Phase 6 commit 6e when ShellDetailColumn was renamed)")
     }
 }

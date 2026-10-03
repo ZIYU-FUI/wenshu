@@ -19,13 +19,13 @@
 //  restart' expectation for column-local UI).
 //
 //  Environment injection: WorkspaceUIState is injected once at
-//  the AppRootScene root (= same .environment(...) chain as
-//  ShellState); = descendants read via
+//  the AppRootScene root; = descendants read via
 //  @Environment(WorkspaceUIState.self).
 //
-//  WorkspaceUIState is one of 4 new state classes added this arc
-//  (= ShellState / WorkspaceUIState / SheetRequestState /
-//  EditorCounters).
+//  WorkspaceUIState is one of 3 new state classes added this arc
+//  (= WorkspaceUIState / SheetRequestState / EditorCounters;
+//  = the original 4-class arc was reduced when ShellState was
+//  absorbed into WorkspaceUIState).
 //
 
 import Foundation
@@ -50,9 +50,9 @@ import Foundation
 /// state shared across column descendants; = the Pages /
 /// Numbers / Keynote pattern is to keep them in one
 /// environment-injected class, not split across multiple
-/// sibling classes). Single source of truth = easier to delete
-/// `ShellState` (= the now-redundant 1-property shell
-/// selection class that holds only `sidebarSelection`).
+/// sibling classes). After Phase 1c, ShellState was deleted
+/// (= its remaining sidebarSelection field is the canonical
+/// home for sidebar tree selection persistence).
 @MainActor
 @Observable
 final class WorkspaceUIState {
@@ -64,9 +64,9 @@ final class WorkspaceUIState {
     /// spec).
     ///
     /// Removed the 3 independent `@State` copies (= previously
-    /// in ShellMiddleColumn + WorkspaceView + PreviewPane =
-    /// drifted). Lives on WorkspaceUIState (= single source of
-    /// truth; = batch 3 = WorkspaceUIState split from
+    /// in the now-deleted ShellMiddleColumn + WorkspaceView +
+    /// PreviewPane = drifted). Lives on WorkspaceUIState (= single
+    /// source of truth; = batch 3 = WorkspaceUIState split from
     /// AppState).
     var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 

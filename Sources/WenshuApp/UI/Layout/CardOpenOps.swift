@@ -1,9 +1,9 @@
 //
 //  CardOpenOps.swift · Wenshu
 //
-//  Card-open business layer, extracted from WorkspaceView /
-//  PaneView / ShellMiddleColumn (= 3 verbatim copies of
-//  `openCardInEditor`).
+//  Card-open business layer, extracted from the legacy 3 verbatim
+//  copies of `openCardInEditor` (= WorkspaceView / PaneView /
+//  ShellMiddleColumn = all removed in Phase 6).
 //
 //  The open-card business layer (= reference filter + body load +
 //  bookDoc load + duplicate-tab detection + EditorTab construction
@@ -75,10 +75,10 @@
 import Foundation
 
 /// Stateless business layer for opening a card in the editor.
-/// Lifts the duplicated openCardInEditor (= 3 verbatim copies
-/// across WorkspaceView / PaneView / ShellMiddleColumn) into
-/// single shared function (= UI / business logic / data separation
-/// audit (= ADR-0009).
+/// Lifts the duplicated openCardInEditor (= the 3 verbatim copies
+/// that lived in the now-deleted WorkspaceView / PaneView /
+/// ShellMiddleColumn) into a single shared function (= UI /
+/// business logic / data separation audit per ADR-0009).
 @MainActor
 enum CardOpenOps {
 
