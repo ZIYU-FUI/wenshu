@@ -2,7 +2,7 @@
 //  CardOpenOps.swift · Wenshu
 //
 //  Card-open business layer, extracted from WorkspaceView /
-//  ZoneModuleView / ShellMiddleColumn (= 3 verbatim copies of
+//  PaneView / ShellMiddleColumn (= 3 verbatim copies of
 //  `openCardInEditor`).
 //
 //  The open-card business layer (= reference filter + body load +
@@ -45,10 +45,10 @@
 //  - WorkspaceView's openCardInEditor handles only the reference-
 //    scope + bookScope-deferred paths (= ticket 027-35 will lift
 //    the BookDocLoader into a shared service).
-//  - ZoneModuleView's openCardInEditor adds a filesystem scan
+//  - PaneView's openCardInEditor adds a filesystem scan
 //    in the bookScope case (= walk shelves/<shelf-uuid>/books/
 //    <book-uuid>/<folder>/*.md and pick the first .md). That scan
-//    stays in the View (= too ZoneModuleView-specific to lift; =
+//    stays in the View (= too PaneView-specific to lift; =
 //    ticket 027-35 will replace it).
 //  - The shared part = the dedup check + EditorTab construction +
 //    appState.openTabs.append + activeTabId mutation. That's what
@@ -57,7 +57,7 @@
 //  - `computeCardTriad` wraps the reference-scope filter + body
 //    load (= the part all 3 views duplicated verbatim). The book-
 //    scope case in `computeCardTriad` returns a "deferred" triad
-//    (= silent no-op); ZoneModuleView's view-local file-scan
+//    (= silent no-op); PaneView's view-local file-scan
 //    overrides that triad before calling `openTab`.
 //
 //
@@ -76,7 +76,7 @@ import Foundation
 
 /// Stateless business layer for opening a card in the editor.
 /// Lifts the duplicated openCardInEditor (= 3 verbatim copies
-/// across WorkspaceView / ZoneModuleView / ShellMiddleColumn) into
+/// across WorkspaceView / PaneView / ShellMiddleColumn) into
 /// single shared function (= UI / business logic / data separation
 /// audit (= ADR-0009).
 @MainActor
@@ -136,7 +136,7 @@ enum CardOpenOps {
     /// - `.bookScope(bookId, folderName)` → if the caller passed a
     ///   `.bookDoc(source)` use its doc (= correct book doc per
     ///   BOSS 9/8 fix); otherwise return a deferred triad (=
-    ///   empty content). ZoneModuleView's view-local file-scan
+    ///   empty content). PaneView's view-local file-scan
     ///   overrides this triad before calling `openTab`.
     /// - `.shelfScope` / `.empty` → empty triad.
     static func computeCardTriad(

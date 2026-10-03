@@ -9,7 +9,7 @@
 //  static funcs). Per Q112 1 ticket = 1 file. Per boss rule:
 //  "PreviewPane single-consumer (B)" (= BookDocLoaderOps is
 //  PreviewPane's private copy; = future ticket lifts to shared service
-//  when ZoneModuleView consumes it too).
+//  when PaneView consumes it too).
 //
 //  Public surface (= 11 entry points + 5 Result types):
 //    1. loadAllEntities(bookStore:) -> LoadEntitiesResult

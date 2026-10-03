@@ -8,7 +8,7 @@
 // (= WorkspaceView test coverage expansion). v0.82-83 covered 3
 // subcomponents; v0.87 covered 4; v0.88 covered the main WorkspaceView;
 // 
-// (= ZoneModuleView, EditorPlaceholder, EditorPaperCanvas).
+// (= PaneView, EditorPlaceholder, EditorPaperCanvas).
 // This ticket covers the simplest = EditorPaperCanvas.
 //
 // EditorPaperCanvas is a generic struct that takes @ViewBuilder

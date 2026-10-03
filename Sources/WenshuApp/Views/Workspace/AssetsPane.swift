@@ -214,7 +214,7 @@ struct AssetsPane: View {
     //
     /// Thin wrapper over `CardOpenOps` (=
     /// the dedup + EditorTab + activeTabId mutation shared with
-    /// WorkspaceView + ZoneModuleView). Same `mode = .edit` per
+    /// WorkspaceView + PaneView). Same `mode = .edit` per
     /// ShellMiddleColumn's specific UX (= WenshuMarkdownEditor's
     /// editable NSTextView from the start).
     private func openCardInEditor(source: CardSource?) {

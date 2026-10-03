@@ -4,7 +4,7 @@
 // (= adopted = global @Observable + @Environment injection).
 // This file centralizes cross-zone UI state (formerly scattered
 // as @Binding across 4 view layers = WorkspaceView -> PaneRenderer
-// -> TabContentDispatcher -> ZoneModuleView -> AppleSidebarView,
+// -> TabContentDispatcher -> PaneView -> AppleSidebarView,
 // per commit d845fe9c9).
 //
 // Why a global @Observable (= per Apple Observation framework,
