@@ -29,7 +29,7 @@
 //
 //  Character picker source: `bookStore.characterStore.loadCharacters()`
 //  (= the canonical per-book character list). When the book has
-//  no characters yet, the picker rows show "(no characters
+//  no state.characters yet, the picker rows show "(no state.characters
 //  defined)" and the Add button is disabled.
 //
 //  Chapter picker source: a TextField for an optional chapter
@@ -80,26 +80,20 @@ struct CharacterLifecycleView: View {
     /// @State so SwiftUI keeps the identity across re-renders).
     @State private var tracker: CharacterLifecycleTracker?
 
-    @State private var events: [LifecycleEvent] = []
-    @State private var contradictions: [LifecycleContradiction] = []
-    @State private var characters: [Character] = []
+    /// Business state mirror (= state.events + state.contradictions +
+    /// state.characters + state.timelineRows + status + errorText). Form
+    /// picker + input drafts stay on the View per §11.3.
+    @State private var state = CharacterLifecycleViewState()
 
     /// Selected character for the timeline section (= nil = no
     /// timeline shown).
     @State private var selectedCharacterId: UUID?
-
-    /// Timeline cache for the selected character (= re-loaded
-    /// when events or selectedCharacterId change).
-    @State private var timelineRows: [LifecycleEvent] = []
 
     // Add-row picker state.
     @State private var draftCharacterId: UUID?
     @State private var draftStage: LifecycleStage = .introduced
     @State private var draftChapterUUIDText: String = ""
     @State private var draftExcerpt: String = ""
-
-    @State private var status: SpecializedToolLoadStatus = .idle
-    @State private var errorText: String?
 
 
 
@@ -145,7 +139,7 @@ struct CharacterLifecycleView: View {
             timelineSection
             contradictionsSection
             Spacer(minLength: 0)
-            if let errorText {
+            if let errorText = state.errorText {
                 Text(errorText)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -160,24 +154,24 @@ struct CharacterLifecycleView: View {
             Text(WenshuI18n.t("b5.characterlifecycleview.l200.h38389147"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if characters.isEmpty {
+            if state.characters.isEmpty {
                 Text(WenshuI18n.t("b5.characterlifecycleview.l204.h79350323"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
             HStack(spacing: DesignTokens.spacingStandard) {
                 Picker(WenshuI18n.t("picker.character"), selection: Binding(
-                    get: { draftCharacterId ?? characters.first?.id ?? UUID() },
+                    get: { draftCharacterId ?? state.characters.first?.id ?? UUID() },
                     set: { draftCharacterId = $0 }
                 )) {
                     Text(WenshuI18n.t("b5.characterlifecycleview.l213.h31260689")).tag(UUID())
-                    ForEach(characters) { c in
+                    ForEach(state.characters) { c in
                         Text(c.name).tag(c.id)
                     }
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .disabled(characters.isEmpty)
+                .disabled(state.characters.isEmpty)
 
                 Picker("Stage", selection: $draftStage) {
                     ForEach(LifecycleStage.allCases) { stage in
@@ -213,7 +207,7 @@ struct CharacterLifecycleView: View {
 
     private var canAdd: Bool {
         guard let characterId = draftCharacterId, characterId != UUID() else { return false }
-        return characters.contains(where: { $0.id == characterId })
+        return state.characters.contains(where: { $0.id == characterId })
     }
 
     // MARK: - List
@@ -223,7 +217,7 @@ struct CharacterLifecycleView: View {
             Text(WenshuI18n.t("b5.characterlifecycleview.l263.h29792914"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if events.isEmpty {
+            if state.events.isEmpty {
                 Text(WenshuI18n.t("b5.characterlifecycleview.l267.h43318691"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -231,7 +225,7 @@ struct CharacterLifecycleView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        ForEach(events) { event in
+                        ForEach(state.events) { event in
                             eventRow(event)
                         }
                     }
@@ -290,7 +284,7 @@ struct CharacterLifecycleView: View {
             Text(WenshuI18n.t("b5.characterlifecycleview.l339.h16422962"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if characters.isEmpty {
+            if state.characters.isEmpty {
                 Text(WenshuI18n.t("b5.characterlifecycleview.l343.h47112699"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -298,11 +292,11 @@ struct CharacterLifecycleView: View {
             } else {
                 HStack(spacing: DesignTokens.spacingStandard) {
                     Picker("Character", selection: Binding(
-                        get: { selectedCharacterId ?? characters.first?.id ?? UUID() },
+                        get: { selectedCharacterId ?? state.characters.first?.id ?? UUID() },
                         set: { selectedCharacterId = $0 }
                     )) {
                         Text(WenshuI18n.t("b5.characterlifecycleview.l353.h58360186")).tag(UUID())
-                        ForEach(characters) { c in
+                        ForEach(state.characters) { c in
                             Text(c.name).tag(c.id)
                         }
                     }
@@ -313,7 +307,7 @@ struct CharacterLifecycleView: View {
                     }
                     Spacer(minLength: 0)
                 }
-                if timelineRows.isEmpty {
+                if state.timelineRows.isEmpty {
                     Text(WenshuI18n.t("b5.characterlifecycleview.l366.h98560518"))
                         .font(.caption)
                         .foregroundStyle(DesignTokens.statusForeground)
@@ -321,7 +315,7 @@ struct CharacterLifecycleView: View {
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-                            ForEach(timelineRows) { event in
+                            ForEach(state.timelineRows) { event in
                                 timelineRow(event)
                             }
                         }
@@ -354,13 +348,13 @@ struct CharacterLifecycleView: View {
             Text(WenshuI18n.t("b5.characterlifecycleview.l405.h20963905"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if contradictions.isEmpty {
+            if state.contradictions.isEmpty {
                 Text(WenshuI18n.t("b5.characterlifecycleview.l409.h10185050"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                ForEach(Array(contradictions.enumerated()), id: \.offset) { _, issue in
+                ForEach(Array(state.contradictions.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                         SFIcon("exclamationmark.triangle", style: .inlineSmall, color: IconColor.orange)
                         VStack(alignment: .leading, spacing: 1) {
@@ -382,7 +376,7 @@ struct CharacterLifecycleView: View {
     // MARK: - Helpers
 
     private func characterName(for id: UUID) -> String {
-        characters.first { $0.id == id }?.name ?? id.uuidString.prefix(8) + "…"
+        state.characters.first { $0.id == id }?.name ?? id.uuidString.prefix(8) + "…"
     }
 
     /// Resolve the chapter UUID from the draft text. Returns nil
@@ -400,24 +394,24 @@ struct CharacterLifecycleView: View {
 
     private func reload() async {
         guard activeBookId != nil else { return }
-        status = .loading
+        state.status = .loading
         let actor = ensureTracker()
         let result = await CharacterLifecycleOps.reload(
             manager: actor,
             bookId: activeBookId,
             bookStore: bookStore
         )
-        characters = result.characters
+        state.characters = result.characters
         // Default picker selections to the first character (when any).
-        if draftCharacterId == nil { draftCharacterId = characters.first?.id }
-        if selectedCharacterId == nil { selectedCharacterId = characters.first?.id }
-        events = result.events
-        contradictions = result.contradictions
+        if draftCharacterId == nil { draftCharacterId = state.characters.first?.id }
+        if selectedCharacterId == nil { selectedCharacterId = state.characters.first?.id }
+        state.events = result.events
+        state.contradictions = result.contradictions
         if let err = result.error {
-            errorText = err
-            status = .failed(err)
+            state.errorText = err
+            state.status = .failed(err)
         } else if result.didLoad {
-            status = .loaded
+            state.status = .loaded
         }
         await reloadTimeline()
     }
@@ -429,8 +423,8 @@ struct CharacterLifecycleView: View {
             bookId: activeBookId,
             characterId: selectedCharacterId
         )
-        timelineRows = result.rows
-        if let err = result.error { errorText = err }
+        state.timelineRows = result.rows
+        if let err = result.error { state.errorText = err }
     }
 
     private func addEvent() async {
@@ -444,7 +438,7 @@ struct CharacterLifecycleView: View {
             excerpt: draftExcerpt
         )
         if let err = result.error {
-            errorText = err
+            state.errorText = err
             return
         }
         if result.didSave {
@@ -461,7 +455,7 @@ struct CharacterLifecycleView: View {
             event: event
         )
         if let err = result.error {
-            errorText = err
+            state.errorText = err
             return
         }
         if result.didSave {
