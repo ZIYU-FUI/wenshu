@@ -34,7 +34,7 @@ import SwiftUI
 /// Per WWDC25-323: 'The canonical column pattern uses VStack
 /// (spacing: 0) with 2 sub-areas and a .toolbar for the column
 /// chrome. No custom inspector wrapper needed.'
-struct ShellDetailColumn: View {
+struct InspectorView: View {
     // `@Bindable var appState: AppState` (= the @Observable
     // binding wrapper; = allows `$workspaceUI.inspectorPage` syntax
     // in Picker / Toggle etc.; = single source of truth for
