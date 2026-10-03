@@ -131,4 +131,30 @@ struct BookSettingConstraintsViewTests {
         #expect(source.contains("init("),
                 "3/3: init() missing")
     }
+
+    @Test("BookSettingConstraintsViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
+    func testStateMirrorExists() throws {
+        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        #expect(source.contains("BookSettingConstraintsViewState"),
+                "BookSettingConstraintsView must reference BookSettingConstraintsViewState mirror")
+        #expect(source.contains("@State private var state = BookSettingConstraintsViewState()"),
+                "BookSettingConstraintsView must hold state via @State mirror")
+        #expect(!source.contains("@State private var constraints: [BookSettingConstraint]"),
+                "constraints must NOT be a bare @State var")
+        #expect(!source.contains("@State private var violations: [ConstraintViolation]"),
+                "violations must NOT be a bare @State var")
+    }
+
+    @Test("BookSettingConstraintsViewState mirror file exists")
+    func testStateMirrorFileExists() throws {
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/p2-batch2/Sources/WenshuApp/Views/SpecializedTools/BookSettingConstraintsViewState.swift"
+        #expect(FileManager.default.fileExists(atPath: filePath))
+        let source = try String(contentsOfFile: filePath, encoding: .utf8)
+        #expect(source.contains("@Observable"))
+        #expect(source.contains("final class BookSettingConstraintsViewState"))
+        #expect(source.contains("var constraints: [BookSettingConstraint]"))
+        #expect(source.contains("var violations: [ConstraintViolation]"))
+        #expect(source.contains("var status: SpecializedToolLoadStatus"))
+        #expect(source.contains("var errorText: String?"))
+    }
 }
