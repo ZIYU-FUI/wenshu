@@ -100,6 +100,25 @@ struct BookID: TypedID, Equatable, Hashable, Codable, Sendable {
     }
 }
 
+/// Brand wrapper for a tool-call identifier (= the `id` field on
+/// `ToolUsePart`; = the `tool_call_id` on the LLM-protocol response).
+///
+/// This commit only INTRODUCES the type (= zero call-site migration).
+/// Future commits per P2-03 (逐步 typed-ID rollout) will swap
+/// `String` for `ToolCallID` at the call sites that hold a tool-call
+/// identifier (ToolUsePart.id, ToolResultPart.toolUseID,
+/// ToolDispatchHelpers.makeToolResultMessage). Splitting this work
+/// into one-type-per-commit keeps the Q112 1-source-1-test invariant
+/// intact (= the actual type swap is a per-umbrella atomic-coupled
+/// sweep that crosses multiple files; = each sweep is its own ticket).
+struct ToolCallID: TypedID, Equatable, Hashable, Codable, Sendable {
+    let rawValue: String
+
+    init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+}
+
 // MARK: - String interop
 
 extension BookID {
