@@ -39,6 +39,7 @@
 //
 
 import Foundation
+import os.log
 
 ///
 /// reference-type accumulator for the streaming LLMBlock callback.
@@ -220,7 +221,7 @@ final class ChatViewModel {
     // `@MainActor` isolation replaces `nonisolated(unsafe)` for
     // Swift 6 concurrency safety.
     // Mutable so the archive flow can replace the session id.
-    @MainActor private var sessionId: String
+    @MainActor private var sessionId: SessionID
 
     // Current scope bookID for all persistence calls.
     // nil = global un-attached (= the pre-v1.79 default; = used when no
@@ -266,7 +267,7 @@ final class ChatViewModel {
     // this parameter to avoid touching SwiftData stack.
     init(
         conductor: WenshuConductor? = nil,
-        sessionId: String = "default",
+        sessionId: SessionID = SessionID(rawValue: "default"),
         initialMessages: [ChatMessage] = [],
         appState: AppState? = nil,
         repository: ChatRepositoryProtocol = LiveChatRepository.shared,
@@ -276,7 +277,7 @@ final class ChatViewModel {
         // Per-book session id when bookID is set
         // (= the SwiftData store keys sessions by sessionID; = a unique
         // per-book session id keeps chat rows cleanly partitioned).
-        self.sessionId = Self.makeSessionID(for: bookID, fallback: sessionId)
+        self.sessionId = Self.makeSessionID(for: bookID, fallback: sessionId.rawValue)
         self.currentBookID = bookID
         self.messages = initialMessages
         // hold a strong reference to the AppState instance so
@@ -300,9 +301,9 @@ final class ChatViewModel {
     /// session (= chat history under one book must not leak into another).
     /// The id pattern is stable (= never reused) so subsequent calls with
     /// the same bookID always hit the same SwiftData row.
-    static func makeSessionID(for bookID: BookID?, fallback: String = "default") -> String {
-        guard let bookID else { return fallback }
-        return "book:\(bookID.rawValue):\(fallback)"
+    static func makeSessionID(for bookID: BookID?, fallback: String = "default") -> SessionID {
+        guard let bookID else { return SessionID(rawValue: fallback) }
+        return SessionID(rawValue: "book:\(bookID.rawValue):\(fallback)")
     }
 
     /// C-4: the data-layer seam. Defaults to LiveChatRepository.shared
@@ -617,7 +618,7 @@ final class ChatViewModel {
                 let streamingTaskBox = StreamingTaskBox()
                 let result = await conductor.handle(
                     userMessage: text,
-                    sessionId: sessionId,
+                    sessionId: sessionId.rawValue,
                     model: currentModel,
                     streamCallback: { [weak self] block in
                         // T1-THINKING-VISIBLE (2026-09-18): log each
@@ -1028,11 +1029,17 @@ final class ChatViewModel {
         messages = []
         contextUsed = 0
         // 2. Generate new sessionId (= UUID-based).
-        let newId = "s_" + UUID().uuidString.prefix(12).lowercased()
+        let newId = SessionID(rawValue: "s_" + UUID().uuidString.prefix(12).lowercased())
         sessionId = newId
         // 3. NSLog audit trail (= verify in Console.app).
-        NSLog("[wenshu.chat] startNewSession: id=%@ messages=%d contextUsed=%d",
-              sessionId, messages.count, contextUsed)
+        // Migrated from `NSLog` (= the Swift 6 strict-concurrency
+        // model treats the variadic signature as unavailable; =
+        // = use Logger instead per Apple's modern logging guidance).
+        let logger = Logger(subsystem: "com.wenshu.app", category: "chat")
+        let sessionIdRaw = sessionId.rawValue
+        let messageCount = messages.count
+        let contextUsedLocal = contextUsed
+        logger.info("[wenshu.chat] startNewSession: id=\(sessionIdRaw, privacy: .public) messages=\(messageCount, privacy: .public) contextUsed=\(contextUsedLocal, privacy: .public)")
     }
 
     func clear() {
@@ -1041,7 +1048,7 @@ final class ChatViewModel {
     }
 
     /// valueForSessionId: used by ChatView .task to load history.
-    func valueForSessionId() -> String { sessionId }  // @MainActor-isolated helper
+    func valueForSessionId() -> SessionID { sessionId }  // @MainActor-isolated helper
 
     /// replaceMessages: ChatView .task loadcompletereplace (append)
     func replaceMessages(_ newMessages: [ChatMessage]) {
