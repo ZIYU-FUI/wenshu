@@ -795,20 +795,6 @@ struct LayoutTreeState: Codable, Equatable {
     /// Schema version (= current = 2).
     var version: Int
 
-    /// the canonical SwiftUI NavigationSplitView path (= LibraryRootView
-    /// + PaneView per pane + TabKind dispatcher) instead of the legacy
-    /// hand-rolled PaneRenderer.
-    ///
-    /// Default `false` = existing users see ZERO behavior change on app
-    /// upgrade. Set via:
-    ///   defaults write com.wenshu.app wenshu.useNSSplitView -bool true
-    /// Reset via:
-    ///   defaults delete com.wenshu.app wenshu.useNSSplitView
-    ///
-    /// Marked `Optional` in Codable so old persisted JSON (without this
-    /// field) decodes as `nil` (= treated as OFF).
-    var useNSSplitView: Bool? = nil
-
     // MARK: - 3-column NavigationSplitView migration (= M1 shell)
     /// opt-in to the Apple-native
     /// NavigationSplitView path (= the macOS 27 recommended 3-column
