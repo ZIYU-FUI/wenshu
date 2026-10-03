@@ -65,7 +65,9 @@ struct PlaceholderView: View {
     /// @State so SwiftUI keeps the identity across re-renders).
     @State private var scanner: PlaceholderScanner?
 
-    @State private var rows: [Placeholder] = []
+    /// Business state mirror (= state.rows + state.lastScanCount + state.loadingState +
+    /// state.errorText). Form drafts stay on the View per §11.3.
+    @State private var state = PlaceholderViewState()
 
     // Add-placeholder picker state.
     @State private var draftChapterText: String = ""
@@ -74,22 +76,11 @@ struct PlaceholderView: View {
     @State private var draftPattern: String = ""
     @State private var draftStatus: PlaceholderStatus = .open
 
-    // Status filter.
+    // Filter state.
     @State private var filterStatus: PlaceholderStatus? = nil
 
-    // Scan section state.
+    // Scan state.
     @State private var scanChapterText: String = ""
-    @State private var lastScanCount: Int? = nil
-
-    @State private var loadingState: LoadStatus = .idle
-    @State private var errorText: String?
-
-    private enum LoadStatus: Equatable, Sendable {
-        case idle
-        case loading
-        case loaded
-        case failed(String)
-    }
 
     init() {}
 
@@ -134,7 +125,7 @@ struct PlaceholderView: View {
             Divider()
             scanSection
             Spacer(minLength: 0)
-            if let errorText {
+            if let errorText = state.errorText {
                 Text(errorText)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -249,7 +240,7 @@ struct PlaceholderView: View {
             Text(WenshuI18n.t("b5.placeholderview.l280.h71851505"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if rows.isEmpty {
+            if state.rows.isEmpty {
                 Text(WenshuI18n.t("b5.placeholderview.l284.h44264694"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -257,7 +248,7 @@ struct PlaceholderView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        ForEach(rows) { row in
+                        ForEach(state.rows) { row in
                             placeholderRow(row)
                         }
                     }
@@ -378,7 +369,7 @@ struct PlaceholderView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(!canScan)
                 .help(WenshuI18n.t("b5.placeholderview.l419.h11265055"))
-                if let lastScanCount {
+                if let lastScanCount = state.lastScanCount {
                     Text("Last scan: +\(lastScanCount) placeholder\(lastScanCount == 1 ? "" : "s")")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -403,22 +394,22 @@ struct PlaceholderView: View {
 
     private func reload() async {
         guard activeBookId != nil else {
-            rows = []
+            state.rows = []
             return
         }
-        loadingState = .loading
+        state.loadingState = .loading
         let actor = ensureScanner()
         let result = await PlaceholderOps.reload(
             scanner: actor,
             bookId: activeBookId,
             filterStatus: filterStatus
         )
-        rows = result.rows
+        state.rows = result.rows
         if let error = result.error {
-            loadingState = .failed(error)
-            errorText = error
+            state.loadingState = .failed(error)
+            state.errorText = error
         } else {
-            loadingState = .loaded
+            state.loadingState = .loaded
         }
     }
 
@@ -444,35 +435,35 @@ struct PlaceholderView: View {
             draftPattern = ""
             draftStatus = .open
         }
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
     private func resolvePlaceholder(_ row: Placeholder) async {
         let actor = ensureScanner()
         let result = await PlaceholderOps.resolvePlaceholder(scanner: actor, row: row)
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
     private func abandonPlaceholder(_ row: Placeholder) async {
         let actor = ensureScanner()
         let result = await PlaceholderOps.abandonPlaceholder(scanner: actor, row: row)
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
     private func reopenPlaceholder(_ row: Placeholder) async {
         let actor = ensureScanner()
         let result = await PlaceholderOps.reopenPlaceholder(scanner: actor, row: row)
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
     private func removePlaceholder(_ row: Placeholder) async {
         let actor = ensureScanner()
         let result = await PlaceholderOps.removePlaceholder(scanner: actor, row: row)
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
@@ -493,13 +484,13 @@ struct PlaceholderView: View {
             chapterId: scanChapterId
         )
         if result.didScan {
-            lastScanCount = result.addedCount
+            state.lastScanCount = result.addedCount
             // Wipe the pasted text on success (= keep the
-            // panel tidy; the rows now live in the persisted
+            // panel tidy; the state.rows now live in the persisted
             // list).
             scanChapterText = ""
         }
-        if let error = result.error { errorText = error }
+        if let error = result.error { state.errorText = error }
         await reload()
     }
 
