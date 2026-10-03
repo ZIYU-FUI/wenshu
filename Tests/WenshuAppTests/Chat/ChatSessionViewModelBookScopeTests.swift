@@ -33,19 +33,19 @@ final class FakeChatRepository: ChatRepositoryProtocol {
     var appendError: Error?
     var loadError: Error?
 
-    func append(_ message: ChatMessage, sessionId: String, bookID: BookID?) async throws {
+    func append(_ message: ChatMessage, sessionId: SessionID, bookID: BookID?) async throws {
         appendBookIDs.append(bookID)
         if let appendError { throw appendError }
     }
 
-    func loadMessages(sessionId: String, bookID: BookID?) async throws -> [ChatMessage] {
+    func loadMessages(sessionId: SessionID, bookID: BookID?) async throws -> [ChatMessage] {
         loadBookIDs.append(bookID)
         if let loadError { throw loadError }
-        return loadResponses[sessionId] ?? []
+        return loadResponses[sessionId.rawValue] ?? []
     }
 
     func summarizeIfNeeded(
-        sessionId: String,
+        sessionId: SessionID,
         lastN: Int,
         threshold: Int,
         verifier: WenshuVerifier,
@@ -95,7 +95,7 @@ struct ChatSessionViewModelBookScopeTests {
         await vm.loadHistory()
         #expect(fake.loadBookIDs == [BookID(rawValue: "book-A")])
         // Session id is synthetic per-book (= "book:book-A:default").
-        #expect(vm.testSessionId == "book:book-A:default")
+        #expect(vm.testSessionId.rawValue == "book:book-A:default")
     }
 
     @MainActor
@@ -111,7 +111,7 @@ struct ChatSessionViewModelBookScopeTests {
         // Loads seen so far: [book-A, book-B].
         #expect(fake.loadBookIDs.contains(BookID(rawValue: "book-A")))
         #expect(fake.loadBookIDs.contains(BookID(rawValue: "book-B")))
-        #expect(vm.testSessionId == "book:book-B:default")
+        #expect(vm.testSessionId.rawValue == "book:book-B:default")
     }
 
     @MainActor
@@ -134,7 +134,7 @@ struct ChatSessionViewModelBookScopeTests {
         await vm.loadHistory()
         vm.setCurrentBookID(nil)
         try await Task.sleep(nanoseconds: 50_000_000)
-        #expect(vm.testSessionId == "default")
+        #expect(vm.testSessionId.rawValue == "default")
         #expect(fake.loadBookIDs.last == nil as BookID?)
     }
 }
@@ -145,5 +145,5 @@ struct ChatSessionViewModelBookScopeTests {
 // via makeSessionID(for:fallback:) since it's not stored as a public
 // field.
 extension ChatViewModel {
-    var testSessionId: String { Self.makeSessionID(for: currentBookID, fallback: "default") }
+    var testSessionId: SessionID { Self.makeSessionID(for: currentBookID, fallback: "default") }
 }

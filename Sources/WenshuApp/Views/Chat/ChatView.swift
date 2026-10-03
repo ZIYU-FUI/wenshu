@@ -107,7 +107,7 @@ struct ChatView: View {
         return !ProviderKeychain.listProvidersWithKeys().isEmpty && !vm.isSending
     }
 
-    init(conductor: WenshuConductor? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
+    init(conductor: WenshuConductor? = nil, sessionId: SessionID = SessionID(rawValue: "default"), vm: ChatViewModel? = nil) {
         // optional ChatViewModel injection (ChatZoneView shared vm for bottom toolbar
         // Read vm.contextUsed auto-propagate. Q51 child overrides parent partial, do not touch ChatViewModel.send() body, do not touch ChatView body)
         // when ChatZoneView passes a pre-constructed `vm` (=

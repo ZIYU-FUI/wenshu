@@ -47,10 +47,10 @@ struct LiveChatRepositoryTests {
             tokens: nil,
             thinking: nil
         )
-        try await live.append(userMsg, sessionId: "sess-A", bookID: BookID(rawValue: "book-A"))
+        try await live.append(userMsg, sessionId: SessionID(rawValue: "sess-A"), bookID: BookID(rawValue: "book-A"))
 
         // Load through the protocol (= the Live impl should forward bookID)
-        let loaded = try await live.loadMessages(sessionId: "sess-A", bookID: BookID(rawValue: "book-A"))
+        let loaded = try await live.loadMessages(sessionId: SessionID(rawValue: "sess-A"), bookID: BookID(rawValue: "book-A"))
         #expect(loaded.count == 1)
         #expect(loaded[0].content == "in book A")
 
@@ -58,7 +58,7 @@ struct LiveChatRepositoryTests {
         // only (= §11.11 v1.79 row-level split contract). The
         // per-book message above has bookID = "book-A" so it does
         // not appear in the global view.
-        let loadedGlobal = try await live.loadMessages(sessionId: "sess-A", bookID: nil)
+        let loadedGlobal = try await live.loadMessages(sessionId: SessionID(rawValue: "sess-A"), bookID: nil)
         #expect(loadedGlobal.isEmpty)
     }
 
@@ -77,7 +77,7 @@ struct LiveChatRepositoryTests {
             content: "before picking a book",
             timestamp: Date()
         )
-        try await live.append(userMsg, sessionId: "sess-global", bookID: nil)
+        try await live.append(userMsg, sessionId: SessionID(rawValue: "sess-global"), bookID: nil)
 
         // Global scope reads the message back; = book-A scope rejects it.
         let messages = try repo.loadMessages(sessionId: "sess-global", bookID: nil)

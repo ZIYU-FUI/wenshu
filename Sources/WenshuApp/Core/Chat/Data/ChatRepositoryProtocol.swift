@@ -51,7 +51,7 @@ protocol ChatRepositoryProtocol: Sendable {
     /// current WenshuLibrary.selectedBookId so the message lands in
     /// the correct scope. nil = global un-attached (= legacy behavior;
     /// = used for onboarding-before-book-selection chats).
-    func append(_ message: ChatMessage, sessionId: String, bookID: BookID?) async throws
+    func append(_ message: ChatMessage, sessionId: SessionID, bookID: BookID?) async throws
 
     /// Load the full history of one session, oldest first.
     /// Returns an empty array (= not throw) when the session is
@@ -61,7 +61,7 @@ protocol ChatRepositoryProtocol: Sendable {
     /// bookID is Optional. Pass the current book id
     /// to filter to in-scope messages; nil = legacy "load everything
     /// in this session regardless of book scope" behavior.
-    func loadMessages(sessionId: String, bookID: BookID?) async throws -> [ChatMessage]
+    func loadMessages(sessionId: SessionID, bookID: BookID?) async throws -> [ChatMessage]
 
     /// Trigger LLM-driven summarization (= hermes `ConversationCompression`)
     /// when the history grows past `threshold` (= in turns). The
@@ -72,7 +72,7 @@ protocol ChatRepositoryProtocol: Sendable {
     /// summarization pipeline; = messages outside the scope are not
     /// counted toward the threshold).
     func summarizeIfNeeded(
-        sessionId: String,
+        sessionId: SessionID,
         lastN: Int,
         threshold: Int,
         verifier: WenshuVerifier,

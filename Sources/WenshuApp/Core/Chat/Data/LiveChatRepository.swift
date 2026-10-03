@@ -80,22 +80,22 @@ init(container: ModelContainer) {
         return WSChatRepository.shared
     }
 
-    func append(_ message: ChatMessage, sessionId: String, bookID: BookID?) async throws {
+    func append(_ message: ChatMessage, sessionId: SessionID, bookID: BookID?) async throws {
         let stored = Self.makeStored(from: message)
         try await Self.runOnMainActor {
-            try self.repository(bookID: bookID).append(stored, sessionId: sessionId, bookID: bookID)
+            try self.repository(bookID: bookID).append(stored, sessionId: sessionId.rawValue, bookID: bookID)
         }
     }
 
-    func loadMessages(sessionId: String, bookID: BookID?) async throws -> [ChatMessage] {
+    func loadMessages(sessionId: SessionID, bookID: BookID?) async throws -> [ChatMessage] {
         let stored: [StoredChatMessage] = try await Self.runOnMainActor {
-            try self.repository(bookID: bookID).loadMessages(sessionId: sessionId, bookID: bookID)
+            try self.repository(bookID: bookID).loadMessages(sessionId: sessionId.rawValue, bookID: bookID)
         }
         return stored.compactMap(Self.makeDomain(from:))
     }
 
     func summarizeIfNeeded(
-        sessionId: String,
+        sessionId: SessionID,
         lastN: Int,
         threshold: Int,
         verifier: WenshuVerifier,
@@ -114,7 +114,7 @@ init(container: ModelContainer) {
         // narrow, callers needing richer behavior hit the
         // concrete repository type).
         _ = try await self.repository(bookID: bookID).summarizeIfNeeded(
-            sessionId: sessionId,
+            sessionId: sessionId.rawValue,
             lastN: lastN,
             threshold: threshold,
             verifier: verifier,
