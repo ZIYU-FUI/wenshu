@@ -67,8 +67,10 @@ struct ForeshadowingView: View {
     /// @State so SwiftUI keeps the identity across re-renders).
     @State private var tracker: ForeshadowingTracker?
 
-    @State private var rows: [Foreshadowing] = []
-    @State private var staleRows: [Foreshadowing] = []
+    /// Business state mirror (= state.rows + state.staleRows +
+    /// state.loadingState + state.errorText). Form drafts +
+    /// transient picker state stay on the View per §11.3.
+    @State private var state = ForeshadowingViewState()
 
     // Add-foreshadowing picker state.
     @State private var draftTitle: String = ""
@@ -78,9 +80,6 @@ struct ForeshadowingView: View {
 
     // Status filter.
     @State private var filterStatus: ForeshadowingStatus? = nil
-
-    @State private var loadingState: LoadStatus = .idle
-    @State private var errorText: String?
 
     private enum LoadStatus: Equatable, Sendable {
         case idle
@@ -132,7 +131,7 @@ struct ForeshadowingView: View {
             Divider()
             staleSection
             Spacer(minLength: 0)
-            if let errorText {
+            if let errorText = state.errorText {
                 Text(errorText)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -240,7 +239,7 @@ struct ForeshadowingView: View {
             Text(WenshuI18n.t("b5.foreshadowingview.l272.h81392132"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if rows.isEmpty {
+            if state.rows.isEmpty {
                 Text(WenshuI18n.t("b5.foreshadowingview.l276.h48032637"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -248,7 +247,7 @@ struct ForeshadowingView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        ForEach(rows) { row in
+                        ForEach(state.rows) { row in
                             foreshadowingRow(row)
                         }
                     }
@@ -332,7 +331,7 @@ struct ForeshadowingView: View {
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
             }
-            if staleRows.isEmpty {
+            if state.staleRows.isEmpty {
                 Text(WenshuI18n.t("b5.foreshadowingview.l366.h57955114"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -340,7 +339,7 @@ struct ForeshadowingView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-                        ForEach(staleRows) { row in
+                        ForEach(state.staleRows) { row in
                             staleRow(row)
                         }
                     }
@@ -377,24 +376,24 @@ struct ForeshadowingView: View {
 
     private func reload() async {
         guard let bookId = activeBookId else {
-            rows = []
-            staleRows = []
+            state.rows = []
+            state.staleRows = []
             return
         }
-        loadingState = .loading
+        state.loadingState = .loading
         let actor = ensureTracker()
         let result = await ForeshadowingOps.reload(
             manager: actor,
             bookId: bookId,
             filterStatus: filterStatus
         )
-        rows = result.rows
-        staleRows = result.staleRows
+        state.rows = result.rows
+        state.staleRows = result.staleRows
         if let err = result.error {
-            loadingState = .failed(err)
-            errorText = err
+            state.loadingState = .failed(err)
+            state.errorText = err
         } else if result.didLoad {
-            loadingState = .loaded
+            state.loadingState = .loaded
         }
     }
 
@@ -416,7 +415,7 @@ struct ForeshadowingView: View {
             draftStatus = .setup
             await reload()
         } else if let err = result.error {
-            errorText = err
+            state.errorText = err
         }
     }
 
@@ -426,7 +425,7 @@ struct ForeshadowingView: View {
         if result.didSave {
             await reload()
         } else if let err = result.error {
-            errorText = err
+            state.errorText = err
         }
     }
 }

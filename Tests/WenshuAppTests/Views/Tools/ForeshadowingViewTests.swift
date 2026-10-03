@@ -131,4 +131,32 @@ struct ForeshadowingViewTests {
         #expect(source.contains("init("),
                 "3/3: init() missing")
     }
+
+    @Test("ForeshadowingViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
+    func testStateMirrorExists() throws {
+        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        #expect(source.contains("ForeshadowingViewState"),
+                "ForeshadowingView must reference ForeshadowingViewState mirror")
+        #expect(source.contains("@State private var state = ForeshadowingViewState()"),
+                "ForeshadowingView must hold state via @State mirror")
+        #expect(!source.contains("@State private var rows: [Foreshadowing]"),
+                "rows must NOT be a bare @State var")
+        #expect(!source.contains("@State private var staleRows: [Foreshadowing]"),
+                "staleRows must NOT be a bare @State var")
+        #expect(!source.contains("@State private var loadingState: LoadStatus = .idle"),
+                "loadingState must NOT be a bare @State var")
+    }
+
+    @Test("ForeshadowingViewState mirror file exists")
+    func testStateMirrorFileExists() throws {
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/p2-batch2/Sources/WenshuApp/Views/Tools/ForeshadowingViewState.swift"
+        #expect(FileManager.default.fileExists(atPath: filePath))
+        let source = try String(contentsOfFile: filePath, encoding: .utf8)
+        #expect(source.contains("@Observable"))
+        #expect(source.contains("final class ForeshadowingViewState"))
+        #expect(source.contains("var rows: [Foreshadowing]"))
+        #expect(source.contains("var staleRows: [Foreshadowing]"))
+        #expect(source.contains("var loadingState: SpecializedToolLoadStatus"))
+        #expect(source.contains("var errorText: String?"))
+    }
 }

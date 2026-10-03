@@ -131,4 +131,37 @@ struct CharacterLifecycleViewTests {
         #expect(source.contains("init("),
                 "3/3: init() missing")
     }
+
+    @Test("CharacterLifecycleViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
+    func testStateMirrorExists() throws {
+        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        #expect(source.contains("CharacterLifecycleViewState"),
+                "CharacterLifecycleView must reference CharacterLifecycleViewState mirror")
+        #expect(source.contains("@State private var state = CharacterLifecycleViewState()"),
+                "CharacterLifecycleView must hold state via @State mirror")
+        #expect(!source.contains("@State private var events: [LifecycleEvent]"),
+                "events must NOT be a bare @State var")
+        #expect(!source.contains("@State private var contradictions: [LifecycleContradiction]"),
+                "contradictions must NOT be a bare @State var")
+        #expect(!source.contains("@State private var characters: [Character]"),
+                "characters must NOT be a bare @State var")
+        #expect(!source.contains("@State private var timelineRows: [LifecycleEvent]"),
+                "timelineRows must NOT be a bare @State var")
+    }
+
+    @Test("CharacterLifecycleViewState mirror file exists (= companion file under Views/SpecializedTools/)")
+    func testStateMirrorFileExists() throws {
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/p2-batch2/Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleViewState.swift"
+        #expect(FileManager.default.fileExists(atPath: filePath),
+                "CharacterLifecycleViewState.swift must exist as a companion file")
+        let source = try String(contentsOfFile: filePath, encoding: .utf8)
+        #expect(source.contains("@Observable"), "mirror must use @Observable macro")
+        #expect(source.contains("final class CharacterLifecycleViewState"), "mirror must be a final class")
+        #expect(source.contains("var events: [LifecycleEvent]"), "mirror must hold events field")
+        #expect(source.contains("var contradictions: [LifecycleContradiction]"), "mirror must hold contradictions field")
+        #expect(source.contains("var characters: [Character]"), "mirror must hold characters field")
+        #expect(source.contains("var timelineRows: [LifecycleEvent]"), "mirror must hold timelineRows field")
+        #expect(source.contains("var status: SpecializedToolLoadStatus"), "mirror must hold status field")
+        #expect(source.contains("var errorText: String?"), "mirror must hold errorText field")
+    }
 }

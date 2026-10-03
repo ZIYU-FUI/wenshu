@@ -20,11 +20,11 @@
 //      severity badge + title + scope + appliesToId fragment +
 //      pattern chips + remove button)
 //    - Check section (= chapter-text TextEditor + check button +
-//      violations list)
+//      state.violations list)
 //
 //  State source: `BookSettingConstraints` actor (= owned
 //  per-book, persisted via per-book JSON sidecar at
-//  `books/<bookId>/setting-constraints.json`).
+//  `books/<bookId>/setting-state.constraints.json`).
 //
 //  Standards-axis:
 //    S1 (Apple-API-first): pure SwiftUI primitives + SF Symbols 6 icon
@@ -44,7 +44,7 @@
 //  acceptance required: open SpecializedTools pane, click the
 //  new Book-Setting-Constraints tab, add a constraint, see the
 //  row in the list, then paste chapter text and run the check to
-//  see the violations.
+//  see the state.violations.
 //
 
 import SwiftUI
@@ -68,10 +68,11 @@ struct BookSettingConstraintsView: View {
     /// @State so SwiftUI keeps the identity across re-renders).
     @State private var tracker: BookSettingConstraints?
 
-    @State private var constraints: [BookSettingConstraint] = []
-    @State private var violations: [ConstraintViolation] = []
+    /// Business state mirror (= state.constraints + state.violations + status +
+    /// errorText). Form drafts stay on the View per §11.3.
+    @State private var state = BookSettingConstraintsViewState()
 
-    // Add-row picker state.
+    // Add-constraint picker state.
     @State private var draftTitle: String = ""
     @State private var draftDescription: String = ""
     @State private var draftSeverity: ConstraintSeverity = .hard
@@ -79,12 +80,9 @@ struct BookSettingConstraintsView: View {
     @State private var draftAppliesToText: String = ""
     @State private var draftPatternsText: String = ""
 
-    // Check-section state.
+    // Scan input.
     @State private var chapterText: String = ""
     @State private var hasChecked: Bool = false
-
-    @State private var status: SpecializedToolLoadStatus = .idle
-    @State private var errorText: String?
 
 
 
@@ -131,7 +129,7 @@ struct BookSettingConstraintsView: View {
             Divider()
             checkSection
             Spacer(minLength: 0)
-            if let errorText {
+            if let errorText = state.errorText {
                 Text(errorText)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -216,7 +214,7 @@ struct BookSettingConstraintsView: View {
             Text(WenshuI18n.t("b5.booksettingconstraintsview.l255.h54115638"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if constraints.isEmpty {
+            if state.constraints.isEmpty {
                 Text(WenshuI18n.t("b5.booksettingconstraintsview.l259.h46205528"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -224,7 +222,7 @@ struct BookSettingConstraintsView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        ForEach(constraints) { constraint in
+                        ForEach(state.constraints) { constraint in
                             constraintRow(constraint)
                         }
                     }
@@ -325,23 +323,23 @@ struct BookSettingConstraintsView: View {
                         Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l376.h23587784")) } icon: { SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.tint) }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || constraints.isEmpty)
+                    .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || state.constraints.isEmpty)
                     .help(WenshuI18n.t("b5.booksettingconstraintsview.l380.h7773239"))
                     if hasChecked {
-                        Text("\(violations.count) violation\(violations.count == 1 ? "" : "s")")
+                        Text("\(state.violations.count) violation\(state.violations.count == 1 ? "" : "s")")
                             .font(.caption)
-                            .foregroundStyle(violations.isEmpty ? .green : .orange)
+                            .foregroundStyle(state.violations.isEmpty ? .green : .orange)
                     }
                 }
             }
             if hasChecked {
-                if violations.isEmpty {
+                if state.violations.isEmpty {
                     Text(WenshuI18n.t("b5.booksettingconstraintsview.l390.h74566260"))
                         .font(.caption)
                         .foregroundStyle(DesignTokens.statusForeground)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    ForEach(violations) { violation in
+                    ForEach(state.violations) { violation in
                         violationRow(violation)
                     }
                 }
@@ -412,20 +410,20 @@ struct BookSettingConstraintsView: View {
 
     private func reload() async {
         guard activeBookId != nil else { return }
-        status = .loading
+        state.status = .loading
         let actor = ensureTracker()
         let result = await BookSettingConstraintsOps.reload(
             manager: actor,
             bookId: activeBookId
         )
-        constraints = result.constraints
+        state.constraints = result.constraints
         if let err = result.error {
-            errorText = err
-            status = .failed(err)
+            state.errorText = err
+            state.status = .failed(err)
         } else if result.didLoad {
-            status = .loaded
+            state.status = .loaded
         } else {
-            status = .idle
+            state.status = .idle
         }
     }
 
@@ -450,7 +448,7 @@ struct BookSettingConstraintsView: View {
             draftPatternsText = ""
             await reload()
         } else if let err = result.error {
-            errorText = err
+            state.errorText = err
         }
     }
 
@@ -463,7 +461,7 @@ struct BookSettingConstraintsView: View {
         if result.didSave {
             await reload()
         } else if let err = result.error {
-            errorText = err
+            state.errorText = err
         }
     }
 
@@ -475,10 +473,10 @@ struct BookSettingConstraintsView: View {
             bookId: activeBookId,
             chapterText: chapterText
         )
-        violations = result.violations
+        state.violations = result.violations
         hasChecked = result.didRun
         if let err = result.error {
-            errorText = err
+            state.errorText = err
         }
     }
 }

@@ -131,4 +131,33 @@ struct CharacterRelationshipsViewTests {
         #expect(source.contains("init("),
                 "3/3: init() missing")
     }
+
+    @Test("CharacterRelationshipsViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
+    func testStateMirrorExists() throws {
+        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        #expect(source.contains("CharacterRelationshipsViewState"),
+                "CharacterRelationshipsView must reference CharacterRelationshipsViewState mirror")
+        #expect(source.contains("@State private var state = CharacterRelationshipsViewState()"),
+                "CharacterRelationshipsView must hold state via @State mirror")
+        #expect(!source.contains("@State private var relationships: [CharacterRelationship]"),
+                "relationships must NOT be a bare @State var")
+        #expect(!source.contains("@State private var inconsistencies: [RelationshipInconsistency]"),
+                "inconsistencies must NOT be a bare @State var")
+        #expect(!source.contains("@State private var characters: [Character]"),
+                "characters must NOT be a bare @State var")
+    }
+
+    @Test("CharacterRelationshipsViewState mirror file exists")
+    func testStateMirrorFileExists() throws {
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/p2-batch2/Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsViewState.swift"
+        #expect(FileManager.default.fileExists(atPath: filePath))
+        let source = try String(contentsOfFile: filePath, encoding: .utf8)
+        #expect(source.contains("@Observable"))
+        #expect(source.contains("final class CharacterRelationshipsViewState"))
+        #expect(source.contains("var relationships: [CharacterRelationship]"))
+        #expect(source.contains("var inconsistencies: [RelationshipInconsistency]"))
+        #expect(source.contains("var characters: [Character]"))
+        #expect(source.contains("var status: SpecializedToolLoadStatus"))
+        #expect(source.contains("var errorText: String?"))
+    }
 }

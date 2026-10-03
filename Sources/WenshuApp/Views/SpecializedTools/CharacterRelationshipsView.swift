@@ -20,11 +20,11 @@
 //
 //  State source: `CharacterRelationshipTracker` actor (= owned
 //  per-book, persisted via per-book JSON sidecar at
-//  `books/<bookId>/character-relationships.json`).
+//  `books/<bookId>/character-state.relationships.json`).
 //
 //  Character picker source: `bookStore.characterStore.loadCharacters()`
 //  (= the canonical per-book character list). When the book has
-//  no characters yet, the picker rows show "(no characters
+//  no state.characters yet, the picker rows show "(no state.characters
 //  defined)" and the Add button is disabled.
 //
 //  Standards-axis:
@@ -44,7 +44,7 @@
 //  ADDS an 8th tab to the specializedTools pane. Boss acceptance
 //  required: open SpecializedTools pane, click the new
 //  Character-Relationships tab, add an edge between two
-//  characters, see the row in the list + (when applicable) the
+//  state.characters, see the row in the list + (when applicable) the
 //  inconsistency warning.
 //
 
@@ -68,18 +68,16 @@ struct CharacterRelationshipsView: View {
     /// @State so SwiftUI keeps the identity across re-renders).
     @State private var tracker: CharacterRelationshipTracker?
 
-    @State private var relationships: [CharacterRelationship] = []
-    @State private var inconsistencies: [RelationshipInconsistency] = []
-    @State private var characters: [Character] = []
+    /// Business state mirror (= state.relationships + state.inconsistencies +
+    /// state.characters + status + errorText). Form picker + input
+    /// drafts stay on the View per §11.3.
+    @State private var state = CharacterRelationshipsViewState()
 
     // Add-row picker state.
     @State private var draftFromId: UUID?
     @State private var draftToId: UUID?
     @State private var draftKind: RelationshipKind = .ally
     @State private var draftDescription: String = ""
-
-    @State private var status: SpecializedToolLoadStatus = .idle
-    @State private var errorText: String?
 
 
 
@@ -123,7 +121,7 @@ struct CharacterRelationshipsView: View {
             listSection
             inconsistenciesSection
             Spacer(minLength: 0)
-            if let errorText {
+            if let errorText = state.errorText {
                 Text(errorText)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -138,39 +136,39 @@ struct CharacterRelationshipsView: View {
             Text(WenshuI18n.t("b5.characterrelationshipsview.l179.h77944637"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if characters.count < 2 {
+            if state.characters.count < 2 {
                 Text(WenshuI18n.t("b5.characterrelationshipsview.l183.h86534805"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
             HStack(spacing: DesignTokens.spacingStandard) {
                 Picker("From", selection: Binding(
-                    get: { draftFromId ?? characters.first?.id ?? UUID() },
+                    get: { draftFromId ?? state.characters.first?.id ?? UUID() },
                     set: { draftFromId = $0 }
                 )) {
                     Text(WenshuI18n.t("b5.characterrelationshipsview.l192.h15212550")).tag(UUID())
-                    ForEach(characters) { c in
+                    ForEach(state.characters) { c in
                         Text(c.name).tag(c.id)
                     }
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .disabled(characters.isEmpty)
+                .disabled(state.characters.isEmpty)
 
                 SFIcon("arrow.right", style: .inlineSmall, color: IconColor.tertiary)
 
                 Picker("To", selection: Binding(
-                    get: { draftToId ?? characters.dropFirst().first?.id ?? UUID() },
+                    get: { draftToId ?? state.characters.dropFirst().first?.id ?? UUID() },
                     set: { draftToId = $0 }
                 )) {
                     Text(WenshuI18n.t("b5.characterrelationshipsview.l208.h39347010")).tag(UUID())
-                    ForEach(characters) { c in
+                    ForEach(state.characters) { c in
                         Text(c.name).tag(c.id)
                     }
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .disabled(characters.isEmpty)
+                .disabled(state.characters.isEmpty)
 
                 Picker("Kind", selection: $draftKind) {
                     ForEach(RelationshipKind.allCases) { kind in
@@ -194,7 +192,7 @@ struct CharacterRelationshipsView: View {
             TextField(WenshuI18n.t("b5.characterrelationshipsview.l236.h75459793"), text: $draftDescription, axis: .horizontal)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .disabled(characters.count < 2)
+                .disabled(state.characters.count < 2)
         }
     }
 
@@ -211,7 +209,7 @@ struct CharacterRelationshipsView: View {
             Text(WenshuI18n.t("b5.characterrelationshipsview.l253.h68099009"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if relationships.isEmpty {
+            if state.relationships.isEmpty {
                 Text(WenshuI18n.t("b5.characterrelationshipsview.l257.h87596331"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
@@ -219,7 +217,7 @@ struct CharacterRelationshipsView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        ForEach(relationships) { row in
+                        ForEach(state.relationships) { row in
                             relationshipRow(row)
                         }
                     }
@@ -282,13 +280,13 @@ struct CharacterRelationshipsView: View {
             Text(WenshuI18n.t("b5.characterrelationshipsview.l334.h68375167"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            if inconsistencies.isEmpty {
+            if state.inconsistencies.isEmpty {
                 Text(WenshuI18n.t("b5.characterrelationshipsview.l338.h51048722"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                ForEach(Array(inconsistencies.enumerated()), id: \.offset) { _, issue in
+                ForEach(Array(state.inconsistencies.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                         SFIcon("exclamationmark.triangle", style: .inlineSmall, color: IconColor.orange)
                         Text(issue.message)
@@ -305,7 +303,7 @@ struct CharacterRelationshipsView: View {
     // MARK: - Helpers
 
     private func characterName(for id: UUID) -> String {
-        characters.first { $0.id == id }?.name ?? id.uuidString.prefix(8) + "…"
+        state.characters.first { $0.id == id }?.name ?? id.uuidString.prefix(8) + "…"
     }
 
     // MARK: - Async actions
@@ -319,27 +317,27 @@ struct CharacterRelationshipsView: View {
 
     private func reload() async {
         guard activeBookId != nil else { return }
-        status = .loading
+        state.status = .loading
         let actor = ensureTracker()
-        // Load characters from the per-book character store
+        // Load state.characters from the per-book character store
         // (= single source of truth for character metadata).
         // Forgiving on missing / corrupt store: empty array.
-        characters = (try? bookStore.loadCharacters()) ?? []
+        state.characters = (try? bookStore.loadCharacters()) ?? []
         // Reset picker defaults to the first / second character
         // (= convenience for empty state).
-        if draftFromId == nil { draftFromId = characters.first?.id }
-        if draftToId == nil { draftToId = characters.dropFirst().first?.id }
+        if draftFromId == nil { draftFromId = state.characters.first?.id }
+        if draftToId == nil { draftToId = state.characters.dropFirst().first?.id }
         let result = await CharacterRelationshipsOps.reload(
             manager: actor,
             bookId: activeBookId
         )
-        relationships = result.relationships
-        inconsistencies = result.inconsistencies
+        state.relationships = result.relationships
+        state.inconsistencies = result.inconsistencies
         if let err = result.error {
-            errorText = err
-            status = .failed(err)
+            state.errorText = err
+            state.status = .failed(err)
         } else if result.didLoad {
-            status = .loaded
+            state.status = .loaded
         }
     }
 
@@ -357,7 +355,7 @@ struct CharacterRelationshipsView: View {
             draftDescription = ""
             await reload()
         } else if let err = result.error {
-            errorText = err
+            state.errorText = err
         }
     }
 
@@ -371,7 +369,7 @@ struct CharacterRelationshipsView: View {
         if result.didSave {
             await reload()
         } else if let err = result.error {
-            errorText = err
+            state.errorText = err
         }
     }
 }
