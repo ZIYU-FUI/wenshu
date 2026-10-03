@@ -12,7 +12,7 @@
 //     (= LayoutEditMode split layout zone on the sunset path;
 //     NavigationSplitShell's AppleSidebarView has its own bottom
 //     '+' button via AppleSidebarBottomNewButton).
-//   - ZoneModuleView's `case .projectSidebar` (= the legacy
+//   - PaneView's `case .projectSidebar` (= the legacy
 //     6-zone zone body = same path as WorkspaceView's).
 //
 // Lives in its own file (= no domain data, no SwiftUI state

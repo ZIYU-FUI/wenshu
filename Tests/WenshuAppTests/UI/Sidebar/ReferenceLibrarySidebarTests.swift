@@ -6,12 +6,12 @@
 //    {"kind":"tag","tag":"<name>"} shape)
 //  - ShellMiddleColumn.previewScope() routes .tag to .referenceScope(nil)
 //    (= the tag filter is applied separately via shell.activeTagFilter)
-//  - ZoneModuleView.previewScope() handles .tag similarly
+//  - PaneView.previewScope() handles .tag similarly
 //
 //  Files covered:
 //  - Sources/WenshuApp/Views/Library/SidebarItem.swift (tag case added)
 //  - Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift (switch case)
-//  - Sources/WenshuApp/Views/Workspace/ZoneModuleView.swift (switch case)
+//  - Sources/WenshuApp/Views/Workspace/PaneView.swift (switch case)
 //  - Sources/WenshuApp/Views/Chat/ChatZoneView.swift (non-exhaustive)
 //  - Sources/WenshuApp/Views/Library/SidebarContextMenu.swift (no-op)
 //

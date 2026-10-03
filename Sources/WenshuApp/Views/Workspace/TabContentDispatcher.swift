@@ -72,14 +72,14 @@ struct TabContentDispatcher: View {
             // from a single ZoneBottomStatus (= no duplicate with the
             // internal ZoneContentView).
             
-                ZoneModuleView(zoneSlot: .projectSidebar)
+                PaneView(zoneSlot: .projectSidebar)
 
         case .projectPreview:
             // Same: no outer top toolbar (= internal ZoneContentTabBar
             // for / tabs IS the top chrome). Just the bottom
             // status text.
             
-                ZoneModuleView(zoneSlot: .projectPreview)
+                PaneView(zoneSlot: .projectPreview)
 
         case .editor:
             // No outer top (= internal ZoneContentTabBar for edit /
@@ -87,7 +87,7 @@ struct TabContentDispatcher: View {
             // (= boss 9/2 OOB replaces the legacy "N%" progress text
             // with backlinks count; = spec spec v0.34 B-15).
             
-                ZoneModuleView(zoneSlot: .editor)
+                PaneView(zoneSlot: .editor)
 
             // trigger backlinks load on first appear.
             // .task runs once when the editor zone is mounted (= won't
@@ -109,7 +109,7 @@ struct TabContentDispatcher: View {
             // No outer top (= internal ZoneContentTabBar for /
             // IS the top chrome). Bottom status = .
             
-                ZoneModuleView(zoneSlot: .specializedTools)
+                PaneView(zoneSlot: .specializedTools)
 
         case .aiChat:
             // Old 6 had ChatZoneTabBar (= 3 tabs: dialog / search / Settings
@@ -158,7 +158,7 @@ struct TabContentDispatcher: View {
             // / search IS the top chrome). Just the bottom kanban
             // status text.
             
-                ZoneModuleView(zoneSlot: .aiDynamic)
+                PaneView(zoneSlot: .aiDynamic)
 
         }
     }

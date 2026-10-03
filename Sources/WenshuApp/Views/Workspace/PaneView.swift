@@ -1,21 +1,21 @@
-// Sources/WenshuApp/Views/Workspace/ZoneModuleView.swift
+// Sources/WenshuApp/Views/Workspace/PaneView.swift
 //
-// The legacy 6-zone pane registry helper used by `RegisteredPanes`.
-// Lifted out of WorkspaceView.swift (= the parent view stays
-// render-only). This is the safe first split because
-// `ZoneModuleViewTests.swift` already covers the surface.
+// The per-pane registry helper used by `TabContentDispatcher`.
+// Per boss 2026-10-03 '清多余的层' OOB (= strip wenshu-summary
+// layers that conflate with the Apple-canonical shape), the
+// legacy 'Zone' prefix was retired (= this view hosts 1 pane of
+// the multi-column layout, not 1 of the legacy 6 zones).
 //
-// The extracted struct preserves all bindings, @Environment,
-// init, and body (= no behavior change).
+// `PaneViewTests.swift` covers the surface.
 
 import SwiftUI
 import MarkdownEngine
-// (the WorkspaceView.swift file still contains WorkspaceView +
-// EditorPlaceholder + EditorPaperCanvas = 3 more sub-structs to
-// split in future commits). To pass on main (= main is currently
-// broken without these fixes).
 
-struct ZoneModuleView: View {
+/// Per-pane view (= 1 module rendered in 1 pane of the
+/// `NavigationSplitView` column layout). The `zoneSlot` enum
+/// drives the dispatcher (= which pane hosts which module per
+/// `LayoutTreeStore`).
+struct PaneView: View {
     let zoneSlot: ZoneSlot
 
     /// bindings passed from WorkspaceView so sidebar category
@@ -27,14 +27,14 @@ struct ZoneModuleView: View {
 
     /// (= option A):
     /// AppState is the global @Observable source of truth.
-    /// ZoneModuleView reads it directly (= no @Binding chain).
+    /// PaneView reads it directly (= no @Binding chain).
     @Environment(AppState.self) private var appState
     // P2-06 (audit 2026-09-24) + overabstraction cleanup 2026-10-03:
     // sidebarSelection moved from ShellState to WorkspaceUIState.
     @Environment(WorkspaceUIState.self) private var workspaceUI
 
     /// -fix (= boss 9/3 'PreviewPane double-click did not open the document'):
-    /// ZoneModuleView also needs BookStore to read reference bodies
+    /// PaneView also needs BookStore to read reference bodies
     /// (= same as WorkspaceView's openCardInEditor). Injected via
     /// the existing .environment(bookStore) call sites in App.swift
     /// + LibraryRootView.
@@ -42,8 +42,8 @@ struct ZoneModuleView: View {
 
     /// computed preview scope (= mirrors
     /// WorkspaceView's `previewScope`; duplicated here to keep
-    /// ZoneModuleView self-contained without threading the scope
-    /// through WorkspaceView → ZoneModuleView via another binding).
+    /// PaneView self-contained without threading the scope
+    /// through WorkspaceView → PaneView via another binding).
     private var previewScope: PreviewScope {
         guard let item = workspaceUI.sidebarSelection else { return .empty }
         switch item {
@@ -92,7 +92,7 @@ struct ZoneModuleView: View {
             // book-open icon) + trailingButton (New + Import =
             // preserved from the pre-v1.69e legacy
             // NewLibraryOutlineView.zoneHeaderButtons).
-            // boss 8/31 OOB: ZoneModuleView forwards its
+            // boss 8/31 OOB: PaneView forwards its
             // sidebarSelection binding to AppleSidebarView so
             // the sidebar click → preview pane scope works.
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
@@ -107,7 +107,7 @@ struct ZoneModuleView: View {
             // solid Color(nsColor: .controlBackgroundColor) = NOT
             // Liquid Glass).
             //
-            // boss 8/31 OOB: ZoneModuleView is the LEGACY
+            // boss 8/31 OOB: PaneView is the LEGACY
             // pane registry path (= RegisteredPanes.swift). Callers
             // don't pass a sidebarSelection binding (= they have no
             // concept of book folder scoping), so this preview pane
@@ -128,9 +128,9 @@ struct ZoneModuleView: View {
                 (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
                     // fix (= boss 9/3 'double-clicking card did not open the document'):
-                    // ZoneModuleView's caller L561 is the ACTIVE path
+                    // PaneView's caller L561 is the ACTIVE path
                     // (= not WorkspaceView's caller L355 which is dead
-                    // code). Route double-click to ZoneModuleView's own
+                    // code). Route double-click to PaneView's own
                     // openCardInEditor (= same logic as WorkspaceView's;
                     // = the shared service land in a follow-on surface).
                     //
@@ -140,7 +140,7 @@ struct ZoneModuleView: View {
                     // captured `self` implicitly, and the implicit
                     // `openCardInEditor()` resolution went to the wrong
                     // scope = the closure ran but the method was not
-                    // resolved to ZoneModuleView). Explicit `self.`
+                    // resolved to PaneView). Explicit `self.`
                     // fixes the resolution.
                     onDoubleClick: { source in
                         // BOSS 9/8 'clicking the Dufu card opens a tab with wrong name':
@@ -214,7 +214,7 @@ struct ZoneModuleView: View {
         }
     }
 
-    /// -followup (= boss 9/3 'fix it until I can use it'): ZoneModuleView
+    /// -followup (= boss 9/3 'fix it until I can use it'): PaneView
     /// needs its own openCardInEditor (= WorkspaceView's openCardInEditor
     /// is in a DIFFERENT struct = can't share via this same View type).
     /// Code is mostly duplicated from WorkspaceView's openCardInEditor
@@ -241,7 +241,7 @@ struct ZoneModuleView: View {
     /// bookDoc-deferred path delegates to `CardOpenOps
     /// .computeCardTriad`; the book-scope file-scan (= walk
     /// shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md)
-    /// stays in the View because it's specific to ZoneModuleView
+    /// stays in the View because it's specific to PaneView
     /// The shared tail (= canonical surface).
     /// (= dedup + tab creation + activeTabId mutation) delegates
     /// to `CardOpenOps.openTab`.

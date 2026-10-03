@@ -18,10 +18,10 @@ import SwiftUI
 /// detail column is also 1 column with 2 stacked sub-areas.
 ///
 /// 2 sub-areas:
-/// - top sub-area: ZoneModuleView(zoneSlot: .specializedTools)
+/// - top sub-area: PaneView(zoneSlot: .specializedTools)
 ///   (real tools pane; = foreshadowing tracking, memory
 ///   retrieval, etc.)
-/// - bottom sub-area: ZoneModuleView(zoneSlot: .aiDynamic)
+/// - bottom sub-area: PaneView(zoneSlot: .aiDynamic)
 ///   (real dynamic pane; = kanban + todo + scope status)
 ///
 /// Right column uses the same simple 2-stack VStack pattern as

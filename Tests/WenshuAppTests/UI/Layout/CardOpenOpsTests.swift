@@ -3,7 +3,7 @@
 //
 //  Behavior + source-level tests for `CardOpenOps` (= the
 //  stateless enum extracted from the 3 verbatim copies of
-//  `openCardInEditor` in WorkspaceView / ZoneModuleView /
+//  `openCardInEditor` in WorkspaceView / PaneView /
 //  ShellMiddleColumn).
 //
 //  The shared tail (= dedup check +
@@ -24,10 +24,10 @@
 //    the dedup + tab creation + activeTabId mutation (= the
 //    shared tail).
 //
-//  ZoneModuleView's local file-scan (= walk
+//  PaneView's local file-scan (= walk
 //  shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md and
 //  pick the FIRST .md) stays in the View because it's
-//  ZoneModuleView-specific (= the other 2 views use the
+//  PaneView-specific (= the other 2 views use the
 //  reference-scope + bookDoc-deferred paths only; = ticket
 //  027-35 will replace it with a shared BookDocLoader service).
 //
