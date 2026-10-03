@@ -131,4 +131,31 @@ struct LongFormGuardrailsViewTests {
         #expect(source.contains("init("),
                 "3/3: init() missing")
     }
+
+    @Test("LongFormGuardrailsViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
+    func testStateMirrorExists() throws {
+        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        #expect(source.contains("LongFormGuardrailsViewState"),
+                "LongFormGuardrailsView must reference LongFormGuardrailsViewState mirror")
+        #expect(source.contains("@State private var state = LongFormGuardrailsViewState()"),
+                "LongFormGuardrailsView must hold state via @State mirror")
+        #expect(!source.contains("@State private var guardrails: [LongFormGuardrail]"),
+                "guardrails must NOT be a bare @State var")
+        #expect(!source.contains("@State private var loadingState: SpecializedToolLoadStatus = .idle"),
+                "loadingState must NOT be a bare @State var")
+        #expect(!source.contains("@State private var lastViolations: [LongFormGuardrailViolation]"),
+                "lastViolations must NOT be a bare @State var")
+    }
+
+    @Test("LongFormGuardrailsViewState mirror file exists")
+    func testStateMirrorFileExists() throws {
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/p2-batch2/Sources/WenshuApp/Views/SpecializedTools/LongFormGuardrailsViewState.swift"
+        #expect(FileManager.default.fileExists(atPath: filePath))
+        let source = try String(contentsOfFile: filePath, encoding: .utf8)
+        #expect(source.contains("@Observable"))
+        #expect(source.contains("final class LongFormGuardrailsViewState"))
+        #expect(source.contains("var guardrails: [LongFormGuardrail]"))
+        #expect(source.contains("var loadingState: SpecializedToolLoadStatus"))
+        #expect(source.contains("var lastViolations: [LongFormGuardrailViolation]"))
+    }
 }

@@ -21,7 +21,7 @@
 //  `add(_:to:)` / `remove(id:from:)` entry points.
 //
 //  Persistence pattern: per-book JSON sidecar (= the actor owns
-//  the file = `long-form-guardrails.json` in the book root).
+//  the file = `long-form-state.guardrails.json` in the book root).
 //
 //  Standards-axis:
 //    S1 (Apple-API-first): pure SwiftUI primitives + SF Symbols 6 icon
@@ -55,25 +55,33 @@ struct LongFormGuardrailsView: View {
     /// Actor (= created lazily for the current book; held as
     /// @State so SwiftUI keeps the identity across re-renders).
     @State private var manager: LongFormGuardrails?
-    @State private var guardrails: [LongFormGuardrail] = []
-    @State private var loadingState: SpecializedToolLoadStatus = .idle
+    /// Business state mirror (= state.guardrails + state.loadingState +
+    /// state.lastViolations). Form drafts + transient check status
+    /// stay on the View per §11.3.
+    @State private var state = LongFormGuardrailsViewState()
+
+    // Add-sheet picker state.
     @State private var showAddSheet = false
     @State private var draftName: String = ""
     @State private var draftDescription: String = ""
     @State private var draftKind: LongFormGuardrailKind = .constraint
     @State private var draftEnforcement: LongFormGuardrailEnforcement = .warn
     @State private var checkText: String = ""
-    @State private var lastViolations: [LongFormGuardrailViolation] = []
+
+    // Transient check status (= lives on the View; = the guardrail
+    // check is a one-shot user action so this is form-draft
+    // territory per §11.3).
     @State private var lastCheckStatus: CheckStatus = .idle
 
+    init() {}
 
     private enum CheckStatus: Equatable, Sendable {
         case idle
         case running
-        case done(count: Int, hasCritical: Bool)
+        case done(Int, Bool)
+        case failed(String)
     }
 
-    init() {}
 
     var body: some View {
         // C3.7.5: migrate to specializedToolBody modifier
@@ -95,7 +103,7 @@ struct LongFormGuardrailsView: View {
 
     /// deleted `autoDerivedCount` + `userCount`
     /// (= verify-dead reports both as ext=0 + int=0; = 0 callers;
-    /// = the 2 computed vars tallied `guardrails.filter` results for
+    /// = the 2 computed vars tallied `state.guardrails.filter` results for
     /// header counts that the v0.34 MVP never wired into the body;
     /// = the current header uses inline counts; = no behavior
     /// change; = 6 LOC removed).
@@ -128,7 +136,7 @@ struct LongFormGuardrailsView: View {
             guardrailList
             Divider()
             checkSection
-            if !lastViolations.isEmpty {
+            if !state.lastViolations.isEmpty {
                 violationsSection
             }
             Spacer(minLength: 0)
@@ -160,10 +168,10 @@ struct LongFormGuardrailsView: View {
 
     private var guardrailList: some View {
         VStack(spacing: DesignTokens.spacingTight) {
-            ForEach(guardrails) { row in
+            ForEach(state.guardrails) { row in
                 guardrailRow(row)
             }
-            if guardrails.isEmpty {
+            if state.guardrails.isEmpty {
                 Text(WenshuI18n.t("b5.longformguardrailsview.l198.h9169095"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -253,7 +261,7 @@ struct LongFormGuardrailsView: View {
                     Label { Text(WenshuI18n.t("b5.longformguardrailsview.l295.h18206542")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(checkText.isEmpty || guardrails.isEmpty)
+                .disabled(checkText.isEmpty || state.guardrails.isEmpty)
                 .help(WenshuI18n.t("b5.longformguardrailsview.l299.h65143897"))
                 Spacer(minLength: 0)
             }
@@ -273,6 +281,10 @@ struct LongFormGuardrailsView: View {
                 Text(hasCritical ? "\(count) violations (= critical)" : "\(count) violations")
                     .font(.caption)
                     .foregroundStyle(hasCritical ? .red : .secondary)
+            case .failed(let message):
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.red)
             }
         }
     }
@@ -282,7 +294,7 @@ struct LongFormGuardrailsView: View {
             Text(WenshuI18n.t("b5.longformguardrailsview.l324.h5287930"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            ForEach(Array(lastViolations.enumerated()), id: \.offset) { _, v in
+            ForEach(Array(state.lastViolations.enumerated()), id: \.offset) { _, v in
                 HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
                     Text(severityGlyph(v.severity))
                         .font(.caption)
@@ -375,14 +387,14 @@ struct LongFormGuardrailsView: View {
 
     private func reload() async {
         guard activeBookId != nil else { return }
-        loadingState = .loading
+        state.loadingState = .loading
         let actor = await ensureManager()
         let result = await LongFormGuardrailsOps.reload(manager: actor, bookId: activeBookId)
-        guardrails = result.rows
+        state.guardrails = result.rows
         if let err = result.error {
-            loadingState = .failed(err)
+            state.loadingState = .failed(err)
         } else if result.didLoad {
-            loadingState = .loaded
+            state.loadingState = .loaded
         }
     }
 
@@ -397,7 +409,7 @@ struct LongFormGuardrailsView: View {
         let actor = await ensureManager()
         let result = await LongFormGuardrailsOps.autoDerive(manager: actor, bookId: activeBookId)
         if let err = result.error {
-            loadingState = .failed(err)
+            state.loadingState = .failed(err)
         }
         await reload()
     }
@@ -424,7 +436,7 @@ struct LongFormGuardrailsView: View {
             showAddSheet = false
             await reload()
         } else if let err = result.error {
-            loadingState = .failed(err)
+            state.loadingState = .failed(err)
         }
     }
 
@@ -434,14 +446,14 @@ struct LongFormGuardrailsView: View {
         lastCheckStatus = .running
         let result = await LongFormGuardrailsOps.runCheck(
             manager: actor,
-            guardrails: guardrails,
+            guardrails: state.guardrails,
             checkText: checkText
         )
-        lastViolations = result.violations
+        state.lastViolations = result.violations
         if result.didRun {
-            lastCheckStatus = .done(count: result.violations.count, hasCritical: result.hasCritical)
+            lastCheckStatus = .done(result.violations.count, result.hasCritical)
         } else {
-            lastCheckStatus = .done(count: 0, hasCritical: false)
+            lastCheckStatus = .done(0, false)
         }
     }
 }
