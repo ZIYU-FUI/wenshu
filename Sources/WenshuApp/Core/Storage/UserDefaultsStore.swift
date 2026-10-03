@@ -46,7 +46,6 @@ public enum WenshuDefaultsKey: String, CaseIterable, Sendable {
     case llmProvider         = "wenshu.llm.provider"
     case llmReasoningEffort  = "wenshu.llm.reasoningEffort"
     case settingsTab         = "wenshu.settingsTab"
-    case useNSSplitView      = "wenshu.useNSSplitView"
     case userAddress         = "wenshu.userAddress"
     case openTabs            = "wenshu.openTabs"
     case activeTabId         = "wenshu.editor.activeTabId.v1"

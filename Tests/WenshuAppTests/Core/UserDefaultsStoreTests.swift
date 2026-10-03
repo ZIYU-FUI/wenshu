@@ -240,7 +240,6 @@ struct UserDefaultsStoreTests {
         UserDefaultsStore.shared.setInt(11, forDynamicKey: dynamicKey)
         // Static keys should still be absent (= resetDefaults cleared).
         #expect(UserDefaultsStore.shared.string(forKey: .llmModel) == "")
-        #expect(UserDefaultsStore.shared.bool(forKey: .useNSSplitView) == false)
         #expect(UserDefaultsStore.shared.int(forKey: .inspectorPage) == 0)
     }
 }

@@ -108,18 +108,6 @@ final class LayoutTreeStore {
             self.workspace = builtinDefault.workspace
         }
 
-        // Apply the `useNSSplitView` opt-in from UserDefaults on top of
-        // whatever workspace JSON (= or fallback preset) we just
-        // loaded. Without this, the flag is set in UserDefaults but
-        // never read (= the field stays nil = the overlay branch
-        // in WorkspaceView never fires).
-        // Set via: defaults write com.wenshu.app wenshu.useNSSplitView -bool true
-        // Clear:   defaults delete com.wenshu.app wenshu.useNSSplitView
-        //
-        // NOTE: applied AFTER presets init (= below) because Swift
-        // requires `self.presets` to be assigned before other `self.*`
-        // mutations in init. See the assignments further down.
-
         if let data = userDefaults.data(forKey: Self.presetsKey),
            let decoded = try? jsonDecoder.decode([LayoutPreset].self, from: data) {
             self.presets = decoded
@@ -141,14 +129,6 @@ final class LayoutTreeStore {
             self.currentPresetID = uuid
         } else {
             self.currentPresetID = builtinDefault.id
-        }
-
-        // Read `useNSSplitView` opt-in from UserDefaults (= set
-        // externally via `defaults write`). Placed here (= after
-        // self.presets is initialized) to satisfy Swift's
-        // property-init ordering rule in the init's `let` chain.
-        if let useNSSplit = userDefaults.object(forKey: "wenshu.useNSSplitView") as? Bool {
-            self.workspace.useNSSplitView = useNSSplit
         }
     }
 
