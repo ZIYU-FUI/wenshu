@@ -16,7 +16,7 @@ import MarkdownEngine
 /// drives the dispatcher (= which pane hosts which module per
 /// `LayoutTreeStore`).
 struct PaneView: View {
-    let zoneSlot: ZoneSlot
+    let zoneSlot: TabKind
 
     /// bindings passed from WorkspaceView so sidebar category
     /// selection → preview pane can react (= same Binding reference).
@@ -76,7 +76,7 @@ struct PaneView: View {
     /// default initializer for non-workspace callers.
     /// (= pass dummy constants explicitly, see RegisteredPanes.swift)
     init(
-        zoneSlot: ZoneSlot,
+        zoneSlot: TabKind,
         selectedEntityCategory: Binding<EntityCategory?> = .constant(nil),
         selectedEntity: Binding<Reference?> = .constant(nil)
     ) {

@@ -289,19 +289,14 @@ enum AuxTask: String, CaseIterable, Identifiable {
 // Settings { } Scene (ticket 04 commit 984ea556b Picker, 8/21 "show")
 
 
-/// Zone slot enum (= 6 named cases, one per functional module in
-/// the new framework). Used by WorkspaceView's renderTabByKind to
-/// dispatch to the right view (= projectSidebar → AppleSidebarView,
-/// projectPreview → EntityPreviewPane, editor → editor, etc.).
-/// chatSidebar + chatDialogue 2, aiChat.
-enum ZoneSlot {
-    case projectSidebar
-    case projectPreview
-    case editor
-    case specializedTools
-    case aiChat        // 8/18 "four on top, two on bottom", lower band full-width AI chat (v0.10.3 chatSidebar + chatDialogue)
-    case aiDynamic
-}
+// ZoneSlot -> TabKind rename: the zone enum was duplicate-
+// defined here. Per boss 2026-10-03 '清多余的层' OOB (= strip
+// wenshu-summary layers that conflate with the Apple-canonical
+// shape), the duplicate is removed and callers use the
+// canonical TabKind (= declared in LayoutTreeState.swift).
+// TabKind has the same 6 cases (= projectSidebar / projectPreview
+// / editor / specializedTools / aiChat / aiDynamic) so the
+// duplicate was always dead code.
 
 // MARK: - Library outline (sidebar)
 //

@@ -139,7 +139,7 @@ final class PaneNSController: NSSplitViewController {
         // Display-menu bridge (= Gap F fix). The legacy "Display" menu items
         // (= the App.swift:593-611 reference is stale per the Q2 boss split
         // moved the Display menu to AppRootScene.swift + Core/Notifications/AppNotifications.swift)
-        // post .wenshuToggleZone(ZoneSlot)
+        // post .wenshuToggleZone(TabKind)
         // notifications; this observer finds the matching NSSplitViewItem
         // and flips its collapsed state (= Apple HIG sidebar hide/show
         // affordance).
@@ -414,9 +414,9 @@ final class PaneNSController: NSSplitViewController {
         splitView.dividerStyle = style
     }
 
-    /// Gap F forward-fix: handle `.wenshuToggleZone(ZoneSlot)` notification
+    /// Gap F forward-fix: handle `.wenshuToggleZone(TabKind)` notification
     /// by finding the matching NSSplitViewItem (= the one whose pane's
-    /// first tab kind matches the ZoneSlot) and flipping its
+    /// first tab kind matches the TabKind) and flipping its
     /// `isCollapsed` property. Items without `canCollapse` (= preview /
     /// editor) are silently ignored (= their menu items were never
     /// collapsible in the FCP spec either).
@@ -429,9 +429,9 @@ final class PaneNSController: NSSplitViewController {
     /// recursion. See applyPersistedZoneVisibility() for the
     /// matching initial-state logic.
     @objc private func handleToggleZone(_ notification: Notification) {
-        guard let slot = notification.object as? ZoneSlot else { return }
-        // Map ZoneSlot → TabKind (canonical mapping). editor has no
-        // dedicated ZoneSlot toggle button (= the legacy menu doesn't
+        guard let slot = notification.object as? TabKind else { return }
+        // Map TabKind → TabKind (canonical mapping). editor has no
+        // dedicated TabKind toggle button (= the legacy menu doesn't
         // show it), but include it for completeness.
         let targetKind: TabKind? = {
             switch slot {
@@ -557,7 +557,7 @@ final class PaneNSController: NSSplitViewController {
     /// preview / tools / chat / dynamic; editor stays visible and takes
     /// the freed space).
     private func collapseAllNonEditorZones() {
-        let nonEditor: [ZoneSlot] = [.projectSidebar, .projectPreview,
+        let nonEditor: [TabKind] = [.projectSidebar, .projectPreview,
                                     .specializedTools, .aiChat, .aiDynamic]
         for slot in nonEditor where isZoneVisible(slot) {
             toggleZone(slot)
@@ -575,7 +575,7 @@ final class PaneNSController: NSSplitViewController {
     /// after un-collapsing). Here we only need to flip the
     /// collapsed flag (= weights come from autosaveName).
     private func restoreAllZonesForEditorShrink() {
-        for slot in allZoneSlots() where !isZoneVisible(slot) {
+        for slot in allTabKinds() where !isZoneVisible(slot) {
             toggleZone(slot)
         }
     }
@@ -1451,7 +1451,7 @@ final class PaneNSController: NSSplitViewController {
     /// `autosaveName` persists the per-item collapsed flag
     /// natively). Implemented as a thin wrapper around the
     /// `handleToggleZone(_:)` notification observer below.
-    func toggleZone(_ slot: ZoneSlot) {
+    func toggleZone(_ slot: TabKind) {
         let kind: TabKind
         switch slot {
         case .projectSidebar:   kind = .projectSidebar

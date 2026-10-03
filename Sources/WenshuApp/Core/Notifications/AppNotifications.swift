@@ -21,7 +21,7 @@ import Foundation
 // a direct @Environment / @Binding with the menu source.
 enum AppCommands: String, CaseIterable {
     /// Toggle one of the 6 zones (= sidebar / preview / editor / tools /
-    /// chat / dynamic). Object payload: ZoneSlot.
+    /// chat / dynamic). Object payload: TabKind.
     case toggleZone = "com.wenshu.toggleZone"
 
     /// Request to create a new book. Posted by the zone-header new-icon
