@@ -95,8 +95,8 @@ final class MemoryAdapter {
         let rows = (try? memory.listRecent(userId: defaultUserId, limit: limit)) ?? []
         return rows.map { row in
             MemoryEntry(
-                id: row.memoryId,
-                source: "memory:\(row.memoryId)",
+                id: row.memoryId.rawValue,
+                source: "memory:\(row.memoryId.rawValue)",
                 snippet: String(row.content.prefix(120)),
                 relevanceScore: 1.0
             )

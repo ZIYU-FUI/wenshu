@@ -189,7 +189,7 @@ actor ContextEngine {
             memories = []
         case .prefetched(let rows, _):
             memories = rows.map { row in
-                MemoryEntry(source: row.memoryId, snippet: row.content)
+                MemoryEntry(source: row.memoryId.rawValue, snippet: row.content)
             }
         }
         return ContextBundle(

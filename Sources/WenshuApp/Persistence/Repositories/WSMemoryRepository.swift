@@ -32,28 +32,29 @@ final class WSMemoryRepository {
         self.container = container
     }
 
-    func add(userId: String, content: String) throws -> Memory {
-        let memoryID = UUID().uuidString
-        let model = WSMemory(memoryID: memoryID, userID: userId, content: content)
+    func add(userId: String, content: String, memoryID: MemoryID? = nil) throws -> Memory {
+        let resolvedMemoryID = memoryID ?? MemoryID.newID()
+        let memoryIDString = resolvedMemoryID.rawValue
+        let model = WSMemory(memoryID: memoryIDString, userID: userId, content: content)
         context.insert(model)
         try context.save()
         return Memory(
             userId: userId,
-            memoryId: memoryID,
+            memoryId: resolvedMemoryID,
             content: content,
             createdAt: model.createdAt,
             updatedAt: model.updatedAt
         )
     }
 
-    func get(memoryId: String) throws -> Memory? {
+    func get(memoryId: MemoryID) throws -> Memory? {
         let descriptor = FetchDescriptor<WSMemory>(
-            predicate: #Predicate { $0.memoryID == memoryId }
+            predicate: #Predicate { $0.memoryID == memoryId.rawValue }
         )
         return try context.fetch(descriptor).first.map { model in
             Memory(
                 userId: model.userID,
-                memoryId: model.memoryID,
+                memoryId: MemoryID(rawValue: model.memoryID),
                 content: model.content,
                 createdAt: model.createdAt,
                 updatedAt: model.updatedAt
@@ -71,7 +72,7 @@ final class WSMemoryRepository {
         return try context.fetch(descriptor).prefix(limit).map { model in
             Memory(
                 userId: model.userID,
-                memoryId: model.memoryID,
+                memoryId: MemoryID(rawValue: model.memoryID),
                 content: model.content,
                 createdAt: model.createdAt,
                 updatedAt: model.updatedAt
@@ -79,9 +80,9 @@ final class WSMemoryRepository {
         }
     }
 
-    func update(memoryId: String, content: String) throws {
+    func update(memoryId: MemoryID, content: String) throws {
         let descriptor = FetchDescriptor<WSMemory>(
-            predicate: #Predicate { $0.memoryID == memoryId }
+            predicate: #Predicate { $0.memoryID == memoryId.rawValue }
         )
         guard let model = try context.fetch(descriptor).first else {
             throw WSMemoryRepositoryError.notFound
@@ -90,9 +91,9 @@ final class WSMemoryRepository {
         try context.save()
     }
 
-    func delete(memoryId: String) throws {
+    func delete(memoryId: MemoryID) throws {
         let descriptor = FetchDescriptor<WSMemory>(
-            predicate: #Predicate { $0.memoryID == memoryId }
+            predicate: #Predicate { $0.memoryID == memoryId.rawValue }
         )
         if let model = try context.fetch(descriptor).first {
             context.delete(model)
@@ -115,7 +116,7 @@ final class WSMemoryRepository {
         return try context.fetch(descriptor).prefix(limit).map { model in
             Memory(
                 userId: model.userID,
-                memoryId: model.memoryID,
+                memoryId: MemoryID(rawValue: model.memoryID),
                 content: model.content,
                 createdAt: model.createdAt,
                 updatedAt: model.updatedAt

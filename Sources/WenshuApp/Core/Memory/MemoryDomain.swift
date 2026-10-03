@@ -10,12 +10,18 @@ import Foundation
 
 struct Memory: Equatable, Sendable {
     let userId: String
-    let memoryId: String
+    let memoryId: MemoryID
     var content: String
     let createdAt: Date
     var updatedAt: Date
 
-    init(userId: String, memoryId: String = UUID().uuidString, content: String, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(
+        userId: String,
+        memoryId: MemoryID = MemoryID.newID(),
+        content: String,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
         self.userId = userId
         self.memoryId = memoryId
         self.content = content
