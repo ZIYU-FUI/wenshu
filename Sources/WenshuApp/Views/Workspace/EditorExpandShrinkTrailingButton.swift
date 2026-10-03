@@ -58,11 +58,13 @@ struct EditorExpandShrinkTrailingButton: View {
                 ? WenshuI18n.t("workspace.editor.restore_layout")
                 : WenshuI18n.t("workspace.editor.expand_fullscreen"),
             // The action writes `@SceneStorage` AND posts
-            // `.wenshuEditorMaximizedChanged`, which
-            // `PaneNSController.handleEditorMaximizedChanged`
-            // listens for. `Notification.object` carries the new
-            // `Bool` payload so the listener can branch on
-            // snapshot-and-collapse vs restore.
+            // `.wenshuEditorMaximizedChanged`. Previously consumed by
+            // `PaneNSController.handleEditorMaximizedChanged` (= the
+            // wenshu-summary NSSplitView abstraction; = deleted in
+            // commit 6f). The notification is still posted (= the
+            // `wenshu.editorMaximized` SceneStorage key is still the
+            // source of truth) but is no longer consumed by any
+            // production listener.
             action: {
                 editorMaximized.toggle()
                 NotificationCenter.default.post(
