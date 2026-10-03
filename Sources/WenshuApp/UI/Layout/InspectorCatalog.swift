@@ -4,10 +4,12 @@
 // shell widget catalog + page routing were inlined in
 // ShellDetailColumn.filteredToolsForCurrentPage (= business + data
 // inside the View, violating the canonical Apple MVVM layering).
+// After Phase 6, ShellDetailColumn is InspectorView; = this
+// catalog is the data layer paired with InspectorView.
 //
 // Extracts the DATA layer to a new file (= the static catalog of InspectorPage metadata).
 // Tickets 02 (InspectorPage.tools = business layer) and 03
-// (ShellDetailColumn 切到新 API + 删旧 inline) follow.
+// (InspectorView 切到新 API + 删旧 inline) follow.
 //
 // Per Q244 §3.1 SoT pool unchanged: InspectorCatalog is stateless
 // static (= catalog 12 条不变, no @Observable needed; = pure data
@@ -21,7 +23,7 @@
 //
 // Per Q57 + Q112 + Q186: extract InspectorCatalog to its own file.
 // 1 file per ticket, atomic commit, no behavior change in this
-// commit (= ShellDetailColumn still references its inline catalog;
+// commit (= InspectorView still references its inline catalog;
 // ticket 03 cuts over).
 
 import SwiftUI
@@ -32,13 +34,12 @@ import SwiftUI
 /// as InspectorTool = the page → tools mapping reads the
 /// catalog via `InspectorCatalog.<tool>` references).
 ///
-/// Originally defined in NavigationSplitShell.swift (= a wenshu-
-/// specific summary layer that conflated column-binding plumbing
-/// with the Apple canonical shape). Moved here in commit 6b
-/// when the NavigationSplitShell wrapper layer was removed (= the
-/// Apple multi-column rewrite strips wenshu-summary wrappers; =
-/// the enum is a data-layer concern and pairs with InspectorTool
-/// in this catalog file).
+/// Originally defined in the deleted wenshu-summary wrapper layer
+/// (= removed in Phase 6 because it conflated column-binding
+/// plumbing with the Apple canonical NavigationSplitView shape).
+/// Moved here as part of the multi-column rewrite that strips
+/// wenshu-summary wrappers; = the enum is a data-layer concern
+/// and pairs with InspectorTool in this catalog file.
 enum InspectorPage: Hashable, CaseIterable {
     case authoringFiction
     case authoringStyle
@@ -137,12 +138,13 @@ struct InspectorTool: Identifiable, Hashable, Sendable {
 /// truth for the 12 tool definitions).
 ///
 /// Per Q244 §3.1: this replaces the inline tuple array that previously
-/// lived in `ShellDetailColumn.filteredToolsForCurrentPage` (lines
-/// 111-130, deleted in ticket 03). The 12 entries mirror the 12
-/// specialized tool views under `Views/Tools/` + `Views/SpecializedTools/`.
+/// lived in the deleted ShellDetailColumn (= replaced by InspectorView
+/// in Phase 6; = the legacy lines 111-130 are now obsolete).
+/// The 12 entries mirror the 12 specialized tool views under
+/// `Views/Tools/` + `Views/SpecializedTools/`.
 enum InspectorCatalog {
     // 12 specialized tools, derived from the original inline
-    // tuple in ShellDetailColumn.swift:111-130.
+    // tuple in the now-deleted ShellDetailColumn (= lines 111-130).
 
     static let foreshadowing = InspectorTool(
         id: "tab.title.foreshadowing",

@@ -26,12 +26,12 @@ import AppKit
 /// features the boss wants as independent windows per Pages /
 /// Numbers / Keynote's independent document windows pattern).
 ///
-/// Originally defined in NavigationSplitShell.swift (= a wenshu-
-/// specific summary layer that conflated column-binding plumbing
-/// with the Apple canonical shape). Moved here in commit 6b when
-/// the NavigationSplitShell wrapper layer was removed (= the
-/// Apple multi-column rewrite strips wenshu-summary wrappers; =
-/// WindowID is a scene-level concern and pairs with AppRootScene).
+/// Originally defined in the deleted wenshu-summary wrapper layer
+/// (= removed in commit Phase 6 because it conflated column-binding
+/// plumbing with the Apple canonical NavigationSplitView shape).
+/// Moved here as part of the multi-column rewrite that strips
+/// wenshu-summary wrappers; = WindowID is a scene-level concern
+/// and pairs with AppRootScene).
 ///
 /// macOS 27 Tahoe's WindowGroup id-routing has a special case for IDs
 /// that match the legacy Preferences/Settings ID space (= e.g. IDs
@@ -69,8 +69,8 @@ struct AppRootScene: Scene {
     @Binding var appearanceMode: AppearanceMode
     let appState: AppState
     /// ShellState was removed in 2026-10-03 overabstraction cleanup
-    /// (= all 4 fields migrated to WorkspaceUIState + NavigationSplitShell
-    /// @State; = ShellState was the only remaining per-window state
+    /// (= all 4 fields migrated to WorkspaceUIState as @State;
+    /// = the deleted ShellState was the only prior per-window state
     /// class holding duplicated cross-column state).
     let workspaceUI: WorkspaceUIState
     /// Sheet-request triggers (= fire-and-forget counters for the
@@ -249,8 +249,8 @@ struct AppRootScene: Scene {
         // a `.toolbar` modifier; = Scene-level `.toolbar` is not
         // a SwiftUI API. LibraryRootView reads AppState directly
         // (= it already injects AppState via @Environment), so the
-        // button writes the same property NavigationSplitShell
-        // binds into `.inspector(isPresented:)`.
+        // button writes the same property the NavigationSplitView
+        // `.inspector(isPresented:)` modifier binds.
         .commands {
             // NSV .inspector(isPresented:) modifier already renders a
             // column-header chevron for inspector visibility; the
@@ -373,8 +373,10 @@ struct AppRootScene: Scene {
             // A1.3: the NSNotification dispatch was removed
             // (= EditorChatNSController listener deleted in this
             // commit; = only the AppState flag flip remains; = the
-            // chat zone visibility is owned by ShellState.chatVisible
-            // downstream consumers). Toggle still binds the flag.
+            // (= the chat zone visibility is owned by
+                        // WorkspaceUIState.chatVisible; = downstream consumers
+                        // bind to workspaceUI.chatVisible). Toggle still binds
+                        // the flag.
             CommandGroup(after: .toolbar) {
                 Toggle(WenshuI18n.t("menu.view.show_chat_zone"), isOn: Binding(
                     get: { workspaceUI.chatVisible },

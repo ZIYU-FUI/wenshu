@@ -50,8 +50,9 @@ final class AppState {
     // useThreeColumnSplit was here (= a leftover "global @Observable
     // mirror" before LayoutTreeState owned the activation gate).
     // Per P2-06 audit (2026-09-24): removed because:
-    // - 0 production callers in the runtime (= NavigationSplitShell
-    //   reads LayoutTreeState.useThreeColumnSplit, not AppState's).
+    // - 0 production callers in the runtime (= the canonical
+    //   NavigationSplitView reads LayoutTreeState.useThreeColumnSplit,
+    //   not AppState's).
     // - Persistence is unchanged (= UserDefaults key
     //   "wenshu.useThreeColumnSplit" is still owned by LayoutTreeState).
     // - AppState no longer needs this field; = the canonical home is
@@ -63,12 +64,12 @@ final class AppState {
     // (= LayoutTreeState absorbed the role). The mirror lingered
     // only as a user-toggle surface (= defaulted to false).
 
-    // Sidebar tree selection moved to ShellState.swift (= P2-06
+    // Sidebar tree selection moved to WorkspaceUIState.swift (= P2-06
     // split). Drives Preview pane scope. Persisted to the same
     // UserDefaults key "wenshu.sidebarSelection" (= JSON via Codable).
     // The key string is unchanged so no user-data migration is
     // needed. Callers now read `workspaceUI.sidebarSelection` (= via
-    // `@Environment(ShellState.self)` injected at AppRootScene).
+    // `@Environment(WorkspaceUIState.self)` injected at AppRootScene).
 
     // previewSortOrder + editMode moved to WorkspaceUIState.swift
     // (= P2-06 split batch 3 = column-local UI state; = bundled
@@ -131,7 +132,7 @@ final class AppState {
     // (= LLM tool calls into this path throw `chapterFocusedByBoss`).
     // chatVisible gate (= LLM can edit when boss is in chat) lives
     // at the call site (= EditorView computes the final
-    // isChapterLockedByLLM using its @Environment(ShellState.self)
+    // isChapterLockedByLLM using its @Environment(WorkspaceUIState.self)
     // because AppState cannot hold @Environment-bound state).
     var focusedChapterPath: String? {
         get {
@@ -161,15 +162,15 @@ final class AppState {
             // Boss releases focus by either closing the active tab or
             // switching to chat. We pick the chat-switch path because
             // it preserves the tab (= the boss can return). Setting
-            // chatVisible is owned by ShellState (= environment-
-            // injected) so we route via AppStateLocator when set;
+            // Setting chatVisible is owned by WorkspaceUIState (= environment-
+                        // injected) so we route via AppStateLocator when set;
             // otherwise we drop the active tab (= the chapter tab
             // simply goes inactive and the editor reload shows the
             // agent's edits).
             if let appState = AppStateLocator.shared.appState {
                 _ = appState
                 // Note: actual chat-visible toggle happens in the
-                // caller (= ShellState), not here. We simply clear
+                // caller (= WorkspaceUIState), not here. We simply clear
                 // activeTabId so the active-tab lookup below returns
                 // nil (= focusedChapterPath becomes nil on next read).
             }
@@ -369,7 +370,7 @@ final class AppState {
         // assignment (= triggers didSet → persistOpenTabs = write
         // back the same data; = harmless redundant write).
         restoreOpenTabs()
-        // Sidebar selection restore moved to ShellState.init()
+        // Sidebar selection restore moved to WorkspaceUIState.init()
         // (= P2-06 split; = reads the same UserDefaults key
         // "wenshu.sidebarSelection"; = no behavior change for
         // users).

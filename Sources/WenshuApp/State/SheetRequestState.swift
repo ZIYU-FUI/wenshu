@@ -27,12 +27,13 @@
 //
 //  Environment injection: SheetRequestState is injected once at
 //  the AppRootScene root (= same .environment(...) chain as
-//  ShellState + WorkspaceUIState); = descendants read via
+//  WorkspaceUIState); = descendants read via
 //  @Environment(SheetRequestState.self).
 //
-//  SheetRequestState is one of 4 new state classes added this arc
-//  (= ShellState / WorkspaceUIState / SheetRequestState /
-//  EditorCounters).
+//  SheetRequestState is one of 3 new state classes added this arc
+//  (= WorkspaceUIState / SheetRequestState / EditorCounters;
+//  = the original 4-class arc was reduced when ShellState was
+//  absorbed into WorkspaceUIState).
 //
 
 import Foundation
