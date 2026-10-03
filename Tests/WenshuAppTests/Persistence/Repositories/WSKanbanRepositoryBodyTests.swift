@@ -1,7 +1,6 @@
 //
 //  Persistence/Repositories/WSKanbanRepositoryBodyTests.swift · kanban-markdown 2026-09-28 T3
 //
-//  RED tests for Phase 1 T3:
 //  WSKanbanRepository.add(...) persists the optional body
 //  through to the fetched KanbanTask. The current add signature
 //  has no body argument, so this test calls add(title:, body:)

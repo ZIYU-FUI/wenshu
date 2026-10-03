@@ -1,7 +1,7 @@
 //
 //  Views/Kanban/KanbanTicketDetailSheetTests.swift · kanban-detail-sheet 2026-09-28
 //
-//  RED tests for the kanban detail sheet (Phase 2 of the kanban-markdown arc).
+//  the kanban detail sheet (Phase 2 of the kanban-markdown arc).
 //  Phase 1 added inline MD rendering on the card body. Phase 2 adds a
 //  full-body sheet that the user opens by clicking the card, mirroring
 //  hermes 0.21.5 drawer.tsx DescriptionSection + TaskMarkdown pattern.

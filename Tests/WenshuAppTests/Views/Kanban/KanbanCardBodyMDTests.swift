@@ -1,7 +1,6 @@
 //
 //  Views/Kanban/KanbanCardBodyMDTests.swift · kanban-markdown 2026-09-28 T5
 //
-//  RED tests for Phase 1 T5:
 //  KanbanCard renders ticket.body (when present) through the same
 //  inline-markdown parser chat uses (= AttributedString with
 //  .inlineOnlyPreservingWhitespace). Mirrors hermes 0.21.5 commit

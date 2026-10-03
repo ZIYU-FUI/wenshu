@@ -1,7 +1,6 @@
 //
 //  Core/Agent/Kanban/KanbanStoreToolBodyTests.swift · kanban-markdown 2026-09-28 T4
 //
-//  RED tests for Phase 1 T4:
 //  KanbanStoreTool.execute(input:) — the LLM-facing entry point —
 //  persists the `body` argument when the LLM sends
 //  {action: "create", title: ..., body: "..."}.

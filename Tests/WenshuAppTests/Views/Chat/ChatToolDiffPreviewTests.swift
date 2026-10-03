@@ -1,7 +1,7 @@
 //
 //  ChatToolDiffPreviewTests.swift · wenshu · chat-diff-preview 2026-09-28
 //
-//  RED tests for the unified-diff preview component. Phase-1 of the
+//  the unified-diff preview component. Phase-1 of the
 //  chat-diff-preview arc.
 //
 //  The component is read-only and self-contained: it takes a unified

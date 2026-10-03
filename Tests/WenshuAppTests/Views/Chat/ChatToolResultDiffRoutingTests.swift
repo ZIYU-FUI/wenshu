@@ -1,7 +1,6 @@
 //
 //  ChatToolResultDiffRoutingTests.swift · wenshu · chat-diff-preview 2026-09-28 T3
 //
-//  RED tests for Phase 3: ChatToolResultPartView routes a tool result
 //  whose content is a JSON envelope with `kind:"diff"` into the
 //  ChatToolDiffPreview (= the hermes 0.21.5 file-edit preview card
 //  surface, 1:1 mirrored here). Plain-text / non-diff envelopes fall

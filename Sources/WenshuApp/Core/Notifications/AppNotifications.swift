@@ -83,11 +83,11 @@ enum LayoutEvents: String, CaseIterable {
     /// Object payload: Bool (= true = expand, false = shrink). Posted by
     /// EditorExpandShrinkTrailingButton when @AppStorage("wenshu.editorMaximized")
     /// changes. Previously consumed by `PaneNSController` (= the
-    /// wenshu-summary NSSplitView abstraction; = deleted in commit
-    /// 6f after Phase 1-6 NavigationSplitView replacement made it
-    /// unreachable). The notification is still posted (= the
-    /// @AppStorage key is still observed by EditorExpandShrinkTrailingButton)
-    /// but is no longer consumed by any production subscriber.
+    /// wenshu-summary NSSplitView abstraction; = deleted after the
+    /// Phase 1-6 NavigationSplitView replacement made it unreachable).
+    /// The notification is still posted (= the @AppStorage key is still
+    /// observed by EditorExpandShrinkTrailingButton) but is no longer
+    /// consumed by any production subscriber.
     case editorMaximizedChanged = "com.wenshu.editorMaximizedChanged"
 }
 

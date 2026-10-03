@@ -1,7 +1,6 @@
 //
 //  Core/Agent/Librarian/EditChapterToolWireTests.swift · wenshu · edit-chapter-tool 2026-09-28 T5
 //
-//  RED tests for Phase 5 of edit-chapter-tool arc: EditChapterTool
 //  (= hermes 0.21.5 edit_file 1:1) is a thin wrapper around
 //  EditChapterActor that surfaces a JSON envelope via the standard
 //  tool-call path. Mirrors BookChapterTool's shared-singleton +

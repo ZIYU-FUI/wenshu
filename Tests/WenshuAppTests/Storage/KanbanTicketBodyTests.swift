@@ -1,7 +1,6 @@
 //
 //  Storage/KanbanTicketBodyTests.swift · kanban-markdown 2026-09-28 T6
 //
-//  RED tests for Phase 1 T6 (the JSON-side ticket type that
 //  KanbanCard actually renders). The SwiftData side (T1-T4)
 //  carries body end-to-end now; KanbanView.swift reads from
 //  `BookKanbanStore` (JSON file) so it sees `KanbanTicket` —

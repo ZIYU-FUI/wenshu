@@ -1,7 +1,7 @@
 //
 //  ChatToolDiffPreviewSheetTests.swift · wenshu · chat-diff-sheet 2026-09-28 T6
 //
-//  RED tests for the long-diff sheet. Phase 3 of chat-diff-preview arc
+//  the long-diff sheet. Phase 3 of chat-diff-preview arc
 //  (future ticket 3 per §11.20). Mirrors KanbanTicketDetailSheet
 //  (= Apple HIG `.sheet(item:)` + `NavigationStack` + scrollable
 //  content + toolbar Close). The sheet hosts the same diff rendering
