@@ -130,7 +130,7 @@ Each component has:
 
 ### 2.7 RegionContentBackground
 - **Path**: `Sources/WenshuApp/UI/RegionContentBackground.swift`
-- **Purpose**: Pane content area background (= maps ZoneSlot to 4-tier Material strength via `.regularMaterial` / `.windowBackgroundColor` / Apple canonical NSColor)
+- **Purpose**: Pane content area background (= maps TabKind to 4-tier Material strength via `.regularMaterial` / `.windowBackgroundColor` / Apple canonical NSColor)
 - **Use when**: Setting background of any pane's content area
 - **API**: `view.background(RegionContentBackground())`
 

@@ -83,8 +83,8 @@ struct PaneViewTests {
         let zoneModuleViewSection = source
         #expect(zoneModuleViewSection.contains("struct PaneView: View"),
                 "PaneView must conform to View protocol")
-        #expect(zoneModuleViewSection.contains("let zoneSlot: ZoneSlot"),
-                "PaneView must declare zoneSlot: ZoneSlot parameter")
+        #expect(zoneModuleViewSection.contains("let zoneSlot: TabKind"),
+                "PaneView must declare zoneSlot: TabKind parameter")
     }
 
     @Test("declares 2 @Binding params for entity category + selected entity")
@@ -129,16 +129,16 @@ struct PaneViewTests {
         let source = try readPaneViewSource()
         #expect(source.contains("init("),
                 "PaneView must have an init (= SwiftUI requirement)")
-        #expect(source.contains("zoneSlot: ZoneSlot"),
-                "PaneView's init must accept zoneSlot: ZoneSlot as first parameter")
+        #expect(source.contains("zoneSlot: TabKind"),
+                "PaneView's init must accept zoneSlot: TabKind as first parameter")
         #expect(source.contains("selectedEntityCategory: Binding<EntityCategory?> = .constant(nil)"),
                 "PaneView's init must default selectedEntityCategory to .constant(nil) for non-workspace callers")
     }
 
-    @Test("body switches on zoneSlot with all 6 ZoneSlot cases (= exhaustive)")
-    func bodySwitchesOnZoneSlot() throws {
+    @Test("body switches on zoneSlot with all 6 TabKind cases (= exhaustive)")
+    func bodySwitchesOnTabKind() throws {
         let source = try readPaneViewSource()
-        // Per ZoneSlot enum (= v0.30 boss 8/31 OOB, 6 zones):
+        // Per TabKind enum (= v0.30 boss 8/31 OOB, 6 zones):
         //   .projectSidebar, .projectPreview, .specializedTools,
         //   .aiDynamic, .aiChat, .editor
         // Per Q34 5.2 + Q173 ponytail: verify the actual 6 cases

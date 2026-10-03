@@ -11,7 +11,7 @@
 //  Seeding inventory (= per the audit fix path recommendation):
 //    - 35 hub commands (loop over SkillAdapter.hubCommands)
 //    - 5 sub-agents (loop over SubAgentIdentity.Name.allCases)
-//    - 5 zone toggles (synthesize from ZoneSlot cases that have a
+//    - 5 zone toggles (synthesize from TabKind cases that have a
 //      menu binding)
 //    - 3 Settings sections (openSettings(tab:) to providers/memory/skills)
 //    - 1 Reset Layout custom action (uses existing wenshuResetLayout)
