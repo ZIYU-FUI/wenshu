@@ -249,7 +249,7 @@ struct LibraryRootView: View {
                     library: library
                 )
                 .inspector(isPresented: $inspectorVisible) {
-                    ShellDetailColumn(
+                    InspectorView(
                         appState: appState,
                         workspaceUI: workspaceUI,
                         inspectorVisibleBinding: $inspectorVisible
