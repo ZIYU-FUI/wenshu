@@ -35,7 +35,7 @@ import SwiftUI
 /// held cards on top + outline on bottom; per the 'we don't need
 /// that red-box area' design directive, the VSplitView is gone
 /// too and the card zone owns the full column height.
-struct ShellMiddleColumn: View {
+struct AssetsPane: View {
     // The cards column did not re-render when the user clicked a
     // reference category in the sidebar. Root cause: `let appState:
     // AppState` (= a plain stored property holding an `@Observable`

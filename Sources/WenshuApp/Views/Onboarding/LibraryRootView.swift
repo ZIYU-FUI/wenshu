@@ -237,7 +237,7 @@ struct LibraryRootView: View {
             NavigationSplitView {
                 AppleSidebarView()
             } content: {
-                ShellMiddleColumn(
+                AssetsPane(
                     envAppState: appState,
                     appState: appState,
                     workspaceUI: workspaceUI
