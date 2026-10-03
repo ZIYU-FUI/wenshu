@@ -7,7 +7,7 @@
 //   - Bookmarks list (= one row per bookmark; shows the label +
 //     target reference + delete button).
 //     doc/book anchor + remove button).
-//    - Empty state (= unified EmptyStateView when no bookmarks).
+//    - Empty state (= unified EmptyStateView when no state.bookmarks).
 //
 //  State source: `WSBookmarkRepository` (= SwiftData-backed per
 //  AGENTS.md §11.4; = v0.72 SwiftData migration; =
@@ -47,10 +47,12 @@ struct BookmarkView: View {
     /// Active book id (= drives the SwiftData query scope).
     private var activeBookId: UUID? { bookStore.selectedBookId }
 
-    @State private var bookmarks: [Bookmark] = []
+    /// Business state mirror (= state.bookmarks + status + errorText).
+    /// Form drafts stay on the View per §11.3.
+    @State private var state = BookmarkViewState()
+
+    // Add-bookmark picker state.
     @State private var draftLabel: String = ""
-    @State private var status: SpecializedToolLoadStatus = .idle
-    @State private var errorText: String?
 
     /// SwiftData repository (= canonical persistence).
     /// `@MainActor` singleton lives on `WSPersistenceContainer.shared`.
@@ -87,7 +89,7 @@ struct BookmarkView: View {
             addRow
             Divider()
             listSection
-            if let errorText {
+            if let errorText = state.errorText {
                 Text(errorText)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -101,7 +103,7 @@ struct BookmarkView: View {
             Text(WenshuI18n.t("tab.title.bookmark"))
                 .font(.headline)
             Spacer()
-            Text("\(bookmarks.count)")
+            Text("\(state.bookmarks.count)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -123,12 +125,12 @@ struct BookmarkView: View {
 
     @ViewBuilder
     private var listSection: some View {
-        if bookmarks.isEmpty {
+        if state.bookmarks.isEmpty {
             Text(WenshuI18n.t("bookmark.list.empty"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         } else {
-            ForEach(bookmarks) { bookmark in
+            ForEach(state.bookmarks) { bookmark in
                 BookmarkRow(
                     bookmark: bookmark,
                     onRemove: {
@@ -150,15 +152,15 @@ struct BookmarkView: View {
         )
         switch outcome {
         case .empty:
-            bookmarks = []
-            status = .loaded
+            state.bookmarks = []
+            state.status = .loaded
         case .loaded(let rows):
-            bookmarks = rows
-            status = .loaded
-            errorText = nil
+            state.bookmarks = rows
+            state.status = .loaded
+            state.errorText = nil
         case .failed(let message):
-            errorText = message
-            status = .failed(message)
+            state.errorText = message
+            state.status = .failed(message)
         }
     }
 
@@ -176,7 +178,7 @@ struct BookmarkView: View {
             draftLabel = ""
             await reload()
         } catch {
-            errorText = String(describing: error)
+            state.errorText = String(describing: error)
         }
     }
 
@@ -191,7 +193,7 @@ struct BookmarkView: View {
         case .loaded:
             await reload()
         case .failed(let message):
-            errorText = message
+            state.errorText = message
         }
     }
 }
