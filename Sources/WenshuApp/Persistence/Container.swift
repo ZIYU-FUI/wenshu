@@ -51,6 +51,7 @@
 
 import Foundation
 import SwiftData
+import os.log
 
 /// Singleton ModelContainer (= held by AppState).
 /// Initialization is lazy (= defer until first access).
@@ -109,6 +110,15 @@ enum WSPersistenceContainer {
                 do {
                     return try makeInMemoryContainer()
                 } catch {
+                    // Per Apple HIG + 12 standard P2-01 fatalError 收口:
+                    // SwiftData runtime broken is unrecoverable (= the in-memory
+                    // fallback above also failed; = the app cannot persist any
+                    // data). This is the last-resort guard before the app
+                    // silently launches a non-functional SwiftData stack.
+                    // Preserve as fatalError (= the only remaining P2-01
+                    // site) because there is no graceful degradation here.
+                    os.Logger(subsystem: "com.wenshu.app", category: "persistence")
+                        .error("[wenshu.persistence] FATAL: SwiftData runtime broken and in-memory fallback failed = \(String(describing: error), privacy: .public). Wenshu cannot continue.")
                     fatalError("SwiftData runtime is broken: \(error). Wenshu cannot continue.")
                 }
             }

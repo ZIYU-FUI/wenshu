@@ -4,6 +4,7 @@
 // wikilink) using Foundation `NSRegularExpression`.
 
 import Foundation
+import os.log
 
 /// 1 Internal Link = Parsing Results
 struct InternalLink: Equatable, Sendable {
@@ -28,8 +29,16 @@ enum InternalLinkParser {
     /// Apple HIG: NSRegularExpression Markdown
     private static let pattern: NSRegularExpression = {
         // \[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\] — group 1 = target, group 2 = optional alias
+        // Per Apple HIG + 12 standard P2-01 fatalError 收口: the
+        // NSRegularExpression literal is non-rare (= the regex is
+        // statically embedded in this file; = an edit to the literal
+        // is the only way this `try?` can fail). Treat the failure as
+        // a programmer error (= logger.error + return empty matches)
+        // rather than a runtime crash.
         guard let re = try? NSRegularExpression(pattern: #"\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]"#) else {
-            fatalError("InternalLinkParser pattern compile failed")
+            os.Logger(subsystem: "com.wenshu.app", category: "linkgraph")
+                .error("[wenshu.linkgraph] InternalLinkParser pattern compile failed (= editor bug; = all internal links silently disabled)")
+            return NSRegularExpression()
         }
         return re
     }()

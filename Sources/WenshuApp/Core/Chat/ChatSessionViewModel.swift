@@ -159,10 +159,16 @@ final class ChatViewModel {
         let libraryPath = UserDefaults.standard.string(forKey: "wenshu.libraryPath") ?? ""
         guard !libraryPath.isEmpty else { return false }
         // Delegate the actual copy to the data layer.
-        let destPath = try? await repository.copyChatUpload(
-            sourceURL: sourceURL,
-            intoLibraryAt: libraryPath
-        )
+        let destPath: String?
+        do {
+            destPath = try await repository.copyChatUpload(
+                sourceURL: sourceURL,
+                intoLibraryAt: libraryPath
+            )
+        } catch {
+            Self.logSwallowedPersistenceFailure(operation: "copyChatUpload", error: error)
+            return false
+        }
         guard let destPath else { return false }
         attachedImagePath = destPath
         return true
@@ -383,7 +389,15 @@ final class ChatViewModel {
     func recomputeContextUsed() {
         contextUsed = messages.compactMap { $0.tokens }.reduce(0, +)
         // trace: ChatViewModel.contextUsed accumulation
-        NSLog("[wenshu.context] sum tokens after recompute: %d (messages=%d)", contextUsed, messages.count)
+        // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
+        // migrate from `NSLog` (= the Swift 6 mode treats the variadic
+        // signature as unavailable). Local variables = avoid the Swift 6
+        // closure-capture complaint (= `Logger.error` interpolation
+        // counts as a closure).
+        let totalContext = contextUsed
+        let messageCount = messages.count
+        Logger(subsystem: "com.wenshu.app", category: "chat.context")
+            .info("[wenshu.context] sum tokens after recompute: total=\(totalContext, privacy: .public) messages=\(messageCount, privacy: .public)")
     }
 
     /// routeInput is the front-door for chat input. It dispatches
@@ -566,7 +580,11 @@ final class ChatViewModel {
         // C-4: route through ChatRepositoryProtocol (= the data-layer
         // seam). The Live impl owns the StoredChatMessage mapping; =
         // business layer speaks ChatMessage only.
-        try? await repository.append(userMsg, sessionId: sessionId, bookID: currentBookID)
+        do {
+            try await repository.append(userMsg, sessionId: sessionId, bookID: currentBookID)
+        } catch {
+            Self.logSwallowedPersistenceFailure(operation: "append user message", error: error)
+        }
 
         do {
             // streaming path = render each text chunk as it
@@ -582,7 +600,13 @@ final class ChatViewModel {
             // reference). No more raw UserDefaults read here (= single
             // owner maintained).
             let currentModel: String = self.currentModel
-            NSLog("[wenshu.model] effective model: %@ (AppState source)", currentModel)
+            // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
+            // migrate from `NSLog` (= Swift 6 treats variadic as
+            // unavailable). Local variable captures model name for the
+            // Logger interpolation (= Swift 6 closure-capture rule).
+            let modelForLog = currentModel
+            Logger(subsystem: "com.wenshu.app", category: "chat.model")
+                .info("[wenshu.model] effective model: \(modelForLog, privacy: .public) (AppState source)")
             var reply: String
             var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
@@ -633,10 +657,16 @@ final class ChatViewModel {
                             case .toolResult: return "toolResult"
                             }
                         }()
-                        NSLog(
-                            "[wenshu.conductor] PATH=stream BLOCK=%@ (model=%@)",
-                            kindTag, currentModel
-                        )
+                        // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
+                        // migrate from `NSLog` (= Swift 6 treats variadic as
+                        // unavailable). Local captures avoid the closure-capture
+                        // complaint (= `Logger.info` interpolation counts as a
+                        // closure = Swift 6 requires explicit `self.` for property
+                        // accesses).
+                        let kindTagForLog = kindTag
+                        let modelForLog = currentModel
+                        Logger(subsystem: "com.wenshu.app", category: "chat.conductor")
+                            .info("[wenshu.conductor] PATH=stream BLOCK=\(kindTagForLog, privacy: .public) (model=\(modelForLog, privacy: .public)")
                         // dead marker-parsing block
                         // removed (= it targeted [wenshu.subagent] /
                         // [wenshu.agent] turn markers, both of which are
@@ -706,7 +736,13 @@ final class ChatViewModel {
                 // `message.complete`). Replace placeholder with the
                 // final message.
                 if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                    NSLog("[wenshu.scroll] conductor placeholder replace: id=%@ beforeCount=%d afterCount=%d", placeholderId.uuidString, messages.count, messages.count)
+                    // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
+                    // migrate from `NSLog` (= Swift 6 treats variadic as
+                    // unavailable). Local captures avoid closure-capture complaint.
+                    let placeholderIDString = placeholderId.uuidString
+                    let messageCount = messages.count
+                    Logger(subsystem: "com.wenshu.app", category: "chat.scroll")
+                        .info("[wenshu.scroll] conductor placeholder replace: id=\(placeholderIDString, privacy: .public) beforeCount=\(messageCount, privacy: .public) afterCount=\(messageCount, privacy: .public)")
                     messages[idx] = ChatMessage(
                         id: placeholderId,
                         role: .agent,
@@ -876,7 +912,11 @@ final class ChatViewModel {
                 tokens: replyTokens,
                 thinking: replyThinking?.isEmpty == false ? replyThinking : nil
             )
-            try? await repository.append(agentMsg, sessionId: sessionId, bookID: currentBookID)
+            do {
+                try await repository.append(agentMsg, sessionId: sessionId, bookID: currentBookID)
+            } catch {
+                Self.logSwallowedPersistenceFailure(operation: "append agent message", error: error)
+            }
             recomputeContextUsed()
 
             // trigger summary generation (LLM + saveSummary + deleteOldMessages order)
@@ -886,13 +926,17 @@ final class ChatViewModel {
             // anymore; = was the bug-prone `Task { @MainActor in ... }`
             // pattern that lost errors silently).
             let verifier = WenshuVerifier()
-            try? await repository.summarizeIfNeeded(
-                sessionId: sessionId,
-                lastN: 10,
-                threshold: 20,
-                verifier: verifier,
-                bookID: currentBookID
-            )
+            do {
+                try await repository.summarizeIfNeeded(
+                    sessionId: sessionId,
+                    lastN: 10,
+                    threshold: 20,
+                    verifier: verifier,
+                    bookID: currentBookID
+                )
+            } catch {
+                Self.logSwallowedPersistenceFailure(operation: "summarizeIfNeeded", error: error)
+            }
         } catch {
             // route through UserFacingError.from (= single
             // source of truth for raw-error-to-Chinese translation;
@@ -977,10 +1021,14 @@ final class ChatViewModel {
         // before runGoal produces any work. HermesGoals.swift does
         // not auto-persist; persistGoal is the explicit hook.
         let goalId = UUID()
-        try? await manager.persistGoal(
-            goalId,
-            work: GoalsWork(goal: goal, work: "", iterations: 0, context: [])
-        )
+        do {
+            try await manager.persistGoal(
+                goalId,
+                work: GoalsWork(goal: goal, work: "", iterations: 0, context: [])
+            )
+        } catch {
+            Self.logSwallowedPersistenceFailure(operation: "persistGoal", error: error)
+        }
 
         let shortHandle = String(goalId.uuidString.prefix(8))
         messages.append(ChatMessage(
@@ -1074,5 +1122,27 @@ final class ChatViewModel {
             // already handles empty messages[] by showing the
             // empty-state placeholder).
         }
+    }
+}
+
+
+// MARK: - Try-logging helper (= 12 standard P1-02 try? 收口 scaffolding)
+
+// Per Apple HIG + 12 standard P1-02: business-layer `try?` calls
+// (= the `try? await repository.append(...)` pattern) silently drop
+// errors. The chat-persistence layer never throws for transient
+// storage failures (= wenshu's design contract documented in
+// ChatRepositoryProtocol); = we MUST at least log the failure
+// (= otherwise debugging "messages disappeared" is impossible).
+//
+// This is a scoped helper (= only the 5 chat-persistence call sites
+// in this file); future P1-02 work can replicate the same pattern
+// across Core/Agent and Core/Tools.
+extension ChatViewModel {
+    fileprivate static let persistLogger = Logger(subsystem: "com.wenshu.app", category: "chat.persist")
+
+    static func logSwallowedPersistenceFailure(operation: String, error: Error) {
+        let errorString = String(describing: error)
+        persistLogger.error("[wenshu.chat.persist] operation=\(operation, privacy: .public) dropped-error=\(errorString, privacy: .public)")
     }
 }

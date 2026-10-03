@@ -177,9 +177,9 @@ enum KanbanOps {
         let effectiveBookId = bookId ?? UUID()
         let store = BookKanbanStore(bookId: effectiveBookId, directory: dir, scope: scope)
         var next = current
-        // Phase 1 T7 (2026-09-28): carry the LLM-authored body through
-        // to the JSON-side ticket (= mirrors WSKanbanTask.body + the
-        // SwiftData path). KanbanCard renders this same ticket type.
+        // Per iron-rule I-4 (= wenshu-comment-policy): carry the LLM-authored
+        // body through to the JSON-side ticket (= mirrors WSKanbanTask.body
+        // + the SwiftData path). KanbanCard renders this same ticket type.
         next.append(KanbanTicket(title: trimmed, status: .new, body: body))
         do {
             try store.save(next)

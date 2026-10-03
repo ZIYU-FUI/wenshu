@@ -35,6 +35,7 @@
 //
 
 import Foundation
+import os.log
 
 // See commit 49 (= ContextEngine deferred) for the full rationale.
 // Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
@@ -224,10 +225,30 @@ actor WenshuConductor {
             // Deny all (chat-triggered shell = arbitrary code execution).
             return "(tool blocked: process is deny-all — boss 8/23 拍: 用户不可通过聊天改系统. 使用 wenshu-devtool CLI.)"
         case "web":
-            return (try? await webTools.extract(url: input)) ?? ""
+            // Per 12 standard P1-02 try? 收口 (= wenshu tries to surface
+            // every persistent failure in unified logging). The
+            // previous `try? await webTools.extract(url: input) ?? ""`
+            // swallowed both URL-validation failures AND web-tool
+            // runtime failures (= users got blank pages with no
+            // diagnostic). The Logger.error gives developers the
+            // failure via Console.app.
+            do {
+                return try await webTools.extract(url: input)
+            } catch {
+                WenshuConductor.toolLogger.error("[wenshu.conductor.tool] web.extract url=\(input, privacy: .public) silently dropped error: \(String(describing: error), privacy: .public)")
+                return ""
+            }
         case "vision":
-            let results = (try? await visionTools.recognizeText(imagePath: input)) ?? []
-            return results.map(\.text).joined(separator: "\n")
+            // Same pattern (= silent fallback on the bottom-rung of
+            // the multi-tool pipeline).
+            var recognizedResults: [VisionTextResult] = []
+            do {
+                recognizedResults = try await visionTools.recognizeText(imagePath: input)
+            } catch {
+                WenshuConductor.toolLogger.error("[wenshu.conductor.tool] vision.recognizeText imagePath=\(input, privacy: .public) silently dropped error: \(String(describing: error), privacy: .public)")
+                return ""
+            }
+            return recognizedResults.map(\.text).joined(separator: "\n")
         case "av":
             avMediaTools.speak(text: input)
             return "[spoken]"
@@ -512,7 +533,8 @@ actor WenshuConductor {
         派 1-3 个子 agent (JSON array, 仅 agent name, 不要解释):
         ["researcher", "writer"]
         """
-        if let intentResponse = try? await verifier.chat(intentPrompt, system: WenshuConductorIdentity.systemPrompt, model: model) {
+        do {
+            let intentResponse = try await verifier.chat(intentPrompt, system: WenshuConductorIdentity.systemPrompt, model: model)
             // union decode WenshuLLMBlock (text / thinking / tool_use)
             let intentRaw = intentResponse.content.map(\.displayText).joined()
             if !intentRaw.isEmpty {
@@ -522,8 +544,10 @@ actor WenshuConductor {
             }
             // accumulate intent classify real token usage
             totalTokens += intentResponse.usage?.total_tokens ?? 0
+        } catch {
+            // intent classify fail → selectedAgents still empty [] → S4 graceful degradation
+            WenshuConductor.toolLogger.error("[wenshu.conductor.intent] intent classify threw: \(String(describing: error), privacy: .public)")
         }
-        // intent classify fail → selectedAgents still empty [] → S4 graceful degradation
         // filter unknown agent names to prevent invalid dispatch
         selectedAgents = selectedAgents.filter { ["writer", "analyst", "researcher", "auditor", "memory"].contains($0) }
         // Step 3: dispatch 0-N sub-agents in parallel (TaskGroup) + collect results.
@@ -558,11 +582,15 @@ actor WenshuConductor {
 
                         (Run your tools per your role; return JSON per your output format)
                         """
-                        guard let response = try? await self.verifier.chat(
-                            agentPrompt,
-                            system: SubAgentIdentity.systemPrompt(name: identityName),
-                            model: model
-                        ) else {
+                        let response: WenshuLLMResponse
+                        do {
+                            response = try await self.verifier.chat(
+                                agentPrompt,
+                                system: SubAgentIdentity.systemPrompt(name: identityName),
+                                model: model
+                            )
+                        } catch {
+                            WenshuConductor.toolLogger.error("[wenshu.conductor.subagent] sub-agent=\(identityName.rawValue, privacy: .public) chat threw: \(String(describing: error), privacy: .public)")
                             return (name, "(subagent unreachable)")
                         }
                         return (name, response.content.map(\.displayText).joined())
@@ -616,14 +644,17 @@ actor WenshuConductor {
 
                 Return your verdict as JSON per your output format.
                 """
-                if let auditorResponse = try? await verifier.chat(
-                    auditorPrompt,
-                    system: SubAgentIdentity.systemPrompt(name: .auditor),
-                    model: model
-                ) {
+                do {
+                    let auditorResponse = try await verifier.chat(
+                        auditorPrompt,
+                        system: SubAgentIdentity.systemPrompt(name: .auditor),
+                        model: model
+                    )
                     let verdict = auditorResponse.content.map(\.displayText).joined()
                     subResults.append(("auditor", verdict))
                     totalTokens += auditorResponse.usage?.total_tokens ?? 0
+                } catch {
+                    WenshuConductor.toolLogger.error("[wenshu.conductor.auditor] auditor verdict threw: \(String(describing: error), privacy: .public)")
                 }
             }
         }
@@ -634,7 +665,8 @@ actor WenshuConductor {
         var finalThinking: String?    // WenshuLLMBlock.thinking
         let finalReply: String
         // prepend Wenshu agent identity for synthesis call.
-        if let response = try? await verifier.chat(synthesisPrompt, system: WenshuConductorIdentity.systemPrompt, model: model) {
+        do {
+            let response = try await verifier.chat(synthesisPrompt, system: WenshuConductorIdentity.systemPrompt, model: model)
             // union decode concat all text blocks (M2.7 has thinking block prefix)
             let text = response.content.map(\.displayText).joined()
             if !text.isEmpty {
@@ -648,8 +680,9 @@ actor WenshuConductor {
             }
             // accumulate synthesis real token usage
             totalTokens += response.usage?.total_tokens ?? 0
-        } else {
+        } catch {
             // S4 graceful degradation: synthesis fail still returns natural reply
+            WenshuConductor.toolLogger.error("[wenshu.conductor.synthesis] synthesis threw: \(String(describing: error), privacy: .public)")
             if subResults.isEmpty {
                 finalReply = "(Wenshu cannot reply right now, please try again later)"
             } else {
@@ -1196,4 +1229,16 @@ actor WenshuConductor {
     func setToolForTest(_ name: String, _ tool: any Tool) {
         tools[name] = tool
     }
+}
+
+
+// MARK: - Tool-pipeline logger (= 12 standard P1-02 try? 收口)
+
+// Per Apple HIG + 12 standard P1-02: the LLM-facing tool pipeline
+// MUST surface persistent failures via unified logging (= the
+// `try? await verifier.chat` and `try? await webTools.extract`
+// sites inside `runTool` / `runInternalAgent` use this logger for
+// their error path).
+extension WenshuConductor {
+    static let toolLogger = Logger(subsystem: "com.wenshu.app", category: "agent.conductor.tool")
 }
