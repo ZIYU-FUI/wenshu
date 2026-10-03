@@ -24,7 +24,7 @@ struct WSMemoryRepositoryTests {
         let mem = try repo.add(userId: "user-1", content: "hello world")
         #expect(mem.userId == "user-1")
         #expect(mem.content == "hello world")
-        #expect(!mem.memoryId.isEmpty)
+        #expect(!mem.memoryId.rawValue.isEmpty)
     }
 
     @Test("get(memoryId:) round-trips the Memory")
@@ -41,7 +41,7 @@ struct WSMemoryRepositoryTests {
     @MainActor
     func getMissing() throws {
         let repo = try makeRepository()
-        let fetched = try repo.get(memoryId: "nope")
+        let fetched = try repo.get(memoryId: MemoryID(rawValue: "nope"))
         #expect(fetched == nil)
     }
 
@@ -74,7 +74,7 @@ struct WSMemoryRepositoryTests {
     func updateMissing() throws {
         let repo = try makeRepository()
         #expect(throws: WSMemoryRepositoryError.notFound.self) {
-            try repo.update(memoryId: "nope", content: "x")
+            try repo.update(memoryId: MemoryID(rawValue: "nope"), content: "x")
         }
     }
 
