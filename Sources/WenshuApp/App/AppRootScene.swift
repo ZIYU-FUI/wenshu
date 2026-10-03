@@ -454,5 +454,12 @@ struct AppRootScene: Scene {
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
+        // WS model entry windows (= Attachments + Manifest + Summaries).
+        // Per the same shape as the existing kanban + todo windows.
+        Window(WenshuI18n.t("window.attachments.title"), id: WindowID.attachments) {
+            AttachmentsWindow()
+        }
+        .windowResizability(.contentSize)
+        .windowToolbarStyle(.unified)
     }
 }
