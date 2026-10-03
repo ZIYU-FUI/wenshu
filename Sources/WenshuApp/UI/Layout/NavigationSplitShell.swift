@@ -475,6 +475,16 @@ enum WindowID {
     static let composer = "wenshu-composer"
     static let foreshadowingGraph = "wenshu-foreshadowing-graph"
     static let cron = "wenshu-cron"
+    // WS model entry windows (= each opens a dedicated independent
+    // window that lists entries for the corresponding SwiftData
+    // @Model (= WSAttachment / WSManifest / WSSummary). The window
+    // content is intentionally a real list (= fetched via
+    // FetchDescriptor) so the entry is a usable surface today and
+    // becomes the canonical wiring target once each model's real
+    // feature is decided).
+    static let attachments = "wenshu-attachments"
+    static let manifest = "wenshu-manifest"
+    static let summaries = "wenshu-summaries"
 }
 
 
