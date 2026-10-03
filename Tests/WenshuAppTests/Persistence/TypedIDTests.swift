@@ -148,4 +148,31 @@ struct TypedIDTests {
         #expect(matched[0].sessionID == "sess-B")
         #expect(BookID(rawValue: matched[0].bookID ?? "") == bookB)
     }
+
+    @Test("ToolCallID brand wrapper (= tool-call ID type-safety scaffolding per P2-03 typed-ID rollout)")
+    func toolCallIDBrandWrapper() {
+        // Construction: rawValue-string initializer (= canonical).
+        let id = ToolCallID(rawValue: "tc-abc-123")
+        #expect(id.rawValue == "tc-abc-123")
+        #expect(id.stringValue == "tc-abc-123")
+
+        // newID() (= the TypedID extension default = UUID().uuidString).
+        let generated = ToolCallID.newID()
+        #expect(!generated.rawValue.isEmpty)
+
+        // Equatable + Hashable (= dictionary key + set membership work).
+        let same = ToolCallID(rawValue: "tc-abc-123")
+        let diff = ToolCallID(rawValue: "tc-xyz-999")
+        #expect(id == same)
+        #expect(id != diff)
+        var set: Set<ToolCallID> = [id, same, diff]
+        #expect(set.count == 2)
+
+        // Codable round-trip (= JSON-LLM wire-format safety).
+        let encoder = JSONEncoder()
+        let data = try! encoder.encode(id)
+        #expect(String(data: data, encoding: .utf8) == "\"tc-abc-123\"")
+        let decoded = try! JSONDecoder().decode(ToolCallID.self, from: data)
+        #expect(decoded == id)
+    }
 }
