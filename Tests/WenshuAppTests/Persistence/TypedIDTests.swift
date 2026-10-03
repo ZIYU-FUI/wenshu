@@ -199,4 +199,28 @@ struct TypedIDTests {
         let decoded = try! JSONDecoder().decode(SessionID.self, from: data)
         #expect(decoded == id)
     }
+
+    @Test("MemoryID brand wrapper (= memory-entry ID type-safety scaffolding per P2-03 typed-ID rollout)")
+    func memoryIDBrandWrapper() {
+        let id = MemoryID(rawValue: "mem-abc")
+        #expect(id.rawValue == "mem-abc")
+        #expect(id.stringValue == "mem-abc")
+
+        let generated = MemoryID.newID()
+        #expect(!generated.rawValue.isEmpty)
+
+        let same = MemoryID(rawValue: "mem-abc")
+        let diff = MemoryID(rawValue: "mem-xyz")
+        #expect(id == same)
+        #expect(id != diff)
+        var set: Set<MemoryID> = [id, same, diff]
+        #expect(set.count == 2)
+
+        // Codable round-trip.
+        let encoder = JSONEncoder()
+        let data = try! encoder.encode(id)
+        #expect(String(data: data, encoding: .utf8) == "\"mem-abc\"")
+        let decoded = try! JSONDecoder().decode(MemoryID.self, from: data)
+        #expect(decoded == id)
+    }
 }
