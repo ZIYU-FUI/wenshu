@@ -331,9 +331,9 @@ struct AppRootScene: Scene {
             // downstream consumers). Toggle still binds the flag.
             CommandGroup(after: .toolbar) {
                 Toggle(WenshuI18n.t("menu.view.show_chat_zone"), isOn: Binding(
-                    get: { shell.chatVisible },
+                    get: { workspaceUI.chatVisible },
                     set: { newValue in
-                        shell.chatVisible = newValue
+                        workspaceUI.chatVisible = newValue
                     }
                 ))
                 .keyboardShortcut("k", modifiers: [.command, .option])

@@ -214,7 +214,7 @@ struct NavigationSplitShell: View {
                 .inspector(isPresented: $inspectorVisible) {
                     ShellDetailColumn(
                         appState: appState,
-                        shell: shell,
+                        workspaceUI: workspaceUI,
                         inspectorVisibleBinding: $inspectorVisible
                     )
                         // Inspector column width = 240/280/360 PT

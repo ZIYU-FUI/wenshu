@@ -53,8 +53,10 @@ struct EditorPlaceholder: View {
     // the boss has this tab focused AND the chat zone isn't visible
     // (= the LLM is rewriting this chapter). The chatVisible gate
     // lives here because AppState cannot hold @Environment-bound
-    // state (= ShellState is environment-injected per P2-06 split).
-    @Environment(ShellState.self) private var shellState
+    // state (= WorkspaceUIState is environment-injected per P2-06
+    // split; = chatVisible moved from ShellState to WorkspaceUIState
+    // in 2026-10-03 overabstraction cleanup).
+    @Environment(WorkspaceUIState.self) private var workspaceUI
 
     // P2 #19 (WIRE-PARAGRAPH-002): live editor selection snapshot
     // (= the text the paragraph_ai buttons operate on). The
@@ -277,7 +279,7 @@ struct EditorPlaceholder: View {
                             // with the LLM's changes).
                             if appState.focusedChapterPath != nil
                                 && appState.focusedChapterPath == currentTabDocumentPath
-                                && !shellState.chatVisible {
+                                && !workspaceUI.chatVisible {
                                 ChapterFocusLockBadge()
                             }
                             if mode == .preview {
@@ -347,7 +349,7 @@ struct EditorPlaceholder: View {
                             // flips to read-only so the LLM holds
                             // the cursor.
                             isChapterLockedByLLM: appState.focusedChapterPath != nil
-                                && !shellState.chatVisible
+                                && !workspaceUI.chatVisible
                                 && appState.focusedChapterPath == currentTabDocumentPath,
                             // route live word count into shared
                             // AppState.editorWordCount (= chrome bottom-bar

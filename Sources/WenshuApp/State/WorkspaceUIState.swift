@@ -31,7 +31,8 @@
 import Foundation
 
 /// Per-window observable for column-local UI state (= preview
-/// sort order + layout edit mode + active tag filter).
+/// sort order + layout edit mode + active tag filter + chat-zone
+/// visibility + inspector page).
 ///
 /// Owned by `WenshuApp` (= the App struct, = per-window via
 /// `@State`), injected via `.environment(workspaceUI)` on
@@ -42,26 +43,39 @@ import Foundation
 /// persistence); = column-local; = matches the boss's
 /// 'should disappear on restart' expectation for ephemeral UI
 /// state.
+///
+/// Phase 1b/1c note (= 2026-10-03 overabstraction cleanup):
+/// chatVisible + inspectorPage were previously on `ShellState`
+/// (= a separate 4-property @Observable class). Apple HIG
+/// treats all 5 fields here as the same shape (= view-local UI
+/// state shared across column descendants; = the Pages /
+/// Numbers / Keynote pattern is to keep them in one
+/// environment-injected class, not split across multiple
+/// sibling classes). Single source of truth = easier to delete
+/// `ShellState` (= the now-redundant 1-property shell
+/// selection class that holds only `sidebarSelection`).
 @MainActor
 @Observable
 final class WorkspaceUIState {
 
     /// Preview card-grid sort order (= shared across
-    /// PreviewPane's cards + the sort menu in the preview pane's
-    /// tab bar trailing slot + WorkspaceView's previewScope).
-    /// Default = .pinyinFirstLetter (= boss spec).
+    /// PreviewPane's cards / unwrap sort menu in the preview
+    /// pane's tab bar trailing slot + WorkspaceView's
+    /// previewScope). Default = .pinyinFirstLetter (= boss
+    /// spec).
     ///
-    /// Removed the
-    /// 3 independent `@State` copies (= previously in
-    /// ShellMiddleColumn + WorkspaceView + PreviewPane = drifted).
-    /// Lives on AppState (= single source of truth; = batch 3 =
-    /// WorkspaceUIState split from AppState).
+    /// Removed the 3 independent `@State` copies (= previously
+    /// in ShellMiddleColumn + WorkspaceView + PreviewPane =
+    /// drifted). Lives on WorkspaceUIState (= single source of
+    /// truth; = batch 3 = WorkspaceUIState split from
+    /// AppState).
     var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
     /// Layout edit mode state (= `⌘⇧\` toggle / `Escape` exit).
-    /// Hoisted to `appState.editMode` so all workspace descendants
-    /// share one instance (= per-window via WenshuApp's `@State`).
-    /// Hotkey binding lives in `EditModeHotkey.swift`.
+    /// Hoisted to `appState.editMode` so all workspace
+    /// descendants share one instance (= per-window via
+    /// WenshuApp's `@State`). Hotkey binding lives in
+    /// `EditModeHotkey.swift`.
     var editMode = LayoutEditMode()
 
     /// Active tag filter (= the user clicked a `.tag(String)`
@@ -71,6 +85,35 @@ final class WorkspaceUIState {
     /// Lives on WorkspaceUIState (= the §11.13 P2-06 split
     /// pattern; = per-window via @State in WenshuApp).
     var activeTag: String?
+
+    /// Chat zone visibility (= the bottom half of the detail
+    /// column = an `NSSplitViewItem` inside
+    /// `EditorChatNSController`). The macOS menu bar View >
+    /// Show/Hide Chat Zone toggle (= `⌥⌘K`) writes here.
+    ///
+    /// When `chatVisible = true`, the chat zone NSSplitViewItem
+    /// is visible (= editor + chat = 50/50 detail column).
+    /// When `chatVisible = false`, the NSSplitViewItem
+    /// `.isCollapsed` (= editor fills the full detail column;
+    /// = matches Keynote's 'presenter notes' Show/Hide
+    /// behavior).
+    ///
+    /// Co-varies with `inspectorPage` (= both are shell chrome
+    /// toggled via macOS menu items; = both are cross-view
+    /// column-local state; = single source of truth lives here).
+    var chatVisible: Bool = true
+
+    /// Inspector tab selection (= `Authoring / Style /
+    /// Characters / Project Management` = 4 pages). When the
+    /// inspector column is hidden (= `inspectorVisible` in
+    /// NavigationSplitShell `@State`), this page is still
+    /// remembered so reopening restores the last selection
+    /// (= Apple Keynote/Pages inspector reopen behavior).
+    ///
+    /// Lives here (= not as `@State` inside `ShellDetailColumn`)
+    /// because the toolbar Picker in ShellDetailColumn binds to
+    /// `$workspaceUI.inspectorPage` (= cross-view state).
+    var inspectorPage: InspectorPage = .authoringFiction
 
     init() {
         // In-memory only (= no UserDefaults read).
