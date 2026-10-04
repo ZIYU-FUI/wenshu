@@ -307,10 +307,47 @@ enum SystemPrompt {
         }
 
         // Identity block (= locale-aware base prompt).
-        sections.append(localeIdentityBlock(locale: locale))
+        // The Chinese block is the canonical identity (= PromptBuilder
+        // .defaultIdentity); = the multi-locale switch above kept
+        // for non-Chinese locales. The two MUST stay byte-for-byte
+        // identical (= see PromptBuilder.swift defaultIdentity for
+        // the parallel definition).
+        if locale == .chinese {
+            sections.append(PromptBuilder.defaultIdentity())
+        } else {
+            sections.append(localeIdentityBlock(locale: locale))
+        }
+
+        // Help guidance (= PromptBuilder.helpGuidance, = wenshu
+        // wenshu-flavored help text pointing at AGENTS.md as the
+        // authoritative reference; = reimplemented per boss 2026-10-04
+        // OOB "wenshu Agent capabilities are reimplemented, not direct
+        // hermes links"; = the future caller is the AI assistant
+        // when it needs to look up project conventions).
+        sections.append(PromptBuilder.helpGuidance)
 
         // Per-provider operational guidance.
         sections.append(providerGuidance(provider: provider))
+
+        // Environment hints (= PromptBuilder.buildEnvironmentHints(),
+        // = wenshu-flavored macOS / Apple stack / Backend / Model
+        // description; = reimplemented per boss 2026-10-04 OOB).
+        let envHints = PromptBuilder.buildEnvironmentHints()
+        if !envHints.isEmpty {
+            sections.append(envHints)
+        }
+
+        // Context files block (= PromptBuilder.buildContextFilesPrompt(),
+        // = loads the AGENTS.md from cwd as authoritative project
+        // conventions; = reimplemented per boss 2026-10-04 OOB;
+        // = nil contextLength = no truncation cap).
+        let contextFiles = PromptBuilder.buildContextFilesPrompt(
+            cwdPath: FileManager.default.currentDirectoryPath,
+            contextLength: nil,
+        )
+        if !contextFiles.isEmpty {
+            sections.append(contextFiles)
+        }
 
         // Tool-aware behavioral guidance.
         if memoryGuidance {
