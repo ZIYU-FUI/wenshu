@@ -285,8 +285,14 @@ enum AuxiliaryProviderNormalization {
 /// call_llm entry point surface). Wenshu-side wins: delegates to the
 /// existing LLMConnector profiles per the resolved task config.
 actor AuxiliaryClient {
-    let coalescer: SSECoalescer
-    private var lastTaskConfig: [String: AuxiliaryTaskConfig] = [:]
+   let coalescer: SSECoalescer
+   // (lastTaskConfig removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
+   //  confirmed 0 external callers; = the cache was the hermes-port
+   //  "remember last config per task" affordance (= hermes _last_task_config
+   //  dict) but no wenshu caller reads it; = AuxiliaryTaskRegistry.config(for:)
+   //  is called fresh per invocation. See wenshu-pocock-workflow
+   //  references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup
+   //  SKILL.md.)
 
     init(coalescer: SSECoalescer = SSECoalescer()) {
         self.coalescer = coalescer

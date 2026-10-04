@@ -3,7 +3,8 @@
 // Drag-lost regression test suite (per boss 2026-08-27 OOB: 'wenshu's
 // previous frontend-framework drag implementations kept losing
 // drag functionality'). This suite exercises every drag
-// interaction in WorkspaceView / PaneRenderer / NativeSplitter.
+// interaction in WorkspaceView / PaneRenderer / AppRootScene
+// (= NavigationSplitView + NSSplitViewItem, see ADR-0011).
 // Every drag regression in wenshu's own code = test fails =
 // blocks merge. Drag is no longer a fragile library boundary; it's
 // a tested surface owned by wenshu.
@@ -17,7 +18,7 @@
 // Note: this suite tests the file-scope PURE FUNCTIONS
 // (= movePane, insertAtGroup, removePane, setSplitWeights, etc.)
 // which are the underlying primitives that the SwiftUI drag UX
-// (= .draggable / .dropDestination / NativeSplitter.onDrag)
+// (= .draggable / .dropDestination / NavigationSplitView pane drag)
 // drives. The drag UX itself is a thin wrapper that posts to
 // NotificationCenter (= .wenshuToggleEditMode) and calls these
 // pure functions (= see PaneRenderer.swift). Testing the pure

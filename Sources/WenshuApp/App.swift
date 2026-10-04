@@ -36,7 +36,7 @@ import AppKit
 /// `Color.clear.frame(28,28).contentShape(Rectangle())` inside the label
 /// closure (= Apple HIG canonical hot-area pattern).
 
-// Boss 8/18 said "reset layout" notification bridge (LayoutShellView uses @State private vm,
+// Boss 8/18 said "reset layout" notification bridge (LayoutShellView [no longer defined post-v0.72 — AppRootScene + NavigationSplitView; = ADR-0007 pending ADR-0010; = type references kept as historical landmarks pending 老板 拍] uses @State private vm,
 // top-level .commands can't access vm instance, routed via NotificationCenter)
 
 // name for menu bar zone toggle buttons (= CommandGroup can't directly
@@ -69,9 +69,14 @@ extension Notification.Name {}  // placeholder; all members moved to AppNotifica
 // project-local color wrapper enum.
 
 enum LayoutTokens {
-    // Design baseline (Apple macOS 27 1x = 1 PT = 1 PX)
-    static let designW: CGFloat = 1480  // boss's preferred column balance; macOS 27 NavigationSplitView appears to ignore this defaultSize and force a minimum window width of ~2205 PT (= 4 columns + drag handles + chrome); the user can manually resize to 1480 but the initial launch is always wider.
-    static let designH: CGFloat = 980
+    // (designW / designH / chromeControlHeight removed 2026-10 in
+    //  q99-spec-p0-batch1 commit after verify-dead.py confirmed 0
+    //  external callers; = the original 1480 / 980 baseline never
+    //  bound to a window, and macOS NavigationSplitView ignores the
+    //  design values; = chromeControlHeight was superseded by
+    //  DesignTokens chromeHeight = 30 (= the canonical chrome standard
+    //  per AGENTS §11 token rule). See wenshu-pocock-workflow
+    //  references/v3.0-design-system-rule.md.)
 
 
     // complete code, regarding styles, inconsistent — why don't you audit them'): single source
@@ -89,9 +94,11 @@ enum LayoutTokens {
     static let chromePaddingLarge: CGFloat = 8
 
     // per-region control heights (= chat input row buttons, tab
-    // buttons, hover hot areas). All instances of ".frame(height: 30)"
-    // for chrome controls should reference chromeControlHeight instead.
-    static let chromeControlHeight: CGFloat = 30
+    // buttons, hover hot areas). chromeControlHeight was removed
+    // 2026-10 (= verify-dead.py confirmed 0 external callers; =
+    // superseded by DesignTokens chromeHeight = 30, the canonical
+    // chrome standard per AGENTS §11 token rule). See
+    // wenshu-pocock-workflow references/v3.0-design-system-rule.md.
 
 
 }

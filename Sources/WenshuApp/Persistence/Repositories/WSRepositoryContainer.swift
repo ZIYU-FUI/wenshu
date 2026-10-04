@@ -19,8 +19,8 @@ import SwiftData
 /// One-stop entry point holding all 8 Repositories.
 /// Apps inject this via SwiftUI .environment(\.repositoryContainer).
 ///
-/// NOTE: 8 of the 23 SwiftData @Model classes have a Repository (= the 8 listed below).
-/// The remaining 15 (@Model classes for sub-types like WSAttachment, WSForeshadowing,
+/// NOTE: 8 of the 22 SwiftData @Model classes have a Repository (= the 8 listed below).
+/// The remaining 14 (@Model classes for sub-types like WSAttachment, WSForeshadowing,
 /// WSPlaceholder, WSOutlineNode, WSOutlineDocument, etc. + WSBook / WSBookShelf
 /// which BookStore handles directly) are accessed directly via
 /// WSPersistenceContainer.shared (= no repository layer needed; = they're either

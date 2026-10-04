@@ -166,12 +166,14 @@ extension BookID {
     /// `.keyPath(\.bookID) == bookID.stringValue`).
     var asString: String { rawValue }
 
-    /// Construct from a `String` (= for the SwiftData @Model side,
-    /// where the column is stored as `String?` and we want to wrap
-    /// it into a `BookID` for in-memory API surface).
-    static func fromString(_ rawValue: String) -> BookID {
-        BookID(rawValue: rawValue)
-    }
+    // (fromString removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
+    //  confirmed 0 external callers; = the convenience factory was
+    //  retained as the "wrap raw String column value into BookID"
+    //  affordance but no SwiftData @Model initializer path consumed
+    //  it (= callers all use BookID(rawValue:) directly). The
+    //  round-trip is preserved via .init(rawValue:). See
+    //  wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
 }
 
 // MARK: - CustomStringConvertible

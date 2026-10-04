@@ -13,7 +13,7 @@
 //
 //  LibraryRootView behavior:
 //  1. If 'wenshu.libraryPath' NOT set → show LibraryOnboardingView (NSOpenPanel)
-//  2. If 'wenshu.libraryPath' set → show LayoutShellView (main app)
+//  2. If 'wenshu.libraryPath' set → show LayoutShellView [no longer defined post-v0.72 — AppRootScene + NavigationSplitView; = ADR-0007 pending ADR-0010; = type references kept as historical landmarks pending 老板 拍] (main app)
 // 3. User can change library via Settings → ' button (future)
 //
 //  Wenshu repository folder structure (planned for ticket 5):
@@ -40,7 +40,7 @@ import UniformTypeIdentifiers
 /// - if UserDefaults 'wenshu.libraryPath' set but path doesn't exist
 ///   on disk (= boss deleted repository externally, or repository was on a now-disconnected
 ///   drive) → onboarding (re-pick)
-/// - else (= path set + path exists) → main app LayoutShellView
+/// - else (= path set + path exists) → main app LayoutShellView [no longer defined post-v0.72 — AppRootScene + NavigationSplitView; = ADR-0007 pending ADR-0010; = type references kept as historical landmarks pending 老板 拍]
 struct LibraryRootView: View {
     // LibraryRootView now owns the library + appearance
     // bindings (= were previously held by the now-removed

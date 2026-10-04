@@ -328,7 +328,13 @@ final class SidebarService {
     /// (= the same UUID lives in LibraryMigrator; = duplicated here
     /// rather than imported so SidebarService has no transitive
     /// dependency on the Storage module.)
-    static let defaultHelpBookId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+    // (defaultHelpBookId removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
+    //  confirmed 0 external callers; = the constant was introduced as a
+    //  "duplicate for no transitive dep" affordance but never actually
+    //  used; = callers all reference LibraryMigrator.swift:216 directly.
+    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
+
 
     /// Folder list shown under each book in the sidebar (= 5
     /// user-facing folders: 世界观 / 角色 / 章节大纲 / 小说正文

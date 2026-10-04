@@ -1,6 +1,7 @@
 # ADR-0003: Drag splitters via NSView + NSEvent.delta incremental
 
 > Status: **superseded by ADR-0007** (老板 2026-08-19 ticket 005 拍板: change NSView → SwiftUI NativeSplitter(view))
+> Status (further): **ADR-0007 itself superseded by ADR-0011** (= 老板 2026-10-04 confirmation: '现在的方法是对的,就是用的系统默认的'; = the SwiftUI NativeSplitter view was itself replaced by Apple NavigationSplitView + NSSplitViewItem in the 2026-10-03 Apple multi-column rewrite). This ADR's NSView paradigm is now doubly-superseded; = retained as historical record for pre-v0.10 era only.
 > Date: 2026-08-18
 > Decision-maker(s): 老板 (8/18)
 

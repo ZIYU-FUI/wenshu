@@ -165,14 +165,16 @@ actor AuthPool {
         self.snapshotURL = persistenceRoot?.appendingPathComponent("auth.json", isDirectory: false)
     }
 
-    /// The default persistence root for wenshu (= mirrors hermes' HERMES_HOME).
-    /// `~/.wenshu/auth.json` on disk; returns nil if the home directory cannot
-    /// be resolved (= e.g. containerized test environments without $HOME).
-    static func defaultPersistenceRoot() -> URL? {
-        let fm = FileManager.default
-        guard let home = fm.homeDirectoryForCurrentUser as URL? else { return nil }
-        return home.appendingPathComponent(".wenshu", isDirectory: true)
-    }
+    // (defaultPersistenceRoot removed 2026-10 in q99-spec-p0-batch2 —
+    //  verify-dead.py confirmed 0 external callers; = the static helper
+    //  was the legacy hermes-style HERMES_HOME derivation (= ~/.wenshu/
+    //  auth.json path) but wenshu auth persistence is now handled by
+    //  ProviderKeychain (= macOS Keychain per AGENTS.md §11 baseline).
+    //  AuthPool's init(persistenceRoot:) parameter is optional and
+    //  callers pass an explicit root when JSON-snapshot is needed;
+    //  no default derivation required.
+    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
 
     // MARK: Registration / read
 

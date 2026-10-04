@@ -37,8 +37,12 @@ struct SmartQuery: Identifiable, Hashable, Codable, Sendable {
         "\(id.uuidString).json"
     }
 
-    /// Default empty query JSON (= matches all).
-    static let emptyJSON = "{}"
+    // (emptyJSON removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
+    //  confirmed 0 external callers; = no SmartQuery consumer ever needed
+    //  the literal "{}" placeholder (= all real saved searches serialize
+    //  through Codable). See wenshu-pocock-workflow
+    //  references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup
+    //  SKILL.md.)
 
     /// On-disk path (= `<reference-library-root>/indexes/saved-searches/<uuid>.json`).
     func onDiskPath(under referenceLibraryRoot: URL) -> URL {

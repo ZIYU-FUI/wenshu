@@ -22,9 +22,9 @@
 
 ## Consequences
 
-- Any zone change only affects one switch case in ZoneModule
-- Splitter changes only affect the single file NativeSplitter.swift
-- On screen resize, ZoneModule's internal 30 + 412 + 30 = 472 PT is hardcoded; changing screen requires recomputing the spec
+- Any zone change only affects one switch case in ZoneModule (= ZoneModule / ZoneSlot / ZoneTopToolbar / ZoneBottomToolbar SwiftUI types are absent from the post-v0.72 tree per ADR-0011; = the current layout = AppRootScene + NavigationSplitView + NSSplitViewItem, not the ZoneModule switch-case pattern)
+- Splitter changes (= pre-v0.72 = a single NativeSplitter.swift file edit; = post-v0.72 = no Splitter file to edit; = the AppKit NSSplitView provides divider color + thickness + keyboard nav as canonical Apple behavior per ADR-0011)
+- On screen resize, AppRootScene + NavigationSplitView = responsive 1:1 to any window width (= the GeometryReader × ratio math ADR-0007 mandated is no longer needed; = NSSplitViewItem autosave handles persistence natively)
 
 ## Alternatives considered
 

@@ -148,8 +148,12 @@ actor ToolExecutor {
     /// Default result formatter: identity.
     static let defaultResultFormatter: @Sendable (String, String) -> String = { output, _ in output }
 
-    /// Default pre-dispatch validator: identity.
-    static let defaultPreDispatchValidator: @Sendable (String, [String: String]) async throws -> [String: String] = { _, input in input }
+    // (defaultPreDispatchValidator removed 2026-10 in q99-spec-p0-batch2 —
+    //  verify-dead.py confirmed 0 external callers; = the identity closure
+    //  was never wired into the dispatch pipeline; = callers instantiate
+    //  PathGuard-wired validators directly via the closure below.
+    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
 
     /// Default pre-dispatch validator with PathGuard wired in.
     /// Adapts `[String: String]` ↔ `PathGuardInput` so the typed

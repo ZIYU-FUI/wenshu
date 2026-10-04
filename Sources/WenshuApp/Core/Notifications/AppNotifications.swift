@@ -102,12 +102,19 @@ enum LayoutEvents: String, CaseIterable {
 // but the legacy path remains functional.
 extension Notification.Name {
     // AppCommands
-    static let wenshuToggleZone = Notification.Name(AppCommands.toggleZone.rawValue)
-    static let wenshuNewBookRequested = Notification.Name(AppCommands.newBookRequested.rawValue)
-    static let wenshuNewShelfRequested = Notification.Name(AppCommands.newShelfRequested.rawValue)
+    // (wenshuToggleZone / wenshuNewBookRequested / wenshuNewShelfRequested /
+    //  wenshuChoiceRequested / wenshuExportRequested removed 2026-10 in
+    //  q99-spec-p0-batch2 — verify-dead.py confirmed 0 external callers;
+    //  = the corresponding AppCommands enum cases (= toggleZone /
+    //  newBookRequested / newShelfRequested / choiceRequested /
+    //  exportRequested) are the canonical notification surface now;
+    //  = callers should reference `Notification.Name.<AppCommand>.rawValue`
+    //  or the enum cases directly. The wenshuImportRequested +
+    //  wenshuProviderKeychainChanged + wenshuDefocusChatInput entries
+    //  below are still wired (= retained as the active legacy surface).
+    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
     static let wenshuImportRequested = Notification.Name(AppCommands.importRequested.rawValue)
-    static let wenshuChoiceRequested = Notification.Name(AppCommands.choiceRequested.rawValue)
-    static let wenshuExportRequested = Notification.Name(AppCommands.exportRequested.rawValue)
 
     // AppStateEvents
     static let wenshuProviderKeychainChanged = Notification.Name(AppStateEvents.providerKeychainChanged.rawValue)

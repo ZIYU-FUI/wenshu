@@ -486,6 +486,29 @@ extension PromptBuilder {
         guard content.count > cap else {
             return content
         }
+        // Record + drain the truncation (= hermes _record_truncation_warnings
+        // + drain; = wenshu reimplementation per boss 2026-10-04 OOB "wenshu
+        // Agent capabilities are reimplemented, not direct hermes links";
+        // = calls into the truncationWarnings ring buffer that lives below
+        // in this file; = the ring buffer is exposed via
+        // PromptBuilder.recordTruncationWarning + .drainTruncationWarnings
+        // public surface so future callers can plug into it).
+        // The lower-level PromptBuilderCaches API is used here
+        // (forward-reference to the public PromptBuilder surface
+        // would require splitting this body into a private helper
+        // declared after both recordTruncationWarning and
+        // drainTruncationWarnings = a future refactor).
+        PromptBuilderCaches.recordTruncationWarning(
+            "\(filename): \(content.count) -> \(cap) chars (\(content.count - cap) truncated; = head 70% + tail 20% preserved)"
+        )
+        let warnings = PromptBuilder.drainTruncationWarnings()
+        if !warnings.isEmpty {
+            NSLog(
+                "[PromptBuilder.truncateContent] %d truncation warning(s): %@",
+                warnings.count,
+                warnings.joined(separator: " | ")
+            )
+        }
         let headSize = Int(Double(cap) * 0.7)
         let tailSize = Int(Double(cap) * 0.2)
         let head = String(content.prefix(headSize))
@@ -533,11 +556,33 @@ extension PromptBuilder {
 extension PromptBuilder {
     /// Default agent identity block (= hermes `DEFAULT_AGENT_IDENTITY`).
     ///
-    /// Wenshu-side: returns the wenshu-flavored identity (= delegates to
-    /// SystemPrompt.stableTier() which is the canonical source per the
-    /// sub-step 2 stable-tier design).
+    /// Wenshu-side: returns the wenshu-flavored AI-assistant identity
+    /// (= inline implementation matching `SystemPrompt.localeIdentityBlock
+    /// (locale: .chinese)` byte-for-byte; = the canonical source of truth
+    /// for "who is the AI assistant"; = the previous stub called
+    /// `SystemPrompt.stableTier()` which was a recursive loop, and
+    /// `SystemPrompt.localeIdentityBlock` is `private` so it cannot be
+    /// reached from this extension; = reimplemented per boss 2026-10-04
+    /// OOB "wenshu Agent capabilities are reimplemented, not direct
+    /// hermes links"). The two definitions MUST stay byte-for-byte
+    /// identical; = see SystemPrompt.swift L431-446 for the canonical
+    /// version. Kept in lockstep via a parallel-check on tests.
     static func defaultIdentity() -> String {
-        SystemPrompt.stableTier()
+        return """
+        你是嵌入在文枢（Wenshu）中的 AI 助手——文枢是一款 macOS 上的长篇小说创作工具。
+        文枢是写作工具，不是 LLM 平台。你协助用户撰写小说、发展人物、规划故事大纲、
+        并润色文笔。
+
+        工作原则：
+        - 用与用户相同的语言回复（默认中文）。
+        - 严格遵循用户提供的大纲、人物备注和世界规则，不得自相矛盾地编造细节。
+        - 永不破坏角色。若需婉拒，请简短说明并继续写作任务。
+        - 按用户要求输出散文、对话与结构化大纲。
+        - 用户要求修改时，保持现有语气与叙事人称，除非明确要求改变。
+        - 大纲与结构性内容使用 Markdown；章节正文使用纯散文。
+        - 凡是用户提到具体职业、地名、朝代、事件、品牌等，都必须先 web_search 调研，
+          再写回复——用你自己的训练数据识别这些名词。规则见 Agent driver section。
+        """
     }
 
     /// Help-guidance block (= hermes `HERMES_AGENT_HELP_GUIDANCE`).

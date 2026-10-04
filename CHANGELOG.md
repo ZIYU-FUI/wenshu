@@ -383,22 +383,27 @@ Single source of truth for the v0.72 SwiftData migration that is
 currently referenced in 20+ source file headers as "Phase 5 ticket 10a:
 ChatSessionStore deleted" (= stale if not for this consolidated entry).
 
-### Phase 1 — SwiftData @Model extraction (= 21 commits, 23 @Model classes)
+### Phase 1 — SwiftData @Model extraction (= 22 @Model classes)
 
 - Per AGENTS.md §11.4 SwiftData migration roadmap.
 - Replaced 10 raw sqlite3 stores + 20+ tables with a single SwiftData
-  `ModelContainer` (= Container.swift) holding 23 explicit `@Model`
+  `ModelContainer` (= Container.swift) holding 22 explicit `@Model`
   classes.
 - Source files: `Sources/WenshuApp/Persistence/WS*.swift`.
 
-### Phase 2 — Repository class wrappers (= 21 commits, 9 repositories)
+### Phase 2 — Repository class wrappers (= 21 commits, 8 repositories)
 
 - Thin wrapper @MainActor classes exposing the same public API surface
-  as the deleted sqlite3 Actors (= `WSChatRepository`, `WSBookRepository`,
-  `WSKanbanRepository`, `WSTodoRepository`, `WSMemoryRepository`,
-  `WSBookmarkRepository`, `WSSkillRepository`, `WSLinkRepository`,
-  `WSReferenceRepository`).
-- Source files: `Sources/WenshuApp/Persistence/Repositories/WS*.swift`.
+  as the deleted sqlite3 Actors (= `WSChatRepository`, `WSKanbanRepository`,
+  `WSTodoRepository`, `WSMemoryRepository`, `WSBookmarkRepository`,
+  `WSLinkRepository`, `WSProviderKeyRepository`, `WSPreferenceRepository`).
+  `WSBookRepository` was deleted per §11.13 (= BookStore handles books
+  directly). `WSSkillRepository` / `WSReferenceRepository` were never
+  created (= see §11.18 — skill mechanics live in Core/Agent/ tool
+  surface; reference library uses Core/Search/CSSearchableIndexSearch).
+  Source files: `Sources/WenshuApp/Persistence/Repositories/WS*Repository.swift`
+  (= 8 files; = `WSRepositoryContainer.swift` is the 9th file in the
+  dir but = container holder, not a Repository itself).
 
 ### Phase 3 — Call site migration (= 12 commits)
 

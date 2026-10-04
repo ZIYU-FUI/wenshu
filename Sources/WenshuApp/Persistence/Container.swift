@@ -3,23 +3,24 @@
 //
 //   : ModelContainer setup (= the LAST phase 1 commit;
 //  = introduced Container.swift but no new @Model class).
-//  Schema contains 23 entity types (= all explicit @Model classes from
+//  Schema contains 22 entity types (= all explicit @Model classes from
 //  phase 1 commits 1-10 + 12-20, with commits 15/16/17/19 each introducing
 //  2 classes per commit. Note: commit 11 was non-@Model infra; = the
-//  19 single-class commits + 4 extra classes from the doubled commits =
-//  23 total). No implicit join tables (= all 23 .self entries in Schema([...])
+//  19 single-class commits + 4 extra classes from the doubled commits,
+//  minus 1 single-class commit that landed as a doc-only change =
+//  22 total). No implicit join tables (= all 22 .self entries in Schema([...])
 //  correspond to explicit @Model class declarations).
 //  Per AGENTS.md §11.4 SwiftData migration roadmap.
 //
 //  This is the FINAL commit of . It defines the ModelContainer
-//  (= single store) that aggregates all 23 @Model classes.
+//  (= single store) that aggregates all 22 @Model classes.
 //
 //  BEFORE SwiftData migration: 10 raw sqlite3 stores, 20+ tables, hand-rolled
 //  migration (= WenshuWorkspace.swift mega-store + 9 separate stores
 //  with duplicate tables for chat_messages / chat_summaries /
 //  sub_agent_runs / kanban_tasks / bookmarks / memory_entries).
 //
-//  AFTER SwiftData migration: 1 SwiftData ModelContainer holding all 23 @Model
+//  AFTER SwiftData migration: 1 SwiftData ModelContainer holding all 22 @Model
 //  classes. Tables still physically exist (= SwiftData uses Core Data's
 //  SQLite under the hood on macOS) but the API surface is unified:
 //  ModelContext.fetch(FetchDescriptor<WSXxx>()) replaces every per-store
@@ -56,7 +57,7 @@ import os.log
 /// Singleton ModelContainer (= held by AppState).
 /// Initialization is lazy (= defer until first access).
 enum WSPersistenceContainer {
-    /// Schema listing all 23 @Model classes (= generated below)
+    /// Schema listing all 22 @Model classes (= generated below)
     static let schema = Schema([
         // Tier 1: leaf entities (= no relationships)
         WSManifest.self,

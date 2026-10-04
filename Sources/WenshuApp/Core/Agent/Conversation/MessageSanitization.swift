@@ -319,31 +319,24 @@ enum MessageSanitization {
 
     // MARK: - Combined sanitizer
 
-    /// Run the full hermes sanitization pipeline on a message list:
+    /// Run the full hermes sanitization pipeline on a message list (=
+    /// the 5-step pipeline that callers compose individually below):
     ///   1. sanitizeSurrogates on every text block
     ///   2. sanitize (= C0 control strip)
     ///   3. repairToolCallArguments on every .toolUse block
     ///   4. closeInterruptedToolSequence if needed
     ///   5. dropTrailingEmptyResponseScaffolding
-    static func sanitizeAll(_ messages: [LLMMessage]) -> [LLMMessage] {
-        var out = messages.map { msg -> LLMMessage in
-            let sanitizedBlocks = msg.blocks.map { block -> LLMBlock in
-                switch block {
-                case .text(let s):
-                    let clean = sanitizeText(sanitizeSurrogates(s))
-                    return .text(clean)
-                case .thinking(let text, let signature):
-                    return .thinking(text: sanitizeText(sanitizeSurrogates(text)), signature: signature)
-                case .toolUse(let id, let name, let input):
-                    return .toolUse(id: id, name: name, input: repairToolCallArguments(input, toolName: name))
-                case .toolResult(let toolUseID, let output):
-                    return .toolResult(toolUseID: toolUseID, output: sanitizeText(sanitizeSurrogates(output)))
-                }
-            }
-            return LLMMessage(role: msg.role, blocks: sanitizedBlocks)
-        }
-        out = dropTrailingEmptyResponseScaffolding(out)
-        out = closeInterruptedToolSequence(out)
-        return out
-    }
+    // (sanitizeAll(_:) removed 2026-10 in q99-spec-p0-batch2 —
+    //  verify-dead.py confirmed 0 external callers; = the combined
+    //  pipeline entry point was the hermes-port canonical surface
+    //  (= hermes Python: sanitize_all(messages)) but wenshu's
+    //  SwiftData-era pipeline invokes the individual step functions
+    //  (= sanitizeSurrogates / sanitize / repairToolCallArguments /
+    //  closeInterruptedToolSequence / dropTrailingEmptyResponseScaffolding)
+    //  directly from ConversationLoop without going through the
+    //  combined facade. See wenshu-pocock-workflow
+    //  references/v3.0-design-system-rule.md +
+    //  wenshu-dead-code-cleanup SKILL.md.)
+
+
 }

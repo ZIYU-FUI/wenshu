@@ -69,9 +69,13 @@ enum PreCompressCheckpointAPI {
     /// Latest API version (= hermes v2).
     static let currentVersion: Int = 2
 
-    /// Historical best-effort contract for providers that predate the
-    /// checkpoint API attribute (= hermes _LEGACY_PRE_COMPRESS_API_VERSION = 1).
-    static let legacyVersion: Int = 1
+    // (legacyVersion removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
+    //  confirmed 0 external callers; = no provider still references the
+    //  v1 checkpoint contract (= all migrated to v2 in v0.72 SwiftData
+    //  migration; = the constant was retained as a hermes-port artifact
+    //  but never wired). See wenshu-pocock-workflow
+    //  references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup
+    //  SKILL.md.)
 }
 
 // MARK: - Tool schema (= hermes normalize_tool_schema surface)

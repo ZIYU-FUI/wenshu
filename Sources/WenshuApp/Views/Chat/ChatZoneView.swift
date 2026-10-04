@@ -260,14 +260,14 @@ struct ChatZoneView: View {
         }
     }
 
-    /// compactNumber: real token count folded into compact format (Hermes format_token_count_compact canonical).
-    /// = 1500 -> "1.5k", 1500000 -> "1.5M", <1000 -> raw number.
-    private func compactNumber(_ n: Int) -> String {
-        let d = Double(n)
-        if d >= 1_000_000 { return String(format: "%.1fM", d / 1_000_000).replacingOccurrences(of: ".0M", with: "M") }
-        if d >= 1_000 { return String(format: "%.1fk", d / 1_000).replacingOccurrences(of: ".0k", with: "k") }
-        return "\(n)"
-    }
+    // (compactNumber removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
+    //  confirmed 0 external callers; = the "1500 -> 1.5k / 1.5M" formatter
+    //  was retained as a "Hermes format_token_count_compact canonical"
+    //  helper but no ChatZoneView body consumed it (= chat-zone
+    //  rendering does not surface token counts inline; = the
+    //  conductor's token accounting surfaces elsewhere). See
+    //  wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
 
     // MARK: - Book scope guard wiring (v2.1, 2026-09-25)
 

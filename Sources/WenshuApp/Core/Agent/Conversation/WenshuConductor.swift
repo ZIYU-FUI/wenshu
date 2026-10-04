@@ -982,11 +982,13 @@ actor WenshuConductor {
     ///
     /// Returns the populated tools dict (= useful for callers that want
     /// to assert the cache is warm). Async + cooperative-pool-safe.
-    static func prewarmToolCache(from registry: ToolRegistry = .shared) async -> [String: any Tool] {
-        let tools = await buildTools(from: registry)
-        Self.toolCache.cachedTools = tools
-        return tools
-    }
+    // (prewarmToolCache removed 2026-10 in q99-spec-p0-batch2 —
+    //  verify-dead.py confirmed 0 external callers; = the static
+    //  prewarm entry point (= hermes-port "prewarm registry at startup"
+    //  pattern) was declared but never invoked; = the buildToolsSync
+    //  semaphore bridge (above) handles the cold-start path inline.
+    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
 
     // MARK: - Test accessor (WIRE-TOOLREGISTRY-003)
 
@@ -1015,12 +1017,16 @@ actor WenshuConductor {
     /// `book_outline` tools remain scoped to their respective
     /// chapter + outline schemas (= not part of the entity
     /// schema redesign; = see AGENTS.md §11.11 row 1).
-    private static let bookScopeGuardedToolNames: Set<String> = [
-        "book_entity",
-        "book_chapter",
-        "book_edit_chapter",  // edit-chapter-tool 2026-09-28: hermes edit_file 1:1 also subject to book scope (= editing a chapter requires the chat session to be bound to that book)
-        "book_outline"
-    ]
+    // (bookScopeGuardedToolNames removed 2026-10 in q99-spec-p0-batch2 —
+    //  verify-dead.py confirmed 0 external callers; = the
+    //  private static Set<String> was retained as the "tools that
+    //  require chat session to be book-bound before invocation"
+    //  registry (= per AGENTS.md §11.11 row 1 chat-by-book row-level
+    //  split) but the actual guard logic in WenshuConductor wires
+    //  per-tool closures via wireBookScopeGuard(); = the static set
+    //  was declared but never read by the conductor's dispatch loop.
+    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
 
     /// Wire the three book_X tools (= entity / chapter / outline)
     /// for the chat session's currently-bound book.

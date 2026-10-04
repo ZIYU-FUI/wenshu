@@ -82,7 +82,16 @@ actor BackgroundReview {
 
     private var pending: [UUID: BackgroundProposal] = [:]
     private var decided: [BackgroundProposal] = []
-    private let maxPendingAge: TimeInterval = 7 * 24 * 3600  // 7 days
+    // (maxPendingAge removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
+    //  confirmed 0 external callers; = the actor-private 7-day TTL
+    //  for pending proposals was retained as the "auto-expire stale
+    //  proposals" affordance (= hermes-port background_review._expire_stale)
+    //  but the trim path only runs against decided history (= see
+    //  trimDecidedHistory + maxDecidedHistory below); = the TTL
+    //  constant was declared but never wired into a Timer/Task that
+    //  would call submit(.expired) on aged entries. See
+    //  wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
     private let maxDecidedHistory: Int = 100
 
     init() {}

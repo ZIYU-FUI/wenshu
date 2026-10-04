@@ -144,13 +144,6 @@ actor OAuthFlow {
 
     // MARK: - PKCE helpers (= RFC 7636)
 
-    /// Generate a cryptographically-random PKCE code_verifier (= 43-128 chars).
-    static func generateCodeVerifier() -> String {
-        var bytes = [UInt8](repeating: 0, count: 32)
-        _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        return Data(bytes).base64URLEncodedString()
-    }
-
     /// Compute PKCE code_challenge from code_verifier (= SHA256 + base64url).
     /// Empty verifier yields empty challenge (= edge case: skip PKCE when
     /// verifier absent; matches the test contract `codeChallenge(for: "") == ""`).

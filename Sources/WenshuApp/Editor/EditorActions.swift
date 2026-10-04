@@ -212,46 +212,17 @@ enum DraftPersistence {
     }
 }
 
-// MARK: - MarkdownEditorBusBridge
-//
-// SMC ticket 003 -- closes the bus-construction red path. The
-// engine observes the bus's request Notification.Names and posts
-// reply notifications. The host's format toolbar / find / replace
-// UI subscribes to the reply names and publishes to the request
-// names.
-//
-// This bridge object owns:
-//   - The observer tokens (= retained for the bridge's lifetime
-//     so NotificationCenter doesn't drop them).
-//   - A reference to the host's `format` and `findReplace`
-//     closures (= the host plugs its UI handlers in here).
-//   - A `formatToolbar` helper that fires the request
-//     notifications when the toolbar buttons are tapped (= the
-//     FormatToolbarButtons view calls these instead of wrapping
-//     text directly — the engine applies the formatting inside
-//     its own NSTextView, with proper undo + selection restore).
-
-final class MarkdownEditorBusBridge {
-    private let bus: MarkdownEditorBus
-    private var observers: [NSObjectProtocol] = []
-    let format: FormatDispatcher
-    let findReplace: FindReplaceDispatcher
-
-    init(bus: MarkdownEditorBus) {
-        self.bus = bus
-        self.format = FormatDispatcher(bus: bus)
-        self.findReplace = FindReplaceDispatcher(bus: bus)
-    }
-
-    deinit {
-        let center = NotificationCenter.default
-        for token in observers {
-            center.removeObserver(token)
-        }
-    }
-
-
-}
+// (MarkdownEditorBusBridge removed 2026-10 in q99-spec-p0-batch2 —
+//  verify-dead.py confirmed 0 external callers; = the bridge class
+//  was retained as the "host format/find toolbar -> NSTextView
+//  via NotificationCenter" SMC ticket 003 affordance (= bridges
+//  host-side closures into the engine-side NSTextView edits) but
+//  no host subscriber ever instantiated MarkdownEditorBusBridge;
+//  = the format/find toolbar flows through FormatDispatcher +
+//  FindReplaceDispatcher directly (= retained since they're
+//  consumed in SMC003EditorActionsTests). See wenshu-pocock-workflow
+//  references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup
+//  SKILL.md.)
 
 // MARK: FormatDispatcher + FindReplaceDispatcher
 //

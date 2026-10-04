@@ -12,9 +12,9 @@ The v0.35 hermes-core-translation project (= boss Q1 拍 = "hermes 核心 agent 
 
 - `Core/Tools/FileTools.swift` + `ProcessTools.swift` + `AVMediaTools.swift` ↔ `Core/Agent/Tool/ReadFileTool.swift` + `WriteFileTool.swift`
 - `Core/Provider/ProviderKeychain.swift` ↔ `Core/Agent/Connector/ConnectorCredentials.swift`
-- `Core/Memory/MemoryManager.swift` + `MemoryProvider.swift` + `MemoryConsolidator.swift` ↔ `Core/Agent/Memory/MemoryManager.swift` + `MemoryProvider.swift` + `MemoryStore.swift`
-- `Core/Skills/SkillMeta.swift` + `SkillRegistry.swift` ↔ `Core/Agent/Skill/SkillUtils.swift` + `SkillPreprocessing.swift` + `SkillCommands.swift` + `SkillBundles.swift`
-- `Core/Chat/ChatSessionStore.swift` ↔ `Core/Agent/Conversation/ConversationLoop.swift`
+- `Core/Memory/MemoryManager.swift` + `MemoryProvider.swift` + `MemoryWriteGate.swift` + `WSMemoryProvider.swift` ↔ `Core/Agent/Memory/MemoryAdapter.swift`
+- (Skill subsystem: no separate `Core/Skills/` dir exists in current tree; skill mechanics live inside `Core/Agent/` tool surface = see `SkillRegistry` analog; = updated 2026-10)
+- `Core/Agent/Conversation/ConversationLoop.swift` + `WenshuConductor.swift` + `ContextEngine.swift` (consolidated into agent conversation dir; = the pre-split `Core/Chat/ChatSessionStore.swift` was deleted in §11.4.2 ticket 10a)
 
 The fundamental question: **when hermes port and wenshu existing module overlap, who wins**?
 
@@ -34,9 +34,9 @@ Five concrete examples (from spec §3.6):
 
 - **ConnectorCredentials ↔ ProviderKeychain**: `ConnectorCredentials` is a thin adapter over `ProviderKeychainStoring` (= existing `Core/Provider/ProviderKeychain.swift`). Reuses `AppleKeychainStore.loadKeySync(for:)` directly. No duplicate `kSecClassGenericPassword` setup.
 - **ReadFileTool / WriteFileTool ↔ FileTools**: `ReadFileTool` / `WriteFileTool` thin async wrappers over `Core/Tools/FileTools.swift` (= existing sync read/write atomic). Boss Q14 拍 "thin wrapper" pattern.
-- **MemoryAdapter ↔ MemoryManager**: `MemoryAdapter` thin adapter over `Core/Memory/MemoryManager.swift` (= existing actor with `prefetch/sync/write gate`). Reuses `MemoryWriteGate` + `MemoryConsolidator` (= ticket 013.001 / 013.005).
-- **SkillAdapter ↔ SkillRegistry**: `SkillAdapter` thin adapter over `Core/Skills/SkillRegistry.swift` (= existing actor with list/load/invoke). Reuses `SkillTrustLevel` + `SkillQuarantine` (= ticket 013.008).
-- **ContextEngine ↔ Core/Memory**: `ContextEngine` thin facade over `Core/Memory/*`. Delegates prefetch + sync to existing actor.
+- **MemoryAdapter ↔ MemoryManager**: `MemoryAdapter` thin adapter over `Core/Memory/MemoryManager.swift` (= existing actor with `prefetch/sync/write gate`). Reuses `MemoryWriteGate` (= ticket 013.001 / 013.005).
+- **SkillAdapter ↔ SkillRegistry**: (= no separate `Core/Skills/` dir exists post-v0.72; = skill mechanics live in `Core/Agent/` tool surface; = defer until boss names the canonical skill home; = see P1 #2 in spec-axis-audit 2026-10-04).
+- **ContextEngine ↔ Core/Memory**: `ContextEngine` thin facade over `Core/Memory/*` (= `Core/Agent/Conversation/ContextEngine.swift`). Delegates prefetch + sync to existing actor.
 
 ## Consequences
 
