@@ -20,6 +20,13 @@
 # its git link file)
 .hermes/
 # Hermes agent runtime state (= cron, skills, etc.)
+# Exception: .hermes/SPECS/ is the wenshu project spec doc root
+# (sketch AF7B1C87 export, source-of-truth for CLAUDE.md /
+# AGENTS.md / IconStyles / DesignTokens). Other wenshu devs need
+# to read these spec files; = allow them in git (= unwritten
+# except via the !-prefixed re-include below).
+!.hermes/SPECS/
+!.hermes/SPECS/**
 .scratch/
 # ephemeral design notes (= per-WO ticket scratch; = legitimate
 # tracked scratch assets are unaffected by .gitignore — git only
