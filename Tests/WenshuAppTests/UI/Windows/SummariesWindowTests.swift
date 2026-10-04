@@ -67,7 +67,7 @@ struct SummariesWindowTests {
 
     @Test("ShellDetailColumn has toolbar button opening summaries window")
     func testToolbarButtonForSummaries() throws {
-        let toolbarPath = resolve("Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift")
+        let toolbarPath = resolve("Sources/WenshuApp/Views/Inspector/InspectorView.swift")
         let source = try String(contentsOfFile: toolbarPath, encoding: .utf8)
         #expect(source.contains("openWindow(id: WindowID.summaries)"),
                 "Toolbar must wire openWindow(id: WindowID.summaries)")

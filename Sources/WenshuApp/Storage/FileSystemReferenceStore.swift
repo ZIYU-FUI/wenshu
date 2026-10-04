@@ -228,8 +228,14 @@ struct FileSystemReferenceStore: ReferenceStoring {
             let isoStyleNoFrac = Date.ISO8601FormatStyle(includingFractionalSeconds: false)
             decoder.dateDecodingStrategy = .custom { dec in
                 let container = try dec.singleValueContainer()
+                // writeIndex uses JSONEncoder's default `.deferredToDate`
+                // (= writes `timeIntervalSinceReferenceDate` since 2001-01-01,
+                // NOT `timeIntervalSince1970`). The previous decode path
+                // tried `Date(timeIntervalSince1970:)` which is 31 years
+                // off (= the 1995-10-04 vs 2026-10-04 symptom in
+                // ReferenceLibraryToolTests.testExecute_upsertAction_parsesAndRuns).
                 if let double = try? container.decode(Double.self) {
-                    return Date(timeIntervalSince1970: double)
+                    return Date(timeIntervalSinceReferenceDate: double)
                 }
                 let raw = try container.decode(String.self)
                 if let d = try? Date(raw, strategy: isoStyleWithFrac) { return d }

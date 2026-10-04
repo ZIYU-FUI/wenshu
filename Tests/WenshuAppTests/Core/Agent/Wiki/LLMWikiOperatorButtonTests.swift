@@ -62,7 +62,7 @@ struct LLMWikiOperatorButtonTests {
 
     @Test("ShellDetailColumn operator button = i18n key llm_wiki.operator.open")
     func testShellDetailColumnOperatorButton() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Inspector/InspectorView.swift"), encoding: .utf8)
         #expect(source.contains("llm_wiki.operator.open"),
                 "ShellDetailColumn.toolbar must include the LLM Wiki operator button (= boss A4 = 'operator 按钮')")
     }

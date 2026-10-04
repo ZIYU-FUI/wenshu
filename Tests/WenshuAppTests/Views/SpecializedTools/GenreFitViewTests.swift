@@ -147,7 +147,7 @@ struct GenreFitViewTests {
 
     @Test("GenreFitViewState mirror file exists (= companion file under Views/SpecializedTools/)")
     func testStateMirrorFileExists() throws {
-        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/p2-mirrors/Sources/WenshuApp/Views/SpecializedTools/GenreFitViewState.swift"
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/SpecializedTools/GenreFitViewState.swift"
         #expect(FileManager.default.fileExists(atPath: filePath),
                 "GenreFitViewState.swift must exist as a companion file")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)

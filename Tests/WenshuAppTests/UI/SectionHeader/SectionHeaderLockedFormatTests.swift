@@ -35,7 +35,7 @@ struct SectionHeaderLockedFormatTests {
     /// 2 columns that draw their own title (= content + inspector).
     private static let sectionHeaderFiles = [
         "Sources/WenshuApp/Views/Workspace/PreviewPane.swift",
-        "Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift",
+        "Sources/WenshuApp/Views/Inspector/InspectorView.swift",
     ]
 
     private static func loadSource(_ path: String) throws -> String {

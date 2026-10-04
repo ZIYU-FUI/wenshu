@@ -29,7 +29,7 @@ struct CommandPaletteToolbarButtonTests {
     private var shellDetailPath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift")
+        url.appendPathComponent("Sources/WenshuApp/Views/Inspector/InspectorView.swift")
         return url.path
     }
 
