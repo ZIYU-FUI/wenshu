@@ -1,31 +1,29 @@
 // MinimaxConnector.swift · WenshuApp · v0.35
 //
-// Minimax cn connector (= thin Anthropic-compatible wire format
-// wrapper). Per AGENTS.md §11.2: Minimax cn is one of 7 LLM connector
-// profiles, uses Anthropic Messages API protocol, base URL =
-// `https://api.minimaxi.com/anthropic`.
+// Minimax cn connector (= Anthropic-compatible wire format
+// peer of AnthropicConnector). Per AGENTS.md §11.2: Minimax cn
+// is one of 7 LLM connector profiles, uses Anthropic Messages
+// API protocol, base URL = `https://api.minimaxi.com/anthropic`.
 //
-// Implements the minimum surface that lets the rest of the agent
-// stack run end-to-end:
+// This is a peer of `AnthropicConnector` (= NOT a thin
+// wrapper). The two share `RequestHelpers.decodeAnthropicResponse`
+// (= Minimax returns Anthropic-shaped content blocks) but use
+// DIFFERENT request-body helpers (= `buildMinimaxRequest` here
+// vs AnthropicConnector's structured `system` block helper; =
+// Minimax does not honor structured `system` blocks; = the two
+// wire formats are NOT byte-equivalent).
+//
+// Surface implemented here:
 //   - `send(messages:options:)` → `LLMResponse` via URLSession
 //   - `x-api-key` + `anthropic-version` headers
-//   - text-only request/response (= no tool_use yet; that lands in
-//     `AnthropicConnector`)
+//   - text-only request/response (= no tool_use yet; that lands
+//     when AnthropicConnector's tool_use surface is reused)
 //   - streaming not yet wired (= the SSE path lives in
 //     `AnthropicStreaming.swift`)
-//
-// `AnthropicConnector` is the fuller surface (= cache markers,
-// thinking blocks, tool_use round-trip, streaming).
 //
 // Pre-tool guardrail: reuses `ConnectorCredentials` (= AGENTS.md
 // §11.3 wenshu-side wins: thin wrapper over existing
 // `ProviderKeychain`).
-//
-// The request-body marshaling lives in
-// `Connector/RequestHelpers.swift` (= `buildMinimaxRequest`). The
-// response decoder is shared with `AnthropicConnector` (=
-// `decodeAnthropicResponse`) since Minimax returns Anthropic-shaped
-// content blocks.
 
 import Foundation
 
