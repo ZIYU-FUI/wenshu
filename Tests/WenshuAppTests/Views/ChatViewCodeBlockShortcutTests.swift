@@ -128,8 +128,8 @@ struct ChatViewCodeBlockShortcutTests {
         )
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
-        #expect(inputBarSrc.contains(".frame(minHeight: 36, maxHeight: 36)"))
-        #expect(!chatViewSrc.contains(".frame(minHeight: 36, maxHeight: 36)"))
+        #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))
+        #expect(!chatViewSrc.contains("DesignTokens.controlHeightLarge"))
         // The Button("Wrap selection in code block") keyboard shortcut Button lives ONLY in
         // ChatView (= the keyboard shortcut block is a sibling of
         // ScrollViewReader; = not inside the input row).

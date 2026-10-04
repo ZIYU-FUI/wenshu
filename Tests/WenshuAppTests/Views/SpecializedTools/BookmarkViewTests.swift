@@ -62,7 +62,16 @@ struct BookmarkViewTests {
 
     @Test("BookmarkViewState mirror file exists (= companion file under Views/SpecializedTools/)")
     func testStateMirrorFileExists() throws {
-        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/p2-mirrors/Sources/WenshuApp/Views/SpecializedTools/BookmarkViewState.swift"
+        // Per the same @Observable mirror pattern as
+        // ReaderExperienceViewState / EmotionCurveViewState /
+        // GenreFitViewState (= commit 1c3a27fc8 + 2026-10-03 mirror
+        // hoist), the mirror is at
+        // Sources/WenshuApp/Views/SpecializedTools/BookmarkViewState.swift
+        // (= relative to repo root, no longer hardcoded to the
+        // .worktrees/p2-mirrors path that was used during the
+        // refactor worktree).
+        let repoRoot = "/Volumes/ANAN/Engineering/wenshu"
+        let filePath = repoRoot + "/Sources/WenshuApp/Views/SpecializedTools/BookmarkViewState.swift"
         #expect(FileManager.default.fileExists(atPath: filePath),
                 "BookmarkViewState.swift must exist as a companion file")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)

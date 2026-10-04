@@ -139,7 +139,7 @@ struct ChatViewPasteImageTests {
         #expect(!chatViewSrc.contains(".onPasteCommand(of: [.image])"))
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = input height = 36PT = match button diameter)
         // lives in ChatInputBarView (= the top layer).
-        #expect(inputBarSrc.contains(".frame(minHeight: 36, maxHeight: 36)"))
-        #expect(!chatViewSrc.contains(".frame(minHeight: 36, maxHeight: 36)"))
+        #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))
+        #expect(!chatViewSrc.contains("DesignTokens.controlHeightLarge"))
     }
 }
