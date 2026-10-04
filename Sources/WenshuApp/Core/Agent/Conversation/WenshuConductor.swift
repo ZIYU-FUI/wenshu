@@ -192,7 +192,7 @@ actor WenshuConductor {
     /// - vision: input = image path → returns recognized text
     /// - av: input = text → speaks aloud (fire-and-forget)
     func invokeTool(name: String, input: String, caller: AgentCaller = .main) async -> String {
-        // hermes DELEGATE_BLOCKED_TOOLS parity (boss 8/23 said).
+        // hermes DELEGATE_BLOCKED_TOOLS parity ((see OOB.md #2026-08-23)).
         // Sub-agents cannot call delegate_task / clarify / send_message / cronjob (any op).
         // Sub-agents can call memory but only for read ops (no add/delete).
         if caller.isSubAgent {
@@ -202,7 +202,7 @@ actor WenshuConductor {
                 return reason
             }
         }
-        // .003: tool-level allowlist (boss 8/23 said: user cannot change system via chat).
+        // .003: tool-level allowlist ((see OOB.md #2026-08-23) — user cannot change system via chat).
         // input format: "op:arg" (e.g. "read:./file.txt", "write:./Sources/foo.swift")
         // Unknown op = blocked (per-tool allowlist below).
         let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
@@ -213,7 +213,7 @@ actor WenshuConductor {
         case "file":
             // Allowlist: read / list / search only (NOT write / patch).
             guard ["read", "list", "search"].contains(op) else {
-                return "(tool blocked: file.\(op) is in deny-list — boss 8/23 拍: 用户不可通过聊天改代码 / 改配置)"
+                return "(tool blocked: file.\(op) is in deny-list — (see OOB.md #2026-08-23): user cannot change code / config via chat)"
             }
             switch op {
             case "read": return (try? fileTools.read(path: arg)) ?? ""
@@ -223,7 +223,7 @@ actor WenshuConductor {
             }
         case "process":
             // Deny all (chat-triggered shell = arbitrary code execution).
-            return "(tool blocked: process is deny-all — boss 8/23 拍: 用户不可通过聊天改系统. 使用 wenshu-devtool CLI.)"
+            return "(tool blocked: process is deny-all — (see OOB.md #2026-08-23): user cannot change system via chat. Use wenshu-devtool CLI.)"
         case "web":
             // Per 12 standard P1-02 try? 收口 (= wenshu tries to surface
             // every persistent failure in unified logging). The
@@ -259,9 +259,9 @@ actor WenshuConductor {
 
     /// handle: receive user message, dispatch sub-agents, synthesize final reply
     /// Truth: user does not see multi-agent dispatch traces, ChatView always sees only 1 .wenshu reply
-    /// code-review S4 graceful degradation: LLM fail does not throw, fallback synthesis still returns reply (boss doesn't see Error system messages on macOS)
+    /// code-review S4 graceful degradation: LLM fail does not throw, fallback synthesis still returns reply (= the user does not see Error system messages on macOS)
     /// returns (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis real LLM API usage accumulated
-    /// handle adds model parameter (boss feedback "switching AI didn't actually switch" = the original handle used verifier.init's hardcoded model)
+    /// handle adds model parameter (= the 2026-08-23 feedback "switching AI didn't actually switch" = the original handle used verifier.init's hardcoded model)
     /// adds thinking field (WenshuLLMBlock.thinking footnote UI, Apple HIG footnote pattern)
     ///
     /// P0 #1 (WIRE-AGENT-001): when the conductor was constructed with a
@@ -380,7 +380,7 @@ actor WenshuConductor {
         // Step 3: invoke the full turn orchestrator. On any throw, log
         // and return nil (= caller falls back to legacy pipeline).
         //
-        // Agent driver (2026-09-25, boss OOB): wenshu-side forces the
+        // Agent driver (2026-09-25): wenshu-side forces the
         // LLM to call `web_search` whenever the user prompt names
         // a concrete proper noun. We don't maintain a hand-rolled
         // noun dictionary (= that would drift over time as new
@@ -471,7 +471,7 @@ actor WenshuConductor {
             return (reply.isEmpty ? "(文枢暂时无法回复, 请稍后再试)" : reply, totalTokens, thinking)
         } catch {
             // S4 graceful degradation: never throw out of handle(). Log
-            // so the wenshu-dev / boss sees the underlying error.
+            // so the wenshu-dev user sees the underlying error.
             // T0-PATH-VISIBLE (2026-09-18): tag with PATH=legacy for
             // grep parity with the success path.
             NSLog(
@@ -603,7 +603,7 @@ actor WenshuConductor {
                 return collected
             }
             // Check cancellation before kanban write
-            // (boss 8/23 risk-averse: don't write kanban state for cancelled runs).
+            // (2026-08-23 risk-averse: don't write kanban state for cancelled runs).
             // Note: handle() doesn't throw, so guard with Task.isCancelled and
             // skip the kanban transitions if cancelled (loop body no-ops).
             let isCancelled = Task.isCancelled
@@ -617,7 +617,7 @@ actor WenshuConductor {
             }
             // + subsequent migration stepa: write 1-line sub-agent run summary
             // to WSChatRepository.shared (= @MainActor SwiftData wrapper).
-            // (boss 8/23 said: user doesn't need execution details, just sees results — no full LLM dialogue stored).
+            // (2026-08-23: user doesn't need execution details, just sees results — no full LLM dialogue stored).
             for (name, result) in subResults {
                 let summary = String(result.prefix(200))  // 1-line summary, not full output
                 let run = SubAgentRun(
@@ -756,7 +756,7 @@ actor WenshuConductor {
         "ReadFile",         // Core/Agent/Tool/ReadFileTool.swift
         "WriteFile",        // Core/Agent/Tool/WriteFileTool.swift
         "av",               // Core/Tools/AVMediaTools.swift
-        "background_review", // Core/Agent/Tool/BackgroundReviewTool.swift  (= v2.8c boss OOB B8: manual + auto BackgroundReview consolidation surface)
+        "background_review", // Core/Agent/Tool/BackgroundReviewTool.swift  (= v2.8c manual + auto BackgroundReview consolidation surface)
         "book_chapter",     // Core/Agent/Librarian/BookChapterTool.swift
         "book_edit_chapter", // Core/Agent/Librarian/EditChapterTool.swift  (= v1.85 hermes 0.21.5 edit_file 1:1)
         "book_entity",      // Core/Agent/Librarian/BookEntityTool.swift  (= v2.3 entity schema redesign)
@@ -765,7 +765,7 @@ actor WenshuConductor {
         "file",             // Core/Tools/FileTools.swift
         "delegate_research", // Core/Agent/Tool/DelegateResearchTool.swift  (= v2.7 self-evolution: main agent delegates research to researcher sub-agent async; = main agent does NOT block on web_search)
         "kanban",           // Core/Agent/Tool/KanbanStoreTool.swift
-        "llm_wiki",         // Core/Agent/Tool/LLMWikiTool.swift  (= v2.8d boss OOB B10: LLM Wiki 4-layer pipeline manual + auto surface)
+        "llm_wiki",         // Core/Agent/Tool/LLMWikiTool.swift  (= v2.8d LLM Wiki 4-layer pipeline manual + auto surface)
         "process",          // Core/Tools/ProcessTools.swift
         "reference_library",// Core/Agent/Librarian/ReferenceLibraryTool.swift
         "todo",             // Core/Tool/TodoStoreTool.swift
@@ -1078,11 +1078,11 @@ actor WenshuConductor {
     /// chapter-focus-lock 2026-09-28: wrap a Tool whose entry point
     /// may throw `ChapterFocusLockedError` (= BookChapterTool,
     /// EditChapterTool) in a retry wrapper that temporarily
-    /// releases the boss's editor focus (= AppStateLocator.shared
+    /// releases the editor focus (= AppStateLocator.shared
     /// .appState?.focusedChapterPath = nil) so the agent's second
     /// attempt passes the gate. This is the auto-Allow MVP path:
     /// the conductor accepts the agent's edit unconditionally when
-    /// the boss is focused on the chapter (= future ticket swaps
+    /// the user is focused on the chapter (= future ticket swaps
     /// in an Allow/Deny dialog without touching this wrapper).
     private func wrapWithChapterFocusLock(_ inner: any Tool, toolName: String) -> any Tool {
         ChapterFocusLockWrappedTool(inner: inner, toolName: toolName)
@@ -1091,7 +1091,7 @@ actor WenshuConductor {
     /// chapter-focus-lock 2026-09-28: thin Tool wrapper that retries
     /// once after releasing the chapter focus lock when the inner
     /// tool throws ChapterFocusLockedError. The MVP auto-Allow
-    /// path (= the conductor treats a focused boss as approval to
+    /// path (= the conductor treats a focused user as approval to
     /// proceed; = see `wrapWithChapterFocusLock` for the future
     /// Allow/Deny UI ticket). Nested inside WenshuConductor so it
     /// has access to the locator without re-binding globals.
@@ -1105,10 +1105,10 @@ actor WenshuConductor {
         }
 
         func execute(input: String) async throws -> String {
-            // Snapshot the boss's current focus state (= before
+            // Snapshot the current focus state (= before
             // any mutation) so we can restore on Deny or after the
             // Allow path completes. Without this, the MVP's
-            // fire-and-forget focus clear would lose the boss's tab
+            // fire-and-forget focus clear would lose the tab
             // focus (= the editor would jump to the placeholder
             // preview). Snapshot path = the chapter that was locked
             // (= the inner tool's ChapterFocusLockedError carries
@@ -1120,11 +1120,11 @@ actor WenshuConductor {
                 // auto-Allow path with a dialog-presented Allow/Deny
                 // decision. The wrapper calls into the
                 // ChapterFocusLockDialogPresenter (= @MainActor
-                // singleton) and awaits the boss's choice via the
+                // singleton) and awaits the choice via the
                 // continuation bridge.
                 let allow: Bool = await MainActor.run {
                     // present(...) is the dialog's blocking await;
-                    // = it suspends until the boss picks Allow/Deny.
+                    // = it suspends until the choice is Allow/Deny.
                     // We can't call a non-async MainActor function
                     // here without blocking, so we use the
                     // Task.detached pattern below to wrap the
@@ -1149,14 +1149,14 @@ actor WenshuConductor {
                 _ = allow
                 if !decision {
                     // Deny path: restore the focus state (= no-op
-                    // here because the snapshot was the boss's
+                    // here because the snapshot was the
                     // pre-trigger state, = no mutation happened yet)
                     // and throw so the LLM receives the error.
                     throw DatasetLockDeniedByBoss(chapterPath: lockError.chapterPath)
                 }
                 // Allow path: clear the focus lock, run the inner
                 // tool, then restore the snapshot (= the dialog
-                // UI saw the boss's prior focus, but the editor
+                // UI saw the prior focus, but the editor
                 // goes read-only while the LLM writes).
                 let snapshot: String? = await MainActor.run {
                     AppStateLocator.shared.appState?.focusedChapterPath
@@ -1182,7 +1182,7 @@ actor WenshuConductor {
 
         /// Compact human-readable summary of the LLM's tool input.
         /// (= e.g. "edit: replace 'foo' -> 'bar'"). Used as the
-        /// dialog's message body so the boss sees what the LLM
+        /// dialog's message body so the user sees what the LLM
         /// intends before deciding.
         static func summarizeInput(_ input: String) -> String {
             guard let data = input.data(using: .utf8),
@@ -1205,7 +1205,7 @@ actor WenshuConductor {
 
         /// Bridge to the presenter (= awaiting the dialog decision
         /// without blocking the MainActor). The presenter holds a
-        /// checked continuation that resumes when the boss picks
+        /// checked continuation that resumes when the choice is
         /// Allow / Deny; = we await the decision by calling
         /// `present(...)` from a MainActor-isolated task and
         /// reading the result.
