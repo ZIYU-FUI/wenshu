@@ -1,4 +1,4 @@
-// AppNotifications.swift · WenshuApp · v2.6
+// AppNotifications.swift
 //
 // Single source of truth for `Notification.Name` raw values. Unified
 // on Apple's reverse-DNS naming convention (= "com.wenshu.X"; see

@@ -1,5 +1,5 @@
 //
-//  BackgroundReviewView.swift · Wenshu · v2.9a ticket T23 ((see OOB.md #2026-09-28) OOB A3)
+//  BackgroundReviewView.swift
 //
 //  Manual surface for BackgroundReview (= (see OOB.md #2026-09-28) OOB
 //  inventory A3). The v2.8c agent surface (= BackgroundReviewTool

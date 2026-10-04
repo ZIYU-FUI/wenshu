@@ -1,4 +1,4 @@
-// SidebarItem.swift · Wenshu · v1.69c
+// SidebarItem.swift
 //
 // c sidebar MVVM cleanup (= (see OOB.md #2026-09-22) OOB '老的文件没
 // 删, UI/业务/数据没分离的删掉'): extracted from the deleted

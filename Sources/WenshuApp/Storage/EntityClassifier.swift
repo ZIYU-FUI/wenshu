@@ -1,4 +1,4 @@
-// EntityClassifier.swift · WenshuApp · v1.85
+// EntityClassifier.swift
 //
 // Auto-classify Reference entities into library-taxonomy categories
 // (EntityCategory). 2-pass strategy:

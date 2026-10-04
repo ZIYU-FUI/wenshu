@@ -1,5 +1,5 @@
 //
-//  KanbanTools.swift · Wenshu · port-window
+//  KanbanTools.swift
 //
 //  LLM-side kanban management surface. Direct port of hermes
 //  tools/kanban_tools.py (= 1,672 LOC; provides the unified

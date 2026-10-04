@@ -1,5 +1,5 @@
 //
-//  PathGuardTypes.swift · Wenshu · wt/path-guard-v2-2026-09-25
+//  PathGuardTypes.swift
 //
 //  Typed path newtypes used by PathGuard (= the allow-list policy
 //  that restricts wenshu built-in tool paths to the user's .ws

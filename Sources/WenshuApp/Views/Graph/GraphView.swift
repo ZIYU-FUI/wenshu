@@ -1,5 +1,5 @@
 //
-// GraphView.swift · Wenshu · migrated from Core/Graph/GraphView.swift in v1.28 A1.1
+// GraphView.swift
 // (= v0.19 ticket 14 Obsidian replica, placeholder shell;
 //  GraphViewModel deleted in A1.1 = 0 external caller (only internal default-init);
 //  View rewritten with inline @State; AnyView(GraphView()) callers in PaneView:163 + WorkspaceView:473 preserved)

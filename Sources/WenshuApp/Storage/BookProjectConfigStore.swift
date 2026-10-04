@@ -1,4 +1,4 @@
-// BookProjectConfigStore.swift · WenshuApp · v1.85
+// BookProjectConfigStore.swift
 //
 // Per-book project-level configuration JSON store. The file lives at:
 //

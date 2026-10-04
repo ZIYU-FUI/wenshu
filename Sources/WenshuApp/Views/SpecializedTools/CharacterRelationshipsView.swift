@@ -1,5 +1,5 @@
 //
-//  CharacterRelationshipsView.swift · Wenshu · P1 ticket #12 (WIRE-SPECIALIZEDTOOLS-006, 2026-09-04)
+//  CharacterRelationshipsView.swift
 //
 //  SpecializedTools pane tab 8: Character Relationships.
 //

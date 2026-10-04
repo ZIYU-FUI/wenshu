@@ -1,5 +1,5 @@
 //
-//  Persistence/WSLink.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSLink.swift
 //
 //   : WSLink.
 //  Mirrors links table schema.

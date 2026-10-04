@@ -1,5 +1,5 @@
 //
-//  Persistence/WSAttachment.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSAttachment.swift
 //
 //   : WSAttachment.
 //  Mirrors `attachments` table from WenshuWorkspace.swift.

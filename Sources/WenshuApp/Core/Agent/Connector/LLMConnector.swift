@@ -1,4 +1,4 @@
-// LLMConnector.swift · WenshuApp · v0.35
+// LLMConnector.swift
 //
 // `LLMConnector` protocol = the public-facing façade for all 7 LLM
 // provider adapters (= AGENTS.md §11.2). The protocol abstracts the

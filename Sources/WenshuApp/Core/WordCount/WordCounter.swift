@@ -1,4 +1,4 @@
-// WordCounter.swift · WenshuApp · v0.19
+// WordCounter.swift
 //
 // Word count: characters, characters-no-spaces, words, in-progress
 // (mirrors the Obsidian Word Count plugin). Uses Foundation

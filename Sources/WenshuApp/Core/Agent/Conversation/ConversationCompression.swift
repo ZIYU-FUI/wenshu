@@ -1,4 +1,4 @@
-// ConversationCompression.swift · WenshuApp · v0.35
+// ConversationCompression.swift
 //
 // Caller-facing wrapper around `ContextCompressor`. Maps to
 // hermes `conversation_compression.conversation_history_after_compression`

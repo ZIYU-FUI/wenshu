@@ -1,4 +1,4 @@
-// FileSystemChapterStore.swift · WenshuApp · v2.0
+// FileSystemChapterStore.swift
 //
 // Per-book chapter storage layer.
 //

@@ -1,4 +1,4 @@
-// BookmarkDomain.swift · WenshuApp · v0.72
+// BookmarkDomain.swift
 //
 // Domain types for the bookmarks feature (= pure value types; no
 // SQLite dependency). SwiftData persistence lives in `WSBookmark`

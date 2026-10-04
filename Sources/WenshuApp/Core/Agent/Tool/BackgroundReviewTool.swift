@@ -1,4 +1,4 @@
-// BackgroundReviewTool.swift · WenshuApp · v2.8c
+// BackgroundReviewTool.swift
 //
 // LLM-facing tool that lets the agent submit background-review
 // proposals (= the auto-call surface per the auto+manual

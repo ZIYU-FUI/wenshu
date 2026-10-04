@@ -1,4 +1,4 @@
-// FileSystemReferenceStore.swift · WenshuApp · v2.6
+// FileSystemReferenceStore.swift
 //
 // Reference-library storage layer.
 //

@@ -1,5 +1,5 @@
 //
-//  EmotionCurveOps.swift · Wenshu · v1.75 emotion-curve-mvvm T1b
+//  EmotionCurveOps.swift
 //
 //  Per-chapter emotion-curve analysis business layer, extracted from
 //  EmotionCurveView (= the P0-mild view listed in

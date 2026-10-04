@@ -1,5 +1,5 @@
 //
-//  Persistence/WSChatMessage.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSChatMessage.swift
 //
 //   : WSChatMessage adds the
 //  child-side `session` property (= plain Optional, NOT @Relationship;

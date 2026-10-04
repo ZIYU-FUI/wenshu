@@ -1,5 +1,5 @@
 //
-//  KanbanView.swift · Wenshu · v0.22 ticket h06 (hermes replica, frontend mount) + B-09 + B-13
+//  KanbanView.swift
 //
 //  Per-(book × scope) kanban board. Reads + writes a scope-aware kanban
 //  JSON file (= BookKanbanStore). Switches the data source when the

@@ -1,5 +1,5 @@
 //
-//  BookSettingConstraintsView.swift · Wenshu · P1 ticket #16 (WIRE-SPECIALIZEDTOOLS-010, 2026-09-04)
+//  BookSettingConstraintsView.swift
 //  FINAL specialized-tools tab.
 //
 //  SpecializedTools pane tab 12: Book Setting Constraints.

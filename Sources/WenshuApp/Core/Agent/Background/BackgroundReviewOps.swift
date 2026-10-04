@@ -1,4 +1,4 @@
-// BackgroundReviewOps.swift · WenshuApp · v2.8c
+// BackgroundReviewOps.swift
 //
 // Consolidation ops for `BackgroundReview`. Unifies the manual +
 // auto caller paths into a single façade:

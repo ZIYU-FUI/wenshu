@@ -1,5 +1,5 @@
 //
-//  CredentialSources.swift · Wenshu · P1-CREDENTIAL-SOURCES-HERMES-PORT (2026-09-19)
+//  CredentialSources.swift
 //
 //  Unified removal contract for every credential source wenshu
 //  reads from. Faithful 1:1 port of hermes

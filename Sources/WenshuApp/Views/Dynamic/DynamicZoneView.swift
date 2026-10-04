@@ -1,4 +1,4 @@
-// DynamicZoneView.swift · Wenshu · v0.24 bossverification + v0.41 WIRE-OPENBOX-001
+// DynamicZoneView.swift
 //
 // Dynamic zone hosts its own DynamicZoneTabBar
 // (Task / Progress / Search). Sheet tab pattern lives in

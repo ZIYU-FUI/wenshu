@@ -1,4 +1,4 @@
-// GraphBuilder.swift · WenshuApp · v0.19
+// GraphBuilder.swift
 //
 // Vault build + simple spring-force layout. Mirrors the Obsidian
 // Graph view (https://obsidian.md/help/plugins/graph) using a

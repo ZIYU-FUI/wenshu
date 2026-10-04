@@ -1,5 +1,5 @@
 //
-//  LongFormGuardrails.swift · Wenshu · P1 ticket #6 (PORT-LONGFORM-001, 2026-09-04)
+//  LongFormGuardrails.swift
 //
 //  1:1 port of hermes `agent/specialized/long_form_guardrails.py`
 // 

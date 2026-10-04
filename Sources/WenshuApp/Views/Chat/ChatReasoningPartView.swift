@@ -1,5 +1,5 @@
 //
-//  ChatReasoningPartView.swift · Wenshu · refactor chat-mvvm-3layer C-9b
+//  ChatReasoningPartView.swift
 //
 //  Apple MVVM canonical part view: renders one reasoning block
 //  (= the "thinking…" trace that shows what the assistant considered

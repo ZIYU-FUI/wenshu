@@ -1,4 +1,4 @@
-// DelegateResearchTool.swift · WenshuApp · v2.7
+// DelegateResearchTool.swift
 //
 // LLM-facing tool that the wenshu main agent uses to delegate
 // concrete-noun research to the Researcher sub-agent (= the

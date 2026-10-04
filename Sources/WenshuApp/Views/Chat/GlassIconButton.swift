@@ -1,5 +1,5 @@
 //
-//  GlassIconButton.swift · Wenshu · v1.64f
+//  GlassIconButton.swift
 //
 // f (see OOB.md #2026-09-20) 'apply the prototype to wenshu directly':
 //  extract the Apple macOS 27 native NSButton(bezelStyle: .glass)

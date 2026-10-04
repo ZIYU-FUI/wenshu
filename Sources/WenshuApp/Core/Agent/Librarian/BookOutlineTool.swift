@@ -1,5 +1,5 @@
 //
-//  BookOutlineTool.swift · Wenshu · v2.0 (2026-09-25)
+//  BookOutlineTool.swift
 //
 //  Per-book outline CRUD tool (= wraps FileSystemOutlineStore).
 //  Mirrors BookWorldTool / BookCharacterTool / BookChapterTool

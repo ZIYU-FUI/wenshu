@@ -1,5 +1,5 @@
 //
-//  AnthropicAdapter.swift · Wenshu · port-window
+//  AnthropicAdapter.swift
 //
 //  Anthropic Messages API adapter extensions. Direct port of hermes
 //  agent/anthropic_adapter.py (= 2,789 LOC; provides redacted_thinking

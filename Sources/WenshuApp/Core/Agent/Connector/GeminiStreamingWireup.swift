@@ -1,5 +1,5 @@
 //
-//  GeminiStreamingWireup.swift · Wenshu · T15-GEMINI-STREAM (2026-09-18)
+//  GeminiStreamingWireup.swift
 //
 //  EventSource adapter for Gemini's streaming endpoint
 //  (= streamGenerateContent). Wraps mattt/EventSource 1.5.1 and

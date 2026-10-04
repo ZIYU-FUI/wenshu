@@ -1,4 +1,4 @@
-// TurnContext.swift · WenshuApp · v0.35
+// TurnContext.swift
 //
 // Per-turn state bundle + per-turn setup helpers. Direct port of
 // hermes `agent/turn_context.py` (= `build_turn_context` = the

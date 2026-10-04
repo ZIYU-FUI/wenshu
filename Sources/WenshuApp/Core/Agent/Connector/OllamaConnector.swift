@@ -1,5 +1,5 @@
 //
-//  OllamaConnector.swift · Wenshu · §11.2 connector-profile gap-fill
+//  OllamaConnector.swift
 //
 //  Ollama connector (= one of 7 LLM connector profiles per AGENTS.md §11.2).
 //

@@ -1,5 +1,5 @@
 //
-//  Persistence/WSBook.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSBook.swift
 //
 //   : WSBook.
 //  Mirrors `books` table from WenshuWorkspace.swift.

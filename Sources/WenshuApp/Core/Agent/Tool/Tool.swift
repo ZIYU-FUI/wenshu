@@ -1,4 +1,4 @@
-// Tool.swift · WenshuApp · v0.35
+// Tool.swift
 //
 // Tool protocol = the contract every wenshu tool (= ReadFileTool,
 // WriteFileTool, KanbanTool, etc.) must satisfy.

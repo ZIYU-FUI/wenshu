@@ -1,4 +1,4 @@
-// TurnFinalizer.swift · WenshuApp · v0.35
+// TurnFinalizer.swift
 //
 // Turn-end normalization (= the post-loop finalization lifted
 // verbatim from hermes `run_conversation`). Mirrors hermes

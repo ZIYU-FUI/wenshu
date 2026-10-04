@@ -1,4 +1,4 @@
-// AsyncDelegation.swift · WenshuApp · v0.23
+// AsyncDelegation.swift
 //
 // Source (= hermes Python): `tools/async delegation.py`.
 // Reference (= canonical Python source-of-truth):

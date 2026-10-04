@@ -1,4 +1,4 @@
-// BaseParser.swift · WenshuApp · v0.19
+// BaseParser.swift
 //
 // `.base` YAML file parser (= Obsidian Bases syntax; see
 // https://obsidian.md/help/bases/syntax). Uses Foundation String

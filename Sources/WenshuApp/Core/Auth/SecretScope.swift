@@ -1,5 +1,5 @@
 //
-//  SecretScope.swift · Wenshu · TICKET-HERMES-GAP-005
+//  SecretScope.swift
 //
 //  Ported from hermes-agent `agent/secret_scope.py` (205 LOC) +
 //  `agent/secret_sources/` (onepassword + bitwarden + base + registry +

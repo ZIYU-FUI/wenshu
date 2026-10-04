@@ -1,5 +1,5 @@
 //
-//  AuditorStorage.swift · Wenshu · v2.7d
+//  AuditorStorage.swift
 //
 //  Read-only memory adapter for the Auditor sub-agent.
 //

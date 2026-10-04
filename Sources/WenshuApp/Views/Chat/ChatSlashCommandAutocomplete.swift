@@ -1,5 +1,5 @@
 //
-//  ChatSlashCommandAutocomplete.swift · Wenshu · T18-SLASH-AUTOCOMPLETE (2026-09-18)
+//  ChatSlashCommandAutocomplete.swift
 //
 //  Hermes-style slash command autocomplete dropdown. Renders a
 //  filtered list of hub commands above the chat TextField when the

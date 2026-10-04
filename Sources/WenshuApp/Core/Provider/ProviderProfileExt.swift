@@ -1,4 +1,4 @@
-// ProviderProfileExt.swift · WenshuApp · v0.28
+// ProviderProfileExt.swift
 //
 // Extension to the existing `Provider` struct with the optional
 // fields from hermes-agent/providers/base.py `ProviderProfile`.

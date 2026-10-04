@@ -1,5 +1,5 @@
 //
-//  GenreFitView.swift · Wenshu · P1 ticket #9 (WIRE-SPECIALIZEDTOOLS-004, 2026-09-04)
+//  GenreFitView.swift
 //
 //  SpecializedTools pane tab 6: Genre Fit.
 //

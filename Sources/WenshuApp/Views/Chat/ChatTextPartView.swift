@@ -1,5 +1,5 @@
 //
-//  ChatTextPartView.swift · Wenshu · refactor chat-mvvm-3layer C-9a
+//  ChatTextPartView.swift
 //
 //  Apple MVVM canonical part view: renders one text block (= the
 //  canonical "the assistant said this" cell). Lifted out of

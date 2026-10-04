@@ -1,4 +1,4 @@
-// BackgroundCreditsTracker.swift · WenshuApp · v0.36
+// BackgroundCreditsTracker.swift
 //
 // Tracks AI agent credit / token consumption (= hermes parity;
 // = the Background/ directory has 5 files: CreditsTracker /

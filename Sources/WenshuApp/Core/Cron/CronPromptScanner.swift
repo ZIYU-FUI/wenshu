@@ -1,4 +1,4 @@
-// CronPromptScanner.swift · WenshuApp · v0.23
+// CronPromptScanner.swift
 //
 // Prompts the user to confirm a cron schedule scan (= hermes
 // `_scan_cron_prompt` parity). The scan detects invisible unicode /

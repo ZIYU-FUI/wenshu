@@ -1,5 +1,5 @@
 //
-//  LiveChatRepository.swift · Wenshu · refactor chat-mvvm-3layer C-4
+//  LiveChatRepository.swift
 //
 //  SwiftData-backed ChatRepositoryProtocol implementation. Thin
 //  adapter over `WSChatRepository.shared` (= the @MainActor SwiftData

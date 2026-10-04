@@ -1,5 +1,5 @@
 //
-//  ReaderExperienceOps.swift · Wenshu · v1.75 reader-experience-mvvm T1b
+//  ReaderExperienceOps.swift
 //
 //  Per-chapter reader-experience analysis business layer, extracted from
 //  ReaderExperienceView (= the P0-mild view listed in

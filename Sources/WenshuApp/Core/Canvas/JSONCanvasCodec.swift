@@ -1,4 +1,4 @@
-// JSONCanvasCodec.swift · WenshuApp · v0.19
+// JSONCanvasCodec.swift
 //
 // JSON Canvas file format (https://jsoncanvas.org/spec/1.0, MIT).
 // Uses `Codable` to encode/decode `.canvas` files (= nodes[] +

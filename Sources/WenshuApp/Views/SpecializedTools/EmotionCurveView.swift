@@ -1,5 +1,5 @@
 //
-//  EmotionCurveView.swift · Wenshu · P1 ticket #11 (WIRE-SPECIALIZEDTOOLS-005, 2026-09-04)
+//  EmotionCurveView.swift
 //
 //  SpecializedTools pane tab 7: Emotion Curve.
 //

@@ -1,4 +1,4 @@
-// WenshuLLMModel.swift · WenshuApp · v0.21
+// WenshuLLMModel.swift
 //
 // LLM model enum for the wenshu minimax-cn connector (= the
 // canonical default profile per AGENTS.md §11.2).

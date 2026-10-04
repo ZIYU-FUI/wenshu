@@ -1,4 +1,4 @@
-// ConnectorCredentials.swift · WenshuApp · v0.35
+// ConnectorCredentials.swift
 //
 // Thin resolver that delegates to existing wenshu `ProviderKeychain`
 // (= AGENTS.md §11.3 wenshu-side wins pattern: do not re-implement

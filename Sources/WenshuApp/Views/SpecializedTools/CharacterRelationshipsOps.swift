@@ -1,5 +1,5 @@
 //
-//  CharacterRelationshipsOps.swift · Wenshu · v1.75 character-relationships-mvvm T1b
+//  CharacterRelationshipsOps.swift
 //
 //  Per-book character-relationship business layer, extracted from
 //  CharacterRelationshipsView (= the P0 view listed in

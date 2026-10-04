@@ -1,5 +1,5 @@
 //
-//  Persistence/WSBookmark.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSBookmark.swift
 //
 //   : WSBookmark.
 //  SwiftData @Model for bookmarks. Replaces `bookmarks` table from

@@ -1,4 +1,4 @@
-// KanbanDomain.swift · WenshuApp · v0.72
+// KanbanDomain.swift
 //
 // Canonical domain types for kanban tickets (= `KanbanStatus` +
 // `KanbanTask`). Pure value types (= no SQLite dependency).

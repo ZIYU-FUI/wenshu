@@ -1,4 +1,4 @@
-//  ChatView.swift · Wenshu · v1.92
+//  ChatView.swift
 //
 // (2026-09-23): the user's message bubble pins at top (like hermes sticky-human-top, = no scrollout).
 //  顶。让用户知道 AI 回复的是哪个问题' (= implement hermes-style sticky

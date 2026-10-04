@@ -1,5 +1,5 @@
 //
-//  FallbackChain.swift · Wenshu · HERMES-DISPATCH-002
+//  FallbackChain.swift
 //
 //  Ordered provider fallback chain executor. Ported from
 //  hermes-agent `hermes_cli/fallback_chain.py` + `auth.py` fallback config.

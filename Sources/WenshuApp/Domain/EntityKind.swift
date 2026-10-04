@@ -1,5 +1,5 @@
 //
-//  EntityKind.swift · Wenshu · v2.3 (2026-09-25)
+//  EntityKind.swift
 //
 //  The 5-layer kind taxonomy (= person / location / object /
 //  ability / event). Top-level enum = closed (= the v2.4 product

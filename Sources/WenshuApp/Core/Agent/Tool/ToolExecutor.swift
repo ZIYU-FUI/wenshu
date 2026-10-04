@@ -1,4 +1,4 @@
-// ToolExecutor.swift · WenshuApp · v0.35
+// ToolExecutor.swift
 //
 // Tool dispatch actor. Maps to hermes `tool_executor.py` (=
 // `execute_tool_calls_concurrent` at L306,

@@ -1,5 +1,5 @@
 //
-//  LongFormGuardrailsView.swift · Wenshu · P1 ticket #6 (WIRE-SPECIALIZEDTOOLS-001, 2026-09-04)
+//  LongFormGuardrailsView.swift
 //
 //  SpecializedTools pane tab 3: Long-Form Guardrails.
 //

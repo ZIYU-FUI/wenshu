@@ -1,4 +1,4 @@
-// SidebarRowView.swift · Wenshu · v1.68b
+// SidebarRowView.swift
 //
 // One row in the macOS 27 Apple HIG sidebar. Used by
 // AppleSidebarView's List(.sidebar) — Apple takes care of the

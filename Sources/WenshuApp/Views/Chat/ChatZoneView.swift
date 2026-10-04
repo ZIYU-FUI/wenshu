@@ -1,4 +1,4 @@
-// ChatZoneView.swift · Wenshu · v1.91b
+// ChatZoneView.swift
 //
 // per Apple HIG = one view per file.
 //

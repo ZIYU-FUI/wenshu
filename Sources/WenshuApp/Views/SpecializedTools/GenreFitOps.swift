@@ -1,5 +1,5 @@
 //
-//  GenreFitOps.swift · Wenshu · v1.75 genre-fit-mvvm T1b
+//  GenreFitOps.swift
 //
 //  Per-chapter genre-fit analysis business layer, extracted from
 //  GenreFitView (= the P0-mild view listed in

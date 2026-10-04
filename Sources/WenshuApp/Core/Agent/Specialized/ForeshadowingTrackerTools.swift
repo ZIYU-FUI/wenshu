@@ -1,5 +1,5 @@
 //
-//  ForeshadowingTrackerTools.swift · Wenshu · P2 ticket #17 (PORT-SPECIALIZED-012, 2026-09-04)
+//  ForeshadowingTrackerTools.swift
 //
 //  1:1 Swift port of hermes `agent/specialized/foreshadowing_tracker.py`.
 //  (= design contract only per hermes-port-manifest; the Python

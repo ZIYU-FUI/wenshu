@@ -1,5 +1,5 @@
 //
-//  AppStateLocator.swift · Wenshu · chapter-focus-lock 2026-09-28 T2
+//  AppStateLocator.swift
 //
 //  Tiny locator for the singleton AppState so background actors
 //  (= EditChapterActor, BookChapterActor, etc.) can read the

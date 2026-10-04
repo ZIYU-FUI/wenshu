@@ -1,4 +1,4 @@
-// FileSystemLibraryStore.swift · WenshuApp · v0.02.0
+// FileSystemLibraryStore.swift
 //
 // Filesystem-backed LibraryStoring implementation. Swap for MetadataQuery /
 // CoreData / CloudKit later without changing the contract (= LibraryStoring)

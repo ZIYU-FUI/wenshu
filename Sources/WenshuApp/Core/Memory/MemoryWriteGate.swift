@@ -1,4 +1,4 @@
-// MemoryWriteGate.swift · WenshuApp · v0.23
+// MemoryWriteGate.swift
 //
 // hermes `_apply_write_gate` parity (= every memory write goes
 // through a gate that classifies the operation as allow / block /

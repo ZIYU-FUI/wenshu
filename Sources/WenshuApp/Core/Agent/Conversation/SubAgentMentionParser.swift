@@ -1,5 +1,5 @@
 //
-//  SubAgentMentionParser.swift · Wenshu · subsequent chat-arc work
+//  SubAgentMentionParser.swift
 //
 //  Parse `@subagent_slug <task>` syntax in user chat input.
 //

@@ -1,5 +1,5 @@
 //
-//  PromptBuilder.swift · Wenshu · TICKET-HERMES-GAP-001
+//  PromptBuilder.swift
 //
 //  Dynamic-tier system-prompt composition. Direct port of hermes
 //  `agent/prompt_builder.py` (1,971 LOC).

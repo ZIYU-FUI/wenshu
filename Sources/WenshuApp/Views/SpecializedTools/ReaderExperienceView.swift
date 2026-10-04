@@ -1,5 +1,5 @@
 //
-//  ReaderExperienceView.swift · Wenshu · P1 ticket #7 (WIRE-SPECIALIZEDTOOLS-002, 2026-09-04)
+//  ReaderExperienceView.swift
 //
 //  SpecializedTools pane tab 4: Reader Experience.
 //

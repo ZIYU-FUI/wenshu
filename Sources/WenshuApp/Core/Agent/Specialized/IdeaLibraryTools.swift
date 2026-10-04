@@ -1,5 +1,5 @@
 //
-//  IdeaLibraryTools.swift · Wenshu · P1 ticket #15 (PORT-SPECIALIZED-010, 2026-09-04)
+//  IdeaLibraryTools.swift
 //
 //  1:1 Swift port of hermes `agent/specialized/idea_library.py`.
 //  (= design contract only per hermes-port-manifest; the Python

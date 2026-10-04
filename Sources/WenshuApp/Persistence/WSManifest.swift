@@ -1,5 +1,5 @@
 //
-//  Persistence/WSManifest.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSManifest.swift
 //
 //   : WSManifest (singleton, no relationships).
 //  Per AGENTS.md §11.4 + .scratch/2026-09-13-swiftdata-migration-spec.md.

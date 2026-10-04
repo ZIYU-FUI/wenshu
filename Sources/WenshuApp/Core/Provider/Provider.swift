@@ -1,4 +1,4 @@
-// Provider.swift · WenshuApp · v0.21
+// Provider.swift
 
 import Foundation
 

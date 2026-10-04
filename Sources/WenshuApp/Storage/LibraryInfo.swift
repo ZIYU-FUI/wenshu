@@ -1,4 +1,4 @@
-// LibraryInfo.swift · WenshuApp · v2.6
+// LibraryInfo.swift
 //
 // Reads the .ws library's Info.plist metadata (= Apple HIG bundle
 // pattern).

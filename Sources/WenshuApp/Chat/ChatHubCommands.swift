@@ -1,4 +1,4 @@
-//  ChatHubCommands.swift · Wenshu · v2.4 (2026-09-25)
+//  ChatHubCommands.swift
 //
 //  Canonical registry for chat slash commands (= the 35 hub
 //  commands). Owned by the Chat layer (= not by Skill), because the

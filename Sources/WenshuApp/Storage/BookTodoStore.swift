@@ -1,4 +1,4 @@
-// BookTodoStore.swift · WenshuApp · v1.85
+// BookTodoStore.swift
 //
 // Per-(book × scope) todo JSON store. Each scope variant writes to a
 // different JSON file in the resolved directory:

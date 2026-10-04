@@ -1,4 +1,4 @@
-// WenshuLLMModelFetcher.swift · WenshuApp · v0.21
+// WenshuLLMModelFetcher.swift
 //
 // Fetches live model IDs from the provider's `/models` endpoint
 // (= hermes parity; = used by the Settings pane to populate the

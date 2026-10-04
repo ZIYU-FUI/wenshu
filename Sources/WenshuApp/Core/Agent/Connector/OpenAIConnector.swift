@@ -1,4 +1,4 @@
-// OpenAIConnector.swift · WenshuApp · v0.35
+// OpenAIConnector.swift
 //
 // OpenAI native + OpenAI-compatible connector.
 //

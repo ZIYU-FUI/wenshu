@@ -1,5 +1,5 @@
 //
-//  UUID+Literal.swift · Wenshu · v0.71 P1 batch 10
+//  UUID+Literal.swift
 //
 // 
 //  central helper for compile-time-literal UUID init.

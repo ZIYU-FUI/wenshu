@@ -1,5 +1,5 @@
 //
-//  ReaderExperienceTools.swift · Wenshu · P1 ticket #7 (PORT-SPECIALIZED-002, 2026-09-04)
+//  ReaderExperienceTools.swift
 //
 //  1:1 Swift port of hermes `agent/specialized/reader_experience.py`.
 //

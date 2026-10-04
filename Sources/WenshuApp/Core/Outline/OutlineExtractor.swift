@@ -1,4 +1,4 @@
-// OutlineExtractor.swift · WenshuApp · v0.19
+// OutlineExtractor.swift
 //
 // Markdown heading parser (H1-H6). Aligned with Obsidian's
 // Outline plugin behavior (https://obsidian.md/help/plugins/outline).

@@ -1,5 +1,5 @@
 //
-//  AgentBehavior.swift · Wenshu · v2.4 (2026-09-25)
+//  AgentBehavior.swift
 //
 //  Agent-behavior settings = wenshu's stable contract for the
 //  LLM's reply style, scope, and surface preferences.

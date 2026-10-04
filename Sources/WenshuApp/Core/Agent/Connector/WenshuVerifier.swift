@@ -1,4 +1,4 @@
-// WenshuVerifier.swift · WenshuApp · v0.18
+// WenshuVerifier.swift
 //
 // Verifier that proves the wenshu `AgentProtocol` works against the
 // minimax-cn key.

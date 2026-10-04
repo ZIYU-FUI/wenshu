@@ -1,4 +1,4 @@
-// BacklinkResolver.swift · WenshuApp · v0.19
+// BacklinkResolver.swift
 //
 // Async parse markdown content + insert into `WSLinkRepository`
 // (= @MainActor SwiftData wrapper) for a bidirectional index. API:

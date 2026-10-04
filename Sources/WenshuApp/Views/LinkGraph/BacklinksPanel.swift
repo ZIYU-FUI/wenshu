@@ -1,5 +1,5 @@
 //
-// BacklinksPanel.swift · Wenshu · migrated from Core/LinkGraph/BacklinksPanel.swift in v1.28 A1.1
+// BacklinksPanel.swift
 //
 
 import Foundation

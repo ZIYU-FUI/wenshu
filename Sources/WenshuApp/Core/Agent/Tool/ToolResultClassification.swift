@@ -1,5 +1,5 @@
 //
-//  ToolResultClassification.swift · Wenshu · P2-TOOL-RESULT-CLASSIFICATION-HERMES-PORT (2026-09-19)
+//  ToolResultClassification.swift
 //
 //  Shared helpers for classifying tool result payloads.
 //  Faithful 1:1 port of hermes

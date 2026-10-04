@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSTodoRepository.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/Repositories/WSTodoRepository.swift
 //
 //  Migration commit 24 of 42: WSTodoRepository.
 //  Per AGENTS.md §11.4.

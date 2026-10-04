@@ -1,4 +1,4 @@
-// BackgroundReview.swift · WenshuApp · v0.36
+// BackgroundReview.swift
 //
 // Background review workflow. When a background task proposes
 // changes (= entity creation, file edits, etc.), the user reviews

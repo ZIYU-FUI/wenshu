@@ -1,5 +1,5 @@
 //
-//  CharacterLifecycleTools.swift · Wenshu · P1 ticket #13 (PORT-SPECIALIZED-008, 2026-09-04)
+//  CharacterLifecycleTools.swift
 //
 //  1:1 Swift port of hermes `agent/specialized/character_lifecycle.py`.
 //

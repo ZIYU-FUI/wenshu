@@ -1,4 +1,4 @@
-// SystemPrompt.swift · WenshuApp · v0.35
+// SystemPrompt.swift
 //
 // System prompt builder. Direct port of hermes `system_prompt.py`
 // (= `build_system_prompt_parts` + `build_system_prompt`).

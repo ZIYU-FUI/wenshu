@@ -1,4 +1,4 @@
-// SSEClient.swift · Wenshu · v0.34
+// SSEClient.swift
 //
 // Server-Sent Events (SSE) client for streaming LLM responses.
 // Parses the W3C SSE wire format from `URLSession.bytes(for:)`.

@@ -1,5 +1,5 @@
 //
-//  ChatMessageView.swift · Wenshu · v1.28 C3.4.1
+//  ChatMessageView.swift
 //
 //  Split out of ChatView.swift (originally line 1702-1954; = 252 LOC
 //  = the per-message sub-view body). The split removes the

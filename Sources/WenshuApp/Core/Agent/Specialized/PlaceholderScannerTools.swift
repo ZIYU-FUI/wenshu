@@ -1,5 +1,5 @@
 //
-//  PlaceholderScannerTools.swift · Wenshu · P2 ticket #18 (PORT-SPECIALIZED-013, 2026-09-04)
+//  PlaceholderScannerTools.swift
 //
 //  1:1 Swift port of hermes `agent/specialized/placeholder_scanner.py`.
 //

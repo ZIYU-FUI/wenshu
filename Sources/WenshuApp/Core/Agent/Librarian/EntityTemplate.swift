@@ -1,5 +1,5 @@
 //
-//  EntityTemplate.swift · Wenshu · v2.3 (2026-09-25)
+//  EntityTemplate.swift
 //
 //  Pure-function MD template renderer for the 5 entity kinds.
 //

@@ -1,5 +1,5 @@
 //
-//  RequestHelpers.swift · Wenshu · TICKET-HERMES-GAP-002
+//  RequestHelpers.swift
 //
 //  Extracted request/response marshaling for the 5 LLM connectors
 //  (= AnthropicConnector, OpenAIConnector, OpenAICompatibleConnector,

@@ -1,4 +1,4 @@
-// Cronjob.swift · WenshuApp · v0.18
+// Cronjob.swift
 //
 // Local cron job scheduling (= hermes `cronjob` parity). Uses
 // macOS `LaunchAgent` (`launchd`) as the canonical scheduler.

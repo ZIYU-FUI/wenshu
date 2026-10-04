@@ -1,5 +1,5 @@
 //
-//  BookSettingConstraintsOps.swift · Wenshu · v1.75 book-setting-constraints-mvvm T1b
+//  BookSettingConstraintsOps.swift
 //
 //  Per-book setting-constraint business layer, extracted from
 //  BookSettingConstraintsView (= the P0 view listed in

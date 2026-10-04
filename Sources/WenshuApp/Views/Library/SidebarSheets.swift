@@ -1,5 +1,5 @@
 //
-//  SidebarSheets.swift · Wenshu · v1.69y (see OOB.md #2026-09-23) OOB
+//  SidebarSheets.swift
 //
 //  Sheet bodies for the sidebar's create + rename flows.
 //  Restored from the deleted NewLibraryOutlineView.swift

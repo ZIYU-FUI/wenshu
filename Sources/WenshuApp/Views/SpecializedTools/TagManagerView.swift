@@ -1,5 +1,5 @@
 //
-//  TagManagerView.swift · Wenshu · P1 ticket #14 (WIRE-SPECIALIZEDTOOLS-008, 2026-09-04)
+//  TagManagerView.swift
 //
 //  SpecializedTools pane tab 10: Tag Manager.
 //

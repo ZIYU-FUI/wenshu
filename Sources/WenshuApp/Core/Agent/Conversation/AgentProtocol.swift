@@ -1,4 +1,4 @@
-// AgentProtocol.swift · WenshuApp · v0.18
+// AgentProtocol.swift
 //
 // A2A (= Google A2A spec): JSON-RPC 2.0 style, agent message + task.
 // In-process actor message (= the URLSession HTTP server surface is

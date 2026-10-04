@@ -1,5 +1,5 @@
 //
-//  TodoListView.swift · Wenshu · v0.22 ticket h07 (hermes replica, frontend mount) + B-09 + B-13
+//  TodoListView.swift
 //
 //  Per-(book × scope) todo list. Reads + writes a scope-aware todo
 //  JSON file (= BookTodoStore). Same data-source-switch pattern as

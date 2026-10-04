@@ -1,4 +1,4 @@
-// WenshuConductor.swift · WenshuApp · v0.21
+// WenshuConductor.swift
 //
 // Wenshu main agent orchestrator (= single-display surface; multi-
 // agent hidden):

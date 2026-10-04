@@ -1,5 +1,5 @@
 //
-//  ToolRegistry.swift · Wenshu · v0.40 PORT-TOOLREGISTRY-001
+//  ToolRegistry.swift
 //
 //  1:1 Swift port of hermes `tools/registry.py` (= 766 LOC).
 //

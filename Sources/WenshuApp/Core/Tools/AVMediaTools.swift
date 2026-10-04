@@ -1,4 +1,4 @@
-// AVMediaTools.swift · WenshuApp · v0.18
+// AVMediaTools.swift
 //
 // Local AV media tools (= hermes `tts` parity). Uses
 // `AVSpeechSynthesizer` for text-to-speech (Apple Foundation

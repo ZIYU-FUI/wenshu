@@ -1,4 +1,4 @@
-// AnthropicStreamingWireup.swift · WenshuApp · v0.35
+// AnthropicStreamingWireup.swift
 //
 // Wires `EventSource` 1.5.1 (= `mattt/EventSource`, already in
 // `Package.swift`) into `AnthropicConnector` for SSE streaming.

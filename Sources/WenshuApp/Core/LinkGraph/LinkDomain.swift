@@ -1,4 +1,4 @@
-// LinkDomain.swift · WenshuApp · v0.72
+// LinkDomain.swift
 //
 // Canonical domain type for wiki links (= `Link`). Pure value
 // type (= no SQLite dependency). SwiftData persistence lives in

@@ -1,4 +1,4 @@
-//  AuthPool.swift · WenshuApp · v2.6
+//  AuthPool.swift
 //
 //  Multi-key credential pool with status state machine + optional
 //  disk persistence. Ported from hermes-agent

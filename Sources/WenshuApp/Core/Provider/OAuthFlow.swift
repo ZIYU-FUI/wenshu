@@ -1,4 +1,4 @@
-// OAuthFlow.swift · WenshuApp · v0.36
+// OAuthFlow.swift
 //
 // OAuth 2.0 authorization code flow + `refresh_token` grant for LLM
 // providers (= thin adapter over `URLSession` + `JSONSerialization`;

@@ -1,5 +1,5 @@
 //
-//  OutlineEntry.swift · Wenshu · v2.0 (2026-09-25)
+//  OutlineEntry.swift
 //
 //  Domain model for one outline item under a book.
 //

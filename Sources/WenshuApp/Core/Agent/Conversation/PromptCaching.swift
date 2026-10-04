@@ -1,4 +1,4 @@
-// PromptCaching.swift · WenshuApp · v0.35
+// PromptCaching.swift
 //
 // Anthropic prompt caching strategy. Direct port of hermes
 // `prompt_caching.py`.

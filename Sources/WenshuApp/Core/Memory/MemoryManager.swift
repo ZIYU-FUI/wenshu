@@ -1,4 +1,4 @@
-// MemoryManager.swift · WenshuApp · v0.23
+// MemoryManager.swift
 //
 // hermes `MemoryManager.prefetch_all` + `sync_all` parity. Wenshu-side
 // wins: this is the canonical Swift-side type per AGENTS.md §11.3;

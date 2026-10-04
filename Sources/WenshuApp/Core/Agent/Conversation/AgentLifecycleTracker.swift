@@ -1,4 +1,4 @@
-// AgentLifecycleTracker.swift · WenshuApp · v0.28
+// AgentLifecycleTracker.swift
 //
 // Deferred per spec decision: the production caller is undecided.
 // See

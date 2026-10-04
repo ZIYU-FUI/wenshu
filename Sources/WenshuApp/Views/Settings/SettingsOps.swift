@@ -1,5 +1,5 @@
 //
-//  SettingsOps.swift · Wenshu · v1.72 settings-kanban-todo-mvvm T3b
+//  SettingsOps.swift
 //
 //  Settings pane business layer, extracted from SettingView.
 //

@@ -1,5 +1,5 @@
 //
-// SpecializedToolLoadStatus.swift · Wenshu · v1.28 B2.6
+// SpecializedToolLoadStatus.swift
 //
 // Shared `LoadStatus` enum for the 8 SpecializedTools tabs (= per
 // R1 reuse audit Top 5; = previously each view file re-declared

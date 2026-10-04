@@ -1,5 +1,5 @@
 //
-//  ChatMessageThinkingDisclosure.swift · Wenshu · refactor chat-mvvm-3layer C-8b
+//  ChatMessageThinkingDisclosure.swift
 //
 //  Apple MVVM canonical leaf view for the reasoning DisclosureGroup
 //  that shows the assistant's thinking content (= what it considered

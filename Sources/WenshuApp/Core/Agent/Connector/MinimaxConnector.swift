@@ -1,4 +1,4 @@
-// MinimaxConnector.swift · WenshuApp · v0.35
+// MinimaxConnector.swift
 //
 // Minimax cn connector (= Anthropic-compatible wire format
 // peer of AnthropicConnector). Per AGENTS.md §11.2: Minimax cn

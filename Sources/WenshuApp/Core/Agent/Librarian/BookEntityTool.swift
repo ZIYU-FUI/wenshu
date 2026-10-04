@@ -1,5 +1,5 @@
 //
-//  BookEntityTool.swift · Wenshu · v2.3 (2026-09-25)
+//  BookEntityTool.swift
 //
 //  Per-book entity CRUD actor + 5-kind dispatcher.
 //

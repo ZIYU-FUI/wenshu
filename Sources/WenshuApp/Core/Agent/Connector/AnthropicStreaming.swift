@@ -1,4 +1,4 @@
-// AnthropicStreaming.swift · WenshuApp · v0.35
+// AnthropicStreaming.swift
 //
 // Anthropic SSE streaming + tool_use round-trip helpers for
 // `AnthropicConnector`. The original `AnthropicConnector.swift`

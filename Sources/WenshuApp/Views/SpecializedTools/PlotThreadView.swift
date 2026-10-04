@@ -1,5 +1,5 @@
 //
-//  PlotThreadView.swift · Wenshu · v0.72 SwiftData migration 
+//  PlotThreadView.swift
 //
 //  Specialized tools pane view (= 1 of 12 tabs; = EmotionCurveView
 //  + IdeaLibraryView + BookSettingConstraintsView + CharacterLifecycleView

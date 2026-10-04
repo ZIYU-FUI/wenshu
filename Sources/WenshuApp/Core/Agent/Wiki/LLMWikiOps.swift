@@ -1,4 +1,4 @@
-// LLMWikiOps.swift · WenshuApp · v2.8d
+// LLMWikiOps.swift
 //
 // LLM Wiki pipeline unified ops (= the manual + auto facade per
 // the core-capability directive: research-to-document pipeline =

@@ -1,4 +1,4 @@
-// LLMWikiTool.swift · WenshuApp · v2.8d
+// LLMWikiTool.swift
 //
 // LLM-facing tool that lets the agent run the LLM Wiki
 // derivation + lint (= the auto-call surface per the core-

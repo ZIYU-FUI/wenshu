@@ -1,5 +1,5 @@
 //
-//  Persistence/WSOutlineNode.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSOutlineNode.swift
 //
 //   : WSOutlineNode.
 //  Mirrors `outline_entries` table from WenshuWorkspace.swift.

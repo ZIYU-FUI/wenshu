@@ -1,5 +1,5 @@
 //
-//  SidebarOpenOps.swift · Wenshu · v1.75 apple-sidebar-mvvm T1b
+//  SidebarOpenOps.swift
 //
 //  AppleSidebarView's openBook/openFolder business layer, extracted from
 //  AppleSidebarView (= the P1 view listed in

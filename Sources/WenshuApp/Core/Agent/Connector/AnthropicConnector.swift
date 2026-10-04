@@ -1,4 +1,4 @@
-// AnthropicConnector.swift · WenshuApp · v0.35
+// AnthropicConnector.swift
 //
 // Anthropic native connector. P0 connector profile, full wire format
 // support per AGENTS.md §11.2.

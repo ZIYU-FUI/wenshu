@@ -1,5 +1,5 @@
 //
-//  LongFormGuardrailsOps.swift · Wenshu · v1.75 longform-guardrails-mvvm T1b
+//  LongFormGuardrailsOps.swift
 //
 //  Per-book long-form-guardrails business layer, extracted from
 //  LongFormGuardrailsView (= the P0 view listed in

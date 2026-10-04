@@ -1,5 +1,5 @@
 //
-//  ReferenceLibraryTool.swift · Wenshu · v2.0 (2026-09-25)
+//  ReferenceLibraryTool.swift
 //
 //  Per-library reference CRUD tool (= wraps FileSystemReferenceStore).
 //

@@ -1,5 +1,5 @@
 //
-//  CharacterRelationshipTools.swift · Wenshu · P1 ticket #12 (PORT-SPECIALIZED-007, 2026-09-04)
+//  CharacterRelationshipTools.swift
 //
 //  1:1 Swift port of hermes `agent/specialized/character_relationships.py`.
 //

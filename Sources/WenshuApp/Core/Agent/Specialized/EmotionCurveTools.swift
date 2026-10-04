@@ -1,5 +1,5 @@
 //
-//  EmotionCurveTools.swift · Wenshu · P1 ticket #11 (PORT-SPECIALIZED-006, 2026-09-04)
+//  EmotionCurveTools.swift
 //
 //  1:1 Swift port of hermes `agent/specialized/emotion_curve.py`.
 //

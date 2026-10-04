@@ -1,4 +1,4 @@
-// LLMResponse.swift · WenshuApp · v0.35
+// LLMResponse.swift
 //
 // Cross-connector response type (= `LLMConnector.send` return value).
 // Mirrors hermes' `Dict[str, Any]` return shape from

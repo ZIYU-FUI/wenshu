@@ -1,4 +1,4 @@
-// WriteFileTool.swift · WenshuApp · v0.35
+// WriteFileTool.swift
 //
 // Writes UTF-8 content to a file at the given path (= wenshu-side
 // wins thin wrapper over existing `Core/Tools/FileTools.swift.write`,

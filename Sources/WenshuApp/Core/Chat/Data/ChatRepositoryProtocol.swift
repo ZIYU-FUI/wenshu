@@ -1,5 +1,5 @@
 //
-//  ChatRepositoryProtocol.swift · Wenshu · refactor chat-mvvm-3layer C-4
+//  ChatRepositoryProtocol.swift
 //
 //  Data-layer seam for the chat feature. Decouples the business
 //  layer (= ChatSessionViewModel) from the concrete SwiftData wrapper

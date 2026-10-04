@@ -1,5 +1,5 @@
 //
-//  SidebarContextMenu.swift · Wenshu · v1.69y
+//  SidebarContextMenu.swift
 //
 //  Right-click context menu for the sidebar. Restored from the
 //  deleted NewLibraryOutlineView.swift (2366 LOC) after v1.69e

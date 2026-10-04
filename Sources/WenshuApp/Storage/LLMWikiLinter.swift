@@ -1,4 +1,4 @@
-// LLMWikiLinter.swift · WenshuApp · v2.6
+// LLMWikiLinter.swift
 //
 // Linter for the LLM Wiki 4-layer reference-library.
 //

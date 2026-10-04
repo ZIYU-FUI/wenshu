@@ -1,5 +1,5 @@
 //
-//  MemoryEntryRow.swift · Wenshu · v0.35 ticket 009 followup
+//  MemoryEntryRow.swift
 //
 //  Single source of truth for memory entry display rows.
 //  Originally two near-identical structs (= MemoryEntryRow in

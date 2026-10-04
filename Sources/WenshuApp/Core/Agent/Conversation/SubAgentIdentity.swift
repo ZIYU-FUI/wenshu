@@ -1,4 +1,4 @@
-// SubAgentIdentity.swift · WenshuApp · v0.23
+// SubAgentIdentity.swift
 //
 // 5 sub-agents under `WenshuConductor`:
 //   - Researcher: `web_search` + `reference_library`.

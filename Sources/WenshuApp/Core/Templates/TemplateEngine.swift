@@ -1,4 +1,4 @@
-// TemplateEngine.swift · WenshuApp · v0.19
+// TemplateEngine.swift
 //
 // Template engine: date tokens + variable substitution. Aligned
 // with Obsidian's Templates plugin

@@ -1,5 +1,5 @@
 //
-//  ChatMessagePart.swift · Wenshu · v0.71 P1 batch 1
+//  ChatMessagePart.swift
 //
 //  Part data model for streaming agent output (= Hermes
 //  `lib/chat-messages/parts.ts` + `tool-parts.ts` + `types.ts`).

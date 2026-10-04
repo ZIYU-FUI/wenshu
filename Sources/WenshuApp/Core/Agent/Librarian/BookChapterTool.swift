@@ -1,5 +1,5 @@
 //
-//  BookChapterTool.swift · Wenshu · v2.0 (2026-09-25)
+//  BookChapterTool.swift
 //
 //  Per-book chapter CRUD tool (= wraps FileSystemChapterStore).
 //  Mirrors BookWorldTool + BookCharacterTool patterns.

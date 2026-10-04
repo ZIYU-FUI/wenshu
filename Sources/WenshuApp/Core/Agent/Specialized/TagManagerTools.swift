@@ -1,5 +1,5 @@
 //
-//  TagManagerTools.swift · Wenshu · P1 ticket #14 (PORT-SPECIALIZED-009, 2026-09-04)
+//  TagManagerTools.swift
 //
 //  1:1 Swift port of hermes `agent/specialized/tag_manager.py`
 //  (= design contract only per hermes-port-manifest; the Python

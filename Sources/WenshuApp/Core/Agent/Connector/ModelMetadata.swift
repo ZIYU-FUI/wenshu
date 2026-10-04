@@ -1,4 +1,4 @@
-// ModelMetadata.swift · WenshuApp · v0.35
+// ModelMetadata.swift
 //
 // Per-provider model catalog. Port of hermes `model_metadata.py`
 // (= 2,434 LOC; contains per-provider model lists, capabilities,

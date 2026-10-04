@@ -1,4 +1,4 @@
-// Curator.swift · WenshuApp · v0.36
+// Curator.swift
 //
 // Background entity curator. Periodically reviews reference-library
 // entities to:

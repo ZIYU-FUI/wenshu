@@ -1,5 +1,5 @@
 //
-//  ChatPlanPartView.swift · Wenshu · T20b-PLAN-UI (2026-09-18)
+//  ChatPlanPartView.swift
 //
 //  Hermes-style plan card renderer. Displays a numbered plan
 //  (= list of PlanStep) as a collapsible card with an

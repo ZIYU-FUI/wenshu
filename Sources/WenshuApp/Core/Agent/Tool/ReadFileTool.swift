@@ -1,4 +1,4 @@
-// ReadFileTool.swift · WenshuApp · v0.35
+// ReadFileTool.swift
 //
 // Reads a UTF-8 file at the given path (= wenshu-side wins thin
 // wrapper over existing `Core/Tools/FileTools.swift.read`,

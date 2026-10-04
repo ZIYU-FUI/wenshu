@@ -1,5 +1,5 @@
 //
-//  NSRegularExpression+Literal.swift · Wenshu · v0.71 P1 batch 10
+//  NSRegularExpression+Literal.swift
 //
 // 
 //  central helper for compile-time-literal NSRegularExpression init.

@@ -1,5 +1,5 @@
 //
-//  KanbanTicketDetailSheet.swift · Wenshu · kanban-detail-sheet (= v2.9
+//  KanbanTicketDetailSheet.swift
 //  arc of kanban-markdown work)
 //
 //  Opens a sheet (= modal) for a single KanbanTicket so the full

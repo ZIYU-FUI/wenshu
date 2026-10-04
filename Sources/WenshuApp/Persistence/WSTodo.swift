@@ -1,5 +1,5 @@
 //
-//  Persistence/WSTodo.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSTodo.swift
 //
 //   : WSTodo.
 //  Mirrors todos table schema.

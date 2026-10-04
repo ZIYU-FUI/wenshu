@@ -1,5 +1,5 @@
 //
-//  OpenAIStreamingChunkToLLMBlock.swift · Wenshu · T10-OPENAI-STREAMING-WIRE (2026-09-18)
+//  OpenAIStreamingChunkToLLMBlock.swift
 //
 //  Pure converter from OpenAI-compatible SSE chunks (= the wire format
 //  shared by OpenAI native, DeepSeek, Ollama, OpenRouter, plus all

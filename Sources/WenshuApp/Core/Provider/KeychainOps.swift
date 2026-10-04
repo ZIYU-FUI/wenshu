@@ -1,4 +1,4 @@
-// KeychainOps.swift · WenshuApp · v0.84
+// KeychainOps.swift
 //
 // Shared low-level Apple `Security` framework wrappers used by BOTH
 // `AppleKeychainStore` (= LLM provider keys) and

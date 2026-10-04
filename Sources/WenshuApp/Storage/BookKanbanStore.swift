@@ -1,4 +1,4 @@
-// BookKanbanStore.swift · WenshuApp · v1.85
+// BookKanbanStore.swift
 //
 // Per-(book × scope) kanban JSON store. Each scope variant writes to a
 // different JSON file in the resolved directory:

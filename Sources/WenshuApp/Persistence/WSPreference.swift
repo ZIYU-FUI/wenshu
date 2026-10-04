@@ -1,5 +1,5 @@
 //
-//  Persistence/WSPreference.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSPreference.swift
 //
 //   : WSPreference.
 //  Note: the `preferences` table in WenshuWorkspace.swift was a late

@@ -1,5 +1,5 @@
 //
-//  ToolDispatchHelpers.swift · Wenshu · TICKET-HERMES-GAP-008
+//  ToolDispatchHelpers.swift
 //
 //  Ported from hermes-agent `agent/tool_dispatch_helpers.py` (503 LOC).
 //

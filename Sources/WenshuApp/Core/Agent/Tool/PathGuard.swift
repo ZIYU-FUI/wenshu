@@ -1,5 +1,5 @@
 //
-//  PathGuard.swift · Wenshu · wt/path-guard-v2-2026-09-25
+//  PathGuard.swift
 //
 //  Allow-list path policy for wenshu built-in tools. Lives in
 //  Core/Agent/Tool/ (= agent-runtime concern, = same layer as

@@ -1,4 +1,4 @@
-// RuntimeCWD.swift · WenshuApp · v0.36
+// RuntimeCWD.swift
 //
 // Runtime current working directory tracker. Tracks the CWD
 // (= absolute file URL) for tool execution. Default = the `.ws`

@@ -1,5 +1,5 @@
 //
-//  ArchivistStorage.swift · Wenshu · v2.7d
+//  ArchivistStorage.swift
 //
 //  Storage adapter for the Archivist sub-agent.
 //

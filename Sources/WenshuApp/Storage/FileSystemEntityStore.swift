@@ -1,5 +1,5 @@
 //
-//  FileSystemEntityStore.swift · Wenshu · v2.3 (2026-09-25)
+//  FileSystemEntityStore.swift
 //
 //  Per-book entity storage layer (= replaces
 //  FileSystemCharacterStore + FileSystemWorldStore from v2.0).

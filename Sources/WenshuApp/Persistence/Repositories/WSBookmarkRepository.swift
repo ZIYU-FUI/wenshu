@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSBookmarkRepository.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/Repositories/WSBookmarkRepository.swift
 //
 //  Migration commit 25 of 42: WSBookmarkRepository.
 //  Per AGENTS.md §11.4.

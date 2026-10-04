@@ -1,4 +1,4 @@
-// CronScheduleParser.swift · WenshuApp · v0.28
+// CronScheduleParser.swift
 //
 // Verbatim port from hermes-agent/cron/scheduler.py cron expression
 // parsing subset.

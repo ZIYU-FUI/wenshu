@@ -1,4 +1,4 @@
-// AvailableModelsDiscovery.swift · WenshuApp · v0.23
+// AvailableModelsDiscovery.swift
 //
 // Discovers available models for a provider (= the live list
 // populated from the provider's `/models` endpoint when reachable,

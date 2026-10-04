@@ -1,4 +1,4 @@
-// TurnRetryState.swift · WenshuApp · v0.35
+// TurnRetryState.swift
 //
 // Per-turn retry budget tracker. Maps to hermes `turn_retry_state.py`
 // + `iteration_budget.py` (= tracks attempt count + max attempts +

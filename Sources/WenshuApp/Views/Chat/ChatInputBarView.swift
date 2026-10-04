@@ -1,5 +1,5 @@
 //
-//  ChatInputBarView.swift · Wenshu · v1.90
+//  ChatInputBarView.swift
 //
 // (2026-09-23): the token-usage bottom bar needs a background
 //  色，现在是全透明的，或者说是没有背景的，加上一个背景'. Add

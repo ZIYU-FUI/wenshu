@@ -1,4 +1,4 @@
-// FileSystemOutlineStore.swift · WenshuApp · v2.0
+// FileSystemOutlineStore.swift
 //
 // Per-book outline storage layer.
 //

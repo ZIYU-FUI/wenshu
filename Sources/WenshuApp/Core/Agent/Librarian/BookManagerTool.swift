@@ -1,5 +1,5 @@
 //
-//  BookManagerTool.swift · Wenshu · P2 ticket #20 (PORT-LIBRARIAN-001, 2026-09-05)
+//  BookManagerTool.swift
 //
 //  1:1 Swift port of hermes `agent/librarian/book_manager.py`.
 //

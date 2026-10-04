@@ -1,5 +1,5 @@
 //
-//  ShellHookChain.swift · Wenshu · TICKET-HERMES-GAP-004
+//  ShellHookChain.swift
 //
 //  Ported from hermes-agent `agent/shell_hooks.py` (928 LOC).
 //  Per spec §2.2 thin-port: extract the hook-chain protocol only;

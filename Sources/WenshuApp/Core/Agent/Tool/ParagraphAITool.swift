@@ -1,5 +1,5 @@
 //
-//  ParagraphAITool.swift · Wenshu · P0 #2 (WIRE-AGENT-002) + P1 #10 (WIRE-PARAGRAPH-001)
+//  ParagraphAITool.swift
 //
 //  Tool-protocol-facing entry point for the paragraph-level
 //  editor transformations. Replaces the P0 #2 canned-stub body

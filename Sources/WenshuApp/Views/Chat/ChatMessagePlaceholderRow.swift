@@ -1,5 +1,5 @@
 //
-//  ChatMessagePlaceholderRow.swift · Wenshu · refactor chat-mvvm-3layer C-8c
+//  ChatMessagePlaceholderRow.swift
 //
 //  Apple MVVM canonical leaf view for the "AI thinking…" placeholder
 //  row that appears in the chat transcript while a streaming reply

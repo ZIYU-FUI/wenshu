@@ -1,5 +1,5 @@
 //
-//  EntityMigration.swift · Wenshu · v2.3 (2026-09-25)
+//  EntityMigration.swift
 //
 //  One-shot legacy → v2.3 migration helper.
 //

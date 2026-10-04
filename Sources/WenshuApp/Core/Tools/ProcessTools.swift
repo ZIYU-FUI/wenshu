@@ -1,4 +1,4 @@
-// ProcessTools.swift · WenshuApp · v0.18
+// ProcessTools.swift
 //
 // Local process tools (= hermes `terminal` / `process` parity). Uses
 // Foundation `Process` for subprocess execution; chat-triggered shell

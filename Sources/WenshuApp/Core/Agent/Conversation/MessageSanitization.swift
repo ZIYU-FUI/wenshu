@@ -1,4 +1,4 @@
-// MessageSanitization.swift · WenshuApp · v0.35
+// MessageSanitization.swift
 //
 // Message text sanitization. Maps to hermes `message_sanitization.py`
 // (= `_sanitize_surrogates`, `_repair_tool_call_arguments`,

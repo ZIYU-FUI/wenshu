@@ -1,4 +1,4 @@
-// ContextCompressor.swift · WenshuApp · v0.35
+// ContextCompressor.swift
 //
 // Context compression actor. Maps to hermes `context_compressor.py`
 // + `conversation_compression.py` `compress_context()`.

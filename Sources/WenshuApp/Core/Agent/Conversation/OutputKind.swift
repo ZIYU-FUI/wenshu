@@ -1,4 +1,4 @@
-// OutputKind.swift · WenshuApp · v0.21
+// OutputKind.swift
 
 import Foundation
 

@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSChatRepository.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/Repositories/WSChatRepository.swift
 //
 //  Migration commit 23 of 42: WSChatRepository.
 //  Per AGENTS.md §11.4.

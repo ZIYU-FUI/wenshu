@@ -1,5 +1,5 @@
 //
-//  Persistence/Container.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/Container.swift
 //
 //   : ModelContainer setup (= the LAST phase 1 commit;
 //  = introduced Container.swift but no new @Model class).

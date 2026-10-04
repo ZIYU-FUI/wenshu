@@ -1,5 +1,5 @@
 //
-//  EditorTools.swift · Wenshu · P1 ticket #10 (PORT-SPECIALIZED-005, 2026-09-04)
+//  EditorTools.swift
 //
 //  1:1 Swift port of hermes `agent/editing/editor_tools.py`
 //  (= the paragraph-level editor transformations surface). The

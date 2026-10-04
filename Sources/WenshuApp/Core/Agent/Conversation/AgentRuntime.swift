@@ -1,4 +1,4 @@
-// AgentRuntime.swift · WenshuApp · v0.18
+// AgentRuntime.swift
 //
 // Agent runtime (= hermes `delegation` / `gateway spawn worker`
 // parity). Uses Swift `actor` + `Sendable` actor + `Task` (= Apple

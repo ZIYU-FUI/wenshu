@@ -1,4 +1,4 @@
-// ToolGuardrails.swift · WenshuApp · v0.36
+// ToolGuardrails.swift
 //
 // Pre-tool check layer that wraps existing wenshu
 // `FileTools.pathDenied` (= §11.3 wenshu-side wins: do NOT

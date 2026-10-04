@@ -1,5 +1,5 @@
 //
-//  CharacterLifecycleView.swift · Wenshu · P1 ticket #13 (WIRE-SPECIALIZEDTOOLS-007, 2026-09-04)
+//  CharacterLifecycleView.swift
 //
 //  SpecializedTools pane tab 9: Character Lifecycle.
 //

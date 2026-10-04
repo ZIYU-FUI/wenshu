@@ -1,4 +1,4 @@
-// RateLimitTracker.swift · WenshuApp · v0.36
+// RateLimitTracker.swift
 //
 // Per-provider request rate tracking (= hermes `RateLimitTracker`
 // pattern). Tracks recent requests per `Provider` (= LLM connector

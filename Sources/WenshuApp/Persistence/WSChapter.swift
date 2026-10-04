@@ -1,5 +1,5 @@
 //
-//  Persistence/WSChapter.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSChapter.swift
 //
 //   : WSChapter.
 //  Mirrors chapters = filesystem directories (= .ws/shelves/<shelf-id>/books/<book-id>/chapters/).

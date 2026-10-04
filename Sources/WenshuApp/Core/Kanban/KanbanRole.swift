@@ -1,4 +1,4 @@
-// KanbanRole.swift · WenshuApp · v0.23
+// KanbanRole.swift
 //
 // Worker / orchestrator role gate (= the hermes
 // `_require_orchestrator_tool` parity; see

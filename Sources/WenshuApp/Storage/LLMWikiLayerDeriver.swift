@@ -1,4 +1,4 @@
-// LLMWikiLayerDeriver.swift · WenshuApp · v2.6
+// LLMWikiLayerDeriver.swift
 //
 // Pure-data derivation layer for the LLM Wiki 4-layer architecture
 // (= raw + entities + abstracts + indexes). Mirrors hermes's

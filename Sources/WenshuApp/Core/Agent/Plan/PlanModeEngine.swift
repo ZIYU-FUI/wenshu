@@ -1,5 +1,5 @@
 //
-//  PlanModeEngine.swift · Wenshu · T20-PLAN-MODE (2026-09-18)
+//  PlanModeEngine.swift
 //
 //  Hermes-style plan-mode coordinator. When the user invokes
 //  `/plan <query>`, the engine calls the LLM with a system prompt

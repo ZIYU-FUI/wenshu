@@ -1,5 +1,5 @@
 //
-//  Persistence/WSMemory.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSMemory.swift
 //
 //  WSMemory mirrors the memories table schema (= hermes mem0 port):
 //    - memory_id TEXT PRIMARY KEY

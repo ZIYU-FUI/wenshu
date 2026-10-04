@@ -1,5 +1,5 @@
 //
-//  ChatMessageHoverActions.swift · Wenshu · refactor chat-mvvm-3layer C-9e
+//  ChatMessageHoverActions.swift
 //
 //  Apple MVVM canonical chat-surface pair:
 //    1. ChatMessageHoverActions (= the floating copy + delete buttons

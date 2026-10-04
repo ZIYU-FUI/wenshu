@@ -1,5 +1,5 @@
 //
-//  Persistence/WSBookShelf.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSBookShelf.swift
 //
 //   : WSBookShelf.
 //  Mirrors implicit "shelves" container (= wenshu has 1+ shelves per library;

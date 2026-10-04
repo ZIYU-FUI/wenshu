@@ -1,5 +1,5 @@
 //
-//  SpotlightSearchSheet.swift · Wenshu · v2.8a ticket T7 ((see OOB.md #2026-09-28) OOB)
+//  SpotlightSearchSheet.swift
 //
 //  Cmd-F ⌘F Spotlight search sheet (= the overlay surface for the
 //  v2.8a Spotlight search feature per the (see OOB.md) B2).

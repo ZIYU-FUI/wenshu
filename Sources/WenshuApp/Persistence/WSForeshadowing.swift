@@ -1,5 +1,5 @@
 //
-//  Persistence/WSForeshadowing.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSForeshadowing.swift
 //
 //   : WSForeshadowing (= matches
 //  the "of 22" convention used by all sibling @Model files; = the actual

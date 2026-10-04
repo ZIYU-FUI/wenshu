@@ -1,4 +1,4 @@
-// DisplayStateMachine.swift · WenshuApp · v0.36
+// DisplayStateMachine.swift
 //
 // Finite state machine for background task display. Each background
 // task (= indexing, search, sync, etc.) runs through a predictable

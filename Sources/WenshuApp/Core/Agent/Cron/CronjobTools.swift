@@ -1,5 +1,5 @@
 //
-//  CronjobTools.swift · Wenshu · port-window
+//  CronjobTools.swift
 //
 //  LLM-side cronjob management surface. Direct port of hermes
 //  tools/cronjob_tools.py (= 1,137 LOC; provides the unified

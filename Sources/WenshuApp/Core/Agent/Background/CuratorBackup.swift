@@ -1,4 +1,4 @@
-// CuratorBackup.swift · WenshuApp · v0.72
+// CuratorBackup.swift
 //
 // 1:1 port of hermes `curator_backup.py` (= hermes-internal module
 // #5). Thin adapter over wenshu's `Curator.swift` (= the canonical

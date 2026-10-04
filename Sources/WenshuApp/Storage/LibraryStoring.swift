@@ -1,4 +1,4 @@
-// LibraryStoring.swift · WenshuApp · v0.02.0
+// LibraryStoring.swift
 //
 // Contract for all storage backends (= the FileSystem impl ships today;
 // future impls = MetadataQuery / CoreData / CloudKit can be swapped in

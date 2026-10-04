@@ -1,5 +1,5 @@
 //
-//  BookScopeViolation.swift · Wenshu · v2.1 (2026-09-25)
+//  BookScopeViolation.swift
 //
 //  Hard validation rule: an agent book_X tool rejects any input whose
 //  `book_id` does not match the chat session's currently bound book.

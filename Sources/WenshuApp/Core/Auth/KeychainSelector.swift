@@ -1,5 +1,5 @@
 //
-//  KeychainSelector.swift · Wenshu · HERMES-DISPATCH-003
+//  KeychainSelector.swift
 //
 //  Priority + status state machine selector for the multi-key pool.
 //  Ported from hermes-agent `agent/credential_pool.py` priority-based

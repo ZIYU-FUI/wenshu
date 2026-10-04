@@ -1,4 +1,4 @@
-// AppleSidebarBottomNewButton.swift · Wenshu · v1.68b
+// AppleSidebarBottomNewButton.swift
 //
 // Bottom '+' button (= safe-area-inset, = pinned to the bottom of
 // the sidebar). Used by AppleSidebarView (= the macOS 27

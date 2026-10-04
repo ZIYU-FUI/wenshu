@@ -1,5 +1,5 @@
 //
-//  CodingContext.swift · Wenshu · HERMES-INTERNAL-002 (2026-09-04)
+//  CodingContext.swift
 //
 //  1:1 port of hermes coding_context.py (= hermes-internal module #2,
 // ). Thin adapter — wenshu already has

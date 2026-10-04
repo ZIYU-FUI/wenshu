@@ -1,4 +1,4 @@
-// NoteComposer.swift · WenshuApp · v0.19
+// NoteComposer.swift
 //
 // Note composer: merge / split / rename + auto `[[name]]` link.
 // Mirrors the Obsidian Note Composer plugin behavior

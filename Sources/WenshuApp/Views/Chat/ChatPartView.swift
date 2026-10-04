@@ -1,5 +1,5 @@
 //
-//  ChatPartView.swift · Wenshu · v0.71 P1 batch 2 (= Hermes 1:1 streaming UI)
+//  ChatPartView.swift
 //
 //  Renders a single ChatMessagePart in the wenshu streaming chat
 //  zone. Each Hermes `ChatMessagePart` kind (= text / reasoning /

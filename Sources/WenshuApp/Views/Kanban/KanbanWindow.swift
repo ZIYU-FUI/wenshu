@@ -1,5 +1,5 @@
 //
-//  KanbanWindow.swift · Wenshu · v1.0.0-m1-shell (see OOB.md #2026-09-11) OOB
+//  KanbanWindow.swift
 //
 //  Kanban as an independent macOS window (= the SwiftUI macOS 14+
 //  WindowGroup(id: "wenshu-kanban") per (see OOB.md #2026-09-11) OOB

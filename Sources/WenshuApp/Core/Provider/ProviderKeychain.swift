@@ -1,4 +1,4 @@
-// ProviderKeychain.swift · WenshuApp · v0.86
+// ProviderKeychain.swift
 //
 // Apple `Security` framework backend for provider API keys
 // (`kSecClassGenericPassword`).

@@ -1,5 +1,5 @@
 //
-//  RuntimeHelpers.swift · Wenshu · TICKET-HERMES-GAP-003
+//  RuntimeHelpers.swift
 //
 //  Swift port of `agent_runtime_helpers.py` from `/Volumes/ANAN/.hermes/agent/`
 //  (= hermes' AIAgent runtime state dict = verbose / debug / sandbox / mock-time

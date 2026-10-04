@@ -1,4 +1,4 @@
-// BookmarkView.swift · WenshuApp · v2.8a
+// BookmarkView.swift
 //
 // SpecializedTools pane tab 13: Bookmark Manager. Renders:
 //   - Top header (= icon + tab title + active book scope +

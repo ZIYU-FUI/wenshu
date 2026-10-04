@@ -1,4 +1,4 @@
-// WebTools.swift · WenshuApp · v0.18
+// WebTools.swift
 //
 // Local web tools (= hermes `web` parity). Uses Foundation
 // `URLSession` + `URL` parsing.

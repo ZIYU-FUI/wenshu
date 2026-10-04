@@ -1,4 +1,4 @@
-// ContextEngine.swift · WenshuApp · v0.35
+// ContextEngine.swift
 //
 // Context aggregation facade. Maps to hermes `context_engine.py`
 // (= ABC interface). Wenshu-side wins per AGENTS.md §11.3:

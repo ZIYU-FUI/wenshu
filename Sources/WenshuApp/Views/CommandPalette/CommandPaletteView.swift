@@ -1,5 +1,5 @@
 //
-//  CommandPaletteView.swift · Wenshu ·  (2026-09-04)
+//  CommandPaletteView.swift
 //
 //  ⌘K command palette — modal SwiftUI sheet that lists every registered
 //  CommandPaletteItem from CommandPaletteRegistry.shared, filtered by

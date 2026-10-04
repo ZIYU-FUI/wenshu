@@ -1,5 +1,5 @@
 //
-//  EntityDescriptor.swift · Wenshu · v2.3 (2026-09-25)
+//  EntityDescriptor.swift
 //
 //  Brand ID + immutable entity descriptor for the v2.3 schema.
 //

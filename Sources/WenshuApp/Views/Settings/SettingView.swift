@@ -1,5 +1,5 @@
 //
-//  SettingView.swift · Wenshu · v0.40 apple-001 phase 3 ticket 5
+//  SettingView.swift
 //
 //  at line 376, = 513 LOC). v0.40 apple-001 phase 3 ticket 5
 //  (HIGH-RISK leg, = the largest single-view extraction in the

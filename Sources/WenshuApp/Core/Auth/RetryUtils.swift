@@ -1,4 +1,4 @@
-// RetryUtils.swift · Wenshu · TICKET-HERMES-GAP-007
+// RetryUtils.swift
 //
 // Ported from hermes-agent `agent/retry_utils.py` (208 LOC Python -> here we
 // ship the foundational core: jittered exponential backoff + a retry helper

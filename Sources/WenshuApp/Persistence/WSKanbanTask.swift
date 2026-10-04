@@ -1,5 +1,5 @@
 //
-//  Persistence/WSKanbanTask.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSKanbanTask.swift
 //
 //   : WSKanbanTask.
 //  Mirrors kanban_tasks table from WenshuWorkspace.swift.

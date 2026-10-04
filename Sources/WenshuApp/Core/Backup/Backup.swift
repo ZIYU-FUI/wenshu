@@ -1,4 +1,4 @@
-// Backup.swift · WenshuApp · v0.18
+// Backup.swift
 //
 // Local ZIP backup + restore (= hermes `backup` parity). Uses
 // Foundation `FileManager` + `URL` + `Data`.

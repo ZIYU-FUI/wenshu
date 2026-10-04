@@ -1,5 +1,5 @@
 //
-//  CommandPaletteRegistrySeeder.swift · Wenshu · HERMES-AGENT-SMC-READYNESS T-CommandPaletteSeed
+//  CommandPaletteRegistrySeeder.swift
 //
 //  One-shot seeder for CommandPaletteRegistry.shared. Populates the
 //  registry at app launch (= App.swift applicationDidFinishLaunching

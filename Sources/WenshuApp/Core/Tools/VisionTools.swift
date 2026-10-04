@@ -1,4 +1,4 @@
-// VisionTools.swift · WenshuApp · v0.18
+// VisionTools.swift
 //
 // Local vision tools (= hermes `vision_analyze` parity). Uses
 // Apple `Vision` framework (`VNRecognizeTextRequest` +

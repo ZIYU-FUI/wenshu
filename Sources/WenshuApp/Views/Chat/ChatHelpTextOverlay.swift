@@ -1,5 +1,5 @@
 //
-// ChatHelpTextOverlay.swift · Wenshu · v0.24 bossverification
+// ChatHelpTextOverlay.swift
 //
 // chatviewin progress (was: bottom-right).
 //

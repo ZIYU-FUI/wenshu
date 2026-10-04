@@ -1,4 +1,4 @@
-// BacklinksViewModel.swift · WenshuApp · v1.28
+// BacklinksViewModel.swift
 //
 // @MainActor Observable for the Backlinks panel (= SwiftUI-free:
 // the SwiftUI surface lives in `BacklinksPanel`).

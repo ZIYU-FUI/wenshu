@@ -1,5 +1,5 @@
 //
-//  ChatSessionViewModel.swift · Wenshu · refactor chat-mvvm-3layer C-3
+//  ChatSessionViewModel.swift
 //
 //  Apple SwiftUI MVVM canonical view model for the chat feature.
 //

@@ -1,4 +1,4 @@
-// CSSearchableIndexSearch.swift · WenshuApp · v2.9a
+// CSSearchableIndexSearch.swift
 //
 // Canonical search layer for wenshu docs (= Apple Core Spotlight,
 // built into macOS 27 = zero SPM dependency). Replaces the v1.55

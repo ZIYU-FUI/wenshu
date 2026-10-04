@@ -1,4 +1,4 @@
-// WenshuAgentIdentity.swift · WenshuApp · v0.22
+// WenshuAgentIdentity.swift
 //
 // Wenshu agent base identity (= the canonical identity type
 // shared by every wenshu agent loop; = without it, every chat

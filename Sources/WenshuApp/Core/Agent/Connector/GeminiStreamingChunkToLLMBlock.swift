@@ -1,5 +1,5 @@
 //
-//  GeminiStreaming.swift · Wenshu · T15-GEMINI-STREAM (2026-09-18)
+//  GeminiStreaming.swift
 //
 //  Typed representation of one Gemini streaming JSON chunk. Google's
 //  Gemini streaming endpoint returns JSON objects (= not true SSE;
@@ -134,7 +134,7 @@ enum GeminiStreamingParser {
     }
 }
 // MARK: - Converter
-//  GeminiStreamingChunkToLLMBlock.swift · Wenshu · T15-GEMINI-STREAM (2026-09-18)
+//  GeminiStreamingChunkToLLMBlock.swift
 //
 //  Pure converter for Gemini streaming chunks (= from
 //  GeminiStreaming.swift) to LLMBlock events (= the streaming

@@ -1,4 +1,4 @@
-// LLMMessage.swift · WenshuApp · v0.35
+// LLMMessage.swift
 //
 // Cross-connector message type (= `LLMConnector` protocol surface).
 // Maps 1:1 to hermes' `api_messages` list (see hermes

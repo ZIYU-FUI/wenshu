@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSMemoryRepository.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/Repositories/WSMemoryRepository.swift
 //
 //  Thin wrapper that exposes the same public API as the prior
 //  MemoryStore actor (= hermes mem0 port).

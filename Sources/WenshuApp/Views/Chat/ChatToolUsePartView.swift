@@ -1,5 +1,5 @@
 //
-//  ChatToolUsePartView.swift · Wenshu · refactor chat-mvvm-3layer C-9c
+//  ChatToolUsePartView.swift
 //
 //  Apple MVVM canonical part view: renders one tool invocation
 //  card (= the "the assistant is calling tool X with args Y" cell).

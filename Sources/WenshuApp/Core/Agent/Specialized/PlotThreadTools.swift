@@ -1,4 +1,4 @@
-// PlotThreadTools.swift · Wenshu · P1 ticket #8
+// PlotThreadTools.swift
 import Foundation
 
 enum PlotThreadStatus: String, Sendable, Codable, CaseIterable {

@@ -1,5 +1,5 @@
 //
-//  IdeaLibraryView.swift · Wenshu · P1 ticket #15 (WIRE-SPECIALIZEDTOOLS-009, 2026-09-04)
+//  IdeaLibraryView.swift
 //
 //  SpecializedTools pane tab 11: Idea Library.
 //

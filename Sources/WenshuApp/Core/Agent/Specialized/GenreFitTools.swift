@@ -1,5 +1,5 @@
 //
-//  GenreFitTools.swift · Wenshu · P1 ticket #9 (PORT-SPECIALIZED-004, 2026-09-04)
+//  GenreFitTools.swift
 //
 //  1:1 Swift port of hermes `agent/specialized/genre_fit.py`.
 //

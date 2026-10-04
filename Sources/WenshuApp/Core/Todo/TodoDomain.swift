@@ -1,4 +1,4 @@
-// TodoDomain.swift · WenshuApp · v0.72
+// TodoDomain.swift
 //
 // Canonical domain types for todo items (= `TodoStatus` +
 // `TodoPriority` + `TodoItem`). Pure value types (= no SQLite

@@ -1,5 +1,5 @@
 //
-//  Persistence/Repositories/WSPreferenceRepository.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/Repositories/WSPreferenceRepository.swift
 //
 //  Migration commit 32 of 42: WSPreferenceRepository.
 //  Per AGENTS.md §11.4.

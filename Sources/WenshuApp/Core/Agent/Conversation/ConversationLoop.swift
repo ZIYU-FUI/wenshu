@@ -1,4 +1,4 @@
-// ConversationLoop.swift · WenshuApp · v0.35
+// ConversationLoop.swift
 //
 // ConversationLoop actor = the Swift port of hermes'
 // `conversation_loop.run_conversation` (= L523-L546, 9-param entry).

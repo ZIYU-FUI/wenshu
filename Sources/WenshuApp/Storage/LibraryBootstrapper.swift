@@ -1,4 +1,4 @@
-// LibraryBootstrapper.swift · WenshuApp · v2.6
+// LibraryBootstrapper.swift
 //
 // One-time setup + ongoing self-heal for the .ws library structure.
 //

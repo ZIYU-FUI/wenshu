@@ -1,5 +1,5 @@
 //
-//  TypedID.swift · Wenshu · P2-02 (audit 2026-09-24)
+//  TypedID.swift
 //
 //  Brand-wrapper convention for type-safe IDs. wenshu stores 21 ID
 //  fields as raw `String` (= 17 @Model primary keys + 4 cross-boundary

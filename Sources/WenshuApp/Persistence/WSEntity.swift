@@ -1,5 +1,5 @@
 //
-//  WSEntity.swift · Wenshu · v2.3 (2026-09-25)
+//  WSEntity.swift
 //
 //  Canonical SwiftData @Model for the v2.3 entity schema.
 //

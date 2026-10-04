@@ -1,5 +1,5 @@
 //
-//  WSBody.swift · Wenshu · v2.3 (2026-09-25)
+//  WSBody.swift
 //
 //  Standalone @Model for entity body markdown.
 //

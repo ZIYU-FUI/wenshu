@@ -1,5 +1,5 @@
 //
-//  KanbanStoreTool.swift · Wenshu · P0 #5 (WIRE-AGENT-005, 2026-09-04)
+//  KanbanStoreTool.swift
 //
 //  Thin adapter exposing the kanban LLM surface (= KanbanTools actor,
 //  ported from hermes kanban_tools.py) through the canonical Tool

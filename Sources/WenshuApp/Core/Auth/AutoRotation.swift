@@ -1,5 +1,5 @@
 //
-//  AutoRotation.swift · Wenshu · HERMES-DISPATCH-004
+//  AutoRotation.swift
 //
 //  Auto-rotating connector wrapper that detects 429 / 503 / auth errors and
 //  either rotates to another key in the AuthPool OR throws (= falls back to

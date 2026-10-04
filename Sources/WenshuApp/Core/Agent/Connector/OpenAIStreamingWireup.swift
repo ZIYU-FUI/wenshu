@@ -1,5 +1,5 @@
 //
-//  OpenAIStreamingWireup.swift · Wenshu · T10-OPENAI-STREAMING-WIRE (2026-09-18)
+//  OpenAIStreamingWireup.swift
 //
 //  OpenAI-compatible SSE streaming wire-up (= parallel to
 //  AnthropicStreamingWireup; = unifies streaming for OpenAI native,

@@ -1,5 +1,5 @@
 //
-//  TodoStoreTool.swift · Wenshu · P0 #4 (WIRE-AGENT-004, 2026-09-04)
+//  TodoStoreTool.swift
 //
 //  Thin adapter wrapping HermesTodoTool (= hermes-side state machine
 //  / LLM internal planning list) and mirroring the result into the

@@ -1,4 +1,4 @@
-// FileTools.swift · WenshuApp · v0.18
+// FileTools.swift
 //
 // Local file tools (= hermes `file` parity). Uses Apple `FileManager`
 // + `URL` + `Data` + `String` for the read / write / patch / search /

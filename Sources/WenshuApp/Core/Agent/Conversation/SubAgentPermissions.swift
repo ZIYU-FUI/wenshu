@@ -1,4 +1,4 @@
-// SubAgentPermissions.swift · WenshuApp · v0.23
+// SubAgentPermissions.swift
 //
 // Permission gates for sub-agents (= tools sub-agents must NEVER
 // have access to). Mirrors hermes `DELEGATE_BLOCKED_TOOLS` (=

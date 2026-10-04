@@ -1,5 +1,5 @@
 //
-//  ChatToolResultPartView.swift · Wenshu · refactor chat-mvvm-3layer C-9d
+//  ChatToolResultPartView.swift
 //
 //  Apple MVVM canonical part view: renders one tool result card
 //  (= the "tool X returned Y" cell, paired with the ChatToolUsePartView

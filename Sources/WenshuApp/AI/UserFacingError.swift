@@ -1,4 +1,4 @@
-// UserFacingError.swift · Wenshu · v0.34
+// UserFacingError.swift
 //
 // `UserFacingError` is the single source of truth for mapping raw
 // wenshu errors to Chinese user-facing text. Callers use either:

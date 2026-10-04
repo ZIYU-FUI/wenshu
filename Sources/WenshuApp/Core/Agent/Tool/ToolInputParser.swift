@@ -1,4 +1,4 @@
-// ToolInputParser.swift · WenshuApp · v0.35
+// ToolInputParser.swift
 //
 // Single source of truth for tool input JSON parsing. Originally
 // each tool hand-rolled a regex-free substring scan (= fragile,

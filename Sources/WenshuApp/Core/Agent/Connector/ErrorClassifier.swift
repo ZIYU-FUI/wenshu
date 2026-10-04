@@ -1,4 +1,4 @@
-// ErrorClassifier.swift · WenshuApp · v0.36
+// ErrorClassifier.swift
 //
 // Classify errors from `LLMConnector.send()` into actionable categories
 // (= rate-limit, auth, network, server, bad-request, unknown). The

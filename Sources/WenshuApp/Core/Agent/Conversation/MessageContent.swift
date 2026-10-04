@@ -1,4 +1,4 @@
-// MessageContent.swift · WenshuApp · v0.35
+// MessageContent.swift
 //
 // Message block canonicalization. Maps to hermes
 // `message_content.py` (= canonicalizes block lists: drops empty

@@ -1,5 +1,5 @@
 //
-//  CommandPaletteRegistry.swift · Wenshu ·  (2026-09-04)
+//  CommandPaletteRegistry.swift
 //
 //  Searchable registry of all ⌘K palette actions (= commands, skills,
 //  navigation). Mirrors hermes slash_registry.py + commands.py.

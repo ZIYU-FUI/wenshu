@@ -1,5 +1,5 @@
 //
-//  AgentProgressTracker.swift · Wenshu · v0.41 WIRE-AGENT-006
+//  AgentProgressTracker.swift
 //
 // Wire progress from
 //  ConversationLoop into OpenBox so user sees step-by-step feedback').

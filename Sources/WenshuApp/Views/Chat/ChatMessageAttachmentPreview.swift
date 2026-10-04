@@ -1,5 +1,5 @@
 //
-//  ChatMessageAttachmentPreview.swift · Wenshu · refactor chat-mvvm-3layer C-8a
+//  ChatMessageAttachmentPreview.swift
 //
 //  Apple MVVM canonical leaf view for the image attachment that
 //  appears inside a chat message bubble (= the thumbnail chip

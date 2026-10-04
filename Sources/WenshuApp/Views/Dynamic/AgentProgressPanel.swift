@@ -1,5 +1,5 @@
 //
-//  AgentProgressPanel.swift · Wenshu · v0.41 WIRE-OPENBOX-001
+//  AgentProgressPanel.swift
 //
 //  P2 #21 wire progress ((see OOB.md #2026-09-04) OOB 'wire progress from
 //  ConversationLoop into OpenBox so user sees step-by-step feedback').

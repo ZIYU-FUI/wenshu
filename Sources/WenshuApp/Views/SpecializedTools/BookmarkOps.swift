@@ -1,4 +1,4 @@
-// BookmarkOps.swift · WenshuApp · v2.9d
+// BookmarkOps.swift
 //
 // `@MainActor` enum = the canonical bridge between `BookmarkView`
 // (= the SwiftUI surface) and the SwiftData `WSBookmarkRepository`.

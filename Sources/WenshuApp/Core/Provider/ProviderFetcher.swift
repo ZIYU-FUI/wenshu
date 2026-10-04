@@ -1,4 +1,4 @@
-// ProviderFetcher.swift · WenshuApp · v0.21
+// ProviderFetcher.swift
 
 import Foundation
 

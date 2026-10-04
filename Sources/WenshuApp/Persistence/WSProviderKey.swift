@@ -1,5 +1,5 @@
 //
-//  Persistence/WSProviderKey.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSProviderKey.swift
 //
 //   : WSProviderKey.
 //  Note: the `provider_keys` table in WenshuWorkspace.swift was actually

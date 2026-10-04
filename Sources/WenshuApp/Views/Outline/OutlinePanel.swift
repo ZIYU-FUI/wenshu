@@ -1,5 +1,5 @@
 //
-// OutlinePanel.swift · Wenshu · migrated from Core/Outline/OutlinePanel.swift in v1.28 A1.1
+// OutlinePanel.swift
 // (= v0.19 ticket 21 Obsidian replica, placeholder shell;
 //  OutlineViewModel deleted in A1.1 = 0 external caller (only internal default-init);
 //  View rewritten with inline @State; AnyView(OutlinePanel()) caller in PaneView:212 preserved)

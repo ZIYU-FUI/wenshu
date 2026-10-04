@@ -1,5 +1,5 @@
 //
-//  WenshuI18n.swift · Wenshu · v0.38 ticket P2
+//  WenshuI18n.swift
 //
 //  Apple-standard i18n helper. Thin wrapper over NSLocalizedString that:
 //  1. Reads from the WenshuApp module's .main bundle (= Resources/*.lproj/Localizable.strings)

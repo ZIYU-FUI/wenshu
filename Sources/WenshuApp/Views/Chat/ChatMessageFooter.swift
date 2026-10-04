@@ -1,5 +1,5 @@
 //
-//  ChatMessageFooter.swift · Wenshu · refactor chat-mvvm-3layer C-8e
+//  ChatMessageFooter.swift
 //
 //  Apple MVVM canonical leaf view for the sealed-message footer
 //  (= the metadata row below each chat bubble that shows timestamp +

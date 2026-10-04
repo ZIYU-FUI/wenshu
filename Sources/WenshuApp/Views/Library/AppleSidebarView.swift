@@ -1,4 +1,4 @@
-// AppleSidebarView.swift · Wenshu · v1.69y (see OOB.md #2026-09-22) OOB
+// AppleSidebarView.swift
 //
 // macOS 27 Apple HIG sidebar (= List(data, children:) +
 // .listStyle(.sidebar)). The canonical sidebar surface for

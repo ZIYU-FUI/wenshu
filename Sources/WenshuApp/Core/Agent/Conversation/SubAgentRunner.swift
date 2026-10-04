@@ -1,4 +1,4 @@
-// SubAgentRunner.swift · WenshuApp · v2.7
+// SubAgentRunner.swift
 //
 // The runner that picks up `BackgroundDelegationHandle` records
 // from `AsyncDelegationRegistry` (= ones created by

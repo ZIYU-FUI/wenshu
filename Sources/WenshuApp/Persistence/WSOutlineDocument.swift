@@ -1,5 +1,5 @@
 //
-//  Persistence/WSOutlineDocument.swift · Wenshu · v0.72 SwiftData migration 
+//  Persistence/WSOutlineDocument.swift
 //
 //   : WSOutlineDocument.
 //  New SwiftData @Model class (= no pre-v0.72 sqlite source — outline

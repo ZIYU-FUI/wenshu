@@ -1,4 +1,4 @@
-// InternalLinkParser.swift · WenshuApp · v0.19
+// InternalLinkParser.swift
 //
 // Parses Markdown `[[name]]` (= SilverBullet page ref / Obsidian
 // wikilink) using Foundation `NSRegularExpression`.

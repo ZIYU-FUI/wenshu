@@ -1,4 +1,4 @@
-// GeminiNativeConnector.swift · WenshuApp · v0.35
+// GeminiNativeConnector.swift
 //
 // Gemini native connector. Google GenAI protocol
 // (= `generateContent` endpoint). `apiMode = 'google_genai'` (per

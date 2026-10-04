@@ -1,5 +1,5 @@
 //
-//  BookSettingConstraintsTools.swift · Wenshu · P1 ticket #16 (PORT-SPECIALIZED-011, 2026-09-04)
+//  BookSettingConstraintsTools.swift
 //  FINAL P1 specialized-ticket.
 //
 //  1:1 Swift port of hermes `agent/specialized/book_setting_constraints.py`.
