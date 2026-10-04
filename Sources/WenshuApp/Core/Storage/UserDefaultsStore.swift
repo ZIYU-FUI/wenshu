@@ -50,13 +50,8 @@ public enum WenshuDefaultsKey: String, CaseIterable, Sendable {
     case openTabs            = "wenshu.openTabs"
     case activeTabId         = "wenshu.editor.activeTabId.v1"
     case sidebarSelection    = "wenshu.sidebarSelection"
-    case inspectorVisible    = "wenshu.inspectorVisible"
-    case chatVisible         = "wenshu.chatVisible"
-    case inspectorPage       = "wenshu.inspectorPage"
-    case monthlyCredits      = "wenshu.monthlyCredits"
     case cwdOverride         = "wenshu.runtimeCWD"
     case creditsMonthly      = "wenshu.credits.monthly"
-    case creditsMonthlyReset = "wenshu.credits.monthlyReset"
 }
 
 /// Typed wrapper over `UserDefaults.standard`.
