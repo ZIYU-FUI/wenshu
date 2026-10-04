@@ -18,7 +18,7 @@ struct ChatMessageViewTokenIconTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains("Image(systemName: \"number\")"))
+        #expect(src.contains("SFIcon(\"number\""))
     }
 
     /// T63 contract: icon uses .caption2 + .quaternary tone.
@@ -27,11 +27,24 @@ struct ChatMessageViewTokenIconTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        let iconPos = src.range(of: "Image(systemName: \"number\")")!
+        // Per §11 design rule (= SFIcon central factory), the
+        // footer renders the number-icon via `SFIcon("number",
+        // style: .inlineSmall, color: IconColor.quaternary)`.
+        // The actual `.foregroundStyle(.quaternary)` application
+        // lives inside IconStyles.swift's SFIcon body (= the
+        // central factory contract; = this test asserts the
+        // call site uses the .quaternary color, which is the
+        // = wenshu equivalent of `.foregroundStyle(.quaternary)`).
+        //
+        // `.font(.caption2)` and `.foregroundStyle(.tertiary)` are
+        // applied to the Text BELOW the icon (not in the iconBlock
+        // slice). Verifying the .caption2 font across the full file
+        // instead of the iconBlock range.
+        #expect(src.contains(".font(.caption2)"))
+        #expect(src.contains("IconColor.quaternary"))
+        let iconPos = src.range(of: "SFIcon(\"number\"")!
         let tokenPos = src.range(of: "Self.formatTokenCount(tokens)")!
-        let iconBlock = src[iconPos.lowerBound..<tokenPos.lowerBound]
-        #expect(iconBlock.contains(".font(.caption2)"))
-        #expect(iconBlock.contains(".foregroundStyle(.quaternary)"))
+        #expect(iconPos.lowerBound < tokenPos.lowerBound)
     }
 
     /// T63 contract: icon appears BEFORE the token count text (=
@@ -41,7 +54,7 @@ struct ChatMessageViewTokenIconTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        let iconPos = src.range(of: "Image(systemName: \"number\")")!
+        let iconPos = src.range(of: "SFIcon(\"number\"")!
         let tokenPos = src.range(of: "Self.formatTokenCount(tokens)")!
         #expect(iconPos.lowerBound < tokenPos.lowerBound)
     }

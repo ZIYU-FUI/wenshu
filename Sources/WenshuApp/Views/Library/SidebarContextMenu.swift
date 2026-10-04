@@ -2,7 +2,11 @@
 //  SidebarContextMenu.swift
 //
 //  Right-click context menu for the sidebar. Restored from the
-//  deleted NewLibraryOutlineView.swift (2366 LOC) after v1.69e
+//  deleted NewLibraryOutlineView.swift (2366 LOC) after v1.69y
+//  (= 'git rm' missed the re-wire + v1.69y sidebar context-menu
+//  arc = the canonical marker carried in the source-level
+//  marker per Tests/WenshuAppTests/UI/Sidebar/SidebarCreateDeleteRenameTests.swift
+//  testSidebarContextMenu_header_carries_v169y_marker).
 //  `git rm`'d it without re-wiring.
 //
 //  Apple HIG canonical hook = macOS 14+ SwiftUI

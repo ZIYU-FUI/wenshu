@@ -1,4 +1,4 @@
-// AnthropicStreamingChunkToLLMBlock.swift
+// AnthropicStreamingChunkToLLMBlock.swift · T6-ANTHROPIC-STREAMING-THINKING
 //
 // Pure converter from `AnthropicStreamingChunk` events → cross-
 // connector `LLMBlock`. The converter is the missing link between

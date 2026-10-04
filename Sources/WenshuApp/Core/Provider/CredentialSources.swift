@@ -1,8 +1,7 @@
+// CredentialSources.swift · P1-CREDENTIAL-SOURCES-HERMES-PORT
 //
-//  CredentialSources.swift
-//
-//  Unified removal contract for every credential source wenshu
-//  reads from. Faithful 1:1 port of hermes
+// Unified removal contract for every credential source wenshu
+// reads from. Faithful 1:1 port of hermes
 //  `agent/credential_sources.py` (250+ LOC Python).
 //
 //  Per AGENTS.md §11.3 wenshu-side wins:

@@ -1,8 +1,8 @@
 //
-//  ToolResultClassification.swift
+// ToolResultClassification.swift · P2-TOOL-RESULT-CLASSIFICATION-HERMES-PORT
 //
-//  Shared helpers for classifying tool result payloads.
-//  Faithful 1:1 port of hermes
+// Shared helpers for classifying tool result payloads.
+// Faithful 1:1 port of hermes
 //  `agent/tool_result_classification.py` (26 LOC Python).
 //
 //  Per AGENTS.md §11.3 wenshu-side wins:
