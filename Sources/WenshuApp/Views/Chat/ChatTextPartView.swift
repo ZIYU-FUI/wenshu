@@ -70,7 +70,7 @@ struct ChatTextPartView: View {
             // transition re-renders the whole run; this one interpolates
             // so the bubble does not flicker on every chunk.
             .contentTransition(isStreaming ? .interpolate : .identity)
-            // -cleanup E2 boss 2026-09-21 OOB 'no gray text like
+            // -cleanup E2 (see OOB.md #2026-09-21) OOB 'no gray text like
             // hermes' (= the assistant reply was rendered as full
             // white because ChatTextPartView hardcoded
             // `.foregroundStyle(Color.primary)`; = overrode the parent

@@ -73,7 +73,7 @@ enum DesignTokens {
     // Per-application-position usage notes live in each token's
     // doc-comment below (= readers can grep a wenshu file for the
     // position name to find the canonical token). 8/4 alignment rule
-    // (= boss 2026-09-30 '调整方向按 8 或者 4 的倍数'): every value is
+    // (= (see OOB.md #2026-09-30) '调整方向按 8 或者 4 的倍数'): every value is
     // either a multiple of 8 (= 8 / 16 / 24) or 4 (= 4 / 12 / 20)
     // or sub-multiple (= 1 / 2).
 
@@ -272,7 +272,7 @@ enum DesignTokens {
     /// Per-pane tab selected-state underline height (= 1 PT, Apple HIG
     /// standard for tab bar selected indicator). The line is rendered
     /// with `.clipShape(Capsule())` for fully rounded ends (= two
-    /// round caps on both sides, per boss 2026-08-30 OOB ', ').
+    /// round caps on both sides, per (see OOB.md #2026-08-30) OOB ', ').
     static let tabUnderlineHeight: CGFloat = 1
 
     // MARK: - Dividers
@@ -835,7 +835,7 @@ enum DesignTokens {
 
     // MARK: - v0.71 P1 batch 4: full-project dual-axis audit
     //
-    // (= boss 2026-09-12 OOB 'do a full-project dual-axis' = apply the dual-axis
+    // (= (see OOB.md #2026-09-12) OOB 'do a full-project dual-axis' = apply the dual-axis
     // chrome dimension system across the whole project; = extract every
     // hardcoded magic number to DesignTokens so the X-axis + Y-axis
     // chrome dimensions are centrally controlled).

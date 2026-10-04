@@ -175,7 +175,7 @@ struct AssetsPane: View {
         case .folder(let bookId, let folderName):
             return .bookScope(bookId: bookId, folderName: folderName)
         case .tag(let tagString):
-            // v2.9d T37 (boss 2026-09-28 OOB A7 follow-up):
+            // v2.9d T37 ((see OOB.md #2026-09-28) OOB A7 follow-up):
             // a tag selection now sets workspaceUI.activeTag
             // (= PreviewPane reads workspaceUI.activeTag
             // to filter its card grid by tag). Previously

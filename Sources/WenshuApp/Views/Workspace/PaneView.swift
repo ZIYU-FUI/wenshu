@@ -1,7 +1,7 @@
 // Sources/WenshuApp/Views/Workspace/PaneView.swift
 //
 // The per-pane registry helper used by `TabContentDispatcher`.
-// Per boss 2026-10-03 '清多余的层' OOB (= strip wenshu-summary
+// Per (see OOB.md #2026-10-03) '清多余的层' OOB (= strip wenshu-summary
 // layers that conflate with the Apple-canonical shape), the
 // legacy 'Zone' prefix was retired (= this view hosts 1 pane of
 // the multi-column layout, not 1 of the legacy 6 zones).

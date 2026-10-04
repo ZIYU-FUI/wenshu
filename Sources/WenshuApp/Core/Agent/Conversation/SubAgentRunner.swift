@@ -470,7 +470,7 @@ final class SubAgentRunner {
                 // `toolSchemas` only the ones that can actually
                 // run). The system prompt already names the
                 // expected tools in prose; = a missing handler is
-                // a config drift (= boss 2026-09-20 "default-first"
+                // a config drift (= (see OOB.md #2026-09-20) "default-first"
                 // = no fake tools; = rather than injecting a stub
                 // handler we omit the schema).
             }

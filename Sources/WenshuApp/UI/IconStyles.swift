@@ -2,7 +2,7 @@
 //  IconStyles.swift · Wenshu · v3.0
 //
 //  Central SF Symbols 6 icon factory + Apple HIG walk for wenshu icon and
-//  text sizing (= boss 2026-10-01: merge icon + font under one file;
+//  text sizing (= (see OOB.md #2026-10-01): merge icon + font under one file;
 //  every token name = Apple HIG official terminology; every point value =
 //  Apple-default or Apple-shipped app default; zero ad-hoc numbers).
 //
@@ -40,7 +40,7 @@
 //       not wenshu-invented numbers. Empty-state = 76 (= Apple
 //       ContentUnavailableView default). paneTab = 18 (= Apple
 //       NSToolbar item macOS 14+ default). toolbar = 22 (= .controlSize
-//       (.small)). hero / cover / avatar = .thin weight (= boss 2026-09-17
+//       (.small)). hero / cover / avatar = .thin weight (= (see OOB.md #2026-09-17)
 //       SF Symbols 6 weight split rule for the ≥38 PT zone).
 //
 //    4. font styles walk Apple HIG text-style APIs (= .body, .callout,
@@ -83,7 +83,7 @@ import SwiftUI
 
 /// Apple HIG / Apple-shipped app icon-style enum. Each case carries the
 /// point size + the weight (= the .thin split for the ≥38 PT zone per
-/// boss 2026-09-17 SF Symbols 6 weight rule).
+/// (see OOB.md #2026-09-17) SF Symbols 6 weight rule).
 ///
 /// The case names walk Apple HIG official terminology (= `hitArea` for
 /// macOS HIG minimum hit area; `paneTab` for NSToolbar item default;
@@ -114,7 +114,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// density; = measured on Mail / Safari / Xcode).
     ///
     /// Apple HIG source: `NSToolbar > Toolbar item > Default icon
-    /// = 18 PT` (boss 2026-10-01).
+    /// = 18 PT` ((see OOB.md #2026-10-01)).
     ///
     /// Used by: PaneTabBar (11 sites), pane close-button glyph,
     /// font-format toolbar buttons (= FormatToolbarButtons), inline
@@ -154,7 +154,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     case hitArea
 
     /// ContentUnavailableView default icon size (= the empty-state hero
-    /// zone). Thin weight per boss 2026-09-17 SF Symbols 6 weight split
+    /// zone). Thin weight per (see OOB.md #2026-09-17) SF Symbols 6 weight split
     /// rule for the ≥38 PT zone.
     ///
     /// Apple HIG source: `ContentUnavailableView > Default icon zone
@@ -168,7 +168,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     case emptyStateHero
 
     /// List row avatar / thumbnail size (= NSTableView thumbnail row
-    /// standard). Thin weight per boss 2026-09-17 rule.
+    /// standard). Thin weight per (see OOB.md #2026-09-17) rule.
     ///
     /// Apple HIG source: `NSTableView > Row thumbnail size = 64 PT`
     /// (= Apple's default for list-row thumbnails; = Mail / Finder row
@@ -180,7 +180,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     case avatar
 
     /// CoverFlow thumbnail size (= Apple-shipped Finder cover preview
-    /// standard). Thin weight per boss 2026-09-17 rule.
+    /// standard). Thin weight per (see OOB.md #2026-09-17) rule.
     ///
     /// Apple HIG source: `Finder > CoverFlow preview = 192 PT`.
     ///
@@ -225,7 +225,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     }
 
     /// Apple HIG weight for this case. The ≥38 PT zone (= emptyStateHero
-    /// / avatar / cover) uses .thin per boss 2026-09-17 SF Symbols 6
+    /// / avatar / cover) uses .thin per (see OOB.md #2026-09-17) SF Symbols 6
     /// weight split rule. Smaller zones use .regular (= boss 9/15 "细体"
     /// canonical macOS toolbar weight).
     var fontWeight: Font.Weight {
@@ -307,7 +307,7 @@ enum IconRendering: Sendable, Equatable {
 /// View (= `Image(systemName:)` directly is anti-pattern for new code;
 /// pre-v3.0 call sites migrate via per-surface sweep PRs).
 ///
-/// Apple HIG rationale (boss 2026-10-01): one factory enforces one
+/// Apple HIG rationale ((see OOB.md #2026-10-01)): one factory enforces one
 /// weight + one color strategy per surface; 166 call sites can't
 /// drift because the factory pins it.
 ///

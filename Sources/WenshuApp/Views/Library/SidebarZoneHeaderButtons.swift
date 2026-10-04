@@ -1,6 +1,6 @@
 // SidebarZoneHeaderButtons.swift · Wenshu · v1.69d
 //
-// d sidebar MVVM cleanup (= boss 2026-09-22 OOB '老的文件没
+// d sidebar MVVM cleanup (= (see OOB.md #2026-09-22) OOB '老的文件没
 // 删, UI/业务/数据没分离的删掉'): extracted from the deleted
 // NewLibraryOutlineView.swift (the pre-v1.69e 2366-LOC legacy
 // sidebar that packed 8 mixed concerns into one file).

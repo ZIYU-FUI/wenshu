@@ -110,8 +110,8 @@ struct LongFormGuardrailsView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
-        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
+        // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // the unified EmptyStateView component (= 76 PT SF Symbols 6 icon
@@ -373,7 +373,7 @@ struct LongFormGuardrailsView: View {
         }
         // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
         // audit ticket 2): per-pane `.glassEffect(.regular)` is
-        // forbidden per boss 2026-09-02 OOB "默认不加液态玻璃效果
+        // forbidden per (see OOB.md #2026-09-02) OOB "默认不加液态玻璃效果
         // 的, 我们就不加; 默认带的, 我们就默认带". The canonical
         // pattern = Apple NSColor.windowBackgroundColor for sheet
         // surface = the 2-layer NSColor micro-differentiation

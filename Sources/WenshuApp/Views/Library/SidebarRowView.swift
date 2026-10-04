@@ -21,7 +21,7 @@ struct SidebarRowView: View {
     let node: SidebarNode
 
     var body: some View {
-        // sidebar fix (= boss 2026-09-22 OOB
+        // sidebar fix (= (see OOB.md #2026-09-22) OOB
         // '现在目录树还是点不了'): the macOS sidebar List bundled
         // with the `List(data, children:selection:rowContent:)`
         // init (= the OutlineGroup-backed one) does NOT bind

@@ -1,7 +1,7 @@
 //
 //  GlassIconButton.swift · Wenshu · v1.64f
 //
-// f boss 2026-09-20 'apply the prototype to wenshu directly':
+// f (see OOB.md #2026-09-20) 'apply the prototype to wenshu directly':
 //  extract the Apple macOS 27 native NSButton(bezelStyle: .glass)
 //  NSViewRepresentable bridge from the v1.64e spike prototype into
 //  a shared file (= the canonical chat input button used by
@@ -59,7 +59,7 @@ struct GlassIconButton: NSViewRepresentable {
         button.action = #selector(Coordinator.tap(_:))
         button.toolTip = help
         button.contentTintColor = NSColor.labelColor
-        // Pin the button size to 36 PT (= boss 2026-09-23 '按钮文本框的高度，
+        // Pin the button size to 36 PT (= (see OOB.md #2026-09-23) '按钮文本框的高度，
         // 统一一下，改成 36'). Apple HIG NSButton with bezelStyle=.glass
         // is constrained by its BEZEL'S intrinsicContentSize (= ~28 PT
         // for the glass bezel). Height-only heightAnchor alone is

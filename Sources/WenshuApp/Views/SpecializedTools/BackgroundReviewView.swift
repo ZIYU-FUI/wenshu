@@ -1,7 +1,7 @@
 //
-//  BackgroundReviewView.swift · Wenshu · v2.9a ticket T23 (boss 2026-09-28 OOB A3)
+//  BackgroundReviewView.swift · Wenshu · v2.9a ticket T23 ((see OOB.md #2026-09-28) OOB A3)
 //
-//  Manual surface for BackgroundReview (= boss 2026-09-28 OOB
+//  Manual surface for BackgroundReview (= (see OOB.md #2026-09-28) OOB
 //  inventory A3). The v2.8c agent surface (= BackgroundReviewTool
 //  + WenshuConductor wire + ConversationLoop step 9 auto-call) is
 //  wired; = the manual approve / reject surface was missing.
@@ -18,7 +18,7 @@
 //  Pattern follows BookmarkView / v2.8a specialized-tool body
 //  modifier + EmptyStateView pattern (= canonical Apple HIG).
 //
-//  Per boss 2026-09-28 OOB: '用户体验第一' = no placeholder/stub;
+//  Per (see OOB.md #2026-09-28) OOB: '用户体验第一' = no placeholder/stub;
 //  = the v2.9a BackgroundReview tab must show real proposals
 //  (= loaded via BackgroundReviewOps.listPending), not a
 //  placeholder text.

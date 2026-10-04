@@ -320,7 +320,7 @@ enum SystemPrompt {
 
         // Help guidance (= PromptBuilder.helpGuidance, = wenshu
         // wenshu-flavored help text pointing at AGENTS.md as the
-        // authoritative reference; = reimplemented per boss 2026-10-04
+        // authoritative reference; = reimplemented per (see OOB.md #2026-10-04)
         // OOB "wenshu Agent capabilities are reimplemented, not direct
         // hermes links"; = the future caller is the AI assistant
         // when it needs to look up project conventions).
@@ -331,7 +331,7 @@ enum SystemPrompt {
 
         // Environment hints (= PromptBuilder.buildEnvironmentHints(),
         // = wenshu-flavored macOS / Apple stack / Backend / Model
-        // description; = reimplemented per boss 2026-10-04 OOB).
+        // description; = reimplemented per (see OOB.md #2026-10-04) OOB).
         let envHints = PromptBuilder.buildEnvironmentHints()
         if !envHints.isEmpty {
             sections.append(envHints)
@@ -339,7 +339,7 @@ enum SystemPrompt {
 
         // Context files block (= PromptBuilder.buildContextFilesPrompt(),
         // = loads the AGENTS.md from cwd as authoritative project
-        // conventions; = reimplemented per boss 2026-10-04 OOB;
+        // conventions; = reimplemented per (see OOB.md #2026-10-04) OOB;
         // = nil contextLength = no truncation cap).
         let contextFiles = PromptBuilder.buildContextFilesPrompt(
             cwdPath: FileManager.default.currentDirectoryPath,

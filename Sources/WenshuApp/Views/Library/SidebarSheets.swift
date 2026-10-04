@@ -1,10 +1,10 @@
 //
-//  SidebarSheets.swift · Wenshu · v1.69y boss 2026-09-23 OOB
+//  SidebarSheets.swift · Wenshu · v1.69y (see OOB.md #2026-09-23) OOB
 //
 //  Sheet bodies for the sidebar's create + rename flows.
 //  Restored from the deleted NewLibraryOutlineView.swift
 //  (2366 LOC) after v1.69e `git rm`'d it without re-wiring
-//  (= per boss 2026-09-23 OOB '需要你把新建功能，右边菜单等恢复').
+//  (= per (see OOB.md #2026-09-23) OOB '需要你把新建功能，右边菜单等恢复').
 //
 //  Sheets defined here:
 //    - NewChoiceSheet  : picker card sheet (shelf vs book)

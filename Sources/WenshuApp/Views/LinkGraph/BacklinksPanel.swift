@@ -18,7 +18,7 @@ struct BacklinksPanel: View {
         // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
         // audit ticket 2): BacklinksPanel is a content-layer
         // (= Z1 in apple-hig-visual-z-axis-layer-model.md L29-31)
-        // NOT a chrome surface. Per boss 2026-09-02 OOB "默认不加
+        // NOT a chrome surface. Per (see OOB.md #2026-09-02) OOB "默认不加
         // 液态玻璃效果的, 我们就不加", no `.glassEffect(.regular)`
         // (= per-pane glass specular is forbidden per
         // pane-chrome-canonic-pattern.md L88). The placeholder

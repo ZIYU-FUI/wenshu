@@ -211,7 +211,7 @@ Each component has:
 
 ## 🖱️ LEVEL 5: Interaction 组件
 
-> v0.30 boss 2026-09-01 OOB: PaneSplitter + VSplitter
+> v0.30 (see OOB.md #2026-09-01) OOB: PaneSplitter + VSplitter
 > + StaticDividerVertical/Horizontal were deleted as dead code
 > (= superseded by the NSSplitView path which provides drag-to-resize
 > + autosave + canCollapse natively). Section 5 entries for those
@@ -408,7 +408,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 - **API**: `PaneTrailingIconButton(icon: "...", tooltip: "...", action: { ... })`
 ---
 
-## 🎨 STYLES (= boss 2026-09-07 'ui 与功能分离' architecture)
+## 🎨 STYLES (= (see OOB.md #2026-09-07) 'ui 与功能分离' architecture)
 
 Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件类似 css, 这样我们以后也好管理, 功能与样式分离' = abstract ALL chrome/content/icon styling into CSS-like style files (= single source of truth for visual tokens + modifiers; = zones own only FUNCTIONAL wiring). Ponytail principle 'use stdlib / Apple-native / existing dependencies before writing new code': the 4 STYLES files below all wrap Apple canonical APIs (= SwiftUI .padding, .font, .buttonStyle, SF Symbols 6 Image) = no new abstractions over Apple primitives. (v1.0.0-m1-shell 2026-09-15: replaced Lucide library with SF Symbols 6.)
 

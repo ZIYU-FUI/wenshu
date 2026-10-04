@@ -39,7 +39,7 @@ final class WSBookmarkRepository {
         context.insert(model)
         try context.save()
 
-        // v2.9a (boss 2026-09-28 OOB A8): bootstrap the new
+        // v2.9a ((see OOB.md #2026-09-28) OOB A8): bootstrap the new
         // bookmark into the Spotlight index (= Cmd-F should
         // surface bookmarks alongside chapters + references).
         let title = bookmark.label
@@ -65,7 +65,7 @@ final class WSBookmarkRepository {
             context.delete(model)
             try context.save()
 
-            // v2.9a (boss 2026-09-28 OOB A8): remove the
+            // v2.9a ((see OOB.md #2026-09-28) OOB A8): remove the
             // bookmark from the Spotlight index (= keeps the
             // index clean).
             Task.detached(priority: .utility) {

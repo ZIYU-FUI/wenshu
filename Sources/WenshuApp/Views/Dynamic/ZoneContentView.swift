@@ -81,7 +81,7 @@ struct ZoneContentView: View {
         // - The Apple-native Liquid Glass selected segment animation
         //   replaces the previous matchedGeometryEffect underline
         //   (= no @Namespace tabBarNamespace needed).
-        // -m1-shell boss 2026-09-11 OOB 'macOS 27's native control is our first choice':
+        // -m1-shell (see OOB.md #2026-09-11) OOB 'macOS 27's native control is our first choice':
         // swap the SwiftUI Picker(.segmented) (= the legacy macOS 10.5
         // wrapper; = intrinsic-size; = does NOT expose
         // NSSegmentedControl.Role; = does NOT auto-fill the column
@@ -114,7 +114,7 @@ struct ZoneContentView: View {
         // inspector page supplies; = the boss's directive is
         // satisfied with a single-line change).
         VStack(spacing: 0) {
-            // -m1-shell boss 2026-09-11 OOB 'macOS 27's native
+            // -m1-shell (see OOB.md #2026-09-11) OOB 'macOS 27's native
             // control is our first choice': use the macOS 27 native NSSegmentedControl
             // (= via the new `LabelSegmentedControl` wrapper in
             // UI/Segmented/; = the canonical Apple HIG Pages / Numbers
@@ -135,7 +135,7 @@ struct ZoneContentView: View {
                     set: { selectionBinding.wrappedValue = $0 }
                 ),
                 labels: tabs.map(\.id),
-                // -m1-shell boss 2026-09-11 OOB 'Foreshadowing, Placeholder,
+                // -m1-shell (see OOB.md #2026-09-11) OOB 'Foreshadowing, Placeholder,
                 // Plot Threads — that tab bar': use the per-tab localized label
                 // (= the `Tab.label` field = the Chinese
                 // localized title; = rendered via
@@ -143,7 +143,7 @@ struct ZoneContentView: View {
                 displayStrings: tabs.map(\.label),
                 icon: { tabId in
                     guard let tab = tabs.first(where: { $0.id == tabId }) else { return nil }
-                    // -m1-shell boss 2026-09-15 OOB 'use SF Symbols 6
+                    // -m1-shell (see OOB.md #2026-09-15) OOB 'use SF Symbols 6
                     // (3rd gen) with palette rendering':
                     // SF Symbol mapping as a
                     // NSSegmentedControl-friendly fallback
@@ -157,7 +157,7 @@ struct ZoneContentView: View {
                 }
             )
             .frame(maxWidth: .infinity)
-            // -m1-shell boss 2026-09-11 OOB 'remove all custom padding
+            // -m1-shell (see OOB.md #2026-09-11) OOB 'remove all custom padding
             // and switch to Apple-standard expressions — find an approximate value': remove the custom
             // horizontal inset (= `chromePaddingLarge` = 8 PT) on
             // the per-page tab strip. The tabs are inside a
@@ -205,7 +205,7 @@ struct ZoneContentView: View {
             // content margins (= List, LazyVGrid, ScrollView all
             // have them); = we shouldn't duplicate them with our
             // own outer wrapper.
-            // -m1-shell boss 2026-09-11 OOB 'everything is currently vertically
+            // -m1-shell (see OOB.md #2026-09-11) OOB 'everything is currently vertically
             // centered — keep the empty state vertically centered, title bar, divider, tab bar go
             // to the top, tab bar full-width fill is unchanged': per the boss's
             // request, the content area BELOW the tab strip is

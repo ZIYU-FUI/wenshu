@@ -12,7 +12,7 @@
 //  pins at top (= the boss's "see which question AI is replying to"
 //  affordance). Replaces v1.65-cleanup E3's `.safeAreaInset(edge:
 //  .top)` sticky overlay attempt (= that was a discrete scrollTo(.top)
-//  on new user message; = jarring; = reverted by boss 2026-09-21
+//  on new user message; = jarring; = reverted by (see OOB.md #2026-09-21)
 //  '把吸顶也取消吧').
 //
 // (2026-09-23): chat transcript background routed through
@@ -32,7 +32,7 @@
 //
 //  Apple HIG ground truth: SwiftUI VStack + List + TextField + Button pattern (same as Pages / Numbers).
 //
-//  refactor chat-mvvm-3layer C-3 (boss 2026-09-22 '目标 UI，业务，数据，三分离'):
+//  refactor chat-mvvm-3layer C-3 ((see OOB.md #2026-09-22) '目标 UI，业务，数据，三分离'):
 //  - C-1: domain types (ChatMessage / ChatRole / ChatSource) -> Core/Chat/Domain/.
 //  - C-2: ChatMessage split into Header + Body + glue (= 12 forwarders in place).
 //  - C-3 = THIS commit: ChatViewModel + StreamingAccumulator + StreamingTaskBox
@@ -268,7 +268,7 @@ struct ChatView: View {
     var body: some View {
         // boss acceptance fix: listen for global defocus notification.
         // Boss 8/24 feedback: 'clicking other areas, the textfield still keeps focus'.
-        // -cleanup E3 boss 2026-09-21 '文字不是左对齐' (= the chat
+        // -cleanup E3 (see OOB.md #2026-09-21) '文字不是左对齐' (= the chat
         // transcript content was horizontally centered inside the chat
         // column; = each AI message sat in the middle of the column
         // instead of the leading edge). Root cause: VStack default
@@ -359,7 +359,7 @@ struct ChatView: View {
                     // the COLUMN fills, not that the user card
                     // becomes full-width too).
                     //
-                    // -cleanup E3.5 boss 2026-09-21 '所有的对话，
+                    // -cleanup E3.5 (see OOB.md #2026-09-21) '所有的对话，
                     // 在聊天区的展示，居左 10PT，居右 10PT。现在都
                     // 过于宽了' (= the chat column used 32 PT
                     // horizontal gutter; = too much padding; = the
@@ -368,7 +368,7 @@ struct ChatView: View {
                     // requires exactly 10 PT on each side). Set
                     // horizontal padding to 10 PT (= matches Apple
                     // HIG px-2.5 = 10 PT; = matches the chat input
-                    // -cleanup E8 boss 2026-09-21 '用户说话的框，还有 AI 回复的文字，
+                    // -cleanup E8 (see OOB.md #2026-09-21) '用户说话的框，还有 AI 回复的文字，
                     // 现在视觉是距离聊天区边框 20PT':
                     // dropped `.padding(.horizontal, 10)` (= chat transcript
                     // content now sits flush against the chat column edge;
@@ -391,7 +391,7 @@ struct ChatView: View {
                     // Telegram chat input pattern where the last message
                     // peeks behind the input bar).
                     .contentMargins(.bottom, DesignTokens.chatInputBarHeight, for: .scrollContent)
-                    // -cleanup E3 boss 2026-09-21 '聊天区的背景能不能
+                    // -cleanup E3 (see OOB.md #2026-09-21) '聊天区的背景能不能
                     // 降低一点颜色，比如用左栏的颜色' (= the chat
                     // transcript area was using the macOS default
                     // windowBackgroundColor = RGB(28,28,28) on dark
@@ -443,8 +443,8 @@ struct ChatView: View {
                 // source of truth for the sidebar color in the wenshu
                 // design system)).
                 .background(DesignTokens.sidebarBackground)
-                // -cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，确实没有实现'
-                // -cleanup E4 boss 2026-09-21 '不是居左，你把吸顶也取消吧':
+                // -cleanup E3 (see OOB.md #2026-09-21) '那个框的悬浮吸顶，确实没有实现'
+                // -cleanup E4 (see OOB.md #2026-09-21) '不是居左，你把吸顶也取消吧':
                 // the .safeAreaInset(edge: .top) sticky overlay that
                 // re-rendered the latest user message above the scroll
                 // viewport (= hermes user-message.tsx:46 `sticky z-40`

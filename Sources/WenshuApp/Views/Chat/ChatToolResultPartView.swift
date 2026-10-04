@@ -34,7 +34,7 @@ struct ChatToolResultPartView: View {
             HStack(spacing: DesignTokens.spacingTight) {
                 // Success/error icon (= SF Symbol equivalent for the
                 // result type = checkmark / exclamation-mark-triangle).
-                // -m1-shell boss 2026-09-15 OOB 'remove
+                // -m1-shell (see OOB.md #2026-09-15) OOB 'remove
                 // Lucide, use SF Symbols 6' (= the previous code
                 // routed through the now-deleted
                 // LucideIconSystemFallback helper to map SF

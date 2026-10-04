@@ -1,10 +1,10 @@
 //
-//  SpotlightSearchSheet.swift · Wenshu · v2.8a ticket T7 (boss 2026-09-28 OOB)
+//  SpotlightSearchSheet.swift · Wenshu · v2.8a ticket T7 ((see OOB.md #2026-09-28) OOB)
 //
 //  Cmd-F ⌘F Spotlight search sheet (= the overlay surface for the
 //  v2.8a Spotlight search feature per boss OOB B2).
 //
-//  Boss intent (= boss 2026-09-28 OOB B2): no separate chrome-level
+//  Boss intent (= (see OOB.md #2026-09-28) OOB B2): no separate chrome-level
 //  UI for search; = Cmd-F triggers a small sheet attached to the
 //  root view. Sheet hosts:
 //    - TextField for the query (= focus on appear; = Cmd-L clears).

@@ -15,7 +15,7 @@
 // ChatZoneView = the chat-zone root container (= AI provider model
 // selector + ChatView + HelpTextOverlay).
 //
-// -m1-shell boss 2026-09-10 OOB 'drop the chat zone's top bar entirely, including the archive
+// -m1-shell (see OOB.md #2026-09-10) OOB 'drop the chat zone's top bar entirely, including the archive
 // icon button and the tabs — basically the whole top bar. For the zone's internal padding, if the API
 // provides one, let the API handle the defaults':
 // the chat zone no longer hosts any top-bar chrome (= no
@@ -74,7 +74,7 @@ struct ChatZoneView: View {
         // actions delegate back to the presenter (= the view layer
         // is dumb; = no business logic here).
         //
-        // -m1-shell boss 2026-09-10 OOB 'chat zone doesn't fill the width':
+        // -m1-shell (see OOB.md #2026-09-10) OOB 'chat zone doesn't fill the width':
         // apply `.frame(maxWidth: .infinity, maxHeight: .infinity)` to
         // the outer VStack so the chat zone fills the full width
         // and height of its NSSplitViewItem slot.

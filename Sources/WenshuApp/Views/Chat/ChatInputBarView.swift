@@ -28,7 +28,7 @@
 // (2026-09-23): restored the token-usage bottom bar (= boss
 //  2026-09-23 '那个 token 计数的底栏没有了，刚你写出来过，挺好的。
 //  写回来吧'). Did NOT restore the manual compress button (= confirmed
-//  automatic via ConversationLoop.swift:512; = boss 2026-09-23 '如果
+//  automatic via ConversationLoop.swift:512; = (see OOB.md #2026-09-23) '如果
 //  可以自动，那个按钮就不用写回来了').
 //
 // (2026-09-23): boss spec = chat column bottom = single input row +
@@ -72,7 +72,7 @@ struct ChatInputBarView: View {
 
     var body: some View {
         // (2026-09-23): boss restored the token-usage bottom bar
-        // (= boss 2026-09-23 '那个 token 计数的底栏没有了，刚你写出来过，
+        // (= (see OOB.md #2026-09-23) '那个 token 计数的底栏没有了，刚你写出来过，
         // 挺好的。写回来吧'). Manual compress button is NOT restored
         // (= ConversationLoop.swift:512 runs ConversationCompression.
         // historyAfterCompression on every turn = automatic compression;

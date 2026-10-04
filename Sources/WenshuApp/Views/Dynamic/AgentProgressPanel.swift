@@ -1,7 +1,7 @@
 //
 //  AgentProgressPanel.swift · Wenshu · v0.41 WIRE-OPENBOX-001
 //
-//  P2 #21 wire progress (boss 2026-09-04 OOB 'wire progress from
+//  P2 #21 wire progress ((see OOB.md #2026-09-04) OOB 'wire progress from
 //  ConversationLoop into OpenBox so user sees step-by-step feedback').
 //
 //  Small panel displayed at the top of DynamicZoneView (the OpenBox

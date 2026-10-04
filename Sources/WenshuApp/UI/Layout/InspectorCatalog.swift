@@ -230,7 +230,7 @@ enum InspectorCatalog {
         view: { AnyView(BookSettingConstraintsView()) }
     )
 
-    // v2.8a (boss 2026-09-28 OOB): bookmark tab for the
+    // v2.8a ((see OOB.md #2026-09-28) OOB): bookmark tab for the
     // specializedTools pane. WSBookmark @Model + WSBookmarkRepository
     // (= SwiftData per AGENTS.md §11.4 phase 5 ticket 10b) are
     // already canonical; = this entry just wires the view into
@@ -242,7 +242,7 @@ enum InspectorCatalog {
         view: { AnyView(BookmarkView()) }
     )
 
-    // v2.9a (boss 2026-09-28 OOB A3): BackgroundReview tab = the
+    // v2.9a ((see OOB.md #2026-09-28) OOB A3): BackgroundReview tab = the
     // manual surface for the v2.8c BackgroundReview agent surface.
     // BackgroundReviewOps.listPending / approve / reject (= @MainActor
     // enum 4 entry points) are already canonical; = this entry wires

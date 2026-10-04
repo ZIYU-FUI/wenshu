@@ -73,7 +73,7 @@ struct ChatMessagePlaceholderRow<Pulse: View>: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        // -cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
+        // -cleanup E6 (see OOB.md #2026-09-21) '只保留 10PT, 我建议你把基它地方的全都取消掉':
         // vertical chromePaddingVertical (= 8 PT; = Apple HIG py-2 row gap
         // convention). Horizontal padding lives on the chat transcript
         // outer (= single source of truth = ChatView.swift, not this

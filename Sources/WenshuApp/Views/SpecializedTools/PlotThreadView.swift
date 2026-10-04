@@ -51,7 +51,7 @@ struct PlotThreadView: View {
                     }
                 }
             } else {
-                // -m1-shell boss 2026-09-12 OOB 'unify the empty-state style across all of them':
+                // -m1-shell (see OOB.md #2026-09-12) OOB 'unify the empty-state style across all of them':
                 // use the unified EmptyStateView (= 76 PT SF Symbols 6
                 // icon + .regular weight = the canonical
                 // macOS 27 inspector icon weight; = standard

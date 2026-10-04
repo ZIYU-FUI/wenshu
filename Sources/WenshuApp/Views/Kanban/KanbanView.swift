@@ -17,7 +17,7 @@
 //    - Each ticket card: title + status badge + delete button.
 //    - Empty state when no book selected / no tickets.
 //
-// (= boss 2026-09-04 OOB "kanbanissue"): the scope
+// (= (see OOB.md #2026-09-04) OOB "kanbanissue"): the scope
 //  picker (= .menu Picker over the 8 standard sub-folders + book root
 //  + reference library) drives which JSON file the view reads from /
 //  writes to. Scope is a view filter, not a data-layer change.

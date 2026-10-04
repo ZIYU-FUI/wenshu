@@ -494,7 +494,7 @@ struct EditorView: View {
             }
         }
         // 'chattop bar 3 tab, editortop bar
-        // ': REVERTED (= boss 2026-09-08 follow-up 'yes, don't
+        // ': REVERTED (= (see OOB.md #2026-09-08) follow-up 'yes, don't
         //, info, default
         // editorshould MD tab'). The welcome tab was
         // visually present but the preview body was empty (= no

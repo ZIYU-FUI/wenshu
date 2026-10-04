@@ -14,7 +14,7 @@ struct ChatHelpTextOverlay: View {
     let onSettingsTap: () -> Void
 
     var body: some View {
-        // -m1-shell boss 2026-09-10 OOB 'the chat zone's empty-state hint has no background,
+        // -m1-shell (see OOB.md #2026-09-10) OOB 'the chat zone's empty-state hint has no background,
         // add a same-sized overlay using Apple APIs — find the mask-related
         // APIs'. The previous ChatHelpTextOverlay rendered as a
         // pure-text hint (= icon + 2-line title + 1-line body)
@@ -67,7 +67,7 @@ struct ChatHelpTextOverlay: View {
             Color.clear  // zone background shows through (= Apple canonical: parent ZoneContentView provides background)
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+                // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
                 // a single component — can you abstract a UI component? While you're at it, on the
                 // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
                 // empty-state styles. The right column has 12 tabs and many are missing an empty state':
@@ -91,7 +91,7 @@ struct ChatHelpTextOverlay: View {
                 // Inner spacing values (= 22 PT icon→title gap, 4 PT
                 // title→body gap) are matched to Apple's measured
                 // ContentUnavailableView sample.
-                // -m1-shell boss 2026-09-16 OOB '所有 ICON，都不要 .fill':
+                // -m1-shell (see OOB.md #2026-09-16) OOB '所有 ICON，都不要 .fill':
                 // migrated chat empty-state icon from 'message.fill' to
                 // 'message' (= the outline form = the canonical Apple
                 // HIG Liquid Glass 3rd-generation design language).

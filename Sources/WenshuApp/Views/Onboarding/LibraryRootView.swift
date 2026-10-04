@@ -100,7 +100,7 @@ struct LibraryRootView: View {
     @State private var bookStore: BookStore?
     @State private var commandPaletteModel = CommandPaletteModel()
     @State private var commandPaletteVisible: Bool = false
-    // v2.8a (boss 2026-09-28 OOB B2): Spotlight search sheet
+    // v2.8a ((see OOB.md #2026-09-28) OOB B2): Spotlight search sheet
     // visibility (= driven by the Cmd-F ⌘F keyboard binding).
     @State private var spotlightVisible: Bool = false
     @State private var editMode = LayoutEditMode()
@@ -162,7 +162,7 @@ struct LibraryRootView: View {
             // imported at the call site below via SwiftUI re-export;
             // = we just don't call it from this root view anymore).
             // 
-            // REMOVED. Per boss 2026-09-10 OOB 'Apple Pages/Numbers/
+            // REMOVED. Per (see OOB.md #2026-09-10) OOB 'Apple Pages/Numbers/
             // Keynote doesn't hide the right column' + 'Apple doesn't provide a default collapse button for the right column',
             // inspector is permanently visible (= no toggle, no
             // hide affordance). NavigationSplitShell wires
@@ -176,7 +176,7 @@ struct LibraryRootView: View {
                 CommandPaletteView(model: commandPaletteModel)
                     .navigationTitle(WenshuI18n.t("command_palette.title"))
             }
-            // v2.8a (boss 2026-09-28 OOB B2): Cmd-F ⌘F triggers the
+            // v2.8a ((see OOB.md #2026-09-28) OOB B2): Cmd-F ⌘F triggers the
             // Spotlight search sheet (= Apple HIG hidden-button +
             // keyboardShortcut pattern; = the binding lives here so
             // the sheet is available regardless of which zone is
@@ -223,7 +223,7 @@ struct LibraryRootView: View {
             // Commit 6b removed the NavigationSplitShell wrapper layer
             // (= the wenshu-summary abstraction that conflated wenshu-
             // specific column-binding plumbing with Apple's
-            // NavigationSplitView). Per boss 2026-10-03 OOB '清多余的
+            // NavigationSplitView). Per (see OOB.md #2026-10-03) OOB '清多余的
             // 层' = strip wenshu-summary layers that conflate with the
             // Apple-canonical shape.
             //
@@ -278,7 +278,7 @@ struct LibraryRootView: View {
             // bookStore.books.count is correct on the first render.
             self.bookStore?.reloadAllBooks()
         } catch {
-            // -m1-shell boss 2026-09-10 OOB 'UI doesn't load, just spins forever':
+            // -m1-shell (see OOB.md #2026-09-10) OOB 'UI doesn't load, just spins forever':
             // the previous `#if DEBUG print` was suppressed in
             // release builds (= the boss is running a release .app
             // bundle). NSLog works in both DEBUG and RELEASE so the
@@ -295,7 +295,7 @@ struct LibraryRootView: View {
         }
     }
 
-    /// v2.8a (boss 2026-09-28 OOB B2): handle a Spotlight result
+    /// v2.8a ((see OOB.md #2026-09-28) OOB B2): handle a Spotlight result
     /// pick. Currently the dispatcher is a stub (= logs the docId
     /// + dismisses the sheet); = future tickets can wire this to
     /// chapter / reference / outline navigation once the
@@ -305,7 +305,7 @@ struct LibraryRootView: View {
     private func handleSpotlightPick(docId: String) {
         NSLog("[wenshu.spotlight] pick docId=%@", docId)
 
-        // v2.9d T35 (boss 2026-09-28 OOB A8 polish): the
+        // v2.9d T35 ((see OOB.md #2026-09-28) OOB A8 polish): the
         // editor tab title now uses the mirror entry's title
         // (= falls back to the docId when the mirror has no
         // entry); = the canonical user-facing label per
@@ -381,7 +381,7 @@ struct LibraryOnboardingView: View {
     let onLibraryPicked: (URL) -> Void
 
     /// Apple HIG Inventory 2026-09-06 listed `.fileImporter` as a
-    /// missing API (0 hits). Per boss 2026-09-10 'add HIG APIs that
+    /// missing API (0 hits). Per (see OOB.md #2026-09-10) 'add HIG APIs that
     /// are currently absent', replace the legacy NSOpenPanel call
     /// below with SwiftUI's `.fileImporter` modifier (= Apple-
     /// standard sheet UX; macOS 14+).
@@ -414,7 +414,7 @@ Group {
             .frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)
     } else {
         // Fallback: SF Symbols 6 canonical 'text.book.closed' if PNG load fails
-        // (boss 2026-09-02: SF Symbol fully replaced).
+        // ((see OOB.md #2026-09-02): SF Symbol fully replaced).
         SFIcon("text.book.closed", style: .inlineSmall, color: .white)
     }
 }
@@ -463,7 +463,7 @@ Group {
 
             Spacer()
         }
-        // -m1-shell boss 2026-09-10 OOB 'initial size, too small':
+        // -m1-shell (see OOB.md #2026-09-10) OOB 'initial size, too small':
         // the onboarding body has no explicit outer frame, so
         // `.windowResizability(.contentSize)` (= applied at the
         // Scene root in AppRootScene) shrinks the window to the

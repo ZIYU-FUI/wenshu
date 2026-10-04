@@ -172,7 +172,7 @@ enum LongFormGuardrailSource: String, Sendable, Codable, CaseIterable, Equatable
 
 /// How the harness reacts on a violation. The actor's
 /// `applyEnforcement(_:violations:)` reads this per-guardrail and
-/// either rejects, appends a warning, or ignores (= boss 2026-08-27
+/// either rejects, appends a warning, or ignores (= (see OOB.md #2026-08-27)
 /// `strict / warn / off` triplet).
 enum LongFormGuardrailEnforcement: String, Sendable, Codable, CaseIterable, Equatable {
     /// LLM response rejected (= error returned to the caller)
