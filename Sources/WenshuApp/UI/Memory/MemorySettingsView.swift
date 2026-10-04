@@ -4,8 +4,15 @@
 
 import SwiftUI
 
-private let smallChipCornerRadius: CGFloat = 3
-private let subtleSurfaceAlpha: CGFloat = 0.05
+// (smallChipCornerRadius / subtleSurfaceAlpha removed 2026-10 in
+//  q99-spec-p0-batch2 — verify-dead.py confirmed 0 external callers;
+//  = the file-private constants were retained as "tiered chrome
+//  values" (= smallChipCornerRadius = 3 for chip-level rounding;
+//  subtleSurfaceAlpha = 0.05 for subtle surface tint) but the
+//  MemorySettingsView now uses DesignTokens.surfaceCornerRadiusSmallChip
+//  + .accentTintOpacitySubtle (= the canonical Apple HIG-measured
+//  token set; = wenshu-pocock-workflow references/v3.0-design-system-rule.md).
+//  See wenshu-dead-code-cleanup SKILL.md.)
 
 
 struct MemorySettingsView: View {

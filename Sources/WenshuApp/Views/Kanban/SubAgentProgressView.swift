@@ -76,13 +76,14 @@ struct SubAgentProgressView: View {
         tasks = (try? repositories.kanban.list()) ?? []
     }
 
-    private var runningCount: Int {
-        tasks.filter { $0.status == .running }.count
-    }
-
-    private var doneCount: Int {
-        tasks.filter { $0.status == .done }.count
-    }
+    // (runningCount / doneCount removed 2026-10 in q99-spec-p0-batch2 —
+    //  verify-dead.py confirmed 0 external callers; = the computed
+    //  properties were retained as "status summary helpers" (= running
+    //  count + done count of the current kanban task list) but no
+    //  body / sub-view in SubAgentProgressView consumed them; = the
+    //  visible task list itself is the source of truth. See
+    //  wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
 }
 
 private struct TaskRowView: View {
