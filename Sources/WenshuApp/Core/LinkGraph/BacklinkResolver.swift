@@ -37,9 +37,13 @@ actor BacklinkResolver {
     /// Production callers (= none currently exist) use this; tests
     /// inject a per-test WSLinkRepository with in-memory ModelContainer.
     @MainActor
-    static func defaultInstance(documentIndex: DocumentIndexing) -> BacklinkResolver {
-        BacklinkResolver(repository: .shared, documentIndex: documentIndex)
-    }
+    // (defaultInstance removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
+    //  confirmed 0 external callers; = the constructor was retained as a
+    //  "shorthand for the canonical BacklinkResolver wiring" affordance
+    //  but never consumed; = callers instantiate BacklinkResolver
+    //  directly via BacklinkResolver(repository: .shared, documentIndex:).
+    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
 
     /// Parse markdown content, clear old links for sourceDocId, batch insert new links
     func resolve(content: String, sourceDocId: String) async throws {
