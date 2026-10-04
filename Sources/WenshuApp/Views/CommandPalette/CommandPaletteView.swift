@@ -180,7 +180,7 @@ struct CommandPaletteView: View {
             .padding(.vertical, DesignTokens.spacingStandard)
         }
         .frame(width: DesignTokens.settingIOsheetSize.width, height: DesignTokens.settingIOsheetSize.height)
-        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
         // audit ticket 2): per-pane `.glassEffect(.regular)` is
         // forbidden per (see OOB.md #2026-09-02) OOB "默认不加液态玻璃效果
         // 的, 我们就不加; 默认带的, 我们就默认带". The canonical
@@ -257,7 +257,7 @@ private struct CommandPaletteRow: View {
         switch item.category {
         // -m1-shell (see OOB.md #2026-09-15) OOB 'use SF Symbols 6
         // (3rd gen) with palette rendering': canonical
-        // category glyphs. Replaces the v0.46 boss 'SF Symbol
+        // category glyphs. Replaces the v0.46 the directive 'SF Symbol
         // dropped, use Lucide' choice (= which has since been
         // superseded by the 2026-09-15 reversal).
         case "skill": return "wand.and.sparkles"

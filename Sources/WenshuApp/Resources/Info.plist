@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- v0.40 apple-001 i18n (boss real-device test 2026-09-07):
+    <!-- v0.40 apple-001 i18n (real-device test 2026-09-07):
          changed CFBundleDevelopmentRegion from "zh_CN" to "en"
          (= base/development language = English per Apple HIG).
          Added CFBundleLocalizations = ["en", "zh-Hans"] (= explicit
@@ -54,7 +54,7 @@
     <false/>
     <key>NSSupportsSuddenTermination</key>
     <false/>
-    <!-- v0.24 boss验收fix (Boss 8/24 OOB): .ws = wenshu 仓库 package type.
+    <!-- v0.24 boss验收fix ((see OOB.md #2026-08-24)): .ws = wenshu 仓库 package type.
          '库应该是个包文件, 右建点会出现显示包内容' (= package, like
          .photoslibrary / .fcpbundle / .musiclibrary). Register .ws as
          exported type so Finder treats name.ws as bundle directory

@@ -4,7 +4,7 @@
 //  Unified-diff preview card. Mirrors the hermes `a61baa9615
 //  feat(desktop): PR-style file diffs in chat` API surface:
 //    - color by line: removed = red, added = green, context = neutral
-//    - header = filename + +N/-N character counts (= the boss-facing
+//    - header = filename + +N/-N character counts (= the user-facing
 //      metric for "how much did the LLM want to change")
 //    - body = unified diff lines, git-noise header stripped, the
 //      +/-/space gutter stripped so changes read by color alone

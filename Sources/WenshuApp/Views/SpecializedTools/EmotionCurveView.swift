@@ -282,7 +282,7 @@ struct EmotionCurveView: View {
         baselinePath.addLine(to: CGPoint(x: chartRect.maxX, y: baselineY))
         context.stroke(
             baselinePath,
-            // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+            // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
             // audit ticket 6): HierarchicalShapeStyle.separator
             // is the Apple semantic ShapeStyle that auto-adapts
             // to dark mode + Liquid Glass (= not the solid

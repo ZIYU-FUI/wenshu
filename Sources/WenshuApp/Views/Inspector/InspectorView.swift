@@ -471,7 +471,7 @@ struct InspectorView: View {
                                 // 'llm_wiki' tool (= v2.8d T17), and every
                                 // raw reference save auto-triggers derivation
                                 // (= v2.8d auto-call hook), but the operator
-                                // (= the boss) has no direct "Re-derive wiki
+                                // (= the user) has no direct "Re-derive wiki
                                 // now" affordance. This button closes A4.
                                 Button {
                                     Task {

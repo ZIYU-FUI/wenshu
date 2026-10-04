@@ -31,6 +31,6 @@ extension WenshuVerifier {
     WenshuVerifier.apiKey = 1 key (sourced from Keychain at init).
     All 6 agents (1 main + 5 sub) use the same verifier -> same key.
 
-    Boss 2026-08-23 OOB: 'all agents share a single key as default'.
+    (see OOB.md #2026-08-23): 'all agents share a single key as default'.
     """
 }

@@ -13,7 +13,7 @@
 //    - Python `_save_auth_store` (atomic write to auth.json) -> Swift
 //      `Data.write(to:options: .atomic)`.
 //    - Python `STATUS_OK / STATUS_EXHAUSTED / STATUS_DEAD` (3 states) ->
-//      Swift `AuthKeyStatus` (6 cases per boss spec = the dispatch surface
+//      Swift `AuthKeyStatus` (6 cases per the spec = the dispatch surface
 //      callers need for richer routing decisions).
 //    - Storage path = `~/.wenshu/auth.json` (= mirrors hermes' ~/.hermes/auth.json
 //      layout). Persistence is optional (= wenshu already has ProviderKeychain

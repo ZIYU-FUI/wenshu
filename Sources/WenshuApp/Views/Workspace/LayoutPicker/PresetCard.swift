@@ -31,7 +31,7 @@ struct PresetCard: View {
             PresetThumbnail(workspace: preset.workspace)
                 .aspectRatio(DesignTokens.presetThumbnailAspectRatio, contentMode: .fit)
                 .frame(maxWidth: .infinity)
-                // followup Boss UX round 19 (Boss 2026-08-29 OOB
+                // followup UX round 19 ((see OOB.md #2026-08-29)
                 // .ultraThinMaterial (= the lightest Liquid Glass
                 // material = subtle tint without overwhelming the
                 // thumbnail preview). Per Apple HIG (= macOS 26 Tahoe
@@ -42,7 +42,7 @@ struct PresetCard: View {
                     RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
                         .fill(.ultraThinMaterial)
                 )
-                // followup Boss UX round 26: Apple .separator
+                // followup UX round 26: Apple .separator
                 // (= canonical Liquid Glass separator) replaces
                 // Color(nsColor: .separatorColor) for consistency with
                 // all other 1 PT splitters. Uses a helper view since
@@ -84,7 +84,7 @@ struct PresetCard: View {
 }
 // MARK: - strokeOverlay (= preset card stroke helper)
 //
-// followup Boss UX round 26: helper view because Color and
+// followup UX round 26: helper view because Color and
 // ShapeStyle (= Apple .separator) have different types and can't
 // be mixed in a ternary expression.
 //

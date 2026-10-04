@@ -507,7 +507,7 @@ struct AppleSidebarView: View {
             // be used directly because no EntityCategory rawValue
             // is "文学". Falling back to node.title (= the previous
             // m behaviour) leaves the routing key in the
-            // user-visible slot (= the boss's '资料库分类, 现在
+            // user-visible slot (= the user's '资料库分类, 现在
             // 显示是的一个字母' complaint).
             workspaceUI.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
         case .divider:

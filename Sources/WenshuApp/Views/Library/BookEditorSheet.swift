@@ -143,7 +143,7 @@ struct BookEditorSheet: View {
         }
         .formStyle(.grouped)
         .frame(minWidth: 420)
-        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
         // audit ticket 2): per-pane `.glassEffect(.regular)` is
         // forbidden per (see OOB.md #2026-09-02) OOB "默认不加液态玻璃效果
         // 的, 我们就不加; 默认带的, 我们就默认带". The canonical

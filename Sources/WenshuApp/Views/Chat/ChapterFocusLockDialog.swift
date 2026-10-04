@@ -8,7 +8,7 @@
 //  (= a tiny AppStateLocator-style singleton that holds the
 //  current pending request). ChatZoneView observes the presenter
 //  and renders the .alert(item:) with Allow / Deny buttons. The
-//  boss's choice resumes the conductor's continuation; = Allow
+//  user's choice resumes the conductor's continuation; = Allow
 //  releases the lock + retries, = Deny throws DatasetLockDeniedByBoss
 //  (= the LLM receives the error and decides what to do next).
 //
@@ -23,9 +23,9 @@ import SwiftUI
 /// shown when the LLM hits the chapter focus lock. Carries the
 /// chapter path (= for the title), the tool name (= for context),
 /// a human-readable summary (= from the LLM's tool input; = the
-/// LLM tells the boss what it wants to do), and the continuation
+/// LLM tells the user what it wants to do), and the continuation
 /// that the conductor awaits. The dialog's buttons resume the
-/// continuation with the boss's choice.
+/// continuation with the user's choice.
 ///
 /// `Identifiable` so ChatZoneView can use the request as the
 /// `item:` parameter of `.alert(item:)`. The id is generated at
@@ -75,7 +75,7 @@ final class ChapterFocusLockDialogPresenter {
 
     /// Conductor-side entry point. Async because the dialog's
     /// choice is delivered via the continuation (= the conductor
-    /// `await`s the boss's Allow/Deny decision). Returns true
+    /// `await`s the user's Allow/Deny decision). Returns true
     /// (= Allow) or false (= Deny).
     ///
     /// The conductor is responsible for setting up the dialog
@@ -97,7 +97,7 @@ final class ChapterFocusLockDialogPresenter {
         }
     }
 
-    /// Boss-allow path (= ChatZoneView's Allow button calls this).
+    /// User-allow path (= ChatZoneView's Allow button calls this).
     /// Resumes the continuation with true (= Allow).
     func allowCurrentRequest() {
         guard let request = pendingRequest else { return }
@@ -105,7 +105,7 @@ final class ChapterFocusLockDialogPresenter {
         request.continuation.resume(returning: true)
     }
 
-    /// Boss-deny path (= ChatZoneView's Deny button calls this).
+    /// User-deny path (= ChatZoneView's Deny button calls this).
     /// Resumes the continuation with false (= Deny).
     func denyCurrentRequest() {
         guard let request = pendingRequest else { return }

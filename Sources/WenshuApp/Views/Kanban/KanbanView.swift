@@ -7,7 +7,7 @@
 //  + the local `@State scope`, both read via @Environment per v0.30 boss
 // 8/31 OOB 'region' = option A = global @Observable store).
 //
-//  Layout (Boss B-09 acceptance):
+//  Layout (B-09 acceptance):
 // - Top bar: kanban title + scope picker + "+ " button.
 //    - Input row: text field + return-to-add (per Apple HIG inline-create).
 //    - Body: per-status columns (new / ready / running / blocked /
@@ -78,7 +78,7 @@ struct KanbanView: View {
             content
         }
         .padding(DesignTokens.spacingStandard)
-        // bossverificationfix: flexible size (was: 480x320 min forcing zone to grow).
+        // wenshu-verification-fix: flexible size (was: 480x320 min forcing zone to grow).
         // "=" per ticket 026 v0.26).
         // re-load when the active scope changes (= user picked a
         // different sub-folder / reference library from the picker).

@@ -35,7 +35,7 @@ struct EditModeBadge: View {
             }
             .padding(.horizontal, DesignTokens.spacingModerate)
             .padding(.vertical, DesignTokens.spacingTight)
-            // followup Boss UX round 24: .regularMaterial
+            // followup UX round 24: .regularMaterial
             // replaces the solid Color.secondary.opacity(0.15) tint
             // for the edit-mode badge background (= the floating
             // badge that shows when ⌘⇧\ edit mode is on).

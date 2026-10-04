@@ -156,7 +156,7 @@ struct EditorParagraphAI {
 /// binding (= Apple SwiftUI native; = no third-party shortcut
 /// lib required).
 ///
-/// Disabled rules (= matches the boss spec's
+/// Disabled rules (= matches the user spec's
 /// `disabled(vm.selectedText.isEmpty)` line):
 /// - `selectedText.isEmpty`: nothing to transform.
 /// - `isApplying`: an LLM call is already in flight (= prevent

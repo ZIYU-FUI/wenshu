@@ -10,7 +10,7 @@
 // sidebar row content).
 //
 // b differs from the reverted v1.68a (= same idea, =
-// the boss accepted the architecture but rejected the rest of the
+// the user accepted the architecture but rejected the rest of the
 // a patch because it leaked changes into LibraryStores /
 // BookStore.init / 12 test fixtures — none of those are touched
 // here).

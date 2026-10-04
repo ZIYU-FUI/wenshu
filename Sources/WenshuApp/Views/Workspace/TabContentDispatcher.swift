@@ -19,7 +19,7 @@ struct TabContentDispatcher: View {
     /// global @Observable store). TabContentDispatcher reads
     /// AppState directly via @Environment (= no @Binding chain).
 
-    // boss 8/31 OOB (sidebar feedback bundle #3): bottom status
+    // (see OOB.md #2026-08-31) (sidebar feedback bundle #3): bottom status
     // ': N /: N' was hardcoded to 0. Now reads live counts
     // from BookStore (= the Environment value already propagated
     // from App.swift via .environment(bookStore)).
@@ -42,7 +42,7 @@ struct TabContentDispatcher: View {
     @State private var showingArchiveConfirm: Bool = false
     @Namespace private var chatTabBarNamespace
 
-    // (= boss 9/2 OOB follow-up to B-14): the chrome bottom
+    // (= (see OOB.md #2026-09-02) follow-up to B-14): the chrome bottom
     // status now reads ": 0 / N" (= replaces the legacy "N%"
     // progress placeholder). BacklinksViewModel lives here too (= own
     // loader for the chrome status; EditorView holds its own
@@ -84,7 +84,7 @@ struct TabContentDispatcher: View {
         case .editor:
             // No outer top (= internal ZoneContentTabBar for edit /
             // / IS the top chrome). Bottom status = /
-            // (= boss 9/2 OOB replaces the legacy "N%" progress text
+            // (= (see OOB.md #2026-09-02) replaces the legacy "N%" progress text
             // with backlinks count; = spec spec v0.34 B-15).
             
                 PaneView(zoneSlot: .editor)
@@ -244,7 +244,7 @@ private struct GroupTabStrip: View {
                 }
                 .background(paneID == activePaneID ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(Color.clear))
                 // Bottom 1 PT separator.
-                // followup Boss UX round 26: Apple HierarchicalShapeStyle
+                // followup UX round 26: Apple HierarchicalShapeStyle
                 // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
                 // Uses `.separator` (= the canonical macOS
                 // semantic separator color) instead of
@@ -258,7 +258,7 @@ private struct GroupTabStrip: View {
                 )
             }
         }
-        // boss real-device test 2026-09-07: removed
+        // real-device test 2026-09-07: removed
         // .regularMaterial (= Liquid Glass group tab bar);
         // now uses Color.clear (= no background).
         .background(Color.clear)

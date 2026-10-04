@@ -342,7 +342,7 @@ enum EditChapterError: Error, Equatable {
     case oldTextNotFound
 }
 
-/// chapter-dialog 2026-09-28 T2: thrown when the boss denies the
+/// chapter-dialog 2026-09-28 T2: thrown when the user denies the
 /// chapter-edit dialog (= chose Deny in the Allow/Deny alert).
 /// The LLM receives this error and decides what to do next
 /// (= try a different chapter, ask for clarification, etc).
@@ -350,7 +350,7 @@ struct DatasetLockDeniedByBoss: Error, Equatable {
     let chapterPath: String?
 }
 
-/// chapter-focus-lock 2026-09-28: thrown when the boss has the
+/// chapter-focus-lock 2026-09-28: thrown when the user has the
 /// editor focused on the chapter an agent tool call is targeting.
 /// The conductor (= WenshuConductor) catches this and presents
 /// an Allow / Deny dialog so the focus can be released before the
@@ -379,7 +379,7 @@ enum ChapterFocusLockGuard {
             .path
     }
 
-    /// Throws `ChapterFocusLockedError` when the boss has this
+    /// Throws `ChapterFocusLockedError` when the user has this
     /// chapter's editor tab focused. Async because AppState lives
     /// on the MainActor; = actors crossing isolation must await.
     static func assertNotLocked(

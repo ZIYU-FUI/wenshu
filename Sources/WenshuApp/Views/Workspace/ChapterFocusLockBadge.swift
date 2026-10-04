@@ -10,7 +10,7 @@
 //
 //  The badge is rendered by EditorView when
 //  focusedChapterPath == currentTab.documentPath AND
-//  !shellState.chatVisible (= the boss is looking at the editor,
+//  !shellState.chatVisible (= the user is looking at the editor,
 //  not the chat column). When the LLM's edit completes, the
 //  wrapper restores the snapshot (= focusedChapterPath goes back
 //  to its prior value, the badge disappears, and the editor

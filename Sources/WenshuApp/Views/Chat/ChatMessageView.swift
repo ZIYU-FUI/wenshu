@@ -149,7 +149,7 @@ struct ChatMessageView: View {
                     //      `position: sticky; top: 0` in effect).
                     //
                     // The remaining gap from hermes真值 (= Apple API
-                    // limitation, documented per boss 'Apple API 限制可
+                    // limitation, documented per the directive 'Apple API 限制可
                     // 接受'):
                     //   - 真值 hermes: `position: sticky; top: 0` is a
                     //     continuous scroll-tracking behavior (= the row
@@ -358,7 +358,7 @@ struct ChatMessageView: View {
                         // `.interpolate` to `.identity` AND the
                         // streaming cursor wasn't drawn. Combined: the
                         // user saw the text appear in one render
-                        // (= the boss's '一次吐出' report).
+                        // (= the user's '一次吐出' report).
                         //
                         // Hermes真值: assistant-message.tsx:346
                         // checks `s.message.status?.type === 'running'`

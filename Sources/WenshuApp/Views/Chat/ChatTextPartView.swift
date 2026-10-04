@@ -136,7 +136,7 @@ struct ChatTextPartView: View {
 /// a `ScaffoldRow` header (= "Thinking…" label + elapsed timer + a
 /// shimmer animation while running). wenshu's existing DisclosureGroup
 /// is the canonical Apple HIG equivalent (= no custom scaffold row =
-/// Apple default = boss's 'anything that uses Apple styles should default everything' OOB).
+/// Apple default = user's 'anything that uses Apple styles should default everything' OOB).
 ///
 /// The `isRunning` parameter (= true when the model is still thinking)
 /// controls:
