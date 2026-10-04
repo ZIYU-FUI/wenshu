@@ -28,15 +28,16 @@ struct MemoryRetrievalPanel: View {
                     .foregroundStyle(.secondary)
             }
             // STYLES-004 (2026-09-07): use the canonical content
-            // inset modifier (= 18 PT horizontal + 6 PT top = boss
-            // 9/7 round 2 audit recipe for memory panel). Previously
-            // this was .padding(.horizontal, chromePaddingChipHorizontal
-            // = 10 PT) + .padding(.top, chromePaddingSmall = 6 PT) =
-            // 10 PT horizontal = too tight (= boss 'zone 6 too small').
-            // chromePaddingLeading (= 8 PT per Apple HIG; = the value of
-             // DesignTokens.spacingStandard per boss 9/8
-             // 'Apple API default spacing isn't PT, it's a semantic
-             // name' = the semantic name is '.small' = 8 PT)
+            // inset modifier (= 18 PT horizontal + 6 PT top = the
+            // 2026-09-07 round 2 audit recipe for memory panel).
+            // Previously this was .padding(.horizontal,
+            // chromePaddingChipHorizontal = 10 PT) + .padding(.top,
+            // chromePaddingSmall = 6 PT) = 10 PT horizontal = too
+            // tight (= the symptom reported: 'zone 6 too small').
+            // chromePaddingLeading (= 8 PT per Apple HIG; = the value
+            // of DesignTokens.spacingStandard per
+            // 'Apple API default spacing isn't PT, it's a semantic
+            // name' = the semantic name is '.small' = 8 PT)
              // matches the rest of the
             // chrome (= zone chrome top bar uses 18 PT).
             .contentInsetStyle(.custom(18), edges: .horizontal)
