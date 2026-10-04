@@ -3,7 +3,8 @@ import AppKit
 
 /// AppDelegate: WenshuCore runtime + macOS app init
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
-    // bossverificationfix (Boss 8/25 OOB Spec axis GAP): one-time migration
+    // wenshu-verification-fix ((see OOB.md #2026-08-25) Spec axis
+    // GAP): one-time migration
     // from legacy chat.sqlite to warehouse. Preserves chat history when
     // user first picks a .ws warehouse in onboarding (= avoids silent data loss).
     // Idempotent: if legacy file doesn't exist or new file already exists, skip.
@@ -56,9 +57,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     ///
     /// don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI': add the same
     /// UserDefaults override (= `wenshu.debugNoKeychain = YES`) for
-    /// the boss's off-site UI iteration. The boss-set UserDefaults
+    /// off-site UI iteration. The user-set UserDefaults
     /// flip persists across launches (= the canonical 'remote debug
-    /// mode' toggle = no keychain modal prompts = boss can iterate
+    /// mode' toggle = no keychain modal prompts = the user can iterate
     /// on UI without touching macOS Keychain). ProviderKeychain.backend
     /// also reads this UserDefaults (= two paths converge to the same
     /// InMemoryKeychainStore = no race condition on first keychain
@@ -113,7 +114,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         //
         // ( removed ChatSessionStore from this bootstrap)
         // unsafeMutablePointer / instance var — static let yes immutable,
-// bossverificationfix (Boss 8/24 'chat, '):
+// wenshu-verification-fix ((see OOB.md #2026-08-24) — 'chat,'):
         // add NSLog for chat store init + bootstrap errors (silent catch
         // makes debugging hard), and post .wenshuChatStoreReady notification
         // so ChatView can retry load when store becomes available.
@@ -133,9 +134,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // Post-v1.55d that call is gone (= no code path left; = the entire
         // legacy-import mechanism is deleted alongside the file removal).
 
-        // bossverificationfix (Boss 8/25 OOB 'yes .ws file'):
-        // Chat persistence location = wenshu warehouse (anbaiqiang.ws/) if set,
-        // else fall back to legacy ~/Library/Application Support/wenshu/chat.sqlite.
+        // wenshu-verification-fix ((see OOB.md #2026-08-25) — 'yes
+        // .ws file'): Chat persistence location = wenshu warehouse
+        // (anbaiqiang.ws/) if set, else fall back to legacy
+        // ~/Library/Application Support/wenshu/chat.sqlite.
         // chat data must be part of the warehouse file so the
         // customer can copy the warehouse to another Mac and continue the
         // session history directly.
@@ -150,8 +152,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         //
         // When the warehouse URL is set (= UserDefaults "wenshu.libraryPath"),
         // makeContainerForWarehouse tries to build a SwiftData ModelContainer
-        // inside that warehouse directory (= boss 8/25 OOB "chat data must live
-        // in .ws warehouse" rule).
+        // inside that warehouse directory ((see OOB.md #2026-08-25)
+        // — 'chat data must live in .ws warehouse' rule).
         //
         // On success: all Repository.shared singletons (= WSChatRepository,
         // WSKanbanRepository, etc.) will read from the warehouse container.
@@ -189,7 +191,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             WSPersistenceContainer.activateWarehouseContainer(nil)
         }
 
-        // bossverificationfix (Boss 8/25 OOB Spec axis GAP): one-time migration
+        // wenshu-verification-fix ((see OOB.md #2026-08-25) Spec axis
+        // GAP): one-time migration
         // from legacy chat.sqlite to warehouse (preserves chat history when
         // user first picks a .ws warehouse in onboarding).
         if let warehouse = warehousePath {
