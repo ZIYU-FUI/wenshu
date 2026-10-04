@@ -23,7 +23,7 @@ struct UserDefaultsStoreTests {
         UserDefaultsStore.shared.remove(.settingsTab)
         UserDefaultsStore.shared.remove(.userAddress)
         UserDefaultsStore.shared.remove(.debugNoKeychain)
-        UserDefaultsStore.shared.remove(.monthlyCredits)
+        UserDefaultsStore.shared.remove(.creditsMonthly)
         UserDefaultsStore.shared.remove(.openTabs)
         UserDefaultsStore.shared.remove(.activeTabId)
         UserDefaultsStore.shared.remove(.llmActiveConnector)
@@ -83,14 +83,14 @@ struct UserDefaultsStoreTests {
     @Test("Int defaults to 0 when key absent")
     func intDefault() {
         resetDefaults()
-        #expect(store.int(forKey: .monthlyCredits) == 0)
+        #expect(store.int(forKey: .creditsMonthly) == 0)
     }
 
     @Test("Int round-trips through set + get")
     func intRoundTrip() {
         resetDefaults()
-        store.setInt(4242, forKey: .monthlyCredits)
-        #expect(store.int(forKey: .monthlyCredits) == 4242)
+        store.setInt(4242, forKey: .creditsMonthly)
+        #expect(store.int(forKey: .creditsMonthly) == 4242)
     }
 
     // MARK: - Double
@@ -98,14 +98,14 @@ struct UserDefaultsStoreTests {
     @Test("Double defaults to 0.0 when key absent")
     func doubleDefault() {
         resetDefaults()
-        #expect(store.double(forKey: .monthlyCredits) == 0.0)
+        #expect(store.double(forKey: .creditsMonthly) == 0.0)
     }
 
     @Test("Double round-trips through set + get")
     func doubleRoundTrip() {
         resetDefaults()
-        store.setDouble(3.14, forKey: .monthlyCredits)
-        #expect(store.double(forKey: .monthlyCredits) == 3.14)
+        store.setDouble(3.14, forKey: .creditsMonthly)
+        #expect(store.double(forKey: .creditsMonthly) == 3.14)
     }
 
     // MARK: - Data
@@ -163,13 +163,13 @@ struct UserDefaultsStoreTests {
 
     // MARK: - Key namespace coverage (= G-2 cluster key registry)
 
-    @Test("WenshuDefaultsKey.allCases covers 19 typed settings keys")
+    @Test("WenshuDefaultsKey.allCases covers 13 typed settings keys")
     func keyEnumCompleteness() {
         // Wenshu's G-2 cluster (= the keys written/read by @Observable
         // models) maps 1:1 to WenshuDefaultsKey cases. Adding a new
         // case here is the canonical way to onboard a new persisted
         // setting (= typo-proof).
-        #expect(WenshuDefaultsKey.allCases.count == 19)
+        #expect(WenshuDefaultsKey.allCases.count == 13)
     }
 
     @Test("All WenshuDefaultsKey raw values use the wenshu. namespace prefix")
@@ -240,6 +240,6 @@ struct UserDefaultsStoreTests {
         UserDefaultsStore.shared.setInt(11, forDynamicKey: dynamicKey)
         // Static keys should still be absent (= resetDefaults cleared).
         #expect(UserDefaultsStore.shared.string(forKey: .llmModel) == "")
-        #expect(UserDefaultsStore.shared.int(forKey: .inspectorPage) == 0)
+        #expect(UserDefaultsStore.shared.int(forKey: .debugNoKeychain) == 0)
     }
 }

@@ -57,4 +57,10 @@ struct LLMMessage: Sendable, Equatable {
             if case .text(let s) = block { return s } else { return nil }
         }.joined(separator: "")
     }
+
+    /// First text content (= concatenate text blocks; empty if none).
+    /// Defined as an extension in `Views/Chat/ChatMessageBridge.swift`
+    /// (= the canonical bridge file per Standards-axis S2 Feature
+    /// Envy smell; = `LLMMessage.textContent` lives next to its
+    /// bridge callers, not on the core type).
 }
