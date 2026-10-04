@@ -38,8 +38,8 @@ import UniformTypeIdentifiers
 /// need to go to library-creation/library-selection page'):
 /// - if UserDefaults 'wenshu.libraryPath' empty → onboarding
 /// - if UserDefaults 'wenshu.libraryPath' set but path doesn't exist
-///   on disk (= boss deleted repository externally, or repository was on a now-disconnected
-///   drive) → onboarding (re-pick)
+///   on disk (= the user deleted the repository externally, or the
+///   repository was on a now-disconnected drive) → onboarding (re-pick)
 /// - else (= path set + path exists) → main app LayoutShellView [no longer defined post-v0.72 — AppRootScene + NavigationSplitView; = ADR-0007 pending ADR-0010; = type references kept as historical landmarks pending 老板 拍]
 struct LibraryRootView: View {
     // LibraryRootView now owns the library + appearance
@@ -57,9 +57,10 @@ struct LibraryRootView: View {
     }
 
     private var shouldShowOnboarding: Bool {
-        // boss acceptance fix (Boss 8/24 OOB): trigger condition strict.
+        // wenshu-acceptance-fix: trigger condition strict.
         //
-        // Boss said 'anbaiqiang.ws' = wenshu repository = .ws directory (= per v0.26 spec ticket 015,
+        // (see OOB.md #2026-08-24) — wenshu repository = .ws
+        // directory (= per v0.26 spec ticket 015,
         // .ws is now a macOS-style package directory, NOT a single file;
         // LibraryRootView.swift:296-309 creates Info.plist inside it).
         //
@@ -126,8 +127,8 @@ struct LibraryRootView: View {
         content
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
-            // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
-            // audit ticket 1): the canonical macOS 27 SwiftUI window
+            // macOS 27 doc-alignment (see OOB.md #2026-09-18) OOB '全都改一下',
+            // audit ticket 1: the canonical macOS 27 SwiftUI window
             // background is the `.containerBackground(for: .window)`
             // modifier applied at the root view inside WindowGroup.
             // Per developer.apple.com/documentation/swiftui/view/
@@ -139,26 +140,27 @@ struct LibraryRootView: View {
             // standard-control surface is missing Apple's Liquid
             // Glass tonal layer). Setting it to
             // `.windowBackground` (= Apple-managed
-            // NSColor, NOT a custom RGB; per boss 9/2 OOB '你所有用的
-            // 颜色，都是 API 给的, 不要自定义') gives the window its
-            // canonical Apple HIG background tone (= the 1 NSColor
-            // pane content fills, paired with `.controlBackgroundColor`
-            // for chrome, where the Apple-managed ~10% brightness
-            // delta between the two IS the visible boundary between
-            // pane content and chrome = the canonical 2-layer pattern
-            // from `pane-chrome-canonic-pattern.md`).
+            // NSColor, NOT a custom RGB; per (see OOB.md #2026-09-02)
+            // OOB '你所有用的颜色，都是 API 给的, 不要自定义')
+            // gives the window its canonical Apple HIG background
+            // tone (= the 1 NSColor pane content fills, paired with
+            // `.controlBackgroundColor` for chrome, where the
+            // Apple-managed ~10% brightness delta between the two IS
+            // the visible boundary between pane content and chrome =
+            // the canonical 2-layer pattern from
+            // `pane-chrome-canonic-pattern.md`).
             .containerBackground(.windowBackground, for: .window)
             // s filename shouldn't be shown either':
             // drop the `.navigationSubtitle(libraryPath.lastPathComponent)`.
             // It was originally added (= ticket 008, commit a0e9b509d) to
             // match Apple's Pages / Numbers 'document basename in the
-            // window subtitle' pattern, but per the boss's most recent
-            // visual iteration the column-top subtitle (= 'anbaiqiang.ws'
-            // in the screenshot) is noise on a single-library app (= the
-            // user knows which library they opened = the .ws picker is
-            // onboarding-only = no per-document title bar is needed).
-            // Per Apple HIG Inventory 2026-09-06 the API is still
-            // available for future use (= .navigationSubtitle remains
+            // window subtitle' pattern, but per (see OOB.md #2026-09-19)
+            // the column-top subtitle (= 'anbaiqiang.ws' in the
+            // screenshot) is noise on a single-library app (= the
+            // user knows which library they opened = the .ws picker
+            // is onboarding-only = no per-document title bar is
+            // needed). Per Apple HIG Inventory 2026-09-06 the API
+            // is still available for future use (= .navigationSubtitle remains
             // imported at the call site below via SwiftUI re-export;
             // = we just don't call it from this root view anymore).
             // 
@@ -280,8 +282,8 @@ struct LibraryRootView: View {
         } catch {
             // -m1-shell (see OOB.md #2026-09-10) OOB 'UI doesn't load, just spins forever':
             // the previous `#if DEBUG print` was suppressed in
-            // release builds (= the boss is running a release .app
-            // bundle). NSLog works in both DEBUG and RELEASE so the
+            // release builds (= the canonical macOS distribution channel).
+            // NSLog works in both DEBUG and RELEASE so the
             // user can see the actual lifecycle error from
             // Console.app (= the standard macOS log viewer; = the
             // same path the previous `[wenshu.library]` and
@@ -290,7 +292,8 @@ struct LibraryRootView: View {
             // shelves root, or a thrown error inside
             // LibraryBootstrapper.ensureValidStructure) would
             // leave bookStore = nil forever and the window stuck
-            // on the loading spinner (= exactly what boss saw).
+            // on the loading spinner (= the symptom reported during
+            // the 2026-09-10 audit).
             NSLog("[wenshu.library.lifecycle] runLaunch failed: %@", String(describing: error))
         }
     }
@@ -434,10 +437,11 @@ Group {
             }
 
             VStack(spacing: DesignTokens.spacingModerate) {
-                // bossverificationfix (Boss 8/24: 'don't'):
-                // - 2 buttons = / open (macOS, not)
-                // - ' / '.ws' / 'Final Cut Pro' (boss don't)
-                // - boss ' → primary text = '
+                // wenshu-verification-fix: 2 buttons (= open / import) match the
+            // macOS standard 'New' / 'Open' save panel pattern (= the
+            // '.ws' extension and 'Final Cut Pro' library picker are
+            // not shown to the user). The primary button label uses
+            // 'Open' (= the macOS HIG standard; = not a custom label).
                 Button {
                     showSavePanel()
                 } label: {
@@ -463,22 +467,20 @@ Group {
 
             Spacer()
         }
-        // -m1-shell (see OOB.md #2026-09-10) OOB 'initial size, too small':
-        // the onboarding body has no explicit outer frame, so
-        // `.windowResizability(.contentSize)` (= applied at the
-        // Scene root in AppRootScene) shrinks the window to the
-        // VStack's intrinsic content size (= roughly the cover
-        // thumbnail + a few buttons = ~360 PT wide x ~500 PT tall
-        // in default layout = the small launcher-sized window
-        // boss observed 9/10). Force a canonical onboarding
-        // window size = 640 x 720 PT (= Apple HIG installer sheet
-        // canonical; = big enough to show the logo + 2-line title +
-        // body + 2 buttons + hint at full readability, = small
-        // enough to not feel like a modal blocking the user's
-        // workspace). The user's macOS still lets them resize
-        // from this canonical size (= .contentSize keeps the
-        // window resizable; = the .frame(minWidth:idealWidth:
-        // maxHeight:) is just a starting size, not a hard cap).
+        // (see OOB.md #2026-09-10) — `.windowResizability(.contentSize)`
+            // shrinks the window to the VStack's intrinsic content
+            // size (= roughly the cover thumbnail + a few buttons =
+            // ~360 PT wide x ~500 PT tall in default layout = the
+            // small launcher-sized window observed during the
+            // 2026-09-10 audit). Force a canonical onboarding
+            // window size = 640 x 720 PT (= Apple HIG installer sheet
+            // canonical; = big enough to show the logo + 2-line title +
+            // body + 2 buttons + hint at full readability, = small
+            // enough to not feel like a modal blocking the user's
+            // workspace). The user's macOS still lets them resize
+            // from this canonical size (= .contentSize keeps the
+            // window resizable; = the .frame(minWidth:idealWidth:
+            // maxHeight:) is just a starting size, not a hard cap).
         .frame(minWidth: 640, idealWidth: DesignTokens.onboardingWindowSize.width, maxWidth: 800, minHeight: 720, idealHeight: DesignTokens.onboardingWindowSize.height, maxHeight: 900)
         .background(Color.clear)
         // Apple HIG Inventory 2026-09-06: .fileImporter was 0 hits.
