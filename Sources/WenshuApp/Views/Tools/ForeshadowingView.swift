@@ -51,7 +51,6 @@ import SwiftUI
 ///
 /// **Use this** for the first tab of the specializedTools pane.
 /// Replaces the old CanvasView (= which moved to a future ticket
-/// per the v0.29 boss OOB ').
 ///
 /// State: backed by the `ForeshadowingTracker` actor (= per-book
 /// JSON sidecar at `books/<bookId>/foreshadowings.json`).

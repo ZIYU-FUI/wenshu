@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 3: Long-Form Guardrails.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView +
 //  PlaceholderView = 2 placeholder tabs), this view is the
 //  REAL implementation for the Long-Form Guardrails tab (= the
 //  3rd tab of the specializedTools pane). Renders:

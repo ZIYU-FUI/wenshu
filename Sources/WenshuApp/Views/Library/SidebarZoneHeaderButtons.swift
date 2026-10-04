@@ -42,7 +42,6 @@ import SwiftUI
 ///   `.buttonStyle(.borderless)`.
 struct SidebarZoneHeaderButtons: View {
     @Environment(AppState.self) private var appState
-    // P2-06 (audit 2026-09-24): sheet-request counters moved to
     // SheetRequestState. The "+" button increments `choice` to
     // trigger the choice sheet via .onChange in the parent
     // (= AppleSidebarView observes sheetRequests.choice).

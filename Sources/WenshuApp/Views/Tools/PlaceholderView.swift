@@ -49,7 +49,6 @@ import SwiftUI
 ///
 /// **Use this** for the second tab of the specializedTools pane.
 /// Replaces the old BaseView (= which moved to a future ticket
-/// per the v0.29 boss OOB ').
 ///
 /// State: backed by the `PlaceholderScanner` actor (= per-book
 /// JSON sidecar at `books/<bookId>/placeholders.json`).

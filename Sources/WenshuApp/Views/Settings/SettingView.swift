@@ -1,7 +1,6 @@
 //
 //  SettingView.swift · Wenshu · v0.40 apple-001 phase 3 ticket 5
 //
-//  Extracted from App.swift (formerly inline `struct SettingView: View`
 //  at line 376, = 513 LOC). v0.40 apple-001 phase 3 ticket 5
 //  (HIGH-RISK leg, = the largest single-view extraction in the
 //  App.swift backlog).
@@ -33,7 +32,6 @@
 
 import SwiftUI
 
-/// Settings: Pages (v0.21 ticket 06)
 /// 8/21 'Pages Settingspanel UI, macOS 27 group'
 /// = toolbar (3 segmented tab, Pages, 2)
 /// yes macOS Settings { } Scene autotitle segmented tab button (commit 0082bd1fe + 030a58355)
@@ -239,7 +237,6 @@ struct SettingView: View {
                     .foregroundStyle(DesignTokens.statusForeground)
             }
             Section(WenshuI18n.t("settings.general.agentAddress")) {
-                // fix (Boss 8/24 OOB): user-set value for agent-to-user address.
                 // Read by WenshuConductorIdentity.userAddress at LLM call time
                 // (dynamic per-chat). User cannot modify via chat per AGENTS.md.
                 // Reason for no .onChange handler: WenshuConductorIdentity.
@@ -260,13 +257,11 @@ struct SettingView: View {
         .formStyle(.grouped)
     }
     private var agentBehaviorTab: some View {
-        // v2.4 (= boss拍 2026-09-25): per-user agent-behavior settings
         // exposed as a closed enum picker (= no free-text input = no
         // SOUL.md / AGENTS.md loader = users cannot degrade the LLM
         // by editing a markdown file). Each setting drives the
         // SystemPrompt stable tier (= see SystemPrompt.swift).
         //
-        // Scope (= v2.4 arc starts here):
         // - Speaking style (formal / casual / literary / concise)
         //
         // Future settings land in the same Section block. Keep the

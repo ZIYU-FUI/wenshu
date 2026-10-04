@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 8: Character Relationships.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView +
 //  PlaceholderView + LongFormGuardrailsView + ReaderExperienceView +
 //  PlotThreadView + GenreFitView + EmotionCurveView = 7 tabs in
 //  the specializedTools pane), this view is the REAL

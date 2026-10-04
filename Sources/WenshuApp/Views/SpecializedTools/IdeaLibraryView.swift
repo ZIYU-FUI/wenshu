@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 11: Idea Library.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView +
 //  PlaceholderView + LongFormGuardrailsView + ReaderExperienceView +
 //  PlotThreadView + GenreFitView + EmotionCurveView +
 //  CharacterRelationshipsView + CharacterLifecycleView +

@@ -28,7 +28,6 @@
 //  SFIcon does not own (= SFIcon owns the icon glyph size; = layout tokens
 //  stay in DesignTokens).
 //
-//  Per boss OOB 2026-10-01:
 //
 //    1. 中央抽象 (central abstraction) is mandatory — without it the
 //       single point of truth is missing and visual hierarchy drifts.

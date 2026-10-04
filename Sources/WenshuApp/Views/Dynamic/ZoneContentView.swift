@@ -304,4 +304,3 @@ struct ZoneContentView: View {
     /// ZoneContentTabBar body now delegates to the new PaneTabBar
     /// generic component"); = the docstring is preserved as a
     /// historical note; = no behavior change; = ~80 LOC removed).
-

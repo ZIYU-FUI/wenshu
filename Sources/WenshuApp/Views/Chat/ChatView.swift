@@ -183,7 +183,6 @@ struct ChatView: View {
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier()
         let tools = WenshuConductor.buildToolsSync(from: ToolRegistry.shared)
-        // P1-01 (audit 2026-09-24): kanban / chat writes route through
         // the conductor's injected `WSRepositoryContainer` (= falls back
         // to `.shared` for callers that don't inject; this static
         // factory is such a caller — the production caller in

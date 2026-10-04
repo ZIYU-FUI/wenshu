@@ -281,7 +281,6 @@ struct ChatMessageView: View {
                     // background (= Apple HIG iMessage-style) and applies
                     // the streaming contentTransition to the text parts
                     // only (= the canonical SwiftUI "no flicker" pattern
-                    // from v0.55 boss OOB).
                     //
                     // When parts is empty (= back-compat with v0.34
                     // messages that didn't carry parts), ChatMessageBodyView

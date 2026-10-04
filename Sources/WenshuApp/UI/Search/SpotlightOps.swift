@@ -5,7 +5,6 @@
 //  SpotlightSearchSheet SwiftUI view and the CSSearchableIndexSearch
 //  actor that owns the search store).
 //
-//  Per the v1.74 MVVM split pattern (§11.10): views are pure
 //  rendering surfaces; business rules (= query validation,
 //  result formatting, error mapping) live in a @MainActor enum
 //  with static funcs. SpotlightOps is the right-side enum for

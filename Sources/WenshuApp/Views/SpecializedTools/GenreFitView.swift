@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 6: Genre Fit.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView +
 //  PlaceholderView + LongFormGuardrailsView + ReaderExperienceView +
 //  PlotThreadView = 5 tabs in the specializedTools pane), this
 //  view is the REAL implementation for the Genre Fit tab (= the

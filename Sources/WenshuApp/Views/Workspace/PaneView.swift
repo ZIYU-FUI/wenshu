@@ -29,7 +29,6 @@ struct PaneView: View {
     /// AppState is the global @Observable source of truth.
     /// PaneView reads it directly (= no @Binding chain).
     @Environment(AppState.self) private var appState
-    // P2-06 (audit 2026-09-24) + overabstraction cleanup 2026-10-03:
     // sidebarSelection moved from ShellState to WorkspaceUIState.
     @Environment(WorkspaceUIState.self) private var workspaceUI
 
@@ -204,7 +203,6 @@ struct PaneView: View {
                     // label click → popover (= spec user stories 8 + 11).
                 ],
                 // (= the trailing button surface): expand/shrink
-                // trailing button. Boss 8/26 OOB 'it is one button, not a tab
                 // teb' = won't be a tab (= no selected underline), just
                 // a button at the right edge of the tab bar.
                 trailingButton: AnyView(

@@ -13,7 +13,6 @@
 //    - Empty state (= "No results" hint when the query has no
 //      hits).
 //
-//  Per the v1.44 specialized-tools P1 hermes-port batch pattern
 //  (= pure SwiftUI primitives + SF Symbols 6 + Apple HIG empty
 //  state), this view reuses the same `EmptyStateView` shape as
 //  BookmarkView + TagManagerView.

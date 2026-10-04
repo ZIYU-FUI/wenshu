@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 9: Character Lifecycle.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView +
 //  PlaceholderView + LongFormGuardrailsView + ReaderExperienceView +
 //  PlotThreadView + GenreFitView + EmotionCurveView +
 //  CharacterRelationshipsView = 8 tabs in the specializedTools

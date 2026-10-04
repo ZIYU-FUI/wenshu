@@ -50,7 +50,6 @@ import AppKit
 import UniformTypeIdentifiers
 
 /// Chat input bar = the top layer of the chat zone's 3-layer UI
-/// split per boss v1.81 spec:
 ///
 ///   1. 顶层 (this file) = ChatInputBarView
 ///   2. 中层 (ChatView body ScrollView) = chat content
@@ -315,7 +314,6 @@ struct ChatInputBarView: View {
 
     /// Apple macOS 27 Liquid Glass chat input editor.
     /// Single-line (= axis: .horizontal) with `.lineLimit(1)` per
-    /// boss v1.82 spec (= no auto-grow multi-line; = the chat
     /// input is a single horizontal row; = multi-line editing
     /// uses ⌘↩ for newline if ever needed).
     private var textField: some View {

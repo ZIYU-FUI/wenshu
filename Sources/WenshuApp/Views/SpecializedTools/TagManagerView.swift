@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 10: Tag Manager.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView +
 //  PlaceholderView + LongFormGuardrailsView + ReaderExperienceView +
 //  PlotThreadView + GenreFitView + EmotionCurveView +
 //  CharacterRelationshipsView + CharacterLifecycleView = 9 tabs in

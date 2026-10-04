@@ -10,7 +10,6 @@
 // that actually fills the chat column's visible bounds). Same token,
 // correct layer.
 //
-// Extracted from App.swift (formerly inline `struct ChatZoneView: View`)
 // per Apple HIG = one view per file.
 //
 // ChatZoneView = the chat-zone root container (= AI provider model
@@ -47,7 +46,6 @@ struct ChatZoneView: View {
     // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper).
 
     @Environment(AppState.self) private var envAppState
-    // P2-06 (audit 2026-09-24) + overabstraction cleanup 2026-10-03:
     // sidebarSelection moved from ShellState to WorkspaceUIState.
     @Environment(WorkspaceUIState.self) private var workspaceUI
     @Environment(WenshuLibrary.self) private var library
@@ -95,7 +93,6 @@ struct ChatZoneView: View {
                 // `listProvidersWithKeys().isEmpty` returns false,
                 // so the ChatHelpTextOverlay is dismissed and
                 // the chat zone becomes interactive.
-                // Per the v1.53 (= 19fa2feb9) reverted commit
                 // message (= the same bug was fixed once
                 // before; = the revert was due to that v1.53
                 // branch being part of the broader v1.55/v1.57

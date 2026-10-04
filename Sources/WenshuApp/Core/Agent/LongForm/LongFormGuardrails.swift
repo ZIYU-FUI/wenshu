@@ -754,7 +754,6 @@ actor LongFormGuardrails {
         // Second pass: fall back to the BookStore's selected book
         // (= the canonical "what book is the user looking at"
         // = the sidecar the untyped add should land in).
-        // P1-04 (audit 2026-09-24): BookStore is now @MainActor;
         // = read the value from a MainActor-isolated context.
         return await MainActor.run { bookStore.selectedBookId }
     }

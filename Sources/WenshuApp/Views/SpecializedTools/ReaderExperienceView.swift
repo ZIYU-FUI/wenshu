@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 4: Reader Experience.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView +
 //  PlaceholderView + LongFormGuardrailsView = 3 tabs in the
 //  specializedTools pane), this view is the REAL implementation
 //  for the Reader Experience tab (= the 4th tab). Renders:

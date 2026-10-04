@@ -40,7 +40,6 @@ struct EditorView: View {
     /// = no path = render the short placeholder name).
     ///
     @Environment(AppState.self) private var appState
-    // P2-06 (audit 2026-09-24): editorWordCount moved to
     // EditorCounters (= the editor-zone live counter).
     @Environment(EditorCounters.self) private var editorCounters
     // WenshuEditorServicesFactory.make needs

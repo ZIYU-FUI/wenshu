@@ -57,7 +57,6 @@ import SwiftUI
 struct AppleSidebarView: View {
     @Environment(BookStore.self) private var bookStore
     @Environment(AppState.self) private var appState
-    // P2-06 (audit 2026-09-24) + overabstraction cleanup 2026-10-03:
     // sidebarSelection moved from ShellState to WorkspaceUIState
     // (= single environment-injected class for all column-local UI
     // state; = the Pages / Numbers / Keynote canonical shape).

@@ -315,4 +315,3 @@ enum AuxTask: String, CaseIterable, Identifiable {
 // (= AppleSidebarView = the v1.68b Apple HIG List(.sidebar) +
 // post-v1.69 split sheets/context-menu/business files). No
 // replacement needed here.
-

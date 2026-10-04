@@ -1,6 +1,5 @@
 //
 // BacklinksPanel.swift · Wenshu · migrated from Core/LinkGraph/BacklinksPanel.swift in v1.28 A1.1
-// (= v0.19 ticket 12 Obsidian replica; View separated from ViewModel)
 //
 
 import Foundation
