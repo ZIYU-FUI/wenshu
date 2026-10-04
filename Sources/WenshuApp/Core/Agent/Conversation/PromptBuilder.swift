@@ -486,6 +486,29 @@ extension PromptBuilder {
         guard content.count > cap else {
             return content
         }
+        // Record + drain the truncation (= hermes _record_truncation_warnings
+        // + drain; = wenshu reimplementation per boss 2026-10-04 OOB "wenshu
+        // Agent capabilities are reimplemented, not direct hermes links";
+        // = calls into the truncationWarnings ring buffer that lives below
+        // in this file; = the ring buffer is exposed via
+        // PromptBuilder.recordTruncationWarning + .drainTruncationWarnings
+        // public surface so future callers can plug into it).
+        // The lower-level PromptBuilderCaches API is used here
+        // (forward-reference to the public PromptBuilder surface
+        // would require splitting this body into a private helper
+        // declared after both recordTruncationWarning and
+        // drainTruncationWarnings = a future refactor).
+        PromptBuilderCaches.recordTruncationWarning(
+            "\(filename): \(content.count) -> \(cap) chars (\(content.count - cap) truncated; = head 70% + tail 20% preserved)"
+        )
+        let warnings = PromptBuilder.drainTruncationWarnings()
+        if !warnings.isEmpty {
+            NSLog(
+                "[PromptBuilder.truncateContent] %d truncation warning(s): %@",
+                warnings.count,
+                warnings.joined(separator: " | ")
+            )
+        }
         let headSize = Int(Double(cap) * 0.7)
         let tailSize = Int(Double(cap) * 0.2)
         let head = String(content.prefix(headSize))
