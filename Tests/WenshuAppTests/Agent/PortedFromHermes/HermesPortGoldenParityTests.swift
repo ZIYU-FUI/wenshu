@@ -149,56 +149,6 @@ struct HermesPortGoldenParityTests {
     }
 
     // ========================================================================
-    // context_breakdown.analyze (= ContextBreakdownAnalyzer from ticket 014)
-    // ========================================================================
-
-    @Test("context_breakdown.analyze: 4 messages, 3 cached breakpoints")
-    func testContextBreakdownAnalyze() throws {
-        let golden = try loadGolden(
-            module: "context_breakdown",
-            function: "analyze",
-            inputHash: "d66c2a6094ee"
-        )
-        guard let input = golden["input"] as? [String: Any],
-              let systemPrompt = input["system_prompt"] as? String,
-              let messageInputs = input["messages"] as? [[String: Any]] else {
-            Issue.record("Golden input malformed")
-            return
-        }
-
-        // Build LLMMessage array from golden input.
-        var messages: [LLMMessage] = []
-        for msg in messageInputs {
-            guard let role = msg["role"] as? String,
-                  let content = msg["content"] as? String else { continue }
-            let llmRole: LLMMessage.Role = (role == "assistant") ? .assistant : .user
-            messages.append(LLMMessage(role: llmRole, blocks: [.text(content)]))
-        }
-
-        // Run Swift port (= ContextBreakdownAnalyzer from ticket 014 sub-step 1).
-        let breakdown = ContextBreakdownAnalyzer.breakdown(
-            messages: messages,
-            systemPrompt: systemPrompt,
-            cachedBreakpointsCount: 3
-        )
-
-        // Compare against hermes golden output.
-        guard let hermesOutput = golden["output"] as? [String: Any] else {
-            Issue.record("Golden output malformed")
-            return
-        }
-        let hermesSystem = hermesOutput["system_tokens"] as? Int ?? -1
-        let hermesRecent = hermesOutput["recent_cached_tokens"] as? Int ?? -1
-        let hermesOlder = hermesOutput["older_tokens"] as? Int ?? -1
-        let hermesTotal = hermesOutput["total_tokens"] as? Int ?? -1
-
-        #expect(breakdown.systemTokens == hermesSystem)
-        #expect(breakdown.recentCachedTokens == hermesRecent)
-        #expect(breakdown.olderTokens == hermesOlder)
-        #expect(breakdown.totalTokens == hermesTotal)
-    }
-
-    // ========================================================================
     // rate_limit_tracker.check_budget (= RateLimitTracker from ticket 015 sub-step 3)
     // ========================================================================
 

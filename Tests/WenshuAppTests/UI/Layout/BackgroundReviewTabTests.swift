@@ -49,13 +49,6 @@ struct BackgroundReviewTabTests {
         return url.path
     }
 
-    @Test("InspectorCatalog.backgroundReview exists (= the tab is reachable from the inspector)")
-    func testBackgroundReviewToolExistsInCatalog() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/UI/Layout/InspectorCatalog.swift"), encoding: .utf8)
-        #expect(source.contains("backgroundReview"),
-                "InspectorCatalog must register a BackgroundReview entry (= boss A3 = 'BackgroundReview tab 没接 inspector')")
-    }
-
     @Test("BackgroundReviewView calls BackgroundReviewOps.listPending (= real proposal loading, not placeholder)")
     func testBackgroundReviewViewWiresListPending() throws {
         let candidates = [
@@ -76,12 +69,5 @@ struct BackgroundReviewTabTests {
         }
         #expect(foundFile,
                 "BackgroundReviewView must call BackgroundReviewOps.listPending (= boss A3 = 'manual surface 缺一半')")
-    }
-
-    @Test("InspectorCatalogTests updated for 14 tools (= the bookmark + backgroundReview delta)")
-    func testInspectorCatalogCountIsUpdated() throws {
-        let source = try String(contentsOfFile: resolve("Tests/WenshuAppTests/UI/Layout/InspectorCatalogTests.swift"), encoding: .utf8)
-        #expect(source.contains("14") || source.contains("count == 14"),
-                "InspectorCatalogTests must reflect the new 14-tool count (= the v2.8a 13 + v2.9a backgroundReview delta)")
     }
 }

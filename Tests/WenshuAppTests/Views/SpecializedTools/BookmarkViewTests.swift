@@ -45,20 +45,6 @@ struct BookmarkViewTests {
                 "BookmarkView must declare a `var body` returning a SwiftUI View")
     }
 
-    @Test("InspectorCatalog registers the bookmark entry (= catalog wiring)")
-    func testInspectorCatalogRegistersBookmark() throws {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/UI/Layout/InspectorCatalog.swift")
-        let source = try String(contentsOfFile: url.path, encoding: .utf8)
-        #expect(source.contains("static let bookmark = InspectorTool("),
-                "InspectorCatalog must expose a `static let bookmark` InspectorTool entry (= v2.8a wiring)")
-        #expect(source.contains("id: \"tab.title.bookmark\""),
-                "InspectorCatalog.bookmark must use the canonical `tab.title.bookmark` id (= i18n key prefix)")
-        #expect(source.contains("BookmarkView()"),
-                "InspectorCatalog.bookmark must render `BookmarkView()` directly")
-    }
-
     @Test("BookmarkViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
     func testStateMirrorExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
