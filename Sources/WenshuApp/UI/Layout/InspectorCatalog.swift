@@ -28,7 +28,7 @@
 
 import SwiftUI
 
-/// Inspector page tab selection (= 4 cases per boss spec = the
+/// Inspector page tab selection (= 4 cases per the spec = the
 /// 4 inspector column pages: Authoring / Style / Characters /
 /// Project Management). Lives in InspectorCatalog (= same file
 /// as InspectorTool = the page → tools mapping reads the
@@ -246,7 +246,7 @@ enum InspectorCatalog {
     // manual surface for the v2.8c BackgroundReview agent surface.
     // BackgroundReviewOps.listPending / approve / reject (= @MainActor
     // enum 4 entry points) are already canonical; = this entry wires
-    // the view into the inspector catalog (= the boss A3
+    // the view into the inspector catalog (= the inspector A3
     // 'manual surface 缺一半' fix).
     static let backgroundReview = InspectorTool(
         id: "tab.title.background_review",
