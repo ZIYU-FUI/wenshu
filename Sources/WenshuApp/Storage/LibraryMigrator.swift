@@ -44,8 +44,8 @@ struct LibraryMigrator: Sendable {
         let fm = FileManager.default
         // 0. ALWAYS-RUN housekeeping (= runs on every launch, even when
         // schema is already current): rename default shelf + seed
-        // default help-doc anchor (= boss 8/27 OOB ' rename
-        // and the default book + default doc seed). These are pure
+        // default help-doc anchor ((see OOB.md #2026-08-27) — 'rename
+        // and the default book + default doc seed'). These are pure
         // idempotent upgrades that need to converge to the latest naming
         // convention regardless of schema version (= so existing .ws
         // with the legacy 'default' name picks up the rename even
@@ -114,7 +114,7 @@ struct LibraryMigrator: Sendable {
             try fm.createDirectory(at: shelvesRoot, withIntermediateDirectories: true)
         }
         // 2. Create the default shelf (= id = '00000000-0000-0000-0000-000000000000',
-        // name = ' per boss 8/27 OOB (= used as the help-doc
+        // name = ' per (see OOB.md #2026-08-27) (= used as the help-doc
         // anchor shelf; the user can delete it once they have their own
         // shelves; until deleted it holds the default book + default
         // doc).
@@ -149,9 +149,10 @@ struct LibraryMigrator: Sendable {
         }
     }
 
-    /// Always-run-on-launch housekeeping (= boss 8/27 OOB rename +
-    /// help-doc seed). Runs BEFORE the schema-version idempotency
-    /// check (= so existing .ws with the legacy 'default' name picks
+    /// Always-run-on-launch housekeeping ((see OOB.md #2026-08-27)
+    /// — rename + help-doc seed). Runs BEFORE the schema-version
+    /// idempotency check (= so existing .ws with the legacy 'default'
+    /// name picks
     /// up the rename to ' even when no schema change is
     /// needed). All operations are idempotent (= safe to run on
     /// every launch).
@@ -216,7 +217,7 @@ struct LibraryMigrator: Sendable {
     /// chapters/) to 5 .md files across 5 user-facing folders:
     /// - world/: Wenshu introduction + user guide
     /// - characters/: 6 Agent positioning
-    /// - outlines/: empty (= boss didn't request content)
+    /// - outlines/: empty (= the user did not request content)
     /// - chapters/: feature module overview
     /// - drafts/: planned-but-not-yet-shipped features
     private func seedDefaultHelpDoc(in shelfDir: URL, fm: FileManager = .default) throws {
@@ -250,7 +251,7 @@ struct LibraryMigrator: Sendable {
         // book.json (= the book metadata).
         let defaultBook = Book(
             id: defaultBookId,
-            // boss 8/31 OOB (sidebar feedback bundle #1):
+            // (see OOB.md #2026-08-31) (sidebar feedback bundle #1):
             // renamed default book title from ' to '
             // (= to disambiguate from the parent shelf, which has the
             // same ' name; the default book contains the
@@ -377,9 +378,11 @@ struct LibraryMigrator: Sendable {
             atomically: true, encoding: .utf8
         )
 
-        // 3. outlines/outlines.md — empty (= boss didn't request content)
-        // Boss 8/30 OOB: 'outline empty'. We create the .md file with a minimal
-        // anchor (= "use the outline to manage your chapter structure") so the folder isn't
+        // 3. outlines/outlines.md — empty (= the user did not
+        // request content) ((see OOB.md #2026-08-30) — 'outline
+        // empty'). We create the .md file with a minimal
+        // anchor (= "use the outline to manage your chapter structure")
+        // so the folder isn't
         // completely empty in the editor preview.
         let outlinesBody = """
         # 大纲
@@ -647,7 +650,7 @@ struct LibraryMigrator: Sendable {
             try? fm.removeItem(at: charactersFile)
         }
 
-        // 4.3 outlines/outlines.md (= minimal anchor; boss said 'outline empty')
+        // 4.3 outlines/outlines.md (= minimal anchor; per (see OOB.md #2026-08-30) — 'outline empty')
         let outlinesFile = bookDir.appendingPathComponent("outlines")
             .appendingPathComponent("大纲用法.md")
         if !fm.fileExists(atPath: outlinesFile.path) {
@@ -742,7 +745,7 @@ struct LibraryMigrator: Sendable {
         // NOTE: We don't modify the existing chapter title here (= it
         // was already set to "" by the original seed). The
         // actual .md content is now ".md" but the chapter
-        // title stays as the user's anchor (= boss's anchor naming).
+        // title stays as the user's anchor (= the user's anchor naming).
     }
 
     private func isEmptyDirectory(_ url: URL) -> Bool {
