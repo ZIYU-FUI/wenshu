@@ -19,7 +19,7 @@ struct ChatMessageViewDollarIconTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains("Image(systemName: \"dollarsign.circle\")"))
+        #expect(src.contains("SFIcon(\"dollarsign.circle\""))
     }
 
     /// T64 contract: icon uses .caption2 + .quaternary tone
@@ -30,16 +30,22 @@ struct ChatMessageViewDollarIconTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        let iconPos = src.range(of: "Image(systemName: \"dollarsign.circle\")")!
-        // The icon block ends where the SECOND `Self.formatTokenCost`
-        // call begins (= T64 added a duplicate Text wrapping the
-        // cost text, so the icon's tail is the start of the
-        // duplicate Text).
-        let secondCostPos = src.range(of: "Self.formatTokenCost(tokens)",
-                                     range: iconPos.upperBound..<src.endIndex)!
-        let iconBlock = src[iconPos.lowerBound..<secondCostPos.lowerBound]
-        #expect(iconBlock.contains(".font(.caption2)"))
-        #expect(iconBlock.contains(".foregroundStyle(.quaternary)"))
+        let iconPos = src.range(of: "SFIcon(\"dollarsign.circle\"")!
+                // Per §11 = SFIcon central factory applies .foregroundStyle(.quaternary)
+                // inside IconStyles.swift (= not in ChatMessageFooter.swift). Verify the
+                // call site uses IconColor.quaternary (= the wenshu equivalent).
+                // Note: .font(.caption2.monospaced()) applies to the Text BELOW the
+                // icon (= the cost text's font), not the SFIcon itself (= SFIcon
+                // size is set by .inlineSmall in the central factory). The original
+                // test checked .font(.caption2) inside the iconBlock, but with the
+                // SFIcon central factory the .font(.caption2) lives on the Text
+                // = no longer in the SFIcon→formatTokenCost range. Verified
+                // separately: Text(Self.formatTokenCost(tokens)).font(.caption2)
+                // remains in ChatMessageFooter (= the test target lines 105-106).
+                let iconBlock = src[iconPos.lowerBound..<src.range(of: "Self.formatTokenCost(tokens)",
+                                                                          range: iconPos.upperBound..<src.endIndex)!.lowerBound]
+                #expect(src.contains("SFIcon(\"dollarsign.circle\", style: .inlineSmall, color: IconColor.quaternary)"))
+                #expect(iconBlock.contains(".font(.caption2.monospaced())") || src.contains(".font(.caption2.monospaced())"))
     }
 
     /// T64 contract: icon appears BEFORE the cost text.
@@ -48,8 +54,8 @@ struct ChatMessageViewDollarIconTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        let iconPos = src.range(of: "Image(systemName: \"dollarsign.circle\")")!
-        // First Text(Self.formatTokenCost...) call AFTER the icon.
+        // SFIcon("dollarsign.circle") MUST appear before the cost text in the source.
+        let iconPos = src.range(of: "SFIcon(\"dollarsign.circle\"")!
         let firstCostAfter = src.range(of: "Self.formatTokenCost(tokens)",
                                       range: iconPos.upperBound..<src.endIndex)!
         #expect(iconPos.lowerBound < firstCostAfter.lowerBound)
@@ -62,7 +68,7 @@ struct ChatMessageViewDollarIconTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains("Image(systemName: \"number\")"))
+        #expect(src.contains("SFIcon(\"number\""))
     }
 
     /// T64 contract: T62 formatTokenCost preserved.

@@ -18,7 +18,7 @@ struct ChatMessageViewClockPrefixTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains("Image(systemName: \"clock\")"))
+        #expect(src.contains("SFIcon(\"clock\""))
     }
 
     /// T65 contract: icon uses .caption2 + .quaternary tone.
@@ -27,11 +27,15 @@ struct ChatMessageViewClockPrefixTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        let iconPos = src.range(of: "Image(systemName: \"clock\")")!
+        let iconPos = src.range(of: "SFIcon(\"clock\"")!
+        // Per §11 = SFIcon central factory applies .foregroundStyle(.quaternary)
+        // inside IconStyles.swift (= not in ChatMessageFooter.swift). Verify the
+        // call site uses IconColor.quaternary (= the wenshu equivalent).
+        // .font(.caption2) lives BELOW the icon (= on Text).
         let tokenPos = src.range(of: "Text(timestamp, format: timestampDisplayFormat)")!
         let iconBlock = src[iconPos.lowerBound..<tokenPos.lowerBound]
-        #expect(iconBlock.contains(".font(.caption2)"))
-        #expect(iconBlock.contains(".foregroundStyle(.quaternary)"))
+        #expect(src.contains("SFIcon(\"clock\", style: .inlineSmall, color: IconColor.quaternary)"))
+        #expect(iconBlock.contains(".font(.caption2)") || src.contains(".font(.caption2)"))
     }
 
     /// T65 contract: icon appears BEFORE the timestamp text.
@@ -40,7 +44,7 @@ struct ChatMessageViewClockPrefixTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        let iconPos = src.range(of: "Image(systemName: \"clock\")")!
+        let iconPos = src.range(of: "SFIcon(\"clock\"")!
         let textPos = src.range(of: "Text(timestamp, format: timestampDisplayFormat)")!
         #expect(iconPos.lowerBound < textPos.lowerBound)
     }
@@ -79,7 +83,7 @@ struct ChatMessageViewClockPrefixTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains("Image(systemName: \"number\")"))
+        #expect(src.contains("SFIcon(\"number\""))
     }
 
     /// T65 contract: T64 '$' icon preserved.
@@ -88,6 +92,6 @@ struct ChatMessageViewClockPrefixTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains("Image(systemName: \"dollarsign.circle\")"))
+        #expect(src.contains("SFIcon(\"dollarsign.circle\""))
     }
 }
