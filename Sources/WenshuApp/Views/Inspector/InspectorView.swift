@@ -89,11 +89,41 @@ struct InspectorView: View {
     /// reads the canonical `workspaceUI.inspectorPage` (= single source
     /// of truth) and writes back via the @Bindable binding.
     ///
-    /// page → tools route via InspectorPage.tools (= the enum
-    /// owns the routing as a computed property; = the catalog
-    /// holds the tool metadata; = the view derives via 1 line).
-    private var toolsForCurrentPage: [InspectorTool] {
-        workspaceUI.inspectorPage.tools
+    /// page → tools route lives here (= not in `InspectorPage`
+    /// itself): the legacy `InspectorCatalog` enum + `InspectorTool`
+    /// struct were deleted (see commit `5eefb6d00`), so the page
+    /// enum no longer owns the routing. Each page enumerates its
+    /// views inline; the shape matches `ZoneContentView.Tab`'s
+    /// tuple requirement.
+    private var toolsForCurrentPage: [(label: String, icon: String, content: AnyView)] {
+        switch workspaceUI.inspectorPage {
+        case .authoringFiction:
+            return [
+                (WenshuI18n.t("tab.title.foreshadowing"), "arrow.triangle.branch", AnyView(ForeshadowingView())),
+                (WenshuI18n.t("tab.title.placeholder"), "square.dashed", AnyView(PlaceholderView())),
+                (WenshuI18n.t("tab.title.plot_thread"), "arrow.triangle.branch", AnyView(PlotThreadView()))
+            ]
+        case .authoringStyle:
+            return [
+                (WenshuI18n.t("tab.title.long_form"), "checkmark.shield", AnyView(LongFormGuardrailsView())),
+                (WenshuI18n.t("tab.title.reader_experience"), "sparkles", AnyView(ReaderExperienceView())),
+                (WenshuI18n.t("tab.title.genre_fit"), "bookmark", AnyView(GenreFitView()))
+            ]
+        case .authoringCharacters:
+            return [
+                (WenshuI18n.t("tab.title.character_relationships"), "person.2", AnyView(CharacterRelationshipsView())),
+                (WenshuI18n.t("tab.title.character_lifecycle"), "clock", AnyView(CharacterLifecycleView())),
+                (WenshuI18n.t("tab.title.emotion_curve"), "waveform.path.ecg", AnyView(EmotionCurveView()))
+            ]
+        case .projectManagement:
+            return [
+                (WenshuI18n.t("tab.title.idea_library"), "lightbulb", AnyView(IdeaLibraryView())),
+                (WenshuI18n.t("tab.title.tag_manager"), "tag", AnyView(TagManagerView())),
+                (WenshuI18n.t("tab.title.book_setting_constraints"), "book.closed", AnyView(BookSettingConstraintsView())),
+                (WenshuI18n.t("tab.title.bookmark"), "bookmark", AnyView(BookmarkView())),
+                (WenshuI18n.t("tab.title.background_review"), "checkmark.circle.badge.questionmark", AnyView(BackgroundReviewView()))
+            ]
+        }
     }
 
     var body: some View {
@@ -206,7 +236,7 @@ struct InspectorView: View {
             // Numbers inspector pattern).
             ZoneContentView(
                 zoneSlug: "specializedTools",
-                tabs: toolsForCurrentPage.map { (label: $0.title, icon: $0.icon, content: $0.view()) }
+                tabs: toolsForCurrentPage
             )
             .frame(maxWidth: .infinity)
             // Add horizontal padding to the right column (= 8 PT

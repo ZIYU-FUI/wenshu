@@ -157,3 +157,46 @@ final class WorkspaceUIState {
         }
     }
 }
+
+// MARK: - InspectorPage
+
+/// Inspector column page selection. 4 pages of the right-column
+/// inspector: Authoring / Style / Characters / Project Management.
+///
+/// Was co-located with the dead `InspectorCatalog` enum (= the
+/// 14-tool static catalog no caller referenced after the
+/// v1.71b InspectorView rewrite). `InspectorPage` is the only
+/// survivor of that file; it lives next to its single state-field
+/// owner (`WorkspaceUIState.inspectorPage`).
+///
+/// Migration: `InspectorCatalog` enum + `InspectorTool` struct +
+/// `InspectorPage.tools` array (= the legacy per-page tool list)
+/// were deleted in this commit. The 4 inspector pages still drive
+/// their per-page tab strip via `LabelSegmentedControl`, but the
+/// tool list per page now lives in `InspectorView` directly
+/// (= the page → tools mapping is no longer a static catalog;
+/// each page enumerates its views in its own body branch).
+enum InspectorPage: Hashable, CaseIterable {
+    case authoringFiction
+    case authoringStyle
+    case authoringCharacters
+    case projectManagement
+
+    var localizedTitle: String {
+        switch self {
+        case .authoringFiction:     return WenshuI18n.t("inspector.page.authoringFiction")
+        case .authoringStyle:       return WenshuI18n.t("inspector.page.authoringStyle")
+        case .authoringCharacters:  return WenshuI18n.t("inspector.page.authoringCharacters")
+        case .projectManagement:    return WenshuI18n.t("inspector.page.projectManagement")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .authoringFiction:     return "book.pages"
+        case .authoringStyle:       return "paintpalette"
+        case .authoringCharacters:  return "person.2"
+        case .projectManagement:    return "folder.badge.gearshape"
+        }
+    }
+}
