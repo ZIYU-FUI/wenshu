@@ -93,17 +93,17 @@ struct ZoneContentView: View {
         // semantically correct for a tab switcher; = VoiceOver
         // reads "page N of M") + segmentDistribution =
         // .fillEqually (= each tab stretches to 1/N of the
-        // column width = satisfies the boss's 'auto-fill the right column's width'
-        // requirement)).
+        // column width = satisfies the 'auto-fill the right
+        // column's width' requirement).
         //
-        // Per the verbatim port discipline (= only do what the boss
-        // asked): this commit ONLY changes the per-page tab strip
-        // control (= ZoneContentView's tabs); = the toolbar's
+        // Per the verbatim port discipline (= only do what the
+        // user asked): this commit ONLY changes the per-page tab
+        // strip control (= ZoneContentView's tabs); = the toolbar's
         // 4-page picker (= SwiftUI Picker(.segmented)) stays
-        // unchanged; = the boss explicitly clarified 'for the toolbar,
-        // use the one we just settled on — that's Apple's default toolbar style' (= the toolbar
-        // keeps the SwiftUI Picker(.segmented) = the Apple HIG
-        // toolbar default).
+        // unchanged; = the user explicitly clarified 'for the
+        // toolbar, use the one we just settled on — that's Apple's
+        // default toolbar style' (= the toolbar keeps the SwiftUI
+        // Picker(.segmented) = the Apple HIG toolbar default).
         //
         // all 4 inspector pages' per-page tab strip (= the
         // ZoneContentView is reused for each page; = the tabs
@@ -111,7 +111,7 @@ struct ZoneContentView: View {
         // business-layer extraction from the inline tuple that
         // previously lived in ShellDetailColumn.filteredToolsForCurrentPage;
         // = the control auto-renders whatever tabs the
-        // inspector page supplies; = the boss's directive is
+        // inspector page supplies; = the user's directive is
         // satisfied with a single-line change).
         VStack(spacing: 0) {
             // -m1-shell (see OOB.md #2026-09-11) OOB 'macOS 27's native
@@ -168,13 +168,13 @@ struct ZoneContentView: View {
             // the canonical Pages / Numbers inspector tab
             // pattern; = tabs stretch from column edge to
             // column edge).
-            // bossverificationfix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
+            // wenshu-verification-fix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
             // so it inherits zone size (not forces zone to grow). Without this,
             // AnyView collapses to its intrinsic size and zone shrinks to ~0.
             // ZONE-INSET-002 (2026-09-07): the unified zone-content
             // inset (= 18 PT all sides) was originally applied here
-            // as a single source of truth for all 5 zones. Boss 9/7
-            // round 2 ', zones 1-2-4 too large, zone 3 correct, 6
+            // as a single source of truth for all 5 zones. Round 2
+            // (2026-09-07) — 'zones 1-2-4 too large, zone 3 correct, 6
             // ' = the outer 18 PT wraps Apple HIG components (=
             // List(.sidebar) in zone 1, LazyVGrid in zone 2) that
             // already have their own canonical padding (= Apple HIG
@@ -200,14 +200,14 @@ struct ZoneContentView: View {
             // HIG components and skips them (= needs Apple API
             // research).
             //
-            // Boss 9/7 round 2 ' apple api can'
-            // = the right place for the inset IS Apple's built-in
+            // Round 2 (2026-09-07) — 'apple api can':
+            // the right place for the inset IS Apple's built-in
             // content margins (= List, LazyVGrid, ScrollView all
             // have them); = we shouldn't duplicate them with our
             // own outer wrapper.
             // -m1-shell (see OOB.md #2026-09-11) OOB 'everything is currently vertically
             // centered — keep the empty state vertically centered, title bar, divider, tab bar go
-            // to the top, tab bar full-width fill is unchanged': per the boss's
+            // to the top, tab bar full-width fill is unchanged': per the user's
             // request, the content area BELOW the tab strip is
             // vertically centered when the content is empty
             // (= the empty state hint sits in the middle of the
@@ -248,9 +248,10 @@ struct ZoneContentView: View {
         // (which is only ~485 PT tall, 600 PT min would push it out of view).
     }
 
-    // bossverificationfix (2026-08-24): persist tab selection per zone across launches.
-// Boss 8/24 feedback: 'region tab shouldyesin progress, in progressstatusshould'.
-// Implemented via zone-specific UserDefaults key (one per zone).
+    // wenshu-verification-fix (2026-08-24): persist tab selection
+    // per zone across launches.
+    // Region tab selection: 'should: yes, in progress, status: should'.
+    // Implemented via zone-specific UserDefaults key (one per zone).
     private let storageKey: String
 
     init(zoneSlug: String, tabs: [(label: String, icon: String, content: AnyView)], trailingButton: AnyView? = nil) {
