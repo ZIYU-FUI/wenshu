@@ -6,7 +6,7 @@
 //  .scratch/2026-09-23-mvvm-audit/spec.md §9 v1.75 arc).
 //
 //  Per v1.72 KanbanOps template (= @MainActor enum + Result types +
-//  static funcs). Per Q112 1 ticket = 1 file. Per boss rule:
+//  static funcs). Per Q112 1 ticket = 1 file. Per the rule:
 //  "PreviewPane single-consumer (B)" (= BookDocLoaderOps is
 //  PreviewPane's private copy; = future ticket lifts to shared service
 //  when PaneView consumes it too).
@@ -246,7 +246,7 @@ enum PreviewPaneOps {
     }
 
     /// Substring matcher shared between entities and book docs
-    /// (= per boss 'use one common interface').
+    /// (= per the 'use one common interface' rule).
     /// Empty query = pass-through. Pure function (= no actor,
     /// no MainActor; = trivially testable).
     static func matchesSearch(title: String, summary: String, query: String) -> Bool {
