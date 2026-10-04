@@ -1,23 +1,11 @@
-// App.swift · Wenshu · v0.09.0 6-zone layout shell (1920×984 PT)
-// Data source: Sketch AF7B1C87 / page Wenshu / Artboard Home
-// Component-based truth: mcp__sketch__run_code (2026-08-18) = 6 SymbolMaster + 13 SymbolInstance
-// Unit: 1 PT = 1 PX (macOS 27 1x), 1:1 mapping, no scaling.
+// App.swift · Wenshu
 //
-// 6 masters (8/18 component planning):
-//   1. Title bar               (1920×39)
-//   2. Zone top toolbar        (758×30)   ← zone top-bar reuse
-//   3. Zone bottom toolbar     (200×30)   ← zone bottom-bar reuse
-//   4. Zone module             (200×472)  ← zone main container reuse
-//   5. Drag line - vertical    (1×472)
-//   6. Drag line - horizontal  (1920×1)
-//
-// 13 instances all 1:1 mapped to SwiftUI, see LayoutTokens.
+// Workspace shell (= the App-level root scene + window groups).
+// Layout structure (pane tree + tabs) lives in LayoutTreeState +
+// LayoutTreeStore; this file wires them into AppKit scenes only.
 
 import SwiftUI
 import AppKit
-
-// Symbols 6 (3rd generation) with palette rendering': LucideSwift
-// import removed (= see Package.swift + IconStyles.swift).
 
 // MARK: - v0.25.1 (= ticket 019 icon button Apple HIG hit area) — Apple recommended approach
 /// Per Apple SwiftUI docs (developer.apple.com/documentation/swiftui/buttonstyle
