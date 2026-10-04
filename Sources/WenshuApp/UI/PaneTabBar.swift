@@ -3,22 +3,18 @@
 // Generic wrapper for a list of `PaneIconTab` + optional trailing
 // buttons. Listed in `ComponentIndex.md` Level 3.2.
 //
-// Only `DynamicZoneTabBar` survives from the legacy tab bar set
-// (= the enum↔string binding shim).
-//
-// Use this for ANY per-pane top tab bar (= sidebar/preview/editor/tools/
-// chat/dynamic). Don't write a new tab bar component from scratch.
+// Use this for ANY per-pane top tab bar (= sidebar/preview/editor/
+// chat). Don't write a new tab bar component from scratch.
 
 import SwiftUI
 
-/// Canonical per-pane tab bar (= RegionTabBar chrome + ForEach of
-/// PaneIconTab + optional trailing buttons). Replaces 3 legacy
-/// tab bar implementations with 1 generic component.
+/// Canonical per-pane tab bar. Replaces 3 legacy tab bar
+/// implementations with 1 generic component.
 ///
 /// **Use this** for any pane's top tab bar (= sidebar/preview/editor/
-/// tools/chat/dynamic). Provides:
-/// - RegionTabBar Liquid Glass chrome (= 30 PT + .regularMaterial +
-///   .separator bottom hairline)
+/// chat). Provides:
+/// - Liquid Glass chrome (= 30 PT + .regularMaterial + .separator
+///   bottom hairline)
 /// - ForEach of PaneIconTab (= Apple HIG 28×28 hot area + SF Symbols 6
 ///   icon + matchedGeometry selected-state underline)
 /// - Optional trailing buttons (= e.g. editor's expand/shrink button,
@@ -122,9 +118,8 @@ struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
     }
 
     var body: some View {
-        // RegionTabBar wrapper removed: the tab bar IS the direct
-        // content (= no chrome wrapper above). The PaneTabBar IS
-        // the chrome (= Apple-style flat tab bar).
+        // PaneTabBar IS the chrome (= Apple-style flat tab bar;
+        // no wrapper layer above it).
         HStack(spacing: DesignTokens.spacingIconic) {
             ForEach(items) { item in
                 PaneIconTab(

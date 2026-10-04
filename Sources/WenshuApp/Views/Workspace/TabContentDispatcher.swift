@@ -63,31 +63,21 @@ struct TabContentDispatcher: View {
     var body: some View {
         switch kind {
         case .projectSidebar:
-            // Top chrome = single tab + trailing buttons (= the
-            // canonical 30 PT zone chrome). Otherwise we'd have 2 layers
-            // (= 30 PT outer + 28 PT inner ZoneContentTabBar = 58 PT
-            // per-pane chrome = ugly).
-            //
-            // The bottom status text (=: N /: N) still comes
-            // from a single ZoneBottomStatus (= no duplicate with the
-            // internal ZoneContentView).
-            
-                PaneView(zoneSlot: .projectSidebar)
+            // Top chrome = the pane's internal PaneTabBar. Single
+            // layer per pane (= no double chrome wrappers).
+            PaneView(zoneSlot: .projectSidebar)
 
         case .projectPreview:
-            // Same: no outer top toolbar (= internal ZoneContentTabBar
-            // for / tabs IS the top chrome). Just the bottom
-            // status text.
-            
-                PaneView(zoneSlot: .projectPreview)
+            // Same: no outer top toolbar (= internal PaneTabBar
+            // IS the top chrome).
+            PaneView(zoneSlot: .projectPreview)
 
         case .editor:
-            // No outer top (= internal ZoneContentTabBar for edit /
-            // / IS the top chrome). Bottom status = /
-            // (= (see OOB.md #2026-09-02) replaces the legacy "N%" progress text
-            // with backlinks count; = spec spec v0.34 B-15).
-            
-                PaneView(zoneSlot: .editor)
+            // No outer top (= internal PaneTabBar for edit / outline
+            // IS the top chrome). Bottom status = backlinks count
+            // (= replaced the legacy "N%" progress text per
+            // spec v0.34 B-15).
+            PaneView(zoneSlot: .editor)
 
             // trigger backlinks load on first appear.
             // .task runs once when the editor zone is mounted (= won't
@@ -106,25 +96,14 @@ struct TabContentDispatcher: View {
                     .padding(DesignTokens.spacingStandard)
             }
         case .specializedTools:
-            // No outer top (= internal ZoneContentTabBar for /
-            // IS the top chrome). Bottom status = .
-            
-                PaneView(zoneSlot: .specializedTools)
+            // No outer top (= internal PaneTabBar IS the top chrome).
+            PaneView(zoneSlot: .specializedTools)
 
         case .aiChat:
-            // Old 6 had ChatZoneTabBar (= 3 tabs: dialog / search / Settings
-            // + archive button on right). The new ChatView doesn't
-            // have an internal tab bar.
-            // 
-            // The chat-zone tab-bar wrapper (= the since-deleted
-            // wrapper that used to host the chat top tab bar) was
-            // deleted; the PaneTabBar call now lives directly in this
-            // dispatch branch (= state + namespace held by
-            // TabContentDispatcher above). Single source of truth for
-            // chat top chrome.
-            // NO outer ZonePerRegionChrome (= this PaneTabBar IS the top chrome).
-            
-                ChatView()
+            // ChatView + PaneTabBar for the single chat tab.
+            // No wrapper layer (= the PaneTabBar is mounted
+            // directly here, in this dispatch branch).
+            ChatView()
                     .safeAreaInset(edge: .top, spacing: 0) {
                         // safeAreaInset adds a view above the ChatView
                         // (= the top chrome) without ChatView needing to

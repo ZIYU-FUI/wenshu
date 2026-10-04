@@ -20,11 +20,9 @@ struct PreviewSortMenuButton: View {
     var body: some View {
         // PaneIconTab pattern (= `Color.clear` base + overlay icon
         // + `contentShape`). The previous "plain Button + LucideIcon
-        // (= SF Symbol via Image(systemName:)) + .frame(width:
-        // DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)"
+        // + .frame(width: paneTabHotArea, height: paneTabHotArea)"
         // pattern collapsed to zero size inside ZoneContentView's
-        // trailing slot (= AnyView wrapper at ZoneContentTabBar
-        // erases intrinsic size).
+        // trailing slot (= AnyView wrapper erases intrinsic size).
         // Color.clear base provides a guaranteed 28x28 hit area that
         // survives AnyView wrapping, matching PaneIconTab which DOES
         // render in the same slot.

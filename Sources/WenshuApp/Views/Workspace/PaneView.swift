@@ -175,22 +175,19 @@ struct PaneView: View {
             ])
 
         case .aiDynamic:
-            // Old 6-zone aiDynamic = DynamicZoneView (= has its own
-            // DynamicZoneTabBar with Progress / Todo / Search).
-            // External toolbar cleared (= the
-            // outer ZoneTopToolbar is empty placeholder mode).
+            // DynamicZoneView owns its own DynamicZoneTabBar
+            // (Progress / Todo / Search).
             DynamicZoneView()
 
         case .aiChat:
-            // Old 6-zone aiChat = ChatZoneView (= has its own ChatZoneTabBar
-            // with chat / search / settings). Top icons are Bot + Inbox.
+            // ChatView + PaneTabBar for the single chat tab.
+            // Top icons are Bot + Inbox.
             ChatView()
 
         case .editor:
-            // Old 6-zone editor = 3 tabs (Edit / Outline / Backlinks) + trailingButton
-            // (expand/shrink toggle). Real ZoneContentView — replaces
-            // EditorView (= which was just text "Editor zone
-            // integration pending").
+            // Editor pane: 2 tabs (Edit / Outline) + trailing
+            // expand/shrink button. Backlinks surfaced via the
+            // chrome bottom-right "Backlinks 0" label click.
             // Book-open-text + puzzle + link.
             ZoneContentView(
                 tabs: [

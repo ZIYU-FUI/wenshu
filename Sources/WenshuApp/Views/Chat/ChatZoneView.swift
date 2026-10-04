@@ -1,15 +1,5 @@
 // ChatZoneView.swift · Wenshu · v1.91b
 //
-// b (2026-09-23): the directive '聊天区的，文字回显层，是否可以变成左栏
-// 的颜色参数。没有实现，是不是被限制了，是不是 NSV 框架里限制了，
-// 你参数加的位置没有生效'. v1.91 added `.background(DesignTokens.
-// sidebarBackground)` to ChatView's inner ScrollView; = that only
-// paints the ScrollView's content area, NOT the visible chat column
-// chrome around it (= the outer VStack + the NSSplitViewItem's AppKit
-// container). Move the background to this outer VStack (= the view
-// that actually fills the chat column's visible bounds). Same token,
-// correct layer.
-//
 // per Apple HIG = one view per file.
 //
 // ChatZoneView = the chat-zone root container (= AI provider model
@@ -18,8 +8,8 @@
 // -m1-shell (see OOB.md #2026-09-10) OOB 'drop the chat zone's top bar entirely, including the archive
 // icon button and the tabs — basically the whole top bar. For the zone's internal padding, if the API
 // provides one, let the API handle the defaults':
-// the chat zone no longer hosts any top-bar chrome (= no
-// ChatZoneTabBar, no 3-tab HStack, no archive ICON, no TEB). The
+// the chat zone no longer hosts any top-bar chrome (= no top
+// tab bar, no 3-tab HStack, no archive icon, no TEB). The
 // body of the chat zone = bare ChatView (= the chat history +
 // input field). Per Apple HIG TabViews docs 'if you only need
 // to show ONE tab, don't show a tab bar at all'. All padding +

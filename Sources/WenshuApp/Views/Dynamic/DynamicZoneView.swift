@@ -1,8 +1,8 @@
-//
 // DynamicZoneView.swift · Wenshu · v0.24 bossverification + v0.41 WIRE-OPENBOX-001
 //
-// dynamic zone shouldyes tab (chat zone ChatZoneTabBar),
-// shouldyes sheet (sheet, tab).
+// Dynamic zone hosts its own DynamicZoneTabBar
+// (Task / Progress / Search). Sheet tab pattern lives in
+// TabContentDispatcher.
 //
 //  Tab order (per the 2026-08-24 explicit feedback):
 // - tab1: task (Todo) — TodoListView (h07)
@@ -19,8 +19,7 @@
 
 import SwiftUI
 
-/// DynamicZoneView: body. 3 tabs (task / progress / search) + Apple HIG TabBar pattern
-/// (ChatZoneTabBar: top bar SF Symbol + .accentColor in progress).
+/// DynamicZoneView: body. 3 tabs (task / progress / search).
 struct DynamicZoneView: View {
     enum DynamicTab: String, CaseIterable, Identifiable {
         // wenshu-verification-fix (2026-08-24 OOB): the directive 'yeskanban, change
@@ -123,7 +122,7 @@ struct DynamicZoneView: View {
     }
 }
 
-/// DynamicZoneTabBar: top bar 3 SF Symbol tab + in progress .accentColor (ChatZoneTabBar)
+/// DynamicZoneTabBar: top bar 3 SF Symbol tab + accentColor on selected.
 struct DynamicZoneTabBar: View {
     @Binding var selectedTab: DynamicZoneView.DynamicTab
     // (= ticket 013 underline slide animation): matchedGeometry
