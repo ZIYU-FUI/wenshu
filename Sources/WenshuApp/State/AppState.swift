@@ -1,123 +1,46 @@
 // Sources/WenshuApp/State/AppState.swift
 //
-// (see OOB.md #2026-08-31) — adopted: global @Observable +
-// @Environment injection (option A for cross-zone communication).
-// This file centralizes cross-zone UI state (formerly scattered
-// as @Binding across 4 view layers = WorkspaceView -> PaneRenderer
-// -> TabContentDispatcher -> PaneView -> AppleSidebarView,
-// per commit d845fe9c9).
+// App-wide observable state for cross-zone UI communication.
+// Owned by `WenshuApp` (= the App struct, = per-window via
+// `@State`), injected via `.environment(appState)` on
+// WiredShell. Descendants read it with
+// `@Environment(AppState.self) private var appState`.
 //
-// Why a global @Observable (= per Apple Observation framework,
-// Swift 5.9+):
-// 1. Instant reactivity (= any descendant view that reads
-//    `workspaceUI.sidebarSelection` auto-re-renders on change).
-// 2. Single source of truth (= one place for cross-zone signals).
-// 3. Zero plumbing (= no @Binding chain to thread through new
-//    views).
-// 4. The user can debug = `print(workspaceUI.sidebarSelection)` directly
-//    (= vs grep NotificationCenter post names across N files).
-// 5. Apple-native (= no 3rd-party dep, AGENTS.md §11.1 stays
-//    unchanged).
+// Per P2-06 split (= 2026-09-24): AppState now only holds
+// cross-zone state (= searchText + openTabs + activeTabId +
+// llmModel). Column-local UI state moved to WorkspaceUIState
+// (= sidebarSelection + previewSortOrder + editMode +
+// inspectorPage + chatVisible). Sheet-request triggers
+// (= newBook / newShelf / choice) moved to SheetRequestState.
+// Editor counters (= wordCount / etc) moved to EditorCounters.
 //
 // Per-window ownership: each WindowGroup instance creates its own
-// AppState via `@State private var appState = AppState()` (= per-window
-// multi-window future-proofing; = (see OOB.md #2026-08-27)).
-//
-// Adding a new cross-zone signal = add 1 var here, done. No init
-// signature changes, no binding chain updates.
+// AppState via `@State private var appState = AppState()`.
 
 import SwiftUI
 
 /// App-wide observable state for cross-zone UI communication.
-///
-/// Owned by `WenshuApp` (= the App struct, = per-window via
-/// `@State`), injected via `.environment(appState)` on
-/// WiredShell. Descendants read it with
-/// `@Environment(AppState.self) private var appState`.
-///
-/// All cross-zone UI state (= sidebar selection, sort order, etc.)
-/// lives here. Persistence is handled at the observer (= typically
-/// WorkspaceView writes to `@AppStorage` via `.onChange`).
+/// All cross-zone UI state (= searchText + openTabs +
+/// activeTabId + llmModel) lives here. Persistence is handled
+/// at the observer (= typically WorkspaceView writes to
+/// `@AppStorage` via `.onChange`).
 @MainActor
 @Observable
 final class AppState {
 
-    /// opt-in to the Apple-native
-    /// NavigationSplitView path (= 3-column layout per macOS 27
-    /// `NavigationSplitView` = the canonical Apple HIG pattern
-    /// per developer.apple.com/documentation/swiftui/navigationsplitview).
-    ///
-    // useThreeColumnSplit was here (= a leftover "global @Observable
-    // mirror" before LayoutTreeState owned the activation gate).
-    // Per P2-06 audit (2026-09-24): removed because:
-    // - 0 production callers in the runtime (= the canonical
-    //   NavigationSplitView reads LayoutTreeState.useThreeColumnSplit,
-    //   not AppState's).
-    // - Persistence is unchanged (= UserDefaults key
-    //   "wenshu.useThreeColumnSplit" is still owned by LayoutTreeState).
-    // - AppState no longer needs this field; = the canonical home is
-    //   LayoutTreeState.swift:834.
-    //
-    // The flag's behaviour (= which user setting activates the
-    // Apple 3-column shell) is owned by LayoutTreeState; = this
-    // AppState mirror was dead since the v1.29 M1 shell arc
-    // (= LayoutTreeState absorbed the role). The mirror lingered
-    // only as a user-toggle surface (= defaulted to false).
-
-    // Sidebar tree selection moved to WorkspaceUIState.swift (= P2-06
-    // split). Drives Preview pane scope. Persisted to the same
-    // UserDefaults key "wenshu.sidebarSelection" (= JSON via Codable).
-    // The key string is unchanged so no user-data migration is
-    // needed. Callers now read `workspaceUI.sidebarSelection` (= via
-    // `@Environment(WorkspaceUIState.self)` injected at AppRootScene).
-
-    // previewSortOrder + editMode moved to WorkspaceUIState.swift
-    // (= P2-06 split batch 3 = column-local UI state; = bundled
-    // because both share the same lifecycle + reset semantics).
-    // Lives on AppState no longer (= the column-local UI scope is
-    // a separate concern from cross-zone state + openTabs +
-    // llmModel = the only remaining AppState contents).
-
-    // 3 sheet-request triggers (= newBook / newShelf / choice) moved
-    // to SheetRequestState.swift (= the P2-06 split batch 4 host).
-    // The counters are fire-and-forget triggers (= toolbar Menu
-    // bumps the counter = sidebar body observes .onChange and
-    // flips its local @State showXSheet). Same pattern in 3
-    // places, all bundled on SheetRequestState.
-
-    // The search text lives in AppState (= a single source of truth
-    // shared across all `.searchable` modifiers attached to
-    // different column views). Per Apple SwiftUI docs, multiple
-    // `.searchable` modifiers on the same binding (= `Binding<String>`
-    // bound to this @Observable property) will all reflect the
-    // same live value, but only the active-focused column's
-    // search field is rendered visible (= the others auto-focus
-    // when the user activates their column).
-    //
-    // Use case: user types in the cards column's toolbar search
-    // field → searchText updates → the sidebar / inspector
-    // `.searchable` modifiers all see the same value → future
-    // filters can read searchText from AppState instead of
-    // threading bindings. This is the canonical SwiftUI Observation
-    // pattern for app-wide search state (= developer.apple.com/
-    // documentation/swiftui/view/searchable).
+    /// Shared search text across all `.searchable` modifiers.
+    /// Per Apple SwiftUI docs (developer.apple.com/documentation/
+    /// swiftui/view/searchable), multiple `.searchable` modifiers
+    /// on the same binding reflect the same live value; = only
+    /// the active-focused column's search field renders visible.
     var searchText: String = ""
 
-    // editorWordCount moved to EditorCounters.swift (= P2-06 split
-    // batch 5 = editor zone counter). EditorView writes via
-    // .onChange(of: draft) callback (= the host routes the value);
-    // = chrome bottom-bar left field would read via @Environment
-    // (= current callers: 0 readers in this commit; = future
-    // chrome widget reads from `editorCounters.wordCount`).
-
-    // (= (see OOB.md #2026-09-02) — multi-tab editor, Safari style):
-    // open document tabs in the editor zone. Each tab = one open
-    // document (= independent draft, mode, auto-save task, file
-    // watcher). activeTabId identifies the currently focused tab.
-    // Single source of truth across views (= TabContentDispatcher,
-    // EditorView, any future cross-zone tab bar).
-    // (see OOB.md #2026-09-07) — persist openTabs + activeTabId
-    // across launches (= JSON in UserDefaults). Empty array on launch
+    // open document tabs in the editor zone. Each tab = one
+    // open document (= independent draft, mode, auto-save task,
+    // file watcher). activeTabId identifies the currently focused
+    // tab. Single source of truth across views.
+    // Persisted across launches (= JSON in UserDefaults). Empty
+    // array on launch
     // = no persisted tabs = editor zone shows an onboarding hint
     // instead of the samplePreviewBody.
     var openTabs: [EditorTab] = [] {
@@ -162,19 +85,10 @@ final class AppState {
             // The active user releases focus by either closing the active
             // tab or switching to chat. We pick the chat-switch path
             // because it preserves the tab (= the user can return).
-            // Setting chatVisible is owned by WorkspaceUIState (=
-            // environment-injected) so we route via AppStateLocator
-            // when set;
-            // otherwise we drop the active tab (= the chapter tab
-            // simply goes inactive and the editor reload shows the
-            // agent's edits).
-            if let appState = AppStateLocator.shared.appState {
-                _ = appState
-                // Note: actual chat-visible toggle happens in the
-                // caller (= WorkspaceUIState), not here. We simply clear
-                // activeTabId so the active-tab lookup below returns
-                // nil (= focusedChapterPath becomes nil on next read).
-            }
+            // chatVisible is owned by WorkspaceUIState (= the
+            // chat-switch path triggers it there); = we simply clear
+            // activeTabId so the active-tab lookup below returns
+            // nil (= focusedChapterPath becomes nil on next read).
             // The activeTabId rewrite is the durable clear: re-using
             // the same UUID does nothing (= oldValue == newValue), so
             // we swap to a fresh UUID to force a no-match. This is
@@ -326,21 +240,9 @@ final class AppState {
         }
     }
 
-    // editMode moved to WorkspaceUIState.swift (= P2-06 split
-    // batch 3; = bundled with previewSortOrder because both
-    // are column-local UI state with the same lifecycle).
-    // Previously: a LayoutEditMode @Observable class instance
-    // (= Apple Observation framework; = shared across workspace
-    // descendants via @Bindable; = ⌘⇧\ hotkey in
-    // EditModeHotkey.swift toggled `appState.editMode`).
-    // Now: same lifecycle, just lives on WorkspaceUIState.
-
-    // wenshu.llm.model centralization. Single owner of the
-    // active LLM model id (= was previously scattered as 4 separate
-    // @AppStorage("wenshu.llm.model") declarations across App.swift
-    // + LibraryRootView.swift, plus 3 raw UserDefaults reads/writes
-    // in ChatView.swift = 7 different observation surfaces for 1
-    // UserDefaults key). Now AppState.llmModel is the only owner;
+    // Single owner of the active LLM model id (= was previously
+    // scattered as 4 separate @AppStorage("wenshu.llm.model")
+    // declarations). AppState.llmModel is the only owner;
     // init seeds from the existing UserDefaults value (= preserves
     // existing user choice across launches; Swift `didSet` does NOT
     // fire during init so no redundant write happens on launch) and
@@ -370,11 +272,11 @@ final class AppState {
         // .onAppear reads it). Sets openTabs via the regular
         // assignment (= triggers didSet → persistOpenTabs = write
         // back the same data; = harmless redundant write).
+        // Persisted open tabs (= the canonical restore path; = no need
+        // to invoke WenshuDefaultsKey.openTabs from here; AppState
+        // owns its own UserDefaults read/write for the openTabs +
+        // activeTabId pair).
         restoreOpenTabs()
-        // Sidebar selection restore moved to WorkspaceUIState.init()
-        // (= P2-06 split; = reads the same UserDefaults key
-        // "wenshu.sidebarSelection"; = no behavior change for
-        // users).
     }
 }
 
