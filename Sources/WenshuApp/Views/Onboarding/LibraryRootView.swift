@@ -8,7 +8,7 @@
 //  terminology.
 //
 //  Apple HIG reference: 1 library file = 1 .lrlibrary (Lightroom) /
-//  .photoslibrary (Photos) / .fcpbundle (FCP). Boss said wenshu uses 'repository'.
+//  .photoslibrary (Photos) / .fcpbundle (FCP). Wenshu uses 'repository'.
 //  Selected path stored in UserDefaults 'wenshu.libraryPath'.
 //
 //  LibraryRootView behavior:
@@ -34,8 +34,9 @@ import UniformTypeIdentifiers
 
 /// LibraryRootView: Routes between onboarding (first launch) and main app.
 ///
-/// Trigger condition (Boss 8/24 OOB said: 'if persistent info has no library file info,
-/// need to go to library-creation/library-selection page'):
+/// Trigger condition ((see OOB.md #2026-08-24) — 'if persistent
+/// info has no library file info, need to go to library-creation/
+/// library-selection page'):
 /// - if UserDefaults 'wenshu.libraryPath' empty → onboarding
 /// - if UserDefaults 'wenshu.libraryPath' set but path doesn't exist
 ///   on disk (= the user deleted the repository externally, or the
@@ -67,9 +68,10 @@ struct LibraryRootView: View {
         // Trigger = libraryPath empty OR path doesn't end with '.ws' OR
         // .ws directory doesn't exist on disk.
         //
-        // bossverificationfix #2 (Boss 8/24 OOB follow-up): trigger only
-        // checked path existence, too lax. Boss saved '/Users/anbaiqiang/Documents'
-        // (= parent folder, not anbaiqiang.ws file) → existed on disk → trigger
+        // wenshu-verification-fix #2 ((see OOB.md #2026-08-24)
+        // follow-up): trigger only checked path existence, too lax.
+        // The user saved '/Users/anbaiqiang/Documents' (= parent
+        // folder, not anbaiqiang.ws file) → existed on disk → trigger
         // passed → main UI shown, even though no .ws file created.
         // amendment: .ws is a DIRECTORY (not file); require path ends
         // with '.ws' AND directory exists AND Info.plist is readable.
@@ -394,7 +396,7 @@ struct LibraryOnboardingView: View {
         VStack(spacing: DesignTokens.spacingSection) {
             Spacer()
 
-// bossverificationfix (Boss 8/24 OOB): (books.vertical) replace LOGO.
+// wenshu-verification-fix ((see OOB.md #2026-08-24)):
 // (= use wenshu-original-fanbai.png directly).
 // .colorInvert() converts -blue ink to white text. .resizable +
 // .aspectRatio keeps aspect ratio.
@@ -407,8 +409,9 @@ struct LibraryOnboardingView: View {
 //   to load PNG from absolute path inside .app bundle.
 Group {
     if let nsImage = loadWenshuLogo() {
-        // bossverificationfix (Boss 8/24 OOB): 'yes' = show the
-        // PNG as-is (gray-blue calligraphic ink), don't .colorInvert.
+        // wenshu-verification-fix ((see OOB.md #2026-08-24)):
+        // 'yes' = show the PNG as-is (gray-blue calligraphic ink),
+        // don't .colorInvert.
         // .colorMultiply(.white) makes the ink truly white
         // (consistent across light/dark mode).
         Image(nsImage: nsImage)
@@ -515,9 +518,10 @@ Group {
         panel.title = WenshuI18n.t("auto2.libraryrootview.l472.h40947105")
         panel.message = WenshuI18n.t("auto2.libraryrootview.l473.h20911334")
         panel.prompt = WenshuI18n.t("auto2.libraryrootview.l474.h92696757")
-        // bossverificationfix (Boss 8/24 OOB): default filename = NSUserName() + ".ws"
-        // NSUserName() = current Mac username (Apple API, returns "anbaiqiang"
-        // on 's machine). Boss 'shouldyes anbaiqiang'.
+        // wenshu-verification-fix ((see OOB.md #2026-08-24)): default
+        // filename = NSUserName() + ".ws" NSUserName() = current
+        // Mac username (Apple API, returns "anbaiqiang" on this
+        // machine). The expected result: 'yes' = anbaiqiang.
         let username = NSUserName()
         panel.nameFieldStringValue = "\(username).ws"
         panel.nameFieldLabel = "仓库名"
@@ -532,7 +536,7 @@ Group {
             panel.allowedContentTypes = []
         }
 
-        // bossverificationfix (Boss 8/24 OOB 'create, '): NSSavePanel
+        // wenshu-verification-fix ((see OOB.md #2026-08-24) — 'create,'):
         // returns URL on OK but does NOT actually create the directory.
         // For .ws registered as com.apple.package (= Finder bundle),
         // caller must create the package directory. Call createWenshuWorkspace
@@ -550,7 +554,7 @@ Group {
         }
     }
 
-// MARK: - Bundle creation helper (Boss 8/24 OOB fix)
+// MARK: - Bundle creation helper ((see OOB.md #2026-08-24) fix)
 
 }  // close LibraryOnboardingView struct
 
@@ -589,13 +593,15 @@ extension LibraryOnboardingView {
                 try? data.write(to: infoPlistURL)
             }
         }
-        // bossverificationfix (Boss 8/24 OOB 'fileicon, can LOGO '):
-        // Set the wenshu LOGO PNG as the Finder icon for the .ws package.
-        // Apple HIG: NSWorkspace.shared.setIcon(_:forFile:options:) writes
+        // wenshu-verification-fix ((see OOB.md #2026-08-24) —
+        // 'fileicon, can LOGO'): Set the wenshu LOGO PNG as the
+        // Finder icon for the .ws package. Apple HIG:
+        // NSWorkspace.shared.setIcon(_:forFile:options:) writes
         // icon into the file's resource fork / icon services metadata.
-        // bossverificationfix (Boss 8/24 OOB ', SF,, '):
-        // Use SF Symbol fill book icon (= book.fill) instead of wenshu LOGO PNG.
-        // Per Apple HIG: SF Symbol fill variant for package icon.
+        // wenshu-verification-fix ((see OOB.md #2026-08-24) — 'use SF
+        // Symbol fill book icon'): Use SF Symbol fill book icon
+        // (= book.fill) instead of wenshu LOGO PNG. Per Apple HIG:
+        // SF Symbol fill variant for package icon.
         // Render SF Symbol to NSImage at 1024x1024, then setIcon.
         if let symbolImage = renderSFSymbol("book", size: 1024) {
             let workspace = NSWorkspace.shared
