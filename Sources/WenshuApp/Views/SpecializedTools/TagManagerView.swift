@@ -49,7 +49,7 @@
 //        live in TagManagerTools.swift (= public).
 //
 //  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-//  ADDS a 10th tab to the specializedTools pane. Boss acceptance
+//  ADDS a 10th tab to the specializedTools pane. The acceptance
 //  required: open SpecializedTools pane, click the new
 //  Tag-Manager tab, add a tag, apply it to an entity (chapter /
 //  character / scene / plot-thread), see the row in the

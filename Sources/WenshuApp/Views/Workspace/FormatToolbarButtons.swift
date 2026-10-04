@@ -163,7 +163,7 @@ struct EditorParagraphAI {
 ///   double-fire; = Apple HIG actionable-control-while-busy).
 ///
 /// Icon system: SF Symbols 6 for the 3 primary buttons AND the
-/// dropdown menu (= Apple canonical icon layer per boss
+/// dropdown menu (= Apple canonical icon layer per the
 /// 2026-09-15 OOB 'use SF Symbols 6 (3rd gen) with palette
 /// rendering'; = supersedes the v0.34 FormatToolbarButtons
 /// 'SF Symbol + Lucide' mixed era). Both layers now use

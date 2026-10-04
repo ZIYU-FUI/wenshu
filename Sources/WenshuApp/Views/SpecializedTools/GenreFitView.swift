@@ -33,7 +33,7 @@
 //        types live in GenreFitTools.swift (= public).
 //
 //  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-//  ADDS a 6th tab to the specializedTools pane. Boss acceptance
+//  ADDS a 6th tab to the specializedTools pane. The acceptance
 //  required: open SpecializedTools pane, click the new
 //  Genre-Fit tab, paste a chapter, pick a genre, run analyze,
 //  see the score + matches / misses / forbidden hits.

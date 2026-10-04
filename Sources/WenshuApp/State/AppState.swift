@@ -14,7 +14,7 @@
 // 2. Single source of truth (= one place for cross-zone signals).
 // 3. Zero plumbing (= no @Binding chain to thread through new
 //    views).
-// 4. Boss can debug = `print(workspaceUI.sidebarSelection)` directly
+// 4. The user can debug = `print(workspaceUI.sidebarSelection)` directly
 //    (= vs grep NotificationCenter post names across N files).
 // 5. Apple-native (= no 3rd-party dep, AGENTS.md §11.1 stays
 //    unchanged).

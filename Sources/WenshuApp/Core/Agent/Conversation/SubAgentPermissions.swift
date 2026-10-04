@@ -67,7 +67,7 @@ enum SubAgentPermissions {
     }
 
     private static func blockReason(tool: String, why: String) -> String {
-        return "(sub-agent blocked: '\(tool)' — \(why). Boss 8/23 拍: hermes DELEGATE_BLOCKED_TOOLS parity)"
+        return "(sub-agent blocked: '\(tool)' — \(why). (see OOB.md #2026-08-23)拍: hermes DELEGATE_BLOCKED_TOOLS parity)"
     }
 }
 

@@ -19,7 +19,7 @@ struct ChatHelpTextOverlay: View {
         // APIs'. The previous ChatHelpTextOverlay rendered as a
         // pure-text hint (= icon + 2-line title + 1-line body)
         // without any background fill, so the underlying chat
-        // messages (= 'Boss test message: persistence check' / 'Wenshu reply:
+        // messages (= 'Test message: persistence check' / 'Wenshu reply:
         // message received' / 'migration test: tokens column works' / 4
         // 'You there?' buttons) bled through the hint and made it hard to
         // read.

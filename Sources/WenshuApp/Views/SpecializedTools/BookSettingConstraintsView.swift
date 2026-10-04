@@ -39,7 +39,7 @@
 //        live in BookSettingConstraintsTools.swift (= public).
 //
 //  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-//  ADDS a 12th (= FINAL) tab to the specializedTools pane. Boss
+//  ADDS a 12th (= FINAL) tab to the specializedTools pane. The
 //  acceptance required: open SpecializedTools pane, click the
 //  new Book-Setting-Constraints tab, add a constraint, see the
 //  row in the list, then paste chapter text and run the check to

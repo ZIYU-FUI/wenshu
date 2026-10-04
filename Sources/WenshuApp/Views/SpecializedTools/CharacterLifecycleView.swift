@@ -52,7 +52,7 @@
 //        live in CharacterLifecycleTools.swift (= public).
 //
 //  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-//  ADDS a 9th tab to the specializedTools pane. Boss acceptance
+//  ADDS a 9th tab to the specializedTools pane. The acceptance
 //  required: open SpecializedTools pane, click the new
 //  Character-Lifecycle tab, add a lifecycle event for a
 //  character, see the row in the list + the timeline + (when

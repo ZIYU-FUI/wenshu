@@ -13,7 +13,7 @@
 //    The hermes-side HermesTodoTool is the LLM scratchpad (= lives on
 //    AIAgent and is re-injected after context compression). The
 //    wenshu-side TodoStore is the user-facing persisted task tracker
-//    (= UI: TodoListView, schema: SQLite). Per boss wenshu-side-wins
+//    (= UI: TodoListView, schema: SQLite). Per wenshu-side-wins
 //    pattern (= HermesTodoTool.swift header) the two stores stay
 //    separate; this adapter is the single bridge the LLM goes through
 //    to keep both stores in sync from a single tool call.

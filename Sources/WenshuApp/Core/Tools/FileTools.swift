@@ -40,7 +40,7 @@ enum FileToolError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .pathDenied(let path):
-            return "path denied (boss 8/23 拍: 用户不可通过聊天改系统): \(path)"
+            return "path denied ((see OOB.md #2026-08-23) — user cannot change system via chat): \(path)"
         }
     }
 }
@@ -85,7 +85,7 @@ struct FileTools: Tool, Sendable {
         return (try? read(path: path)) ?? ""
     }
 
-    /// pathDenied: path deny-list check (boss 8/23: userchatchange / changeconfig).
+    /// pathDenied: path deny-list check ((see OOB.md #2026-08-23) — user cannot change code/config via chat).
     /// Returns true if the path matches project code / config / scratch / system files.
     /// Uses (path as NSString).standardizingPath to normalize symlinks / . / ..
     /// .002: hermes _is_blocked_device parity.
@@ -145,7 +145,7 @@ struct FileTools: Tool, Sendable {
         return false
     }
 
-    /// pathHasBlockedSymlink: hermes symlink-hop defense (boss 8/23 security).
+    /// pathHasBlockedSymlink: hermes symlink-hop defense ((see OOB.md #2026-08-23)).
     /// Resolves symlinks and verifies no hop leads to a blocked device.
     /// Returns true if ANY hop in the chain points to /dev/* or /proc/*.
     func pathHasBlockedSymlink(_ path: String) -> Bool {
@@ -251,7 +251,7 @@ extension FileTools {
                 toolset: "data",
                 schema: ToolRegistrySchema(
                     name: "file",
-                    description: "Local filesystem operations: read / list / search (= write / patch deny-listed per boss 8/23 rule: chat cannot modify code or config).",
+                    description: "Local filesystem operations: read / list / search (= write / patch deny-listed per (see OOB.md #2026-08-23) — chat cannot modify code or config).",
                     inputSchema: [
                         "op": ToolRegistrySchemaProperty(
                             type: "string",

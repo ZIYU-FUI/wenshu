@@ -806,7 +806,7 @@ struct LayoutTreeState: Codable, Equatable {
     /// Reset via:
     ///   defaults delete com.wenshu.app wenshu.useThreeColumnSplit
     ///
-    /// BOSS 9/8 'Apple framework defaultyes 2-3; yes,
+    /// 2026-09-08: 'Apple framework default: yes 2-3; yes,
     /// yesyes Apple yes' = the current 4-column upper
     /// band is NOT Apple first-class (= `NSSplitView` nested = workaround);
     /// = migrate to two nested `NavigationSplitView` (each 3-column =

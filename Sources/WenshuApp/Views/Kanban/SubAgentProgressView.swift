@@ -61,7 +61,7 @@ struct SubAgentProgressView: View {
         .padding()
         // wenshu-verification-fix (2026-08-24): removed fixed minWidth/minHeight.
         // Tab content must follow zone size, not force zone to be 480x320.
-        // Boss 8/24 feedback: 'tab viewchangechangeregionsize, autoregionsize'.
+        // (see OOB.md #2026-08-24)feedback: 'tab viewchangechangeregionsize, autoregionsize'.
         .task(id: refreshTrigger) {
             // Live update via EventBus (= AsyncStream; v0.71 cleanup batch 2 apple-miss fix).
             // SubAgentProgressView subscribes to kanban events; refresh on each event.

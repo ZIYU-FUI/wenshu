@@ -50,7 +50,7 @@
 //        live in IdeaLibraryTools.swift (= public).
 //
 //  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-//  ADDS an 11th tab to the specializedTools pane. Boss
+//  ADDS an 11th tab to the specializedTools pane. The
 //  acceptance required: open SpecializedTools pane, click the
 //  new Idea-Library tab, add an idea, change its status, see it
 //  in the list, link it to a chapter, search for it by title /

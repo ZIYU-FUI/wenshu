@@ -48,7 +48,7 @@ struct EditorEditContent: View {
     // started editing) to schedule the auto-save Task; false (= document
     // is saved or just got saved via Cmd+S) to cancel any pending Task.
     // Replaces B-21's onAutoSaveTrigger (= that triggered on every
-    // keystroke, wasting memory creating a fresh Task per char; = boss
+    // keystroke, wasting memory creating a fresh Task per char; = the
     // 9/2 OOB flagged as inefficient). Decoupled from Task internals
     // (= EditorEditContent doesn't know about Task).
     let onDirtyChange: (Bool) -> Void

@@ -37,7 +37,7 @@
 //       live in PlaceholderScannerTools.swift (= public).
 //
 // Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-// wires tab 2 of the specializedTools pane. Boss acceptance
+// wires tab 2 of the specializedTools pane. The acceptance
 // required: open SpecializedTools pane, click the Placeholder
 // tab, see the list of placeholders from the scanner, add a
 // new placeholder, change its status, remove it, paste chapter
@@ -45,7 +45,7 @@
 
 import SwiftUI
 
-/// Tools pane tab 2: Placeholder (= Placeholder) per v0.29 boss OOB.
+/// Tools pane tab 2: Placeholder (= Placeholder) per v0.29 (see OOB.md).
 ///
 /// **Use this** for the second tab of the specializedTools pane.
 /// Replaces the old BaseView (= which moved to a future ticket

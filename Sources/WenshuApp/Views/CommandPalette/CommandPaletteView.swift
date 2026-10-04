@@ -5,7 +5,7 @@
 //  CommandPaletteItem from CommandPaletteRegistry.shared, filtered by
 //  the user's query.
 //
-// (2026-09-04, boss OOB 'B'): hermes commands.py +
+// (2026-09-04, the (see OOB.md) 'B'): hermes commands.py +
 //  slash_registry.py parity. Single search box at the top + scrollable
 //  list below + click-to-invoke.
 //

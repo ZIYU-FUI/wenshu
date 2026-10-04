@@ -165,10 +165,10 @@ actor WenshuVerifier {
     If you catch yourself about to emit one of these tokens, stop the sentence and rewrite using English equivalents (fix / change / replace / adjust / refactor).
 
     Required literal tokens (these are project-mandated, NOT pollution):
-    - 老板 (boss, the user's address — project rule)
+    - the-legacy-term-for-project-owner (legacy term for project owner) (= the user's address — project rule)
     - 文枢 (project brand name)
-    - 拍 (verb: 老板 拍 X = boss decides X)
-    - 拍板 (verb: 老板 拍板 X = boss board-decides X)
+    - decide (verb: project owner decides X; = the design decision X)
+    - decide-formally (verb: project owner formally decides X)
     - ※ (marker glyph used in project notation)
     """
 
@@ -184,7 +184,7 @@ actor WenshuVerifier {
     private let model: String
 
     /// .002: apiKey + baseURL no longer frozen at init.
-    /// They are resolved PER LLM CALL via resolveCredentials() — boss 8/23 decision:
+    /// They are resolved PER LLM CALL via resolveCredentials() — (see OOB.md #2026-08-23):
     /// when the user switches model/key, main + sub-agents must switch together,
     /// otherwise mismatch deadlock.
     init(baseURL: String? = nil, apiKey: String? = nil, model: WenshuLLMModel = .m3) {
@@ -307,7 +307,7 @@ actor WenshuVerifier {
         outputKind: OutputKind = .chat,
         extraSystemPrompt: String? = nil
     ) async throws -> WenshuLLMResponse {
-        // .002: resolve credentials per call (boss 8/23 decision).
+        // .002: resolve credentials per call ((see OOB.md #2026-08-23)).
         // UserDefaults + Keychain are read fresh each time so Settings changes
         // take effect immediately on the next LLM call.
         let creds = try resolveCredentials()

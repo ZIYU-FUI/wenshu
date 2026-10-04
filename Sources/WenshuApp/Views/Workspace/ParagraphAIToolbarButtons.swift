@@ -28,7 +28,7 @@ struct ParagraphAIToolbarButtons: View {
             // `arrow.up.left.and.arrow.down.right` = Apple's
             // built-in expand icon (= "up-left arrow + down-right
             // arrow"; = visually says "make bigger"). Matches the
-            // boss spec's exact `Image(systemName:)` line.
+            // The spec's exact `Image(systemName:)` line.
             Button {
                 onApply(.expand)
             } label: {
@@ -59,7 +59,7 @@ struct ParagraphAIToolbarButtons: View {
             // `arrow.triangle.2.circlepath` = Apple's built-in
             // refresh icon (= 2 triangles around a circle path; =
             // visually says "say it differently"). Matches the
-            // boss spec's exact `Image(systemName:)` line.
+            // the spec's exact `Image(systemName:)` line.
             Button {
                 onApply(.rephrase)
             } label: {

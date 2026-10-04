@@ -96,7 +96,7 @@ struct ChatMessageView: View {
     var body: some View {
         // :
         // drop the iMessage-style bubble + avatar-run-merge path (= the
-        // boss OOB) and render per Hermes真值:
+        // (see OOB.md)) and render per Hermes真值:
         //   - user row: `apps/desktop/src/components/assistant-ui/
         //     thread/user-message.tsx:67-69` rounded-xl glass card with
         //     bg fill + border (= MC2).

@@ -15,7 +15,7 @@ struct EditorContentPlaceholder: View {
     var body: some View {
         // followup UX round 37: REMOVED the
         // Color.white.opacity(0.55) overlay (= was making the editor
-        // pane appear LIGHTER than the other 5 panes = boss noticed
+        // pane appear LIGHTER than the other 5 panes = noticed
         // "is the editor background white? all the brightness looks different"). Now the
         // editor placeholder is just empty (= the background is
         // now applied uniformly by ZonePerRegionChrome).

@@ -9,7 +9,7 @@
 // issues block the write (= `EntityIngestion` throws on .error
 // severity); warnings log but do not block.
 //
-// 5 checks (= boss-picked paths from the assistant-readiness.ts
+// 5 checks (= the canonical paths from the assistant-readiness.ts
 // pattern):
 // 1. id present (= non-empty UUID)
 // 2. title present (= non-empty string after trim)

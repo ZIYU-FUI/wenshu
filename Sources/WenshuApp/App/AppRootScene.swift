@@ -122,7 +122,7 @@ struct AppRootScene: Scene {
 // intrinsic sizing (= sidebar collapses to 8 PT, inspector content
 // goes blank). Stick with .unified.
         .windowToolbarStyle(.unified)
-        // bossverificationfix: .contentMinSize (window doesn't shrink below initial
+        // wenshu-verification-fix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
         // : change to
         // .contentSize so the defaultSize (= 1480 PT width) is
@@ -435,7 +435,7 @@ struct AppRootScene: Scene {
         // can all appear on screen at the same time, but each window has to be unique, the Kanban button
         // can only toggle the Kanban window open/closed, not open multiple Kanban windows': my previous
         // switch to `WindowGroup` (= MULTI-INSTANCE) was the
-        // wrong primitive. Boss wants SINGLE-INSTANCE per window
+        // wrong primitive. The user wants SINGLE-INSTANCE per window
         // type: = clicking the kanban button when the kanban
         // window is closed → opens it; = clicking again when
         // the kanban window is open → brings it to front

@@ -60,7 +60,7 @@ final class WorkspaceUIState {
     /// Preview card-grid sort order (= shared across
     /// PreviewPane's cards / unwrap sort menu in the preview
     /// pane's tab bar trailing slot + WorkspaceView's
-    /// previewScope). Default = .pinyinFirstLetter (= boss
+    /// previewScope). Default = .pinyinFirstLetter (= the
     /// spec).
     ///
     /// Removed the 3 independent `@State` copies (= previously

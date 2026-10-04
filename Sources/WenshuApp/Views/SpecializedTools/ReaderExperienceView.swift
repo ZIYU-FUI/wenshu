@@ -31,7 +31,7 @@
 //        types live in ReaderExperienceTools.swift (= public).
 //
 //  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-//  ADDS a 4th tab to the specializedTools pane. Boss acceptance
+//  ADDS a 4th tab to the specializedTools pane. The acceptance
 //  required: open SpecializedTools pane, click the new
 //  Reader-Experience tab, paste a chapter, run an analyzer, see
 //  the state.report.

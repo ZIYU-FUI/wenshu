@@ -4,7 +4,7 @@
 //  Per-(book × scope) kanban board. Reads + writes a scope-aware kanban
 //  JSON file (= BookKanbanStore). Switches the data source when the
 //  active book OR the active scope changes (= bookStore.selectedBookId
-//  + the local `@State scope`, both read via @Environment per v0.30 boss
+//  + the local `@State scope`, both read via @Environment per v0.30 spec
 // 8/31 OOB 'region' = option A = global @Observable store).
 //
 //  Layout (B-09 acceptance):
@@ -114,7 +114,7 @@ struct KanbanView: View {
 
     /// Header: kanban title + scope picker + ticket count + json hint.
     /// the scope picker is a `.menu` Picker (= compact for the
-    /// DynamicZone width; boss cadence is `.menu` for narrow zone).
+    /// DynamicZone width; the cadence is `.menu` for narrow zone).
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(WenshuI18n.t("auto.kanbanview.l100.h57246144"))

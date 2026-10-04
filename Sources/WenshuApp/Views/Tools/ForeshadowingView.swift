@@ -37,7 +37,7 @@
 //       live in ForeshadowingTrackerTools.swift (= public).
 //
 // Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-// wires tab 1 of the specializedTools pane. Boss acceptance
+// wires tab 1 of the specializedTools pane. The acceptance
 // required: open SpecializedTools pane, click the Foreshadowing
 // tab, see the list of foreshadowings from the tracker, add a
 // new foreshadowing, change its status, remove it, see the
@@ -47,7 +47,7 @@
 
 import SwiftUI
 
-/// Tools pane tab 1: Foreshadowing (= Foreshadowing) per v0.29 boss OOB.
+/// Tools pane tab 1: Foreshadowing (= Foreshadowing) per v0.29 (see OOB.md).
 ///
 /// **Use this** for the first tab of the specializedTools pane.
 /// Replaces the old CanvasView (= which moved to a future ticket

@@ -30,7 +30,7 @@
 //      the user (= the helper doesn't know about `EditorTab.draft =
 //      ...` mutation in this signature; = it returns the values).
 //  - `handleDirtyTransition(_:tab:bookStore:)` owns the 3-second
-//      auto-save Task lifecycle (= matches v0.34 B-22 + boss 9/2
+//      auto-save Task lifecycle (= matches v0.34 B-22 + the 2026-09-02
 //      spec). dirty=true starts ONE Task (= subsequent edits within
 //      the debounce window don't spawn new Tasks); dirty=false
 //      cancels the pending Task.
@@ -160,7 +160,7 @@ enum EditorPersistence {
         )
     }
 
-    /// Dirty-state machine (= v0.34 B-22 + boss 9/2 spec).
+    /// Dirty-state machine (= v0.34 B-22 + (see OOB.md #2026-09-02)spec).
     ///
     /// - `dirty = true`: start ONE 3-second Task. The Task fires
     ///   `EditorPersistence.save(tab:bookStore:)` (= writes to

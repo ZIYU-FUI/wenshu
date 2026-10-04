@@ -50,7 +50,7 @@ struct SettingView: View {
     // key configured (not "MiniMax-M3" which implies a MiniMax provider is
     // selected even when user has no key). UI shows the localized 'please configure the provider first' placeholder
     // when this is empty.
-    // boss acceptance fix (2026-08-24): the canonical
+    // 2026-08-24 acceptance fix: the canonical
     // `@AppStorage("wenshu.llm.model") private var llmModel: String = ""`
     // pattern was retired by the B-05 centralization commit (= single
     // owner = `AppState.llmModel`). This comment preserves the exact
@@ -77,7 +77,7 @@ struct SettingView: View {
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = "general"
     // fix: Settings UI exposes user-set value for agent-to-user address.
     // WenshuConductorIdentity.userAddress reads this key at LLM call time.
-    // Boss 8/24 clarification: default = 'user' (not 'boss' = hermes-side convention).
+    // 2026-08-24 clarification: default = 'user' (not the legacy term = hermes-side convention).
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
     // 
     // the user-tunable Liquid Glass opacity slider + manual @State mirror

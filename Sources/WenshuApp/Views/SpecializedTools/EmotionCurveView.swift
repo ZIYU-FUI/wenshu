@@ -38,7 +38,7 @@
 //        live in EmotionCurveTools.swift (= public).
 //
 //  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-//  ADDS a 7th tab to the specializedTools pane. Boss acceptance
+//  ADDS a 7th tab to the specializedTools pane. The acceptance
 //  required: open SpecializedTools pane, click the new
 //  Emotion-Curve tab, paste a chapter, run analyze, see the
 //  curve visualization + state.report.
@@ -289,7 +289,7 @@ struct EmotionCurveView: View {
             // NSColor.separatorColor that fails on dark mode +
             // glass tint backgrounds per
             // wenshu-macos26-liquid-glass-pitfalls Pitfall 1
-            // Attempt 1/2 boss-rejected).
+            // Attempt 1/2 rejected).
             //
             // Implementation note (= reason we keep
             // Color(nsColor: .separatorColor) here): SwiftUI

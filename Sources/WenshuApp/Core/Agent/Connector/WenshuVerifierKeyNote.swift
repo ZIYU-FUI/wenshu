@@ -6,13 +6,13 @@
 //
 // 
 //
-//  Design contract (clarified boss 8/23):
+//  Design contract (clarified 2026-08-23):
 //  - WenshuVerifier holds exactly 1 apiKey (sourced from Keychain via LLMKeychain).
 //  - WenshuConductor holds exactly 1 WenshuVerifier instance.
 //  - All 6 agents (1 main + 5 sub-agents: researcher / writer /
 //    analyst / archivist / auditor) call into the same verifier.
 //  - Sub-agents do NOT have their own API key.
-//  - User cannot configure a different key per agent (boss 8/23 default).
+//  - User cannot configure a different key per agent ((see OOB.md #2026-08-23)default).
 //
 //  This is the default behavior — no code change needed. This file
 //  documents the contract via inline comments + a unit test verifying

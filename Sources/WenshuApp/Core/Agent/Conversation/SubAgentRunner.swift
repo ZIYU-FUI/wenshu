@@ -123,7 +123,7 @@ enum SubAgentRunnerError: Error, Equatable {
     /// System-fault: the sub-agent's multi-turn runTurn exceeded the
     /// turn cap (= MAX_SUBAGENT_TURNS). Recovery: increase the cap or
     /// split the task. Currently NOT retried automatically (= the
-    /// loop is conservative; = boss wants user-visible failure rather
+    /// loop is conservative; = the user wants user-visible failure rather
     /// than silent infinite retry).
     case maxTurnsExceeded(handleID: String, agentName: String, attempted: Int)
 }

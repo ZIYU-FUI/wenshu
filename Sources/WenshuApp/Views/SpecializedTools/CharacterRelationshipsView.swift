@@ -40,7 +40,7 @@
 //        live in CharacterRelationshipTools.swift (= public).
 //
 //  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-//  ADDS an 8th tab to the specializedTools pane. Boss acceptance
+//  ADDS an 8th tab to the specializedTools pane. The acceptance
 //  required: open SpecializedTools pane, click the new
 //  Character-Relationships tab, add an edge between two
 //  state.characters, see the row in the list + (when applicable) the

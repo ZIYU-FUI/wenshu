@@ -20,8 +20,8 @@ enum WenshuConductorIdentity {
     /// L2 (sub-agent content) is user-driven and does NOT prepend this.
     // 
     // User address is read from UserDefaults 'wenshu.userAddress' at call
-    // time (= dynamic per-chat). Default = 'user' (boss decision: default is 'user', not 'boss').
-    // Boss 8/24 clarification: 'boss' is hermes-side convention (= used by
+    // time (= dynamic per-chat). Default = 'user' (= the project's design decision: default is 'user', not 'the-legacy-term-for-project-owner').
+    // (see OOB.md #2026-08-24) — clarification: 'the-legacy-term-for-project-owner' is hermes-side convention (= used by
     // pocock agent in this terminal session), NOT wenshu product default.
     static var userAddress: String {
         UserDefaults.standard.string(forKey: "wenshu.userAddress") ?? "用户"

@@ -24,7 +24,7 @@
 //        content + status)
 //
 //    Wenshu's TodoStore / BookTodoStore (= the user-facing tracker)
-//    keep their richer surface untouched (per boss wenshu-side
+//    keep their richer surface untouched (per wenshu-side
 //    wins pattern, see TodoStore.swift header).
 //
 //  ------------------------------------------------------------------------

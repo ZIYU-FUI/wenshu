@@ -1,7 +1,7 @@
 //
 //  Redactor.swift · Wenshu · HERMES-INTERNAL-009 (2026-09-04)
 //
-//  1:1 port of hermes redact.py (= hermes-internal module #9, boss
+//  1:1 port of hermes redact.py (= hermes-internal module #9, the
 //  2026-09-04 OOB 'A'). Strip PII / secrets before logging.
 //
 //  Pure-data struct (= Sendable) with a configurable regex rule set.
