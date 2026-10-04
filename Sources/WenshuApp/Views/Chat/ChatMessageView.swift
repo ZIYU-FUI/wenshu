@@ -35,30 +35,28 @@ struct ChatMessageView: View {
     /// user message (= the historical user messages scroll
     /// normally, no overlap stack at the top).
     ///
-    /// The `top: 80` offset (= the v1.74 boss 拍 chat input row
-    /// height) lets the sticky bubble park ABOVE the floating
-    /// input row instead of underneath (= the same `sticky-human-
-    /// top` reservation hermes uses in list.tsx for the secondary
-    /// window titlebar case; wenshu uses 80 PT for the floating
-    /// input instead). z-index places the sticky bubble above the
-    /// transcript content but below the titlebar.
-    /// Legacy: v1.65-cleanup E3 used this to apply `.padding(.top, 80)
-    /// + .zIndex(40)` for the latest user row; = boss 2026-09-21
-    /// '你把吸顶也取消吧' reverted the sticky behavior; = the parameter
-    /// is accepted by the init (= API compatibility) but no stored
-    /// property is kept.
-    /// T24-PLAN-APPROVE (2026-09-18): callback invoked when the user
-    /// clicks Approve & Run on a plan card. The closure is provided
-    /// by the parent ChatView (= the closure submits the plan's original
-    /// query back into the chat zone as a user message; = the LLM sees
-    /// both the plan (= via chat history) and the question; = produces
-    /// an answer). Nil = the Approve button is hidden (= the user can
-    /// still read the plan, they just can't re-invoke).
+    /// The `top: 80` offset (= the chat input row height) lets the
+    /// sticky bubble park ABOVE the floating input row instead of
+    /// underneath (= the same `sticky-human- top` reservation
+    /// hermes uses in list.tsx for the secondary window titlebar case;
+    /// wenshu uses 80 PT for the floating input instead). z-index
+    /// places the sticky bubble above the transcript content but below
+    /// the titlebar.
+    /// (see OOB.md #2026-09-21) — sticky behavior reverted; = the
+    /// parameter is accepted by the init (= API compatibility) but
+    /// no stored property is kept.
+    /// T24-PLAN-APPROVE: callback invoked when the user clicks
+    /// Approve & Run on a plan card. The closure is provided by the
+    /// parent ChatView (= the closure submits the plan's original
+    /// query back into the chat zone as a user message; = the LLM
+    /// sees both the plan (= via chat history) and the question; =
+    /// produces an answer). Nil = the Approve button is hidden (= the
+    /// user can still read the plan, they just can't re-invoke).
     let onApprovePlan: ((Plan) -> Void)?
     @State private var thinkingExpanded: Bool = false
-    /// T26-HOVER-TIMESTAMP (2026-09-18): true when the user is
-    /// hovering the timestamp footer (= expands the time to a full
-    /// date; = Apple Messages hover affordance).
+    /// T26-HOVER-TIMESTAMP: true when the user is hovering the
+    /// timestamp footer (= expands the time to a full date; = Apple
+    /// Messages hover affordance).
     @State private var isTimestampHovered: Bool = false
 
     init(
@@ -67,13 +65,11 @@ struct ChatMessageView: View {
         onApprovePlan: ((Plan) -> Void)? = nil
     ) {
         self.message = message
-        // legacy: kept for API compatibility with the v1.65-cleanup
-        // sticky-top attempt (= boss 2026-09-21 '你把吸顶也取消吧'
-        // reverted the sticky behavior; = the parameter is no longer
-        // used in the body but external callers still pass it; =
-        // accepting the value here keeps the public surface stable
-        // for the next ticket that may reintroduce sticky in a
-        // different form).
+        // (see OOB.md #2026-09-21) — isLatestUser is accepted for API
+        // compatibility (= the v1.65-cleanup sticky-top attempt was
+        // reverted; = external callers still pass it; = accepting the
+        // value here keeps the public surface stable for the next
+        // ticket that may reintroduce sticky in a different form).
         _ = isLatestUser
         self.onApprovePlan = onApprovePlan
     }
@@ -124,20 +120,13 @@ struct ChatMessageView: View {
         messageContents
                     .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
                     .frame(maxWidth: .infinity, alignment: isOutgoing ? .center : .leading)
-                    // (2026-09-23): boss '聊天回显区里 AI 回复的
-                    // 文字，现在居左右 10PT，我需要改成 20PT，只改 AI
-                    // 回复的文字，其它的不动'. AI rows get a 10 PT
-                    // horizontal padding (= boss 2026-09-23 correction:
-                    // '原本是靠内边距的 10PT，加上我想要的，实际上是加
-                    // 10PT，一共看起来是 20PT。你现在加的是 20PT，改一
-                    // 下吧，改成 10PT，就行了' = the AI text was already
-                    // 10 PT from internal padding; adding another 10 PT
-                    // = 20 PT total from chat column edge to AI text;
-                    // = boss originally said "make it 20 PT" meaning
-                    // "make the TOTAL 20 PT, so add 10 PT more"). User
-                    // rows pass through (= their glass-card L2 inner
-                    // padding in UserGlassCardModifier is the SOLE
-                    // source of user horizontal padding; = unchanged).
+                    // AI rows get a 10 PT horizontal padding (= total
+                    // 20 PT from chat column edge to AI text after the
+                    // inner card padding of 10 PT; = matches the
+                    // requested AI-row left/right gutter). User rows
+                    // pass through (= their glass-card L2 inner padding
+                    // in UserGlassCardModifier is the SOLE source of
+                    // user horizontal padding; = unchanged).
                     .padding(.horizontal, isOutgoing ? 0 : 10)
                     // 
                     //
@@ -181,26 +170,24 @@ struct ChatMessageView: View {
                                         // without overlap with the floating input; = matches
                                         // the MC1 flat-text self-start behavior).
                                         //
-                                        // -cleanup E3 boss 2026-09-21 '那个框的悬浮吸顶，
-                                        // 确实没有实现' (= the latest user message card was
-                                        // padded 80 PT down inside the LazyVStack but did NOT
-                                        // actually stick to the top of the chat viewport; =
-                                        // the LazyVStack row scrolled out of view when the
-                                        // user scrolled back to read history; = the
-                                        // 80 PT padding was just an empty visual gap below
-                                        // the floating chat input panel; = wrong). The real
-                                        // sticky-top behavior now lives in ChatView's
-                                        // `.safeAreaInset(edge: .top)` overlay
+                                        // -cleanup E3: the latest user message card was padded 80 PT down
+                                        // inside the LazyVStack but did NOT actually stick
+                                        // to the top of the chat viewport (= the row
+                                        // scrolled out of view when the user scrolled back
+                                        // to read history; = the 80 PT padding was an empty
+                                        // visual gap below the floating chat input panel;
+                                        // = wrong). The real sticky-top behavior now lives
+                                        // in ChatView's `.safeAreaInset(edge: .top)` overlay
                                         // (= the latest user row is mounted as a SwiftUI
-                                        // safeAreaInset overlay that floats above the
-                                        // scroll content; = does not scroll with the user;
-                                        // = matches hermes user-message.tsx:46 `sticky z-40`
+                                        // safeAreaInset overlay that floats above the scroll
+                                        // content; = does not scroll with the user; =
+                                        // matches hermes user-message.tsx:46 `sticky z-40`
                                         // 1:1). The in-LazyVStack row for the latest user
                                         // message id is now a 0-height placeholder
                                         // (= scroll anchor target; = no visual contribution
                                         // since the overlay renders the same id). The
-                                        // padding + zIndex modifiers below are now no-ops
-                                        // for the latest-user case; = kept for backward
+                                        // padding + zIndex modifiers below are no-ops for
+                                        // the latest-user case; = kept for backward
                                         // compatibility with older wenshu chat views that
                                         // don't have the safeAreaInset overlay (= if some
                                         // other chat zone still uses ChatMessageView
@@ -209,9 +196,8 @@ struct ChatMessageView: View {
                                         // from floating-input overlap).
                                         // legacy: used to apply `.padding(.top, 80) +
                                         // .zIndex(40)` for the latest user row (= E3
-                                        // sticky-top attempt; = reverted by boss 2026-09-21
-                                        // '你把吸顶也取消吧'). All user rows render
-                                        // normally inside the LazyVStack now (= no
+                                        // sticky-top attempt; = reverted). All user rows
+                                        // render normally inside the LazyVStack now (= no
                                         // padding-top or zIndex override).
             }
 
@@ -220,9 +206,8 @@ struct ChatMessageView: View {
     /// the glass card wraps this when the row is outgoing.
     @ViewBuilder
     private var messageContents: some View {
-        // -cleanup E3 boss 2026-09-21 '用户说的话，要在那个框中，左对齐，
-        // 现在是显示在右边' (= the user text inside the glass card was
-        // right-aligned; = boss expected left-aligned text reading like
+        // -cleanup E3: the user text inside the glass card was
+        // right-aligned (= expected: left-aligned text reading like
         // iMessage / Slack / hermes真值). Root cause: the inner VStack
         // (= messageContents) was using .trailing alignment for outgoing
         // rows; = all child elements (= ChatMessageBodyView text +
@@ -251,8 +236,7 @@ struct ChatMessageView: View {
                 //     `text-foreground/95`, assistant has `text-foreground`).
                 //   - All wenshu-side chrome (= source label row + 9 icon +
                 //     status dot + paperplane + checkmarks + PLAN badge) is
-                //     REMOVED in this commit (= C1 of the v1.65-cleanup arc;
-                //     = boss 2026-09-21 "多做的，没用的，你就改掉").
+                //     REMOVED in this commit (= C1 of the v1.65-cleanup arc).
                 if message.isPlaceholder {
                     // C-8c (refactor chat-mvvm-3layer): placeholder
                     // row extracted to its own leaf view
@@ -329,14 +313,12 @@ struct ChatMessageView: View {
                             StatusPulse()
                         }
                     }
-                    // CHATIMG-001 (2026-09-07): render attached image
-                    // thumbnail above the parts. (= unchanged structure
-                    // but cleaned per v1.65-cleanup C2 boss 2026-09-21
-                    // 'just refer to HERMES, do 1:1; drop the wenshu-side
-                    // chrome': the Reveal-in-Finder button (= T34 +
-                    // T35 i18n) was a macOS-specific wenshu-side add-on;
-                    // hermes真值 has attachment directive chips inline
-                    // with the bubble surface (= per user-message.tsx:415
+                    // CHATIMG-001: render attached image thumbnail above the parts.
+                    // (= unchanged structure; = v1.65-cleanup C2 dropped
+                    // the wenshu-side Reveal-in-Finder button (= T34 +
+                    // T35 i18n) — a macOS-specific add-on; = hermes真值
+                    // has attachment directive chips inline with the
+                    // bubble surface (= per user-message.tsx:415
                     // attachmentRefs.map). The thumbnail click now opens
                     // Preview directly without a separate reveal
                     // affordance; = the macro-free Mac-side reveal
@@ -386,13 +368,13 @@ struct ChatMessageView: View {
                         isStreaming: message.streamState == .streaming || message.isPlaceholder,
                         onApprovePlan: onApprovePlan
                     )
-                    // -cleanup E6 boss 2026-09-21 '只保留 10PT, 我建议你把基它地方的全都取消掉':
-                    // dropped the inline `.padding(.horizontal, 12)` (= L1 in
-                    // ChatView.swift is now the single source of truth for
-                    // chat-column horizontal padding; = maintenance = one place
-                    // to change). Kept the vertical chromePaddingVertical
-                    // (= 8 PT; = row vertical breathing room; = matches Apple
-                    // HIG py-2 vertical row gap convention).
+                    // -cleanup E6: dropped the inline `.padding(.horizontal, 12)`
+                    // (= L1 in ChatView.swift is now the single source
+                    // of truth for chat-column horizontal padding; =
+                    // maintenance = one place to change). Kept the
+                    // vertical chromePaddingVertical (= 8 PT; = row
+                    // vertical breathing room; = matches Apple HIG
+                    // py-2 vertical row gap convention).
                     .padding(.vertical, DesignTokens.spacingStandard)
                     .wenshuChatHover()
                 }
@@ -433,12 +415,11 @@ struct ChatMessageView: View {
             // the right edge (= the Hermes `ROLE` glyph + flat body
             // pattern; = no right-edge trailing space).
             // L818: extra } removed (= previous HStack wrapper gone).
-            // -cleanup E5 boss 2026-09-21 '聊天文字，用户和 AI
-            // 回复，都自动拉宽全宽': make messageContents fill the
-            // full chat column width (= the VStack previously was
-            // intrinsic-width = text didn't wrap to the chat column
-            // edge; = now it does). User card gets the same treatment
-            // via the UserGlassCardModifier's .frame(maxWidth: .infinity).
+            // -cleanup E5: make messageContents fill the full chat column
+            // width (= the VStack previously was intrinsic-width =
+            // text didn't wrap to the chat column edge; = now it
+            // does). User card gets the same treatment via the
+            // UserGlassCardModifier's .frame(maxWidth: .infinity).
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -446,7 +427,8 @@ struct ChatMessageView: View {
     /// on the trailing side in the accent colour.
     private var isOutgoing: Bool { message.source == .user }
 
-    /// T23-PLAN-BADGE (2026-09-18): true when the message carries at
+    /// T23-PLAN-BADGE: true when the message carries at
+    /// least one Plan card.
 }
 
 /// Hermes真值 user bubble surface per `apps/desktop/src/components/
@@ -497,62 +479,54 @@ private struct UserGlassCardModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         if isOutgoing {
-            // -cleanup E3.5 boss 2026-09-21 '本字要在矩形框里左对齐，
-            // 距离框的边缘 10PT' (= the user text inside the glass card
-            // was at 12 PT horizontal padding; = boss wants exactly
-            // 10 PT (= the Apple HIG px-2.5 = 10 PT convention; = the
-            // hermes真值 `UserBubbleBaseClass px-3 py-2` = 12 PT px / 8 PT
-            // py is slightly more spacious; = boss explicitly chose
-            // 10 PT)). Set horizontal padding to 10 PT (= tighter card,
-            // more text per row, = matches boss's explicit 10 PT
-            // instruction). Vertical padding stays at 6 PT (= unchanged;
-            // = compact card height; = matches Apple HIG py-1.5 = 6 PT).
-            // -cleanup E8 boss 2026-09-21 '改对了，用户说话的框，里面的文字距离框
-            // 10PT。把这个改回来' (= the L1 in ChatView.swift is now 0 PT
-            // = chat transcript content sits flush against the chat
-            // column edge; = the user card L2 inner padding below is
-            // the SOLE source of horizontal padding for user cards; =
-            // user card text ↔ card edge = chromePaddingContentHorizontal
-            // (= 10 PT; = preserved per E7).
-            // Vertical chromePaddingSmall (= 6 PT) retained (= card height
-            // breathing room).
+            // -cleanup E3.5: the user text inside the glass card is at
+            // 10 PT horizontal padding (= the Apple HIG px-2.5 = 10 PT
+            // convention; = the hermes真值 `UserBubbleBaseClass
+            // px-3 py-2` = 12 PT px / 8 PT py is slightly more
+            // spacious; = 10 PT chosen for compact card height).
+            // Vertical padding stays at 6 PT (= compact card height; =
+            // matches Apple HIG py-1.5 = 6 PT).
+            // -cleanup E8: L1 in ChatView.swift is now 0 PT = chat
+            // transcript content sits flush against the chat column
+            // edge; = the user card L2 inner padding below is the SOLE
+            // source of horizontal padding for user cards; = user card
+            // text ↔ card edge = chromePaddingContentHorizontal
+            // (= 10 PT).
+            // Vertical chromePaddingSmall (= 6 PT) retained (= card
+            // height breathing room).
             content
                 .padding(.horizontal, DesignTokens.spacingModerate)
                 .padding(.vertical, DesignTokens.spacingTight)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                // -cleanup E9 boss 2026-09-21 '现在改用户说话的枢，加液态玻璃':
-                // apply the macOS 27 `.glassEffect(.regular)` API
-                // (= the canonical Apple HIG Liquid Glass container; =
-                // blurs + refracts the chat content underneath; = same
-                // surface the chat input row uses at
-                // ChatView.swift:1960). Shape = 12 PT continuous corner
-                // radius rounded-rectangle (= matches the existing card
-                // shape; = Apple HIG popover surface convention).
-                // The `.interactive()` modifier lets the glass respond
-                // to pointer events (= Apple HIG chat input is
-                // interactive; = user card surface mirrors that
+                // -cleanup E9: apply the macOS 27 `.glassEffect(.regular)`
+                // API (= the canonical Apple HIG Liquid Glass container;
+                // = blurs + refracts the chat content underneath; = same
+                // surface the chat input row uses at ChatView.swift:1960).
+                // Shape = 12 PT continuous corner radius rounded-rectangle
+                // (= matches the existing card shape; = Apple HIG popover
+                // surface convention). The `.interactive()` modifier lets
+                // the glass respond to pointer events (= Apple HIG chat
+                // input is interactive; = user card surface mirrors that
                 // affordance). Border dropped (= the glass edge is its
                 // own visual boundary; = matches Apple HIG chat input
                 // row which has no separate border).
                 //
-                // -cleanup E10 boss 2026-09-21 '液态玻璃的透明度
-                // 跟随系统' (= Apple System Settings > Appearance >
-                // Liquid Glass > translucency slider; = wenshu
-                // user-card glass follows the system slider via the
+                // -cleanup E10: translucency follows Apple System
+                // Settings > Appearance > Liquid Glass slider via the
                 // canonical macOS 27 `Glass.translucency` SwiftUI
                 // environment value (= Apple's canonical 'follow the
-                // system liquid glass setting' API surface; = the
-                // system automatically animates between glass and flat
-                // for the user as they move the slider)). The
+                // system liquid glass setting' API surface; = the system
+                // automatically animates between glass and flat for the
+                // user as they move the slider). The
                 // `.glassEffect(.regular.interactive())` API already
                 // follows this slider by default (= per
                 // ComponentIndex.md §4.1 'Apple canonical .glassEffect
                 // auto-adapts to system Liquid Glass setting'); = no
-                // manual @Environment read or fallback branch needed
-                // here (= the manual fallback was overengineering =
-                // reverted). The same API is used by the chat input
-                // row at ChatView.swift:1960 (= the canonical Apple
-                // HIG pattern across wenshu).
+                // manual @Environment read or fallback branch needed here
+                // (= the manual fallback was overengineering = reverted).
+                // The same API is used by the chat input row at
+                // ChatView.swift:1960 (= the canonical Apple HIG pattern
+                // across wenshu).
                 .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusHeroCard, style: .continuous))
         } else {
             content
