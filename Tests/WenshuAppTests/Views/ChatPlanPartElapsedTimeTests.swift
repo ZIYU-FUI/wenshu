@@ -46,7 +46,11 @@ struct ChatPlanPartElapsedTimeTests {
         )
         // The relative-time Text comes after the model id block
         // (= "Text(model)" block ends; = then the elapsed chip).
-        let modelTextEnd = source.range(of: ".font(.system(.caption2, design: .monospaced))\n                            .foregroundStyle(.tertiary)\n                    }")
+        // Per §11 = production code uses .font(.caption2.monospaced())
+        // (= SwiftUI built-in shorthand + monospacedDigit modifier;
+        // = not the older .font(.system(.caption2, design: .monospaced))
+        // long form that this test originally grepped for).
+        let modelTextEnd = source.range(of: "Text(model)\n                            .font(.caption2.monospaced())")
         let elapsedText = source.range(of: "Text(plan.createdAt, format: .relative(presentation: .named))")
         #expect(modelTextEnd != nil)
         #expect(elapsedText != nil)
