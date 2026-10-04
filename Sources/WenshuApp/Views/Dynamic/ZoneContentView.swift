@@ -1,29 +1,28 @@
 //
-// ZoneContentView.swift · Wenshu · v0.24 bossverification
+//  ZoneContentView.swift · Wenshu
 //
-// 
-// not oktop bar, top bar, can tab.
+//  Generic tab content view: 1-layer pattern with multiple
+//  internal tabs. Hosts the per-pane tab strip + selected
+//  content. Used by the 4 general panes (projectSidebar /
+//  projectPreview / editor / specializedTools).
 //
-// Pattern (ChatZoneView ChatZoneTabBar + DynamicZoneView DynamicZoneTabBar):
-//  - 1 layer per zone (no ZoneTopToolbar / ZoneBottomToolbar outer shells)
-// - internal tabs (Apple HIG Button(.plain) + .accentColor on selected)
-// - in progress tab labels (per AGENTS.md §12 in progress)
-//
-//  Applied to 4 zones:
-// - projectSidebar: / /
-// - projectPreview: / / search
-// - editor: edit / /
-// - specializedTools: / /
-//
-//  Other 2 zones (chat, dynamic) have their own specialized tab bars:
-//  - ChatZoneView: ChatZoneTabBar (chat / search / settings)
-// - DynamicZoneView: DynamicZoneTabBar (progress / / search)
+//  History:
+//  - Q2 era: this view was wrapped by ZoneContentTabBar (= per-zone
+//    chrome). The wrapper was deleted in v0.28 (= PaneTabBar absorbed
+//    the chrome), and ZoneContentView now hosts its own tab bar
+//    inline (= LabelSegmentedControl against the native macOS 27
+//    NSSegmentedControl).
+//  - v0.40: the `zoneSlug: String` init parameter and the per-zone
+//    `wenshu.tabIndex.<slug>` UserDefaults key were removed. The
+//    slug-bound persistence was redundant with PaneTabBar's per-pane
+//    storage (= already keyed by pane id) and forced every caller
+//    to invent a slug string. The view now persists selectedTabId
+//    under a single shared key (= at most one ZoneContentView is
+//    visible at a time).
 //
 
 import SwiftUI
 
-/// Generic tab content view: 1-layer pattern with multiple internal tabs.
-/// Used by the 4 "general" zones (projectSidebar / projectPreview / editor / specializedTools).
 struct ZoneContentView: View {
     struct Tab: Identifiable {
         // bossverificationfix: use String label as ID (UUID auto-generated per re-render
@@ -47,84 +46,30 @@ struct ZoneContentView: View {
     @State private var selectedTabId: String
 
     // per-instance SwiftUI namespace for the
-    // matchedGeometryEffect underline (= SwiftUI requires the namespace
-    // to scope within a single view tree). Held by ZoneContentView now
-    // (= previously held by the deleted ZoneContentTabBar wrapper).
+    // matchedGeometryEffect underline (= SwiftUI requires the
+    // namespace to scope within a single view tree).
     @Namespace private var tabBarNamespace
+
+    // Selected tab persists across launches via UserDefaults.
+    // Single shared key (= at most one ZoneContentView is on
+    // screen at a time since the LayoutTree renders only the
+    // active pane, so per-pane keying is redundant).
+    private static let storageKey = "wenshu.zoneContent.selectedTabId"
 
     var body: some View {
         // bossverificationfix: simpler structure (VStack only, no ZStack wrapper
-        // which was regressing tab bar visibility). .frame(minHeight: 600)
-        // forces window contentMinSize.
+        // which was regressing tab bar visibility).
         //
-        // 
-        // replaced the previous PaneTabBar (= custom icon tab bar) with
-        // Apple's canonical Picker(...).pickerStyle(.segmented). Per
-        // WWDC25-323 'Build a SwiftUI app with the new design' (the
-        // official macOS 27 sample code for tab-style view switching
-        // in a column):
+        // -m1-shell (see OOB.md #2026-09-11) OOB 'macOS 27's native
+        // control is our first choice': use the macOS 27 native
+        // NSSegmentedControl via the LabelSegmentedControl
+        // wrapper (= canonical Apple HIG Pages / Numbers
+        // inspector tab strip; auto-fills column width).
         //
-        //   Picker("Tools", selection: $selectedTool) {
-        //     Label("Preview", systemImage: "eye").tag(EditorMode.preview)
-        //     Label("Edit", systemImage: "pencil").tag(EditorMode.edit)
-        //   }
-        //   .pickerStyle(.segmented)
-        //   .labelsHidden()
-        //
-        // Apple HIG rationale:
-        // - Segmented pickers transform into Liquid Glass during
-        //   interaction (= WWDC25-323 visual upgrade is automatic).
-        // - 2-5 segments = the canonical Apple range (= the
-        //   specializedTools zone has exactly 5 tabs = perfect fit).
-        // - The .tags() derive Identifiable ids from the Tab struct
-        //   (= no custom selectedTabId binding needed).
-        // - The Apple-native Liquid Glass selected segment animation
-        //   replaces the previous matchedGeometryEffect underline
-        //   (= no @Namespace tabBarNamespace needed).
-        // -m1-shell (see OOB.md #2026-09-11) OOB 'macOS 27's native control is our first choice':
-        // swap the SwiftUI Picker(.segmented) (= the legacy macOS 10.5
-        // wrapper; = intrinsic-size; = does NOT expose
-        // NSSegmentedControl.Role; = does NOT auto-fill the column
-        // width) for `LabelSegmentedControl` (= a SwiftUI
-        // NSViewRepresentable wrapping the macOS 27 native
-        // NSSegmentedControl; = uses segmentStyle = .roundRect
-        // (= the Apple HIG Pages / Numbers inspector tab visual)
-        // + role = .tabs (= the macOS 27 NEW role API; =
-        // semantically correct for a tab switcher; = VoiceOver
-        // reads "page N of M") + segmentDistribution =
-        // .fillEqually (= each tab stretches to 1/N of the
-        // column width = satisfies the 'auto-fill the right
-        // column's width' requirement).
-        //
-        // Per the verbatim port discipline (= only do what the
-        // user asked): this commit ONLY changes the per-page tab
-        // strip control (= ZoneContentView's tabs); = the toolbar's
-        // 4-page picker (= SwiftUI Picker(.segmented)) stays
-        // unchanged; = the user explicitly clarified 'for the
-        // toolbar, use the one we just settled on — that's Apple's
-        // default toolbar style' (= the toolbar keeps the SwiftUI
-        // Picker(.segmented) = the Apple HIG toolbar default).
-        //
-        // all 4 inspector pages' per-page tab strip (= the
-        // ZoneContentView is reused for each page; = the tabs
-        // array is replaced by `InspectorPage.tools` (= v1.71b
-        // business-layer extraction from the inline tuple that
-        // previously lived in ShellDetailColumn.filteredToolsForCurrentPage;
-        // = the control auto-renders whatever tabs the
-        // inspector page supplies; = the user's directive is
-        // satisfied with a single-line change).
+        // We bind the control to String ids (= the Tab.id;
+        // Hashable; avoids the need to make the full Tab type
+        // Hashable).
         VStack(spacing: 0) {
-            // -m1-shell (see OOB.md #2026-09-11) OOB 'macOS 27's native
-            // control is our first choice': use the macOS 27 native NSSegmentedControl
-            // (= via the new `LabelSegmentedControl` wrapper in
-            // UI/Segmented/; = the canonical Apple HIG Pages / Numbers
-            // inspector tab strip; = auto-fills the column width).
-            //
-            // We bind the control to String ids (= the Tab.id; =
-            // Hashable; = avoids the need to make the full Tab type
-            // Hashable, which AnyView-riddled structs can't easily
-            // satisfy; = the id lookup gives us Hashable conformance
-            // for free).
             LabelSegmentedControl(
                 selection: Binding(
                     get: {
@@ -135,104 +80,34 @@ struct ZoneContentView: View {
                     set: { selectionBinding.wrappedValue = $0 }
                 ),
                 labels: tabs.map(\.id),
-                // -m1-shell (see OOB.md #2026-09-11) OOB 'Foreshadowing, Placeholder,
-                // Plot Threads — that tab bar': use the per-tab localized label
-                // (= the `Tab.label` field = the Chinese
-                // localized title; = rendered via
-                // NSSegmentedControl.setLabel).
+                // -m1-shell (see OOB.md #2026-09-11) OOB 'Foreshadowing,
+                // Placeholder, Plot Threads — that tab bar': use the
+                // per-tab localized label.
                 displayStrings: tabs.map(\.label),
                 icon: { tabId in
                     guard let tab = tabs.first(where: { $0.id == tabId }) else { return nil }
                     // -m1-shell (see OOB.md #2026-09-15) OOB 'use SF Symbols 6
-                    // (3rd gen) with palette rendering':
-                    // SF Symbol mapping as a
-                    // NSSegmentedControl-friendly fallback
-                    // (= NSSegmentedControl.setImage requires
-                    // NSImage; = TODO future ticket pre-renders
-                    // the SF Symbol glyph as NSImage for true
-                    // visual fidelity). Replaces the
-                    // 2026-09-11 'Lucide only' choice per
-                    // 
+                    // (3rd gen) with palette rendering': SF Symbol
+                    // mapping as a NSSegmentedControl-friendly
+                    // fallback (= NSSegmentedControl.setImage
+                    // requires NSImage).
                     return NSImage(systemSymbolName: tab.icon, accessibilityDescription: tab.label)
                 }
             )
             .frame(maxWidth: .infinity)
-            // -m1-shell (see OOB.md #2026-09-11) OOB 'remove all custom padding
-            // and switch to Apple-standard expressions — find an approximate value': remove the custom
-            // horizontal inset (= `chromePaddingLarge` = 8 PT) on
-            // the per-page tab strip. The tabs are inside a
-            // VStack in the inspector detail column; = Apple HIG
-            // macOS 27 default inspector rhythm places the
-            // segmented tab strip at the natural full-bleed
-            // horizontal width (= NO custom padding required; =
-            // the canonical Pages / Numbers inspector tab
-            // pattern; = tabs stretch from column edge to
-            // column edge).
-            // wenshu-verification-fix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
-            // so it inherits zone size (not forces zone to grow). Without this,
-            // AnyView collapses to its intrinsic size and zone shrinks to ~0.
-            // ZONE-INSET-002 (2026-09-07): the unified zone-content
-            // inset (= 18 PT all sides) was originally applied here
-            // as a single source of truth for all 5 zones. Round 2
-            // (2026-09-07) — 'zones 1-2-4 too large, zone 3 correct, 6
-            // ' = the outer 18 PT wraps Apple HIG components (=
-            // List(.sidebar) in zone 1, LazyVGrid in zone 2) that
-            // already have their own canonical padding (= Apple HIG
-            // designed them to be used with the system default
-            // content margins). The result was DOUBLED visual inset
-            // (= 26 PT in sidebar, ~38 PT in cards). Zone 3 worked
-            // only because WenshuMarkdownEditor wraps NativeTextViewWrapper
-            // (= no Apple built-in inset = my 18 PT was the sole
-            // padding). Zone 4 (right column = aiDynamic =
-            // DynamicZoneView) didn't go through ZoneContentView at all
-            // (= no inset = 0 = content looked flush against the
-            // zone edge).
+            // ZONE-INSET-002 (2026-09-07): outer .padding(.all,
+            // zoneContentInset) was dropped. Apple HIG List(.sidebar)
+            // / LazyVGrid already have their own canonical padding;
+            // the wrapper doubled it. Each content view now owns its
+            // own inset.
             //
-            // Fix: REMOVED the outer .padding(.all, zoneContentInset)
-            // from ZoneContentView (= no more doubled padding). Each
-            // zone's content view now owns its own inset (= restored
-            // to v0.40 pre-ZONE-INSET-002 state). The canonical
-            // token DesignTokens.zoneContentInset (= 18) is still
-            // exported and used by the few content views that
-            // don't have built-in Apple HIG padding (= the editor's
-            // NativeTextViewWrapper view). Future cleanup ticket can
-            // re-introduce a smart outer padding that detects Apple
-            // HIG components and skips them (= needs Apple API
-            // research).
-            //
-            // Round 2 (2026-09-07) — 'apple api can':
-            // the right place for the inset IS Apple's built-in
-            // content margins (= List, LazyVGrid, ScrollView all
-            // have them); = we shouldn't duplicate them with our
-            // own outer wrapper.
-            // -m1-shell (see OOB.md #2026-09-11) OOB 'everything is currently vertically
-            // centered — keep the empty state vertically centered, title bar, divider, tab bar go
-            // to the top, tab bar full-width fill is unchanged': per the user's
-            // request, the content area BELOW the tab strip is
-            // vertically centered when the content is empty
-            // (= the empty state hint sits in the middle of the
-            // remaining space below the tabs; = the canonical
-            // Apple HIG 'empty state in a tool pane' pattern =
-            // Mail / Notes / Pages all center the empty-state
-            // hint vertically). Per the same request, the title
-            // / Divider / tab bar stay anchored to the top (= the
-            // sticky header pattern), and the tab strip already
-            // fills the column width (= no change to the tab bar's
-            // horizontal extent).
-            //
-            // Implementation: wrap the content Group in
-            // `Spacer(minLength: 0) + Group + Spacer(minLength: 0)`
-            // (= both above and below the content; = with both
-            // spacers the Group renders centered vertically inside
-            // the VStack's remaining height; = with content the
-            // top Spacer collapses to 0 (= no gap above); = the
-            // Apple HIG canonical 'centered empty state' layout).
-            //
-            // Note: do NOT add `.frame(maxHeight: .infinity, ...)`
-            // on the Group itself (= that would also force the
-            // content Group to fill the column height even when
-            // it has natural height; = we want the Group to be
-            // centered, not stretched).
+            // -m1-shell (see OOB.md #2026-09-11) OOB 'keep the
+            // empty state vertically centered, title bar, divider,
+            // tab bar go to the top': content area below the tab
+            // strip is vertically centered when empty (= canonical
+            // Apple HIG 'empty state in a tool pane' pattern;
+            // Mail / Notes / Pages all center the empty-state hint
+            // vertically).
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 Group {
@@ -248,35 +123,17 @@ struct ZoneContentView: View {
         // (which is only ~485 PT tall, 600 PT min would push it out of view).
     }
 
-    // wenshu-verification-fix (2026-08-24): persist tab selection
-    // per zone across launches.
-    // Region tab selection: 'should: yes, in progress, status: should'.
-    // Implemented via zone-specific UserDefaults key (one per zone).
-    private let storageKey: String
-
-    init(zoneSlug: String, tabs: [(label: String, icon: String, content: AnyView)], trailingButton: AnyView? = nil) {
+    init(tabs: [(label: String, icon: String, content: AnyView)], trailingButton: AnyView? = nil) {
         let mapped = tabs.map { Tab(id: $0.label, label: $0.label, icon: $0.icon, content: $0.content) }
         self.tabs = mapped
-        // (= ticket 029c-trailing-button editor zone expand/shrink):
-        // owner 2026-08-26 OOB ' yesbutton yes
-        // teb' = optional trailing button parameter passed through
-        // to ZoneContentTabBar (= rendered at the right edge of the tab
-        // bar via Spacer()).
         self.trailingButton = trailingButton
-        self.storageKey = "wenshu.tabIndex.\(zoneSlug)"
         // Restore selected tab from UserDefaults (or default to first tab).
-        // bossverificationfix: handle invalid saved value (e.g. tab list changed)
-        // by falling back to first tab + resetting stored index.
-        //
-        // NOTE: storageKey is dynamic (= per-zone 'wenshu.tabIndex.<slug>'),
-        // so this falls outside WenshuDefaultsKey's static enum. Use the
-        // dynamic-key API on UserDefaultsStore (= the canonical typed
-        // wrapper for both static + dynamic keys; = same backing as
-        // @AppStorage views).
-        let savedIndex = UserDefaultsStore.shared.int(forDynamicKey: self.storageKey)
+        // bossverificationfix: handle invalid saved value (= tab
+        // list changed across launches) by falling back to first
+        // tab and resetting the stored index.
+        let savedIndex = UserDefaultsStore.shared.int(forDynamicKey: Self.storageKey)
         if !mapped.indices.contains(savedIndex) {
-            // Reset stored index to 0 so future launches start at first tab.
-            UserDefaultsStore.shared.setInt(0, forDynamicKey: self.storageKey)
+            UserDefaultsStore.shared.setInt(0, forDynamicKey: Self.storageKey)
         }
         _selectedTabId = State(initialValue: mapped.first?.label ?? "")
     }
@@ -287,21 +144,10 @@ struct ZoneContentView: View {
             set: { newId in
                 selectedTabId = newId
                 // Persist current tab index for next launch.
-                // (= dynamic per-zone key; = see note above on storageKey)
                 if let idx = tabs.firstIndex(where: { $0.id == newId }) {
-                    UserDefaultsStore.shared.setInt(idx, forDynamicKey: storageKey)
+                    UserDefaultsStore.shared.setInt(idx, forDynamicKey: Self.storageKey)
                 }
             }
         )
     }
 }
-
-/// deleted `ZoneContentTabBar` (= verify-dead
-    /// reports ext=0 + int=0 across the struct + its 5 nested
-    /// types; = 0 callers across the entire codebase; = the
-    /// wrapper was the v0.34 SpecializedTools tab bar scaffold
-    /// that was replaced by PaneTabBar in v0.28 followup per
-    /// the inline comment line above (= "SwiftData migration;
-    /// ZoneContentTabBar body now delegates to the new PaneTabBar
-    /// generic component"); = the docstring is preserved as a
-    /// historical note; = no behavior change; = ~80 LOC removed).

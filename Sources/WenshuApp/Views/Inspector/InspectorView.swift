@@ -235,7 +235,6 @@ struct InspectorView: View {
             // NO custom padding required; = the canonical Pages /
             // Numbers inspector pattern).
             ZoneContentView(
-                zoneSlug: "specializedTools",
                 tabs: toolsForCurrentPage
             )
             .frame(maxWidth: .infinity)

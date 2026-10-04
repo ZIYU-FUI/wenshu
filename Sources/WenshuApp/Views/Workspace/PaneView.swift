@@ -95,7 +95,7 @@ struct PaneView: View {
             // (see OOB.md #2026-08-31) — PaneView forwards its
             // sidebarSelection binding to AppleSidebarView so
             // the sidebar click → preview pane scope works.
-            ZoneContentView(zoneSlug: "projectSidebar", tabs: [
+            ZoneContentView(tabs: [
                 (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(AppleSidebarView())),
             ], trailingButton: AnyView(SidebarZoneHeaderButtons()))
 
@@ -123,7 +123,7 @@ struct PaneView: View {
             // Search bar now lives inside PreviewPane.body (= same Y
             // as the editor's pencil/arrow toolbar inside
             // EditorView).
-            ZoneContentView(zoneSlug: "projectPreview", tabs: [
+            ZoneContentView(tabs: [
                 (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
                     // fix (= (see OOB.md #2026-09-03) — 'double-clicking card did
@@ -166,7 +166,7 @@ struct PaneView: View {
             // fixed the stale "Old 6-zone specializedTools = 4 tabs"
             // comment (= current code has 5 tabs at L774-778 below;
             // the previous docstring described the pre-PlotThread state).
-            ZoneContentView(zoneSlug: "specializedTools", tabs: [
+            ZoneContentView(tabs: [
                 (WenshuI18n.t("tab.title.foreshadowing"), "git-fork", AnyView(ForeshadowingView())),
                 (WenshuI18n.t("tab.title.placeholder"), "square-dashed", AnyView(PlaceholderView())),
                 (WenshuI18n.t("tab.title.long_form"), "shield-check", AnyView(LongFormGuardrailsView())),
@@ -193,7 +193,6 @@ struct PaneView: View {
             // integration pending").
             // Book-open-text + puzzle + link.
             ZoneContentView(
-                zoneSlug: "editor",
                 tabs: [
                     // fix (= (see OOB.md #2026-09-02) — 'git grep BEFORE patch'
                     // rule): see L279 fix comment above; replace
