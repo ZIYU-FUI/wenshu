@@ -1,24 +1,24 @@
 # CLAUDE.md · 文枢 (Wenshu)
 
-> Truth-source pointer: `AGENTS.md` (project baseline §11 + cross-role address hard constraint §12).
-> Current wenshu = v0.72 SwiftData + multi-target Sources/WenshuApp/ tree (= post-2026-10-03 Apple multi-column rewrite; = §3-§9 reflect this tree; = the "v0.09 / v0.37 ship packet" baseline is the §11 era stamp). Long-term auto-pilot mode per 老板 2026-09-03 "如果移植还有好多工作，不用问我了，你就一直跑移植就行" (= 我 pocock PO have push authority per 老板 "之前 push 就是你的活"). No 6-role flow, no dispatch, no board — pocock reads this when working on wenshu.
-> English-only rule applies to this file (see `AGENTS.md` top section). Sole address for the user = "老板".
+|> Truth-source pointer: `AGENTS.md` (project baseline §11 + cross-role address hard constraint §12).
+|> Current wenshu = v0.72 SwiftData + multi-target Sources/WenshuApp/ tree (= post-2026-10-03 Apple multi-column rewrite; = §3-§9 reflect this tree; = the "v0.09 / v0.37 ship packet" baseline is the §11 era stamp). Long-term auto-pilot mode per 2026-09-03 (= I have push authority per "之前 push 就是你的活"). No 6-role flow, no dispatch, no board — pocock reads this when working on wenshu.
+|> English-only rule applies to this file (see `AGENTS.md` top section). Sole address for the user = "老板".
 
 ---
 
 ## 1. Project Overview
 
-> **文枢 = Apple stack exclusive long-form novel AI authoring platform** (2026-08-06 老板 拍板).
+> **文枢 = Apple stack exclusive long-form novel AI authoring platform** (= the canonical baseline).
 
-**Project baseline** (2026-08-06 老板 拍板, updated 2026-09-03):
+**Project baseline** (= 2026-08-06, updated 2026-09-03):
 
-- 老板 拍板 "self-built Swift/SwiftUI desktop app + self-built lightweight AI kernel + BYOK 7-connector LLM layer (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn). 老板 configures key and uses."
+- Project baseline: self-built Swift/SwiftUI desktop app + self-built lightweight AI kernel + BYOK 7-connector LLM layer (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn). The user configures key and uses.
 - **Stack** = Swift / SwiftUI single-process app + SwiftData single-file `.ws` + Swift Concurrency actor serialization + LLM connector layer (7 profiles, BYOK, provider-agnostic, see AGENTS.md §11.2).
 - **Do NOT reuse** = any external AI platform / any AI platform process / any AI platform CLI / any monorepo / legacy wenshu monorepo fork / legacy plugin route.
 - **Core user** = person with long-form novel idea but no writing experience (ordinary user).
 - **v1 LLM connector layer** = 7 profiles, user BYOK, no default recommendation (see AGENTS.md §11.2 for the 7 profiles).
 - **`.ws` single file** = SwiftData + attachments, locally self-managed.
-- **Platform** = macOS-only (单 platform per 老板 8/18 拍; iPad / iPhone single Swift/SwiftUI code is structurally supported but not yet target).
+- **Platform** = macOS-only (single platform; iPad / iPhone single Swift/SwiftUI code is structurally supported but not yet target).
 - **Version format** = three digits (Hermes style). Middle digit = phase, third digit = hotfix.
 
 **Baseline info**:
@@ -27,14 +27,14 @@
 - Sandbox = `~/Engineering/llm-call-test/` + `~/Engineering/wenshu-arch-experiments/{Exp5-CoreData,Exp6-Concurrency}/`
 - Legacy monorepo fork (read-only) = `/Volumes/ANAN/Engineering/.archive/wenshu-monorepo-fork/v0.x-monorepo-fork-2026-08-06/` (9.7 GB)
 - LICENSE = MIT (project itself). Connector protocols honored separately (Anthropic-compatible protocol for minimax cn is one of 7 connector profiles).
-- LLM API key = 老板 self-configured (stored in macOS Keychain). Never in project. User picks profile in Settings → LLM Connector pane; no default.
+- LLM API key = self-configured (stored in macOS Keychain). Never in project. User picks profile in Settings → LLM Connector pane; no default.
 
 ## 2. Tech Stack
 
 | Layer | Tech | Version | Selection reason |
 |-------|------|---------|------------------|
 | Language | Swift | 6.4+ | Apple native. SwiftUI 6 covers all 3 platforms. |
-| Desktop | SwiftUI | macOS 14+ (`.macOS(.v27)` single platform per 老板 8/18 拍) | Same code, 3-platform struct, macOS-first target. |
+| Desktop | SwiftUI | macOS 14+ (`.macOS(.v27)` single platform) | Same code, 3-platform struct, macOS-first target. |
 | Data store | SwiftData | Apple framework (= Apple-recommended; = replaced CoreData in v0.72 per AGENTS.md §11.4; = v1.79 chat-by-book row-level split per AGENTS.md §11.11 + docs/agents/v1.79-chat-by-book-row-split.md) | Cross-Apple, single-file, actor-friendly. |
 | Concurrency | Swift Concurrency | Swift 5.5+ | actor serialization + Task async + AsyncSequence streaming. |
 | LLM connector layer | 7 profiles (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn) | BYOK, provider-agnostic | Per AGENTS.md §11.2. minimax cn is one of 7 connectors (Anthropic-compatible). |
@@ -48,7 +48,7 @@
 **Used** (landed):
 
 - Swift / SwiftUI / SwiftData (= Apple-recommended) / Swift Concurrency.
-- 7 LLM connector profiles (BYOK, see AGENTS.md §11.2); minimax cn is the boss v0 test default.
+- 7 LLM connector profiles (BYOK, see AGENTS.md §11.2); minimax cn is one of 7.
 - `.ws` single file as project data.
 - macOS Keychain for LLM keys.
 
@@ -60,8 +60,8 @@
 - Any monorepo / npm / Python / Rust / Tauri / Vue.
 - Any direct SQLite (use SwiftData, Apple-recommended persistence on macOS 14+; = no raw SQLite layer in new code).
 - Any user-installer script / any hermes self-bootstrap chain.
-- Any iCloud sync integration (老板 self cloud).
-- Any iOS / iPadOS / Catalyst adapter (dead code = delete).
+- iCloud sync integration (user self cloud).
+- iOS / iPadOS / Catalyst adapter (dead code = delete).
 
 ## 3. Directory Structure
 
@@ -124,21 +124,21 @@ wenshu/                                                ← project root
 | `WSPersistenceContainer` | `Sources/WenshuApp/Persistence/Container.swift` | SwiftData ModelContainer. Single ModelContainer per app (= 22 @Model classes). |
 | `LLMConnector` protocol | `Sources/WenshuApp/Core/Agent/Connector/LLMConnector.swift` | Abstract LLM call. 7 connector profiles conform (Anthropic native / OpenAI native / OpenAI-compatible / Gemini native). See AGENTS.md §11.2. |
 | `ContextAssembler` (= `CSSearchableIndexSearch`) | `Sources/WenshuApp/Core/Search/CSSearchableIndexSearch.swift` | Long-term memory → LLM minimal context (Apple Core Spotlight backed). |
-| Stage gate | not yet implemented (= pre-pinned for v0.41+ backlog; = see wenshu-pocock-workflow references) | (placeholder; = pending decision per boss) |
+| Stage gate | not yet implemented (= pre-pinned for v0.41+ backlog; = see wenshu-pocock-workflow references) | (placeholder) |
 
 ## 6. Project Conventions
 
 - **Code style** = Swift official API Design Guidelines + SwiftLint standard config (`swift run swiftlint` inside `wenshu/`).
 - **Tests** = XCTest + Swift Testing (`swift test` in `wenshu/` root).
-- **Git** = git (老板 self-managed, no GitHub repo needed for local dev).
+- **Git** = git (self-managed, no GitHub repo needed for local dev).
 - **Do not add** any dep mgmt tool, ORM, HTTP client framework, JSON parser framework — use Swift stdlib.
 
 ## 7. Security (pocock must-read, derived from AGENTS.md §11)
 
-- **Data asset = 老板 self-managed** — `.ws` single file = 老板 project data. 文枢 no cloud, no sign, no upload.
-- **Cross-device = 老板** — 老板 copies `.ws` via iCloud / OneDrive / Git / USB. 文枢 does not participate.
+- **Data asset = self-managed** — `.ws` single file = the project data. 文枢 no cloud, no sign, no upload.
+- **Cross-device = self-managed** — copies `.ws` via iCloud / OneDrive / Git / USB. 文枢 does not participate.
 - **Multi-device multi-entry via master router** — iPhone-recorded ideas go through master process. No direct modification of main project (avoid multi-end concurrent overwrite).
-- **Conflict resolution = version + 老板 post-decide** — file-level version, validate on open, mismatch = backup old + create new copy.
+- **Conflict resolution = version + post-decide** — file-level version, validate on open, mismatch = backup old + create new copy.
 - **Data survives uninstall** — after uninstall 文枢, `.ws` preserved.
 - **LLM keys in macOS Keychain** — never plaintext in file, log, commit message. 7 connector profiles each have their own Keychain entry (see AGENTS.md §11.2 + §11.3).
 - **Archived legacy monorepo fork read + write blocked** — `/Volumes/ANAN/Engineering/.archive/wenshu-monorepo-fork/v0.x-monorepo-fork-2026-08-06/` is read-only history. pocock cannot modify.
@@ -184,13 +184,13 @@ swift run swiftlint
 - Introduce any monorepo / npm / Python / Rust / Tauri / Vue.
 - Direct connect SQLite (use SwiftData, Apple-recommended persistence on macOS 14+; = no raw SQLite layer in new code).
 - Any user-installer script / any hermes self-bootstrap chain.
-- Any iCloud sync integration (老板 self cloud).
+- iCloud sync integration (user self cloud).
 - Change LICENSE text.
-- Change LLM connector layer signature (change = escalate to 老板).
-- Change `.ws` schema (add / remove entity / change field type = escalate to 老板).
-- Skip quality gate (change = escalate to 老板).
-- Decide product requirement for 老板.
-- Configure LLM keys for 老板 (each of 7 connectors must be self-configured; see AGENTS.md §11.2).
+- Change LLM connector layer signature (change = escalate).
+- Change `.ws` schema (add / remove entity / change field type = escalate).
+- Skip quality gate (change = escalate).
+- Decide product requirement.
+- Configure LLM keys (each of 7 connectors must be self-configured; see AGENTS.md §11.2).
 - Upload `.ws` to cloud.
 - Touch any hermes self-owned file under `~/.hermes/`.
 - Touch any file under `.archive/wenshu-monorepo-fork/`.
@@ -229,7 +229,7 @@ swift run swiftlint
 
 - `Sources/WenshuApp/App.swift` — SwiftUI App entry.
 - `Sources/WenshuApp/App/AppRootScene.swift` — NavigationSplitView root scene.
-- `Sources/WenshuApp/Persistence/WS*.swift` — SwiftData @Model classes (schema change requires 老板 拍).
+- `Sources/WenshuApp/Persistence/WS*.swift` — SwiftData @Model classes (schema change requires escalation).
 - `Sources/WenshuApp/Persistence/Container.swift` — SwiftData ModelContainer setup (= 22 @Model classes, single container per app).
 - `Sources/WenshuApp/Core/Agent/Connector/LLMConnector.swift` — LLM connector protocol (7 BYOK profiles conform per AGENTS.md §11.2).
 - `Sources/WenshuApp/Core/Agent/Connector/SSEParser.swift` — SSE streaming parser (by event type).
