@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 /// GraphView: SwiftUI View, show placeholder
-/// LayoutShellView, standalone wait macOS
+/// LayoutShellView [no longer defined post-v0.72 — AppRootScene + NavigationSplitView; = ADR-0007 pending ADR-0010; = type references kept as historical landmarks pending 老板 拍], standalone wait macOS
 struct GraphView: View {
     @State private var isLoading: Bool = false
     @State private var error: String? = nil

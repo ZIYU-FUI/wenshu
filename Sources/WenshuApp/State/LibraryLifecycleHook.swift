@@ -65,7 +65,7 @@ struct LibraryLaunchResult: Sendable {
 extension LibraryLaunchResult {
     /// Build the singleton `BookStore` (= the canonical wiring).
     /// This is the one place that constructs the @Observable; App.swift
-    /// wiring (= WiredShell in LibraryRootView) passes it to LayoutShellView
+    /// wiring (= WiredShell in LibraryRootView) passes it to LayoutShellView [no longer defined post-v0.72 — AppRootScene + NavigationSplitView; = ADR-0007 pending ADR-0010; = type references kept as historical landmarks pending 老板 拍]
     /// via .environment(bookStore).
     @MainActor
     func makeBookStore() -> BookStore {

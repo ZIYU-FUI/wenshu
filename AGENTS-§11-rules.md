@@ -35,10 +35,12 @@ Migration plan (= 6 phases, ~42 commits, 3-4 weeks):
 - Single container (= no more "10 stores in 10 files" pattern)
 
 ## Phase 2: Repositories (= 12 commits)
-- 9 Repository classes (= replace 10 Actor APIs)
+- 8 Repository classes (= replace 10 Actor APIs); = container holder
+  `WSRepositoryContainer` is a 9th file under `Persistence/Repositories/`
+  but does not count as a Repository
 - WSMemoryRepository / WSChatRepository / WSTodoRepository /
   WSBookmarkRepository / WSKanbanRepository / WSLinkRepository /
-  WSBookRepository / WSProviderKeyRepository / WSPreferenceRepository
+  WSProviderKeyRepository / WSPreferenceRepository
 - Public API stays Actor-isolated (= callers don't need to change)
 
 ## Phase 3: Update call sites (= 15 commits)

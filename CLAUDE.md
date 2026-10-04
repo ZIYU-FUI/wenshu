@@ -1,7 +1,7 @@
 # CLAUDE.md · 文枢 (Wenshu)
 
 > Truth-source pointer: `AGENTS.md` (project baseline §11 + cross-role address hard constraint §12).
-> v0.09 (2026-09-03 pocock single-agent). AGENTS.md v0.09 baseline = v0.37 ship packet (= hermes core translation complete + 11 port tickets + 7-connector BYOK + 22 visual verify smoke tests + 175+ tests). Long-term auto-pilot mode per 老板 2026-09-03 "如果移植还有好多工作，不用问我了，你就一直跑移植就行" (= 我 pocock PO have push authority per 老板 "之前 push 就是你的活"). No 6-role flow, no dispatch, no board — pocock reads this when working on wenshu.
+> Current wenshu = v0.72 SwiftData + multi-target Sources/WenshuApp/ tree (= post-2026-10-03 Apple multi-column rewrite; = §3-§9 reflect this tree; = the "v0.09 / v0.37 ship packet" baseline is the §11 era stamp). Long-term auto-pilot mode per 老板 2026-09-03 "如果移植还有好多工作，不用问我了，你就一直跑移植就行" (= 我 pocock PO have push authority per 老板 "之前 push 就是你的活"). No 6-role flow, no dispatch, no board — pocock reads this when working on wenshu.
 > English-only rule applies to this file (see `AGENTS.md` top section). Sole address for the user = "老板".
 
 ---
@@ -254,4 +254,4 @@ swift run swiftlint
 
 ---
 
-*CLAUDE.md v0.08.0 · 2026-09-03 pocock single agent · AGENTS.md §11 baseline rewrite (§11.2 7 connector profiles + §11.3 agent ↔ other Core module interaction principle + product-positioning rule) sync to CLAUDE.md · minimax cn narrative (16 mentions) rewritten to 7-connector BYOK architecture · English-only · project root = `/Volumes/ANAN/Engineering/wenshu/`*
+*CLAUDE.md · 2026-09-03 v0.08.0 (initial) → 2026-10-04 v0.09+ (Q99 dual-axis path / spec drift fix-up; = §3-§9 rewrote to current tree; = the Q99 SPEC axis run added §3 directory structure, §4 modules table, §5 interface table, §9 pocock key file list sync to Sources/WenshuApp/ post-v0.72 SwiftData era; = the v0.08 minimax cn narrative + 7-connector BYOK architecture retained from initial ship) · English-only · project root = `/Volumes/ANAN/Engineering/wenshu/`*
