@@ -36,7 +36,7 @@ struct EditorView: View {
         appState.openTabs.first(where: { $0.id == appState.activeTabId })?.mode ?? .preview
     }
     /// derive the display title for a tab (= file basename
-    /// without the .md extension; = boss 9/3 OOB 'no .md extension either'). Placeholder tab = 'preview-sample' (= no .md extension,
+    /// without the .md extension; = (see OOB.md #2026-09-03) — 'no .md extension either'). Placeholder tab = 'preview-sample' (= no .md extension,
     /// = no path = render the short placeholder name).
     ///
     @Environment(AppState.self) private var appState
@@ -49,7 +49,7 @@ struct EditorView: View {
     // fix pattern).
     @Environment(BookStore.self) private var bookStore
     // chapter-focus-lock 2026-09-28: editor flips to read-only when
-    // the boss has this tab focused AND the chat zone isn't visible
+    // the user has this tab focused AND the chat zone isn't visible
     // (= the LLM is rewriting this chapter). The chatVisible gate
     // lives here because AppState cannot hold @Environment-bound
     // state (= WorkspaceUIState is environment-injected per P2-06
@@ -110,7 +110,7 @@ struct EditorView: View {
             // tab strip): single-line HStack, scrollable horizontally
             // when tabs overflow. = no formatting toolbar / no save
             // button (= the per-tab formatting + save hotkey move to
-            // the new tab-bar layout as boss decides).
+            // the new tab-bar layout (decision pending)).
             // Tab strip:
             // only the ACTIVE tab is shown in the strip (= full-width
             // title + close X). Inactive tabs are hidden (= openTabs
@@ -207,7 +207,7 @@ struct EditorView: View {
                 // Placeholder sample body
                 // real document load (= the Apple HIG DocumentGroup
                 // file-open path is the v0.35+ ticket).
-                // (= boss 9/3 'preview BUG is still there'): EditorView
+                // (= (see OOB.md #2026-09-03) — 'preview BUG is still there'): EditorView
                 // preview mode previously rendered `Self.samplePreviewBody`
                 // (= static placeholder string) regardless of which tab
                 // was active. Replaced with `self.draft` (= per-tab
@@ -218,7 +218,7 @@ struct EditorView: View {
                 // is the v0.34 B-25 root-cause fix (= the closure chain
                 // WAS firing correctly; = the bug was the view rendering
                 // the placeholder instead of the active tab).
-                // boss 9/7 OOB 'delete': when no
+                // (see OOB.md #2026-09-07) — 'delete': when no
                 // tab is open, show the empty-state hint instead of
                 // the preview/edit body (= replaces the previous
                 // samplePreviewBody placeholder).
@@ -242,7 +242,7 @@ struct EditorView: View {
                     // half keeps its 50/50 share with the chat
                     // zone; = the chat zone stays at full size
                     // below; = no VSplitView divider math bug; =
-                    // the boss's 'both zones should still be there, top/bottom 50/50,
+                    // the 'both zones should still be there, top/bottom 50/50,
                     // only the top becomes the empty state').
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
@@ -282,7 +282,7 @@ struct EditorView: View {
                                 ChapterFocusLockBadge()
                             }
                             if mode == .preview {
-                        // boss 9/7 OOB 'editor, yes,
+                        // (see OOB.md #2026-09-07) — 'editor, yes,
                         // shouldgroup': preview mode uses the
                         // SAME WenshuMarkdownEditor component as edit
                         // mode (= swift-markdown-engine NSTextView), just
@@ -290,7 +290,7 @@ struct EditorView: View {
                         // Previously preview used a separate
                         // EditorPreviewContent (= SwiftUI AttributedString
                         // renderer) which produced a different visual scale
-                        // (= the "" boss described). Unified
+                        // (= the "" described). Unified
                         // component = zero visual scaling between modes.
                         //
                         // wiki-link click navigation routes
@@ -312,7 +312,7 @@ struct EditorView: View {
                             onLinkClick: { linkId in
                                 handleEditorWikiLink(linkId: linkId)
                             },
-                            // boss 9/7 OOB 'editor, yes
+                            // (see OOB.md #2026-09-07) — 'editor, yes
                             //, shouldgroup': preview
                             // mode = read-only NSTextView (= same engine
                             // wrapper as edit, = no scaling between
@@ -324,7 +324,7 @@ struct EditorView: View {
                         // TextEditor (= HIG standard multi-line text input).
                         // @State draft holds the working copy; dirty detection
                         // = draft != originalBody (character-level diff per
-                        // boss decision (= Apple HIG). Save button
+                        // per the design (= Apple HIG). Save button
                         // .tint highlights when dirty; Cmd+S hotkey (ticket
                         // 10) triggers save.
                         // draft is a computed property (= reads active
@@ -344,7 +344,7 @@ struct EditorView: View {
                             // ShellState coupling inside the editor
                             // view). When the active tab's path
                             // matches AppState.focusedChapterPath
-                            // AND the boss isn't in chat, the editor
+                            // AND the user isn't in chat, the editor
                             // flips to read-only so the LLM holds
                             // the cursor.
                             isChapterLockedByLLM: appState.focusedChapterPath != nil
@@ -424,7 +424,7 @@ struct EditorView: View {
             // this frame, the editor VStack shrinks to its intrinsic
             // content width (= the WenshuMarkdownEditor NSTextView's
             // minimum width = ~400 PT; = leaves the right side of the
-            // detail column empty = the boss's 'width didn't fill' symptom).
+            // detail column empty (= the 'width didn't fill' symptom).
             //
             // The v0.30 'inflated the detail column to 1763' concern
             // (= caused by the previous NavigationSplitView layout)
@@ -432,7 +432,7 @@ struct EditorView: View {
             // not have the unbounded-width issue (= NSSplitViewItem
             // gives a bounded slot).
             //
-            // boss 9/10 OOB 'width didn't fill' (= 'width did not fill').
+            // (see OOB.md #2026-09-10) — 'width didn't fill' (= 'width did not fill').
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // Liquid Glass adaptation: zone top/bottom bars + backgrounds
             // + colors use `.ultraThinMaterial` instead of
@@ -454,7 +454,7 @@ struct EditorView: View {
         // mode keystroke stream; = this .onAppear covers the initial
         // state (= Apple HIG = seed reactive state at view mount).
         .onAppear {
-            // boss 9/7 OOB: do NOT seed a placeholder tab when
+            // (see OOB.md #2026-09-07): do NOT seed a placeholder tab when
             // openTabs is empty. Two paths from here:
             //   1. Persisted tabs (loaded by AppState.init from
             //      UserDefaults) → use those directly.
@@ -498,7 +498,7 @@ struct EditorView: View {
         //, info, default
         // editorshould MD tab'). The welcome tab was
         // visually present but the preview body was empty (= no
-        // document content to render). Boss wants the editor zone
+        // document content to render). The editor zone
         // to show NO tab strip at all when there are no persisted
         // tabs (= the empty-state hint takes the full editor body
         // = cleaner empty UX than a blank tab + blank content).
@@ -544,7 +544,7 @@ struct EditorView: View {
     }
 
     private var draft: String {
-        // boss 9/7 OOB: when no tab is open, return empty string
+        // (see OOB.md #2026-09-07): when no tab is open, return empty string
         // (= no samplePreviewBody placeholder). The editor zone
         // shows its empty-state hint (= "libraryin progressdouble-clickcardopen")
         // via EditorView's nil-activeTab branch.
@@ -721,7 +721,7 @@ struct EditorView: View {
     /// transform against the active LLM connector and replace the
     /// current selection with the rewritten text.
     ///
-    /// Pipeline (= matches the boss spec):
+    /// Pipeline (= matches the spec):
     /// 1. guard on `selectedText` non-empty (= matches the
     ///    `disabled(vm.selectedText.isEmpty)` rule on the toolbar
     ///    buttons; if the engine selection bridge hasn't reported
@@ -843,7 +843,7 @@ struct EditorView: View {
     // close handler. If dirty = present confirm dialog;
     // if clean = close immediately (= Apple HIG standard). Cmd+W (ticket
     // 10) routes through this same method.
-    // boss 9/7 OOB 'delete': samplePreviewBody
+    // (see OOB.md #2026-09-07) — 'delete': samplePreviewBody
     // (= the "Welcome to wenshu" placeholder) is removed. When no
     // tab is open, the editor zone shows the empty-state hint via
     // `emptyStateHint` (= tells the user to double-click a card
@@ -855,7 +855,7 @@ struct EditorView: View {
     // exercised header levels, bold/italic, bullet list, inline
     // code, code fence, [[wikilink]] (= parsed by InternalLinkParser).
     // The v0.40 apple-001 UX cleanup replaced its CJK content with
-    // an onboarding welcome. Now removed entirely per boss 9/7 OOB.
+    // an onboarding welcome. Now removed entirely per (see OOB.md #2026-09-07).
 
     /// Empty-state hint when no editor tab is open (= columns-workspace-CTA shape).
     /// The computed var returned the empty-state hint when no
