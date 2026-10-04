@@ -9,7 +9,7 @@
 // panes into new zones (= the full drag UX surface, gated by
 // 028-006 + 028-007 + 028-008). When edit mode is off (= default),
 // the drag gestures are inert (= the workspace behaves like the
-// LayoutShellView [no longer defined post-v0.72 — AppRootScene + NavigationSplitView; = ADR-0007 pending ADR-0010; = type references kept as historical landmarks pending 老板 拍] with no editing surface).
+// LayoutShellView [no longer defined post-v0.72 — see AppRootScene + NavigationSplitView (= per ADR-0011)] with no editing surface).
 //
 // Persistence: `wenshu.workspace.editMode` UserDefaults Bool. Set
 // once at init (= so the value persists across app launches per
