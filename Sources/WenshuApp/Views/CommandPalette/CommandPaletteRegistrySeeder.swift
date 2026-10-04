@@ -40,7 +40,6 @@ enum CommandPaletteRegistrySeeder {
         var items: [CommandPaletteItem] = []
         items.append(contentsOf: hubCommandItems())
         items.append(contentsOf: subAgentItems())
-        items.append(contentsOf: zoneToggleItems())
         items.append(contentsOf: settingsItems())
         items.append(contentsOf: shortcutItems())
         await CommandPaletteRegistry.shared.registerMany(items)
@@ -74,53 +73,6 @@ enum CommandPaletteRegistrySeeder {
                 action: .custom(name: "subagent.\(name.rawValue)")
             )
         }
-    }
-
-    // MARK: - Zone toggles (5)
-
-    private static func zoneToggleItems() -> [CommandPaletteItem] {
-        return [
-            CommandPaletteItem(
-                id: "palette.zone.library",
-                title: "Toggle Library Zone",
-                subtitle: "Show or hide the project sidebar (⌘⇧1)",
-                category: "navigate",
-                shortcutHint: "⌘⇧1",
-                action: .navigateTo(destination: "library")
-            ),
-            CommandPaletteItem(
-                id: "palette.zone.preview",
-                title: "Toggle Preview Zone",
-                subtitle: "Show or hide the preview pane",
-                category: "navigate",
-                shortcutHint: nil,
-                action: .navigateTo(destination: "preview")
-            ),
-            CommandPaletteItem(
-                id: "palette.zone.tools",
-                title: "Toggle Tools Zone",
-                subtitle: "Show or hide the specialized tools zone (⌘⇧2)",
-                category: "navigate",
-                shortcutHint: "⌘⇧2",
-                action: .navigateTo(destination: "tools")
-            ),
-            CommandPaletteItem(
-                id: "palette.zone.chat",
-                title: "Toggle Chat Zone",
-                subtitle: "Show or hide the AI chat zone (⌘⇧3)",
-                category: "navigate",
-                shortcutHint: "⌘⇧3",
-                action: .navigateTo(destination: "chat")
-            ),
-            CommandPaletteItem(
-                id: "palette.zone.dynamic",
-                title: "Toggle Dynamic Zone",
-                subtitle: "Show or hide the dynamic zone (Kanban + Todo)",
-                category: "navigate",
-                shortcutHint: "⌘⇧4",
-                action: .navigateTo(destination: "kanban")
-            )
-        ]
     }
 
     // MARK: - Settings sections (3)
