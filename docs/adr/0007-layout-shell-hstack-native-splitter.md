@@ -4,7 +4,7 @@
 > Date: 2026-08-19
 > Decision-maker(s): 老板 (2026-08-19 ticket 005 拍板)
 > Supersedes: ADR-0003 (drag-splitter-nsview)
-> Superseded by: pending (= ADR-0010 candidate; = NavigationSplitView + NSSplitViewItem/NSHostingController pattern; = NativeSplitter.swift file deleted from tree; = the LayoutShellView / UpperBandZone / LowerBandZone / ZoneModule / ZoneTopToolbar / ZoneBottomToolbar / ZoneSlot SwiftUI types also absent; = the actual layout root is AppRootScene.swift + NavigationSplitView)
+> Superseded by: **ADR-0011** (= NavigationSplitView + NSSplitViewItem/NSHostingController pattern; = NativeSplitter.swift file deleted from tree in the 2026-10-03 Apple multi-column rewrite; = the LayoutShellView / UpperBandZone / LowerBandZone / ZoneModule / ZoneTopToolbar / ZoneBottomToolbar / ZoneSlot SwiftUI types also absent; = the actual layout root is AppRootScene.swift + NavigationSplitView)
 
 ## Context
 

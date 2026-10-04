@@ -38,8 +38,9 @@ struct LayoutEditBar: View {
     /// center as default; true = use the persisted offset).
     @State private var hasPositioned: Bool = false
 
-    /// Drag offset accumulator (= same pattern as NativeSplitter's
-    /// per-step delta).
+    /// Drag offset accumulator (= NSSplitViewItem autosave pattern;
+    /// = the SwiftUI DragGesture delta that feeds LayoutTreeStore's
+    /// pane-target mutation rules).
     @State private var dragOffset: CGSize = .zero
 
     var body: some View {

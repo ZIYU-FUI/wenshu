@@ -211,7 +211,7 @@ Each component has:
 
 ## 🖱️ LEVEL 5: Interaction 组件
 
-> v0.30 boss 2026-09-01 OOB: NativeSplitter + PaneSplitter + VSplitter
+> v0.30 boss 2026-09-01 OOB: PaneSplitter + VSplitter
 > + StaticDividerVertical/Horizontal were deleted as dead code
 > (= superseded by the NSSplitView path which provides drag-to-resize
 > + autosave + canCollapse natively). Section 5 entries for those
@@ -328,7 +328,7 @@ This index is the **single source of truth** for "what's reusable in Wenshu". Ne
 ## 📚 历史 (= 已 ship 的重构)
 
 - **Round 26** (v0.28): RegionTabBar / RegionStatusBar / RegionContentBackground introduced (= unified 1 PT .separator + Liquid Glass)
-- **Round 50-52** (v0.28): NativeSplitter visibility fix (= white 0.25 divider)
+- **Round 50-52** (v0.28): NativeSplitter visibility fix (= white 0.25 divider; = superseded by ADR-0011 in 2026-10-04; = the v0.28 file was deleted from tree in the 2026-10-03 Apple multi-column rewrite)
 - **Round 53** (v0.28): ZoneBottomToolbar → Liquid Glass (= fixes sidebar mismatch)
 - **Phase 1-5** (this commit): Style tokens + PaneIconTab + PaneTabBar + delete ZoneBottomToolbar/ZoneModule + PaneStatusBar
 
@@ -338,7 +338,7 @@ This index is the **single source of truth** for "what's reusable in Wenshu". Ne
 
 - `Sources/WenshuApp/UI/ZonePerRegionChrome.swift` (= full per-region chrome architecture)
 - `Sources/WenshuApp/UI/LiquidGlassOpacity.swift` (= environment value)
-- `Sources/WenshuApp/Views/Layout/NativeSplitter.swift` (= drag splitters)
+- (Sources/WenshuApp/Views/Layout/NativeSplitter.swift deleted in 2026-10-03 Apple multi-column rewrite; = see ADR-0011; = layout shell = Apple NavigationSplitView + NSSplitViewItem + NSHostingController per AGENTS.md §11 + wenshu-apple-api-first + wenshu-macos26-liquid-glass-pitfalls skills)
 - `.scratch/2026-08-30-component-refactor-plan.md` (= Phase 1-5 plan)
 
 Last updated: 2026-08-30 (Phase 1-5 implementation + index)
