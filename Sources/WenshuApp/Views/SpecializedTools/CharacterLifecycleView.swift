@@ -384,11 +384,14 @@ struct CharacterLifecycleView: View {
     /// malformed (= invalid UUID = treated as nil; the writer can
     /// see the row without a chapter anchor rather than getting
     /// an error).
-    private func resolveChapterUUID() -> UUID? {
-        let trimmed = draftChapterUUIDText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return UUID(uuidString: trimmed)
-    }
+    // (resolveChapterUUID removed 2026-10 in q99-spec-p0-batch2 —
+    //  verify-dead.py confirmed 0 external callers; = the private
+    //  helper was retained as the "parse a UUID string from
+    //  draftChapterUUIDText input" affordance but no body call
+    //  site invokes it (= the chapter anchor is set via
+    //  CharacterLifecycleOps, not the view's @State binding).
+    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    //  + wenshu-dead-code-cleanup SKILL.md.)
 
     // MARK: - Helpers (= view-only glue: calls CharacterLifecycleOps, assigns @State)
 

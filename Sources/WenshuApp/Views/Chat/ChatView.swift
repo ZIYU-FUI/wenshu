@@ -206,27 +206,17 @@ struct ChatView: View {
     /// forgiving pattern as the WSKanbanRepository fallback above) so the
     /// book_manager tool is fully exercised end-to-end in preview /
     /// tests even when no real library has been opened.
-    private static func bookStoreForChatTool() -> BookStore {
-        let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p2-20-chat-tool-\(UUID().uuidString)", isDirectory: true)
-        try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        let shelvesRoot = tmpRoot.appendingPathComponent("shelves", isDirectory: true)
-        let referenceLibraryRoot = tmpRoot.appendingPathComponent("reference-library", isDirectory: true)
-        let referenceStore = FileSystemReferenceStore(referenceLibraryRoot: referenceLibraryRoot)
-        let stores = LibraryStores(
-            shelvesRoot: shelvesRoot,
-            referenceLibraryRoot: referenceLibraryRoot,
-            referenceStore: referenceStore
-        )
-        let bookStore = BookStore(stores: stores)
-        // Best-effort mirror of any on-disk shelves into the in-memory
-        // `shelves` cache (= mirrors what `LibraryLifecycleHook` /
-        // `reloadAllBooks` do in the production launch path).
-        bookStore.shelves = (try? bookStore.sidebarLoadShelves()) ?? []
-        bookStore.reloadAllBooks()
-        return bookStore
-    }
+    /// (bookStoreForChatTool removed 2026-10 in q99-spec-p0-batch2 —
+    //  verify-dead.py confirmed 0 external callers; = the static
+    //  helper was retained as the "create a scratch BookStore
+    //  under /tmp for chat-tool integration tests" affordance
+    //  (= hermes-port P2-20 ticket) but no test or production
+    //  caller invoked it; = the actual chat-tool integration tests
+    //  use a different fixture builder. See wenshu-pocock-workflow
+    //  references/v3.0-design-system-rule.md +
+    //  wenshu-dead-code-cleanup SKILL.md.)
 
-    /// Group messages into "turns" (= user message + assistant reply)
+    /// Group messages into "turns" (= user message + assistant reply),
     /// for `LazyVStack(pinnedViews: [.sectionHeaders])`
     /// (= the macOS 27 SwiftUI equivalent of CSS `position: sticky;`
     /// top: 0`). Each turn = (userMessage, replies[] where replies =

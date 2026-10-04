@@ -35,7 +35,13 @@ final class WSMemoryMirror: @unchecked Sendable {
     }
 }
 
-private let wenshuMemoryLogger = Logger(subsystem: "org.wenshu.memory", category: "provider")
+// (wenshuMemoryLogger removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
+//  confirmed 0 external callers; = the file-private os.Logger was
+//  retained for hermes-port parity but no WSMemoryProvider call site
+//  emitted log entries; = NSLog(...) lines throughout the file
+//  handle the same observability concern. See wenshu-pocock-workflow
+//  references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup
+//  SKILL.md.)
 
 final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 

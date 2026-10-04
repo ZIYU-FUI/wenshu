@@ -80,7 +80,14 @@ actor BackgroundCreditsTracker {
     private var sessionStart: Date = Date()
     /// Per-month counter (= persisted to UserDefaults; survives restart).
     private var monthlyKey: WenshuDefaultsKey { .creditsMonthly }
-    private var monthlyResetKey: WenshuDefaultsKey { .creditsMonthlyReset }
+    // (monthlyResetKey removed 2026-10 in q99-spec-p0-batch2 —
+    //  verify-dead.py confirmed 0 external callers; = the
+    //  WenshuDefaultsKey property was a hermes-port artifact for
+    //  the credits-monthly-reset @AppStorage key but the actual
+    //  credit ledger is computed from per-event timestamps; = no
+    //  wenshu caller reads this property. See wenshu-pocock-workflow
+    //  references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup
+    //  SKILL.md.)
 
     init() {}
 
