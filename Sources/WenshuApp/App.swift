@@ -1,9 +1,9 @@
-// App.swift · Wenshu · v0.09.0 6-zone layout shell (boss 8/18 component-based truth, 1920×984 PT)
+// App.swift · Wenshu · v0.09.0 6-zone layout shell (1920×984 PT)
 // Data source: Sketch AF7B1C87 / page Wenshu / Artboard Home
 // Component-based truth: mcp__sketch__run_code (2026-08-18) = 6 SymbolMaster + 13 SymbolInstance
 // Unit: 1 PT = 1 PX (macOS 27 1x), 1:1 mapping, no scaling.
 //
-// 6 masters (boss 8/18 component planning):
+// 6 masters (8/18 component planning):
 //   1. Title bar               (1920×39)
 //   2. Zone top toolbar        (758×30)   ← zone top-bar reuse
 //   3. Zone bottom toolbar     (200×30)   ← zone bottom-bar reuse
@@ -27,7 +27,7 @@ import AppKit
 /// `IconButtonStyle` REMOVED in v0.34 Apple-API-first #3.
 /// Was a pass-through `makeBody { configuration.label }` (= no-op);
 /// the previous call site + outer Button style (formerly App.swift
-/// L1820 + L1839 before the Q2 boss split moved those features out
+/// L1820 + L1839 before the Q2 split moved those features out
 /// of App.swift) is now superseded by the canonical Apple
 /// `.buttonStyle(.plain)` + `Color.clear.frame(28,28).contentShape(...)`
 /// pattern (= Apple HIG hot-area convention).
@@ -36,7 +36,7 @@ import AppKit
 /// `Color.clear.frame(28,28).contentShape(Rectangle())` inside the label
 /// closure (= Apple HIG canonical hot-area pattern).
 
-// Boss 8/18 said "reset layout" notification bridge (LayoutShellView [no longer defined post-v0.72 — AppRootScene + NavigationSplitView; = ADR-0007 pending ADR-0010; = type references kept as historical landmarks pending 老板 拍] uses @State private vm,
+// "reset layout" notification bridge (LayoutShellView [no longer defined post-v0.72 — AppRootScene + NavigationSplitView; = ADR-0007 pending ADR-0010] uses @State private vm,
 // top-level .commands can't access vm instance, routed via NotificationCenter)
 
 // name for menu bar zone toggle buttons (= CommandGroup can't directly
@@ -50,7 +50,7 @@ import AppKit
 // the migration window so the 17 existing call sites compile unchanged.
 extension Notification.Name {}  // placeholder; all members moved to AppNotifications.swift
 
-// MARK: - Layout tokens (ratio operators 0~1, boss 8/18 answered "1:1 PT truth" + 8/18 said "convert to ratios")
+// MARK: - Layout tokens (ratio operators 0~1, "1:1 PT truth" + "convert to ratios" decisions)
 //
 // Data source: Sketch AF7B1C87 / Artboard Home 1920×984 PT 1:1 mapping
 // Formula: layoutPT(token) = totalW * ratio (e.g. projectSidebar ratio = 200/1920 = 0.1042)
@@ -103,7 +103,7 @@ enum LayoutTokens {
 
 }
 
-// MARK: - Self screenshot (boss 8/14 12:38 + 8/15 14:48: must screenshot after every code change)
+// MARK: - Self screenshot (= the canonical practice: screenshot after every code change)
 
 enum SelfScreenshot {
     @MainActor
@@ -193,7 +193,7 @@ struct WenshuApp: App {
 
     /// option A for cross-zone communication
     /// (= global @Observable store). Per-window @State (= each
-    /// WindowGroup instance gets its own AppState = boss 8/27 OOB
+    /// WindowGroup instance gets its own AppState ((see OOB.md #2026-08-27))
     /// multi-window future-proofing). Currently hosts the
     /// `llmModel` + `openTabs` signals (= the persistence-pair
     /// from commit 4b5d94f1f).
