@@ -1,6 +1,6 @@
 // ChatZoneView.swift · Wenshu · v1.91b
 //
-// b (2026-09-23): boss '聊天区的，文字回显层，是否可以变成左栏
+// b (2026-09-23): the directive '聊天区的，文字回显层，是否可以变成左栏
 // 的颜色参数。没有实现，是不是被限制了，是不是 NSV 框架里限制了，
 // 你参数加的位置没有生效'. v1.91 added `.background(DesignTokens.
 // sidebarBackground)` to ChatView's inner ScrollView; = that only
@@ -156,7 +156,7 @@ struct ChatZoneView: View {
         .onChange(of: library.selectedBookId) { _, _ in
             Task { await wireBookScopeGuardIfPossible() }
         }
-        // (2026-09-23): boss OOB '我们 UI 有多层，windows 层，
+        // 2026-09-23: '我们 UI 有多层，windows 层，
         // NVS层，聊天回显层，逻辑上，应该是 NVS 层，赋予各区说背景色
         // 和风格。但现在的颜色应该是 NVS 默认的。不知道能否修改。
         // 如果不能，那 windows\NVS 聊天区，变成透明的，聊天回显层
@@ -169,9 +169,9 @@ struct ChatZoneView: View {
         //   Layer 3: SwiftUI ChatZoneView (= our code)
         //   Layer 4: SwiftUI ChatView ScrollView (= our code)
         // Each layer paints a color; = stacking N colored layers
-        // darkens the result (= boss's '颜色多层叠加就无限接近于黑色').
+        // darkens the result (= user's '颜色多层叠加就无限接近于黑色').
         //
-        // Apple HIG fix (= boss spec): make Layer 1 + Layer 2 TRANSPARENT;
+        // Apple HIG fix: make Layer 1 + Layer 2 TRANSPARENT;
         // let Layer 3/4 specify the visible chat column bg.
         //
         // Implementation:
@@ -201,7 +201,7 @@ struct ChatZoneView: View {
         // keeps the v1.91d frame(...) wrap (= NSViewRepresentable
         // in .background() requires explicit frame; = same SwiftUI/AppKit
         // bridging quirk documented in v1.91d).
-        // (2026-09-23): boss '聊天区背景颜色没有实现' OOB follow-up.
+        // (2026-09-23): the directive '聊天区背景颜色没有实现' OOB follow-up.
 // Replace the v1.93 VisualEffectBlur(.sidebar, .withinWindow) with
 // the explicit `DesignTokens.sidebarBackground` Color (= the
 // .controlBackgroundColor Apple HIG sidebar tint).
@@ -211,7 +211,7 @@ struct ChatZoneView: View {
 //   - In opaque NSWindow (= wenshu's default) .withinWindow
 //     blending mode produced a sub-perceptual gradient (= ~14
 //     RGB diff between top + bottom).
-//   - Boss '聊天区背景颜色没有实现' = visual difference vs. sidebar
+//   - the directive '聊天区背景颜色没有实现' = visual difference vs. sidebar
 //     was still there.
 //
 // Why DesignTokens.sidebarBackground works (= previously approved):

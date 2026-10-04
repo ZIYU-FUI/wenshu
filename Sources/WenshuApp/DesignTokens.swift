@@ -12,7 +12,7 @@
 // Apple HIG 30 PT toolbar standard, Apple Pages / Mail / Xcode toolbar
 // layout). Use these constants instead of inline numbers.
 //
-// Boss's dual-axis audit found:
+// Dual-axis audit found:
 // - chrome height 30 PT in 3 different places (= LayoutTokens + ZonePerRegionChrome)
 // - chrome padding 18 PT in 5 different places (LayoutTokens + inline)
 // - .font(.system(size:13)) in 10 files (= status bar text)
@@ -51,7 +51,7 @@ enum DesignTokens {
     /// value across the 5 zones using ZoneContentView).
     ///
     /// Single-source-of-truth for the "distance from content to
-    /// zone edge" value. Changing this token (= e.g. boss decides
+    /// zone edge" value. Changing this token (= e.g. design decision
     /// 12 PT tomorrow) adjusts all 5 zones uniformly without
     /// per-zone edits.
     ///
@@ -59,7 +59,7 @@ enum DesignTokens {
     /// toolbar / inline content inset used by Apple Finder / Photos
     /// / Music / Mail per developer.apple.com/design/human-
     /// interface-guidelines/layout 'Use consistent spacing').
-    /// Was 18 PT in a prior OOB (= boss 9/8 'that value is too
+    /// Was 18 PT in a prior (see OOB.md #2026-09-08) — 'that value is too
     /// wide; the Apple API default spacing isn't PT, it's a
     /// semantic name'; = the semantic name is '.small' = 8 PT).
     static let zoneContentInset: CGFloat = 8
@@ -295,12 +295,12 @@ enum DesignTokens {
     /// that wants to match the sidebar one parameter (= token-driven
     /// color = Light/Dark mode + future Apple default updates = 1-line
     /// change instead of N).
-    // (2026-09-23): boss '聊天区背景颜色没有实现'.
+    // (2026-09-23): the directive '聊天区背景颜色没有实现'.
     // The default `.controlBackgroundColor` (= Apple HIG sidebar
     // tint) produced RGB(28,28,28) in chat zone (= NSSplitViewItem
     // underlying visual effect layer bleed-through) vs. sidebar
     // RGB(34) (= macOS list(.sidebar) material). The 6-RGB-unit
-    // difference was visible to the eye. Boss '就用 apple 颜色
+    // difference was visible to the eye. the directive '就用 apple 颜色
     // 表达示，改成和左栏接近的颜色就好'.
     //
     // Apple HIG path: use the dynamic NSColor that the macOS

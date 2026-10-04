@@ -12,10 +12,10 @@
 // The service takes pure closures (= loadShelves, loadBooks,
 // loadReferences) instead of a LibraryStoring reference — = no change
 // to LibraryStores / BookStore.init / 12 test fixtures (= the
-// a leak that the boss rejected).
+// a leak that the user rejected).
 //
 // b differs from the reverted v1.68a (= same idea, =
-// the boss accepted the architecture but rejected the rest of the
+// the user accepted the architecture but rejected the rest of the
 // a patch because it leaked changes into LibraryStores /
 // BookStore.init / 12 test fixtures — none of those are touched
 // here).
@@ -155,13 +155,13 @@ final class SidebarService {
             }
 
             // Reference library = one root node whose children
-            // are the auto-classified CLC categories (= boss
+            // are the auto-classified CLC categories (= the canonical
             // 2026-09-22 OOB '资料库自动分类目录的展示' = the
             // 22 CLC top-level categories that auto-classify
             // references; = user can pick a category in the
             // sidebar to filter the middle-column card grid).
             //
-            // incremental display rule (= boss 8/30 OOB):
+            // incremental display rule (= (see OOB.md #2026-08-30)):
             // 'category folders grow with the content, instead of
             // being laid out all at once' — only categories with
             // >= 1 reference are visible. Empty categories are
@@ -661,7 +661,7 @@ extension SidebarService {
     /// delete a shelf on disk (= shelves/<uuid>/).
     /// The default shelf (`00000000-0000-0000-0000-000000000000`)
     /// cannot be deleted (= the legacy ShelfDeleteError
-    /// guard; = boss OOB 'Reference Library cannot be deleted').
+    /// guard; = 'Reference Library cannot be deleted').
     func deleteShelf(id: UUID) throws {
         guard id.uuidString != "00000000-0000-0000-0000-000000000000" else {
             throw MutationError.cannotDeleteDefault

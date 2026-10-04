@@ -51,7 +51,7 @@
 //  surface (= NSToolbar item / ControlSize.small / ContentUnavailableView /
 //  HIG minimum hit area) and the existing wenshu call sites that consume
 //  it. The comment policy applies (= engineering facts only, no
-//  ticket / boss / Q-numbers / version narrative).
+//  ticket / status / Q-numbers / version narrative).
 //
 //  ============================ MIGRATION RULE ============================
 //
@@ -97,7 +97,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// (= Apple Mail / Finder sidebar leading icon).
     ///
     /// Used by: list row leading, sidebar leading glyphs, inline row
-    /// decorations. Weight: .regular (= boss 9/15 "细体" canonical
+    /// decorations. Weight: .regular (= (see OOB.md #2026-09-15)细体" canonical
     /// macOS toolbar weight).
     case inlineSmall
 
@@ -226,7 +226,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
 
     /// Apple HIG weight for this case. The ≥38 PT zone (= emptyStateHero
     /// / avatar / cover) uses .thin per (see OOB.md #2026-09-17) SF Symbols 6
-    /// weight split rule. Smaller zones use .regular (= boss 9/15 "细体"
+    /// weight split rule. Smaller zones use .regular (= (see OOB.md #2026-09-15)细体"
     /// canonical macOS toolbar weight).
     var fontWeight: Font.Weight {
         switch self {
@@ -291,7 +291,7 @@ enum IconRendering: Sendable, Equatable {
     /// chrome default for toolbar icons at <38 PT).
     case hierarchical
 
-    /// Per-layer explicit color (= 1-3 N `Color` values; = boss 9/15
+    /// Per-layer explicit color (= 1-3 N `Color` values; = the 2026-09-15
     /// "use SF Symbols 6 (3rd gen) with palette rendering" canonical
     /// default for SF Symbols 6).
     case palette
@@ -367,7 +367,7 @@ struct SFIcon: View {
         case nil:
             // No explicit rendering = apply the Apple HIG per-zone default:
             //   ≥38 PT zone (= emptyStateHero / avatar / cover) = .monochrome
-            //   <38 PT zone (= everything else) = .hierarchical (= boss 9/15 canonical)
+            //   <38 PT zone (= everything else) = .hierarchical (= (see OOB.md #2026-09-15))
             if style.pointSize >= 38 {
                 image.symbolRenderingMode(.monochrome).foregroundStyle(color)
             } else {
@@ -383,7 +383,7 @@ struct SFIcon: View {
 /// API (= `.body` / `.callout` / `.caption` / `.title2` / `.footnote`)
 /// + the point size (= SwiftUI default; = Apple HIG default).
 ///
-/// The case names walk Apple HIG text-style terminology (= boss
+/// The case names walk Apple HIG text-style terminology (= the 2026-09-15
 /// 2026-10-01 = "字体字号样式 走 HIG 术语"; = 本 case 名 = Apple
 /// Text Style 原名).
 enum WenshuTextStyle: Sendable, Equatable, CaseIterable {

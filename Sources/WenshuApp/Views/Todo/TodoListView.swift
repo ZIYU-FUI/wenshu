@@ -6,10 +6,10 @@
 //  KanbanView: when `bookStore.selectedBookId` OR the local `@State
 //  scope` changes, reload from disk.
 //
-//  Layout (Boss B-09 acceptance):
+//  Layout (B-09 acceptance):
 //    - Top bar: Todo title + scope picker + "+ Add Todo" button
 //      (= "Add Todo" rather than Kanban's "New" — visual distinction
-//      per boss Issue 1: "Kanban and Todo look like the same thing").
+//      per Issue 1: "Kanban and Todo look like the same thing").
 //    - Input row: text field + priority picker + return-to-add
 //      (Apple HIG inline-create).
 //    - Body: per-status sectioned list (= pending / inProgress /
@@ -83,7 +83,7 @@ struct TodoListView: View {
             content
         }
         .padding(DesignTokens.spacingStandard)
-        // boss acceptance fix: flexible sizing (zone size controlled by splitter, not view).
+        // acceptance fix: flexible sizing (zone size controlled by splitter, not view).
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
         .onChange(of: scope) { _, _ in reloadFromDisk() }
@@ -141,7 +141,7 @@ struct TodoListView: View {
     /// disabled-control feedback).
     /// visual distinction: button label = "+ Add Todo" (= not
     /// Kanban's "+ New"). This + the priority chip on each row
-    /// (= below) are the two boss-Issue-1 differentiators.
+    /// (= below) are the two Issue-1 differentiators.
     private var inputRow: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: DesignTokens.spacingTight) {
@@ -216,7 +216,7 @@ struct TodoListView: View {
             // Section by status (Apple HIG inset-grouped style).
             // Pending first (= highest attention), then inProgress,
             // then completed + cancelled (= collapsible to the bottom
-            // but kept visible per boss spec 'todo list shows per-book items').
+            // but kept visible per the spec 'todo list shows per-book items').
             VStack(alignment: .leading, spacing: 12) {
                 section(title: "待处理 (\(itemsByStatus(.pending).count))", status: .pending)
                 section(title: "进行中 (\(itemsByStatus(.inProgress).count))", status: .inProgress)
@@ -358,7 +358,7 @@ struct TodoListView: View {
 /// priority chip (= B-13 visual distinction), due-date (= red if
 /// overdue), delete button + context actions per status.
 ///
-/// visual distinction (= boss Issue 1, "Kanban and Todo look the same"):
+/// visual distinction (= Issue 1, "Kanban and Todo look the same"):
 ///   - **Priority chip** is now a colored text-in-capsule badge with
 ///     the priority label (= "High" / "Urgent" etc.) — not just a tiny
 ///     icon. This makes the priority visible at a glance, distinct

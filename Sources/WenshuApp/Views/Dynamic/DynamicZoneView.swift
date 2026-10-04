@@ -4,7 +4,7 @@
 // dynamic zone shouldyes tab (chat zone ChatZoneTabBar),
 // shouldyes sheet (sheet, tab).
 //
-//  Tab order (per boss 8/24 explicit feedback):
+//  Tab order (per the 2026-08-24 explicit feedback):
 // - tab1: task (Todo) — TodoListView (h07)
 // - tab2: progress (Sub-agent progress) — SubAgentProgressView
 // - tab3: search (Search) — SearchPanel (o06)
@@ -23,7 +23,7 @@ import SwiftUI
 /// (ChatZoneTabBar: top bar SF Symbol + .accentColor in progress).
 struct DynamicZoneView: View {
     enum DynamicTab: String, CaseIterable, Identifiable {
-        // bossverificationfix (2026-08-24 OOB): Boss 'yeskanban, change
+        // wenshu-verification-fix (2026-08-24 OOB): the directive 'yeskanban, change
         // ' = dynamic zone should be kanban (kanban), not progress (debug).
         // = kanban + only.
         // Hide: progress (debug feature) + search (per 5c9ef2ee6 + chat zone pattern).
@@ -45,7 +45,7 @@ struct DynamicZoneView: View {
         }
     }
 
-    // bossverificationfix: persist tab selection across launches.
+    // wenshu-verification-fix: persist tab selection across launches.
 // apple-001 HIG absent batch: migrated wenshu.tabIndex.aiDynamic
 // from @AppStorage to @SceneStorage (= Apple HIG macOS 14+ per-window
 // tab state restoration). Each window has its own active dynamic
@@ -65,9 +65,9 @@ struct DynamicZoneView: View {
     @State private var memoryEntries: [MemoryAdapter.MemoryEntry] = []
 
     var body: some View {
-        // boss 8/31 OOB: alignment: .leading so the top tab bar
+        // (see OOB.md #2026-08-31): alignment: .leading so the top tab bar
         // (= DynamicZoneTabBar) is left-aligned instead of default
-        // center-aligned (= SwiftUI VStack defaults to .center). Boss
+        // center-aligned (= SwiftUI VStack defaults to .center).
         // spec: " teb iconchange" = the dynamic zone tabs should
         // sit at the left edge (= 18 PT padding from pane left) like
         // every other zone's top bar.
@@ -134,7 +134,7 @@ struct DynamicZoneTabBar: View {
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        // followup Boss UX round A ( of refactor): DynamicZoneTabBar
+        // followup UX round A ( of refactor): DynamicZoneTabBar
         // body now delegates to `PaneTabBar` generic component (= ComponentIndex.md
         // Level 3.2). Was 135 LOC, now ~10 LOC. Behavior preserved 1:1.
         //
