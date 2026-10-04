@@ -185,7 +185,7 @@ extension LLMWikiTool {
                     name: "llm_wiki",
                     description: """
                     Run the LLM Wiki pipeline (= the canonical v0.28
-                    pure-data 4-layer derivation per boss 2026-09-28
+                    pure-data 4-layer derivation per (see OOB.md #2026-09-28)
                     OOB B10: raw/ + entities/ + abstracts/ + indexes/).
                     This is the canonical agent-side surface for the
                     LLM Wiki pipeline (= background research-driven

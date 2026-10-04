@@ -1,7 +1,7 @@
 // Sources/WenshuApp/Views/Workspace/PaneView.swift
 //
 // The per-pane registry helper used by `TabContentDispatcher`.
-// Per boss 2026-10-03 '清多余的层' OOB (= strip wenshu-summary
+// Per (see OOB.md #2026-10-03) '清多余的层' OOB (= strip wenshu-summary
 // layers that conflate with the Apple-canonical shape), the
 // legacy 'Zone' prefix was retired (= this view hosts 1 pane of
 // the multi-column layout, not 1 of the legacy 6 zones).
@@ -29,11 +29,11 @@ struct PaneView: View {
     /// AppState is the global @Observable source of truth.
     /// PaneView reads it directly (= no @Binding chain).
     @Environment(AppState.self) private var appState
-    // P2-06 (audit 2026-09-24) + overabstraction cleanup 2026-10-03:
     // sidebarSelection moved from ShellState to WorkspaceUIState.
     @Environment(WorkspaceUIState.self) private var workspaceUI
 
-    /// -fix (= boss 9/3 'PreviewPane double-click did not open the document'):
+    /// -fix (= (see OOB.md #2026-09-03) — 'PreviewPane double-click
+    /// did not open the document'):
     /// PaneView also needs BookStore to read reference bodies
     /// (= same as WorkspaceView's openCardInEditor). Injected via
     /// the existing .environment(bookStore) call sites in App.swift
@@ -92,7 +92,7 @@ struct PaneView: View {
             // book-open icon) + trailingButton (New + Import =
             // preserved from the pre-v1.69e legacy
             // NewLibraryOutlineView.zoneHeaderButtons).
-            // boss 8/31 OOB: PaneView forwards its
+            // (see OOB.md #2026-08-31) — PaneView forwards its
             // sidebarSelection binding to AppleSidebarView so
             // the sidebar click → preview pane scope works.
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
@@ -102,12 +102,12 @@ struct PaneView: View {
         case .projectPreview:
             // Old 6-zone projectPreview = 2 tabs (Preview / Map).
             // Book-open-check + waypoints.
-            // followup Boss UX round 24: preview tab content uses
+            // followup UX round 24: preview tab content uses
             // .ultraThinMaterial (= was DesignColor.zoneSurface =
             // solid Color(nsColor: .controlBackgroundColor) = NOT
             // Liquid Glass).
             //
-            // boss 8/31 OOB: PaneView is the LEGACY
+            // (see OOB.md #2026-08-31) — PaneView is the LEGACY
             // pane registry path (= RegisteredPanes.swift). Callers
             // don't pass a sidebarSelection binding (= they have no
             // concept of book folder scoping), so this preview pane
@@ -115,9 +115,8 @@ struct PaneView: View {
             // WorkspaceView path uses PreviewPane directly with the
             // computed previewScope (= supports all 4 sidebar scopes).
             //
-            // boss 9/7 OOB ', top bar, yestop bar.
-            // caneditor, yes': the search bar
-            // belongs BELOW the ZoneContentView's tab strip (= inside
+            // (see OOB.md #2026-09-07) — the search bar belongs
+            // BELOW the ZoneContentView's tab strip (= inside
             // PreviewPane's body, = first element rendered after the
             // tab strip). Removed the previous commit's VStack
             // wrapper (= was ABOVE the tab strip, = wrong position).
@@ -127,24 +126,27 @@ struct PaneView: View {
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
-                    // fix (= boss 9/3 'double-clicking card did not open the document'):
-                    // PaneView's caller L561 is the ACTIVE path
-                    // (= not WorkspaceView's caller L355 which is dead
-                    // code). Route double-click to PaneView's own
-                    // openCardInEditor (= same logic as WorkspaceView's;
-                    // = the shared service land in a follow-on surface).
+                    // fix (= (see OOB.md #2026-09-03) — 'double-clicking card did
+                    // not open the document'): PaneView's caller
+                    // L561 is the ACTIVE path (= not WorkspaceView's
+                    // caller L355 which is dead code). Route
+                    // double-click to PaneView's own openCardInEditor
+                    // (= same logic as WorkspaceView's; = the shared
+                    // service land in a follow-on surface).
                     //
-                    // 2026-09-03 boss 9/3 follow-up: explicitly call
-                    // `self.openCardInEditor()` (= Swift strict capture
-                    // requirement = PreviewPane's @escaping closure
-                    // captured `self` implicitly, and the implicit
-                    // `openCardInEditor()` resolution went to the wrong
-                    // scope = the closure ran but the method was not
-                    // resolved to PaneView). Explicit `self.`
-                    // fixes the resolution.
+                    // 2026-09-03 follow-up: explicitly call
+                    // `self.openCardInEditor()` (= Swift strict
+                    // capture requirement = PreviewPane's
+                    // @escaping closure captured `self` implicitly,
+                    // and the implicit `openCardInEditor()`
+                    // resolution went to the wrong scope = the
+                    // closure ran but the method was not resolved
+                    // to PaneView). Explicit `self.` fixes the
+                    // resolution.
                     onDoubleClick: { source in
-                        // BOSS 9/8 'clicking the Dufu card opens a tab with wrong name':
-                        // forward the clicked CardSource to openCardInEditor.
+                        // (see OOB.md #2026-09-08) — 'clicking the Dufu card opens a
+                        // tab with wrong name': forward the clicked
+                        // CardSource to openCardInEditor.
                         self.openCardInEditor(source: source)
                     },
                     previewSortOrder: .constant(.pinyinFirstLetter)
@@ -193,18 +195,19 @@ struct PaneView: View {
             ZoneContentView(
                 zoneSlug: "editor",
                 tabs: [
-                    // fix (= boss 9/2 'git grep BEFORE patch' rule):
-                    // see L279 fix comment above; replace placeholder with
-                    // EditorView (= the toolbar + mode toggle surface).
+                    // fix (= (see OOB.md #2026-09-02) — 'git grep BEFORE patch'
+                    // rule): see L279 fix comment above; replace
+                    // placeholder with EditorView (= the toolbar +
+                    // mode toggle surface).
                     (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorView())),
                     (WenshuI18n.t("tab.title.outline"), "puzzle", AnyView(OutlinePanel())),
-                    // removed the "Backlinks" tab here (= boss 9/2 OOB
-                    // 'the Backlinks area still has to be removed'). Backlinks are now
-                    // surfaced via the chrome bottom-right "Backlinks 0"
-                    // label click → popover (= spec user stories 8 + 11).
+                    // removed the "Backlinks" tab here (= (see OOB.md #2026-09-02) — 'the Backlinks
+                    // area still has to be removed'). Backlinks are
+                    // now surfaced via the chrome bottom-right
+                    // "Backlinks 0" label click → popover (= spec
+                    // user stories 8 + 11).
                 ],
                 // (= the trailing button surface): expand/shrink
-                // trailing button. Boss 8/26 OOB 'it is one button, not a tab
                 // teb' = won't be a tab (= no selected underline), just
                 // a button at the right edge of the tab bar.
                 trailingButton: AnyView(
@@ -214,16 +217,18 @@ struct PaneView: View {
         }
     }
 
-    /// -followup (= boss 9/3 'fix it until I can use it'): PaneView
-    /// needs its own openCardInEditor (= WorkspaceView's openCardInEditor
-    /// is in a DIFFERENT struct = can't share via this same View type).
+    /// -followup (= (see OOB.md #2026-09-03) — 'fix it until I can
+    /// use it'): PaneView needs its own openCardInEditor
+    /// (= WorkspaceView's openCardInEditor is in a DIFFERENT
+    /// struct = can't share via this same View type).
     /// Code is mostly duplicated from WorkspaceView's openCardInEditor
     /// + the book-scope branch reads the actual .md file (= same walk
     /// As `PreviewPane.loadBookDocs`; the shared service lands in a follow-on surface.
     /// helper into a workspace-level BookDocLoader service so both
     /// callers share it).
-    /// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
-    /// the card opened a new tab named 'preview-sample'):
+    /// (see OOB.md #2026-09-08) — 'clicking the Dufu card opens a
+    /// tab with wrong name' (= clicking the card opened a new tab
+    /// named 'preview-sample'):
     /// the previous version took no arguments and used
     /// `filtered.first` (= always the topmost card, not the actually
     /// clicked one). New version accepts an OPTIONAL `source`

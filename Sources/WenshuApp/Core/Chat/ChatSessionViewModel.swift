@@ -217,7 +217,7 @@ final class ChatViewModel {
         // than marketed). Decision: use official value (1M) so context budgeting
         // matches docs; actual API may reject >512K (vendor issue, not wenshu).
         // Note: Live API /v1/models does NOT return context_length field (= no API
-        // to query per Boss 8/25 'no API to fetch from, right?' = boss confirmed no API).
+        // to query per the 2026-08-25 'no API to fetch from, right?' = the user confirmed no API).
     var contextMax: Int = 1_000_000
 
     private let conductor: WenshuConductor?
@@ -375,7 +375,7 @@ final class ChatViewModel {
         }
         if modelIds.isEmpty {
             // No provider keys configured. Fall back to MiniMax hardcoded
-            // list (current WenshuLLMModel scope per boss 8/21).
+            // list (current WenshuLLMModel scope per the 2026-08-21 spec).
             modelIds = WenshuLLMModel.allCases.map { $0.rawValue }
         }
         availableModels = modelIds
@@ -1070,7 +1070,7 @@ final class ChatViewModel {
     /// clear: clear all messages
     /// Archive current
     /// session + context (= reset messages + contextUsed), generate new
-    /// sessionId, persist new session for future writes. Boss spec: 'start a
+    /// sessionId, persist new session for future writes. The spec: 'start a
     /// brand new session. Reload the context'.
     func startNewSession() {
         // 1. Clear in-memory state (= visual reset).

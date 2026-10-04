@@ -85,7 +85,7 @@ enum CardOpenOps {
     /// Resolved card content (= the trio the 3 view-local helpers
     /// all computed as `let (path, content, title)`). Empty
     /// content means "silent no-op" (= the caller checks
-    /// `content.isEmpty` per boss 9/3 'no .alert noise' rule).
+    /// `content.isEmpty` per (see OOB.md #2026-09-03) — 'no .alert noise' rule).
     struct CardTriad: Sendable {
         let path: String?
         let content: String
@@ -135,7 +135,7 @@ enum CardOpenOps {
     ///   (id:)` (= falls back to `reference.summary`).
     /// - `.bookScope(bookId, folderName)` → if the caller passed a
     ///   `.bookDoc(source)` use its doc (= correct book doc per
-    ///   BOSS 9/8 fix); otherwise return a deferred triad (=
+    ///   (see OOB.md #2026-09-08) — fix; otherwise return a deferred triad (=
     ///   empty content). PaneView's view-local file-scan
     ///   overrides this triad before calling `openTab`.
     /// - `.shelfScope` / `.empty` → empty triad.
@@ -151,7 +151,7 @@ enum CardOpenOps {
                 entity.layer == .layerEntities
                     && (category == nil || entity.category == category)
             }
-            // BOSS 9/8 fix: if the caller passed the actually-
+            // (see OOB.md #2026-09-08) — fix: if the caller passed the actually-
             // clicked CardSource, use its entity (= correct card).
             // Otherwise fall back to filtered.first (= legacy
             // behavior for callers that don't pass source).
@@ -178,7 +178,7 @@ enum CardOpenOps {
             // discovery; = WorkspaceView doesn't share it. v0.34
             // fallback = silent no-op (= no .alert, no popup = user
             // feedback comes from PreviewPane being empty).
-            // BOSS 9/8 fix: if the caller passed a .bookDoc source,
+            // (see OOB.md #2026-09-08) — fix: if the caller passed a .bookDoc source,
             // use its doc (= correct book doc).
             if case .bookDoc(let doc) = source {
                 // BookDoc doesn't carry an absolute path (= only
@@ -209,7 +209,7 @@ enum CardOpenOps {
     /// WorkspaceView.openCardInEditor's tail body (= dedup check +
     /// EditorTab construction + appState.openTabs.append +
     /// activeTabId mutation):
-    /// 1. Guard `!triad.content.isEmpty` (= silent no-op per boss
+    /// 1. Guard `!triad.content.isEmpty` (= silent no-op per (see OOB.md #2026-09-03)
     ///    9/3 'no .alert noise').
     /// 2. Duplicate-tab check (= first-200-char fingerprint vs
     ///    `appState.openTabs[*].originalBody.prefix(200)`); when
@@ -222,7 +222,7 @@ enum CardOpenOps {
     ///    OOB 'tab title didn't go to the document name bug' =
     ///    pass title so tab strip shows the real card name instead
     ///    of 'preview-sample') + set `newTab.sourceScope =
-    ///    previewScope` (= v0.40 boss 9/7 'card zone should show
+    ///    previewScope` ((see OOB.md #2026-09-07) — 'card zone should show
     ///    in progress card' = drives sidebar selection on restore)
     ///    + append to `appState.openTabs` + set `appState.activeTabId
     ///    = newTab.id` (= Safari multi-tab strip behavior per
@@ -238,14 +238,14 @@ enum CardOpenOps {
         let title = triad.title
 
         // No content (= no reference in scope OR bookDoc deferred).
-        // Silent no-op per boss 9/3 feedback (= no .alert noise).
+        // Silent no-op per (see OOB.md #2026-09-03) — feedback (= no .alert noise).
         guard !content.isEmpty else {
             return OpenCardResult(openedTabId: nil,
                                  didSwitchExistingTab: false,
                                  contentLength: 0)
         }
 
-        // Duplicate-tab check (= boss 9/3 OOB core requirement).
+        // Duplicate-tab check ((see OOB.md #2026-09-03) — core requirement).
         // If any existing tab's `originalBody` (= the on-disk content
         // = canonical identity, more stable than draft which can be
         // dirty) matches our new content, switch to that tab instead

@@ -3,7 +3,7 @@
 //
 //  Priority + status state machine selector for the multi-key pool.
 //  Ported from hermes-agent `agent/credential_pool.py` priority-based
-//  selection logic (~200 LOC of state machine in `CredentialPool`). Boss
+//  selection logic (~200 LOC of state machine in `CredentialPool`). The
 //  2026-09-04 OOB 'A' requested the dispatch layer (= AuthPool /
 //  FallbackChain / KeychainSelector / AutoRotation).
 //

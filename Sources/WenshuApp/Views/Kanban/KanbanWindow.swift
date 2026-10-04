@@ -1,8 +1,8 @@
 //
-//  KanbanWindow.swift · Wenshu · v1.0.0-m1-shell boss 2026-09-11 OOB
+//  KanbanWindow.swift · Wenshu · v1.0.0-m1-shell (see OOB.md #2026-09-11) OOB
 //
 //  Kanban as an independent macOS window (= the SwiftUI macOS 14+
-//  WindowGroup(id: "wenshu-kanban") per boss 2026-09-11 OOB
+//  WindowGroup(id: "wenshu-kanban") per (see OOB.md #2026-09-11) OOB
 //  'Kanban and Todo — show in dedicated windows. Other Apple apps don't integrate these
 //  into the main window, they just open a separate window — and Kanban boards need lots of horizontal space anyway'.
 //  Per Apple HIG, multi-window apps (= Pages / Numbers / Keynote /
@@ -51,7 +51,7 @@ struct KanbanWindow: View {
 
     var body: some View {
         Group {
-            // -m1-shell boss 2026-09-11 OOB fix (= cua fatal-
+            // -m1-shell (see OOB.md #2026-09-11) OOB fix (= cua fatal-
             // error trace at SwiftUICore/Environment+Objects.swift:34
             // when the kanban button was first clicked): the
             // kanban window is a SIBLING scene to the main
@@ -87,7 +87,7 @@ struct KanbanWindow: View {
         }
         .navigationTitle(WenshuI18n.t("window.kanban.title"))
         .task {
-            // -m1-shell boss 2026-09-11 OOB: use the
+            // -m1-shell (see OOB.md #2026-09-11) OOB: use the
             // shared LibraryLifecycleHook (= same one the main
             // window's LibraryRootView.runLaunch() invokes) to
             // construct BookStore from the .ws root. The hook
@@ -110,7 +110,7 @@ struct KanbanWindow: View {
                 let result = try hook.runLaunch()
                 self.bookStore = result.makeBookStore()
             } catch {
-                // -m1-shell boss 2026-09-11 OOB: if the
+                // -m1-shell (see OOB.md #2026-09-11) OOB: if the
                 // kanban window can't construct its store
                 // (= library path moved, file permissions, etc.)
                 // show the error and stay open so the user can

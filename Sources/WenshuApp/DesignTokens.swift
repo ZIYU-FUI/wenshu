@@ -12,7 +12,7 @@
 // Apple HIG 30 PT toolbar standard, Apple Pages / Mail / Xcode toolbar
 // layout). Use these constants instead of inline numbers.
 //
-// Boss's dual-axis audit found:
+// Dual-axis audit found:
 // - chrome height 30 PT in 3 different places (= LayoutTokens + ZonePerRegionChrome)
 // - chrome padding 18 PT in 5 different places (LayoutTokens + inline)
 // - .font(.system(size:13)) in 10 files (= status bar text)
@@ -51,7 +51,7 @@ enum DesignTokens {
     /// value across the 5 zones using ZoneContentView).
     ///
     /// Single-source-of-truth for the "distance from content to
-    /// zone edge" value. Changing this token (= e.g. boss decides
+    /// zone edge" value. Changing this token (= e.g. design decision
     /// 12 PT tomorrow) adjusts all 5 zones uniformly without
     /// per-zone edits.
     ///
@@ -59,7 +59,7 @@ enum DesignTokens {
     /// toolbar / inline content inset used by Apple Finder / Photos
     /// / Music / Mail per developer.apple.com/design/human-
     /// interface-guidelines/layout 'Use consistent spacing').
-    /// Was 18 PT in a prior OOB (= boss 9/8 'that value is too
+    /// Was 18 PT in a prior (see OOB.md #2026-09-08) — 'that value is too
     /// wide; the Apple API default spacing isn't PT, it's a
     /// semantic name'; = the semantic name is '.small' = 8 PT).
     static let zoneContentInset: CGFloat = 8
@@ -73,7 +73,7 @@ enum DesignTokens {
     // Per-application-position usage notes live in each token's
     // doc-comment below (= readers can grep a wenshu file for the
     // position name to find the canonical token). 8/4 alignment rule
-    // (= boss 2026-09-30 '调整方向按 8 或者 4 的倍数'): every value is
+    // (= (see OOB.md #2026-09-30) '调整方向按 8 或者 4 的倍数'): every value is
     // either a multiple of 8 (= 8 / 16 / 24) or 4 (= 4 / 12 / 20)
     // or sub-multiple (= 1 / 2).
 
@@ -272,7 +272,7 @@ enum DesignTokens {
     /// Per-pane tab selected-state underline height (= 1 PT, Apple HIG
     /// standard for tab bar selected indicator). The line is rendered
     /// with `.clipShape(Capsule())` for fully rounded ends (= two
-    /// round caps on both sides, per boss 2026-08-30 OOB ', ').
+    /// round caps on both sides, per (see OOB.md #2026-08-30) OOB ', ').
     static let tabUnderlineHeight: CGFloat = 1
 
     // MARK: - Dividers
@@ -295,12 +295,12 @@ enum DesignTokens {
     /// that wants to match the sidebar one parameter (= token-driven
     /// color = Light/Dark mode + future Apple default updates = 1-line
     /// change instead of N).
-    // (2026-09-23): boss '聊天区背景颜色没有实现'.
+    // (2026-09-23): the directive '聊天区背景颜色没有实现'.
     // The default `.controlBackgroundColor` (= Apple HIG sidebar
     // tint) produced RGB(28,28,28) in chat zone (= NSSplitViewItem
     // underlying visual effect layer bleed-through) vs. sidebar
     // RGB(34) (= macOS list(.sidebar) material). The 6-RGB-unit
-    // difference was visible to the eye. Boss '就用 apple 颜色
+    // difference was visible to the eye. the directive '就用 apple 颜色
     // 表达示，改成和左栏接近的颜色就好'.
     //
     // Apple HIG path: use the dynamic NSColor that the macOS
@@ -835,7 +835,7 @@ enum DesignTokens {
 
     // MARK: - v0.71 P1 batch 4: full-project dual-axis audit
     //
-    // (= boss 2026-09-12 OOB 'do a full-project dual-axis' = apply the dual-axis
+    // (= (see OOB.md #2026-09-12) OOB 'do a full-project dual-axis' = apply the dual-axis
     // chrome dimension system across the whole project; = extract every
     // hardcoded magic number to DesignTokens so the X-axis + Y-axis
     // chrome dimensions are centrally controlled).

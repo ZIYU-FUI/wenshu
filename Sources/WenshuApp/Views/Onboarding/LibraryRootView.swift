@@ -8,7 +8,7 @@
 //  terminology.
 //
 //  Apple HIG reference: 1 library file = 1 .lrlibrary (Lightroom) /
-//  .photoslibrary (Photos) / .fcpbundle (FCP). Boss said wenshu uses 'repository'.
+//  .photoslibrary (Photos) / .fcpbundle (FCP). Wenshu uses 'repository'.
 //  Selected path stored in UserDefaults 'wenshu.libraryPath'.
 //
 //  LibraryRootView behavior:
@@ -34,12 +34,13 @@ import UniformTypeIdentifiers
 
 /// LibraryRootView: Routes between onboarding (first launch) and main app.
 ///
-/// Trigger condition (Boss 8/24 OOB said: 'if persistent info has no library file info,
-/// need to go to library-creation/library-selection page'):
+/// Trigger condition ((see OOB.md #2026-08-24) — 'if persistent
+/// info has no library file info, need to go to library-creation/
+/// library-selection page'):
 /// - if UserDefaults 'wenshu.libraryPath' empty → onboarding
 /// - if UserDefaults 'wenshu.libraryPath' set but path doesn't exist
-///   on disk (= boss deleted repository externally, or repository was on a now-disconnected
-///   drive) → onboarding (re-pick)
+///   on disk (= the user deleted the repository externally, or the
+///   repository was on a now-disconnected drive) → onboarding (re-pick)
 /// - else (= path set + path exists) → main app LayoutShellView [no longer defined post-v0.72 — AppRootScene + NavigationSplitView; = ADR-0007 pending ADR-0010; = type references kept as historical landmarks pending 老板 拍]
 struct LibraryRootView: View {
     // LibraryRootView now owns the library + appearance
@@ -57,18 +58,20 @@ struct LibraryRootView: View {
     }
 
     private var shouldShowOnboarding: Bool {
-        // boss acceptance fix (Boss 8/24 OOB): trigger condition strict.
+        // wenshu-acceptance-fix: trigger condition strict.
         //
-        // Boss said 'anbaiqiang.ws' = wenshu repository = .ws directory (= per v0.26 spec ticket 015,
+        // (see OOB.md #2026-08-24) — wenshu repository = .ws
+        // directory (= per v0.26 spec ticket 015,
         // .ws is now a macOS-style package directory, NOT a single file;
         // LibraryRootView.swift:296-309 creates Info.plist inside it).
         //
         // Trigger = libraryPath empty OR path doesn't end with '.ws' OR
         // .ws directory doesn't exist on disk.
         //
-        // bossverificationfix #2 (Boss 8/24 OOB follow-up): trigger only
-        // checked path existence, too lax. Boss saved '/Users/anbaiqiang/Documents'
-        // (= parent folder, not anbaiqiang.ws file) → existed on disk → trigger
+        // wenshu-verification-fix #2 ((see OOB.md #2026-08-24)
+        // follow-up): trigger only checked path existence, too lax.
+        // The user saved '/Users/anbaiqiang/Documents' (= parent
+        // folder, not anbaiqiang.ws file) → existed on disk → trigger
         // passed → main UI shown, even though no .ws file created.
         // amendment: .ws is a DIRECTORY (not file); require path ends
         // with '.ws' AND directory exists AND Info.plist is readable.
@@ -100,7 +103,7 @@ struct LibraryRootView: View {
     @State private var bookStore: BookStore?
     @State private var commandPaletteModel = CommandPaletteModel()
     @State private var commandPaletteVisible: Bool = false
-    // v2.8a (boss 2026-09-28 OOB B2): Spotlight search sheet
+    // v2.8a ((see OOB.md #2026-09-28) OOB B2): Spotlight search sheet
     // visibility (= driven by the Cmd-F ⌘F keyboard binding).
     @State private var spotlightVisible: Bool = false
     @State private var editMode = LayoutEditMode()
@@ -126,8 +129,8 @@ struct LibraryRootView: View {
         content
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
-            // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
-            // audit ticket 1): the canonical macOS 27 SwiftUI window
+            // macOS 27 doc-alignment (see OOB.md #2026-09-18) OOB '全都改一下',
+            // audit ticket 1: the canonical macOS 27 SwiftUI window
             // background is the `.containerBackground(for: .window)`
             // modifier applied at the root view inside WindowGroup.
             // Per developer.apple.com/documentation/swiftui/view/
@@ -139,30 +142,31 @@ struct LibraryRootView: View {
             // standard-control surface is missing Apple's Liquid
             // Glass tonal layer). Setting it to
             // `.windowBackground` (= Apple-managed
-            // NSColor, NOT a custom RGB; per boss 9/2 OOB '你所有用的
-            // 颜色，都是 API 给的, 不要自定义') gives the window its
-            // canonical Apple HIG background tone (= the 1 NSColor
-            // pane content fills, paired with `.controlBackgroundColor`
-            // for chrome, where the Apple-managed ~10% brightness
-            // delta between the two IS the visible boundary between
-            // pane content and chrome = the canonical 2-layer pattern
-            // from `pane-chrome-canonic-pattern.md`).
+            // NSColor, NOT a custom RGB; per (see OOB.md #2026-09-02)
+            // OOB '你所有用的颜色，都是 API 给的, 不要自定义')
+            // gives the window its canonical Apple HIG background
+            // tone (= the 1 NSColor pane content fills, paired with
+            // `.controlBackgroundColor` for chrome, where the
+            // Apple-managed ~10% brightness delta between the two IS
+            // the visible boundary between pane content and chrome =
+            // the canonical 2-layer pattern from
+            // `pane-chrome-canonic-pattern.md`).
             .containerBackground(.windowBackground, for: .window)
             // s filename shouldn't be shown either':
             // drop the `.navigationSubtitle(libraryPath.lastPathComponent)`.
             // It was originally added (= ticket 008, commit a0e9b509d) to
             // match Apple's Pages / Numbers 'document basename in the
-            // window subtitle' pattern, but per the boss's most recent
-            // visual iteration the column-top subtitle (= 'anbaiqiang.ws'
-            // in the screenshot) is noise on a single-library app (= the
-            // user knows which library they opened = the .ws picker is
-            // onboarding-only = no per-document title bar is needed).
-            // Per Apple HIG Inventory 2026-09-06 the API is still
-            // available for future use (= .navigationSubtitle remains
+            // window subtitle' pattern, but per (see OOB.md #2026-09-19)
+            // the column-top subtitle (= 'anbaiqiang.ws' in the
+            // screenshot) is noise on a single-library app (= the
+            // user knows which library they opened = the .ws picker
+            // is onboarding-only = no per-document title bar is
+            // needed). Per Apple HIG Inventory 2026-09-06 the API
+            // is still available for future use (= .navigationSubtitle remains
             // imported at the call site below via SwiftUI re-export;
             // = we just don't call it from this root view anymore).
             // 
-            // REMOVED. Per boss 2026-09-10 OOB 'Apple Pages/Numbers/
+            // REMOVED. Per (see OOB.md #2026-09-10) OOB 'Apple Pages/Numbers/
             // Keynote doesn't hide the right column' + 'Apple doesn't provide a default collapse button for the right column',
             // inspector is permanently visible (= no toggle, no
             // hide affordance). NavigationSplitShell wires
@@ -176,7 +180,7 @@ struct LibraryRootView: View {
                 CommandPaletteView(model: commandPaletteModel)
                     .navigationTitle(WenshuI18n.t("command_palette.title"))
             }
-            // v2.8a (boss 2026-09-28 OOB B2): Cmd-F ⌘F triggers the
+            // v2.8a ((see OOB.md #2026-09-28) OOB B2): Cmd-F ⌘F triggers the
             // Spotlight search sheet (= Apple HIG hidden-button +
             // keyboardShortcut pattern; = the binding lives here so
             // the sheet is available regardless of which zone is
@@ -223,7 +227,7 @@ struct LibraryRootView: View {
             // Commit 6b removed the NavigationSplitShell wrapper layer
             // (= the wenshu-summary abstraction that conflated wenshu-
             // specific column-binding plumbing with Apple's
-            // NavigationSplitView). Per boss 2026-10-03 OOB '清多余的
+            // NavigationSplitView). Per (see OOB.md #2026-10-03) OOB '清多余的
             // 层' = strip wenshu-summary layers that conflate with the
             // Apple-canonical shape.
             //
@@ -278,10 +282,10 @@ struct LibraryRootView: View {
             // bookStore.books.count is correct on the first render.
             self.bookStore?.reloadAllBooks()
         } catch {
-            // -m1-shell boss 2026-09-10 OOB 'UI doesn't load, just spins forever':
+            // -m1-shell (see OOB.md #2026-09-10) OOB 'UI doesn't load, just spins forever':
             // the previous `#if DEBUG print` was suppressed in
-            // release builds (= the boss is running a release .app
-            // bundle). NSLog works in both DEBUG and RELEASE so the
+            // release builds (= the canonical macOS distribution channel).
+            // NSLog works in both DEBUG and RELEASE so the
             // user can see the actual lifecycle error from
             // Console.app (= the standard macOS log viewer; = the
             // same path the previous `[wenshu.library]` and
@@ -290,12 +294,13 @@ struct LibraryRootView: View {
             // shelves root, or a thrown error inside
             // LibraryBootstrapper.ensureValidStructure) would
             // leave bookStore = nil forever and the window stuck
-            // on the loading spinner (= exactly what boss saw).
+            // on the loading spinner (= the symptom reported during
+            // the 2026-09-10 audit).
             NSLog("[wenshu.library.lifecycle] runLaunch failed: %@", String(describing: error))
         }
     }
 
-    /// v2.8a (boss 2026-09-28 OOB B2): handle a Spotlight result
+    /// v2.8a ((see OOB.md #2026-09-28) OOB B2): handle a Spotlight result
     /// pick. Currently the dispatcher is a stub (= logs the docId
     /// + dismisses the sheet); = future tickets can wire this to
     /// chapter / reference / outline navigation once the
@@ -305,7 +310,7 @@ struct LibraryRootView: View {
     private func handleSpotlightPick(docId: String) {
         NSLog("[wenshu.spotlight] pick docId=%@", docId)
 
-        // v2.9d T35 (boss 2026-09-28 OOB A8 polish): the
+        // v2.9d T35 ((see OOB.md #2026-09-28) OOB A8 polish): the
         // editor tab title now uses the mirror entry's title
         // (= falls back to the docId when the mirror has no
         // entry); = the canonical user-facing label per
@@ -381,7 +386,7 @@ struct LibraryOnboardingView: View {
     let onLibraryPicked: (URL) -> Void
 
     /// Apple HIG Inventory 2026-09-06 listed `.fileImporter` as a
-    /// missing API (0 hits). Per boss 2026-09-10 'add HIG APIs that
+    /// missing API (0 hits). Per (see OOB.md #2026-09-10) 'add HIG APIs that
     /// are currently absent', replace the legacy NSOpenPanel call
     /// below with SwiftUI's `.fileImporter` modifier (= Apple-
     /// standard sheet UX; macOS 14+).
@@ -391,7 +396,7 @@ struct LibraryOnboardingView: View {
         VStack(spacing: DesignTokens.spacingSection) {
             Spacer()
 
-// bossverificationfix (Boss 8/24 OOB): (books.vertical) replace LOGO.
+// wenshu-verification-fix ((see OOB.md #2026-08-24)):
 // (= use wenshu-original-fanbai.png directly).
 // .colorInvert() converts -blue ink to white text. .resizable +
 // .aspectRatio keeps aspect ratio.
@@ -404,8 +409,9 @@ struct LibraryOnboardingView: View {
 //   to load PNG from absolute path inside .app bundle.
 Group {
     if let nsImage = loadWenshuLogo() {
-        // bossverificationfix (Boss 8/24 OOB): 'yes' = show the
-        // PNG as-is (gray-blue calligraphic ink), don't .colorInvert.
+        // wenshu-verification-fix ((see OOB.md #2026-08-24)):
+        // 'yes' = show the PNG as-is (gray-blue calligraphic ink),
+        // don't .colorInvert.
         // .colorMultiply(.white) makes the ink truly white
         // (consistent across light/dark mode).
         Image(nsImage: nsImage)
@@ -414,7 +420,7 @@ Group {
             .frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)
     } else {
         // Fallback: SF Symbols 6 canonical 'text.book.closed' if PNG load fails
-        // (boss 2026-09-02: SF Symbol fully replaced).
+        // ((see OOB.md #2026-09-02): SF Symbol fully replaced).
         SFIcon("text.book.closed", style: .inlineSmall, color: .white)
     }
 }
@@ -434,10 +440,11 @@ Group {
             }
 
             VStack(spacing: DesignTokens.spacingModerate) {
-                // bossverificationfix (Boss 8/24: 'don't'):
-                // - 2 buttons = / open (macOS, not)
-                // - ' / '.ws' / 'Final Cut Pro' (boss don't)
-                // - boss ' → primary text = '
+                // wenshu-verification-fix: 2 buttons (= open / import) match the
+            // macOS standard 'New' / 'Open' save panel pattern (= the
+            // '.ws' extension and 'Final Cut Pro' library picker are
+            // not shown to the user). The primary button label uses
+            // 'Open' (= the macOS HIG standard; = not a custom label).
                 Button {
                     showSavePanel()
                 } label: {
@@ -463,22 +470,20 @@ Group {
 
             Spacer()
         }
-        // -m1-shell boss 2026-09-10 OOB 'initial size, too small':
-        // the onboarding body has no explicit outer frame, so
-        // `.windowResizability(.contentSize)` (= applied at the
-        // Scene root in AppRootScene) shrinks the window to the
-        // VStack's intrinsic content size (= roughly the cover
-        // thumbnail + a few buttons = ~360 PT wide x ~500 PT tall
-        // in default layout = the small launcher-sized window
-        // boss observed 9/10). Force a canonical onboarding
-        // window size = 640 x 720 PT (= Apple HIG installer sheet
-        // canonical; = big enough to show the logo + 2-line title +
-        // body + 2 buttons + hint at full readability, = small
-        // enough to not feel like a modal blocking the user's
-        // workspace). The user's macOS still lets them resize
-        // from this canonical size (= .contentSize keeps the
-        // window resizable; = the .frame(minWidth:idealWidth:
-        // maxHeight:) is just a starting size, not a hard cap).
+        // (see OOB.md #2026-09-10) — `.windowResizability(.contentSize)`
+            // shrinks the window to the VStack's intrinsic content
+            // size (= roughly the cover thumbnail + a few buttons =
+            // ~360 PT wide x ~500 PT tall in default layout = the
+            // small launcher-sized window observed during the
+            // 2026-09-10 audit). Force a canonical onboarding
+            // window size = 640 x 720 PT (= Apple HIG installer sheet
+            // canonical; = big enough to show the logo + 2-line title +
+            // body + 2 buttons + hint at full readability, = small
+            // enough to not feel like a modal blocking the user's
+            // workspace). The user's macOS still lets them resize
+            // from this canonical size (= .contentSize keeps the
+            // window resizable; = the .frame(minWidth:idealWidth:
+            // maxHeight:) is just a starting size, not a hard cap).
         .frame(minWidth: 640, idealWidth: DesignTokens.onboardingWindowSize.width, maxWidth: 800, minHeight: 720, idealHeight: DesignTokens.onboardingWindowSize.height, maxHeight: 900)
         .background(Color.clear)
         // Apple HIG Inventory 2026-09-06: .fileImporter was 0 hits.
@@ -513,9 +518,10 @@ Group {
         panel.title = WenshuI18n.t("auto2.libraryrootview.l472.h40947105")
         panel.message = WenshuI18n.t("auto2.libraryrootview.l473.h20911334")
         panel.prompt = WenshuI18n.t("auto2.libraryrootview.l474.h92696757")
-        // bossverificationfix (Boss 8/24 OOB): default filename = NSUserName() + ".ws"
-        // NSUserName() = current Mac username (Apple API, returns "anbaiqiang"
-        // on 's machine). Boss 'shouldyes anbaiqiang'.
+        // wenshu-verification-fix ((see OOB.md #2026-08-24)): default
+        // filename = NSUserName() + ".ws" NSUserName() = current
+        // Mac username (Apple API, returns "anbaiqiang" on this
+        // machine). The expected result: 'yes' = anbaiqiang.
         let username = NSUserName()
         panel.nameFieldStringValue = "\(username).ws"
         panel.nameFieldLabel = "仓库名"
@@ -530,7 +536,7 @@ Group {
             panel.allowedContentTypes = []
         }
 
-        // bossverificationfix (Boss 8/24 OOB 'create, '): NSSavePanel
+        // wenshu-verification-fix ((see OOB.md #2026-08-24) — 'create,'):
         // returns URL on OK but does NOT actually create the directory.
         // For .ws registered as com.apple.package (= Finder bundle),
         // caller must create the package directory. Call createWenshuWorkspace
@@ -548,7 +554,7 @@ Group {
         }
     }
 
-// MARK: - Bundle creation helper (Boss 8/24 OOB fix)
+// MARK: - Bundle creation helper ((see OOB.md #2026-08-24) fix)
 
 }  // close LibraryOnboardingView struct
 
@@ -587,13 +593,15 @@ extension LibraryOnboardingView {
                 try? data.write(to: infoPlistURL)
             }
         }
-        // bossverificationfix (Boss 8/24 OOB 'fileicon, can LOGO '):
-        // Set the wenshu LOGO PNG as the Finder icon for the .ws package.
-        // Apple HIG: NSWorkspace.shared.setIcon(_:forFile:options:) writes
+        // wenshu-verification-fix ((see OOB.md #2026-08-24) —
+        // 'fileicon, can LOGO'): Set the wenshu LOGO PNG as the
+        // Finder icon for the .ws package. Apple HIG:
+        // NSWorkspace.shared.setIcon(_:forFile:options:) writes
         // icon into the file's resource fork / icon services metadata.
-        // bossverificationfix (Boss 8/24 OOB ', SF,, '):
-        // Use SF Symbol fill book icon (= book.fill) instead of wenshu LOGO PNG.
-        // Per Apple HIG: SF Symbol fill variant for package icon.
+        // wenshu-verification-fix ((see OOB.md #2026-08-24) — 'use SF
+        // Symbol fill book icon'): Use SF Symbol fill book icon
+        // (= book.fill) instead of wenshu LOGO PNG. Per Apple HIG:
+        // SF Symbol fill variant for package icon.
         // Render SF Symbol to NSImage at 1024x1024, then setIcon.
         if let symbolImage = renderSFSymbol("book", size: 1024) {
             let workspace = NSWorkspace.shared
@@ -639,4 +647,3 @@ extension LibraryOnboardingView {
         return nil
     }
 }
-

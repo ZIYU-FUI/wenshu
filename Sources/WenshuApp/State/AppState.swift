@@ -1,7 +1,7 @@
 // Sources/WenshuApp/State/AppState.swift
 //
-// boss 8/31 OOB "option A for cross-zone communication"
-// (= adopted = global @Observable + @Environment injection).
+// (see OOB.md #2026-08-31) — adopted: global @Observable +
+// @Environment injection (option A for cross-zone communication).
 // This file centralizes cross-zone UI state (formerly scattered
 // as @Binding across 4 view layers = WorkspaceView -> PaneRenderer
 // -> TabContentDispatcher -> PaneView -> AppleSidebarView,
@@ -14,14 +14,14 @@
 // 2. Single source of truth (= one place for cross-zone signals).
 // 3. Zero plumbing (= no @Binding chain to thread through new
 //    views).
-// 4. Boss can debug = `print(workspaceUI.sidebarSelection)` directly
+// 4. The user can debug = `print(workspaceUI.sidebarSelection)` directly
 //    (= vs grep NotificationCenter post names across N files).
 // 5. Apple-native (= no 3rd-party dep, AGENTS.md §11.1 stays
 //    unchanged).
 //
 // Per-window ownership: each WindowGroup instance creates its own
-// AppState via `@State private var appState = AppState()` (= per
-// boss 8/27 OOB multi-window future-proofing).
+// AppState via `@State private var appState = AppState()` (= per-window
+// multi-window future-proofing; = (see OOB.md #2026-08-27)).
 //
 // Adding a new cross-zone signal = add 1 var here, done. No init
 // signature changes, no binding chain updates.
@@ -110,16 +110,16 @@ final class AppState {
     // (= current callers: 0 readers in this commit; = future
     // chrome widget reads from `editorCounters.wordCount`).
 
-    // (= boss 9/2 OOB 'multi-tab editor, Safari style'):
+    // (= (see OOB.md #2026-09-02) — multi-tab editor, Safari style):
     // open document tabs in the editor zone. Each tab = one open
     // document (= independent draft, mode, auto-save task, file
     // watcher). activeTabId identifies the currently focused tab.
     // Single source of truth across views (= TabContentDispatcher,
     // EditorView, any future cross-zone tab bar).
-    // boss 9/7 OOB 'delete, ': persist
-    // openTabs + activeTabId across launches (= JSON in UserDefaults).
-    // Empty array on launch = no persisted tabs = editor zone shows
-    // an onboarding hint instead of the samplePreviewBody.
+    // (see OOB.md #2026-09-07) — persist openTabs + activeTabId
+    // across launches (= JSON in UserDefaults). Empty array on launch
+    // = no persisted tabs = editor zone shows an onboarding hint
+    // instead of the samplePreviewBody.
     var openTabs: [EditorTab] = [] {
         didSet {
             persistOpenTabs()
@@ -130,8 +130,8 @@ final class AppState {
     // has no document (= LLM can edit). non-nil = the user has this
     // chapter's tab open AND that tab is the currently-active one
     // (= LLM tool calls into this path throw `chapterFocusedByBoss`).
-    // chatVisible gate (= LLM can edit when boss is in chat) lives
-    // at the call site (= EditorView computes the final
+    // chatVisible gate (= LLM can edit when the user is in chat)
+    // lives at the call site (= EditorView computes the final
     // isChapterLockedByLLM using its @Environment(WorkspaceUIState.self)
     // because AppState cannot hold @Environment-bound state).
     var focusedChapterPath: String? {
@@ -141,7 +141,7 @@ final class AppState {
         }
         // chapter-focus-lock 2026-09-28: setter exists so the
         // conductor's retry wrapper can clear the focus lock when
-        // the boss's chapter-edit gate fires (= auto-Allow path).
+        // the chapter-edit gate fires (= auto-Allow path).
         // The setter is also used by the future Allow/Deny UI to
         // restore the prior value after a dialog decision. Production
         // code outside the focus-lock retry path does not write
@@ -159,11 +159,12 @@ final class AppState {
             guard newValue == nil else {
                 return
             }
-            // Boss releases focus by either closing the active tab or
-            // switching to chat. We pick the chat-switch path because
-            // it preserves the tab (= the boss can return). Setting
-            // Setting chatVisible is owned by WorkspaceUIState (= environment-
-                        // injected) so we route via AppStateLocator when set;
+            // The active user releases focus by either closing the active
+            // tab or switching to chat. We pick the chat-switch path
+            // because it preserves the tab (= the user can return).
+            // Setting chatVisible is owned by WorkspaceUIState (=
+            // environment-injected) so we route via AppStateLocator
+            // when set;
             // otherwise we drop the active tab (= the chapter tab
             // simply goes inactive and the editor reload shows the
             // agent's edits).
@@ -199,7 +200,7 @@ final class AppState {
         }
     }
 
-    /// UserDefaults keys for openTabs persistence (= boss 9/7 OOB).
+    /// UserDefaults keys for openTabs persistence (= (see OOB.md #2026-09-07)).
     /// Mirrors the existing llmModel / sidebarSelection pattern in
     /// this same file (= small JSON-blob pattern; no SQLite needed
     /// since openTabs is bounded to the editor-zone session state).
@@ -364,7 +365,7 @@ final class AppState {
         // so this assignment does NOT trigger a write back to
         // UserDefaults on launch (= pure read-side migration).
         self.llmModel = UserDefaultsStore.shared.string(forKey: .llmModel)
-        // boss 9/7 OOB: restore persisted open tabs BEFORE
+        // (see OOB.md #2026-09-07) — restore persisted open tabs BEFORE
         // any view reads appState.openTabs (= EditorView's
         // .onAppear reads it). Sets openTabs via the regular
         // assignment (= triggers didSet → persistOpenTabs = write
@@ -399,8 +400,9 @@ struct PersistedEditorTab: Codable {
 // View-local @State on EditorView (= draft, originalBody,
 // mode, documentPath, autoSaveTask, fileWatcher). Each tab = one open
 // document with independent state; = when the user opens a 2nd
-// document via double-click (= boss 9/2 OOB scenario), it creates a
-// new tab without disturbing the current tab's in-progress edits.
+// document via double-click (= (see OOB.md #2026-09-02) scenario),
+// it creates a new tab without disturbing the current tab's
+// in-progress edits.
 //
 // Lives in AppState (= @Observable); = cross-view reactivity without
 // @Binding plumbing. SwiftUI redraws the editor zone whenever any

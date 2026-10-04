@@ -123,7 +123,7 @@ enum SubAgentRunnerError: Error, Equatable {
     /// System-fault: the sub-agent's multi-turn runTurn exceeded the
     /// turn cap (= MAX_SUBAGENT_TURNS). Recovery: increase the cap or
     /// split the task. Currently NOT retried automatically (= the
-    /// loop is conservative; = boss wants user-visible failure rather
+    /// loop is conservative; = the user wants user-visible failure rather
     /// than silent infinite retry).
     case maxTurnsExceeded(handleID: String, agentName: String, attempted: Int)
 }
@@ -470,7 +470,7 @@ final class SubAgentRunner {
                 // `toolSchemas` only the ones that can actually
                 // run). The system prompt already names the
                 // expected tools in prose; = a missing handler is
-                // a config drift (= boss 2026-09-20 "default-first"
+                // a config drift (= (see OOB.md #2026-09-20) "default-first"
                 // = no fake tools; = rather than injecting a stub
                 // handler we omit the schema).
             }

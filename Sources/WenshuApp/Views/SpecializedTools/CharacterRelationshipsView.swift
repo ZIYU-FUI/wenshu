@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 8: Character Relationships.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView +
 //  PlaceholderView + LongFormGuardrailsView + ReaderExperienceView +
 //  PlotThreadView + GenreFitView + EmotionCurveView = 7 tabs in
 //  the specializedTools pane), this view is the REAL
@@ -40,8 +39,8 @@
 //    S5 (no private types the rest of the app needs): all types
 //        live in CharacterRelationshipTools.swift (= public).
 //
-//  Visual-gate (boss 2026-09-03 auto-pilot rule): this commit
-//  ADDS an 8th tab to the specializedTools pane. Boss acceptance
+//  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
+//  ADDS an 8th tab to the specializedTools pane. The acceptance
 //  required: open SpecializedTools pane, click the new
 //  Character-Relationships tab, add an edge between two
 //  state.characters, see the row in the list + (when applicable) the
@@ -97,7 +96,7 @@ struct CharacterRelationshipsView: View {
     }
 
     private var emptyState: some View {
-        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': use

@@ -90,7 +90,7 @@ enum KanbanRoleGuard {
     }
 
     private static func blockReason(role: KanbanRole, op: KanbanOp, why: String) -> String {
-        return "(role '\(role.displayName)' blocked from '\(op.rawValue)': \(why). boss 8/23 拍: hermes _require_orchestrator_tool parity)"
+        return "(role '\(role.displayName)' blocked from '\(op.rawValue)': \(why). (see OOB.md #2026-08-23)拍: hermes _require_orchestrator_tool parity)"
     }
 }
 

@@ -21,7 +21,7 @@ enum MemoryWriteGate {
 
     /// Decision rules for `memory.add`:
     /// - empty content → block (defensive)
-    /// - content > 500 chars → stageForApproval (boss shouldn't be surprised by big dumps)
+    /// - content > 500 chars → stageForApproval (should not be surprised by big dumps)
     /// - otherwise → allow
     static func evaluateAdd(content: String) -> MemoryWriteDecision {
         if content.isEmpty {

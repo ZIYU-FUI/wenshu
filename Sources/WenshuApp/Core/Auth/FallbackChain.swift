@@ -22,7 +22,7 @@
 //  Stateful logic (= executor's internal counters, request snapshot) lives
 //  inside the actor.
 //
-// dispatch layer 2 of 4. Refs: boss OOB 'A' 2026-09-04.
+// dispatch layer 2 of 4. Refs: the (see OOB.md) 'A' 2026-09-04.
 //
 
 import Foundation

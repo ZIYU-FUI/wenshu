@@ -4,7 +4,7 @@
 //  Agent-behavior settings = wenshu's stable contract for the
 //  LLM's reply style, scope, and surface preferences.
 //
-//  Scope (= v2.4 boss拍 2026-09-25):
+//  Scope (= v2.4 2026-09-25 decision):
 //  - These settings are wenshu-PROVIDED PRESETS, not user-editable
 //    text. Users pick from a closed enum; = same product philosophy
 //    as wenshu's existing AppearanceMode (system / dark / light).
@@ -16,7 +16,7 @@
 //
 //  Anti-pattern (= explicitly NOT done):
 //  - No SOUL.md / AGENTS.md / user-editable markdown loader.
-//    Per v2.4 boss拍 "不允许用户改变 agent 的定义, 风格等".
+//    Per v2.4 2026-09-25 decision: "user cannot change agent definition, style, etc.".
 //    User-customizable soul files would let non-technical users
 //    degrade the LLM into an unusable state (= the wenshu 商业化
 //    product prefers system-managed stable output over user

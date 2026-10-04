@@ -23,7 +23,7 @@ import AppKit
 ///
 /// Kanban + Todo + Canvas + Composer + ForeshadowingGraph + Cron
 /// + Attachments + Manifest + Summaries = 9 IDs (= the 9
-/// features the boss wants as independent windows per Pages /
+/// features the user wants as independent windows per Pages /
 /// Numbers / Keynote's independent document windows pattern).
 ///
 /// Originally defined in the deleted wenshu-summary wrapper layer
@@ -44,10 +44,10 @@ import AppKit
 enum WindowID {
     static let kanban = "wenshu-kanban"
     static let todo = "wenshu-todo"
-    // v2.8b (boss 2026-09-28 OOB B6 + B7 + B9): 4 new
+    // v2.8b ((see OOB.md #2026-09-28) OOB B6 + B7 + B9): 4 new
     // independent windows for previously-unwired features.
-    // Per boss '和老板 todo 一样' (= same shape as the existing
-    // kanban + todo windows).
+    // Per (see OOB.md #2026-09-28) — same shape as the existing
+    // kanban + todo windows.
     static let canvas = "wenshu-canvas"
     static let composer = "wenshu-composer"
     static let foreshadowingGraph = "wenshu-foreshadowing-graph"
@@ -122,7 +122,7 @@ struct AppRootScene: Scene {
 // intrinsic sizing (= sidebar collapses to 8 PT, inspector content
 // goes blank). Stick with .unified.
         .windowToolbarStyle(.unified)
-        // bossverificationfix: .contentMinSize (window doesn't shrink below initial
+        // wenshu-verification-fix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
         // : change to
         // .contentSize so the defaultSize (= 1480 PT width) is
@@ -163,8 +163,8 @@ struct AppRootScene: Scene {
         // intrinsic content size (= the sum of each column's
         // MIN width = sidebar 220 + cards 240 + detail 400 +
         // inspector 240 = 1100 PT; = detail only gets its MIN
-        // width 400 PT = the boss's 'middle column looks narrow' symptom).
-        // Switching to `.contentMinSize` + keeping
+        // width 400 PT (= the symptom reported: 'middle column
+        // looks narrow'). Switching to `.contentMinSize` + keeping
         // `.defaultSize(1480, 980)` means:
         //   - defaultSize 1480 PT = the INITIAL window width
         //   - `.contentMinSize` = window never shrinks BELOW the
@@ -175,8 +175,8 @@ struct AppRootScene: Scene {
         //     (ideal: ...)` because the window is large enough to
         //     accommodate the ideal sum 1340 PT (= sidebar 220 +
         //     cards 240 + detail 600 + inspector 280 = 1340 PT)
-        //     = detail gets 600 PT (= its ideal = the boss's
-        //     'middle column's default width' expectation).
+        //     = detail gets 600 PT (= its ideal = the
+        //     middle column's default width expectation).
         //
         // :
         // initial window frame = 1400x980 logical PT (= Apple HIG
@@ -194,7 +194,7 @@ struct AppRootScene: Scene {
         // initial position to system-determined behavior (= the
         // previous v1.67 launch had the window anchored to the
         // top-left corner of the screen, NOT centered; = the
-        // boss's screenshot showed x≈0, y≈0). Per Apple HIG
+        // screenshot showed x≈0, y≈0). Per Apple HIG
         // developer.apple.com/documentation/swiftui/view/
         // defaultposition: '.center: The window is centered in
         // the visible region of the display that contains it.' =
@@ -236,9 +236,9 @@ struct AppRootScene: Scene {
         // this combination accepts the v0.97 trade-off: drag past
         // ~2200 PT may still trigger the
         // `_postWindowNeedsUpdateConstraints` BPT crash on macOS
-        // 27 (= the original 6-round-history bug); boss has chosen
-        // to accept this trade-off in exchange for the standard
-        // macOS zoom gesture working as expected.
+        // 27 (= the original 6-round-history bug); the user has
+        // chosen to accept this trade-off in exchange for the
+        // standard macOS zoom gesture working as expected.
         .windowResizability(.contentMinSize)
         // the inspector toggle button
         // (= ⌥⌘I = SF Symbols 6 'sidebar-right' icon = the canonical
@@ -259,7 +259,7 @@ struct AppRootScene: Scene {
             // behavior. The chevron + drag header are the Apple
             // canonical affordance.
 
-            // apple-001 + boss real-device test (2026-09-07) fix:
+            // apple-001 + real-device test (2026-09-07) fix:
             // removed the custom `CommandGroup(replacing: .appSettings) { Button("Settings…") }`
             // block. The custom Button was duplicating the macOS system
             // "Settings..." menu item (= which is auto-rendered when the
@@ -287,10 +287,10 @@ struct AppRootScene: Scene {
             // The post-.newItem block below (File > New Project
             // submenu + Import at ⇧⌘I) is preserved.
             CommandGroup(after: .newItem) {
-                // macOS-standard cross-component sync (boss 8/27
-                // OOB): File → is the macOS-standard menu item
-                // (= Cmd+N shortcut) for the file-creation kind. Per boss
-                // 8/27 standing rule 'a new feature should appear
+                // macOS-standard cross-component sync ((see OOB.md #2026-08-27)):
+                // File → is the macOS-standard menu item
+                // (= Cmd+N shortcut) for the file-creation kind. Per
+                // the standing rule 'a new feature should appear
                 // everywhere = synced', this Menu mirrors the toolbar '+'
                 // Menu (= /). Both sub-items post a
                 // NotificationCenter event that the post-v1.69
@@ -328,12 +328,12 @@ struct AppRootScene: Scene {
                         sheetRequests.newShelf += 1
                     }
                 }
-                // boss 8/27 OOB: menusync toolbar 'import' button.
-                // Per the standing rule that a new feature should
-                // appear everywhere = synced, the menu bar gets a
-                // matching import entry (= macOS-standard File → Import
-                // Convention; Cmd+Shift+I is the macOS default shortcut
-                // for File → Import per developer.apple.com/design/
+                // (see OOB.md #2026-08-27) — menu-sync toolbar 'import'
+                // button. Per the standing rule that a new feature
+                // should appear everywhere = synced, the menu bar
+                // gets a matching import entry (= macOS-standard
+                // File → Import Convention; Cmd+Shift+I is the
+                // macOS default shortcut for File → Import per developer.apple.com/design/
                 // human-interface-guidelines/app-architecture/importing-
                 // and-exporting-data). Functionality deferred (= '
                 // '); placeholder posts a
@@ -435,7 +435,7 @@ struct AppRootScene: Scene {
         // can all appear on screen at the same time, but each window has to be unique, the Kanban button
         // can only toggle the Kanban window open/closed, not open multiple Kanban windows': my previous
         // switch to `WindowGroup` (= MULTI-INSTANCE) was the
-        // wrong primitive. Boss wants SINGLE-INSTANCE per window
+        // wrong primitive. The user wants SINGLE-INSTANCE per window
         // type: = clicking the kanban button when the kanban
         // window is closed → opens it; = clicking again when
         // the kanban window is open → brings it to front

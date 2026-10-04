@@ -9,7 +9,7 @@
 // issues block the write (= `EntityIngestion` throws on .error
 // severity); warnings log but do not block.
 //
-// 5 checks (= boss-picked paths from the assistant-readiness.ts
+// 5 checks (= the canonical paths from the assistant-readiness.ts
 // pattern):
 // 1. id present (= non-empty UUID)
 // 2. title present (= non-empty string after trim)
@@ -48,7 +48,7 @@ enum PreflightSeverity: String, Codable, Sendable, Comparable {
 struct PreflightIssue: Identifiable, Hashable, Codable, Sendable {
     let id: String
     let severity: PreflightSeverity
-    /// Chinese user-facing message (= boss 'UI in progress' rule).
+    /// Chinese user-facing message (= the directive 'UI in progress' rule).
     let message: String
     /// Stable code (= user can grep / count; = e.g. "title.empty").
     let code: String
@@ -97,7 +97,7 @@ struct WikiEntityPreflight: Sendable {
             ))
         }
 
-        // Check 3: summary present (= boss 8/26 'card 1 ').
+        // Check 3: summary present (= (see OOB.md #2026-08-26)card 1 ').
         let summaryTrimmed = reference.summary.trimmingCharacters(in: .whitespacesAndNewlines)
         if summaryTrimmed.isEmpty {
             issues.append(PreflightIssue(

@@ -4,10 +4,10 @@
 //  Per-(book × scope) kanban board. Reads + writes a scope-aware kanban
 //  JSON file (= BookKanbanStore). Switches the data source when the
 //  active book OR the active scope changes (= bookStore.selectedBookId
-//  + the local `@State scope`, both read via @Environment per v0.30 boss
+//  + the local `@State scope`, both read via @Environment per v0.30 spec
 // 8/31 OOB 'region' = option A = global @Observable store).
 //
-//  Layout (Boss B-09 acceptance):
+//  Layout (B-09 acceptance):
 // - Top bar: kanban title + scope picker + "+ " button.
 //    - Input row: text field + return-to-add (per Apple HIG inline-create).
 //    - Body: per-status columns (new / ready / running / blocked /
@@ -17,7 +17,7 @@
 //    - Each ticket card: title + status badge + delete button.
 //    - Empty state when no book selected / no tickets.
 //
-// (= boss 2026-09-04 OOB "kanbanissue"): the scope
+// (= (see OOB.md #2026-09-04) OOB "kanbanissue"): the scope
 //  picker (= .menu Picker over the 8 standard sub-folders + book root
 //  + reference library) drives which JSON file the view reads from /
 //  writes to. Scope is a view filter, not a data-layer change.
@@ -78,7 +78,7 @@ struct KanbanView: View {
             content
         }
         .padding(DesignTokens.spacingStandard)
-        // bossverificationfix: flexible size (was: 480x320 min forcing zone to grow).
+        // wenshu-verification-fix: flexible size (was: 480x320 min forcing zone to grow).
         // "=" per ticket 026 v0.26).
         // re-load when the active scope changes (= user picked a
         // different sub-folder / reference library from the picker).
@@ -114,7 +114,7 @@ struct KanbanView: View {
 
     /// Header: kanban title + scope picker + ticket count + json hint.
     /// the scope picker is a `.menu` Picker (= compact for the
-    /// DynamicZone width; boss cadence is `.menu` for narrow zone).
+    /// DynamicZone width; the cadence is `.menu` for narrow zone).
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(WenshuI18n.t("auto.kanbanview.l100.h57246144"))

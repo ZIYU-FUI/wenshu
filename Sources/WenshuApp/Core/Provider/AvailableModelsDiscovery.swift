@@ -8,7 +8,7 @@
 import Foundation
 
 /// One provider's available models (filtered by Keychain presence).
-/// Boss 8/23: provider key show provider defaultModels.
+/// 2026-08-23: provider key show provider defaultModels.
 struct AvailableProviderModels: Sendable, Equatable {
     let provider: Provider
     let models: [String]

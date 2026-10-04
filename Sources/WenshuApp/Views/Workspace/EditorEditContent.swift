@@ -14,7 +14,7 @@
 //  This struct is intentionally minimal (= all persistence /
 //  routing / auto-save Task management lives in the host
 //  WorkspaceView, which passes the 7 let callbacks as the seam).
-//  Per v0.34 B-22 decision (= boss 9/2 OOB), the host owns Task
+//  Per v0.34 B-22 decision (= (see OOB.md #2026-09-02)), the host owns Task
 //  internals; EditorEditContent is decoupled from Task.
 //
 //  Only call site = WorkspaceView's editor pane edit mode;
@@ -34,8 +34,8 @@ struct EditorEditContent: View {
     // chapter-focus-lock 2026-09-28: caller (= EditorView)
     // computes this from AppState.focusedChapterPath vs the tab's
     // documentPath. When true, the LLM holds the cursor for this
-    // chapter path (= the boss has the editor focused); = the
-    // editor flips to read-only so the boss can't type. Pure
+    // chapter path (= the user has the editor focused); = the
+    // editor flips to read-only so the user can't type. Pure
     // rendering surface (= no AppState coupling) is preserved by
     // keeping the predicate decision at the caller boundary.
     let isChapterLockedByLLM: Bool
@@ -48,7 +48,7 @@ struct EditorEditContent: View {
     // started editing) to schedule the auto-save Task; false (= document
     // is saved or just got saved via Cmd+S) to cancel any pending Task.
     // Replaces B-21's onAutoSaveTrigger (= that triggered on every
-    // keystroke, wasting memory creating a fresh Task per char; = boss
+    // keystroke, wasting memory creating a fresh Task per char; = the
     // 9/2 OOB flagged as inefficient). Decoupled from Task internals
     // (= EditorEditContent doesn't know about Task).
     let onDirtyChange: (Bool) -> Void
@@ -92,7 +92,7 @@ struct EditorEditContent: View {
             // (= same engine wrapper as preview, = no scaling
             // between modes).
             //
-            // chapter-focus-lock 2026-09-28: when the boss has this
+            // chapter-focus-lock 2026-09-28: when the user has this
             // chapter's editor tab active (= AppState.focusedChapterPath
             // matches the tab's documentPath), flip isEditable to
             // so the user can't type while the LLM holds the
@@ -113,7 +113,7 @@ struct EditorEditContent: View {
                 // auto-save is NOT triggered on every
                 // keystroke (= that wastes memory creating a fresh
                 // Task per keystroke; = Obsidian-style debounce that
-                // the boss 9/2 flagged as inefficient). Instead,
+                // the user 9/2 flagged as inefficient). Instead,
                 // auto-save runs once per dirty→clean transition
                 // (= Apple HIG standard auto-save = save when the
                 // document transitions from dirty to saved, not on

@@ -36,8 +36,8 @@
 //   S5 (no private types the rest of the app needs): all types
 //       live in PlaceholderScannerTools.swift (= public).
 //
-// Visual-gate (boss 2026-09-03 auto-pilot rule): this commit
-// wires tab 2 of the specializedTools pane. Boss acceptance
+// Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
+// wires tab 2 of the specializedTools pane. The acceptance
 // required: open SpecializedTools pane, click the Placeholder
 // tab, see the list of placeholders from the scanner, add a
 // new placeholder, change its status, remove it, paste chapter
@@ -45,11 +45,10 @@
 
 import SwiftUI
 
-/// Tools pane tab 2: Placeholder (= Placeholder) per v0.29 boss OOB.
+/// Tools pane tab 2: Placeholder (= Placeholder) per v0.29 (see OOB.md).
 ///
 /// **Use this** for the second tab of the specializedTools pane.
 /// Replaces the old BaseView (= which moved to a future ticket
-/// per the v0.29 boss OOB ').
 ///
 /// State: backed by the `PlaceholderScanner` actor (= per-book
 /// JSON sidecar at `books/<bookId>/placeholders.json`).
@@ -99,9 +98,9 @@ struct PlaceholderView: View {
     }
 
     private var emptyState: some View {
-        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
-        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // the unified EmptyStateView component (= 76 PT SF Symbols 6 icon + .regular weight = the canonical macOS 27 inspector icon weight; = standard
         // title/body hierarchy). Same visual treatment as every

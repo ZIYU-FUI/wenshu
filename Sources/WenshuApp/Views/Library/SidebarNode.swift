@@ -14,7 +14,7 @@
 // sidebar gets the Apple HIG canonical surface.
 //
 // b differs from the reverted v1.68a (= same idea, =
-// the boss accepted the architecture but rejected the rest of the
+// the user accepted the architecture but rejected the rest of the
 // a patch because it leaked changes into LibraryStores /
 // BookStore.init / 12 test fixtures — none of those are touched
 // here).
@@ -32,7 +32,7 @@ import Foundation
 /// categories that auto-classify references). When
 /// SidebarService projects the Reference-Library subtree, it
 /// emits one `.referenceCategory` parent per category that has
-/// >= 1 reference (the v0.29 boss 'category folders grow with
+/// >= 1 reference (the v0.29 the directive 'category folders grow with
 /// the content, instead of being laid out all at once' rule).
 /// The category parent's children are the reference leaves.
 ///
@@ -77,7 +77,7 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         // = EntityCategory). Children = the references in that
         // category.
         case referenceCategory
-        // bb boss 2026-09-23 OOB '现在把资料库上面也加一条
+        // bb (see OOB.md #2026-09-23) OOB '现在把资料库上面也加一条
         // 分割线': non-interactive row that renders a horizontal
         // Divider (= the Apple HIG section separator idiom;
         // = same role as the section header divider at the

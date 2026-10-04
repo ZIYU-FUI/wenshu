@@ -12,10 +12,10 @@
 // The service takes pure closures (= loadShelves, loadBooks,
 // loadReferences) instead of a LibraryStoring reference — = no change
 // to LibraryStores / BookStore.init / 12 test fixtures (= the
-// a leak that the boss rejected).
+// a leak that the user rejected).
 //
 // b differs from the reverted v1.68a (= same idea, =
-// the boss accepted the architecture but rejected the rest of the
+// the user accepted the architecture but rejected the rest of the
 // a patch because it leaked changes into LibraryStores /
 // BookStore.init / 12 test fixtures — none of those are touched
 // here).
@@ -116,11 +116,11 @@ final class SidebarService {
 
             var roots: [SidebarNode] = []
 
-            // e boss 2026-09-22 OOB '正常播种五文件夹' (= the
+            // e (see OOB.md #2026-09-22) OOB '正常播种五文件夹' (= the
             // 5 standard folders under each book stay on disk;
             // = LibraryMigrator seeds them).
             //
-            // f boss 2026-09-22 OOB '帮助和测试小说下面的
+            // f (see OOB.md #2026-09-22) OOB '帮助和测试小说下面的
             // 自动生成的目录没有出现，需要实现' (= the default
             // help-doc book + the test novels seeded with '自动
             // 生成' folders on first launch should show their
@@ -155,13 +155,13 @@ final class SidebarService {
             }
 
             // Reference library = one root node whose children
-            // are the auto-classified CLC categories (= boss
+            // are the auto-classified CLC categories (= the canonical
             // 2026-09-22 OOB '资料库自动分类目录的展示' = the
             // 22 CLC top-level categories that auto-classify
             // references; = user can pick a category in the
             // sidebar to filter the middle-column card grid).
             //
-            // incremental display rule (= boss 8/30 OOB):
+            // incremental display rule (= (see OOB.md #2026-08-30)):
             // 'category folders grow with the content, instead of
             // being laid out all at once' — only categories with
             // >= 1 reference are visible. Empty categories are
@@ -217,7 +217,7 @@ final class SidebarService {
                     // = single-click routes to the category
                     // scope immediately).
                     //
-                    // p boss 2026-09-22 OOB '资料库分类,
+                    // p (see OOB.md #2026-09-22) OOB '资料库分类,
                     // 现在显示是的一个字母. 不是中文分类名':
                     // the user-facing title carries the Chinese
                     // displayName (= what the user reads in the
@@ -275,7 +275,7 @@ final class SidebarService {
                     ))
                 }
             }
-            // bb boss 2026-09-23 OOB '现在把资料库上面也
+            // bb (see OOB.md #2026-09-23) OOB '现在把资料库上面也
             // 加一条分割线': insert a non-interactive divider
             // row between the user shelves (= `roots` collected
             // from bookStore.sidebarLoadShelves) and the
@@ -428,7 +428,7 @@ final class SidebarService {
     }
 
     // MARK: - v1.69 reference library auto-classification
-    // (= boss 2026-09-22 OOB '资料库自动分类目录的展示').
+    // (= (see OOB.md #2026-09-22) OOB '资料库自动分类目录的展示').
     //
     // Group references into CLC top-level categories for the
     // sidebar tree (= project the 22-bucket CLC taxonomy onto
@@ -503,18 +503,18 @@ final class SidebarService {
     }
 }
 
-// MARK: - v1.69y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复'
+// MARK: - v1.69y (see OOB.md #2026-09-23) OOB '新建功能, 右边菜单等恢复'
 //
 //  Create + delete + rename business layer for the sidebar.
 //  Restored from the deleted NewLibraryOutlineView.swift
 //  (2366 LOC) after v1.69e `git rm`'d it without re-wiring
-//  (= per boss 2026-09-23 OOB '需要你把新建功能，右边菜单等恢复').
+//  (= per (see OOB.md #2026-09-23) OOB '需要你把新建功能，右边菜单等恢复').
 //
 //  What lives here:
 //   - persistence surface (= FileManager + JSONEncoder/Decoder
 //     for shelvesRoot/, books/<bookId>/book.json, shelf.json).
 //   - reserved-name guard (= rejects "资料库" / "Reference Library"
-//     pre-v0.26 system-shelf names; = boss 2026-09-20 OOB).
+//     pre-v0.26 system-shelf names; = (see OOB.md #2026-09-20) OOB).
 //   - default-shelf-delete guard (= shelf 00000000-... cannot be
 //     deleted; = Reference Library is immutable).
 //   - duplicate-name validation for create + rename.
@@ -661,7 +661,7 @@ extension SidebarService {
     /// delete a shelf on disk (= shelves/<uuid>/).
     /// The default shelf (`00000000-0000-0000-0000-000000000000`)
     /// cannot be deleted (= the legacy ShelfDeleteError
-    /// guard; = boss OOB 'Reference Library cannot be deleted').
+    /// guard; = 'Reference Library cannot be deleted').
     func deleteShelf(id: UUID) throws {
         guard id.uuidString != "00000000-0000-0000-0000-000000000000" else {
             throw MutationError.cannotDeleteDefault

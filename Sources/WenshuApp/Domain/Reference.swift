@@ -343,7 +343,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
 
     /// Strip whitespace / trailing punctuation from a user-supplied
     /// title. CJK characters survive intact (= most references carry
-    /// Chinese names per boss 2026-09-25 e2e tests).
+    /// Chinese names per (see OOB.md #2026-09-25) e2e tests).
     static func sanitizeDisplayTitle(_ raw: String) -> String {
         let collapsed = raw
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)

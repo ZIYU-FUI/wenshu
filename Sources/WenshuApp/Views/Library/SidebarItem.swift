@@ -1,6 +1,6 @@
 // SidebarItem.swift · Wenshu · v1.69c
 //
-// c sidebar MVVM cleanup (= boss 2026-09-22 OOB '老的文件没
+// c sidebar MVVM cleanup (= (see OOB.md #2026-09-22) OOB '老的文件没
 // 删, UI/业务/数据没分离的删掉'): extracted from the deleted
 // NewLibraryOutlineView.swift (the pre-v1.69e 2366-LOC legacy
 // sidebar that packed view body + selection handling + state
@@ -27,14 +27,14 @@ import Foundation
 /// both selection kinds into one Hashable enum.
 enum SidebarItem: Hashable, Codable {
     case book(UUID)
-    // boss 8/31 OOB (sidebar feedback bundle #1+2): shelf
+    // (see OOB.md #2026-08-31) (sidebar feedback bundle #1+2): shelf
     // (= first tree level) is now a clickable tree row, not just a
     // SwiftUI Section header. Tagging it with .shelf(UUID) lets
     // the user select a shelf directly (= will eventually scope preview
     // pane to the shelf; for now it just keeps the shelf row
     // highlighted when selected).
     case shelf(UUID)
-    // boss 8/31 OOB (sidebar feedback bundle #3): folder row
+    // (see OOB.md #2026-08-31) (sidebar feedback bundle #3): folder row
     // (= third tree level, e.g. Worldview / Characters / Chapter Outline / Novel Body /
     // Novel Drafts). Tagging with .folder(bookId, folderName) lets
     // the user select a folder directly; preview pane will scope to
@@ -49,7 +49,7 @@ enum SidebarItem: Hashable, Codable {
 
     static let referenceLibraryRoot = SidebarItem.referenceCategory("__root__")
 
-    // MARK: - v0.30 boss 8/31 OOB: Codable for AppStorage persistence
+    // MARK: - v0.30 (see OOB.md #2026-08-31): Codable for AppStorage persistence
     //
     // Custom JSON encode/decode for @AppStorage (= AppStorage uses
     // String, so we round-trip via JSONEncoder/JSONDecoder). Flat

@@ -15,7 +15,7 @@
 //
 //  Persistence: in-memory only (= column-local; = matches the
 //  pre-existing AppState semantics for these fields; = resets
-//  to default on relaunch per the boss's 'should disappear on
+//  to default on relaunch per the user's 'should disappear on
 //  restart' expectation for column-local UI).
 //
 //  Environment injection: WorkspaceUIState is injected once at
@@ -40,7 +40,7 @@ import Foundation
 /// `@Environment(WorkspaceUIState.self) private var workspaceUI`.
 ///
 /// All fields are in-memory only (= no UserDefaults
-/// persistence); = column-local; = matches the boss's
+/// persistence); = column-local; = matches the user's
 /// 'should disappear on restart' expectation for ephemeral UI
 /// state.
 ///
@@ -60,7 +60,7 @@ final class WorkspaceUIState {
     /// Preview card-grid sort order (= shared across
     /// PreviewPane's cards / unwrap sort menu in the preview
     /// pane's tab bar trailing slot + WorkspaceView's
-    /// previewScope). Default = .pinyinFirstLetter (= boss
+    /// previewScope). Default = .pinyinFirstLetter (= the
     /// spec).
     ///
     /// Removed the 3 independent `@State` copies (= previously

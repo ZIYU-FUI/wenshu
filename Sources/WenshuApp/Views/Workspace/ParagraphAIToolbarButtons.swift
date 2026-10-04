@@ -28,7 +28,7 @@ struct ParagraphAIToolbarButtons: View {
             // `arrow.up.left.and.arrow.down.right` = Apple's
             // built-in expand icon (= "up-left arrow + down-right
             // arrow"; = visually says "make bigger"). Matches the
-            // boss spec's exact `Image(systemName:)` line.
+            // The spec's exact `Image(systemName:)` line.
             Button {
                 onApply(.expand)
             } label: {
@@ -43,7 +43,7 @@ struct ParagraphAIToolbarButtons: View {
             // `arrow.down.right.and.arrow.up.left` = Apple's
             // built-in condense icon (= "down-right arrow +
             // up-left arrow"; = visually says "make smaller").
-            // Matches the boss spec's exact `Image(systemName:)`
+            // Matches the user spec's exact `Image(systemName:)`
             // line.
             Button {
                 onApply(.shorten)
@@ -59,7 +59,7 @@ struct ParagraphAIToolbarButtons: View {
             // `arrow.triangle.2.circlepath` = Apple's built-in
             // refresh icon (= 2 triangles around a circle path; =
             // visually says "say it differently"). Matches the
-            // boss spec's exact `Image(systemName:)` line.
+            // the spec's exact `Image(systemName:)` line.
             Button {
                 onApply(.rephrase)
             } label: {
@@ -71,7 +71,7 @@ struct ParagraphAIToolbarButtons: View {
             .disabled(selectedText.isEmpty || isApplying)
 
             // Menu: shiftTone / simplify / dramatize (= no
-            // shortcut per boss spec; = dropdown next to the 3
+            // shortcut per the spec; = dropdown next to the 3
             // primary buttons). Uses Apple's native `Menu` (= the
             // SwiftUI macOS 13+ API; = no third-party menu lib
             // needed). Each item is a Button so it integrates with

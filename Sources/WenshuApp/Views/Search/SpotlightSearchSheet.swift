@@ -1,10 +1,10 @@
 //
-//  SpotlightSearchSheet.swift · Wenshu · v2.8a ticket T7 (boss 2026-09-28 OOB)
+//  SpotlightSearchSheet.swift · Wenshu · v2.8a ticket T7 ((see OOB.md #2026-09-28) OOB)
 //
 //  Cmd-F ⌘F Spotlight search sheet (= the overlay surface for the
-//  v2.8a Spotlight search feature per boss OOB B2).
+//  v2.8a Spotlight search feature per the (see OOB.md) B2).
 //
-//  Boss intent (= boss 2026-09-28 OOB B2): no separate chrome-level
+//  (see OOB.md #2026-09-28) — no separate chrome-level
 //  UI for search; = Cmd-F triggers a small sheet attached to the
 //  root view. Sheet hosts:
 //    - TextField for the query (= focus on appear; = Cmd-L clears).
@@ -13,7 +13,6 @@
 //    - Empty state (= "No results" hint when the query has no
 //      hits).
 //
-//  Per the v1.44 specialized-tools P1 hermes-port batch pattern
 //  (= pure SwiftUI primitives + SF Symbols 6 + Apple HIG empty
 //  state), this view reuses the same `EmptyStateView` shape as
 //  BookmarkView + TagManagerView.

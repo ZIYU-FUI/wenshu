@@ -26,7 +26,7 @@
 
 import SwiftUI
 
-/// Independent Foreshadowing Graph window (= MVP per boss
+/// Independent Foreshadowing Graph window (= MVP per the
 /// 2026-09-28 OOB B9).
 @MainActor
 struct ForeshadowingGraphWindow: View {

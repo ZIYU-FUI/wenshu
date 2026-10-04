@@ -1,6 +1,6 @@
 // ChatZoneView.swift · Wenshu · v1.91b
 //
-// b (2026-09-23): boss '聊天区的，文字回显层，是否可以变成左栏
+// b (2026-09-23): the directive '聊天区的，文字回显层，是否可以变成左栏
 // 的颜色参数。没有实现，是不是被限制了，是不是 NSV 框架里限制了，
 // 你参数加的位置没有生效'. v1.91 added `.background(DesignTokens.
 // sidebarBackground)` to ChatView's inner ScrollView; = that only
@@ -10,13 +10,12 @@
 // that actually fills the chat column's visible bounds). Same token,
 // correct layer.
 //
-// Extracted from App.swift (formerly inline `struct ChatZoneView: View`)
 // per Apple HIG = one view per file.
 //
 // ChatZoneView = the chat-zone root container (= AI provider model
 // selector + ChatView + HelpTextOverlay).
 //
-// -m1-shell boss 2026-09-10 OOB 'drop the chat zone's top bar entirely, including the archive
+// -m1-shell (see OOB.md #2026-09-10) OOB 'drop the chat zone's top bar entirely, including the archive
 // icon button and the tabs — basically the whole top bar. For the zone's internal padding, if the API
 // provides one, let the API handle the defaults':
 // the chat zone no longer hosts any top-bar chrome (= no
@@ -47,7 +46,6 @@ struct ChatZoneView: View {
     // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper).
 
     @Environment(AppState.self) private var envAppState
-    // P2-06 (audit 2026-09-24) + overabstraction cleanup 2026-10-03:
     // sidebarSelection moved from ShellState to WorkspaceUIState.
     @Environment(WorkspaceUIState.self) private var workspaceUI
     @Environment(WenshuLibrary.self) private var library
@@ -76,7 +74,7 @@ struct ChatZoneView: View {
         // actions delegate back to the presenter (= the view layer
         // is dumb; = no business logic here).
         //
-        // -m1-shell boss 2026-09-10 OOB 'chat zone doesn't fill the width':
+        // -m1-shell (see OOB.md #2026-09-10) OOB 'chat zone doesn't fill the width':
         // apply `.frame(maxWidth: .infinity, maxHeight: .infinity)` to
         // the outer VStack so the chat zone fills the full width
         // and height of its NSSplitViewItem slot.
@@ -95,7 +93,6 @@ struct ChatZoneView: View {
                 // `listProvidersWithKeys().isEmpty` returns false,
                 // so the ChatHelpTextOverlay is dismissed and
                 // the chat zone becomes interactive.
-                // Per the v1.53 (= 19fa2feb9) reverted commit
                 // message (= the same bug was fixed once
                 // before; = the revert was due to that v1.53
                 // branch being part of the broader v1.55/v1.57
@@ -159,7 +156,7 @@ struct ChatZoneView: View {
         .onChange(of: library.selectedBookId) { _, _ in
             Task { await wireBookScopeGuardIfPossible() }
         }
-        // (2026-09-23): boss OOB '我们 UI 有多层，windows 层，
+        // 2026-09-23: '我们 UI 有多层，windows 层，
         // NVS层，聊天回显层，逻辑上，应该是 NVS 层，赋予各区说背景色
         // 和风格。但现在的颜色应该是 NVS 默认的。不知道能否修改。
         // 如果不能，那 windows\NVS 聊天区，变成透明的，聊天回显层
@@ -172,9 +169,9 @@ struct ChatZoneView: View {
         //   Layer 3: SwiftUI ChatZoneView (= our code)
         //   Layer 4: SwiftUI ChatView ScrollView (= our code)
         // Each layer paints a color; = stacking N colored layers
-        // darkens the result (= boss's '颜色多层叠加就无限接近于黑色').
+        // darkens the result (= user's '颜色多层叠加就无限接近于黑色').
         //
-        // Apple HIG fix (= boss spec): make Layer 1 + Layer 2 TRANSPARENT;
+        // Apple HIG fix: make Layer 1 + Layer 2 TRANSPARENT;
         // let Layer 3/4 specify the visible chat column bg.
         //
         // Implementation:
@@ -204,7 +201,7 @@ struct ChatZoneView: View {
         // keeps the v1.91d frame(...) wrap (= NSViewRepresentable
         // in .background() requires explicit frame; = same SwiftUI/AppKit
         // bridging quirk documented in v1.91d).
-        // (2026-09-23): boss '聊天区背景颜色没有实现' OOB follow-up.
+        // (2026-09-23): the directive '聊天区背景颜色没有实现' OOB follow-up.
 // Replace the v1.93 VisualEffectBlur(.sidebar, .withinWindow) with
 // the explicit `DesignTokens.sidebarBackground` Color (= the
 // .controlBackgroundColor Apple HIG sidebar tint).
@@ -214,7 +211,7 @@ struct ChatZoneView: View {
 //   - In opaque NSWindow (= wenshu's default) .withinWindow
 //     blending mode produced a sub-perceptual gradient (= ~14
 //     RGB diff between top + bottom).
-//   - Boss '聊天区背景颜色没有实现' = visual difference vs. sidebar
+//   - the directive '聊天区背景颜色没有实现' = visual difference vs. sidebar
 //     was still there.
 //
 // Why DesignTokens.sidebarBackground works (= previously approved):

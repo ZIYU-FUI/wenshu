@@ -72,7 +72,7 @@ enum LLMWikiOps {
     }
 
     /// Run both derivation + lint (= the operator's one-click
-    /// 'Re-derive wiki' workflow per boss OOB B10).
+    /// 'Re-derive wiki' workflow per the (see OOB.md) B10).
     static func runAll(store: ReferenceStoring) async throws -> LLMWikiOpsResult {
         let stats = try await runDerivation(store: store)
         let findings = try await runLint(store: store)

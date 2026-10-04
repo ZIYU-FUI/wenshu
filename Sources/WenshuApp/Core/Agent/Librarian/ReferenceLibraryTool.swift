@@ -10,7 +10,7 @@
 //
 //  LLM-friendly verbs: create / read / update / delete / list / find /
 //  upsert (= upsert is the primary "research recurring" verb: same
-//  title = same document, edited in place; boss 2026-09-25 directive).
+//  title = same document, edited in place; (see OOB.md #2026-09-25) directive).
 //
 //  Layer model:
 //    - .layerRaw       = the original source the user imports
@@ -325,7 +325,7 @@ actor ReferenceLibraryActor {
         let mergedTags = existing.tags.union(tags)
         // Field updates: only overwrite summary / source / url when
         // the caller explicitly provides non-empty values. Optional
-        // nil keeps the existing value (= boss 2026-09-25 directive:
+        // nil keeps the existing value (= (see OOB.md #2026-09-25) directive:
         // the latest high-level blurb wins; = don't drop a known-good
         // summary just because the extend call didn't pass one).
         do {
@@ -861,7 +861,7 @@ actor ReferenceLibraryActor {
 
 actor ReferenceLibraryTool: Tool {
     let name = "reference_library"
-    let description = "Library-public reference CRUD with self-evolution support. LLM-friendly verbs: create / read / update / delete / list / find / upsert / extend. **Self-evolution protocol (= boss 2026-09-25 directive)**: before creating a brand-new entry, ALWAYS `find` by title (= case-insensitive exact) to check whether the noun already exists in `raw` or `entities`. If found, prefer `extend` (id + section_title + section_body) over `create` — extend appends (= or merges if section_title already exists) a new `## <section_title>` section WITHOUT rewriting the prior body. This is the self-evolution mechanism: the first time the user mentions a noun, `create` writes the initial document; subsequent turns that add context (= 'the user later defines the protagonist lives in Ming-dynasty Xi'an' or 'the user mentions a Xi'an water-basin lamb dish') call `extend` so each refinement accumulates in its own section instead of clobbering the base research. Tags are unioned across extends; = summary / source / url only overwrite when explicitly provided."
+    let description = "Library-public reference CRUD with self-evolution support. LLM-friendly verbs: create / read / update / delete / list / find / upsert / extend. **Self-evolution protocol (= (see OOB.md #2026-09-25) directive)**: before creating a brand-new entry, ALWAYS `find` by title (= case-insensitive exact) to check whether the noun already exists in `raw` or `entities`. If found, prefer `extend` (id + section_title + section_body) over `create` — extend appends (= or merges if section_title already exists) a new `## <section_title>` section WITHOUT rewriting the prior body. This is the self-evolution mechanism: the first time the user mentions a noun, `create` writes the initial document; subsequent turns that add context (= 'the user later defines the protagonist lives in Ming-dynasty Xi'an' or 'the user mentions a Xi'an water-basin lamb dish') call `extend` so each refinement accumulates in its own section instead of clobbering the base research. Tags are unioned across extends; = summary / source / url only overwrite when explicitly provided."
 
     private let actor: ReferenceLibraryActor
 
@@ -885,7 +885,7 @@ extension ReferenceLibraryTool {
                 toolset: "library",
                 schema: ToolRegistrySchema(
                     name: "reference_library",
-                    description: "Library-public reference CRUD with self-evolution support (= wraps FileSystemReferenceStore). Same-title research edits the existing document instead of creating a new one (= boss 2026-09-25 directive). **Self-evolution protocol**: before creating a new entry, ALWAYS `find` by title; = if found, prefer `extend` (id + section_title + section_body) over `create` — extend appends a new `## <section_title>` section without rewriting the prior body. Tags are unioned across extends.",
+                    description: "Library-public reference CRUD with self-evolution support (= wraps FileSystemReferenceStore). Same-title research edits the existing document instead of creating a new one (= (see OOB.md #2026-09-25) directive). **Self-evolution protocol**: before creating a new entry, ALWAYS `find` by title; = if found, prefer `extend` (id + section_title + section_body) over `create` — extend appends a new `## <section_title>` section without rewriting the prior body. Tags are unioned across extends.",
                     inputSchema: [
                         "action": ToolRegistrySchemaProperty(
                             type: "string",

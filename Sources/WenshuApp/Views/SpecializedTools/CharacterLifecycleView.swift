@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 9: Character Lifecycle.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView +
 //  PlaceholderView + LongFormGuardrailsView + ReaderExperienceView +
 //  PlotThreadView + GenreFitView + EmotionCurveView +
 //  CharacterRelationshipsView = 8 tabs in the specializedTools
@@ -52,8 +51,8 @@
 //    S5 (no private types the rest of the app needs): all types
 //        live in CharacterLifecycleTools.swift (= public).
 //
-//  Visual-gate (boss 2026-09-03 auto-pilot rule): this commit
-//  ADDS a 9th tab to the specializedTools pane. Boss acceptance
+//  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
+//  ADDS a 9th tab to the specializedTools pane. The acceptance
 //  required: open SpecializedTools pane, click the new
 //  Character-Lifecycle tab, add a lifecycle event for a
 //  character, see the row in the list + the timeline + (when
@@ -114,7 +113,7 @@ struct CharacterLifecycleView: View {
     }
 
     private var emptyState: some View {
-        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': use

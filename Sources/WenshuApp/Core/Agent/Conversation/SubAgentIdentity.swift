@@ -33,7 +33,7 @@ enum SubAgentIdentity {
         case .archivist: base = archivistPrompt
         case .auditor: base = auditorPrompt
         }
-        // .004: append shared tool restrictions section (boss 8/23).
+        // .004: append shared tool restrictions section (2026-08-23).
         return base + toolRestrictionsSection
     }
 
@@ -255,7 +255,7 @@ enum SubAgentIdentity {
 
     // .004: shared tool restrictions section appended to all 5 sub-agent prompts.
     // dynamic user address (= Settings UI 'Agent user
-    // address' value) replaces hardcoded 'boss'. Bundled text remains compile-time
+    // address' value) replaces hardcoded 'the-legacy-term-for-project-owner'. Bundled text remains compile-time
     // constant (no file I/O, no LLM mutation) but reads user-set value at LLM
     // call time via WenshuConductorIdentity.
     private static let toolRestrictionsSection = """

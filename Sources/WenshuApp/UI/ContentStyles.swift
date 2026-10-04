@@ -38,7 +38,7 @@
 
 import SwiftUI
 
-// MARK: - Content insets (= boss 9/7 'test it, zones 1-2-4 are visibly too large')
+// MARK: - Content insets (= (see OOB.md #2026-09-07)test it, zones 1-2-4 are visibly too large')
 
 /// STYLES-001 (2026-09-07): canonical content inset variants.
 /// Each preset = a complete Apple-canonical edge-to-content

@@ -12,7 +12,7 @@
 //    - ScrollView + Text(AttributedString) for the body
 //    - HStack(status badge) mirrors the card's status pill (= no layout drift)
 //    - .frame(width:height:) per DesignTokens settyIOsheet size (= 600×400
-//      reused for any read-only body sheet; = boss hasn't asked for a
+//      reused for any read-only body sheet; = no current ask for a
 //      dedicated kanban-size token yet).
 //
 //  1 markdown pipeline = the body parses via the same

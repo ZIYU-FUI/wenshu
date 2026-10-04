@@ -156,14 +156,14 @@ struct EditorParagraphAI {
 /// binding (= Apple SwiftUI native; = no third-party shortcut
 /// lib required).
 ///
-/// Disabled rules (= matches the boss spec's
+/// Disabled rules (= matches the user spec's
 /// `disabled(vm.selectedText.isEmpty)` line):
 /// - `selectedText.isEmpty`: nothing to transform.
 /// - `isApplying`: an LLM call is already in flight (= prevent
 ///   double-fire; = Apple HIG actionable-control-while-busy).
 ///
 /// Icon system: SF Symbols 6 for the 3 primary buttons AND the
-/// dropdown menu (= Apple canonical icon layer per boss
+/// dropdown menu (= Apple canonical icon layer per the
 /// 2026-09-15 OOB 'use SF Symbols 6 (3rd gen) with palette
 /// rendering'; = supersedes the v0.34 FormatToolbarButtons
 /// 'SF Symbol + Lucide' mixed era). Both layers now use

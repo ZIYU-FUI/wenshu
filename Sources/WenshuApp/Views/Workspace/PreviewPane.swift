@@ -134,7 +134,7 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 // but PreviewScope is constructed from it; equality comparisons
 // happen upstream via sidebarSelection).
 //
-// boss 9/7 OOB 'directory treecard, ':
+// (see OOB.md #2026-09-07) — 'directory tree card,':
 // PreviewScope is Codable so it can be persisted on the active
 // EditorTab (= sourceScope) and restored on launch (= drives
 // sidebar expansion + preview card display).
@@ -146,7 +146,7 @@ enum PreviewScope: Hashable, Codable {
     /// = just that folder's .md files.
     case bookScope(bookId: UUID, folderName: String?)
     /// Shelf scope. No documents — preview pane shows a hint to
-    /// drill into a book. (= Boss UX: shelves are a tree level, not
+    /// drill into a book. (= the spec: shelves are a tree level, not
     /// a document scope.)
     case shelfScope(shelfId: UUID)
     /// Nothing selected. Preview pane shows an empty state.
@@ -323,15 +323,16 @@ struct PreviewPane: View {
     let scope: PreviewScope
 
     /// card-double-click callback (= replaces the B-13
-    /// empty NSLog placeholders + BUG1 from boss 9/3 macOS visual
-    /// verify). Type = `() -> Void` (= untyped; = matches the existing
+    /// empty NSLog placeholders + BUG1 from the 2026-09-03 macOS
+    /// visual verify). Type = `() -> Void` (= untyped; = matches the existing
     /// single-Card pattern; = the actual card data is read from
     /// the Card's own `source` field at call time, not via closure
     /// capture; = same code path handles both reference and bookDoc
     /// sources since B-02's CardSource enum unification).
     ///
-    /// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
-    /// the card opens a new tab with the wrong name):
+    /// (see OOB.md #2026-09-08) — 'clicking the Dufu card opens a
+    /// tab with wrong name' (= clicking the card opens a new tab
+    /// with the wrong name):
     /// the previous `onDoubleClick: () -> Void` had NO way to
     /// identify which card was clicked (= the closure was bound
     /// at ForEach time but didn't capture per-card state). The
@@ -353,7 +354,7 @@ struct PreviewPane: View {
     var trailingButton: AnyView? = nil
 
     /// : 'carddefaultyes'.
-    /// Default = .pinyinFirstLetter (= boss spec). Owned by
+    /// Default = .pinyinFirstLetter (= the spec). Owned by
     /// WorkspaceView (= shared with PreviewSortMenuButton via
     /// the @State binding) so changing the sort via the tab
     /// bar trailing button re-renders this view's card grid.
@@ -397,7 +398,8 @@ struct PreviewPane: View {
     @Binding var activeTag: String?
 
     /// 'move the position: below the title
-    /// and divider, above the first card': per the boss's request, the
+    /// and divider, above the first card': per the user's request,
+    /// the
     /// search field renders BELOW the 'Assets' section header + Divider
     /// and ABOVE the first card (= the Apple HIG "sticky header +
     /// inline search" pattern, not "search on top of header").
@@ -405,10 +407,10 @@ struct PreviewPane: View {
     /// Why a custom AnyView (= not Apple's `.searchable`):
     /// 1. Apple HIG macOS 27 forces `.searchable` to render at
     ///    the column's trailing edge (= a documented framework
-    ///    limitation in NavigationSplit columns; = boss's
+    ///    limitation in NavigationSplit columns; = the
     ///    preference for a leading-positioned search field can't
     ///    be satisfied with `.searchable`).
-    /// 2. The custom search field IS leading-aligned per the boss's
+    /// 2. The custom search field IS leading-aligned per the
     ///    earlier preference (= "search box on the left").
     ///
     /// Why threaded through WorkspaceView (= not inlined in the
@@ -416,7 +418,7 @@ struct PreviewPane: View {
     /// in tests / kanban previews use it too); = keeping the
     /// search field position inside PreviewPane (= "sticky header
     /// + search below + grid") preserves the component contract
-    /// while satisfying the boss's placement request.
+    /// while satisfying the placement request.
     ///
     /// Default = nil = no custom search field rendered (= the
     /// legacy code path; = old callers and tests still work).
@@ -454,7 +456,7 @@ struct PreviewPane: View {
     /// 'fall back to the legacy internal @State'). The optional
     /// path was the source of the lifecycle-reset bug (= the
     /// internal @State got reset on every PreviewPane rebuild
-    /// = the boss's 'type x, results are unrelated to x' symptom). Now the
+    /// = the 'type x, results are unrelated to x' symptom). Now the
     /// search field lives at the parent level (= Apple's
     /// `.searchable` modifier on ShellMiddleColumn) and the
     /// binding is always non-optional = the search text always
@@ -492,7 +494,7 @@ struct PreviewPane: View {
     ///   + thumbnail)
     /// - 2 cards side by side = 240-300 PT + 16 PT gap = ~256-316 PT
     /// - 280 PT threshold = preview always defaults to 2 columns
-    ///   at the default 20% ratio (= boss's "default two columns"
+    ///   at the default 20% ratio (= the "default two columns"
     ///   requirement)
     /// - If user drags the preview divider to shrink it (< 200 PT),
     ///   falls back to 1 column automatically. Threshold lowered
@@ -500,13 +502,12 @@ struct PreviewPane: View {
     ///   preview-pane width delivered by NSSplitView at weights [2] in
     ///   the 10/20/60/10 preset (= ~210 PT). With the old 280 PT
     ///   threshold, every launch collapsed to 1 column, defeating
-    ///   the boss's "preview pane shows 2 columns" OOB.
-    // -shell (2026-09-08): raised from 130 to 350 (= the boss
-    // wants the cards grid to render as a SINGLE column when
-    // embedded inside the M2 NavigationSplitShell's sidebar
-    // column = the boss's red-line drawing shows 1 column for
-    // the cards zone. 350 (= higher than the typical sidebar
-    // sub-area width of ~250 PT in a 1452-wide window with a
+    ///   the "preview pane shows 2 columns" expectation.
+    // (2026-09-08): raised from 130 to 350 (= the cards
+    // grid renders as a SINGLE column when embedded inside
+    // the M2 NavigationSplitShell's sidebar column = the
+    // red-line drawing shows 1 column for the cards zone.
+    // 350 (= higher than the typical sidebar sub-area width of ~250 PT in a 1452-wide window with a
     // 200-PT sidebar column) ensures the cards grid falls
     // back to 1 column when the preview pane is nested in the
     // shell's sidebar sub-area. The legacy PaneSplitHost path
@@ -516,8 +517,8 @@ struct PreviewPane: View {
     static let twoColumnBreakpoint: CGFloat = 350
 
     var body: some View {
-        // boss 9/7 OOB ', top bar, yestop bar.
-        // caneditor, yes': the search bar
+        // (see OOB.md #2026-09-07) — 'yes, top bar, search can editor, yes':
+        // the search bar
         // belongs BELOW the ZoneContentView's tab strip (= at the same
         // Y as the editor's pencil/arrow/refresh toolbar inside
         // EditorView), NOT above the tab strip. Pattern matches
@@ -531,7 +532,7 @@ struct PreviewPane: View {
         // column. Body content (Group { switch scope }) goes below
         // the search bar.
         //
-        // boss 9/7 OOB 'top barsearchyes':
+        // (see OOB.md #2026-09-07) — 'top bar search: yes':
         // the .padding(DesignTokens.spacingHero) was wrapping
         // the entire VStack (= search bar + body), = creating a visual
         // gap between the ZoneContentView tab strip and the search
@@ -584,8 +585,9 @@ struct PreviewPane: View {
             // - Always rendered (= present in BOTH the populated-
             //   card state AND the empty state; = the previous
             //   empty state hid the search bar visually but the
-            //   search bar still rendered at the top; = the boss's
-            //   report 'in empty state the search bar still goes to the top' = the search bar is
+            //   search bar still rendered at the top; = the
+            //   report 'in empty state the search bar still goes
+            //   to the top' = the search bar is
             //   always there but the title was missing; = adding
             //   the title above the search bar fixes the visual
             //   alignment in both states).
@@ -617,11 +619,11 @@ struct PreviewPane: View {
             // attempt (commit 71daf8311) put the search field in
             // a wrapper HStack ABOVE PreviewPane (= visually wrong
             // = the search field rendered above the title and the
-            // boss immediately asked to move it). The fix = move
+            // immediate ask was to move it). The fix = move
             // the search field into the PreviewPane body, between
             // the title block and the scope body, so it sits
-            // exactly where the boss requested (= below the
-            // divider, above the first card).
+            // exactly where requested (= below the divider,
+            // above the first card).
             //
             // Only render the custom field when the caller passed
             // one (= `customLeadingSearch != nil`). Default = nil
@@ -660,21 +662,22 @@ struct PreviewPane: View {
                     // Why not `.searchable`: `.searchable` is
                     // hard-wired to render in the TRAILING edge of
                     // any column toolbar (= a documented framework
-                    // limitation in NavigationSplit columns = boss's
+                    // limitation in NavigationSplit columns = the
                     // earlier preference for a leading-positioned
                     // search field can't be satisfied). The custom
                     // TextField with `.controlSize(.regular)` gives
                     // us Apple's canonical control size + leading
                     // alignment in one package.
                     //
-                    // Why not hard-code 30 PT: the boss explicitly
-                    // said don't write a hard number; = use Apple's
-                    // semantic expression (= `.controlSize(.regular)`)
-                    // = SwiftUI maps `.regular` to the canonical
-                    // macOS 22 PT control height (= approximately
-                    // 30 PT once SwiftUI's vertical padding and the
-                    // surrounding HStack padding are added; = the
-                    // boss's intuition that 30 PT feels right).
+                    // Why not hard-code 30 PT: the explicit
+                    // direction was 'don't write a hard number;
+                    // = use Apple's semantic expression
+                    // (= `.controlSize(.regular)`) = SwiftUI maps
+                    // `.regular` to the canonical macOS 22 PT
+                    // control height (= approximately 30 PT once
+                    // SwiftUI's vertical padding and the surrounding
+                    // HStack padding are added; = the intuition that
+                    // 30 PT feels right).
                     .frame(maxWidth: .infinity, alignment: .center)
                     // Per Apple HIG / platform-default style: drop the manual BOTTOM padding
                     // around the search field (= the previous
@@ -685,9 +688,10 @@ struct PreviewPane: View {
                     // first card below; = the cards' own LazyVGrid
                     // spacing controls the gap to the next card).
                     //
-                    // Per Apple HIG / platform-default style: per the boss's
-                    // UPDATE 2026-09-11 OOB 'remove all custom padding
-                    // and switch to Apple-standard expressions — find an approximate value': REMOVE both
+                    // Per Apple HIG / platform-default style: per the
+                    // UPDATE 2026-09-11 — 'remove all custom padding
+                    // and switch to Apple-standard expressions — find
+                    // an approximate value': REMOVE both
                     // `.padding(.top, 4)` (= 4 PT divider→search
                     // gap) and `.padding(.horizontal, 8)` (= 8 PT
                     // horizontal inset). The Apple HIG macOS 27
@@ -715,7 +719,7 @@ struct PreviewPane: View {
             //     toolbar slot hosts the search input.
             //   - ⌘F focuses the field (= Apple standard keyboard
             //     shortcut).
-            // boss 8/31 OOB: scope-driven dispatch. Each scope
+            // (see OOB.md #2026-08-31) — scope-driven dispatch. Each scope
             // branch handles its own toolbar (some hide toolbar, e.g.
             // empty state). Padding applied here only (= doesn't
             // affect the search bar's Y position).
@@ -751,7 +755,7 @@ struct PreviewPane: View {
             // cards in the previous scope unmount and ALL cards in
             // the new scope mount in one batch. Animating each card
             // independently would create a staggered cascade that
-            // looks chaotic; = the boss's report 'cards appear
+            // looks chaotic; = the report 'cards appear
             // without any animation, looks ugly' was specifically
             // about the scope-switch case. A single coordinated
             // group-level fade-in reads as a deliberate state
@@ -779,9 +783,9 @@ struct PreviewPane: View {
                         // all .md cards from every book under that
                         // shelf, not show an empty-state hint).
                         // Previous behavior was
-                        // empty-state (boss 8/31 'shelves are a
+                        // empty-state ((see OOB.md #2026-08-31) — 'shelves are a
                         // tree level, not a document scope'); =
-                        // boss 9/22 reversed: shelf IS a document
+                        // (see OOB.md #2026-09-22) — reversed: shelf IS a document
                         // scope (= the union of every book's
                         // .md cards under the shelf).
                         //
@@ -833,14 +837,14 @@ struct PreviewPane: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 Spacer(minLength: 0)
             }
-            // boss 9/8 round 1 'card, searchcard icon,
+            // (see OOB.md #2026-09-08) — round 1 'card, search card icon,
             //, 18pt': body content padding was
             // chromePaddingHero = 20 PT; = bumped to 18 PT.
             //
-            // Boss 9/8 round 2: '18 is a bit wide; Apple API default
+            // (see OOB.md #2026-09-08) — round 2: '18 is a bit wide; Apple API default
             // spacing isn't PT, it's a semantic name'.
             //
-            // Boss 9/8 round 3: 'cards zone having no spacing is
+            // (see OOB.md #2026-09-08) — round 3: 'cards zone having no spacing is
             // not pretty, keep the spacing, all zones use round 2'.
             //
             // Apple HIG = chromePaddingLeading (= horizontal inset
@@ -860,7 +864,7 @@ struct PreviewPane: View {
             // Per Apple HIG / platform-default style: the previous `.padding(8)` (= 8 PT
             // top + bottom + leading + trailing) added a hand-
             // rolled 8 PT gap between the search field above and
-            // the first card below. Per the boss's request to
+            // the first card below. Per the user's request to
             // keep only Apple-HIG defaults, drop the manual
             // top padding (= the cards' own LazyVGrid spacing
             // controls vertical spacing between cards; = no extra
@@ -884,7 +888,7 @@ struct PreviewPane: View {
             // PreviewPane column (= the v1.84 column-level inset).
             // Drop the inner horizontal padding here (= would
             // stack with the column padding = 10 + 10 = 20 PT
-            // total = the boss's explicit complaint). Cards now
+            // total = the explicit complaint). Cards now
             // rely solely on the column-level inset for left +
             // right breathing room (= single source of truth for
             // the PreviewPane gutter = chromePaddingContentHorizontal).
@@ -902,7 +906,7 @@ struct PreviewPane: View {
             .padding(.bottom, DesignTokens.spacingStandard)
                 }
             // Cards fade in on sidebar tap (= no-flicker-stutter,
-            // scope-switch entry animation). Boss 2026-09-24 followup
+            // scope-switch entry animation). 2026-09-24 followup
             // No visible animation: the original approach
             // (= .onChange(of: scope) wrapping withAnimation) does
             // NOT trigger the transition because `scope` is an
@@ -923,7 +927,7 @@ struct PreviewPane: View {
             // .transition on the Group below fires correctly).
             //
             // Scale 0.96 + opacity over 220 ms = the Apple Photos
-            // library-day navigation feel (= boss's reference for
+            // library-day navigation feel (= the reference for
             // the entry transition).
             .animation(.smooth(duration: 0.22), value: scope)
         }
@@ -939,12 +943,12 @@ struct PreviewPane: View {
     /// - TextField bound to `$previewSearchQuery` (.plain style,
     // MARK: - Scope subviews
 
-    /// Reference library scope: existing entity card flow (= boss 8/30
+    /// Reference library scope: existing entity card flow ((see OOB.md #2026-08-30)
     /// OOB: 'card'). category nil = overview (= all
-    /// entities, flat grid per boss 8/30 OOB); non-nil = category filter.
+    /// entities, flat grid per (see OOB.md #2026-08-30)); non-nil = category filter.
     @ViewBuilder
     private func referenceScopeView(category: EntityCategory?) -> some View {
-        // boss 9/7 OOB 'search, ': apply the
+        // (see OOB.md #2026-09-07) — 'search,': apply the
         // search filter (= previewSearchQuery) on top of the
         // category filter. Both filters compose (= all entities →
         // search filter → category filter).
@@ -1097,7 +1101,7 @@ struct PreviewPane: View {
     private func categoryGrid(category: EntityCategory, allEntities: [Reference]) -> some View {
         let inCategory = allEntities.filter { $0.category == category }
         // removed the category header HStack
-        // (= icon + category.displayName + count). Per boss: 'in the reference
+        // (= icon + category.displayName + count). Per the rule: 'in the reference
         // library, the title in the red box in the material preview area is unused, not needed,
         // delete it'. The sidebar already shows the category name (= when
         // user clicks reference-library/History-Geography, the sidebar shows the
@@ -1127,7 +1131,7 @@ struct PreviewPane: View {
                         LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                             ForEach(inCategory) { entity in
                                 Card(source: .reference(entity)) { source in
-                                    // BOSS 9/8 'card,
+                                    // (see OOB.md #2026-09-08) — 'card,
                                     // show':
                                     // the trailing closure here IS
                                     // Card's onDoubleClick (= now
@@ -1169,7 +1173,7 @@ struct PreviewPane: View {
                         // Previously (.contentInsetStyle(.standard,
                         // edges: .vertical) = 18 PT) created a 35 PT
                         // inconsistency vs zone 1 sidebar / zone 3
-                        // editor (= boss 9/7 round 5 'region,
+                        // editor ((see OOB.md #2026-09-07) — round 5 'region,
                         // ' = all 6 zones should
                         // share the same chrome-tier-to-content-tier
                         // inset). The previous 18 PT was Apple's
@@ -1193,14 +1197,14 @@ struct PreviewPane: View {
                 bodyKey: "preview.empty.import_hint"
             )
         } else {
-            // boss OOB 'because the material preview area only displays cards of the currently selected directory,
+            // (per the rule 'the material preview area only displays cards of the currently selected directory,
             // so only card flow is needed, just lay them out continuously' + 'material preview area doesn't need this title,
             // cards just tile flat'.
             //
             // Single flat LazyVGrid (= no per-category section headers,
             // no global count header). Cards flow continuously
             // (= wubi-ji sticky-note style). Sort by current `previewSortOrder`
-            // (= boss 8/30 OOB: default pinyin first letter; user can pick
+            // (= (see OOB.md #2026-08-30) — default pinyin first letter; user can pick
             // creation time or modification time via top-right sort menu icon).
             let sorted = sortEntities(allEntities, by: previewSortOrder)
             GeometryReader { geometry in
@@ -1208,7 +1212,7 @@ struct PreviewPane: View {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                         ForEach(sorted) { entity in
                             Card(source: .reference(entity)) { source in
-                                // BOSS 9/8 'card,
+                                // (see OOB.md #2026-09-08) — 'card,
                                 // show':
                                 // the trailing closure is Card's
                                 // onDoubleClick (= takes CardSource);
@@ -1230,7 +1234,7 @@ struct PreviewPane: View {
         }
     }
 
-    /// Empty-state placeholder (= boss UX 8/27 '...no markdown body
+    /// Empty-state placeholder ((see OOB.md #2026-08-27) — '...no markdown body
     /// = leave a clear empty state, not a blank white pane').
     @ViewBuilder
     /// follow-up 'editor ICON': use
@@ -1321,14 +1325,14 @@ struct PreviewPane: View {
     }
 
     /// Sort book docs by the current sort order (= same menu as entity
-    /// scope, but applied to BookDoc). Boss 8/31 OOB: sort still
+    /// scope, but applied to BookDoc). (see OOB.md #2026-08-31) — sort still
     /// defaults to .pinyinFirstLetter so docs in Chinese filenames
     /// also flow alphabetically.
     private func sortBookDocs(_ docs: [BookDoc], by order: EntitySortOrder) -> [BookDoc] {
         return PreviewPaneOps.sortBookDocs(docs, by: order)
     }
 
-    /// Sort entities by the selected sort order (= boss 8/30 OOB).
+    /// Sort entities by the selected sort order ((see OOB.md #2026-08-30)).
     /// Returns a NEW array (doesn't mutate input). Stable sort by using
     /// id as the tiebreaker (= prevents visual shuffle on re-render
     /// when entities have equal sort keys).
@@ -1349,7 +1353,7 @@ struct PreviewPane: View {
                 ) {
                     ForEach(sorted) { doc in
                         Card(source: .bookDoc(doc)) { source in
-                            // BOSS 9/8 'card,
+                            // (see OOB.md #2026-09-08) — 'card,
                             // show':
                             // forward the BookDoc CardSource
                             // to PreviewPane's onDoubleClick so
@@ -1407,7 +1411,7 @@ struct PreviewPane: View {
         /// already supported before, there should be existing code for it': extract the search-match
         /// predicate (= title / summary / pinyin first-letter
         /// substring) into a shared helper so reference entities
-        /// AND book docs use the same filter (= per boss 'use one common
+        /// AND book docs use the same filter ((see OOB.md — 'use one common
         /// interface'). Moved to PreviewPaneOps (= v1.76 spec-fix
         /// arc; = per spec §9.2 row 6 entry-point list).
 
@@ -1436,10 +1440,10 @@ struct PreviewPane: View {
 }
 
 /// Card view for a single entity in the grid.
-/// Tap = select (= not wired yet). Double-click = open in editor (= boss
-///  hook).
+/// Tap = select (= not wired yet). Double-click = open in editor
+/// (= the card-double-click hook).
 ///
-/// Boss OOB v0.30: 'card, '. Thumbnail
+/// (per the rule) v0.30: 'card, '. Thumbnail
 /// strategy: since Reference entities are text-only (= .md bodies with
 /// no associated image), we use the EntityType icon as a large
 /// prominent thumbnail (= e.g. user-round for character, lightbulb
@@ -1459,7 +1463,7 @@ struct PreviewPane: View {
 ///
 /// CardSource = the only "data shape" the card knows. Adding a new
 /// source type = one new case + one computed-property branch.
-/// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
+/// (see OOB.md #2026-09-08) — 'clicking the Dufu card opens a tab with wrong name' (= clicking
 /// the card opened a new tab named 'preview-sample'):
 /// the source value is now passed from PreviewPane.Card's
 /// onDoubleClick closure to WorkspaceView's openCardInEditor
@@ -1501,7 +1505,7 @@ internal enum CardSource {
         }
     }
 
-    /// One-line summary (boss 8/26 'card style = document key-summary excerpt').
+    /// One-line summary ((see OOB.md #2026-08-26) — 'card style = document key-summary excerpt').
     var summary: String {
         switch self {
         case .reference(let r): return r.summary
@@ -1516,7 +1520,7 @@ private struct Card: View {
 
     @State private var isHovered: Bool = false
 
-    /// boss 9/3 'directorydouble-click': Apple's
+    /// (see OOB.md #2026-09-03) — 'directory double-click': Apple's
     /// `.onTapGesture(count: 2)` was eaten by LazyVGrid's ScrollView
     /// gesture recognizer. The previous attempt (= a timestamp
     /// latch within 300 ms) was too tight (= macOS default
@@ -1541,14 +1545,14 @@ private struct Card: View {
     /// changes (= the ForEach rebuilds the Card when the user
     /// switches sidebar scope; = that is actually the desired
     /// behavior here — switching scope = "fresh start" for the
-    /// double-click detector; = boss OOB 'directory, ').
+    /// double-click detector; = (see OOB.md) — 'directory,').
     @State private var clickCount: Int = 0
     @State private var lastClickTimestamp: TimeInterval = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // THUMBNAIL: icon as a large prominent header
-            // (= boss OOB: cards need thumbnails).
+            // (= cards need thumbnails).
             ZStack {
                 LinearGradient(
                     colors: [Color.accentColor.opacity(DesignTokens.accentTintOpacityHero), Color(nsColor: .quaternaryLabelColor)],
@@ -1614,7 +1618,7 @@ private struct Card: View {
         )
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
-        // boss 9/3 'directorydouble-click': click-count
+        // (see OOB.md #2026-09-03) — 'directory double-click': click-count
         // latch (= more robust than the 300 ms timestamp latch; = the
         // user-reported failure was the timestamp being too tight).
         // every tap increments `clickCount`. The *next*
@@ -1637,7 +1641,7 @@ private struct Card: View {
                 // Second tap within the interval = double click.
                 clickCount = 0
                 lastClickTimestamp = 0
-                // BOSS 9/8 'clicking the Dufu card opens a tab with wrong name':
+                // (see OOB.md #2026-09-08) — 'clicking the Dufu card opens a tab with wrong name':
                 // pass the clicked CardSource (= .reference or
                 // .bookDoc) to the parent's onDoubleClick handler so
                 // it can open the EXACT .md file (= not the topmost

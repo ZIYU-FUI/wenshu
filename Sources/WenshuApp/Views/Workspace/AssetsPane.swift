@@ -175,7 +175,7 @@ struct AssetsPane: View {
         case .folder(let bookId, let folderName):
             return .bookScope(bookId: bookId, folderName: folderName)
         case .tag(let tagString):
-            // v2.9d T37 (boss 2026-09-28 OOB A7 follow-up):
+            // v2.9d T37 ((see OOB.md #2026-09-28) OOB A7 follow-up):
             // a tag selection now sets workspaceUI.activeTag
             // (= PreviewPane reads workspaceUI.activeTag
             // to filter its card grid by tag). Previously
@@ -208,7 +208,7 @@ struct AssetsPane: View {
     //    falls back to the empty body path).
     //
     // The duplicate-tab fingerprint check (= first 200 chars of
-    // content) is preserved (= the boss 9/3 OOB Safari-style
+    // content) is preserved ((see OOB.md #2026-09-03) — Safari-style
     // 'switch to existing tab if same .md already open' behavior
     // still applies; = no duplicate tabs).
     //
@@ -239,7 +239,7 @@ struct AssetsPane: View {
         // = ALL entities across categories). This is the canonical
         // 'material cards' view = Xcode's project navigator cards /
         // Photos' library = unfiltered entity grid per category with
-        // sort = first letter (= the boss 8/30 OOB default).
+        // sort = first letter ((see OOB.md #2026-08-30) — default).
         //
         // Why .referenceScope(nil) and not .empty:
         // - .empty renders Apple's ContentUnavailableView (= an
@@ -272,7 +272,7 @@ struct AssetsPane: View {
         // (= unfiltered overview grid of every entity in the library)
         // ignored sidebar selection entirely (= clicking Philosophy & Religion
         // / Military / Economics / Literature / History & Geography / Other in the sidebar had
-        // no effect on the cards column = the bug boss is reporting).
+        // no effect on the cards column (= the symptom reported).
         // Switch the scope based on `appState.sidebarSelection` so the
         // cards column follows the sidebar:
         //   - sidebarSelection == .referenceLibraryRoot or nil
@@ -333,7 +333,7 @@ struct AssetsPane: View {
             // height) + .padding(.vertical, chromePaddingMicro = 4
             // PT) (= 28 + 4 × 2 = 36 PT total height = the
             // user-specified 36 PT without hard-coding a frame
-            // height = Apple semantic expression per the boss's
+            // height = Apple semantic expression per the user's
             // '不要硬编码, 用 Apple 表达式' rule).
             //
             // Note: dropped `.searchable` because the framework's
@@ -342,7 +342,7 @@ struct AssetsPane: View {
             // `.toolbar` both = trailing in macOS 27 NavigationSplit
             // columns; = a documented framework limitation).
             // The custom TextField below gives us full control
-            // over placement (= left-aligned, per the boss).
+            // over placement (= left-aligned, per the user).
             //
             // Note: PreviewPane does NOT take a `searchText:` arg
             // (= the search state lives in envAppState.searchText,
@@ -359,7 +359,7 @@ struct AssetsPane: View {
                 // editable surface from the start; = not a separate
                 // window). Forward the clicked CardSource so the
                 // correct entity opens (= not the topmost card =
-                // BOSS 9/8 'clicking Dufu card opens tab with wrong
+                // (see OOB.md #2026-09-08) — 'clicking Dufu card opens tab with wrong
                 // name' regression).
                 onDoubleClick: { source in
                     openCardInEditor(source: source)
@@ -403,7 +403,7 @@ struct AssetsPane: View {
                     // chromePaddingMedium (= 8 PT) on each side =
                     // 16 PT total vertical breathing room between
                     // the icon / TextField and the RoundedRectangle
-                    // background top / bottom edges. Boss
+                    // background top / bottom edges. The 16 PT is the user-specified
                     // experimented with 6 PT (= '用六的') and
                     // decided 8 PT (= '还是得 8PT') = the rect
                     // needs more vertical room = the

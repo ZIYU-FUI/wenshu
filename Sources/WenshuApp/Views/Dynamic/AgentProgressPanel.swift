@@ -1,7 +1,7 @@
 //
 //  AgentProgressPanel.swift · Wenshu · v0.41 WIRE-OPENBOX-001
 //
-//  P2 #21 wire progress (boss 2026-09-04 OOB 'wire progress from
+//  P2 #21 wire progress ((see OOB.md #2026-09-04) OOB 'wire progress from
 //  ConversationLoop into OpenBox so user sees step-by-step feedback').
 //
 //  Small panel displayed at the top of DynamicZoneView (the OpenBox
@@ -105,7 +105,7 @@ struct AgentProgressPanel: View {
         }
         .padding(.horizontal, DesignTokens.spacingModerate)
         .padding(.vertical, DesignTokens.spacingStandard)
-        // boss real-device test 2026-09-07: removed
+        // real-device test 2026-09-07: removed
         // .thinMaterial (= Liquid Glass agent progress strip);
         // now uses Color.clear (= no background).
         .background(Color.clear)

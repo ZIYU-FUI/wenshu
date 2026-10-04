@@ -54,8 +54,8 @@ struct MemoryEntryRow: View {
         }
         .padding(DesignTokens.spacingIconic)
         .background(
-            // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
-            // audit ticket 8): HierarchicalShapeStyle.tertiary
+            // macOS 27 doc-alignment ((see OOB.md #2026-09-18) —
+            // '全都改一下', audit ticket 8): HierarchicalShapeStyle.tertiary
             // (= Apple semantic ShapeStyle = auto-adapts to dark
             // mode + Liquid Glass). Color.secondary.opacity(N)
             // is a static gray that does NOT adapt to dark mode

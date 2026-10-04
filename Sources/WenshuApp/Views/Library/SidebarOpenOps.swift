@@ -6,7 +6,7 @@
 //  .scratch/2026-09-23-mvvm-audit/spec.md §9 v1.75 arc).
 //
 //  Per v1.72 KanbanOps template (= @MainActor enum + Result types +
-//  static funcs). Per Q112 1 ticket = 1 file. Per boss rule:
+//  static funcs). Per Q112 1 ticket = 1 file. Per the rule:
 //  "SidebarOpenOps dedupes the verbatim openBookInEditor + openFolderInEditor
 //   pattern (= v1.74d CardOpenOps analog)".
 //

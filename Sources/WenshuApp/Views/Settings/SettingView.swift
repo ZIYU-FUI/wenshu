@@ -1,7 +1,6 @@
 //
 //  SettingView.swift · Wenshu · v0.40 apple-001 phase 3 ticket 5
 //
-//  Extracted from App.swift (formerly inline `struct SettingView: View`
 //  at line 376, = 513 LOC). v0.40 apple-001 phase 3 ticket 5
 //  (HIGH-RISK leg, = the largest single-view extraction in the
 //  App.swift backlog).
@@ -33,7 +32,6 @@
 
 import SwiftUI
 
-/// Settings: Pages (v0.21 ticket 06)
 /// 8/21 'Pages Settingspanel UI, macOS 27 group'
 /// = toolbar (3 segmented tab, Pages, 2)
 /// yes macOS Settings { } Scene autotitle segmented tab button (commit 0082bd1fe + 030a58355)
@@ -52,7 +50,7 @@ struct SettingView: View {
     // key configured (not "MiniMax-M3" which implies a MiniMax provider is
     // selected even when user has no key). UI shows the localized 'please configure the provider first' placeholder
     // when this is empty.
-    // boss acceptance fix (2026-08-24): the canonical
+    // 2026-08-24 acceptance fix: the canonical
     // `@AppStorage("wenshu.llm.model") private var llmModel: String = ""`
     // pattern was retired by the B-05 centralization commit (= single
     // owner = `AppState.llmModel`). This comment preserves the exact
@@ -79,7 +77,7 @@ struct SettingView: View {
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = "general"
     // fix: Settings UI exposes user-set value for agent-to-user address.
     // WenshuConductorIdentity.userAddress reads this key at LLM call time.
-    // Boss 8/24 clarification: default = 'user' (not 'boss' = hermes-side convention).
+    // 2026-08-24 clarification: default = 'user' (not the legacy term = hermes-side convention).
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
     // 
     // the user-tunable Liquid Glass opacity slider + manual @State mirror
@@ -239,7 +237,6 @@ struct SettingView: View {
                     .foregroundStyle(DesignTokens.statusForeground)
             }
             Section(WenshuI18n.t("settings.general.agentAddress")) {
-                // fix (Boss 8/24 OOB): user-set value for agent-to-user address.
                 // Read by WenshuConductorIdentity.userAddress at LLM call time
                 // (dynamic per-chat). User cannot modify via chat per AGENTS.md.
                 // Reason for no .onChange handler: WenshuConductorIdentity.
@@ -260,13 +257,11 @@ struct SettingView: View {
         .formStyle(.grouped)
     }
     private var agentBehaviorTab: some View {
-        // v2.4 (= boss拍 2026-09-25): per-user agent-behavior settings
         // exposed as a closed enum picker (= no free-text input = no
         // SOUL.md / AGENTS.md loader = users cannot degrade the LLM
         // by editing a markdown file). Each setting drives the
         // SystemPrompt stable tier (= see SystemPrompt.swift).
         //
-        // Scope (= v2.4 arc starts here):
         // - Speaking style (formal / casual / literary / concise)
         //
         // Future settings land in the same Section block. Keep the
@@ -395,10 +390,10 @@ struct SettingView: View {
     private func providerApiRow(_ p: Provider) -> some View {
         let hasKey = providersWithKeys.contains(p.slug)
         return HStack(spacing: DesignTokens.spacingModerate) {
-            // -m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
+            // -m1-shell (see OOB.md #2026-09-15) OOB 'use SF Symbols 6':
             // canonical LLM-provider key-state glyph = 'key'
             // (SF Symbols 6). Replaces the v0.27 'Lucide key'
-            // choice per boss 2026-09-15 reversal.
+            // choice per (see OOB.md #2026-09-15) reversal.
             SFIcon("key", style: .inlineSmall, color: hasKey ? IconColor.green : IconColor.secondary)
             Text(p.name)
                 .font(.body)
@@ -494,7 +489,7 @@ struct SettingView: View {
             Section {
                 ForEach(AuxTask.allCases, id: \.self) { task in
                     HStack {
-                        // -m1-shell boss 2026-09-15 OOB 'use SF Symbols 6':
+                        // -m1-shell (see OOB.md #2026-09-15) OOB 'use SF Symbols 6':
                         // AuxTask.icon is already a canonical
                         // SF Symbols 6 identifier (= per the
                         // -m1-shell enum property rename).

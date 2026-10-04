@@ -1,4 +1,4 @@
-// AppleSidebarView.swift · Wenshu · v1.69y boss 2026-09-22 OOB
+// AppleSidebarView.swift · Wenshu · v1.69y (see OOB.md #2026-09-22) OOB
 //
 // macOS 27 Apple HIG sidebar (= List(data, children:) +
 // .listStyle(.sidebar)). The canonical sidebar surface for
@@ -57,7 +57,6 @@ import SwiftUI
 struct AppleSidebarView: View {
     @Environment(BookStore.self) private var bookStore
     @Environment(AppState.self) private var appState
-    // P2-06 (audit 2026-09-24) + overabstraction cleanup 2026-10-03:
     // sidebarSelection moved from ShellState to WorkspaceUIState
     // (= single environment-injected class for all column-local UI
     // state; = the Pages / Numbers / Keynote canonical shape).
@@ -72,7 +71,7 @@ struct AppleSidebarView: View {
     /// via .onChange below).
     @State private var selectedNode: SidebarNode?
 
-    // y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复':
+    // y (see OOB.md #2026-09-23) OOB '新建功能, 右边菜单等恢复':
     // the create/rename/delete sheets that live in
     // SidebarSheets.swift (recovered from the deleted v1.69e
     // NewLibraryOutlineView). Each sheet's `isPresented`
@@ -146,7 +145,7 @@ struct AppleSidebarView: View {
                     selectionType: SidebarItem.self,
                     builder: { items in contextMenuHandler(items: items) }
                 ))
-                // sidebar fix (= boss 2026-09-22 OOB
+                // sidebar fix (= (see OOB.md #2026-09-22) OOB
                 // '现在目录树还是点不了'): the .onChange(of:
                 // selectedNode) MUST live on the List (= outside
                 // the rowContent closure), not on each row.
@@ -242,7 +241,7 @@ struct AppleSidebarView: View {
         .onChange(of: workspaceUI.sidebarSelection) { _, _ in
             Task { await service?.reload() }
         }
-        // y boss 2026-09-23 OOB '新建功能, 右边菜单等恢复':
+        // y (see OOB.md #2026-09-23) OOB '新建功能, 右边菜单等恢复':
         // wire up the 3 request counters (= `choiceRequestCount`
         // + `newShelfRequestCount` + `newBookRequestCount`) to
         // flip the matching sheet's `isPresented` @State. Mirrors
@@ -496,7 +495,7 @@ struct AppleSidebarView: View {
             // root). Selecting it scopes the middle-column card
             // grid to that category.
             //
-            // p boss 2026-09-22 OOB: read the routing key
+            // p (see OOB.md #2026-09-22) OOB: read the routing key
             // (= the EntityCategory.directoryName, stored in
             // SidebarNode.routingKey during the v1.69j projection;
             // = lowercase letter for the official 22 cases,
@@ -508,11 +507,11 @@ struct AppleSidebarView: View {
             // be used directly because no EntityCategory rawValue
             // is "文学". Falling back to node.title (= the previous
             // m behaviour) leaves the routing key in the
-            // user-visible slot (= the boss's '资料库分类, 现在
+            // user-visible slot (= the user's '资料库分类, 现在
             // 显示是的一个字母' complaint).
             workspaceUI.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
         case .divider:
-            // bb boss 2026-09-23 OOB '现在把资料库上面也
+            // bb (see OOB.md #2026-09-23) OOB '现在把资料库上面也
             // 加一条分割线': divider rows are non-interactive;
             // = the user can never select a divider (= it's
             // pure chrome between sections). Forwarding a

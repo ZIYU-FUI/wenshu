@@ -285,8 +285,8 @@ final class EditorChatNSController: NSSplitViewController {
         let autosaveKey = "NSSplitView Subview Frames \(Self.autosaveName)"
         let hasAutosave = defaults.data(forKey: autosaveKey) != nil
         // First-launch path: no autosave value exists + flag not
-        // set for this run. Apply the 50:50 reset (= the boss
-        // first-launch spec; = writes to autosave via setPosition).
+        // set for this run. Apply the 50:50 reset (= the canonical
+        // first-launch layout; = writes to autosave via setPosition).
         // Subsequent launches: hasAutosave = true; = the user's
         // drag position is restored by Apple before viewDidAppear
         // (= we don't touch it).

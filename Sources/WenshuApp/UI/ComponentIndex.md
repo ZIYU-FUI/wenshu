@@ -1,6 +1,6 @@
-# Wenshu Component Index — Boss 2026-08-30 OOB
+# Wenshu Component Index — 2026-08-30 directive
 
-Boss instruction: "你需要做一个组件索引, 以后如果有新的地方用到相同的东西, 会自然而然的找到组件, 而不是默认自动写个新的"
+Directive: "build a component index, so future work that uses the same kind of thing finds the component instead of writing a new one"
 
 ## 设计意图
 
@@ -211,7 +211,7 @@ Each component has:
 
 ## 🖱️ LEVEL 5: Interaction 组件
 
-> v0.30 boss 2026-09-01 OOB: PaneSplitter + VSplitter
+> v0.30 (see OOB.md #2026-09-01) OOB: PaneSplitter + VSplitter
 > + StaticDividerVertical/Horizontal were deleted as dead code
 > (= superseded by the NSSplitView path which provides drag-to-resize
 > + autosave + canCollapse natively). Section 5 entries for those
@@ -235,7 +235,7 @@ Each component has:
 
 ### 6.1 SFIcon (= canonical SF Symbols 6 renderer; v1.0.0-m1-shell 2026-09-15)
 - **Path**: `Sources/WenshuApp/UI/IconStyles.swift`
-- **Purpose**: Apple SF Symbols 6 icon renderer (= built into macOS 27 = zero SPM dependency). Boss 2026-09-15 OOB 'use SF Symbols 6 (3rd gen) with palette rendering' replaces the Lucide era.
+- **Purpose**: Apple SF Symbols 6 icon renderer (= built into macOS 27 = zero SPM dependency). The 2026-09-15 directive 'use SF Symbols 6 (3rd gen) with palette rendering' replaced the Lucide era.
 - **Use when**: Any tab button, button, or icon needs an icon
 - **API**:
   ```swift
@@ -244,7 +244,7 @@ Each component has:
   Image(systemName: "magnifyingglass").iconStyle(.chrome)
   ```
 - **Rendering modes**: `.monochrome` / `.hierarchical` (default; = Apple HIG chrome) / `.palette` (= per-layer color depth) / `.paletteLayers(Color, Color)` (= explicit two-layer).
-- **Weight**: `.regular` (= boss 9/15 '细体' = canonical macOS 27 toolbar weight).
+- **Weight**: `.regular` (= the 2026-09-15 '细体' (thin) = canonical macOS 27 toolbar weight).
 
 ### 6.2 ~~Lucide (raw)~~ — REMOVED 2026-09-15
 - **Path**: `Sources/WenshuApp/Views/Lucide.swift` (~~bring-shrubbery/lucide-swift wrapper~~)
@@ -271,16 +271,16 @@ Window chrome = 100% Apple canonical per macOS 26 Tahoe. LibraryRootView uses Sw
 
 ## 🚫 LEVEL 8: 已删除的废弃实现 (= 不要重新写)
 
-These were removed in various phases (= v0.32 Apple-API-first sweep + v0.34 boss iron-rules pass). **If you find yourself writing these patterns, STOP and use the canonical replacement.**
+These were removed in various phases (= v0.32 Apple-API-first sweep + v0.34 iron-rules pass). **If you find yourself writing these patterns, STOP and use the canonical replacement.**
 
 ### 8.1 ❌ ZoneModule
 - **Was in**: `Sources/WenshuApp/App.swift`
-- **Deleted**: Phase 4 (= v0.28 followup Boss UX round A)
+- **Deleted**: Phase 4 (= v0.28 followup UX round A)
 - **Use instead**: `ZonePerRegionChrome` (= already exists in `Sources/WenshuApp/UI/ZonePerRegionChrome.swift`)
 
 ### 8.2 ❌ ZoneBottomToolbar
 - **Was in**: `Sources/WenshuApp/App.swift`
-- **Deleted**: Phase 4 (= v0.28 followup Boss UX round A)
+- **Deleted**: Phase 4 (= v0.28 followup UX round A)
 - **Use instead**: `PaneStatusBar` (= new in Phase 5, file `Sources/WenshuApp/UI/PaneStatusBar.swift`)
 
 ### 8.3 ❌ ZoneContentTabBar / chat-zone wrapper / DynamicZoneTabBar (custom tab bodies)
@@ -304,13 +304,13 @@ These were removed in various phases (= v0.32 Apple-API-first sweep + v0.34 boss
 
 ### 8.7 ❌ Self-written window chrome wrappers (deleted v0.34)
 - **Was in**: 4 custom SwiftUI wrappers under `Sources/WenshuApp/UI/` (= 1 fixed-top + 1 fixed-bottom + 1 polish + 1 overlay) — all deleted in v0.34
-- **Deleted**: v0.34 commit `69a43da65` (boss OOB 'use the most reasonable approach, should be unified into one component')
+- **Deleted**: v0.34 commit `69a43da65` ('use the most reasonable approach, should be unified into one component')
 - **Use instead**: SwiftUI `.toolbar { ToolbarItemGroup }` + `.windowToolbarStyle(.unified)` (= Apple macOS 26 canonical pattern; see LEVEL 7.1)
 - **Why deleted**: All 4 wrappers duplicated Apple HIG behavior Apple provides for free via `.windowToolbarStyle(.unified)` + `.toolbar { ToolbarItem(placement: .principal) }`. The whole 4-file chrome overlay was never rendered in production.
 
 ---
 
-## 🎯 使用流程 (= boss 拍 A 的核心要求)
+## 🎯 使用流程 (= the core 2026-08-26 phase-A requirement)
 
 **When writing ANY new UI code**:
 
@@ -393,7 +393,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 
 ### 9.8 EditorContentPlaceholder
 - **Path**: `Sources/WenshuApp/Views/Workspace/EditorContentPlaceholder.swift`
-- **Purpose**: Empty Color.clear placeholder for the editor pane (= pane background uniformity is applied by ZonePerRegionChrome; = the placeholder is just empty since v0.28 Boss UX round 37 removed the Color.white.opacity(0.55) overlay).
+- **Purpose**: Empty Color.clear placeholder for the editor pane (= pane background uniformity is applied by ZonePerRegionChrome; = the placeholder is just empty since v0.28 UX round 37 removed the Color.white.opacity(0.55) overlay).
 - **Use when**: Building an empty placeholder pane (= no content yet = show Color.clear + let chrome fill the visual contract).
 
 ### 9.9 PreviewTabBackground
@@ -408,9 +408,9 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 - **API**: `PaneTrailingIconButton(icon: "...", tooltip: "...", action: { ... })`
 ---
 
-## 🎨 STYLES (= boss 2026-09-07 'ui 与功能分离' architecture)
+## 🎨 STYLES (= (see OOB.md #2026-09-07) 'ui 与功能分离' architecture)
 
-Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件类似 css, 这样我们以后也好管理, 功能与样式分离' = abstract ALL chrome/content/icon styling into CSS-like style files (= single source of truth for visual tokens + modifiers; = zones own only FUNCTIONAL wiring). Ponytail principle 'use stdlib / Apple-native / existing dependencies before writing new code': the 4 STYLES files below all wrap Apple canonical APIs (= SwiftUI .padding, .font, .buttonStyle, SF Symbols 6 Image) = no new abstractions over Apple primitives. (v1.0.0-m1-shell 2026-09-15: replaced Lucide library with SF Symbols 6.)
+2026-09-07 directive: 'make a styles-component file, for managing control styles, this file is like css, so we can manage it better in the future, separating function from style' = abstract ALL chrome/content/icon styling into CSS-like style files (= single source of truth for visual tokens + modifiers; = zones own only FUNCTIONAL wiring). Ponytail principle 'use stdlib / Apple-native / existing dependencies before writing new code': the 4 STYLES files below all wrap Apple canonical APIs (= SwiftUI .padding, .font, .buttonStyle, SF Symbols 6 Image) = no new abstractions over Apple primitives. (v1.0.0-m1-shell 2026-09-15: replaced Lucide library with SF Symbols 6.)
 
 ### The 4 STYLES files (= the "CSS-like" layer)
 
@@ -422,7 +422,7 @@ Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件
 | `IconStyles.swift` | ICONS | SF Symbols 6 icon size + rendering mode + color presets (= canonical icon appearance; v1.0.0-m1-shell 2026-09-15 replaces Lucide library) |
 
 ### STYLES-001 ContentStyles.swift
-- **Path**: `Sources/WenshuApp/UI/ContentStyles.swift` (NEW, boss 9/7 round 3)
+- **Path**: `Sources/WenshuApp/UI/ContentStyles.swift` (NEW, 2026-09-07 round 3)
 - **Purpose**: Content-level style primitives (= the inner zone UI; = not the chrome).
 - **API**:
   ```swift
@@ -447,7 +447,7 @@ Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件
 - **Don't use when**: You need a one-off local measurement (= then use inline CGFloat / .padding, but mark it with a comment + TODO ticket).
 
 ### STYLES-002 IconStyles.swift
-- **Path**: `Sources/WenshuApp/UI/IconStyles.swift` (NEW, boss 9/7 round 3)
+- **Path**: `Sources/WenshuApp/UI/IconStyles.swift` (NEW, 2026-09-07 round 3)
 - **Purpose**: Canonical SF Symbols 6 icon size + color presets (= single source of truth for icon appearance; = v1.0.0-m1-shell 2026-09-15 replaced the Lucide library with Apple SF Symbols 6).
 - **API**:
   ```swift
@@ -459,8 +459,8 @@ Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件
 - **Use when**: Adding any icon to any view (= .iconStyle replaces scattered `.frame(width:N).foregroundStyle(...)` chains).
 - **Rendering modes**: `.monochrome` / `.hierarchical` (default) / `.palette` / `.paletteLayers(Color, Color)`.
 
-### Boss 9/7 round 3 audit (= the doubled-padding bug)
-Boss 9/7 '实测一下, 1-2-4 三个区明显过大, 3 区是对的, 6 区过小' =
+### 2026-09-07 round 3 audit (= the doubled-padding bug)
+2026-09-07: 'measure again, zones 1-2-4 are visibly too large, zone 3 is correct, zone 6 too small' =
 - zone 1 sidebar: 23 PT (= List(.sidebar) built-in 8 PT + my ZONE-INSET-002 18 PT = doubled)
 - zone 2 cards: 26 PT (= LazyVGrid built-in 8 PT + my 18 PT = doubled)
 - zone 3 editor: 18 PT (correct = no Apple built-in inset)
@@ -471,10 +471,10 @@ Boss 9/7 '实测一下, 1-2-4 三个区明显过大, 3 区是对的, 6 区过小
 1. Pass `.contentInsetStyle(.none)` (= 0 PT) on zones with Apple built-in insets (= sidebar / cards).
 2. Pass `.contentInsetStyle(.standard)` (= 18 PT) on zones with no built-in inset (= editor / tools).
 3. Audit DynamicZoneView + MemoryRetrievalPanel for their own inline paddings (= replace with `.contentInsetStyle(.standard)`).
-4. Route aiDynamic through ZoneContentView so it gets the parent's chrome top bar (= boss 9/7 '把背景加顶栏加底栏作为一个父组件').
+4. Route aiDynamic through ZoneContentView so it gets the parent's chrome top bar (= the 2026-09-07 directive 'group the background + top bar + bottom bar into one parent component').
 
 ### Why these files instead of scattered inline styles (= the bigger pattern)
 - **Iron-rule 6**: no magic numbers in view code (= `.padding(18)` instead of `.padding(.chromePaddingLeading)` = .chromePaddingLeading changes don't propagate).
 - **Iron-rule 1**: no hardcoded colors (= `.foregroundStyle(.secondary)` instead of `Color(red: 0.5, green: 0.5, blue: 0.5)` = doesn't auto-adapt to dark mode).
 - **Iron-rule 2**: 11 Apple text styles only (= no `.system(size: 17)` magic numbers).
-- **Boss 9/7 'ui 与功能分离'**: zone's source file = business logic only (= which tabs render, which buttons open which sheet); visual styling = in the 4 STYLES files. Change a chrome height in ChromeStyles.swift = all 6 zones update = no per-zone audit needed.
+- **2026-09-07 'separate UI from function'**: zone's source file = business logic only (= which tabs render, which buttons open which sheet); visual styling = in the 4 STYLES files. Change a chrome height in ChromeStyles.swift = all 6 zones update = no per-zone audit needed.

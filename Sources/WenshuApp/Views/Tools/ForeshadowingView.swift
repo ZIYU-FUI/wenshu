@@ -36,8 +36,8 @@
 //   S5 (no private types the rest of the app needs): all types
 //       live in ForeshadowingTrackerTools.swift (= public).
 //
-// Visual-gate (boss 2026-09-03 auto-pilot rule): this commit
-// wires tab 1 of the specializedTools pane. Boss acceptance
+// Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
+// wires tab 1 of the specializedTools pane. The acceptance
 // required: open SpecializedTools pane, click the Foreshadowing
 // tab, see the list of foreshadowings from the tracker, add a
 // new foreshadowing, change its status, remove it, see the
@@ -47,11 +47,10 @@
 
 import SwiftUI
 
-/// Tools pane tab 1: Foreshadowing (= Foreshadowing) per v0.29 boss OOB.
+/// Tools pane tab 1: Foreshadowing (= Foreshadowing) per v0.29 (see OOB.md).
 ///
 /// **Use this** for the first tab of the specializedTools pane.
 /// Replaces the old CanvasView (= which moved to a future ticket
-/// per the v0.29 boss OOB ').
 ///
 /// State: backed by the `ForeshadowingTracker` actor (= per-book
 /// JSON sidecar at `books/<bookId>/foreshadowings.json`).
@@ -105,7 +104,7 @@ struct ForeshadowingView: View {
     }
 
     private var emptyState: some View {
-        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': use
@@ -311,7 +310,7 @@ struct ForeshadowingView: View {
         .padding(.horizontal, DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
         // removed .background(RoundedRectangle.fill(.quaternary.opacity(0.5)))
-        // (= v0.44 boss 2026-09-09 OOB 'macOS 27 = 1 glass surface
+        // (= v0.44 (see OOB.md #2026-09-09) OOB 'macOS 27 = 1 glass surface
         // + content underneath, no 4-tier color hierarchy' = the
         // row's .quaternary background was a macOS 12 Monterey
         // chrome tier; = macOS 27 Tahoe supersedes it with 1

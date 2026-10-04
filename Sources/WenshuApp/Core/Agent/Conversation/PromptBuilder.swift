@@ -487,7 +487,7 @@ extension PromptBuilder {
             return content
         }
         // Record + drain the truncation (= hermes _record_truncation_warnings
-        // + drain; = wenshu reimplementation per boss 2026-10-04 OOB "wenshu
+        // + drain; = wenshu reimplementation per (see OOB.md #2026-10-04) OOB "wenshu
         // Agent capabilities are reimplemented, not direct hermes links";
         // = calls into the truncationWarnings ring buffer that lives below
         // in this file; = the ring buffer is exposed via
@@ -562,7 +562,7 @@ extension PromptBuilder {
     /// for "who is the AI assistant"; = the previous stub called
     /// `SystemPrompt.stableTier()` which was a recursive loop, and
     /// `SystemPrompt.localeIdentityBlock` is `private` so it cannot be
-    /// reached from this extension; = reimplemented per boss 2026-10-04
+    /// reached from this extension; = reimplemented per (see OOB.md #2026-10-04)
     /// OOB "wenshu Agent capabilities are reimplemented, not direct
     /// hermes links"). The two definitions MUST stay byte-for-byte
     /// identical; = see SystemPrompt.swift L431-446 for the canonical

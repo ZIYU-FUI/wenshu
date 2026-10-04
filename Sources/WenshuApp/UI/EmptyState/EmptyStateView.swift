@@ -39,7 +39,7 @@
 //  Icon (= SF Symbols 6):
 //    - SF Symbol 6 identifier (= canonical Apple SF Symbol
 //      name; = dot.case form like 'books.vertical')
-//    - size: 76 PT (= 2x the v0.54 38 PT; = the boss's '2x size'
+//    - size: 76 PT (= 2x the v0.54 38 PT; = the user's '2x size'
 //      directive)
 //    - color: .secondary (= adapts to dark/light mode; =
 //      Apple's 2-step hierarchy for empty-state icons)

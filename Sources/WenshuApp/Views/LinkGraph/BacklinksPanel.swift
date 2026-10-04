@@ -1,6 +1,5 @@
 //
 // BacklinksPanel.swift · Wenshu · migrated from Core/LinkGraph/BacklinksPanel.swift in v1.28 A1.1
-// (= v0.19 ticket 12 Obsidian replica; View separated from ViewModel)
 //
 
 import Foundation
@@ -16,10 +15,10 @@ struct BacklinksPanel: View {
     }
 
     var body: some View {
-        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
         // audit ticket 2): BacklinksPanel is a content-layer
         // (= Z1 in apple-hig-visual-z-axis-layer-model.md L29-31)
-        // NOT a chrome surface. Per boss 2026-09-02 OOB "默认不加
+        // NOT a chrome surface. Per (see OOB.md #2026-09-02) OOB "默认不加
         // 液态玻璃效果的, 我们就不加", no `.glassEffect(.regular)`
         // (= per-pane glass specular is forbidden per
         // pane-chrome-canonic-pattern.md L88). The placeholder
@@ -46,9 +45,9 @@ struct BacklinksPanel: View {
             }
         }
         .padding()
-        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
         // audit ticket 2): BacklinksPanel is a content-layer
-        // (= Z1). No glass overlay (= boss 9/2 OOB "默认不加
+        // (= Z1). No glass overlay (= (see OOB.md #2026-09-02) "默认不加
         // 液态玻璃效果的, 我们就不加"). The window's
         // containerBackground = windowBackgroundColor (set at
         // LibraryRootView, audit ticket 1) shows through.

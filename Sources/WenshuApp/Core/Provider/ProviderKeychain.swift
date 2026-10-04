@@ -135,8 +135,9 @@ struct ProviderKeychainMetadata: Sendable, Equatable, Codable {
 /// the public methods below are stubs (= early-return + debug key) so the
 /// macOS Security framework is never invoked at Settings-open time. The
 /// real SecItemAdd / SecItemCopyMatching / SecItemDelete implementations
-/// are preserved as `/* ... */` comments for future restoration when boss
-/// accepts the SecurityAgent modal prompt on first key save.
+/// are preserved as `/* ... */` comments for future restoration
+/// when the user accepts the SecurityAgent modal prompt on first
+/// key save.
 final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     static let service = "com.wenshu.app.provider"
 
@@ -191,9 +192,9 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
         // user logs in once; = the canonical 'user API key' accessibility
         // tier). KeychainOps encapsulates these choices.
         //
-        // Per AGENTS.md §11 baseline + boss direction 'going through the Apple
-        // Keychain API would be even better': Apple Keychain is the canonical wenshu
-        // path. This is the right restore.
+        // Per AGENTS.md §11 baseline + 'going through the Apple
+        // Keychain API would be even better': Apple Keychain is the
+        // canonical wenshu path. This is the right restore.
         //
         // Build a remote-debug mode
         // short-circuit when debugNoKeychain UserDefaults is set (= the
@@ -284,7 +285,7 @@ final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
 /// after B-10 revert; was AppleKeychainStore before the 2026-09-04 emergency
 /// in-place revert). Tests override `backend` via `setBackendForTesting()`.
 enum ProviderKeychain {
-    // phase A (Boss 2026-09-04): entitlement embed done (= fix
+    // phase A ((see OOB.md #2026-09-04)): entitlement embed done (= fix
     // codesign --entitlements in build-app.sh, commit 71349be49).
     // phase B (= real AppleKeychainStore default): pending
     // Apple Developer Program paid enrollment. Ad-hoc codesign without
@@ -338,29 +339,29 @@ enum ProviderKeychain {
         //
         // Build a remote-debug mode,
         // once it's on, don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI':
-        // add a UserDefaults-based remote-debug switch (= boss is
-        // off-site, = the macOS Keychain prompt for ad-hoc-signed
-        // wenshu.app hangs onboarding with no remote way to dismiss
-        // it; = for UI iteration over NavigationSplitView / sidebar
-        // / preview / editor / chat layout, the boss needs to be
-        // able to launch wenshu.app WITHOUT touching keychain at
-        // all). 3 sources of the override, checked in this order
-        // (= first hit wins):
+        // add a UserDefaults-based remote-debug switch (= for off-site
+        // macOS Keychain prompt for ad-hoc-signed wenshu.app hangs
+        // onboarding with no remote way to dismiss it; = for UI
+        // iteration over NavigationSplitView / sidebar / preview /
+        // editor / chat layout, the user needs to be able to launch
+        // wenshu.app WITHOUT touching keychain at all). 3 sources
+        // of the override, checked in this order (= first hit wins):
         // 1. `WENSHU_DEBUG_INMEMORY_KEYCHAIN=1` env var (cua / dev
         //    / CI; pre-existing convention from B-10 phase A).
         // 2. UserDefaults key `wenshu.debugNoKeychain = YES` (NEW;
-        //    boss-set on the company Mac via `defaults write com.wenshu.
-        //    app wenshu.debugNoKeychain -bool YES` before launching
-        //    wenshu.app via `open`; = persists across launches; = the
-        //    canonical 'remote debug mode' toggle for off-site UI
-        //    iteration).
+        //    settable on the company Mac via
+        //    `defaults write com.wenshu.app wenshu.debugNoKeychain
+        //    -bool YES` before launching wenshu.app via `open`;
+        //    = persists across launches; = the canonical
+        //    'remote debug mode' toggle for off-site UI iteration).
         // 3. Default: AppleKeychainStore (= the production path; =
         //    the user's real API keys).
         //
         // Override flips the backend to InMemoryKeychainStore (=
         // loadKeySync returns nil for every provider = ChatZoneView
-        // shows the empty-state hint 'please configure the LLM provider in Settings first'
-        // = no LLM call can be sent = boss can iterate on UI
+        // shows the empty-state hint 'please configure the LLM
+        // provider in Settings first'
+        // = no LLM call can be sent = the user can iterate on UI
         // without ever touching macOS Keychain).
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
             return InMemoryKeychainStore()

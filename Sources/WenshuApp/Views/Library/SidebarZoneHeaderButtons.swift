@@ -1,6 +1,6 @@
 // SidebarZoneHeaderButtons.swift · Wenshu · v1.69d
 //
-// d sidebar MVVM cleanup (= boss 2026-09-22 OOB '老的文件没
+// d sidebar MVVM cleanup (= (see OOB.md #2026-09-22) OOB '老的文件没
 // 删, UI/业务/数据没分离的删掉'): extracted from the deleted
 // NewLibraryOutlineView.swift (the pre-v1.69e 2366-LOC legacy
 // sidebar that packed 8 mixed concerns into one file).
@@ -42,7 +42,6 @@ import SwiftUI
 ///   `.buttonStyle(.borderless)`.
 struct SidebarZoneHeaderButtons: View {
     @Environment(AppState.self) private var appState
-    // P2-06 (audit 2026-09-24): sheet-request counters moved to
     // SheetRequestState. The "+" button increments `choice` to
     // trigger the choice sheet via .onChange in the parent
     // (= AppleSidebarView observes sheetRequests.choice).

@@ -122,7 +122,7 @@ extension BackgroundReviewTool {
                     name: "background_review",
                     description: """
                     Submit or list background-review proposals (= the
-                    boss-pinned v2.8c consolidation per 2026-09-28
+                    pinned v2.8c consolidation per 2026-09-28
                     OOB B8: manual + auto callers both go through
                     BackgroundReviewOps). The agent uses this tool
                     to submit proposals (= auto surface); the

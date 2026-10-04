@@ -8,7 +8,7 @@
 //  card) consumes today.
 //
 //  Generated 2026-09-14 as part of v0.73 hermes agent wiring audit.
-//  Per boss 2026-09-14 OOB "我们迁移了两回, 早期的一回漏接很普遍",
+//  Per (see OOB.md #2026-09-14) OOB "我们迁移了两回, 早期的一回漏接很普遍",
 //  this design doc is the inventory of why the tracker is currently
 //  orphaned + the decision matrix for wiring it in a future ticket.
 //
@@ -106,7 +106,7 @@ is just unused)
 
 ## Recommendation: **Option B**
 
-Per AGENTS.md §11.3 wenshu-side wins + boss 2026-09-04 OOB 'A':
+Per AGENTS.md §11.3 wenshu-side wins + (see OOB.md #2026-09-04) OOB 'A':
 - Parallel call site is the smallest-risk wiring (= UI is not touched)
 - Drift risk is mitigated by the 1:1 source-of-truth on `AsyncDelegation`
   (= the only place that produces sub-agent events; both KanbanStore

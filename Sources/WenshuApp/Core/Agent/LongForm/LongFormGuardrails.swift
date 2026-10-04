@@ -172,7 +172,7 @@ enum LongFormGuardrailSource: String, Sendable, Codable, CaseIterable, Equatable
 
 /// How the harness reacts on a violation. The actor's
 /// `applyEnforcement(_:violations:)` reads this per-guardrail and
-/// either rejects, appends a warning, or ignores (= boss 2026-08-27
+/// either rejects, appends a warning, or ignores (= (see OOB.md #2026-08-27)
 /// `strict / warn / off` triplet).
 enum LongFormGuardrailEnforcement: String, Sendable, Codable, CaseIterable, Equatable {
     /// LLM response rejected (= error returned to the caller)
@@ -754,7 +754,6 @@ actor LongFormGuardrails {
         // Second pass: fall back to the BookStore's selected book
         // (= the canonical "what book is the user looking at"
         // = the sidecar the untyped add should land in).
-        // P1-04 (audit 2026-09-24): BookStore is now @MainActor;
         // = read the value from a MainActor-isolated context.
         return await MainActor.run { bookStore.selectedBookId }
     }

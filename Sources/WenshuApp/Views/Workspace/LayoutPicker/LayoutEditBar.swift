@@ -55,9 +55,9 @@ struct LayoutEditBar: View {
             )
         }
         .frame(width: DesignTokens.layoutPickerWidth)  // 26rem (= 26 * 16 PT in macOS 1x)
-        // followup Boss UX round 19 (Boss 2026-08-29 OOB '
+        // followup UX round 19 ((see OOB.md #2026-08-29) '
         // regiontop bar, bottom bar, background, color, canLiquid Glass'):
-        // boss real-device test 2026-09-07: removed
+        // real-device test 2026-09-07: removed
         // .regularMaterial (= the Liquid Glass translucent
         // capsule); now uses Color.clear (= no background =
         // shows the underlying zone chrome).
@@ -66,10 +66,10 @@ struct LayoutEditBar: View {
                 .fill(Color.clear)
         )
         .overlay(
-            // followup Boss UX round 19: 1 PT Apple .separator stroke
+            // followup UX round 19: 1 PT Apple .separator stroke
             // (= canonical Liquid Glass separator, macOS 26 Tahoe)
             // replaces Color(nsColor: .separatorColor) (= solid NSColor).
-            // followup Boss UX round 26: confirm .separator style
+            // followup UX round 26: confirm .separator style
             // (= matches all other 1 PT splitters across the app).
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow)
                 .stroke(.separator, lineWidth: 1)
@@ -143,7 +143,7 @@ struct LayoutEditBar: View {
         }
         .padding(.horizontal, DesignTokens.spacingModerate)
         .padding(.vertical, DesignTokens.spacingStandard)
-        // boss real-device test 2026-09-07: removed
+        // real-device test 2026-09-07: removed
         // .regularMaterial (= Liquid Glass background); now uses
         // Color.clear (= no background).
         .background(

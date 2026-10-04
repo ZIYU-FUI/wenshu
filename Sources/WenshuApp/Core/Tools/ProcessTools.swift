@@ -38,7 +38,7 @@ enum ProcessToolError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .chatShellDenied(let cmd):
-            return "shell access blocked (boss 8/23 拍: 用户不可通过聊天改系统): \(cmd)"
+            return "shell access blocked ((see OOB.md #2026-08-23) — user cannot change system via chat): \(cmd)"
         case .readOnlyDenied(let cmd, let reason):
             return "read-only shell denied (v0.23 ticket 013.011): \(cmd) — \(reason)"
         }
@@ -52,7 +52,7 @@ struct ProcessTools: Tool, Sendable {
     /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): shell
     /// execution via the existing ProcessTools surface. Mirrors
     /// `WenshuConductor.invokeTool(name: "process", ...)` which
-    /// is deny-all (= chat-triggered shell blocked per boss 8/23
+    /// is deny-all (= chat-triggered shell blocked per (see OOB.md #2026-08-23)
     /// rule: user cannot change system via chat).
     func execute(input: String) async throws -> String {
         // Deny-all for chat-triggered shell (= matches the legacy
@@ -212,7 +212,7 @@ extension ProcessTools {
     /// `register(...)` call off the init thread.
     ///
     /// Registered as a stub schema because chat-triggered shell is
-    /// deny-all per boss 8/23 (= the `execute(input:)` adapter always
+    /// deny-all per (see OOB.md #2026-08-23) (= the `execute(input:)` adapter always
     /// throws `ProcessToolError.chatShellDenied`). The schema is here
     /// so the LLM knows the tool name exists and that it is
     /// permanently blocked from chat; use wenshu-devtool CLI for
@@ -224,7 +224,7 @@ extension ProcessTools {
                 toolset: "data",
                 schema: ToolRegistrySchema(
                     name: "process",
-                    description: "Local shell process execution (= deny-all from chat per boss 8/23 rule: 用户不可通过聊天改系统. Use wenshu-devtool CLI for legitimate shell access.).",
+                    description: "Local shell process execution (= deny-all from chat per (see OOB.md #2026-08-23) — user cannot change system via chat. Use wenshu-devtool CLI for legitimate shell access.).",
                     inputSchema: [
                         "command": ToolRegistrySchemaProperty(
                             type: "string",

@@ -5,7 +5,7 @@
 //  CommandPaletteItem from CommandPaletteRegistry.shared, filtered by
 //  the user's query.
 //
-// (2026-09-04, boss OOB 'B'): hermes commands.py +
+// (2026-09-04, the (see OOB.md) 'B'): hermes commands.py +
 //  slash_registry.py parity. Single search box at the top + scrollable
 //  list below + click-to-invoke.
 //
@@ -118,7 +118,7 @@ struct CommandPaletteView: View {
         VStack(spacing: 0) {
             // Search field (Apple HIG TextField .plain = macOS 27 native
             // text-field render; no custom frame / border / Liquid Glass
-            // paint = boss 2026-09-02 OOB 'let Apple defaults through').
+            // paint = (see OOB.md #2026-09-02) OOB 'let Apple defaults through').
             HStack(spacing: DesignTokens.spacingStandard) {
                 SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.secondary)
                 TextField(WenshuI18n.t("b5.commandpaletteview.l125.h99176598"), text: Binding(
@@ -180,9 +180,9 @@ struct CommandPaletteView: View {
             .padding(.vertical, DesignTokens.spacingStandard)
         }
         .frame(width: DesignTokens.settingIOsheetSize.width, height: DesignTokens.settingIOsheetSize.height)
-        // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
         // audit ticket 2): per-pane `.glassEffect(.regular)` is
-        // forbidden per boss 2026-09-02 OOB "默认不加液态玻璃效果
+        // forbidden per (see OOB.md #2026-09-02) OOB "默认不加液态玻璃效果
         // 的, 我们就不加; 默认带的, 我们就默认带". The canonical
         // pattern = Apple NSColor.windowBackgroundColor for sheet
         // surface.
@@ -255,9 +255,9 @@ private struct CommandPaletteRow: View {
 
     private var categorySymbol: String {
         switch item.category {
-        // -m1-shell boss 2026-09-15 OOB 'use SF Symbols 6
+        // -m1-shell (see OOB.md #2026-09-15) OOB 'use SF Symbols 6
         // (3rd gen) with palette rendering': canonical
-        // category glyphs. Replaces the v0.46 boss 'SF Symbol
+        // category glyphs. Replaces the v0.46 the directive 'SF Symbol
         // dropped, use Lucide' choice (= which has since been
         // superseded by the 2026-09-15 reversal).
         case "skill": return "wand.and.sparkles"
@@ -284,7 +284,7 @@ private struct CommandPaletteRow: View {
 /// Controller singleton — bridges the App.swift ⌘K menu (= SwiftUI
 /// Commands block, no view access) to the SwiftUI sheet.
 ///
-/// Per the boss 2026-09-02 standing rule, wenshu's .commands blocks
+/// Per the (see OOB.md #2026-09-02) standing rule, wenshu's .commands blocks
 /// can't directly hold view models (= .commands body doesn't have
 /// SwiftUI environment access). The pattern = post a NotificationCenter
 /// event + the SwiftUI scene listens + drives the model.

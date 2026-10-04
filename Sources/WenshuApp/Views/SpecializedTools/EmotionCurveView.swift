@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 7: Emotion Curve.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView
 //  + PlaceholderView + LongFormGuardrailsView +
 //  ReaderExperienceView + PlotThreadView + GenreFitView = 6 tabs
 //  in the specializedTools pane), this view is the REAL
@@ -38,8 +37,8 @@
 //    S5 (no private types the rest of the app needs): all types
 //        live in EmotionCurveTools.swift (= public).
 //
-//  Visual-gate (boss 2026-09-03 auto-pilot rule): this commit
-//  ADDS a 7th tab to the specializedTools pane. Boss acceptance
+//  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
+//  ADDS a 7th tab to the specializedTools pane. The acceptance
 //  required: open SpecializedTools pane, click the new
 //  Emotion-Curve tab, paste a chapter, run analyze, see the
 //  curve visualization + state.report.
@@ -157,7 +156,7 @@ struct EmotionCurveView: View {
     // MARK: - Result
 
     private var emptyState: some View {
-        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': use
@@ -283,14 +282,14 @@ struct EmotionCurveView: View {
         baselinePath.addLine(to: CGPoint(x: chartRect.maxX, y: baselineY))
         context.stroke(
             baselinePath,
-            // macOS 27 doc-alignment (boss 9/18 OOB '全都改一下',
+            // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
             // audit ticket 6): HierarchicalShapeStyle.separator
             // is the Apple semantic ShapeStyle that auto-adapts
             // to dark mode + Liquid Glass (= not the solid
             // NSColor.separatorColor that fails on dark mode +
             // glass tint backgrounds per
             // wenshu-macos26-liquid-glass-pitfalls Pitfall 1
-            // Attempt 1/2 boss-rejected).
+            // Attempt 1/2 rejected).
             //
             // Implementation note (= reason we keep
             // Color(nsColor: .separatorColor) here): SwiftUI

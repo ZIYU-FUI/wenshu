@@ -3,7 +3,6 @@
 //
 //  SpecializedTools pane tab 6: Genre Fit.
 //
-//  Per the v0.30 boss 2026-08-30 OOB pattern (= ForeshadowingView +
 //  PlaceholderView + LongFormGuardrailsView + ReaderExperienceView +
 //  PlotThreadView = 5 tabs in the specializedTools pane), this
 //  view is the REAL implementation for the Genre Fit tab (= the
@@ -33,8 +32,8 @@
 //    S5 (no private types the rest of the app needs): all
 //        types live in GenreFitTools.swift (= public).
 //
-//  Visual-gate (boss 2026-09-03 auto-pilot rule): this commit
-//  ADDS a 6th tab to the specializedTools pane. Boss acceptance
+//  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
+//  ADDS a 6th tab to the specializedTools pane. The acceptance
 //  required: open SpecializedTools pane, click the new
 //  Genre-Fit tab, paste a chapter, pick a genre, run analyze,
 //  see the score + matches / misses / forbidden hits.
@@ -154,7 +153,7 @@ struct GenreFitView: View {
     // MARK: - Result
 
     private var emptyState: some View {
-        // -m1-shell boss 2026-09-12 OOB 'the current empty state isn't
+        // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
         // a single component — can you abstract a UI component? While you're at it, on the
         // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
         // empty-state styles. The right column has 12 tabs and many are missing an empty state': use

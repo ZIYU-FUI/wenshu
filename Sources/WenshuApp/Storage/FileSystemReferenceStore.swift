@@ -345,7 +345,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         try writeIndex(current, for: reference.layer)
     }
 
-    /// Upsert by title within a layer (= boss 2026-09-25 directive:
+    /// Upsert by title within a layer (= (see OOB.md #2026-09-25) directive:
     /// "same topic research edits existing doc, not creates new").
     /// If an entry with the same case-insensitive trimmed title
     /// already exists in the layer, its body + updatedAt are refreshed;
