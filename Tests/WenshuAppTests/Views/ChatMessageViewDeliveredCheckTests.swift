@@ -29,7 +29,7 @@ struct ChatMessageViewDeliveredCheckTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains("Image(systemName: \"checkmark\")"))
+        #expect(src.contains("SFIcon(\"checkmark\""))
     }
 
     /// T84 contract: checkmark uses .caption2 + .quaternary
@@ -39,7 +39,7 @@ struct ChatMessageViewDeliveredCheckTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        let checkPos = src.range(of: "Image(systemName: \"checkmark\")")!
+        let checkPos = src.range(of: "SFIcon(\"checkmark\"")!
         let after = src[checkPos.upperBound...]
         #expect(after.contains(".font(.caption2)"))
         #expect(after.contains(".foregroundStyle(.quaternary)"))
@@ -52,7 +52,7 @@ struct ChatMessageViewDeliveredCheckTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        let clockPos = src.range(of: "Image(systemName: \"clock\")")!
+        let clockPos = src.range(of: "SFIcon(\"clock\"")!
         // T88-USER-CHECK (2026-09-18) added a 2nd
         // Image(systemName: "checkmark") in the user
         // branch (= BEFORE the timestamp clock icon's
@@ -60,7 +60,7 @@ struct ChatMessageViewDeliveredCheckTests {
         // about the timestamp-area checkmark = the one
         // that appears AFTER the clock icon. = find the
         // checkmark that appears AFTER the clock icon.
-        guard let checkPos = src.range(of: "Image(systemName: \"checkmark\")", range: clockPos.upperBound..<src.endIndex) else {
+        guard let checkPos = src.range(of: "SFIcon(\"checkmark\"", range: clockPos.upperBound..<src.endIndex) else {
             #expect(Bool(false), "expected checkmark after clock icon")
             return
         }
@@ -73,7 +73,7 @@ struct ChatMessageViewDeliveredCheckTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
             encoding: .utf8
         )
-        #expect(src.contains("Image(systemName: \"clock\")"))
+        #expect(src.contains("SFIcon(\"clock\""))
     }
 
     /// T84 contract: T72 fresh chip preserved.

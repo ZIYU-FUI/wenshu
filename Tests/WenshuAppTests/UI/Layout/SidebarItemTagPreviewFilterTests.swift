@@ -50,11 +50,15 @@ struct SidebarItemTagPreviewFilterTests {
                 "WorkspaceUIState must expose activeTag (= boss A7 follow-up = 'tag preview-pane filter')")
     }
 
-    @Test("ShellMiddleColumn sets workspaceUI.activeTag on .tag(String) selection")
+    @Test("ShellMiddleColumn (= now AssetsPane) sets workspaceUI.activeTag on .tag(String) selection")
     func testShellMiddleColumnSetsActiveTag() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift"), encoding: .utf8)
+        // ShellMiddleColumn was renamed to AssetsPane and moved to
+        // Views/Workspace/ in 2026-10-03 (= commit 5723d226c). The
+        // production contract = "workspaceUI.activeTag = tagString"
+        // is preserved in AssetsPane.swift L185.
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Workspace/AssetsPane.swift"), encoding: .utf8)
         #expect(source.contains("workspaceUI.activeTag = tagString"),
-                "ShellMiddleColumn.previewScope() must set workspaceUI.activeTag on .tag(String) (= the canonical producer path)")
+                "AssetsPane.previewScope() must set workspaceUI.activeTag on .tag(String) (= the canonical producer path)")
     }
 
     @Test("PreviewPane.referenceScopeView filters by activeTag (= only references whose tags contains the string)")

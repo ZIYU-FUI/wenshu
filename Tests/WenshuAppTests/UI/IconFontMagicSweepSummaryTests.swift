@@ -56,7 +56,6 @@ struct IconFontMagicSweepSummaryTests {
         // ContentUnavailableView, ChatToolUsePartView status pulse animation).
         let exceptionFiles = [
             "Sources/WenshuApp/Views/Workspace/PreviewPane.swift",
-            "Sources/WenshuApp/UI/Layout/ShellPlaceholder.swift",
             "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift",
         ]
         // Source tree uses SFIcon central factory (= v3.0 sweep core invariant).

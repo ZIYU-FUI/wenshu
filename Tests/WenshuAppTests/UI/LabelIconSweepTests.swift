@@ -17,6 +17,11 @@
 //
 //  - The .imageScale(.large) modifier (= 28 PT) on ContentUnavailableView
 //  icon slots (= ShellPlaceholder L20) is HIG canonical (= Apple's
+    //  ContentUnavailableView is sweep exception) — REMOVED in
+    //  commit 65ae2d2b6 (2026-10-03) when ShellPlaceholder.swift
+    //  was deleted (= 26-line duplicate of EmptyStateView).
+    //  EmptyStateView has no Image(systemName:) in any Label slot,
+    //  so the sweep invariant holds without a ShellPlaceholder check.
 //  ContentUnavailableView uses 38 PT glyph = the system default). The
 //  v3.0 sweep SKIPS this case (= outside the central SFIcon factory
 //  scope; = Apple first-party surface).
@@ -68,16 +73,16 @@ struct LabelIconSlotSweepTests {
         }
     }
 
-    @Test("Label icon slot sweep — ShellPlaceholder L20 exception (= .imageScale(.large) on ContentUnavailableView)")
-    func shellPlaceholderExceptionPreserved() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/Layout/ShellPlaceholder.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
-        // The .imageScale(.large) site is the explicit sweep exception
-        // (= ContentUnavailableView = Apple HIG canonical 38 PT icon = not
-        // SFIcon factory scope).
-        #expect(content.contains("Image(systemName: icon).imageScale(.large)"),
-                "ShellPlaceholder must preserve the ContentUnavailableView icon (= .imageScale(.large) = HIG canonical = sweep boundary)")
-    }
+    // ShellPlaceholder L20 exception test REMOVED 2026-10:
+    // ShellPlaceholder.swift was deleted in commit 65ae2d2b6 (2026-10-03)
+    // (= 26-line duplicate of EmptyStateView). The sweep invariant
+    // is held by EmptyStateView's actual code.
+    //
+    // (= see file header for details; = the test ran for 6+ weeks but
+    // became orphan once the source file was deleted.)
+    //
+    // EmptyStateView has no naked Image(systemName:) in any Label slot;
+    // = the sweep closes itself with no ShellPlaceholder check needed.
 
     @Test("Label icon slot sweep — totals: 26 sites across 15 view files")
     func totalSitesConsistent() throws {

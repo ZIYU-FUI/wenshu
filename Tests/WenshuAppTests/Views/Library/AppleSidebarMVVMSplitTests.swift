@@ -185,13 +185,13 @@ struct AppleSidebarMVVMSplitTests {
         )
         // AppleSidebarView's forwardSelection MUST write the
         // .folder(bookId:, folderName:) discriminator into
-        // appState.sidebarSelection (= the canonical chain to
-        // WorkspaceView.previewScope / ShellMiddleColumn.previewScope
-        // → PreviewPane.bookScopeView → loadBookDocs(folderName:)).
+        // workspaceUI.sidebarSelection (= the canonical chain to
+        // AssetsPane.previewScope (= renamed from ShellMiddleColumn in
+        // commit 5723d226c) → PreviewPane.bookScopeView → loadBookDocs(folderName:)).
         #expect(src.contains(".folder(bookId: parent.bookId, folderName: parent.folderName)"),
                 "AppleSidebarView MUST forward folder selection as .folder(bookId:, folderName:) (= the canonical chain to cards)")
-        #expect(src.contains("shell.sidebarSelection = .folder"),
-                "AppleSidebarView MUST write the folder selection to appState.sidebarSelection")
+        #expect(src.contains("workspaceUI.sidebarSelection = .folder"),
+                "AppleSidebarView MUST write the folder selection to workspaceUI.sidebarSelection (= P2-06 split moved it from appState.shell to workspaceUI)")
     }
 
     @Test("sidebarItem_folder_case_is_defined")
@@ -302,11 +302,11 @@ struct AppleSidebarMVVMSplitTests {
         // to .referenceScope(nil) = the user saw the full overview
         // after clicking a category = the boss's bug).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Workspace/AssetsPane.swift"),
             encoding: .utf8
         )
         #expect(src.contains(".uppercased()"),
-                "ShellMiddleColumn.previewScope MUST do a case-insensitive rawValue lookup")
+                "AssetsPane.previewScope (= renamed from ShellMiddleColumn in commit 5723d226c) MUST do a case-insensitive rawValue lookup")
     }
 
     @Test("sidebar_service_reference_category_title_is_displayName_with_routing_key")

@@ -39,8 +39,8 @@ struct StackSpacingMagicSweepTests {
     func productionCodeHasNoMagicStackSpacing() throws {
         // All source files that had Stack spacing literals pre-sweep
         let sweptFiles = [
-            "Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift",
-            "Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift",
+            "Sources/WenshuApp/Views/Workspace/AssetsPane.swift",
+            "Sources/WenshuApp/Views/Inspector/InspectorView.swift",
             "Sources/WenshuApp/UI/EmptyState/EmptyStateView.swift",
             "Sources/WenshuApp/Views/Settings/SettingView.swift",
             "Sources/WenshuApp/Views/Tools/ForeshadowingView.swift",

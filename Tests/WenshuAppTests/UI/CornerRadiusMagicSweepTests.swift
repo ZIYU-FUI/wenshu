@@ -54,7 +54,7 @@ struct CornerRadiusMagicSweepTests {
     func productionCodeHasNoMagicCornerRadius() throws {
         let sweptFiles = [
             "Sources/WenshuApp/UI/HoverWash.swift",
-            "Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift",
+            "Sources/WenshuApp/Views/Workspace/AssetsPane.swift",
             "Sources/WenshuApp/Views/Chat/ChatAttachmentPreviewChip.swift",
             "Sources/WenshuApp/Views/Chat/ChatMessageAttachmentPreview.swift",
             "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",

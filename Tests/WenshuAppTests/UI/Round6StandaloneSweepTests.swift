@@ -44,8 +44,7 @@ struct Round6StandaloneSweepTests {
 
     static let exceptionSites: [String] = [
         "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift:57", // pulse animation chain
-        "Sources/WenshuApp/Views/Workspace/PreviewPane.swift:1566", // 64 PT hero card
-        "Sources/WenshuApp/UI/Layout/ShellPlaceholder.swift:20",     // ContentUnavailableView canonical
+        "Sources/WenshuApp/Views/Workspace/PreviewPane.swift:1570", // 64 PT hero card icon (= was L1566 in the pre-§11 sweep commit)
     ]
 
     @Test("Round 6 — production sites are now SFIcon")
@@ -72,8 +71,8 @@ struct Round6StandaloneSweepTests {
         let sweptFiles = [
             "Sources/WenshuApp/UI/Memory/MemoryRetrievalPanel.swift",
             "Sources/WenshuApp/UI/PaneTabBar.swift",
-            "Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift",
-            "Sources/WenshuApp/UI/Layout/ShellDetailColumn.swift",
+            "Sources/WenshuApp/Views/Workspace/AssetsPane.swift",
+            "Sources/WenshuApp/Views/Inspector/InspectorView.swift",
             "Sources/WenshuApp/UI/Agent/RuntimeCWDDisplayChip.swift",
             "Sources/WenshuApp/Views/Chat/ChatMessageHoverActions.swift",
             "Sources/WenshuApp/Views/Chat/ChatPlanPartView.swift",
