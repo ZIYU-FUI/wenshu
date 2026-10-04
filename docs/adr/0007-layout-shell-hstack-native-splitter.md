@@ -1,8 +1,8 @@
 # ADR-0007: Layout shell pattern — HStack + hand-written NativeSplitter(view)
 
-> Status: **accepted at v0.14** but superseded in implementation (= 2026-10-03 Apple multi-column rewrite; = see Q-NNN pending ADR; = Status re-evaluation requires explicit 老板 拍)
-> Date: 2026-08-19
-> Decision-maker(s): 老板 (2026-08-19 ticket 005 拍板)
+|> Status: **superseded by ADR-0011** (= 2026-10-04老板 confirmation: "现在的方法是对的,就是用的系统默认的"; = layout shell = Apple NavigationSplitView + NSSplitViewItem/NSHostingController; = the v0.14 NativeSplitter.swift implementation was deleted in the 2026-10-03 Apple multi-column rewrite)
+|> Date: 2026-08-19 (original acceptance) → 2026-10-04 (superseded by ADR-0011)
+|> Decision-maker(s): 老板 (2026-08-19 ticket 005 拍板) → 老板 (2026-10-04 OOB confirmation)
 > Supersedes: ADR-0003 (drag-splitter-nsview)
 > Superseded by: **ADR-0011** (= NavigationSplitView + NSSplitViewItem/NSHostingController pattern; = NativeSplitter.swift file deleted from tree in the 2026-10-03 Apple multi-column rewrite; = the LayoutShellView / UpperBandZone / LowerBandZone / ZoneModule / ZoneTopToolbar / ZoneBottomToolbar / ZoneSlot SwiftUI types also absent; = the actual layout root is AppRootScene.swift + NavigationSplitView)
 
