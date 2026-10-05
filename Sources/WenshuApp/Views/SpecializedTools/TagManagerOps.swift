@@ -63,7 +63,7 @@
 //    - `ensureManager()` lazy-actor-construction stays in the
 //      View (= it is a state transition, not a remote call).
 //
-//  Honest scope note (= Q46 stop-rule boundary):
+//  Honest scope note (= the stop-rule boundary):
 //    TagManagerView's `addTag` had a side effect of clearing the
 //    `draftLabel` @State string on success (= the SwiftUI-side
 //    inline-create UX reset). That reset stays in the View (= it

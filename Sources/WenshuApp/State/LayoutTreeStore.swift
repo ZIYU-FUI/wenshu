@@ -508,7 +508,7 @@ final class LayoutTreeStore {
     }
 
     private static func builtinDefaultPreset() -> LayoutPreset {
-        // Same as the 6-zone LayoutShellView [no longer defined post-v0.72 — see AppRootScene + NavigationSplitView (= per ADR-0011)] shape (= upper 4 + lower 2
+        // Same as the 6-zone AppRootScene shape (= upper 4 + lower 2
         // horizontal). Kept here for the picker (= users who want the
         // legacy 6-zone layout via the picker even after the FCP
         // Browser 3-pane becomes default).

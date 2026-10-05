@@ -75,7 +75,7 @@
 //      modelTab / memoryTab / skillsTab etc.; = the View owns
 //      layout).
 //
-//  Honest scope note (= Q46 stop-rule boundary):
+//  Honest scope note (= the stop-rule boundary):
 //    The original SettingView.toggleExpand had a SwiftUI-side
 //    coupling: when the user EXPANDS a provider, the helper
 //    pre-fills apiDraftKey with the existing key's prefix (=

@@ -7,7 +7,7 @@
 import SwiftUI
 import AppKit
 
-// MARK: - v0.25.1 (= ticket 019 icon button Apple HIG hit area) — Apple recommended approach
+// MARK: - v0.25.1  — Apple recommended approach
 /// Per Apple SwiftUI docs (developer.apple.com/documentation/swiftui/buttonstyle
 /// + developer.apple.com/documentation/swiftui/primitivebuttonstyle/plain),
 /// the canonical way to extend a plain-style button's hit area (= Apple
@@ -24,7 +24,7 @@ import AppKit
 /// `Color.clear.frame(28,28).contentShape(Rectangle())` inside the label
 /// closure (= Apple HIG canonical hot-area pattern).
 
-// "reset layout" notification bridge (LayoutShellView [no longer defined post-v0.72 — see AppRootScene + NavigationSplitView (= per ADR-0011)] uses @State private vm,
+// "reset layout" notification bridge (AppRootScene uses @State private vm,
 // top-level .commands can't access vm instance, routed via NotificationCenter)
 
 // name for menu bar zone toggle buttons (= CommandGroup can't directly
@@ -281,7 +281,7 @@ enum AuxTask: String, CaseIterable, Identifiable {
 
 
 // Spec sub-agent (deleg_10289a6b): installMainMenu 6 + create NSWindow SettingView =
-// Settings { } Scene (ticket 04 commit 984ea556b Picker, 8/21 "show")
+// Settings { } Scene ( Picker, 8/21 "show")
 
 
 // ZoneSlot -> TabKind rename: the zone enum was duplicate-

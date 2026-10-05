@@ -6,7 +6,7 @@ import Foundation
 import SwiftUI
 
 /// BacklinksPanel: SwiftUI View, show note backlinks
-/// LayoutShellView [no longer defined post-v0.72 — see AppRootScene + NavigationSplitView (= per ADR-0011)], standalone wait macOS
+/// AppRootScene, standalone wait macOS
 struct BacklinksPanel: View {
     @State private var viewModel: BacklinksViewModel
 
@@ -16,7 +16,7 @@ struct BacklinksPanel: View {
 
     var body: some View {
         // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
-        // audit ticket 2): BacklinksPanel is a content-layer
+        // ): BacklinksPanel is a content-layer
         // (= Z1 in apple-hig-visual-z-axis-layer-model.md L29-31)
         // NOT a chrome surface. Per (see OOB.md #2026-09-02) OOB "默认不加
         // 液态玻璃效果的, 我们就不加", no `.glassEffect(.regular)`
@@ -24,7 +24,7 @@ struct BacklinksPanel: View {
         // pane-chrome-canonic-pattern.md L88). The placeholder
         // background is `.background { Color.clear }` (= no fill;
         // the window's containerBackground = windowBackgroundColor
-        // from audit ticket 1 shows through = canonical Apple
+        // from  shows through = canonical Apple
         // NSColor-managed window tone).
         VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "auto.backlinkspanel.l95.h69157839"))
@@ -46,11 +46,11 @@ struct BacklinksPanel: View {
         }
         .padding()
         // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
-        // audit ticket 2): BacklinksPanel is a content-layer
+        // ): BacklinksPanel is a content-layer
         // (= Z1). No glass overlay (= (see OOB.md #2026-09-02) "默认不加
         // 液态玻璃效果的, 我们就不加"). The window's
         // containerBackground = windowBackgroundColor (set at
-        // LibraryRootView, audit ticket 1) shows through.
+        // LibraryRootView, ) shows through.
         .background { Color.clear }
     }
 }

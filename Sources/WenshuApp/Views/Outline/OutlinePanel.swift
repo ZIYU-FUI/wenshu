@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 /// OutlinePanel: SwiftUI View, show placeholder
-/// LayoutShellView [no longer defined post-v0.72 — see AppRootScene + NavigationSplitView (= per ADR-0011)], standalone wait macOS
+/// AppRootScene, standalone wait macOS
 struct OutlinePanel: View {
     @State private var items: [OutlineItem] = []
 

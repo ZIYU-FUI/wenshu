@@ -6,7 +6,7 @@
 //  .scratch/2026-09-23-mvvm-audit/spec.md §9 v1.75 arc).
 //
 //  Per v1.72 KanbanOps template (= @MainActor enum + Result types +
-//  static funcs). Per Q112 1 ticket = 1 file. Per the rule:
+//  static funcs). Per one ticket per file. Per the rule:
 //  "PreviewPane single-consumer (B)" (= BookDocLoaderOps is
 //  PreviewPane's private copy; = future ticket lifts to shared service
 //  when PaneView consumes it too).
@@ -266,7 +266,7 @@ enum PreviewPaneOps {
 
     /// Pinyin first-letter sequence for one title.
     /// Tokenises on whitespace, drops pure-punctuation tokens,
-    /// takes the first letter of each (= per Q99 Standards axis
+    /// takes the first letter of each (= per the dual-axis audit Standards axis
     /// LOW fix: emoji titles now produce one initial char too).
     /// Pure function (= no actor, no MainActor).
     static func pinyinFirstLetters(_ title: String) -> String {

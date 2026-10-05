@@ -108,7 +108,7 @@ struct BookID: TypedID, Equatable, Hashable, Codable, Sendable {
 /// `String` for `ToolCallID` at the call sites that hold a tool-call
 /// identifier (ToolUsePart.id, ToolResultPart.toolUseID,
 /// ToolDispatchHelpers.makeToolResultMessage). Splitting this work
-/// into one-type-per-commit keeps the Q112 1-source-1-test invariant
+/// into one-type-per-commit keeps the the per-commit 1-source-1-test invariant
 /// intact (= the actual type swap is a per-umbrella atomic-coupled
 /// sweep that crosses multiple files; = each sweep is its own ticket).
 struct ToolCallID: TypedID, Equatable, Hashable, Codable, Sendable {

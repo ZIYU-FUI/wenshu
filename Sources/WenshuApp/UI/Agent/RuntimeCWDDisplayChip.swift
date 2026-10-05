@@ -42,7 +42,7 @@ struct RuntimeCWDDisplayChip: View {
         .padding(.vertical, DesignTokens.badgePaddingVertical)
         .background(
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
-                // macOS 27 doc-alignment (audit ticket 8):
+                // macOS 27 doc-alignment ():
                 // HierarchicalShapeStyle.tertiary (= Apple semantic
                 // ShapeStyle; = auto-adapts dark mode + Liquid Glass).
                 .fill(.tertiary.opacity(0.1))

@@ -99,10 +99,8 @@ enum EditorPersistence {
                 tab.documentPath = proposed.path
                 return proposed.path
             } catch {
-                #if DEBUG
-                print("[wenshu.editor.persistence] chapter save failed: \(error)")
-                #endif
                 // Fall through to /tmp fallback.
+                return nil
             }
         }
         // Path 3: no documentPath + no proposed path → legacy /tmp
@@ -130,9 +128,6 @@ enum EditorPersistence {
         guard let path = tab.documentPath else { return nil }
         let url = URL(fileURLWithPath: path)
         guard let newContent = try? String(contentsOf: url, encoding: .utf8) else {
-            #if DEBUG
-            print("[wenshu.editor.persistence] B-23: failed to read \(path)")
-            #endif
             return nil
         }
         // Apple HIG TextEdit / Pages / Xcode behavior: clean state

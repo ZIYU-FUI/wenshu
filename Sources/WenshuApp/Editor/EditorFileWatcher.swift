@@ -85,9 +85,6 @@ enum EditorFileWatcher {
         // the file descriptor; DispatchSource reads from it.
         let fd = open(path, O_EVTONLY)
         guard fd >= 0 else {
-            #if DEBUG
-            print("[wenshu.editor.file-watcher] cannot open fd for \(path)")
-            #endif
             return
         }
         let source = DispatchSource.makeFileSystemObjectSource(

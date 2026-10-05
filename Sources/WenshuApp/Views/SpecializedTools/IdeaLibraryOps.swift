@@ -68,7 +68,7 @@
 //    - `ensureLibrary()` lazy-actor-construction stays in the
 //      View (= state transition, not remote call).
 //
-//  Honest scope note (= Q46 stop-rule boundary):
+//  Honest scope note (= the stop-rule boundary):
 //    IdeaLibraryView's `addIdea` had a side effect of clearing 4
 //    draft @State strings on success (= SwiftUI-side inline-
 //    create UX reset). That reset stays in the View (= binding

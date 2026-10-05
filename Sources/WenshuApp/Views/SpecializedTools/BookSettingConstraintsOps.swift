@@ -6,7 +6,7 @@
 //  .scratch/2026-09-23-mvvm-audit/spec.md §9 v1.75 arc).
 //
 //  Per v1.72 KanbanOps template (= @MainActor enum + Result types +
-//  static funcs). Per Q112 1 ticket = 1 file.
+//  static funcs). Per one ticket per file.
 //
 //  Public surface (= 4 entry points + 4 Result types):
 //    1. reload(manager:bookId:) -> LoadResult

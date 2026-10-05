@@ -75,7 +75,7 @@
 //      (= it's used in two view-local places: the runScan caller
 //      and any future "open the scratch chapter" affordance).
 //
-//  Honest scope note (= Q46 stop-rule boundary):
+//  Honest scope note (= the stop-rule boundary):
 //    PlaceholderView's `addPlaceholder` had a side effect of
 //    clearing 4 draft @State strings on success (= the
 //    SwiftUI-side inline-create UX reset). That reset stays in
