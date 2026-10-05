@@ -50,7 +50,19 @@ struct LibraryRootView: View {
     // WindowGroup (= single source of truth = AppRootScene).
     let library: WenshuLibrary
     let appearanceMode: AppearanceMode
-    @AppStorage("wenshu.libraryPath") private var libraryPath: String = ""
+
+    // Active library path (= canonical single source of truth via
+    // the security-scoped bookmark; see State/ActiveLibrary.swift).
+    // Read-only here; the .task(id:) below watches it to re-run
+    // runLaunch when the user picks a new library. Pre-B13 this
+    // was @AppStorage("wenshu.libraryPath") (= the UserDefaults
+    // string), but the Q2 production refactor removed every read of
+    // that string and replaced it with ActiveLibrary. The
+    // @AppStorage binding here would have written the legacy string
+    // (= deleted by the one-shot migration in
+    // WenshuAppDelegate.applicationDidFinishLaunching), = so we
+    // replaced it with the canonical accessor.
+    private var activeLibraryPath: String? { ActiveLibrary.path }
 
     init(library: WenshuLibrary, appearanceMode: AppearanceMode) {
         self.library = library
@@ -65,7 +77,7 @@ struct LibraryRootView: View {
         // .ws is now a macOS-style package directory, NOT a single file;
         // LibraryRootView.swift:296-309 creates Info.plist inside it).
         //
-        // Trigger = libraryPath empty OR path doesn't end with '.ws' OR
+        // Trigger = activeLibraryPath empty OR path doesn't end with '.ws' OR
         // .ws directory doesn't exist on disk.
         //
         // wenshu-verification-fix #2 ((see OOB.md #2026-08-24)
@@ -75,16 +87,16 @@ struct LibraryRootView: View {
         // passed → main UI shown, even though no .ws file created.
         // amendment: .ws is a DIRECTORY (not file); require path ends
         // with '.ws' AND directory exists AND Info.plist is readable.
-        if libraryPath.isEmpty { return true }
+        if (activeLibraryPath ?? "").isEmpty { return true }
         // bossverificationfix: must end with .ws extension
-        if !libraryPath.hasSuffix(".ws") { return true }
+        if !(activeLibraryPath ?? "").hasSuffix(".ws") { return true }
         // Directory must exist (v0.26: .ws is a directory, not a file)
         var isDir: ObjCBool = false
-        let exists = FileManager.default.fileExists(atPath: libraryPath, isDirectory: &isDir)
+        let exists = FileManager.default.fileExists(atPath: activeLibraryPath ?? "", isDirectory: &isDir)
         if !exists { return true }
         if !isDir.boolValue { return true }
         // Info.plist must be readable (= WSSchemaVersion check)
-        let infoPlistURL = URL(fileURLWithPath: libraryPath).appendingPathComponent("Info.plist")
+        let infoPlistURL = URL(fileURLWithPath: activeLibraryPath ?? "").appendingPathComponent("Info.plist")
         if !FileManager.default.isReadableFile(atPath: infoPlistURL.path) { return true }
         return false
     }
@@ -153,7 +165,7 @@ struct LibraryRootView: View {
             // `pane-chrome-canonic-pattern.md`).
             .containerBackground(.windowBackground, for: .window)
             // s filename shouldn't be shown either':
-            // drop the `.navigationSubtitle(libraryPath.lastPathComponent)`.
+            // drop the `.navigationSubtitle(activeLibraryPath?.lastPathComponent ?? "")`.
             // It was originally added (= ticket 008, commit a0e9b509d) to
             // match Apple's Pages / Numbers 'document basename in the
             // window subtitle' pattern, but per (see OOB.md #2026-09-19)
@@ -175,7 +187,7 @@ struct LibraryRootView: View {
             // to expose a feature Apple does not expose in office
             // apps). The toolbar now hosts only wenshu's own
             // chrome (= no NSV-default buttons added).
-            .task(id: libraryPath) { await runLaunch() }
+            .task(id: activeLibraryPath) { await runLaunch() }
             .sheet(isPresented: $commandPaletteVisible) {
                 CommandPaletteView(model: commandPaletteModel)
                     .navigationTitle(WenshuI18n.t("command_palette.title"))
@@ -230,14 +242,21 @@ struct LibraryRootView: View {
                 //    (= the user does not have to re-pick the .ws
                 //    library after every relaunch).
                 //
-                // We attempt the bookmark last; sandbox-less runs
-                // (= no entitlement) return nil from
-                // url.bookmarkData(), and we keep the existing
-                // string-only flow.
-                libraryPath = url.path
-                if let data = try? LibraryBookmark.make(for: url) {
-                    LibraryBookmark.save(data)
-                }
+                // Persist the user's selection as the canonical
+                // security-scoped bookmark (= see
+                // State/ActiveLibrary.swift = State/LibraryBookmark.swift).
+                // Pre-B13 (= before the Q2 production refactor) this
+                // closure wrote both the legacy 'wenshu.libraryPath'
+                // UserDefaults string (= via @AppStorage, removed in
+                // this commit) and the bookmark Data. Post-B13 the
+                // bookmark is the sole persistence (= the legacy
+                // string is cleared on next launch by
+                // WenshuAppDelegate.applicationDidFinishLaunching's
+                // one-shot migration). ActiveLibrary.setActiveLibrary
+                // is the canonical single writer; = it generates
+                // fresh bookmark Data (= rejects any pre-existing
+                // bookmark) and persists it via LibraryBookmark.save.
+                try? ActiveLibrary.setActiveLibrary(at: url)
             })
         } else if let bookStore {
             // LibraryRootView is the NavigationSplitView. Nothing
@@ -317,7 +336,7 @@ struct LibraryRootView: View {
     @MainActor
     private func runLaunch() async {
         guard !shouldShowOnboarding, bookStore == nil else { return }
-        let wsRoot = URL(fileURLWithPath: libraryPath)
+        let wsRoot = URL(fileURLWithPath: activeLibraryPath ?? "")
         // Apple HIG canonical sandbox persistence: when the App
         // Sandbox is enabled, the bare path string cannot recover the
         // user's grant across launches. The security-scoped bookmark
