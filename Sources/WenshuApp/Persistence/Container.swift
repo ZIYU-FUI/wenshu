@@ -83,7 +83,15 @@ enum WSPersistenceContainer {
         WSOutlineDocument.self,
         WSKanbanTask.self,
         WSEntity.self,
-        WSBody.self
+        WSBody.self,
+        // Tier 4: workspace layout tree (= 2026-10-05 #9 commit 1)
+        // Replaces the hand-rolled JSON persistence in
+        // State/LayoutTreeStore.swift. See
+        // Persistence/WSLayoutTreeState.swift.
+        WSLayoutTreeState.self,
+        WSLayoutNode.self,
+        WSPaneNode.self,
+        WSTabSpec.self
     ])
 
     /// The shared ModelContainer (= lazily initialized on first access).
