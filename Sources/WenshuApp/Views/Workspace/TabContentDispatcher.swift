@@ -154,92 +154,14 @@ struct TabContentDispatcher: View {
 // here — for now, the direct switch is sufficient and matches the
 // WorkspaceView.renderTabByKind behavior 1:1.
 
-// MARK: - Group tab strip
-
-/// GroupTabStrip — horizontal strip of tab labels for a group with
-/// > 1 pane (= the FCP Browser / VS Code pattern). Selecting a tab
-/// front-s it (= sets `active` on the owning group).
-///
-/// Each tab is `.draggable` (= `String` payload
-/// = the PaneID UUID string), so the user can drag a tab from one
-/// group to another (= or to the same group to reorder). The drop
-/// target is the pane host (= see paneHost(.dropDestination)).
-///
-/// Each tab has a close button (= X glyph)
-/// that calls `onClose` (= dispatches to LayoutTreeStore.removePane
-/// per the hermes pane-close semantics).
-private struct GroupTabStrip: View {
-    let panes: [PaneID]
-    let activePaneID: PaneID
-    let tabs: [TabSpec]
-    /// Per-pane label lookup (= paneID → title). Provided by the
-    /// caller (= PaneRenderer) because the strip itself doesn't have
-    /// access to LayoutTreeState.
-    let paneLabels: [PaneID: String]
-    let onSelect: (PaneID) -> Void
-    let onClose: (PaneID) -> Void
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(panes, id: \.self) { paneID in
-                let label = paneLabels[paneID] ?? "面板"
-                HStack(spacing: DesignTokens.spacingIconic) {
-                    Button(action: { onSelect(paneID) }) {
-                        Text(label)
-                            .font(.caption)
-                            .lineLimit(1)
-                            .padding(.horizontal, LayoutTokens.chromePaddingLarge)
-                            .padding(.vertical, LayoutTokens.chromePaddingSmall)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.plain)
-                    // Drag handle: drag a tab to drop it into another
-                    // pane (= `.draggable` per the multi-pane
-                    // drag-reorder semantics). String payload = the
-                    // PaneID's UUID string (= the receiver parses it back
-                    // into a PaneID in the dropDestination closure).
-                    .draggable(paneID.raw.uuidString) {
-                        // Drag preview: a small grey rectangle (= the
-                        // standard Apple pattern; full tab preview lands
-                        // in 028-007 when we have a tab icon asset).
-                        Text(label)
-                            .font(.caption)
-                            .padding(.horizontal, LayoutTokens.chromePaddingLarge)
-                            .padding(.vertical, LayoutTokens.chromePaddingSmall)
-                            .background(.tint.opacity(0.25))
-                    }
-                    // Close button (= the canonical X glyph): per
-                    // VSCode / FCP Browser convention, a small X
-                    // glyph at the tab's right edge. Hidden if the
-                    // group has only 1 pane left (= can't close
-                    // the last pane — would empty the workspace).
-                    if panes.count > 1 {
-                        Button(action: { onClose(paneID) }) {
-                            SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)
-                                .frame(width: DesignTokens.bulletSizeSmall, height: DesignTokens.bulletSizeSmall)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .background(paneID == activePaneID ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(Color.clear))
-                // Bottom 1 PT separator.
-                // followup UX round 26: Apple HierarchicalShapeStyle
-                // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
-                // Uses `.separator` (= the canonical macOS
-                // semantic separator color) instead of
-                // `Color.secondary.opacity(0.3)` (= solid muted gray).
-                // for the group header bottom border.
-                .overlay(
-                    Rectangle()
-                        .frame(height: DesignTokens.dividerHeight)
-                        .foregroundStyle(.separator),
-                    alignment: .bottom
-                )
-            }
-        }
-        // real-device test 2026-09-07: removed
-        // .regularMaterial (= Liquid Glass group tab bar);
-        // now uses Color.clear (= no background).
-        .background(Color.clear)
-    }
-}
+// (GroupTabStrip removed 2026-10-05 in dead-code-sweep-2026-10-05 batch —
+//  verify-dead.py strict-context grep confirmed 0 wenshu callers across
+//  Sources/ + Tests/; = the View struct was a horizontal tab strip
+//  designed for the FCP Browser / VS Code group-with-multiple-panes
+//  pattern but the current LayoutTreeStore model only emits
+//  single-pane groups (= no pane-split affordance ships to users
+//  today); = the struct was never instantiated; = its drag-reorder +
+//  per-pane close logic has no current consumer; = the design is
+//  preserved as a breadcrumb so a future pane-split ticket can
+//  resurrect it from git history if needed. See
+//  wenshu-dead-code-cleanup SKILL.md.)

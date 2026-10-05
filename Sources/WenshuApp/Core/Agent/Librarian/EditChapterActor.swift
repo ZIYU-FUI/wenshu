@@ -183,18 +183,13 @@ actor EditChapterActor {
         try Self.writeIndex(current, to: indexURL)
     }
 
-    /// Static FileSystem load (= actor-safe; = no instance state).
-    private static func loadChaptersFromFileSystemStatic(
-        bookDirectory: URL,
-        chaptersDirectory: URL,
-        indexURL: URL
-    ) throws -> [Document] {
-        try FileSystemChapterStore.loadChaptersFromFileSystem(
-            bookDirectory: bookDirectory,
-            chaptersDirectory: chaptersDirectory,
-            indexURL: indexURL
-        )
-    }
+    /// (loadChaptersFromFileSystemStatic removed 2026-10-05 in
+    ///  dead-code-sweep-2026-10-05 batch — verify-dead.py strict-context
+    ///  grep confirmed 0 callers across Sources/ + Tests/; = the function
+    ///  was a thin static forwarder to FileSystemChapterStore.loadChaptersFromFileSystem
+    ///  retained for an earlier non-actor design; = the current
+    ///  EditChapterActor calls `FileSystemChapterStore.loadChaptersFromFileSystem`
+    ///  directly (no static wrapper needed); = the forwarder is dead.)
 
     private static func ensureChaptersDirectoryExists(at url: URL) throws {
         if !FileManager.default.fileExists(atPath: url.path) {
