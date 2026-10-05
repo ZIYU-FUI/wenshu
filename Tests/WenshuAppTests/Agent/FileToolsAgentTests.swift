@@ -26,6 +26,19 @@ import Foundation
 @Suite("FileTools (agent-side, = ticket 001 sub-step 6)")
 struct FileToolsAgentTests {
 
+
+    // Reset the global library override to nil at suite entry. Suite
+    // bodies then re-set it to the canonical test root (e.g. `/tmp`
+    // or the makeBookDirectory) inside individual test functions. The
+    // nil reset prevents prior-suite leakage across the
+    // .nonisolated(unsafe) override seam (= tests are .serialized but
+    // the static var is process-wide; = without this reset a prior
+    // suite's /Users/.../test.ws would still be bound when this suite
+    // starts and PathGuard would reject paths from the new
+    // makeBookDirectory).
+    init() {
+        ActiveLibrary.overrideForTesting = nil
+    }
     // MARK: - Test 1: Read round-trip
 
     @Test("ReadFileTool reads existing file via FileTools delegate")
@@ -95,11 +108,8 @@ struct FileToolsAgentTests {
         // canonical /tmp (= resolves through /private/tmp symlink so
         // PathGuard's canonical-root comparison matches the test's
         // /tmp/wenshu-exec-test-*.md temp file).
-        UserDefaultsStore.shared.setString(
-            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
-            forKey: .libraryPath
-        )
-        defer { UserDefaultsStore.shared.remove(.libraryPath) }
+        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+        defer { ActiveLibrary.overrideForTesting = nil }
 
         let tmpPath = "/tmp/wenshu-exec-test-\(UUID().uuidString).md"
         try FileTools().write(path: tmpPath, content: "executor dispatched this")

@@ -21,6 +21,19 @@ import Foundation
 @Suite("RealAgentDispatch (= ticket 018 sub-step 3 end-to-end)")
 struct RealAgentDispatchTests {
 
+
+    // Reset the global library override to nil at suite entry. Suite
+    // bodies then re-set it to the canonical test root (e.g. `/tmp`
+    // or the makeBookDirectory) inside individual test functions. The
+    // nil reset prevents prior-suite leakage across the
+    // .nonisolated(unsafe) override seam (= tests are .serialized but
+    // the static var is process-wide; = without this reset a prior
+    // suite's /Users/.../test.ws would still be bound when this suite
+    // starts and PathGuard would reject paths from the new
+    // makeBookDirectory).
+    init() {
+        ActiveLibrary.overrideForTesting = nil
+    }
     /// Library root path (= the path PathGuard validates against). Set via
     /// UserDefaultsStore in `setLibraryRoot()` so PathGuard checks pass.
     private let libraryRoot = "/Users/anbaiqiang/libraries/test-real-agent.ws"
@@ -30,12 +43,12 @@ struct RealAgentDispatchTests {
     /// this, the tool call throws .libraryRootUnconfigured (= test was
     /// authored before PathGuard existed).
     private func setLibraryRoot() {
-        UserDefaultsStore.shared.setString(libraryRoot, forKey: .libraryPath)
+        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = libraryRoot
     }
 
     /// Reset UserDefaultsStore.libraryPath to a clean state for the next test.
     private func clearLibraryRoot() {
-        UserDefaultsStore.shared.setString("", forKey: .libraryPath)
+        ActiveLibrary.overrideForTesting = ""
     }
 
     /// Set up a temp directory with a sample book file under the library root
@@ -61,7 +74,7 @@ struct RealAgentDispatchTests {
     /// Reset libraryRoot before each test (= the prior test's setLibraryRoot
     /// leaks into the next one if not cleared).
     private func resetLibraryRoot() {
-        UserDefaultsStore.shared.setString("", forKey: .libraryPath)
+        ActiveLibrary.overrideForTesting = ""
     }
 
     @Test("ConversationLoop.runConversation with empty history returns LLMResponse")

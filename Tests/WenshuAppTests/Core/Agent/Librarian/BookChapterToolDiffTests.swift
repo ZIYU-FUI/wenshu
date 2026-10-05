@@ -16,16 +16,26 @@ import Testing
 @Suite("BookChapterTool.update diff envelope (chat-diff-preview 2026-09-28 T2)")
 struct BookChapterToolDiffEnvelopeTests {
 
+
+    // Reset the global library override to nil at suite entry. Suite
+    // bodies then re-set it to the canonical test root (e.g. `/tmp`
+    // or the makeBookDirectory) inside individual test functions. The
+    // nil reset prevents prior-suite leakage across the
+    // .nonisolated(unsafe) override seam (= tests are .serialized but
+    // the static var is process-wide; = without this reset a prior
+    // suite's /Users/.../test.ws would still be bound when this suite
+    // starts and PathGuard would reject paths from the new
+    // makeBookDirectory).
+    init() {
+        ActiveLibrary.overrideForTesting = nil
+    }
     @Test("update envelope carries kind='diff' with diff text and +/- char counts")
     func updateEnvelopeHasDiff() async throws {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-diff-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmpRoot) }
 
-        UserDefaultsStore.shared.setString(
-            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
-            forKey: .libraryPath
-        )
+        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
         let bookId = UUID()
         let actor = BookChapterActor(
@@ -80,10 +90,7 @@ struct BookChapterToolDiffEnvelopeTests {
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmpRoot) }
 
-        UserDefaultsStore.shared.setString(
-            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
-            forKey: .libraryPath
-        )
+        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
         let bookId = UUID()
         let actor = BookChapterActor(

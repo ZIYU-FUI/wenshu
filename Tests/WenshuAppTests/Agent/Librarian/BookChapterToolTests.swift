@@ -18,6 +18,19 @@ import Foundation
 @Suite("BookChapterTool (v2.0)", .serialized)
 struct BookChapterToolTests {
 
+
+    // Reset the global library override to nil at suite entry. Suite
+    // bodies then re-set it to the canonical test root (e.g. `/tmp`
+    // or the makeBookDirectory) inside individual test functions. The
+    // nil reset prevents prior-suite leakage across the
+    // .nonisolated(unsafe) override seam (= tests are .serialized but
+    // the static var is process-wide; = without this reset a prior
+    // suite's /Users/.../test.ws would still be bound when this suite
+    // starts and PathGuard would reject paths from the new
+    // makeBookDirectory).
+    init() {
+        ActiveLibrary.overrideForTesting = nil
+    }
     // MARK: - Helpers
 
     private static func makeBookDirectory() throws -> URL {
@@ -31,10 +44,7 @@ struct BookChapterToolTests {
         // wt/path-guard-v2-2026-09-25: set libraryPath to the
         // canonical /tmp (= resolves through /private/tmp symlink
         // so PathGuard's canonical-root comparison matches).
-        UserDefaultsStore.shared.setString(
-            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
-            forKey: .libraryPath
-        )
+        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
         return BookChapterActor(
             bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { nil }
@@ -45,6 +55,7 @@ struct BookChapterToolTests {
 
     @Test func testCreateChapter_persistsBody() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let descriptor = try await actor.createChapter(
             bookId: bookId,
@@ -64,6 +75,7 @@ struct BookChapterToolTests {
 
     @Test func testReadChapter_returnsBodyAndMetadata() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let created = try await actor.createChapter(
             bookId: UUID(),
             title: "Chapter 2",
@@ -79,6 +91,7 @@ struct BookChapterToolTests {
 
     @Test func testUpdateChapter_replacesBodyAndMetadata() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let created = try await actor.createChapter(
             bookId: UUID(),
             title: "Chapter 3",
@@ -101,6 +114,7 @@ struct BookChapterToolTests {
 
     @Test func testDeleteChapter_removesBodyAndIndex() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let created = try await actor.createChapter(
             bookId: UUID(),
             title: "Scrapped",
@@ -139,6 +153,7 @@ struct BookChapterToolTests {
 
     @Test func testFindChapter_resolvesByCaseInsensitiveTitle() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let created = try await actor.createChapter(
             bookId: bookId,
@@ -243,6 +258,7 @@ struct BookChapterToolTests {
 
     @Test func testCreate_uniqueTitle_createsNewChapter() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let first = try await actor.createChapter(
             bookId: bookId,

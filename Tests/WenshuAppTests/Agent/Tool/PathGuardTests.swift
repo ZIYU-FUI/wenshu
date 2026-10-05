@@ -18,11 +18,11 @@ struct PathGuardTests {
     private let libraryRoot = "/Users/anbaiqiang/libraries/test.ws"
 
     init() {
-        UserDefaultsStore.shared.remove(.libraryPath)
+        // ActiveLibrary.overrideForTesting is set per-test below (no UserDefaults key exists)
     }
 
     private func setLibraryRoot() {
-        UserDefaultsStore.shared.setString(libraryRoot, forKey: .libraryPath)
+        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = libraryRoot
     }
 
     // MARK: - Library root resolution

@@ -18,6 +18,19 @@ import Foundation
 @Suite("BookOutlineTool (v2.0)", .serialized)
 struct BookOutlineToolTests {
 
+
+    // Reset the global library override to nil at suite entry. Suite
+    // bodies then re-set it to the canonical test root (e.g. `/tmp`
+    // or the makeBookDirectory) inside individual test functions. The
+    // nil reset prevents prior-suite leakage across the
+    // .nonisolated(unsafe) override seam (= tests are .serialized but
+    // the static var is process-wide; = without this reset a prior
+    // suite's /Users/.../test.ws would still be bound when this suite
+    // starts and PathGuard would reject paths from the new
+    // makeBookDirectory).
+    init() {
+        ActiveLibrary.overrideForTesting = nil
+    }
     private static func makeBookDirectory() throws -> URL {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-v2-outline-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
@@ -29,10 +42,7 @@ struct BookOutlineToolTests {
         // wt/path-guard-v2-2026-09-25: set libraryPath to the
         // canonical /tmp (= resolves through /private/tmp symlink
         // so PathGuard's canonical-root comparison matches).
-        UserDefaultsStore.shared.setString(
-            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
-            forKey: .libraryPath
-        )
+        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
         return BookOutlineActor(
             bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { nil }
@@ -41,6 +51,7 @@ struct BookOutlineToolTests {
 
     @Test func testCreateOutline_persistsBody() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let descriptor = try await actor.createOutline(
             bookId: bookId,
@@ -60,6 +71,7 @@ struct BookOutlineToolTests {
 
     @Test func testReadOutline_returnsBodyAndMetadata() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let created = try await actor.createOutline(
             bookId: UUID(),
             title: "Chapter 1",
@@ -73,6 +85,7 @@ struct BookOutlineToolTests {
 
     @Test func testUpdateOutline_replacesBodyAndMetadata() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let created = try await actor.createOutline(
             bookId: UUID(),
             title: "Chapter 2",
@@ -94,6 +107,7 @@ struct BookOutlineToolTests {
 
     @Test func testDeleteOutline_removesBodyAndIndex() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let created = try await actor.createOutline(
             bookId: UUID(),
             title: "Scrapped",
@@ -128,6 +142,7 @@ struct BookOutlineToolTests {
 
     @Test func testFindOutline_resolvesByCaseInsensitiveTitle() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let created = try await actor.createOutline(
             bookId: bookId,
@@ -231,6 +246,7 @@ struct BookOutlineToolTests {
 
     @Test func testCreate_uniqueTitle_createsNewOutline() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let first = try await actor.createOutline(
             bookId: bookId,

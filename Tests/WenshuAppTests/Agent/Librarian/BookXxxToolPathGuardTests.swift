@@ -21,11 +21,17 @@ struct BookXxxToolPathGuardTests {
     private let libraryRoot = "/Users/anbaiqiang/libraries/test.ws"
 
     init() {
-        UserDefaultsStore.shared.remove(.libraryPath)
+        // Mock the active library via ActiveLibrary.overrideForTesting
+        // (= replaces the legacy UserDefaults string that this suite
+        // previously wrote to; = the active library now resolves from
+        // a security-scoped bookmark via ActiveLibrary, and the only
+        // hook tests have without going through that persistence is
+        // ActiveLibrary.overrideForTesting).
+        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = libraryRoot
     }
 
     private func setLibraryRoot() {
-        UserDefaultsStore.shared.setString(libraryRoot, forKey: .libraryPath)
+        ActiveLibrary.overrideForTesting = libraryRoot
     }
 
     @Test("BookChapterActor rejects bookDirectoryProvider that points outside the library")

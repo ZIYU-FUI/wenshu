@@ -24,6 +24,19 @@ import Foundation
 @Suite("BookEntityActor (v2.3)", .serialized)
 struct BookEntityActorTests {
 
+
+    // Reset the global library override to nil at suite entry. Suite
+    // bodies then re-set it to the canonical test root (e.g. `/tmp`
+    // or the makeBookDirectory) inside individual test functions. The
+    // nil reset prevents prior-suite leakage across the
+    // .nonisolated(unsafe) override seam (= tests are .serialized but
+    // the static var is process-wide; = without this reset a prior
+    // suite's /Users/.../test.ws would still be bound when this suite
+    // starts and PathGuard would reject paths from the new
+    // makeBookDirectory).
+    init() {
+        ActiveLibrary.overrideForTesting = nil
+    }
     /// Make a unique temp book directory for each test (= per
     /// the FileSystemEntityStoreTest pattern).
     static func makeBookDirectory() throws -> URL {
@@ -54,7 +67,7 @@ struct BookEntityActorTests {
             .resolvingSymlinksInPath()
             .standardizedFileURL
             .path
-        UserDefaultsStore.shared.setString(canonicalTmp, forKey: .libraryPath)
+        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = canonicalTmp
         return BookEntityActor(
             bookDirectoryProvider: { directory },
             currentChatBookIDProvider: { chatBookID }
@@ -94,6 +107,7 @@ struct BookEntityActorTests {
 
     @Test func createEntity_emptyNameThrows() async throws {
         let actor = Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         await #expect(throws: BookEntityError.self) {
             try await actor.createEntity(
                 bookId: UUID(),
@@ -105,6 +119,7 @@ struct BookEntityActorTests {
 
     @Test func createEntity_unknownKindThrows() async throws {
         let actor = Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         await #expect(throws: BookEntityError.self) {
             try await actor.createEntity(
                 bookId: UUID(),
@@ -117,6 +132,7 @@ struct BookEntityActorTests {
     @Test func createEntity_silentDedupByName() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
 
         // First create.
@@ -153,6 +169,7 @@ struct BookEntityActorTests {
     @Test func readEntity_returnsDescriptorAndBody() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let desc = try await actor.createEntity(
             bookId: bookId, kind: "location", name: "Beijing",
@@ -168,6 +185,7 @@ struct BookEntityActorTests {
     @Test func readEntity_throwsForUnknownId() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         await #expect(throws: BookEntityError.self) {
             _ = try await actor.readEntity(id: EntityID.newID())
         }
@@ -178,6 +196,7 @@ struct BookEntityActorTests {
     @Test func updateEntity_replacesBodyAndMergesFields() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let first = try await actor.createEntity(
             bookId: bookId, kind: "object", name: "Sword",
@@ -209,6 +228,7 @@ struct BookEntityActorTests {
     @Test func updateEntity_throwsForUnknownId() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         await #expect(throws: BookEntityError.self) {
             try await actor.updateEntity(
                 id: EntityID.newID(),
@@ -224,6 +244,7 @@ struct BookEntityActorTests {
     @Test func deleteEntity_removesBodyAndIndexRow() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let desc = try await actor.createEntity(
             bookId: bookId, kind: "ability", name: "Sword Technique"
@@ -236,6 +257,7 @@ struct BookEntityActorTests {
     @Test func deleteEntity_isIdempotent() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let desc = try await actor.createEntity(
             bookId: bookId, kind: "ability", name: "X"
@@ -250,6 +272,7 @@ struct BookEntityActorTests {
     @Test func listEntities_filtersByBookId() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookA = UUID()
         let bookB = UUID()
         _ = try await actor.createEntity(bookId: bookA, kind: "person", name: "A1")
@@ -265,6 +288,7 @@ struct BookEntityActorTests {
     @Test func listEntities_filtersByKind() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         _ = try await actor.createEntity(bookId: bookId, kind: "person", name: "Lin Fan")
         _ = try await actor.createEntity(bookId: bookId, kind: "location", name: "Beijing")
@@ -283,6 +307,7 @@ struct BookEntityActorTests {
     @Test func findEntity_matchesByCaseInsensitiveName() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let desc = try await actor.createEntity(
             bookId: bookId, kind: "person", name: "Lin Fan"
@@ -296,6 +321,7 @@ struct BookEntityActorTests {
     @Test func findEntity_returnsNilForDifferentKind() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         _ = try await actor.createEntity(
             bookId: bookId, kind: "person", name: "Lin Fan"
@@ -310,6 +336,7 @@ struct BookEntityActorTests {
     @Test func findEntity_returnsNilForDifferentBook() async throws {
         let dir = try Self.makeBookDirectory()
         let actor = Self.makeActor(bookDirectory: dir)
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookA = UUID()
         let bookB = UUID()
         _ = try await actor.createEntity(bookId: bookA, kind: "person", name: "Lin Fan")

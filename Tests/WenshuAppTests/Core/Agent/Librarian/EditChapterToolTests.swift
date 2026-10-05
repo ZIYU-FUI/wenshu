@@ -17,6 +17,19 @@ import Testing
 @Suite("EditChapterActor patch-style edit (edit-chapter-tool 2026-09-28 T4)")
 struct EditChapterActorTests {
 
+
+    // Reset the global library override to nil at suite entry. Suite
+    // bodies then re-set it to the canonical test root (e.g. `/tmp`
+    // or the makeBookDirectory) inside individual test functions. The
+    // nil reset prevents prior-suite leakage across the
+    // .nonisolated(unsafe) override seam (= tests are .serialized but
+    // the static var is process-wide; = without this reset a prior
+    // suite's /Users/.../test.ws would still be bound when this suite
+    // starts and PathGuard would reject paths from the new
+    // makeBookDirectory).
+    init() {
+        ActiveLibrary.overrideForTesting = nil
+    }
     @Test("edit replaces a single occurrence of old_text with new_text")
     func singleReplacement() async throws {
         let (actor, bookId, chapterId) = try await Self.seedChapter(
@@ -94,10 +107,7 @@ struct EditChapterActorTests {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-edit-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
 
-        UserDefaultsStore.shared.setString(
-            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
-            forKey: .libraryPath
-        )
+        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
         let bookId = UUID()
         // Seed via FileSystemChapterStore directly (= bypasses the

@@ -19,8 +19,22 @@ import Testing
 @Suite(.serialized)
 struct BookChapterActorUpdateBoundaryTests {
 
+
+    // Reset the global library override to nil at suite entry. Suite
+    // bodies then re-set it to the canonical test root (e.g. `/tmp`
+    // or the makeBookDirectory) inside individual test functions. The
+    // nil reset prevents prior-suite leakage across the
+    // .nonisolated(unsafe) override seam (= tests are .serialized but
+    // the static var is process-wide; = without this reset a prior
+    // suite's /Users/.../test.ws would still be bound when this suite
+    // starts and PathGuard would reject paths from the new
+    // makeBookDirectory).
+    init() {
+        ActiveLibrary.overrideForTesting = nil
+    }
     @Test func update_oneMegabyteBodyRoundTripsIntact() async throws {
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
 
         // 1 MB body composed of repeating Lorem text. We avoid the very
@@ -63,6 +77,7 @@ struct BookChapterActorUpdateBoundaryTests {
         // a torn interleaving. We assert that one of the two writes wins
         // and the readback matches the winner exactly.
         let actor = try Self.makeActor()
+        defer { ActiveLibrary.overrideForTesting = nil }
         let bookId = UUID()
         let chapter = try await actor.createChapter(
             bookId: bookId,
@@ -102,10 +117,7 @@ struct BookChapterActorUpdateBoundaryTests {
 
     private static func makeActor() throws -> BookChapterActor {
         let dir = try Self.makeBookDirectory()
-        UserDefaults.standard.set(
-            URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path,
-            forKey: WenshuDefaultsKey.libraryPath.rawValue
-        )
+        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
         return BookChapterActor(
             bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { nil }

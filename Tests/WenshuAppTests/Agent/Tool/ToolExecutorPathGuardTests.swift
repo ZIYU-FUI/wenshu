@@ -19,11 +19,11 @@ struct ToolExecutorPathGuardTests {
     private let libraryRoot = "/Users/anbaiqiang/libraries/test.ws"
 
     init() {
-        UserDefaultsStore.shared.remove(.libraryPath)
+        // ActiveLibrary.overrideForTesting is set per-test below (no UserDefaults key exists)
     }
 
     private func setLibraryRoot() {
-        UserDefaultsStore.shared.setString(libraryRoot, forKey: .libraryPath)
+        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = libraryRoot
     }
 
     /// Echo-style tool returning the input verbatim with a "RAN:"
