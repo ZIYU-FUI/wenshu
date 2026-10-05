@@ -48,3 +48,13 @@ final class WSAttachment {
         (data != nil) != (externalPath != nil)
     }
 }
+
+// Apple HIG canonical Identifiable conformance for SwiftUI
+// Table selection (= `selection: Set<WSAttachment.ID>` is the
+// per-row selection set). The default `ID == String` (= reuses
+// the existing `@Attribute(.unique) var id: String`; = no
+// separate UUID tracking; = SwiftData PersistentIdentifier is
+// not entangled here because the id is the model-stored unique
+// string; = the conformance is free because Swift's Identifiable
+// protocol only requires `var id: ID` and `ID: Hashable`).
+extension WSAttachment: Identifiable {}
