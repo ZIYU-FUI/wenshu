@@ -29,6 +29,9 @@
 //
 
 import SwiftUI
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "kanbanwindow")
 
 /// KanbanWindow = the
 /// dedicated scene body for the kanban-as-independent-window
@@ -116,7 +119,7 @@ struct KanbanWindow: View {
                 // show the error and stay open so the user can
                 // debug (= don't silently fail; = Apple HIG
                 // modal dialog for unhandled errors).
-                NSLog("[wenshu.window] kanban store construct failed: %@", String(describing: error))
+                wenshuLogger.info("[wenshu.window] kanban store construct failed: \(String(describing: error))")
             }
         }
     }

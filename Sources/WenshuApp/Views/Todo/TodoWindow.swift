@@ -21,6 +21,9 @@
 //
 
 import SwiftUI
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "todowindow")
 
 /// TodoWindow = the
 /// dedicated scene body for the todo-as-independent-window
@@ -66,7 +69,7 @@ struct TodoWindow: View {
                 let result = try hook.runLaunch()
                 self.bookStore = result.makeBookStore()
             } catch {
-                NSLog("[wenshu.window] todo store construct failed: %@", String(describing: error))
+                wenshuLogger.info("[wenshu.window] todo store construct failed: \(String(describing: error))")
             }
         }
     }

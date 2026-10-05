@@ -52,6 +52,9 @@
 //
 
 import Foundation
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "bookmanagertool")
 
 // MARK: - BookDescriptor
 
@@ -599,11 +602,11 @@ actor BookManagerTool: Tool {
     /// static-let initializer is itself `@MainActor`.
     @MainActor static let shared: BookManagerTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-books-\(UUID().uuidString)", isDirectory: true)
-        // surface createDirectory failures via NSLog (= was silent `try?`).
+        // surface createDirectory failures via wenshuLogger.info((= was silent `try?`).
         do {
             try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
         } catch {
-            NSLog("[wenshu.BookManagerTool] failed to create tmp root %@: %@", tmpRoot.path, "\(error)")
+            wenshuLogger.info("[wenshu.BookManagerTool] failed to create tmp root \(tmpRoot.path): \("\(error)")")
         }
         let shelvesRoot = tmpRoot.appendingPathComponent("shelves", isDirectory: true)
         let referenceLibraryRoot = tmpRoot.appendingPathComponent("reference-library", isDirectory: true)

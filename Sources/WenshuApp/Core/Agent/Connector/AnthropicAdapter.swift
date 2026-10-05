@@ -36,6 +36,9 @@
 //
 
 import Foundation
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "anthropicadapter")
 
 enum AnthropicAdapter {
 
@@ -263,7 +266,7 @@ enum AnthropicAdapter {
                     )
                     inputStr = String(data: data, encoding: .utf8) ?? "{}"
                 } catch {
-                    NSLog("[wenshu.anthropicAdapter] JSONSerialization.data failed for tool_use input: %@", String(describing: error))
+                    wenshuLogger.info("[wenshu.anthropicAdapter] JSONSerialization.data failed for tool_use input: \(String(describing: error))")
                     inputStr = "{}"
                 }
             } else {

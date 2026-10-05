@@ -6,8 +6,11 @@
 // construction) without invasive `@Environment` rewrites.
 
 import Foundation
+import os
 import SwiftUI
 import Observation
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "librarylifecyclehook")
 
 @MainActor
 struct LibraryLifecycleHook: Sendable {
@@ -15,15 +18,15 @@ struct LibraryLifecycleHook: Sendable {
 
     @MainActor
     func runLaunch() throws -> LibraryLaunchResult {
-        NSLog("[wenshu.library.lifecycle] runLaunch start wsRoot=%@", wsRoot.path)
+        wenshuLogger.info("[wenshu.library.lifecycle] runLaunch start wsRoot=\(wsRoot.path)")
         let migrator = LibraryMigrator(wsRoot: wsRoot)
         try migrator.migrateIfNeeded()
-        NSLog("[wenshu.library.lifecycle] runLaunch: migrateIfNeeded done")
+        wenshuLogger.info("[wenshu.library.lifecycle] runLaunch: migrateIfNeeded done")
         let bootstrapper = LibraryBootstrapper(wsRoot: wsRoot)
         try bootstrapper.ensureValidStructure()
-        NSLog("[wenshu.library.lifecycle] runLaunch: ensureValidStructure done")
+        wenshuLogger.info("[wenshu.library.lifecycle] runLaunch: ensureValidStructure done")
         let stores = try constructStores(wsRoot: wsRoot)
-        NSLog("[wenshu.library.lifecycle] runLaunch: constructStores done; shelvesRoot=%@", stores.shelvesRoot.path)
+        wenshuLogger.info("[wenshu.library.lifecycle] runLaunch: constructStores done; shelvesRoot=\(stores.shelvesRoot.path)")
         return LibraryLaunchResult(stores: stores)
     }
 

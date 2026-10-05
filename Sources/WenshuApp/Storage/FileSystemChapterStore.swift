@@ -28,7 +28,10 @@
 //     chapters.json                <- REMOVED (now in SwiftData WSChapter row)
 
 import Foundation
+import os
 import SwiftData
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "filesystemchapterstore")
 
 // MARK: - Protocol
 
@@ -244,7 +247,7 @@ struct FileSystemChapterStore: ChapterStoring {
                     body: bodyMarkdown
                 )
             } catch {
-                NSLog("[wenshu.spotlight.auto] index failed after chapter save: %@", String(describing: error))
+                wenshuLogger.info("[wenshu.spotlight.auto] index failed after chapter save: \(String(describing: error))")
             }
         }
     }
@@ -291,7 +294,7 @@ struct FileSystemChapterStore: ChapterStoring {
                     body: bodyMarkdown
                 )
             } catch {
-                NSLog("[wenshu.spotlight.auto] index failed after chapter replace: %@", String(describing: error))
+                wenshuLogger.info("[wenshu.spotlight.auto] index failed after chapter replace: \(String(describing: error))")
             }
         }
     }

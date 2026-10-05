@@ -12,6 +12,9 @@
 // Idempotent (= skips if the entity already exists by name + layer).
 
 import Foundation
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "entityingestion")
 
 @MainActor
 struct EntityIngestion: Sendable {
@@ -45,12 +48,12 @@ struct EntityIngestion: Sendable {
             let summary = issues.filter { $0.severity == .error }
                 .map { "[\($0.code)] \($0.message)" }
                 .joined(separator: "\n")
-            NSLog("[wenshu.preflight] blocked: %@\n%@", reference.id.uuidString, summary)
+            wenshuLogger.info("[wenshu.preflight] blocked: \(reference.id.uuidString)\n\(summary)")
             throw PreflightError.issues(issues)
         }
         // Warnings: log + continue (= non-blocking).
         for warning in issues where warning.severity == .warning {
-            NSLog("[wenshu.preflight] warning: %@", warning.message)
+            wenshuLogger.info("[wenshu.preflight] warning: \(warning.message)")
         }
         try referenceStore.saveReference(reference, bodyMarkdown: body)
         return true

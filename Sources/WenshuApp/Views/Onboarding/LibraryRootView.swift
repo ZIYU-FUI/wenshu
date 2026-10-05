@@ -29,8 +29,11 @@
 //
 
 import SwiftUI
+import os
 import AppKit
 import UniformTypeIdentifiers
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "libraryrootview")
 
 /// LibraryRootView: Routes between onboarding (first launch) and main app.
 ///
@@ -432,7 +435,7 @@ struct LibraryRootView: View {
             // leave bookStore = nil forever and the window stuck
             // on the loading spinner (= the symptom reported during
             // the 2026-09-10 audit).
-            NSLog("[wenshu.library.lifecycle] runLaunch failed: %@", String(describing: error))
+            wenshuLogger.info("[wenshu.library.lifecycle] runLaunch failed: \(String(describing: error))")
         }
     }
 
@@ -453,7 +456,7 @@ struct LibraryRootView: View {
     }
 
     private func handleSpotlightPick(docId: String) {
-        NSLog("[wenshu.spotlight] pick docId=%@", docId)
+        wenshuLogger.info("[wenshu.spotlight] pick docId=\(docId)")
 
         // v2.9d T35 ((see OOB.md #2026-09-28) OOB A8 polish): the
         // editor tab title now uses the mirror entry's title
@@ -720,15 +723,15 @@ extension LibraryOnboardingView {
         if let symbolImage = renderSFSymbol("book", size: 1024) {
             let workspace = NSWorkspace.shared
             let success = workspace.setIcon(symbolImage, forFile: url.path, options: [])
-            NSLog("[wenshu.library] icon set=%@ for: %@", success ? "yes" : "no", url.path)
+            wenshuLogger.info("[wenshu.library] icon set=\(success ? "yes" : "no") for: \(url.path)")
         } else if let logoImage = loadWenshuLogoForIcon() {
             // Fallback to wenshu LOGO if SF Symbol render fails
             logoImage.size = NSSize(width: 1024, height: 1024)
             let workspace = NSWorkspace.shared
             let success = workspace.setIcon(logoImage, forFile: url.path, options: [])
-            NSLog("[wenshu.library] icon set=%@ (fallback LOGO) for: %@", success ? "yes" : "no", url.path)
+            wenshuLogger.info("[wenshu.library] icon set=\(success ? "yes" : "no") (fallback LOGO) for: \(url.path)")
         }
-        NSLog("[wenshu.library] created package: %@", url.path)
+        wenshuLogger.info("[wenshu.library] created package: \(url.path)")
     }
 
     /// Render an SF Symbol to NSImage at given size.
@@ -737,7 +740,7 @@ extension LibraryOnboardingView {
     static func renderSFSymbol(_ name: String, size: CGFloat) -> NSImage? {
         // Use NSImage(systemSymbolName:) for SF Symbol loading.
         guard let image = NSImage(systemSymbolName: name, accessibilityDescription: name) else {
-            NSLog("[wenshu.library] SF Symbol not found: %@", name)
+            wenshuLogger.info("[wenshu.library] SF Symbol not found: \(name)")
             return nil
         }
         image.size = NSSize(width: size, height: size)

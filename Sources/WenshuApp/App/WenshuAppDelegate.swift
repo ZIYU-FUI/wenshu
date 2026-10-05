@@ -1,5 +1,8 @@
 import SwiftUI
+import os
 import AppKit
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuappdelegate")
 
 /// AppDelegate: WenshuCore runtime + macOS app init
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
@@ -33,9 +36,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // Copy legacy → warehouse
         do {
             try fm.copyItem(at: appSupport, to: newURL)
-            NSLog("[wenshu.chatStore] migrated legacy chat.sqlite to %@", chatDbPath)
+            wenshuLogger.info("[wenshu.chatStore] migrated legacy chat.sqlite to \(chatDbPath)")
         } catch {
-            NSLog("[wenshu.chatStore] legacy chat migration FAILED: %@", String(describing: error))
+            wenshuLogger.info("[wenshu.chatStore] legacy chat migration FAILED: \(String(describing: error))")
         }
     }
 
@@ -67,10 +70,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     static let sharedKeychainBackend: Void = {
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
             ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-            NSLog("[wenshu.debug] keychain backend = InMemoryKeychainStore (env var override)")
+            wenshuLogger.info("[wenshu.debug] keychain backend = InMemoryKeychainStore (env var override)")
         } else if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-            NSLog("[wenshu.debug] keychain backend = InMemoryKeychainStore (UserDefaults override)")
+            wenshuLogger.info("[wenshu.debug] keychain backend = InMemoryKeychainStore (UserDefaults override)")
         }
     }()
 
@@ -91,7 +94,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
 
     @MainActor @objc func resetLayout(_ sender: Any?) {
-        NSLog("[wenshu.reset] NSMenu resetLayout(_:) called, posting")
+        wenshuLogger.info("[wenshu.reset] NSMenu resetLayout(_:) called, posting")
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
@@ -199,11 +202,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         do {
             let warehouseContainer = try WSPersistenceContainer.makeContainerForWarehouse(warehouseURL)
             WSPersistenceContainer.activateWarehouseContainer(warehouseContainer)
-            NSLog("[wenshu.persistence] warehouse container activated: %@",
-                  warehouseURL?.path ?? "<none>")
+            wenshuLogger.info("[wenshu.persistence] warehouse container activated: \(warehouseURL?.path ?? "<none>")")
         } catch {
-            NSLog("[wenshu.persistence] warehouse container activation FAILED: %@",
-                  String(describing: error))
+            wenshuLogger.info("[wenshu.persistence] warehouse container activation FAILED: \(String(describing: error))")
             WSPersistenceContainer.activateWarehouseContainer(nil)
         }
 
@@ -345,7 +346,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
-        NSLog("[wenshu.subagent] drain loop started")
+        wenshuLogger.info("[wenshu.subagent] drain loop started")
     }
 
     /// Stop the sub-agent runner drain loop (= v2.7d cancel path).
@@ -357,7 +358,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         subAgentDrainTask?.cancel()
         subAgentDrainTask = nil
         sharedSubAgentRunner = nil
-        NSLog("[wenshu.subagent] drain loop stopped")
+        wenshuLogger.info("[wenshu.subagent] drain loop stopped")
     }
 
     /// 

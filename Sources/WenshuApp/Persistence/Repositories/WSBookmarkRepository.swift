@@ -19,7 +19,10 @@
 //  Bookmark mapping: WSBookmark.docID → Bookmark.docId; WSBookmark.title → Bookmark.label.
 
 import Foundation
+import os
 import SwiftData
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wsbookmarkrepository")
 
 @MainActor
 final class WSBookmarkRepository {
@@ -52,7 +55,7 @@ final class WSBookmarkRepository {
                     body: title
                 )
             } catch {
-                NSLog("[wenshu.spotlight.auto] index failed after bookmark add: %@", String(describing: error))
+                wenshuLogger.info("[wenshu.spotlight.auto] index failed after bookmark add: \(String(describing: error))")
             }
         }
     }

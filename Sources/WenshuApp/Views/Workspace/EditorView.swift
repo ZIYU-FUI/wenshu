@@ -20,7 +20,10 @@
 // and body (= no behavior change).
 
 import SwiftUI
+import os
 import MarkdownEngine
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "editorview")
 
 struct EditorView: View {
     // Mode enum lifted to module scope (= EditorMode, in
@@ -774,7 +777,7 @@ struct EditorView: View {
             // user sees the underlying failure via Console.app;
             // the in-app UX stays unbroken (draft unchanged,
             // buttons re-enabled by the defer above).
-            NSLog("[wenshu.editor] applyParagraphAI(%@) failed: %@", transform.rawValue, String(describing: error))
+            wenshuLogger.info("[wenshu.editor] applyParagraphAI(\(transform.rawValue)) failed: \(String(describing: error))")
         }
     }
 

@@ -44,6 +44,9 @@
 //
 
 import SwiftUI
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "chatview")
 
 struct ChatView: View {
     /// true when `messageID` is the
@@ -818,7 +821,7 @@ struct ChatView: View {
             // a cheat-sheet for now; = a future ticket can
             // wire it to a real SwiftUI .popover or .sheet).
             Button("Show shortcuts") {
-                NSLog("[wenshu.shortcuts] ⌘K focus input · ⌘L clear chat · ⌘N new chat · ⌘P print · ⌘R reload · ⌘. cancel streaming · ⌘⇧C copy conversation · ⌘⇧D copy last assistant · ⌘⇧E edit last user · ⌘⇧G regenerate · ⌘⇧K clear chat (in-place) · ⌘⇧O open chat markdown · ⌘⇧S export markdown · ⌥T toggle theme")
+                wenshuLogger.info("[wenshu.shortcuts] ⌘K focus input · ⌘L clear chat · ⌘N new chat · ⌘P print · ⌘R reload · ⌘. cancel streaming · ⌘⇧C copy conversation · ⌘⇧D copy last assistant · ⌘⇧E edit last user · ⌘⇧G regenerate · ⌘⇧K clear chat (in-place) · ⌘⇧O open chat markdown · ⌘⇧S export markdown · ⌥T toggle theme")
             }
             .keyboardShortcut("?", modifiers: [.command])
             .frame(width: 0, height: 0)
@@ -836,7 +839,7 @@ struct ChatView: View {
                     let pb = NSPasteboard.general
                     pb.clearContents()
                     pb.setString(lastAssistant, forType: .string)
-                    NSLog("[wenshu.copy] last-sealed copied (\(lastAssistant.count) chars)")
+                    wenshuLogger.info("[wenshu.copy] last-sealed copied (\(lastAssistant.count) chars)")
                 }
             }
             .keyboardShortcut("c", modifiers: [.option])
@@ -856,7 +859,7 @@ struct ChatView: View {
             // ticket can wire it to a real NSSavePanel
             // with the file written to Downloads).
             Button("Save conversation as Markdown") {
-                NSLog("[wenshu.save] conversation save-as requested (\(vm.messages.count) messages)")
+                wenshuLogger.info("[wenshu.save] conversation save-as requested (\(vm.messages.count) messages)")
                 // Future ticket: wire to NSSavePanel
                 // (= same pattern as T76 export-MD; =
                 // reuses the markdown formatter from
@@ -879,7 +882,7 @@ struct ChatView: View {
                 let firstTs = vm.messages.first?.timestamp
                 let lastTs = vm.messages.last?.timestamp
                 let totalTokens = vm.messages.compactMap { $0.tokens }.reduce(0, +)
-                NSLog("[wenshu.history] \(vm.messages.count) messages · \(totalTokens) tokens · first: \(String(describing: firstTs)) · last: \(String(describing: lastTs))")
+                wenshuLogger.info("[wenshu.history] \(vm.messages.count) messages · \(totalTokens) tokens · first: \(String(describing: firstTs)) · last: \(String(describing: lastTs))")
             }
             .keyboardShortcut("y", modifiers: [.command])
             .frame(width: 0, height: 0)
@@ -903,7 +906,7 @@ struct ChatView: View {
                 let current = vm.inputText
                 let bolded = "**\(current)**"
                 vm.inputText = bolded
-                NSLog("[wenshu.bold] wrapped \(current.count) chars in ** **")
+                wenshuLogger.info("[wenshu.bold] wrapped \(current.count) chars in ** **")
             }
             .keyboardShortcut("b", modifiers: [.command])
             .frame(width: 0, height: 0)
@@ -920,7 +923,7 @@ struct ChatView: View {
                 let current = vm.inputText
                 let italicized = "_\(current)_"
                 vm.inputText = italicized
-                NSLog("[wenshu.italic] wrapped \(current.count) chars in _ _")
+                wenshuLogger.info("[wenshu.italic] wrapped \(current.count) chars in _ _")
             }
             .keyboardShortcut("i", modifiers: [.command])
             .frame(width: 0, height: 0)
@@ -938,7 +941,7 @@ struct ChatView: View {
                 let current = vm.inputText
                 let struck = "~~\(current)~~"
                 vm.inputText = struck
-                NSLog("[wenshu.strike] wrapped \(current.count) chars in ~~ ~~")
+                wenshuLogger.info("[wenshu.strike] wrapped \(current.count) chars in ~~ ~~")
             }
             .keyboardShortcut("x", modifiers: [.command, .shift])
             .frame(width: 0, height: 0)
@@ -953,7 +956,7 @@ struct ChatView: View {
             // sounds).
             // Hidden Button pattern.
             Button("Mute all sounds") {
-                NSLog("[wenshu.mute] mute all sounds requested")
+                wenshuLogger.info("[wenshu.mute] mute all sounds requested")
                 // Future ticket: wire to a real
                 // AudioService that pauses TTS + UI
                 // sounds (= pairs with the future
@@ -980,7 +983,7 @@ struct ChatView: View {
                 let current = vm.inputText
                 let coded = "```\n\(current)\n```"
                 vm.inputText = coded
-                NSLog("[wenshu.codeblock] wrapped \(current.count) chars in ``` ```")
+                wenshuLogger.info("[wenshu.codeblock] wrapped \(current.count) chars in ``` ```")
             }
             .keyboardShortcut("k", modifiers: [.command, .shift])
             .frame(width: 0, height: 0)
@@ -1000,7 +1003,7 @@ struct ChatView: View {
                 let lines = current.split(separator: "\n", omittingEmptySubsequences: false)
                 let quoted = lines.map { "> \($0)" }.joined(separator: "\n")
                 vm.inputText = quoted
-                NSLog("[wenshu.quote] wrapped \(current.count) chars in > ")
+                wenshuLogger.info("[wenshu.quote] wrapped \(current.count) chars in > ")
             }
             .keyboardShortcut("q", modifiers: [.command, .shift])
             .frame(width: 0, height: 0)
@@ -1023,7 +1026,7 @@ struct ChatView: View {
                 let pb = NSPasteboard.general
                 pb.clearContents()
                 pb.setString(current, forType: .string)
-                NSLog("[wenshu.savesel] saved \(current.count) chars to clipboard as selection")
+                wenshuLogger.info("[wenshu.savesel] saved \(current.count) chars to clipboard as selection")
             }
             .keyboardShortcut("s", modifiers: [.option])
             .frame(width: 0, height: 0)
@@ -1047,7 +1050,7 @@ struct ChatView: View {
                         vm.inputText += "\n\n" + lastAssistant
                     }
                     inputFocused = true
-                    NSLog("[wenshu.append] appended \(lastAssistant.count) chars to input")
+                    wenshuLogger.info("[wenshu.append] appended \(lastAssistant.count) chars to input")
                 }
             }
             .keyboardShortcut("a", modifiers: [.option])
@@ -1064,7 +1067,7 @@ struct ChatView: View {
             // the conversation).
             // Hidden Button pattern.
             Button("Expand all reasoning blocks") {
-                NSLog("[wenshu.reasoning] expand-all requested (\(vm.messages.count) messages)")
+                wenshuLogger.info("[wenshu.reasoning] expand-all requested (\(vm.messages.count) messages)")
                 // Future ticket: wire to a @State
                 // reasoningExpanded = true + thread the
                 // flag through ChatMessageBodyView to
@@ -1089,7 +1092,7 @@ struct ChatView: View {
             // Hidden Button pattern.
             Button("Find in conversation") {
                 let searchTerm = vm.inputText.isEmpty ? "(empty)" : vm.inputText
-                NSLog("[wenshu.find] find-in-conversation requested (term: '\(searchTerm.prefix(30))', \(vm.messages.count) messages)")
+                wenshuLogger.info("[wenshu.find] find-in-conversation requested (term: '\(searchTerm.prefix(30))', \(vm.messages.count) messages)")
                 // Future ticket: wire to a real SwiftUI
                 // .searchable modifier on the chat list
                 // + highlight matching messages.
@@ -1111,7 +1114,7 @@ struct ChatView: View {
             // Hidden Button pattern.
             Button("Group messages by date") {
                 let dates = Set(vm.messages.map { Calendar.current.startOfDay(for: $0.timestamp) })
-                NSLog("[wenshu.group] group-by-date requested (\(vm.messages.count) messages across \(dates.count) unique days)")
+                wenshuLogger.info("[wenshu.group] group-by-date requested (\(vm.messages.count) messages across \(dates.count) unique days)")
                 // Future ticket: wire to a @State
                 // groupByDate = true + thread the flag
                 // through ChatView's ForEach + insert
@@ -1135,7 +1138,7 @@ struct ChatView: View {
             // repurpose for wenshu-specific intent.
             // Hidden Button pattern.
             Button("Jump to unread") {
-                NSLog("[wenshu.unread] jump-to-unread requested (\(vm.messages.count) messages)")
+                wenshuLogger.info("[wenshu.unread] jump-to-unread requested (\(vm.messages.count) messages)")
                 // Future ticket: wire to a ScrollViewReader
                 // proxy that scrolls to the first
                 // message where message.viewedAt == nil.
@@ -1159,7 +1162,7 @@ struct ChatView: View {
                     .content
                     .split(separator: " ")
                     .count ?? 0
-                NSLog("[wenshu.wordcount] total: \(totalWords) words across \(vm.messages.count) messages · last assistant: \(lastAssistantWords) words")
+                wenshuLogger.info("[wenshu.wordcount] total: \(totalWords) words across \(vm.messages.count) messages · last assistant: \(lastAssistantWords) words")
             }
             .keyboardShortcut("w", modifiers: [.option])
             .frame(width: 0, height: 0)
@@ -1177,7 +1180,7 @@ struct ChatView: View {
                 let lines = current.split(separator: "\n", omittingEmptySubsequences: false)
                 let listed = lines.map { "- \($0)" }.joined(separator: "\n")
                 vm.inputText = listed
-                NSLog("[wenshu.list] wrapped \(current.count) chars in - bullet list")
+                wenshuLogger.info("[wenshu.list] wrapped \(current.count) chars in - bullet list")
             }
             .keyboardShortcut(";", modifiers: [.command])
             .frame(width: 0, height: 0)
@@ -1196,7 +1199,7 @@ struct ChatView: View {
             // zoom-out binding.
             // Hidden Button pattern.
             Button("Zoom out chat font") {
-                NSLog("[wenshu.zoom] zoom-out requested (current: chatFontSize=default 13pt)")
+                wenshuLogger.info("[wenshu.zoom] zoom-out requested (current: chatFontSize=default 13pt)")
                 // Future ticket: wire to a @State
                 // chatFontSize: CGFloat + clamp(min: 9,
                 // max: 24) + thread the value through
@@ -1214,7 +1217,7 @@ struct ChatView: View {
             // zoom-in binding).
             // Hidden Button pattern.
             Button("Zoom in chat font") {
-                NSLog("[wenshu.zoom] zoom-in requested (current: chatFontSize=default 13pt)")
+                wenshuLogger.info("[wenshu.zoom] zoom-in requested (current: chatFontSize=default 13pt)")
                 // Future ticket: wire to the same
                 // chatFontSize @State as T112 (= clamp
                 // min 9, max 24; = thread through
@@ -1237,7 +1240,7 @@ struct ChatView: View {
             // because wenshu has no Tab concept).
             // Hidden Button pattern.
             Button("Previous chat") {
-                NSLog("[wenshu.chat] previous-chat requested (\(vm.messages.count) messages in current)")
+                wenshuLogger.info("[wenshu.chat] previous-chat requested (\(vm.messages.count) messages in current)")
                 // Future ticket: wire to a
                 // ConversationList model that switches
                 // to the chat at vm.currentIndex - 1.
@@ -1251,7 +1254,7 @@ struct ChatView: View {
             // = the standard Safari "Next Tab" shortcut).
             // Hidden Button pattern.
             Button("Next chat") {
-                NSLog("[wenshu.chat] next-chat requested (\(vm.messages.count) messages in current)")
+                wenshuLogger.info("[wenshu.chat] next-chat requested (\(vm.messages.count) messages in current)")
                 // Future ticket: wire to the same
                 // ConversationList model as T114 (= switch
                 // to the chat at vm.currentIndex + 1).
@@ -1306,7 +1309,7 @@ struct ChatView: View {
             defaultFilename: "wenshu-chat-\(Int(Date().timeIntervalSince1970))"
         ) { result in
             if case .failure(let error) = result {
-                NSLog("[wenshu.export] failed: %@", String(describing: error))
+                wenshuLogger.info("[wenshu.export] failed: \(String(describing: error))")
             }
         }
         .fileImporter(
@@ -1317,7 +1320,7 @@ struct ChatView: View {
             case .success(let url):
                 Self.importMarkdown(at: url, into: vm)
             case .failure(let error):
-                NSLog("[wenshu.import] failed: %@", String(describing: error))
+                wenshuLogger.info("[wenshu.import] failed: \(String(describing: error))")
             }
         }
     }
@@ -1378,7 +1381,7 @@ struct ChatView: View {
             // Replace the conversation with the loaded history.
             vm.messages = loaded
         } catch {
-            NSLog("[wenshu.import] failed to read markdown: %@", error.localizedDescription)
+            wenshuLogger.info("[wenshu.import] failed to read markdown: \(error.localizedDescription)")
         }
     }
 }
