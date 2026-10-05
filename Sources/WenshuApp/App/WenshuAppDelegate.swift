@@ -102,6 +102,22 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // One-shot legacy cleanup: drop the 'wenshu.libraryPath'
+        // UserDefaults string (= retired when the active library
+        // became a security-scoped bookmark via LibraryBookmark;
+        // see State/ActiveLibrary.swift). The previous bind wrote
+        // the .ws bundle path to UserDefaults.standard on every
+        // launch (= via LibraryRootView's @AppStorage binding),
+        // so any pre-Q2 user still has the legacy string in
+        // UserDefaults. After this commit, no production code reads
+        // 'wenshu.libraryPath' (= all reads go through
+        // ActiveLibrary.path), so the legacy string is dead weight
+        // (= it would still bind through the @AppStorage binding in
+        // LibraryRootView, = now removed in a follow-up commit).
+        // Dropping it here means the next launch starts clean.
+        if UserDefaults.standard.string(forKey: "wenshu.libraryPath") != nil {
+            UserDefaults.standard.removeObject(forKey: "wenshu.libraryPath")
+        }
         // button, not okdouble-click, ' =
         // titlebarAppearsTransparent + titleVisibility = .hidden
         // removes traffic lights AND double-click-to-zoom
