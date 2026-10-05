@@ -24,6 +24,7 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 
 @MainActor
 @Observable
@@ -54,12 +55,28 @@ final class LayoutTreeStore {
     private let userDefaults: UserDefaults
     private let jsonEncoder: JSONEncoder
     private let jsonDecoder: JSONDecoder
+    /// SwiftData repository (= when nil, falls back to UserDefaults).
+    /// Set via the convenience init that accepts a ModelContext.
+    private let repository: LayoutTreeRepository?
 
-    init(userDefaults: UserDefaults = .standard) {
+    init(
+        userDefaults: UserDefaults = .standard,
+        modelContext: ModelContext? = nil,
+        workspaceID: UUID = UUID()
+    ) {
         self.userDefaults = userDefaults
         self.jsonEncoder = JSONEncoder()
         self.jsonEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         self.jsonDecoder = JSONDecoder()
+        // Per boss 2026-10-05 OOB '做 8 和 9': build the SwiftData
+        // repository when a ModelContext is provided (= the canonical
+        // production path). When nil, the store falls back to the
+        // legacy UserDefaults JSON path so the dev tools that don't
+        // wire a ModelContext (= LayoutPicker / LayoutEditBar) still
+        // work.
+        self.repository = modelContext.map {
+            LayoutTreeRepository(context: $0, workspaceID: workspaceID)
+        }
 
         // Load persisted state (= falls back to the built-in Default
         // preset if UserDefaults is empty or corrupted).
@@ -85,8 +102,31 @@ final class LayoutTreeStore {
             forcedPreset = matched
         }
 
-        if let data = userDefaults.data(forKey: Self.workspaceKey),
-           let decoded = try? jsonDecoder.decode(LayoutTreeState.self, from: data) {
+        // Per boss 2026-10-05 OOB '做 8 和 9' (= complete the
+        // SwiftData migration for LayoutTree + FileSystem stores):
+        // prefer SwiftData over UserDefaults. When a ModelContext is
+        // provided, the repository handles the legacy JSON migration
+        // (= one-shot import into SwiftData + delete the UserDefaults
+        // key). When no ModelContext is provided (= dev tools that
+        // instantiate LayoutTreeStore without wiring the SwiftData
+        // container), fall back to the legacy UserDefaults path so
+        // the existing callers continue to work.
+        if let modelContext = modelContext {
+            let repository = LayoutTreeRepository(
+                context: modelContext,
+                workspaceID: workspaceID
+            )
+            if let migrated = repository.migrateFromUserDefaultsIfNeeded() {
+                self.workspace = migrated
+            } else if let loaded = repository.loadWorkspace() {
+                self.workspace = loaded
+            } else if let preset = forcedPreset {
+                self.workspace = preset.workspace
+            } else {
+                self.workspace = builtinDefault.workspace
+            }
+        } else if let data = userDefaults.data(forKey: Self.workspaceKey),
+                  let decoded = try? jsonDecoder.decode(LayoutTreeState.self, from: data) {
             // Schema version check: if the persisted JSON is on a
             // different schema version (= e.g. v1 = flat array from
             // the previous schema), migrate it (= for v2 from v1:
@@ -155,8 +195,14 @@ final class LayoutTreeStore {
         }
     }
 
-    /// Persist current workspace state to UserDefaults.
+    /// Persist current workspace state to SwiftData (when a
+    /// repository is wired) or fall back to UserDefaults (= dev
+    /// tools path; = the production app always wires the repository).
     func save() {
+        if let repository = repository {
+            repository.saveWorkspace(workspace)
+            return
+        }
         if let data = try? jsonEncoder.encode(workspace) {
             userDefaults.set(data, forKey: Self.workspaceKey)
         }
