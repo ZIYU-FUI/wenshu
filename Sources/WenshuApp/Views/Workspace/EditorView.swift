@@ -675,9 +675,6 @@ struct EditorView: View {
             referenceStore: bookStore.loadReferenceStore(),
             bookStore: bookStore
         ) else {
-            #if DEBUG
-            print("[wenshu.editor] wiki-link miss: \(displayName)")
-            #endif
             return
         }
         let fingerprint = String(result.body.prefix(200))
