@@ -5,7 +5,7 @@
 //  shape of the 6-zone editor + the recursive split/group tree).
 //
 //  Apple HIG canonical pattern for structured state (= boss
-//  2026-10-05 OOB '做 8 和 9' = complete the SwiftData migration
+//  2026-10-05 OOB ' 8  9' = complete the SwiftData migration
 //  = the layout tree replaces the hand-rolled JSON file
 //  persistence in LayoutTreeStore.swift with a single
 //  SwiftData @Model row per workspace = easier to query

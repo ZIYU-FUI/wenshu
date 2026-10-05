@@ -26,7 +26,7 @@ import SwiftData
 /// LibraryStoring impl backed by FileSystem (= with SwiftData
 /// bridging for the production path).
 ///
-/// Per boss 2026-10-05 OOB '做 8' (= complete the FileSystem*Store →
+/// Per boss 2026-10-05 OOB ' 8' (= complete the FileSystem*Store →
 ///
 /// SwiftData migration), this commit converts the FileSystemLibraryStore
 /// to a `@MainActor` struct (= matches the SwiftData ModelContext

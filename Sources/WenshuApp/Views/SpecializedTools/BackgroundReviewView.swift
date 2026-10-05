@@ -18,7 +18,7 @@
 //  Pattern follows BookmarkView / v2.8a specialized-tool body
 //  modifier + EmptyStateView pattern (= canonical Apple HIG).
 //
-//  Per (see OOB.md #2026-09-28) OOB: '用户体验第一' = no placeholder/stub;
+//  Per (see OOB.md #2026-09-28) OOB: '' = no placeholder/stub;
 //  = the v2.9a BackgroundReview tab must show real proposals
 //  (= loaded via BackgroundReviewOps.listPending), not a
 //  placeholder text.

@@ -91,7 +91,7 @@ struct ChatHelpTextOverlay: View {
                 // Inner spacing values (= 22 PT icon→title gap, 4 PT
                 // title→body gap) are matched to Apple's measured
                 // ContentUnavailableView sample.
-                // -m1-shell (see OOB.md #2026-09-16) OOB '所有 ICON，都不要 .fill':
+                // -m1-shell (see OOB.md #2026-09-16) OOB ' ICON， .fill':
                 // migrated chat empty-state icon from 'message.fill' to
                 // 'message' (= the outline form = the canonical Apple
                 // HIG Liquid Glass 3rd-generation design language).

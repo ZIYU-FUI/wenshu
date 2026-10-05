@@ -10,7 +10,7 @@
 // 028-005 ticket will register the preset officially; this commit
 // sets the seed so the FCP Browser shape is in place from day one.
 //
-// DEAD-CODE NOTICE (= boss 2026-10-05 OOB '做 8'): the
+// DEAD-CODE NOTICE (= boss 2026-10-05 OOB ' 8'): the
 // FileSystemLibraryStore / LayoutTreeStore class is currently
 // instantiated by 0 callers in production (= see
 // `grep -rln 'LayoutTreeStore(' Sources/ WenshuAppTests/` =
@@ -81,7 +81,7 @@ final class LayoutTreeStore {
         self.jsonEncoder = JSONEncoder()
         self.jsonEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         self.jsonDecoder = JSONDecoder()
-        // Per boss 2026-10-05 OOB '做 8 和 9': build the SwiftData
+        // Per boss 2026-10-05 OOB ' 8  9': build the SwiftData
         // repository when a ModelContext is provided (= the canonical
         // production path). When nil, the store falls back to the
         // legacy UserDefaults JSON path so the dev tools that don't
@@ -115,7 +115,7 @@ final class LayoutTreeStore {
             forcedPreset = matched
         }
 
-        // Per boss 2026-10-05 OOB '做 8 和 9' (= complete the
+        // Per boss 2026-10-05 OOB ' 8  9' (= complete the
         // SwiftData migration for LayoutTree + FileSystem stores):
         // prefer SwiftData over UserDefaults. When a ModelContext is
         // provided, the repository handles the legacy JSON migration

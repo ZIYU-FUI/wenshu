@@ -1,7 +1,7 @@
 //  ChatView.swift
 //
 // (2026-09-23): the user's message bubble pins at top (like hermes sticky-human-top, = no scrollout).
-//  顶。让用户知道 AI 回复的是哪个问题' (= implement hermes-style sticky
+//  。 AI ' (= implement hermes-style sticky
 //  top for the user bubble). Use `LazyVStack(pinnedViews:
 //  [.sectionHeaders])` (= the macOS 27 SwiftUI equivalent of CSS
 //  `position: sticky; top: 0`; = continuous sticky; = scrolls WITH
@@ -13,7 +13,7 @@
 //  affordance). Replaces v1.65-cleanup E3's `.safeAreaInset(edge:
 //  .top)` sticky overlay attempt (= that was a discrete scrollTo(.top)
 //  on new user message; = jarring; = reverted by (see OOB.md #2026-09-21)
-//  '把吸顶也取消吧').
+//  '').
 //
 // (2026-09-23): chat transcript background routed through
 //  DesignTokens.sidebarBackground token (= single source of truth
@@ -32,7 +32,7 @@
 //
 //  Apple HIG ground truth: SwiftUI VStack + List + TextField + Button pattern (same as Pages / Numbers).
 //
-//  refactor chat-mvvm-3layer C-3 ((see OOB.md #2026-09-22) '目标 UI，业务，数据，三分离'):
+//  refactor chat-mvvm-3layer C-3 ((see OOB.md #2026-09-22) ' UI，，，'):
 //  - C-1: domain types (ChatMessage / ChatRole / ChatSource) -> Core/Chat/Domain/.
 //  - C-2: ChatMessage split into Header + Body + glue (= 12 forwarders in place).
 //  - C-3 = THIS commit: ChatViewModel + StreamingAccumulator + StreamingTaskBox
@@ -270,7 +270,7 @@ struct ChatView: View {
             .id(userMsg.id)
             // section header needs `.background()` to mask
             // replies scrolling underneath (= hermes-spec
-            // 一样" = hermes uses `bg-(--background)` on the sticky
+            // " = hermes uses `bg-(--background)` on the sticky
             // user-message). Use DesignTokens.sidebarBackground (=
             // transcript) so the pinned user bubble blends
             // seamlessly with the scroll viewport background.
@@ -281,7 +281,7 @@ struct ChatView: View {
     var body: some View {
         // acceptance fix: listen for global defocus notification.
         // 2026-08-24 feedback: 'clicking other areas, the textfield still keeps focus'.
-        // -cleanup E3 (see OOB.md #2026-09-21) '文字不是左对齐' (= the chat
+        // -cleanup E3 (see OOB.md #2026-09-21) '' (= the chat
         // transcript content was horizontally centered inside the chat
         // column; = each AI message sat in the middle of the column
         // instead of the leading edge). Root cause: VStack default
@@ -292,7 +292,7 @@ struct ChatView: View {
         // layout where every child must individually leading-align).
         // Override to .leading (= the chat transcript is a vertical
         // stack of leading-aligned message rows; = each row starts at
-        // the same x coordinate; = matches hermes真值 thread/list.tsx
+        // the same x coordinate; = matches hermes thread/list.tsx
         // leading-aligned rendering per the 'all 1:1' rule).
         VStack(alignment: .leading, spacing: 0) {
             // Message list (ScrollView + LazyVStack ground truth)
@@ -311,8 +311,8 @@ struct ChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     // 2026-09-23: 'the user's message bubble, like
-                    // hermes 一样，实现吸顶。让用户知道 AI 回复的是哪
-                    // 个问题' (= implement sticky-top for the user bubble
+                    // hermes ，。 AI 
+                    // ' (= implement sticky-top for the user bubble
                     // like hermes; = so the user can see which question
                     // the AI is replying to when they scroll). Use
                     // `LazyVStack(pinnedViews: [.sectionHeaders])` (= the
@@ -358,12 +358,12 @@ struct ChatView: View {
                     //
                     // Earlier v1.65 MC3 used `.frame(maxWidth: 720,
                     // alignment: .center)` (= wrong; = I inferred
-                    // 720 PT from a screenshot guess). The hermes真
-                    // 值 is "fill the chat pane width, with 32 PT
+                    // 720 PT from a screenshot guess). The hermes
+                    //  is "fill the chat pane width, with 32 PT
                     // gutter". This commit drops the 720 cap and
                     // keeps the 32 PT gutter (= `px-6` from the
                     // MC6 commit was 24 PT = wrong; = 2rem = 32 PT
-                    // is the hermes真值).
+                    // is the hermes).
                     //
                     // The user glass card (= 75% maxWidth cap inside
                     // UserGlassCardModifier) stays at 75% so a long
@@ -372,17 +372,17 @@ struct ChatView: View {
                     // the COLUMN fills, not that the user card
                     // becomes full-width too).
                     //
-                    // -cleanup E3.5 (see OOB.md #2026-09-21) '所有的对话，
-                    // 在聊天区的展示，居左 10PT，居右 10PT。现在都
-                    // 过于宽了' (= the chat column used 32 PT
+                    // -cleanup E3.5 (see OOB.md #2026-09-21) '，
+                    // ， 10PT， 10PT。
+                    // ' (= the chat column used 32 PT
                     // horizontal gutter; = too much padding; = the
                     // chat content sat in a narrow strip in the
                     // middle of the column; = the explicit
                     // requires exactly 10 PT on each side). Set
                     // horizontal padding to 10 PT (= matches Apple
                     // HIG px-2.5 = 10 PT; = matches the chat input
-                    // -cleanup E8 (see OOB.md #2026-09-21) '用户说话的框，还有 AI 回复的文字，
-                    // 现在视觉是距离聊天区边框 20PT':
+                    // -cleanup E8 (see OOB.md #2026-09-21) '， AI ，
+                    //  20PT':
                     // dropped `.padding(.horizontal, 10)` (= chat transcript
                     // content now sits flush against the chat column edge;
                     // = the user glass card has its own L2 inner padding
@@ -404,8 +404,8 @@ struct ChatView: View {
                     // Telegram chat input pattern where the last message
                     // peeks behind the input bar).
                     .contentMargins(.bottom, DesignTokens.chatInputBarHeight, for: .scrollContent)
-                    // -cleanup E3 (see OOB.md #2026-09-21) '聊天区的背景能不能
-                    // 降低一点颜色，比如用左栏的颜色' (= the chat
+                    // -cleanup E3 (see OOB.md #2026-09-21) '
+                    // ，' (= the chat
                     // transcript area was using the macOS default
                     // windowBackgroundColor = RGB(28,28,28) on dark
                     // mode; = the same near-black as the user glass
@@ -444,7 +444,7 @@ struct ChatView: View {
                 // = inspector/content tier; = controlBackgroundColor).
                 .scrollContentBackground(.hidden)
                 // 2026-09-23: 'the chat zone, the text echo layer, whether
-                // 可以变成左栏的颜色参数' (= 'chat transcript should
+                // ' (= 'chat transcript should
                 // use the left sidebar's color parameters'). Use
                 // `DesignTokens.sidebarBackground` (= token-driven
                 // sidebar color = Color(nsColor: .controlBackgroundColor);
@@ -456,8 +456,8 @@ struct ChatView: View {
                 // source of truth for the sidebar color in the wenshu
                 // design system)).
                 .background(DesignTokens.sidebarBackground)
-                // -cleanup E3 (see OOB.md #2026-09-21) '那个框的悬浮吸顶，确实没有实现'
-                // -cleanup E4 (see OOB.md #2026-09-21) '不是居左，你把吸顶也取消吧':
+                // -cleanup E3 (see OOB.md #2026-09-21) '，'
+                // -cleanup E4 (see OOB.md #2026-09-21) '，':
                 // the .safeAreaInset(edge: .top) sticky overlay that
                 // re-rendered the latest user message above the scroll
                 // viewport (= hermes user-message.tsx:46 `sticky z-40`
@@ -497,10 +497,10 @@ struct ChatView: View {
                 //     top).
                 //
                 // Trade-off (= documented per the 'Apple API limit
-                // 可接受'): the scroll-to-top on new-user-message
+                // '): the scroll-to-top on new-user-message
                 // is a DISCRETE event (= the user gets yanked to
                 // the top whenever a new message lands; = jarring
-                // if the user was reading history). Hermes真值
+                // if the user was reading history). Hermes
                 // `position: sticky` is continuous (= the row
                 // scrolls WITH the transcript; = the user can scroll
                 // up and back without being yanked). The Apple
@@ -1266,7 +1266,7 @@ struct ChatView: View {
             // T70-COPY-CONVERSATION (2026-09-18): ⌘⇧C = copy
             // the entire conversation to the clipboard
             // (= each message on its own line, prefixed by
-            // "你:" or "文枢:" based on source). Useful for
+            // ":" or ":" based on source). Useful for
             // sharing the chat log or pasting it into another
             // app (= the standard ⌘⇧C = "copy selection"
             // shortcut in many apps; = wenshu reuses it as
@@ -1399,7 +1399,7 @@ struct ChatView: View {
 /// yank when a new user message lands).
 ///
 /// `userMessage == nil` covers the opening greeting case (= the first
-/// transcript entry may be a placeholder like "随时开写" with no
+/// transcript entry may be a placeholder like "" with no
 /// preceding user message; = we still want it rendered in scroll order;
 /// = it just has no sticky header).
 struct ChatTurn: Identifiable {

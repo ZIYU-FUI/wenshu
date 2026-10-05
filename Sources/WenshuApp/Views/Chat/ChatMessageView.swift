@@ -96,7 +96,7 @@ struct ChatMessageView: View {
     var body: some View {
         // :
         // drop the iMessage-style bubble + avatar-run-merge path (= the
-        // (see OOB.md)) and render per Hermes真值:
+        // (see OOB.md)) and render per Hermes:
         //   - user row: `apps/desktop/src/components/assistant-ui/
         //     thread/user-message.tsx:67-69` rounded-xl glass card with
         //     bg fill + border (= MC2).
@@ -139,7 +139,7 @@ struct ChatMessageView: View {
                     //      = the row sits ABOVE the input instead of
                     //      underneath).
                     //   2. `.zIndex(40)` on the latest user row (= mirrors
-                    //      hermes真值 `z-40`; = the row floats above
+                    //      hermes `z-40`; = the row floats above
                     //      assistant content that scrolls beneath it).
                     //   3. ChatView's `ScrollViewReader` runs
                     //      `proxy.scrollTo(latestUserID, anchor: .top)`
@@ -148,10 +148,10 @@ struct ChatMessageView: View {
                     //      latest user row to the top edge; = CSS-like
                     //      `position: sticky; top: 0` in effect).
                     //
-                    // The remaining gap from hermes真值 (= Apple API
-                    // limitation, documented per the directive 'Apple API 限制可
-                    // 接受'):
-                    //   - 真值 hermes: `position: sticky; top: 0` is a
+                    // The remaining gap from hermes (= Apple API
+                    // limitation, documented per the directive 'Apple API 
+                    // '):
+                    //   -  hermes: `position: sticky; top: 0` is a
                     //     continuous scroll-tracking behavior (= the row
                     //     scrolls with the transcript and pins when it
                     //     reaches the viewport top; = the user can scroll
@@ -208,7 +208,7 @@ struct ChatMessageView: View {
     private var messageContents: some View {
         // -cleanup E3: the user text inside the glass card was
         // right-aligned (= expected: left-aligned text reading like
-        // iMessage / Slack / hermes真值). Root cause: the inner VStack
+        // iMessage / Slack / hermes). Root cause: the inner VStack
         // (= messageContents) was using .trailing alignment for outgoing
         // rows; = all child elements (= ChatMessageBodyView text +
         // timestamp footer + image thumbnail) anchored to the right
@@ -219,7 +219,7 @@ struct ChatMessageView: View {
         // trailing edge of the chat column. Net visual: card is on
         // the right (= outer alignment), but text inside reads from
         // the left (= inner alignment); = matches iMessage +
-        // Slack + hermes真值 user-message.tsx).
+        // Slack + hermes user-message.tsx).
         VStack(alignment: .leading, spacing: 4) {
                 // wenshu-side source label + icon chrome (= not in hermes):
                 //   - user-message.tsx:240-585 (= full UserMessage scan) renders
@@ -230,7 +230,7 @@ struct ChatMessageView: View {
                 //     scan) renders only `MESSAGE_PARTS` (= pure markdown) with
                 //     `text-foreground` — NO source label, NO avatar/icon, NO
                 //     role text.
-                //   - The 1:1 hermes真值 distinguishes user vs assistant by
+                //   - The 1:1 hermes distinguishes user vs assistant by
                 //     foreground color + container presence alone (= user has
                 //     `bg-(--dt-user-bubble)`, assistant has none; user has
                 //     `text-foreground/95`, assistant has `text-foreground`).
@@ -308,7 +308,7 @@ struct ChatMessageView: View {
                             thinking: thinking,
                             isExpanded: $thinkingExpanded
                         ) {
-                            // hermes真值 = NO icon, NO 'chatview.ai_thinking'
+                            // hermes = NO icon, NO 'chatview.ai_thinking'
                             // label, just the 3×3 PT StatusPulse square.
                             StatusPulse()
                         }
@@ -316,13 +316,13 @@ struct ChatMessageView: View {
                     // CHATIMG-001: render attached image thumbnail above the parts.
                     // (= unchanged structure; = v1.65-cleanup C2 dropped
                     // the wenshu-side Reveal-in-Finder button (= T34 +
-                    // T35 i18n) — a macOS-specific add-on; = hermes真值
+                    // T35 i18n) — a macOS-specific add-on; = hermes
                     // has attachment directive chips inline with the
                     // bubble surface (= per user-message.tsx:415
                     // attachmentRefs.map). The thumbnail click now opens
                     // Preview directly without a separate reveal
                     // affordance; = the macro-free Mac-side reveal
-                    // affordance is dropped, matching hermes真值.)
+                    // affordance is dropped, matching hermes.)
                     // C-8a (refactor chat-mvvm-3layer): image
                     // attachment preview extracted to its own leaf
                     // view (Views/Chat/ChatMessageAttachmentPreview.swift).
@@ -358,9 +358,9 @@ struct ChatMessageView: View {
                         // `.interpolate` to `.identity` AND the
                         // streaming cursor wasn't drawn. Combined: the
                         // user saw the text appear in one render
-                        // (= the user's '一次吐出' report).
+                        // (= the user's '' report).
                         //
-                        // Hermes真值: assistant-message.tsx:346
+                        // Hermes: assistant-message.tsx:346
                         // checks `s.message.status?.type === 'running'`
                         // = the same gate (= true for the entire
                         // active turn, not just the initial
@@ -431,7 +431,7 @@ struct ChatMessageView: View {
     /// least one Plan card.
 }
 
-/// Hermes真值 user bubble surface per `apps/desktop/src/components/
+/// Hermes user bubble surface per `apps/desktop/src/components/
 /// assistant-ui/thread/user-message.tsx:67-69` `USER_BUBBLE_BASE_CLASS`.
 ///
 /// In Tailwind the source is `rounded-xl border bg-(--dt-user-bubble)
@@ -447,10 +447,10 @@ struct ChatMessageView: View {
 /// modifier is a pass-through (= no visual change from MC1's flat
 /// self-start text).
 /// Drop the wenshu-side chrome: the user bubble surface now uses
-/// hermes真值 `bg-DT-USER-BUBBLE` semantics (= Apple semantic
+/// hermes `bg-DT-USER-BUBBLE` semantics (= Apple semantic
 /// `Color(nsColor: .controlBackgroundColor)`) instead of the
 /// previous Liquid Glass `.regularMaterial` (= too heavy vs
-/// hermes真值's subtle bg token). The border keeps Apple HIG
+/// hermes's subtle bg token). The border keeps Apple HIG
 /// semantic `Color(nsColor: .separatorColor).opacity(0.5)` (= 0.5
 /// PT; = matches hermes border-UI-STROKE-TERTIARY token in spirit).
 ///
@@ -481,7 +481,7 @@ private struct UserGlassCardModifier: ViewModifier {
         if isOutgoing {
             // -cleanup E3.5: the user text inside the glass card is at
             // 10 PT horizontal padding (= the Apple HIG px-2.5 = 10 PT
-            // convention; = the hermes真值 `UserBubbleBaseClass
+            // convention; = the hermes `UserBubbleBaseClass
             // px-3 py-2` = 12 PT px / 8 PT py is slightly more
             // spacious; = 10 PT chosen for compact card height).
             // Vertical padding stays at 6 PT (= compact card height; =
@@ -534,10 +534,10 @@ private struct UserGlassCardModifier: ViewModifier {
     }
 }
 
-// MARK: - Hermes真值 user bubble surface per `apps/desktop/src/components/
+// MARK: - Hermes user bubble surface per `apps/desktop/src/components/
 
 
-// StatusPulse (= hermes真值 `.tsx status-pulse.tsx` PULSE_DURATION_MS=400 +
+// StatusPulse (= hermes `.tsx status-pulse.tsx` PULSE_DURATION_MS=400 +
 // PULSE_PERIOD_MS=5000).
 //
 // 1:1 visual (= a small 3×3 PT rounded-2PT square that opacity-
@@ -558,7 +558,7 @@ private struct StatusPulse: View {
     @State private var nextPulseAt: Date = .now.addingTimeInterval(pulsePeriod)
 
     var body: some View {
-        // The 3×3 PT rounded-2PT square (= hermes真值 `size-3
+        // The 3×3 PT rounded-2PT square (= hermes `size-3
         // rounded-[2px] text-midground/80`). SwiftUI's tint is
         // mapped to Color.secondary (= Apple semantic for muted
         // foreground on the assistant transcript).

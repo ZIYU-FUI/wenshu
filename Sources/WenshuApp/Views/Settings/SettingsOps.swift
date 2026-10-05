@@ -88,7 +88,7 @@
 //    - The SettingsView's 9 tabs ARE NOT being split into separate
 //      tab views yet (= e.g. ProviderApiTabView, ModelTabView).
 //      That decomposition is a separate v1.7x ticket (= the
-//      "right column MVVM split" arc per the (see OOB.md) '按MVVM UI 业务 数据').
+//      "right column MVVM split" arc per the (see OOB.md) 'MVVM UI  ').
 //    - The keychain-changed NotificationCenter post stays in the
 //      View (= the helper just reports shouldNotify; = the View
 //      owns the NotificationCenter wiring).
@@ -97,7 +97,7 @@ import Foundation
 
 /// Stateless business layer for the Settings pane. Lifts the
 /// ProviderKeychain + ProviderFetcher + Set<String> expansion logic
-/// out of `SettingView` per the v1.72 UI/业务/数据 separation audit.
+/// out of `SettingView` per the v1.72 UI// separation audit.
 @MainActor
 enum SettingsOps {
 

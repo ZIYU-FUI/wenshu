@@ -58,10 +58,10 @@ final class SidebarService {
 
     /// closure that returns the number
     /// of .md files in a given book + folder (= used to populate
-    /// the "X 项" subtitle on each folder row in the sidebar).
+    /// the "X " subtitle on each folder row in the sidebar).
     /// Defaults to `{ _, _ in 0 }` (= unit tests + legacy call
     /// sites that don't need folder counts; = the subtitle reads
-    /// "0 项" which is harmless).
+    /// "0 " which is harmless).
     private let loadFolderDocCount: @MainActor (UUID, String) -> Int
 
     init(
@@ -116,14 +116,14 @@ final class SidebarService {
 
             var roots: [SidebarNode] = []
 
-            // e (see OOB.md #2026-09-22) OOB '正常播种五文件夹' (= the
+            // e (see OOB.md #2026-09-22) OOB '' (= the
             // 5 standard folders under each book stay on disk;
             // = LibraryMigrator seeds them).
             //
-            // f (see OOB.md #2026-09-22) OOB '帮助和测试小说下面的
-            // 自动生成的目录没有出现，需要实现' (= the default
-            // help-doc book + the test novels seeded with '自动
-            // 生成' folders on first launch should show their
+            // f (see OOB.md #2026-09-22) OOB '
+            // ，' (= the default
+            // help-doc book + the test novels seeded with '
+            // ' folders on first launch should show their
             // 5 standard folders in the sidebar so the user can
             // navigate to them). The fix re-adds the 5
             // user-facing folders (= world / characters /
@@ -156,7 +156,7 @@ final class SidebarService {
 
             // Reference library = one root node whose children
             // are the auto-classified CLC categories (= the canonical
-            // 2026-09-22 OOB '资料库自动分类目录的展示' = the
+            // 2026-09-22 OOB '' = the
             // 22 CLC top-level categories that auto-classify
             // references; = user can pick a category in the
             // sidebar to filter the middle-column card grid).
@@ -169,7 +169,7 @@ final class SidebarService {
             //
             // Projection rules:
             // 1. Group references by category (= .category? — nil
-            //    references go under a synthetic '未分类' bucket
+            //    references go under a synthetic '' bucket
             //    = below the official 22 CLC categories; =
             //    entity-classifier assigns category on save;
             //    pre-v0.29 references have nil).
@@ -207,8 +207,8 @@ final class SidebarService {
                     // Official CLC category — show by its
                     // EntityCategory displayName + icon.
                     //
-                    // '到分类层就够
-                    // 了': leaf rows (= individual references)
+                    // '
+                    // ': leaf rows (= individual references)
                     // are NOT rendered in the sidebar (= the
                     // user browses them via the middle-column
                     // card grid after picking a category). Pass
@@ -217,8 +217,8 @@ final class SidebarService {
                     // = single-click routes to the category
                     // scope immediately).
                     //
-                    // p (see OOB.md #2026-09-22) OOB '资料库分类,
-                    // 现在显示是的一个字母. 不是中文分类名':
+                    // p (see OOB.md #2026-09-22) OOB ',
+                    // . ':
                     // the user-facing title carries the Chinese
                     // displayName (= what the user reads in the
                     // sidebar). The routing key (= the
@@ -248,12 +248,12 @@ final class SidebarService {
                     // bucket's contents show in the middle-column
                     // card grid).
                     //
-                    // Routing: the bucket key ("未分类") is
+                    // Routing: the bucket key ("") is
                     // stored as the title (= matches the routing
                     // contract that official categories follow).
                     // ShellMiddleColumn.previewScope's case-
                     // insensitive rawValue lookup can't resolve
-                    // "未分类" to an EntityCategory (= no
+                    // "" to an EntityCategory (= no
                     // EntityCategory carries this label) so the
                     // previewScope falls through to
                     // .referenceScope(nil) = the full overview
@@ -275,8 +275,8 @@ final class SidebarService {
                     ))
                 }
             }
-            // bb (see OOB.md #2026-09-23) OOB '现在把资料库上面也
-            // 加一条分割线': insert a non-interactive divider
+            // bb (see OOB.md #2026-09-23) OOB '
+            // ': insert a non-interactive divider
             // row between the user shelves (= `roots` collected
             // from bookStore.sidebarLoadShelves) and the
             // reference library root (= synthetic `reference`
@@ -314,8 +314,8 @@ final class SidebarService {
     /// discriminator).
     static let referenceLibraryRootId = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 
-    /// '现在把资料库上面也加一条
-    /// 分割线': sentinel UUID for the divider row inserted
+    /// '
+    /// ': sentinel UUID for the divider row inserted
     /// between user shelves and the reference library root.
     /// (= a different sentinel than referenceLibraryRootId so
     /// the divider never accidentally collides with selection
@@ -337,8 +337,8 @@ final class SidebarService {
 
 
     /// Folder list shown under each book in the sidebar (= 5
-    /// user-facing folders: 世界观 / 角色 / 章节大纲 / 小说正文
-    /// / 小说草稿). Matches `LazySidebarStandardFolders.all` but
+    /// user-facing folders:  /  /  / 
+    /// / ). Matches `LazySidebarStandardFolders.all` but
     /// inlined here so SidebarService doesn't reach across the
     /// LazySidebar* family (= that family is v1.67 cleanup
     /// historical; = the v1.68 family owns the sidebar tree).
@@ -370,8 +370,8 @@ final class SidebarService {
     /// folders). Returns nil (= leaf row, no disclosure
     /// indicator) for books that should not show folders.
     ///
-    /// '帮助和测试小说下面的自动生成的
-    /// 目录没有出现，需要实现' (= default-seeded books should
+    /// '
+    /// ，' (= default-seeded books should
     /// show their 5 standard folders in the sidebar). All other
     /// books (= user-created) currently also show folders (= the
     /// LazySidebarStandardFolders.all list applies to every book;
@@ -383,11 +383,11 @@ final class SidebarService {
         // books don't collide on the same folder name. Apple HIG
         // List(.sidebar) requires unique row ids within the tree.
         //
-        // add the "X 项" subtitle
+        // add the "X " subtitle
         // (= the .md file count under each folder) so the
         // sidebar rows mirror the reference-library row shape
         // (= same 2-line: icon + title + subtitle = icon +
-        // title + "X 项").
+        // title + "X ").
         return Self.folderCatalog.map { folder in
             let count = self.loadFolderDocCount(book.id, folder.name)
             return SidebarNode(
@@ -428,20 +428,20 @@ final class SidebarService {
     }
 
     // MARK: - v1.69 reference library auto-classification
-    // (= (see OOB.md #2026-09-22) OOB '资料库自动分类目录的展示').
+    // (= (see OOB.md #2026-09-22) OOB '').
     //
     // Group references into CLC top-level categories for the
     // sidebar tree (= project the 22-bucket CLC taxonomy onto
     // the reference library's display). Bucket key = the
-    // EntityCategory.directoryName (= "a" / "b" / ... / "其它"
-    // for official categories; "未分类" for pre-v0.29 references
+    // EntityCategory.directoryName (= "a" / "b" / ... / ""
+    // for official categories; "" for pre-v0.29 references
     // whose category is nil).
 
     /// Map a Reference to its sidebar-bucket key. v0.29
     /// references always have a category (= assigned by
     /// EntityClassifier on save). Pre-v0.29 imports have nil
     /// (= still seen in the wild on existing user libraries);
-    /// those bucket under a synthetic '未分类' label so they
+    /// those bucket under a synthetic '' label so they
     /// stay browsable rather than disappearing.
     private static func referenceCategoryKey(for ref: Reference) -> String {
         if let category = ref.category {
@@ -451,7 +451,7 @@ final class SidebarService {
     }
 
     /// Sort the sidebar buckets in CLC canonical order (= A, B,
-    /// C, ..., Z), with the synthetic '未分类' bucket pushed to
+    /// C, ..., Z), with the synthetic '' bucket pushed to
     /// the end (= the official categories are the primary
     /// structure; the unclassified bucket is the cleanup-pending
     /// tail). Returns a sort key that Dictionary.sorted(by:)
@@ -462,7 +462,7 @@ final class SidebarService {
     }
 
     /// Map a directoryName back to the EntityCategory. Returns
-    /// nil for the synthetic '未分类' bucket (= no
+    /// nil for the synthetic '' bucket (= no
     /// EntityCategory corresponds) and for any unrecognized
     /// key (= forward-compatible with future CLC categories
     /// = the existing 22 cases cover CLC 5th edition
@@ -470,7 +470,7 @@ final class SidebarService {
     private static func EntityCategoryFromDirectoryName(_ name: String) -> EntityCategory? {
         // EntityCategory.directoryName returns the lowercase
         // rawValue for the official 22 cases (= .a → "a",
-        // .i → "i", etc.) and "其它" for .z.
+        // .i → "i", etc.) and "" for .z.
         // EntityCategory(rawValue:) is case-sensitive — so we
         // case-fold the input for the lookup. The official raw
         // values are uppercase letters, so uppercase folding
@@ -503,17 +503,17 @@ final class SidebarService {
     }
 }
 
-// MARK: - v1.69y (see OOB.md #2026-09-23) OOB '新建功能, 右边菜单等恢复'
+// MARK: - v1.69y (see OOB.md #2026-09-23) OOB ', '
 //
 //  Create + delete + rename business layer for the sidebar.
 //  Restored from the deleted NewLibraryOutlineView.swift
 //  (2366 LOC) after v1.69e `git rm`'d it without re-wiring
-//  (= per (see OOB.md #2026-09-23) OOB '需要你把新建功能，右边菜单等恢复').
+//  (= per (see OOB.md #2026-09-23) OOB '，').
 //
 //  What lives here:
 //   - persistence surface (= FileManager + JSONEncoder/Decoder
 //     for shelvesRoot/, books/<bookId>/book.json, shelf.json).
-//   - reserved-name guard (= rejects "资料库" / "Reference Library"
+//   - reserved-name guard (= rejects "" / "Reference Library"
 //     pre-v0.26 system-shelf names; = (see OOB.md #2026-09-20) OOB).
 //   - default-shelf-delete guard (= shelf 00000000-... cannot be
 //     deleted; = Reference Library is immutable).
@@ -558,7 +558,7 @@ extension SidebarService {
     }
 
     /// reserved shelf / book names (= the reference library
-    /// uses `资料库` as its display name; = reusing that name for
+    /// uses `` as its display name; = reusing that name for
     /// a user shelf would shadow the reference root; = same set
     /// the legacy NewLibraryOutlineView.renameShelf enforced).
     static let reservedNames: Set<String> = [

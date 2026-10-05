@@ -29,7 +29,7 @@
 //  stay in DesignTokens).
 //
 //
-//    1. 中央抽象 (central abstraction) is mandatory — without it the
+//    1.  (central abstraction) is mandatory — without it the
 //       single point of truth is missing and visual hierarchy drifts.
 //
 //    2. token names walk Apple HIG official terminology (= `.hitArea`
@@ -97,7 +97,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// (= Apple Mail / Finder sidebar leading icon).
     ///
     /// Used by: list row leading, sidebar leading glyphs, inline row
-    /// decorations. Weight: .regular (= (see OOB.md #2026-09-15)细体" canonical
+    /// decorations. Weight: .regular (= (see OOB.md #2026-09-15)" canonical
     /// macOS toolbar weight).
     case inlineSmall
 
@@ -226,7 +226,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
 
     /// Apple HIG weight for this case. The ≥38 PT zone (= emptyStateHero
     /// / avatar / cover) uses .thin per (see OOB.md #2026-09-17) SF Symbols 6
-    /// weight split rule. Smaller zones use .regular (= (see OOB.md #2026-09-15)细体"
+    /// weight split rule. Smaller zones use .regular (= (see OOB.md #2026-09-15)"
     /// canonical macOS toolbar weight).
     var fontWeight: Font.Weight {
         switch self {
@@ -384,8 +384,8 @@ struct SFIcon: View {
 /// + the point size (= SwiftUI default; = Apple HIG default).
 ///
 /// The case names walk Apple HIG text-style terminology (= the 2026-09-15
-/// 2026-10-01 = "字体字号样式 走 HIG 术语"; = 本 case 名 = Apple
-/// Text Style 原名).
+/// 2026-10-01 = "  HIG "; =  case  = Apple
+/// Text Style ).
 enum WenshuTextStyle: Sendable, Equatable, CaseIterable {
 
     /// HIG `.largeTitle` (= SwiftUI `.font(.largeTitle)`, default 26 PT).

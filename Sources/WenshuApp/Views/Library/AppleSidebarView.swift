@@ -20,7 +20,7 @@
 // e had `git rm`-deleted (= 4 sheets in SidebarSheets.swift,
 //     1 builder + 2 ViewModifier wrappers in SidebarContextMenu.swift,
 //     create/delete/rename business layer in SidebarService.swift).
-//   - v1.69aa-bb: UI polish (= centered '书架' title bar + Divider
+//   - v1.69aa-bb: UI polish (= centered '' title bar + Divider
 //     above List; = Divider row between shelves and the reference
 //     library root).
 //
@@ -74,7 +74,7 @@ struct AppleSidebarView: View {
     /// via .onChange below).
     @State private var selectedNode: SidebarNode?
 
-    // y (see OOB.md #2026-09-23) OOB '新建功能, 右边菜单等恢复':
+    // y (see OOB.md #2026-09-23) OOB ', ':
     // the create/rename/delete sheets that live in
     // SidebarSheets.swift (recovered from the deleted v1.69e
     // NewLibraryOutlineView). Each sheet's `isPresented`
@@ -101,11 +101,11 @@ struct AppleSidebarView: View {
         Group {
             if let service {
                 VStack(spacing: 0) {
-                    // '抽成一个组件, 10 PT /
-                    // 文字 / 4 PT / 分割线 / 10 PT, Apple HIG 数字表达':
+                    // ', 10 PT /
+                    //  / 4 PT /  / 10 PT, Apple HIG ':
                     // lift the sidebar column title bar to the
                     // shared SectionHeader component (= also used by
-                    // PreviewPane '素材' header; = same 10 PT / text /
+                    // PreviewPane '' header; = same 10 PT / text /
                     // 4 PT gap / divider / 10 PT inset Apple HIG
                     // Mail / Notes / Finder section-header idiom).
                     SectionHeader(title: String(localized: "sidebar.column.title"))
@@ -149,7 +149,7 @@ struct AppleSidebarView: View {
                     builder: { items in contextMenuHandler(items: items) }
                 ))
                 // sidebar fix (= (see OOB.md #2026-09-22) OOB
-                // '现在目录树还是点不了'): the .onChange(of:
+                // ''): the .onChange(of:
                 // selectedNode) MUST live on the List (= outside
                 // the rowContent closure), not on each row.
                 //
@@ -195,9 +195,9 @@ struct AppleSidebarView: View {
                     loadShelves: { try bookStore.sidebarLoadShelves() },
                     loadAllBooks: { try bookStore.sidebarLoadAllBooks() },
                     loadReferences: { try bookStore.loadAllReferences() },
-                    // '上面书架的五
-                    // 目录也可以加' (= mirror the reference
-                    // library's "X 项" subtitle on each book
+                    // '
+                    // ' (= mirror the reference
+                    // library's "X " subtitle on each book
                     // folder row). Count .md files in the
                     // matching on-disk folder; = returns 0 if
                     // the folder doesn't exist (= first-launch
@@ -244,7 +244,7 @@ struct AppleSidebarView: View {
         .onChange(of: workspaceUI.sidebarSelection) { _, _ in
             Task { await service?.reload() }
         }
-        // y (see OOB.md #2026-09-23) OOB '新建功能, 右边菜单等恢复':
+        // y (see OOB.md #2026-09-23) OOB ', ':
         // wire up the 3 request counters (= `choiceRequestCount`
         // + `newShelfRequestCount` + `newBookRequestCount`) to
         // flip the matching sheet's `isPresented` @State. Mirrors
@@ -378,7 +378,7 @@ struct AppleSidebarView: View {
         }
     }
 
-    /// '新建功能, 右边菜单等恢复':
+    /// ', ':
     /// context-menu builder (= extracted from the inline body
     /// of `.contextMenu(forSelectionType:menuItems:)` above; =
     /// the inline closure body was so large the Swift type
@@ -446,8 +446,8 @@ struct AppleSidebarView: View {
     /// the v1.69 MVVM split (= when SidebarItem still lived
     /// inline inside NewLibraryOutlineView)).
     ///
-    /// '帮助和测试小说下面的自动生成的
-    /// 目录没有出现，需要实现' (= the 5 standard folders under
+    /// '
+    /// ，' (= the 5 standard folders under
     /// each book are now visible in the sidebar; = the folder
     /// rows forward their selection to AppState.sidebarSelection
     /// AND open the folder in the editor's tab strip).
@@ -502,20 +502,20 @@ struct AppleSidebarView: View {
             // (= the EntityCategory.directoryName, stored in
             // SidebarNode.routingKey during the v1.69j projection;
             // = lowercase letter for the official 22 cases,
-            // "其它" for .z, "未分类" for pre-v0.29 nil-category
+            // "" for .z, "" for pre-v0.29 nil-category
             // references). The routing key is what
             // ShellMiddleColumn.previewScope's case-insensitive
             // EntityCategory(rawValue:) lookup resolves back to
-            // a category — the user-visible title (= "文学") can't
+            // a category — the user-visible title (= "") can't
             // be used directly because no EntityCategory rawValue
-            // is "文学". Falling back to node.title (= the previous
+            // is "". Falling back to node.title (= the previous
             // m behaviour) leaves the routing key in the
-            // user-visible slot (= the user's '资料库分类, 现在
-            // 显示是的一个字母' complaint).
+            // user-visible slot (= the user's ', 
+            // ' complaint).
             workspaceUI.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
         case .divider:
-            // bb (see OOB.md #2026-09-23) OOB '现在把资料库上面也
-            // 加一条分割线': divider rows are non-interactive;
+            // bb (see OOB.md #2026-09-23) OOB '
+            // ': divider rows are non-interactive;
             // = the user can never select a divider (= it's
             // pure chrome between sections). Forwarding a
             // sidebarSelection here would corrupt the

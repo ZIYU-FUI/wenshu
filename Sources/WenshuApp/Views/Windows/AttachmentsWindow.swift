@@ -29,7 +29,7 @@ import SwiftUI
 import SwiftData
 
 /// Independent Attachments window (= MVP per (see OOB.md #2026-10-03) OOB:
-/// "新增入口，在工具栏加三个圆的单独的按钮，打开独立的 windows 像看板一样").
+/// "，， windows ").
 @MainActor
 struct AttachmentsWindow: View {
 

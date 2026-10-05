@@ -268,7 +268,7 @@ struct KanbanView: View {
     /// lift the disk-IO + state-transition logic into
     /// `KanbanOps` (= the stateless business layer at
     /// `Sources/WenshuApp/Views/Kanban/KanbanOps.swift`). Per
-    /// ADR-0009 (= UI/业务/数据 separation), the View is now a pure
+    /// ADR-0009 (= UI// separation), the View is now a pure
     /// consumer: it holds the @State (tickets / newTicketTitle /
     /// scopeDir / loadError), reads via @Environment for the
     /// BookStore, and delegates every mutation to KanbanOps.

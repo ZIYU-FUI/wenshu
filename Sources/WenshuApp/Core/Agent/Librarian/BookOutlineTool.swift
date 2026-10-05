@@ -121,7 +121,7 @@ actor BookOutlineActor {
     /// if the chat session has no bound book, which the scope guard
     /// should already have rejected).
     ///
-    /// Per boss 2026-10-05 OOB '做 8': FileSystemOutlineStore is
+    /// Per boss 2026-10-05 OOB ' 8': FileSystemOutlineStore is
     /// @MainActor-isolated (= SwiftData ModelContext contract); =
     /// the actor (= this) can't instantiate it. We resolve to the
     /// book directory URL and use the nonisolated static FileSystem

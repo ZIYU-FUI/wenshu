@@ -43,7 +43,7 @@ struct ChatMessageFooter: View {
     /// Controls the divider + NEW chip visibility.
     let isSealed: Bool
     /// The hover-state binding for the timestamp expansion
-    /// (= "14:32" → "14:32 · 9月18日" on hover, per T26).
+    /// (= "14:32" → "14:32 · 918" on hover, per T26).
     /// Owned by the parent view (= each message tracks its own
     /// hover state independently).
     @Binding var isTimestampHovered: Bool
@@ -68,7 +68,7 @@ struct ChatMessageFooter: View {
             // (= Apple Messages read-receipts affordance).
             SFIcon("checkmark", style: .inlineSmall, color: IconColor.quaternary)
             // T26-HOVER-TIMESTAMP: compact form by default
-            // (= "14:32"); expanded on hover (= "14:32 · 9月18日").
+            // (= "14:32"); expanded on hover (= "14:32 · 918").
             Text(timestamp, format: timestampDisplayFormat)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)

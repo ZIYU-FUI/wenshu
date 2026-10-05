@@ -227,7 +227,7 @@ actor WenshuConductor {
             // Deny all (chat-triggered shell = arbitrary code execution).
             return "(tool blocked: process is deny-all — (see OOB.md #2026-08-23): user cannot change system via chat. Use wenshu-devtool CLI.)"
         case "web":
-            // Per 12 standard P1-02 try? 收口 (= wenshu tries to surface
+            // Per 12 standard P1-02 try?  (= wenshu tries to surface
             // every persistent failure in unified logging). The
             // previous `try? await webTools.extract(url: input) ?? ""`
             // swallowed both URL-validation failures AND web-tool
@@ -1228,7 +1228,7 @@ actor WenshuConductor {
 }
 
 
-// MARK: - Tool-pipeline logger (= 12 standard P1-02 try? 收口)
+// MARK: - Tool-pipeline logger (= 12 standard P1-02 try? )
 
 // Per Apple HIG + 12 standard P1-02: the LLM-facing tool pipeline
 // MUST surface persistent failures via unified logging (= the

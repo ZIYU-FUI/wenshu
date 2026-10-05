@@ -146,12 +146,12 @@ struct ChatZoneView: View {
         .onChange(of: library.selectedBookId) { _, _ in
             Task { await wireBookScopeGuardIfPossible() }
         }
-        // 2026-09-23: '我们 UI 有多层，windows 层，
-        // NVS层，聊天回显层，逻辑上，应该是 NVS 层，赋予各区说背景色
-        // 和风格。但现在的颜色应该是 NVS 默认的。不知道能否修改。
-        // 如果不能，那 windows\NVS 聊天区，变成透明的，聊天回显层
-        // 指定颜色，应该也能正常显示。现在大概率是多层结构，导致
-        // 颜色多层叠加就无限接近于黑色'.
+        // 2026-09-23: ' UI ，windows ，
+        // NVS，，， NVS ，
+        // 。 NVS 。。
+        // ， windows\NVS ，，
+        // ，。，
+        // '.
         //
         // Apple HIG multi-layer background analysis:
         //   Layer 1: NSWindow (= opaque by default = .windowBackgroundColor)
@@ -159,7 +159,7 @@ struct ChatZoneView: View {
         //   Layer 3: SwiftUI ChatZoneView (= our code)
         //   Layer 4: SwiftUI ChatView ScrollView (= our code)
         // Each layer paints a color; = stacking N colored layers
-        // darkens the result (= user's '颜色多层叠加就无限接近于黑色').
+        // darkens the result (= user's '').
         //
         // Apple HIG fix: make Layer 1 + Layer 2 TRANSPARENT;
         // let Layer 3/4 specify the visible chat column bg.
@@ -191,7 +191,7 @@ struct ChatZoneView: View {
         // keeps the v1.91d frame(...) wrap (= NSViewRepresentable
         // in .background() requires explicit frame; = same SwiftUI/AppKit
         // bridging quirk documented in v1.91d).
-        // (2026-09-23): the directive '聊天区背景颜色没有实现' OOB follow-up.
+        // (2026-09-23): the directive '' OOB follow-up.
 // Replace the v1.93 VisualEffectBlur(.sidebar, .withinWindow) with
 // the explicit `DesignTokens.sidebarBackground` Color (= the
 // .controlBackgroundColor Apple HIG sidebar tint).
@@ -201,7 +201,7 @@ struct ChatZoneView: View {
 //   - In opaque NSWindow (= wenshu's default) .withinWindow
 //     blending mode produced a sub-perceptual gradient (= ~14
 //     RGB diff between top + bottom).
-//   - the directive '聊天区背景颜色没有实现' = visual difference vs. sidebar
+//   - the directive '' = visual difference vs. sidebar
 //     was still there.
 //
 // Why DesignTokens.sidebarBackground works (= previously approved):

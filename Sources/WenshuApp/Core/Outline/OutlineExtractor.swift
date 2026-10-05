@@ -31,7 +31,7 @@ enum OutlineExtractor {
     /// Markdown heading regex: 1-6 leading # + space + heading text
     /// Apple HIG: NSRegularExpression
     private static let pattern: NSRegularExpression = {
-        // Per Apple HIG + 12 standard P2-01 fatalError 收口: see
+        // Per Apple HIG + 12 standard P2-01 fatalError : see
         // InternalLinkParser for the same pattern (= empty-match
         // fallback to a benign empty regex).
         guard let re = try? NSRegularExpression(pattern: #"^(#{1,6})\s+(.+?)\s*$"#, options: [.anchorsMatchLines]) else {

@@ -80,7 +80,7 @@ import Foundation
 
 /// Stateless business layer for the per-book idea library. Lifts
 /// the actor-call + state-transition logic out of
-/// `IdeaLibraryView` per the v1.74 UI/业务/数据 separation audit
+/// `IdeaLibraryView` per the v1.74 UI// separation audit
 /// (= ADR-0009).
 @MainActor
 enum IdeaLibraryOps {

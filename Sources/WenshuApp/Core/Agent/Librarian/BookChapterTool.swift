@@ -105,7 +105,7 @@ actor BookChapterActor {
     /// Test-only body accessor.
     func readBodyForTest(id: UUID) async -> String? {
         guard let dir = bookDirectoryProvider() else { return nil }
-        // Per boss 2026-10-05 OOB '做 8' (= the #8 FileSystem*Store
+        // Per boss 2026-10-05 OOB ' 8' (= the #8 FileSystem*Store
         // → SwiftData migration commit 1): actor-based callers
         // can't instantiate the @MainActor-isolated
         // FileSystemChapterStore struct (= SwiftData's ModelContext

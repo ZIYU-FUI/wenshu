@@ -183,10 +183,10 @@ struct InspectorView: View {
             // elsewhere in wenshu; = format LOCKED per memory).
             //
             // Lift the Inspector page header to the shared
-            // SectionHeader component (= also used by AppleSidebarView '书架',
-            // PreviewPane '素材', and EditorView '写作（小说）';
-            // = the 4 inspector pages = '写作（小说）' / '写作（风格）' /
-            // '写作（人物）' / '项目管理' all share this header; =
+            // SectionHeader component (= also used by AppleSidebarView '',
+            // PreviewPane '', and EditorView '（）';
+            // = the 4 inspector pages = '（）' / '（）' /
+            // '（）' / '' all share this header; =
             // same Apple HIG Mail / Notes / Finder section-header
             // idiom; = SectionHeader owns the 10 PT / 4 PT /
             // 10 PT insets). The previous inline VStack(spacing:4)

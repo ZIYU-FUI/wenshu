@@ -103,7 +103,7 @@ final class LLMWikiTool: Tool, @unchecked Sendable {
               !path.isEmpty else { return nil }
         let url = URL(fileURLWithPath: path)
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        // Per boss 2026-10-05 OOB '做 8': the FileSystemReferenceStore
+        // Per boss 2026-10-05 OOB ' 8': the FileSystemReferenceStore
         // struct is @MainActor-isolated (= SwiftData's ModelContext
         // contract). Hop to the main actor to construct the
         // SwiftData-backed instance (= the production path). Falls

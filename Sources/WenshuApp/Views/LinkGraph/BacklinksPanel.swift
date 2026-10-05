@@ -15,11 +15,11 @@ struct BacklinksPanel: View {
     }
 
     var body: some View {
-        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
+        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '',
         // ): BacklinksPanel is a content-layer
         // (= Z1 in apple-hig-visual-z-axis-layer-model.md L29-31)
-        // NOT a chrome surface. Per (see OOB.md #2026-09-02) OOB "默认不加
-        // 液态玻璃效果的, 我们就不加", no `.glassEffect(.regular)`
+        // NOT a chrome surface. Per (see OOB.md #2026-09-02) OOB "
+        // , ", no `.glassEffect(.regular)`
         // (= per-pane glass specular is forbidden per
         // pane-chrome-canonic-pattern.md L88). The placeholder
         // background is `.background { Color.clear }` (= no fill;
@@ -45,10 +45,10 @@ struct BacklinksPanel: View {
             }
         }
         .padding()
-        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
+        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '',
         // ): BacklinksPanel is a content-layer
-        // (= Z1). No glass overlay (= (see OOB.md #2026-09-02) "默认不加
-        // 液态玻璃效果的, 我们就不加"). The window's
+        // (= Z1). No glass overlay (= (see OOB.md #2026-09-02) "
+        // , "). The window's
         // containerBackground = windowBackgroundColor (set at
         // LibraryRootView, ) shows through.
         .background { Color.clear }

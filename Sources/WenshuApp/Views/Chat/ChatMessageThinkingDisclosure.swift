@@ -25,7 +25,7 @@
 //  Pass `shouldRender: false` to hide (= the leaf itself is dumb;
 //  the gate logic stays in the call site for now).
 //
-//  hermes 1:1: hermes真值's thinking DisclosureGroup (= status.tsx
+//  hermes 1:1: hermes's thinking DisclosureGroup (= status.tsx
 //  ResponseLoadingIndicator + assistant-message.tsx) uses NO icon +
 //  NO 'chatview.ai_thinking' label — just the 3×3 PT StatusPulse
 //  square as the collapsed row identity. wenshu keeps that 1:1.
