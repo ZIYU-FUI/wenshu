@@ -216,7 +216,28 @@ struct LibraryRootView: View {
     private var content: some View {
         if shouldShowOnboarding {
             LibraryOnboardingView(onLibraryPicked: { url in
+                // Persist the user's selection in two parts:
+                // 1. 'wenshu.libraryPath' string (= the existing source
+                //    of truth for 10+ consumers across
+                //    Core/Chat + Core/Agent + App/WenshuAppDelegate).
+                //    Non-sandboxed builds use this string verbatim.
+                // 2. 'wenshu.libraryBookmark' security-scoped Data (=
+                //    Apple HIG canonical for App Sandbox persistence;
+                //    developer.apple.com/documentation/foundation/url#
+                //    bookmarkdata(options:includingresourcevaluesforkeys:
+                //    relativeto:)). Sandboxed builds resolve the bookmark
+                //    on next launch to recover the user's grant
+                //    (= the user does not have to re-pick the .ws
+                //    library after every relaunch).
+                //
+                // We attempt the bookmark last; sandbox-less runs
+                // (= no entitlement) return nil from
+                // url.bookmarkData(), and we keep the existing
+                // string-only flow.
                 libraryPath = url.path
+                if let data = try? LibraryBookmark.make(for: url) {
+                    LibraryBookmark.save(data)
+                }
             })
         } else if let bookStore {
             // LibraryRootView is the NavigationSplitView. Nothing
@@ -297,6 +318,22 @@ struct LibraryRootView: View {
     private func runLaunch() async {
         guard !shouldShowOnboarding, bookStore == nil else { return }
         let wsRoot = URL(fileURLWithPath: libraryPath)
+        // Apple HIG canonical sandbox persistence: when the App
+        // Sandbox is enabled, the bare path string cannot recover the
+        // user's grant across launches. The security-scoped bookmark
+        // (persisted in LibraryBookmark.save on first selection)
+        // restores it. The bookmark scope is held for the launch
+        // window (= the read-only I/O that LibraryLifecycleHook +
+        // SwiftData container init need) and released when finished.
+        //
+        // Non-sandboxed builds (= today) return nil from
+        // LibraryBookmark.resolve(), and the existing path-based
+        // flow continues unchanged.
+        let bookmarkURL = LibraryBookmark.resolve()
+        let accessed = bookmarkURL?.startAccessingSecurityScopedResource() ?? false
+        defer {
+            if accessed { bookmarkURL?.stopAccessingSecurityScopedResource() }
+        }
         let hook = LibraryLifecycleHook(wsRoot: wsRoot)
         do {
             let result = try hook.runLaunch()
