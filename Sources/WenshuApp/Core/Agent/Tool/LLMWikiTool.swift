@@ -98,8 +98,8 @@ final class LLMWikiTool: Tool, @unchecked Sendable {
         //
         // v2.9a: delegate to `LLMWikiOps.runAllFromActiveLibrary`'s
         // resolution (= SSOT = both the LLM tool path and the
-        // operator-button path read the same `wenshu.libraryPath`).
-        guard let path = UserDefaults.standard.string(forKey: "wenshu.libraryPath"),
+        // operator-button path read the same `ActiveLibrary.path`).
+        guard let path = ActiveLibrary.path,
               !path.isEmpty else { return nil }
         let url = URL(fileURLWithPath: path)
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }

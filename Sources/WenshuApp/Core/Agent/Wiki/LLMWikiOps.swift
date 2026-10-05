@@ -84,15 +84,16 @@ enum LLMWikiOps {
     }
 
     /// v2.9a: operator one-click entry point that resolves the
-    /// active library from `UserDefaults` (= `wenshu.libraryPath`)
-    /// and runs the full derivation + lint pipeline. Returns nil
-    /// if no library is bound (= the user-facing 'no library'
-    /// state). Mirrors the `resolveActiveStore` helper previously
-    /// duplicated in `LLMWikiTool` (= SSOT lifted to `LLMWikiOps`
-    /// so the toolbar button + the LLM tool path share one
-    /// source).
+    /// active library from `ActiveLibrary` (= the security-scoped
+    /// bookmark; = canonical single source of truth for the .ws
+    /// bundle URL) and runs the full derivation + lint pipeline.
+    /// Returns nil if no library is bound (= the user-facing 'no
+    /// library' state). Mirrors the `resolveActiveStore` helper
+    /// previously duplicated in `LLMWikiTool` (= SSOT lifted to
+    /// `LLMWikiOps` so the toolbar button + the LLM tool path share
+    /// one source).
     static func runAllFromActiveLibrary() async throws -> LLMWikiOpsResult? {
-        guard let path = UserDefaults.standard.string(forKey: "wenshu.libraryPath"),
+        guard let path = ActiveLibrary.path,
               !path.isEmpty else { return nil }
         let url = URL(fileURLWithPath: path)
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }

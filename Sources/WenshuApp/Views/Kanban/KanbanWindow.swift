@@ -122,17 +122,17 @@ struct KanbanWindow: View {
     }
 
     /// resolve the active
-    /// .ws package URL from the main window's UserDefaults
-    /// (= the same `wenshu.libraryPath` key LibraryOnboardingView
-    /// writes at first launch). Throws if the path is empty or
-    /// missing (= the user hasn't opened a library yet; = the
+    /// .ws package URL from `ActiveLibrary` (= the security-scoped
+    /// bookmark; = single source of truth, written by
+    /// LibraryRootView at onboarding). Throws if the path is empty
+    /// or missing (= the user hasn't opened a library yet; = the
     /// kanban window should show a 'open a library first' hint
     /// instead of crashing).
     ///
     /// Public so TodoWindow (= the sibling scene) can also
     /// resolve the path.
     static func resolveLibraryPath() throws -> URL {
-        let path = UserDefaults.standard.string(forKey: "wenshu.libraryPath") ?? ""
+        let path = ActiveLibrary.path ?? ""
         guard !path.isEmpty else {
             throw NSError(
                 domain: "WenshuWindow",

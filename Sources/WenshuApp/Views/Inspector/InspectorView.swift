@@ -554,14 +554,15 @@ struct InspectorView: View {
     /// surface per AGENTS.md §11 baseline).
     ///
     /// Pattern: pull the active library path from the canonical
-    /// UserDefaults key (`wenshu.libraryPath`), list backups via
+    /// `ActiveLibrary` (= the security-scoped bookmark; = single
+    /// source of truth for the .ws bundle URL), list backups via
     /// `AppBackupOps.list()`, restore the newest (= alphabetical
     /// sort on the timestamped backup name is the canonical
     /// ordering used by `BackupTools.list`).
     private func restoreLatestBackup() async {
-        guard let sourceDir = UserDefaults.standard.string(forKey: "wenshu.libraryPath"),
+        guard let sourceDir = ActiveLibrary.path,
               FileManager.default.fileExists(atPath: sourceDir) else {
-            NSLog("[wenshu.backup.operator] no active library bound (= wenshu.libraryPath missing or .ws absent)")
+            NSLog("[wenshu.backup.operator] no active library bound (= ActiveLibrary.path nil or .ws absent)")
             return
         }
         do {

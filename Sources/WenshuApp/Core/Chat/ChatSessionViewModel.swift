@@ -155,9 +155,12 @@ final class ChatViewModel {
     @discardableResult
     func attachImage(at sourceURL: URL) async -> Bool {
         // Config lookup (= business layer reads app config from
-        // UserDefaults; = not data-layer IO; = OK to keep here).
-        let libraryPath = UserDefaults.standard.string(forKey: "wenshu.libraryPath") ?? ""
-        guard !libraryPath.isEmpty else { return false }
+        // ActiveLibrary (= canonical single source of truth for the
+        // .ws library URL; = bound to the security-scoped bookmark
+        // via LibraryBookmark). This is a config query (= not IO);
+        // = the actual directory creation + FileManager.copyItem
+        // lives in LiveChatRepository.
+        guard let libraryPath = ActiveLibrary.path, !libraryPath.isEmpty else { return false }
         // Delegate the actual copy to the data layer.
         let destPath: String?
         do {

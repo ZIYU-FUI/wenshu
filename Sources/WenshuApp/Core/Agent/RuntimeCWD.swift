@@ -21,13 +21,6 @@ import Foundation
 /// runtime CWD" or programmatically via `setCWD(_:)`.
 actor RuntimeCWD {
 
-    /// Default library path key (= AGENTS.md §11 baseline).
-    /// UserDefaults key for the library root path (= single source
-    /// of truth = `PathGuard.libraryPathUserDefaultsKey`; this
-    /// property delegates to the canonical owner so the raw string
-    /// literal lives in exactly one place).
-    static var libraryPathKey: String { PathGuard.libraryPathUserDefaultsKey }
-
     /// CWD override key (= when set, takes precedence over library path).
     static let cwdOverrideKey = "wenshu.runtimeCWD"
 
@@ -35,8 +28,9 @@ actor RuntimeCWD {
     private let libraryPathFallback: URL?
 
     init() {
-        // Read library path from UserDefaults at init time.
-        let libPath = UserDefaultsStore.shared.string(forKey: .libraryPath)
+        // Read library path from ActiveLibrary (= the canonical
+        // single source of truth; = the security-scoped bookmark).
+        let libPath = ActiveLibrary.path ?? ""
         self.libraryPathFallback = libPath.isEmpty
             ? nil
             : URL(fileURLWithPath: libPath)

@@ -40,7 +40,11 @@ import Foundation
 /// file). Cases map 1:1 to the `wenshu.<name>` raw value.
 public enum WenshuDefaultsKey: String, CaseIterable, Sendable {
     case debugNoKeychain     = "wenshu.debugNoKeychain"
-    case libraryPath         = "wenshu.libraryPath"
+    // `libraryPath` (= "wenshu.libraryPath") was removed when the
+    // active library became a security-scoped bookmark (= see
+    // State/ActiveLibrary.swift; = canonical single-source-of-truth).
+    // Any pre-existing legacy string is cleared on next launch by
+    // `LibraryBookmark.resolve`'s one-shot migration.
     case llmActiveConnector  = "wenshu.llm.activeConnector"
     case llmModel            = "wenshu.llm.model"
     case llmProvider         = "wenshu.llm.provider"

@@ -42,14 +42,6 @@ import os.log
 
 enum PathGuard {
 
-    /// UserDefaults key for the library root path (= single source
-    /// of truth = `WenshuDefaultsKey.libraryPath.rawValue`; = the
-    /// raw string literal lives in exactly one place across the
-    /// codebase).
-    static var libraryPathUserDefaultsKey: String {
-        WenshuDefaultsKey.libraryPath.rawValue
-    }
-
     private static let logger = Logger(
         subsystem: "ai.wenshu.app",
         category: "PathGuard"
@@ -94,10 +86,12 @@ enum PathGuard {
 
     // MARK: - Library root resolution
 
-    /// Resolve the library root from UserDefaults. Returns nil when
-    /// the key is unset (= pre-onboarding state).
+    /// Resolve the library root from `ActiveLibrary` (= the canonical
+    /// single source of truth; = the security-scoped bookmark).
+    /// Returns nil when no library is bound (= pre-onboarding state,
+    /// or the bookmark can't be resolved).
     static func resolveLibraryRoot() -> LibraryPath? {
-        let raw = UserDefaultsStore.shared.string(forKey: .libraryPath)
+        guard let raw = ActiveLibrary.path else { return nil }
         return LibraryPath(rawValueOrNil: raw)
     }
 

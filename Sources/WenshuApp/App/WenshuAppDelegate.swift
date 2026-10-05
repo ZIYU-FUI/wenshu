@@ -141,7 +141,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // chat data must be part of the warehouse file so the
         // customer can copy the warehouse to another Mac and continue the
         // session history directly.
-        let warehousePath = UserDefaults.standard.string(forKey: "wenshu.libraryPath")
+        let warehousePath = ActiveLibrary.path
         let chatDbPath: String? = warehousePath.map { path in
             // Warehouse is the directory selected via onboarding (.ws folder).
             // Place chat.sqlite inside it.
@@ -301,7 +301,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // the runner's per-agent dispatch can route Archivist +
         // Auditor to the storage path instead of runRealSubAgent.
         let archiveRoot: URL
-        if let path = UserDefaults.standard.string(forKey: "wenshu.libraryPath") {
+        if let path = ActiveLibrary.path {
             archiveRoot = URL(fileURLWithPath: path).appendingPathComponent("archives", isDirectory: true)
         } else {
             archiveRoot = URL(fileURLWithPath: NSTemporaryDirectory())
