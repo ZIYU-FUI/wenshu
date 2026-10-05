@@ -28,6 +28,16 @@ struct SummariesWindow: View {
     @State private var summaries: [WSSummary] = []
     @State private var errorText: String?
 
+    /// Apple HIG canonical table selection (= Set of String ids
+    /// via WSSummary's Identifiable conformance; = matches the
+    /// @Model's `@Attribute(.unique) var id: String`).
+    @State private var selection: Set<WSSummary.ID> = []
+    /// Apple HIG canonical sort order (= the user clicks a column
+    /// header to toggle ascending / descending).
+    @State private var sortOrder: [KeyPathComparator<WSSummary>] = [
+        KeyPathComparator(\.updatedAt, order: .reverse)
+    ]
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingLoose) {
             header
@@ -73,44 +83,62 @@ struct SummariesWindow: View {
     }
 
     private var list: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                ForEach(summaries, id: \.id) { summary in
-                    summaryRow(summary)
+        // Apple HIG canonical Table (= macOS 12+; = multi-column
+        // native control Finder / Mail / Notes; = column-header
+        // click sorts; = native row selection chrome). Wraps
+        // the WSSummary rows with five TableColumns: Session,
+        // Model, Summary, Tokens, Updated. Each TableColumn
+        // value: KeyPath drives the column-header sort; the
+        // closure inside the column body provides the cell
+        // content (= Apple HIG idiom; = the column knows its
+        // own sort comparator AND its own rendering).
+        Table(of: WSSummary.self, selection: $selection, sortOrder: $sortOrder) {
+            TableColumn("Session", value: \.sessionID) { summary in
+                HStack(spacing: DesignTokens.spacingStandard) {
+                    SFIcon("text.bubble", style: .inlineSmall, color: IconColor.tint)
+                    Text(summary.session?.title ?? summary.sessionID)
+                        .font(.callout)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private func summaryRow(_ summary: WSSummary) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.spacingCaption) {
-            HStack(spacing: DesignTokens.spacingStandard) {
-                SFIcon("text.bubble", style: .inlineSmall, color: IconColor.tint)
-                Text(summary.session?.title ?? summary.sessionID)
-                    .font(.callout)
-                    .foregroundStyle(.primary)
-                Spacer(minLength: 0)
+            .width(min: 140, ideal: 200)
+            TableColumn("Model", value: \.modelUsed) { summary in
                 Text(summary.modelUsed)
-                    .font(.caption2)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+            }
+            .width(min: 100, ideal: 120)
+            TableColumn("Summary", value: \.summary) { summary in
+                Text(summary.summary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            }
+            .width(min: 200, ideal: 320)
+            TableColumn("Tokens", value: \.coveredTokenCount) { summary in
+                // Apple HIG canonical token-format display (= the
+                // session's covered → summary token count).
+                Text("\(summary.coveredTokenCount) → \(summary.summaryTokenCount)")
+                    .font(.caption2.monospacedDigit())
                     .foregroundStyle(.tertiary)
             }
-            Text(summary.summary)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(3)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            HStack(spacing: DesignTokens.spacingStandard) {
-                Text("\(summary.coveredTokenCount) → \(summary.summaryTokenCount) tokens")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Spacer(minLength: 0)
+            .width(min: 100, ideal: 130)
+            TableColumn("Updated", value: \.updatedAt) { summary in
                 Text(summary.updatedAt, style: .relative)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
+            .width(min: 80, ideal: 100)
+        } rows: {
+            ForEach(summaries) { summary in
+                TableRow(summary)
+            }
         }
-        .padding(.vertical, DesignTokens.spacingCaption)
+        .onChange(of: sortOrder) { _, newOrder in
+            summaries.sort(using: newOrder)
+        }
     }
 
     private func reload() async {
