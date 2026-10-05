@@ -148,7 +148,7 @@ enum EditorPersistence {
                     atomically: true,
                     encoding: .utf8
                 )
-                return WenshuI18n.ts("workspace.editor.external_change_saved", conflictPath)
+                return String.localizedStringWithFormat(NSLocalizedString("workspace.editor.external_change_saved", comment: ""), conflictPath)
             } catch {
                 return String(localized: "workspace.editor.external_change_save_failed")
                     + " (" + error.localizedDescription + ")"

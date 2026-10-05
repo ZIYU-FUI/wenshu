@@ -82,7 +82,7 @@ struct MemorySettingsView: View {
             }
 
             if lastPurgeCount > 0 {
-                Text(WenshuI18n.tf("settings.memory.purge.count", lastPurgeCount))
+                Text(String.localizedStringWithFormat(NSLocalizedString("settings.memory.purge.count", comment: ""), lastPurgeCount))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -90,7 +90,7 @@ struct MemorySettingsView: View {
             Divider()
 
             HStack {
-                Text(WenshuI18n.tf("settings.memory.recent", recentEntries.count))
+                Text(String.localizedStringWithFormat(NSLocalizedString("settings.memory.recent", comment: ""), recentEntries.count))
                     .font(.subheadline)
                 Spacer()
                 if isLoadingEntries {

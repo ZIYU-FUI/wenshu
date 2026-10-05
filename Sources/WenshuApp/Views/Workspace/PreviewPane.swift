@@ -1265,8 +1265,8 @@ struct PreviewPane: View {
         // specialized tool tabs.
         EmptyStateView(
             icon: icon,
-            title: WenshuI18n.t(titleKey),
-            body: WenshuI18n.t(bodyKey)
+            title: String(localized: String.LocalizationValue(stringLiteral: titleKey)),
+            body: String(localized: String.LocalizationValue(stringLiteral: bodyKey))
         )
     }
 

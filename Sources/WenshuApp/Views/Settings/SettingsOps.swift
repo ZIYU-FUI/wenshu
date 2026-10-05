@@ -218,8 +218,8 @@ enum SettingsOps {
                               shouldClearDraft: true, shouldCollapse: true, shouldNotify: true)
         } catch {
             return SaveResult(didSave: false,
-                              error: WenshuI18n.ts("settings.provider.save_failed_message",
-                                                   error.localizedDescription),
+                              error: String.localizedStringWithFormat(NSLocalizedString("settings.provider.save_failed_message", comment: ""),
+                                                                    error.localizedDescription),
                               shouldClearDraft: false, shouldCollapse: false, shouldNotify: false)
         }
     }

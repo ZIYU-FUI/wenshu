@@ -124,7 +124,7 @@ struct ZoneEditor: View {
                 }
             Spacer()
             // AC#10: Merge button (= visible iff >= 2 zones selected).
-            Button(WenshuI18n.tf("button.zone_editor.merge", selectedZones.count)) {
+            Button(String.localizedStringWithFormat(NSLocalizedString("button.zone_editor.merge", comment: ""), selectedZones.count)) {
                 mergeSelectedZones()
             }
             .buttonStyle(.bordered)

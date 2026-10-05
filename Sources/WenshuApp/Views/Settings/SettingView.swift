@@ -312,7 +312,7 @@ struct SettingView: View {
             } footer: {
                 let total = Provider.all.count
                 let set = providersWithKeys.count
-                Text(WenshuI18n.tf("settings.provider.key_count_label", String(set), String(total)))
+                Text(String.localizedStringWithFormat(NSLocalizedString("settings.provider.key_count_label", comment: ""), String(set), String(total)))
                     .font(.caption)
             }
         }

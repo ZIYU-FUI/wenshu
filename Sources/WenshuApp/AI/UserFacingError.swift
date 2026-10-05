@@ -79,46 +79,46 @@ enum UserFacingError: Error, LocalizedError {
             if provider.isEmpty || provider == "当前 Provider" {
                 return String(localized: "error.rate_limit.generic")
             }
-            return WenshuI18n.ts("error.rate_limit.provider", provider)
+            return String.localizedStringWithFormat(NSLocalizedString("error.rate_limit.provider", comment: ""), provider)
 
         case .outputTooLong(let model):
-            return WenshuI18n.ts("error.output_too_long", model)
+            return String.localizedStringWithFormat(NSLocalizedString("error.output_too_long", comment: ""), model)
 
         case .modelRefusal(let reason):
             if let reason {
-                return WenshuI18n.ts("error.model_refusal.with_reason", reason)
+                return String.localizedStringWithFormat(NSLocalizedString("error.model_refusal.with_reason", comment: ""), reason)
             }
             return String(localized: "error.model_refusal.generic")
 
         case .contextTooLong(let tokenCount):
             if let tokenCount {
-                return WenshuI18n.tf("error.context_too_long.with_count", tokenCount)
+                return String.localizedStringWithFormat(NSLocalizedString("error.context_too_long.with_count", comment: ""), tokenCount)
             }
             return String(localized: "error.context_too_long.generic")
 
         case .fileWriteFailure(let path, _):
             if let path {
-                return WenshuI18n.ts("error.file_write.with_path", path)
+                return String.localizedStringWithFormat(NSLocalizedString("error.file_write.with_path", comment: ""), path)
             }
             return String(localized: "error.file_write.generic")
 
         case .databaseError(let operation, _):
-            return WenshuI18n.ts("error.database.operation_failed", operation)
+            return String.localizedStringWithFormat(NSLocalizedString("error.database.operation_failed", comment: ""), operation)
 
         case .invalidUserInput(let field, let reason):
             if let field, let reason {
-                return WenshuI18n.ts("error.invalid_input.with_field_reason", "\(field)（\(reason)）")
+                return String.localizedStringWithFormat(NSLocalizedString("error.invalid_input.with_field_reason", comment: ""), "\(field)（\(reason)）")
             }
             if let field {
-                return WenshuI18n.ts("error.invalid_input.with_reason", field)
+                return String.localizedStringWithFormat(NSLocalizedString("error.invalid_input.with_reason", comment: ""), field)
             }
             return String(localized: "error.invalid_input.generic")
 
         case .timeout(let operation, let seconds):
             if let seconds {
-                return WenshuI18n.tf("error.timeout.with_seconds", operation, Int(seconds))
+                return String.localizedStringWithFormat(NSLocalizedString("error.timeout.with_seconds", comment: ""), operation, Int(seconds))
             }
-            return WenshuI18n.ts("error.timeout.generic", operation)
+            return String.localizedStringWithFormat(NSLocalizedString("error.timeout.generic", comment: ""), operation)
 
         case .unknown:
             return String(localized: "error.unknown")

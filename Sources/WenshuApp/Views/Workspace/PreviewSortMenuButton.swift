@@ -49,6 +49,6 @@ struct PreviewSortMenuButton: View {
         .onHover { hovering in
             isHover = hovering
         }
-        .help(WenshuI18n.ts("workspace.preview.sort_method_help", sortOrder.rawValue))
+        .help(String.localizedStringWithFormat(NSLocalizedString("workspace.preview.sort_method_help", comment: ""), sortOrder.rawValue))
     }
 }

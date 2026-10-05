@@ -144,8 +144,7 @@ struct ChatInputBarView: View {
                     // Over-threshold warning (orange).
                     // (2026-09-23): localized.
                     // en: "%d / %d tokens (%d%%)" / zh-Hans: "已使用 %d / %d tokens（%d%%）".
-                    Text(WenshuI18n.tf("chat.input.tokens_used.over_threshold",
-                                       vm.contextUsed,
+                    Text(String.localizedStringWithFormat(NSLocalizedString("chat.input.tokens_used.over_threshold", comment: ""), vm.contextUsed,
                                        tokenCompressionContextThreshold,
                                        percentOfThreshold))
                         .font(.callout)
@@ -154,8 +153,7 @@ struct ChatInputBarView: View {
                     // Below threshold (quiet secondary).
                     // 2026-09-23: 'change the context-usage text to Chinese'.
                     // en: "%d tokens used" / zh-Hans: "已使用 %d tokens".
-                    Text(WenshuI18n.tf("chat.input.tokens_used",
-                                       vm.contextUsed))
+                    Text(String.localizedStringWithFormat(NSLocalizedString("chat.input.tokens_used", comment: ""), vm.contextUsed))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
