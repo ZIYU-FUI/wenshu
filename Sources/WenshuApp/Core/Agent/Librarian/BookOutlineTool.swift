@@ -111,15 +111,22 @@ actor BookOutlineActor {
 
     func readBodyForTest(id: UUID) async -> String? {
         guard let dir = bookDirectoryProvider() else { return nil }
-        let store = FileSystemOutlineStore(bookDirectory: dir)
-        return store.loadOutlineBody(id: id)
+        return FileSystemOutlineStore.loadOutlineBodyFromFileSystem(
+            id: id,
+            bookDirectory: dir
+        )
     }
 
     /// Resolve the current book directory (= raises `invalidInput`
     /// if the chat session has no bound book, which the scope guard
-    /// should already have rejected). Then construct a fresh
-    /// FileSystemOutlineStore rooted at that directory.
-    private func resolveStore() throws -> FileSystemOutlineStore {
+    /// should already have rejected).
+    ///
+    /// Per boss 2026-10-05 OOB '做 8': FileSystemOutlineStore is
+    /// @MainActor-isolated (= SwiftData ModelContext contract); =
+    /// the actor (= this) can't instantiate it. We resolve to the
+    /// book directory URL and use the nonisolated static FileSystem
+    /// fallback helpers (= actor-safe).
+    private func resolveBookDirectory() throws -> URL {
         guard let dir = bookDirectoryProvider() else {
             throw BookOutlineError.invalidInput(
                 reason: "no chat session book bound (= scope guard should have caught this earlier)"
@@ -128,7 +135,7 @@ actor BookOutlineActor {
         // wt/path-guard-v2-2026-09-25: PathGuard second-line defense
         // (= see BookChapterActor.resolveStore for the rationale).
         try PathGuard.assertInsideLibrary(path: LibraryPath(rawValue: dir.path))
-        return FileSystemOutlineStore(bookDirectory: dir)
+        return dir
     }
 
     // MARK: - CRUD
@@ -169,8 +176,12 @@ actor BookOutlineActor {
             order: order
         )
         do {
-            let store = try resolveStore()
-            try store.saveOutline(entry, bodyMarkdown: bodyMarkdown)
+            let dir = try resolveBookDirectory()
+            try FileSystemOutlineStore.saveOutlineToFileSystem(
+                entry: entry,
+                bodyMarkdown: bodyMarkdown,
+                bookDirectory: dir
+            )
         } catch let err as BookOutlineError {
             throw err
         } catch {
@@ -181,12 +192,15 @@ actor BookOutlineActor {
 
     func readOutline(id: UUID) async throws -> (OutlineEntryDescriptor, String?) {
         do {
-            let store = try resolveStore()
-            let entries = try store.loadOutlines()
+            let dir = try resolveBookDirectory()
+            let entries = try FileSystemOutlineStore.loadOutlinesFromFileSystem(bookDirectory: dir)
             guard let entry = entries.first(where: { $0.id == id }) else {
                 throw BookOutlineError.entryNotFound(id: id)
             }
-            let body = store.loadOutlineBody(id: id)
+            let body = FileSystemOutlineStore.loadOutlineBodyFromFileSystem(
+                id: id,
+                bookDirectory: dir
+            )
             return (OutlineEntryDescriptor(entry), body)
         } catch let err as BookOutlineError {
             throw err
@@ -207,10 +221,10 @@ actor BookOutlineActor {
         guard !trimmed.isEmpty else {
             throw BookOutlineError.emptyTitle
         }
-        let store = try resolveStore()
+        let dir = try resolveBookDirectory()
         let entries: [OutlineEntry]
         do {
-            entries = try store.loadOutlines()
+            entries = try FileSystemOutlineStore.loadOutlinesFromFileSystem(bookDirectory: dir)
         } catch {
             throw BookOutlineError.underlying(String(describing: error))
         }
@@ -226,7 +240,11 @@ actor BookOutlineActor {
         if let order { updated.order = order }
         updated.updatedAt = Date()
         do {
-            try store.replaceOutline(updated, bodyMarkdown: bodyMarkdown)
+            try FileSystemOutlineStore.replaceOutlineToFileSystem(
+                entry: updated,
+                bodyMarkdown: bodyMarkdown,
+                bookDirectory: dir
+            )
         } catch {
             throw BookOutlineError.underlying(String(describing: error))
         }
@@ -235,8 +253,11 @@ actor BookOutlineActor {
 
     func deleteOutline(id: UUID) async throws {
         do {
-            let store = try resolveStore()
-            try store.deleteOutline(id: id)
+            let dir = try resolveBookDirectory()
+            try FileSystemOutlineStore.deleteOutlineFromFileSystem(
+                id: id,
+                bookDirectory: dir
+            )
         } catch let err as BookOutlineError {
             throw err
         } catch {
@@ -245,10 +266,10 @@ actor BookOutlineActor {
     }
 
     func listOutlines(bookId: UUID) async throws -> [OutlineEntryDescriptor] {
-        let store = try resolveStore()
+        let dir = try resolveBookDirectory()
         let entries: [OutlineEntry]
         do {
-            entries = try store.loadOutlines()
+            entries = try FileSystemOutlineStore.loadOutlinesFromFileSystem(bookDirectory: dir)
         } catch {
             throw BookOutlineError.underlying(String(describing: error))
         }
@@ -262,10 +283,10 @@ actor BookOutlineActor {
 
     func findOutline(bookId: UUID, title: String) async throws -> OutlineEntryDescriptor? {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let store = try resolveStore()
+        let dir = try resolveBookDirectory()
         let entries: [OutlineEntry]
         do {
-            entries = try store.loadOutlines()
+            entries = try FileSystemOutlineStore.loadOutlinesFromFileSystem(bookDirectory: dir)
         } catch {
             throw BookOutlineError.underlying(String(describing: error))
         }
