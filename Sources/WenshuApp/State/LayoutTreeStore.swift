@@ -10,6 +10,19 @@
 // 028-005 ticket will register the preset officially; this commit
 // sets the seed so the FCP Browser shape is in place from day one.
 //
+// DEAD-CODE NOTICE (= boss 2026-10-05 OOB '做 8'): the
+// FileSystemLibraryStore / LayoutTreeStore class is currently
+// instantiated by 0 callers in production (= see
+// `grep -rln 'LayoutTreeStore(' Sources/ WenshuAppTests/` =
+// 0 hits). The struct is preserved (= not deleted) because:
+//   1. TreeHistory.swift adds 'undoTreeChange' / 'redoTreeChange'
+//      extensions to it (= see the bottom of TreeHistory).
+//   2. LayoutEditMode.swift references LayoutTreeStore's public
+//      API surface (= the edit-mode UI uses it as a type).
+// = the struct is type-referenced even though it's not
+// instantiated; = removing it would force a TreeHistory +
+// LayoutEditMode migration that is out of scope for this commit.
+//
 // Persistence model: UserDefaults JSON (= no FileManager / filesystem
 // writes; matches wenshu's preferences-only-on-UserDefaults pattern
 // for zone visibility flags).
@@ -17,7 +30,7 @@
 // v2 migration (acceptance criterion): the store reads / writes
 // the v2 tree schema (= LayoutTreeState.root backed by a LayoutNode
 // tree). On detecting a v1 (= flat array) JSON blob in UserDefaults,
-// the store RETIRES it (= drops the v1 keys wholesale, starts fresh)
+// the store RETIRES it (= drops the v1 keys wholesale, starts fresh),
 // per the hermes retire-v1-wholesale pattern. This matches the
 // development-phase rationale (= no external users, the only
 // returning user is fine with a fresh tree for v2).
