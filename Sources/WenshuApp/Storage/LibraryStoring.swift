@@ -77,6 +77,7 @@ struct SearchHit: Sendable, Hashable {
 
 // MARK: - Protocol
 
+@MainActor
 protocol LibraryStoring: Sendable {
     /// Where shelves are persisted on disk (= the ~/Documents/wenshu/ root
     /// for the FileSystem impl). Exposed so the UI can show 'Library at

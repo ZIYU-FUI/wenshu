@@ -21,12 +21,41 @@
 // shelf.json is untouched (= the previous-good-state stays on disk).
 
 import Foundation
+import SwiftData
 
+/// LibraryStoring impl backed by FileSystem (= with SwiftData
+/// bridging for the production path).
+///
+/// Per boss 2026-10-05 OOB '做 8' (= complete the FileSystem*Store →
+///
+/// SwiftData migration), this commit converts the FileSystemLibraryStore
+/// to a `@MainActor` struct (= matches the SwiftData ModelContext
+/// contract); = the 1 caller (= WenshuApp) is itself @MainActor, so
+/// the conversion is type-compatible.
+///
+/// Apple HIG canonical pattern: when `modelContainer` is wired
+/// (= the production path), the list operations (= loadShelves,
+/// loadBooks) read from SwiftData. The body-on-disk operations
+/// (= saveDocument, loadDocumentContent) continue to use the
+/// filesystem (= too large for a SwiftData row + matches the
+/// WSBookShelf's split-index pattern for documents).
+///
+/// When `modelContainer` is nil (= legacy dev-tool path), the
+/// store falls back to the FileSystem path (= the same atomic
+/// write strategy as before).
+@MainActor
 final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     let rootURL: URL
 
-    init(rootURL: URL) {
+    /// SwiftData ModelContainer (= Sendable; = passed by the
+    /// caller who owns the singleton). When nil, all operations
+    /// route to the FileSystem path (= matches the legacy v2.0
+    /// behavior).
+    let modelContainer: ModelContainer?
+
+    init(rootURL: URL, modelContainer: ModelContainer? = nil) {
         self.rootURL = rootURL
+        self.modelContainer = modelContainer
     }
 
     // MARK: - LibraryStoring
