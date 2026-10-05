@@ -26,7 +26,7 @@
 //  Plain-language summary (readable by all stakeholders):
 //  - wenshu lower-left zone becomes a real chat (message list + input box + send button)
 //  - Click send → AgentRuntime.delegateTask → WenshuVerifier.ping calls MiniMax-M3
-//  - minimax-cn key end-to-end works (Q22 ground-truth verification, ticket 31 done, HTTP 200)
+//  - minimax-cn key end-to-end works (the ground-truth verification rule ground-truth verification, ticket 31 done, HTTP 200)
 //
 //  - Engineering management: authorized + no acceptance required
 //
@@ -119,7 +119,7 @@ struct ChatView: View {
 
     init(conductor: WenshuConductor? = nil, sessionId: SessionID = SessionID(rawValue: "default"), vm: ChatViewModel? = nil) {
         // optional ChatViewModel injection (ChatZoneView shared vm for bottom toolbar
-        // Read vm.contextUsed auto-propagate. Q51 child overrides parent partial, do not touch ChatViewModel.send() body, do not touch ChatView body)
+        // Read vm.contextUsed auto-propagate. the child-overrides-parent rule child overrides parent partial, do not touch ChatViewModel.send() body, do not touch ChatView body)
         // when ChatZoneView passes a pre-constructed `vm` (=
         // the canonical path), the AppState is already injected into
         // the vm in ChatZoneView.init. When ChatView creates its own

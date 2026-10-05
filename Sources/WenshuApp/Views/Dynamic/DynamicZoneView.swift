@@ -32,7 +32,7 @@ struct DynamicZoneView: View {
         var label: String { rawValue }
         var icon: String {
             switch self {
-            // (= ticket 022 dynamic zone tab icons): owner
+            // : owner
             // 2026-08-26 OOB teb: teb1 -> layout-grid, teb2 -> layout-list
             // layout-grid teb2 layout-list' = SF rectangle.split.3x1
             // → Lucide layout-grid (= 4-cell grid icon, kanban board
@@ -92,7 +92,7 @@ struct DynamicZoneView: View {
             .animation(.default, value: selectedTab)
 
             // ticket 013 sub-step 3: MemoryRetrievalPanel
-            // (= ticket 009 canonical) as right-bottom panel per spec §6.4
+            //  as right-bottom panel per spec §6.4
             // 🟨 half-visible. The panel is always rendered at the bottom
             // of the DynamicZone (= memory preview is global to all tabs).
             MemoryRetrievalPanel(entries: memoryEntries)
@@ -125,7 +125,7 @@ struct DynamicZoneView: View {
 /// DynamicZoneTabBar: top bar 3 SF Symbol tab + accentColor on selected.
 struct DynamicZoneTabBar: View {
     @Binding var selectedTab: DynamicZoneView.DynamicTab
-    // (= ticket 013 underline slide animation): matchedGeometry
+    // : matchedGeometry
     // namespace for the shared underline (= PaneTabBar handles the
     // .matchedGeometryEffect internally). One namespace per tab bar
     // class (= SwiftUI requires the namespace to scope within a single

@@ -6,14 +6,14 @@
 //  .scratch/2026-09-23-mvvm-audit/spec.md §9 v1.75 arc).
 //
 //  Per v1.72 KanbanOps template (= @MainActor enum + Result types +
-//  static funcs). Per Q112 1 ticket = 1 file.
+//  static funcs). Per one ticket per file.
 //
 //  Public surface (= 3 entry points + 3 Result types):
 //    1. reload(manager:bookId:) -> LoadResult
 //    2. addRelationship(manager:bookId:fromCharacterId:toCharacterId:kind:description:) -> AddResult
 //    3. removeRelationship(manager:bookId:row:) -> WriteResult
 //
-//  All actor calls nil-guarded. Per Q112 no actor 搬家: actor stays in
+//  All actor calls nil-guarded. Per no actor relocation: actor stays in
 //  Sources/WenshuApp/Core/Agent/Specialized/CharacterRelationshipTools.swift.
 //
 

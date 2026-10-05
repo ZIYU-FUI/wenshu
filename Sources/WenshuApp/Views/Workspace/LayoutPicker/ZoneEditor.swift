@@ -79,14 +79,14 @@ struct ZoneEditor: View {
         }
         .frame(minWidth: 720, minHeight: 540)
         // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
-        // audit ticket 2): per-pane `.glassEffect(.regular)` is
+        // ): per-pane `.glassEffect(.regular)` is
         // forbidden per (see OOB.md #2026-09-02) OOB "默认不加液态玻璃效果
         // 的, 我们就不加; 默认带的, 我们就默认带" + per
         // pane-chrome-canonic-pattern.md L88 (".glassEffect(.regular)
         // = per-pane glass specular (= 2026-09 decision: 'default: no Liquid Glass effect
         // 的, 我们就不加')"). The canonical pattern is:
         //   - Window-level containerBackground = windowBackgroundColor
-        //     (= set at LibraryRootView, audit ticket 1) = the Apple
+        //     (= set at LibraryRootView, ) = the Apple
         //     Liquid Glass tonal layer for the entire window
         //   - Sheet surface = Apple NSColor.windowBackgroundColor
         //     (= the per-pane content fill, NOT a manual glass)

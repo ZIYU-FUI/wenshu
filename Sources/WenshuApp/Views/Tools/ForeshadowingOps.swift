@@ -11,7 +11,7 @@
 //    2. addForeshadowing(manager:bookId:title:setupChapterIdText:setupExcerpt:status:) -> AddResult
 //    3. removeForeshadowing(manager:row:) -> WriteResult
 //
-//  All actor calls nil-guarded. Per Q112 no actor 搬家: actor stays in
+//  All actor calls nil-guarded. Per no actor relocation: actor stays in
 //  Sources/WenshuApp/Core/Agent/Specialized/ForeshadowingTrackerTools.swift.
 //
 

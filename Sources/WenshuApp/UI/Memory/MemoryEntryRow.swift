@@ -4,7 +4,7 @@
 //  Single source of truth for memory entry display rows.
 //  Originally two near-identical structs (= MemoryEntryRow in
 //  MemorySettingsView.swift + MemoryEntryRowCompact in
-//  MemoryRetrievalPanel.swift); unified here per Standards-axis S4 (= ticket 013 sub-step 1 deleted the duplicate DynamicZoneMemoryPanel + its test).
+//  MemoryRetrievalPanel.swift); unified here per Standards-axis S4 .
 //  Duplicated Code smell.
 //
 //  Two display variants via `compact: Bool` flag:
@@ -55,7 +55,7 @@ struct MemoryEntryRow: View {
         .padding(DesignTokens.spacingIconic)
         .background(
             // macOS 27 doc-alignment ((see OOB.md #2026-09-18) —
-            // '全都改一下', audit ticket 8): HierarchicalShapeStyle.tertiary
+            // '全都改一下', ): HierarchicalShapeStyle.tertiary
             // (= Apple semantic ShapeStyle = auto-adapts to dark
             // mode + Liquid Glass). Color.secondary.opacity(N)
             // is a static gray that does NOT adapt to dark mode

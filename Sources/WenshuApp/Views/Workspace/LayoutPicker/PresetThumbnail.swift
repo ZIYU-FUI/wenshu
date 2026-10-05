@@ -56,7 +56,7 @@ struct PresetThumbnail: View {
             // shown as one filled rectangle at thumbnail scale).
             ZStack {
                 Rectangle()
-                    // macOS 27 doc-alignment (audit ticket 8):
+                    // macOS 27 doc-alignment ():
                     // HierarchicalShapeStyle.tertiary.
                     .fill(.tertiary.opacity(0.15))
                 // If the group has > 1 pane, show a small tab

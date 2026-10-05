@@ -157,7 +157,7 @@ struct LibraryRootView: View {
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
             // macOS 27 doc-alignment (see OOB.md #2026-09-18) OOB '全都改一下',
-            // audit ticket 1: the canonical macOS 27 SwiftUI window
+            // : the canonical macOS 27 SwiftUI window
             // background is the `.containerBackground(for: .window)`
             // modifier applied at the root view inside WindowGroup.
             // Per developer.apple.com/documentation/swiftui/view/

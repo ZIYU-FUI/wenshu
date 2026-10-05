@@ -67,7 +67,7 @@
 //      it to `tickets`. The trigger stays in the View per SwiftUI
 //      conventions.
 //
-//  Honest scope note (= Q46 stop-rule boundary):
+//  Honest scope note (= the stop-rule boundary):
 //    KanbanView's `addTicket` had a side effect of clearing the
 //    `newTicketTitle` @State string on success (= the SwiftUI-side
 //    inline-create UX reset). That reset stays in the View (= it's

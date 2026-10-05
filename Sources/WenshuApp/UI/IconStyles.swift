@@ -74,7 +74,7 @@
 //      SFIcon("paperplane", style: .paneTab, color: .tint)
 //
 //  Future ticket: sweep all 166 call sites to SFIcon, one surface per
-//  PR (= see the Q112 <QQ-coupling> ladder in the per-case doc below).
+//  PR (= see the the per-commit 1-source-1-test rule <QQ-coupling> ladder in the per-case doc below).
 //
 
 import SwiftUI
