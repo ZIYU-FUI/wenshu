@@ -506,7 +506,7 @@ Group {
             // not shown to the user). The primary button label uses
             // 'Open' (= the macOS HIG standard; = not a custom label).
                 Button {
-                    showSavePanel()
+                    isImporterPresented = true
                 } label: {
                     Label { Text(WenshuI18n.t("auto2.libraryrootview.l387.h40947105")) } icon: { SFIcon("document.badge.plus", style: .inlineSmall, color: IconColor.tint) }
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
@@ -546,17 +546,34 @@ Group {
             // maxHeight:) is just a starting size, not a hard cap).
         .frame(minWidth: 640, idealWidth: DesignTokens.onboardingWindowSize.width, maxWidth: 800, minHeight: 720, idealHeight: DesignTokens.onboardingWindowSize.height, maxHeight: 900)
         .background(Color.clear)
-        // Apple HIG Inventory 2026-09-06: .fileImporter was 0 hits.
-        // Apple-standard sheet for selecting an existing .ws directory.
-        // UTType 'com.wenshu.workspace' (= the exported UTI from
-        // Info.plist) is the allowed content type; macOS auto-filters
-        // Finder to .ws packages in the picker.
+        // Apple HIG canonical sheet for selecting a .ws directory.
+        // Single panel for both 'open' (= pick an existing .ws) and
+        // 'new' (= pick any folder, wenshu converts it to a .ws bundle
+        // by writing Info.plist + initial subdirs). The legacy code
+        // used NSSavePanel for the new path (= 10/03 audit) and
+        // .fileImporter only for the open path (= 8/24 audit). The
+        // .ws package is a directory (= per v0.26 spec) so the
+        // .folder UTType lets the user pick or create a folder in
+        // Finder, which is the same Apple HIG entry point for both
+        // actions. The destination handler below detects new vs
+        // existing by Info.plist presence (= wenshu.verification-fix
+        // #2: 'wenshu-verification-fix #2' required the .ws directory
+        // to already contain Info.plist before the main UI shows;
+        // createWenshuWorkspace writes it).
         .fileImporter(
             isPresented: $isImporterPresented,
-            allowedContentTypes: [UTType("com.wenshu.workspace") ?? .folder]
+            allowedContentTypes: [UTType.folder]
         ) { result in
             switch result {
             case .success(let url):
+                // New vs existing detection: Info.plist missing =
+                // user picked a fresh folder; convert it to a .ws
+                // bundle (= createWenshuWorkspace writes Info.plist
+                // + initial subdirs). Existing = use as-is.
+                let infoPlist = url.appendingPathComponent("Info.plist")
+                if !FileManager.default.fileExists(atPath: infoPlist.path) {
+                    LibraryOnboardingView.createWenshuWorkspace(at: url)
+                }
                 onLibraryPicked(url)
             case .failure:
                 // User cancelled (= no action). Apple-standard UX:
@@ -566,55 +583,7 @@ Group {
         }
     }
 
-    /// showSavePanel: NSSavePanel for new .ws package directory.
-    /// The .ws bundle is now a package DIRECTORY (= cross-book shared
-    /// model). The NSSavePanel still
-    /// takes a "filename" but createWenshuWorkspace creates a directory
-    /// at that name (no .ws file inside).
-    /// Default name = NSUserName() (Apple API for current Mac username).
-    /// Apple HIG 'create new package' pattern (NSSavePanel with default name).
-    private func showSavePanel() {
-        let panel = NSSavePanel()
-        panel.title = WenshuI18n.t("auto2.libraryrootview.l472.h40947105")
-        panel.message = WenshuI18n.t("auto2.libraryrootview.l473.h20911334")
-        panel.prompt = WenshuI18n.t("auto2.libraryrootview.l474.h92696757")
-        // wenshu-verification-fix ((see OOB.md #2026-08-24)): default
-        // filename = NSUserName() + ".ws" NSUserName() = current
-        // Mac username (Apple API, returns "anbaiqiang" on this
-        // machine). The expected result: 'yes' = anbaiqiang.
-        let username = NSUserName()
-        panel.nameFieldStringValue = "\(username).ws"
-        panel.nameFieldLabel = "仓库名"
-        panel.showsTagField = false
-        panel.canCreateDirectories = true
-        panel.isExtensionHidden = false
-        // (no .ws in user-facing text) but the
-        // .ws package IS .ws (technical package format, like .photoslibrary
-        // or .fcpbundle). Show extension so user sees what they're creating.
-        if #available(macOS 11.0, *) {
-            panel.canSelectHiddenExtension = true
-            panel.allowedContentTypes = []
-        }
-
-        // wenshu-verification-fix ((see OOB.md #2026-08-24) — 'create,'):
-        // returns URL on OK but does NOT actually create the directory.
-        // For .ws registered as com.apple.package (= Finder bundle),
-        // caller must create the package directory. Call createWenshuWorkspace
-        // (at:) to make package + Info.plist + subdirs on disk.
-        let handle: (NSApplication.ModalResponse) -> Void = { response in
-            if response == .OK, let url = panel.url {
-                Self.createWenshuWorkspace(at: url)
-                onLibraryPicked(url)
-            }
-        }
-        if let window = NSApp.mainWindow {
-            panel.beginSheetModal(for: window, completionHandler: handle)
-        } else {
-            handle(panel.runModal())
-        }
-    }
-
-// MARK: - Bundle creation helper ((see OOB.md #2026-08-24) fix)
+    // MARK: - Bundle creation helper ((see OOB.md #2026-08-24) fix)
 
 }  // close LibraryOnboardingView struct
 

@@ -78,6 +78,16 @@ struct ChatView: View {
     /// True while a drag is hovering the input row, so the row can show a
     /// drop highlight. Apple's .dropDestination reports this for free.
     @State private var isDropTargeted: Bool = false
+    // Apple HIG canonical export/import sheets for the conversation as
+    // Markdown (= T76 export / T78 open). Bound to .fileExporter /
+    // .fileImporter modifiers at the end of body; = the hidden
+    // Button shortcuts below toggle these instead of constructing
+    // NSSavePanel / NSOpenPanel directly.
+    @State private var isExportingMarkdown: Bool = false
+    @State private var isOpeningMarkdown: Bool = false
+    // Pre-computed .md body for the current conversation (= cached so
+    // .fileExporter does not have to re-format on every render).
+    @State private var exportMarkdownBody: String = ""
     // Reactive check: is the current model usable?
     // : the vm's
     // snapshot of the model id lags when the key is configured from
@@ -697,33 +707,17 @@ struct ChatView: View {
             .opacity(0)
             .accessibilityHidden(true)
             // T76-EXPORT-MD (2026-09-18): ⌘⇧S = export
-            // conversation as Markdown. Opens NSSavePanel
-            // with .md extension; = on save, writes the
-            // conversation in standard chat-as-markdown
-            // format (= same prefix format as T70 copy).
+            // conversation as Markdown. The .fileExporter modifier
+            // attached at the end of body (= Apple HIG canonical
+            // SwiftUI macOS 11+ pattern; = replaces the legacy
+            // NSSavePanel.runModal() block) handles the sheet UX,
+            // sandbox permission, and bookmark for us. The body
+            // just toggles the @State flag and the modifier fires
+            // once SwiftUI has finished committing it.
             // Hidden Button pattern.
             Button("Export as Markdown") {
-                let panel = NSSavePanel()
-                panel.allowedContentTypes = [.text]
-                panel.nameFieldStringValue = "wenshu-chat-\(Date().timeIntervalSince1970).md"
-                panel.canCreateDirectories = true
-                panel.title = "Export chat as Markdown"
-                if panel.runModal() == .OK, let url = panel.url {
-                    let formatted = vm.messages.map { msg in
-                        let prefix: String
-                        switch msg.source {
-                        case .user: prefix = "你"
-                        case .wenshu: prefix = "文枢"
-                        case .system: prefix = "系统"
-                        }
-                        return "[\(prefix)]: \(msg.content)"
-                    }.joined(separator: "\n\n")
-                    do {
-                        try formatted.write(to: url, atomically: true, encoding: .utf8)
-                    } catch {
-                        NSLog("[wenshu.export] failed to write markdown: %@", error.localizedDescription)
-                    }
-                }
+                exportMarkdownBody = Self.markdownForConversation(vm.messages)
+                isExportingMarkdown = true
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
             .frame(width: 0, height: 0)
@@ -754,59 +748,15 @@ struct ChatView: View {
             .opacity(0)
             .accessibilityHidden(true)
             // T78-OPEN-MD (2026-09-18): ⌘⇧O = open chat
-            // Markdown file (= NSOpenPanel for opening a
-            // .md file and parsing it back into a chat
-            // history). Pairs with T76 export (= open ↔ save).
+            // Markdown file (.fileImporter to view the existing
+            // .md file; = replaces the legacy
+            // NSOpenPanel.runModal() block). The import + parsing
+            // logic lives in the modifier's completion handler
+            // (= same behavior as before; just the file picker
+            // is now Apple HIG canonical).
             // Hidden Button pattern.
             Button("Open chat Markdown") {
-                let panel = NSOpenPanel()
-                panel.allowedContentTypes = [.text]
-                panel.allowsMultipleSelection = false
-                panel.canChooseDirectories = false
-                panel.canChooseFiles = true
-                panel.title = "Open chat Markdown"
-                if panel.runModal() == .OK, let url = panel.url {
-                    do {
-                        let raw = try String(contentsOf: url, encoding: .utf8)
-                        // Parse the Markdown back into
-                        // ChatMessage instances (= naive split
-                        // on "\n\n"; = each block becomes a
-                        // message). The first "[xx]:" prefix
-                        // determines the source.
-                        let blocks = raw.components(separatedBy: "\n\n")
-                        var loaded: [ChatMessage] = []
-                        for block in blocks {
-                            let trimmed = block.trimmingCharacters(in: .whitespacesAndNewlines)
-                            if trimmed.isEmpty { continue }
-                            let source: ChatSource
-                            let content: String
-                            if trimmed.hasPrefix("[你]: ") {
-                                source = .user
-                                content = String(trimmed.dropFirst("[你]: ".count))
-                            } else if trimmed.hasPrefix("[文枢]: ") {
-                                source = .wenshu
-                                content = String(trimmed.dropFirst("[文枢]: ".count))
-                            } else if trimmed.hasPrefix("[系统]: ") {
-                                source = .system
-                                content = String(trimmed.dropFirst("[系统]: ".count))
-                            } else {
-                                source = .user
-                                content = trimmed
-                            }
-                            loaded.append(ChatMessage(
-                                id: UUID(),
-                                role: source == .wenshu ? .agent : .user,
-                                source: source,
-                                content: content,
-                                timestamp: Date()
-                            ))
-                        }
-                        // Replace the conversation with the loaded history.
-                        vm.messages = loaded
-                    } catch {
-                        NSLog("[wenshu.import] failed to read markdown: %@", error.localizedDescription)
-                    }
-                }
+                isOpeningMarkdown = true
             }
             .keyboardShortcut("o", modifiers: [.command, .shift])
             .frame(width: 0, height: 0)
@@ -1343,6 +1293,92 @@ struct ChatView: View {
         // the text field still keeps focus').
         .onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
             inputFocused = false
+        }
+        // Apple HIG canonical file-export / file-import for the
+        // conversation as Markdown. Both modifiers handle the
+        // sheet UX + sandbox permission + bookmark for us (= the
+        // legacy NSSavePanel / NSOpenPanel blocks in the hidden
+        // Button shortcuts above have been retired).
+        .fileExporter(
+            isPresented: $isExportingMarkdown,
+            document: MarkdownDocument(text: exportMarkdownBody),
+            contentType: .plainText,
+            defaultFilename: "wenshu-chat-\(Int(Date().timeIntervalSince1970))"
+        ) { result in
+            if case .failure(let error) = result {
+                NSLog("[wenshu.export] failed: %@", String(describing: error))
+            }
+        }
+        .fileImporter(
+            isPresented: $isOpeningMarkdown,
+            allowedContentTypes: [.plainText]
+        ) { result in
+            switch result {
+            case .success(let url):
+                Self.importMarkdown(at: url, into: vm)
+            case .failure(let error):
+                NSLog("[wenshu.import] failed: %@", String(describing: error))
+            }
+        }
+    }
+
+    /// Format the current conversation as the legacy chat-Markdown
+    /// shape (= per-message '[prefix]: content' lines, double-newline
+    /// separated). Same formatter the T76 NSSavePanel block used
+    /// (= identical on-disk format; no migration needed for files
+    /// exported before this commit).
+    static func markdownForConversation(_ messages: [ChatMessage]) -> String {
+        messages.map { msg -> String in
+            let prefix: String
+            switch msg.source {
+            case .user: prefix = "你"
+            case .wenshu: prefix = "文枢"
+            case .system: prefix = "系统"
+            }
+            return "[\(prefix)]: \(msg.content)"
+        }.joined(separator: "\n\n")
+    }
+
+    /// Read a chat-Markdown file and replace the current
+    /// conversation with the parsed history (= the inverse of
+    /// markdownForConversation). Naive split on '\n\n'; each
+    /// non-empty block becomes a ChatMessage whose source is
+    /// derived from the leading '[xx]:' prefix.
+    static func importMarkdown(at url: URL, into vm: ChatViewModel) {
+        do {
+            let raw = try String(contentsOf: url, encoding: .utf8)
+            let blocks = raw.components(separatedBy: "\n\n")
+            var loaded: [ChatMessage] = []
+            for block in blocks {
+                let trimmed = block.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.isEmpty { continue }
+                let source: ChatSource
+                let content: String
+                if trimmed.hasPrefix("[你]: ") {
+                    source = .user
+                    content = String(trimmed.dropFirst("[你]: ".count))
+                } else if trimmed.hasPrefix("[文枢]: ") {
+                    source = .wenshu
+                    content = String(trimmed.dropFirst("[文枢]: ".count))
+                } else if trimmed.hasPrefix("[系统]: ") {
+                    source = .system
+                    content = String(trimmed.dropFirst("[系统]: ".count))
+                } else {
+                    source = .user
+                    content = trimmed
+                }
+                loaded.append(ChatMessage(
+                    id: UUID(),
+                    role: source == .wenshu ? .agent : .user,
+                    source: source,
+                    content: content,
+                    timestamp: Date()
+                ))
+            }
+            // Replace the conversation with the loaded history.
+            vm.messages = loaded
+        } catch {
+            NSLog("[wenshu.import] failed to read markdown: %@", error.localizedDescription)
         }
     }
 }
