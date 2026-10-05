@@ -1126,59 +1126,72 @@ struct PreviewPane: View {
                     bodyKey: "preview.empty.import_hint"
                 )
             } else {
-                GeometryReader { geometry in
-                    ScrollView {
-                        LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
-                            ForEach(inCategory) { entity in
-                                // (see OOB.md #2026-09-08) — 'card, show':
-                                // the trailing closure here IS Card's
-                                // onDoubleClick. The body is extracted
-                                // to `referenceCategoryCard(_:)` (= Apple
-                                // HIG 4-layer recommendation: extract
-                                // nested trailing closures into named
-                                // ViewBuilder helpers; = one less nested
-                                // view layer; = categoryGrid goes from
-                                // 8 nested views to 7).
-                                referenceCategoryCard(entity)
-                                    // Cards fade in on sidebar tap:
-                                    // individual Card gets an opacity +
-                                    // scale entry transition. When the
-                                    // user types in the search field,
-                                    // matching cards fade + scale in and
-                                    // non-matching cards fade out
-                                    // (= the .animation(.smooth, value:)
-                                    // on the LazyVGrid triggers each
-                                    // card's transition as SwiftUI adds
-                                    // or removes it from the diff).
-                                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                            }
-                        }
-                        // per-card animation trigger (= fires
-                        // on every Card add/remove within this
-                        // categoryGrid). Reading `inCategory.map(\.id)`
-                        // produces an Equatable sequence SwiftUI can
-                        // diff (= when the IDs change = some cards
-                        // added/removed = the cards' .opacity /
-                        // scale transitions play). 180 ms = matches
-                        // the LazyVGrid default fade duration.
-                        .animation(.smooth(duration: 0.18), value: inCategory.map(\.id))
-                        // STYLES-006 (2026-09-07): use the canonical content
-                        // inset modifier (= 0 PT = matches sidebar / editor
-                        // behavior = content sits right below the
-                        // chrome tier separator with no extra gap).
-                        // Previously (.contentInsetStyle(.standard,
-                        // edges: .vertical) = 18 PT) created a 35 PT
-                        // inconsistency vs zone 1 sidebar / zone 3
-                        // editor ((see OOB.md #2026-09-07) — round 5 'region,
-                        // ' = all 6 zones should
-                        // share the same chrome-tier-to-content-tier
-                        // inset). The previous 18 PT was Apple's
-                        // .defaultContentMargins (= NSTextView
-                        // internal), which doesn't apply to LazyVGrid
-                        // (= the grid's rows are not text).
-                        .contentInsetStyle(.none, edges: .vertical)
+                categoryGridContent(inCategory: inCategory)
+            }
+        }
+    }
+
+    /// Non-empty branch of categoryGrid (= the GeometryReader +
+    /// ScrollView + LazyVGrid + animations + contentInset pipeline).
+    /// Apple HIG canonical pattern: when an if/else has a heavy
+    /// non-empty branch (= 5 nested view frames here: GeometryReader
+    /// → ScrollView → LazyVGrid → ForEach → referenceCategoryCard),
+    /// extract it into a named @ViewBuilder helper (= categoryGrid
+    /// goes from 7 nested views to 4; = the function call flattens
+    /// the entire GeometryReader/ScrollView/LazyVGrid pipeline into
+    /// one frame in the parent body; = the parent categoryGrid body
+    /// becomes: VStack → if/else → emptyState/categoryGridContent
+    /// = 4 frames; = the deepest path through the file is now 5
+    /// = the per-helper's internal nesting).
+    @ViewBuilder
+    private func categoryGridContent(inCategory: [Reference]) -> some View {
+        GeometryReader { geometry in
+            ScrollView {
+                LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
+                    ForEach(inCategory) { entity in
+                        // (see OOB.md #2026-09-08) — 'card, show':
+                        // the trailing closure here IS Card's
+                        // onDoubleClick (= now takes the CardSource
+                        // as a parameter). Forward that source to
+                        // PreviewPane's onDoubleClick (= which opens
+                        // THIS specific card in the editor, not the
+                        // topmost card = the previous filtered.first
+                        // bug).
+                        referenceCategoryCard(entity)
+                            // Cards fade in on sidebar tap: individual
+                            // Card gets an opacity + scale entry
+                            // transition. When the user types in the
+                            // search field, matching cards fade +
+                            // scale in and non-matching cards fade out
+                            // (= the .animation(.smooth, value:) on
+                            // the LazyVGrid triggers each card's
+                            // transition as SwiftUI adds or removes it
+                            // from the diff).
+                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     }
                 }
+                // per-card animation trigger (= fires on every
+                // Card add/remove within this categoryGrid). Reading
+                // `inCategory.map(\.id)` produces an Equatable
+                // sequence SwiftUI can diff (= when the IDs change
+                // = some cards added/removed = the cards' .opacity /
+                // scale transitions play). 180 ms = matches the
+                // LazyVGrid default fade duration.
+                .animation(.smooth(duration: 0.18), value: inCategory.map(\.id))
+                // STYLES-006 (2026-09-07): use the canonical content
+                // inset modifier (= 0 PT = matches sidebar / editor
+                // behavior = content sits right below the chrome
+                // tier separator with no extra gap). Previously
+                // (.contentInsetStyle(.standard, edges: .vertical)
+                // = 18 PT) created a 35 PT inconsistency vs zone 1
+                // sidebar / zone 3 editor ((see OOB.md #2026-09-07)
+                // — round 5 'region, ' = all 6 zones should share
+                // the same chrome-tier-to-content-tier inset). The
+                // previous 18 PT was Apple's
+                // .defaultContentMargins (= NSTextView internal),
+                // which doesn't apply to LazyVGrid (= the grid's
+                // rows are not text).
+                .contentInsetStyle(.none, edges: .vertical)
             }
         }
     }
