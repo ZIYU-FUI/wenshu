@@ -26,6 +26,7 @@ import Foundation
 ///
 /// The pipeline is idempotent (= re-running overwrites previous derived
 /// content with the latest raw layer).
+@MainActor
 struct LLMWikiLayerDeriver: Sendable {
 
     let store: ReferenceStoring

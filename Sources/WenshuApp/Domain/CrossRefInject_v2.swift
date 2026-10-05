@@ -46,6 +46,7 @@ import Foundation
 /// 3. Idempotency (= preserved from v0.27): re-running won't duplicate
 ///    refs in the chapter frontmatter.
 ///
+@MainActor
 struct CrossRefInject_v2: Sendable {
 
     // MARK: - Configuration

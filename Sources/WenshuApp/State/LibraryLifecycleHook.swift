@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 import Observation
 
+@MainActor
 struct LibraryLifecycleHook: Sendable {
     let wsRoot: URL
 

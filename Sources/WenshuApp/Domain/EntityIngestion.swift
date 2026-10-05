@@ -13,6 +13,7 @@
 
 import Foundation
 
+@MainActor
 struct EntityIngestion: Sendable {
     let referenceStore: ReferenceStoring
 

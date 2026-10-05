@@ -237,6 +237,7 @@ enum SmartQueryResult: Hashable, Sendable {
 
 /// High-level SmartQuery engine (= constructs the index from stores
 /// + evaluates a SmartQuery).
+@MainActor
 struct SmartQueryEngine: Sendable {
     let entityStore: FileSystemEntityStore
     let referenceStore: ReferenceStoring

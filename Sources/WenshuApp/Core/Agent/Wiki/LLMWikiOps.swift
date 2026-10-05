@@ -97,7 +97,19 @@ enum LLMWikiOps {
               !path.isEmpty else { return nil }
         let url = URL(fileURLWithPath: path)
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        let store = FileSystemReferenceStore(referenceLibraryRoot: url)
+        // Per boss 2026-10-05 OOB '做 8': the FileSystemReferenceStore
+        // struct is @MainActor-isolated (= SwiftData's ModelContext
+        // contract); = actor-based callers can't instantiate it
+        // directly. Hop to the main actor to grab a SwiftData-backed
+        // instance (= the production path); = falls back to the
+        // FileSystem path if no ModelContainer is wired (dev tools
+        // + tests).
+        let store: any ReferenceStoring = await MainActor.run {
+            FileSystemReferenceStore(
+                referenceLibraryRoot: url,
+                modelContainer: WSPersistenceContainer.shared
+            )
+        }
         return try await runAll(store: store)
     }
 

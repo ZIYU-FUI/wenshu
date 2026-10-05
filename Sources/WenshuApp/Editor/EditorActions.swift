@@ -89,6 +89,7 @@ enum WikiLinkNavigation {
     // helper to `internal` (= default access) is the minimum touch
     // to unblock the build; callers stay unchanged because the
     // function was only invoked from in-module code paths.
+    @MainActor
     static func handle(
         displayName: String,
         referenceStore: (any ReferenceStoring)?,
@@ -114,6 +115,7 @@ enum WikiLinkNavigation {
         return nil
     }
 
+    @MainActor
     private static func lookupInReferenceLibrary(
         name: String,
         store: any ReferenceStoring

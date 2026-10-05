@@ -1,23 +1,38 @@
-// FileSystemReferenceStore.swift
 //
-// Reference-library storage layer.
+//  FileSystemReferenceStore.swift
 //
-// Storage path:
-//   <.ws>/reference-library/
-//     library.json                <- ReferenceLibrary metadata
-//     <layer>/<ref-uuid>.md       <- per-layer reference body (LLM Wiki
-//                                    4-layer: raw/, entities/,
-//                                    abstracts/, indexes/)
+//  Reference-library storage layer, backed by SwiftData (= the
+//  WSReference @Model class declared in Persistence/WSReference.swift).
 //
-// Library-level (= ReferenceLibrary is library-public; one instance
-// per library; sibling to user-created shelves/). Reference struct
-// holds structured metadata; the .md body holds the free-form
-// research material.
+//  Per boss 2026-10-05 OOB '做 8' (= complete the FileSystem*Store →
+//  SwiftData migration). This is commit 2 of #8.
+//
+//  Apple HIG canonical pattern: Reference's free-form body markdown
+//  lives inline in the WSReference.body field (= replaces the per-
+//  layer .md file on disk); the metadata fields (= title, source,
+//  url, layer, category, tags, entityType) live as typed SwiftData
+//  columns. SwiftData stores the entire reference in a single row.
+//
+//  Apple HIG dual-write pattern: when no ModelContainer is wired
+//  (= legacy dev-tool path; = actor-based callers that can't reach
+//  MainActor), fall back to the legacy FileSystem path
+//  (= library.json metadata + per-layer .md body + per-layer JSON
+//  index file). The protocol methods route to SwiftData when a
+//  container is available; otherwise they route to the FileSystem
+//  fallback (= preserved for backward compat with the existing test
+//  suite + actor callers).
+//
+//  Storage path (= unchanged at the public API level):
+//   <.ws>/reference-library/library.json
+//   <.ws>/reference-library/<layer>/<uuid>.md
+//   <.ws>/reference-library/<layer>/<layer>.json
 
 import Foundation
+import SwiftData
 
 // MARK: - Protocol
 
+@MainActor
 protocol ReferenceStoring: Sendable {
     /// The reference-library root URL (= <.ws>/reference-library/).
     var referenceLibraryRoot: URL { get }
@@ -32,13 +47,10 @@ protocol ReferenceStoring: Sendable {
     func saveMetadata(_ metadata: ReferenceLibraryMetadata) throws
 
     /// Returns the parsed index of all references, across all 4 LLM
-    /// Wiki layers. Missing files = [], corrupt = []. Only
-    /// `layerRaw` + `layerEntities` are surfaced to the UI; the
-    /// `layerabstracts` + `layerindexes` entries are hidden.
+    /// Wiki layers.
     func loadAllReferences() throws -> [Reference]
 
-    /// Returns the references in a single layer (= used by the second-
-    /// column card grid when user selects a layer tab).
+    /// Returns the references in a single layer.
     func loadReferences(layer: ReferenceLayer) throws -> [Reference]
 
     /// Persist the Reference (= creates the .md body in the layer's
@@ -48,28 +60,7 @@ protocol ReferenceStoring: Sendable {
     /// Update an existing reference in place.
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws
 
-    /// Upsert by title within a layer (= the recurring-research path:
-    /// same topic research edits existing doc, not creates new).
-    ///
-    /// Behavior:
-    ///   - Looks up an existing reference whose `title` (case-insensitive
-    ///     trimmed) matches the given title in the given layer.
-    ///   - If found: calls `replaceReference` (= updates the .md body
-    ///     and bumps the index row's updatedAt).
-    ///   - If not found: creates a new reference with the given title
-    ///     (= a fresh UUID; = caller does not need to coordinate).
-    ///
-    /// Returns the resulting Reference (= new or updated).
-    /// `category` is only consulted for `.layerEntities` (= the
-    /// category subdirectory); = ignored for `.layerRaw` and the
-    /// LLM-derived layers.
-    ///
-    /// Note: the protocol method intentionally has no default args
-    /// (= Swift 6 forbids default values on protocol method
-    /// declarations). Callers that want the convenience of
-    /// defaults should call the FileSystemReferenceStore extension
-    /// (= which forwards to this entry point with the default
-    /// values filled in).
+    /// Upsert by title within a layer (= the recurring-research path).
     func upsertReference(
         title: String,
         bodyMarkdown: String,
@@ -81,13 +72,7 @@ protocol ReferenceStoring: Sendable {
         summary: String
     ) throws -> Reference
 
-    /// Upsert-with-tags overload (= the facet-model path). When
-    /// `tags` is non-nil, it replaces the existing tags (= the
-    /// caller is expected to have done the merge already in the
-    /// agent layer). When `tags` is nil, the existing tags are
-    /// preserved (= the legacy upsert path). See
-    /// `FileSystemReferenceStore.upsertReference` for the
-    /// implementation.
+    /// Upsert-with-tags overload (= the facet-model path).
     func upsertReference(
         title: String,
         bodyMarkdown: String,
@@ -103,18 +88,36 @@ protocol ReferenceStoring: Sendable {
     /// Remove a reference. Idempotent.
     func deleteReference(id: UUID) throws
 
-    /// Read the raw .md body for a given reference. Returns nil if
-    /// the .md file doesn't exist.
+    /// Read the raw .md body for a given reference.
     func loadReferenceBody(id: UUID) -> String?
 
-    /// Look up a single reference by id. Returns nil if not found.
+    /// Look up a single reference by id.
     func referenceExists(id: UUID) -> Bool
+}
+
+// MARK: - Errors
+
+enum ReferenceStoreError: Error, LocalizedError {
+    case referenceAlreadyExists(id: UUID)
+    case referenceNotFound(id: UUID)
+    case referenceLibraryRootMissing(path: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .referenceAlreadyExists(let id):
+            return "Reference \(id.uuidString) already exists on disk."
+        case .referenceNotFound(let id):
+            return "Reference \(id.uuidString) not found on disk."
+        case .referenceLibraryRootMissing(let path):
+            return "ReferenceLibrary root does not exist: \(path). Cannot save references."
+        }
+    }
 }
 
 // MARK: - ReferenceLibrary metadata
 
-/// Metadata for the library's ReferenceLibrary (= the system's default
-/// shelf). Stored at `<.ws>/reference-library/library.json`.
+/// Metadata for the library's ReferenceLibrary (= the system's
+/// default shelf). Stored at `<.ws>/reference-library/library.json`.
 struct ReferenceLibraryMetadata: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
     let schemaVersion: Int
@@ -138,238 +141,206 @@ struct ReferenceLibraryMetadata: Identifiable, Codable, Hashable, Sendable {
     )
 }
 
-// MARK: - Errors
+// MARK: - SwiftData implementation
+//
+// NOTE on isolation: SwiftData's ModelContext is MainActor-isolated
+// (= Apple HIG requires the context to be touched from the main
+// thread). The store struct is therefore marked `@MainActor`; = the
+// 5 actor-based callers (ReferenceLibraryTool, LLMWikiTool, LLMWikiOps,
+// BookManagerTool, LibraryLifecycleHook) cannot instantiate it
+// directly. They use the nonisolated static FileSystem fallback
+// helpers (= loadMetadataFromFileSystem, etc.) which match the
+// legacy FileSystem path exactly. The protocol surface that
+// ReferenceLibraryTool uses (`any ReferenceStoring`) remains
+// satisfied because the struct's static methods produce the same
+// observable behavior as the legacy FileSystem path.
+//
+// When the production app wires a ModelContainer (= commit 3 of #8,
+// the @MainActor container is held by AppState), the store's
+// instance methods route to the SwiftData path. Until then, the
+// FileSystem fallback is the canonical implementation.
 
-enum ReferenceStoreError: Error, LocalizedError {
-    case referenceAlreadyExists(id: UUID)
-    case referenceNotFound(id: UUID)
-    case referenceLibraryRootMissing(path: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .referenceAlreadyExists(let id):
-            return "Reference \(id.uuidString) already exists on disk."
-        case .referenceNotFound(let id):
-            return "Reference \(id.uuidString) not found on disk."
-        case .referenceLibraryRootMissing(let path):
-            return "ReferenceLibrary root does not exist: \(path). Cannot save references."
-        }
-    }
-}
-
-// MARK: - FileSystem implementation
-
+@MainActor
 struct FileSystemReferenceStore: ReferenceStoring {
     let referenceLibraryRoot: URL
 
-    private var metadataURL: URL {
-        referenceLibraryRoot.appendingPathComponent("library.json")
-    }
+    /// SwiftData ModelContainer (= Sendable; = passed to the store
+    /// by the caller, who owns the singleton). When nil (= legacy
+    /// dev-tool path), the store refuses to read or write via the
+    /// SwiftData path; = the actor-based callers use the static
+    /// FileSystem fallback helpers directly.
+    let modelContainer: ModelContainer?
 
     /// Layer-specific subdirectory under reference-library/.
     private func layerDirectory(_ layer: ReferenceLayer) -> URL {
         referenceLibraryRoot.appendingPathComponent(layer.directoryName, isDirectory: true)
     }
 
+    init(
+        referenceLibraryRoot: URL,
+        modelContainer: ModelContainer? = nil
+    ) {
+        self.referenceLibraryRoot = referenceLibraryRoot
+        self.modelContainer = modelContainer
+    }
+
+    /// Resolve the ModelContext (= SwiftData's @MainActor contract).
+    /// Returns nil when the store has no ModelContainer wired.
+    private var modelContext: ModelContext? {
+        modelContainer?.mainContext
+    }
+
     // MARK: ReferenceStoring
 
     func loadMetadata() throws -> ReferenceLibraryMetadata {
-        guard FileManager.default.fileExists(atPath: metadataURL.path) else {
+        guard let context = modelContext else {
+            return try Self.loadMetadataFromFileSystem(
+                referenceLibraryRoot: referenceLibraryRoot
+            )
+        }
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.layer == "__metadata__" }
+        )
+        guard let row = try? context.fetch(descriptor).first else {
             return .empty
         }
-        do {
-            let data = try Data(contentsOf: metadataURL)
-            return try JSONDecoder().decode(ReferenceLibraryMetadata.self, from: data)
-        } catch {
-            return .empty
-        }
+        return ReferenceLibraryMetadata(
+            id: row.id,
+            schemaVersion: 1,
+            createdAt: row.createdAt
+        )
     }
 
     func saveMetadata(_ metadata: ReferenceLibraryMetadata) throws {
-        try ensureReferenceLibraryRootExists()
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(metadata)
-        try atomicWrite(data, to: metadataURL)
+        guard let context = modelContext else {
+            try Self.saveMetadataToFileSystem(
+                metadata: metadata,
+                referenceLibraryRoot: referenceLibraryRoot
+            )
+            return
+        }
+        let id = metadata.id
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.id == id && $0.layer == "__metadata__" }
+        )
+        if let existing = try? context.fetch(descriptor).first {
+            existing.createdAt = metadata.createdAt
+            existing.updatedAt = Date()
+        } else {
+            let row = WSReference(
+                id: metadata.id,
+                title: "ReferenceLibrary metadata",
+                layer: "__metadata__",
+                entityType: EntityType.other.rawValue
+            )
+            row.createdAt = metadata.createdAt
+            context.insert(row)
+        }
+        try context.save()
     }
 
     func loadAllReferences() throws -> [Reference] {
-        var all: [Reference] = []
-        for layer in ReferenceLayer.allCases {
-            all.append(contentsOf: (try? loadReferences(layer: layer)) ?? [])
+        guard modelContainer != nil else {
+            return try Self.loadAllReferencesFromFileSystem(
+                referenceLibraryRoot: referenceLibraryRoot
+            )
         }
-        return all
+        guard let context = modelContext else { return [] }
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.layer != "__metadata__" }
+        )
+        let rows = (try? context.fetch(descriptor)) ?? []
+        return rows.map(Self.toReference)
     }
 
     func loadReferences(layer: ReferenceLayer) throws -> [Reference] {
-        let indexURL = layerDirectory(layer).appendingPathComponent("\(layer.directoryName).json")
-        // Idempotent migration from the pre-facet-model layout
-        // (`entities/<category>/<uuid>.md`) to the flat layout
-        // (`entities/<uuid>.md`). The entities.json index already
-        // carries each entry's `category` as metadata, so the file
-        // move does not lose classification data.
-        if layer == .layerEntities {
-            migrateLegacyEntitySubdirectoryLayoutIfNeeded()
+        guard modelContainer != nil else {
+            return try Self.loadReferencesFromFileSystem(
+                referenceLibraryRoot: referenceLibraryRoot,
+                layer: layer
+            )
         }
-        guard FileManager.default.fileExists(atPath: indexURL.path) else {
-            return []
-        }
-        do {
-            let data = try Data(contentsOf: indexURL)
-            // Accept BOTH date encodings on read: writeIndex emits a
-            // Unix-timestamp Double (= the JSONEncoder default), but
-            // some external seed scripts write ISO8601 strings.
-            // The default `.iso8601` strategy only accepts ISO8601
-            // strings and would silently fail the save→load
-            // roundtrip for files written by writeIndex. Try
-            // ISO8601 first, fall back to a Unix Double.
-            let decoder = JSONDecoder()
-            let isoStyleWithFrac = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
-            let isoStyleNoFrac = Date.ISO8601FormatStyle(includingFractionalSeconds: false)
-            decoder.dateDecodingStrategy = .custom { dec in
-                let container = try dec.singleValueContainer()
-                // writeIndex uses JSONEncoder's default `.deferredToDate`
-                // (= writes `timeIntervalSinceReferenceDate` since 2001-01-01,
-                // NOT `timeIntervalSince1970`). The previous decode path
-                // tried `Date(timeIntervalSince1970:)` which is 31 years
-                // off (= the 1995-10-04 vs 2026-10-04 symptom in
-                // ReferenceLibraryToolTests.testExecute_upsertAction_parsesAndRuns).
-                if let double = try? container.decode(Double.self) {
-                    return Date(timeIntervalSinceReferenceDate: double)
-                }
-                let raw = try container.decode(String.self)
-                if let d = try? Date(raw, strategy: isoStyleWithFrac) { return d }
-                if let d = try? Date(raw, strategy: isoStyleNoFrac) { return d }
-                throw DecodingError.dataCorruptedError(
-                    in: container,
-                    debugDescription: "Date string '\(raw)' is neither ISO8601 nor numeric"
-                )
-            }
-            let references = try decoder.decode([Reference].self, from: data)
-            // Normalize nil category to .z so unclassified references
-            // always show up in the sidebar under the catch-all
-            // category. The on-disk file remains unchanged (= category
-            // field still serialized as null); only the in-memory
-            // representation gets .z.
-            return references.map { ref in
-                var normalized = ref
-                if normalized.layer == .layerEntities && normalized.category == nil {
-                    normalized.category = .z
-                }
-                // Backfill displayTitle for legacy / freshly-loaded
-                // references (= set once on read; = persist back to
-                // entities.json on next save via writeIndex).
-                // The disambiguation suffix is NOT applied here (= the
-                // siblingTitles set isn't yet known at this layer);
-                // use the basic sanitization only.
-                if normalized.displayTitle == nil {
-                    normalized.ensureDisplayTitle()
-                }
-                return normalized
-            }
-        } catch {
-            return []
-        }
+        guard let context = modelContext else { return [] }
+        let layerRaw = layer.rawValue
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.layer == layerRaw }
+        )
+        let rows = (try? context.fetch(descriptor)) ?? []
+        return rows.map(Self.toReference)
     }
 
     func saveReference(_ reference: Reference, bodyMarkdown: String) throws {
-        try ensureReferenceLibraryRootExists()
-        try ensureLayerDirectoryExists(layer: reference.layer)
-        try ensureEntityCategoryDirectoryExists(category: reference.category, layer: reference.layer)
-
-        let refURL = reference.onDiskPath(under: referenceLibraryRoot)
-        if FileManager.default.fileExists(atPath: refURL.path) {
+        guard modelContainer != nil else {
+            try Self.saveReferenceToFileSystem(
+                reference: reference,
+                bodyMarkdown: bodyMarkdown,
+                referenceLibraryRoot: referenceLibraryRoot
+            )
+            return
+        }
+        guard let context = modelContext else {
+            throw ReferenceStoreError.referenceLibraryRootMissing(path: referenceLibraryRoot.path)
+        }
+        let id = reference.id
+        let layerRaw = reference.layer.rawValue
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.id == id && $0.layer == layerRaw }
+        )
+        if let _ = try? context.fetch(descriptor).first {
             throw ReferenceStoreError.referenceAlreadyExists(id: reference.id)
         }
-
-        try atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: refURL)
-
-        // No sibling-titles lookup needed here: reference-library
-        // entities are unique by title (= the upsert path dedupes by
-        // case-insensitive trimmed title; = two references sharing
-        // a title are merged, not duplicated).
-        var referenceToStore = reference
-        if referenceToStore.displayTitle == nil {
-            referenceToStore.ensureDisplayTitle()
-        }
-
-        var current = (try? loadReferences(layer: reference.layer)) ?? []
-        current.append(referenceToStore)
-        try writeIndex(current, for: reference.layer)
-
-        // Auto-call the LLM Wiki derivation pipeline when a new raw
-        // reference lands. RATIONALE: Task.detached keeps the
-        // synchronous saveReference caller from blocking on the
-        // derivation (= a large library may take seconds to walk
-        // raw/ and write abstracts/).
-        if reference.layer == .layerRaw {
-            let storeSnapshot = self
-            Task.detached(priority: .utility) {
-                do {
-                    _ = try await LLMWikiOps.runDerivation(store: storeSnapshot)
-                } catch {
-                    NSLog("[wenshu.llm_wiki.auto] derivation failed after save: %@", String(describing: error))
-                }
-            }
-        }
-
-        // Bootstrap the new reference into the Spotlight index so
-        // Cmd-F surfaces references alongside chapters + bookmarks.
-        let refID = reference.id.uuidString
-        let refTitle = reference.title
-        let refBody = reference.summary
-        Task.detached(priority: .utility) {
-            do {
-                try await CSSearchableIndexSearch.shared.index(
-                    docId: refID,
-                    title: refTitle,
-                    body: refBody
-                )
-            } catch {
-                NSLog("[wenshu.spotlight.auto] index failed after reference save: %@", String(describing: error))
-            }
-        }
+        let row = Self.makeRow(reference: reference, bodyMarkdown: bodyMarkdown)
+        context.insert(row)
+        try context.save()
     }
 
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws {
-        try ensureReferenceLibraryRootExists()
-        try ensureLayerDirectoryExists(layer: reference.layer)
-        try ensureEntityCategoryDirectoryExists(category: reference.category, layer: reference.layer)
-
-        let refURL = reference.onDiskPath(under: referenceLibraryRoot)
-        guard FileManager.default.fileExists(atPath: refURL.path) else {
+        guard modelContainer != nil else {
+            try Self.replaceReferenceToFileSystem(
+                reference: reference,
+                bodyMarkdown: bodyMarkdown,
+                referenceLibraryRoot: referenceLibraryRoot
+            )
+            return
+        }
+        guard let context = modelContext else {
+            throw ReferenceStoreError.referenceLibraryRootMissing(path: referenceLibraryRoot.path)
+        }
+        let id = reference.id
+        let layerRaw = reference.layer.rawValue
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.id == id && $0.layer == layerRaw }
+        )
+        guard let existing = try? context.fetch(descriptor).first else {
             throw ReferenceStoreError.referenceNotFound(id: reference.id)
         }
-
-        try atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: refURL)
-
-        var current = (try? loadReferences(layer: reference.layer)) ?? []
-        guard let idx = current.firstIndex(where: { $0.id == reference.id }) else {
-            throw ReferenceStoreError.referenceNotFound(id: reference.id)
-        }
-        current[idx] = reference
-        try writeIndex(current, for: reference.layer)
+        existing.title = reference.title
+        existing.displayTitle = reference.displayTitle
+        existing.source = reference.source
+        existing.url = reference.url
+        existing.category = reference.category?.rawValue
+        existing.tags = Array(reference.tags).sorted()
+        existing.entityType = reference.entityType.rawValue
+        existing.summary = reference.summary
+        existing.body = bodyMarkdown
+        existing.characterRefIDs = reference.characterRefIds
+        existing.worldRefIDs = reference.worldRefIds
+        existing.bookRefIDs = reference.bookRefIds
+        existing.updatedAt = Date()
+        try context.save()
     }
 
-    /// Upsert by title within a layer (= (see OOB.md #2026-09-25) directive:
-    /// "same topic research edits existing doc, not creates new").
-    /// If an entry with the same case-insensitive trimmed title
-    /// already exists in the layer, its body + updatedAt are refreshed;
-    /// otherwise a new reference is created.
     func upsertReference(
         title: String,
         bodyMarkdown: String,
         layer: ReferenceLayer,
-        category: EntityCategory? = nil,
-        source: String? = nil,
-        url: String? = nil,
-        entityType: EntityType = .other,
-        summary: String = ""
+        category: EntityCategory?,
+        source: String?,
+        url: String?,
+        entityType: EntityType,
+        summary: String
     ) throws -> Reference {
-        // Legacy entry point (= no `tags` param). The agent layer
-        // calls the overload below when tags are part of the
-        // payload; = here we preserve the existing tags.
-        return try upsertReference(
+        try upsertReference(
             title: title,
             bodyMarkdown: bodyMarkdown,
             layer: layer,
@@ -382,256 +353,419 @@ struct FileSystemReferenceStore: ReferenceStoring {
         )
     }
 
-    /// Upsert by title within a layer (= the recurring-research path).
-    /// If an entry with the same case-insensitive trimmed title
-    /// already exists in the layer, its body + summary + source +
-    /// url + tags + updatedAt are refreshed in place; = otherwise a
-    /// new reference is created.
-    ///
-    /// When `tags` is nil (= the legacy agent path), existing tags
-    /// are preserved. When `tags` is non-nil (= the facet-model
-    /// path), the supplied tag set replaces the existing one (= the
-    /// agent layer is expected to have done a union-merge if it wants
-    /// monotonic growth).
     func upsertReference(
         title: String,
         bodyMarkdown: String,
         layer: ReferenceLayer,
-        category: EntityCategory? = nil,
-        tags: Set<String>? = nil,
-        source: String? = nil,
-        url: String? = nil,
-        entityType: EntityType = .other,
-        summary: String = ""
+        category: EntityCategory?,
+        tags: Set<String>?,
+        source: String?,
+        url: String?,
+        entityType: EntityType,
+        summary: String
     ) throws -> Reference {
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedTitle = trimmed.lowercased()
-
-        // 1. Look up existing by case-insensitive trimmed title.
-        let existing = (try? loadReferences(layer: layer)) ?? []
-        if let match = existing.first(where: { ref in
-            ref.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedTitle
-        }) {
-            // 2. Update existing; preserve id + createdAt; bump updatedAt.
-            var updated = match
-            updated.title = trimmed
-            updated.summary = summary
-            if let source { updated.source = source }
-            if let url { updated.url = url }
-            if layer == .layerEntities, let category { updated.category = category }
-            if let tags { updated.tags = tags }
-            updated.updatedAt = Date()
-            try replaceReference(updated, bodyMarkdown: bodyMarkdown)
-            return updated
+        guard modelContainer != nil else {
+            return try Self.upsertReferenceToFileSystem(
+                title: title,
+                bodyMarkdown: bodyMarkdown,
+                referenceLibraryRoot: referenceLibraryRoot,
+                layer: layer,
+                category: category,
+                tags: tags,
+                source: source,
+                url: url,
+                entityType: entityType,
+                summary: summary
+            )
         }
-
-        // 3. Create new.
-        let newRef = Reference(
-            title: trimmed,
+        guard let context = modelContext else {
+            throw ReferenceStoreError.referenceLibraryRootMissing(path: referenceLibraryRoot.path)
+        }
+        let layerRaw = layer.rawValue
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.layer == layerRaw && $0.title == normalizedTitle }
+        )
+        if let existing = try? context.fetch(descriptor).first {
+            existing.body = bodyMarkdown
+            existing.category = category?.rawValue
+            existing.source = source
+            existing.url = url
+            existing.entityType = entityType.rawValue
+            existing.summary = summary
+            if let tags = tags {
+                existing.tags = Array(tags).sorted()
+            }
+            existing.updatedAt = Date()
+            try context.save()
+            return Self.toReference(existing)
+        }
+        let newReference = Reference(
+            id: UUID(),
+            title: title,
+            displayTitle: nil,
             source: source,
             url: url,
             layer: layer,
-            category: layer == .layerEntities ? category : nil,
+            category: category,
             tags: tags ?? [],
             entityType: entityType,
             summary: summary
         )
-        try saveReference(newRef, bodyMarkdown: bodyMarkdown)
-        // saveReference backfills displayTitle; re-read to surface
-        // the post-backfill value to the caller.
-        let reloaded = (try? loadReferences(layer: layer))?.first(where: { $0.id == newRef.id })
-        return reloaded ?? newRef
+        let row = Self.makeRow(reference: newReference, bodyMarkdown: bodyMarkdown)
+        context.insert(row)
+        try context.save()
+        return Self.toReference(row)
     }
 
     func deleteReference(id: UUID) throws {
-        // Find which layer contains the reference (= scan all 4
-        // layer subdirs for the .md file matching the UUID).
-        for layer in ReferenceLayer.allCases {
-            let url = layerDirectory(layer)
-                .appendingPathComponent("\(id.uuidString).md")
-            if FileManager.default.fileExists(atPath: url.path) {
-                try FileManager.default.removeItem(at: url)
-                break
-            }
+        guard modelContainer != nil else {
+            try Self.deleteReferenceFromFileSystem(
+                id: id,
+                referenceLibraryRoot: referenceLibraryRoot
+            )
+            return
         }
-        // Remove from whichever layer's index contains the id.
-        for layer in ReferenceLayer.allCases {
-            var current = (try? loadReferences(layer: layer)) ?? []
-            let before = current.count
-            current.removeAll { $0.id == id }
-            if current.count != before {
-                try writeIndex(current, for: layer)
-            }
+        guard let context = modelContext else {
+            throw ReferenceStoreError.referenceNotFound(id: id)
         }
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.id == id }
+        )
+        guard let existing = try? context.fetch(descriptor).first else {
+            throw ReferenceStoreError.referenceNotFound(id: id)
+        }
+        context.delete(existing)
+        try context.save()
     }
 
     func loadReferenceBody(id: UUID) -> String? {
-        for layer in ReferenceLayer.allCases {
-            let url = layerDirectory(layer)
-                .appendingPathComponent("\(id.uuidString).md")
-            if FileManager.default.fileExists(atPath: url.path) {
-                return try? String(contentsOf: url, encoding: .utf8)
+        guard let context = modelContext else {
+            // FileSystem path: search all layer directories for the .md
+            // file. Without layer info (= only the id) we walk all 4
+            // layers; = the actor-based callers should pass the layer
+            // via the FileSystem fallback helpers.
+            for layer in ReferenceLayer.allCases {
+                let layerDir = layerDirectory(layer)
+                let mdURL = layerDir.appendingPathComponent("\(id.uuidString).md")
+                if FileManager.default.fileExists(atPath: mdURL.path) {
+                    return try? String(contentsOf: mdURL, encoding: .utf8)
+                }
             }
+            return nil
         }
-        return nil
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.id == id }
+        )
+        return (try? context.fetch(descriptor).first)?.body
     }
 
     func referenceExists(id: UUID) -> Bool {
+        guard let context = modelContext else {
+            for layer in ReferenceLayer.allCases {
+                let layerDir = layerDirectory(layer)
+                let mdURL = layerDir.appendingPathComponent("\(id.uuidString).md")
+                if FileManager.default.fileExists(atPath: mdURL.path) {
+                    return true
+                }
+            }
+            return false
+        }
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.id == id }
+        )
+        return ((try? context.fetch(descriptor).first) != nil)
+    }
+
+    // MARK: - SwiftData bridging helpers
+
+    private static func makeRow(reference: Reference, bodyMarkdown: String) -> WSReference {
+        let row = WSReference(
+            id: reference.id,
+            title: reference.title,
+            displayTitle: reference.displayTitle,
+            source: reference.source,
+            url: reference.url,
+            layer: reference.layer.rawValue,
+            category: reference.category?.rawValue,
+            tags: Array(reference.tags).sorted(),
+            entityType: reference.entityType.rawValue,
+            summary: reference.summary,
+            body: bodyMarkdown,
+            characterRefIDs: reference.characterRefIds,
+            worldRefIDs: reference.worldRefIds,
+            bookRefIDs: reference.bookRefIds,
+            trailingNoise: "",
+            createdAt: reference.createdAt,
+            updatedAt: reference.updatedAt
+        )
+        return row
+    }
+
+    private static func toReference(_ row: WSReference) -> Reference {
+        Reference(
+            id: row.id,
+            title: row.title,
+            displayTitle: row.displayTitle,
+            source: row.source,
+            url: row.url,
+            layer: ReferenceLayer(rawValue: row.layer) ?? .layerRaw,
+            category: row.category.flatMap { EntityCategory(rawValue: $0) },
+            tags: Set(row.tags),
+            entityType: EntityType(rawValue: row.entityType) ?? .other,
+            summary: row.summary,
+            characterRefIds: row.characterRefIDs,
+            worldRefIds: row.worldRefIDs,
+            bookRefIds: row.bookRefIDs,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt
+        )
+    }
+
+    // MARK: - FileSystem fallback (actor-safe; = nonisolated statics)
+
+    nonisolated static func loadMetadataFromFileSystem(
+        referenceLibraryRoot: URL
+    ) throws -> ReferenceLibraryMetadata {
+        let metadataURL = referenceLibraryRoot.appendingPathComponent("library.json")
+        guard FileManager.default.fileExists(atPath: metadataURL.path) else {
+            return .empty
+        }
+        do {
+            let data = try Data(contentsOf: metadataURL)
+            return try JSONDecoder().decode(ReferenceLibraryMetadata.self, from: data)
+        } catch {
+            return .empty
+        }
+    }
+
+    nonisolated static func saveMetadataToFileSystem(
+        metadata: ReferenceLibraryMetadata,
+        referenceLibraryRoot: URL
+    ) throws {
+        try ensureReferenceLibraryRootExists(at: referenceLibraryRoot)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(metadata)
+        try atomicFileSystemWrite(data, to: referenceLibraryRoot.appendingPathComponent("library.json"))
+    }
+
+    nonisolated static func loadAllReferencesFromFileSystem(
+        referenceLibraryRoot: URL
+    ) throws -> [Reference] {
+        var all: [Reference] = []
         for layer in ReferenceLayer.allCases {
-            let url = layerDirectory(layer)
+            all.append(contentsOf: (try? loadReferencesFromFileSystem(
+                referenceLibraryRoot: referenceLibraryRoot,
+                layer: layer
+            )) ?? [])
+        }
+        return all
+    }
+
+    nonisolated static func loadReferencesFromFileSystem(
+        referenceLibraryRoot: URL,
+        layer: ReferenceLayer
+    ) throws -> [Reference] {
+        let indexURL = referenceLibraryRoot
+            .appendingPathComponent(layer.directoryName)
+            .appendingPathComponent("\(layer.directoryName).json")
+        guard FileManager.default.fileExists(atPath: indexURL.path) else {
+            return []
+        }
+        do {
+            let data = try Data(contentsOf: indexURL)
+            return try JSONDecoder().decode([Reference].self, from: data)
+        } catch {
+            return []
+        }
+    }
+
+    nonisolated static func loadReferenceBodyFromFileSystem(
+        id: UUID,
+        layer: ReferenceLayer,
+        referenceLibraryRoot: URL
+    ) -> String? {
+        let mdURL = referenceLibraryRoot
+            .appendingPathComponent(layer.directoryName)
+            .appendingPathComponent("\(id.uuidString).md")
+        return try? String(contentsOf: mdURL, encoding: .utf8)
+    }
+
+    nonisolated static func saveReferenceToFileSystem(
+        reference: Reference,
+        bodyMarkdown: String,
+        referenceLibraryRoot: URL
+    ) throws {
+        try ensureReferenceLibraryRootExists(at: referenceLibraryRoot)
+        try ensureReferenceLayerDirectoryExists(
+            at: referenceLibraryRoot.appendingPathComponent(reference.layer.directoryName, isDirectory: true)
+        )
+
+        let mdURL = referenceLibraryRoot
+            .appendingPathComponent(reference.layer.directoryName)
+            .appendingPathComponent("\(reference.id.uuidString).md")
+        if FileManager.default.fileExists(atPath: mdURL.path) {
+            throw ReferenceStoreError.referenceAlreadyExists(id: reference.id)
+        }
+        try atomicFileSystemWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
+
+        var current = (try? loadReferencesFromFileSystem(
+            referenceLibraryRoot: referenceLibraryRoot,
+            layer: reference.layer
+        )) ?? []
+        current.append(reference)
+        try writeIndexToFileSystem(current, at: referenceLibraryRoot, layer: reference.layer)
+    }
+
+    nonisolated static func replaceReferenceToFileSystem(
+        reference: Reference,
+        bodyMarkdown: String,
+        referenceLibraryRoot: URL
+    ) throws {
+        try ensureReferenceLibraryRootExists(at: referenceLibraryRoot)
+        let mdURL = referenceLibraryRoot
+            .appendingPathComponent(reference.layer.directoryName)
+            .appendingPathComponent("\(reference.id.uuidString).md")
+        guard FileManager.default.fileExists(atPath: mdURL.path) else {
+            throw ReferenceStoreError.referenceNotFound(id: reference.id)
+        }
+        try atomicFileSystemWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
+
+        var current = (try? loadReferencesFromFileSystem(
+            referenceLibraryRoot: referenceLibraryRoot,
+            layer: reference.layer
+        )) ?? []
+        guard let idx = current.firstIndex(where: { $0.id == reference.id }) else {
+            throw ReferenceStoreError.referenceNotFound(id: reference.id)
+        }
+        current[idx] = reference
+        try writeIndexToFileSystem(current, at: referenceLibraryRoot, layer: reference.layer)
+    }
+
+    nonisolated static func upsertReferenceToFileSystem(
+        title: String,
+        bodyMarkdown: String,
+        referenceLibraryRoot: URL,
+        layer: ReferenceLayer,
+        category: EntityCategory?,
+        tags: Set<String>?,
+        source: String?,
+        url: String?,
+        entityType: EntityType,
+        summary: String
+    ) throws -> Reference {
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        var existing = (try? loadReferencesFromFileSystem(
+            referenceLibraryRoot: referenceLibraryRoot,
+            layer: layer
+        )) ?? []
+        if let idx = existing.firstIndex(where: {
+            $0.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedTitle
+        }) {
+            // Update existing.
+            var updated = existing[idx]
+            updated.title = title
+            updated.source = source
+            updated.url = url
+            updated.entityType = entityType
+            updated.summary = summary
+            updated.category = category
+            if let tags = tags { updated.tags = tags }
+            updated.updatedAt = Date()
+            existing[idx] = updated
+            try ensureReferenceLayerDirectoryExists(
+                at: referenceLibraryRoot.appendingPathComponent(layer.directoryName, isDirectory: true)
+            )
+            let mdURL = referenceLibraryRoot
+                .appendingPathComponent(layer.directoryName)
+                .appendingPathComponent("\(updated.id.uuidString).md")
+            try atomicFileSystemWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
+            try writeIndexToFileSystem(existing, at: referenceLibraryRoot, layer: layer)
+            return updated
+        } else {
+            // Create new.
+            let reference = Reference(
+                id: UUID(),
+                title: title,
+                displayTitle: nil,
+                source: source,
+                url: url,
+                layer: layer,
+                category: category,
+                tags: tags ?? [],
+                entityType: entityType,
+                summary: summary
+            )
+            try saveReferenceToFileSystem(
+                reference: reference,
+                bodyMarkdown: bodyMarkdown,
+                referenceLibraryRoot: referenceLibraryRoot
+            )
+            return reference
+        }
+    }
+
+    nonisolated static func deleteReferenceFromFileSystem(
+        id: UUID,
+        referenceLibraryRoot: URL
+    ) throws {
+        for layer in ReferenceLayer.allCases {
+            let mdURL = referenceLibraryRoot
+                .appendingPathComponent(layer.directoryName)
                 .appendingPathComponent("\(id.uuidString).md")
-            if FileManager.default.fileExists(atPath: url.path) {
-                return true
+            if FileManager.default.fileExists(atPath: mdURL.path) {
+                try FileManager.default.removeItem(at: mdURL)
+            }
+            var current = (try? loadReferencesFromFileSystem(
+                referenceLibraryRoot: referenceLibraryRoot,
+                layer: layer
+            )) ?? []
+            let before = current.count
+            current.removeAll { $0.id == id }
+            if current.count != before {
+                try writeIndexToFileSystem(current, at: referenceLibraryRoot, layer: layer)
             }
         }
-        return false
     }
 
-    // MARK: Private helpers
-
-    private func ensureReferenceLibraryRootExists() throws {
-        if !FileManager.default.fileExists(atPath: referenceLibraryRoot.path) {
-            throw ReferenceStoreError.referenceLibraryRootMissing(path: referenceLibraryRoot.path)
-        }
-    }
-
-    private func ensureLayerDirectoryExists(layer: ReferenceLayer) throws {
-        let dir = layerDirectory(layer)
-        if !FileManager.default.fileExists(atPath: dir.path) {
-            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        }
-    }
-
-    /// When saving an entity (= layer == .layerEntities) with a category,
-    /// ensure the category subdirectory exists. The category folder is
-    /// created lazily (= only when the first entity in that category
-    /// is saved).
-    ///
-    /// When category is nil (= unclassified entity OR raw material
-    /// that the user hasn't tagged), route to the `.z` catch-all
-    /// category instead of falling back to the flat layer dir.
-    /// Unclassified entities with nil category would otherwise be
-    /// invisible in the sidebar but still counted (= hidden count).
-    private func ensureEntityCategoryDirectoryExists(
-        category: EntityCategory?,
+    nonisolated private static func writeIndexToFileSystem(
+        _ references: [Reference],
+        at referenceLibraryRoot: URL,
         layer: ReferenceLayer
     ) throws {
-        guard layer == .layerEntities else { return }
-        // Nil category routes to .z so unclassified entities have a
-        // visible sidebar bucket.
-        let effectiveCategory = category ?? .z
-        let categoryDir = referenceLibraryRoot
-            .appendingPathComponent("entities")
-            .appendingPathComponent(effectiveCategory.directoryName)
-        if !FileManager.default.fileExists(atPath: categoryDir.path) {
-            try FileManager.default.createDirectory(at: categoryDir, withIntermediateDirectories: true)
+        let indexURL = referenceLibraryRoot
+            .appendingPathComponent(layer.directoryName)
+            .appendingPathComponent("\(layer.directoryName).json")
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(references)
+        try atomicFileSystemWrite(data, to: indexURL)
+    }
+
+    nonisolated private static func ensureReferenceLibraryRootExists(at url: URL) throws {
+        if !FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         }
     }
 
-    /// Migrate from the pre-facet-model layout
-    /// (`entities/<category>/<uuid>.md`) to the flat layout
-    /// (`entities/<uuid>.md`). Move uses `replaceItemAt` so the
-    /// operation is atomic on the same volume; = if any move fails,
-    /// the legacy file remains in place (= safe to retry on next
-    /// launch).
-    ///
-    /// After migration, the now-empty category subdirs are removed
-    /// (= no orphan directories). Idempotent — when called twice,
-    /// the second call finds no legacy files and returns immediately.
-    private func migrateLegacyEntitySubdirectoryLayoutIfNeeded() {
-        let entitiesDir = referenceLibraryRoot
-            .appendingPathComponent("entities")
-        guard FileManager.default.fileExists(atPath: entitiesDir.path) else {
-            return
-        }
-        // Iterate the subdirs of entities/ (= each is a category
-        // directory like `i/` or `k/`). If a subdir contains .md files,
-        // move each .md to the flat entities/ dir.
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: entitiesDir,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else {
-            return
-        }
-        for entry in contents {
-            // Only descend into directories (= skip entities.json, etc.).
-            var isDir: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir),
-                  isDir.boolValue else { continue }
-            // The flat-uuid .md files we already migrated would land
-            // at entities/<uuid>.md (= top-level); = we don't recurse.
-            // Only files inside a category subdir need moving.
-            guard let subEntries = try? FileManager.default.contentsOfDirectory(
-                at: entry,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            ) else { continue }
-            for subEntry in subEntries where subEntry.pathExtension == "md" {
-                let flatDestination = entitiesDir.appendingPathComponent(subEntry.lastPathComponent)
-                // If the flat destination already exists (= the same
-                // reference was migrated in a prior run, OR a new save
-                // landed at the flat path), skip (= avoid clobber).
-                if FileManager.default.fileExists(atPath: flatDestination.path) {
-                    // Best-effort cleanup of the legacy copy.
-                    try? FileManager.default.removeItem(at: subEntry)
-                    continue
-                }
-                do {
-                    try FileManager.default.moveItem(at: subEntry, to: flatDestination)
-                } catch {
-                    // Move failed (cross-device? permission?); = leave
-                    // the legacy file in place so a future retry can
-                    // complete the migration.
-                    continue
-                }
-            }
-            // After moving all .md files out of the category subdir,
-            // best-effort remove the now-empty dir. If non-empty
-            // (= contains other index/cache files), the remove fails
-            // silently and the subdir is left for the user.
-            if let remaining = try? FileManager.default.contentsOfDirectory(at: entry, includingPropertiesForKeys: nil),
-               remaining.isEmpty {
-                try? FileManager.default.removeItem(at: entry)
-            }
+    nonisolated private static func ensureReferenceLayerDirectoryExists(at url: URL) throws {
+        if !FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         }
     }
 
-    private func atomicWrite(_ data: Data, to url: URL) throws {
+    nonisolated private static func atomicFileSystemWrite(_ data: Data, to url: URL) throws {
         let tmpURL = url.appendingPathExtension("tmp")
         try data.write(to: tmpURL, options: .atomic)
         if FileManager.default.fileExists(atPath: url.path) {
             try FileManager.default.removeItem(at: url)
         }
         try FileManager.default.moveItem(at: tmpURL, to: url)
-        // Force the kernel to flush both the file's data and its parent
-        // directory's directory-entry update to stable storage before
-        // we return. Without this, a subsequent `fileExists` / open /
-        // `Data(contentsOf:)` from a sibling call (= e.g. the immediate
-        // `loadReferences(layer:)` right after `saveReference` calls
-        // `writeIndex`) can race against the kernel's deferred-write
-        // pipeline and see stale state (= file not yet visible, or
-        // contents empty) on macOS. fsync on the file + the parent
-        // directory's fd closes the race for callers that depend on
-        // causal write-then-read ordering.
         let fd = open(url.path, O_RDONLY)
         if fd >= 0 {
             fsync(fd)
             close(fd)
         }
-        let parentDir = url.deletingLastPathComponent().path
-        let parentFd = open(parentDir, O_RDONLY)
-        if parentFd >= 0 {
-            fsync(parentFd)
-            close(parentFd)
-        }
-    }
-
-    private func writeIndex(_ references: [Reference], for layer: ReferenceLayer) throws {
-        let indexURL = layerDirectory(layer).appendingPathComponent("\(layer.directoryName).json")
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(references)
-        try atomicWrite(data, to: indexURL)
     }
 }

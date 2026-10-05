@@ -12,6 +12,7 @@ import Foundation
 /// Linter for the LLM Wiki 4-layer reference-library. Runs four
 /// checks (orphan pages, broken wikilinks, index completeness,
 /// abstracts recency) and returns a `LintFinding` for each issue.
+@MainActor
 struct LLMWikiLinter: Sendable {
 
     let store: ReferenceStoring

@@ -151,7 +151,8 @@ enum ReferenceLibraryError: Error, LocalizedError, Sendable, Equatable {
 
 // MARK: - Actor
 
-actor ReferenceLibraryActor {
+@MainActor
+final class ReferenceLibraryActor {
     private let referenceStore: any ReferenceStoring
 
     init(referenceStore: any ReferenceStoring) {
@@ -950,7 +951,8 @@ extension ReferenceLibraryTool {
         }
     }()
 
-    nonisolated static let shared: ReferenceLibraryTool = {
+    @MainActor
+    static let shared: ReferenceLibraryTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-references-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
         let store = FileSystemReferenceStore(referenceLibraryRoot: tmpRoot)

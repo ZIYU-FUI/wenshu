@@ -84,6 +84,7 @@ enum WSPersistenceContainer {
         WSKanbanTask.self,
         WSEntity.self,
         WSBody.self,
+        WSReference.self,
         // Tier 4: workspace layout tree (= 2026-10-05 #9 commit 1)
         // Replaces the hand-rolled JSON persistence in
         // State/LayoutTreeStore.swift. See

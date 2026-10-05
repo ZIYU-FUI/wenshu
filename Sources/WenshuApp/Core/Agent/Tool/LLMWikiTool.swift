@@ -103,7 +103,18 @@ final class LLMWikiTool: Tool, @unchecked Sendable {
               !path.isEmpty else { return nil }
         let url = URL(fileURLWithPath: path)
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return FileSystemReferenceStore(referenceLibraryRoot: url)
+        // Per boss 2026-10-05 OOB '做 8': the FileSystemReferenceStore
+        // struct is @MainActor-isolated (= SwiftData's ModelContext
+        // contract). Hop to the main actor to construct the
+        // SwiftData-backed instance (= the production path). Falls
+        // back to the FileSystem path when no ModelContainer is
+        // wired (= dev tools + tests).
+        return await MainActor.run {
+            FileSystemReferenceStore(
+                referenceLibraryRoot: url,
+                modelContainer: WSPersistenceContainer.shared
+            )
+        }
     }
 
     private func encodeStats(action: String, stats: LLMWikiLayerDeriver.DerivationStats) -> String {
