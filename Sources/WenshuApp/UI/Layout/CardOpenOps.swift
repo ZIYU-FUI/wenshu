@@ -1,11 +1,7 @@
 //
 //  CardOpenOps.swift · Wenshu
 //
-//  Card-open business layer, extracted from the legacy 3 verbatim
-//  copies of `openCardInEditor` (= WorkspaceView / PaneView /
-//  ShellMiddleColumn = all removed in Phase 6).
-//
-//  The open-card business layer (= reference filter + body load +
+//  Card-open business layer (= reference filter + body load +
 //  bookDoc load + duplicate-tab detection + EditorTab construction
 //  + appState mutation) is a single concern that was duplicated 3x.
 //  This helper lifts the business layer into a stateless enum so

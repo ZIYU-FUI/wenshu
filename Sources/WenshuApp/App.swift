@@ -24,7 +24,7 @@ import AppKit
 /// `Color.clear.frame(28,28).contentShape(Rectangle())` inside the label
 /// closure (= Apple HIG canonical hot-area pattern).
 
-// "reset layout" notification bridge (LayoutShellView [no longer defined post-v0.72 — see AppRootScene + NavigationSplitView (= per ADR-0011)] uses @State private vm,
+// "reset layout" notification bridge (AppRootScene uses @State private vm,
 // top-level .commands can't access vm instance, routed via NotificationCenter)
 
 // name for menu bar zone toggle buttons (= CommandGroup can't directly

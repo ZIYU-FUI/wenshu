@@ -50,9 +50,7 @@ import Foundation
 /// state shared across column descendants; = the Pages /
 /// Numbers / Keynote pattern is to keep them in one
 /// environment-injected class, not split across multiple
-/// sibling classes). After Phase 1c, ShellState was deleted
-/// (= its remaining sidebarSelection field is the canonical
-/// home for sidebar tree selection persistence).
+/// sibling classes).
 @MainActor
 @Observable
 final class WorkspaceUIState {

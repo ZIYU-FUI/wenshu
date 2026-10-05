@@ -26,12 +26,7 @@ import AppKit
 /// features the user wants as independent windows per Pages /
 /// Numbers / Keynote's independent document windows pattern).
 ///
-/// Originally defined in the deleted wenshu-summary wrapper layer
-/// (= removed in commit Phase 6 because it conflated column-binding
-/// plumbing with the Apple canonical NavigationSplitView shape).
-/// Moved here as part of the multi-column rewrite that strips
-/// wenshu-summary wrappers; = WindowID is a scene-level concern
-/// and pairs with AppRootScene).
+/// WindowID is a scene-level concern; = pairs with AppRootScene.
 ///
 /// macOS 27 Tahoe's WindowGroup id-routing has a special case for IDs
 /// that match the legacy Preferences/Settings ID space (= e.g. IDs

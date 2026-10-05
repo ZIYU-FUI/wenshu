@@ -6,7 +6,7 @@ import Foundation
 import SwiftUI
 
 /// BacklinksPanel: SwiftUI View, show note backlinks
-/// LayoutShellView [no longer defined post-v0.72 — see AppRootScene + NavigationSplitView (= per ADR-0011)], standalone wait macOS
+/// AppRootScene, standalone wait macOS
 struct BacklinksPanel: View {
     @State private var viewModel: BacklinksViewModel
 
