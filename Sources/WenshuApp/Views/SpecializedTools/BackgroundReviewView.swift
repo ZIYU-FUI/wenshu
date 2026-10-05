@@ -24,7 +24,6 @@
 //  placeholder text.
 
 import SwiftUI
-import WenshuApp
 
 struct BackgroundReviewView: View {
     @Environment(AppState.self) private var appState
