@@ -79,14 +79,28 @@ actor BookEntityActor {
     /// Test-only body accessor.
     func readBodyForTest(id: EntityID) async -> String? {
         guard let dir = bookDirectoryProvider() else { return nil }
-        let store = FileSystemEntityStore(bookDirectory: dir)
-        return store.loadEntityBody(id: id)
+        // Per boss 2026-10-05 OOB '做 8': FileSystemEntityStore is
+        // @MainActor-isolated (= SwiftData ModelContext contract);
+        // = the actor can't instantiate it. Use the nonisolated
+        // static FileSystem fallback helpers (= actor-safe).
+        return FileSystemEntityStore.loadEntityBodyFromFileSystem(
+            id: id,
+            bookDirectory: dir
+        )
     }
 
     /// Resolve the current book directory. Throws if the chat
     /// session has no bound book (= the scope guard should have
     /// already caught this).
-    private func resolveStore() throws -> FileSystemEntityStore {
+    ///
+    /// Per boss 2026-10-05 OOB '做 8': the FileSystemEntityStore
+    /// struct is @MainActor-isolated (= SwiftData ModelContext
+    /// contract); = actor-based callers (= this actor + the actor-
+    /// based tool wrapper) can't instantiate it. We resolve to the
+    /// book directory URL and use the nonisolated static FileSystem
+    /// fallback helpers (= actor-safe; = preserves the v2.3 API
+    /// surface).
+    private func resolveBookDirectory() throws -> URL {
         guard let dir = bookDirectoryProvider() else {
             throw BookEntityError.invalidInput(
                 reason: "no chat session book bound (= scope guard should have caught this earlier)"
@@ -95,7 +109,7 @@ actor BookEntityActor {
         // wt/path-guard-v2-2026-09-25: PathGuard second-line defense
         // (= see BookChapterActor.resolveStore for the rationale).
         try PathGuard.assertInsideLibrary(path: LibraryPath(rawValue: dir.path))
-        return FileSystemEntityStore(bookDirectory: dir)
+        return dir
     }
 
     // MARK: - CRUD
@@ -197,8 +211,12 @@ actor BookEntityActor {
             updatedAt: now
         )
         do {
-            let store = try resolveStore()
-            try store.saveEntity(descriptor, bodyMarkdown: body)
+            let dir = try resolveBookDirectory()
+            try FileSystemEntityStore.saveEntityToFileSystem(
+                entity: descriptor,
+                bodyMarkdown: body,
+                bookDirectory: dir
+            )
         } catch let err as BookEntityError {
             throw err
         } catch {
@@ -212,12 +230,15 @@ actor BookEntityActor {
     /// these as a tuple).
     func readEntity(id: EntityID) async throws -> (EntityDescriptor, String?) {
         do {
-            let store = try resolveStore()
-            let entities = try store.loadEntities()
+            let dir = try resolveBookDirectory()
+            let entities = try FileSystemEntityStore.loadEntitiesFromFileSystem(bookDirectory: dir)
             guard let entity = entities.first(where: { $0.id == id }) else {
                 throw BookEntityError.entryNotFound(id: id.rawValue)
             }
-            let body = store.loadEntityBody(id: id)
+            let body = FileSystemEntityStore.loadEntityBodyFromFileSystem(
+                id: id,
+                bookDirectory: dir
+            )
             return (entity, body)
         } catch let err as BookEntityError {
             throw err
@@ -248,10 +269,10 @@ actor BookEntityActor {
                 reason: "unknown kind '\(kind)'"
             )
         }
-        let store = try resolveStore()
+        let dir = try resolveBookDirectory()
         let entities: [EntityDescriptor]
         do {
-            entities = try store.loadEntities()
+            entities = try FileSystemEntityStore.loadEntitiesFromFileSystem(bookDirectory: dir)
         } catch {
             throw BookEntityError.underlying(String(describing: error))
         }
@@ -263,7 +284,10 @@ actor BookEntityActor {
             newBody = bodyMarkdown
         } else {
             // No body provided = keep the existing body on disk.
-            let existingBody = store.loadEntityBody(id: id) ?? ""
+            let existingBody = FileSystemEntityStore.loadEntityBodyFromFileSystem(
+                id: id,
+                bookDirectory: dir
+            ) ?? ""
             newBody = existingBody
         }
         // Build updated descriptor with merged fields.
@@ -282,7 +306,11 @@ actor BookEntityActor {
             updatedAt: Date()
         )
         do {
-            try store.replaceEntity(merged, bodyMarkdown: newBody)
+            try FileSystemEntityStore.replaceEntityToFileSystem(
+                entity: merged,
+                bodyMarkdown: newBody,
+                bookDirectory: dir
+            )
         } catch {
             throw BookEntityError.underlying(String(describing: error))
         }
@@ -292,8 +320,11 @@ actor BookEntityActor {
     /// Delete an entity (= idempotent).
     func deleteEntity(id: EntityID) async throws {
         do {
-            let store = try resolveStore()
-            try store.deleteEntity(id: id)
+            let dir = try resolveBookDirectory()
+            try FileSystemEntityStore.deleteEntityFromFileSystem(
+                id: id,
+                bookDirectory: dir
+            )
         } catch let err as BookEntityError {
             throw err
         } catch {
@@ -305,10 +336,10 @@ actor BookEntityActor {
     /// Sorted by updatedAt descending (= most-recently-edited
     /// first).
     func listEntities(bookId: UUID, kind: EntityKind? = nil) async throws -> [EntityDescriptor] {
-        let store = try resolveStore()
+        let dir = try resolveBookDirectory()
         let entities: [EntityDescriptor]
         do {
-            entities = try store.loadEntities()
+            entities = try FileSystemEntityStore.loadEntitiesFromFileSystem(bookDirectory: dir)
         } catch {
             throw BookEntityError.underlying(String(describing: error))
         }
@@ -326,10 +357,10 @@ actor BookEntityActor {
         bookId: UUID, kind: EntityKind, name: String
     ) async throws -> EntityDescriptor? {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let store = try resolveStore()
+        let dir = try resolveBookDirectory()
         let entities: [EntityDescriptor]
         do {
-            entities = try store.loadEntities()
+            entities = try FileSystemEntityStore.loadEntitiesFromFileSystem(bookDirectory: dir)
         } catch {
             throw BookEntityError.underlying(String(describing: error))
         }
@@ -710,7 +741,7 @@ extension BookEntityTool {
         }
     }()
 
-    nonisolated static let shared: BookEntityTool = {
+    static let shared: BookEntityTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-entity-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
         return BookEntityTool(

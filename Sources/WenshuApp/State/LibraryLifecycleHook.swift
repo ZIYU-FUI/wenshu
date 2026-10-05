@@ -13,6 +13,7 @@ import Observation
 struct LibraryLifecycleHook: Sendable {
     let wsRoot: URL
 
+    @MainActor
     func runLaunch() throws -> LibraryLaunchResult {
         NSLog("[wenshu.library.lifecycle] runLaunch start wsRoot=%@", wsRoot.path)
         let migrator = LibraryMigrator(wsRoot: wsRoot)
@@ -26,6 +27,7 @@ struct LibraryLifecycleHook: Sendable {
         return LibraryLaunchResult(stores: stores)
     }
 
+    @MainActor
     private func constructStores(wsRoot: URL) throws -> LibraryStores {
         let shelves = wsRoot.appendingPathComponent("shelves", isDirectory: true)
         let referenceLibraryRoot = wsRoot.appendingPathComponent("reference-library", isDirectory: true)
@@ -48,6 +50,7 @@ struct LibraryStores: Sendable {
     /// pair with a single kind-discriminated store). v0.27 follows
     /// the standard "data source switch" pattern (= Apple HIG
     /// canonical for app-level stores).
+    @MainActor
     func makeBookStores(for bookDirectory: URL) -> PerBookStores {
         PerBookStores(entityStore: FileSystemEntityStore(bookDirectory: bookDirectory))
     }

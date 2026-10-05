@@ -53,6 +53,7 @@ enum EntityMigration {
 
     /// Run the v2.0/v2.2 → v2.3 entity migration for one book.
     /// Idempotent (= safe to call repeatedly).
+    @MainActor
     static func migrateFromLegacyIfNeeded(
         bookDirectory: URL
     ) throws -> EntityMigrationResult {
@@ -109,6 +110,7 @@ enum EntityMigration {
         var count: Int
     }
 
+    @MainActor
     private static func importLegacyCharacters(
         charactersDir: URL,
         existingEntities: [EntityDescriptor]
@@ -171,6 +173,7 @@ enum EntityMigration {
         return ImportOutcome(entities: entities, count: imported)
     }
 
+    @MainActor
     private static func importLegacyWorldEntries(
         worldDir: URL,
         existingEntities: [EntityDescriptor]
