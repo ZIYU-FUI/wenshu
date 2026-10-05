@@ -19,6 +19,9 @@
 //
 
 import Foundation
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "editchapteractor")
 
 /// Patch-style chapter edit (= hermes edit_file 1:1).
 actor EditChapterActor {
@@ -153,9 +156,9 @@ actor EditChapterActor {
         chaptersDirectory: URL,
         indexURL: URL
     ) throws {
-        NSLog("[edit-chapter] writeFileSystemChapter bookDirectory=%@ chaptersDirectory=%@ indexURL=%@", bookDirectory.path, chaptersDirectory.path, indexURL.path)
+        wenshuLogger.info("[edit-chapter] writeFileSystemChapter bookDirectory=\(bookDirectory.path) chaptersDirectory=\(chaptersDirectory.path) indexURL=\(indexURL.path)")
         guard FileManager.default.fileExists(atPath: bookDirectory.path) else {
-            NSLog("[edit-chapter] writeFileSystemChapter FAIL: bookDirectory missing")
+            wenshuLogger.info("[edit-chapter] writeFileSystemChapter FAIL: bookDirectory missing")
             throw EditChapterError.chapterNotFound
         }
         try Self.ensureChaptersDirectoryExists(at: chaptersDirectory)
@@ -164,9 +167,9 @@ actor EditChapterActor {
 
         let chapterURL = chaptersDirectory
             .appendingPathComponent("\(chapter.id.uuidString).md")
-        NSLog("[edit-chapter] writeFileSystemChapter chapterURL=%@ exists=%d", chapterURL.path, FileManager.default.fileExists(atPath: chapterURL.path) ? 1 : 0)
+        wenshuLogger.info("[edit-chapter] writeFileSystemChapter chapterURL=\(chapterURL.path) exists=\(FileManager.default.fileExists(atPath: chapterURL.path) ? 1 : 0)")
         guard FileManager.default.fileExists(atPath: chapterURL.path) else {
-            NSLog("[edit-chapter] writeFileSystemChapter FAIL: chapterURL missing")
+            wenshuLogger.info("[edit-chapter] writeFileSystemChapter FAIL: chapterURL missing")
             throw EditChapterError.chapterNotFound
         }
         try Self.atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)

@@ -37,6 +37,8 @@
 import Foundation
 import os.log
 
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuconductor")
+
 // See commit 49 (= ContextEngine deferred) for the full rationale.
 // Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
 
@@ -306,16 +308,10 @@ actor WenshuConductor {
             // T0-PATH-VISIBLE (2026-09-18): explicit fallback log so the
             // dev / wenshu-pocock can see which path actually fired
             // (= no more "why is this a one-shot reply" mystery).
-            NSLog(
-                "[wenshu.conductor] PATH=legacy REASON=ConversationLoop.runTurn returned nil (model=%@ msg_prefix=%@)",
-                model, String(userMessage.prefix(40))
-            )
+            wenshuLogger.info("[wenshu.conductor] PATH=legacy REASON=ConversationLoop.runTurn returned nil (model=\(model) msg_prefix=\(String(userMessage.prefix(40))))")
         } else {
             // No connector wired at all = only legacy path is reachable.
-            NSLog(
-                "[wenshu.conductor] PATH=legacy REASON=no_connector (model=%@ msg_prefix=%@)",
-                model, String(userMessage.prefix(40))
-            )
+            wenshuLogger.info("[wenshu.conductor] PATH=legacy REASON=no_connector (model=\(model) msg_prefix=\(String(userMessage.prefix(40))))")
         }
 
         // Legacy path (= v0.21 pipeline, preserved as the fallback).
@@ -464,20 +460,14 @@ actor WenshuConductor {
             // (= mirror of the fallback log in handle(); lets the
             // dev confirm the new ConversationLoop path actually
             // executed end-to-end, not just the fallback).
-            NSLog(
-                "[wenshu.conductor] PATH=new_agent REASON=ConversationLoop.runTurn succeeded (model=%@ tokens=%d)",
-                model, totalTokens
-            )
+            wenshuLogger.info("[wenshu.conductor] PATH=new_agent REASON=ConversationLoop.runTurn succeeded (model=\(model) tokens=\(totalTokens))")
             return (reply.isEmpty ? "(文枢暂时无法回复, 请稍后再试)" : reply, totalTokens, thinking)
         } catch {
             // S4 graceful degradation: never throw out of handle(). Log
             // so the wenshu-dev user sees the underlying error.
             // T0-PATH-VISIBLE (2026-09-18): tag with PATH=legacy for
             // grep parity with the success path.
-            NSLog(
-                "[wenshu.conductor] PATH=legacy REASON=ConversationLoop.runTurn threw (model=%@ err=%@)",
-                model, String(describing: error)
-            )
+            wenshuLogger.info("[wenshu.conductor] PATH=legacy REASON=ConversationLoop.runTurn threw (model=\(model) err=\(String(describing: error)))")
             return nil
         }
     }
@@ -914,7 +904,7 @@ actor WenshuConductor {
         // implementation).
         let waitResult = semaphore.wait(timeout: .now() + .milliseconds(Int(toolRegistryWaitTimeoutMs)))
         if waitResult == .timedOut {
-            NSLog("[wenshu.conductor] buildToolsSync timed out after %d ms; returning empty dict (registrations may not be settled yet)", Int(toolRegistryWaitTimeoutMs))
+            wenshuLogger.info("[wenshu.conductor] buildToolsSync timed out after \(Int(toolRegistryWaitTimeoutMs)) ms; returning empty dict (registrations may not be settled yet)")
             // Do NOT populate the cache on timeout (= the next call
             // will retry with a fresh wait).
             return [:]

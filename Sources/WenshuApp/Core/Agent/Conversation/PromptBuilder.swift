@@ -101,6 +101,9 @@
 //
 
 import Foundation
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "promptbuilder")
 
 // MARK: - Public types
 
@@ -470,11 +473,7 @@ extension PromptBuilder {
         )
         let warnings = PromptBuilder.drainTruncationWarnings()
         if !warnings.isEmpty {
-            NSLog(
-                "[PromptBuilder.truncateContent] %d truncation warning(s): %@",
-                warnings.count,
-                warnings.joined(separator: " | ")
-            )
+            wenshuLogger.info("[PromptBuilder.truncateContent] \(warnings.joined(separator: " | ")) truncation warning(s): \(warnings.count)")
         }
         let headSize = Int(Double(cap) * 0.7)
         let tailSize = Int(Double(cap) * 0.2)

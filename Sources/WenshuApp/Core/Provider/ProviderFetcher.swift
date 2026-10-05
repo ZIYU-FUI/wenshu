@@ -1,6 +1,9 @@
 // ProviderFetcher.swift
 
 import Foundation
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "providerfetcher")
 
 actor ProviderModelCache {
     static let shared = ProviderModelCache()
@@ -55,15 +58,15 @@ enum ProviderFetcher {
     static func loadModelIds(provider: Provider, apiKey: String) async -> [String] {
         let cacheKey = "\(provider.slug)|\(apiKey.prefix(8))"
         if let cached = await ProviderModelCache.shared.get(cacheKey) {
-            NSLog("[wenshu.provider] \(provider.slug) cache hit: \(cached.count) models")
+            wenshuLogger.info("[wenshu.provider] \(provider.slug) cache hit: \(cached.count) models")
             return cached
         }
         if let live = await fetchLiveModelIds(provider: provider, apiKey: apiKey) {
-            NSLog("[wenshu.provider] \(provider.slug) live: \(live.count) models: \(live.joined(separator: ", "))")
+            wenshuLogger.info("[wenshu.provider] \(provider.slug) live: \(live.count) models: \(live.joined(separator: ", "))")
             await ProviderModelCache.shared.set(live, for: cacheKey)
             return live
         }
-        NSLog("[wenshu.provider] \(provider.slug) fallback curated")
+        wenshuLogger.info("[wenshu.provider] \(provider.slug) fallback curated")
         return provider.defaultModels
     }
 }

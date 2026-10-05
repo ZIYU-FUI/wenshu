@@ -58,7 +58,10 @@
 // - developer.apple.com/documentation/appkit/nssplitviewitem
 
 import AppKit
+import os
 import SwiftUI
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "editorchatnscontroller")
 
 /// Native AppKit split container (= editor on top, chat zone on bottom).
 /// Hosts SwiftUI views via `NSHostingController`.
@@ -334,7 +337,7 @@ final class EditorChatNSController: NSSplitViewController {
         // = logging makes the misfire visible for diagnostics
         // without changing the no-op behavior).
         guard let item = chatItem else {
-            NSLog("[wenshu.editorChat] toggleChatZone called before viewDidLoad set chatItem (cold-launch race); ignoring")
+            wenshuLogger.info("[wenshu.editorChat] toggleChatZone called before viewDidLoad set chatItem (cold-launch race); ignoring")
             return
         }
         item.animator().isCollapsed.toggle()

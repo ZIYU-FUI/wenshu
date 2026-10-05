@@ -54,6 +54,8 @@ import Foundation
 import SwiftData
 import os.log
 
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "container")
+
 /// Singleton ModelContainer (= held by AppState).
 /// Initialization is lazy (= defer until first access).
 enum WSPersistenceContainer {
@@ -113,7 +115,7 @@ enum WSPersistenceContainer {
         } catch {
             // Last-resort fallback (= in-memory only; = no disk side effects).
             // App still launches; = user can reset and re-onboard via Library Properties.
-            NSLog("[WSPersistenceContainer] FATAL: cannot create ModelContainer (\(error)). Falling back to in-memory.")
+            wenshuLogger.info("[WSPersistenceContainer] FATAL: cannot create ModelContainer (\(error)). Falling back to in-memory.")
             // shared is called eagerly at module-load time (= non-MainActor context).
             // makeInMemoryContainer is @MainActor (= tests only); = use MainActor.assumeIsolated
             // (= safe here because shared is only accessed after @main init).
@@ -241,7 +243,7 @@ enum WSPersistenceContainer {
             do {
                 return try makeContainer(at: storeURL)
             } catch {
-                NSLog("[WSPersistenceContainer] warehouse container failed (\(error)). Falling back to Application Support.")
+                wenshuLogger.info("[WSPersistenceContainer] warehouse container failed (\(error)). Falling back to Application Support.")
                 // Fall through to default `shared`
             }
         }

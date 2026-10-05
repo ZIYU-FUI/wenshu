@@ -12,6 +12,9 @@
 // SwiftUI body move verbatim. 0 behavior change.
 
 import SwiftUI
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "inspectorview")
 
 /// Apple HIG detail column (= 2 vertical sub-areas).
 /// Per the 9/8 design (= right tools / right dynamic) the
@@ -366,7 +369,7 @@ struct InspectorView: View {
                 .help(String(localized: "inspector.toggle.help"))
 
                 Button {
-                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.kanban)")
+                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.kanban)")
                     openWindow(id: WindowID.kanban)
                 } label: {
                     Label {
@@ -378,7 +381,7 @@ struct InspectorView: View {
                 .help(String(localized: "window.kanban.help"))
 
                 Button {
-                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.todo)")
+                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.todo)")
                     openWindow(id: WindowID.todo)
                 } label: {
                     Label {
@@ -411,7 +414,7 @@ struct InspectorView: View {
                 // for previously-unwired features (= same shape as
                 // kanban + todo).
                 Button {
-                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.canvas)")
+                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.canvas)")
                     openWindow(id: WindowID.canvas)
                 } label: {
                     Label {
@@ -423,7 +426,7 @@ struct InspectorView: View {
                 .help(String(localized: "window.canvas.help"))
 
                 Button {
-                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.composer)")
+                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.composer)")
                     openWindow(id: WindowID.composer)
                 } label: {
                     Label {
@@ -435,7 +438,7 @@ struct InspectorView: View {
                 .help(String(localized: "window.composer.help"))
 
                 Button {
-                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.foreshadowingGraph)")
+                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.foreshadowingGraph)")
                     openWindow(id: WindowID.foreshadowingGraph)
                 } label: {
                     Label {
@@ -447,7 +450,7 @@ struct InspectorView: View {
                 .help(String(localized: "window.foreshadowing_graph.help"))
 
                 Button {
-                                    NSLog("[wenshu.window] click: openWindow id=\\(WindowID.cron)")
+                                    wenshuLogger.info("[wenshu.window] click: openWindow id=\\(WindowID.cron)")
                                     openWindow(id: WindowID.cron)
                                 } label: {
                                     Label {
@@ -459,7 +462,7 @@ struct InspectorView: View {
                                 .help(String(localized: "window.cron.help"))
 
                                 Button {
-                                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.attachments)")
+                                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.attachments)")
                                     openWindow(id: WindowID.attachments)
                                 } label: {
                                     Label {
@@ -471,7 +474,7 @@ struct InspectorView: View {
                                 .help(String(localized: "window.attachments.title"))
 
                                 Button {
-                                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.manifest)")
+                                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.manifest)")
                                     openWindow(id: WindowID.manifest)
                                 } label: {
                                     Label {
@@ -483,7 +486,7 @@ struct InspectorView: View {
                                 .help(String(localized: "window.manifest.title"))
 
                                 Button {
-                                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.summaries)")
+                                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.summaries)")
                                     openWindow(id: WindowID.summaries)
                                 } label: {
                                     Label {
@@ -507,17 +510,12 @@ struct InspectorView: View {
                                         do {
                                             if let result = try await LLMWikiOps.runAllFromActiveLibrary() {
                                                 let s = result.stats
-                                                NSLog("[wenshu.llm_wiki.operator] ranAt=%@ raw=%d abstracts=%d indexes=%d lint=%d",
-                                                      String(describing: result.ranAt),
-                                                      s?.rawCount ?? 0,
-                                                      s?.abstractsWritten ?? 0,
-                                                      s?.indexesWritten ?? 0,
-                                                      result.lintFindings?.count ?? 0)
+                                                wenshuLogger.info("[wenshu.llm_wiki.operator] ranAt=\(String(describing: result.ranAt)) raw=\(s?.rawCount ?? 0) abstracts=\(s?.abstractsWritten ?? 0) indexes=\(s?.indexesWritten ?? 0) lint=\(result.lintFindings?.count ?? 0)")
                                             } else {
-                                                NSLog("[wenshu.llm_wiki.operator] no active library bound (= wenshu.libraryPath missing or .ws absent)")
+                                                wenshuLogger.info("[wenshu.llm_wiki.operator] no active library bound (= wenshu.libraryPath missing or .ws absent)")
                                             }
                                         } catch {
-                                            NSLog("[wenshu.llm_wiki.operator] failed: %@", String(describing: error))
+                                            wenshuLogger.info("[wenshu.llm_wiki.operator] failed: \(String(describing: error))")
                                         }
                                     }
                                 } label: {
@@ -562,19 +560,19 @@ struct InspectorView: View {
     private func restoreLatestBackup() async {
         guard let sourceDir = ActiveLibrary.path,
               FileManager.default.fileExists(atPath: sourceDir) else {
-            NSLog("[wenshu.backup.operator] no active library bound (= ActiveLibrary.path nil or .ws absent)")
+            wenshuLogger.info("[wenshu.backup.operator] no active library bound (= ActiveLibrary.path nil or .ws absent)")
             return
         }
         do {
             let backups = try AppBackupOps.list()
             guard let latest = backups.last else {
-                NSLog("[wenshu.backup.operator] no backups available in default backup dir")
+                wenshuLogger.info("[wenshu.backup.operator] no backups available in default backup dir")
                 return
             }
             try AppBackupOps.restore(backupName: latest.id, to: sourceDir)
-            NSLog("[wenshu.backup.operator] restored backup %@ to %@", latest.id, sourceDir)
+            wenshuLogger.info("[wenshu.backup.operator] restored backup \(latest.id) to \(sourceDir)")
         } catch {
-            NSLog("[wenshu.backup.operator] failed: %@", String(describing: error))
+            wenshuLogger.info("[wenshu.backup.operator] failed: \(String(describing: error))")
         }
     }
 }

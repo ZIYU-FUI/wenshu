@@ -15,6 +15,8 @@
 
 import os
 
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wsmemoryprovider")
+
 /// In-memory mirror of the SwiftData WSMemory store (= thread-safe via NSLock).
 /// Updated by async prefetch/sync methods (= bridges to @MainActor SwiftData).
 /// Read by sync getSystemPrompt/preCompressCheckpoint (= safe from any actor).
@@ -38,7 +40,7 @@ final class WSMemoryMirror: @unchecked Sendable {
 // (wenshuMemoryLogger removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
 //  confirmed 0 external callers; = the file-private os.Logger was
 //  retained for hermes-port parity but no WSMemoryProvider call site
-//  emitted log entries; = NSLog(...) lines throughout the file
+//  emitted log entries; = wenshuLogger.info(...) lines throughout the file
 //  handle the same observability concern. See wenshu-pocock-workflow
 //  references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup
 //  SKILL.md.)

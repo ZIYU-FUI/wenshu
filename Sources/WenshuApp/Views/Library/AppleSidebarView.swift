@@ -53,6 +53,9 @@
 // 4 sheets + context-menu + business methods restored in v1.69y).
 
 import SwiftUI
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "applesidebarview")
 
 struct AppleSidebarView: View {
     @Environment(BookStore.self) private var bookStore
@@ -286,7 +289,7 @@ struct AppleSidebarView: View {
                         showNewShelfSheet = false
                         Task { await service?.reload() }
                     } catch {
-                        NSLog("[wenshu.sidebar] createShelf failed: %@", String(describing: error))
+                        wenshuLogger.info("[wenshu.sidebar] createShelf failed: \(String(describing: error))")
                         showNewShelfSheet = false
                     }
                 },
@@ -308,7 +311,7 @@ struct AppleSidebarView: View {
                         showNewBookSheet = false
                         Task { await service?.reload() }
                     } catch {
-                        NSLog("[wenshu.sidebar] createBook failed: %@", String(describing: error))
+                        wenshuLogger.info("[wenshu.sidebar] createBook failed: \(String(describing: error))")
                         showNewBookSheet = false
                     }
                 },
@@ -336,7 +339,7 @@ struct AppleSidebarView: View {
                         renaming = nil
                         Task { await service?.reload() }
                     } catch {
-                        NSLog("[wenshu.sidebar] rename failed: %@", String(describing: error))
+                        wenshuLogger.info("[wenshu.sidebar] rename failed: \(String(describing: error))")
                         renaming = nil
                     }
                 },
@@ -362,7 +365,7 @@ struct AppleSidebarView: View {
                     pendingDelete = nil
                     Task { await service?.reload() }
                 } catch {
-                    NSLog("[wenshu.sidebar] delete failed: %@", String(describing: error))
+                    wenshuLogger.info("[wenshu.sidebar] delete failed: \(String(describing: error))")
                     pendingDelete = nil
                 }
             }

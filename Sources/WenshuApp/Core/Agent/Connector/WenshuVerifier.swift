@@ -12,6 +12,9 @@
 //     integrates with the minimax-cn API.
 
 import Foundation
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuverifier")
 
 
 /// minimax-cn ground-truth probe (Anthropic-compatible protocol)
@@ -344,11 +347,11 @@ actor WenshuVerifier {
             body["stop_sequences"] = WenshuVerifier.shortOutputStopSequences
         }
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
-        NSLog("[wenshu.chat] request: model=%@ max_tokens=%d messages=%d", request.model, request.max_tokens, request.messages.count)
+        wenshuLogger.info("[wenshu.chat] request: model=\(request.model) max_tokens=\(request.max_tokens) messages=\(request.messages.count)")
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
         let bodyPreview = String(data: data.prefix(500), encoding: .utf8) ?? "<non-utf8 body>"
-        NSLog("[wenshu.chat] response status=%d body=%@", statusCode, bodyPreview)
+        wenshuLogger.info("[wenshu.chat] response status=\(bodyPreview) body=\(statusCode)")
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw WenshuLLMError.httpError(statusCode: statusCode, body: bodyPreview)
         }
@@ -356,7 +359,7 @@ actor WenshuVerifier {
         do {
             return try decoder.decode(WenshuLLMResponse.self, from: data)
         } catch {
-            NSLog("[wenshu.chat] decoder error: %@", String(describing: error))
+            wenshuLogger.info("[wenshu.chat] decoder error: \(String(describing: error))")
             throw error
         }
     }
@@ -533,10 +536,10 @@ actor WenshuVerifier {
                             }
                         }
                     }
-                    NSLog("[wenshu.stream] complete, textBuffer length=%d", textBuffer.count)
+                    wenshuLogger.info("[wenshu.stream] complete, textBuffer length=\(textBuffer.count)")
                     continuation.finish()
                 } catch {
-                    NSLog("[wenshu.stream] error: %@", String(describing: error))
+                    wenshuLogger.info("[wenshu.stream] error: \(String(describing: error))")
                     continuation.finish(throwing: error)
                 }
             }

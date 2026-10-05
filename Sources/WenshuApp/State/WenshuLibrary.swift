@@ -24,6 +24,9 @@
 // protocol can grow an async overload later if a remote store needs it.
 
 import SwiftUI
+import os
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshulibrary")
 
 @MainActor
 @Observable
@@ -97,7 +100,7 @@ final class WenshuLibrary {
             }
         }
         bookCount = total
-        NSLog("[wenshu.library] recomputeBookCount: %d (shelf count=%d)", total, shelves.count)
+        wenshuLogger.info("[wenshu.library] recomputeBookCount: \(total) (shelf count=\(self.shelves.count))")
     }
 
     /// URL to display in the UI (= 'Library at <rootURL>'). The view

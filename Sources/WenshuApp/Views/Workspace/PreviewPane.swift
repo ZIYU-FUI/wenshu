@@ -26,9 +26,12 @@
 // grid; matches Finder icon view style).
 
 import SwiftUI
+import os
 import CoreFoundation
 import AppKit
 import CryptoKit
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "previewpane")
 
 // MARK: - Sort order
 //
@@ -1308,7 +1311,7 @@ struct PreviewPane: View {
     private func loadAllEntities() -> [Reference] {
         let result = PreviewPaneOps.loadAllEntities(bookStore: bookStore)
         if let err = result.error {
-            NSLog("[wenshu.preview] loadAllEntities failed: %@", err)
+            wenshuLogger.info("[wenshu.preview] loadAllEntities failed: \(err)")
         }
         return result.entities
     }
