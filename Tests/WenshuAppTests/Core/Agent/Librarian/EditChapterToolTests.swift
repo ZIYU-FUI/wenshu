@@ -125,6 +125,8 @@ struct EditChapterActorTests {
         )
         try store.saveChapter(chapter, bodyMarkdown: initialBody)
 
+        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+        defer { ActiveLibrary.overrideForTesting = nil }
         let actor = EditChapterActor(bookDirectoryProvider: { tmpRoot })
         return (actor, bookId, chapter.id)
     }

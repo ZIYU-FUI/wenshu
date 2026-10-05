@@ -38,6 +38,8 @@ struct BookChapterToolDiffEnvelopeTests {
         ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
         let bookId = UUID()
+        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+        defer { ActiveLibrary.overrideForTesting = nil }
         let actor = BookChapterActor(
             bookDirectoryProvider: { tmpRoot },
             currentChatBookIDProvider: { bookId }
@@ -93,6 +95,8 @@ struct BookChapterToolDiffEnvelopeTests {
         ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
         let bookId = UUID()
+        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+        defer { ActiveLibrary.overrideForTesting = nil }
         let actor = BookChapterActor(
             bookDirectoryProvider: { tmpRoot },
             currentChatBookIDProvider: { bookId }

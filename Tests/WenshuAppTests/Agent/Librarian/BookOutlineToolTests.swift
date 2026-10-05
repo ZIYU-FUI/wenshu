@@ -122,6 +122,8 @@ struct BookOutlineToolTests {
 
     @Test func testListOutlines_filtersByBookIdAndSortsByOrder() async throws {
         let dir = try Self.makeBookDirectory()
+        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+        defer { ActiveLibrary.overrideForTesting = nil }
         let actor = BookOutlineActor(
             bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { nil }
@@ -159,6 +161,8 @@ struct BookOutlineToolTests {
     @Test func testExecute_createAction_parsesAndCreates() async throws {
         let dir = try Self.makeBookDirectory()
         let bookId = UUID()
+        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+        defer { ActiveLibrary.overrideForTesting = nil }
         let actor = BookOutlineActor(
             bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { bookId }
@@ -178,6 +182,8 @@ struct BookOutlineToolTests {
         let dir = try Self.makeBookDirectory()
         let chatBook = UUID()
         let requestedBook = UUID()
+        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+        defer { ActiveLibrary.overrideForTesting = nil }
         let actor = BookOutlineActor(
             bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { chatBook }
@@ -196,6 +202,8 @@ struct BookOutlineToolTests {
     @Test func testExecute_noChatBook_rejectedByScopeGuard() async throws {
         let dir = try Self.makeBookDirectory()
         let requestedBook = UUID()
+        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+        defer { ActiveLibrary.overrideForTesting = nil }
         let actor = BookOutlineActor(
             bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { nil }
@@ -214,6 +222,8 @@ struct BookOutlineToolTests {
 
     @Test func testCreate_duplicateTitle_fallsBackToUpdatePreservingId() async throws {
         let dir = try Self.makeBookDirectory()
+        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+        defer { ActiveLibrary.overrideForTesting = nil }
         let actor = BookOutlineActor(
             bookDirectoryProvider: { dir },
             currentChatBookIDProvider: { nil }
