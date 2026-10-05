@@ -64,6 +64,13 @@ final class WSLayoutTreeState {
     @Relationship(deleteRule: .cascade, inverse: \WSLayoutNode.parentState)
     var rootNodes: [WSLayoutNode] = []
 
+    /// All panes in this workspace (= the per-pane metadata that the
+    /// tree references by PaneID). Owned by the workspace state (= a
+    /// workspace owns its panes; = a pane has no parent group until
+    /// a group node references it).
+    @Relationship(deleteRule: .cascade, inverse: \WSPaneNode.parentState)
+    var panes: [WSPaneNode] = []
+
     init(id: UUID = UUID(), updatedAt: Date = Date()) {
         self.id = id
         self.updatedAt = updatedAt
@@ -173,6 +180,9 @@ final class WSPaneNode {
     /// Inverse: the parent group node (= the group that owns this pane).
     @Relationship var parentGroup: WSLayoutNode?
 
+    /// Inverse: the workspace state this pane belongs to.
+    @Relationship var parentState: WSLayoutTreeState?
+
     /// Tab specs (= the kind + title + contextBookID per tab). Tabs
     /// are owned by the pane (= cascade delete when the pane is
     /// deleted).
@@ -194,6 +204,7 @@ final class WSPaneNode {
         self.tabIDsData = Data()
     }
 }
+
 
 /// A single tab (= kind + title + contextBookID). Kept separate
 /// from WSPaneNode so the pane's tab order can reference tab ids
