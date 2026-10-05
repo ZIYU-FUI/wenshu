@@ -102,7 +102,7 @@ struct ZoneEditor: View {
         // HIG standard for window title). ZoneEditor is a sheet, so
         // the title appears in the sheet's title bar (= automatically
         // provided by the sheet chrome).
-        .navigationTitle(WenshuI18n.t("layout.zone_editor.title"))
+        .navigationTitle(String(localized: "layout.zone_editor.title"))
     }
 
     /// Toolbar.
@@ -129,11 +129,11 @@ struct ZoneEditor: View {
             }
             .buttonStyle(.bordered)
             .disabled(!hasMultiSelection)
-            Button(WenshuI18n.t("button.zone_editor.cancel")) {
+            Button(String(localized: "button.zone_editor.cancel")) {
                 dismiss()
             }
             .buttonStyle(.bordered)
-            Button(WenshuI18n.t("button.zone_editor.save")) {
+            Button(String(localized: "button.zone_editor.save")) {
                 saveAsPreset()
             }
             .buttonStyle(.borderedProminent)
@@ -330,7 +330,7 @@ struct ZoneEditor: View {
         let frame = zoneRect(zone: zone, in: size)
         ZStack {
             Rectangle().fill(.tint.opacity(0.15))
-            Text(WenshuI18n.t("b5.zoneeditor.l324.h54488057"))
+            Text(String(localized: "b5.zoneeditor.l324.h54488057"))
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(Color.accentColor)
         }

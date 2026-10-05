@@ -78,7 +78,7 @@ struct ChatMessageAttachmentPreview: View {
             }
             .buttonStyle(.plain)
         } else {
-            Text(WenshuI18n.t("chat.message.imageMissing"))
+            Text(String(localized: "chat.message.imageMissing"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, DesignTokens.spacingIconic)

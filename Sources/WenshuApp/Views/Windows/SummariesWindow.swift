@@ -51,7 +51,7 @@ struct SummariesWindow: View {
     private var header: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
             SFIcon("text.bubble", style: .inlineSmall, color: IconColor.tint)
-            Text(WenshuI18n.t("window.summaries.title"))
+            Text(String(localized: "window.summaries.title"))
                 .font(.headline)
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)
@@ -64,7 +64,7 @@ struct SummariesWindow: View {
     private var emptyState: some View {
         VStack(alignment: .center, spacing: DesignTokens.spacingStandard) {
             SFIcon("text.bubble", style: .emptyStateHero, color: IconColor.secondary)
-            Text(WenshuI18n.t("window.summaries.empty"))
+            Text(String(localized: "window.summaries.empty"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)

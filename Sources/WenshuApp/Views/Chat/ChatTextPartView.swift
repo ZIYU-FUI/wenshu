@@ -116,7 +116,7 @@ struct ChatTextPartView: View {
     /// response...").
     /// nonisolated (= pure constant; = testable from XCTest).
     nonisolated static var streamingCursorTooltip: String {
-        WenshuI18n.t("chatview.streaming_cursor.generating")
+        String(localized: "chatview.streaming_cursor.generating")
     }
 
     nonisolated static func parseMarkdown(_ raw: String) -> AttributedString {

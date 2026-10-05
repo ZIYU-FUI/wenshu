@@ -20,10 +20,10 @@ struct MemoryRetrievalPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 SFIcon("brain", style: .paneTab, color: IconColor.tint)
-                Text(WenshuI18n.t("b5.memoryretrievalpanel.l24.h99228791"))
+                Text(String(localized: "b5.memoryretrievalpanel.l24.h99228791"))
                     .font(.headline)
                 Spacer()
-                Text(WenshuI18n.t("b5.memoryretrievalpanel.l27.h94615601"))
+                Text(String(localized: "b5.memoryretrievalpanel.l27.h94615601"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -46,7 +46,7 @@ struct MemoryRetrievalPanel: View {
             if entries.isEmpty {
                 VStack {
                     Spacer()
-                    Text(WenshuI18n.t("memory.no_entries"))
+                    Text(String(localized: "memory.no_entries"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()

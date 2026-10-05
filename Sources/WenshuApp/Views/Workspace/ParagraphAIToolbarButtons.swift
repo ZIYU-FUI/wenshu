@@ -35,7 +35,7 @@ struct ParagraphAIToolbarButtons: View {
                 SFIcon("arrow.up.left.and.arrow.down.right", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.plain)
-            .help(WenshuI18n.t("paragraph.expand"))
+            .help(String(localized: "paragraph.expand"))
             .keyboardShortcut("e", modifiers: [.command, .shift])
             .disabled(selectedText.isEmpty || isApplying)
 
@@ -51,7 +51,7 @@ struct ParagraphAIToolbarButtons: View {
                 SFIcon("arrow.down.right.and.arrow.up.left", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.plain)
-            .help(WenshuI18n.t("paragraph.shorten"))
+            .help(String(localized: "paragraph.shorten"))
             .keyboardShortcut("h", modifiers: [.command, .shift])
             .disabled(selectedText.isEmpty || isApplying)
 
@@ -66,7 +66,7 @@ struct ParagraphAIToolbarButtons: View {
                 SFIcon("arrow.clockwise", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.plain)
-            .help(WenshuI18n.t("paragraph.rephrase"))
+            .help(String(localized: "paragraph.rephrase"))
             .keyboardShortcut("r", modifiers: [.command, .shift])
             .disabled(selectedText.isEmpty || isApplying)
 
@@ -79,17 +79,17 @@ struct ParagraphAIToolbarButtons: View {
             // path with the 3 primary buttons; = no special
             // menu-only branch in `applyParagraphAI`).
             Menu {
-                Button(WenshuI18n.t("b5.paragraphaitoolbarbuttons.l102.h16970890")) { onApply(.shiftTone) }
+                Button(String(localized: "b5.paragraphaitoolbarbuttons.l102.h16970890")) { onApply(.shiftTone) }
                     .disabled(selectedText.isEmpty || isApplying)
-                Button(WenshuI18n.t("b5.paragraphaitoolbarbuttons.l104.h26270230")) { onApply(.simplify) }
+                Button(String(localized: "b5.paragraphaitoolbarbuttons.l104.h26270230")) { onApply(.simplify) }
                     .disabled(selectedText.isEmpty || isApplying)
-                Button(WenshuI18n.t("b5.paragraphaitoolbarbuttons.l106.h64972328")) { onApply(.dramatize) }
+                Button(String(localized: "b5.paragraphaitoolbarbuttons.l106.h64972328")) { onApply(.dramatize) }
                     .disabled(selectedText.isEmpty || isApplying)
             } label: {
                 SFIcon("ellipsis", style: .inlineSmall, color: IconColor.secondary)
             }
             .menuStyle(.borderlessButton)
-            .help(WenshuI18n.t("workspace.transforms.moreHelp"))
+            .help(String(localized: "workspace.transforms.moreHelp"))
             .disabled(selectedText.isEmpty || isApplying)
         }
     }

@@ -61,7 +61,7 @@ struct CronWindow: View {
                             Task { await reload() }
                         } label: {
                             Label {
-                                Text(WenshuI18n.t("cron.refresh"))
+                                Text(String(localized: "cron.refresh"))
                             } icon: {
                                 SFIcon("arrow.clockwise", style: .inlineSmall, color: IconColor.tint)
                             }
@@ -88,8 +88,8 @@ struct CronWindow: View {
             VStack {
                 EmptyStateView(
                     icon: "clock",
-                    title: WenshuI18n.t("cron.empty.title"),
-                    body: WenshuI18n.t("cron.empty.body")
+                    title: String(localized: "cron.empty.title"),
+                    body: String(localized: "cron.empty.body")
                 )
                 newScheduleForm
             }
@@ -103,7 +103,7 @@ struct CronWindow: View {
                 Section {
                     newScheduleForm
                 } header: {
-                    Text(WenshuI18n.t("cron.add_section"))
+                    Text(String(localized: "cron.add_section"))
                 }
             }
         }
@@ -112,21 +112,21 @@ struct CronWindow: View {
     private var newScheduleForm: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             TextField(
-                WenshuI18n.t("cron.field.schedule"),
+                String(localized: "cron.field.schedule"),
                 text: $draftSchedule
             )
             .textFieldStyle(.roundedBorder)
             TextField(
-                WenshuI18n.t("cron.field.name"),
+                String(localized: "cron.field.name"),
                 text: $draftName
             )
             .textFieldStyle(.roundedBorder)
             TextField(
-                WenshuI18n.t("cron.field.command"),
+                String(localized: "cron.field.command"),
                 text: $draftCommand
             )
             .textFieldStyle(.roundedBorder)
-            Button(WenshuI18n.t("cron.add")) {
+            Button(String(localized: "cron.add")) {
                 Task { await addSchedule() }
             }
             .buttonStyle(.borderedProminent)

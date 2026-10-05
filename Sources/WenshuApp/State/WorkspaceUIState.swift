@@ -184,10 +184,10 @@ enum InspectorPage: Hashable, CaseIterable {
 
     var localizedTitle: String {
         switch self {
-        case .authoringFiction:     return WenshuI18n.t("inspector.page.authoringFiction")
-        case .authoringStyle:       return WenshuI18n.t("inspector.page.authoringStyle")
-        case .authoringCharacters:  return WenshuI18n.t("inspector.page.authoringCharacters")
-        case .projectManagement:    return WenshuI18n.t("inspector.page.projectManagement")
+        case .authoringFiction:     return String(localized: "inspector.page.authoringFiction")
+        case .authoringStyle:       return String(localized: "inspector.page.authoringStyle")
+        case .authoringCharacters:  return String(localized: "inspector.page.authoringCharacters")
+        case .projectManagement:    return String(localized: "inspector.page.projectManagement")
         }
     }
 

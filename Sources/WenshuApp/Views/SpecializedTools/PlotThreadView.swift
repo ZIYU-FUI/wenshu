@@ -27,15 +27,15 @@ struct PlotThreadView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
-            Text(WenshuI18n.t("b5.plotthreadview.l14.h19187540")).font(.headline)
+            Text(String(localized: "b5.plotthreadview.l14.h19187540")).font(.headline)
             if let bookId = bookStore.selectedBookId {
                 HStack {
-                    TextField(WenshuI18n.t("b5.plotthreadview.l17.h33003032"), text: $title)
-                    Button(WenshuI18n.t("b5.plotthreadview.l18.h79272146")) { add(bookId: bookId) }.disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                    TextField(String(localized: "b5.plotthreadview.l17.h33003032"), text: $title)
+                    Button(String(localized: "b5.plotthreadview.l18.h79272146")) { add(bookId: bookId) }.disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                TextField(WenshuI18n.t("b5.plotthreadview.l20.h12597265"), text: $details)
+                TextField(String(localized: "b5.plotthreadview.l20.h12597265"), text: $details)
                 List {
-                    Section(WenshuI18n.t("b5.plotthreadview.l22.h14379348")) {
+                    Section(String(localized: "b5.plotthreadview.l22.h14379348")) {
                         ForEach(threads) { thread in
                             HStack {
                                 VStack(alignment: .leading) { Text(thread.title); Text(thread.status.rawValue).font(.caption).foregroundStyle(.secondary) }
@@ -44,7 +44,7 @@ struct PlotThreadView: View {
                             }
                         }
                     }
-                    Section(WenshuI18n.t("b5.plotthreadview.l31.h89394691")) {
+                    Section(String(localized: "b5.plotthreadview.l31.h89394691")) {
                         ForEach(threads.filter { $0.status == .open || $0.status == .developing }) { thread in
                             Label { Text(thread.title) } icon: { SFIcon("exclamationmark.triangle", style: .inlineSmall, color: IconColor.tint) }
                         }
@@ -59,8 +59,8 @@ struct PlotThreadView: View {
                 // as the other 11 tabs.
                 EmptyStateView(
                     icon: "arrow.trianglehead.branch",
-                    title: WenshuI18n.t("b5.plotthreadview.l37.h49866041"),
-                    body: WenshuI18n.t("b5.plotthreadview.l17.h33003032")
+                    title: String(localized: "b5.plotthreadview.l37.h49866041"),
+                    body: String(localized: "b5.plotthreadview.l17.h33003032")
                 )
             }
             if let errorText { Text(errorText).foregroundStyle(.red).font(.caption) }

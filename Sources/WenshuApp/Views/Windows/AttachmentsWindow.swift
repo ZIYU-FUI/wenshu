@@ -51,7 +51,7 @@ struct AttachmentsWindow: View {
     private var header: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
             SFIcon("paperclip", style: .inlineSmall, color: IconColor.tint)
-            Text(WenshuI18n.t("window.attachments.title"))
+            Text(String(localized: "window.attachments.title"))
                 .font(.headline)
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)
@@ -64,7 +64,7 @@ struct AttachmentsWindow: View {
     private var emptyState: some View {
         VStack(alignment: .center, spacing: DesignTokens.spacingStandard) {
             SFIcon("tray", style: .emptyStateHero, color: IconColor.secondary)
-            Text(WenshuI18n.t("window.attachments.empty"))
+            Text(String(localized: "window.attachments.empty"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)

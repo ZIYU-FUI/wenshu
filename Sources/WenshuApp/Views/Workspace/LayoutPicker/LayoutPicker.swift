@@ -78,7 +78,7 @@ struct LayoutPicker: View {
             if !customPresets.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text(WenshuI18n.t("auto.layoutpicker.l81.h19454638"))
+                        Text(String(localized: "auto.layoutpicker.l81.h19454638"))
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -109,7 +109,7 @@ struct LayoutPicker: View {
             }) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     SFIcon("plus", style: .inlineSmall, color: IconColor.tint)
-                    Text(WenshuI18n.t("auto.layoutpicker.l112.h61862158"))
+                    Text(String(localized: "auto.layoutpicker.l112.h61862158"))
                         .font(.caption)
                 }
                 .frame(maxWidth: .infinity)
@@ -141,7 +141,7 @@ struct LayoutPicker: View {
                 }) {
                     HStack(spacing: DesignTokens.spacingTight) {
                         SFIcon("square.and.arrow.down", style: .inlineSmall, color: IconColor.tint)
-                        Text(WenshuI18n.t("auto.layoutpicker.l144.h96188612"))
+                        Text(String(localized: "auto.layoutpicker.l144.h96188612"))
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
@@ -170,15 +170,15 @@ struct LayoutPicker: View {
             ),
             presenting: pendingDeletePreset
         ) { preset in
-            Button(WenshuI18n.t("auto2.layoutpicker.l176.h93153796"), role: .destructive) {
+            Button(String(localized: "auto2.layoutpicker.l176.h93153796"), role: .destructive) {
                 store.deletePreset(preset)
                 pendingDeletePreset = nil
             }
-            Button(WenshuI18n.t("auto2.layoutpicker.l180.h50847315"), role: .cancel) {
+            Button(String(localized: "auto2.layoutpicker.l180.h50847315"), role: .cancel) {
                 pendingDeletePreset = nil
             }
         } message: { preset in
-            Text(WenshuI18n.t("layout.preset.delete_confirm_message_prefix") + preset.name + WenshuI18n.t("layout.preset.delete_confirm_message_suffix"))
+            Text(String(localized: "layout.preset.delete_confirm_message_prefix") + preset.name + String(localized: "layout.preset.delete_confirm_message_suffix"))
         }
     }
 
@@ -186,16 +186,16 @@ struct LayoutPicker: View {
     private var saveCurrentLayoutInput: some View {
         VStack(spacing: DesignTokens.spacingTight) {
             HStack(spacing: DesignTokens.spacingTight) {
-                TextField(WenshuI18n.t("auto2.layoutpicker.l192.h42077297"), text: $newPresetName)
+                TextField(String(localized: "auto2.layoutpicker.l192.h42077297"), text: $newPresetName)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: .infinity)
                     .onSubmit { commitSave() }
-                Button(WenshuI18n.t("auto2.layoutpicker.l196.h34447881")) {
+                Button(String(localized: "auto2.layoutpicker.l196.h34447881")) {
                     commitSave()
                 }
                 .disabled(newPresetName.trimmingCharacters(in: .whitespaces).isEmpty)
                 .buttonStyle(.borderedProminent)
-                Button(WenshuI18n.t("auto2.layoutpicker.l201.h50847315")) {
+                Button(String(localized: "auto2.layoutpicker.l201.h50847315")) {
                     withAnimation {
                         showingSaveInput = false
                         newPresetName = ""
@@ -204,7 +204,7 @@ struct LayoutPicker: View {
                 .buttonStyle(.borderless)
             }
             .padding(.horizontal, DesignTokens.spacingModerate)
-            Text(WenshuI18n.t("auto.layoutpicker.l210.h18923044"))
+            Text(String(localized: "auto.layoutpicker.l210.h18923044"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, DesignTokens.spacingModerate)

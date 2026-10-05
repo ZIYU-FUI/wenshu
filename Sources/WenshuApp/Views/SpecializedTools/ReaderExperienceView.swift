@@ -86,7 +86,7 @@ struct ReaderExperienceView: View {
 
     private var pickerRow: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
-            Text(WenshuI18n.t("b5.readerexperienceview.l130.h50931159"))
+            Text(String(localized: "b5.readerexperienceview.l130.h50931159"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Picker("", selection: $selectedKind) {
@@ -111,11 +111,11 @@ struct ReaderExperienceView: View {
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             HStack(spacing: DesignTokens.spacingTight) {
-                Text(WenshuI18n.t("b5.readerexperienceview.l155.h15975486"))
+                Text(String(localized: "b5.readerexperienceview.l155.h15975486"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
-                Text(WenshuI18n.t("b5.readerexperienceview.l159.h48868028"))
+                Text(String(localized: "b5.readerexperienceview.l159.h48868028"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -128,20 +128,20 @@ struct ReaderExperienceView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l175.h61672688")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.readerexperienceview.l175.h61672688")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || state.status == .loading)
-                .help(WenshuI18n.t("b5.readerexperienceview.l179.h93248900"))
+                .help(String(localized: "b5.readerexperienceview.l179.h93248900"))
                 Button {
                     chapterText = ""
                     state.report = nil
                     state.status = .idle
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.readerexperienceview.l185.h22504814")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.readerexperienceview.l185.h22504814")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.bordered)
-                .help(WenshuI18n.t("b5.readerexperienceview.l188.h90304051"))
+                .help(String(localized: "b5.readerexperienceview.l188.h90304051"))
                 Spacer(minLength: 0)
             }
         }
@@ -159,8 +159,8 @@ struct ReaderExperienceView: View {
         // other empty state in the workspace.
         EmptyStateView(
             icon: "sparkles",
-            title: WenshuI18n.t("b5.readerexperienceview.l198.h54334339"),
-            body: WenshuI18n.t("b5.readerexperienceview.l201.h81086064")
+            title: String(localized: "b5.readerexperienceview.l198.h54334339"),
+            body: String(localized: "b5.readerexperienceview.l201.h81086064")
         )
     }
 
@@ -199,7 +199,7 @@ struct ReaderExperienceView: View {
             if score >= 0.4 { return .orange.opacity(0.22) }
             return .gray.opacity(0.22)
         }()
-        return Text(WenshuI18n.t("b5.readerexperienceview.l247.h50530381"))
+        return Text(String(localized: "b5.readerexperienceview.l247.h50530381"))
             .font(.caption2)
             .foregroundStyle(.primary)
             .padding(.horizontal, DesignTokens.spacingTight)
@@ -212,7 +212,7 @@ struct ReaderExperienceView: View {
 
     private func highlightsSection(_ highlights: [ReaderExperienceHighlight]) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.readerexperienceview.l260.h48696486"))
+            Text(String(localized: "b5.readerexperienceview.l260.h48696486"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
@@ -224,7 +224,7 @@ struct ReaderExperienceView: View {
                             .padding(.horizontal, DesignTokens.spacingIconic)
                             .padding(.vertical, DesignTokens.spacingHairline)
                             
-                        Text(WenshuI18n.t("b5.readerexperienceview.l275.h51340592"))
+                        Text(String(localized: "b5.readerexperienceview.l275.h51340592"))
                             .font(.caption)
                             .foregroundStyle(.primary)
                             .lineLimit(2)
@@ -237,13 +237,13 @@ struct ReaderExperienceView: View {
 
     private func suggestionsSection(_ suggestions: [ReaderExperienceSuggestion]) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.readerexperienceview.l288.h40277958"))
+            Text(String(localized: "b5.readerexperienceview.l288.h40277958"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { _, s in
                     HStack(alignment: .top, spacing: DesignTokens.spacingTight) {
-                        Text(WenshuI18n.t("b5.readerexperienceview.l294.h54608200"))
+                        Text(String(localized: "b5.readerexperienceview.l294.h54608200"))
                             .font(.caption)
                             .foregroundStyle(.tint)
                         Text(s.text)

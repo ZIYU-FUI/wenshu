@@ -96,7 +96,7 @@ struct PaneView: View {
             // sidebarSelection binding to AppleSidebarView so
             // the sidebar click → preview pane scope works.
             ZoneContentView(tabs: [
-                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(AppleSidebarView())),
+                (String(localized: "tab.title.bookshelf"), "book-open", AnyView(AppleSidebarView())),
             ], trailingButton: AnyView(SidebarZoneHeaderButtons()))
 
         case .projectPreview:
@@ -124,7 +124,7 @@ struct PaneView: View {
             // as the editor's pencil/arrow toolbar inside
             // EditorView).
             ZoneContentView(tabs: [
-                (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
+                (String(localized: "tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
                     // fix (= (see OOB.md #2026-09-03) — 'double-clicking card did
                     // not open the document'): PaneView's caller
@@ -151,7 +151,7 @@ struct PaneView: View {
                     },
                     previewSortOrder: .constant(.pinyinFirstLetter)
                 ))),
-                (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
+                (String(localized: "tab.title.graph"), "waypoints", AnyView(GraphView())),
             ])
 
         case .specializedTools:
@@ -167,11 +167,11 @@ struct PaneView: View {
             // comment (= current code has 5 tabs at L774-778 below;
             // the previous docstring described the pre-PlotThread state).
             ZoneContentView(tabs: [
-                (WenshuI18n.t("tab.title.foreshadowing"), "git-fork", AnyView(ForeshadowingView())),
-                (WenshuI18n.t("tab.title.placeholder"), "square-dashed", AnyView(PlaceholderView())),
-                (WenshuI18n.t("tab.title.long_form"), "shield-check", AnyView(LongFormGuardrailsView())),
-                (WenshuI18n.t("tab.title.reader_experience"), "sparkles", AnyView(ReaderExperienceView())),
-                (WenshuI18n.t("tab.title.plot_thread"), "git-branch", AnyView(PlotThreadView())),
+                (String(localized: "tab.title.foreshadowing"), "git-fork", AnyView(ForeshadowingView())),
+                (String(localized: "tab.title.placeholder"), "square-dashed", AnyView(PlaceholderView())),
+                (String(localized: "tab.title.long_form"), "shield-check", AnyView(LongFormGuardrailsView())),
+                (String(localized: "tab.title.reader_experience"), "sparkles", AnyView(ReaderExperienceView())),
+                (String(localized: "tab.title.plot_thread"), "git-branch", AnyView(PlotThreadView())),
             ])
 
         case .aiDynamic:
@@ -195,8 +195,8 @@ struct PaneView: View {
                     // rule): see L279 fix comment above; replace
                     // placeholder with EditorView (= the toolbar +
                     // mode toggle surface).
-                    (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorView())),
-                    (WenshuI18n.t("tab.title.outline"), "puzzle", AnyView(OutlinePanel())),
+                    (String(localized: "tab.title.editor"), "book-open-text", AnyView(EditorView())),
+                    (String(localized: "tab.title.outline"), "puzzle", AnyView(OutlinePanel())),
                     // removed the "Backlinks" tab here (= (see OOB.md #2026-09-02) — 'the Backlinks
                     // area still has to be removed'). Backlinks are
                     // now surfaced via the chrome bottom-right

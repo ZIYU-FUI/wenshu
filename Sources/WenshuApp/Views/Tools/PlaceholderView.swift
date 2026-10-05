@@ -107,8 +107,8 @@ struct PlaceholderView: View {
         // other empty state in the workspace.
         EmptyStateView(
             icon: "square.dashed",
-            title: WenshuI18n.t("b5.placeholderview.l147.h49322278"),
-            body: WenshuI18n.t("b5.placeholderview.l150.h59639791")
+            title: String(localized: "b5.placeholderview.l147.h49322278"),
+            body: String(localized: "b5.placeholderview.l150.h59639791")
         )
     }
 
@@ -136,7 +136,7 @@ struct PlaceholderView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(WenshuI18n.t("b5.placeholderview.l180.h65038593"))
+            Text(String(localized: "b5.placeholderview.l180.h65038593"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: DesignTokens.spacingStandard) {
@@ -147,7 +147,7 @@ struct PlaceholderView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help(WenshuI18n.t("b5.placeholderview.l191.h7844707"))
+                .help(String(localized: "b5.placeholderview.l191.h7844707"))
                 TextField(
                     "Line #",
                     text: $draftLineText,
@@ -156,8 +156,8 @@ struct PlaceholderView: View {
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
                 .frame(width: DesignTokens.avatarSize)
-                .help(WenshuI18n.t("b5.placeholderview.l200.h31066841"))
-                Picker(WenshuI18n.t("picker.status"), selection: $draftStatus) {
+                .help(String(localized: "b5.placeholderview.l200.h31066841"))
+                Picker(String(localized: "picker.status"), selection: $draftStatus) {
                     ForEach(PlaceholderStatus.allCases) { status in
                         Label(status.displayName, systemImage: status.icon)
                             .tag(status)
@@ -169,11 +169,11 @@ struct PlaceholderView: View {
                 Button {
                     Task { await addPlaceholder() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.placeholderview.l213.h26972630")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.placeholderview.l213.h26972630")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help(WenshuI18n.t("b5.placeholderview.l217.h13887673"))
+                .help(String(localized: "b5.placeholderview.l217.h13887673"))
             }
             TextField(
                 "Pattern (e.g. [TODO: explain the dagger])",
@@ -182,7 +182,7 @@ struct PlaceholderView: View {
             )
             .textFieldStyle(.roundedBorder)
             .font(.caption)
-            .help(WenshuI18n.t("b5.placeholderview.l226.h23794372"))
+            .help(String(localized: "b5.placeholderview.l226.h23794372"))
             TextField(
                 "Context (the surrounding line)",
                 text: $draftContext,
@@ -191,7 +191,7 @@ struct PlaceholderView: View {
             .textFieldStyle(.roundedBorder)
             .font(.caption)
             .lineLimit(1...3)
-            .help(WenshuI18n.t("b5.placeholderview.l235.h789414"))
+            .help(String(localized: "b5.placeholderview.l235.h789414"))
         }
     }
 
@@ -204,7 +204,7 @@ struct PlaceholderView: View {
 
     private var filterRow: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
-            Text(WenshuI18n.t("b5.placeholderview.l248.h36078854"))
+            Text(String(localized: "b5.placeholderview.l248.h36078854"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Picker("Status", selection: Binding(
@@ -218,7 +218,7 @@ struct PlaceholderView: View {
                     }
                 }
             )) {
-                Text(WenshuI18n.t("b5.placeholderview.l262.h44751462")).tag(PlaceholderStatus.allCases.first ?? .open)
+                Text(String(localized: "b5.placeholderview.l262.h44751462")).tag(PlaceholderStatus.allCases.first ?? .open)
                 ForEach(PlaceholderStatus.allCases) { status in
                     Label(status.displayName, systemImage: status.icon).tag(status)
                 }
@@ -236,11 +236,11 @@ struct PlaceholderView: View {
 
     private var rowsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(WenshuI18n.t("b5.placeholderview.l280.h71851505"))
+            Text(String(localized: "b5.placeholderview.l280.h71851505"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.rows.isEmpty {
-                Text(WenshuI18n.t("b5.placeholderview.l284.h44264694"))
+                Text(String(localized: "b5.placeholderview.l284.h44264694"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -280,10 +280,10 @@ struct PlaceholderView: View {
                             .lineLimit(2)
                     }
                     HStack(spacing: DesignTokens.spacingTight) {
-                        Text(WenshuI18n.t("b5.placeholderview.l329.h63216295"))
+                        Text(String(localized: "b5.placeholderview.l329.h63216295"))
                             .font(.caption2)
                             .foregroundStyle(DesignTokens.statusForeground)
-                        Text(WenshuI18n.t("b5.placeholderview.l332.h25232981"))
+                        Text(String(localized: "b5.placeholderview.l332.h25232981"))
                             .font(.caption2)
                             .foregroundStyle(DesignTokens.statusForeground)
                     }
@@ -298,7 +298,7 @@ struct PlaceholderView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
-                        .help(WenshuI18n.t("b5.placeholderview.l347.h10664820"))
+                        .help(String(localized: "b5.placeholderview.l347.h10664820"))
                     }
                     if row.status != .open {
                         Button {
@@ -308,7 +308,7 @@ struct PlaceholderView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
-                        .help(WenshuI18n.t("b5.placeholderview.l357.h13927368"))
+                        .help(String(localized: "b5.placeholderview.l357.h13927368"))
                     }
                     if row.status != .abandoned {
                         Button {
@@ -318,7 +318,7 @@ struct PlaceholderView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
-                        .help(WenshuI18n.t("b5.placeholderview.l367.h78002103"))
+                        .help(String(localized: "b5.placeholderview.l367.h78002103"))
                     }
                     Button(role: .destructive) {
                         Task { await removePlaceholder(row) }
@@ -327,7 +327,7 @@ struct PlaceholderView: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
-                    .help(WenshuI18n.t("b5.placeholderview.l376.h1375998"))
+                    .help(String(localized: "b5.placeholderview.l376.h1375998"))
                 }
             }
         }
@@ -344,12 +344,12 @@ struct PlaceholderView: View {
             HStack(spacing: DesignTokens.spacingTight) {
                 SFIcon("viewfinder", style: .inlineSmall, color: IconColor.tint)
                     .foregroundStyle(.tint)
-                Text(WenshuI18n.t("b5.placeholderview.l396.h55542836"))
+                Text(String(localized: "b5.placeholderview.l396.h55542836"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
             }
-            Text(WenshuI18n.t("b5.placeholderview.l401.h57165595"))
+            Text(String(localized: "b5.placeholderview.l401.h57165595"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             TextEditor(text: $scanChapterText)
@@ -363,11 +363,11 @@ struct PlaceholderView: View {
                 Button {
                     Task { await runScan() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.placeholderview.l415.h37771405")) } icon: { SFIcon("plus.circle", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.placeholderview.l415.h37771405")) } icon: { SFIcon("plus.circle", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canScan)
-                .help(WenshuI18n.t("b5.placeholderview.l419.h11265055"))
+                .help(String(localized: "b5.placeholderview.l419.h11265055"))
                 if let lastScanCount = state.lastScanCount {
                     Text("Last scan: +\(lastScanCount) placeholder\(lastScanCount == 1 ? "" : "s")")
                         .font(.caption2)

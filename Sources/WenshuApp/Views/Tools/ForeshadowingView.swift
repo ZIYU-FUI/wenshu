@@ -113,8 +113,8 @@ struct ForeshadowingView: View {
         // other empty state in the workspace.
         EmptyStateView(
             icon: "arrow.trianglehead.branch",
-            title: WenshuI18n.t("b5.foreshadowingview.l146.h86404455"),
-            body: WenshuI18n.t("b5.foreshadowingview.l149.h44610307")
+            title: String(localized: "b5.foreshadowingview.l146.h86404455"),
+            body: String(localized: "b5.foreshadowingview.l149.h44610307")
         )
     }
 
@@ -142,7 +142,7 @@ struct ForeshadowingView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(WenshuI18n.t("b5.foreshadowingview.l179.h19059379"))
+            Text(String(localized: "b5.foreshadowingview.l179.h19059379"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: DesignTokens.spacingStandard) {
@@ -153,7 +153,7 @@ struct ForeshadowingView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help(WenshuI18n.t("b5.foreshadowingview.l190.h31850809"))
+                .help(String(localized: "b5.foreshadowingview.l190.h31850809"))
                 Picker("Status", selection: $draftStatus) {
                     ForEach(ForeshadowingStatus.allCases) { status in
                         Label(status.displayName, systemImage: status.icon)
@@ -166,11 +166,11 @@ struct ForeshadowingView: View {
                 Button {
                     Task { await addForeshadowing() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.foreshadowingview.l203.h64306591")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.foreshadowingview.l203.h64306591")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help(WenshuI18n.t("b5.foreshadowingview.l207.h87864084"))
+                .help(String(localized: "b5.foreshadowingview.l207.h87864084"))
             }
             HStack(spacing: DesignTokens.spacingStandard) {
                 TextField(
@@ -180,7 +180,7 @@ struct ForeshadowingView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help(WenshuI18n.t("b5.foreshadowingview.l217.h94119468"))
+                .help(String(localized: "b5.foreshadowingview.l217.h94119468"))
                 Spacer(minLength: 0)
             }
             TextField(
@@ -191,7 +191,7 @@ struct ForeshadowingView: View {
             .textFieldStyle(.roundedBorder)
             .font(.caption)
             .lineLimit(1...3)
-            .help(WenshuI18n.t("b5.foreshadowingview.l228.h83042863"))
+            .help(String(localized: "b5.foreshadowingview.l228.h83042863"))
         }
     }
 
@@ -203,7 +203,7 @@ struct ForeshadowingView: View {
 
     private var filterRow: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
-            Text(WenshuI18n.t("b5.foreshadowingview.l240.h16934779"))
+            Text(String(localized: "b5.foreshadowingview.l240.h16934779"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Picker("Status", selection: Binding(
@@ -217,7 +217,7 @@ struct ForeshadowingView: View {
                     }
                 }
             )) {
-                Text(WenshuI18n.t("b5.foreshadowingview.l254.h37202691")).tag(ForeshadowingStatus.allCases.first ?? .open)
+                Text(String(localized: "b5.foreshadowingview.l254.h37202691")).tag(ForeshadowingStatus.allCases.first ?? .open)
                 ForEach(ForeshadowingStatus.allCases) { status in
                     Label(status.displayName, systemImage: status.icon).tag(status)
                 }
@@ -235,11 +235,11 @@ struct ForeshadowingView: View {
 
     private var rowsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(WenshuI18n.t("b5.foreshadowingview.l272.h81392132"))
+            Text(String(localized: "b5.foreshadowingview.l272.h81392132"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.rows.isEmpty {
-                Text(WenshuI18n.t("b5.foreshadowingview.l276.h48032637"))
+                Text(String(localized: "b5.foreshadowingview.l276.h48032637"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -284,12 +284,12 @@ struct ForeshadowingView: View {
                     }
                     HStack(spacing: DesignTokens.spacingTight) {
                         if let _ = row.setupChapterId {
-                            Text(WenshuI18n.t("b5.foreshadowingview.l322.h55995378"))
+                            Text(String(localized: "b5.foreshadowingview.l322.h55995378"))
                                 .font(.caption2)
                                 .foregroundStyle(DesignTokens.statusForeground)
                         }
                         if let _ = row.payoffChapterId {
-                            Text(WenshuI18n.t("b5.foreshadowingview.l327.h71979732"))
+                            Text(String(localized: "b5.foreshadowingview.l327.h71979732"))
                                 .font(.caption2)
                                 .foregroundStyle(DesignTokens.statusForeground)
                         }
@@ -303,7 +303,7 @@ struct ForeshadowingView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
-                .help(WenshuI18n.t("b5.foreshadowingview.l341.h68314578"))
+                .help(String(localized: "b5.foreshadowingview.l341.h68314578"))
             }
         }
         .padding(.vertical, DesignTokens.spacingTight)
@@ -325,13 +325,13 @@ struct ForeshadowingView: View {
             HStack(spacing: DesignTokens.spacingTight) {
                 SFIcon("exclamationmark.triangle", style: .inlineSmall, color: IconColor.orange)
                     .foregroundStyle(.orange)
-                Text(WenshuI18n.t("b5.foreshadowingview.l360.h31137580"))
+                Text(String(localized: "b5.foreshadowingview.l360.h31137580"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
             }
             if state.staleRows.isEmpty {
-                Text(WenshuI18n.t("b5.foreshadowingview.l366.h57955114"))
+                Text(String(localized: "b5.foreshadowingview.l366.h57955114"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)

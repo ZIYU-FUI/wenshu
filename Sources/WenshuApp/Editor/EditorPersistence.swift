@@ -150,7 +150,7 @@ enum EditorPersistence {
                 )
                 return WenshuI18n.ts("workspace.editor.external_change_saved", conflictPath)
             } catch {
-                return WenshuI18n.t("workspace.editor.external_change_save_failed")
+                return String(localized: "workspace.editor.external_change_save_failed")
                     + " (" + error.localizedDescription + ")"
             }
         }()

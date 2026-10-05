@@ -18,12 +18,12 @@ struct GraphView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(WenshuI18n.t("auto.graphview.l46.h27522022"))
+            Text(String(localized: "auto.graphview.l46.h27522022"))
                 .font(.headline)
-            Text(WenshuI18n.t("graphview.nodes_count"))
-            Text(WenshuI18n.t("graphview.edges_count"))
+            Text(String(localized: "graphview.nodes_count"))
+            Text(String(localized: "graphview.edges_count"))
             if let _ = error {
-                Text(WenshuI18n.t("auto.graphview.l51.h33390865"))
+                Text(String(localized: "auto.graphview.l51.h33390865"))
                     .foregroundStyle(.red)
             }
         }

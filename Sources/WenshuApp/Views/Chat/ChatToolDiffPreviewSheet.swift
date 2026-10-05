@@ -44,7 +44,7 @@ struct ChatToolDiffPreviewSheet: View {
         .navigationTitle(filename)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(WenshuI18n.t("chatview.diff_sheet.close")) {
+                Button(String(localized: "chatview.diff_sheet.close")) {
                     dismiss()
                 }
             }

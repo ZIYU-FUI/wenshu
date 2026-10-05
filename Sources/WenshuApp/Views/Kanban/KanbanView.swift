@@ -71,7 +71,7 @@ struct KanbanView: View {
             header
             inputRow
             if let _ = loadError {
-                Text(WenshuI18n.t("auto.kanbanview.l69.h78022707"))
+                Text(String(localized: "auto.kanbanview.l69.h78022707"))
                     .font(.caption)
                     .foregroundStyle(.red)
             }
@@ -117,7 +117,7 @@ struct KanbanView: View {
     /// DynamicZone width; the cadence is `.menu` for narrow zone).
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(WenshuI18n.t("auto.kanbanview.l100.h57246144"))
+            Text(String(localized: "auto.kanbanview.l100.h57246144"))
                 .font(.headline)
             Picker("scope", selection: $scope) {
                 ForEach(bookStore.availableScopes(bookId: bookStore.selectedBookId)) { s in
@@ -126,9 +126,9 @@ struct KanbanView: View {
             }
             .pickerStyle(.menu)
             .fixedSize()
-            .help(WenshuI18n.t("auto2.kanbanview.l109.h72695635"))
+            .help(String(localized: "auto2.kanbanview.l109.h72695635"))
             Spacer()
-            Text(WenshuI18n.t("auto.kanbanview.l111.h22166662"))
+            Text(String(localized: "auto.kanbanview.l111.h22166662"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -159,11 +159,11 @@ struct KanbanView: View {
     private var inputRow: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: DesignTokens.spacingTight) {
-                TextField(WenshuI18n.t("auto2.kanbanview.l142.h68849992"), text: $newTicketTitle)
+                TextField(String(localized: "auto2.kanbanview.l142.h68849992"), text: $newTicketTitle)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addTicket() }
                 Button(action: addTicket) {
-                    Label { Text(WenshuI18n.t("auto2.kanbanview.l146.h37112406")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "auto2.kanbanview.l146.h37112406")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)
@@ -174,7 +174,7 @@ struct KanbanView: View {
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             } else if newTicketTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text(WenshuI18n.t("auto.kanbanview.l157.h65127890"))
+                Text(String(localized: "auto.kanbanview.l157.h65127890"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -186,9 +186,9 @@ struct KanbanView: View {
     private var scopeUnavailableHint: String {
         switch scope {
         case .referenceLibrary:
-            return WenshuI18n.t("error.reference_library_not_bootstrapped")
+            return String(localized: "error.reference_library_not_bootstrapped")
         case .book, .folder:
-            return WenshuI18n.t("kanban.unselected_book")
+            return String(localized: "kanban.unselected_book")
         }
     }
 
@@ -217,7 +217,7 @@ struct KanbanView: View {
                 .font(.caption)
                 .foregroundStyle(DesignTokens.statusForeground)
         } else if tickets.isEmpty {
-            Text(WenshuI18n.t("kanban.empty_state"))
+            Text(String(localized: "kanban.empty_state"))
                 .font(.caption)
                 .foregroundStyle(DesignTokens.statusForeground)
         } else {
@@ -350,14 +350,14 @@ private struct KanbanColumn: View {
             HStack(spacing: DesignTokens.spacingIconic) {
                 Text(label(for: status))
                     .font(.subheadline.weight(.semibold))
-                Text(WenshuI18n.t("b5.kanbanview.l336.h21576137"))
+                Text(String(localized: "b5.kanbanview.l336.h21576137"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, DesignTokens.spacingIconic)
             Divider()
             if tickets.isEmpty {
-                Text(WenshuI18n.t("auto.kanbanview.l343.h97636928"))
+                Text(String(localized: "auto.kanbanview.l343.h97636928"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .padding(.horizontal, DesignTokens.spacingIconic)

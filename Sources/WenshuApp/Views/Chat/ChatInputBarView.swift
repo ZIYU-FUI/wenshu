@@ -318,7 +318,7 @@ struct ChatInputBarView: View {
     /// uses ⌘↩ for newline if ever needed).
     private var textField: some View {
         TextField(
-            WenshuI18n.t("chat.input.placeholder"),
+            String(localized: "chat.input.placeholder"),
             text: $vm.inputText,
             axis: .horizontal
         )
@@ -336,7 +336,7 @@ struct ChatInputBarView: View {
         .disabled(!hasUsableKey)
         .focused(inputFocused)
         .onSubmit { Task { await vm.routeInput() } }
-        .help(WenshuI18n.t("chat.input.help"))
+        .help(String(localized: "chat.input.help"))
         .glassEffect(.regular.interactive(), in: Capsule())
         .modifier(SlashCommandAutocompleteModifier(inputText: $vm.inputText))
         .modifier(ImagePasteModifier(onAttach: { url in

@@ -121,8 +121,8 @@ struct LongFormGuardrailsView: View {
         // the workspace.
         EmptyStateView(
             icon: "checkmark.shield",
-            title: WenshuI18n.t("b5.longformguardrailsview.l144.h89220000"),
-            body: WenshuI18n.t("b5.longformguardrailsview.l147.h53334640")
+            title: String(localized: "b5.longformguardrailsview.l144.h89220000"),
+            body: String(localized: "b5.longformguardrailsview.l147.h53334640")
         )
     }
 
@@ -148,18 +148,18 @@ struct LongFormGuardrailsView: View {
             Button {
                 Task { await autoDerive() }
             } label: {
-                Label { Text(WenshuI18n.t("b5.longformguardrailsview.l175.h64020782")) } icon: { SFIcon("wand.and.sparkles", style: .inlineSmall, color: IconColor.tint) }
+                Label { Text(String(localized: "b5.longformguardrailsview.l175.h64020782")) } icon: { SFIcon("wand.and.sparkles", style: .inlineSmall, color: IconColor.tint) }
             }
             .buttonStyle(.bordered)
-            .help(WenshuI18n.t("b5.longformguardrailsview.l178.h38811731"))
+            .help(String(localized: "b5.longformguardrailsview.l178.h38811731"))
 
             Button {
                 showAddSheet = true
             } label: {
-                Label { Text(WenshuI18n.t("button.add")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
+                Label { Text(String(localized: "button.add")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
             }
             .buttonStyle(.borderedProminent)
-            .help(WenshuI18n.t("b5.longformguardrailsview.l186.h97888008"))
+            .help(String(localized: "b5.longformguardrailsview.l186.h97888008"))
 
             Spacer(minLength: 0)
         }
@@ -171,7 +171,7 @@ struct LongFormGuardrailsView: View {
                 guardrailRow(row)
             }
             if state.guardrails.isEmpty {
-                Text(WenshuI18n.t("b5.longformguardrailsview.l198.h9169095"))
+                Text(String(localized: "b5.longformguardrailsview.l198.h9169095"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -188,7 +188,7 @@ struct LongFormGuardrailsView: View {
                         .font(.callout)
                         .foregroundStyle(.primary)
                     if row.isAutoDerived {
-                        Text(WenshuI18n.t("b5.longformguardrailsview.l216.h73542843"))
+                        Text(String(localized: "b5.longformguardrailsview.l216.h73542843"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, DesignTokens.spacingIconic)
@@ -209,7 +209,7 @@ struct LongFormGuardrailsView: View {
                 SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("b5.longformguardrailsview.l241.h76114491"))
+            .help(String(localized: "b5.longformguardrailsview.l241.h76114491"))
         }
         .padding(.vertical, DesignTokens.spacingTight)
         .padding(.horizontal, DesignTokens.spacingStandard)
@@ -242,7 +242,7 @@ struct LongFormGuardrailsView: View {
     private var checkSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             HStack(spacing: DesignTokens.spacingTight) {
-                Text(WenshuI18n.t("b5.longformguardrailsview.l277.h87864753"))
+                Text(String(localized: "b5.longformguardrailsview.l277.h87864753"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
@@ -257,11 +257,11 @@ struct LongFormGuardrailsView: View {
                 Button {
                     Task { await runCheck() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.longformguardrailsview.l295.h18206542")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.longformguardrailsview.l295.h18206542")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(checkText.isEmpty || state.guardrails.isEmpty)
-                .help(WenshuI18n.t("b5.longformguardrailsview.l299.h65143897"))
+                .help(String(localized: "b5.longformguardrailsview.l299.h65143897"))
                 Spacer(minLength: 0)
             }
         }
@@ -273,7 +273,7 @@ struct LongFormGuardrailsView: View {
             case .idle:
                 EmptyView()
             case .running:
-                Text(WenshuI18n.t("b5.longformguardrailsview.l311.h19133696"))
+                Text(String(localized: "b5.longformguardrailsview.l311.h19133696"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             case .done(let count, let hasCritical):
@@ -290,7 +290,7 @@ struct LongFormGuardrailsView: View {
 
     private var violationsSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.longformguardrailsview.l324.h5287930"))
+            Text(String(localized: "b5.longformguardrailsview.l324.h5287930"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ForEach(Array(state.lastViolations.enumerated()), id: \.offset) { _, v in
@@ -303,7 +303,7 @@ struct LongFormGuardrailsView: View {
                         .foregroundStyle(.primary)
                     Spacer(minLength: 0)
                     if let _ = v.lineNumber {
-                        Text(WenshuI18n.t("b5.longformguardrailsview.l337.h13219410"))
+                        Text(String(localized: "b5.longformguardrailsview.l337.h13219410"))
                             .font(.caption2)
                             .foregroundStyle(DesignTokens.statusForeground)
                     }
@@ -347,8 +347,8 @@ struct LongFormGuardrailsView: View {
                             Text(level.rawValue).tag(level)
                         }
                     }
-                    TextField(WenshuI18n.t("b5.longformguardrailsview.l384.h26664612"), text: $draftName)
-                    TextField(WenshuI18n.t("b5.longformguardrailsview.l385.h2063"), text: $draftDescription, axis: .vertical)
+                    TextField(String(localized: "b5.longformguardrailsview.l384.h26664612"), text: $draftName)
+                    TextField(String(localized: "b5.longformguardrailsview.l385.h2063"), text: $draftDescription, axis: .vertical)
                         .lineLimit(3...6)
                 }
             }
@@ -360,13 +360,13 @@ struct LongFormGuardrailsView: View {
             // Cancel/Save buttons were removed; the title moves to
             // .navigationTitle and Cancel/Save move to .toolbar
             // (= Apple canonical pattern for sheet chrome).
-            .navigationTitle(WenshuI18n.t("guardrail.add.title"))
+            .navigationTitle(String(localized: "guardrail.add.title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(WenshuI18n.t("b5.longformguardrailsview.l400.h71046230")) { showAddSheet = false }
+                    Button(String(localized: "b5.longformguardrailsview.l400.h71046230")) { showAddSheet = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(WenshuI18n.t("b5.longformguardrailsview.l403.h11223252")) { Task { await saveDraft() } }
+                    Button(String(localized: "b5.longformguardrailsview.l403.h11223252")) { Task { await saveDraft() } }
                         .disabled(draftName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }

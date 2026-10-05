@@ -121,7 +121,7 @@ struct CommandPaletteView: View {
             // paint = (see OOB.md #2026-09-02) OOB 'let Apple defaults through').
             HStack(spacing: DesignTokens.spacingStandard) {
                 SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.secondary)
-                TextField(WenshuI18n.t("b5.commandpaletteview.l125.h99176598"), text: Binding(
+                TextField(String(localized: "b5.commandpaletteview.l125.h99176598"), text: Binding(
                     get: { model.query },
                     set: { newValue in
                         Task { await model.filter(by: newValue) }
@@ -168,11 +168,11 @@ struct CommandPaletteView: View {
 
             // Footer (= item count + shortcut hint).
             HStack {
-                Text(WenshuI18n.t("b5.commandpaletteview.l173.h62846186"))
+                Text(String(localized: "b5.commandpaletteview.l173.h62846186"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(WenshuI18n.t("b5.commandpaletteview.l177.h59099234"))
+                Text(String(localized: "b5.commandpaletteview.l177.h59099234"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }

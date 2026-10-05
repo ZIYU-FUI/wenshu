@@ -46,8 +46,8 @@ struct ChatToolResultPartView: View {
                     color: toolResult.isError ? Color.red : Color.green
                 )
                 Text(toolResult.isError
-                     ? WenshuI18n.t("chatview.tool_result.error")
-                     : WenshuI18n.t("chatview.tool_result.success"))
+                     ? String(localized: "chatview.tool_result.error")
+                     : String(localized: "chatview.tool_result.success"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
@@ -97,8 +97,8 @@ struct ChatToolResultPartView: View {
                     }
                 } label: {
                     Text(isExpanded
-                         ? WenshuI18n.t("chatview.tool_result.collapse")
-                         : WenshuI18n.t("chatview.tool_result.expand"))
+                         ? String(localized: "chatview.tool_result.collapse")
+                         : String(localized: "chatview.tool_result.expand"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }

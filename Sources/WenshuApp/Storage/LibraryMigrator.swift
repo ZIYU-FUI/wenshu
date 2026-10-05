@@ -123,7 +123,7 @@ struct LibraryMigrator: Sendable {
         if !fm.fileExists(atPath: defaultShelfDir.path) {
             try fm.createDirectory(at: defaultShelfDir, withIntermediateDirectories: true)
             // Write shelf.json
-            let defaultShelf = Bookshelf(id: defaultShelfId, name: WenshuI18n.t("library.default.shelf_name"), createdAt: Date(), updatedAt: Date())
+            let defaultShelf = Bookshelf(id: defaultShelfId, name: String(localized: "library.default.shelf_name"), createdAt: Date(), updatedAt: Date())
             let data = try JSONEncoder().encode(defaultShelf)
             try data.write(to: defaultShelfDir.appendingPathComponent("shelf.json"))
         }
@@ -167,8 +167,8 @@ struct LibraryMigrator: Sendable {
         if fm.fileExists(atPath: shelfJSONURL.path),
            let data = try? Data(contentsOf: shelfJSONURL),
            var existing = try? JSONDecoder().decode(Bookshelf.self, from: data),
-           existing.name == WenshuI18n.t("library.default.legacy_shelf_name") {
-            existing.name = WenshuI18n.t("library.default.shelf_name")
+           existing.name == String(localized: "library.default.legacy_shelf_name") {
+            existing.name = String(localized: "library.default.shelf_name")
             existing.updatedAt = Date()
             let updated = try JSONEncoder().encode(existing)
             try updated.write(to: shelfJSONURL)
@@ -194,9 +194,9 @@ struct LibraryMigrator: Sendable {
             guard fm.fileExists(atPath: bookJSONURL.path),
                   let data = try? Data(contentsOf: bookJSONURL),
                   var existing = try? JSONDecoder().decode(Book.self, from: data),
-                  existing.title == WenshuI18n.t("library.default.shelf_name")
+                  existing.title == String(localized: "library.default.shelf_name")
             else { continue }
-            existing.title = WenshuI18n.t("library.default.book_title")
+            existing.title = String(localized: "library.default.book_title")
             existing.updatedAt = Date()
             let updated = try JSONEncoder().encode(existing)
             try updated.write(to: bookJSONURL)
@@ -257,7 +257,7 @@ struct LibraryMigrator: Sendable {
             // same ' name; the default book contains the
             // official help-doc + test content, so ' is more
             // descriptive).
-            title: WenshuI18n.t("library.default.book_title"),
+            title: String(localized: "library.default.book_title"),
             author: "wenshu",
             shelfId: UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
         )
@@ -542,8 +542,8 @@ struct LibraryMigrator: Sendable {
             id: defaultBookId,            // (= use same UUID for simplicity)
             bookId: defaultBookId,
             category: .chapter,
-            title: WenshuI18n.t("library.default.shelf_name"),
-            summary: WenshuI18n.t("library.default.book_summary")
+            title: String(localized: "library.default.shelf_name"),
+            summary: String(localized: "library.default.book_summary")
         )
         let chapterData = try JSONEncoder().encode(chapter)
         try chapterData.write(to: bookDir.appendingPathComponent("chapters.json"))

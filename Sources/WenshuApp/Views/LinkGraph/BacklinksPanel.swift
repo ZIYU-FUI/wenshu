@@ -27,19 +27,19 @@ struct BacklinksPanel: View {
         // from audit ticket 1 shows through = canonical Apple
         // NSColor-managed window tone).
         VStack(alignment: .leading, spacing: 8) {
-            Text(WenshuI18n.t("auto.backlinkspanel.l95.h69157839"))
+            Text(String(localized: "auto.backlinkspanel.l95.h69157839"))
                 .font(.headline)
             if viewModel.isLoading {
-                Text(WenshuI18n.t("auto.backlinkspanel.l98.h65489296"))
+                Text(String(localized: "auto.backlinkspanel.l98.h65489296"))
             } else if let _ = viewModel.error {
-                Text(WenshuI18n.t("auto.backlinkspanel.l100.h25269061"))
+                Text(String(localized: "auto.backlinkspanel.l100.h25269061"))
                     .foregroundStyle(.red)
             } else {
-                Text(WenshuI18n.t("backlinks.document_id"))
+                Text(String(localized: "backlinks.document_id"))
                     .font(.caption)
-                Text(WenshuI18n.t("backlinks.links_count"))
+                Text(String(localized: "backlinks.links_count"))
                 ForEach(viewModel.backlinks, id: \.offset) { link in
-                    Text(WenshuI18n.t("b5.backlinkspanel.l107.h31356346"))
+                    Text(String(localized: "b5.backlinkspanel.l107.h31356346"))
                         .font(.caption2)
                 }
             }

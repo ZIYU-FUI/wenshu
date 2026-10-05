@@ -27,7 +27,7 @@ struct EditModeBadge: View {
                 Circle()
                     .fill(Color.accentColor)
                     .frame(width: DesignTokens.indicatorSizeSmall, height: DesignTokens.indicatorSizeSmall)
-                Text(WenshuI18n.t("workspace.layoutEditMode"))
+                Text(String(localized: "workspace.layoutEditMode"))
                     .font(.caption.weight(.medium))
                 Text(HotkeyFormatter.editModeCombo)
                     .font(.caption)

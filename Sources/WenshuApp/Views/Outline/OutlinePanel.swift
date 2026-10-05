@@ -17,13 +17,13 @@ struct OutlinePanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(WenshuI18n.t("auto.outlinepanel.l35.h85687200"))
+            Text(String(localized: "auto.outlinepanel.l35.h85687200"))
                 .font(.headline)
-            Text(WenshuI18n.t("outlinepanel.items_count"))
+            Text(String(localized: "outlinepanel.items_count"))
             ForEach(items) { item in
                 HStack {
                     Text(String(repeating: "  ", count: item.level - 1))
-                    Text(WenshuI18n.t("b5.outlinepanel.l41.h2194654"))
+                    Text(String(localized: "b5.outlinepanel.l41.h2194654"))
                         .font(.caption)
                 }
             }

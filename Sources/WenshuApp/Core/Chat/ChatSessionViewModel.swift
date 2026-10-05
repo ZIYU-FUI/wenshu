@@ -547,13 +547,13 @@ final class ChatViewModel {
                 role: .system,
                 source: .system,
                 content: error.errorDescription
-                    ?? WenshuI18n.t("chatview.plan.failed")
+                    ?? String(localized: "chatview.plan.failed")
             ))
         } catch {
             messages.append(ChatMessage(
                 role: .system,
                 source: .system,
-                content: WenshuI18n.t("chatview.plan.failed")
+                content: String(localized: "chatview.plan.failed")
                     + ": \(error.localizedDescription)"
             ))
         }

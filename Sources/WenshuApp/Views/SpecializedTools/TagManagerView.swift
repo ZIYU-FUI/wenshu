@@ -123,8 +123,8 @@ struct TagManagerView: View {
         // other empty state in the workspace.
         EmptyStateView(
             icon: "tag",
-            title: WenshuI18n.t("b5.tagmanagerview.l162.h82459098"),
-            body: WenshuI18n.t("b5.tagmanagerview.l165.h1104135")
+            title: String(localized: "b5.tagmanagerview.l162.h82459098"),
+            body: String(localized: "b5.tagmanagerview.l165.h1104135")
         )
     }
 
@@ -156,14 +156,14 @@ struct TagManagerView: View {
 
     private var addTagRow: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.tagmanagerview.l199.h92873556"))
+            Text(String(localized: "b5.tagmanagerview.l199.h92873556"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: DesignTokens.spacingStandard) {
-                TextField(WenshuI18n.t("b5.tagmanagerview.l203.h87808991"), text: $draftLabel, axis: .horizontal)
+                TextField(String(localized: "b5.tagmanagerview.l203.h87808991"), text: $draftLabel, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help(WenshuI18n.t("b5.tagmanagerview.l206.h48887491"))
+                    .help(String(localized: "b5.tagmanagerview.l206.h48887491"))
                 Picker("Category", selection: $draftCategory) {
                     ForEach(TagCategory.allCases) { category in
                         Label(category.displayName, systemImage: category.icon)
@@ -176,11 +176,11 @@ struct TagManagerView: View {
                 Button {
                     Task { await addTag() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.tagmanagerview.l219.h42031648")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.tagmanagerview.l219.h42031648")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddTag)
-                .help(WenshuI18n.t("b5.tagmanagerview.l223.h5074077"))
+                .help(String(localized: "b5.tagmanagerview.l223.h5074077"))
             }
         }
     }
@@ -193,11 +193,11 @@ struct TagManagerView: View {
 
     private var tagsListSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.tagmanagerview.l236.h12934415"))
+            Text(String(localized: "b5.tagmanagerview.l236.h12934415"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.tags.isEmpty {
-                Text(WenshuI18n.t("b5.tagmanagerview.l240.h97833218"))
+                Text(String(localized: "b5.tagmanagerview.l240.h97833218"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -230,7 +230,7 @@ struct TagManagerView: View {
                         
                     let appCount = state.applications.filter { $0.tagId == tag.id }.count
                     if appCount > 0 {
-                        Text(WenshuI18n.t("b5.tagmanagerview.l278.h7057400"))
+                        Text(String(localized: "b5.tagmanagerview.l278.h7057400"))
                             .font(.caption2)
                             .foregroundStyle(DesignTokens.statusForeground)
                     }
@@ -244,7 +244,7 @@ struct TagManagerView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("b5.tagmanagerview.l292.h29196125"))
+            .help(String(localized: "b5.tagmanagerview.l292.h29196125"))
         }
         .padding(.vertical, DesignTokens.spacingTight)
         .padding(.horizontal, DesignTokens.spacingStandard)
@@ -256,11 +256,11 @@ struct TagManagerView: View {
 
     private var applyRow: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.tagmanagerview.l307.h96892915"))
+            Text(String(localized: "b5.tagmanagerview.l307.h96892915"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.tags.isEmpty {
-                Text(WenshuI18n.t("b5.tagmanagerview.l311.h83311017"))
+                Text(String(localized: "b5.tagmanagerview.l311.h83311017"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -269,9 +269,9 @@ struct TagManagerView: View {
                     get: { draftApplyTagId ?? state.tags.first?.id ?? UUID() },
                     set: { draftApplyTagId = $0 }
                 )) {
-                    Text(WenshuI18n.t("b5.tagmanagerview.l320.h7801028")).tag(UUID())
+                    Text(String(localized: "b5.tagmanagerview.l320.h7801028")).tag(UUID())
                     ForEach(state.tags) { tag in
-                        Text(WenshuI18n.t("b5.tagmanagerview.l322.h1349617")).tag(tag.id)
+                        Text(String(localized: "b5.tagmanagerview.l322.h1349617")).tag(tag.id)
                     }
                 }
                 .pickerStyle(.menu)
@@ -287,21 +287,21 @@ struct TagManagerView: View {
                 .pickerStyle(.menu)
                 .labelsHidden()
 
-                TextField(WenshuI18n.t("b5.tagmanagerview.l338.h98581825"), text: $draftApplyTargetIdText, axis: .horizontal)
+                TextField(String(localized: "b5.tagmanagerview.l338.h98581825"), text: $draftApplyTargetIdText, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help(WenshuI18n.t("b5.tagmanagerview.l341.h77687966"))
+                    .help(String(localized: "b5.tagmanagerview.l341.h77687966"))
 
                 Spacer(minLength: 0)
 
                 Button {
                     Task { await applyTag() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.tagmanagerview.l348.h96054186")) } icon: { SFIcon("link", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.tagmanagerview.l348.h96054186")) } icon: { SFIcon("link", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canApply)
-                .help(WenshuI18n.t("b5.tagmanagerview.l352.h54731122"))
+                .help(String(localized: "b5.tagmanagerview.l352.h54731122"))
             }
         }
     }
@@ -317,11 +317,11 @@ struct TagManagerView: View {
 
     private var applicationsSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.tagmanagerview.l368.h75731289"))
+            Text(String(localized: "b5.tagmanagerview.l368.h75731289"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.applications.isEmpty {
-                Text(WenshuI18n.t("b5.tagmanagerview.l372.h9838641"))
+                Text(String(localized: "b5.tagmanagerview.l372.h9838641"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -352,7 +352,7 @@ struct TagManagerView: View {
                         .padding(.horizontal, DesignTokens.spacingIconic)
                         .padding(.vertical, DesignTokens.spacingHairline)
                         
-                    Text(WenshuI18n.t("b5.tagmanagerview.l408.h8961516"))
+                    Text(String(localized: "b5.tagmanagerview.l408.h8961516"))
                         .font(.caption2)
                         .foregroundStyle(DesignTokens.statusForeground)
                 }
@@ -365,7 +365,7 @@ struct TagManagerView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("b5.tagmanagerview.l421.h66833572"))
+            .help(String(localized: "b5.tagmanagerview.l421.h66833572"))
         }
         .padding(.vertical, DesignTokens.spacingCaption)
     }
@@ -374,11 +374,11 @@ struct TagManagerView: View {
 
     private var cloudSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.tagmanagerview.l430.h82273461"))
+            Text(String(localized: "b5.tagmanagerview.l430.h82273461"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.cloud.isEmpty {
-                Text(WenshuI18n.t("b5.tagmanagerview.l434.h60440302"))
+                Text(String(localized: "b5.tagmanagerview.l434.h60440302"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -402,7 +402,7 @@ struct TagManagerView: View {
                 .font(.caption)
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)
-            Text(WenshuI18n.t("b5.tagmanagerview.l460.h65001910"))
+            Text(String(localized: "b5.tagmanagerview.l460.h65001910"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, DesignTokens.spacingTight)
@@ -416,11 +416,11 @@ struct TagManagerView: View {
 
     private var filterSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.tagmanagerview.l477.h41034022"))
+            Text(String(localized: "b5.tagmanagerview.l477.h41034022"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.tags.isEmpty {
-                Text(WenshuI18n.t("b5.tagmanagerview.l481.h78063039"))
+                Text(String(localized: "b5.tagmanagerview.l481.h78063039"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             } else {
@@ -429,9 +429,9 @@ struct TagManagerView: View {
                         get: { draftFilterTagId ?? state.tags.first?.id ?? UUID() },
                         set: { draftFilterTagId = $0 }
                     )) {
-                        Text(WenshuI18n.t("b5.tagmanagerview.l490.h54878954")).tag(UUID())
+                        Text(String(localized: "b5.tagmanagerview.l490.h54878954")).tag(UUID())
                         ForEach(state.tags) { tag in
-                            Text(WenshuI18n.t("b5.tagmanagerview.l492.h77758122")).tag(tag.id)
+                            Text(String(localized: "b5.tagmanagerview.l492.h77758122")).tag(tag.id)
                         }
                     }
                     .pickerStyle(.menu)
@@ -455,7 +455,7 @@ struct TagManagerView: View {
                     Spacer(minLength: 0)
                 }
                 if state.filterMatches.isEmpty {
-                    Text(WenshuI18n.t("b5.tagmanagerview.l516.h78857770"))
+                    Text(String(localized: "b5.tagmanagerview.l516.h78857770"))
                         .font(.caption)
                         .foregroundStyle(DesignTokens.statusForeground)
                         .frame(maxWidth: .infinity, alignment: .leading)

@@ -55,8 +55,8 @@ struct EditorExpandShrinkTrailingButton: View {
                 ? "arrow.down.right.and.arrow.up.left"
                 : "arrow.up.left.and.arrow.down.right",
             tooltip: editorMaximized
-                ? WenshuI18n.t("workspace.editor.restore_layout")
-                : WenshuI18n.t("workspace.editor.expand_fullscreen"),
+                ? String(localized: "workspace.editor.restore_layout")
+                : String(localized: "workspace.editor.expand_fullscreen"),
             // The action writes `@SceneStorage` AND posts
             // `.wenshuEditorMaximizedChanged`. Previously consumed by
             // `PaneNSController.handleEditorMaximizedChanged` (= the

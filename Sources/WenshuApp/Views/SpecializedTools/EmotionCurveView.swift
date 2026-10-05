@@ -94,20 +94,20 @@ struct EmotionCurveView: View {
 
     private var pickerRow: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
-            Text(WenshuI18n.t("b5.emotioncurveview.l137.h23463773"))
+            Text(String(localized: "b5.emotioncurveview.l137.h23463773"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Stepper(
                 value: $windowCount,
                 in: 1...32
             ) {
-                Text(WenshuI18n.t("b5.emotioncurveview.l144.h9449225"))
+                Text(String(localized: "b5.emotioncurveview.l144.h9449225"))
                     .font(.callout.monospacedDigit())
                     .frame(minWidth: 28, alignment: .trailing)
             }
-            .help(WenshuI18n.t("b5.emotioncurveview.l148.h87664998"))
+            .help(String(localized: "b5.emotioncurveview.l148.h87664998"))
             Spacer(minLength: 0)
-            Text(WenshuI18n.t("b5.emotioncurveview.l150.h38155704"))
+            Text(String(localized: "b5.emotioncurveview.l150.h38155704"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -117,11 +117,11 @@ struct EmotionCurveView: View {
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             HStack(spacing: DesignTokens.spacingTight) {
-                Text(WenshuI18n.t("b5.emotioncurveview.l167.h48770099"))
+                Text(String(localized: "b5.emotioncurveview.l167.h48770099"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
-                Text(WenshuI18n.t("b5.emotioncurveview.l171.h283252"))
+                Text(String(localized: "b5.emotioncurveview.l171.h283252"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -134,20 +134,20 @@ struct EmotionCurveView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.emotioncurveview.l187.h73202981")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.emotioncurveview.l187.h73202981")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || state.status == .loading)
-                .help(WenshuI18n.t("b5.emotioncurveview.l191.h43420055"))
+                .help(String(localized: "b5.emotioncurveview.l191.h43420055"))
                 Button {
                     chapterText = ""
                     state.report = nil
                     state.status = .idle
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.emotioncurveview.l197.h82618035")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.emotioncurveview.l197.h82618035")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.bordered)
-                .help(WenshuI18n.t("b5.emotioncurveview.l200.h12079331"))
+                .help(String(localized: "b5.emotioncurveview.l200.h12079331"))
                 Spacer(minLength: 0)
             }
         }
@@ -165,8 +165,8 @@ struct EmotionCurveView: View {
         // other empty state in the workspace.
         EmptyStateView(
             icon: "waveform.path.ecg",
-            title: WenshuI18n.t("b5.emotioncurveview.l210.h68237505"),
-            body: WenshuI18n.t("b5.emotioncurveview.l213.h26939185")
+            title: String(localized: "b5.emotioncurveview.l210.h68237505"),
+            body: String(localized: "b5.emotioncurveview.l213.h26939185")
         )
     }
 
@@ -222,7 +222,7 @@ struct EmotionCurveView: View {
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 if items.isEmpty {
-                    Text(WenshuI18n.t("b5.emotioncurveview.l280.h69702322"))
+                    Text(String(localized: "b5.emotioncurveview.l280.h69702322"))
                         .font(.caption)
                         .foregroundStyle(DesignTokens.statusForeground)
                 } else {
@@ -251,7 +251,7 @@ struct EmotionCurveView: View {
         Canvas { context, size in
             drawCurve(report: report, context: &context, size: size)
         }
-        .accessibilityLabel(WenshuI18n.t("a11y.emotion_curve"))
+        .accessibilityLabel(String(localized: "a11y.emotion_curve"))
     }
 
     private func drawCurve(
@@ -415,22 +415,22 @@ struct EmotionCurveView: View {
 
         // 10) Y-axis labels (= +1 / 0 / -1).
         context.draw(
-            Text(WenshuI18n.t("b5.emotioncurveview.l446.h6941667")).font(.caption2).foregroundStyle(.secondary),
+            Text(String(localized: "b5.emotioncurveview.l446.h6941667")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: 10, y: topY)
         )
         context.draw(
-            Text(WenshuI18n.t("b5.emotioncurveview.l450.h82202228")).font(.caption2).foregroundStyle(.secondary),
+            Text(String(localized: "b5.emotioncurveview.l450.h82202228")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: 10, y: baselineY)
         )
         context.draw(
-            Text(WenshuI18n.t("b5.emotioncurveview.l454.h50895112")).font(.caption2).foregroundStyle(.secondary),
+            Text(String(localized: "b5.emotioncurveview.l454.h50895112")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: 10, y: bottomY)
         )
 
         // 11) Legend (= flat dot + lift triangle), bottom row.
         let legendY = chartRect.maxY + 14
         context.draw(
-            Text(WenshuI18n.t("b5.emotioncurveview.l461.h66795892")).font(.caption2).foregroundStyle(.secondary),
+            Text(String(localized: "b5.emotioncurveview.l461.h66795892")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: chartRect.maxX, y: legendY)
         )
     }

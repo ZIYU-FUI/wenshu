@@ -54,7 +54,7 @@ enum UserFacingError: Error, LocalizedError {
             // usually resolves; we don't surface a "check your
             // router" instruction because that wastes the user's
             // time on a transient outage).
-            return WenshuI18n.t("error.network.failure")
+            return String(localized: "error.network.failure")
 
         case .apiKeyMissing:
             // Provider-agnostic (= doesn't mention any specific
@@ -63,13 +63,13 @@ enum UserFacingError: Error, LocalizedError {
             // is preserved for callers that want to inspect it (=
             // e.g. logging / analytics), but the user-visible
             // message is generic.
-            return WenshuI18n.t("error.api_key.missing")
+            return String(localized: "error.api_key.missing")
 
         case .apiKeyInvalid:
             // Same generic treatment as apiKeyMissing (= no provider
             // name in user-visible text; = works for any of the 7
             // connectors).
-            return WenshuI18n.t("error.api_key.invalid")
+            return String(localized: "error.api_key.invalid")
 
         case .rateLimited(let provider):
             // Provider-specific rate-limit messages stay provider-bound
@@ -77,7 +77,7 @@ enum UserFacingError: Error, LocalizedError {
             // Generic fallback for any provider that returns 429
             // with an empty/unknown provider name.
             if provider.isEmpty || provider == "当前 Provider" {
-                return WenshuI18n.t("error.rate_limit.generic")
+                return String(localized: "error.rate_limit.generic")
             }
             return WenshuI18n.ts("error.rate_limit.provider", provider)
 
@@ -88,19 +88,19 @@ enum UserFacingError: Error, LocalizedError {
             if let reason {
                 return WenshuI18n.ts("error.model_refusal.with_reason", reason)
             }
-            return WenshuI18n.t("error.model_refusal.generic")
+            return String(localized: "error.model_refusal.generic")
 
         case .contextTooLong(let tokenCount):
             if let tokenCount {
                 return WenshuI18n.tf("error.context_too_long.with_count", tokenCount)
             }
-            return WenshuI18n.t("error.context_too_long.generic")
+            return String(localized: "error.context_too_long.generic")
 
         case .fileWriteFailure(let path, _):
             if let path {
                 return WenshuI18n.ts("error.file_write.with_path", path)
             }
-            return WenshuI18n.t("error.file_write.generic")
+            return String(localized: "error.file_write.generic")
 
         case .databaseError(let operation, _):
             return WenshuI18n.ts("error.database.operation_failed", operation)
@@ -112,7 +112,7 @@ enum UserFacingError: Error, LocalizedError {
             if let field {
                 return WenshuI18n.ts("error.invalid_input.with_reason", field)
             }
-            return WenshuI18n.t("error.invalid_input.generic")
+            return String(localized: "error.invalid_input.generic")
 
         case .timeout(let operation, let seconds):
             if let seconds {
@@ -121,7 +121,7 @@ enum UserFacingError: Error, LocalizedError {
             return WenshuI18n.ts("error.timeout.generic", operation)
 
         case .unknown:
-            return WenshuI18n.t("error.unknown")
+            return String(localized: "error.unknown")
         }
     }
     /// Map any `Error` to a `UserFacingError` (= best-effort

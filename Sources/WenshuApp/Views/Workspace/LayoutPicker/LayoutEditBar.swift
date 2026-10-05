@@ -107,10 +107,10 @@ struct LayoutEditBar: View {
     private var header: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(WenshuI18n.t("auto.layouteditbar.l112.h90106758"))
+                Text(String(localized: "auto.layouteditbar.l112.h90106758"))
                     .font(.body.weight(.semibold))
                 HStack(spacing: DesignTokens.spacingIconic) {
-                    Text(WenshuI18n.t("layout_edit_bar.empty_hint"))
+                    Text(String(localized: "layout_edit_bar.empty_hint"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Text(HotkeyFormatter.editModeCombo)
@@ -131,12 +131,12 @@ struct LayoutEditBar: View {
                 }
             }
             Spacer()
-            Button(WenshuI18n.t("auto2.layouteditbar.l136.h66133888")) {
+            Button(String(localized: "auto2.layouteditbar.l136.h66133888")) {
                 store.resetToDefault()
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
-            Button(WenshuI18n.t("auto2.layouteditbar.l141.h65113621")) {
+            Button(String(localized: "auto2.layouteditbar.l141.h65113621")) {
                 editMode.set(false)
             }
             .buttonStyle(.bordered)

@@ -31,7 +31,7 @@ struct ChapterFocusLockBadge: View {
             ProgressView()
                 .controlSize(.small)
             SFIcon("pencil.and.outline", style: .inlineSmall, color: IconColor.tertiary)
-            Text(WenshuI18n.t("chatview.focus_lock.badge"))
+            Text(String(localized: "chatview.focus_lock.badge"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
@@ -40,6 +40,6 @@ struct ChapterFocusLockBadge: View {
         .padding(.vertical, DesignTokens.spacingIconic)
         .background(.quinary.opacity(0.4))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(WenshuI18n.t("chatview.focus_lock.badge"))
+        .accessibilityLabel(String(localized: "chatview.focus_lock.badge"))
     }
 }

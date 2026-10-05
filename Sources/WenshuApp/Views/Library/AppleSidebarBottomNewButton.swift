@@ -26,7 +26,7 @@ struct AppleSidebarBottomNewButton: View {
             Button(action: action) {
                 HStack(spacing: DesignTokens.spacingTight) {
                     SFIcon("plus", style: .inlineSmall, color: IconColor.secondary)
-                    Text(WenshuI18n.t("sidebar.new_button.label"))
+                    Text(String(localized: "sidebar.new_button.label"))
                         .font(.callout)
                 }
                 .frame(width: nil, height: DesignTokens.chromeHeight)
@@ -35,7 +35,7 @@ struct AppleSidebarBottomNewButton: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(WenshuI18n.t("sidebar.new_button.help"))
+            .help(String(localized: "sidebar.new_button.help"))
         }
     }
 }

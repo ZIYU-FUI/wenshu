@@ -51,7 +51,7 @@ struct ManifestWindow: View {
     private var header: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
             SFIcon("doc.text.below.ecg", style: .inlineSmall, color: IconColor.tint)
-            Text(WenshuI18n.t("window.manifest.title"))
+            Text(String(localized: "window.manifest.title"))
                 .font(.headline)
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)
@@ -61,7 +61,7 @@ struct ManifestWindow: View {
     private var emptyState: some View {
         VStack(alignment: .center, spacing: DesignTokens.spacingStandard) {
             SFIcon("questionmark.folder", style: .emptyStateHero, color: IconColor.secondary)
-            Text(WenshuI18n.t("window.manifest.empty"))
+            Text(String(localized: "window.manifest.empty"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -73,22 +73,22 @@ struct ManifestWindow: View {
     private func details(_ manifest: WSManifest) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
-                detailRow(label: WenshuI18n.t("window.manifest.workspace_uuid"),
+                detailRow(label: String(localized: "window.manifest.workspace_uuid"),
                           value: manifest.workspaceUUID.uuidString)
-                detailRow(label: WenshuI18n.t("window.manifest.schema_version"),
+                detailRow(label: String(localized: "window.manifest.schema_version"),
                           value: "\(manifest.schemaVersion)")
-                detailRow(label: WenshuI18n.t("window.manifest.wenshu_version"),
+                detailRow(label: String(localized: "window.manifest.wenshu_version"),
                           value: manifest.wenshuVersion)
-                detailRow(label: WenshuI18n.t("window.manifest.created_at"),
+                detailRow(label: String(localized: "window.manifest.created_at"),
                           value: manifest.createdAt.formatted(date: .abbreviated, time: .shortened))
-                detailRow(label: WenshuI18n.t("window.manifest.updated_at"),
+                detailRow(label: String(localized: "window.manifest.updated_at"),
                           value: manifest.updatedAt.formatted(date: .abbreviated, time: .shortened))
                 if let checksum = manifest.checksum {
-                    detailRow(label: WenshuI18n.t("window.manifest.checksum"),
+                    detailRow(label: String(localized: "window.manifest.checksum"),
                               value: checksum)
                 }
                 if let migratedAt = manifest.migratedFromRawSqliteAt {
-                    detailRow(label: WenshuI18n.t("window.manifest.migrated_at"),
+                    detailRow(label: String(localized: "window.manifest.migrated_at"),
                               value: migratedAt.formatted(date: .abbreviated, time: .shortened))
                 }
             }

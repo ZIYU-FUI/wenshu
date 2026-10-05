@@ -46,8 +46,8 @@ struct BackgroundReviewView: View {
     private var emptyState: some View {
         EmptyStateView(
             icon: "checkmark.circle",
-            title: WenshuI18n.t("background_review.empty.title"),
-            body: WenshuI18n.t("background_review.empty.body")
+            title: String(localized: "background_review.empty.title"),
+            body: String(localized: "background_review.empty.body")
         )
     }
 
@@ -71,11 +71,11 @@ struct BackgroundReviewView: View {
                 }
                 Spacer()
                 VStack(spacing: DesignTokens.spacingIconic) {
-                    Button(WenshuI18n.t("background_review.approve")) {
+                    Button(String(localized: "background_review.approve")) {
                         Task { await approve(proposal.id) }
                     }
                     .buttonStyle(.borderedProminent)
-                    Button(WenshuI18n.t("background_review.reject")) {
+                    Button(String(localized: "background_review.reject")) {
                         Task { await reject(proposal.id) }
                     }
                     .buttonStyle(.bordered)

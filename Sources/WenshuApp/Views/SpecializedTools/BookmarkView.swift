@@ -76,8 +76,8 @@ struct BookmarkView: View {
     private var emptyState: some View {
         EmptyStateView(
             icon: "bookmark",
-            title: WenshuI18n.t("bookmark.empty.title"),
-            body: WenshuI18n.t("bookmark.empty.body")
+            title: String(localized: "bookmark.empty.title"),
+            body: String(localized: "bookmark.empty.body")
         )
     }
 
@@ -100,7 +100,7 @@ struct BookmarkView: View {
     private var header: some View {
         HStack {
             SFIcon("bookmark", style: .inlineSmall, color: IconColor.tint)
-            Text(WenshuI18n.t("tab.title.bookmark"))
+            Text(String(localized: "tab.title.bookmark"))
                 .font(.headline)
             Spacer()
             Text("\(state.bookmarks.count)")
@@ -112,11 +112,11 @@ struct BookmarkView: View {
     private var addRow: some View {
         HStack {
             TextField(
-                WenshuI18n.t("bookmark.add.placeholder"),
+                String(localized: "bookmark.add.placeholder"),
                 text: $draftLabel
             )
             .textFieldStyle(.roundedBorder)
-            Button(WenshuI18n.t("bookmark.add.button")) {
+            Button(String(localized: "bookmark.add.button")) {
                 Task { await addBookmark() }
             }
             .disabled(draftLabel.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -126,7 +126,7 @@ struct BookmarkView: View {
     @ViewBuilder
     private var listSection: some View {
         if state.bookmarks.isEmpty {
-            Text(WenshuI18n.t("bookmark.list.empty"))
+            Text(String(localized: "bookmark.list.empty"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         } else {

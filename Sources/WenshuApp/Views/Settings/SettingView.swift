@@ -118,11 +118,11 @@ struct SettingView: View {
         /// follow the user's OS language.
         var displayName: String {
             switch self {
-            case .general: return WenshuI18n.t("settings.tab.general")
-            case .agentBehavior: return WenshuI18n.t("settings.tab.agentBehavior")
-            case .providerApi: return WenshuI18n.t("settings.tab.providerApi")
-            case .model: return WenshuI18n.t("settings.tab.model")
-            case .memory: return WenshuI18n.t("settings.tab.memory")
+            case .general: return String(localized: "settings.tab.general")
+            case .agentBehavior: return String(localized: "settings.tab.agentBehavior")
+            case .providerApi: return String(localized: "settings.tab.providerApi")
+            case .model: return String(localized: "settings.tab.model")
+            case .memory: return String(localized: "settings.tab.memory")
             }
         }
         var icon: String {
@@ -213,15 +213,15 @@ struct SettingView: View {
     private var generalTab: some View {
         // Pages UI, (8/21 " UI Apple, yesgeneralSettings")
         Form {
-            Section(WenshuI18n.t("settings.general.appearance")) {
-                Picker(WenshuI18n.t("settings.general.appearance"), selection: $appearanceMode) {
+            Section(String(localized: "settings.general.appearance")) {
+                Picker(String(localized: "settings.general.appearance"), selection: $appearanceMode) {
                     ForEach(AppearanceMode.allCases) { mode in
                         Text(mode.label).tag(mode)
                     }
                 }
                 .pickerStyle(.radioGroup)
             }
-            Section(WenshuI18n.t("settings.general.liquidGlass")) {
+            Section(String(localized: "settings.general.liquidGlass")) {
                 // Apple canonical .glassEffect(.regular) auto-applies
                 // project-wide (per-pane content background +
                 // per-region tab bar + per-region status bar + app
@@ -229,27 +229,27 @@ struct SettingView: View {
                 //   - dark mode / light mode
                 //   - Accessibility > Display > Reduce transparency
                 //   - Accessibility > Display > Increase contrast
-                Text(WenshuI18n.t("settings.general.liquidGlass.body"))
+                Text(String(localized: "settings.general.liquidGlass.body"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(WenshuI18n.t("settings.general.liquidGlass.hint"))
+                Text(String(localized: "settings.general.liquidGlass.hint"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
-            Section(WenshuI18n.t("settings.general.agentAddress")) {
+            Section(String(localized: "settings.general.agentAddress")) {
                 // Read by WenshuConductorIdentity.userAddress at LLM call time
                 // (dynamic per-chat). User cannot modify via chat per AGENTS.md.
                 // Reason for no .onChange handler: WenshuConductorIdentity.
                 // userAddress reads UserDefaults fresh each LLM call = automatic
                 // dynamic propagation, no event-driven mechanism needed.
-                TextField(WenshuI18n.t("settings.general.agentAddress"), text: $userAddress, prompt: Text(WenshuI18n.t("settings.general.agentAddress.prompt")))
+                TextField(String(localized: "settings.general.agentAddress"), text: $userAddress, prompt: Text(String(localized: "settings.general.agentAddress.prompt")))
                     .textFieldStyle(.roundedBorder)
-                Text(WenshuI18n.t("settings.general.agentAddress.help"))
+                Text(String(localized: "settings.general.agentAddress.help"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            Section(WenshuI18n.t("settings.general.misc")) {
-                Text(WenshuI18n.t("settings.general.misc.placeholderNote"))
+            Section(String(localized: "settings.general.misc")) {
+                Text(String(localized: "settings.general.misc.placeholderNote"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -268,9 +268,9 @@ struct SettingView: View {
         // picker shape consistent (= closed enum + radio-style =
         // Apple HIG canonical).
         Form {
-            Section(WenshuI18n.t("settings.agentBehavior.speakingStyle.title")) {
+            Section(String(localized: "settings.agentBehavior.speakingStyle.title")) {
                 Picker(
-                    WenshuI18n.t("settings.agentBehavior.speakingStyle.prompt"),
+                    String(localized: "settings.agentBehavior.speakingStyle.prompt"),
                     selection: Binding(
                         get: { AgentBehavior.currentSpeakingStyle() },
                         set: { AgentBehavior.setCurrentSpeakingStyle($0) }
@@ -281,7 +281,7 @@ struct SettingView: View {
                     }
                 }
                 .pickerStyle(.radioGroup)
-                Text(WenshuI18n.t("settings.agentBehavior.speakingStyle.help"))
+                Text(String(localized: "settings.agentBehavior.speakingStyle.help"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -308,7 +308,7 @@ struct SettingView: View {
                 .animation(.default, value: apiExpandedProviders)
                 .animation(.default, value: providerSearchText)
             } header: {
-                Text(WenshuI18n.t("settings.model.provider_label"))
+                Text(String(localized: "settings.model.provider_label"))
             } footer: {
                 let total = Provider.all.count
                 let set = providersWithKeys.count
@@ -323,7 +323,7 @@ struct SettingView: View {
         // shows all providers (= no filtering).
         .searchable(text: $providerSearchText,
                     placement: .toolbar,
-                    prompt: WenshuI18n.t("settings.search.placeholder"))
+                    prompt: String(localized: "settings.search.placeholder"))
     }
 
     // apple-001 HIG absent batch: filtered providers for .searchable.
@@ -370,9 +370,9 @@ struct SettingView: View {
     @ViewBuilder
     private func providerApiEditor(for p: Provider) -> some View {
         HStack(spacing: DesignTokens.spacingStandard) {
-            SecureField(WenshuI18n.t("b5.settingview.l399.h87028237"), text: $apiDraftKey)
+            SecureField(String(localized: "b5.settingview.l399.h87028237"), text: $apiDraftKey)
                 .textFieldStyle(.roundedBorder)
-            Button(WenshuI18n.t("settings.provider.save_button")) {
+            Button(String(localized: "settings.provider.save_button")) {
                 saveApiKey(for: p)
             }
             .keyboardShortcut(.defaultAction)
@@ -403,7 +403,7 @@ struct SettingView: View {
                     .font(.caption.monospaced())
                     .foregroundStyle(DesignTokens.statusForeground)
             } else {
-                Text(WenshuI18n.t("settings.provider.tbd_label"))
+                Text(String(localized: "settings.provider.tbd_label"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -443,7 +443,7 @@ struct SettingView: View {
     private var modelTab: some View {
         Form {
             Section {
-                Picker(WenshuI18n.t("settings.model.provider_label"), selection: $providerSlug) {
+                Picker(String(localized: "settings.model.provider_label"), selection: $providerSlug) {
                     ForEach(Provider.all) { p in
                         Text(p.name).tag(p.slug)
                     }
@@ -454,16 +454,16 @@ struct SettingView: View {
                     Task { await reloadModels() }
                 }
 
-                Picker(WenshuI18n.t("settings.model.model_label"), selection: llmModelBinding) {
+                Picker(String(localized: "settings.model.model_label"), selection: llmModelBinding) {
                     ForEach(modelIdList, id: \.self) { id in
                         Text(id).tag(id)
                     }
                 }
                 .pickerStyle(.menu)
             } header: {
-                Text(WenshuI18n.t("settings.model.main_model_label"))
+                Text(String(localized: "settings.model.main_model_label"))
             } footer: {
-                Text(WenshuI18n.t("settings.model.main_model_caption"))
+                Text(String(localized: "settings.model.main_model_caption"))
                     .font(.caption)
             }
 
@@ -471,19 +471,19 @@ struct SettingView: View {
                 // ticket 35b: picker aligned with Apple Anthropic API effort parameter (5 valid values per docs)
                 // Source: https://platform.claude.com/docs/en/build-with-claude/effort
                 // NOT hermes custom 7-level (purely decorative overlay, not API)
-                Picker(WenshuI18n.t("settings.model.reasoning_effort_label"), selection: $reasoningEffort) {
-                    Text(WenshuI18n.t("settings.model.reasoning_effort_low")).tag("low" as String)
-                    Text(WenshuI18n.t("settings.model.reasoning_effort_medium")).tag("medium" as String)
-                    Text(WenshuI18n.t("settings.model.reasoning_effort_high")).tag("high" as String)
-                    Text(WenshuI18n.t("settings.model.reasoning_effort_xhigh")).tag("xhigh" as String)
-                    Text(WenshuI18n.t("settings.model.reasoning_effort_max")).tag("max" as String)
+                Picker(String(localized: "settings.model.reasoning_effort_label"), selection: $reasoningEffort) {
+                    Text(String(localized: "settings.model.reasoning_effort_low")).tag("low" as String)
+                    Text(String(localized: "settings.model.reasoning_effort_medium")).tag("medium" as String)
+                    Text(String(localized: "settings.model.reasoning_effort_high")).tag("high" as String)
+                    Text(String(localized: "settings.model.reasoning_effort_xhigh")).tag("xhigh" as String)
+                    Text(String(localized: "settings.model.reasoning_effort_max")).tag("max" as String)
                 }
                 .pickerStyle(.menu)
-                Text(WenshuI18n.t("settings.model.reasoning.effortHint"))
+                Text(String(localized: "settings.model.reasoning.effortHint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {
-                Text(WenshuI18n.t("settings.model.reasoning_label"))
+                Text(String(localized: "settings.model.reasoning_label"))
             }
 
             Section {
@@ -497,19 +497,19 @@ struct SettingView: View {
                         Text(task.label)
                             .font(.body)
                         Spacer()
-                        Text(WenshuI18n.t("settings.model.use_main_model"))
+                        Text(String(localized: "settings.model.use_main_model"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Button(WenshuI18n.t("settings.model.change_button")) {}
+                        Button(String(localized: "settings.model.change_button")) {}
                             .buttonStyle(.borderless)
                             .controlSize(.small)
                             .disabled(true)
                     }
                 }
             } header: {
-                Text(WenshuI18n.t("settings.model.assistant_model_label"))
+                Text(String(localized: "settings.model.assistant_model_label"))
             } footer: {
-                Text(WenshuI18n.t("settings.assistant.caption"))
+                Text(String(localized: "settings.assistant.caption"))
                     .font(.caption)
             }
         }

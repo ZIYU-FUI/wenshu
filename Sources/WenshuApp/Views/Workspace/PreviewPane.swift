@@ -597,7 +597,7 @@ struct PreviewPane: View {
             // section-header idiom; = SectionHeader owns the 10 PT /
             // 4 PT / 10 PT insets; = PreviewPane no longer hardcodes
             // the geometry here).
-            SectionHeader(title: WenshuI18n.t("preview.column.title"))
+            SectionHeader(title: String(localized: "preview.column.title"))
             // Per Apple HIG / platform-default style: remove the custom
             // top inset (= `chromePaddingSectionTop` = 18 PT) and the
             // custom bottom inset (= 4 PT). The center column is the

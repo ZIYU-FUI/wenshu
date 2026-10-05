@@ -112,8 +112,8 @@ struct BookSettingConstraintsView: View {
         // other empty state in the workspace.
         EmptyStateView(
             icon: "book.closed",
-            title: WenshuI18n.t("b5.booksettingconstraintsview.l153.h29425451"),
-            body: WenshuI18n.t("b5.booksettingconstraintsview.l156.h45808897")
+            title: String(localized: "b5.booksettingconstraintsview.l153.h29425451"),
+            body: String(localized: "b5.booksettingconstraintsview.l156.h45808897")
         )
     }
 
@@ -140,13 +140,13 @@ struct BookSettingConstraintsView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.booksettingconstraintsview.l185.h87583031"))
+            Text(String(localized: "b5.booksettingconstraintsview.l185.h87583031"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            TextField(WenshuI18n.t("b5.booksettingconstraintsview.l188.h10634385"), text: $draftTitle, axis: .horizontal)
+            TextField(String(localized: "b5.booksettingconstraintsview.l188.h10634385"), text: $draftTitle, axis: .horizontal)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help(WenshuI18n.t("b5.booksettingconstraintsview.l191.h24829594"))
+                .help(String(localized: "b5.booksettingconstraintsview.l191.h24829594"))
             TextField(
                 "Description (2-3 sentences)",
                 text: $draftDescription,
@@ -155,7 +155,7 @@ struct BookSettingConstraintsView: View {
             .textFieldStyle(.roundedBorder)
             .font(.caption)
             .lineLimit(2...4)
-            .help(WenshuI18n.t("b5.booksettingconstraintsview.l200.h58963992"))
+            .help(String(localized: "b5.booksettingconstraintsview.l200.h58963992"))
             HStack(spacing: DesignTokens.spacingStandard) {
                 Picker("Severity", selection: $draftSeverity) {
                     ForEach(ConstraintSeverity.allCases) { severity in
@@ -164,7 +164,7 @@ struct BookSettingConstraintsView: View {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .help(WenshuI18n.t("b5.booksettingconstraintsview.l209.h3955671"))
+                .help(String(localized: "b5.booksettingconstraintsview.l209.h3955671"))
                 Picker("Scope", selection: $draftScope) {
                     ForEach(ConstraintScope.allCases) { scope in
                         Label(scope.displayName, systemImage: scope.icon).tag(scope)
@@ -172,7 +172,7 @@ struct BookSettingConstraintsView: View {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .help(WenshuI18n.t("b5.booksettingconstraintsview.l217.h78462056"))
+                .help(String(localized: "b5.booksettingconstraintsview.l217.h78462056"))
                 TextField(
                     draftScope.supportsAppliesTo ? "Applies-to UUID (character or plot)" : "Applies-to (not used)",
                     text: $draftAppliesToText
@@ -180,16 +180,16 @@ struct BookSettingConstraintsView: View {
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
                 .disabled(!draftScope.supportsAppliesTo)
-                .help(WenshuI18n.t("b5.booksettingconstraintsview.l225.h9125068"))
+                .help(String(localized: "b5.booksettingconstraintsview.l225.h9125068"))
                 Spacer(minLength: 0)
                 Button {
                     Task { await addConstraint() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l230.h25158042")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.booksettingconstraintsview.l230.h25158042")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help(WenshuI18n.t("b5.booksettingconstraintsview.l234.h50733767"))
+                .help(String(localized: "b5.booksettingconstraintsview.l234.h50733767"))
             }
             TextField(
                 "Forbidden patterns (comma-separated, e.g. cast from behind, came back from the dead)",
@@ -198,7 +198,7 @@ struct BookSettingConstraintsView: View {
             )
             .textFieldStyle(.roundedBorder)
             .font(.caption)
-            .help(WenshuI18n.t("b5.booksettingconstraintsview.l243.h5804737"))
+            .help(String(localized: "b5.booksettingconstraintsview.l243.h5804737"))
         }
     }
 
@@ -210,11 +210,11 @@ struct BookSettingConstraintsView: View {
 
     private var listSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.booksettingconstraintsview.l255.h54115638"))
+            Text(String(localized: "b5.booksettingconstraintsview.l255.h54115638"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.constraints.isEmpty {
-                Text(WenshuI18n.t("b5.booksettingconstraintsview.l259.h46205528"))
+                Text(String(localized: "b5.booksettingconstraintsview.l259.h46205528"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -256,7 +256,7 @@ struct BookSettingConstraintsView: View {
                                     .fill(.tint.opacity(0.15))
                             )
                         if let _ = constraint.appliesToId {
-                            Text(WenshuI18n.t("b5.booksettingconstraintsview.l306.h56657996"))
+                            Text(String(localized: "b5.booksettingconstraintsview.l306.h56657996"))
                                 .font(.caption2)
                                 .foregroundStyle(DesignTokens.statusForeground)
                         }
@@ -292,7 +292,7 @@ struct BookSettingConstraintsView: View {
                     SFIcon("trash", style: .inlineSmall, color: IconColor.secondary)
                 }
                 .buttonStyle(.borderless)
-                .help(WenshuI18n.t("b5.booksettingconstraintsview.l343.h49822929"))
+                .help(String(localized: "b5.booksettingconstraintsview.l343.h49822929"))
             }
         }
         .padding(.vertical, DesignTokens.spacingTight)
@@ -305,7 +305,7 @@ struct BookSettingConstraintsView: View {
 
     private var checkSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.booksettingconstraintsview.l359.h58742514"))
+            Text(String(localized: "b5.booksettingconstraintsview.l359.h58742514"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(alignment: .top, spacing: DesignTokens.spacingStandard) {
@@ -314,16 +314,16 @@ struct BookSettingConstraintsView: View {
                     .frame(minHeight: DesignTokens.textEditorMediumMinHeight, maxHeight: DesignTokens.textEditorMediumMaxHeight)
                     .padding(DesignTokens.spacingIconic)
                     
-                    .help(WenshuI18n.t("b5.booksettingconstraintsview.l371.h65632517"))
+                    .help(String(localized: "b5.booksettingconstraintsview.l371.h65632517"))
                 VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                     Button {
                         Task { await runCheck() }
                     } label: {
-                        Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l376.h23587784")) } icon: { SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.tint) }
+                        Label { Text(String(localized: "b5.booksettingconstraintsview.l376.h23587784")) } icon: { SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.tint) }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || state.constraints.isEmpty)
-                    .help(WenshuI18n.t("b5.booksettingconstraintsview.l380.h7773239"))
+                    .help(String(localized: "b5.booksettingconstraintsview.l380.h7773239"))
                     if hasChecked {
                         Text("\(state.violations.count) violation\(state.violations.count == 1 ? "" : "s")")
                             .font(.caption)
@@ -333,7 +333,7 @@ struct BookSettingConstraintsView: View {
             }
             if hasChecked {
                 if state.violations.isEmpty {
-                    Text(WenshuI18n.t("b5.booksettingconstraintsview.l390.h74566260"))
+                    Text(String(localized: "b5.booksettingconstraintsview.l390.h74566260"))
                         .font(.caption)
                         .foregroundStyle(DesignTokens.statusForeground)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -356,11 +356,11 @@ struct BookSettingConstraintsView: View {
                     Text(violation.title)
                         .font(.caption)
                         .foregroundStyle(.primary)
-                    Text(WenshuI18n.t("b5.booksettingconstraintsview.l416.h60886424"))
+                    Text(String(localized: "b5.booksettingconstraintsview.l416.h60886424"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     if let _ = violation.lineNumber {
-                        Text(WenshuI18n.t("b5.booksettingconstraintsview.l420.h37146244"))
+                        Text(String(localized: "b5.booksettingconstraintsview.l420.h37146244"))
                             .font(.caption2)
                             .foregroundStyle(DesignTokens.statusForeground)
                     }

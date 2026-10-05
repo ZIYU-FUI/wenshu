@@ -58,7 +58,7 @@ struct TodoWindow: View {
                     .controlSize(.large)
             }
         }
-        .navigationTitle(WenshuI18n.t("window.todo.title"))
+        .navigationTitle(String(localized: "window.todo.title"))
         .task {
             do {
                 let wsRoot = try KanbanWindow.resolveLibraryPath()

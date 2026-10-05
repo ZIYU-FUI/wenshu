@@ -20,10 +20,10 @@ struct SubAgentProgressView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(WenshuI18n.t("subagent.progress_title"))
+                Text(String(localized: "subagent.progress_title"))
                     .font(.headline)
                 Spacer()
-                Text(WenshuI18n.t("auto2.subagentprogressview.l27.h17103990"))
+                Text(String(localized: "auto2.subagentprogressview.l27.h17103990"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -31,7 +31,7 @@ struct SubAgentProgressView: View {
             Divider()
 
             if tasks.isEmpty {
-                Text(WenshuI18n.t("subagent.empty_state"))
+                Text(String(localized: "subagent.empty_state"))
                     .font(.body)
                     .foregroundStyle(DesignTokens.statusForeground)
             } else {
@@ -47,11 +47,11 @@ struct SubAgentProgressView: View {
             Spacer()
 
             HStack {
-                Text(WenshuI18n.t("subagent.live_update_hint"))
+                Text(String(localized: "subagent.live_update_hint"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
                 Spacer()
-                Button(WenshuI18n.t("auto2.subagentprogressview.l59.h26216387")) {
+                Button(String(localized: "auto2.subagentprogressview.l59.h26216387")) {
                     refreshTrigger += 1
                 }
                 .buttonStyle(.bordered)

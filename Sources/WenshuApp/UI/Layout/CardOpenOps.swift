@@ -170,7 +170,7 @@ enum CardOpenOps {
             return CardTriad(
                 path: nil,
                 content: "",
-                title: category?.displayName ?? WenshuI18n.t("tab.title.reference_library")
+                title: category?.displayName ?? String(localized: "tab.title.reference_library")
             )
         case .bookScope:
             // Deferred to ticket 027-35: PreviewPane's private

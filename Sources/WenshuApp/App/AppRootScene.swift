@@ -319,12 +319,12 @@ struct AppRootScene: Scene {
                 // the new-choice sheet opens (= user picks Book /
                 // Shelf inside the sheet = same UX as the button-
                 // triggered flow).
-                Menu(WenshuI18n.t("menu.file.new_project")) {
-                    Button(WenshuI18n.t("menu.file.new_project.submenu.new_book")) {
+                Menu(String(localized: "menu.file.new_project")) {
+                    Button(String(localized: "menu.file.new_project.submenu.new_book")) {
                         sheetRequests.newBook += 1
                     }
                     .keyboardShortcut("n", modifiers: .command)
-                    Button(WenshuI18n.t("menu.file.new_project.submenu.new_shelf")) {
+                    Button(String(localized: "menu.file.new_project.submenu.new_shelf")) {
                         sheetRequests.newShelf += 1
                     }
                 }
@@ -339,15 +339,15 @@ struct AppRootScene: Scene {
                 // '); placeholder posts a
                 // NotificationCenter event so v0.27 followups can
                 // listen + implement.
-                Button(WenshuI18n.t("menu.file.import")) {
+                Button(String(localized: "menu.file.import")) {
                     NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
                 }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
             }
             CommandGroup(replacing: .undoRedo) {
-                Button(WenshuI18n.t("menu.edit.undo"), action: {})
+                Button(String(localized: "menu.edit.undo"), action: {})
                     .keyboardShortcut("z", modifiers: .command)
-                Button(WenshuI18n.t("menu.edit.redo"), action: {})
+                Button(String(localized: "menu.edit.redo"), action: {})
                     .keyboardShortcut("Z", modifiers: [.command, .shift])
             }
             // is a zone that can be shown/hidden, but the toggle lives in the menu bar, there is no dedicated
@@ -378,7 +378,7 @@ struct AppRootScene: Scene {
                         // bind to workspaceUI.chatVisible). Toggle still binds
                         // the flag.
             CommandGroup(after: .toolbar) {
-                Toggle(WenshuI18n.t("menu.view.show_chat_zone"), isOn: Binding(
+                Toggle(String(localized: "menu.view.show_chat_zone"), isOn: Binding(
                     get: { workspaceUI.chatVisible },
                     set: { newValue in
                         workspaceUI.chatVisible = newValue
@@ -481,39 +481,39 @@ struct AppRootScene: Scene {
         .windowToolbarStyle(.unified)
         // 4 new independent windows for previously-unwired features.
         // Per the same shape as the existing kanban + todo windows.
-        Window(WenshuI18n.t("window.canvas"), id: WindowID.canvas) {
+        Window(String(localized: "window.canvas"), id: WindowID.canvas) {
             CanvasWindow()
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
-        Window(WenshuI18n.t("window.composer"), id: WindowID.composer) {
+        Window(String(localized: "window.composer"), id: WindowID.composer) {
             ComposerWindow()
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
-        Window(WenshuI18n.t("window.foreshadowing_graph"), id: WindowID.foreshadowingGraph) {
+        Window(String(localized: "window.foreshadowing_graph"), id: WindowID.foreshadowingGraph) {
             ForeshadowingGraphWindow()
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
-        Window(WenshuI18n.t("window.cron"), id: WindowID.cron) {
+        Window(String(localized: "window.cron"), id: WindowID.cron) {
             CronWindow()
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
         // WS model entry windows (= Attachments + Manifest + Summaries).
         // Per the same shape as the existing kanban + todo windows.
-        Window(WenshuI18n.t("window.attachments.title"), id: WindowID.attachments) {
+        Window(String(localized: "window.attachments.title"), id: WindowID.attachments) {
             AttachmentsWindow()
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
-        Window(WenshuI18n.t("window.manifest.title"), id: WindowID.manifest) {
+        Window(String(localized: "window.manifest.title"), id: WindowID.manifest) {
             ManifestWindow()
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
-        Window(WenshuI18n.t("window.summaries.title"), id: WindowID.summaries) {
+        Window(String(localized: "window.summaries.title"), id: WindowID.summaries) {
             SummariesWindow()
         }
         .windowResizability(.contentSize)

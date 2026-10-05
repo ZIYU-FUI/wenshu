@@ -92,21 +92,21 @@ struct NewChoiceSheet: View {
 
     var body: some View {
         VStack(spacing: DesignTokens.spacingSection) {
-            Text(WenshuI18n.t("new_choice_sheet_title"))
+            Text(String(localized: "new_choice_sheet_title"))
                 .font(.title2.weight(.semibold))
                 .padding(.top, DesignTokens.spacingLoose)
             HStack(spacing: DesignTokens.spacingLoose) {
                 NewChoiceCard(
-                    title: WenshuI18n.t("new_choice_shelf_title"),
-                    subtitle: WenshuI18n.t("new_choice_shelf_subtitle"),
+                    title: String(localized: "new_choice_shelf_title"),
+                    subtitle: String(localized: "new_choice_shelf_subtitle"),
                     systemImage: "books.vertical.fill",
                     tint: .accentColor
                 ) {
                     onCreate(.shelf)
                 }
                 NewChoiceCard(
-                    title: WenshuI18n.t("new_choice_book_title"),
-                    subtitle: WenshuI18n.t("new_choice_book_subtitle"),
+                    title: String(localized: "new_choice_book_title"),
+                    subtitle: String(localized: "new_choice_book_subtitle"),
                     systemImage: "book.closed.fill",
                     tint: .accentColor
                 ) {
@@ -122,7 +122,7 @@ struct NewChoiceSheet: View {
             Spacer(minLength: 0)
             HStack {
                 Spacer()
-                Button(WenshuI18n.t("auto.shared.cancel"), action: onCancel)
+                Button(String(localized: "auto.shared.cancel"), action: onCancel)
                     .keyboardShortcut(.cancelAction)
             }
             // chromePaddingXLarge (= 24 PT horizontal) + chromePaddingLarge
@@ -195,7 +195,7 @@ struct NewShelfSheet: View {
     /// the name `资料库` as its display name; reusing that name for
     /// a user shelf would shadow the reference root.
     static let reservedNames: Set<String> = [
-        WenshuI18n.t("library.sidebar.reference_root"),
+        String(localized: "library.sidebar.reference_root"),
         "资料库", "参考库", "reference library"
     ]
 
@@ -210,10 +210,10 @@ struct NewShelfSheet: View {
     private var nameError: String? {
         if trimmed.isEmpty { return nil }  // empty = not yet a "name" = no error
         if Self.reservedNames.contains(where: { trimmed.caseInsensitiveCompare($0) == .orderedSame }) {
-            return WenshuI18n.t("new_shelf_sheet_reserved_error")
+            return String(localized: "new_shelf_sheet_reserved_error")
         }
         if existingNames.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
-            return WenshuI18n.t("new_shelf_sheet_duplicate_error")
+            return String(localized: "new_shelf_sheet_duplicate_error")
         }
         return nil
     }
@@ -225,7 +225,7 @@ struct NewShelfSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField(WenshuI18n.t("new_shelf_sheet_name_field"), text: $name)
+                TextField(String(localized: "new_shelf_sheet_name_field"), text: $name)
                     .textFieldStyle(.roundedBorder)
                 if let error = nameError {
                     Text(error)
@@ -237,14 +237,14 @@ struct NewShelfSheet: View {
             // (= static non-scrollable sheet VStack; = Apple has no
             // system API for non-scrollable outer padding).
             .padding(DesignTokens.spacingHero)
-            .navigationTitle(WenshuI18n.t("new_shelf_sheet_title"))
+            .navigationTitle(String(localized: "new_shelf_sheet_title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(WenshuI18n.t("auto.shared.cancel"), action: onCancel)
+                    Button(String(localized: "auto.shared.cancel"), action: onCancel)
                         .keyboardShortcut(.cancelAction)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(WenshuI18n.t("auto.shared.save")) {
+                    Button(String(localized: "auto.shared.save")) {
                         onSave(trimmed)
                     }
                     .keyboardShortcut(.defaultAction)
@@ -338,11 +338,11 @@ struct NewBookSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField(WenshuI18n.t("new_book_sheet_title_field"), text: $title)
+                TextField(String(localized: "new_book_sheet_title_field"), text: $title)
                     .textFieldStyle(.roundedBorder)
-                TextField(WenshuI18n.t("new_book_sheet_author_field"), text: $author)
+                TextField(String(localized: "new_book_sheet_author_field"), text: $author)
                     .textFieldStyle(.roundedBorder)
-                Picker(WenshuI18n.t("new_book_sheet_shelf_picker"), selection: $shelfId) {
+                Picker(String(localized: "new_book_sheet_shelf_picker"), selection: $shelfId) {
                     ForEach(availableShelves, id: \.id) { shelf in
                         Text(shelf.name).tag(shelf.id)
                     }
@@ -356,7 +356,7 @@ struct NewBookSheet: View {
                             SFIcon(selectedIcon, style: .toolbarButton, color: IconColor.accent)
                         }
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(WenshuI18n.t("new_book_sheet_icon_label"))
+                            Text(String(localized: "new_book_sheet_icon_label"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(selectedIcon)
@@ -397,14 +397,14 @@ struct NewBookSheet: View {
             // (= static non-scrollable sheet VStack; = Apple has no
             // system API for non-scrollable outer padding).
             .padding(DesignTokens.spacingHero)
-            .navigationTitle(WenshuI18n.t("new_book_sheet_title"))
+            .navigationTitle(String(localized: "new_book_sheet_title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(WenshuI18n.t("auto.shared.cancel"), action: onCancel)
+                    Button(String(localized: "auto.shared.cancel"), action: onCancel)
                         .keyboardShortcut(.cancelAction)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(WenshuI18n.t("auto.shared.save")) {
+                    Button(String(localized: "auto.shared.save")) {
                         onSave(NewBookInput(
                             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                             author: author.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -459,10 +459,10 @@ struct RenameItemSheet: View {
         if trimmed.isEmpty { return nil }
         if trimmed.caseInsensitiveCompare(originalName) == .orderedSame { return nil }  // unchanged = OK
         if NewShelfSheet.reservedNames.contains(where: { trimmed.caseInsensitiveCompare($0) == .orderedSame }) {
-            return WenshuI18n.t("rename_item_sheet_reserved_error")
+            return String(localized: "rename_item_sheet_reserved_error")
         }
         if otherNames.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
-            return WenshuI18n.t("rename_item_sheet_duplicate_error")
+            return String(localized: "rename_item_sheet_duplicate_error")
         }
         return nil
     }
@@ -474,7 +474,7 @@ struct RenameItemSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField(WenshuI18n.t("rename_item_sheet_name_field"), text: $name)
+                TextField(String(localized: "rename_item_sheet_name_field"), text: $name)
                     .textFieldStyle(.roundedBorder)
                 if let error = nameError {
                     Text(error)
@@ -486,14 +486,14 @@ struct RenameItemSheet: View {
             // (= static non-scrollable sheet VStack; = Apple has no
             // system API for non-scrollable outer padding).
             .padding(DesignTokens.spacingHero)
-            .navigationTitle(WenshuI18n.t("rename_item_sheet_title"))
+            .navigationTitle(String(localized: "rename_item_sheet_title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(WenshuI18n.t("auto.shared.cancel"), action: onCancel)
+                    Button(String(localized: "auto.shared.cancel"), action: onCancel)
                         .keyboardShortcut(.cancelAction)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(WenshuI18n.t("auto.shared.save")) {
+                    Button(String(localized: "auto.shared.save")) {
                         onSave(trimmed)
                     }
                     .keyboardShortcut(.defaultAction)

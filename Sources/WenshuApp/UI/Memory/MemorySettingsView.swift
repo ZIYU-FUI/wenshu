@@ -37,20 +37,20 @@ struct MemorySettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
-            Text(WenshuI18n.t("settings.memory.title"))
+            Text(String(localized: "settings.memory.title"))
                 .font(.headline)
-            Text(WenshuI18n.t("settings.memory.subtitle"))
+            Text(String(localized: "settings.memory.subtitle"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             Divider()
 
-            Toggle(WenshuI18n.t("settings.memory.enable"), isOn: $isMemoryEnabled)
+            Toggle(String(localized: "settings.memory.enable"), isOn: $isMemoryEnabled)
                 .toggleStyle(.switch)
 
-            Picker(WenshuI18n.t("settings.memory.scope"), selection: $scopeRaw) {
-                Text(WenshuI18n.t("settings.memory.scope.perBook")).tag(MemoryScope.perBook.rawValue)
-                Text(WenshuI18n.t("settings.memory.scope.libraryPublic")).tag(MemoryScope.libraryPublic.rawValue)
+            Picker(String(localized: "settings.memory.scope"), selection: $scopeRaw) {
+                Text(String(localized: "settings.memory.scope.perBook")).tag(MemoryScope.perBook.rawValue)
+                Text(String(localized: "settings.memory.scope.libraryPublic")).tag(MemoryScope.libraryPublic.rawValue)
             }
             .pickerStyle(.segmented)
             .disabled(!isMemoryEnabled)
@@ -62,13 +62,13 @@ struct MemorySettingsView: View {
 // in hermes MEMORY_RETENTION_BUCKETS).
 
             HStack {
-                Text(WenshuI18n.t("settings.memory.retention"))
+                Text(String(localized: "settings.memory.retention"))
                     .frame(width: DesignTokens.settingsRowLabelWidth, alignment: .leading)
-                Picker(WenshuI18n.t("settings.memory.retention"), selection: $retentionDays) {
-                    Text(WenshuI18n.t("settings.memory.retention.d30")).tag(30)
-                    Text(WenshuI18n.t("settings.memory.retention.d90")).tag(90)
-                    Text(WenshuI18n.t("settings.memory.retention.d180")).tag(180)
-                    Text(WenshuI18n.t("settings.memory.retention.d365")).tag(365)
+                Picker(String(localized: "settings.memory.retention"), selection: $retentionDays) {
+                    Text(String(localized: "settings.memory.retention.d30")).tag(30)
+                    Text(String(localized: "settings.memory.retention.d90")).tag(90)
+                    Text(String(localized: "settings.memory.retention.d180")).tag(180)
+                    Text(String(localized: "settings.memory.retention.d365")).tag(365)
                 }
                 .pickerStyle(.segmented)
                 .disabled(!isMemoryEnabled)
@@ -100,7 +100,7 @@ struct MemorySettingsView: View {
             }
 
             if recentEntries.isEmpty {
-                Text(WenshuI18n.t("settings.memory.recent.empty"))
+                Text(String(localized: "settings.memory.recent.empty"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, DesignTokens.spacingTight)

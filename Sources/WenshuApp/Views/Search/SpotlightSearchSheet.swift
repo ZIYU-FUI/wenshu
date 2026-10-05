@@ -54,7 +54,7 @@ struct SpotlightSearchSheet: View {
         NavigationStack {
                 VStack(spacing: DesignTokens.spacingModerate) {
                     TextField(
-                        WenshuI18n.t("spotlight.search.placeholder"),
+                        String(localized: "spotlight.search.placeholder"),
                         text: $query
                     )
                     .textFieldStyle(.roundedBorder)
@@ -65,7 +65,7 @@ struct SpotlightSearchSheet: View {
                     resultList
                 }
                 .padding(DesignTokens.spacingModerate)
-                .navigationTitle(WenshuI18n.t("spotlight.search.title"))
+                .navigationTitle(String(localized: "spotlight.search.title"))
         }
         .frame(minWidth: 480, minHeight: 320)
         .onAppear { status = .idle }
@@ -77,8 +77,8 @@ struct SpotlightSearchSheet: View {
         case .idle:
             EmptyStateView(
                 icon: "magnifyingglass",
-                title: WenshuI18n.t("spotlight.search.idle.title"),
-                body: WenshuI18n.t("spotlight.search.idle.body")
+                title: String(localized: "spotlight.search.idle.title"),
+                body: String(localized: "spotlight.search.idle.body")
             )
         case .loading:
             ProgressView()
@@ -86,8 +86,8 @@ struct SpotlightSearchSheet: View {
             if rows.isEmpty {
                 EmptyStateView(
                     icon: "magnifyingglass",
-                    title: WenshuI18n.t("spotlight.search.empty.title"),
-                    body: WenshuI18n.t("spotlight.search.empty.body")
+                    title: String(localized: "spotlight.search.empty.title"),
+                    body: String(localized: "spotlight.search.empty.body")
                 )
             } else {
                 List(rows) { row in
@@ -101,7 +101,7 @@ struct SpotlightSearchSheet: View {
         case .failed(let message):
             EmptyStateView(
                 icon: "exclamationmark.triangle",
-                title: WenshuI18n.t("spotlight.search.failed.title"),
+                title: String(localized: "spotlight.search.failed.title"),
                 body: message
             )
         }

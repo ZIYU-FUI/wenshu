@@ -35,7 +35,7 @@ struct ChatAttachmentPreviewChip: View {
                 SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("chat.input.attach.clear"))
+            .help(String(localized: "chat.input.attach.clear"))
         }
         .padding(DesignTokens.spacingIconic)
         .background(

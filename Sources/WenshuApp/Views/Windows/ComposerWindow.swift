@@ -41,9 +41,9 @@ struct ComposerWindow: View {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .rename: return WenshuI18n.t("composer.op.rename")
-            case .merge:  return WenshuI18n.t("composer.op.merge")
-            case .split:  return WenshuI18n.t("composer.op.split")
+            case .rename: return String(localized: "composer.op.rename")
+            case .merge:  return String(localized: "composer.op.merge")
+            case .split:  return String(localized: "composer.op.split")
             }
         }
     }
@@ -72,53 +72,53 @@ struct ComposerWindow: View {
         Form {
             Section {
                 TextField(
-                    WenshuI18n.t("composer.field.note_id"),
+                    String(localized: "composer.field.note_id"),
                     text: $sourceNoteId
                 )
                 .textFieldStyle(.roundedBorder)
             } header: {
-                Text(WenshuI18n.t("composer.section.note_id"))
+                Text(String(localized: "composer.section.note_id"))
             }
             switch selectedOperation {
             case .rename:
                 Section {
                     TextField(
-                        WenshuI18n.t("composer.field.old_name"),
+                        String(localized: "composer.field.old_name"),
                         text: $oldName
                     )
                     .textFieldStyle(.roundedBorder)
                     TextField(
-                        WenshuI18n.t("composer.field.new_name"),
+                        String(localized: "composer.field.new_name"),
                         text: $newName
                     )
                     .textFieldStyle(.roundedBorder)
                 } header: {
-                    Text(WenshuI18n.t("composer.section.rename"))
+                    Text(String(localized: "composer.section.rename"))
                 }
             case .merge:
                 Section {
                     TextField(
-                        WenshuI18n.t("composer.field.target_note_id"),
+                        String(localized: "composer.field.target_note_id"),
                         text: $targetNoteId
                     )
                     .textFieldStyle(.roundedBorder)
                 } header: {
-                    Text(WenshuI18n.t("composer.section.merge"))
+                    Text(String(localized: "composer.section.merge"))
                 }
             case .split:
                 Section {
                     TextField(
-                        WenshuI18n.t("composer.field.start_line"),
+                        String(localized: "composer.field.start_line"),
                         text: $startLine
                     )
                     .textFieldStyle(.roundedBorder)
                     TextField(
-                        WenshuI18n.t("composer.field.end_line"),
+                        String(localized: "composer.field.end_line"),
                         text: $endLine
                     )
                     .textFieldStyle(.roundedBorder)
                 } header: {
-                    Text(WenshuI18n.t("composer.section.split"))
+                    Text(String(localized: "composer.section.split"))
                 }
             }
             if let resultText {
@@ -126,7 +126,7 @@ struct ComposerWindow: View {
                     Text(resultText)
                         .font(.caption)
                 } header: {
-                    Text(WenshuI18n.t("composer.section.result"))
+                    Text(String(localized: "composer.section.result"))
                 }
             }
 
@@ -135,7 +135,7 @@ struct ComposerWindow: View {
             // are the canonical composer surfaces (= this view is
             // the UI host).
             Section {
-                Button(WenshuI18n.t("composer.run")) {
+                Button(String(localized: "composer.run")) {
                     runOperation()
                 }
                 .buttonStyle(.borderedProminent)

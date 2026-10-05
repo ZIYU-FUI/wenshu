@@ -105,7 +105,7 @@ struct AppleSidebarView: View {
                     // PreviewPane '素材' header; = same 10 PT / text /
                     // 4 PT gap / divider / 10 PT inset Apple HIG
                     // Mail / Notes / Finder section-header idiom).
-                    SectionHeader(title: WenshuI18n.t("sidebar.column.title"))
+                    SectionHeader(title: String(localized: "sidebar.column.title"))
                     let sidebarList = List(
                         service.nodes,
                         children: \.children,
@@ -130,7 +130,7 @@ struct AppleSidebarView: View {
                 // type-checker handles it inline; = the heavy
                 // closure lives in `contextMenuHandler`.
                 .modifier(EmptyAreaContextMenu(
-                    newLabel: WenshuI18n.t("sidebar_context_menu_new"),
+                    newLabel: String(localized: "sidebar_context_menu_new"),
                     action: { sheetRequests.choice += 1 }
                 ))
                 // y: right-click on selected rows (= Apple
@@ -300,7 +300,7 @@ struct AppleSidebarView: View {
             // resolveNewBookTargetShelf pattern; = the same logic
             // now lives in `SidebarService.targetShelfForNewBook(...)`).
             let target = service?.targetShelfForNewBook(currentSelection: workspaceUI.sidebarSelection)
-                ?? service?.defaultShelfTarget() ?? (id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!, name: WenshuI18n.t("library.default.shelf_name"))
+                ?? service?.defaultShelfTarget() ?? (id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!, name: String(localized: "library.default.shelf_name"))
             NewBookSheet(
                 onSave: { input in
                     do {
@@ -344,14 +344,14 @@ struct AppleSidebarView: View {
             )
         }
         .alert(
-            WenshuI18n.t("sidebar_delete_alert_title"),
+            String(localized: "sidebar_delete_alert_title"),
             isPresented: Binding(
                 get: { pendingDelete != nil },
                 set: { if !$0 { pendingDelete = nil } }
             ),
             presenting: pendingDelete
         ) { target in
-            Button(WenshuI18n.t("sidebar_context_menu_delete"), role: .destructive) {
+            Button(String(localized: "sidebar_context_menu_delete"), role: .destructive) {
                 do {
                     switch target.kind {
                     case .shelf:
@@ -366,11 +366,11 @@ struct AppleSidebarView: View {
                     pendingDelete = nil
                 }
             }
-            Button(WenshuI18n.t("auto.shared.cancel"), role: .cancel) {
+            Button(String(localized: "auto.shared.cancel"), role: .cancel) {
                 pendingDelete = nil
             }
         } message: { target in
-            Text(WenshuI18n.t("sidebar_delete_alert_message")
+            Text(String(localized: "sidebar_delete_alert_message")
                 .replacingOccurrences(of: "%@", with: target.itemName))
         }
     }

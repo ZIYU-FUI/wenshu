@@ -41,7 +41,7 @@ struct ChatMessageHoverActions: View {
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .help(WenshuI18n.t("chatview.message_action.copy"))
+            .help(String(localized: "chatview.message_action.copy"))
             // Delete button (= SF Symbols 6 `trash` icon; = marks the
             // message for deletion = the caller wires the actual
             // delete logic via a parent state).
@@ -60,7 +60,7 @@ struct ChatMessageHoverActions: View {
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .help(WenshuI18n.t("chatview.message_action.delete"))
+            .help(String(localized: "chatview.message_action.delete"))
         }
         .padding(.horizontal, DesignTokens.spacingTight)
         .padding(.vertical, DesignTokens.spacingIconic)

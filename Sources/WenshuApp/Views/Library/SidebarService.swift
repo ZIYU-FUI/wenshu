@@ -295,7 +295,7 @@ final class SidebarService {
             roots.append(SidebarNode(
                 id: Self.referenceLibraryRootId,
                 kind: .reference,
-                title: WenshuI18n.t("sidebar.reference_library.title"),
+                title: String(localized: "sidebar.reference_library.title"),
                 subtitle: nil,
                 systemImage: "books.vertical",
                 children: referenceRootChildren.isEmpty ? nil : referenceRootChildren
@@ -542,17 +542,17 @@ extension SidebarService {
         var errorDescription: String? {
             switch self {
             case .cannotDeleteDefault:
-                return WenshuI18n.t("sidebar_service_error_cannot_delete_default")
+                return String(localized: "sidebar_service_error_cannot_delete_default")
             case .duplicateName(let name):
-                return WenshuI18n.t("new_shelf_sheet_duplicate_error")
+                return String(localized: "new_shelf_sheet_duplicate_error")
                     .replacingOccurrences(of: "%@", with: name)
             case .reservedName(let name):
-                return WenshuI18n.t("new_shelf_sheet_reserved_error")
+                return String(localized: "new_shelf_sheet_reserved_error")
                     .replacingOccurrences(of: "%@", with: name)
             case .bookNotFound:
-                return WenshuI18n.t("sidebar_service_error_book_not_found")
+                return String(localized: "sidebar_service_error_book_not_found")
             case .shelfNotFound:
-                return WenshuI18n.t("sidebar_service_error_shelf_not_found")
+                return String(localized: "sidebar_service_error_shelf_not_found")
             }
         }
     }
@@ -562,7 +562,7 @@ extension SidebarService {
     /// a user shelf would shadow the reference root; = same set
     /// the legacy NewLibraryOutlineView.renameShelf enforced).
     static let reservedNames: Set<String> = [
-        WenshuI18n.t("library.sidebar.reference_root"),
+        String(localized: "library.sidebar.reference_root"),
         "资料库", "参考库", "reference library"
     ]
 
@@ -818,7 +818,7 @@ extension SidebarService {
             return (shelf.id, shelf.name)
         }
         // First-launch fallback: no shelves on disk yet.
-        return (defaultId, WenshuI18n.t("library.default.shelf_name"))
+        return (defaultId, String(localized: "library.default.shelf_name"))
     }
 
     /// shelf names excluding the one with `id` (= for

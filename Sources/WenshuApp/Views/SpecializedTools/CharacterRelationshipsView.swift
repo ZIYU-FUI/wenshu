@@ -105,8 +105,8 @@ struct CharacterRelationshipsView: View {
         // other empty state in the workspace.
         EmptyStateView(
             icon: "person.2",
-            title: WenshuI18n.t("b5.characterrelationshipsview.l148.h14968122"),
-            body: WenshuI18n.t("b5.characterrelationshipsview.l151.h23755386")
+            title: String(localized: "b5.characterrelationshipsview.l148.h14968122"),
+            body: String(localized: "b5.characterrelationshipsview.l151.h23755386")
         )
     }
 
@@ -132,11 +132,11 @@ struct CharacterRelationshipsView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.characterrelationshipsview.l179.h77944637"))
+            Text(String(localized: "b5.characterrelationshipsview.l179.h77944637"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.characters.count < 2 {
-                Text(WenshuI18n.t("b5.characterrelationshipsview.l183.h86534805"))
+                Text(String(localized: "b5.characterrelationshipsview.l183.h86534805"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -145,7 +145,7 @@ struct CharacterRelationshipsView: View {
                     get: { draftFromId ?? state.characters.first?.id ?? UUID() },
                     set: { draftFromId = $0 }
                 )) {
-                    Text(WenshuI18n.t("b5.characterrelationshipsview.l192.h15212550")).tag(UUID())
+                    Text(String(localized: "b5.characterrelationshipsview.l192.h15212550")).tag(UUID())
                     ForEach(state.characters) { c in
                         Text(c.name).tag(c.id)
                     }
@@ -160,7 +160,7 @@ struct CharacterRelationshipsView: View {
                     get: { draftToId ?? state.characters.dropFirst().first?.id ?? UUID() },
                     set: { draftToId = $0 }
                 )) {
-                    Text(WenshuI18n.t("b5.characterrelationshipsview.l208.h39347010")).tag(UUID())
+                    Text(String(localized: "b5.characterrelationshipsview.l208.h39347010")).tag(UUID())
                     ForEach(state.characters) { c in
                         Text(c.name).tag(c.id)
                     }
@@ -182,13 +182,13 @@ struct CharacterRelationshipsView: View {
                 Button {
                     Task { await addRelationship() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.characterrelationshipsview.l230.h80913925")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.characterrelationshipsview.l230.h80913925")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help(WenshuI18n.t("b5.characterrelationshipsview.l234.h8880758"))
+                .help(String(localized: "b5.characterrelationshipsview.l234.h8880758"))
             }
-            TextField(WenshuI18n.t("b5.characterrelationshipsview.l236.h75459793"), text: $draftDescription, axis: .horizontal)
+            TextField(String(localized: "b5.characterrelationshipsview.l236.h75459793"), text: $draftDescription, axis: .horizontal)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
                 .disabled(state.characters.count < 2)
@@ -205,11 +205,11 @@ struct CharacterRelationshipsView: View {
 
     private var listSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.characterrelationshipsview.l253.h68099009"))
+            Text(String(localized: "b5.characterrelationshipsview.l253.h68099009"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.relationships.isEmpty {
-                Text(WenshuI18n.t("b5.characterrelationshipsview.l257.h87596331"))
+                Text(String(localized: "b5.characterrelationshipsview.l257.h87596331"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -245,7 +245,7 @@ struct CharacterRelationshipsView: View {
                         .padding(.vertical, DesignTokens.spacingHairline)
                         
                     if row.isMutual {
-                        Text(WenshuI18n.t("b5.characterrelationshipsview.l299.h17838183"))
+                        Text(String(localized: "b5.characterrelationshipsview.l299.h17838183"))
                             .font(.caption2)
                             .foregroundStyle(.blue)
                     }
@@ -264,7 +264,7 @@ struct CharacterRelationshipsView: View {
                 SFIcon("trash", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("b5.characterrelationshipsview.l319.h19379525"))
+            .help(String(localized: "b5.characterrelationshipsview.l319.h19379525"))
         }
         .padding(.vertical, DesignTokens.spacingTight)
         .padding(.horizontal, DesignTokens.spacingStandard)
@@ -276,11 +276,11 @@ struct CharacterRelationshipsView: View {
 
     private var inconsistenciesSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.characterrelationshipsview.l334.h68375167"))
+            Text(String(localized: "b5.characterrelationshipsview.l334.h68375167"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.inconsistencies.isEmpty {
-                Text(WenshuI18n.t("b5.characterrelationshipsview.l338.h51048722"))
+                Text(String(localized: "b5.characterrelationshipsview.l338.h51048722"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)

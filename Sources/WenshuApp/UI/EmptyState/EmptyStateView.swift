@@ -83,8 +83,8 @@ import SwiftUI
 /// ```swift
 /// EmptyStateView(
 ///     icon: "doc.text",  // SF Symbols 6 name
-///     title: WenshuI18n.t("foreshadowingview.empty.title"),
-///     body: WenshuI18n.t("foreshadowingview.empty.body")
+///     title: String(localized: "foreshadowingview.empty.title"),
+///     body: String(localized: "foreshadowingview.empty.body")
 /// )
 /// ```
 ///

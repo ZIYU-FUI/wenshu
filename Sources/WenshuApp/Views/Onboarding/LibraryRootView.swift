@@ -190,7 +190,7 @@ struct LibraryRootView: View {
             .task(id: activeLibraryPath) { await runLaunch() }
             .sheet(isPresented: $commandPaletteVisible) {
                 CommandPaletteView(model: commandPaletteModel)
-                    .navigationTitle(WenshuI18n.t("command_palette.title"))
+                    .navigationTitle(String(localized: "command_palette.title"))
             }
             // v2.8a ((see OOB.md #2026-09-28) OOB B2): Cmd-F ⌘F triggers the
             // Spotlight search sheet (= Apple HIG hidden-button +
@@ -505,12 +505,12 @@ Group {
 }
 
             VStack(spacing: DesignTokens.spacingModerate) {
-                Text(WenshuI18n.t("auto.libraryrootview.l366.h45346224"))
+                Text(String(localized: "auto.libraryrootview.l366.h45346224"))
                     .font(.title.weight(.semibold))
-                Text(WenshuI18n.t("onboarding.library.choose_location"))
+                Text(String(localized: "onboarding.library.choose_location"))
                     .font(.title2)
                     .foregroundStyle(.secondary)
-                Text(WenshuI18n.t("onboarding.library.welcome_blurb"))
+                Text(String(localized: "onboarding.library.welcome_blurb"))
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -527,7 +527,7 @@ Group {
                 Button {
                     isImporterPresented = true
                 } label: {
-                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l387.h40947105")) } icon: { SFIcon("document.badge.plus", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "auto2.libraryrootview.l387.h40947105")) } icon: { SFIcon("document.badge.plus", style: .inlineSmall, color: IconColor.tint) }
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.borderedProminent)
@@ -536,13 +536,13 @@ Group {
                 Button {
                     isImporterPresented = true
                 } label: {
-                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l396.h53178210")) } icon: { SFIcon("folder", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "auto2.libraryrootview.l396.h53178210")) } icon: { SFIcon("folder", style: .inlineSmall, color: IconColor.tint) }
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
 
-                Text(WenshuI18n.t("onboarding.library.new_vs_open"))
+                Text(String(localized: "onboarding.library.new_vs_open"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }

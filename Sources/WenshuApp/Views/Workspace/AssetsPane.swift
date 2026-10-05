@@ -373,7 +373,7 @@ struct AssetsPane: View {
                     HStack(spacing: DesignTokens.spacingIconic) {
                         SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.secondary)
                         TextField(
-                            WenshuI18n.t("preview.search.placeholder"),
+                            String(localized: "preview.search.placeholder"),
                             text: Binding(
                                 get: { envAppState.searchText },
                                 set: { newValue in envAppState.searchText = newValue }

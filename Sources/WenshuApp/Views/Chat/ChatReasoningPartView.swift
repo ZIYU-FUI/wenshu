@@ -69,8 +69,8 @@ struct ChatReasoningPartView: View {
             // (= the Hermes `thoughtFor` / `thoughtBriefly` / `thought`
             // state machine = simplified to a 2-state label here).
             Text(isRunning
-                 ? WenshuI18n.t("chatview.ai_thinking")
-                 : WenshuI18n.t("chatview.ai_thought"))
+                 ? String(localized: "chatview.ai_thinking")
+                 : String(localized: "chatview.ai_thought"))
                 .font(.caption)
         }
         .animation(.default, value: isExpanded)

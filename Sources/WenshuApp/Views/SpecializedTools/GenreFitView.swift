@@ -89,7 +89,7 @@ struct GenreFitView: View {
 
     private var pickerRow: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
-            Text(WenshuI18n.t("b5.genrefitview.l132.h73166390"))
+            Text(String(localized: "b5.genrefitview.l132.h73166390"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Picker("", selection: $selectedGenre) {
@@ -114,11 +114,11 @@ struct GenreFitView: View {
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             HStack(spacing: DesignTokens.spacingTight) {
-                Text(WenshuI18n.t("b5.genrefitview.l157.h55071280"))
+                Text(String(localized: "b5.genrefitview.l157.h55071280"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
-                Text(WenshuI18n.t("b5.genrefitview.l161.h19367178"))
+                Text(String(localized: "b5.genrefitview.l161.h19367178"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -131,20 +131,20 @@ struct GenreFitView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label { Text(WenshuI18n.t("button.analyze")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "button.analyze")) } icon: { SFIcon("play", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || state.status == .loading)
-                .help(WenshuI18n.t("b5.genrefitview.l181.h2218881"))
+                .help(String(localized: "b5.genrefitview.l181.h2218881"))
                 Button {
                     chapterText = ""
                     state.report = nil
                     state.status = .idle
                 } label: {
-                    Label { Text(WenshuI18n.t("button.clear")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "button.clear")) } icon: { SFIcon("xmark", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.bordered)
-                .help(WenshuI18n.t("b5.genrefitview.l190.h26662967"))
+                .help(String(localized: "b5.genrefitview.l190.h26662967"))
                 Spacer(minLength: 0)
             }
         }
@@ -162,8 +162,8 @@ struct GenreFitView: View {
         // other empty state in the workspace.
         EmptyStateView(
             icon: "bookmark",
-            title: WenshuI18n.t("b5.genrefitview.l200.h95444806"),
-            body: WenshuI18n.t("b5.genrefitview.l203.h79122074")
+            title: String(localized: "b5.genrefitview.l200.h95444806"),
+            body: String(localized: "b5.genrefitview.l203.h79122074")
         )
     }
 
@@ -209,7 +209,7 @@ struct GenreFitView: View {
             if score >= 40 { return .orange.opacity(0.22) }
             return .red.opacity(0.22)
         }()
-        return Text(WenshuI18n.t("b5.genrefitview.l256.h78050164"))
+        return Text(String(localized: "b5.genrefitview.l256.h78050164"))
             .font(.caption2)
             .foregroundStyle(.primary)
             .padding(.horizontal, DesignTokens.spacingTight)
@@ -227,7 +227,7 @@ struct GenreFitView: View {
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 if items.isEmpty {
-                    Text(WenshuI18n.t("b5.genrefitview.l274.h53280066"))
+                    Text(String(localized: "b5.genrefitview.l274.h53280066"))
                         .font(.caption)
                         .foregroundStyle(DesignTokens.statusForeground)
                 } else {

@@ -122,8 +122,8 @@ struct CharacterLifecycleView: View {
         // other empty state in the workspace.
         EmptyStateView(
             icon: "clock",
-            title: WenshuI18n.t("b5.characterlifecycleview.l168.h1439622"),
-            body: WenshuI18n.t("b5.characterlifecycleview.l171.h40676736")
+            title: String(localized: "b5.characterlifecycleview.l168.h1439622"),
+            body: String(localized: "b5.characterlifecycleview.l171.h40676736")
         )
     }
 
@@ -150,20 +150,20 @@ struct CharacterLifecycleView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.characterlifecycleview.l200.h38389147"))
+            Text(String(localized: "b5.characterlifecycleview.l200.h38389147"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.characters.isEmpty {
-                Text(WenshuI18n.t("b5.characterlifecycleview.l204.h79350323"))
+                Text(String(localized: "b5.characterlifecycleview.l204.h79350323"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
             HStack(spacing: DesignTokens.spacingStandard) {
-                Picker(WenshuI18n.t("picker.character"), selection: Binding(
+                Picker(String(localized: "picker.character"), selection: Binding(
                     get: { draftCharacterId ?? state.characters.first?.id ?? UUID() },
                     set: { draftCharacterId = $0 }
                 )) {
-                    Text(WenshuI18n.t("b5.characterlifecycleview.l213.h31260689")).tag(UUID())
+                    Text(String(localized: "b5.characterlifecycleview.l213.h31260689")).tag(UUID())
                     ForEach(state.characters) { c in
                         Text(c.name).tag(c.id)
                     }
@@ -185,21 +185,21 @@ struct CharacterLifecycleView: View {
                 Button {
                     Task { await addEvent() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.characterlifecycleview.l235.h51075723")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help(WenshuI18n.t("b5.characterlifecycleview.l239.h26593030"))
+                .help(String(localized: "b5.characterlifecycleview.l239.h26593030"))
             }
             HStack(spacing: DesignTokens.spacingStandard) {
-                TextField(WenshuI18n.t("b5.characterlifecycleview.l242.h58864975"), text: $draftChapterUUIDText, axis: .horizontal)
+                TextField(String(localized: "b5.characterlifecycleview.l242.h58864975"), text: $draftChapterUUIDText, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help(WenshuI18n.t("b5.characterlifecycleview.l245.h27116037"))
-                TextField(WenshuI18n.t("b5.characterlifecycleview.l246.h53203368"), text: $draftExcerpt, axis: .horizontal)
+                    .help(String(localized: "b5.characterlifecycleview.l245.h27116037"))
+                TextField(String(localized: "b5.characterlifecycleview.l246.h53203368"), text: $draftExcerpt, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help(WenshuI18n.t("b5.characterlifecycleview.l249.h31682361"))
+                    .help(String(localized: "b5.characterlifecycleview.l249.h31682361"))
             }
         }
     }
@@ -213,11 +213,11 @@ struct CharacterLifecycleView: View {
 
     private var listSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.characterlifecycleview.l263.h29792914"))
+            Text(String(localized: "b5.characterlifecycleview.l263.h29792914"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.events.isEmpty {
-                Text(WenshuI18n.t("b5.characterlifecycleview.l267.h43318691"))
+                Text(String(localized: "b5.characterlifecycleview.l267.h43318691"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -249,7 +249,7 @@ struct CharacterLifecycleView: View {
                         .padding(.vertical, DesignTokens.spacingHairline)
                         
                     if let _ = event.chapterId {
-                        Text(WenshuI18n.t("b5.characterlifecycleview.l304.h73934719"))
+                        Text(String(localized: "b5.characterlifecycleview.l304.h73934719"))
                             .font(.caption2)
                             .foregroundStyle(DesignTokens.statusForeground)
                     }
@@ -268,7 +268,7 @@ struct CharacterLifecycleView: View {
                 SFIcon("trash", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("b5.characterlifecycleview.l324.h5673239"))
+            .help(String(localized: "b5.characterlifecycleview.l324.h5673239"))
         }
         .padding(.vertical, DesignTokens.spacingTight)
         .padding(.horizontal, DesignTokens.spacingStandard)
@@ -280,11 +280,11 @@ struct CharacterLifecycleView: View {
 
     private var timelineSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.characterlifecycleview.l339.h16422962"))
+            Text(String(localized: "b5.characterlifecycleview.l339.h16422962"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.characters.isEmpty {
-                Text(WenshuI18n.t("b5.characterlifecycleview.l343.h47112699"))
+                Text(String(localized: "b5.characterlifecycleview.l343.h47112699"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -294,7 +294,7 @@ struct CharacterLifecycleView: View {
                         get: { selectedCharacterId ?? state.characters.first?.id ?? UUID() },
                         set: { selectedCharacterId = $0 }
                     )) {
-                        Text(WenshuI18n.t("b5.characterlifecycleview.l353.h58360186")).tag(UUID())
+                        Text(String(localized: "b5.characterlifecycleview.l353.h58360186")).tag(UUID())
                         ForEach(state.characters) { c in
                             Text(c.name).tag(c.id)
                         }
@@ -307,7 +307,7 @@ struct CharacterLifecycleView: View {
                     Spacer(minLength: 0)
                 }
                 if state.timelineRows.isEmpty {
-                    Text(WenshuI18n.t("b5.characterlifecycleview.l366.h98560518"))
+                    Text(String(localized: "b5.characterlifecycleview.l366.h98560518"))
                         .font(.caption)
                         .foregroundStyle(DesignTokens.statusForeground)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -332,7 +332,7 @@ struct CharacterLifecycleView: View {
                 .font(.caption)
                 .foregroundStyle(.primary)
             if let _ = event.chapterId {
-                Text(WenshuI18n.t("b5.characterlifecycleview.l393.h77015228"))
+                Text(String(localized: "b5.characterlifecycleview.l393.h77015228"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -344,11 +344,11 @@ struct CharacterLifecycleView: View {
 
     private var contradictionsSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.characterlifecycleview.l405.h20963905"))
+            Text(String(localized: "b5.characterlifecycleview.l405.h20963905"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.contradictions.isEmpty {
-                Text(WenshuI18n.t("b5.characterlifecycleview.l409.h10185050"))
+                Text(String(localized: "b5.characterlifecycleview.l409.h10185050"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)

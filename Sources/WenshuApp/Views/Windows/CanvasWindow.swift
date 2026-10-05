@@ -47,7 +47,7 @@ struct CanvasWindow: View {
                             importerVisible = true
                         } label: {
                             Label {
-                                Text(WenshuI18n.t("canvas.open"))
+                                Text(String(localized: "canvas.open"))
                             } icon: {
                                 SFIcon("folder", style: .inlineSmall, color: IconColor.tint)
                             }
@@ -61,7 +61,7 @@ struct CanvasWindow: View {
                             exporterVisible = true
                         } label: {
                             Label {
-                                Text(WenshuI18n.t("canvas.save"))
+                                Text(String(localized: "canvas.save"))
                             } icon: {
                                 SFIcon("square.and.arrow.down", style: .inlineSmall, color: IconColor.tint)
                             }
@@ -92,7 +92,7 @@ struct CanvasWindow: View {
     private var contentBody: some View {
         if let document {
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                Text(String(format: WenshuI18n.t("canvas.nodes.count"), document.nodes.count))
+                Text(String(format: String(localized: "canvas.nodes.count"), document.nodes.count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Divider()
@@ -109,8 +109,8 @@ struct CanvasWindow: View {
         } else {
             EmptyStateView(
                 icon: "rectangle.3.group",
-                title: WenshuI18n.t("canvas.empty.title"),
-                body: WenshuI18n.t("canvas.empty.body")
+                title: String(localized: "canvas.empty.title"),
+                body: String(localized: "canvas.empty.body")
             )
         }
     }

@@ -99,29 +99,29 @@ struct InspectorView: View {
         switch workspaceUI.inspectorPage {
         case .authoringFiction:
             return [
-                (WenshuI18n.t("tab.title.foreshadowing"), "arrow.triangle.branch", AnyView(ForeshadowingView())),
-                (WenshuI18n.t("tab.title.placeholder"), "square.dashed", AnyView(PlaceholderView())),
-                (WenshuI18n.t("tab.title.plot_thread"), "arrow.triangle.branch", AnyView(PlotThreadView()))
+                (String(localized: "tab.title.foreshadowing"), "arrow.triangle.branch", AnyView(ForeshadowingView())),
+                (String(localized: "tab.title.placeholder"), "square.dashed", AnyView(PlaceholderView())),
+                (String(localized: "tab.title.plot_thread"), "arrow.triangle.branch", AnyView(PlotThreadView()))
             ]
         case .authoringStyle:
             return [
-                (WenshuI18n.t("tab.title.long_form"), "checkmark.shield", AnyView(LongFormGuardrailsView())),
-                (WenshuI18n.t("tab.title.reader_experience"), "sparkles", AnyView(ReaderExperienceView())),
-                (WenshuI18n.t("tab.title.genre_fit"), "bookmark", AnyView(GenreFitView()))
+                (String(localized: "tab.title.long_form"), "checkmark.shield", AnyView(LongFormGuardrailsView())),
+                (String(localized: "tab.title.reader_experience"), "sparkles", AnyView(ReaderExperienceView())),
+                (String(localized: "tab.title.genre_fit"), "bookmark", AnyView(GenreFitView()))
             ]
         case .authoringCharacters:
             return [
-                (WenshuI18n.t("tab.title.character_relationships"), "person.2", AnyView(CharacterRelationshipsView())),
-                (WenshuI18n.t("tab.title.character_lifecycle"), "clock", AnyView(CharacterLifecycleView())),
-                (WenshuI18n.t("tab.title.emotion_curve"), "waveform.path.ecg", AnyView(EmotionCurveView()))
+                (String(localized: "tab.title.character_relationships"), "person.2", AnyView(CharacterRelationshipsView())),
+                (String(localized: "tab.title.character_lifecycle"), "clock", AnyView(CharacterLifecycleView())),
+                (String(localized: "tab.title.emotion_curve"), "waveform.path.ecg", AnyView(EmotionCurveView()))
             ]
         case .projectManagement:
             return [
-                (WenshuI18n.t("tab.title.idea_library"), "lightbulb", AnyView(IdeaLibraryView())),
-                (WenshuI18n.t("tab.title.tag_manager"), "tag", AnyView(TagManagerView())),
-                (WenshuI18n.t("tab.title.book_setting_constraints"), "book.closed", AnyView(BookSettingConstraintsView())),
-                (WenshuI18n.t("tab.title.bookmark"), "bookmark", AnyView(BookmarkView())),
-                (WenshuI18n.t("tab.title.background_review"), "checkmark.circle.badge.questionmark", AnyView(BackgroundReviewView()))
+                (String(localized: "tab.title.idea_library"), "lightbulb", AnyView(IdeaLibraryView())),
+                (String(localized: "tab.title.tag_manager"), "tag", AnyView(TagManagerView())),
+                (String(localized: "tab.title.book_setting_constraints"), "book.closed", AnyView(BookSettingConstraintsView())),
+                (String(localized: "tab.title.bookmark"), "bookmark", AnyView(BookmarkView())),
+                (String(localized: "tab.title.background_review"), "checkmark.circle.badge.questionmark", AnyView(BackgroundReviewView()))
             ]
         }
     }
@@ -325,7 +325,7 @@ struct InspectorView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .help(WenshuI18n.t("inspector.page.help"))
+                .help(String(localized: "inspector.page.help"))
             }
             // The inspector toggle button moves from the trailing
             // area (= the previous `.primaryAction` placement = the
@@ -358,36 +358,36 @@ struct InspectorView: View {
                     inspectorVisibleBinding.toggle()
                 } label: {
                     Label {
-                        Text(WenshuI18n.t("inspector.toggle.button"))
+                        Text(String(localized: "inspector.toggle.button"))
                     } icon: {
                         SFIcon(inspectorVisibleBinding ? "sidebar-right" : "sidebar.left", style: .paneTab, color: IconColor.tint)
                     }
                 }
-                .help(WenshuI18n.t("inspector.toggle.help"))
+                .help(String(localized: "inspector.toggle.help"))
 
                 Button {
                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.kanban)")
                     openWindow(id: WindowID.kanban)
                 } label: {
                     Label {
-                        Text(WenshuI18n.t("window.kanban.open"))
+                        Text(String(localized: "window.kanban.open"))
                     } icon: {
                         SFIcon("rectangle.split.3x1", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
-                .help(WenshuI18n.t("window.kanban.help"))
+                .help(String(localized: "window.kanban.help"))
 
                 Button {
                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.todo)")
                     openWindow(id: WindowID.todo)
                 } label: {
                     Label {
-                        Text(WenshuI18n.t("window.todo.open"))
+                        Text(String(localized: "window.todo.open"))
                     } icon: {
                         SFIcon("checklist", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
-                .help(WenshuI18n.t("window.todo.help"))
+                .help(String(localized: "window.todo.help"))
 
                 // v2.8a ((see OOB.md #2026-09-28) OOB B3): explicit
                 // CommandPalette toolbar button. The palette
@@ -399,12 +399,12 @@ struct InspectorView: View {
                     CommandPaletteController.show()
                 } label: {
                     Label {
-                        Text(WenshuI18n.t("command_palette.open"))
+                        Text(String(localized: "command_palette.open"))
                     } icon: {
                         SFIcon("command", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
-                .help(WenshuI18n.t("command_palette.open.help"))
+                .help(String(localized: "command_palette.open.help"))
 
                 // v2.8b ((see OOB.md #2026-09-28) OOB B6 + B7 + B9): 4
                 // toolbar buttons that open 4 independent windows
@@ -415,84 +415,84 @@ struct InspectorView: View {
                     openWindow(id: WindowID.canvas)
                 } label: {
                     Label {
-                        Text(WenshuI18n.t("window.canvas.open"))
+                        Text(String(localized: "window.canvas.open"))
                     } icon: {
                         SFIcon("rectangle.3.group", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
-                .help(WenshuI18n.t("window.canvas.help"))
+                .help(String(localized: "window.canvas.help"))
 
                 Button {
                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.composer)")
                     openWindow(id: WindowID.composer)
                 } label: {
                     Label {
-                        Text(WenshuI18n.t("window.composer.open"))
+                        Text(String(localized: "window.composer.open"))
                     } icon: {
                         SFIcon("arrow.triangle.merge", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
-                .help(WenshuI18n.t("window.composer.help"))
+                .help(String(localized: "window.composer.help"))
 
                 Button {
                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.foreshadowingGraph)")
                     openWindow(id: WindowID.foreshadowingGraph)
                 } label: {
                     Label {
-                        Text(WenshuI18n.t("window.foreshadowing_graph.open"))
+                        Text(String(localized: "window.foreshadowing_graph.open"))
                     } icon: {
                         SFIcon("arrow.triangle.branch", style: .inlineSmall, color: IconColor.tint)
                     }
                 }
-                .help(WenshuI18n.t("window.foreshadowing_graph.help"))
+                .help(String(localized: "window.foreshadowing_graph.help"))
 
                 Button {
                                     NSLog("[wenshu.window] click: openWindow id=\\(WindowID.cron)")
                                     openWindow(id: WindowID.cron)
                                 } label: {
                                     Label {
-                                        Text(WenshuI18n.t("window.cron.open"))
+                                        Text(String(localized: "window.cron.open"))
                                     } icon: {
                                         SFIcon("clock", style: .inlineSmall, color: IconColor.tint)
                                     }
                                 }
-                                .help(WenshuI18n.t("window.cron.help"))
+                                .help(String(localized: "window.cron.help"))
 
                                 Button {
                                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.attachments)")
                                     openWindow(id: WindowID.attachments)
                                 } label: {
                                     Label {
-                                        Text(WenshuI18n.t("window.attachments.title"))
+                                        Text(String(localized: "window.attachments.title"))
                                     } icon: {
                                         SFIcon("paperclip", style: .inlineSmall, color: IconColor.tint)
                                     }
                                 }
-                                .help(WenshuI18n.t("window.attachments.title"))
+                                .help(String(localized: "window.attachments.title"))
 
                                 Button {
                                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.manifest)")
                                     openWindow(id: WindowID.manifest)
                                 } label: {
                                     Label {
-                                        Text(WenshuI18n.t("window.manifest.title"))
+                                        Text(String(localized: "window.manifest.title"))
                                     } icon: {
                                         SFIcon("doc.text.below.ecg", style: .inlineSmall, color: IconColor.tint)
                                     }
                                 }
-                                .help(WenshuI18n.t("window.manifest.title"))
+                                .help(String(localized: "window.manifest.title"))
 
                                 Button {
                                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.summaries)")
                                     openWindow(id: WindowID.summaries)
                                 } label: {
                                     Label {
-                                        Text(WenshuI18n.t("window.summaries.title"))
+                                        Text(String(localized: "window.summaries.title"))
                                     } icon: {
                                         SFIcon("text.bubble", style: .inlineSmall, color: IconColor.tint)
                                     }
                                 }
-                                .help(WenshuI18n.t("window.summaries.title"))
+                                .help(String(localized: "window.summaries.title"))
 
                                 // v2.9a ((see OOB.md #2026-09-28) OOB A4): LLM Wiki
                                 // operator button = the manual surface for
@@ -522,12 +522,12 @@ struct InspectorView: View {
                                     }
                                 } label: {
                                     Label {
-                                        Text(WenshuI18n.t("llm_wiki.operator.open"))
+                                        Text(String(localized: "llm_wiki.operator.open"))
                                     } icon: {
                                         SFIcon("book.circle", style: .inlineSmall, color: IconColor.tint)
                                     }
                                 }
-                                .help(WenshuI18n.t("llm_wiki.operator.help"))
+                                .help(String(localized: "llm_wiki.operator.help"))
 
                                 // v2.9c ((see OOB.md #2026-09-28) OOB B5
                 // follow-up): Restore operator (= the Backup
@@ -538,9 +538,9 @@ struct InspectorView: View {
                 Button {
                                     Task { await restoreLatestBackup() }
                                 } label: {
-                                    Label(WenshuI18n.t("backup.operator.open"), systemImage: "arrow.uturn.backward.circle")
+                                    Label(String(localized: "backup.operator.open"), systemImage: "arrow.uturn.backward.circle")
                                 }
-                                .help(WenshuI18n.t("backup.operator.help"))
+                                .help(String(localized: "backup.operator.help"))
                 }
         }
         // Re-inject AppState into the env chain. SwiftUI 6+ breaks

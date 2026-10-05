@@ -76,7 +76,7 @@ struct TodoListView: View {
             header
             inputRow
             if let _ = loadError {
-                Text(WenshuI18n.t("auto.todolistview.l107.h41709117"))
+                Text(String(localized: "auto.todolistview.l107.h41709117"))
                     .font(.caption)
                     .foregroundStyle(.red)
             }
@@ -100,7 +100,7 @@ struct TodoListView: View {
     /// scope picker drives the JSON file the view reads from.
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(WenshuI18n.t("auto.todolistview.l135.h30358113"))
+            Text(String(localized: "auto.todolistview.l135.h30358113"))
                 .font(.headline)
             Picker("scope", selection: $scope) {
                 ForEach(bookStore.availableScopes(bookId: bookStore.selectedBookId)) { s in
@@ -109,9 +109,9 @@ struct TodoListView: View {
             }
             .pickerStyle(.menu)
             .fixedSize()
-            .help(WenshuI18n.t("auto2.todolistview.l144.h43082120"))
+            .help(String(localized: "auto2.todolistview.l144.h43082120"))
             Spacer()
-            Text(WenshuI18n.t("todolist.count_jsonhint"))
+            Text(String(localized: "todolist.count_jsonhint"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -145,7 +145,7 @@ struct TodoListView: View {
     private var inputRow: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: DesignTokens.spacingTight) {
-                TextField(WenshuI18n.t("auto2.todolistview.l180.h66445661"), text: $newItemTitle)
+                TextField(String(localized: "auto2.todolistview.l180.h66445661"), text: $newItemTitle)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addItem() }
                 Picker("优先级", selection: $newItemPriority) {
@@ -156,7 +156,7 @@ struct TodoListView: View {
                 .pickerStyle(.menu)
                 .fixedSize()
                 Button(action: addItem) {
-                    Label { Text(WenshuI18n.t("auto2.todolistview.l191.h76640765")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "auto2.todolistview.l191.h76640765")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)
@@ -167,7 +167,7 @@ struct TodoListView: View {
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             } else if newItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text(WenshuI18n.t("auto.todolistview.l202.h74652246"))
+                Text(String(localized: "auto.todolistview.l202.h74652246"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -179,9 +179,9 @@ struct TodoListView: View {
     private var scopeUnavailableHint: String {
         switch scope {
         case .referenceLibrary:
-            return WenshuI18n.t("error.reference_library_not_bootstrapped")
+            return String(localized: "error.reference_library_not_bootstrapped")
         case .book, .folder:
-            return WenshuI18n.t("todo.unselected_book")
+            return String(localized: "todo.unselected_book")
         }
     }
 
@@ -209,7 +209,7 @@ struct TodoListView: View {
                 .font(.caption)
                 .foregroundStyle(DesignTokens.statusForeground)
         } else if items.isEmpty {
-            Text(WenshuI18n.t("todo.empty_state"))
+            Text(String(localized: "todo.empty_state"))
                 .font(.caption)
                 .foregroundStyle(DesignTokens.statusForeground)
         } else {
@@ -233,7 +233,7 @@ struct TodoListView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
             if subset.isEmpty {
-                Text(WenshuI18n.t("auto.todolistview.l357.h8034177"))
+                Text(String(localized: "auto.todolistview.l357.h8034177"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             } else {
@@ -385,14 +385,14 @@ private struct TodoRow: View {
             Spacer()
             priorityChip
             Menu {
-                Button(WenshuI18n.t("auto2.todolistview.l566.h96905135")) { onSetStatus(.inProgress) }
+                Button(String(localized: "auto2.todolistview.l566.h96905135")) { onSetStatus(.inProgress) }
                     .disabled(item.status == .inProgress)
-                Button(WenshuI18n.t("auto2.todolistview.l568.h11194739")) { onSetStatus(.completed) }
+                Button(String(localized: "auto2.todolistview.l568.h11194739")) { onSetStatus(.completed) }
                     .disabled(item.status == .completed)
-                Button(WenshuI18n.t("auto2.todolistview.l570.h27285299")) { onSetStatus(.cancelled) }
+                Button(String(localized: "auto2.todolistview.l570.h27285299")) { onSetStatus(.cancelled) }
                     .disabled(item.status == .cancelled)
                 Divider()
-                Button(WenshuI18n.t("auto2.todolistview.l573.h2266275"), role: .destructive) { onDelete() }
+                Button(String(localized: "auto2.todolistview.l573.h2266275"), role: .destructive) { onDelete() }
             } label: {
                 SFIcon("ellipsis", style: .inlineSmall, color: IconColor.secondary)
             }
@@ -416,14 +416,14 @@ private struct TodoRow: View {
                     .font(.caption)
                     .foregroundStyle(isOverdue ? .red : Color.secondary)
                 if isOverdue {
-                    Text(WenshuI18n.t("todolist.overdue"))
+                    Text(String(localized: "todolist.overdue"))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.red)
                 }
             }
             .help(isOverdue ? "已过期 — 请尽快处理" : "截止日")
         } else {
-            Text(WenshuI18n.t("todolist.no_due_date"))
+            Text(String(localized: "todolist.no_due_date"))
                 .font(.caption2)
                 .foregroundStyle(DesignTokens.statusForeground)
         }
@@ -446,19 +446,19 @@ private struct TodoRow: View {
                 SFIcon("circle", style: .inlineSmall, color: IconColor.secondary)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("auto2.todolistview.l630.h96905135"))
+            .help(String(localized: "auto2.todolistview.l630.h96905135"))
         case .inProgress:
             Button(action: { onSetStatus(.completed) }) {
                 SFIcon("circle.dotted", style: .inlineSmall, color: IconColor.tint)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("auto2.todolistview.l637.h11194739"))
+            .help(String(localized: "auto2.todolistview.l637.h11194739"))
         case .completed:
             Button(action: { onSetStatus(.pending) }) {
                 SFIcon("checkmark.circle", style: .inlineSmall, color: IconColor.green)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("todolist.reopen"))
+            .help(String(localized: "todolist.reopen"))
         case .cancelled:
             SFIcon("xmark.circle", style: .inlineSmall, color: IconColor.tertiary)
         }
@@ -475,7 +475,7 @@ private struct TodoRow: View {
             .padding(.horizontal, DesignTokens.spacingTight)
             .padding(.vertical, DesignTokens.spacingCaption)
             .background(bg, in: Capsule())
-            .help(WenshuI18n.t("todolist.priority_label"))
+            .help(String(localized: "todolist.priority_label"))
     }
 
     private func chipStyle(for priority: TodoPriority) -> (String, Color, AnyShapeStyle) {

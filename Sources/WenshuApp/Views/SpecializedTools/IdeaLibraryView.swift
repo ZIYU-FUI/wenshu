@@ -128,8 +128,8 @@ struct IdeaLibraryView: View {
         // other empty state in the workspace.
         EmptyStateView(
             icon: "lightbulb",
-            title: WenshuI18n.t("b5.idealibraryview.l168.h29952029"),
-            body: WenshuI18n.t("b5.idealibraryview.l171.h83297924")
+            title: String(localized: "b5.idealibraryview.l168.h29952029"),
+            body: String(localized: "b5.idealibraryview.l171.h83297924")
         )
     }
 
@@ -159,14 +159,14 @@ struct IdeaLibraryView: View {
 
     private var addIdeaRow: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.idealibraryview.l203.h90934644"))
+            Text(String(localized: "b5.idealibraryview.l203.h90934644"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: DesignTokens.spacingStandard) {
-                TextField(WenshuI18n.t("b5.idealibraryview.l207.h52593776"), text: $draftTitle, axis: .horizontal)
+                TextField(String(localized: "b5.idealibraryview.l207.h52593776"), text: $draftTitle, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help(WenshuI18n.t("b5.idealibraryview.l210.h32208877"))
+                    .help(String(localized: "b5.idealibraryview.l210.h32208877"))
                 Picker("Status", selection: $draftStatus) {
                     ForEach(IdeaStatus.allCases) { status in
                         Label(status.displayName, systemImage: status.icon)
@@ -179,11 +179,11 @@ struct IdeaLibraryView: View {
                 Button {
                     Task { await addIdea() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.idealibraryview.l223.h11292365")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.idealibraryview.l223.h11292365")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddIdea)
-                .help(WenshuI18n.t("b5.idealibraryview.l227.h30919951"))
+                .help(String(localized: "b5.idealibraryview.l227.h30919951"))
             }
             TextField(
                 "Description (2-3 sentences)",
@@ -193,11 +193,11 @@ struct IdeaLibraryView: View {
             .textFieldStyle(.roundedBorder)
             .font(.caption)
             .lineLimit(2...4)
-            .help(WenshuI18n.t("b5.idealibraryview.l237.h77385136"))
-            TextField(WenshuI18n.t("b5.idealibraryview.l238.h26275866"), text: $draftTagsText, axis: .horizontal)
+            .help(String(localized: "b5.idealibraryview.l237.h77385136"))
+            TextField(String(localized: "b5.idealibraryview.l238.h26275866"), text: $draftTagsText, axis: .horizontal)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help(WenshuI18n.t("b5.idealibraryview.l241.h11205728"))
+                .help(String(localized: "b5.idealibraryview.l241.h11205728"))
         }
     }
 
@@ -209,11 +209,11 @@ struct IdeaLibraryView: View {
 
     private var searchAndFilterRow: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.idealibraryview.l253.h1120848"))
+            Text(String(localized: "b5.idealibraryview.l253.h1120848"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: DesignTokens.spacingStandard) {
-                TextField(WenshuI18n.t("b5.idealibraryview.l257.h16271775"), text: $searchText, axis: .horizontal)
+                TextField(String(localized: "b5.idealibraryview.l257.h16271775"), text: $searchText, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
                     .onChange(of: searchText) { _, _ in
@@ -232,7 +232,7 @@ struct IdeaLibraryView: View {
                         }
                     }
                 )) {
-                    Text(WenshuI18n.t("b5.idealibraryview.l276.h70256740")).tag(IdeaStatus.allCases.first ?? .seedling)
+                    Text(String(localized: "b5.idealibraryview.l276.h70256740")).tag(IdeaStatus.allCases.first ?? .seedling)
                     ForEach(IdeaStatus.allCases) { status in
                         Label(status.displayName, systemImage: status.icon).tag(status)
                     }
@@ -242,10 +242,10 @@ struct IdeaLibraryView: View {
                 .onChange(of: draftFilterStatus) { _, _ in
                     Task { await reload() }
                 }
-                TextField(WenshuI18n.t("b5.idealibraryview.l286.h51468846"), text: $draftFilterTag, axis: .horizontal)
+                TextField(String(localized: "b5.idealibraryview.l286.h51468846"), text: $draftFilterTag, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help(WenshuI18n.t("b5.idealibraryview.l289.h36552357"))
+                    .help(String(localized: "b5.idealibraryview.l289.h36552357"))
                     .onChange(of: draftFilterTag) { _, _ in
                         Task { await reload() }
                     }
@@ -258,11 +258,11 @@ struct IdeaLibraryView: View {
 
     private var ideasListSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            Text(WenshuI18n.t("b5.idealibraryview.l302.h76254562"))
+            Text(String(localized: "b5.idealibraryview.l302.h76254562"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.ideas.isEmpty {
-                Text(WenshuI18n.t("b5.idealibraryview.l306.h5887031"))
+                Text(String(localized: "b5.idealibraryview.l306.h5887031"))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -295,7 +295,7 @@ struct IdeaLibraryView: View {
                             .padding(.vertical, DesignTokens.spacingHairline)
                             
                         if idea.links.count > 0 {
-                            Text(WenshuI18n.t("b5.idealibraryview.l344.h94081771"))
+                            Text(String(localized: "b5.idealibraryview.l344.h94081771"))
                                 .font(.caption2)
                                 .foregroundStyle(DesignTokens.statusForeground)
                         }
@@ -332,7 +332,7 @@ struct IdeaLibraryView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
-                .help(WenshuI18n.t("b5.idealibraryview.l381.h13095850"))
+                .help(String(localized: "b5.idealibraryview.l381.h13095850"))
             }
         }
         .padding(.vertical, DesignTokens.spacingTight)
@@ -345,11 +345,11 @@ struct IdeaLibraryView: View {
 
     private var linkSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.idealibraryview.l397.h59697849"))
+            Text(String(localized: "b5.idealibraryview.l397.h59697849"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if state.ideas.isEmpty {
-                Text(WenshuI18n.t("b5.idealibraryview.l401.h79667379"))
+                Text(String(localized: "b5.idealibraryview.l401.h79667379"))
                     .font(.caption2)
                     .foregroundStyle(DesignTokens.statusForeground)
             } else {
@@ -358,7 +358,7 @@ struct IdeaLibraryView: View {
                         get: { draftLinkIdeaId ?? state.ideas.first?.id ?? UUID() },
                         set: { draftLinkIdeaId = $0 }
                     )) {
-                        Text(WenshuI18n.t("b5.idealibraryview.l410.h88496035")).tag(UUID())
+                        Text(String(localized: "b5.idealibraryview.l410.h88496035")).tag(UUID())
                         ForEach(state.ideas) { idea in
                             Text(idea.title).tag(idea.id)
                         }
@@ -380,10 +380,10 @@ struct IdeaLibraryView: View {
                     .pickerStyle(.menu)
                     .labelsHidden()
 
-                    TextField(WenshuI18n.t("b5.idealibraryview.l432.h85354494"), text: $draftLinkTargetIdText, axis: .horizontal)
+                    TextField(String(localized: "b5.idealibraryview.l432.h85354494"), text: $draftLinkTargetIdText, axis: .horizontal)
                         .textFieldStyle(.roundedBorder)
                         .font(.caption)
-                        .help(WenshuI18n.t("b5.idealibraryview.l435.h1142335"))
+                        .help(String(localized: "b5.idealibraryview.l435.h1142335"))
 
                     Spacer(minLength: 0)
                 }
@@ -395,18 +395,18 @@ struct IdeaLibraryView: View {
                     )
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help(WenshuI18n.t("b5.idealibraryview.l447.h24911126"))
+                    .help(String(localized: "b5.idealibraryview.l447.h24911126"))
 
                     Spacer(minLength: 0)
 
                     Button {
                         Task { await linkIdea() }
                     } label: {
-                        Label { Text(WenshuI18n.t("b5.idealibraryview.l454.h37139110")) } icon: { SFIcon("link", style: .inlineSmall, color: IconColor.tint) }
+                        Label { Text(String(localized: "b5.idealibraryview.l454.h37139110")) } icon: { SFIcon("link", style: .inlineSmall, color: IconColor.tint) }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canLink)
-                    .help(WenshuI18n.t("b5.idealibraryview.l458.h69397371"))
+                    .help(String(localized: "b5.idealibraryview.l458.h69397371"))
                 }
 
                 linksListForSelectedIdea
@@ -430,7 +430,7 @@ struct IdeaLibraryView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if selectedIdea.links.isEmpty {
-                    Text(WenshuI18n.t("b5.idealibraryview.l482.h84215487"))
+                    Text(String(localized: "b5.idealibraryview.l482.h84215487"))
                         .font(.caption2)
                         .foregroundStyle(DesignTokens.statusForeground)
                 } else {
@@ -460,7 +460,7 @@ struct IdeaLibraryView: View {
                         .padding(.horizontal, DesignTokens.spacingIconic)
                         .padding(.vertical, DesignTokens.spacingHairline)
                         
-                    Text(WenshuI18n.t("b5.idealibraryview.l517.h19641342"))
+                    Text(String(localized: "b5.idealibraryview.l517.h19641342"))
                         .font(.caption2)
                         .foregroundStyle(DesignTokens.statusForeground)
                 }
@@ -479,7 +479,7 @@ struct IdeaLibraryView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("b5.idealibraryview.l536.h25568576"))
+            .help(String(localized: "b5.idealibraryview.l536.h25568576"))
         }
         .padding(.vertical, DesignTokens.spacingCaption)
     }
@@ -488,7 +488,7 @@ struct IdeaLibraryView: View {
 
     private var suggestSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            Text(WenshuI18n.t("b5.idealibraryview.l545.h14750556"))
+            Text(String(localized: "b5.idealibraryview.l545.h14750556"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: DesignTokens.spacingStandard) {
@@ -499,18 +499,18 @@ struct IdeaLibraryView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help(WenshuI18n.t("b5.idealibraryview.l556.h41794079"))
+                .help(String(localized: "b5.idealibraryview.l556.h41794079"))
 
                 Spacer(minLength: 0)
 
                 Button {
                     Task { await runSuggest() }
                 } label: {
-                    Label { Text(WenshuI18n.t("b5.idealibraryview.l563.h68346633")) } icon: { SFIcon("wand.and.rays", style: .inlineSmall, color: IconColor.tint) }
+                    Label { Text(String(localized: "b5.idealibraryview.l563.h68346633")) } icon: { SFIcon("wand.and.rays", style: .inlineSmall, color: IconColor.tint) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(draftSuggestContext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .help(WenshuI18n.t("b5.idealibraryview.l567.h20248779"))
+                .help(String(localized: "b5.idealibraryview.l567.h20248779"))
             }
             if !state.suggestions.isEmpty {
                 ScrollView {

@@ -81,7 +81,7 @@ enum SidebarContextMenuBuilder {
             // Multi-select = batch destructive only.
             return AnyView(
                 Button(
-                    WenshuI18n.t("sidebar_context_menu_delete_batch"),
+                    String(localized: "sidebar_context_menu_delete_batch"),
                     role: .destructive
                 ) {
                     for item in selection {
@@ -110,16 +110,16 @@ enum SidebarContextMenuBuilder {
             }
             return AnyView(
                 Group {
-                    Button(WenshuI18n.t("sidebar_context_menu_new_book_here")) {
+                    Button(String(localized: "sidebar_context_menu_new_book_here")) {
                         onNewBookHere(id)
                     }
                     Divider()
-                    Button(WenshuI18n.t("sidebar_context_menu_rename")) {
+                    Button(String(localized: "sidebar_context_menu_rename")) {
                         onRenameShelf(id, shelf.name)
                     }
                     Divider()
                     Button(
-                        WenshuI18n.t("sidebar_context_menu_delete"),
+                        String(localized: "sidebar_context_menu_delete"),
                         role: .destructive
                     ) {
                         onDeleteShelf(id, shelf.name)
@@ -135,12 +135,12 @@ enum SidebarContextMenuBuilder {
             // book title from its own @State books cache).
             return AnyView(
                 Group {
-                    Button(WenshuI18n.t("sidebar_context_menu_rename")) {
+                    Button(String(localized: "sidebar_context_menu_rename")) {
                         onRenameBook(id, "")
                     }
                     Divider()
                     Button(
-                        WenshuI18n.t("sidebar_context_menu_delete"),
+                        String(localized: "sidebar_context_menu_delete"),
                         role: .destructive
                     ) {
                         onDeleteBook(id, "")

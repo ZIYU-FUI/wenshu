@@ -85,7 +85,7 @@ struct KanbanWindow: View {
                     .controlSize(.large)
             }
         }
-        .navigationTitle(WenshuI18n.t("window.kanban.title"))
+        .navigationTitle(String(localized: "window.kanban.title"))
         .task {
             // -m1-shell (see OOB.md #2026-09-11) OOB: use the
             // shared LibraryLifecycleHook (= same one the main

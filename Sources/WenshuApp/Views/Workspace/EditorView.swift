@@ -163,7 +163,7 @@ struct EditorView: View {
                                    height: DesignTokens.tabCloseFrameSize)
                     }
                     .buttonStyle(.plain)
-                    .help(WenshuI18n.t("workspace.editor.close_tab_tooltip"))
+                    .help(String(localized: "workspace.editor.close_tab_tooltip"))
                 }
             }
             // dirty-discard confirm dialog. Shown when
@@ -171,11 +171,11 @@ struct EditorView: View {
             // 2-option confirm pattern (= destructive + cancel).
             // showDirtyDiscardConfirm is now a computed property;
             // = wrap in Binding(get:set:) for .alert's isPresented:.
-            .alert(WenshuI18n.t("workspace.editor.dirty_discard_alert_title"), isPresented: Binding(
+            .alert(String(localized: "workspace.editor.dirty_discard_alert_title"), isPresented: Binding(
                 get: { self.showDirtyDiscardConfirm },
                 set: { self.showDirtyDiscardConfirm = $0 }
             )) {
-                Button(WenshuI18n.t("workspace.editor.dirty_discard_button"), role: .destructive) {
+                Button(String(localized: "workspace.editor.dirty_discard_button"), role: .destructive) {
                     // tab close button: discard = close the tab
                     // (= auto-save guarantee: dirty drafts are
                     // thrown away because they explicitly chose
@@ -190,9 +190,9 @@ struct EditorView: View {
                         appState.closeTab(id: tab.id, bookStore: bookStore)
                     }
                 }
-                Button(WenshuI18n.t("button.continue_edit"), role: .cancel) { }
+                Button(String(localized: "button.continue_edit"), role: .cancel) { }
             } message: {
-                Text(WenshuI18n.t("workspace.editor.discard_changes_confirm"))
+                Text(String(localized: "workspace.editor.discard_changes_confirm"))
             }
 
             // Body: placeholder content.  swaps this for
@@ -248,8 +248,8 @@ struct EditorView: View {
                         Spacer(minLength: 0)
                         EmptyStateView(
                             icon: "text.document",
-                            title: WenshuI18n.t("editor.empty.title"),
-                            body: WenshuI18n.t("editor.empty.description")
+                            title: String(localized: "editor.empty.title"),
+                            body: String(localized: "editor.empty.description")
                         )
                         Spacer(minLength: 0)
                     }

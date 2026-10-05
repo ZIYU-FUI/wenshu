@@ -96,9 +96,9 @@ struct BookEditorSheet: View {
     var body: some View {
         Form {
             Section {
-                TextField(WenshuI18n.t("auto2.bookeditorsheet.l99.h94921264"), text: $title)
+                TextField(String(localized: "auto2.bookeditorsheet.l99.h94921264"), text: $title)
                     .onSubmit(commit)
-                TextField(WenshuI18n.t("auto2.bookeditorsheet.l101.h15789783"), text: $author)
+                TextField(String(localized: "auto2.bookeditorsheet.l101.h15789783"), text: $author)
                     .onSubmit(commit)
             } header: {
                 Text(titleText)
@@ -119,9 +119,9 @@ struct BookEditorSheet: View {
                     }
                     .pickerStyle(.segmented)
                 } header: {
-                    Text(WenshuI18n.t("book_editor.length"))
+                    Text(String(localized: "book_editor.length"))
                 } footer: {
-                    Text(WenshuI18n.t("auto.bookeditorsheet.l124.h18390452"))
+                    Text(String(localized: "auto.bookeditorsheet.l124.h18390452"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -133,9 +133,9 @@ struct BookEditorSheet: View {
                     )
                     .lineLimit(2...6)
                 } header: {
-                    Text(WenshuI18n.t("book_editor.premise_label"))
+                    Text(String(localized: "book_editor.premise_label"))
                 } footer: {
-                    Text(WenshuI18n.t("book_editor.premise_caption"))
+                    Text(String(localized: "book_editor.premise_caption"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -152,10 +152,10 @@ struct BookEditorSheet: View {
         .background(.windowBackground)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(WenshuI18n.t("auto2.bookeditorsheet.l160.h80176953")) { dismiss() }
+                Button(String(localized: "auto2.bookeditorsheet.l160.h80176953")) { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button(WenshuI18n.t("auto2.bookeditorsheet.l163.h48925685"), action: commit)
+                Button(String(localized: "auto2.bookeditorsheet.l163.h48925685"), action: commit)
                     .keyboardShortcut(.defaultAction)
                     .disabled(!canCommit)
             }

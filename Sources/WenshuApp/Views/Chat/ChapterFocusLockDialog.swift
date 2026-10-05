@@ -149,17 +149,17 @@ struct ChapterFocusLockDialogAlert: View {
             .lastPathComponent
             .replacingOccurrences(of: ".md", with: "")
         return Alert(
-            title: Text(WenshuI18n.t("chatview.focus_lock.title")
+            title: Text(String(localized: "chatview.focus_lock.title")
                 .replacingOccurrences(of: "{chapter}", with: chapterName)),
             message: Text(request.summary),
             primaryButton: .default(
-                Text(WenshuI18n.t("chatview.focus_lock.allow")),
+                Text(String(localized: "chatview.focus_lock.allow")),
                 action: {
                     ChapterFocusLockDialogPresenter.shared.allowCurrentRequest()
                 }
             ),
             secondaryButton: .cancel(
-                Text(WenshuI18n.t("chatview.focus_lock.deny")),
+                Text(String(localized: "chatview.focus_lock.deny")),
                 action: {
                     ChapterFocusLockDialogPresenter.shared.denyCurrentRequest()
                 }

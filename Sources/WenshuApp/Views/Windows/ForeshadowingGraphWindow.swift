@@ -59,7 +59,7 @@ struct ForeshadowingGraphWindow: View {
                             Task { await reload() }
                         } label: {
                             Label {
-                                Text(WenshuI18n.t("foreshadowing_graph.refresh"))
+                                Text(String(localized: "foreshadowing_graph.refresh"))
                             } icon: {
                                 SFIcon("arrow.clockwise", style: .inlineSmall, color: IconColor.tint)
                             }
@@ -80,14 +80,14 @@ struct ForeshadowingGraphWindow: View {
             if activeBookId == nil {
                 EmptyStateView(
                     icon: "book.closed",
-                    title: WenshuI18n.t("foreshadowing_graph.no_book.title"),
-                    body: WenshuI18n.t("foreshadowing_graph.no_book.body")
+                    title: String(localized: "foreshadowing_graph.no_book.title"),
+                    body: String(localized: "foreshadowing_graph.no_book.body")
                 )
             } else {
                 EmptyStateView(
                     icon: "arrow.triangle.branch",
-                    title: WenshuI18n.t("foreshadowing_graph.empty.title"),
-                    body: WenshuI18n.t("foreshadowing_graph.empty.body")
+                    title: String(localized: "foreshadowing_graph.empty.title"),
+                    body: String(localized: "foreshadowing_graph.empty.body")
                 )
             }
         } else {

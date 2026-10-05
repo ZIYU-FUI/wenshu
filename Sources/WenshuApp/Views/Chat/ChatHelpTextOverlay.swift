@@ -99,20 +99,20 @@ struct ChatHelpTextOverlay: View {
                     icon: "message",
                     titleView:
                         HStack(spacing: 0) {
-                            Text(WenshuI18n.t("chathelp.please_first_goto") + " ")
+                            Text(String(localized: "chathelp.please_first_goto") + " ")
                                 .foregroundStyle(.secondary)
                             Button(action: onSettingsTap) {
-                                Text(WenshuI18n.t("auto.chathelptextoverlay.l25.h61781343"))
+                                Text(String(localized: "auto.chathelptextoverlay.l25.h61781343"))
                                     .foregroundStyle(Color.accentColor)
                                     .underline()
                             }
                             .buttonStyle(.plain)
-                            Text(" " + WenshuI18n.t("auto.chathelptextoverlay.l30.h53427819"))
+                            Text(" " + String(localized: "auto.chathelptextoverlay.l30.h53427819"))
                                 .foregroundStyle(.secondary)
                         }
                         .font(.headline)
                         .multilineTextAlignment(.center),
-                    body: WenshuI18n.t("auto.chathelptextoverlay.l33.h88773098")
+                    body: String(localized: "auto.chathelptextoverlay.l33.h88773098")
                 )
                 Spacer(minLength: 0)
             }

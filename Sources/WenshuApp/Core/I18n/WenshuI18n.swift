@@ -11,7 +11,7 @@
 //  - no per-app language picker (= Apple standard means OS language decides)
 //
 //  Usage:
-//      Text(WenshuI18n.t("settings.connector.header"))
+//      Text(String(localized: "settings.connector.header"))
 //      Text(WenshuI18n.tf("statusbar.shelf", shelfCount))   // %d format
 //      Text(WenshuI18n.ts("settings.provider.status.pasteNamed", providerName))  // %@ format
 //
@@ -147,34 +147,41 @@ enum WenshuI18n {
         )
     }
 
-    /// Backward-compat 1-arg form (= no defaultValue).
-    /// Existing call sites (and any string catalog entries
-    /// without a defaultValue) still work. New call sites
-    /// should use the 2-arg form (= t(_:defaultValue:))
-    /// per Apple HIG.
+    /// Apple HIG canonical for runtime String keys (=
+    /// the key is computed rather than a string literal).
+    /// `String(localized:)` only accepts `StaticString` literals
+    /// (= the compiler refuses to bridge a runtime String);
+    /// = NSLocalizedString accepts a runtime String per
+    /// Apple's Foundation signature. The 633 inline
+    /// `String(localized: "literal")` call sites (= the common
+    /// wenshu pattern) still use the Swift-native form; this
+    /// 1-arg wrapper is kept for the ~2 call sites that need
+    /// a runtime-computed key (= e.g. `WenshuI18n.t(folderNameKey
+    /// ?? "preview.empty_state.default")`).
     static func t(_ key: String) -> String {
-        // No defaultValue available here, so the user will
-        // see the key string if the catalog is missing the
-        // key (= hermes i18n fallback policy + Apple
-        // NSLocalizedString behavior). For 2-arg correctness,
-        // call sites should use t(_:defaultValue:).
-        t(key, defaultValue: key)
+        NSLocalizedString(key, comment: "")
     }
 
-    /// Format-string variant: t(key, defaultValue:) + substitute
-    /// %d / %f / %@ placeholders. Uses Apple String(format:)
-    /// which handles CVarArg arrays via NSString.localizedStringWithFormat
-    /// under the hood (= respects the user's locale for number
-    /// formatting). Order matches the placeholder positions in
-    /// the Localizable.strings value.
+    /// Format-string variant: NSLocalizedString + substitute
+    /// %d / %f / %@ placeholders via Apple's String(format:).
+    /// Apple HIG canonical pattern for localized format strings.
+    /// The 1-arg form (= key only, no defaultValue) is the
+    /// wenshu-canonical = matches the 633 call sites that were
+    /// migrated from the previous 1-arg `WenshuI18n.t(_:)` form
+    /// (= see commit that inlines `String(localized:)` at every
+    /// call site). The 2-arg form (= with defaultValue) is kept
+    /// for the rare case where the localizable default text is
+    /// computed (= e.g. contains a runtime placeholder).
     static func tf(_ key: String, defaultValue: String, _ args: CVarArg..., comment: String? = nil) -> String {
-        let format = t(key, defaultValue: defaultValue, comment: comment)
+        let format = NSLocalizedString(key, tableName: nil, bundle: .main, value: defaultValue, comment: comment ?? "")
         return String(format: format, arguments: args)
     }
 
-    /// Backward-compat format-string 1-arg form.
+    /// Backward-compat format-string 1-arg form (= key only,
+    /// defaultValue = key, = the localizable default text is the
+    /// key string itself per Apple NSLocalizedString behavior).
     static func tf(_ key: String, _ args: CVarArg...) -> String {
-        let format = t(key)
+        let format = NSLocalizedString(key, comment: "")
         return String(format: format, arguments: args)
     }
 
