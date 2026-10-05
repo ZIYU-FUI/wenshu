@@ -17,6 +17,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("FileSystemEntityStore (v2.3)")
+@MainActor
 struct FileSystemEntityStoreTests {
 
     /// Make a unique temp book directory for each test.

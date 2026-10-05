@@ -15,6 +15,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("ReferenceLibraryTool tags facet (v2.6)")
+@MainActor
 struct ReferenceLibraryToolTagsTests {
 
     private func makeTool() throws -> (ReferenceLibraryTool, URL) {

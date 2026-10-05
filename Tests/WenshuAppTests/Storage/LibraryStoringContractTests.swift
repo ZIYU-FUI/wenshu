@@ -26,6 +26,7 @@ import Foundation
 /// place, FileSystemLibraryStoreContractTests is added here.
 
 @Suite("LibraryStoring contract")
+@MainActor
 struct LibraryStoringContractTests {
 
     // Use the FileSystem implementation under /tmp to verify the contract

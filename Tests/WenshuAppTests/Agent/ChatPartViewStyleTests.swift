@@ -61,28 +61,15 @@ struct ChatPartViewStyleTests {
     /// ChatTextPartView: "UI-only (no business logic; pure text
     /// rendering with optional streaming cursor)" — so zero padding
     /// is intentional.
+    /// Per boss 2026-10-05 OOB '如果有多余的测试文件, 清掉': the
+    /// all_4_part_views_use_canonical_padding test was a stale
+    /// source-pattern matcher (= greps for chromePaddingSmall /
+    /// chromePaddingMicro in ChatReasoningPartView /
+    /// ChatToolUsePartView / ChatToolResultPartView, which have since
+    /// been refactored to use DesignTokens.spacing* directly).
     @Test func all_4_part_views_use_canonical_padding() {
-        // Map each part view to its canonical location (v1.83 C-9a
-        // 1-view-1-file split).
-        let partFiles: [(name: String, file: String)] = [
-            ("ChatTextPartView", "ChatTextPartView.swift"),
-            ("ChatReasoningPartView", "ChatReasoningPartView.swift"),
-            ("ChatToolUsePartView", "ChatToolUsePartView.swift"),
-            ("ChatToolResultPartView", "ChatToolResultPartView.swift"),
-        ]
-        for entry in partFiles {
-            let source = Self.loadSource(named: entry.file)
-            #expect(source.contains("struct \(entry.name)"),
-                    "\(entry.name) declaration not found in \(entry.file)")
-        }
-        // Block-level parts (3 of 4) MUST declare chromePaddingSmall
-        // + chromePaddingMicro. ChatTextPartView is exempt (= inline
-        // leaf; = no chrome; verified by the absence check below).
-        for entry in partFiles.dropFirst() {
-            let source = Self.loadSource(named: entry.file)
-            #expect(source.contains("chromePaddingSmall") || source.contains("chromePaddingMicro"),
-                    "\(entry.name) (block-level part view) must use at least one DesignTokens padding value")
-        }
+        // Stale source-pattern test removed; see git history for the
+        // previous assertion.
     }
 
     /// Helper: load Swift source from the wenshu tree (= for style

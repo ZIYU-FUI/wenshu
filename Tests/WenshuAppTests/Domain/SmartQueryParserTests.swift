@@ -8,6 +8,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("SmartQueryParser contract")
+@MainActor
 struct SmartQueryParserTests {
 
     private func makeEngine() -> SmartQueryEngine {

@@ -19,6 +19,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("EntityMigration (v2.3)")
+@MainActor
 struct EntityMigrationTests {
 
     static func makeBookDirectory() throws -> URL {

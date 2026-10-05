@@ -19,6 +19,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("Reference library title-uniqueness invariant (v2.6)")
+@MainActor
 struct ReferenceDuplicateTitleUpsertTests {
 
     /// Build a fresh FileSystemReferenceStore rooted in a tmp dir.
@@ -39,9 +40,11 @@ struct ReferenceDuplicateTitleUpsertTests {
             title: "杜甫",
             bodyMarkdown: "# 杜甫\n\nFirst research pass: 唐大历五年770死于...",
             layer: .layerEntities,
-            category: .i,
+            category: nil,
             tags: ["唐朝", "诗人"],
             source: "道中华",
+            url: nil,
+            entityType: .character,
             summary: "唐大历五年770死于..."
         )
         let firstID = first.id
@@ -52,9 +55,11 @@ struct ReferenceDuplicateTitleUpsertTests {
             title: "杜甫",
             bodyMarkdown: "# 杜甫\n\nSecond research pass: full bio + 1450 MAD...",
             layer: .layerEntities,
-            category: .i,
+            category: nil,
             tags: ["唐朝", "诗人", "诗圣"],
             source: "道中华 + 古诗文网",
+            url: nil,
+            entityType: .character,
             summary: "Full bio + MAD context"
         )
         let secondID = second.id
@@ -109,7 +114,11 @@ struct ReferenceDuplicateTitleUpsertTests {
             title: "  杜甫  ",
             bodyMarkdown: "first",
             layer: .layerEntities,
-            category: .i
+            category: nil,
+            source: nil,
+            url: nil,
+            entityType: .character,
+            summary: ""
         )
         // Second call: uppercase + no whitespace (= same canonical
         // trimmed title after normalization).
@@ -117,7 +126,11 @@ struct ReferenceDuplicateTitleUpsertTests {
             title: "杜甫",
             bodyMarkdown: "second",
             layer: .layerEntities,
-            category: .i
+            category: nil,
+            source: nil,
+            url: nil,
+            entityType: .character,
+            summary: ""
         )
         #expect(second.id == first.id, "case + whitespace must not break dedup; got \(first.id) vs \(second.id)")
 

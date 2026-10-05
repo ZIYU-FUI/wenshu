@@ -138,6 +138,7 @@ private extension MockReferenceStore {
 // MARK: - Test suite
 
 @Suite("v1.70 editor-mvvm T3 — WikiLinkNavigation (SMC ticket 003 helper)")
+@MainActor
 struct WikiLinkNavigationTests {
 
     // MARK: - Guard clause

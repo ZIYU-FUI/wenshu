@@ -9,6 +9,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("WenshuLibrary book ops")
+@MainActor
 struct WenshuLibraryBookTests {
 
     private final class InMemoryStore: LibraryStoring, @unchecked Sendable {

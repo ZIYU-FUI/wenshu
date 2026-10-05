@@ -60,6 +60,7 @@ import os
 @testable import WenshuApp
 
 @Suite("E2E: one prompt → real LLM call → real memory write (LIVE)")
+@MainActor
 struct E2EMemoryAndLLMFlowTests {
 
     private static var liveEnabled: Bool {

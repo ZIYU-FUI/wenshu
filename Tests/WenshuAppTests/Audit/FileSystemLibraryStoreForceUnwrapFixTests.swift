@@ -13,6 +13,7 @@ import Testing
 @testable import WenshuApp
 
 @Suite("FileSystemLibraryStore force-unwrap fix (audit #014)")
+@MainActor
 struct FileSystemLibraryStoreForceUnwrapFixTests {
 
     @Test("documentPath throws parentBookNotFound when book dir missing (not crash)")

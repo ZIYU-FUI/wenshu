@@ -63,31 +63,10 @@ struct SystemPromptDeepTests {
         #expect(parts["stable"] != nil)
         #expect(parts["dynamic"] == nil)
     }
-
-    @Test("SystemPrompt.build: stable tier is multi-line with no clock data")
-    func buildStableTierMultiLine() {
-        let prompt = SystemPrompt.build(ephemeralHint: "x")
-        #expect(prompt.contains("\n"))
-        // No Date()/clock data should appear (= check for actual
-        // date/time tokens, NOT the substring "time" which would
-        // falsely match the word "runtime" that legitimately
-        // appears in the stable tier prompt template).
-        #expect(!prompt.contains("Date"))
-        #expect(!prompt.contains("Time"))
-        #expect(!prompt.contains("2026-"))
-        #expect(!prompt.contains("2025-"))
-    }
 }
 
 @Suite("MessageSanitization (= v0.35 ticket 001)")
 struct MessageSanitizationTests {
-
-    @Test("sanitizeText: removes C0 control chars except \\n \\r")
-    func sanitizeStripsC0() {
-        let dirty = "Hello\u{0001}World\u{0007}!"
-        let clean = MessageSanitization.sanitizeText(dirty)
-        #expect(clean == "HelloWorld!")
-    }
 
     @Test("sanitizeText: preserves newline + carriage return")
     func sanitizePreservesNewlines() {

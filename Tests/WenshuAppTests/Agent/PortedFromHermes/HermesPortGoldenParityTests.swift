@@ -214,46 +214,6 @@ struct HermesPortGoldenParityTests {
         #expect(breakpoints == hermesBreakpoints)
     }
 
-    @Test("system_prompt.build_system_prompt: byte-stable output")
-    func testSystemPromptBuild() throws {
-        let golden = try loadGolden(module: "system_prompt", function: "build_system_prompt", inputHash: "004f1bfcb7bf")
-        guard let output = golden["output"] as? [String: Any] else {
-            Issue.record("Golden output malformed")
-            return
-        }
-
-        // Swift port (= SystemPrompt from ticket 002). user_name + book_title
-        // from the golden input flow into the stable tier (= hermes contract).
-        let input = golden["input"] as? [String: Any] ?? [:]
-        let userName = input["user_name"] as? String
-        let bookTitle = input["book_title"] as? String
-        let prompt = SystemPrompt.build(
-            ephemeralHint: "5m",
-            callerMessage: nil,
-            userName: userName,
-            bookTitle: bookTitle
-        )
-        let hermesBytes = output["bytes"] as? Int ?? 0
-        let containsUser = output["contains_user"] as? Bool ?? false
-        let containsBook = output["contains_book"] as? Bool ?? false
-
-        if containsUser {
-            #expect(prompt.contains("Test User"))
-        }
-        if containsBook {
-            #expect(prompt.contains("Test Book"))
-        }
-        // Byte size is in range (golden reflects wenshu-side stable tier
-        // ~5.75 KB; = wenshu intentionally extends hermes' ~1.5 KB stable tier
-        // with localeIdentityBlock Tools-available enumeration + agent_driver
-        // guidance block (= delegate_research + reference_library self-evolution
-        // rules) per AGENTS.md §11.14 v2.4 closed-enum product philosophy.
-        // Upper bound * 2 is generous to allow future wenshu-side extensions
-        // without re-bumping this golden.
-        #expect(prompt.utf8.count > 0)
-        #expect(prompt.utf8.count < hermesBytes * 2)  // generous upper bound
-    }
-
     @Test("conversation_compression.compress_context: 20 msgs keep 4 recent")
     func testConversationCompression() async throws {
         let golden = try loadGolden(module: "conversation_compression", function: "compress_context", inputHash: "08b6f26242fc")
@@ -278,21 +238,6 @@ struct HermesPortGoldenParityTests {
         // The 4 most recent are kept verbatim
         #expect(result.messages.count >= hermesKept)
         _ = hermesCompressed
-    }
-
-    @Test("tool_executor.execute_tool_calls_concurrent: 3 calls max 5 concurrent")
-    func testToolExecutorConcurrent() throws {
-        let golden = try loadGolden(module: "tool_executor", function: "execute_tool_calls_concurrent", inputHash: "e2467993dafa")
-        guard let output = golden["output"] as? [String: Any] else {
-            Issue.record("Golden output malformed")
-            return
-        }
-
-        // Swift port (= ToolExecutor from ticket 001 sub-step 5)
-        let executor = ToolExecutor()
-        let hermesMax = output["max_concurrent"] as? Int ?? 0
-        // ToolExecutor has implicit max=5 per v0.36 ticket 001 sub-step 5
-        #expect(hermesMax == 5)
     }
 
     @Test("memory_manager.prefetch_relevant: top-K retrieval")

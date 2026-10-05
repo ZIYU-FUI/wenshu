@@ -73,6 +73,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("anbaiqiang.ws end-to-end research (LIVE)")
+@MainActor
 struct AnbaiqiangLiveResearch {
 
     private static let wsRoot: URL = {

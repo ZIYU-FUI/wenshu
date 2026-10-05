@@ -18,6 +18,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("ReferenceLibraryTool (v2.0)")
+@MainActor
 struct ReferenceLibraryToolTests {
 
     // MARK: - Helpers

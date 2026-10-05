@@ -8,6 +8,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("ReferenceStoring contract")
+@MainActor
 struct ReferenceStoringContractTests {
 
     private func makeStore() throws -> (any ReferenceStoring, URL) {

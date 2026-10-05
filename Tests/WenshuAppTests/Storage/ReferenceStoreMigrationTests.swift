@@ -14,6 +14,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("ReferenceStore v2.6 facet migration")
+@MainActor
 struct ReferenceStoreMigrationTests {
 
     /// Test helper: build a FileSystemReferenceStore against an isolated

@@ -18,6 +18,7 @@ import Testing
 @testable import WenshuApp
 
 @Suite("LLMWikiLayerDeriver (hermes verbatim port — M5 ticket 15)")
+@MainActor
 struct LLMWikiLayerDeriverTests {
 
     // MARK: - Test fixtures
@@ -106,6 +107,7 @@ struct LLMWikiLayerDeriverTests {
 }
 
 @Suite("LLMWikiLinter (hermes verbatim port — M5 ticket 15)")
+@MainActor
 struct LLMWikiLinterTests {
 
     // MARK: - Test fixtures

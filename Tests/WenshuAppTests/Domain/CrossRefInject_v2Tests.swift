@@ -11,6 +11,7 @@ import Testing
 @testable import WenshuApp
 
 @Suite("CrossRefInject_v2 (hermes verbatim port — M5 ticket 14)")
+@MainActor
 struct CrossRefInject_v2Tests {
 
     // MARK: - Test fixtures (= in-memory reference store + temp book dir)

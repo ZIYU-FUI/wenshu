@@ -20,6 +20,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("ReferenceLibraryTool extend (= self-evolution)")
+@MainActor
 struct ReferenceLibraryExtendTests {
 
     private func makeActor() throws -> (ReferenceLibraryActor, FileSystemReferenceStore, URL) {

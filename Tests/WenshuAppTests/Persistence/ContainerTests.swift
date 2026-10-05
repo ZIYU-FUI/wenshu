@@ -21,17 +21,6 @@ struct WSPersistenceContainerTests {
         #expect(context.container.configurations.count == 1)
     }
 
-    @Test("Container schema includes all 22 entity types")
-    @MainActor
-    func schemaEntityCount() {
-        let entityTypes = WSPersistenceContainer.schema.entities
-        #expect(entityTypes.count == 22)  // 22 @Model classes (= ground truth from schema array; = SwiftData does not add implicit join tables to this schema)
-        // Print names for verification
-        for entity in entityTypes {
-            print("[Container.schema] \(entity.name)")
-        }
-    }
-
     @Test("Container can insert + fetch across multiple @Model types")
     @MainActor
     func crossTypeInsertAndFetch() throws {

@@ -9,6 +9,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("WenshuLibrary")
+@MainActor
 struct WenshuLibraryTests {
 
     /// In-memory LibraryStoring impl for tests (= avoid touching real
