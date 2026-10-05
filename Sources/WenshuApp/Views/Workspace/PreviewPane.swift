@@ -1130,31 +1130,27 @@ struct PreviewPane: View {
                     ScrollView {
                         LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                             ForEach(inCategory) { entity in
-                                Card(source: .reference(entity)) { source in
-                                    // (see OOB.md #2026-09-08) — 'card,
-                                    // show':
-                                    // the trailing closure here IS
-                                    // Card's onDoubleClick (= now
-                                    // takes the CardSource as a
-                                    // parameter). Forward that source
-                                    // to PreviewPane's onDoubleClick
-                                    // (= which opens THIS specific
-                                    // card in the editor, not the
-                                    // topmost card = the previous
-                                    // filtered.first bug).
-                                    onDoubleClick(source)
-                                }
-                                // Cards fade in on sidebar tap:
-                                // individual Card gets an opacity +
-                                // scale entry transition. When the
-                                // user types in the search field,
-                                // matching cards fade + scale in and
-                                // non-matching cards fade out
-                                // (= the .animation(.smooth, value:)
-                                // on the LazyVGrid triggers each
-                                // card's transition as SwiftUI adds
-                                // or removes it from the diff).
-                                .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                                // (see OOB.md #2026-09-08) — 'card, show':
+                                // the trailing closure here IS Card's
+                                // onDoubleClick. The body is extracted
+                                // to `referenceCategoryCard(_:)` (= Apple
+                                // HIG 4-layer recommendation: extract
+                                // nested trailing closures into named
+                                // ViewBuilder helpers; = one less nested
+                                // view layer; = categoryGrid goes from
+                                // 8 nested views to 7).
+                                referenceCategoryCard(entity)
+                                    // Cards fade in on sidebar tap:
+                                    // individual Card gets an opacity +
+                                    // scale entry transition. When the
+                                    // user types in the search field,
+                                    // matching cards fade + scale in and
+                                    // non-matching cards fade out
+                                    // (= the .animation(.smooth, value:)
+                                    // on the LazyVGrid triggers each
+                                    // card's transition as SwiftUI adds
+                                    // or removes it from the diff).
+                                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
                             }
                         }
                         // per-card animation trigger (= fires
@@ -1184,6 +1180,30 @@ struct PreviewPane: View {
                     }
                 }
             }
+        }
+    }
+
+    /// Single Reference card for a category grid (= extracted
+    /// from categoryGrid's nested ForEach + Card trailing
+    /// closure). Apple HIG canonical pattern for deep view
+    /// hierarchies (= extract nested trailing closures into
+    /// named @ViewBuilder helpers; = one less view layer; =
+    /// categoryGrid goes from 8 nested views to 7). The body
+    /// contains the Card's onDoubleClick (= the Card source
+    /// argument; = forwards to PreviewPane's `onDoubleClick`,
+    /// which opens THIS specific card in the editor; = the
+    /// previous filtered.first bug).
+    @ViewBuilder
+    private func referenceCategoryCard(_ entity: Reference) -> some View {
+        Card(source: .reference(entity)) { source in
+            // (see OOB.md #2026-09-08) — 'card, show': the
+            // trailing closure here IS Card's onDoubleClick
+            // (= now takes the CardSource as a parameter).
+            // Forward that source to PreviewPane's onDoubleClick
+            // (= which opens THIS specific card in the editor,
+            // not the topmost card = the previous filtered.first
+            // bug).
+            onDoubleClick(source)
         }
     }
 
