@@ -121,7 +121,7 @@ final class ChapterFocusLockDialogPresenter {
 /// business logic in the view itself).
 ///
 /// `title` and `message` come from the request's chapterPath +
-/// summary; = localized via `WenshuI18n.t(...)`.
+/// summary; = localized via `String(localized: ...)`.
 struct ChapterFocusLockDialogAlert: View {
     let request: ChapterFocusLockDialogRequest
 

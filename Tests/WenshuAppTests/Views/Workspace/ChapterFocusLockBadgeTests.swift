@@ -31,7 +31,7 @@ struct ChapterFocusLockBadgeTests {
         // explicit `ChapterFocusLockBadge` view or an inline badge
         // rendered via Image(systemName:) + Text.
         let hasBadgeView = source.contains("ChapterFocusLockBadge") ||
-            (source.contains("Image(systemName:") && source.contains("WenshuI18n.t(\"chatview.focus_lock.badge\")"))
+            (source.contains("Image(systemName:") && source.contains("String(localized: \"chatview.focus_lock.badge\")"))
         #expect(hasBadgeView,
                 "EditorView must render the LLM-editing badge when the LLM holds the cursor")
     }

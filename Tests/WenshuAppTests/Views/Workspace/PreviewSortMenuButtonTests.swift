@@ -46,7 +46,7 @@ struct PreviewSortMenuButtonTests {
 
     // MARK: - Source-level tests (= worktree filesystem)
 
-    @Test("button source uses the WenshuI18n sort_method_help key")
+    @Test("button source uses the String(localized:) sort_method_help key")
     func sourceUsesI18nHelpKey() throws {
         let source = try String(contentsOfFile: Self.sourcePath)
         #expect(source.contains("workspace.preview.sort_method_help"),

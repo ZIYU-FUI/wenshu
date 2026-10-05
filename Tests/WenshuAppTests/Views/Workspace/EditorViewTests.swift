@@ -171,7 +171,7 @@ struct EditorViewTests {
         #expect(editorPlaceholderSection.contains(".alert("),
                 "EditorView body must use SwiftUI .alert for dirty-discard confirm")
         #expect(editorPlaceholderSection.contains("workspace.editor.dirty_discard_alert_title"),
-                "EditorView must localize dirty-discard alert title via WenshuI18n (= i18n parity)")
+                "EditorView must localize dirty-discard alert title via String(localized:) (= i18n parity)")
         #expect(editorPlaceholderSection.contains("role: .destructive"),
                 "EditorView dirty-discard alert must use destructive role (= Apple HIG convention)")
         #expect(editorPlaceholderSection.contains("role: .cancel"),

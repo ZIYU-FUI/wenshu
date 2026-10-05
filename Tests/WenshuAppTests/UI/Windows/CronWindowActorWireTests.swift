@@ -66,7 +66,7 @@ struct CronWindowActorWireTests {
         let hasScheduleField = source.contains("cron.field.schedule")
         let hasNameField = source.contains("cron.field.name")
         let hasCommandField = source.contains("cron.field.command")
-        let hasAddButton = source.contains("WenshuI18n.t(\"cron.add\")")
+        let hasAddButton = source.contains("String(localized: \"cron.add\")")
         let hasSection = source.contains("cron.add_section")
         #expect(hasScheduleField && hasNameField && hasCommandField && hasAddButton && hasSection,
                 "CronWindow must include an inline add-form with schedule / name / command fields + Add button + section header")

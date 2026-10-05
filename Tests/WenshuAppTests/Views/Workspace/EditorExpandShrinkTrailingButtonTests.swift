@@ -73,18 +73,18 @@ struct EditorExpandShrinkTrailingButtonTests {
                 "notification name must be .wenshuEditorMaximizedChanged (= canonical name)")
     }
 
-    @Test("tooltip uses WenshuI18n (= AGENTS.md §11 English-only invariant + i18n parity)")
+    @Test("tooltip uses String(localized:) (= AGENTS.md §11 English-only invariant + i18n parity)")
     func tooltipUsesI18n() throws {
         // Per header comment: original tooltips were CJK literals
         // (= "restorelayout" = "Restore Layout"; = "full screen" =
-        // "Expand Fullscreen"). Replaced with WenshuI18n.t() lookups.
+        // "Expand Fullscreen"). Replaced with String(localized:) lookups.
         // Verify no hardcoded CJK tooltip strings remain.
         let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorExpandShrinkTrailingButton.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("WenshuI18n.t(\"workspace.editor.restore_layout\")"),
-                "must look up Restore Layout tooltip via WenshuI18n (= I18n parity)")
-        #expect(source.contains("WenshuI18n.t(\"workspace.editor.expand_fullscreen\")"),
-                "must look up Expand Fullscreen tooltip via WenshuI18n (= I18n parity)")
+        #expect(source.contains("String(localized: \"workspace.editor.restore_layout\")"),
+                "must look up Restore Layout tooltip via String(localized:) (= I18n parity)")
+        #expect(source.contains("String(localized: \"workspace.editor.expand_fullscreen\")"),
+                "must look up Expand Fullscreen tooltip via String(localized:) (= I18n parity)")
     }
 
     @Test("icon toggles between two Lucide names (= the canonical icon pair)")

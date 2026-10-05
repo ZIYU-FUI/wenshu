@@ -47,7 +47,7 @@ enum SpeakingStyle: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    /// User-visible label (= follows the OS locale; = see WenshuI18n
+    /// User-visible label (= follows the OS locale; = see String(localized:)
     /// fallback for non-localized environments).
     var label: String {
         switch self {

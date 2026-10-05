@@ -8,7 +8,7 @@
 // (`isEnabled: Bool`) and otherwise = pure stateless presentation.
 //  Already uses DesignTokens.spacingModerate + .regularMaterial
 //  (= Apple macOS 27 Liquid Glass canonical pattern per
-//  apple-self-check §2 row F). Already uses WenshuI18n.t
+//  apple-self-check §2 row F). Already uses String(localized:).t
 //  for the label (= "workspace.layoutEditMode").
 //
 //  Only call site = WorkspaceView's top-bar layout; invoked

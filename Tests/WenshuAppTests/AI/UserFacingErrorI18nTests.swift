@@ -2,7 +2,7 @@
 //  UserFacingErrorI18nTests.swift · Wenshu · cjk-i18n-sweep (2026-09-25)
 //
 //  Verifies that the UserFacingError 12-case surface routes through
-//  WenshuI18n (= hermes-style: every user-visible string lives in
+//  String(localized:) (= hermes-style: every user-visible string lives in
 //  the Localizable.strings catalogs, never hard-coded in source).
 //  Same parity pattern as PlanModeI18nTests: read both locales via
 //  plutil, assert the keys exist + the EN/ZH values differ (= actual

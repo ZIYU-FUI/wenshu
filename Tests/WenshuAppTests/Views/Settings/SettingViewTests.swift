@@ -155,16 +155,16 @@ struct SettingViewTests {
     func settingsTabDisplayNameUsesI18n() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
-        #expect(section.contains("case .general: return WenshuI18n.t(\"settings.tab.general\")"),
-                "displayName .general must use WenshuI18n.t(settings.tab.general)")
-        #expect(section.contains("case .providerApi: return WenshuI18n.t(\"settings.tab.providerApi\")"),
-                "displayName .providerApi must use WenshuI18n.t(settings.tab.providerApi)")
-        #expect(section.contains("case .model: return WenshuI18n.t(\"settings.tab.model\")"),
-                "displayName .model must use WenshuI18n.t(settings.tab.model)")
-        #expect(section.contains("case .memory: return WenshuI18n.t(\"settings.tab.memory\")"),
-                "displayName .memory must use WenshuI18n.t(settings.tab.memory)")
-        #expect(section.contains("case .skills: return WenshuI18n.t(\"settings.tab.skills\")"),
-                "displayName .skills must use WenshuI18n.t(settings.tab.skills)")
+        #expect(section.contains("case .general: return String(localized: \"settings.tab.general\")"),
+                "displayName .general must use String(localized: settings.tab.general)")
+        #expect(section.contains("case .providerApi: return String(localized: \"settings.tab.providerApi\")"),
+                "displayName .providerApi must use String(localized: settings.tab.providerApi)")
+        #expect(section.contains("case .model: return String(localized: \"settings.tab.model\")"),
+                "displayName .model must use String(localized: settings.tab.model)")
+        #expect(section.contains("case .memory: return String(localized: \"settings.tab.memory\")"),
+                "displayName .memory must use String(localized: settings.tab.memory)")
+        #expect(section.contains("case .skills: return String(localized: \"settings.tab.skills\")"),
+                "displayName .skills must use String(localized: settings.tab.skills)")
     }
 
     @Test("SettingsTab.icon covers all 5 cases via SF Symbols 6 (= boss 2026-09-15 reversal)")
@@ -338,15 +338,15 @@ struct SettingViewTests {
     func reasoningEffortPickerHasFiveOptions() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
-        #expect(section.contains("Text(WenshuI18n.t(\"settings.model.reasoning_effort_low\")).tag(\"low\" as String)"),
+        #expect(section.contains("Text(String(localized: \"settings.model.reasoning_effort_low\")).tag(\"low\" as String)"),
                 "reasoningEffort Picker must include 'low' option")
-        #expect(section.contains("Text(WenshuI18n.t(\"settings.model.reasoning_effort_medium\")).tag(\"medium\" as String)"),
+        #expect(section.contains("Text(String(localized: \"settings.model.reasoning_effort_medium\")).tag(\"medium\" as String)"),
                 "reasoningEffort Picker must include 'medium' option")
-        #expect(section.contains("Text(WenshuI18n.t(\"settings.model.reasoning_effort_high\")).tag(\"high\" as String)"),
+        #expect(section.contains("Text(String(localized: \"settings.model.reasoning_effort_high\")).tag(\"high\" as String)"),
                 "reasoningEffort Picker must include 'high' option")
-        #expect(section.contains("Text(WenshuI18n.t(\"settings.model.reasoning_effort_xhigh\")).tag(\"xhigh\" as String)"),
+        #expect(section.contains("Text(String(localized: \"settings.model.reasoning_effort_xhigh\")).tag(\"xhigh\" as String)"),
                 "reasoningEffort Picker must include 'xhigh' option")
-        #expect(section.contains("Text(WenshuI18n.t(\"settings.model.reasoning_effort_max\")).tag(\"max\" as String)"),
+        #expect(section.contains("Text(String(localized: \"settings.model.reasoning_effort_max\")).tag(\"max\" as String)"),
                 "reasoningEffort Picker must include 'max' option")
     }
 

@@ -36,7 +36,7 @@ struct ChatTextPartViewCursorTooltipTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
             encoding: .utf8
         )
-        #expect(src.contains("WenshuI18n.t(\"chatview.streaming_cursor.generating\")"))
+        #expect(src.contains("String(localized: \"chatview.streaming_cursor.generating\")"))
     }
 
     /// T61 contract: chatview.streaming_cursor.generating exists in BOTH locales.

@@ -47,9 +47,9 @@ struct ChapterFocusLockDialogTests {
     func dialogMentionsAllowAndDeny() throws {
         let path = Self.repoSourcePath("Sources/WenshuApp/Views/Chat/ChapterFocusLockDialog.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
-        let hasAllow = source.contains("WenshuI18n.t(\"chatview.focus_lock.allow\")") ||
+        let hasAllow = source.contains("String(localized: \"chatview.focus_lock.allow\")") ||
             source.contains("允许")
-        let hasDeny = source.contains("WenshuI18n.t(\"chatview.focus_lock.deny\")") ||
+        let hasDeny = source.contains("String(localized: \"chatview.focus_lock.deny\")") ||
             source.contains("拒绝")
         #expect(hasAllow, "dialog must render an Allow button")
         #expect(hasDeny, "dialog must render a Deny button")

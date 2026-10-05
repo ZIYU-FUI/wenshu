@@ -9,7 +9,7 @@
 //  Per work-tree v1.28 C3.4.1 spec: extract ChatMessageView (which is
 //  already a self-contained struct with 4 SwiftUI dependencies =
 //  ChatBubble / ChatBubblePosition / ChatBubbleShape / ChatMessage /
-//  DesignTokens / WenshuI18n; = the only cross-file references are
+//  DesignTokens / String(localized:); = the only cross-file references are
 //  these types which are all in wenshu-app internal scope; = safe
 //  to extract).
 //
