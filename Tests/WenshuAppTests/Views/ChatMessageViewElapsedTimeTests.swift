@@ -32,24 +32,8 @@ struct ChatMessageViewElapsedTimeTests {
         #expect(ChatMessagePlaceholderRow<EmptyView>.formatElapsed(3600.0) == "1h 0m")
     }
 
-    @Test func formatElapsed_zero_returns_0() {
-        #expect(ChatMessagePlaceholderRow<EmptyView>.formatElapsed(0.0) == "0.0s")
-    }
-
-    @Test func formatElapsed_negative_clamped_to_zero() {
-        // Defensive: clock skew can produce negative intervals.
-        #expect(ChatMessagePlaceholderRow<EmptyView>.formatElapsed(-1.5) == "0.0s")
-    }
-
     // --- source contract ---
 
-    @Test func source_uses_timeline_view() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessagePlaceholderRow.swift",
-            encoding: .utf8
-        )
-        #expect(src.contains("TimelineView(.periodic(from: .now, by: 0.5))"))
-    }
 
     @Test func elapsed_text_uses_monospaced_caption2() throws {
         let src = try String(

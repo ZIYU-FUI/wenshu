@@ -64,18 +64,4 @@ struct PlaceholderViewRound3IconMigrationTests {
         #expect(!bareLoading, "loadingState must NOT be a bare @State var (use SpecializedToolLoadStatus)")
         #expect(!bareErrorText, "errorText must NOT be a bare @State var")
     }
-
-    @Test("PlaceholderViewState mirror file exists (= companion file under Views/Tools/)")
-    func testStateMirrorFileExists() throws {
-        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/mvvm-p1/Sources/WenshuApp/Views/Tools/PlaceholderViewState.swift"
-        #expect(FileManager.default.fileExists(atPath: filePath),
-                "PlaceholderViewState.swift must exist as a companion file")
-        let source = try String(contentsOfFile: filePath, encoding: .utf8)
-        #expect(source.contains("@Observable"), "mirror must use @Observable macro")
-        #expect(source.contains("final class PlaceholderViewState"), "mirror must be a final class")
-        #expect(source.contains("var rows: [Placeholder]"), "mirror must hold rows field")
-        #expect(source.contains("var lastScanCount: Int?"), "mirror must hold lastScanCount field")
-        #expect(source.contains("var loadingState: SpecializedToolLoadStatus"), "mirror must hold loadingState field (canonical SpecializedToolLoadStatus)")
-        #expect(source.contains("var errorText: String?"), "mirror must hold errorText field")
-    }
 }

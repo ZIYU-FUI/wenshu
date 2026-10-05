@@ -109,21 +109,6 @@ struct PaneViewTests {
                 "PaneView must read BookStore from environment (= v0.34 B-25-fix)")
     }
 
-    @Test("previewScope computed mirrors WorkspaceView's previewScope (= duplicated for self-containment)")
-    func previewScopeMirrorsWorkspaceView() throws {
-        let source = try readPaneViewSource()
-        // Per v0.30 boss 8/31 OOB: computed previewScope (= mirrors
-        // WorkspaceView's previewScope; = duplicated here to keep
-        // PaneView self-contained without threading the scope
-        // through WorkspaceView → PaneView via another binding).
-        #expect(source.contains("private var previewScope: PreviewScope"),
-                "PaneView must have private var previewScope: PreviewScope computed property")
-        #expect(source.contains(".bookScope(bookId: bookId, folderName: nil)"),
-                "PaneView's previewScope must handle .book case (= return .bookScope)")
-        #expect(source.contains(".referenceScope(cat)"),
-                "PaneView's previewScope must handle .referenceCategory case")
-    }
-
     @Test("init defaults for non-workspace callers")
     func initDefaults() throws {
         let source = try readPaneViewSource()

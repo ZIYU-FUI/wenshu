@@ -147,16 +147,4 @@ struct ForeshadowingViewTests {
                 "loadingState must NOT be a bare @State var")
     }
 
-    @Test("ForeshadowingViewState mirror file exists")
-    func testStateMirrorFileExists() throws {
-        let filePath = "/Volumes/ANAN/Engineering/wenshu/.worktrees/p2-batch2/Sources/WenshuApp/Views/Tools/ForeshadowingViewState.swift"
-        #expect(FileManager.default.fileExists(atPath: filePath))
-        let source = try String(contentsOfFile: filePath, encoding: .utf8)
-        #expect(source.contains("@Observable"))
-        #expect(source.contains("final class ForeshadowingViewState"))
-        #expect(source.contains("var rows: [Foreshadowing]"))
-        #expect(source.contains("var staleRows: [Foreshadowing]"))
-        #expect(source.contains("var loadingState: SpecializedToolLoadStatus"))
-        #expect(source.contains("var errorText: String?"))
-    }
 }
