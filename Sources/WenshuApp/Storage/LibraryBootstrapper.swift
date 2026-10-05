@@ -118,7 +118,7 @@ struct LibraryBootstrapper: Sendable {
             "CFBundleName": "wenshu",
             "CFBundleIdentifier": "com.wenshu.library",
             "WSSchemaVersion": CURRENT_SCHEMA_VERSION,
-            "WSPCreatedAt": ISO8601DateFormatter().string(from: Date())
+            "WSPCreatedAt": Date().formatted(.iso8601)
         ]
         let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
         try data.write(to: url)

@@ -215,8 +215,7 @@ struct FrontmatterParser: Sendable {
             lines.append("referenceRefIds: [\(formatted)]")
         }
         if let updatedAt = frontmatter.updatedAt {
-            let formatter = ISO8601DateFormatter()
-            lines.append("updatedAt: \(formatter.string(from: updatedAt))")
+            lines.append("updatedAt: \(updatedAt.formatted(.iso8601))")
         }
         lines.append("---")
         // Body is concatenated verbatim; preserve original leading
@@ -238,8 +237,7 @@ struct FrontmatterParser: Sendable {
             case "referenceRefIds":
                 fm.referenceRefIds = parseRefIds(value)
             case "updatedAt":
-                let formatter = ISO8601DateFormatter()
-                fm.updatedAt = formatter.date(from: value)
+                fm.updatedAt = try? Date(value, strategy: .iso8601)
             default:
                 break
             }

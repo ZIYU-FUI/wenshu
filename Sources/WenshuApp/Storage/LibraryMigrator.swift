@@ -766,7 +766,7 @@ struct LibraryMigrator: Sendable {
         plist["CFBundleIdentifier"] = plist["CFBundleIdentifier"] ?? "com.wenshu.library"
         plist["WSSchemaVersion"] = CURRENT_SCHEMA_VERSION
         if plist["WSPCreatedAt"] == nil {
-            plist["WSPCreatedAt"] = ISO8601DateFormatter().string(from: Date())
+            plist["WSPCreatedAt"] = Date().formatted(.iso8601)
         }
         let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
         try data.write(to: infoPlistURL)

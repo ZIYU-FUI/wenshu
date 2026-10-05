@@ -635,7 +635,7 @@ extension LibraryOnboardingView {
                 "CFBundlePackageType": "WSPC",
                 "CFBundleShortVersionString": "0.24.0",
                 "CFBundleVersion": "1",
-                "WSPCreatedAt": ISO8601DateFormatter().string(from: Date()),
+                "WSPCreatedAt": Date().formatted(.iso8601),
             ]
             if let data = try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0) {
                 try? data.write(to: infoPlistURL)

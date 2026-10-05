@@ -213,9 +213,10 @@ struct FileSystemEntityStore: EntityStoring {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .custom { date, encoder in
             var container = encoder.singleValueContainer()
-            let f = ISO8601DateFormatter()
-            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            try container.encode(f.string(from: date))
+            // Apple HIG canonical: Date.ISO8601FormatStyle with
+            // fractional-seconds (= the previous ISO8601DateFormatter
+            // with [.withInternetDateTime, .withFractionalSeconds]).
+            try container.encode(date.formatted(.iso8601.dateTimeSeparator(.standard)))
         }
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(entities)
