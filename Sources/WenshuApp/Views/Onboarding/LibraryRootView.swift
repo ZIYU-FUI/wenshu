@@ -238,6 +238,28 @@ struct LibraryRootView: View {
             // is removed and the body is inlined here (= the closure
             // shapes match Apple's documented NavigationSplitView init
             // exactly; = no init signature changes).
+            //
+            // Inject `BookStore` at the NavigationSplitView root.
+            // AppleSidebarView + AssetsPane + PaneView +
+            // TabContentDispatcher + PreviewPane + BookmarkView +
+            // ChatZoneView + EditorView all declare non-optional
+            // `@Environment(BookStore.self)`. Without this explicit
+            // `.environment(bookStore)` injection, the first access to
+            // `bookStore` from any sidebar / content column body
+            // fatal-asserts with "No Observable object of type BookStore
+            // found". The detail column's EditorView + ChatZoneView are
+            // already covered via EditorChatNSController's
+            // NSHostingController `.environment(bookStore)` injection
+            // (= the SwiftUI @Environment chain does not propagate
+            // across the NSHostingController boundary = the controller
+            // must inject manually). Sidebar + content columns are
+            // direct SwiftUI rows = a single `.environment(bookStore)`
+            // at the NavigationSplitView root suffices.
+            //
+            // The unwrap is safe: `if let bookStore` already shadowed
+            // the optional `self.bookStore` into a non-nil local, so
+            // this value is the same one the SwiftUI body just bound
+            // (= nil ruled out by the guard above).
             NavigationSplitView {
                 AppleSidebarView()
             } content: {
@@ -262,6 +284,7 @@ struct LibraryRootView: View {
                     )
                 }
             }
+            .environment(bookStore)
         } else {
             // BookStore is built asynchronously by LibraryLifecycleHook.
             // Column bodies read it as a non-optional @Environment value,
