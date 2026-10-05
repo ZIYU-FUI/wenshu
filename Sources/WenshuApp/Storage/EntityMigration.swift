@@ -91,7 +91,7 @@ enum EntityMigration {
         )
 
         // Stamp the flag file (= idempotency token).
-        try? Data("v2.3-migrated at \(ISO8601DateFormatter().string(from: Date()))\n".utf8)
+        try? Data("v2.3-migrated at \(Date().formatted(.iso8601))\n".utf8)
             .write(to: flagURL, options: .atomic)
 
         return EntityMigrationResult(
@@ -229,10 +229,14 @@ enum EntityMigration {
     /// input rather than crashing the migration).
     private static func parseISODate(_ s: String?) -> Date? {
         guard let s else { return nil }
-        let plain = ISO8601DateFormatter()
-        if let d = plain.date(from: s) { return d }
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return fractional.date(from: s)
+        // Apple HIG canonical ISO-8601 parsing via
+        // Date.ISO8601FormatStyle (= macOS 12+; = the Swift-native
+        // ISO8601DateFormatter equivalent). The plain format
+        // (no fractional seconds) is tried first; if that fails
+        // (= the input carries sub-second precision), retry with
+        // the fractional-seconds variant.
+        if let d = try? Date(s, strategy: .iso8601) { return d }
+        if let d = try? Date(s, strategy: .iso8601.dateTimeSeparator(.standard)) { return d }
+        return nil
     }
 }

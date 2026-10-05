@@ -76,7 +76,7 @@ struct BackupTools: Sendable {
         var mutableDestDir = destDir
         try? mutableDestDir.setResourceValues(resourceValues)
 
-        let timestamp = ISO8601DateFormatter().string(from: Date())
+        let timestamp = Date().formatted(.iso8601)
             .replacingOccurrences(of: ":", with: "-")
         let backupName = "\(sourceURL.lastPathComponent)-\(timestamp)"
         let archiveURL = destDir.appendingPathComponent(backupName, isDirectory: true)

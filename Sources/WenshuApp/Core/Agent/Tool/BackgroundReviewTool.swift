@@ -91,7 +91,7 @@ final class BackgroundReviewTool: Tool, @unchecked Sendable {
                         "id": proposal.id.uuidString,
                         "kind": proposal.kind.rawValue,
                         "title": proposal.title,
-                        "submitted_at": ISO8601DateFormatter().string(from: proposal.submittedAt)
+                        "submitted_at": proposal.submittedAt.formatted(.iso8601)
                     ]
                 }
             ]

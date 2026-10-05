@@ -95,7 +95,7 @@ final class LiveArchivistStorage: ArchivistStorage {
             at: archiveRoot,
             withIntermediateDirectories: true
         )
-        let stamp = ISO8601DateFormatter().string(from: Date())
+        let stamp = Date().formatted(.iso8601)
             .replacingOccurrences(of: ":", with: "-")
         let safeLabel = label
             .components(separatedBy: CharacterSet.alphanumerics.inverted)

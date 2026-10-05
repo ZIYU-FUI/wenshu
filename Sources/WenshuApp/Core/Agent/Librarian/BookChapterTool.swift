@@ -673,15 +673,13 @@ actor BookChapterActor {
     }
 
     private static func descriptorToJSON(_ d: ChapterDescriptor) -> [String: Any] {
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime]
-        return [
+                return [
             "id": d.id.uuidString,
             "book_id": d.bookId.uuidString,
             "title": d.title,
             "summary": d.summary,
-            "createdAt": iso.string(from: d.createdAt),
-            "updatedAt": iso.string(from: d.updatedAt)
+            "createdAt": d.createdAt.formatted(.iso8601),
+            "updatedAt": d.updatedAt.formatted(.iso8601)
         ]
     }
 

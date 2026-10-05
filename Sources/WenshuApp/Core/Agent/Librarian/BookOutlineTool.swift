@@ -518,16 +518,14 @@ actor BookOutlineActor {
     }
 
     private static func descriptorToJSON(_ d: OutlineEntryDescriptor) -> [String: Any] {
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime]
-        var dict: [String: Any] = [
+                var dict: [String: Any] = [
             "id": d.id.uuidString,
             "book_id": d.bookId.uuidString,
             "title": d.title,
             "summary": d.summary,
             "order": d.order,
-            "createdAt": iso.string(from: d.createdAt),
-            "updatedAt": iso.string(from: d.updatedAt)
+            "createdAt": d.createdAt.formatted(.iso8601),
+            "updatedAt": d.updatedAt.formatted(.iso8601)
         ]
         if let parent = d.parent {
             dict["parent"] = parent.uuidString

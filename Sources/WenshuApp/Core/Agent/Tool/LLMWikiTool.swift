@@ -139,7 +139,7 @@ final class LLMWikiTool: Tool, @unchecked Sendable {
         var response: [String: Any] = [
             "ok": true,
             "action": action,
-            "ran_at": ISO8601DateFormatter().string(from: result.ranAt)
+            "ran_at": result.ranAt.formatted(.iso8601)
         ]
         if let stats = result.stats {
             response["stats"] = [

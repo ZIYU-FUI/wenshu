@@ -88,10 +88,8 @@ actor CuratorBackup {
     }
 
     private static func makeSnapshotID() -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        let short = UUID().uuidString.prefix(8)
-        return formatter.string(from: Date())
+                let short = UUID().uuidString.prefix(8)
+        return Date().formatted(.iso8601)
             .replacingOccurrences(of: ":", with: "-")
             + "-\(short)"
     }

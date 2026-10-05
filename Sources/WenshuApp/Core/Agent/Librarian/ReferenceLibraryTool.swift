@@ -822,17 +822,15 @@ actor ReferenceLibraryActor {
     }
 
     private static func descriptorToJSON(_ d: ReferenceDescriptor) -> [String: Any] {
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime]
-        var dict: [String: Any] = [
+                var dict: [String: Any] = [
             "id": d.id.uuidString,
             "title": d.title,
             "displayTitle": d.displayTitle ?? d.title,
             "layer": d.layer,
             "entity_type": d.entityType,
             "summary": d.summary,
-            "createdAt": iso.string(from: d.createdAt),
-            "updatedAt": iso.string(from: d.updatedAt)
+            "createdAt": d.createdAt.formatted(.iso8601),
+            "updatedAt": d.updatedAt.formatted(.iso8601)
         ]
         if let category = d.category { dict["category"] = category }
         if let source = d.source { dict["source"] = source }

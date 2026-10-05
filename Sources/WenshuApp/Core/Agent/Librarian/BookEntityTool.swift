@@ -527,8 +527,8 @@ actor BookEntityActor {
             "attributes": entity.attributes,
             "kind_specific": String(describing: entity.kindSpecific),
             "body_excerpt": entity.bodyExcerpt,
-            "created_at": ISO8601DateFormatter().string(from: entity.createdAt),
-            "updated_at": ISO8601DateFormatter().string(from: entity.updatedAt)
+            "created_at": entity.createdAt.formatted(.iso8601),
+            "updated_at": entity.updatedAt.formatted(.iso8601)
         ]
     }
 

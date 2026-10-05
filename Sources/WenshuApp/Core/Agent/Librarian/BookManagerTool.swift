@@ -531,16 +531,14 @@ actor BookManager {
     }
 
     private static func descriptorToJSON(_ descriptor: BookDescriptor) -> [String: Any] {
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime]
-        var dict: [String: Any] = [
+                var dict: [String: Any] = [
             "id": descriptor.id.uuidString,
             "title": descriptor.title,
             "author": descriptor.author,
             "shelfId": descriptor.shelfId.uuidString,
             "description": descriptor.description,
-            "createdAt": iso.string(from: descriptor.createdAt),
-            "lastEditedAt": iso.string(from: descriptor.lastEditedAt)
+            "createdAt": descriptor.createdAt.formatted(.iso8601),
+            "lastEditedAt": descriptor.lastEditedAt.formatted(.iso8601)
         ]
         // Expose "idea" as an alias for "description" so the LLM
         // can also read the canonical wenshu field name (= Book.idea)

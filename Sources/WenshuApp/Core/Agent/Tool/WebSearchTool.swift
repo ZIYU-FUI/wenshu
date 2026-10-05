@@ -51,7 +51,7 @@ final class WebSearchTool: Tool, @unchecked Sendable {
                     "snippet": result.snippet
                 ]
                 if let published = result.publishedAt {
-                    dict["published_at"] = ISO8601DateFormatter().string(from: published)
+                    dict["published_at"] = published.formatted(.iso8601)
                 }
                 return dict
             }
@@ -87,7 +87,7 @@ final class WebSearchTool: Tool, @unchecked Sendable {
                 "query": report.query,
                 "summary": report.summary,
                 "sources": sources,
-                "generated_at": ISO8601DateFormatter().string(from: report.generatedAt)
+                "generated_at": report.generatedAt.formatted(.iso8601)
             ])
         } catch let error as KeylessRing.RingError {
             return jsonError(action: "research", message: error.errorDescription ?? "research failed")

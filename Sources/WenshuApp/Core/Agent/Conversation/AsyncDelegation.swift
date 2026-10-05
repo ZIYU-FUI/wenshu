@@ -383,7 +383,7 @@ func delegate(
         summary: "",
         metadata: [
             "agent": subagentProfile,
-            "registered_at": ISO8601DateFormatter().string(from: handle.startedAt)
+            "registered_at": handle.startedAt.formatted(.iso8601)
         ]
     )
 }

@@ -106,14 +106,14 @@ struct FileSystemEntityStore: EntityStoring {
                 let str = try container.decode(String.self)
                 // Try the fractional-seconds form first; fall back to
                 // plain iso8601 (= forgiving for old data written
-                // before the v2.3 schema).
-                let fractional = ISO8601DateFormatter()
-                fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                if let d = fractional.date(from: str) {
+                // before the v2.3 schema). Apple HIG canonical
+                // ISO-8601 parsing via Date.ISO8601FormatStyle
+                // (= macOS 12+; = the Swift-native ISO8601DateFormatter
+                // equivalent).
+                if let d = try? Date(str, strategy: .iso8601.dateTimeSeparator(.standard)) {
                     return d
                 }
-                let plain = ISO8601DateFormatter()
-                if let d = plain.date(from: str) {
+                if let d = try? Date(str, strategy: .iso8601) {
                     return d
                 }
                 // Last-resort fallback (= shouldn't happen but avoids
