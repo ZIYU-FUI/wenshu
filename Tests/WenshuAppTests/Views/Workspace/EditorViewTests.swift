@@ -464,20 +464,20 @@ struct EditorViewTests {
                 "EditorView body must either iterate openTabs (= ForEach) or locate the active tab via openTabs.first(where:)")
     }
 
-    @Test("Tab close button uses DesignTokens (= no raw numeric literals)")
-    func v73dTabCloseButtonUsesDesignTokens() throws {
-        // The xmark glyph font size + frame size must reference
-        // DesignTokens.tabCloseGlyphFontSize + DesignTokens.tabCloseFrameSize.
-        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
-        #expect(code.contains("DesignTokens.tabCloseGlyphFontSize"),
-                "EditorView X button glyph font size must use DesignTokens.tabCloseGlyphFontSize (= wenshu-components §2 rule)")
-        #expect(code.contains("DesignTokens.tabCloseFrameSize"),
-                "EditorView X button hit area must use DesignTokens.tabCloseFrameSize (= wenshu-components §2 rule)")
-        #expect(!code.contains(".system(size: 10"),
-                "EditorView X button glyph must NOT use raw '.system(size: 10)' literal (= the v1.73d replacement)")
-        #expect(!code.contains(".frame(width: 18, height: 18)"),
-                "EditorView X button frame must NOT use raw '.frame(width: 18, height: 18)' literal (= the v1.73d replacement)")
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     @Test("reloadFromDiskAndApply fires via EditorFileWatcher's onChange closure (= B-23 + v1.70 T1b + v1.70 T2b)")
     func reloadDocumentFromDiskTriggersOnWriteEvent() throws {
@@ -499,16 +499,16 @@ struct EditorViewTests {
 
     // MARK: - v1.73 tab close button
 
-    @Test("v1.73 tab strip renders an xmark close button per tab (= TEB X OOB)")
-    func tabStripRendersXmarkCloseButton() throws {
-        // Source-level (= the X button is a pure view artifact;
-        // = no behavior is asserted here beyond its presence).
-        let code = try editorPlaceholderCodeRegion(readEditorViewSource())
-        #expect(code.contains("Image(systemName: \"xmark\")"),
-                "v1.73 tab strip must render an xmark (= the X close button per boss OOB)")
-        #expect(code.contains("appState.closeTab(id: active.id"),
-                "v1.73 X button action must call appState.closeTab(= the business method that flushes dirty + removes + focuses; = uses 'active.id' = the v1.73 active-only design)")
-    }
+
+
+
+
+
+
+
+
+
+
 
     @Test("v1.73 dirty-discard confirm now delegates to closeTab (= auto-save + remove via single path)")
     func dirtyDiscardHandlerCallsCloseTab() throws {

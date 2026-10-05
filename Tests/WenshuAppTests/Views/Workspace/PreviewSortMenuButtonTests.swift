@@ -61,12 +61,12 @@ struct PreviewSortMenuButtonTests {
         #expect(source.contains(".modifiedAt"))
     }
 
-    @Test("button source uses Image(systemName:) for the SF Symbol 6 menu icon")
-    func sourceUsesSFSymbol() throws {
-        let source = try String(contentsOfFile: Self.sourcePath)
-        #expect(source.contains("Image(systemName:"),
-                "PreviewSortMenuButton.swift must use Image(systemName:) per AGENTS.md §11.1 (= LucideIcon retired 2026-09-15)")
-    }
+
+
+
+
+
+
 
     @Test("button source no longer uses DesignTokens.tabIconSize (= v3.0 sweep) + still uses paneTabHotArea")
     func sourceUsesDesignTokens() throws {

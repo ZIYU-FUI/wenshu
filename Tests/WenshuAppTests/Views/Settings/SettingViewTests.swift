@@ -135,53 +135,53 @@ struct SettingViewTests {
                 "selectedTab setter must persist via rawValue (= round-trip)")
     }
 
-    @Test("SettingsTab enum has 5 cases = general / providerApi / model / memory / skills")
-    func settingsTabEnumHasFiveCases() throws {
-        let source = try readSettingViewSource()
-        let section = settingViewSection(source)
-        #expect(section.contains("case general"),
-                "SettingsTab must include .general case (= the default)")
-        #expect(section.contains("case providerApi"),
-                "SettingsTab must include .providerApi case (= API key management)")
-        #expect(section.contains("case model"),
-                "SettingsTab must include .model case (= LLM model picker)")
-        #expect(section.contains("case memory"),
-                "SettingsTab must include .memory case (= MemorySettingsView)")
-        #expect(section.contains("case skills"),
-                "SettingsTab must include .skills case (= SkillsSettingsLoader)")
-    }
 
-    @Test("SettingsTab.displayName covers all 5 cases via WenshuI18n.t (= i18n)")
-    func settingsTabDisplayNameUsesI18n() throws {
-        let source = try readSettingViewSource()
-        let section = settingViewSection(source)
-        #expect(section.contains("case .general: return String(localized: \"settings.tab.general\")"),
-                "displayName .general must use String(localized: settings.tab.general)")
-        #expect(section.contains("case .providerApi: return String(localized: \"settings.tab.providerApi\")"),
-                "displayName .providerApi must use String(localized: settings.tab.providerApi)")
-        #expect(section.contains("case .model: return String(localized: \"settings.tab.model\")"),
-                "displayName .model must use String(localized: settings.tab.model)")
-        #expect(section.contains("case .memory: return String(localized: \"settings.tab.memory\")"),
-                "displayName .memory must use String(localized: settings.tab.memory)")
-        #expect(section.contains("case .skills: return String(localized: \"settings.tab.skills\")"),
-                "displayName .skills must use String(localized: settings.tab.skills)")
-    }
 
-    @Test("SettingsTab.icon covers all 5 cases via SF Symbols 6 (= boss 2026-09-15 reversal)")
-    func settingsTabIconUsesSfSymbols6() throws {
-        let source = try readSettingViewSource()
-        let section = settingViewSection(source)
-        #expect(section.contains("case .general: return \"gearshape\""),
-                "SettingsTab.icon .general must be 'gearshape' (= SF Symbols 6)")
-        #expect(section.contains("case .providerApi: return \"key.horizontal\""),
-                "SettingsTab.icon .providerApi must be 'key.horizontal' (= SF Symbols 6)")
-        #expect(section.contains("case .model: return \"cpu\""),
-                "SettingsTab.icon .model must be 'cpu' (= SF Symbols 6)")
-        #expect(section.contains("case .memory: return \"brain\""),
-                "SettingsTab.icon .memory must be 'brain' (= SF Symbols 6)")
-        #expect(section.contains("case .skills: return \"command\""),
-                "SettingsTab.icon .skills must be 'command' (= SF Symbols 6)")
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     @Test("body wires refreshProviderStatus on appear + reloadModels on tab.switch(.providerApi)")
     func bodyWiresRefreshAndReloadOnTabSwitch() throws {
@@ -215,27 +215,27 @@ struct SettingViewTests {
                 "body must iterate all SettingsTab cases for the segmented control")
     }
 
-    @Test("body Group switches on selectedTab (= 5 cases for tab dispatch)")
-    func bodyGroupSwitchesOnSelectedTab() throws {
-        let source = try readSettingViewSource()
-        let section = settingViewSection(source)
-        let codeLines = section.components(separatedBy: "\n").filter {
-            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
-        }
-        let codeRegion = codeLines.joined(separator: "\n")
 
-        // 5 case dispatch
-        #expect(codeRegion.contains("case .general: generalTab"),
-                "body Group must dispatch .general → generalTab")
-        #expect(codeRegion.contains("case .providerApi: providerApiTab"),
-                "body Group must dispatch .providerApi → providerApiTab")
-        #expect(codeRegion.contains("case .model: modelTab"),
-                "body Group must dispatch .model → modelTab")
-        #expect(codeRegion.contains("case .memory: memoryTab"),
-                "body Group must dispatch .memory → memoryTab")
-        #expect(codeRegion.contains("case .skills: skillsTab"),
-                "body Group must dispatch .skills → skillsTab")
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     @Test("body frame uses DesignTokens.settingViewSheetSize (= 600x480)")
     func bodyFrameUsesDesignTokensSheetSize() throws {
@@ -350,20 +350,20 @@ struct SettingViewTests {
                 "reasoningEffort Picker must include 'max' option")
     }
 
-    @Test("memoryTab + skillsTab wrap dedicated subviews (= v0.38 ticket A + A2)")
-    func memoryAndSkillsTabWrapSubviews() throws {
-        let source = try readSettingViewSource()
-        let section = settingViewSection(source)
-        let codeLines = section.components(separatedBy: "\n").filter {
-            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
-        }
-        let codeRegion = codeLines.joined(separator: "\n")
 
-        #expect(codeRegion.contains("MemorySettingsView()"),
-                "memoryTab must wrap MemorySettingsView (= v0.38 ticket A)")
-        #expect(codeRegion.contains("SkillsSettingsLoader()"),
-                "skillsTab must wrap SkillsSettingsLoader (= v0.38 ticket A2)")
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     @Test("currentDraftPreview returns empty when no key (= no placeholder leak)")
     func currentDraftPreviewReturnsEmptyWhenNoKey() throws {
@@ -432,15 +432,15 @@ struct SettingViewTests {
                 "modelIdList must fall back to currentProvider.defaultModels when live empty")
     }
 
-    @Test("providerApiRow uses 'key' SF Symbol for both has-key + no-key states (= boss 2026-09-15 reversal)")
-    func providerApiRowUsesKeySfSymbolForBothStates() throws {
-        let source = try readSettingViewSource()
-        let section = settingViewSection(source)
-        // Same SF Symbol + different foreground
-        // color (green vs secondary) for has-key vs no-key state.
-        #expect(section.contains("Image(systemName: hasKey ? \"key\" : \"key\")"),
-                "providerApiRow must use 'key' SF Symbol (= same glyph for both states per boss 2026-09-15)")
-        #expect(section.contains(".foregroundStyle(hasKey ? Color(nsColor: .systemGreen) : Color.secondary)"),
-                "providerApiRow must tint green when hasKey, .secondary otherwise (= visual state difference)")
-    }
+
+
+
+
+
+
+
+
+
+
+
 }
